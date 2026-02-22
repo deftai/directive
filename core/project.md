@@ -39,7 +39,16 @@ ls secrets/
 - ? Distributed tracing for complex workflows
 
 ## Project-Specific Rules
+### Volatile Dependency Abstraction
 
+- ! Wrap volatile/external dependencies behind project-defined abstract interfaces before business-logic usage.
+- ⊗ Import vendor SDKs directly in domain/service/handler layers; vendor SDKs belong only in adapter/infrastructure implementations.
+- ! Support provider selection via configuration/environment and dependency injection, not business-logic edits.
+- ! For integration-heavy domains, provide at least one production provider and one local/dev/mock provider when feasible.
+- ! Add contract tests for each abstraction and parity tests across all active provider implementations.
+- ~ Require an abstraction by default for dependencies with lock-in, compliance, pricing, or availability risk (auth, payments, messaging, storage, search, queues, analytics).
+- ! Document each abstraction with: purpose, interface contract, provider list, selection config, and migration notes.
+- ? Allow direct dependency usage only for stable low-volatility internals, and document exceptions explicitly.
 (Add your custom rules here)
 
 ---
