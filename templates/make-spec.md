@@ -41,7 +41,14 @@ N. [feature]
 
 ## Output Generation
 
-- ! Generate as SPECIFICATION.md
+**Specification flow:**
+1. ! Write `./vbrief/specification.vbrief.json` with `status: draft`
+2. ! Summarize what was decided and ask the user to review
+3. ! On user approval, update `status` to `approved` in the vbrief file
+4. ! Run `task spec:render` (or generate `SPECIFICATION.md` directly if task unavailable)
+5. ? For add-on specs: write `./vbrief/specification-{name}.vbrief.json` → `SPECIFICATION-{name}.md`
+
+- ⊗ Write `SPECIFICATION.md` directly — it is generated from the vbrief source
 - ! follow all relevant deft guidelines
 - ! use RFC2119 MUST, SHOULD, MAY, SHOULD NOT, MUST NOT wording
 - ! Break into phases, subphases, tasks

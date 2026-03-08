@@ -78,6 +78,63 @@ tasks:
           echo "warping not installed in /usr/local/bin"
         fi
 
+  spec:validate:
+    desc: Validate that vbrief/specification.vbrief.json exists and is well-formed JSON
+    cmds:
+      - |
+        SPEC_FILE="{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"
+        if [ ! -f "$SPEC_FILE" ]; then
+          echo "✗ vbrief/specification.vbrief.json not found"
+          echo "  Create it by running the interview process (see deft/templates/make-spec.md)"
+          exit 1
+        fi
+        if ! python3 -c "import json, sys; json.load(open('$SPEC_FILE'))" 2>/dev/null; then
+          echo "✗ vbrief/specification.vbrief.json is not valid JSON"
+          exit 1
+        fi
+        echo "✓ vbrief/specification.vbrief.json is valid"
+
+  spec:render:
+    desc: Render vbrief/specification.vbrief.json to SPECIFICATION.md
+    deps:
+      - spec:validate
+    cmds:
+      - |
+        SPEC_FILE="{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"
+        OUT_FILE="{{.USER_WORKING_DIR}}/SPECIFICATION.md"
+        STATUS=$(python3 -c "import json; d=json.load(open('$SPEC_FILE')); print(d.get('status',''))" 2>/dev/null)
+        if [ "$STATUS" != "approved" ]; then
+          echo "⚠ specification.vbrief.json status is '$STATUS' (expected 'approved')"
+          echo "  Have the user review and set status to 'approved' before rendering."
+          exit 1
+        fi
+        python3 - <<'EOF'
+        import json, sys
+        with open("$SPEC_FILE") as f:
+            spec = json.load(f)
+        lines = []
+        title = spec.get("title", spec.get("plan", "Specification"))
+        lines.append(f"# {title}\n")
+        if overview := spec.get("overview") or spec.get("description"):
+            lines.append(f"{overview}\n")
+        for task in spec.get("tasks", []):
+            task_id = task.get("id", "")
+            do = task.get("do", task.get("title", ""))
+            status = task.get("status", "")
+            lines.append(f"## {task_id}: {do}  \`[{status}]\`\n")
+            for key in ("narrative", "acceptance", "why"):
+                if val := task.get(key):
+                    if isinstance(val, list):
+                        for item in val:
+                            lines.append(f"- {item}")
+                        lines.append("")
+                    else:
+                        lines.append(f"{val}\n")
+        with open("$OUT_FILE", "w") as f:
+            f.write("\n".join(lines))
+        EOF
+        echo "✓ Rendered to SPECIFICATION.md"
+
   stats:
     desc: Show framework statistics
     cmds:

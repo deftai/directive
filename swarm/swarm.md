@@ -85,18 +85,19 @@ class AgentTaskOutput(BaseModel):
     
     task_id: str
     agent_id: str  # ! For traceability
-    status: Literal['success', 'failed', 'partial', 'blocked']
+    status: Literal['done', 'blocked', 'skip']  # vBRIEF status vocabulary
     changes: list[FileChange]
     tests_passed: bool
-    notes: str  # For next agent
+    notes: str  # For next agent — persist to vBRIEF task narrative
     blocking_issues: list[str]
 ```
 
-**Status Values:**
-- `success` - Task completed fully
-- `partial` - Some work done, needs continuation
-- `blocked` - Cannot proceed, needs resolution
-- `failed` - Attempted but failed, needs different approach
+**Status Values (aligned with vBRIEF):**
+- `done` - Task completed fully
+- `blocked` - Cannot proceed, needs resolution; record reason in task narrative
+- `skip` - Intentionally not done; record reason in task narrative
+
+**Note:** `partial` maps to `doing` in vBRIEF (task started but not done). `failed` should be `blocked` with a narrative explaining the failure.
 
 ## Model Best Practices
 
@@ -159,15 +160,12 @@ new_state = state.model_copy(deep=True, update={'status': 'completed'})
 
 ## Coordination Artifacts
 
-**Shared State:**
-- ! Use `swarm/state.json` for active task tracking
-- ! Update state on task start/complete
-- ! Include: task_id, agent_id, files_locked, status, started_at
-
-**Progress Tracking:**
-- ~ Update `swarm/progress.md` with completed tasks
-- ! Mark dependencies as satisfied
-- ~ Note blockers and required interventions
+**Shared State (`./vbrief/plan.vbrief.json`):**
+- ! Use `./vbrief/plan.vbrief.json` for active task tracking — NOT a custom `swarm/state.json`
+- ! Update task status on start (`doing`) and complete (`done` / `blocked`)
+- ! Record `agent_id` and `files_locked` in the task narrative
+- ! Record blockers as `blocked` status with narrative explaining the issue
+- ⊗ Create a separate `swarm/state.json` or `swarm/progress.md` — vBRIEF is the shared state
 
 **Architecture Decisions:**
 - ! Document in `docs/decisions/ADR-NNN.md` (Architecture Decision Records)
@@ -230,15 +228,13 @@ Scope: [src/auth.py, tests/test_auth.py]
 Dependencies: [T-038 (database models)]
 ```
 
-**2. Declare Intent:**
-```bash
-# Update swarm/state.json
+**2. Declare Intent (update `./vbrief/plan.vbrief.json`):**
+```json
 {
-  "task_id": "T-042",
-  "agent_id": "agent-3",
-  "files_locked": ["src/auth.py", "tests/test_auth.py"],
-  "status": "in_progress",
-  "started_at": "2026-01-16T04:20:00Z"
+  "id": "T-042",
+  "do": "Implement user authentication with JWT",
+  "status": "doing",
+  "narrative": "agent-3 | files: src/auth.py, tests/test_auth.py | started: 2026-01-16T04:20:00Z"
 }
 ```
 
@@ -265,15 +261,12 @@ task lint
 task check
 ```
 
-**6. Report:**
-```bash
-# Update swarm/state.json
+**6. Report (update `./vbrief/plan.vbrief.json`):**
+```json
 {
-  "task_id": "T-042",
-  "status": "success",
-  "completed_at": "2026-01-16T04:25:00Z",
-  "tests_passed": true,
-  "notes": "JWT auth complete. Ready for T-043 (role-based permissions)."
+  "id": "T-042",
+  "status": "done",
+  "narrative": "JWT auth complete. tests_passed: true. Ready for T-043 (role-based permissions)."
 }
 ```
 

@@ -203,58 +203,55 @@ flowchart LR
 
 **Input:** Approved `plan.md` + supporting documents
 
-**Output:** `specs/[feature]/tasks.md`
+**Output:** `./vbrief/plan.vbrief.json` — the live task tracker for this feature
 
 ### Task Structure
 
-```markdown
-# Tasks: [Feature]
+Write tasks to `./vbrief/plan.vbrief.json` using vBRIEF format:
 
-**Plan**: [link to plan.md]
-**Generated**: [date]
-
-## Task Legend
-- `[P]` = Parallelizable (no dependencies)
-- `[S]` = Sequential (has dependencies)
-- `[B]` = Blocked (waiting on external)
-
-## Parallel Group 1: Setup
-- [P] Task 1.1: Initialize project structure
-- [P] Task 1.2: Configure CI/CD pipeline
-- [P] Task 1.3: Set up development environment
-
-## Parallel Group 2: Contracts (depends on: Group 1)
-- [P] Task 2.1: Define API contracts
-- [P] Task 2.2: Write contract tests
-- [P] Task 2.3: Create data model schemas
-
-## Sequential: Core Implementation (depends on: Group 2)
-- [S] Task 3.1: Implement data layer (depends on: 2.3)
-- [S] Task 3.2: Implement business logic (depends on: 3.1)
-- [S] Task 3.3: Implement API endpoints (depends on: 2.1, 3.2)
-
-## Task Template
-### Task X.Y: [Title]
-- **Depends on**: [task IDs or "none"]
-- **Acceptance**: [criteria from spec]
-- **Effort**: [S/M/L or hours]
-- **Agent**: [optional assignment]
+```json
+{
+  "vbrief": "0.5.0",
+  "plan": "[Feature name]",
+  "tasks": [
+    {
+      "id": "t1.1",
+      "do": "Initialize project structure",
+      "status": "todo",
+      "narrative": "[why this task / acceptance criteria from spec]"
+    },
+    {
+      "id": "t2.1",
+      "do": "Define API contracts",
+      "status": "todo",
+      "edges": [{"type": "blocks", "target": "t3.3"}]
+    },
+    {
+      "id": "t3.1",
+      "do": "Implement data layer",
+      "status": "todo",
+      "edges": [{"type": "blocks", "target": "t3.2"}]
+    }
+  ]
+}
 ```
+
+**Parallelism:** Tasks with no `blocks` edges incoming are parallelizable. Use `blocks` edges instead of the old `[P]`/`[S]`/`[B]` markers.
 
 ### Guidelines
 
 - ! Derive tasks from plan phases and deliverables
-- ! Mark parallelizable tasks with `[P]`
-- ! Reference acceptance criteria from spec
+- ! Use vBRIEF `blocks` edges to express dependencies (replaces `[P]`/`[S]`/`[B]` markers)
+- ! Put acceptance criteria in the task `narrative` field
 - ~ Size tasks for 1-4 hours of work
-- ~ Group independent tasks for parallel execution
+- ~ Assign `agent` field for swarm mode
 - ⊗ Create tasks not traceable to plan
 
 ### Transition Criteria
 
-- ! All plan deliverables have corresponding tasks
-- ! Dependencies form a valid DAG (no cycles)
-- ! Parallel groups identified and marked
+- ! All plan deliverables have corresponding tasks in `./vbrief/plan.vbrief.json`
+- ! Dependencies form a valid DAG (no cycles in `blocks` edges)
+- ! All tasks have `narrative` with acceptance criteria
 
 ---
 
@@ -262,15 +259,15 @@ flowchart LR
 
 **Goal:** Execute tasks following test-first discipline.
 
-**Input:** Approved `tasks.md`
+**Input:** `./vbrief/plan.vbrief.json` with all tasks at `todo` status
 
 ### Process
 
 - ! Write tests BEFORE implementation (Red)
 - ! Implement minimal code to pass tests (Green)
 - ! Refactor while keeping tests green (Refactor)
-- ! Mark tasks complete as they pass acceptance
-- ~ Work on `[P]` tasks in parallel when possible
+- ! Update task status in `./vbrief/plan.vbrief.json` as work progresses (`todo` → `doing` → `done`)
+- ~ Work on tasks with no incoming `blocks` edges in parallel when possible
 
 ### File Creation Order
 
@@ -282,7 +279,7 @@ flowchart LR
 ### Guidelines
 
 - ! Follow project.md Principles throughout
-- ! Update tasks.md status as work progresses
+- ! Update `./vbrief/plan.vbrief.json` task statuses as work progresses
 - ⊗ Implement without failing tests first
 - ⊗ Skip refactoring phase
 
@@ -295,7 +292,7 @@ flowchart LR
 | 1. Principles | project.md | Governing rules |
 | 2. Specify | spec.md | WHAT/WHY |
 | 3. Plan | plan.md + docs | HOW |
-| 4. Tasks | tasks.md | Executable list |
+| 4. Tasks | `./vbrief/plan.vbrief.json` | Live task tracker |
 | 5. Implement | Code + tests | Working software |
 
 ## Directory Structure
@@ -303,11 +300,12 @@ flowchart LR
 ```
 project/
 ├── project.md              # Principles + config
+├── vbrief/
+│   └── plan.vbrief.json    # Phase 4: live task tracker
 ├── specs/
 │   └── 001-feature-name/
 │       ├── spec.md         # Phase 2
 │       ├── plan.md         # Phase 3
-│       ├── tasks.md        # Phase 4
 │       ├── data-model.md   # Phase 3 supporting
 │       ├── research.md     # Phase 3 supporting
 │       └── contracts/      # Phase 3 supporting

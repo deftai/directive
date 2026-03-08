@@ -1,0 +1,79 @@
+# Research Strategy
+
+Look before you leap — investigate the domain before planning.
+
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+
+**⚠️ See also**: [strategies/default.md](./default.md) | [strategies/discuss.md](./discuss.md) | [strategies/brownfield.md](./brownfield.md)
+
+> Adapted from [GSD](https://github.com/gsd-build/get-shit-done) research phase.
+
+---
+
+## When to Use
+
+- ~ Before planning a feature in an unfamiliar domain (auth, payments, real-time, etc.)
+- ~ When the feature involves libraries or APIs the agent hasn't used in this project
+- ? Skip for well-understood domains where the agent has strong existing context
+
+## Output
+
+Produce `{feature}-research.md` with two mandatory sections:
+
+### Don't Hand-Roll
+
+Problems that look simple but have existing, battle-tested solutions.
+
+- ! For each problem area, specify: **problem**, **recommended library/tool**, **why not hand-roll**
+- ! Check the project's existing dependencies first — don't add a library when one is already available
+- ~ Consult official docs for the recommended library (use Context7 or equivalent)
+
+**Example:**
+```
+| Problem | Use This | Don't Hand-Roll Because |
+|---------|----------|------------------------|
+| JWT validation | jose | Edge cases in token expiry, key rotation, algorithm confusion |
+| Email templates | react-email | HTML email rendering is notoriously broken across clients |
+| Rate limiting | express-rate-limit | IP spoofing, distributed state, Redis integration |
+```
+
+### Common Pitfalls
+
+What goes wrong in this domain, why, and how to avoid it.
+
+- ! For each pitfall: **what happens**, **why it happens**, **how to avoid it**, **warning signs**
+- ~ Informed by library docs, codebase patterns, and known failure modes
+- ~ Prioritize pitfalls that agents specifically tend to hit (stubs, missing error handling, hardcoded values)
+
+**Example:**
+```
+**Pitfall: Storing plain-text passwords**
+- What: User passwords saved without hashing
+- Why: Agent implements the happy path and forgets security
+- Avoid: Use bcrypt/argon2, never store raw passwords
+- Warning signs: No crypto import in auth module, password field stored as-is
+```
+
+---
+
+## How Research Feeds Downstream
+
+- ! **Planning** reads research before task decomposition — acceptance criteria account for pitfalls
+- ! **Execution** references "Don't Hand-Roll" — agent uses recommended libraries, not custom code
+- ~ **Verification** checks for pitfall warning signs during stub detection
+
+## Research Scope Rules
+
+- ! Research the **current feature only** — not the entire project
+- ! Time-box research — if it takes longer than the feature, scope is wrong
+- ⊗ Research as a reason to delay execution indefinitely
+- ~ Persist research in `docs/research/` or alongside feature planning artifacts
+
+---
+
+## Anti-Patterns
+
+- ⊗ Building custom solutions for solved problems (JWT parsing, email sending, PDF generation)
+- ⊗ Skipping research for unfamiliar domains ("how hard can auth be?")
+- ⊗ Research that produces a reading list instead of actionable guidance
+- ⊗ Research that doesn't flow into planning (written and never referenced)

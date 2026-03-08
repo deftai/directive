@@ -72,6 +72,17 @@ warping-0.2.0/
 │   ├── tui.md             # Terminal UIs
 │   └── web.md             # Web UIs
 │
+├── verification/          # Agent work verification
+│   ├── verification.md    # 4-tier verification ladder, must-haves, stubs
+│   └── uat.md             # User acceptance test generation
+│
+├── resilience/            # Session continuity & recovery
+│   ├── continue-here.md   # Interruption recovery protocol
+│   └── context-pruning.md # Fresh context per task
+│
+├── contracts/             # Interface contracts
+│   └── boundary-maps.md   # Produces/consumes between slices
+│
 ├── deployments/           # Platform-specific deployment guidance
 │   └── cloud-gov/          # cloud.gov module (optional)
 │
@@ -128,6 +139,20 @@ warping-0.2.0/
 ### 🐝 Swarm
 
 **swarm/swarm.md** - Multi-agent coordination patterns
+
+### ✅ Verification
+
+**verification/verification.md** - 4-tier verification ladder, must-haves, stub detection
+**verification/uat.md** - Auto-generated user acceptance test scripts
+
+### 🛡️ Resilience
+
+**resilience/continue-here.md** - Interruption recovery protocol (vBRIEF-based)
+**resilience/context-pruning.md** - Fresh context per task, eliminating context rot
+
+### 📜 Contracts
+
+**contracts/boundary-maps.md** - Explicit produces/consumes declarations between slices
 
 ### 📝 Templates
 

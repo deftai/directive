@@ -20,10 +20,11 @@ Externalize intermediate state so it doesn't consume context window.
 
 - ~ **Externalize to scratchpad files** — write intermediate reasoning, partial results, and plans to working files rather than holding them in context
 - ~ **Use [vBRIEF](https://vbrief.org)** for structured task plans, checkpoints, and scratchpads — token-efficient, graduated complexity, TRON encoding
-- ~ Start minimal (tasks + statuses), add narratives and edges only as complexity warrants
-- ! **Clean up when done** — remove scratch files after task completion
+- ~ Start minimal (tasks + statuses), add narratives and edges only as complexity warrants; see [vbrief/vbrief.md](../vbrief/vbrief.md) for the canonical file taxonomy
+- ! **Clean up scratch files when done** — ad-hoc scratchpads are working memory, not artifacts
+- ! **Do NOT delete vBRIEF plan/spec files** — `plan.vbrief.json`, `specification.vbrief.json`, and `playbook-*.vbrief.json` are durable; only `continue.vbrief.json` is ephemeral
 - ~ **Persist durable learnings** to [meta/lessons.md](../meta/lessons.md) before discarding scratch state
-- See [working-memory.md](./working-memory.md) for patterns and examples
+- See [working-memory.md](./working-memory.md) for patterns and the durable/ephemeral boundary
 
 ## Strategy 2: Select
 

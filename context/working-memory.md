@@ -44,3 +44,14 @@ Patterns for externalizing intermediate state to files.
 - ~ **Persist durable learnings** to [meta/lessons.md](../meta/lessons.md) before deleting scratch files
 - ≉ Leaving stale scratchpads in the workspace after task completion
 - ? Keep a scratchpad across sessions only if the task spans multiple sessions (see [long-horizon.md](./long-horizon.md))
+
+## vBRIEF Plan and Spec Files Are NOT Scratch
+
+The cleanup rule above applies to **ad-hoc scratchpads**, not to vBRIEF files:
+
+- ⊗ Delete `./vbrief/plan.vbrief.json` as a "scratch file" — it is the durable work plan
+- ⊗ Delete `./vbrief/specification.vbrief.json` — it is the source-of-truth spec
+- ⊗ Delete `./vbrief/playbook-*.vbrief.json` — playbooks are permanent operational knowledge
+- ! Only `./vbrief/continue.vbrief.json` is ephemeral — it is consumed on resume
+
+**See [vbrief/vbrief.md](../vbrief/vbrief.md) for the full taxonomy of durable vs ephemeral vBRIEF files.**

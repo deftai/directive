@@ -9,7 +9,7 @@ Patterns for tasks that span multiple sessions or phases.
 ## Checkpoint / Resume
 
 - ! **On resume, read the checkpoint — don't replay history.** The checkpoint file is the source of truth, not the conversation that produced it.
-- ~ Write checkpoints to `progress.vbrief.json` in the workspace root
+- ~ Write checkpoints to `./vbrief/plan.vbrief.json` in the workspace
 - ~ Use vBRIEF status lifecycle: `todo` → `doing` → `done` / `blocked` / `skip`
 - ~ Include a `plan` field summarizing the overall objective
 - ? Add a `narrative` to tasks that need explanation for a future session or agent
@@ -36,7 +36,8 @@ When tasks have dependencies, express them as vBRIEF edges:
 
 ## Progress Tracking
 
-- ~ Maintain `progress.vbrief.json` for multi-phase work
+- ~ Maintain `./vbrief/plan.vbrief.json` for multi-phase work
 - ~ Update task statuses as work progresses
 - ! Mark tasks `blocked` with a narrative explaining the blocker
 - ~ On task completion, review for learnings worth persisting to [meta/lessons.md](../meta/lessons.md)
+- ⊗ Use a separate `progress.vbrief.json` — progress tracking lives in `plan.vbrief.json`

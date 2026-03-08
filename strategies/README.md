@@ -8,6 +8,8 @@ Development strategies define the workflow from idea to implementation.
 |----------|----------|--------|
 | [default.md](./default.md) | Standard projects | Interview → PRD → SPECIFICATION |
 | [speckit.md](./speckit.md) | Large/complex projects | Principles → Specify → Plan → Tasks → Implement |
+| [brownfield.md](./brownfield.md) | Existing codebases | Map → Plan → Implement |
+| [research.md](./research.md) | Pre-implementation research | Research → Don't Hand-Roll + Common Pitfalls |
 | rapid.md | Quick prototypes | SPECIFICATION only (future) |
 | enterprise.md | Compliance-heavy | PRD → ADR → SPECIFICATION (future) |
 

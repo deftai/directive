@@ -13,6 +13,10 @@
 - Check for custom rules and preferences
 - Override path via `DEFT_USER_PATH` env var; legacy fallback: `core/user.md`
 
+**[core/glossary.md](./core/glossary.md)** - Term definitions
+- Load: When encountering unfamiliar terms (release, feature, demo sentence, context rot, etc.)
+- Contains: work decomposition hierarchy, GSD → Deft term mapping
+
 ## 📋 Task-Based Loading
 
 ### When Writing Code
@@ -69,14 +73,44 @@ Load as needed:
 - **[context/working-memory.md](./context/working-memory.md)** - Scratchpad and externalization patterns with vBRIEF
 - **[context/long-horizon.md](./context/long-horizon.md)** - Multi-session checkpoint/resume patterns
 - **[context/tool-design.md](./context/tool-design.md)** - Designing AI-consumable tools
+- **[context/deterministic-split.md](./context/deterministic-split.md)** - LLM vs deterministic responsibility boundaries
+- **[context/fractal-summaries.md](./context/fractal-summaries.md)** - Hierarchical memory compression (task → feature → release)
 - **[context/examples.md](./context/examples.md)** - Few-shot and behavioral example guidance
 - Load: When tasks are complex, multi-phase, or when context budget is a concern
+
+### When Verifying Agent Work
+
+- **[verification/verification.md](./verification/verification.md)** - Verification ladder, acceptance criteria, stub detection
+- **[verification/uat.md](./verification/uat.md)** - Auto-generated user acceptance test scripts
+- **[verification/plan-checking.md](./verification/plan-checking.md)** - Pre-execution plan verification (coverage, completeness, wiring, scope)
+- **[verification/integration.md](./verification/integration.md)** - Cross-feature wiring verification (export→import, API→consumer, E2E flow)
+- Load: When completing tasks/features, before marking work done
+
+### When Handling Session Interruptions
+
+- **[resilience/continue-here.md](./resilience/continue-here.md)** - Interruption recovery protocol with vBRIEF
+- **[resilience/context-pruning.md](./resilience/context-pruning.md)** - Fresh context per task, eliminating context rot
+- Load: On session end, context exhaustion, or when resuming interrupted work
+
+### When Planning Multi-Feature Work
+
+- **[contracts/boundary-maps.md](./contracts/boundary-maps.md)** - Explicit produces/consumes declarations between features
+- **[strategies/discuss.md](./strategies/discuss.md)** - Structured alignment phase with Feynman technique
+- **[strategies/brownfield.md](./strategies/brownfield.md)** - Codebase mapping for existing projects (stack, architecture, conventions, concerns)
+- **[strategies/research.md](./strategies/research.md)** - Structured research: Don't Hand-Roll + Common Pitfalls output
+- **[core/glossary.md](./core/glossary.md)** - Term definitions (release, feature, task, demo sentence, etc.)
+- Load: When planning features with multiple phases or gray areas
 
 ### When Creating Specifications
 
 **[templates/make-spec.md](./templates/make-spec.md)** - Specification generation
 - Load: When user asks to create a project specification
 - Contains: interview process, output format
+
+**[vbrief/vbrief.md](./vbrief/vbrief.md)** - Canonical vBRIEF usage
+- Load: Whenever creating, reading, or managing vBRIEF files in a project
+- Contains: 5-type taxonomy, naming conventions, lifecycle rules, specification flow, tool mappings
+- Key rule: all vBRIEF files live in `./vbrief/` — never workspace root
 
 ## 🔄 Reference Chains
 
@@ -163,7 +197,7 @@ Load order:
 3. context/context.md (context engineering strategies)
 4. context/long-horizon.md (checkpoint/resume patterns)
 5. context/working-memory.md (scratchpad patterns)
-6. progress.vbrief.json (if resuming — read checkpoint, don't replay history)
+6. `./vbrief/plan.vbrief.json` (if resuming — read checkpoint, don't replay history)
 
 ## 💡 Tips for Agents
 

@@ -39,7 +39,7 @@ flowchart LR
 
 **Input:** User's initial idea (can be vague)
 
-**Output:** Comprehensive answers to all key decisions
+**Output:** Comprehensive answers to all key decisions; key decisions tracked in `./vbrief/plan.vbrief.json`
 
 ### Process
 
@@ -132,7 +132,7 @@ Any remaining decisions deferred to implementation.
 
 **Input:** Approved `PRD.md`
 
-**Output:** `SPECIFICATION.md` — Implementation plan
+**Output:** `./vbrief/specification.vbrief.json` (status: draft → approved) → `task spec:render` → `SPECIFICATION.md`
 
 ### SPECIFICATION Structure
 
@@ -190,7 +190,8 @@ Each task should include:
 
 - ! All PRD requirements mapped to tasks
 - ! Dependencies form a valid DAG (no cycles)
-- ! User has approved specification
+- ! `./vbrief/specification.vbrief.json` status is `approved`
+- ! `SPECIFICATION.md` has been rendered via `task spec:render`
 - ! Ready for "implement SPECIFICATION.md"
 
 ---
@@ -199,9 +200,10 @@ Each task should include:
 
 | Artifact | Purpose | Created By |
 |----------|---------|------------|
-| Interview notes | Decision log | Phase 1 |
-| PRD.md | What to build | Phase 2 |
-| SPECIFICATION.md | How to build it | Phase 3 |
+| `./vbrief/plan.vbrief.json` | Decision log + tracking | Phase 1 |
+| `PRD.md` | What to build | Phase 2 |
+| `./vbrief/specification.vbrief.json` | Spec source of truth | Phase 3 |
+| `SPECIFICATION.md` | Generated implementation plan | Phase 3 (rendered) |
 
 ## Invoking This Strategy
 

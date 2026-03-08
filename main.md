@@ -53,23 +53,17 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ⊗ Hedge or equivocate on technical matters
 - ~ Provide context for recommendations
 
-## Persistence of todo, plan, and playbook information
+## vBRIEF Persistence
 
-- ! CRITICAL shadow all your todo lists to vBrief (https://vbrief.org) files
-- ! CRITICAL shadow all your plans to vBrief files
-- ! vBRIEF plan/todo shadowing is MANDATORY. Non compliance risks project failure.
-- ! Persist todos to ./vbrief/todo-{ULID}.json in vBRIEF format
-- ! Persist plans to ./vbrief/plan-{ULID}.json in vBRIEF format
-- ~ Persist Playbooks/runbooks to ./vbrief/playbook-{ULID}.json in vBRIEF format
-- ! read https://vbrief.org spec for narratives, statuses, etc to use
-- ~ use vbrief narratives to explain the "why" whenever possible
+- ! All vBRIEF files MUST be stored in `./vbrief/` — never in workspace root
+- ! Use `plan.vbrief.json` (singular) for all todos, plans, and progress tracking
+- ! Use `continue.vbrief.json` (singular) for interruption recovery checkpoints
+- ! Specifications are written as `specification.vbrief.json`, then rendered to `.md`
+- ! Playbooks use `playbook-{name}.vbrief.json` (named, not ULID-suffixed)
+- ⊗ Use ULID-suffixed filenames for plan, todo, or continue files
+- ⊗ Place vBRIEF files at workspace root
 
-example vBrief Warp.dev Tool mappings:
-•  tool create_todo_list → new vbrief file
-•  tool add_todos → append items to vbrief file
-•  tool mark_todo_as_done → change vbrief item status to vbrief "completed" equivalent
-•  tool remove_todos → change vbrief item status = "cancelled" (NEVER delete)
-
+**See [vbrief/vbrief.md](./vbrief/vbrief.md) for the full taxonomy, lifecycle rules, and tool mappings.**
 
 ## Continuous Improvement
 
