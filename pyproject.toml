@@ -24,6 +24,7 @@ omit = [
     "tests/*",
     ".venv/*",
     "*/site-packages/*",
+    "run",
 ]
 
 [tool.coverage.report]
