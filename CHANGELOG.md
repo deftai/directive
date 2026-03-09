@@ -5,6 +5,13 @@ All notable changes to the Warping framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-03-08
+
+### Added
+- **Phase 1 Testbed**: Implementation plan for intrinsic regression testing
+- **SPECIFICATION.md**: Generated specification via deft beta workflow
+- **todo.md**: Captured deferred work items and Phase 2 refactoring roadmap
+
 ## [0.5.0] - 2026-02-23
 
 ### Added
@@ -173,6 +180,7 @@ If you have custom scripts or references to warping files, update these paths:
 - Explore new interface guidelines if building CLIs, APIs, or UIs
 - Review enhanced language standards for Python, Go, TypeScript, and C++
 
+[0.5.1]: https://github.com/visionik/deft/releases/tag/v0.5.1
 [0.5.0]: https://github.com/visionik/deft/releases/tag/v0.5.0
 [0.2.2]: https://github.com/visionik/deft/releases/tag/v0.2.2
 [0.2.1]: https://github.com/visionik/warping/releases/tag/v0.2.1
