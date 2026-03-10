@@ -9,9 +9,7 @@ Author: Scott Adams (msadams) — 2026-03-09
 
 import contextlib
 import io
-import os
 import sys
-import tempfile
 from collections import deque
 from pathlib import Path
 from types import SimpleNamespace

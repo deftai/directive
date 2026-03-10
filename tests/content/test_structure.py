@@ -30,10 +30,20 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 # ---------------------------------------------------------------------------
 
 def _load_xfail_files() -> set[str]:
-    """Return the set of file paths that are expected to be missing/broken."""
+    """Return the set of file paths expected to be missing for structure checks.
+
+    Only considers entries whose 'check' field references test_structure,
+    so xfails for other suites (shape, standards, etc.) don't bleed in.
+    """
     kf_path = _REPO_ROOT / "tests/content/snapshots/known_failures.json"
     data = json.loads(kf_path.read_text(encoding="utf-8"))
-    return {entry["file"] for entry in data["known_failures"] if entry.get("xfail")}
+    return {
+        entry["file"]
+        for entry in data["known_failures"]
+        if entry.get("xfail")
+        and "file" in entry
+        and "test_structure" in entry.get("check", "")
+    }
 
 
 _XFAIL_FILES: set[str] = _load_xfail_files()

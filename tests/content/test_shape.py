@@ -26,7 +26,7 @@ _FIXTURES = _REPO_ROOT / "tests/fixtures"
 if str(_FIXTURES) not in sys.path:
     sys.path.insert(0, str(_FIXTURES))
 
-from shapes import (  # noqa: E402
+from shapes import (  # noqa: E402, I001
     INTERFACE_SHAPE,
     LANGUAGE_SHAPE,
     STRATEGY_SHAPE,

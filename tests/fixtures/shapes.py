@@ -96,10 +96,11 @@ def validate_shape(text: str, schema: ShapeSchema) -> list[str]:
         if not any(section.lower() in h for h in headers_lower):
             violations.append(f"missing required section '## {section}'")
 
-    if schema.one_of_sections:
-        if not any(s.lower() in h for s in schema.one_of_sections for h in headers_lower):
-            options = " or ".join(f"'## {s}'" for s in schema.one_of_sections)
-            violations.append(f"missing at least one of: {options}")
+    if schema.one_of_sections and not any(
+        s.lower() in h for s in schema.one_of_sections for h in headers_lower
+    ):
+        options = " or ".join(f"'## {s}'" for s in schema.one_of_sections)
+        violations.append(f"missing at least one of: {options}")
 
     if schema.min_h2_count > 0 and len(headers) < schema.min_h2_count:
         violations.append(
