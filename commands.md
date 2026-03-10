@@ -13,14 +13,14 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 Each change is a self-contained unit of work with its own folder in `history/changes/`. The lifecycle is:
 
 ```
-/deft:run:change <name>  →  /deft:run:change:apply  →  /deft:run:change:verify  →  /deft:run:change:archive
+/deft:change <name>  →  /deft:change:apply  →  /deft:change:verify  →  /deft:change:archive
         │                          │                          │                          │
    Create proposal          Implement tasks           Verify outcomes          Move to archive
 ```
 
 ---
 
-## `/deft:run:change <name>`
+## `/deft:change <name>`
 
 Create a scoped change proposal.
 
@@ -116,7 +116,7 @@ Spec deltas capture how requirements change. See [context/spec-deltas.md](./cont
 
 ---
 
-## `/deft:run:change:apply`
+## `/deft:change:apply`
 
 Implement the active change's tasks.
 
@@ -138,7 +138,7 @@ Implement the active change's tasks.
 
 ---
 
-## `/deft:run:change:verify`
+## `/deft:change:verify`
 
 Verify the active change against its acceptance criteria.
 
@@ -153,7 +153,7 @@ Verify the active change against its acceptance criteria.
 
 ---
 
-## `/deft:run:change:archive`
+## `/deft:change:archive`
 
 Archive a completed change.
 

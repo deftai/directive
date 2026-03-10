@@ -106,7 +106,7 @@ Load as needed:
 - **[commands.md](./commands.md)** - Change lifecycle workflows (create, apply, verify, archive)
 - **[history/README.md](./history/README.md)** - Change folder structure and conventions
 - **[context/spec-deltas.md](./context/spec-deltas.md)** - Spec delta format, vBRIEF chain pattern, reading/writing deltas
-- Load: When using `/deft:run:change` commands
+- Load: When using `/deft:change` commands
 
 ### When Creating Specifications
 
