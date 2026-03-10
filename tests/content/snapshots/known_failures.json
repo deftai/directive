@@ -34,6 +34,141 @@
       "fix_in": "Phase 2 (v0.6.0)"
     },
     {
+      "id": "rfc2119-missing-languages-commands",
+      "check": "test_standards.rfc2119_legend_present",
+      "file": "languages/commands.md",
+      "reason": "Missing RFC2119 legend line. Needs to be added as part of Phase 2 standards cleanup.",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
+      "id": "rfc2119-missing-context-context",
+      "check": "test_standards.rfc2119_legend_present",
+      "file": "context/context.md",
+      "reason": "Context engineering files were added without RFC2119 legend. Needs cleanup.",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
+      "id": "rfc2119-missing-context-examples",
+      "check": "test_standards.rfc2119_legend_present",
+      "file": "context/examples.md",
+      "reason": "Context engineering files were added without RFC2119 legend. Needs cleanup.",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
+      "id": "rfc2119-missing-context-long-horizon",
+      "check": "test_standards.rfc2119_legend_present",
+      "file": "context/long-horizon.md",
+      "reason": "Context engineering files were added without RFC2119 legend. Needs cleanup.",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
+      "id": "rfc2119-missing-context-tool-design",
+      "check": "test_standards.rfc2119_legend_present",
+      "file": "context/tool-design.md",
+      "reason": "Context engineering files were added without RFC2119 legend. Needs cleanup.",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
+      "id": "rfc2119-missing-context-working-memory",
+      "check": "test_standards.rfc2119_legend_present",
+      "file": "context/working-memory.md",
+      "reason": "Context engineering files were added without RFC2119 legend. Needs cleanup.",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
+      "id": "rfc2119-exempt-strategies-readme",
+      "check": "test_standards.rfc2119_legend_present",
+      "file": "strategies/README.md",
+      "reason": "Index/overview file — not a standards document. RFC2119 legend not appropriate here.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "deprecated-path-main-md",
+      "check": "test_standards.no_deprecated_user_path",
+      "file": "main.md",
+      "reason": "Still references core/user.md (deprecated path). Should be updated to ~/.config/deft/USER.md.",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
+      "id": "deprecated-path-references-md",
+      "check": "test_standards.no_deprecated_user_path",
+      "file": "REFERENCES.md",
+      "reason": "Still references core/user.md (deprecated path). Should be updated to ~/.config/deft/USER.md.",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
+      "id": "deprecated-path-skill-md",
+      "check": "test_standards.no_deprecated_user_path",
+      "file": "SKILL.md",
+      "reason": "Still references core/user.md (deprecated path). Should be updated to ~/.config/deft/USER.md.",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
+      "id": "deprecated-path-exempt-changelog",
+      "check": "test_standards.no_deprecated_user_path",
+      "file": "CHANGELOG.md",
+      "reason": "Historical changelog entry documenting the old path. Intentionally preserved.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "deprecated-path-exempt-specification",
+      "check": "test_standards.no_deprecated_user_path",
+      "file": "SPECIFICATION.md",
+      "reason": "Specification document referencing the old path as context. Meta doc — exempt.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "deprecated-path-exempt-implementation-plan",
+      "check": "test_standards.no_deprecated_user_path",
+      "file": "IMPLEMENTATION-PLAN.md",
+      "reason": "Planning document referencing the old path as context. Meta doc — exempt.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "warping-exempt-specification",
+      "check": "test_standards.no_warping_references",
+      "file": "SPECIFICATION.md",
+      "reason": "Specification document referencing the old project name for context. Meta doc — exempt.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "warping-exempt-implementation-plan",
+      "check": "test_standards.no_warping_references",
+      "file": "IMPLEMENTATION-PLAN.md",
+      "reason": "Planning document describing rename work. Meta doc — exempt.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "warping-exempt-todo",
+      "check": "test_standards.no_warping_references",
+      "file": "todo.md",
+      "reason": "Todo document describing the Warping->Deft rename task. Meta doc — exempt.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
       "id": "changelog-warping-references",
       "check": "test_standards.no_warping_references",
       "file": "CHANGELOG.md",
