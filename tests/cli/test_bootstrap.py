@@ -1,0 +1,92 @@
+"""
+test_bootstrap.py — Tests for cmd_bootstrap.
+
+Subphase 3.2 of the CLI regression suite (SPECIFICATION.md).
+
+Tests:
+  - Happy path: mocked inputs produce USER.md with expected sections
+  - Output path: file written to get_default_paths()['user']
+  - No crash: exits without exception given minimal valid inputs
+
+Author: Scott Adams (msadams) — 2026-03-10
+"""
+
+from pathlib import Path
+
+
+def _bootstrap_responses(user_path: Path) -> list:
+    """Build the standard 10-response queue for cmd_bootstrap.
+
+    Prompt order (from run:cmd_bootstrap):
+      1. Where to write USER.md          (read_input)
+      2. Your name                        (read_input)
+      3. Coverage threshold               (read_input, default 85)
+      4. Language selection                (read_input, e.g. "1")
+      5. Strategy selection               (read_input, default "1")
+      6. Custom rules                     (read_input, optional)
+      7. Use SOUL.md?                     (read_yn)
+      8. Use morals.md?                   (read_yn)
+      9. Use code-field.md?              (read_yn)
+     10. Run 'run project' now?           (read_yn)
+    """
+    return [
+        str(user_path),   # 1  output path
+        "TestUser",        # 2  name
+        "85",              # 3  coverage
+        "1",               # 4  first language
+        "1",               # 5  first strategy
+        "",                # 6  no custom rules
+        False,             # 7  skip SOUL.md
+        False,             # 8  skip morals.md
+        False,             # 9  skip code-field.md
+        False,             # 10 don't chain to project
+    ]
+
+
+def test_bootstrap_happy_path(
+    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+):
+    """cmd_bootstrap with mocked inputs produces USER.md with expected sections."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    user_path = isolated_env / "USER.md"
+    mock_user_input(_bootstrap_responses(user_path))
+
+    result = run_command("cmd_bootstrap", [])
+
+    assert user_path.exists(), f"USER.md not created at {user_path}"
+    content = user_path.read_text(encoding="utf-8")
+    assert "## Name" in content
+    assert "## Overrides" in content
+    assert "TestUser" in content
+    assert result.return_code in (0, None)
+
+
+def test_bootstrap_output_path(
+    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+):
+    """USER.md is written to the path from get_default_paths()['user']."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    expected_path = deft_run_module.resolve_path(
+        deft_run_module.get_default_paths()["user"]
+    )
+    mock_user_input(_bootstrap_responses(expected_path))
+
+    run_command("cmd_bootstrap", [])
+
+    assert expected_path.exists(), (
+        f"USER.md not at default path {expected_path}"
+    )
+
+
+def test_bootstrap_no_crash(
+    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+):
+    """cmd_bootstrap exits without exception given minimal valid inputs."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    mock_user_input(_bootstrap_responses(isolated_env / "USER.md"))
+
+    result = run_command("cmd_bootstrap", [])
+
+    assert result.return_code in (0, None), (
+        f"Expected success, got rc={result.return_code}\n{result.stderr}"
+    )

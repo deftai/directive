@@ -10,6 +10,7 @@ Author: Scott Adams (msadams) — 2026-03-09
 import contextlib
 import io
 import os
+import sys
 import tempfile
 from collections import deque
 from pathlib import Path
@@ -87,6 +88,18 @@ def deft_module():
     return module
 
 
+@pytest.fixture(scope="session")
+def deft_run_module(deft_module):
+    """Return the underlying deft_run module where cmd_* globals resolve.
+
+    deft_module (from run.py) re-exports deft_run's names, but each cmd_*
+    function's __globals__ points to deft_run's namespace.  Monkeypatching
+    module-level variables (HAS_RICH, get_script_dir, ask_input, etc.) MUST
+    target deft_run — otherwise the patches are invisible to the running code.
+    """
+    return sys.modules["deft_run"]
+
+
 @pytest.fixture
 def isolated_env(tmp_project_dir: Path, monkeypatch: pytest.MonkeyPatch):
     """Combine tmp_project_dir with env var overrides for CLI isolation.
@@ -144,13 +157,14 @@ def run_command(deft_module: Any):
 
 
 @pytest.fixture
-def mock_user_input(deft_module: Any, monkeypatch: pytest.MonkeyPatch):
+def mock_user_input(deft_run_module: Any, monkeypatch: pytest.MonkeyPatch):
     """Factory fixture: queue predetermined responses for interactive prompts.
 
     Patches ask_input, ask_choice, ask_confirm and their legacy aliases
-    (read_input, read_yn) on the deft module so cmd_* functions run
-    non-interactively in tests. All patches are undone after each test
-    by monkeypatch.
+    (read_input, read_yn) on the **deft_run** module so cmd_* functions run
+    non-interactively in tests.  (cmd_* functions resolve these names from
+    deft_run's globals, NOT from the run.py re-export module.)  All patches
+    are undone after each test by monkeypatch.
 
     Args:
         responses: Ordered list of values to return per prompt call.
@@ -179,7 +193,7 @@ def mock_user_input(deft_module: Any, monkeypatch: pytest.MonkeyPatch):
             return queue.popleft()
 
         for name in ("ask_input", "ask_choice", "ask_confirm", "read_input", "read_yn"):
-            if hasattr(deft_module, name):
-                monkeypatch.setattr(deft_module, name, _pop)
+            if hasattr(deft_run_module, name):
+                monkeypatch.setattr(deft_run_module, name, _pop)
 
     return _mock
