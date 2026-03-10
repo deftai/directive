@@ -4,13 +4,19 @@ Deferred work items captured during planning. See SPECIFICATION.md for Phase 1 s
 
 ---
 
-## Phase 1 — Testbed (In Progress)
+## Testbed — Complete (Phases 1–5)
 
-See `SPECIFICATION.md` for full implementation plan.
+All testbed phases are implemented and passing.
+
+**Baseline result (2026-03-10):** 568 passed, 24 xfailed, 0 failures.
+All 24 xfails are documented in `tests/content/snapshots/known_failures.json`.
+`task check` (validate + lint + test) passes clean.
+
+See `SPECIFICATION.md` and `IMPLEMENTATION-PLAN.md` for full details.
 
 ---
 
-## Deferred from Phase 1 — Testbed Completions
+## Deferred from Testbed — Future Test Coverage
 
 ### CI: GitHub Actions workflow
 - Create `.github/workflows/test.yml`
@@ -70,7 +76,7 @@ See `SPECIFICATION.md` for full implementation plan.
 
 ### Rename: "Warping" → "Deft Directive"
 - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping", etc.
-- `Taskfile.yml` has `PROJECT_NAME: warping` and `VERSION: 0.2.0`
+- `Taskfile.yml` `VERSION` — update to match latest release (currently 0.5.2)
 - `warping.sh` still present — remove or deprecate (replaced by `run` in v0.5.0)
 - `CHANGELOG.md` header says "Warping framework"
 - Verify: `test_standards.py` xfail for Warping references should flip to passing
