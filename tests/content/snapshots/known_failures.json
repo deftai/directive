@@ -26,6 +26,38 @@
       "fix_in": "Phase 2 (v0.6.0)"
     },
     {
+      "id": "contracts-strategy-index-rapid-link",
+      "check": "test_contracts.strategy_index_links_resolve",
+      "file": "strategies/rapid.md",
+      "reason": "strategies/rapid.md is linked in a code example in strategies/README.md but the file does not yet exist.",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
+      "id": "contracts-see-also-project-main",
+      "check": "test_contracts.see_also_links_resolve",
+      "composite_key": "PROJECT.md::../main.md",
+      "reason": "PROJECT.md is a leaked bootstrap artifact at repo root with incorrect relative paths (../main.md should be ./main.md).",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
+      "id": "contracts-see-also-project-python",
+      "check": "test_contracts.see_also_links_resolve",
+      "composite_key": "PROJECT.md::../languages/python.md",
+      "reason": "PROJECT.md is a leaked bootstrap artifact at repo root with incorrect relative paths.",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
+      "id": "contracts-see-also-taskfile-migration",
+      "check": "test_contracts.see_also_links_resolve",
+      "composite_key": "tools/taskfile.md::./taskfile-migration.md",
+      "reason": "tools/taskfile-migration.md does not exist — referenced file not yet created.",
+      "xfail": true,
+      "fix_in": "Phase 2 (v0.6.0)"
+    },
+    {
       "id": "discuss-missing-from-strategy-index",
       "check": "test_contracts.discuss_in_strategy_index",
       "file": "strategies/discuss.md",
