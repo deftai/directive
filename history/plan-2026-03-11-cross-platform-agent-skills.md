@@ -81,21 +81,28 @@ git clone https://github.com/visionik/deft && deft/install
 ```
 
 **install.py responsibilities**:
-1. Detect OS (`platform.system()`) 
+1. Detect OS (`platform.system()`)
 2. Validate prerequisites (Python version, git, deft directory structure)
-3. Wire skill discovery into `.agents/skills/` and `.claude/skills/`:
-   - Unix: `os.symlink()`
-   - Windows: `os.symlink()` if Developer Mode → junction via `mklink /J` → copy with drift warning
+3. Wire skill discovery via AGENTS.md (see decision #2)
 4. Ensure USER.md config directory exists (Unix: `~/.config/deft/`, Windows: `%APPDATA%\deft/`, or `$DEFT_USER_PATH`)
-5. Write AGENTS.md fallback for platforms without skill discovery directories
-6. Print next steps
+5. Print next steps
 
 **Future upside**: This positions for `pip install deft-directive` / `pipx install deft-directive` later — install.py logic becomes a post-install hook or `deft install` CLI command.
 
-### 2. Skill Discovery: Don't Depend on Symlinks Alone
+### 2. Skill Discovery: AGENTS.md Only — No Symlinks (Revised 2026-03-11)
 
-Primary mechanism: symlinks (Unix) or junctions (Windows).
-Fallback: AGENTS.md or equivalent config entry pointing agents at `deft/skills/` directly. This is zero-symlink and works everywhere.
+**Decision**: Use AGENTS.md references as the sole skill discovery mechanism. Do not create symlinks, junctions, or copies.
+
+**Supersedes**: Original approach of symlinks (Unix) / junctions (Windows) with AGENTS.md as fallback.
+
+**Reasoning**:
+- AGENTS.md already needs to exist. Deft's README instructs users to add `See deft/main.md` to AGENTS.md as the entry point. Adding two skill references is two more lines in a file that's already required.
+- Symlinks solve a problem AGENTS.md already solves. Both achieve the same outcome: the agent finds and reads the SKILL.md. Symlinks add OS-specific complexity (Windows elevation, Developer Mode, junction same-volume constraint) for no additional capability.
+- Zero platform-specific code. AGENTS.md is a text file. No `os.symlink()`, no `mklink /J` fallback chains, no elevation detection. The installer gets simpler and the failure modes disappear.
+- Debuggable. A user can open AGENTS.md and see exactly how their agent finds deft skills. Symlinks are invisible and confusing when broken.
+- Most agent platforms read AGENTS.md. Claude Code, Codex, Warp, OpenCode — all read project-root instruction files. The `.agents/skills/` directory convention is newer and less universal.
+
+**If a future agent platform requires `.agents/skills/`**: Add symlink support then as an optional flag (`install.py --link-skills`). Don't build it preemptively.
 
 ### 3. Config Path: Platform-Aware Default
 
