@@ -123,9 +123,27 @@ git clone https://github.com/visionik/deft && deft/install
 
 **Implementation note**: The SKILL.md files should include a brief platform detection instruction so agents resolve the correct default path without hardcoding either convention.
 
-### 4. Taskfile: Defer
+### 4. Taskfile: Hard Dependency with Guided Install (Revised 2026-03-11)
 
-Skills don't require Taskfile to function. Agents can run `uv run pytest`, `uv run ruff check .` directly. Long-term, add `platforms:` conditionals in `Taskfile.yml` (v3 supports this).
+**Decision**: Taskfile is a hard dependency. `install.py` checks for `task` on PATH; if missing, tells the user it's required and asks permission to install it. If the user declines, installation stops.
+
+**Supersedes**: Original "defer" approach where skills would fall back to direct commands.
+
+**Reasoning**:
+- Taskfile.yml exists and the entire project assumes it: `deft-build` runs `task check` and `task test:coverage` as quality gates, the README documents `task` commands, and the Taskfile defines the canonical workflows.
+- Making it optional means maintaining two paths (Taskfile and direct commands) for every quality gate. That's complexity with no clear upside — it undermines the convention-over-configuration contract.
+- Taskfile installs easily on all platforms: `go install`, `brew`, `choco`, `scoop`, or standalone binary. The installer can automate this per-OS.
+
+**Install flow**:
+1. `install.py` checks `shutil.which("task")`
+2. If missing: inform user Taskfile is required, show what the install command will do
+3. If user grants permission: run the appropriate install command for the detected OS
+4. If user declines: stop installation cleanly — do not proceed with a partially functional setup
+
+**Separate concern — Taskfile.yml cross-platform fixes**:
+- Several tasks (`install`, `build`, `stats`) use bash syntax (`tar`, `find`, `ln -sf`, `if [ -w ... ]`)
+- These need fixing to work on Windows (use `platforms:` guards in Taskfile v3, or rewrite with cross-platform commands)
+- This is implementation work, not a design decision — tracked separately
 
 ## Key Insight
 
