@@ -104,15 +104,15 @@ When the user types `/deft:run:<name>`, read and follow `strategies/<name>.md`.
 
 See [commands.md](./commands.md) for full workflow details.
 
-- `/deft:run:change <name>` — Create a scoped change proposal in `history/changes/<name>/`
-- `/deft:run:change:apply` — Implement tasks from the active change
-- `/deft:run:change:verify` — Verify the active change against acceptance criteria
-- `/deft:run:change:archive` — Archive completed change to `history/archive/`
+- `/deft:change <name>` — Create a scoped change proposal in `history/changes/<name>/`
+- `/deft:change:apply` — Implement tasks from the active change
+- `/deft:change:verify` — Verify the active change against acceptance criteria
+- `/deft:change:archive` — Archive completed change to `history/archive/`
 
 ### Session
 
-- `/deft:run:continue` — Resume from continue checkpoint ([resilience/continue-here.md](./resilience/continue-here.md))
-- `/deft:run:checkpoint` — Save session state to `./vbrief/continue.vbrief.json`
+- `/deft:continue` — Resume from continue checkpoint ([resilience/continue-here.md](./resilience/continue-here.md))
+- `/deft:checkpoint` — Save session state to `./vbrief/continue.vbrief.json`
 
 ## Context Awareness
 

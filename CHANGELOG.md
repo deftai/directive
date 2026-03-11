@@ -5,6 +5,33 @@ All notable changes to the Deft framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-03-11
+
+### Added
+- **Slash Commands**: `/deft:run:<name>` dispatches to `strategies/<name>.md` (#16)
+  - `/deft:run:interview`, `/deft:run:yolo`, `/deft:run:map`, `/deft:run:discuss`, `/deft:run:research`, `/deft:run:speckit`
+- **Yolo Strategy**: `strategies/yolo.md` — auto-pilot interview where the agent picks all recommended options via "Johnbot" (#16)
+- **Change Lifecycle**: Scoped change proposals with `/deft:change` commands (#17, #20)
+  - `/deft:change <name>` — create proposal in `history/changes/<name>/`
+  - `/deft:change:apply` — implement tasks from active change
+  - `/deft:change:verify` — verify against acceptance criteria
+  - `/deft:change:archive` — archive to `history/archive/<date>-<name>/`
+  - `commands.md` — full workflow documentation
+- **History Directory**: `history/changes/` and `history/archive/` for change tracking (#17)
+- **Spec Deltas**: `context/spec-deltas.md` — track how requirements evolve across changes (#19)
+  - vBRIEF chain pattern linking deltas to baseline specs
+  - GIVEN/WHEN/THEN scenario format for behavioral requirements
+  - Reading protocol: baseline → active deltas in chronological order
+- **Archive Merge Protocol**: Spec delta merge into main spec + CHANGELOG entry on archive (#20)
+- **Session Commands**: `/deft:continue` and `/deft:checkpoint` for session management (#16, #20)
+- **Glossary**: Added "Spec delta" term definition (#19)
+
+### Changed
+- **Strategy Renames**: `default.md` → `interview.md`, `brownfield.md` → `map.md` (#16)
+- **Command Prefix**: Change lifecycle uses `/deft:change` (not `/deft:run:change`); session uses `/deft:continue`/`/deft:checkpoint` (#20)
+- **Cross-references updated** across PROJECT.md, REFERENCES.md, core/glossary.md, and all strategy files (#16)
+- **strategies/README.md**: Added Command column to strategy table, updated selection examples (#16)
+
 ## [0.5.2] - 2026-03-09
 
 ### Changed
@@ -43,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - TUI mode via Textual (interactive wizard with checkboxes, selects)
   - Rich output support with fallback to plain text
 - **Strategies System**: Pluggable development workflows
-  - `strategies/default.md` - DEFaulT 5-phase workflow
+  - `strategies/interview.md` - Interview (standard) workflow
   - `strategies/speckit.md` - SpecKit spec-driven workflow
   - Strategy selection in bootstrap and project commands
 - **RWLDL Tool**: Ralph Wiggum's Loop-de-Loop (`tools/RWLDL.md`)

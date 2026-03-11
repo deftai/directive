@@ -165,7 +165,7 @@ When an agent needs to understand the current state of requirements:
 
 ## After Archiving
 
-When a change is archived via `/deft:run:change:archive`:
+When a change is archived via `/deft:change:archive`:
 
 - ~ Merge the spec delta into the project's main `SPECIFICATION.md` (or its vBRIEF source)
 - ~ The archived spec delta remains as a historical record of *why* the spec changed
