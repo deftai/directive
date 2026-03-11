@@ -104,13 +104,24 @@ git clone https://github.com/visionik/deft && deft/install
 
 **If a future agent platform requires `.agents/skills/`**: Add symlink support then as an optional flag (`install.py --link-skills`). Don't build it preemptively.
 
-### 3. Config Path: Platform-Aware Default
+### 3. Config Path: Platform-Aware Default with Env Var Override (Revised 2026-03-11)
 
-The skills instruct agents to detect the OS and use:
-- **Unix**: `~/.config/deft/USER.md`
-- **Windows**: `$env:APPDATA\deft\USER.md`
+**Decision**: Skills instruct agents to detect the OS and use platform-idiomatic defaults. `$DEFT_USER_PATH` overrides both.
 
-`$DEFT_USER_PATH` overrides both.
+**Defaults**:
+- **Unix** (macOS/Linux): `~/.config/deft/USER.md`
+- **Windows**: `%APPDATA%\deft\USER.md` (e.g. `C:\Users\{user}\AppData\Roaming\deft\USER.md`)
+
+**Override**: `$DEFT_USER_PATH` takes precedence on any platform if set.
+
+**Reasoning**:
+- `~/.config/` follows the XDG Base Directory Specification — the established convention on Unix systems.
+- `%APPDATA%` is the Windows-idiomatic location for per-user application config. Using `~/.config/` on Windows works but feels foreign and hides files in a dot-directory that Windows Explorer doesn't show by default.
+- Agent-driven detection is trivial: `platform.system()` in install.py, or the agent reads the OS from its environment context. No user action required.
+- The `$DEFT_USER_PATH` env var (already defined in the deft-setup skill) provides an escape hatch for non-standard setups (e.g. shared config on a network drive, WSL interop, CI environments).
+- install.py creates the config directory during setup so agents and the CLI can assume it exists.
+
+**Implementation note**: The SKILL.md files should include a brief platform detection instruction so agents resolve the correct default path without hardcoding either convention.
 
 ### 4. Taskfile: Defer
 
