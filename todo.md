@@ -1,86 +1,26 @@
 # Todo
 
-Prioritized work items. Current goal: **get testbed into master**.
+Prioritized work items. Current goal: **agent-driven skills + installation**.
 
 ---
 
-## NOW — Blockers for testbed → master
+## NOW — Agent Skills & Installation
 
-*These must be completed in order before PR #22 (testbed) can merge to master.*
-
-### 1. Land PR #26 on master
-- PR #26 completes the stacked chain — PRs #17, #19, #20 content needs visionik approval
-- **Blocked by**: visionik review (branch protection on master requires 1 approval)
-- Once approved, merge PR #26 via GitHub
-
-### 2. Merge master → beta
-- After PR #26 lands, pull master into beta to pick up all v0.6.0 content
-- Expect merge conflicts in: `CHANGELOG.md`, `main.md`, `core/glossary.md`, `REFERENCES.md`, `strategies/README.md`
-
-### 3. Update test suite for v0.6.0 content
-- **File renames**: update existence tests — old `default.md`/`brownfield.md` → new `interview.md`/`map.md`; add `yolo.md`
-- **New files**: add to expected file lists — `commands.md`, `history/README.md`, `context/spec-deltas.md`
-- **New directories**: add structure tests for `history/changes/`, `history/archive/`
-- **Shape tests**: add checks for new sections in `main.md` (Slash Commands), `commands.md`, updated `REFERENCES.md` and glossary
-- **strategies/README.md**: table now has Command column; discuss.md included
-- Update `known_failures.json` as xfails flip to passing
-- Run `task check` — must pass clean before proceeding
-
-### 4. Reopen PR #22 and merge testbed to master
-- Reopen PR #22 (closed, not merged — head branch is `beta`)
-- PR will auto-update once beta is pushed with updated tests
-- Resolve any remaining conflicts with master
-- Get visionik approval (already a requested reviewer)
-- Testbed baseline will need a new count (currently 568 passed, 24 xfailed)
-
----
-
-## What landed on master (PRs #16–#20, 2026-03-11)
-
-### PR #16 — Slash commands, strategy renames, yolo strategy
-- `/deft:run:<name>` dispatch to `strategies/<name>.md`
-- `default.md` → `interview.md`, `brownfield.md` → `map.md`
-- New `strategies/yolo.md` (auto-pilot interview)
-
-### PR #17 — Change lifecycle workflow and history directory
-- `commands.md` — full `/deft:change` workflow
-- `history/changes/`, `history/archive/` directory structure
-
-### PR #19 — Spec deltas with vBRIEF chain pattern
-- `context/spec-deltas.md` — delta format, reading protocol, merge rules
-
-### PR #20 — Archive lifecycle expansion
-- Spec delta merge protocol, CHANGELOG entry guidance, v0.6.0 CHANGELOG entry
-
-### Open issues from review
-- **#23** — `yolo.md` duplicates ~80% of `interview.md`
-- **#24** — `speckit.md` missing `⚠️ See also` banner
-- **#25** — `commands.md` vBRIEF example diverges from `vbrief/vbrief.md`
-
----
-
-## NEXT — Priority Refactors (after testbed lands on master)
-
-### Convert to TDD mode
-- Set up test infrastructure and convert existing code to TDD workflow
-- Must be completed before starting the skills/installation refactor
-- Prerequisite for validating all subsequent changes
-
-### Agent-driven skills as primary onboarding path
+### 1. Land agent-driven skills (deft-setup + deft-build)
 - **Decision (2026-03-10):** adopt agent-driven skills (PR #18 direction) as the
   primary entry point; CLI commands become a fallback/power-user path
-- Rationale: deft is a framework for AI agents — the setup conversation belongs
-  inside the agent session, not in a 25-prompt CLI questionnaire
-- Reference implementation: PR #18 (`skills/deft-setup/SKILL.md`,
-  `skills/deft-build/SKILL.md`, `skills/install.sh`) — direction is right,
-  but needs TDD coverage and the USER.md gate before merge
+- Reference: PR #18 (`skills/deft-setup/SKILL.md`, `skills/deft-build/SKILL.md`,
+  `skills/install.sh`) — direction is right, but needs USER.md gate before merge
 - Sequencing:
-  1. TDD infrastructure (see above)
-  2. Land `deft-setup` and `deft-build` skills — with tests
-  3. Add USER.md gate to `deft-build` (see below)
-  4. Installer: `curl | sh` is good UX; underlying model can stay `git clone`
+  1. Land `deft-setup` and `deft-build` skills — with tests
+  2. Add USER.md gate to `deft-build` (see Enforce USER.md gate below)
+  3. Installer: `curl | sh` is good UX; underlying model can stay `git clone`
      for now, npx/CLI-on-PATH deferred to future phase
-  5. Demote CLI questionnaire (bootstrap/project/spec) to fallback
+  4. Demote CLI questionnaire (bootstrap/project/spec) to fallback
+
+---
+
+## NEXT — USER.md Gate
 
 ### Enforce USER.md gate in both paths
 - Root cause: on initial setup, agent bypassed `run bootstrap` and jumped directly
@@ -96,7 +36,12 @@ Prioritized work items. Current goal: **get testbed into master**.
 
 ## LATER — Phase 2 (Deft Directive Upgrade)
 
-### Rename: "Warping" → "Deft Directive"
+### Open issues from review
+- **#23** — `yolo.md` duplicates ~80% of `interview.md`
+- **#24** — `speckit.md` missing `⚠️ See also` banner
+- **#25** — `commands.md` vBRIEF example diverges from `vbrief/vbrief.md`
+
+### Rename:
 - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping", etc.
 - `Taskfile.yml` `VERSION` — update to match latest release
 - `warping.sh` still present — remove or deprecate (replaced by `run` in v0.5.0)
@@ -153,6 +98,11 @@ Prioritized work items. Current goal: **get testbed into master**.
 
 ## Completed
 
+- ~~Convert to TDD mode~~ — Done 2026-03-11
+- ~~Land PR #26 on master~~ — Merged 2026-03-11
+- ~~Merge master → beta~~ — Done 2026-03-11
+- ~~Update test suite for v0.6.0 content~~ — Done 2026-03-11
+- ~~Reopen PR #22 and merge testbed to master (PR #22)~~ — Merged 2026-03-11
 - ~~Testbed Phases 1–5~~ — 568 passed, 24 xfailed (2026-03-10)
 - ~~Add `strategies/discuss.md` to README table~~ — Done in PR #16
 - ~~v0.6.0 CHANGELOG entry~~ — Done in PR #20
