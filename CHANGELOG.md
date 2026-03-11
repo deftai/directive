@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Archive Merge Protocol**: Spec delta merge into main spec + CHANGELOG entry on archive (#20)
 - **Session Commands**: `/deft:continue` and `/deft:checkpoint` for session management (#16, #20)
 - **Glossary**: Added "Spec delta" term definition (#19)
+- **Unity Platform Standards**: `platforms/unity.md` — Unity 6+ development standards covering project structure, MonoBehaviours, ScriptableObjects, performance, Addressables, testing, and source control (#27)
 
 ### Changed
 - **Strategy Renames**: `default.md` → `interview.md`, `brownfield.md` → `map.md` (#16)
