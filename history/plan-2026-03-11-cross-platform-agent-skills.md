@@ -53,11 +53,44 @@ Skills reference `~/.config/deft/USER.md`:
 
 ## Decisions
 
-### 1. Installer: Dual Script
+### 1. Installer: Python with Platform Wrappers (Revised 2026-03-11)
 
-Ship `install.sh` (Unix) and `install.ps1` (Windows) side by side.
-- README shows `curl | sh` for Unix, `irm | iex` for PowerShell.
-- Both do the same thing: clone deft, wire up skill discovery.
+**Decision**: Single `install.py` with thin `install.bat` (Windows) and `install` (Unix) wrappers.
+
+**Supersedes**: Original dual-script approach (`install.sh` + `install.ps1`).
+
+**Reasoning**:
+- Python is already a hard dependency — `run.bat` enforces Python 3.13+ and redirects to Microsoft Store if missing. No new dependency introduced.
+- Single codebase: `pathlib` handles path separators, `os.symlink()` / `os.makedirs()` / `shutil.copytree()` work cross-platform. No maintaining parallel shell scripts.
+- Any shell: `python install.py` works identically from cmd, PowerShell, bash, zsh, fish.
+- Extensible: future needs (version checks, self-update, migration, `--doctor`) slot in naturally. Shell scripts get painful; Python stays readable.
+- Mirrors existing pattern: `run.bat` + `run` already delegate to Python. `install.bat` + `install` follow the same convention.
+
+**Repo root adds three files**:
+- `install.py` — all logic (detect OS, validate prereqs, wire skill discovery, set up config paths)
+- `install.bat` — Windows wrapper (~10 lines, mirrors `run.bat`: check Python, delegate)
+- `install` — Unix wrapper (~10 lines, mirrors `run`: `#!/usr/bin/env sh` → `python3 install.py`)
+
+**Install UX**:
+```
+# Windows (cmd or PowerShell)
+git clone https://github.com/visionik/deft && deft\install
+
+# Unix
+git clone https://github.com/visionik/deft && deft/install
+```
+
+**install.py responsibilities**:
+1. Detect OS (`platform.system()`) 
+2. Validate prerequisites (Python version, git, deft directory structure)
+3. Wire skill discovery into `.agents/skills/` and `.claude/skills/`:
+   - Unix: `os.symlink()`
+   - Windows: `os.symlink()` if Developer Mode → junction via `mklink /J` → copy with drift warning
+4. Ensure USER.md config directory exists (Unix: `~/.config/deft/`, Windows: `%APPDATA%\deft/`, or `$DEFT_USER_PATH`)
+5. Write AGENTS.md fallback for platforms without skill discovery directories
+6. Print next steps
+
+**Future upside**: This positions for `pip install deft-directive` / `pipx install deft-directive` later — install.py logic becomes a post-install hook or `deft install` CLI command.
 
 ### 2. Skill Discovery: Don't Depend on Symlinks Alone
 
