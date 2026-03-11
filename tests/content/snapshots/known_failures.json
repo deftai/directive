@@ -239,15 +239,6 @@
       "fix_in": "N/A"
     },
     {
-      "id": "deprecated-path-exempt-implementation-plan",
-      "check": "test_standards.no_deprecated_user_path",
-      "file": "IMPLEMENTATION-PLAN.md",
-      "reason": "Planning document referencing the old path as context. Meta doc — exempt.",
-      "xfail": false,
-      "exempt": true,
-      "fix_in": "N/A"
-    },
-    {
       "id": "warping-exempt-specification",
       "check": "test_standards.no_warping_references",
       "file": "SPECIFICATION.md",
@@ -257,10 +248,10 @@
       "fix_in": "N/A"
     },
     {
-      "id": "warping-exempt-implementation-plan",
+      "id": "warping-exempt-implementation",
       "check": "test_standards.no_warping_references",
-      "file": "IMPLEMENTATION-PLAN.md",
-      "reason": "Planning document describing rename work. Meta doc — exempt.",
+      "file": "IMPLEMENTATION.md",
+      "reason": "Issue #28 implementation plan references prior planning context. Meta doc — exempt.",
       "xfail": false,
       "exempt": true,
       "fix_in": "N/A"

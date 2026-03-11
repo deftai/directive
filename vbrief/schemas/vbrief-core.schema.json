@@ -1,0 +1,283 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vbrief.dev/schemas/vbrief-core.schema.json",
+  "title": "vBRIEF Core Schema",
+  "description": "JSON Schema for vBRIEF core document structure (v0.5). Unified Plan model with DAG support. Extensions may add fields; unknown fields are allowed unless otherwise stated.",
+  "type": "object",
+  "required": ["vBRIEFInfo", "plan"],
+  "properties": {
+    "vBRIEFInfo": {"$ref": "#/$defs/vBRIEFInfo"},
+    "plan": {"$ref": "#/$defs/Plan"}
+  },
+  "additionalProperties": true,
+  "not": {
+    "anyOf": [
+      {"required": ["todoList"]},
+      {"required": ["playbook"]}
+    ]
+  },
+  "$defs": {
+    "vBRIEFInfo": {
+      "type": "object",
+      "required": ["version"],
+      "properties": {
+        "version": {"type": "string", "const": "0.5"},
+        "author": {"type": "string"},
+        "description": {"type": "string"},
+        "metadata": {"type": "object"},
+        "created": {"$ref": "#/$defs/dateTime"},
+        "updated": {"$ref": "#/$defs/dateTime"},
+        "timezone": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "Plan": {
+      "type": "object",
+      "required": ["title", "status", "items"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"},
+        "uid": {"type": "string"},
+        "title": {"type": "string", "minLength": 1},
+        "status": {"$ref": "#/$defs/Status"},
+        "items": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/PlanItem"}
+        },
+        "narratives": {
+          "type": "object",
+          "properties": {
+            "Proposal": {"type": "string"},
+            "Overview": {"type": "string"},
+            "Background": {"type": "string"},
+            "Problem": {"type": "string"},
+            "Constraint": {"type": "string"},
+            "Hypothesis": {"type": "string"},
+            "Alternative": {"type": "string"},
+            "Risk": {"type": "string"},
+            "Test": {"type": "string"},
+            "Action": {"type": "string"},
+            "Observation": {"type": "string"},
+            "Result": {"type": "string"},
+            "Reflection": {"type": "string"},
+            "Outcome": {"type": "string"},
+            "Strengths": {"type": "string"},
+            "Weaknesses": {"type": "string"},
+            "Lessons": {"type": "string"}
+          },
+          "additionalProperties": {"type": "string"}
+        },
+        "edges": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/Edge"}
+        },
+        "tags": {"type": "array", "items": {"type": "string"}},
+        "metadata": {"type": "object"},
+        "created": {"$ref": "#/$defs/dateTime"},
+        "updated": {"$ref": "#/$defs/dateTime"},
+        "author": {"type": "string"},
+        "reviewers": {"type": "array", "items": {"type": "string"}},
+        "uris": {"type": "array", "items": {"$ref": "#/$defs/URI"}},
+        "references": {"type": "array", "items": {"$ref": "#/$defs/VBriefReference"}},
+        "timezone": {"type": "string"},
+        "agent": {"$ref": "#/$defs/Agent"},
+        "lastModifiedBy": {"$ref": "#/$defs/Agent"},
+        "changeLog": {"type": "array", "items": {"$ref": "#/$defs/Change"}},
+        "sequence": {"type": "integer", "minimum": 0},
+        "fork": {"$ref": "#/$defs/Fork"}
+      },
+      "additionalProperties": true
+    },
+    "PlanItem": {
+      "type": "object",
+      "required": ["title", "status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"},
+        "uid": {"type": "string"},
+        "title": {"type": "string", "minLength": 1},
+        "status": {"$ref": "#/$defs/Status"},
+        "narrative": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        },
+        "subItems": {"type": "array", "items": {"$ref": "#/$defs/PlanItem"}},
+        "planRef": {
+          "type": "string",
+          "pattern": "^(#[a-zA-Z0-9_.-]+|file://.*|https://.*)$"
+        },
+        "tags": {"type": "array", "items": {"type": "string"}},
+        "metadata": {"type": "object"},
+        "created": {"$ref": "#/$defs/dateTime"},
+        "updated": {"$ref": "#/$defs/dateTime"},
+        "completed": {"$ref": "#/$defs/dateTime"},
+        "priority": {"enum": ["low", "medium", "high", "critical"]},
+        "dueDate": {"$ref": "#/$defs/dateTime"},
+        "startDate": {"$ref": "#/$defs/dateTime"},
+        "endDate": {"$ref": "#/$defs/dateTime"},
+        "percentComplete": {"type": "number", "minimum": 0, "maximum": 100},
+        "participants": {"type": "array", "items": {"$ref": "#/$defs/Participant"}},
+        "location": {"$ref": "#/$defs/Location"},
+        "uris": {"type": "array", "items": {"$ref": "#/$defs/URI"}},
+        "recurrence": {"$ref": "#/$defs/RecurrenceRule"},
+        "reminders": {"type": "array", "items": {"$ref": "#/$defs/Reminder"}},
+        "classification": {"enum": ["public", "private", "confidential"]},
+        "relatedComments": {"type": "array", "items": {"type": "string"}},
+        "timezone": {"type": "string"},
+        "sequence": {"type": "integer", "minimum": 0},
+        "lastModifiedBy": {"$ref": "#/$defs/Agent"},
+        "lockedBy": {"$ref": "#/$defs/Lock"}
+      },
+      "additionalProperties": true
+    },
+    "Status": {"enum": ["draft", "proposed", "approved", "pending", "running", "completed", "blocked", "cancelled"]},
+    "Edge": {
+      "type": "object",
+      "required": ["from", "to", "type"],
+      "properties": {
+        "from": {"type": "string", "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"},
+        "to": {"type": "string", "pattern": "^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$"},
+        "type": {
+          "type": "string",
+          "description": "Core types: blocks, informs, invalidates, suggests. Custom types allowed."
+        }
+      },
+      "additionalProperties": true
+    },
+    "Participant": {
+      "type": "object",
+      "required": ["id", "role"],
+      "properties": {
+        "id": {"type": "string"},
+        "name": {"type": "string"},
+        "email": {"type": "string"},
+        "role": {"enum": ["owner", "assignee", "reviewer", "observer", "contributor"]},
+        "status": {"enum": ["accepted", "declined", "tentative", "needsAction"]}
+      },
+      "additionalProperties": true
+    },
+    "URI": {
+      "type": "object",
+      "required": ["uri"],
+      "properties": {
+        "uri": {"type": "string"},
+        "description": {"type": "string"},
+        "type": {"type": "string"},
+        "title": {"type": "string"},
+        "tags": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "VBriefReference": {
+      "allOf": [
+        {"$ref": "#/$defs/URI"},
+        {
+          "type": "object",
+          "required": ["uri", "type"],
+          "properties": {
+            "type": {"enum": ["x-vbrief/plan"]}
+          }
+        }
+      ]
+    },
+    "Location": {
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "address": {"type": "string"},
+        "geo": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {"type": "number"}
+        },
+        "url": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "RecurrenceRule": {
+      "type": "object",
+      "required": ["frequency"],
+      "properties": {
+        "frequency": {"enum": ["daily", "weekly", "monthly", "yearly"]},
+        "interval": {"type": "integer", "minimum": 1},
+        "until": {"$ref": "#/$defs/dateTime"},
+        "count": {"type": "integer", "minimum": 1},
+        "byDay": {
+          "type": "array",
+          "items": {"enum": ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]}
+        },
+        "byMonth": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 12}},
+        "byMonthDay": {"type": "array", "items": {"type": "integer", "minimum": 1, "maximum": 31}}
+      },
+      "additionalProperties": true
+    },
+    "Reminder": {
+      "type": "object",
+      "required": ["trigger", "action"],
+      "properties": {
+        "trigger": {"type": "string"},
+        "action": {"enum": ["display", "email", "webhook", "audio"]},
+        "description": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "Agent": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": {"type": "string"},
+        "type": {"enum": ["human", "aiAgent", "system"]},
+        "name": {"type": "string"},
+        "email": {"type": "string"},
+        "model": {"type": "string"},
+        "version": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "Change": {
+      "type": "object",
+      "required": ["sequence", "timestamp", "agent", "operation"],
+      "properties": {
+        "sequence": {"type": "integer", "minimum": 0},
+        "timestamp": {"$ref": "#/$defs/dateTime"},
+        "agent": {"$ref": "#/$defs/Agent"},
+        "operation": {"enum": ["create", "update", "delete", "fork", "merge"]},
+        "reason": {"type": "string"},
+        "path": {"type": "string"},
+        "oldValue": {},
+        "newValue": {},
+        "description": {"type": "string"},
+        "snapshotUri": {"type": "string"},
+        "relatedChanges": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "Fork": {
+      "type": "object",
+      "required": ["parentUid", "parentSequence", "forkedAt"],
+      "properties": {
+        "parentUid": {"type": "string"},
+        "parentSequence": {"type": "integer", "minimum": 0},
+        "forkedAt": {"$ref": "#/$defs/dateTime"},
+        "forkReason": {"type": "string"},
+        "mergeStatus": {"enum": ["unmerged", "mergePending", "merged", "conflict"]}
+      },
+      "additionalProperties": true
+    },
+    "Lock": {
+      "type": "object",
+      "required": ["agent", "acquiredAt", "type"],
+      "properties": {
+        "agent": {"$ref": "#/$defs/Agent"},
+        "acquiredAt": {"$ref": "#/$defs/dateTime"},
+        "expiresAt": {"$ref": "#/$defs/dateTime"},
+        "type": {"enum": ["soft", "hard"]}
+      },
+      "additionalProperties": true
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(Z|[+-]\\d{2}:\\d{2})$"
+    }
+  }
+}

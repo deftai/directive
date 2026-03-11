@@ -28,6 +28,92 @@ All vBRIEF files live in `./vbrief/` within the project workspace. There are exa
 
 ---
 
+## File Format
+
+All `.vbrief.json` files conform to the **vBRIEF v0.5** specification.
+Canonical reference: [https://vbrief.org](https://vbrief.org)
+
+### Required Top-Level Structure
+
+Every vBRIEF file ! MUST contain exactly two top-level keys:
+
+- **`vBRIEFInfo`** — envelope metadata
+  - ! `version` MUST be `"0.5"`
+  - ? `author`, `description`, `created`, `updated`, `metadata`
+- **`plan`** — the plan payload
+  - ! `title` (non-empty string), `status`, `items` (array of PlanItems)
+  - ? `id`, `narratives`, `edges`, `tags`, `metadata`, `references`, etc.
+
+### Status Enum
+
+The `Status` type is shared by `plan.status` and every `PlanItem.status`:
+
+```
+draft | proposed | approved | pending | running | completed | blocked | cancelled
+```
+
+- ! Status values MUST be one of the eight values above (case-sensitive, lowercase)
+- ~ Use `blocked` with a narrative explaining the blocker
+- ~ Use `cancelled` rather than deleting items — preserve history
+
+### Minimal Example
+
+```json
+{
+  "vBRIEFInfo": { "version": "0.5" },
+  "plan": {
+    "title": "Fix login bug",
+    "status": "running",
+    "items": [
+      { "title": "Reproduce the issue", "status": "completed" },
+      { "title": "Write regression test", "status": "running" }
+    ]
+  }
+}
+```
+
+### Structured Example
+
+```json
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "author": "agent:warp-oz",
+    "description": "Sprint 4 delivery plan",
+    "created": "2026-03-10T14:00:00Z"
+  },
+  "plan": {
+    "id": "sprint-4",
+    "title": "Sprint 4 — Auth + Dashboard",
+    "status": "running",
+    "tags": ["sprint", "q1"],
+    "items": [
+      {
+        "id": "auth",
+        "title": "Implement OAuth flow",
+        "status": "completed",
+        "narrative": { "Outcome": "OAuth2 PKCE flow working with Google and GitHub providers" },
+        "tags": ["auth", "security"]
+      },
+      {
+        "id": "dashboard",
+        "title": "Build dashboard layout",
+        "status": "blocked",
+        "narrative": { "Problem": "Waiting on design team to finalize mockups" }
+      }
+    ]
+  }
+}
+```
+
+### Local Schema
+
+A copy of the canonical JSON Schema is available at
+[`./schemas/vbrief-core.schema.json`](./schemas/vbrief-core.schema.json)
+for local validation. Source: [github.com/visionik/vBRIEF](https://github.com/visionik/vBRIEF).
+
+---
+
 ## specification.vbrief.json
 
 The source-of-truth for project intent. Created via the interview process in
@@ -48,13 +134,13 @@ The source-of-truth for project intent. Created via the interview process in
 
 The single active work plan. Unifies what were previously separate todo, plan, and progress files.
 
-**Status lifecycle per task:** `todo` → `doing` → `done` / `blocked` / `skip` / `deferred`
+**Status lifecycle per task:** `pending` → `running` → `completed` / `blocked` / `cancelled`
 
 - ! There is exactly ONE `plan.vbrief.json` at a time per project
 - ! Use this wherever you would use a Warp `create_todo_list` — externalise to this file instead
 - ~ Update task statuses as work progresses
 - ! Mark tasks `blocked` with a narrative explaining the blocker
-- ~ Record deferred ideas with `deferred` status and a narrative explaining why
+- ~ Record blocked ideas with `blocked` status and a narrative explaining why
 - ~ On completion, review for learnings worth persisting to [meta/lessons.md](../meta/lessons.md)
 
 ---
@@ -110,7 +196,7 @@ Add-on specs follow the same flow:
 | Warp / agent tool       | vBRIEF equivalent                          |
 |-------------------------|--------------------------------------------|
 | `create_todo_list`      | write `./vbrief/plan.vbrief.json`          |
-| `mark_todo_as_done`     | update task `status` → `done`              |
+| `mark_todo_as_done`     | update task `status` → `completed`         |
 | `add_todos`             | append task to `./vbrief/plan.vbrief.json` |
 | `remove_todos`          | set task `status` → `cancelled` (never delete) |
 | session end / interrupt | write `./vbrief/continue.vbrief.json`      |

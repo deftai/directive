@@ -119,6 +119,11 @@ Load as needed:
 - Contains: 5-type taxonomy, naming conventions, lifecycle rules, specification flow, tool mappings
 - Key rule: all vBRIEF files live in `./vbrief/` — never workspace root
 
+**[vbrief/schemas/vbrief-core.schema.json](./vbrief/schemas/vbrief-core.schema.json)** — vBRIEF JSON Schema
+- Load: When creating, validating, or debugging `.vbrief.json` files
+- Contains: JSON Schema (draft 2020-12) defining `vBRIEFInfo`, `Plan`, `PlanItem`, `Status` enum
+- Source: [github.com/visionik/vBRIEF](https://github.com/visionik/vBRIEF)
+
 ## 🔄 Reference Chains
 
 Follow these chains only as needed:

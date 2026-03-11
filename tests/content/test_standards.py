@@ -36,6 +36,7 @@ LEGEND_DIRS = [
     "tools",
     "strategies",
     "context",
+    "vbrief",
     "verification",
     "resilience",
 ]
