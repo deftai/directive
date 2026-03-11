@@ -1,124 +1,161 @@
 # Todo
 
-Deferred work items captured during planning. See SPECIFICATION.md for Phase 1 scope.
+Prioritized work items. Current goal: **get testbed into master**.
 
 ---
 
-## Phase 1 — Testbed (In Progress)
+## NOW — Blockers for testbed → master
 
-See `SPECIFICATION.md` for full implementation plan.
+*These must be completed in order before PR #22 (testbed) can merge to master.*
+
+### 1. Land PR #26 on master
+- PR #26 completes the stacked chain — PRs #17, #19, #20 content needs visionik approval
+- **Blocked by**: visionik review (branch protection on master requires 1 approval)
+- Once approved, merge PR #26 via GitHub
+
+### 2. Merge master → beta
+- After PR #26 lands, pull master into beta to pick up all v0.6.0 content
+- Expect merge conflicts in: `CHANGELOG.md`, `main.md`, `core/glossary.md`, `REFERENCES.md`, `strategies/README.md`
+
+### 3. Update test suite for v0.6.0 content
+- **File renames**: update existence tests — old `default.md`/`brownfield.md` → new `interview.md`/`map.md`; add `yolo.md`
+- **New files**: add to expected file lists — `commands.md`, `history/README.md`, `context/spec-deltas.md`
+- **New directories**: add structure tests for `history/changes/`, `history/archive/`
+- **Shape tests**: add checks for new sections in `main.md` (Slash Commands), `commands.md`, updated `REFERENCES.md` and glossary
+- **strategies/README.md**: table now has Command column; discuss.md included
+- Update `known_failures.json` as xfails flip to passing
+- Run `task check` — must pass clean before proceeding
+
+### 4. Reopen PR #22 and merge testbed to master
+- Reopen PR #22 (closed, not merged — head branch is `beta`)
+- PR will auto-update once beta is pushed with updated tests
+- Resolve any remaining conflicts with master
+- Get visionik approval (already a requested reviewer)
+- Testbed baseline will need a new count (currently 568 passed, 24 xfailed)
 
 ---
 
-## Deferred from Phase 1 — Testbed Completions
+## What landed on master (PRs #16–#20, 2026-03-11)
 
-### CI: GitHub Actions workflow
-- Create `.github/workflows/test.yml`
-- Trigger on push to `beta` and on all PRs targeting `beta`
-- Steps: checkout, setup Python, `uv sync`, `task test:coverage`
-- Blocked by: Phase 1 testbed must be stable first
-- Context: agreed during spec interview to defer; local `task check` gate is Phase 1 scope
+### PR #16 — Slash commands, strategy renames, yolo strategy
+- `/deft:run:<name>` dispatch to `strategies/<name>.md`
+- `default.md` → `interview.md`, `brownfield.md` → `map.md`
+- New `strategies/yolo.md` (auto-pilot interview)
 
-### CLI tests: additional commands
-- Add tests for `cmd_spec`, `cmd_install`, `cmd_reset`, `cmd_update`
-- Happy path + key error cases for each
-- Context: Phase 1 covers core four only (bootstrap, project, validate, doctor)
+### PR #17 — Change lifecycle workflow and history directory
+- `commands.md` — full `/deft:change` workflow
+- `history/changes/`, `history/archive/` directory structure
 
-### CLI tests: error and edge cases
-- Invalid input handling, missing config files, bad paths, permission errors
-- Currently only happy path tested in Phase 1
-- Context: deferred to keep Phase 1 scope manageable
+### PR #19 — Spec deltas with vBRIEF chain pattern
+- `context/spec-deltas.md` — delta format, reading protocol, merge rules
 
-### GitHub Issues migration
-- Migrate items from this file to GitHub Issues
-- Link issues to PRs as work is completed
-- Context: owner is new to GitHub; defer until comfortable with PR workflow
+### PR #20 — Archive lifecycle expansion
+- Spec delta merge protocol, CHANGELOG entry guidance, v0.6.0 CHANGELOG entry
+
+### Open issues from review
+- **#23** — `yolo.md` duplicates ~80% of `interview.md`
+- **#24** — `speckit.md` missing `⚠️ See also` banner
+- **#25** — `commands.md` vBRIEF example diverges from `vbrief/vbrief.md`
 
 ---
 
-## Priority Refactors (Before Phase 2)
+## NEXT — Priority Refactors (after testbed lands on master)
 
 ### Convert to TDD mode
 - Set up test infrastructure and convert existing code to TDD workflow
-- Must be completed before starting the installation model refactor
+- Must be completed before starting the skills/installation refactor
 - Prerequisite for validating all subsequent changes
 
-### Enforce bootstrap as mandatory onboarding gate
+### Agent-driven skills as primary onboarding path
+- **Decision (2026-03-10):** adopt agent-driven skills (PR #18 direction) as the
+  primary entry point; CLI commands become a fallback/power-user path
+- Rationale: deft is a framework for AI agents — the setup conversation belongs
+  inside the agent session, not in a 25-prompt CLI questionnaire
+- Reference implementation: PR #18 (`skills/deft-setup/SKILL.md`,
+  `skills/deft-build/SKILL.md`, `skills/install.sh`) — direction is right,
+  but needs TDD coverage and the USER.md gate before merge
+- Sequencing:
+  1. TDD infrastructure (see above)
+  2. Land `deft-setup` and `deft-build` skills — with tests
+  3. Add USER.md gate to `deft-build` (see below)
+  4. Installer: `curl | sh` is good UX; underlying model can stay `git clone`
+     for now, npx/CLI-on-PATH deferred to future phase
+  5. Demote CLI questionnaire (bootstrap/project/spec) to fallback
+
+### Enforce USER.md gate in both paths
 - Root cause: on initial setup, agent bypassed `run bootstrap` and jumped directly
   to `run spec`; `~/.config/deft/USER.md` was never generated via the intended path
   (identified 2026-03-09)
-- `cmd_spec` and `cmd_project` should check for USER.md at entry; if absent, warn
-  and redirect to `run bootstrap` before continuing
-- SKILL.md entry point must include the same bootstrap check as its first step
+- **CLI path:** `cmd_spec` and `cmd_project` should check for USER.md at entry;
+  if absent, warn and redirect to `run bootstrap` before continuing
+- **Skills path:** `deft-build` must check for USER.md at entry; if absent,
+  redirect to `deft-setup` Phase 1 before continuing
 - Protection must live in the repo — not reliant on user knowledge of the flow
-
-### Refactor: git submodule → npx/CLI installation model
-- **High priority** — first major feature change after TDD conversion
-- Current model: install via `git clone` as a git submodule in project dir
-- New model: install as a skill and/or via `npx`; `deft` command available on PATH
-- `deft project` starts the project workflow from any directory
-- Creates `./deft/` dir in the project as the "deft is active here" flag; per-project files stored there
-- `USER.md` moves to `~/.config/deft/USER.md` (global, not per-project)
-- Should work as a `SKILL.md`
-- Some work already done but untested; npx install scaffolding not yet started
 
 ---
 
-## Phase 2 — Deft Directive v0.6.0 Upgrade
-
-*Do not start until Phase 1 testbed is complete and passing — tests will validate this work.*
+## LATER — Phase 2 (Deft Directive Upgrade)
 
 ### Rename: "Warping" → "Deft Directive"
 - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping", etc.
-- `Taskfile.yml` has `PROJECT_NAME: warping` and `VERSION: 0.2.0`
+- `Taskfile.yml` `VERSION` — update to match latest release
 - `warping.sh` still present — remove or deprecate (replaced by `run` in v0.5.0)
-- `CHANGELOG.md` header says "Warping framework"
 - Verify: `test_standards.py` xfail for Warping references should flip to passing
 
 ### Clean leaked personal files
-- `core/project.md` — contains Voxio Bot private project config; replace with generic
-  framework template (see `templates/project.md.template` for reference)
-- `PROJECT.md` (repo root) — leftover from bootstrap test run; remove or replace with
-  a proper example
+- `core/project.md` — contains Voxio Bot private project config; replace with generic template
+- `PROJECT.md` (repo root) — leftover from bootstrap test run; remove or replace
 - Verify: `test_standards.py` xfail for Voxio Bot content should flip to passing
 
 ### Add missing strategies
 - `strategies/rapid.md` — Quick prototypes, SPECIFICATION only workflow
 - `strategies/enterprise.md` — Compliance-heavy, PRD → ADR → SPECIFICATION workflow
 - Both listed in `strategies/README.md` as "(future)" with no backing file
-- Verify: `test_structure.py` xfails for these should flip to passing
 
-### Add `strategies/discuss.md` to README table
-- File exists and is complete but missing from `strategies/README.md` strategy table
-- Verify: `test_contracts.py` discuss.md assertion should flip to passing
+### Port `SKILL.md` from master → superseded by agent skills
+- Three commits on master updated SKILL.md (`a6f120a`, `cc442fc`, `2f2a89e`)
+- Largely superseded by `deft-setup`/`deft-build` skills; review for carry-forward content
 
-### Port `SKILL.md` from master
-- Three commits on master updated SKILL.md that never landed in beta:
-  - `a6f120a` Add Claude Code skill integration
-  - `cc442fc` Add comprehensive New Project Workflow
-  - `2f2a89e` Add clawd.bot compatibility
-- Cherry-pick or manually apply these changes
-- See "Enforce bootstrap as mandatory onboarding gate" — entry point must invoke this check
+### Codify PR workflow standards into `scm/github.md`
+- Opinionated PR workflow rules: single-purpose PRs, review required, squash-merge, well-documented
+- Cross-reference squash-merge rule in Branch Protection settings section
 
-### Write CHANGELOG for post-v0.5.0 work
-- No changelog entries exist for context engineering module, canonical vBRIEF pattern,
-  or any of the work above
-- Add v0.6.0 entry covering all Phase 2 changes
+### Write remaining CHANGELOG entries
+- v0.6.0 done (PRs #16–20). Still needed: context engineering module, canonical vBRIEF pattern
 
 ---
 
-## Future Phases (Unscheduled)
+## LATER — Deferred Test Coverage
 
-### testbed: LLM-assisted content validation
+### CI: GitHub Actions workflow
+- Create `.github/workflows/test.yml`
+- Trigger on push to `beta` and on all PRs targeting `beta`
+
+### CLI tests: additional commands
+- `cmd_spec`, `cmd_install`, `cmd_reset`, `cmd_update` — happy path + key error cases
+
+### CLI tests: error and edge cases
+- Invalid input, missing config, bad paths, permission errors
+
+---
+
+## LATER — Future Phases (Unscheduled)
+
+### LLM-assisted content validation
 - Explore using an LLM to verify semantic correctness of `.md` files
-  (e.g. "does this strategy file give actionable guidance?")
-- Currently out of scope — shape/pattern checks are sufficient for regression testing
 - Revisit when framework content volume makes manual review impractical
 
 ### Spec: self-upgrade to Deft Directive product
-- Use the framework to spec its own evolution as a product ("Deft Directive")
+- Use the framework to spec its own evolution as a product
 - Includes branding, public docs, distribution packaging
-- Deferred until Phase 1 + Phase 2 are stable
+
+---
+
+## Completed
+
+- ~~Testbed Phases 1–5~~ — 568 passed, 24 xfailed (2026-03-10)
+- ~~Add `strategies/discuss.md` to README table~~ — Done in PR #16
+- ~~v0.6.0 CHANGELOG entry~~ — Done in PR #20
 
 ---
 

@@ -7,7 +7,7 @@ includes:
 
 vars:
   PROJECT_NAME: deft
-  VERSION: 0.3.0
+  VERSION: 0.5.2
 
 tasks:
   default:
@@ -19,25 +19,36 @@ tasks:
   validate:
     desc: Validate all markdown files
     cmds:
-      - echo "Validating markdown files..."
-      - find . -name "*.md" -not -path "./backup/*" -not -path "./.git/*" | xargs -I {} sh -c 'echo "✓ {}"'
-      - echo "✓ All markdown files validated"
+      - uv run python -c "from pathlib import Path; files=[f for f in sorted(Path('.').rglob('*.md')) if '.git' not in f.parts and 'backup' not in f.parts]; [print(f'\u2713 {f}') for f in files]; print(f'\u2713 All {len(files)} markdown files validated')"
+
+  test:
+    desc: Run test suite
+    cmds:
+      - uv run pytest tests/
+
+  test:coverage:
+    desc: Run tests with coverage (fails if < 75%)
+    cmds:
+      - uv run pytest tests/ --cov --cov-report=html
+
+  fmt:
+    desc: Format Python code
+    cmds:
+      - uv run ruff format .
+      - uv run black .
 
   lint:
-    desc: Lint markdown files (requires markdownlint-cli)
+    desc: Lint and type-check Python code
     cmds:
-      - |
-        if command -v markdownlint >/dev/null 2>&1; then
-          markdownlint '**/*.md' --ignore backup --ignore node_modules
-        else
-          echo "⚠ markdownlint not installed. Install with: npm install -g markdownlint-cli"
-          exit 0
-        fi
+      - uv run ruff check .
+      - uv run mypy run.py
 
   check:
     desc: Run all pre-commit checks
     deps:
       - validate
+      - lint
+      - test
     cmds:
       - echo "✓ All checks passed"
 

@@ -16,7 +16,9 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=. --cov-report=term-missing --cov-config=pyproject.toml"
+# --cov is intentionally absent here. Use `task test:coverage` for coverage runs.
+# Adding --cov to addopts causes false failures when running content tests in
+# isolation (no Python source is exercised, so coverage reports 0%).
 
 [tool.coverage.run]
 source = ["."]
@@ -25,6 +27,7 @@ omit = [
     ".venv/*",
     "*/site-packages/*",
     "run",
+    "run.py",
 ]
 
 [tool.coverage.report]
@@ -41,8 +44,11 @@ exclude = [
     ".venv",
     "__pycache__",
     "run",        # extension-less CLI entry point — not linted in Phase 1
+    "run.py",     # importlib shim for tests — inherent E402/I001
     "warping.sh",
 ]
+
+[tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PIE", "RET", "SIM"]
 
 [tool.black]

@@ -47,6 +47,7 @@ These concepts originate from [GSD](https://github.com/gsd-build/get-shit-done) 
 **Integration checking** — Cross-feature wiring verification that every export has a matching import, every API endpoint has a consumer, auth gates protect all required routes, and at least one E2E flow traces through the full stack. See [verification/integration.md](../verification/integration.md).
 
 **Plan checking** — Pre-execution verification of a plan across four dimensions: (1) coverage — every acceptance criterion maps to at least one task, (2) completeness — every task has a verify command, (3) wiring — cross-feature dependencies declared in boundary maps, (4) scope — task count within sanity thresholds (2–3 ideal, 5+ requires split). See [verification/plan-checking.md](../verification/plan-checking.md).
+
 **Scope sanity** — A threshold-based guard against over-scoped plans that degrade context window quality. 1–3 tasks per plan is ideal; 4 is a warning; 5+ is a blocker requiring plan split. Part of plan checking dimension 4. See [verification/plan-checking.md](../verification/plan-checking.md).
 
 **Spec delta** — A scoped document capturing how a change modifies existing requirements. Shows new requirements and was/now diffs for modified ones. Linked to the baseline spec via vBRIEF `references` with `type: "x-vbrief/plan"`. Lives in `history/changes/<name>/specs/`. See [context/spec-deltas.md](../context/spec-deltas.md). Invoked as part of `/deft:change`.
