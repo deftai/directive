@@ -1,168 +1,153 @@
-# Issue #28 — vBRIEF Schema Reference & Status Value Fix
+# Cross-Platform Agent-Driven Skills — Implementation Plan
 
-## Problem
-
-`vbrief/vbrief.md` describes file taxonomy and lifecycle rules but never defines the
-actual JSON file format. Agents have no local schema to validate against.
-
-Additionally, deft uses non-conforming status values (`todo`, `doing`, `done`, `skip`,
-`deferred`) instead of the vBRIEF v0.5 spec values (`pending`, `running`, `completed`,
-`cancelled`, `blocked`).
-
-## Current State
-
-- `vbrief/vbrief.md` — 129 lines, 5 sections: File Taxonomy, specification, plan,
-  continue, playbook, plus Specification Flow, Tool Mappings, Anti-Patterns
-- No `vbrief/schemas/` directory exists
-- `REFERENCES.md` — 229 lines, has a "When Creating Specifications" section that
-  already references `vbrief/vbrief.md` (line 117–120) but no schema entry
-- Test suite: `test_structure.py`, `test_contracts.py`, `test_standards.py`,
-  `test_shape.py` plus `known_failures.json` and `baseline.json` snapshots
-- `LEGEND_DIRS` in `test_standards.py` does not include `vbrief/`
-
-### Non-conforming status values in `vbrief.md`
-
-Line 51: `todo` → `doing` → `done` / `blocked` / `skip` / `deferred`
-Line 113: `mark_todo_as_done` → `status` → `done`
-Line 68: `completed` (continue.vbrief.json — already correct)
+**Date**: 2026-03-11
+**Context**: todo.md item #1 — Land agent-driven skills (deft-setup + deft-build)
+**Design**: `history/plan-2026-03-11-cross-platform-agent-skills.md`
 
 ---
 
-## Proposed Changes
+## Phase 1 — Skills (No Dependencies)
 
-### 1. Import the JSON Schema
+Land the skill files from PR #18 with cross-platform additions.
 
-Copy `vbrief-core.schema.json` from the
-[vBRIEF repo](https://github.com/visionik/vBRIEF) `schemas/` directory into
-`vbrief/schemas/vbrief-core.schema.json`.
+### 1.1 Create `skills/deft-setup/SKILL.md`
 
-No modifications to the schema file — it is an exact copy of the canonical source.
+- Port from PR #18 with these modifications:
+  - Add platform detection section: agent must check OS and resolve USER.md path
+    - Unix: `~/.config/deft/USER.md`
+    - Windows: `%APPDATA%\deft\USER.md`
+    - Override: `$DEFT_USER_PATH` if set
+  - Update `$DEFT_PROJECT_PATH` references similarly
+  - Remove any symlink/`.agents/skills/` references
 
-### 2. Add a "File Format" section to `vbrief/vbrief.md`
+### 1.2 Create `skills/deft-build/SKILL.md`
 
-Insert a new `## File Format` section between "File Taxonomy" (line 29) and
-"specification.vbrief.json" (line 31). Contents:
+- Port from PR #18 with these modifications:
+  - Add USER.md gate: if USER.md not found at platform-appropriate path,
+    redirect to `deft-setup` Phase 1 before continuing
+  - Add same platform detection section as deft-setup
+  - Keep `task check` / `task test:coverage` references (Taskfile is a hard dep)
 
-- Link to canonical spec at https://vbrief.org
-- Required top-level structure: `vBRIEFInfo` (with `version: "0.5"`) + `plan`
-  (with `title`, `status`, `items`)
-- Valid `Status` enum with RFC2119 rules:
-  `draft | proposed | approved | pending | running | completed | blocked | cancelled`
-- Minimal 4-field example (vBRIEFInfo + plan with one item)
-- Structured example (with narratives, ids, tags)
-- Reference to local schema: `./schemas/vbrief-core.schema.json`
+### 1.3 Tests for skills
 
-### 3. Fix status values throughout `vbrief.md`
-
-Update all non-conforming values in-place:
-
-- Line 51 (`plan.vbrief.json` lifecycle):
-  `todo` → `pending`, `doing` → `running`, `done` → `completed`,
-  `skip` → `cancelled`, `deferred` → `blocked`
-  New: `pending` → `running` → `completed` / `blocked` / `cancelled`
-- Line 57: `deferred` status → `blocked` status (with narrative)
-- Line 113 (Tool Mappings table): `done` → `completed`
-- Line 115: `cancelled` (already correct — verify only)
-
-### 4. Update `REFERENCES.md`
-
-Add a new entry under the "When Creating Specifications" section (after line 120):
-
-```
-**[vbrief/schemas/vbrief-core.schema.json](./vbrief/schemas/vbrief-core.schema.json)** — vBRIEF JSON Schema
-- Load: When creating, validating, or debugging `.vbrief.json` files
-- Contains: JSON Schema (draft 2020-12) defining `vBRIEFInfo`, `Plan`, `PlanItem`, `Status` enum
-- Source: https://github.com/visionik/vBRIEF
-```
+- Verify SKILL.md files exist at expected paths
+- Verify required sections present (platform detection, USER.md gate in deft-build)
+- Verify RFC2119 legend present
+- Add `skills/` to test suite awareness if needed
 
 ---
 
-## Test Updates
+## Phase 2 — Installer (Depends on Phase 1)
 
-### 5. `test_structure.py` — new directory and file checks
+Cross-platform Python installer with thin OS wrappers.
 
-- Add `"vbrief/schemas"` awareness: the `vbrief` dir is already in `REQUIRED_DIRS`.
-  No changes needed for directory checks.
-- Consider whether to add `vbrief/schemas/vbrief-core.schema.json` to a required-files
-  check. Currently there is no per-subdirectory file existence test, so this is
-  optional. The `test_contracts.py` link-resolution tests will catch it if
-  `REFERENCES.md` links to it and it doesn't exist.
+### 2.1 Create `install.py`
 
-**Verdict: no changes to `test_structure.py` needed.**
+Responsibilities in order:
+1. Detect OS via `platform.system()`
+2. Validate Python version (≥3.13)
+3. Validate `git` on PATH
+4. Validate `task` on PATH:
+   - If missing: inform user Taskfile is required, show install command
+   - If user grants permission: run OS-appropriate install
+     - macOS: `brew install go-task` (fall back to official installer if no brew)
+     - Windows: detect available package manager in order:
+       1. `choco install go-task` (if choco on PATH)
+       2. `scoop install task` (if scoop on PATH)
+       3. Fall back to Taskfile official installer (download binary from taskfile.dev)
+     - Linux: `sh -c "$(curl ...)"` from taskfile.dev
+   - If user declines: stop installation — do not proceed
+5. Validate deft directory structure (skills/, core/, etc.)
+6. Create/update AGENTS.md with deft entry point and skill references:
+   ```
+   See deft/main.md
+   Skills: deft/skills/deft-setup/SKILL.md, deft/skills/deft-build/SKILL.md
+   ```
+7. Create USER.md config directory (platform-aware default or `$DEFT_USER_PATH`)
+8. Print next steps
 
-### 6. `test_contracts.py` — link resolution
+### 2.2 Create `install.bat`
 
-The parametrized `test_references_md_links_resolve` auto-discovers internal links from
-`REFERENCES.md`. After we add the schema link in step 4, it will automatically be
-picked up and validated. No code changes needed.
+- Mirror `run.bat` pattern (~10 lines)
+- Check Python installed and ≥3.13
+- If missing: open Microsoft Store link
+- If present: `python.exe install.py %*`
 
-The `test_see_also_links_resolve` will similarly pick up any new "See also" links in
-the updated `vbrief.md`.
+### 2.3 Create `install` (Unix wrapper)
 
-**Verdict: no code changes to `test_contracts.py` needed, but run to verify no new
-broken links are introduced.**
+- `#!/usr/bin/env sh` (~10 lines)
+- Check `python3` available
+- Delegate to `python3 install.py "$@"`
 
-### 7. `test_standards.py` — RFC2119 legend
+### 2.4 Tests for installer
 
-`vbrief/` is NOT currently in `LEGEND_DIRS`. Since `vbrief.md` already has the
-RFC2119 legend (line 5: `!=MUST, ~=SHOULD`), adding `"vbrief"` to `LEGEND_DIRS` would
-be safe and enforces the standard going forward.
+- Unit test `install.py` functions (OS detection, path resolution, prereq checks)
+- Mock `shutil.which` for task/git detection
+- Test AGENTS.md generation (create new, append to existing)
+- Test config directory creation per platform
+- Test decline-to-install-task stops cleanly
 
-**Action: add `"vbrief"` to `LEGEND_DIRS` in `test_standards.py` (line 33–41).**
+---
 
-### 8. `test_shape.py` — optional vBRIEF shape
+## Phase 3 — Taskfile Cross-Platform Fixes (Depends on Phase 1)
 
-Currently `test_shape.py` covers languages, strategies, interfaces, and tools.
-`vbrief/vbrief.md` is a singleton governance doc, not a category with multiple files
-that need shape enforcement. No shape schema needed.
+Fix bash-only tasks so `task check` works on Windows.
 
-**Verdict: no changes to `test_shape.py` or `shapes.py`.**
+### 3.1 Fix `install` task
 
-### 9. `known_failures.json` — review for new entries
+- Current: uses `ln -sf`, `if [ -w /usr/local/bin ]`, `sudo`
+- Fix: add `platforms:` guard or replace with cross-platform logic
+- This task may be superseded by `install.py` — evaluate whether to keep
 
-After all content changes:
-- Run the full suite to check if any new failures appear
-- The new `vbrief.md` content should not trigger deprecated-path or warping checks
-- The new REFERENCES.md link should resolve (schema file exists)
-- No new xfail entries expected — but verify
+### 3.2 Fix `build` task
 
-### 10. Regenerate `baseline.json`
+- Current: uses `mkdir -p`, `tar -czf`
+- Fix: use `platforms:` guard with PowerShell equivalents, or Python script
 
-After all edits, run:
-```
-uv run python tests/content/snapshots/capture.py
-```
+### 3.3 Fix `stats` task
 
-This will update the snapshot with:
-- New headers in `vbrief/vbrief.md` (the "File Format" section)
-- New internal links in `vbrief/vbrief.md` (schema reference)
-- New link in `REFERENCES.md` (schema entry)
+- Current: uses `find`, `wc -l`, `tr -d`
+- Fix: replace with Python one-liner or `platforms:` guard
 
-### 11. Run full test suite and `task check`
+### 3.4 Fix `uninstall` task
 
-```
-uv run pytest tests/
-task check
-```
+- Current: uses `if [ -L ... ]`, `rm`
+- Fix: align with new install.py approach or remove
 
-Target: all existing tests pass (or remain documented xfail), no regressions.
+### 3.5 Verify cross-platform tasks
+
+- `validate`, `test`, `test:coverage`, `fmt`, `lint`, `check` — these use
+  `uv run` and should already work. Verify on Windows.
+
+---
+
+## Phase 4 — Documentation Updates (Depends on Phases 1–3)
+
+### 4.1 Update README.md
+
+- Replace `curl | sh` install instructions with cross-platform:
+  - Windows: `git clone ... && deft\install`
+  - Unix: `git clone ... && deft/install`
+- Update "Getting Started" section
+- Add note about Taskfile as a required dependency
+
+### 4.2 Update todo.md
+
+- Mark item #1 complete
+- Move USER.md gate to completed (addressed in skill files)
 
 ---
 
 ## Dependency Order
 
 ```
-1 (import schema) ──┐
-                    ├── 3 (fix status values) ──┐
-2 (file format)  ───┘                           ├── 5–9 (tests) ── 10 (baseline) ── 11 (full suite)
-                    4 (REFERENCES.md) ──────────┘
+Phase 1 (skills) ──┬── Phase 2 (installer)
+                   ├── Phase 3 (taskfile fixes)
+                   └── Phase 4 (docs) — after 2 + 3
 ```
 
-Steps 1 and 2 can be done in parallel.
-Step 3 depends on 2 (editing the same file).
-Step 4 is independent but should follow 1 (so the linked file exists).
-Steps 5–9 run after all content changes.
-Step 10 after tests are stable. Step 11 is the final gate.
+Phases 2 and 3 can proceed in parallel after Phase 1.
+Phase 4 follows completion of Phases 2 and 3.
 
 ---
 
@@ -170,6 +155,5 @@ Step 10 after tests are stable. Step 11 is the final gate.
 
 - **No auto-commit.** Stop and wait for explicit commit instruction.
 - **No auto-push.** Commit locally, then STOP. Push only on explicit instruction.
-- **Author on all commits.** Scott Adams <msadams@msadams.com>
 
-*Created 2026-03-11 — Issue #28 (feature-vbrief-schema branch)*
+*Created 2026-03-11 — Cross-platform agent-driven skills (beta branch)*
