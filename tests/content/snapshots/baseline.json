@@ -9973,59 +9973,75 @@
         }
       ]
     },
-    "IMPLEMENTATION-PLAN.md": {
+    "IMPLEMENTATION.md": {
       "headers": [
         {
           "level": 1,
-          "text": "Testbed — v0.6.0 Content Update"
+          "text": "Issue #28 — vBRIEF Schema Reference & Status Value Fix"
+        },
+        {
+          "level": 2,
+          "text": "Problem"
         },
         {
           "level": 2,
           "text": "Current State"
         },
         {
-          "level": 2,
-          "text": "What v0.6.0 Changed"
-        },
-        {
           "level": 3,
-          "text": "New files"
-        },
-        {
-          "level": 3,
-          "text": "Modified files"
-        },
-        {
-          "level": 3,
-          "text": "Issues now fixed"
+          "text": "Non-conforming status values in `vbrief.md`"
         },
         {
           "level": 2,
-          "text": "Required Changes"
+          "text": "Proposed Changes"
         },
         {
           "level": 3,
-          "text": "1. test_structure.py"
+          "text": "1. Import the JSON Schema"
         },
         {
           "level": 3,
-          "text": "2. test_contracts.py"
+          "text": "2. Add a \"File Format\" section to `vbrief/vbrief.md`"
         },
         {
           "level": 3,
-          "text": "3. known_failures.json"
+          "text": "3. Fix status values throughout `vbrief.md`"
         },
         {
           "level": 3,
-          "text": "4. Regenerate baseline.json"
+          "text": "4. Update `REFERENCES.md`"
+        },
+        {
+          "level": 2,
+          "text": "Test Updates"
         },
         {
           "level": 3,
-          "text": "5. Run full test suite and fix"
+          "text": "5. `test_structure.py` — new directory and file checks"
         },
         {
           "level": 3,
-          "text": "6. Verify `task check` passes clean"
+          "text": "6. `test_contracts.py` — link resolution"
+        },
+        {
+          "level": 3,
+          "text": "7. `test_standards.py` — RFC2119 legend"
+        },
+        {
+          "level": 3,
+          "text": "8. `test_shape.py` — optional vBRIEF shape"
+        },
+        {
+          "level": 3,
+          "text": "9. `known_failures.json` — review for new entries"
+        },
+        {
+          "level": 3,
+          "text": "10. Regenerate `baseline.json`"
+        },
+        {
+          "level": 3,
+          "text": "11. Run full test suite and `task check`"
         },
         {
           "level": 2,
@@ -10033,14 +10049,15 @@
         },
         {
           "level": 2,
-          "text": "After Tests Pass"
-        },
-        {
-          "level": 2,
           "text": "Workflow Rules"
         }
       ],
-      "links": []
+      "links": [
+        {
+          "text": "vbrief/schemas/vbrief-core.schema.json",
+          "target": "./vbrief/schemas/vbrief-core.schema.json"
+        }
+      ]
     },
     "interfaces/cli.md": {
       "headers": [
@@ -13859,6 +13876,10 @@
           "target": "./vbrief/vbrief.md"
         },
         {
+          "text": "vbrief/schemas/vbrief-core.schema.json",
+          "target": "./vbrief/schemas/vbrief-core.schema.json"
+        },
+        {
           "text": "core/ralph.md",
           "target": "./core/ralph.md"
         },
@@ -16188,6 +16209,30 @@
         },
         {
           "level": 2,
+          "text": "File Format"
+        },
+        {
+          "level": 3,
+          "text": "Required Top-Level Structure"
+        },
+        {
+          "level": 3,
+          "text": "Status Enum"
+        },
+        {
+          "level": 3,
+          "text": "Minimal Example"
+        },
+        {
+          "level": 3,
+          "text": "Structured Example"
+        },
+        {
+          "level": 3,
+          "text": "Local Schema"
+        },
+        {
+          "level": 2,
           "text": "specification.vbrief.json"
         },
         {
@@ -16227,6 +16272,10 @@
         {
           "text": "context/long-horizon.md",
           "target": "../context/long-horizon.md"
+        },
+        {
+          "text": "`./schemas/vbrief-core.schema.json`",
+          "target": "./schemas/vbrief-core.schema.json"
         },
         {
           "text": "templates/make-spec.md",
