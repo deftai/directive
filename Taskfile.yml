@@ -55,39 +55,40 @@ tasks:
   build:
     desc: Package framework for distribution
     cmds:
-      - mkdir -p dist
-      - tar -czf dist/deft-{{.VERSION}}.tar.gz --exclude=backup --exclude=dist --exclude=.git --exclude=node_modules .
-      - echo "✓ Created dist/deft-{{.VERSION}}.tar.gz"
+      - cmd: mkdir -p dist
+        platforms: [linux, darwin]
+      - cmd: powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path dist | Out-Null"
+        platforms: [windows]
+      - cmd: tar -czf dist/deft-{{.VERSION}}.tar.gz --exclude=backup --exclude=dist --exclude=.git --exclude=node_modules .
+        platforms: [linux, darwin]
+      - cmd: powershell -NoProfile -Command "Compress-Archive -Path . -DestinationPath dist\deft-{{.VERSION}}.zip -Force"
+        platforms: [windows]
+      - cmd: echo "✓ Created dist/deft-{{.VERSION}}.tar.gz"
+        platforms: [linux, darwin]
+      - cmd: echo "✓ Created dist/deft-{{.VERSION}}.zip"
+        platforms: [windows]
 
   clean:
     desc: Clean generated artifacts
     cmds:
-      - rm -rf dist/
+      - cmd: rm -rf dist/
+        platforms: [linux, darwin]
+      - cmd: powershell -NoProfile -Command "if (Test-Path dist) { Remove-Item -Recurse -Force dist }"
+        platforms: [windows]
       - echo "✓ Cleaned artifacts"
 
   install:
-    desc: Install deft CLI to /usr/local/bin
+    desc: Install deft — runs the cross-platform install.py
     cmds:
-      - |
-        if [ -w /usr/local/bin ]; then
-          ln -sf "$(pwd)/deft.sh" /usr/local/bin/deft
-          echo "✓ Installed deft to /usr/local/bin/deft"
-        else
-          echo "⚠ Need sudo access to install to /usr/local/bin"
-          sudo ln -sf "$(pwd)/deft.sh" /usr/local/bin/deft
-          echo "✓ Installed deft to /usr/local/bin/deft"
-        fi
+      - cmd: python3 install.py
+        platforms: [linux, darwin]
+      - cmd: python.exe install.py
+        platforms: [windows]
 
   uninstall:
-    desc: Uninstall deft CLI from /usr/local/bin
+    desc: Remove deft entry from AGENTS.md
     cmds:
-      - |
-        if [ -L /usr/local/bin/deft ]; then
-          rm /usr/local/bin/deft
-          echo "✓ Uninstalled deft from /usr/local/bin"
-        else
-          echo "deft not installed in /usr/local/bin"
-        fi
+      - uv run python -c "from pathlib import Path; f=Path('AGENTS.md'); t=f.read_text('utf-8') if f.exists() else ''; lines=t.splitlines(keepends=True); out=''.join(l for l in lines if not l.startswith('See deft/main.md') and not l.startswith('Skills: deft/skills/')); f.write_text(out,'utf-8') if f.exists() else None; print('Removed deft entry from AGENTS.md' if out!=t else 'No deft entry found in AGENTS.md')"
 
   spec:validate:
     desc: Validate that vbrief/specification.vbrief.json exists and is well-formed JSON
@@ -149,13 +150,4 @@ tasks:
   stats:
     desc: Show framework statistics
     cmds:
-      - |
-        echo "Deft Framework v{{.VERSION}} Statistics:"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "Core files:      $(find core -name '*.md' | wc -l | tr -d ' ')"
-        echo "Languages:       $(find languages -name '*.md' | wc -l | tr -d ' ')"
-        echo "Interfaces:      $(find interfaces -name '*.md' | wc -l | tr -d ' ')"
-        echo "Tools:           $(find tools -name '*.md' | wc -l | tr -d ' ')"
-        echo "Templates:       $(find templates -name '*.md' | wc -l | tr -d ' ')"
-        echo "Total files:     $(find . -name '*.md' -not -path './backup/*' -not -path './.git/*' | wc -l | tr -d ' ')"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      - uv run python -c "from pathlib import Path; v='{{.VERSION}}'; sep='━'*42; dirs=[('Core files','core'),('Languages','languages'),('Interfaces','interfaces'),('Tools','tools'),('Templates','templates')]; counts=[(n,len(list(Path(d).glob('*.md')))) for n,d in dirs]; total=len([f for f in Path('.').rglob('*.md') if '.git' not in str(f) and 'backup' not in str(f)]); print(f'Deft Framework v{v} Statistics:'); print(sep); [print(f'{n}: {c}') for n,c in counts]; print(f'Total files: {total}'); print(sep)"
