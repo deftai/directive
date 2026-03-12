@@ -65,13 +65,21 @@ produces a fully self-contained native binary. Typical size: 5–10 MB.
 ### Release artifacts (built by GitHub Actions on version tag)
 
 ```
-install-windows-amd64.exe   ← Windows (x64) — double-click or run from cmd/PowerShell
-install-macos-universal     ← macOS (Intel + Apple Silicon universal binary)
-install-linux-amd64         ← Linux (x64 — Ubuntu, Fedora, Debian, etc.)
-install-linux-arm64         ← Linux ARM64 (Raspberry Pi 4/5, ARM servers)
+install-windows-amd64.exe   ← Windows x64 (Intel/AMD) — most Windows PCs
+install-windows-arm64.exe   ← Windows ARM64 — Surface, Snapdragon X Elite/Plus,
+                               Copilot+ PCs (Dell, HP, Lenovo, Samsung, ASUS)
+install-macos-universal     ← macOS universal binary (Intel + Apple Silicon)
+                               covers M1/M2/M3/M4 and all Intel Macs in one file
+install-linux-amd64         ← Linux x64 (Ubuntu, Fedora, Debian, most desktops/servers)
+install-linux-arm64         ← Linux ARM64 (Raspberry Pi 4/5, AWS Graviton,
+                               Google Cloud T2A, Azure Ampere, ARM cloud VMs)
 ```
 
-All four binaries share one source file. Platform differences are handled with Go's
+**6 build targets → 5 downloadable files.** The macOS universal binary is produced
+by cross-compiling both `darwin/amd64` and `darwin/arm64` then merging with `lipo` 
+in the Actions workflow — standard macOS practice, one download for all Mac users.
+
+All five binaries share one source file. Platform differences are handled with Go's
 `runtime.GOOS`/`runtime.GOARCH` and build-tag-free `if` statements — no separate files
 per platform.
 
@@ -128,7 +136,8 @@ which is expected for developers working inside the repo.
 
 **Design principle: assume every user is a novice on every platform.**
 No file path knowledge assumed. No jargon. Every step offers a numbered choice
-or a sensible default. The user never has to type a full path.
+or a sensible default. The user never has to type a full path. 
+Always present an Exit option so they can quit but always confirm exit selection before quitting
 
 ### Step 1 — Welcome and project name
 
@@ -156,6 +165,7 @@ Which drive should the project live on?
   1) C:\  — System drive      (120 GB free)
   2) D:\  — Data drive        (450 GB free)
   3) E:\  — (800 GB free)
+  4) Exit
 
 Enter a number [default: 1]:
 > _
@@ -176,6 +186,7 @@ Where should the project folder go?
   2) E:\Projects
   3) E:\Work
   4) Create a new folder here
+  5) Exit
 
 Enter a number [default: 1]:
 > _
@@ -199,7 +210,7 @@ Ready to install!
 
 The project folder will be created if it doesn't already exist.
 
-Continue? [Y/n]:
+Continue/Cancel? [Y/n/c]:
 > _
 ```
 
@@ -230,10 +241,11 @@ cmd/deft-install/main.go        ← single Go source file, all platforms
 
 **GitHub Release assets (not in repo, distributed via Releases page):**
 ```
-install-windows-amd64.exe       ← Windows x64
-install-macos-universal         ← macOS (Intel + Apple Silicon)
+install-windows-amd64.exe       ← Windows x64 (Intel/AMD)
+install-windows-arm64.exe       ← Windows ARM64 (Surface, Snapdragon X, Copilot+ PCs)
+install-macos-universal         ← macOS universal (Intel + Apple Silicon)
 install-linux-amd64             ← Linux x64
-install-linux-arm64             ← Linux ARM64 (Raspberry Pi 4/5)
+install-linux-arm64             ← Linux ARM64 (Raspberry Pi 4/5, AWS Graviton, ARM cloud)
 ```
 
 ---
@@ -241,8 +253,8 @@ install-linux-arm64             ← Linux ARM64 (Raspberry Pi 4/5)
 ## Engineering Investment
 
 - Write `cmd/deft-install/main.go` (~400–500 lines): single file, all platform logic inside
-- GitHub Actions release workflow: cross-compile all four targets on version tag push,
-  attach binaries to GitHub Release as downloadable assets
+- GitHub Actions release workflow: cross-compile all six targets on version tag push,
+  run `lipo` to produce macOS universal binary, attach five files to GitHub Release
 - Update README: replace install instructions with platform-specific download links
 - Go tests: `cmd/deft-install/main_test.go` covering directory logic, git detection,
   name sanitisation, guard conditions
