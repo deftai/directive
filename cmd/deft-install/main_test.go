@@ -294,3 +294,148 @@ func TestEnsureGit_PostInstallReCheck(t *testing.T) {
 		t.Errorf("expected at least 2 lookPath calls (initial + re-check), got %d", calls)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Phase 4 — clone and setup
+// ---------------------------------------------------------------------------
+
+func TestCloneDeft_CommandArgs(t *testing.T) {
+	origRun := runCmdFunc
+	defer func() { runCmdFunc = origRun }()
+
+	var gotName string
+	var gotArgs []string
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		gotName = name
+		gotArgs = args
+		return nil
+	}
+
+	tmp := t.TempDir()
+	result := &WizardResult{
+		ProjectName: "myproj",
+		ProjectDir:  filepath.Join(tmp, "myproj"),
+		DeftDir:     filepath.Join(tmp, "myproj", "deft"),
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if err := CloneDeft(w, result); err != nil {
+		t.Fatal(err)
+	}
+
+	if gotName != "git" {
+		t.Errorf("expected command 'git', got %q", gotName)
+	}
+	if len(gotArgs) != 3 || gotArgs[0] != "clone" || gotArgs[1] != deftRepoURL || gotArgs[2] != result.DeftDir {
+		t.Errorf("unexpected args: %v", gotArgs)
+	}
+	// Project dir should have been created.
+	if _, err := os.Stat(result.ProjectDir); err != nil {
+		t.Errorf("project dir was not created: %v", err)
+	}
+}
+
+func TestWriteAgentsMD_CreateNew(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), agentsMDSentinel) {
+		t.Errorf("AGENTS.md missing deft entry, got:\n%s", data)
+	}
+}
+
+func TestWriteAgentsMD_AppendExisting(t *testing.T) {
+	tmp := t.TempDir()
+	existing := "# AGENTS\nSome existing content.\n"
+	os.WriteFile(filepath.Join(tmp, "AGENTS.md"), []byte(existing), 0o644)
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	if !strings.Contains(content, "Some existing content") {
+		t.Error("original content was lost")
+	}
+	if !strings.Contains(content, agentsMDSentinel) {
+		t.Error("deft entry was not appended")
+	}
+}
+
+func TestWriteAgentsMD_Idempotent(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	// Write twice.
+	WriteAgentsMD(w, tmp)
+	WriteAgentsMD(w, tmp)
+
+	data, _ := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	count := strings.Count(string(data), agentsMDSentinel)
+	if count != 1 {
+		t.Errorf("expected exactly 1 deft entry, found %d", count)
+	}
+}
+
+func TestUserConfigDir_EnvOverride(t *testing.T) {
+	t.Setenv("DEFT_USER_PATH", "/custom/path")
+	if got := UserConfigDir(); got != "/custom/path" {
+		t.Errorf("expected /custom/path, got %s", got)
+	}
+}
+
+func TestUserConfigDir_Default(t *testing.T) {
+	// Clear override to test platform default.
+	t.Setenv("DEFT_USER_PATH", "")
+	dir := UserConfigDir()
+	if dir == "" {
+		t.Fatal("UserConfigDir returned empty string")
+	}
+	if runtime.GOOS == "windows" {
+		if !strings.HasSuffix(dir, `\deft`) {
+			t.Errorf("expected path ending in \\deft, got %s", dir)
+		}
+	} else {
+		if !strings.HasSuffix(dir, "/deft") {
+			t.Errorf("expected path ending in /deft, got %s", dir)
+		}
+	}
+}
+
+func TestPrintNextSteps(t *testing.T) {
+	var buf bytes.Buffer
+	w := NewWizard(strings.NewReader(""), &buf, false)
+	result := &WizardResult{
+		ProjectName: "myproj",
+		ProjectDir:  `E:\Repos\myproj`,
+		DeftDir:     `E:\Repos\myproj\deft`,
+	}
+
+	PrintNextSteps(w, result, `C:\Users\me\AppData\Roaming\deft`)
+
+	out := buf.String()
+	for _, want := range []string{
+		"Deft installed successfully",
+		result.DeftDir,
+		"AGENTS.md",
+		"User config",
+		"deft/main.md",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("output missing %q", want)
+		}
+	}
+}
