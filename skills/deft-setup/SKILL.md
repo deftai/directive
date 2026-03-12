@@ -178,30 +178,33 @@ for project-scoped settings (strategy, coverage, languages).
 
 ### Inference
 
-- ! NOW infer from codebase — look for `package.json`, `go.mod`, `requirements.txt`, `Cargo.toml`, `pyproject.toml`, `*.csproj`
-- ! Present inferences and confirm — don't ask blind
+- ! Before asking, infer from codebase — look for `package.json`, `go.mod`, `requirements.txt`, `Cargo.toml`, `pyproject.toml`, `*.csproj`
+- ! Use inferences to pre-fill answers and confirm — don't ask blind
 
-### Technical Users — Interview
+### Interview Rules (same as Phase 1)
 
-- ! Ask ONE at a time, in order:
-  1. **Project name** — infer from directory, confirm
-  2. **Project type** — CLI, TUI, REST API, Web App, Library, other
-  3. **Languages** — show detected, confirm or adjust
-  4. **Tech stack** — frameworks, libraries
-  5. **Strategy** — default to USER.md Defaults; ask if this project needs different
-  6. **Coverage** — default to USER.md Defaults; ask if this project needs different
+! **Each message MUST contain exactly ONE question.** The Phase 1 interview rules
+apply here too. Do not combine questions.
 
-### Middle Ground — Brief Interview
+### Question Sequence
 
-- ! Present inferences and ask ONE at a time:
-  1. **Project name + type** — infer both, confirm together
-  2. **Languages + tech stack** — show detected, confirm
-  3. **Strategy** — default to USER.md Defaults; ask if this project needs different
-- ! Default coverage to USER.md Defaults without asking
+**Track 1 (technical) — 6 steps:**
+- Step 1: Ask project name (infer from directory, confirm)
+- Step 2: Ask project type (CLI, TUI, REST API, Web App, Library, other)
+- Step 3: Ask languages (show detected, confirm or adjust)
+- Step 4: Ask tech stack (frameworks, libraries)
+- Step 5: Ask strategy (default to USER.md Defaults; ask if this project needs different)
+- Step 6: Ask coverage (default to USER.md Defaults; ask if this project needs different)
 
-### Non-Technical Users — Summarize and Confirm
+**Track 2 (middle ground) — 4 steps:**
+- Step 1: Ask project name (infer from directory, confirm)
+- Step 2: Ask project type (CLI, TUI, REST API, Web App, Library, other)
+- Step 3: Ask languages (show detected, confirm or adjust)
+- Step 4: Ask strategy (default to USER.md Defaults; ask if this project needs different)
+- Default coverage to USER.md Defaults without asking
 
-- ! Detect and present summary: "Based on your project: {name} ({type}), built with {stack}. Look right?"
+**Track 3 (non-technical) — 1 step:**
+- Step 1: Present summary of inferences: "Based on your project: {name} ({type}), built with {stack}. Look right?"
 - ⊗ Ask about strategy or coverage — use Phase 1 defaults
 
 ### Output Path
