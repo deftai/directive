@@ -25,6 +25,9 @@ Thumbs.db
 # User-specific files (users should copy from templates)
 core/user.md
 
+# Go build artifacts
+*.exe
+
 # Python toolchain
 .venv/
 __pycache__/
