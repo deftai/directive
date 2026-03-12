@@ -68,7 +68,7 @@ Deft uses a layered architecture where more specific rules override general ones
 flowchart TD
     subgraph precedence ["Rule Precedence (top = highest)"]
         direction TB
-        U["👤 USER.md<br/><i>Personal preferences (~/.config/deft/)</i>"]
+        U["👤 USER.md<br/><i>Personal preferences</i>"]
         P["📁 PROJECT.md<br/><i>Project-specific rules</i>"]
         L["🐍 python.md / go.md / etc.<br/><i>Language standards</i>"]
         T["🔧 taskfile.md<br/><i>Tool guidelines</i>"]
@@ -99,7 +99,7 @@ deft/
 │
 ├── core/                  # Core framework files
 │   ├── project.md         # Project template
-│   ├── (user.md)          # Legacy location; now at ~/.config/deft/USER.md
+│   ├── (user.md)          # Legacy location; now at ~/.config/deft/USER.md (Unix) or %APPDATA%\deft\USER.md (Windows)
 │   └── ralph.md           # Ralph loop concept (draft)
 │
 ├── coding/                # Coding standards
@@ -159,7 +159,7 @@ deft/
 **coding/coding.md** - Software development standards  
 **coding/testing.md** - Testing standards  
 **core/project.md** - Project-specific template  
-**~/.config/deft/USER.md** - Your personal preferences (highest precedence)
+**USER.md** - Your personal preferences (highest precedence) — `~/.config/deft/USER.md` (Unix/macOS) or `%APPDATA%\deft\USER.md` (Windows)
 
 ### 🐍 Languages
 **languages/python.md** - Python standards (≥85% coverage, mypy strict, ruff/black)  
@@ -208,37 +208,56 @@ deft/
 
 ## 🚀 Getting Started
 
-**Quick start (one-liner):**
+**Quick start:**
 
-```bash
-git clone https://github.com/visionik/deft && deft/run bootstrap
+```sh
+# Unix / macOS
+git clone https://github.com/visionik/deft && deft/install
+
+# Windows (PowerShell)
+git clone https://github.com/visionik/deft; deft\install.bat
 ```
+
+**Requires:** Python ≥3.13, Git, and [Taskfile](https://taskfile.dev).
 
 ### 1. Install Deft
 
-Create a directory for a new project or `cd` into an existing one:
+**Prerequisites:**
+- Python ≥3.13
+- Git
+- [Taskfile](https://taskfile.dev): `brew install go-task` (macOS), `choco install go-task` or `scoop install task` (Windows), or the [official installer](https://taskfile.dev/installation/) (Linux)
 
-```bash
-mkdir my-project && cd my-project  # New project
-# OR
-cd ~/Projects/existing-project      # Existing project
+Navigate to your project directory, then clone and run the installer:
 
-git clone https://github.com/visionik/deft  # Installs deft in ./deft/ subdir
+**Unix / macOS:**
+```sh
+cd ~/Projects/my-project
+git clone https://github.com/visionik/deft
+deft/install
 ```
 
-### 2. Bootstrap Your Configuration
+**Windows (PowerShell):**
+```sh
+Set-Location C:\Projects\my-project
+git clone https://github.com/visionik/deft
+deft\install.bat
+```
 
-Use `deft/run bootstrap` to create your user and project preferences:
+The installer verifies all prerequisites, wires deft into `AGENTS.md`, and creates your user config directory.
+
+### 2. Set Up Your Preferences
+
+On your next AI session the agent automatically invokes the `deft-setup` skill to walk you through creating your USER.md preferences interactively.
+
+**User config location:**
+- Unix / macOS: `~/.config/deft/USER.md`
+- Windows: `%APPDATA%\deft\USER.md`
+- Override: set `DEFT_USER_PATH` environment variable
+
+To set up via CLI instead:
 
 ```bash
 deft/run bootstrap       # Interactive setup for user.md and project.md
-```
-
-Or use individual commands:
-
-```bash
-deft/run bootstrap       # Creates user.md with your preferences
-deft/run project         # Creates project.md with tech stack, standards
 ```
 
 ### 3. Generate Specification
@@ -269,7 +288,7 @@ Read SPECIFICATION.md and implement the project following deft/main.md standards
 
 Rules cascade with precedence:
 
-1. **USER.md** (highest) - your personal overrides (`~/.config/deft/USER.md`)
+1. **USER.md** (highest) - your personal overrides (`~/.config/deft/USER.md` on Unix/macOS, `%APPDATA%\deft\USER.md` on Windows)
 2. **project.md** - project-specific rules
 3. **Language files** (python.md, go.md) - language standards
 4. **Tool files** (taskfile.md) - tool guidelines
@@ -311,7 +330,7 @@ flowchart TD
 - AI updates `lessons.md` when learning better patterns
 - AI notes ideas in `ideas.md` for future consideration
 - AI suggests improvements in `suggestions.md`
-- You update `~/.config/deft/USER.md` with new preferences
+- You update your USER.md (`~/.config/deft/USER.md` on Unix/macOS, `%APPDATA%\deft\USER.md` on Windows) with new preferences
 - You update language/tool files as standards evolve
 
 ## 💡 Key Principles
@@ -607,7 +626,7 @@ Deft embodies:
 
 ---
 
-**Next Steps**: Read [main.md](./main.md) for comprehensive AI guidelines, then run `deft/run bootstrap` to create your USER.md.
+**Next Steps**: Read [main.md](./main.md) for comprehensive AI guidelines, then run the installer (`deft/install` on Unix/macOS, `deft\install.bat` on Windows) to wire deft into your project.
 
 ---
 

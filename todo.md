@@ -4,34 +4,6 @@ Prioritized work items. Current goal: **agent-driven skills + installation**.
 
 ---
 
-## NOW — Agent Skills & Installation
-
-### 1. Land agent-driven skills (deft-setup + deft-build)
-- **Decision (2026-03-10):** adopt agent-driven skills (PR #18 direction) as the
-  primary entry point; CLI commands become a fallback/power-user path
-- Reference: PR #18 (`skills/deft-setup/SKILL.md`, `skills/deft-build/SKILL.md`,
-  `skills/install.sh`) — direction is right, but needs USER.md gate before merge
-- Sequencing:
-  1. Land `deft-setup` and `deft-build` skills — with tests
-  2. Add USER.md gate to `deft-build` (see Enforce USER.md gate below)
-  3. Installer: `curl | sh` is good UX; underlying model can stay `git clone`
-     for now, npx/CLI-on-PATH deferred to future phase
-  4. Demote CLI questionnaire (bootstrap/project/spec) to fallback
-
----
-
-## NEXT — USER.md Gate
-
-### Enforce USER.md gate in both paths
-- Root cause: on initial setup, agent bypassed `run bootstrap` and jumped directly
-  to `run spec`; `~/.config/deft/USER.md` was never generated via the intended path
-  (identified 2026-03-09)
-- **CLI path:** `cmd_spec` and `cmd_project` should check for USER.md at entry;
-  if absent, warn and redirect to `run bootstrap` before continuing
-- **Skills path:** `deft-build` must check for USER.md at entry; if absent,
-  redirect to `deft-setup` Phase 1 before continuing
-- Protection must live in the repo — not reliant on user knowledge of the flow
-
 ---
 
 ## LATER — Phase 2 (Deft Directive Upgrade)
@@ -76,6 +48,11 @@ Prioritized work items. Current goal: **agent-driven skills + installation**.
 - Create `.github/workflows/test.yml`
 - Trigger on push to `beta` and on all PRs targeting `beta`
 
+### Enforce USER.md gate in CLI path
+- `cmd_spec` and `cmd_project` should check for USER.md at entry; if absent,
+  warn and redirect to `run bootstrap` before continuing
+- Skills path is already done (deft-build); this covers the CLI fallback path only
+
 ### CLI tests: additional commands
 - `cmd_spec`, `cmd_install`, `cmd_reset`, `cmd_update` — happy path + key error cases
 
@@ -98,6 +75,8 @@ Prioritized work items. Current goal: **agent-driven skills + installation**.
 
 ## Completed
 
+- ~~Land agent-driven skills (deft-setup + deft-build)~~ — Done 2026-03-12 (Phases 1–4: skills, installer, Taskfile, docs)
+- ~~Enforce USER.md gate (skills path: deft-build)~~ — Done 2026-03-12; CLI path deferred to LATER
 - ~~Convert to TDD mode~~ — Done 2026-03-11
 - ~~Land PR #26 on master~~ — Merged 2026-03-11
 - ~~Merge master → beta~~ — Done 2026-03-11
