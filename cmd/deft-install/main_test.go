@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -153,5 +155,142 @@ func TestEnumerateDrives_NonEmpty(t *testing.T) {
 	}
 	if len(drives) == 0 {
 		t.Fatal("expected at least one fixed drive")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3 — git detection
+// ---------------------------------------------------------------------------
+
+func TestGitAvailable_Found(t *testing.T) {
+	orig := lookPathFunc
+	defer func() { lookPathFunc = orig }()
+
+	lookPathFunc = func(file string) (string, error) {
+		return `C:\Program Files\Git\cmd\git.exe`, nil
+	}
+
+	if !gitAvailable() {
+		t.Error("expected gitAvailable to return true when LookPath succeeds")
+	}
+}
+
+func TestGitAvailable_NotFound(t *testing.T) {
+	orig := lookPathFunc
+	defer func() { lookPathFunc = orig }()
+
+	lookPathFunc = func(file string) (string, error) {
+		return "", fmt.Errorf("not found")
+	}
+
+	if gitAvailable() {
+		t.Error("expected gitAvailable to return false when LookPath fails")
+	}
+}
+
+func TestInstallGitWindows_WingetFirst(t *testing.T) {
+	origRun := runCmdFunc
+	origDl := downloadGitInstallerFunc
+	defer func() {
+		runCmdFunc = origRun
+		downloadGitInstallerFunc = origDl
+	}()
+
+	var calls []string
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		call := name
+		if len(args) > 0 {
+			call += " " + args[0]
+		}
+		calls = append(calls, call)
+		return fmt.Errorf("not available")
+	}
+	downloadGitInstallerFunc = func(w *Wizard) error {
+		calls = append(calls, "download-fallback")
+		return fmt.Errorf("download disabled in test")
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	_ = installGitWindows(w)
+
+	if len(calls) < 2 {
+		t.Fatalf("expected at least 2 calls, got %d: %v", len(calls), calls)
+	}
+	if !strings.Contains(calls[0], "winget") {
+		t.Errorf("expected winget attempted first, got: %s", calls[0])
+	}
+	if calls[1] != "download-fallback" {
+		t.Errorf("expected download fallback second, got: %s", calls[1])
+	}
+}
+
+func TestInstallGitLinux_PackageManagerOrder(t *testing.T) {
+	origLook := lookPathFunc
+	origRun := runCmdFunc
+	defer func() {
+		lookPathFunc = origLook
+		runCmdFunc = origRun
+	}()
+
+	var lookCalls []string
+	lookPathFunc = func(file string) (string, error) {
+		lookCalls = append(lookCalls, file)
+		if file == "dnf" {
+			return "/usr/bin/dnf", nil
+		}
+		return "", fmt.Errorf("not found")
+	}
+
+	var ranCmd string
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		ranCmd = name + " " + strings.Join(args, " ")
+		return nil
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if err := installGitLinux(w); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// apt-get must be checked before dnf.
+	if len(lookCalls) < 2 || lookCalls[0] != "apt-get" || lookCalls[1] != "dnf" {
+		t.Errorf("expected apt-get checked before dnf, got: %v", lookCalls)
+	}
+	// dnf should have been used to install.
+	if !strings.Contains(ranCmd, "dnf") {
+		t.Errorf("expected dnf install command, got: %s", ranCmd)
+	}
+}
+
+func TestEnsureGit_PostInstallReCheck(t *testing.T) {
+	origLook := lookPathFunc
+	origRun := runCmdFunc
+	origDl := downloadGitInstallerFunc
+	defer func() {
+		lookPathFunc = origLook
+		runCmdFunc = origRun
+		downloadGitInstallerFunc = origDl
+	}()
+
+	// First call: git not found. After install: git found.
+	calls := 0
+	lookPathFunc = func(file string) (string, error) {
+		calls++
+		if calls <= 1 {
+			return "", fmt.Errorf("not found")
+		}
+		return `C:\Program Files\Git\cmd\git.exe`, nil
+	}
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		return nil // winget "succeeds"
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	err := EnsureGit(w)
+	if err != nil {
+		t.Fatalf("EnsureGit should succeed after re-check, got: %v", err)
+	}
+	if calls < 2 {
+		t.Errorf("expected at least 2 lookPath calls (initial + re-check), got %d", calls)
 	}
 }

@@ -30,6 +30,12 @@ func main() {
 		fmt.Printf("[debug] project=%s deft=%s\n", result.ProjectDir, result.DeftDir)
 	}
 
-	// Phases 3–4 will continue from here.
+	// Phase 3: ensure git is available.
+	if err := EnsureGit(w); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Phase 4 will continue from here.
 	_ = result
 }
