@@ -82,45 +82,46 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 - ~ Skip if USER.md exists at the platform-appropriate path (see Platform Detection) and user doesn't want to overwrite
 - ⊗ Scan filesystem beyond checking that one path
 
-### Interview Style
+### Interview Rules
 
-- ! Ask **ONE** question at a time, wait for the answer, then ask the next
-- ⊗ Batch multiple questions into a single message
-- ~ Provide numbered options with an "other" choice where appropriate
+! **Each message you send MUST contain exactly ONE question.** This is the most
+important rule in this file. After the user answers, send the NEXT question in
+a new message. Repeat until all questions for their track are answered.
+
+- ⊗ Include two or more questions in the same message under any circumstances
+- ⊗ List upcoming questions — only show the current one
+- ~ Provide numbered answer options with an "other" choice where appropriate
 - ! Mark which option is RECOMMENDED when showing choices
 - ~ Use structured question tools when available (AskQuestion, question picker)
 
-### Opening Question
+### Question Sequence
 
-- ! Gauge technical level first:
-  - **"I'm technical — ask me everything"**
-  - **"I have some opinions but keep it simple"**
-  - **"Just pick good defaults — I care about the product, not the tools"**
+**Step 0 — Opening (all users):**
+Ask: "How deep do you want to go?"
+  1. I'm technical — ask me everything
+  2. I have some opinions but keep it simple
+  3. Just pick good defaults — I care about the product, not the tools
 
-### Technical Users (option 1) — Full Interview
+Wait for answer. Then follow the track below.
 
-- ! Ask these ONE at a time, in order:
-  1. **Name** — what to call them
-  2. **Languages** — show Available Languages list; these become fallback defaults
-  3. **Strategy** — show Available Strategies table, recommend "default" (fallback — projects can override)
-  4. **Coverage threshold** — default 85%, ask if different (fallback — projects can override)
-  5. **Custom rules** — optional overrides that always win; okay to skip
+**Track 1 (technical) — 5 steps:**
+- Step 1: Ask their name
+- Step 2: Ask preferred languages (show Available Languages list; these become fallback defaults)
+- Step 3: Ask strategy preference (show Available Strategies table, recommend "default"; fallback — projects can override)
+- Step 4: Ask coverage threshold (default 85%; fallback — projects can override)
+- Step 5: Ask for custom rules (optional; okay to skip)
 
-### Middle Ground (option 2) — Brief Interview
+**Track 2 (middle ground) — 3 steps:**
+- Step 1: Ask their name
+- Step 2: Ask preferred languages (show Available Languages list)
+- Step 3: Ask for custom rules (optional; okay to skip)
+- Set defaults without asking: strategy = "default", coverage = 85%
 
-- ! Ask these ONE at a time, in order:
-  1. **Name** — what to call them
-  2. **Languages** — show Available Languages list
-  3. **Custom rules** — optional; okay to skip
-- ! Set defaults without asking: strategy = "default", coverage = 85%
-
-### Non-Technical Users (option 3) — Minimal Interview
-
-- ! Ask these ONE at a time, in order:
-  1. **Name** — what to call them
-  2. **What are you building?** — infer everything else from the answer
-- ! Set defaults: strategy = "default", coverage = 85%
-- ~ Pick languages based on project type (web → TypeScript, API → Python/Go, mobile → Swift/Kotlin)
+**Track 3 (non-technical) — 2 steps:**
+- Step 1: Ask their name
+- Step 2: Ask what they're building — infer languages from the answer
+- Set defaults: strategy = "default", coverage = 85%
+- Pick languages based on project type (web → TypeScript, API → Python/Go, mobile → Swift/Kotlin)
 
 ### Output Path
 
