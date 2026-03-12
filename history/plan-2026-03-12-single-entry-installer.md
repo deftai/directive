@@ -53,73 +53,58 @@ install.py` on Unix) has three problems:
 
 ---
 
-## Conclusion: No Single Universal File Exists
+## Chosen Direction: Go Binary for All Platforms
 
-There is no single file that runs natively on all three platforms with zero installed tools.
-This is a hard OS constraint:
-- Windows natively executes `.exe`, `.bat`, `.ps1`, `.msi`
-- macOS/Linux natively execute shell scripts
-- Python requires Python; `.bat` is not a standard Windows download format
+A single Go source file (`cmd/deft-install/main.go`) that detects the platform at runtime
+and makes all decisions internally. One file to read, one file to maintain, one build
+pipeline to understand.
 
-The industry consensus (Homebrew, Rustup, Volta, Bun, Scoop) is **two files,
-one per platform family**, presented as a single-URL experience.
+The **end user needs nothing installed** — no Go, no Python, no runtime. The Go compiler
+produces a fully self-contained native binary. Typical size: 5–10 MB.
 
----
-
-## Chosen Direction: Go Binary + Shell Script
-
-### Windows — `install.exe` (compiled Go binary)
-
-A Go program compiled to a self-contained `.exe`. The **end user needs nothing installed** —
-no Go, no Python, no runtime. The Go compiler embeds everything. Typical size: 5–10 MB.
-
-- User downloads `install.exe`, double-clicks or runs from cmd/PowerShell
-- Binary checks for git → installs via `winget install Git.Git` if missing
-  (falls back to direct download of git-for-windows installer via HTTP)
-- Shows current directory, asks user to confirm install location
-- Runs `git clone https://github.com/visionik/deft ./deft`
-- Performs setup (AGENTS.md, USER.md directory)
-- No Python required for installation
-
-### macOS + Linux — `install.sh` (shell script)
-
-A single `.sh` file works identically on both platforms. `bash`/`curl` are always present.
-
-- macOS: user downloads, runs `bash install.sh` from Terminal
-  - Gatekeeper does NOT block plain `.sh` files (only `.app` bundles and unsigned executables)
-  - git check triggers Xcode CLT install prompt automatically — OS-native, no workaround needed
-- Linux: `bash install.sh` or `curl -sSL url | bash`
-  - git installed via detected package manager (`apt`, `dnf`, `pacman`)
-- Both: show cwd, confirm location, `git clone`, setup
-
----
-
-## Go Binary: Developer vs End-User Requirements
-
-- **End user**: needs nothing. Downloads `install.exe`, runs it. Done.
-- **Developer (repo maintainer)**: needs Go installed to build. GitHub Actions builds
-  release binaries for all platforms automatically on each version tag.
-- The Go code is ~300–400 lines — a small, focused program with no complex logic.
-
----
-
-## What Happens to `install.py`? — **Decision: Go does everything**
-
-Go handles the full install. Python is not required to install deft — it becomes
-a dev dependency needed only when running `task check` / `task test`.
+### Release artifacts (built by GitHub Actions on version tag)
 
 ```
-install.exe / install.sh
-  → guide user to correct project directory (see Directory UX below)
-  → install git if missing
-  → git clone https://github.com/visionik/deft ./deft
-  → write AGENTS.md entries        (~20 lines of Go)
-  → create USER.md config dir      (~5 lines of Go)
-  → print next steps
+install-windows-amd64.exe   ← Windows (x64) — double-click or run from cmd/PowerShell
+install-macos-universal     ← macOS (Intel + Apple Silicon universal binary)
+install-linux-amd64         ← Linux (x64 — Ubuntu, Fedora, Debian, etc.)
+install-linux-arm64         ← Linux ARM64 (Raspberry Pi 4/5, ARM servers)
 ```
 
-`install.py` is retained in the repo for developers who want to re-run setup
-from inside an existing clone, but it is no longer part of the end-user path.
+All four binaries share one source file. Platform differences are handled with Go's
+`runtime.GOOS`/`runtime.GOARCH` and build-tag-free `if` statements — no separate files
+per platform.
+
+### Developer vs end-user requirements
+
+- **End user**: needs nothing. Downloads the binary for their platform, runs it.
+- **Developer (repo maintainer)**: needs Go installed to build locally.
+  GitHub Actions handles release builds automatically on version tag push.
+- The Go code is ~400–500 lines — a small, focused program.
+
+---
+
+## Install Flow — Decision: Go does everything, `install.py` removed
+
+Python is not required at install time. `install.py`, `install.bat`, and `install`
+(Unix wrapper) are **removed from the repo** — they are superseded entirely.
+
+The Go binary runs this sequence on every platform:
+
+```
+  → Welcome + project name prompt
+  → Drive selection (Windows) / home directory (macOS/Linux)
+  → Parent directory selection or creation
+  → Confirm install path
+  → Check for git — install if missing (platform-appropriate method)
+  → git clone https://github.com/visionik/deft <target>/deft
+  → Write AGENTS.md entries
+  → Create USER.md config directory
+  → Print next steps
+```
+
+Python becomes a **dev dependency only** — needed when running `task check`/`task test`,
+which is expected for developers working inside the repo.
 
 ---
 
@@ -141,114 +126,146 @@ from inside an existing clone, but it is no longer part of the end-user path.
 
 ## Directory Positioning UX
 
-The goal is to make this as easy as possible for a non-technical user.
-The installer walks them through finding or creating the right location
-step by step — no knowledge of file paths assumed.
+**Design principle: assume every user is a novice on every platform.**
+No file path knowledge assumed. No jargon. Every step offers a numbered choice
+or a sensible default. The user never has to type a full path.
 
-### Step 1 — Ask what the project is
+### Step 1 — Welcome and project name
 
 ```
-Welcome to Deft!
+──────────────────────────────────────────────────
+  Welcome to Deft!
+  AI coding standards, installed in seconds.
+──────────────────────────────────────────────────
 
-What is the name of the project you are setting up deft for?
+What is the name of your project?
+(This will be used to name the project folder.)
 > _
 ```
 
-This gives the installer context for suggesting a directory name.
+The answer drives the suggested folder name in later steps.
 
 ### Step 2 — Pick a drive (Windows only)
 
-On Windows, enumerate available drives and present a numbered list:
+Enumerate available fixed drives with free space. Removable/network drives
+are listed separately so the user knows what they are.
 
 ```
-Which drive would you like to use?
-  1) C:\  (System, 120 GB free)
-  2) D:\  (Data, 450 GB free)
-  3) E:\  (Repos, 800 GB free)
+Which drive should the project live on?
+
+  1) C:\  — System drive      (120 GB free)
+  2) D:\  — Data drive        (450 GB free)
+  3) E:\  — (800 GB free)
+
+Enter a number [default: 1]:
 > _
 ```
 
-On macOS/Linux, skip this step — everything is under `/`.
+macOS and Linux skip this step — they start from the user's home directory.
 
-### Step 3 — Pick or create a parent directory
+### Step 3 — Pick or create a parent folder
 
-List the top-level directories on the chosen drive (or home dir on Unix)
-and offer to use one or create a new one:
+List immediate subdirectories of the chosen drive root (Windows) or home
+directory (macOS/Linux). Keep the list short — directories only, hidden
+folders excluded.
 
 ```
-Where should the project live? Existing folders on E:\:
+Where should the project folder go?
+
   1) E:\Repos
   2) E:\Projects
   3) E:\Work
-  4) Create a new folder
+  4) Create a new folder here
+
+Enter a number [default: 1]:
 > _
 ```
 
-If "Create a new folder": prompt for a name, suggest a sanitised version
-of the project name from Step 1 as the default:
+If "Create a new folder": offer a sanitised version of the project name as
+the default — user just presses Enter to accept:
 
 ```
-New folder name (default: my-project):
+New folder name [default: my-project]:
 > _
 ```
 
-### Step 4 — Confirm
+### Step 4 — Confirm everything before touching the filesystem
 
 ```
-Deft will be installed into:
-  E:\Repos\my-project\deft\
+Ready to install!
 
-The folder E:\Repos\my-project\ will be created if it doesn't exist.
+  Project folder : E:\Repos\my-project\
+  Deft location  : E:\Repos\my-project\deft\
 
-Continue? [Y/n]
+The project folder will be created if it doesn't already exist.
+
+Continue? [Y/n]:
 > _
 ```
 
-### Guards
+### Guards (apply on all platforms)
 
-- `./deft/` already exists at target — offer repair/re-run instead of overwriting
-- No write permission to chosen path — explain clearly and re-prompt
-- Drive not ready (ejected, network unavailable) — detect and re-prompt
-- Project name contains invalid path characters — sanitise automatically, show result
+- `deft/` already exists at target — offer repair / re-run, never overwrite silently
+- No write permission — explain in plain language, suggest running as admin, re-prompt
+- Drive not ready (ejected, network unavailable) — detect and re-prompt with clear message
+- Project name has invalid path characters — sanitise automatically, show the result
+- Empty project name — prompt again with a gentle message
 
 ---
 
 ## File Layout After This Work
 
+**Files removed:**
 ```
-install.exe      ← Windows bootstrap (Go binary, self-contained, released via GitHub)
-install.sh       ← macOS + Linux bootstrap (bash, built-in everywhere)
-cmd/install/     ← Go source for the installer binary
-install.bat      ← kept as in-repo convenience wrapper (existing clone → re-run setup)
-install          ← kept as in-repo convenience wrapper (Unix)
-install.py       ← kept for in-repo dev use; may be reduced in scope (Option B)
+install.py      ← deleted (superseded by Go binary)
+install.bat     ← deleted (superseded by Go binary)
+install         ← deleted (superseded by Go binary)
+```
+
+**Files added:**
+```
+cmd/deft-install/main.go        ← single Go source file, all platforms
+.github/workflows/release.yml   ← builds all four binaries on version tag push
+```
+
+**GitHub Release assets (not in repo, distributed via Releases page):**
+```
+install-windows-amd64.exe       ← Windows x64
+install-macos-universal         ← macOS (Intel + Apple Silicon)
+install-linux-amd64             ← Linux x64
+install-linux-arm64             ← Linux ARM64 (Raspberry Pi 4/5)
 ```
 
 ---
 
 ## Engineering Investment
 
-- Write Go installer (~300–400 lines): new language in the repo
-- GitHub Actions release workflow: build `install.exe`, `install-macos`, `install-linux`
-  on version tag push; attach to GitHub Release as assets
-- Update README download links to point to GitHub Releases
-- Tests: Go has a standard testing package; can test directory logic, git detection, etc.
+- Write `cmd/deft-install/main.go` (~400–500 lines): single file, all platform logic inside
+- GitHub Actions release workflow: cross-compile all four targets on version tag push,
+  attach binaries to GitHub Release as downloadable assets
+- Update README: replace install instructions with platform-specific download links
+- Go tests: `cmd/deft-install/main_test.go` covering directory logic, git detection,
+  name sanitisation, guard conditions
 
 ---
 
-## Open Questions
+## Future Work
 
-- Should macOS and Linux ship as the same `install.sh` or as Go binaries too?
-  (Shell script is simpler to maintain; Go binary for macOS needs a universal binary
-  for Intel + Apple Silicon, but gives identical UX to Windows)
-- Should the GitHub release include `install-arm-linux` for Raspberry Pi / ARM servers?
-- Signing: Windows SmartScreen warns on unsigned `.exe` downloads from the internet.
-  Is code signing (via GitHub Actions + a cert) in scope for this phase?
-- Should the directory UX on macOS/Linux also enumerate home subdirectories, or
-  just ask for a path directly? (Unix users may be more comfortable with a path prompt)
+### Code signing
+Windows SmartScreen warns on unsigned `.exe` files downloaded from the internet.
+macOS Gatekeeper quarantines unsigned executables too (shell scripts are exempt,
+but Go binaries are not). Proper signing requires:
+- **Windows**: code signing certificate (EV cert via DigiCert/Sectigo or GitHub's
+  attestation via `sigstore`), integrated into the Actions release workflow
+- **macOS**: Apple Developer ID cert + `codesign` + `notarytool` in Actions
+
+This is deferred — for the initial release, README should advise users how to
+proceed past the OS warning (Windows: "More info" → "Run anyway"; macOS:
+System Settings → Privacy & Security → Open Anyway).
 
 ---
 
 *Created 2026-03-12 — Single entry point installer planning*
-*Updated 2026-03-12 — Full discussion captured, Go binary direction chosen*
-*Updated 2026-03-12 — Decision: Go does everything (Option B); enhanced directory UX*
+*Updated 2026-03-12 — Full discussion captured; Go binary direction chosen*
+*Updated 2026-03-12 — Decision: Go does everything; install.py removed; all platforms Go*
+*Updated 2026-03-12 — Single source file; Raspberry Pi support; novice-first UX; signing as future work*
