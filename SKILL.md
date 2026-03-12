@@ -41,8 +41,13 @@ Then continue with `skills/deft-setup/SKILL.md` Phase 1 for remaining questions.
 
 **If USER.md exists but PROJECT.md is missing**: Skip to `skills/deft-setup/SKILL.md` Phase 2.
 
-- ⊗ Present a menu of options or summarize the framework when config is missing
-- ⊗ Ask "what would you like to do" — the answer is always: start the setup interview
+**If USER.md and PROJECT.md both exist but no SPECIFICATION.md**: Skip to
+`skills/deft-setup/SKILL.md` Phase 3. Start the specification interview immediately —
+ask what to build and features as the first question.
+
+- ⊗ Present a summary of the config and ask what the user wants to do
+- ⊗ Ask "what would you like to do" or "what are we building" — start the interview directly
+- ⊗ Show menus, recaps, or workflow overviews before starting the next missing phase
 
 ## Core Principle: Rule Precedence
 
