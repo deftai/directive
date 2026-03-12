@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -52,12 +53,11 @@ func (w *Wizard) Run() (*WizardResult, error) {
 	}
 
 	for {
-		parentDir, err := w.selectParentFolder(startDir, projectName)
+		projectDir, err := w.selectProjectDir(startDir, projectName)
 		if err != nil {
 			return nil, err
 		}
 
-		projectDir := filepath.Join(parentDir, projectName)
 		deftDir := filepath.Join(projectDir, "deft")
 
 		if err := w.checkGuards(deftDir); err != nil {
@@ -71,7 +71,7 @@ func (w *Wizard) Run() (*WizardResult, error) {
 		}
 		if confirmed {
 			return &WizardResult{
-				ProjectName: projectName,
+				ProjectName: filepath.Base(projectDir),
 				ProjectDir:  projectDir,
 				DeftDir:     deftDir,
 			}, nil
@@ -116,25 +116,67 @@ func (w *Wizard) askProjectName() (string, error) {
 	}
 }
 
-func (w *Wizard) selectParentFolder(root, projectName string) (string, error) {
+// selectProjectDir lets the user browse the filesystem and returns the
+// chosen project directory (the folder that will contain deft/).
+//
+// "Use this folder" treats current as the parent and appends projectName.
+// "Create a new folder here" treats the new folder as the project directory.
+func (w *Wizard) selectProjectDir(root, projectName string) (string, error) {
+	current := root
 	for {
-		dirs, err := ListSubdirs(root)
+		dirs, err := ListSubdirs(current)
 		if err != nil {
-			return "", fmt.Errorf("could not read %s: %w", root, err)
+			return "", fmt.Errorf("could not read %s: %w", current, err)
+		}
+		sort.Strings(dirs)
+
+		preview := filepath.Join(current, projectName, "deft")
+		w.printf("\nBrowsing: %s\n", current)
+		w.printf("  Deft will be installed into: %s\n\n", preview)
+
+		// --- Action options first (stable numbering) ---
+		nextIdx := 1
+
+		useIdx := nextIdx
+		w.printf("  %d. ** Use this folder **\n", useIdx)
+		nextIdx++
+
+		upIdx := 0
+		parent := filepath.Dir(current)
+		if parent != current {
+			upIdx = nextIdx
+			w.printf("  %d. .. (go up)\n", upIdx)
+			nextIdx++
 		}
 
-		w.printf("Choose a folder in %s:\n", root)
-		for i, d := range dirs {
-			w.printf("  %d. %s\n", i+1, d)
-		}
-		createIdx := len(dirs) + 1
-		exitIdx := len(dirs) + 2
-		w.printf("  %d. Create a new folder here\n", createIdx)
+		createIdx := nextIdx
+		w.printf("  %d. Create a new folder here (%s)\n", createIdx, current)
+		nextIdx++
+
+		enterIdx := nextIdx
+		w.printf("  %d. Type a path manually\n", enterIdx)
+		nextIdx++
+
+		exitIdx := nextIdx
 		w.printf("  %d. Exit\n", exitIdx)
+		nextIdx++
 
-		defaultChoice := 1
+		// --- Subdirectory listing ---
+		dirStartIdx := nextIdx
+		if len(dirs) > 0 {
+			w.printf("\n  Subfolders:\n")
+			for i, d := range dirs {
+				w.printf("  %d. %s%c\n", dirStartIdx+i, d, os.PathSeparator)
+			}
+		}
+		maxIdx := dirStartIdx + len(dirs) - 1
 		if len(dirs) == 0 {
-			defaultChoice = createIdx
+			maxIdx = exitIdx
+		}
+
+		defaultChoice := useIdx
+		if len(dirs) > 0 {
+			defaultChoice = dirStartIdx // first subfolder
 		}
 
 		w.printf("\nChoice [%d]: ", defaultChoice)
@@ -147,20 +189,44 @@ func (w *Wizard) selectParentFolder(root, projectName string) (string, error) {
 		input = strings.TrimSpace(input)
 		if input != "" {
 			choice, err = strconv.Atoi(input)
-			if err != nil || choice < 1 || choice > exitIdx {
-				w.printf("Invalid choice. Please enter a number between 1 and %d.\n\n", exitIdx)
+			if err != nil || choice < 1 || choice > maxIdx {
+				w.printf("Invalid choice. Please enter a number between 1 and %d.\n", maxIdx)
 				continue
 			}
 		}
 
-		if choice == exitIdx {
+		switch {
+		case choice == exitIdx:
 			if w.confirmExit() {
 				return "", errUserExit
 			}
-			continue
-		}
 
-		if choice == createIdx {
+		case choice == useIdx:
+			// current is the parent; project folder = current/projectName
+			return filepath.Join(current, projectName), nil
+
+		case upIdx > 0 && choice == upIdx:
+			current = parent
+
+		case choice == enterIdx:
+			w.printf("Enter full path: ")
+			p, err := w.readLine()
+			if err != nil {
+				return "", err
+			}
+			p = strings.TrimSpace(p)
+			if p == "" {
+				w.printf("No path entered.\n")
+				continue
+			}
+			info, err := os.Stat(p)
+			if err != nil || !info.IsDir() {
+				w.printf("'%s' is not a valid directory. Please try again.\n", p)
+				continue
+			}
+			current = p
+
+		case choice == createIdx:
 			w.printf("Folder name [%s]: ", projectName)
 			name, err := w.readLine()
 			if err != nil {
@@ -172,14 +238,16 @@ func (w *Wizard) selectParentFolder(root, projectName string) (string, error) {
 			}
 			name = SanitizeProjectName(name)
 			if name == "" {
-				w.printf("Invalid folder name. Please try again.\n\n")
+				w.printf("Invalid folder name. Please try again.\n")
 				continue
 			}
-			return filepath.Join(root, name), nil
-		}
+			// The created folder IS the project directory.
+			return filepath.Join(current, name), nil
 
-		// User picked an existing directory.
-		return filepath.Join(root, dirs[choice-1]), nil
+		default:
+			// User picked a subfolder — drill into it.
+			current = filepath.Join(current, dirs[choice-dirStartIdx])
+		}
 	}
 }
 
