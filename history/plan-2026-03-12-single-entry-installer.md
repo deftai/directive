@@ -103,32 +103,23 @@ A single `.sh` file works identically on both platforms. `bash`/`curl` are alway
 
 ---
 
-## What Happens to `install.py`?
+## What Happens to `install.py`? — **Decision: Go does everything**
 
-Two options — decision pending:
+Go handles the full install. Python is not required to install deft — it becomes
+a dev dependency needed only when running `task check` / `task test`.
 
-**Option A — Go delegates to Python after clone:**
 ```
 install.exe / install.sh
+  → guide user to correct project directory (see Directory UX below)
   → install git if missing
-  → position user in correct directory
-  → git clone ./deft
-  → run: python3 deft/install.py   (AGENTS.md + USER.md setup)
-```
-Keeps Python as an install-time requirement. Simpler Go code.
-
-**Option B — Go does everything, Python becomes dev-only (preferred):**
-```
-install.exe / install.sh
-  → install git if missing
-  → position user in correct directory
-  → git clone ./deft
+  → git clone https://github.com/visionik/deft ./deft
   → write AGENTS.md entries        (~20 lines of Go)
   → create USER.md config dir      (~5 lines of Go)
+  → print next steps
 ```
-Python is no longer required to install deft. It becomes a dev dependency —
-needed only when running `task check` / `task test`, which is expected.
-Cleaner separation: installer does one job, Python is a dev tool.
+
+`install.py` is retained in the repo for developers who want to re-run setup
+from inside an existing clone, but it is no longer part of the end-user path.
 
 ---
 
@@ -150,13 +141,75 @@ Cleaner separation: installer does one job, Python is a dev tool.
 
 ## Directory Positioning UX
 
-1. Show current working directory and its contents
-2. Ask: *"Install deft here? A `./deft/` folder will be created. [Y/n]"*
-3. If yes: proceed
-4. If no: prompt for a target path, validate it exists and is writable, re-confirm
-5. Guards:
-   - Refuse if `./deft/` already exists (offer re-run / repair instead)
-   - Refuse if no write permission to cwd
+The goal is to make this as easy as possible for a non-technical user.
+The installer walks them through finding or creating the right location
+step by step — no knowledge of file paths assumed.
+
+### Step 1 — Ask what the project is
+
+```
+Welcome to Deft!
+
+What is the name of the project you are setting up deft for?
+> _
+```
+
+This gives the installer context for suggesting a directory name.
+
+### Step 2 — Pick a drive (Windows only)
+
+On Windows, enumerate available drives and present a numbered list:
+
+```
+Which drive would you like to use?
+  1) C:\  (System, 120 GB free)
+  2) D:\  (Data, 450 GB free)
+  3) E:\  (Repos, 800 GB free)
+> _
+```
+
+On macOS/Linux, skip this step — everything is under `/`.
+
+### Step 3 — Pick or create a parent directory
+
+List the top-level directories on the chosen drive (or home dir on Unix)
+and offer to use one or create a new one:
+
+```
+Where should the project live? Existing folders on E:\:
+  1) E:\Repos
+  2) E:\Projects
+  3) E:\Work
+  4) Create a new folder
+> _
+```
+
+If "Create a new folder": prompt for a name, suggest a sanitised version
+of the project name from Step 1 as the default:
+
+```
+New folder name (default: my-project):
+> _
+```
+
+### Step 4 — Confirm
+
+```
+Deft will be installed into:
+  E:\Repos\my-project\deft\
+
+The folder E:\Repos\my-project\ will be created if it doesn't exist.
+
+Continue? [Y/n]
+> _
+```
+
+### Guards
+
+- `./deft/` already exists at target — offer repair/re-run instead of overwriting
+- No write permission to chosen path — explain clearly and re-prompt
+- Drive not ready (ejected, network unavailable) — detect and re-prompt
+- Project name contains invalid path characters — sanitise automatically, show result
 
 ---
 
@@ -185,14 +238,17 @@ install.py       ← kept for in-repo dev use; may be reduced in scope (Option B
 
 ## Open Questions
 
-- Option A or B? (delegate to `install.py` vs. Go does full setup)
-- Should macOS and Linux ship as the same `install.sh` or separate binaries?
-  (Shell script is simpler; Go binary for macOS would need universal binary for Intel + Apple Silicon)
-- Should the GitHub release also include a `install-arm-linux` for Raspberry Pi / ARM servers?
-- Signing: Windows SmartScreen warns on unsigned `.exe` from the internet.
+- Should macOS and Linux ship as the same `install.sh` or as Go binaries too?
+  (Shell script is simpler to maintain; Go binary for macOS needs a universal binary
+  for Intel + Apple Silicon, but gives identical UX to Windows)
+- Should the GitHub release include `install-arm-linux` for Raspberry Pi / ARM servers?
+- Signing: Windows SmartScreen warns on unsigned `.exe` downloads from the internet.
   Is code signing (via GitHub Actions + a cert) in scope for this phase?
+- Should the directory UX on macOS/Linux also enumerate home subdirectories, or
+  just ask for a path directly? (Unix users may be more comfortable with a path prompt)
 
 ---
 
 *Created 2026-03-12 — Single entry point installer planning*
 *Updated 2026-03-12 — Full discussion captured, Go binary direction chosen*
+*Updated 2026-03-12 — Decision: Go does everything (Option B); enhanced directory UX*
