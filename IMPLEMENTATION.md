@@ -138,16 +138,53 @@ Fix bash-only tasks so `task check` works on Windows.
 
 ---
 
+## Phase 5 — spec:* Cross-Platform Fixes (Depends on Phase 3)
+
+`spec:validate` and `spec:render` were intentionally left out of Phase 3 because they
+are more complex and not required for `task check` (the agent quality gate). They still
+contain POSIX shell syntax and will fail on Windows. Fix them here.
+
+### 5.1 Extract `spec:validate` logic into `scripts/spec_validate.py`
+
+- Current: inline `sh` block using `if [ ! -f "$SPEC_FILE" ]`, `$()` substitution, `$STATUS`
+- Fix: create `scripts/spec_validate.py` that:
+  - Accepts spec file path as CLI arg
+  - Checks file exists (exit 1 with message if not)
+  - Reads first line and checks for `status: approved`
+  - Prints pass/fail message and exits with appropriate code
+- Update `spec:validate` task to: `uv run python scripts/spec_validate.py {{.SPEC_FILE}}`
+
+### 5.2 Extract `spec:render` logic into `scripts/spec_render.py`
+
+- Current: inline `sh` block with heredoc `<<'EOF'`, `$STATUS` check, multi-step pipeline
+- Fix: create `scripts/spec_render.py` that:
+  - Accepts spec file path as CLI arg
+  - Validates the spec file (reuse or call spec_validate logic)
+  - Renders the spec to the output format
+  - Uses Python stdlib only (no new deps)
+- Update `spec:render` task to: `uv run python scripts/spec_render.py {{.SPEC_FILE}}`
+
+### 5.3 Tests for spec scripts
+
+- Unit test `scripts/spec_validate.py` (file missing, approved, not approved)
+- Unit test `scripts/spec_render.py` (valid spec renders, invalid spec exits cleanly)
+- Add to `tests/cli/` alongside existing installer tests
+
+---
+
 ## Dependency Order
 
 ```
 Phase 1 (skills) ──┬── Phase 2 (installer)
                    ├── Phase 3 (taskfile fixes)
                    └── Phase 4 (docs) — after 2 + 3
+
+Phase 3 (taskfile) ── Phase 5 (spec:* fixes)
 ```
 
 Phases 2 and 3 can proceed in parallel after Phase 1.
 Phase 4 follows completion of Phases 2 and 3.
+Phase 5 follows Phase 3 and can proceed in parallel with Phase 4.
 
 ---
 
