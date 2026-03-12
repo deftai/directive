@@ -63,6 +63,11 @@ Prioritized work items. Current goal: **agent-driven skills + installation**.
 
 ## LATER — Future Phases (Unscheduled)
 
+### Code signing for installer binaries
+- Windows: Authenticode signing to avoid SmartScreen warnings
+- macOS: Apple Developer ID signing + notarisation to avoid Gatekeeper blocks
+- Prerequisite for broad adoption; currently documented as manual workaround in README
+
 ### LLM-assisted content validation
 - Explore using an LLM to verify semantic correctness of `.md` files
 - Revisit when framework content volume makes manual review impractical
@@ -75,6 +80,7 @@ Prioritized work items. Current goal: **agent-driven skills + installation**.
 
 ## Completed
 
+- ~~Single entry point Go installer~~ — Done 2026-03-12 (Phases 1–8: Go binary replaces install.py/install.bat, GitHub Actions release workflow, 5-platform binaries)
 - ~~Land agent-driven skills (deft-setup + deft-build)~~ — Done 2026-03-12 (Phases 1–4: skills, installer, Taskfile, docs)
 - ~~Enforce USER.md gate (skills path: deft-build)~~ — Done 2026-03-12; CLI path deferred to LATER
 - ~~Convert to TDD mode~~ — Done 2026-03-11

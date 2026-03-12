@@ -208,42 +208,26 @@ deft/
 
 ## 🚀 Getting Started
 
-**Quick start:**
-
-```sh
-# Unix / macOS
-git clone https://github.com/visionik/deft && deft/install
-
-# Windows (PowerShell)
-git clone https://github.com/visionik/deft; deft\install.bat
-```
-
-**Requires:** Python ≥3.13, Git, and [Taskfile](https://taskfile.dev).
+Download the installer for your platform from [GitHub Releases](https://github.com/visionik/deft/releases), run it, and follow the prompts. No prerequisites required — the installer handles everything (including git if needed).
 
 ### 1. Install Deft
 
-**Prerequisites:**
-- Python ≥3.13
-- Git
-- [Taskfile](https://taskfile.dev): `brew install go-task` (macOS), `choco install go-task` or `scoop install task` (Windows), or the [official installer](https://taskfile.dev/installation/) (Linux)
+**Windows:**
+- Download `install-windows-amd64.exe` (or `install-windows-arm64.exe` for Surface / Copilot+ PCs)
+- Run the downloaded file — Windows SmartScreen may warn about an unrecognised publisher; click "More info" → "Run anyway" (code signing is planned for a future release)
 
-Navigate to your project directory, then clone and run the installer:
+**macOS:**
+- Download `install-macos-universal` — works on all Macs (Intel and Apple Silicon)
+- Make it executable and run: `chmod +x install-macos-universal && ./install-macos-universal`
+- If macOS Gatekeeper blocks the file: right-click → Open, or run `xattr -d com.apple.quarantine install-macos-universal` first (code signing is planned for a future release)
 
-**Unix / macOS:**
-```sh
-cd ~/Projects/my-project
-git clone https://github.com/visionik/deft
-deft/install
-```
+**Linux:**
+- Download `install-linux-amd64` (or `install-linux-arm64` for Raspberry Pi / ARM cloud)
+- Make it executable and run: `chmod +x install-linux-amd64 && ./install-linux-amd64`
 
-**Windows (PowerShell):**
-```sh
-Set-Location C:\Projects\my-project
-git clone https://github.com/visionik/deft
-deft\install.bat
-```
+The installer guides you through choosing a project directory, installs git if needed, clones deft, wires it into `AGENTS.md`, and creates your user config directory.
 
-The installer verifies all prerequisites, wires deft into `AGENTS.md`, and creates your user config directory.
+**Building from source (developers only):** requires Go 1.22+ — `go run ./cmd/deft-install/`
 
 ### 2. Set Up Your Preferences
 
@@ -626,7 +610,7 @@ Deft embodies:
 
 ---
 
-**Next Steps**: Read [main.md](./main.md) for comprehensive AI guidelines, then run the installer (`deft/install` on Unix/macOS, `deft\install.bat` on Windows) to wire deft into your project.
+**Next Steps**: Read [main.md](./main.md) for comprehensive AI guidelines, then [download the installer](https://github.com/visionik/deft/releases) for your platform to get started.
 
 ---
 
