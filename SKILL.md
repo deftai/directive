@@ -24,9 +24,25 @@ This skill automatically loads when you:
 
 ## Missing Config Auto-Setup
 
-- ! If USER.md or PROJECT.md is missing when this skill activates: read and invoke the `deft-setup` skill (`skills/deft-setup/SKILL.md`) and begin Phase 1 immediately
-- ⊗ Present a menu of options, summarize the framework, or ask what the user wants to do — start the setup interview directly
-- ~ If only PROJECT.md is missing (USER.md exists), skip to Phase 2
+! When this skill activates, check for USER.md at the platform-appropriate path
+(Windows: `%APPDATA%\deft\USER.md`, Unix: `~/.config/deft/USER.md`, or `$DEFT_USER_PATH`).
+
+**If USER.md is missing**: Skip everything else in this file. Ask this question immediately
+as your FIRST and ONLY response — no summary, no menu, no preamble:
+
+> Deft has solid opinions on how code should be written and tested — I just need
+> a few things about you and your project. First, how deep do you want to go?
+>
+> 1. **I'm technical — ask me everything**
+> 2. **I have some opinions but keep it simple**
+> 3. **Just pick good defaults — I care about the product, not the tools**
+
+Then continue with `skills/deft-setup/SKILL.md` Phase 1 for remaining questions.
+
+**If USER.md exists but PROJECT.md is missing**: Skip to `skills/deft-setup/SKILL.md` Phase 2.
+
+- ⊗ Present a menu of options or summarize the framework when config is missing
+- ⊗ Ask "what would you like to do" — the answer is always: start the setup interview
 
 ## Core Principle: Rule Precedence
 
