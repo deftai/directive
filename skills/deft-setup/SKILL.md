@@ -82,28 +82,43 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 - ~ Skip if USER.md exists at the platform-appropriate path (see Platform Detection) and user doesn't want to overwrite
 - ⊗ Scan filesystem beyond checking that one path
 
+### Interview Style
+
+- ! Ask **ONE** question at a time, wait for the answer, then ask the next
+- ⊗ Batch multiple questions into a single message
+- ~ Provide numbered options with an "other" choice where appropriate
+- ! Mark which option is RECOMMENDED when showing choices
+- ~ Use structured question tools when available (AskQuestion, question picker)
+
 ### Opening Question
 
 - ! Gauge technical level first:
   - **"I'm technical — ask me everything"**
   - **"I have some opinions but keep it simple"**
   - **"Just pick good defaults — I care about the product, not the tools"**
-- ~ Use structured choice tool if available
 
-### Technical Users — Ask Together
+### Technical Users (option 1) — Full Interview
 
-- ! Batch these in one message:
+- ! Ask these ONE at a time, in order:
   1. **Name** — what to call them
-  2. **Languages** — preferred languages (these become fallback defaults)
-  3. **Strategy** — show table above, recommend "default" (fallback default — projects can override)
-  4. **Coverage threshold** — default 85% (fallback default — projects can override)
-  5. **Custom rules** — optional overrides (these always win)
+  2. **Languages** — show Available Languages list; these become fallback defaults
+  3. **Strategy** — show Available Strategies table, recommend "default" (fallback — projects can override)
+  4. **Coverage threshold** — default 85%, ask if different (fallback — projects can override)
+  5. **Custom rules** — optional overrides that always win; okay to skip
 
-### Non-Technical Users — Minimal
+### Middle Ground (option 2) — Brief Interview
 
-- ! Ask only:
-  1. **Name**
-  2. **What are you building?** — infer everything else
+- ! Ask these ONE at a time, in order:
+  1. **Name** — what to call them
+  2. **Languages** — show Available Languages list
+  3. **Custom rules** — optional; okay to skip
+- ! Set defaults without asking: strategy = "default", coverage = 85%
+
+### Non-Technical Users (option 3) — Minimal Interview
+
+- ! Ask these ONE at a time, in order:
+  1. **Name** — what to call them
+  2. **What are you building?** — infer everything else from the answer
 - ! Set defaults: strategy = "default", coverage = 85%
 - ~ Pick languages based on project type (web → TypeScript, API → Python/Go, mobile → Swift/Kotlin)
 
@@ -165,15 +180,23 @@ for project-scoped settings (strategy, coverage, languages).
 - ! NOW infer from codebase — look for `package.json`, `go.mod`, `requirements.txt`, `Cargo.toml`, `pyproject.toml`, `*.csproj`
 - ! Present inferences and confirm — don't ask blind
 
-### Technical Users — Present and Confirm
+### Technical Users — Interview
 
-- ! Batch:
+- ! Ask ONE at a time, in order:
   1. **Project name** — infer from directory, confirm
   2. **Project type** — CLI, TUI, REST API, Web App, Library, other
-  3. **Languages** — detected + confirm
+  3. **Languages** — show detected, confirm or adjust
   4. **Tech stack** — frameworks, libraries
   5. **Strategy** — default to USER.md Defaults; ask if this project needs different
   6. **Coverage** — default to USER.md Defaults; ask if this project needs different
+
+### Middle Ground — Brief Interview
+
+- ! Present inferences and ask ONE at a time:
+  1. **Project name + type** — infer both, confirm together
+  2. **Languages + tech stack** — show detected, confirm
+  3. **Strategy** — default to USER.md Defaults; ask if this project needs different
+- ! Default coverage to USER.md Defaults without asking
 
 ### Non-Technical Users — Summarize and Confirm
 
@@ -296,7 +319,7 @@ Per `deft/templates/make-spec.md`:
 
 - ⊗ Explore codebase before Phase 1 questions
 - ⊗ Read framework files before first question
-- ⊗ Drip-feed questions one at a time when they can be batched
+- ⊗ Batch multiple questions into one message — ask one at a time, interview style
 - ⊗ Ask jargon-heavy questions to non-technical users
 - ⊗ Ask about things inferable from codebase (Phase 2+)
 - ⊗ Skip phases without asking
