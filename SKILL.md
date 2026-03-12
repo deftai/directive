@@ -22,6 +22,12 @@ This skill automatically loads when you:
 - Run tests, make commits, or perform quality checks
 - Ask about project structure, workflows, or best practices
 
+## Missing Config Auto-Setup
+
+- ! If USER.md or PROJECT.md is missing when this skill activates: read and invoke the `deft-setup` skill (`skills/deft-setup/SKILL.md`) and begin Phase 1 immediately
+- ⊗ Present a menu of options, summarize the framework, or ask what the user wants to do — start the setup interview directly
+- ~ If only PROJECT.md is missing (USER.md exists), skip to Phase 2
+
 ## Core Principle: Rule Precedence
 
 Deft uses hierarchical rules where more specific overrides general:
