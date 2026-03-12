@@ -75,7 +75,9 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 
 ## Phase 1 — User Preferences (USER.md)
 
-**Goal:** Personal preferences file. Highest precedence in deft rule hierarchy.
+**Goal:** Personal preferences file with two sections:
+- **Personal** — always wins over everything (name, custom rules)
+- **Defaults** — fallback values that PROJECT.md can override (strategy, coverage, languages)
 
 - ~ Skip if USER.md exists at the platform-appropriate path (see Platform Detection) and user doesn't want to overwrite
 - ⊗ Scan filesystem beyond checking that one path
@@ -92,10 +94,10 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 
 - ! Batch these in one message:
   1. **Name** — what to call them
-  2. **Languages** — show list above
-  3. **Strategy** — show table above, recommend "default"
-  4. **Coverage threshold** — default 85%, ask if different
-  5. **Custom rules** — optional overrides
+  2. **Languages** — preferred languages (these become fallback defaults)
+  3. **Strategy** — show table above, recommend "default" (fallback default — projects can override)
+  4. **Coverage threshold** — default 85% (fallback default — projects can override)
+  5. **Custom rules** — optional overrides (these always win)
 
 ### Non-Technical Users — Minimal
 
@@ -117,14 +119,20 @@ Resolve using Platform Detection above. Write to the platform-appropriate path
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**Rule Precedence**: This file has HIGHEST precedence — overrides all other deft rules.
-Only add items here that **override or extend** the defaults in `deft/main.md`.
+## Personal (always wins)
 
-## Name
+Settings in this section have HIGHEST precedence — override all other deft rules,
+including PROJECT.md.
 
-Address the user as: **{name}**
+**Name**: Address the user as: **{name}**
 
-## Overrides
+**Custom Rules**:
+{custom rules or "No custom rules defined yet."}
+
+## Defaults (fallback)
+
+Settings in this section are fallback defaults. PROJECT.md overrides these
+for project-scoped settings (strategy, coverage, languages).
 
 **Primary Languages**:
 - {language 1}
@@ -133,10 +141,6 @@ Address the user as: **{name}**
 **Default Strategy**: [{strategy name}](../strategies/{strategy-file}.md)
 
 {If coverage != 85: "**Coverage**: ! ≥{N}% test coverage"}
-
-## Custom Rules
-
-{custom rules or "No custom rules defined yet."}
 
 ---
 
@@ -168,8 +172,8 @@ Address the user as: **{name}**
   2. **Project type** — CLI, TUI, REST API, Web App, Library, other
   3. **Languages** — detected + confirm
   4. **Tech stack** — frameworks, libraries
-  5. **Strategy** — default to Phase 1 choice
-  6. **Coverage** — default 85%
+  5. **Strategy** — default to USER.md Defaults; ask if this project needs different
+  6. **Coverage** — default to USER.md Defaults; ask if this project needs different
 
 ### Non-Technical Users — Summarize and Confirm
 

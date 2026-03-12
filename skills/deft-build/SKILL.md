@@ -44,7 +44,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Read in order, lazy load:
   1. `./SPECIFICATION.md` — what to build (required)
   2. `./PROJECT.md` — project config, tech stack, strategy
-  3. USER.md at the platform-appropriate path (see Platform Detection) — user preferences (highest precedence)
+  3. USER.md at the platform-appropriate path (see Platform Detection) — Personal section is highest precedence; Defaults are fallback
   4. `deft/main.md` — framework guidelines
   5. `deft/coding/coding.md` — coding standards
   6. `deft/coding/testing.md` — testing requirements
@@ -54,15 +54,17 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ## Rule Precedence
 
 ```
-USER.md          ← HIGHEST
-PROJECT.md       ← Project rules
-{language}.md    ← Language standards
-coding.md        ← General coding
-main.md          ← Framework defaults
-SPECIFICATION.md ← LOWEST
+USER.md Personal  ← HIGHEST (name, custom rules — always wins)
+PROJECT.md        ← Project-specific (strategy, coverage, languages, tech stack)
+USER.md Defaults   ← Fallback defaults (used when PROJECT.md doesn't specify)
+{language}.md      ← Language standards
+coding.md          ← General coding
+main.md            ← Framework defaults
+SPECIFICATION.md   ← LOWEST
 ```
 
-- ! If USER.md contradicts any lower file, USER.md wins
+- ! USER.md Personal section always wins over any other file
+- ! For project-scoped settings, PROJECT.md overrides USER.md Defaults
 
 ## Build Process
 

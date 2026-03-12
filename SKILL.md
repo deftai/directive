@@ -30,23 +30,27 @@ This skill automatically loads when you:
 
 ## Core Principle: Rule Precedence
 
-Deft uses hierarchical rules where more specific overrides general:
+Deft uses hierarchical rules where more specific overrides general.
+USER.md has two sections with different precedence:
 
 ```
-user.md          ← HIGHEST precedence (personal preferences)
+USER.md Personal  ← HIGHEST (name, custom rules — always wins)
   ↓
-project.md       ← Project-specific rules
+PROJECT.md        ← Project-specific (strategy, coverage, languages, tech stack)
   ↓
-{language}.md    ← Language standards (python.md, go.md, typescript.md, cpp.md)
+USER.md Defaults   ← Fallback defaults (used when PROJECT.md doesn't specify)
   ↓
-{tool}.md        ← Tool guidelines (taskfile.md, git.md)
+{language}.md      ← Language standards (python.md, go.md, typescript.md, cpp.md)
   ↓
-main.md          ← General AI behavior
+{tool}.md          ← Tool guidelines (taskfile.md, git.md)
   ↓
-specification.md ← LOWEST precedence (requirements)
+main.md            ← General AI behavior
+  ↓
+specification.md   ← LOWEST precedence (requirements)
 ```
 
-**IMPORTANT**: If `user.md` says one thing and `python.md` says another, `user.md` ALWAYS wins.
+**IMPORTANT**: USER.md `Personal` section always wins. For project-scoped settings
+(strategy, coverage, languages), PROJECT.md overrides USER.md `Defaults`.
 
 ## File Reading Strategy (Lazy Loading)
 
@@ -163,7 +167,7 @@ See `./deft/docs/claude-code-integration.md` for integration details.
 ## Remember
 
 1. **Lazy load files** - Only read what you need
-2. **User.md is king** - Highest precedence always
+2. **User.md Personal is king** - Personal section always wins; Defaults are fallback
 3. **Task-centric** - Use `task` for everything
 4. **Test first** - Write tests before implementation
 5. **Always check** - Run `task check` before commits
