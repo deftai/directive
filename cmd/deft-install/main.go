@@ -7,9 +7,20 @@ import (
 	"runtime"
 )
 
+// version is set at build time via ldflags:
+//
+//	go build -ldflags "-X main.version=v1.0.0" ./cmd/deft-install/
+var version = "dev"
+
 func main() {
+	showVersion := flag.Bool("version", false, "print version and exit")
 	debug := flag.Bool("debug", false, "print build target and diagnostic info")
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Printf("deft-install %s\n", version)
+		return
+	}
 
 	if *debug {
 		fmt.Printf("[debug] OS=%s ARCH=%s\n", runtime.GOOS, runtime.GOARCH)
