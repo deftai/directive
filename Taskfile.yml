@@ -78,12 +78,9 @@ tasks:
       - echo "✓ Cleaned artifacts"
 
   install:
-    desc: Install deft — runs the cross-platform install.py
+    desc: Install deft (dev convenience — end users should use the compiled binary from GitHub Releases)
     cmds:
-      - cmd: python3 install.py
-        platforms: [linux, darwin]
-      - cmd: python.exe install.py
-        platforms: [windows]
+      - go run ./cmd/deft-install/
 
   uninstall:
     desc: Remove deft entry from AGENTS.md
