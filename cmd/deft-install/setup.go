@@ -24,14 +24,23 @@ Skills: deft/skills/deft-setup/SKILL.md, deft/skills/deft-build/SKILL.md
 
 // CloneDeft clones the deft repository into deftDir.
 // The parent directory (projectDir) is created if it does not exist.
-func CloneDeft(w *Wizard, result *WizardResult) error {
+// If branch is non-empty the clone checks out that branch.
+func CloneDeft(w *Wizard, result *WizardResult, branch string) error {
 	// Ensure the project directory exists.
 	if err := os.MkdirAll(result.ProjectDir, 0o755); err != nil {
 		return fmt.Errorf("could not create project directory: %w", err)
 	}
 
-	w.printf("Cloning deft into %s ...\n", result.DeftDir)
-	if err := runCmdFunc(w.out, "git", "clone", deftRepoURL, result.DeftDir); err != nil {
+	args := []string{"clone"}
+	if branch != "" {
+		args = append(args, "--branch", branch)
+		w.printf("Cloning deft (branch %s) into %s ...\n", branch, result.DeftDir)
+	} else {
+		w.printf("Cloning deft into %s ...\n", result.DeftDir)
+	}
+	args = append(args, deftRepoURL, result.DeftDir)
+
+	if err := runCmdFunc(w.out, "git", args...); err != nil {
 		w.printf("\nClone failed. Please check your internet connection and try again.\n")
 		return fmt.Errorf("git clone failed: %w", err)
 	}

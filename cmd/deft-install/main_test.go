@@ -319,7 +319,7 @@ func TestCloneDeft_CommandArgs(t *testing.T) {
 	}
 
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	if err := CloneDeft(w, result); err != nil {
+	if err := CloneDeft(w, result, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -332,6 +332,40 @@ func TestCloneDeft_CommandArgs(t *testing.T) {
 	// Project dir should have been created.
 	if _, err := os.Stat(result.ProjectDir); err != nil {
 		t.Errorf("project dir was not created: %v", err)
+	}
+}
+
+func TestCloneDeft_WithBranch(t *testing.T) {
+	origRun := runCmdFunc
+	defer func() { runCmdFunc = origRun }()
+
+	var gotArgs []string
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		gotArgs = args
+		return nil
+	}
+
+	tmp := t.TempDir()
+	result := &WizardResult{
+		ProjectName: "myproj",
+		ProjectDir:  filepath.Join(tmp, "myproj"),
+		DeftDir:     filepath.Join(tmp, "myproj", "deft"),
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if err := CloneDeft(w, result, "beta"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Expect: clone --branch beta <url> <dir>
+	expected := []string{"clone", "--branch", "beta", deftRepoURL, result.DeftDir}
+	if len(gotArgs) != len(expected) {
+		t.Fatalf("expected %d args, got %d: %v", len(expected), len(gotArgs), gotArgs)
+	}
+	for i, want := range expected {
+		if gotArgs[i] != want {
+			t.Errorf("arg[%d] = %q, want %q", i, gotArgs[i], want)
+		}
 	}
 }
 
