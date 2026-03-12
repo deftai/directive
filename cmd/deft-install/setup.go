@@ -12,7 +12,7 @@ const (
 	deftRepoURL = "https://github.com/visionik/deft"
 
 	agentsMDEntry = `See deft/main.md
-Skills: deft/skills/deft-setup/SKILL.md, deft/skills/deft-build/SKILL.md
+Skills: deft/SKILL.md, deft/skills/deft-setup/SKILL.md, deft/skills/deft-build/SKILL.md
 `
 	// Sentinel used to detect an existing deft entry in AGENTS.md.
 	agentsMDSentinel = "deft/main.md"
