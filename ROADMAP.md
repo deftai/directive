@@ -68,6 +68,10 @@ Quick doc/content fixes that don't require code changes.
   - `cmd_spec` and `cmd_project` should check for USER.md at entry; if absent, warn and redirect to `run bootstrap`
   - Skills path already done (deft-build); this covers the CLI fallback path only
 - Code signing for installer binaries (Windows Authenticode, macOS Developer ID + notarisation)
+- Low-end LLM compatibility testing
+  - Validate installer and agent process (deft-setup, deft-build) on small/quantised models (e.g. Qwen3-9B)
+  - Ensure strategies, interview flow, and spec generation still produce good results
+  - Document minimum recommended model size in README or AGENTS.md
 - Upgrade GitHub Actions to Node.js 24 before June 2, 2026 deadline
   - `actions/checkout`, `actions/setup-go`, `actions/upload-artifact`, `actions/download-artifact`
   - Bump to versions that support Node.js 24 when available (v5+), or set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true`
