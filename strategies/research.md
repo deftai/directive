@@ -71,9 +71,24 @@ What goes wrong in this domain, why, and how to avoid it.
 
 ---
 
+## Then: Specification
+
+After research is complete, the project still needs a SPECIFICATION.md.
+Chain into the [interview strategy](./interview.md) sizing gate to generate one.
+
+- ! On completion, ask: "Research complete. Ready to start the specification interview?"
+- ! If yes, follow [interview.md](./interview.md) starting at the **Sizing Gate**
+- ! The research findings MUST inform interview answers and specification content
+- ! "Don't Hand-Roll" items become constraints in the specification
+- ! "Common Pitfalls" become acceptance criteria or NFRs
+- ⊗ End the session after research without offering specification generation
+
+---
+
 ## Anti-Patterns
 
 - ⊗ Building custom solutions for solved problems (JWT parsing, email sending, PDF generation)
 - ⊗ Skipping research for unfamiliar domains ("how hard can auth be?")
 - ⊗ Research that produces a reading list instead of actionable guidance
 - ⊗ Research that doesn't flow into planning (written and never referenced)
+- ⊗ Ending after research without chaining into specification generation

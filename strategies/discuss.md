@@ -76,6 +76,21 @@ Adapt question focus to what's being built:
 
 ---
 
+## Then: Specification
+
+After alignment is complete and decisions are locked in `{scope}-context.md`,
+the project still needs a SPECIFICATION.md. Chain into the
+[interview strategy](./interview.md) sizing gate to generate one.
+
+- ! On completion, ask: "Decisions are locked. Ready to generate the specification?"
+- ! If yes, follow [interview.md](./interview.md) starting at the **Sizing Gate**
+  (the discuss phase replaces the interview's question-gathering — decisions are
+  already made, so the interview will be short or skipped entirely)
+- ! The locked decisions from `{scope}-context.md` MUST flow into the specification
+- ⊗ End the session after discuss without offering specification generation
+
+---
+
 ## Anti-Patterns
 
 - ⊗ Skipping discuss and immediately writing code ("build me auth" → 30 silent decisions)
@@ -83,3 +98,4 @@ Adapt question focus to what's being built:
 - ⊗ Accepting "make it nice" / "standard approach" / "whatever works" without pushback
 - ⊗ Scope creep — capturing out-of-scope ideas inline instead of deferring
 - ⊗ Decisions that exist only in conversation history (they must be in context.md)
+- ⊗ Ending after discuss without chaining into specification generation
