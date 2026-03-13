@@ -89,8 +89,16 @@ jobs:
             runner: windows-latest
           - artifact: install-linux-amd64
             runner: ubuntu-latest
+            expected_os: linux
+            expected_arch: amd64
+          - artifact: install-linux-arm64
+            runner: ubuntu-24.04-arm
+            expected_os: linux
+            expected_arch: arm64
           - artifact: install-macos-universal
             runner: macos-latest
+            expected_os: darwin
+            expected_arch: arm64
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/download-artifact@v4
@@ -101,6 +109,23 @@ jobs:
         run: chmod +x ${{ matrix.artifact }}
       - name: Smoke test --version
         run: ./${{ matrix.artifact }} --version
+      - name: Verify --help output
+        shell: bash
+        run: |
+          ./${{ matrix.artifact }} --help > help_output.txt 2>&1 || true
+          grep -q "Usage:" help_output.txt
+          grep -q "branch" help_output.txt
+      - name: Verify platform detection
+        if: runner.os != 'Windows'
+        run: |
+          echo "" | ./${{ matrix.artifact }} --debug > debug_output.txt 2>&1 || true
+          grep -q "OS=${{ matrix.expected_os }}" debug_output.txt
+          grep -q "ARCH=${{ matrix.expected_arch }}" debug_output.txt
+      - name: Verify wizard starts
+        if: runner.os != 'Windows'
+        run: |
+          echo "" | ./${{ matrix.artifact }} > wizard_output.txt 2>&1 || true
+          grep -q "Welcome to Deft" wizard_output.txt
       - name: Verify macOS universal architectures
         if: matrix.artifact == 'install-macos-universal'
         run: lipo -info install-macos-universal | grep -q "x86_64 arm64"

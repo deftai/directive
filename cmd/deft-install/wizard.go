@@ -14,6 +14,7 @@ import (
 )
 
 var errUserExit = errors.New("user chose to exit")
+var errBackToDrives = errors.New("user chose to reselect drive")
 
 // Wizard guides the user through choosing an install location.
 type Wizard struct {
@@ -54,6 +55,13 @@ func (w *Wizard) Run() (*WizardResult, error) {
 
 	for {
 		projectDir, err := w.selectProjectDir(startDir, projectName)
+		if err == errBackToDrives {
+			startDir, err = w.selectStartingLocation()
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -85,8 +93,8 @@ func (w *Wizard) Run() (*WizardResult, error) {
 // ---------------------------------------------------------------------------
 
 func (w *Wizard) printBanner() {
-	w.printf("\nWelcome to Deft!\n")
-	w.printf("AI coding standards, installed in seconds.\n\n")
+	w.printf("\nWelcome to Deft! — AI coding standards, installed in seconds.\n")
+	w.printf("Installer version: %s\n\n", version)
 }
 
 func (w *Wizard) askProjectName() (string, error) {
@@ -119,9 +127,12 @@ func (w *Wizard) askProjectName() (string, error) {
 // selectProjectDir lets the user browse the filesystem and returns the
 // chosen project directory (the folder that will contain deft/).
 //
-// "Use this folder" treats current as the parent and appends projectName.
-// "Create a new folder here" treats the new folder as the project directory.
+// "Install in this directory" uses the current folder as the project directory.
+// "Create a new subfolder" creates a child folder and uses it as the project directory.
 func (w *Wizard) selectProjectDir(root, projectName string) (string, error) {
+	w.printf("Navigate to your project's root directory.\n")
+	w.printf("Deft will be installed as a subfolder (deft/) inside it.\n")
+
 	current := root
 	for {
 		dirs, err := ListSubdirs(current)
@@ -130,27 +141,22 @@ func (w *Wizard) selectProjectDir(root, projectName string) (string, error) {
 		}
 		sort.Strings(dirs)
 
-		preview := filepath.Join(current, projectName, "deft")
-		w.printf("\nBrowsing: %s\n", current)
-		w.printf("  Deft will be installed into: %s\n\n", preview)
+		w.printf("\nBrowsing: %s\n\n", current)
 
 		// --- Action options first (stable numbering) ---
 		nextIdx := 1
 
-		useIdx := nextIdx
-		w.printf("  %d. ** Use this folder **\n", useIdx)
-		nextIdx++
-
-		upIdx := 0
-		parent := filepath.Dir(current)
-		if parent != current {
-			upIdx = nextIdx
-			w.printf("  %d. .. (go up)\n", upIdx)
+		// Only offer "Install here" when we're below a drive/volume root.
+		useIdx := 0
+		if !isDriveRoot(current) {
+			useIdx = nextIdx
+			w.printf("  %d. ** Install in this directory ** (%s%cdeft)\n", useIdx, current, os.PathSeparator)
 			nextIdx++
 		}
 
 		createIdx := nextIdx
-		w.printf("  %d. Create a new folder here (%s)\n", createIdx, current)
+		w.printf("  %d. Create a new subfolder        (%s%cdeft)\n", createIdx,
+			filepath.Join(current, projectName), os.PathSeparator)
 		nextIdx++
 
 		enterIdx := nextIdx
@@ -161,20 +167,44 @@ func (w *Wizard) selectProjectDir(root, projectName string) (string, error) {
 		w.printf("  %d. Exit\n", exitIdx)
 		nextIdx++
 
-		// --- Subdirectory listing ---
-		dirStartIdx := nextIdx
-		if len(dirs) > 0 {
-			w.printf("\n  Subfolders:\n")
-			for i, d := range dirs {
-				w.printf("  %d. %s%c\n", dirStartIdx+i, d, os.PathSeparator)
-			}
-		}
-		maxIdx := dirStartIdx + len(dirs) - 1
-		if len(dirs) == 0 {
-			maxIdx = exitIdx
+		// --- Navigation listing (go up + subfolders) ---
+		w.printf("\n  Navigate:\n")
+
+		upIdx := 0
+		parent := filepath.Dir(current)
+		if parent != current {
+			upIdx = nextIdx
+			w.printf("  %d. .. (go up to %s)\n", upIdx, parent)
+			nextIdx++
 		}
 
-		defaultChoice := useIdx
+		driveIdx := 0
+		if isDriveRoot(current) {
+			driveIdx = nextIdx
+			w.printf("  %d. Back to drive selection\n", driveIdx)
+			nextIdx++
+		}
+
+		dirStartIdx := nextIdx
+		for i, d := range dirs {
+			w.printf("  %d. %s%c\n", dirStartIdx+i, d, os.PathSeparator)
+		}
+
+		maxIdx := dirStartIdx + len(dirs) - 1
+		if maxIdx < exitIdx {
+			maxIdx = exitIdx
+		}
+		if upIdx > 0 && maxIdx < upIdx {
+			maxIdx = upIdx
+		}
+		if driveIdx > 0 && maxIdx < driveIdx {
+			maxIdx = driveIdx
+		}
+
+		defaultChoice := createIdx
+		if useIdx > 0 {
+			defaultChoice = useIdx
+		}
 		if len(dirs) > 0 {
 			defaultChoice = dirStartIdx // first subfolder
 		}
@@ -201,30 +231,9 @@ func (w *Wizard) selectProjectDir(root, projectName string) (string, error) {
 				return "", errUserExit
 			}
 
-		case choice == useIdx:
-			// current is the parent; project folder = current/projectName
-			return filepath.Join(current, projectName), nil
-
-		case upIdx > 0 && choice == upIdx:
-			current = parent
-
-		case choice == enterIdx:
-			w.printf("Enter full path: ")
-			p, err := w.readLine()
-			if err != nil {
-				return "", err
-			}
-			p = strings.TrimSpace(p)
-			if p == "" {
-				w.printf("No path entered.\n")
-				continue
-			}
-			info, err := os.Stat(p)
-			if err != nil || !info.IsDir() {
-				w.printf("'%s' is not a valid directory. Please try again.\n", p)
-				continue
-			}
-			current = p
+		case useIdx > 0 && choice == useIdx:
+			// Current directory IS the project root.
+			return current, nil
 
 		case choice == createIdx:
 			w.printf("Folder name [%s]: ", projectName)
@@ -243,6 +252,30 @@ func (w *Wizard) selectProjectDir(root, projectName string) (string, error) {
 			}
 			// The created folder IS the project directory.
 			return filepath.Join(current, name), nil
+
+		case upIdx > 0 && choice == upIdx:
+			current = parent
+
+		case driveIdx > 0 && choice == driveIdx:
+			return "", errBackToDrives
+
+		case choice == enterIdx:
+			w.printf("Enter full path: ")
+			p, err := w.readLine()
+			if err != nil {
+				return "", err
+			}
+			p = strings.TrimSpace(p)
+			if p == "" {
+				w.printf("No path entered.\n")
+				continue
+			}
+			info, err := os.Stat(p)
+			if err != nil || !info.IsDir() {
+				w.printf("'%s' is not a valid directory. Please try again.\n", p)
+				continue
+			}
+			current = p
 
 		default:
 			// User picked a subfolder — drill into it.
@@ -351,6 +384,21 @@ func ListSubdirs(dir string) ([]string, error) {
 
 func isHidden(name string) bool {
 	return strings.HasPrefix(name, ".")
+}
+
+// isDriveRoot returns true when path is a filesystem root (e.g. C:\ on Windows,
+// / on Unix). Deft should never be installed directly off a drive root.
+func isDriveRoot(path string) bool {
+	clean := filepath.Clean(path)
+	// Unix root.
+	if clean == "/" {
+		return true
+	}
+	// Windows drive root: exactly "X:\".
+	if len(clean) == 3 && clean[1] == ':' && (clean[2] == '\\' || clean[2] == '/') {
+		return true
+	}
+	return false
 }
 
 // isSystemFolder returns true for well-known system directories that should

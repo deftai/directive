@@ -10,7 +10,7 @@ import (
 // version is set at build time via ldflags:
 //
 //	go build -ldflags "-X main.version=v1.0.0" ./cmd/deft-install/
-var version = "dev"
+var version = "1.0.0"
 
 func printUsage() {
 	fmt.Fprintf(os.Stderr, `deft-install %s — Deft project installer
