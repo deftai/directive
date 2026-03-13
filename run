@@ -932,7 +932,7 @@ def cmd_spec(args: List[str]):
     today = datetime.now().strftime("%Y-%m-%d")
     
     # Build strategy-specific AI instructions
-    if strategy == 'interview':
+    if strategy in ('interview', 'default'):
         if sizing == "Light":
             strategy_instructions = (
                 "! Read `deft/strategies/interview.md` and follow the **Light path**.\n"
