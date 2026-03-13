@@ -16,6 +16,8 @@ Deft is a SKILL.md that makes AI coding significantly more effective by providin
 
 **Context-efficient:** Deft keeps AI context windows lean through RFC 2119-based notation (!, ~, ≉, ⊗) and lazy-loading—AI only reads the files relevant to the current task, not everything at once.
 
+**📍 Roadmap:** See [ROADMAP.md](./ROADMAP.md) for the development timeline, open issues, and planned work.
+
 ## 🎸 From Vibe to Virtuoso
 
 **AGENTS.md** is great for vibe-coding—loose guidance, good enough for quick work:
