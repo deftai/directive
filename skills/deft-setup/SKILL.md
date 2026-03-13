@@ -265,22 +265,34 @@ task clean         # Clean artifacts
 
 ## Phase 3 — Specification (SPECIFICATION.md)
 
-**Goal:** Interview user about what to build, generate implementable spec.
+**Goal:** Generate an implementable spec using the strategy chosen in Phase 2.
 
 - ~ Skip if user already has a SPECIFICATION.md they're happy with
 
-### Strategy Routing
+### ⚠️ MANDATORY: Strategy Gate — Do This First
 
-! Before starting the specification interview, read `PROJECT.md` to determine
-which strategy this project uses. The strategy is declared in the `## Strategy`
-section (e.g. `Use [Interview](deft/strategies/interview.md) for this project.`).
+! **STOP.** You MUST determine the correct strategy before doing anything else.
 
-- ! If strategy is **interview** (default): follow the interview process below
-- ! If strategy is **any other strategy** (discuss, yolo, speckit, research, etc.):
-  read and follow `deft/strategies/{strategy-name}.md` instead of the interview
-  process below. That strategy file defines the complete Phase 3 workflow.
-- ⊗ Ignore the PROJECT.md strategy and default to interview
-- ⊗ Start the interview process without checking which strategy applies
+1. ! Open `PROJECT.md` (the file written in Phase 2)
+2. ! Find the `## Strategy` section
+3. ! Read the strategy link: `Use [Name](deft/strategies/file.md)` → extract the strategy name
+
+**Dispatch:**
+
+- **interview** (or default) → Continue to the Sizing Gate below ✅
+- **anything else** (discuss, yolo, speckit, research, brownfield, map, etc.) →
+  1. ! Read `deft/strategies/{strategy-name}.md`
+  2. ! Follow that file's complete Phase 3 workflow
+  3. ! **STOP reading this section** — do NOT use the interview process below
+
+- ⊗ Default to interview without reading PROJECT.md
+- ⊗ Continue reading below when PROJECT.md specifies a non-interview strategy
+- ⊗ Assume interview because the sections below describe the interview process
+- ⊗ Fabricate justification for using interview when the user chose a different strategy
+
+---
+
+*⬇️ Everything below applies ONLY to the interview strategy. If your strategy is anything else, STOP — follow your strategy file instead.*
 
 ### Sizing Gate (interview and yolo strategies only)
 
