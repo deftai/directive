@@ -88,6 +88,8 @@ jobs:
         include:
           - artifact: install-windows-amd64.exe
             runner: windows-latest
+            expected_os: windows
+            expected_arch: amd64
           - artifact: install-linux-amd64
             runner: ubuntu-latest
             expected_os: linux
@@ -117,18 +119,18 @@ jobs:
           grep -q "Usage:" help_output.txt
           grep -q "branch" help_output.txt
       - name: Verify platform detection
-        if: runner.os != 'Windows'
+        shell: bash
         run: |
           echo "" | ./${{ matrix.artifact }} --debug > debug_output.txt 2>&1 || true
           grep -q "OS=${{ matrix.expected_os }}" debug_output.txt
           grep -q "ARCH=${{ matrix.expected_arch }}" debug_output.txt
       - name: Verify wizard starts
-        if: runner.os != 'Windows'
+        shell: bash
         run: |
           echo "" | ./${{ matrix.artifact }} > wizard_output.txt 2>&1 || true
           grep -q "Welcome to Deft" wizard_output.txt
       - name: Verify --branch flag accepted
-        if: runner.os != 'Windows'
+        shell: bash
         run: |
           echo "" | ./${{ matrix.artifact }} --branch beta > branch_output.txt 2>&1 || true
           grep -q "Welcome to Deft" branch_output.txt
