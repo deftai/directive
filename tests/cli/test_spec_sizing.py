@@ -388,6 +388,122 @@ class TestCmdSpecEdgeCases:
 
 
 # ---------------------------------------------------------------------------
+# _read_project_strategy
+# ---------------------------------------------------------------------------
+
+
+class TestReadProjectStrategy:
+    """Tests for _read_project_strategy helper."""
+
+    def test_returns_none_when_no_project_md(self, deft_run_module, isolated_env):
+        """Returns None when PROJECT.md does not exist."""
+        defaults = deft_run_module.get_default_paths()
+        assert deft_run_module._read_project_strategy(defaults) is None
+
+    def test_returns_interview(self, deft_run_module, isolated_env):
+        """Returns 'interview' when strategy link points to interview.md."""
+        project_path = Path(os.environ["DEFT_PROJECT_PATH"])
+        project_path.write_text(
+            "# Test\n\n## Strategy\n\n"
+            "Use [Interview](../strategies/interview.md) for this project.\n",
+            encoding="utf-8",
+        )
+        defaults = deft_run_module.get_default_paths()
+        assert deft_run_module._read_project_strategy(defaults) == "interview"
+
+    def test_returns_discuss(self, deft_run_module, isolated_env):
+        """Returns 'discuss' when strategy link points to discuss.md."""
+        project_path = Path(os.environ["DEFT_PROJECT_PATH"])
+        project_path.write_text(
+            "# Test\n\n## Strategy\n\n"
+            "Use [Discuss](deft/strategies/discuss.md) for this project.\n",
+            encoding="utf-8",
+        )
+        defaults = deft_run_module.get_default_paths()
+        assert deft_run_module._read_project_strategy(defaults) == "discuss"
+
+    def test_returns_none_without_strategy_link(self, deft_run_module, isolated_env):
+        """Returns None when PROJECT.md has no strategy link."""
+        project_path = Path(os.environ["DEFT_PROJECT_PATH"])
+        project_path.write_text(
+            "# Test\n\n## Strategy\n\nNo link here.\n",
+            encoding="utf-8",
+        )
+        defaults = deft_run_module.get_default_paths()
+        assert deft_run_module._read_project_strategy(defaults) is None
+
+
+# ---------------------------------------------------------------------------
+# cmd_spec — strategy-aware output
+# ---------------------------------------------------------------------------
+
+
+class TestCmdSpecStrategyAware:
+    """cmd_spec output references the correct strategy from PROJECT.md."""
+
+    def test_discuss_strategy_in_light_output(
+        self, run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    ):
+        """When PROJECT.md declares discuss, Light output references discuss.md."""
+        monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        project_path = Path(os.environ["DEFT_PROJECT_PATH"])
+        project_path.write_text(
+            "# TestProject Project Guidelines\n\n## Strategy\n\n"
+            "Use [Discuss](../strategies/discuss.md) for this project.\n",
+            encoding="utf-8",
+        )
+        output = isolated_env / "INTERVIEW.md"
+        spec = isolated_env / "SPECIFICATION.md"
+        mock_user_input(
+            _spec_responses_with_project(output, spec, has_override=False, sizing_choice="1")
+        )
+
+        run_command("cmd_spec", [])
+
+        content = output.read_text(encoding="utf-8")
+        assert "strategies/discuss.md" in content
+        assert "**Strategy**: discuss" in content
+
+    def test_discuss_strategy_in_full_output(
+        self, run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    ):
+        """When PROJECT.md declares discuss, Full output references discuss.md."""
+        monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        project_path = Path(os.environ["DEFT_PROJECT_PATH"])
+        project_path.write_text(
+            "# TestProject Project Guidelines\n\n## Strategy\n\n"
+            "Use [Discuss](../strategies/discuss.md) for this project.\n",
+            encoding="utf-8",
+        )
+        output = isolated_env / "PRD.md"
+        spec = isolated_env / "SPECIFICATION.md"
+        mock_user_input(
+            _spec_responses_with_project(output, spec, has_override=False, sizing_choice="2")
+        )
+
+        run_command("cmd_spec", [])
+
+        content = output.read_text(encoding="utf-8")
+        assert "strategies/discuss.md" in content
+        assert "**Strategy**: discuss" in content
+
+    def test_default_strategy_is_interview(
+        self, run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    ):
+        """Without PROJECT.md, strategy defaults to interview."""
+        monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        output = isolated_env / "INTERVIEW.md"
+        spec = isolated_env / "SPECIFICATION.md"
+        mock_user_input(_spec_responses_no_project(output, spec, sizing_choice="1"))
+
+        run_command("cmd_spec", [])
+
+        content = output.read_text(encoding="utf-8")
+        assert "**Strategy**: interview" in content
+        assert "strategies/interview.md" in content
+
+
+# ---------------------------------------------------------------------------
 # cmd_project — **Process** field present
 # ---------------------------------------------------------------------------
 

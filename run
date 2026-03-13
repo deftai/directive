@@ -786,23 +786,58 @@ def _read_project_process(defaults: dict) -> Optional[str]:
         pass
     return None
 
+def _read_project_strategy(defaults: dict) -> Optional[str]:
+    """Read strategy file stem from PROJECT.md.
+    
+    Parses the ## Strategy section for a link like:
+        Use [Name](path/strategies/stem.md) for this project.
+    
+    Returns strategy stem (e.g. 'interview', 'discuss') or None.
+    """
+    project_default = resolve_path(defaults['project'])
+    project_legacy = _legacy_project_path()
+    project_file = project_default if project_default.exists() else project_legacy
+    if not project_file.exists():
+        return None
+    try:
+        content = project_file.read_text(encoding='utf-8')
+        for line in content.split('\n'):
+            stripped = line.strip()
+            if stripped.startswith('Use [') and 'strategies/' in stripped:
+                start = stripped.index('strategies/') + len('strategies/')
+                rest = stripped[start:]
+                if '.md' in rest:
+                    stem = rest[:rest.index('.md')]
+                    if stem:
+                        return stem
+    except Exception:
+        pass
+    return None
+
 def cmd_spec(args: List[str]):
     """Spec command - generate specification via interview"""
     print_header(f"Deft v{VERSION} - Specification Generator")
     print()
-    info("This command creates an interview instruction file for your AI assistant.")
-    info("It follows strategies/interview.md with a sizing gate:")
-    info("  • Light: Interview → SPECIFICATION (embedded requirements)")
-    info("  • Full:  Interview → PRD (approval gate) → SPECIFICATION")
+    
+    defaults = get_default_paths()
+    strategy = _read_project_strategy(defaults) or 'interview'
+    
+    info("This command creates a specification instruction file for your AI assistant.")
+    if strategy != 'interview':
+        info(f"Strategy: {strategy} (from PROJECT.md)")
+        info(f"Your AI will follow strategies/{strategy}.md, which chains into")
+        info("the sizing gate for specification generation:")
+    else:
+        info("It follows strategies/interview.md with a sizing gate:")
+    info("  • Light: → SPECIFICATION (embedded requirements)")
+    info("  • Full:  → PRD (approval gate) → SPECIFICATION")
     print()
     info("After creating the file, you'll:")
     info("  1. Give it to your AI assistant")
-    info("  2. The AI reads strategies/interview.md and conducts an interview")
+    info(f"  2. The AI reads strategies/{strategy}.md and follows its workflow")
     info("  3. The AI generates SPECIFICATION.md with full implementation plan")
     info("  4. The AI can then implement the spec")
     print()
-    
-    defaults = get_default_paths()
     
     # Try to read project name from project.md (check new default, then legacy path)
     project_default = resolve_path(defaults['project'])
@@ -896,11 +931,34 @@ def cmd_spec(args: List[str]):
     # Generate output file
     today = datetime.now().strftime("%Y-%m-%d")
     
+    # Build strategy-specific AI instructions
+    if strategy == 'interview':
+        if sizing == "Light":
+            strategy_instructions = (
+                "! Read `deft/strategies/interview.md` and follow the **Light path**.\n"
+                "! Conduct a structured interview, then generate SPECIFICATION.md with\n"
+                "embedded Requirements section (FR-1, NFR-1). No separate PRD needed."
+            )
+        else:
+            strategy_instructions = (
+                "! Read `deft/strategies/interview.md` and follow the **Full path**.\n"
+                "! Conduct a structured interview, generate this PRD with structured\n"
+                "requirements (Problem Statement, Goals, User Stories, FR/NFR, Success Metrics),\n"
+                "then get user approval before generating SPECIFICATION.md."
+            )
+    else:
+        path_note = "embedded requirements, no separate PRD" if sizing == "Light" else "PRD approval gate before SPECIFICATION"
+        strategy_instructions = (
+            f"! Read `deft/strategies/{strategy}.md` and follow its complete workflow.\n"
+            f"! When the strategy chains into the sizing gate, use the **{sizing} path** ({path_note})."
+        )
+    
     if sizing == "Light":
         output_content = f"""# Interview: {spec_name}
 
 **Generated**: {today}
 **Status**: Ready for AI Interview
+**Strategy**: {strategy}
 **Path**: Light (Interview → SPECIFICATION)
 **Specification Output**: {spec_file}
 
@@ -914,9 +972,7 @@ def cmd_spec(args: List[str]):
 
 ## Instructions for AI
 
-! Read `deft/strategies/interview.md` and follow the **Light path**.
-! Conduct a structured interview, then generate SPECIFICATION.md with
-embedded Requirements section (FR-1, NFR-1). No separate PRD needed.
+{strategy_instructions}
 
 {template_content}
 """
@@ -925,6 +981,7 @@ embedded Requirements section (FR-1, NFR-1). No separate PRD needed.
 
 **Generated**: {today}
 **Status**: Ready for AI Interview
+**Strategy**: {strategy}
 **Path**: Full (Interview → PRD → SPECIFICATION)
 **Specification Output**: {spec_file}
 
@@ -938,10 +995,7 @@ embedded Requirements section (FR-1, NFR-1). No separate PRD needed.
 
 ## Instructions for AI
 
-! Read `deft/strategies/interview.md` and follow the **Full path**.
-! Conduct a structured interview, generate this PRD with structured
-requirements (Problem Statement, Goals, User Stories, FR/NFR, Success Metrics),
-then get user approval before generating SPECIFICATION.md.
+{strategy_instructions}
 
 {template_content}
 """
@@ -955,7 +1009,7 @@ then get user approval before generating SPECIFICATION.md.
     info("Next steps:")
     info(f"  1. Open your AI assistant (Claude, Warp.dev, etc.)")
     info(f"  2. Ask your AI to read and run {output_file}")
-    info(f"  3. The AI will read strategies/interview.md and conduct an interview")
+    info(f"  3. The AI will read strategies/{strategy}.md and follow its workflow")
     info(f"  4. AI will generate the final specification at {spec_file}")
     info(f"  5. You can review the specification if you want")
     info(f"  6. Ask your AI to implement {spec_file}")
