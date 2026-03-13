@@ -111,18 +111,55 @@ func TestListSubdirs_ExcludesHiddenAndSystem(t *testing.T) {
 // Phase 2 — guards
 // ---------------------------------------------------------------------------
 
-func TestCheckGuards_ExistingDeft(t *testing.T) {
+func TestCheckGuards_WritableDir(t *testing.T) {
 	tmp := t.TempDir()
 	deftDir := filepath.Join(tmp, "project", "deft")
-	os.MkdirAll(deftDir, 0o755)
+	os.MkdirAll(filepath.Dir(deftDir), 0o755)
 
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
 	err := w.checkGuards(deftDir)
-	if err == nil {
-		t.Fatal("expected error for existing deft/ directory")
+	if err != nil {
+		t.Errorf("expected no error for writable parent dir, got: %v", err)
 	}
-	if !strings.Contains(err.Error(), "already exists") {
-		t.Errorf("error should mention 'already exists', got: %s", err)
+}
+
+func TestAskUpdate_Accept(t *testing.T) {
+	var buf bytes.Buffer
+	w := NewWizard(strings.NewReader("y\n"), &buf, false)
+
+	ok, err := w.askUpdate(`C:\Projects\myproj\deft`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Error("expected askUpdate to return true for 'y'")
+	}
+	if !strings.Contains(buf.String(), "already exists") {
+		t.Error("prompt should mention existing folder")
+	}
+}
+
+func TestAskUpdate_AcceptDefault(t *testing.T) {
+	w := NewWizard(strings.NewReader("\n"), &bytes.Buffer{}, false)
+
+	ok, err := w.askUpdate(`C:\Projects\myproj\deft`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Error("expected askUpdate to return true for empty input (default Y)")
+	}
+}
+
+func TestAskUpdate_Decline(t *testing.T) {
+	w := NewWizard(strings.NewReader("n\n"), &bytes.Buffer{}, false)
+
+	ok, err := w.askUpdate(`C:\Projects\myproj\deft`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ok {
+		t.Error("expected askUpdate to return false for 'n'")
 	}
 }
 
@@ -332,6 +369,85 @@ func TestCloneDeft_CommandArgs(t *testing.T) {
 	// Project dir should have been created.
 	if _, err := os.Stat(result.ProjectDir); err != nil {
 		t.Errorf("project dir was not created: %v", err)
+	}
+}
+
+func TestUpdateDeft_NoBranch(t *testing.T) {
+	origRun := runCmdFunc
+	defer func() { runCmdFunc = origRun }()
+
+	var cmds []string
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		cmds = append(cmds, name+" "+strings.Join(args, " "))
+		return nil
+	}
+
+	tmp := t.TempDir()
+	deftDir := filepath.Join(tmp, "myproj", "deft")
+	os.MkdirAll(deftDir, 0o755)
+
+	result := &WizardResult{
+		ProjectName: "myproj",
+		ProjectDir:  filepath.Join(tmp, "myproj"),
+		DeftDir:     deftDir,
+		Update:      true,
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if err := UpdateDeft(w, result, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// Should fetch + pull (no checkout).
+	if len(cmds) != 2 {
+		t.Fatalf("expected 2 commands, got %d: %v", len(cmds), cmds)
+	}
+	if !strings.Contains(cmds[0], "fetch origin") {
+		t.Errorf("expected fetch, got: %s", cmds[0])
+	}
+	if !strings.Contains(cmds[1], "pull") {
+		t.Errorf("expected pull, got: %s", cmds[1])
+	}
+}
+
+func TestUpdateDeft_WithBranch(t *testing.T) {
+	origRun := runCmdFunc
+	defer func() { runCmdFunc = origRun }()
+
+	var cmds []string
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		cmds = append(cmds, name+" "+strings.Join(args, " "))
+		return nil
+	}
+
+	tmp := t.TempDir()
+	deftDir := filepath.Join(tmp, "myproj", "deft")
+	os.MkdirAll(deftDir, 0o755)
+
+	result := &WizardResult{
+		ProjectName: "myproj",
+		ProjectDir:  filepath.Join(tmp, "myproj"),
+		DeftDir:     deftDir,
+		Update:      true,
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if err := UpdateDeft(w, result, "beta"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Should fetch + checkout beta + pull.
+	if len(cmds) != 3 {
+		t.Fatalf("expected 3 commands, got %d: %v", len(cmds), cmds)
+	}
+	if !strings.Contains(cmds[0], "fetch origin") {
+		t.Errorf("expected fetch, got: %s", cmds[0])
+	}
+	if !strings.Contains(cmds[1], "checkout beta") {
+		t.Errorf("expected checkout beta, got: %s", cmds[1])
+	}
+	if !strings.Contains(cmds[2], "pull") {
+		t.Errorf("expected pull, got: %s", cmds[2])
 	}
 }
 

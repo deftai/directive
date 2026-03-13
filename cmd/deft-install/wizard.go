@@ -28,6 +28,7 @@ type WizardResult struct {
 	ProjectName string
 	ProjectDir  string
 	DeftDir     string
+	Update      bool // true when deft/ already exists and user chose to update
 }
 
 // NewWizard creates a Wizard reading from in and writing to out.
@@ -67,6 +68,23 @@ func (w *Wizard) Run() (*WizardResult, error) {
 		}
 
 		deftDir := filepath.Join(projectDir, "deft")
+
+		// If deft/ already exists, offer to update instead of blocking.
+		if info, statErr := os.Stat(deftDir); statErr == nil && info.IsDir() {
+			update, err := w.askUpdate(deftDir)
+			if err != nil {
+				return nil, err
+			}
+			if update {
+				return &WizardResult{
+					ProjectName: filepath.Base(projectDir),
+					ProjectDir:  projectDir,
+					DeftDir:     deftDir,
+					Update:      true,
+				}, nil
+			}
+			continue
+		}
 
 		if err := w.checkGuards(deftDir); err != nil {
 			w.printf("\n%s\n\n", err)
@@ -275,7 +293,7 @@ func (w *Wizard) selectProjectDir(root, projectName string) (string, error) {
 				w.printf("'%s' is not a valid directory. Please try again.\n", p)
 				continue
 			}
-			current = p
+			current = filepath.Clean(p)
 
 		default:
 			// User picked a subfolder — drill into it.
@@ -300,13 +318,6 @@ func (w *Wizard) confirmInstall(projectDir, deftDir string) (bool, error) {
 }
 
 func (w *Wizard) checkGuards(deftDir string) error {
-	// Guard: deft/ already exists — never overwrite.
-	if info, err := os.Stat(deftDir); err == nil && info.IsDir() {
-		return fmt.Errorf(
-			"a deft/ folder already exists at %s\n"+
-				"To repair or re-run the install, remove it first and try again", deftDir)
-	}
-
 	// Guard: write permission on the nearest existing ancestor.
 	parentDir := filepath.Dir(deftDir) // <project>/
 	if err := CheckWritePermission(parentDir); err != nil {
@@ -314,6 +325,17 @@ func (w *Wizard) checkGuards(deftDir string) error {
 	}
 
 	return nil
+}
+
+func (w *Wizard) askUpdate(deftDir string) (bool, error) {
+	w.printf("\nA deft/ folder already exists at %s\n", deftDir)
+	w.printf("Would you like to update it with the latest version? [Y/n]: ")
+	input, err := w.readLine()
+	if err != nil {
+		return false, err
+	}
+	input = strings.TrimSpace(strings.ToLower(input))
+	return input == "" || input == "y" || input == "yes", nil
 }
 
 func (w *Wizard) confirmExit() bool {

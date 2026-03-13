@@ -104,10 +104,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Phase 4: clone deft and set up the project.
-	if err := CloneDeft(w, result, *branch); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+	// Phase 4: clone or update deft.
+	if result.Update {
+		if err := UpdateDeft(w, result, *branch); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+	} else {
+		if err := CloneDeft(w, result, *branch); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	if err := WriteAgentsMD(w, result.ProjectDir); err != nil {

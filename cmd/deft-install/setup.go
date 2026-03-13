@@ -47,6 +47,33 @@ func CloneDeft(w *Wizard, result *WizardResult, branch string) error {
 	return nil
 }
 
+// UpdateDeft fetches the latest changes and optionally switches branch.
+// Used when deft/ already exists and the user chose to update.
+func UpdateDeft(w *Wizard, result *WizardResult, branch string) error {
+	w.printf("Updating deft at %s ...\n", result.DeftDir)
+
+	// Fetch latest from origin.
+	if err := runCmdFunc(w.out, "git", "-C", result.DeftDir, "fetch", "origin"); err != nil {
+		return fmt.Errorf("git fetch failed: %w", err)
+	}
+
+	// Switch branch if requested.
+	if branch != "" {
+		w.printf("Switching to branch %s ...\n", branch)
+		if err := runCmdFunc(w.out, "git", "-C", result.DeftDir, "checkout", branch); err != nil {
+			return fmt.Errorf("git checkout %s failed: %w", branch, err)
+		}
+	}
+
+	// Pull latest changes.
+	if err := runCmdFunc(w.out, "git", "-C", result.DeftDir, "pull"); err != nil {
+		return fmt.Errorf("git pull failed: %w", err)
+	}
+
+	w.printf("Deft updated successfully.\n")
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // 4.2 Write AGENTS.md
 // ---------------------------------------------------------------------------
