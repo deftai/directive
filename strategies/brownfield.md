@@ -77,6 +77,21 @@ Produce these in `.planning/codebase/` (or `docs/codebase/`):
 
 ---
 
+## Then: Specification
+
+After mapping is complete, the project still needs a SPECIFICATION.md.
+Chain into the [interview strategy](./interview.md) sizing gate to generate one.
+
+- ! On completion, ask: "Codebase mapped. Ready to start the specification interview?"
+- ! If yes, follow [interview.md](./interview.md) starting at the **Sizing Gate**
+- ! The mapping artifacts MUST inform the interview and specification:
+  - CONVENTIONS.md → implementation constraints
+  - ARCHITECTURE.md → where new code fits
+  - CONCERNS.md → things to avoid or fix
+- ⊗ End the session after mapping without offering specification generation
+
+---
+
 ## Invoking This Strategy
 
 Set in PROJECT.md:
@@ -86,5 +101,5 @@ Set in PROJECT.md:
 
 Or explicitly:
 ```
-Map this codebase, then use the default strategy to plan [feature].
+Map this codebase, then use the interview strategy to plan [feature].
 ```
