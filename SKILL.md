@@ -109,8 +109,9 @@ See `./deft/tools/taskfile.md` for complete task standards and common commands.
 3. Implementation is INCOMPLETE until tests pass
 
 **Spec-Driven Development (SDD)** for new features/projects:
-1. Run `deft/run spec` to generate PRD.md via AI interview
-2. Review PRD.md → Generate SPECIFICATION.md → Review → Implement
+1. Run `deft/run spec` — sizing gate selects Light or Full path
+2. Light: Interview → SPECIFICATION.md (embedded requirements) → Implement
+3. Full: Interview → PRD.md (approval gate) → SPECIFICATION.md → Implement
 
 See `./deft/coding/testing.md` for complete testing standards.
 
@@ -142,7 +143,7 @@ All languages require ≥85% test coverage. See language-specific files:
 deft/run init       # Create deft structure
 deft/run bootstrap  # User config (first time only)
 deft/run project    # Project config
-deft/run spec       # Generate PRD + SPECIFICATION (optional)
+deft/run spec       # Sizing gate → Light (INTERVIEW.md) or Full (PRD.md) → SPECIFICATION
 ```
 
 **Work with existing deft project**:

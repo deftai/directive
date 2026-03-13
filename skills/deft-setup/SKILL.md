@@ -65,7 +65,7 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 
 | Strategy     | Description                                                              |
 |--------------|--------------------------------------------------------------------------|
-| **default**  | Structured interview → PRD → SPECIFICATION (Recommended)                |
+| **default**  | Structured interview with sizing gate: Light or Full path (Recommended) |
 | **brownfield** | Analyze existing codebase before adding features                       |
 | **discuss**  | Front-load decisions and alignment before planning                       |
 | **research** | Investigate the domain before planning                                   |
@@ -266,13 +266,26 @@ task clean         # Clean artifacts
 ## Phase 3 — Specification (SPECIFICATION.md)
 
 **Goal:** Interview user about what to build, generate implementable spec.
-No intermediate PRD.md needed — already in conversation.
+The interview process follows [strategies/interview.md](../../strategies/interview.md)
+as the authoritative source.
 
 - ~ Skip if user already has a SPECIFICATION.md they're happy with
 
+### Sizing Gate
+
+! After hearing what the user wants to build and their feature list, determine
+project complexity per [strategies/interview.md](../../strategies/interview.md#sizing-gate).
+
+- ! Check `PROJECT.md` for `**Process**: Light` or `**Process**: Full` — if declared, use that path
+- ! If not declared, propose a size based on feature count, components, duration, team size, integration complexity
+- ! User confirms or overrides the proposed size
+
+**Light** (small/medium): Interview → SPECIFICATION with embedded Requirements.
+**Full** (large/complex): Interview → PRD.md (user approval) → SPECIFICATION with traceability.
+
 ### Interview Process
 
-Per `deft/templates/make-spec.md`:
+Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shared-by-both-paths):
 
 - ! Ask what to build and features first
 - ! Ask **ONE** focused, non-trivial question per step
@@ -298,15 +311,28 @@ Per `deft/templates/make-spec.md`:
 - ! Continue until little ambiguity remains
 - ! Spec must be comprehensive enough to implement
 
-### Output
+### Output — Light Path
 
 1. ! Write `./vbrief/specification.vbrief.json` with `status: draft`
 2. ! Summarize decisions, ask user to review
 3. ! On approval, update `status` to `approved`
 4. ! Generate `./SPECIFICATION.md` (run `task spec:render` if available, else directly)
+- ! SPECIFICATION.md MUST include an embedded Requirements section (FR-1, NFR-1)
+- ! Each task SHOULD reference which FR/NFR it implements via `(traces: FR-N)`
+- ⊗ Create a separate PRD.md on the Light path
 
-**Spec Structure:**
-- ! Overview, Requirements, Architecture
+### Output — Full Path
+
+1. ! Generate `PRD.md` with structured requirements (Problem Statement, Goals, User Stories, FR/NFR, Success Metrics)
+2. ! Ask user to review and approve PRD before proceeding
+3. ! Write `./vbrief/specification.vbrief.json` with `status: draft`
+4. ! Summarize decisions, ask user to review
+5. ! On approval, update `status` to `approved`
+6. ! Generate `./SPECIFICATION.md` (run `task spec:render` if available, else directly)
+- ! SPECIFICATION.md MUST trace tasks back to PRD requirement IDs (FR-1, NFR-1)
+
+**Spec Structure (both paths):**
+- ! Overview, Requirements (Light) or link to PRD (Full), Architecture
 - ! Implementation Plan: Phases → Subphases → Tasks
 - ! Explicit dependency mapping between phases
 - ~ Tasks designed for parallel work by multiple agents

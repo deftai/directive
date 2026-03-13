@@ -117,7 +117,8 @@ for local validation. Source: [github.com/visionik/vBRIEF](https://github.com/vi
 ## specification.vbrief.json
 
 The source-of-truth for project intent. Created via the interview process in
-[templates/make-spec.md](../templates/make-spec.md).
+[strategies/interview.md](../strategies/interview.md) (canonical) or
+[templates/make-spec.md](../templates/make-spec.md) (template implementation).
 
 **Status lifecycle:** `draft` → `approved` → (locked)
 
@@ -167,8 +168,9 @@ Reusable operational patterns. Examples: `playbook-deploy.vbrief.json`, `playboo
 
 ## Specification Flow
 
+**Light path** (interview.md → SPECIFICATION with embedded Requirements):
 ```
-Interview (make-spec.md)
+Interview (strategies/interview.md, Light path)
         │
         ▼
 ./vbrief/specification.vbrief.json   ← status: draft
@@ -181,7 +183,28 @@ Interview (make-spec.md)
    task spec:render
         │
         ▼
-SPECIFICATION.md                     ← generated, never hand-edited
+SPECIFICATION.md                     ← generated, with embedded Requirements
+```
+
+**Full path** (interview.md → PRD → SPECIFICATION with traceability):
+```
+Interview (strategies/interview.md, Full path)
+        │
+        ▼
+PRD.md                               ← user approval gate
+        │
+        ▼
+./vbrief/specification.vbrief.json   ← status: draft
+        │
+   user reviews
+        │
+        ▼
+./vbrief/specification.vbrief.json   ← status: approved
+        │
+   task spec:render
+        │
+        ▼
+SPECIFICATION.md                     ← generated, traces to PRD requirement IDs
 ```
 
 Add-on specs follow the same flow:

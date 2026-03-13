@@ -91,8 +91,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 When the user types `/deft:run:<name>`, read and follow `strategies/<name>.md`.
 
-- `/deft:run:interview <name>` — Structured interview → PRD → SPECIFICATION ([strategies/interview.md](./strategies/interview.md))
-- `/deft:run:yolo <name>` — Auto-pilot interview; agent picks all recommended options ([strategies/yolo.md](./strategies/yolo.md))
+- `/deft:run:interview <name>` — Structured interview with sizing gate: Light or Full path ([strategies/interview.md](./strategies/interview.md))
+- `/deft:run:yolo <name>` — Auto-pilot interview with sizing gate; Johnbot picks all options ([strategies/yolo.md](./strategies/yolo.md))
 - `/deft:run:map` — Brownfield codebase mapping ([strategies/map.md](./strategies/map.md))
 - `/deft:run:discuss <topic>` — Feynman-style alignment + decision locking ([strategies/discuss.md](./strategies/discuss.md))
 - `/deft:run:research <domain>` — Don't hand-roll + common pitfalls ([strategies/research.md](./strategies/research.md))

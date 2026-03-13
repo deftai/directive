@@ -6,14 +6,14 @@ Development strategies define the workflow from idea to implementation.
 
 | Strategy | Command | Use Case | Phases |
 |----------|---------|----------|--------|
-| [interview.md](./interview.md) | `/deft:run:interview` | Standard projects (default) | Interview → PRD → SPECIFICATION |
-| [yolo.md](./yolo.md) | `/deft:run:yolo` | Quick prototyping | Auto-pilot interview → PRD → SPECIFICATION |
+| [interview.md](./interview.md) | `/deft:run:interview` | Standard projects (default) | Sizing gate: Light (Interview → SPECIFICATION) or Full (Interview → PRD → SPECIFICATION) |
+| [yolo.md](./yolo.md) | `/deft:run:yolo` | Quick prototyping | Auto-pilot sizing gate: Light or Full (Johnbot picks) |
 | [speckit.md](./speckit.md) | `/deft:run:speckit` | Large/complex projects | Principles → Specify → Plan → Tasks → Implement |
 | [map.md](./map.md) | `/deft:run:map` | Existing codebases | Map → Plan → Implement |
 | [discuss.md](./discuss.md) | `/deft:run:discuss` | Alignment before planning | Feynman technique → locked decisions |
 | [research.md](./research.md) | `/deft:run:research` | Pre-implementation research | Research → Don't Hand-Roll + Common Pitfalls |
-| rapid.md | `/deft:run:rapid` | Quick prototypes | SPECIFICATION only (future) |
-| enterprise.md | `/deft:run:enterprise` | Compliance-heavy | PRD → ADR → SPECIFICATION (future) |
+| rapid.md | `/deft:run:rapid` | Quick prototypes | Forced-Light path (future) |
+| enterprise.md | `/deft:run:enterprise` | Compliance-heavy | Forced-Full path (future) |
 
 ## Selecting a Strategy
 

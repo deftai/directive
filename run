@@ -718,6 +718,8 @@ See `deft/main.md`, `deft/coding/coding.md`, and language-specific files for bas
 
 Use [{strategy_display}](../strategies/{strategy_stem}.md) for this project.
 
+**Process**:
+
 ## Overrides
 {coverage_line}
 
@@ -762,34 +764,45 @@ Use [{strategy_display}](../strategies/{strategy_stem}.md) for this project.
         info("You can run 'run spec' later to generate your specification.")
         return 0
 
+def _read_project_process(defaults: dict) -> Optional[str]:
+    """Read **Process**: value from PROJECT.md if present.
+    
+    Returns 'Light', 'Full', or None.
+    """
+    project_default = resolve_path(defaults['project'])
+    project_legacy = _legacy_project_path()
+    project_file = project_default if project_default.exists() else project_legacy
+    if not project_file.exists():
+        return None
+    try:
+        content = project_file.read_text(encoding='utf-8')
+        for line in content.split('\n'):
+            stripped = line.strip()
+            if stripped.startswith('**Process**:'):
+                value = stripped.split(':', 1)[1].strip().rstrip('*').strip()
+                if value.lower() in ('light', 'full'):
+                    return value.capitalize()
+    except Exception:
+        pass
+    return None
+
 def cmd_spec(args: List[str]):
     """Spec command - generate specification via interview"""
     print_header(f"Deft v{VERSION} - Specification Generator")
     print()
-    info("This command creates PRD.md (Product Requirements Document) with:")
-    info("  • Your project's core features and requirements")
-    info("  • An AI interview template to drill into details")
+    info("This command creates an interview instruction file for your AI assistant.")
+    info("It follows strategies/interview.md with a sizing gate:")
+    info("  • Light: Interview → SPECIFICATION (embedded requirements)")
+    info("  • Full:  Interview → PRD (approval gate) → SPECIFICATION")
     print()
-    info("After creating PRD.md, you'll:")
-    info("  1. Give PRD.md to your AI assistant")
-    info("  2. The AI conducts an in-depth interview about requirements")
+    info("After creating the file, you'll:")
+    info("  1. Give it to your AI assistant")
+    info("  2. The AI reads strategies/interview.md and conducts an interview")
     info("  3. The AI generates SPECIFICATION.md with full implementation plan")
     info("  4. The AI can then implement the spec")
     print()
-    info("This ensures nothing important is overlooked before coding starts.")
-    print()
     
     defaults = get_default_paths()
-    
-    print_section("Output Locations")
-    prd_path_str = read_input("Where to write PRD.md", defaults['prd'])
-    prd_file = resolve_path(prd_path_str)
-    spec_path_str = read_input("Where should SPECIFICATION.md be generated", defaults['specification'])
-    spec_file = resolve_path(spec_path_str)
-    
-    if prd_file.exists() and "--force" not in args:
-        warn(f"{prd_file} already exists. Use --force to overwrite.")
-        return 1
     
     # Try to read project name from project.md (check new default, then legacy path)
     project_default = resolve_path(defaults['project'])
@@ -799,7 +812,6 @@ def cmd_spec(args: List[str]):
     if project_file.exists():
         try:
             content = project_file.read_text(encoding='utf-8')
-            # Extract project name from first heading (e.g., "# MyProject Project Guidelines")
             for line in content.split('\n'):
                 if line.startswith('# ') and 'Project Guidelines' in line:
                     spec_name = line.replace('# ', '').replace(' Project Guidelines', '').strip()
@@ -825,6 +837,39 @@ def cmd_spec(args: List[str]):
             break
         features.append(feature)
     
+    # Sizing gate
+    print()
+    print_section("Project Complexity")
+    
+    process_override = _read_project_process(defaults)
+    if process_override:
+        info(f"PROJECT.md declares **Process**: {process_override} — using that.")
+        sizing = process_override
+    else:
+        recommended = "Light" if len(features) <= 5 else "Full"
+        info(f"Based on {len(features)} feature(s), recommended: {recommended}")
+        info("  1. Light — Interview → SPECIFICATION (embedded requirements, no PRD)")
+        info("  2. Full  — Interview → PRD (approval gate) → SPECIFICATION")
+        sizing_choice = read_input("Selection", "1" if recommended == "Light" else "2")
+        sizing = "Light" if sizing_choice.strip() == "1" else "Full"
+    
+    # Determine output file
+    if sizing == "Light":
+        output_default = os.environ.get('DEFT_PRD_PATH', './INTERVIEW.md')
+    else:
+        output_default = defaults['prd']  # ./PRD.md
+    
+    print()
+    print_section("Output Locations")
+    output_path_str = read_input(f"Where to write {'INTERVIEW.md' if sizing == 'Light' else 'PRD.md'}", output_default)
+    output_file = resolve_path(output_path_str)
+    spec_path_str = read_input("Where should SPECIFICATION.md be generated", defaults['specification'])
+    spec_file = resolve_path(spec_path_str)
+    
+    if output_file.exists() and "--force" not in args:
+        warn(f"{output_file} already exists. Use --force to overwrite.")
+        return 1
+    
     # Build feature list
     feature_list = '\n'.join([f"{i+1}. {f}" for i, f in enumerate(features)])
     
@@ -848,13 +893,15 @@ def cmd_spec(args: List[str]):
         f"Generate as {spec_file}"
     )
     
-    # Generate PRD
+    # Generate output file
     today = datetime.now().strftime("%Y-%m-%d")
     
-    prd_content = f"""# Product Requirements Document: {spec_name}
+    if sizing == "Light":
+        output_content = f"""# Interview: {spec_name}
 
 **Generated**: {today}
 **Status**: Ready for AI Interview
+**Path**: Light (Interview → SPECIFICATION)
 **Specification Output**: {spec_file}
 
 ## Initial Input
@@ -865,21 +912,53 @@ def cmd_spec(args: List[str]):
 {feature_list}
 ---
 
+## Instructions for AI
+
+! Read `deft/strategies/interview.md` and follow the **Light path**.
+! Conduct a structured interview, then generate SPECIFICATION.md with
+embedded Requirements section (FR-1, NFR-1). No separate PRD needed.
+
+{template_content}
+"""
+    else:
+        output_content = f"""# Product Requirements Document: {spec_name}
+
+**Generated**: {today}
+**Status**: Ready for AI Interview
+**Path**: Full (Interview → PRD → SPECIFICATION)
+**Specification Output**: {spec_file}
+
+## Initial Input
+
+**Project Description**: {spec_desc}
+
+**I want to build {spec_name} that has the following features:**
+{feature_list}
+---
+
+## Instructions for AI
+
+! Read `deft/strategies/interview.md` and follow the **Full path**.
+! Conduct a structured interview, generate this PRD with structured
+requirements (Problem Statement, Goals, User Stories, FR/NFR, Success Metrics),
+then get user approval before generating SPECIFICATION.md.
+
 {template_content}
 """
     
-    prd_file.parent.mkdir(parents=True, exist_ok=True)
-    prd_file.write_text(prd_content, encoding='utf-8')
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    output_file.write_text(output_content, encoding='utf-8')
     
-    success(f"Created PRD.md at {prd_file}")
+    output_name = 'INTERVIEW.md' if sizing == 'Light' else 'PRD.md'
+    success(f"Created {output_name} at {output_file}")
+    info(f"Path: {sizing}")
     info("Next steps:")
     info(f"  1. Open your AI assistant (Claude, Warp.dev, etc.)")
-    info(f"  2. Ask your AI to read and run {prd_file}")
-    info(f"  3. The AI will conduct a detailed interview based on the template")
+    info(f"  2. Ask your AI to read and run {output_file}")
+    info(f"  3. The AI will read strategies/interview.md and conduct an interview")
     info(f"  4. AI will generate the final specification at {spec_file}")
     info(f"  5. You can review the specification if you want")
     info(f"  6. Ask your AI to implement {spec_file}")
-    info(f"  7. Your AI may ask you some questions like 'should I continue', just say yes or please continue")
     return 0
 
 def cmd_install(args: List[str]):
@@ -1560,6 +1639,8 @@ See `deft/main.md`, `deft/coding/coding.md`, and language-specific files for bas
 ## Strategy
 
 Use [{strategy_display}](../strategies/{strategy_stem}.md) for this project.
+
+**Process**:
 
 ## Overrides
 {coverage_line}

@@ -1,6 +1,9 @@
 # Specification Generation
 
 Agent workflow for creating project specifications via structured interview.
+This template implements [strategies/interview.md](../strategies/interview.md).
+See that file for the full canonical strategy including the sizing gate,
+Light/Full paths, and transition criteria.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
@@ -14,16 +17,28 @@ I want to build [project name] that has the following features:
 N. [feature]
 ```
 
+## Sizing Gate
+
+! Before starting the interview, determine project complexity per
+[strategies/interview.md](../strategies/interview.md#sizing-gate).
+
+- ! Check `PROJECT.md` for `**Process**: Light` or `**Process**: Full` — if declared, use that path
+- ! If not declared, propose a size based on feature count, components, duration, team size, integration complexity
+- ! User confirms or overrides the proposed size
+
+**Light** (small/medium): Interview → SPECIFICATION with embedded Requirements.
+**Full** (large/complex): Interview → PRD (approval gate) → SPECIFICATION with traceability.
+
 ## Interview Process
 
 - ~ Use Claude AskInterviewQuestion when available (emulate it if not available)
 - ! If Input Template fields are empty: ask overview, then features, then details
 - ! Ask **ONE** focused, non-trivial question per step
-- ⊗ ask more than one question per step; or try to sneak-in "also" questions
+- ⊗ Ask more than one question per step; or try to sneak-in "also" questions
 - ~ Provide numbered answer options when appropriate
 - ! Include "other" option for custom/unknown responses
-- ! make it clear which option you feel is RECOMMENDED
-- ! when you are done, append to the end of this file all questions asked and answers given.
+- ! Make it clear which option you feel is RECOMMENDED
+- ! When you are done, append to the end of this file all questions asked and answers given
 
 **Question Areas:**
 
@@ -41,7 +56,48 @@ N. [feature]
 
 ## Output Generation
 
-**Specification flow:**
+### Full Path: PRD Generation
+
+Only on the **Full** path — generate `PRD.md` before the specification:
+
+```markdown
+# [Project Name] PRD
+
+## Problem Statement
+What problem does this solve? Who has this problem?
+
+## Goals
+- Primary goal
+- Secondary goals
+- Non-goals (explicitly out of scope)
+
+## User Stories
+As a [user type], I want [capability] so that [benefit].
+
+## Requirements
+
+### Functional Requirements
+- FR-1: [requirement]
+- FR-2: [requirement]
+
+### Non-Functional Requirements
+- NFR-1: Performance — [requirement]
+- NFR-2: Security — [requirement]
+
+## Success Metrics
+How do we know this succeeded?
+
+## Open Questions
+Any remaining decisions deferred to implementation.
+```
+
+- ! Focus on WHAT, not HOW
+- ! Use RFC 2119 language (MUST, SHOULD, MAY)
+- ! Number all requirements for traceability
+- ! User MUST review and approve PRD before specification generation begins
+
+### Specification Flow (both paths)
+
 1. ! Write `./vbrief/specification.vbrief.json` with `status: draft`
 2. ! Summarize what was decided and ask the user to review
 3. ! On user approval, update `status` to `approved` in the vbrief file
@@ -49,19 +105,19 @@ N. [feature]
 5. ? For add-on specs: write `./vbrief/specification-{name}.vbrief.json` → `SPECIFICATION-{name}.md`
 
 - ⊗ Write `SPECIFICATION.md` directly — it is generated from the vbrief source
-- ! follow all relevant deft guidelines
-- ! use RFC2119 MUST, SHOULD, MAY, SHOULD NOT, MUST NOT wording
+- ! Follow all relevant deft guidelines
+- ! Use RFC 2119 MUST, SHOULD, MAY, SHOULD NOT, MUST NOT wording
 - ! Break into phases, subphases, tasks
-- ! end of each phase/subphase must implement and run testing until it passes
+- ! End of each phase/subphase must implement and run testing until it passes
 - ! Mark all dependencies explicitly: "Phase 2 (depends on: Phase 1)"
 - ! Design for parallel work (multiple agents)
 - ⊗ Write code (specification only)
 
 ## Afterwards
 
-- ! let user know to type "implement SPECIFICATION.md" to start implementation
+- ! Let user know to type "implement SPECIFICATION.md" to start implementation
 
-**Structure:**
+**SPECIFICATION Structure (Light path — embedded Requirements):**
 
 ```markdown
 # Project Name
@@ -69,6 +125,14 @@ N. [feature]
 ## Overview
 
 ## Requirements
+
+### Functional Requirements
+- FR-1: [requirement]
+- FR-2: [requirement]
+
+### Non-Functional Requirements
+- NFR-1: [requirement]
+- NFR-2: [requirement]
 
 ## Architecture
 
@@ -78,7 +142,34 @@ N. [feature]
 
 #### Subphase 1.1: Setup
 
-- Task 1.1.1: (description, dependencies, acceptance criteria)
+- Task 1.1.1: (description, traces: FR-1, dependencies, acceptance criteria)
+
+#### Subphase 1.2: Core (depends on: 1.1)
+
+### Phase 2: Features (depends on: Phase 1)
+
+## Testing Strategy
+
+## Deployment
+```
+
+**SPECIFICATION Structure (Full path — references PRD):**
+
+```markdown
+# Project Name
+
+## Overview
+Brief summary and link to PRD.
+
+## Architecture
+
+## Implementation Plan
+
+### Phase 1: Foundation
+
+#### Subphase 1.1: Setup
+
+- Task 1.1.1: (description, traces: FR-1, dependencies, acceptance criteria)
 
 #### Subphase 1.2: Core (depends on: 1.1)
 
@@ -97,6 +188,7 @@ N. [feature]
 - ~ Size tasks for 1-4 hours
 - ! Minimize inter-task dependencies
 - ! Define clear component interfaces
+- ! Each task SHOULD reference which FR/NFR it implements via `(traces: FR-N)`
 
 ## Anti-Patterns
 
@@ -105,3 +197,5 @@ N. [feature]
 - ⊗ Vague requirements
 - ⊗ Missing dependencies
 - ⊗ Sequential tasks that could be parallel
+- ⊗ Creating PRD.md on the Light path
+- ⊗ Skipping the sizing gate
