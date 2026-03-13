@@ -281,14 +281,15 @@ task clean         # Clean artifacts
 
 - **interview** (or default) → Continue to the Sizing Gate below ✅
 - **anything else** (discuss, yolo, speckit, research, brownfield, map, etc.) →
-  1. ! Read `deft/strategies/{strategy-name}.md`
-  2. ! Follow that file's complete Phase 3 workflow
+  1. ! Read `deft/strategies/{strategy-name}.md` **right now, in this same turn**
+  2. ! Begin the strategy’s workflow immediately — ask its first question
   3. ! **STOP reading this section** — do NOT use the interview process below
 
 - ⊗ Default to interview without reading PROJECT.md
 - ⊗ Continue reading below when PROJECT.md specifies a non-interview strategy
 - ⊗ Assume interview because the sections below describe the interview process
 - ⊗ Fabricate justification for using interview when the user chose a different strategy
+- ⊗ Announce the strategy choice and then stop — you must immediately read the file and start
 
 ---
 
