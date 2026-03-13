@@ -23,8 +23,8 @@ N. [feature]
 [strategies/interview.md](../strategies/interview.md#sizing-gate).
 
 - ! Check `PROJECT.md` for `**Process**: Light` or `**Process**: Full` — if declared, use that path
-- ! If not declared, propose a size based on feature count, components, duration, team size, integration complexity
-- ! User confirms or overrides the proposed size
+- ! If not declared, propose a size and **wait for the user to confirm** before proceeding
+- ⊗ Combine the sizing proposal with the first interview question
 
 **Light** (small/medium): Interview → SPECIFICATION with embedded Requirements.
 **Full** (large/complex): Interview → PRD (approval gate) → SPECIFICATION with traceability.

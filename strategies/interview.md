@@ -24,6 +24,11 @@ Before the interview begins, determine project complexity to select the
 appropriate path. The gate runs once, immediately after hearing what the user
 wants to build.
 
+! The sizing gate is a **blocking question**. The AI MUST propose a size and
+wait for the user to confirm or override before asking any interview questions.
+⊗ Combine the sizing proposal with the first interview question in the same message.
+⊗ Proceed to interview questions before the user has explicitly confirmed the path.
+
 ### Sizing Signals
 
 The AI SHOULD propose a size based on these signals; the user confirms or overrides:

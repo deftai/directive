@@ -277,8 +277,10 @@ as the authoritative source.
 project complexity per [strategies/interview.md](../../strategies/interview.md#sizing-gate).
 
 - ! Check `PROJECT.md` for `**Process**: Light` or `**Process**: Full` — if declared, use that path
-- ! If not declared, propose a size based on feature count, components, duration, team size, integration complexity
-- ! User confirms or overrides the proposed size
+- ! If not declared, propose a size and **ask the user to confirm in a dedicated message**
+- ! **Wait for the user's response** before asking any interview questions
+- ⊗ Combine the sizing proposal with the first interview question
+- ⊗ Proceed to interview questions before the user has confirmed the path
 
 **Light** (small/medium): Interview → SPECIFICATION with embedded Requirements.
 **Full** (large/complex): Interview → PRD.md (user approval) → SPECIFICATION with traceability.
