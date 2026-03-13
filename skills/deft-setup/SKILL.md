@@ -266,12 +266,23 @@ task clean         # Clean artifacts
 ## Phase 3 — Specification (SPECIFICATION.md)
 
 **Goal:** Interview user about what to build, generate implementable spec.
-The interview process follows [strategies/interview.md](../../strategies/interview.md)
-as the authoritative source.
 
 - ~ Skip if user already has a SPECIFICATION.md they're happy with
 
-### Sizing Gate
+### Strategy Routing
+
+! Before starting the specification interview, read `PROJECT.md` to determine
+which strategy this project uses. The strategy is declared in the `## Strategy`
+section (e.g. `Use [Interview](deft/strategies/interview.md) for this project.`).
+
+- ! If strategy is **interview** (default): follow the interview process below
+- ! If strategy is **any other strategy** (discuss, yolo, speckit, research, etc.):
+  read and follow `deft/strategies/{strategy-name}.md` instead of the interview
+  process below. That strategy file defines the complete Phase 3 workflow.
+- ⊗ Ignore the PROJECT.md strategy and default to interview
+- ⊗ Start the interview process without checking which strategy applies
+
+### Sizing Gate (interview and yolo strategies only)
 
 ! After hearing what the user wants to build and their feature list, determine
 project complexity per [strategies/interview.md](../../strategies/interview.md#sizing-gate).
@@ -285,7 +296,7 @@ project complexity per [strategies/interview.md](../../strategies/interview.md#s
 **Light** (small/medium): Interview → SPECIFICATION with embedded Requirements.
 **Full** (large/complex): Interview → PRD.md (user approval) → SPECIFICATION with traceability.
 
-### Interview Process
+### Interview Process (interview strategy)
 
 Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shared-by-both-paths):
 
