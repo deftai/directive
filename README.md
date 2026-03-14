@@ -12,7 +12,7 @@ Deft is a SKILL.md that makes AI coding significantly more effective by providin
 
 **Don't have preferences yet?** No problem—Deft ships with professional-grade defaults for Python, Go, TypeScript, C++, and common workflows. Use it out of the box and customize later.
 
-**Platform compatibility:** If you're on a platform that doesn't yet support SKILL.md (such as Warp.dev), just add a line to your `AGENTS.md` that says "See deft/main.md".
+**Platform compatibility:** If you're on a platform that doesn't yet support SKILL.md, just add a line to your `AGENTS.md` that says "See deft/main.md".
 
 **Context-efficient:** Deft keeps AI context windows lean through RFC 2119-based notation (!, ~, ≉, ⊗) and lazy-loading—AI only reads the files relevant to the current task, not everything at once.
 
