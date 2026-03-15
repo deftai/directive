@@ -19,7 +19,11 @@ tasks:
   validate:
     desc: Validate all markdown files
     cmds:
-      - uv run python -c "from pathlib import Path; files=[f for f in sorted(Path('.').rglob('*.md')) if '.git' not in f.parts and 'backup' not in f.parts]; [print(f'\u2713 {f}') for f in files]; print(f'\u2713 All {len(files)} markdown files validated')"
+      - cmd: >-
+          uv run python -c "from pathlib import Path;
+          files=[f for f in sorted(Path('.').rglob('*.md')) if '.git' not in f.parts and 'backup' not in f.parts];
+          [print(f'\u2713 {f}') for f in files];
+          print(f'\u2713 All {len(files)} markdown files validated')"
 
   test:
     desc: Run test suite
@@ -85,7 +89,14 @@ tasks:
   uninstall:
     desc: Remove deft entry from AGENTS.md
     cmds:
-      - uv run python -c "from pathlib import Path; f=Path('AGENTS.md'); t=f.read_text('utf-8') if f.exists() else ''; lines=t.splitlines(keepends=True); out=''.join(l for l in lines if not l.startswith('See deft/main.md') and not l.startswith('Skills: deft/skills/')); f.write_text(out,'utf-8') if f.exists() else None; print('Removed deft entry from AGENTS.md' if out!=t else 'No deft entry found in AGENTS.md')"
+      - cmd: >-
+          uv run python -c "from pathlib import Path;
+          f=Path('AGENTS.md');
+          t=f.read_text('utf-8') if f.exists() else '';
+          lines=t.splitlines(keepends=True);
+          out=''.join(l for l in lines if not l.startswith('See deft/main.md') and not l.startswith('Skills: deft/skills/'));
+          f.write_text(out,'utf-8') if f.exists() else None;
+          print('Removed deft entry from AGENTS.md' if out!=t else 'No deft entry found in AGENTS.md')"
 
   spec:validate:
     desc: Validate that vbrief/specification.vbrief.json exists and is well-formed JSON
@@ -100,4 +111,15 @@ tasks:
   stats:
     desc: Show framework statistics
     cmds:
-      - uv run python -c "from pathlib import Path; v='{{.VERSION}}'; sep='━'*42; dirs=[('Core files','core'),('Languages','languages'),('Interfaces','interfaces'),('Tools','tools'),('Templates','templates')]; counts=[(n,len(list(Path(d).glob('*.md')))) for n,d in dirs]; total=len([f for f in Path('.').rglob('*.md') if '.git' not in str(f) and 'backup' not in str(f)]); print(f'Deft Framework v{v} Statistics:'); print(sep); [print(f'{n}: {c}') for n,c in counts]; print(f'Total files: {total}'); print(sep)"
+      - cmd: >-
+          uv run python -c "from pathlib import Path;
+          v='{{.VERSION}}';
+          sep='━'*42;
+          dirs=[('Core files','core'),('Languages','languages'),('Interfaces','interfaces'),('Tools','tools'),('Templates','templates')];
+          counts=[(n,len(list(Path(d).glob('*.md')))) for n,d in dirs];
+          total=len([f for f in Path('.').rglob('*.md') if '.git' not in str(f) and 'backup' not in str(f)]);
+          print(f'Deft Framework v{v} Statistics:');
+          print(sep);
+          [print(f'{n}: {c}') for n,c in counts];
+          print(f'Total files: {total}');
+          print(sep)"
