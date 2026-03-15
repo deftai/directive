@@ -97,22 +97,64 @@ flowchart TD
 ```
 deft/
 ├── README.md              # This file
+├── CHANGELOG.md           # Release history
+├── LICENSE.md             # MIT License
+├── PROJECT.md             # Project-level configuration
+├── REFERENCES.md          # Lazy-loading reference system
+├── ROADMAP.md             # Development timeline
+├── SKILL.md               # Entry point for AI agents
+├── SPECIFICATION.md       # Project specification
 ├── main.md                # Entry point - general AI guidelines
+├── commands.md            # Available commands
+├── Taskfile.yml           # Task automation
+├── run.bat                # Windows task runner shim
 │
-├── core/                  # Core framework files
-│   ├── project.md         # Project template
-│   ├── (user.md)          # Legacy location; now at ~/.config/deft/USER.md (Unix) or %APPDATA%\deft\USER.md (Windows)
-│   └── ralph.md           # Ralph loop concept (draft)
+├── cmd/                   # Go installer source
+│   └── deft-install/      # Cross-platform installer wizard
 │
 ├── coding/                # Coding standards
 │   ├── coding.md          # General coding guidelines
 │   └── testing.md         # Testing standards
 │
-├── languages/             # Language-specific standards
-│   ├── cpp.md
-│   ├── go.md
-│   ├── python.md
-│   └── typescript.md
+├── context/               # Context management strategies
+│   ├── context.md         # Overview
+│   ├── deterministic-split.md
+│   ├── examples.md
+│   ├── fractal-summaries.md
+│   ├── long-horizon.md
+│   ├── spec-deltas.md
+│   ├── tool-design.md
+│   └── working-memory.md
+│
+├── contracts/             # Interface contracts
+│   └── boundary-maps.md   # Produces/consumes between slices
+│
+├── core/                  # Core framework files
+│   ├── glossary.md        # Terminology definitions
+│   ├── project.md         # Project template
+│   ├── ralph.md           # Ralph loop concept
+│   ├── user.md            # Legacy; now ~/.config/deft/USER.md or %APPDATA%\deft\USER.md
+│   └── versioning.md      # Versioning guidelines
+│
+├── deployments/           # Platform-specific deployment guidance
+│   ├── README.md          # Deployment overview
+│   ├── agentuity/         # Agentuity platform
+│   ├── aws/               # AWS (Lambda, ECS, App Runner, EB)
+│   ├── azure/             # Azure (App Service, Functions, AKS, Container Apps)
+│   ├── cloudflare/        # Cloudflare Workers/Pages
+│   ├── cloud-gov/         # cloud.gov (FedRAMP)
+│   ├── fly-io/            # Fly.io
+│   ├── google/            # GCP (Cloud Run, Functions, App Engine, GKE)
+│   ├── netlify/           # Netlify
+│   └── vercel/            # Vercel
+│
+├── docs/                  # Documentation & articles
+│   ├── ai-coding-trust-paradox.md
+│   └── claude-code-integration.md
+│
+├── history/               # Plan archives and change logs
+│   ├── archive/
+│   └── changes/
 │
 ├── interfaces/            # Interface types
 │   ├── cli.md             # Command-line interfaces
@@ -120,54 +162,103 @@ deft/
 │   ├── tui.md             # Terminal UIs
 │   └── web.md             # Web UIs
 │
-├── verification/          # Agent work verification
-│   ├── verification.md    # 4-tier verification ladder, must-haves, stubs
-│   └── uat.md             # User acceptance test generation
+├── languages/             # Language-specific standards
+│   ├── python.md, go.md, typescript.md, javascript.md
+│   ├── cpp.md, c.md, c#.md, rust.md, zig.md
+│   ├── java.md, kotlin.md, swift.md, dart.md
+│   ├── elixir.md, julia.md, r.md, sql.md
+│   ├── delphi.md, visual-basic.md, vhdl.md
+│   ├── 6502-DASM.md       # 6502 Assembly (DASM)
+│   ├── markdown.md, mermaid.md
+│   └── commands.md        # Language command reference
+│
+├── meta/                  # Meta/process files
+│   ├── code-field.md      # Coding mindset
+│   ├── ideas.md           # Future directions
+│   ├── lessons.md         # Learnings
+│   ├── morals.md          # Ethical guidelines
+│   ├── SOUL.md            # Core philosophy
+│   └── suggestions.md     # Improvements
+│
+├── platforms/             # Platform-specific standards
+│   ├── 2600.md            # Atari 2600
+│   └── unity.md           # Unity engine
 │
 ├── resilience/            # Session continuity & recovery
 │   ├── continue-here.md   # Interruption recovery protocol
 │   └── context-pruning.md # Fresh context per task
 │
-├── contracts/             # Interface contracts
-│   └── boundary-maps.md   # Produces/consumes between slices
-│
-├── deployments/           # Platform-specific deployment guidance
-│   └── cloud-gov/          # cloud.gov module (optional)
-│
-├── tools/                 # Tooling and workflow
+├── scm/                   # Source control management
+│   ├── changelog.md       # Changelog conventions
 │   ├── git.md             # Git conventions
-│   ├── github.md          # GitHub workflows
-│   ├── taskfile.md        # Task automation
-│   └── telemetry.md       # Observability
+│   └── github.md          # GitHub workflows
+│
+├── skills/                # Agent skills (SKILL.md format)
+│   ├── deft-build/        # Build/setup skill
+│   └── deft-setup/        # Interactive setup skill
+│
+├── strategies/            # Development strategies
+│   ├── README.md          # Strategy overview
+│   ├── brownfield.md      # Existing codebase work
+│   ├── default.md         # Default strategy
+│   ├── discuss.md         # Discussion mode
+│   ├── interview.md       # Interview-driven development
+│   ├── map.md             # Codebase mapping
+│   ├── research.md        # Research mode
+│   ├── speckit.md         # Specification toolkit
+│   └── yolo.md            # Rapid prototyping
 │
 ├── swarm/                 # Multi-agent coordination
 │   └── swarm.md           # Swarm guidelines
+│
+├── taskfiles/             # Reusable Taskfile includes
+│   └── deployments.yml    # Deployment tasks
 │
 ├── templates/             # Templates and examples
 │   ├── make-spec.md       # Spec generation guide
 │   ├── make-spec-example.md
 │   └── specification.md   # Project spec template
 │
-└── meta/                  # Meta/process files
-    ├── code-field.md      # Coding mindset
-    ├── ideas.md           # Future directions
-    ├── lessons.md         # Learnings
-    └── suggestions.md     # Improvements
+├── tests/                 # Test fixtures and snapshots
+│   ├── content/snapshots/ # Content validation baselines
+│   └── fixtures/          # Mock configs
+│
+├── tools/                 # Tooling and workflow
+│   ├── RWLDL.md           # Read-Write-List-Delete-Link pattern
+│   ├── taskfile.md        # Task automation
+│   └── telemetry.md       # Observability
+│
+├── vbrief/                # vBRIEF session format
+│   ├── vbrief.md          # Specification
+│   └── schemas/           # JSON schemas
+│
+└── verification/          # Agent work verification
+    ├── verification.md    # 4-tier verification ladder
+    ├── integration.md     # Integration testing
+    ├── plan-checking.md   # Plan validation
+    └── uat.md             # User acceptance testing
 ```
 
 ### 🔧 Core Files
 
 **main.md** - Entry point, general AI guidelines  
+**SKILL.md** - Entry point for AI agent skill loading  
 **coding/coding.md** - Software development standards  
 **coding/testing.md** - Testing standards  
 **core/project.md** - Project-specific template  
 **USER.md** - Your personal preferences (highest precedence) — `~/.config/deft/USER.md` (Unix/macOS) or `%APPDATA%\deft\USER.md` (Windows)
 
 ### 🐍 Languages
-**languages/python.md** - Python standards (≥85% coverage, mypy strict, ruff/black)  
-**languages/go.md** - Go standards (≥85% coverage, Testify)  
-**languages/typescript.md** - TypeScript standards (strict mode, Vitest)  
-**languages/cpp.md** - C++ standards (C++20/23, Catch2/GoogleTest)
+**languages/** contains standards for 20+ languages including:  
+**python.md** - Python (≥85% coverage, mypy strict, ruff/black)  
+**go.md** - Go (≥85% coverage, Testify)  
+**typescript.md** / **javascript.md** - TS/JS (strict mode, Vitest)  
+**cpp.md** / **c.md** / **c#.md** - C family  
+**rust.md** / **zig.md** - Systems languages  
+**java.md** / **kotlin.md** / **swift.md** / **dart.md** - Mobile/JVM  
+**elixir.md** / **julia.md** / **r.md** / **sql.md** - Specialized  
+**markdown.md** / **mermaid.md** - Documentation formats  
+Plus: delphi, visual-basic, vhdl, 6502-DASM
 
 ### 💻 Interfaces
 **interfaces/cli.md** - Command-line interface patterns  
@@ -175,28 +266,55 @@ deft/
 **interfaces/tui.md** - Terminal UI (Textual, ink)  
 **interfaces/web.md** - Web UI (React, Tailwind)
 
+### 🎮 Platforms
+**platforms/2600.md** - Atari 2600 development  
+**platforms/unity.md** - Unity engine standards
+
 ### 🛠️ Tools
 **tools/taskfile.md** - Task automation best practices  
+**tools/telemetry.md** - Logging, tracing, metrics  
+**tools/RWLDL.md** - Read-Write-List-Delete-Link pattern
+
+### 📂 SCM
 **scm/git.md** - Commit conventions, safety  
 **scm/github.md** - GitHub workflows  
-**tools/telemetry.md** - Logging, tracing, metrics
+**scm/changelog.md** - Changelog conventions
 
 ### 🐝 Swarm
 **swarm/swarm.md** - Multi-agent coordination patterns
 
-### ✅ Verification
+### 🧭 Strategies
+**strategies/** - Development approach strategies:  
+**default.md** / **brownfield.md** / **interview.md** / **discuss.md** / **map.md** / **research.md** / **speckit.md** / **yolo.md**
 
-**verification/verification.md** - 4-tier verification ladder, must-haves, stub detection
+### 🧠 Context
+**context/context.md** - Context management overview  
+**context/fractal-summaries.md** / **working-memory.md** / **long-horizon.md** / **deterministic-split.md** / **spec-deltas.md** / **tool-design.md** / **examples.md**
+
+### ✅ Verification
+**verification/verification.md** - 4-tier verification ladder, must-haves, stub detection  
+**verification/integration.md** - Integration testing standards  
+**verification/plan-checking.md** - Plan validation  
 **verification/uat.md** - Auto-generated user acceptance test scripts
 
 ### 🛡️ Resilience
-
-**resilience/continue-here.md** - Interruption recovery protocol (vBRIEF-based)
+**resilience/continue-here.md** - Interruption recovery protocol (vBRIEF-based)  
 **resilience/context-pruning.md** - Fresh context per task, eliminating context rot
 
-### 📜 Contracts
+### 📋 vBRIEF
+**vbrief/vbrief.md** - Session format specification  
+**vbrief/schemas/** - JSON validation schemas
 
+### 📜 Contracts
 **contracts/boundary-maps.md** - Explicit produces/consumes declarations between slices
+
+### 🚀 Deployments
+**deployments/** - Deployment guides for 9 platforms:  
+agentuity, aws, azure, cloudflare, cloud-gov, fly-io, google, netlify, vercel
+
+### 🤖 Skills
+**skills/deft-build/** - Build/setup skill  
+**skills/deft-setup/** - Interactive setup wizard skill
 
 ### 📝 Templates
 **templates/make-spec.md** - Specification generation  
@@ -204,6 +322,8 @@ deft/
 
 ### 🧠 Meta
 **meta/code-field.md** - Coding mindset and philosophy  
+**meta/SOUL.md** - Core philosophy  
+**meta/morals.md** - Ethical guidelines  
 **meta/lessons.md** - Codified learnings (AI-updatable)  
 **meta/ideas.md** - Future directions  
 **meta/suggestions.md** - Improvement suggestions
