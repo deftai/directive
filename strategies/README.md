@@ -4,16 +4,31 @@ Development strategies define the workflow from idea to implementation.
 
 ## Available Strategies
 
-| Strategy | Command | Use Case | Phases |
-|----------|---------|----------|--------|
-| [interview.md](./interview.md) | `/deft:run:interview` | Standard projects (default) | Sizing gate: Light (Interview → SPECIFICATION) or Full (Interview → PRD → SPECIFICATION) |
-| [yolo.md](./yolo.md) | `/deft:run:yolo` | Quick prototyping | Auto-pilot sizing gate: Light or Full (Johnbot picks) |
-| [speckit.md](./speckit.md) | `/deft:run:speckit` | Large/complex projects | Principles → Specify → Plan → Tasks → Implement |
-| [map.md](./map.md) | `/deft:run:map` | Existing codebases | Map → Plan → Implement |
-| [discuss.md](./discuss.md) | `/deft:run:discuss` | Alignment before planning | Feynman technique → locked decisions |
-| [research.md](./research.md) | `/deft:run:research` | Pre-implementation research | Research → Don't Hand-Roll + Common Pitfalls |
-| rapid.md | `/deft:run:rapid` | Quick prototypes | Forced-Light path (future) |
-| enterprise.md | `/deft:run:enterprise` | Compliance-heavy | Forced-Full path (future) |
+| Strategy | Command | Type | Use Case | Phases |
+|----------|---------|------|----------|--------|
+| [interview.md](./interview.md) | `/deft:run:interview` | spec-generating | Standard projects (default) | Sizing gate: Light (Interview → SPECIFICATION) or Full (Interview → PRD → SPECIFICATION) |
+| [yolo.md](./yolo.md) | `/deft:run:yolo` | spec-generating | Quick prototyping | Auto-pilot sizing gate: Light or Full (Johnbot picks) |
+| [speckit.md](./speckit.md) | `/deft:run:speckit` | spec-generating | Large/complex projects | Principles → Specify → Plan → Tasks → Implement |
+| [map.md](./map.md) | `/deft:run:map` | preparatory | Existing codebases | Map → Chaining Gate |
+| [brownfield.md](./brownfield.md) | `/deft:run:brownfield` | preparatory | Existing codebases | Map → Chaining Gate |
+| [discuss.md](./discuss.md) | `/deft:run:discuss` | preparatory | Alignment before planning | Feynman technique → locked decisions → Chaining Gate |
+| [research.md](./research.md) | `/deft:run:research` | preparatory | Pre-implementation research | Research → Don’t Hand-Roll + Common Pitfalls → Chaining Gate |
+| rapid.md | `/deft:run:rapid` | spec-generating | Quick prototypes | Forced-Light path (future) |
+| enterprise.md | `/deft:run:enterprise` | spec-generating | Compliance-heavy | Forced-Full path (future) |
+
+## Strategy Types
+
+Every strategy has a **Type** that determines its behavior in the
+[chaining gate](./interview.md#chaining-gate):
+
+- **`preparatory`** — Produces artifacts that inform spec generation (research docs,
+  context files, mapping docs). On completion, returns to the chaining gate so the user
+  can run additional strategies or proceed to spec generation. Can be run multiple times.
+- **`spec-generating`** — Produces a SPECIFICATION.md (or equivalent). Selecting one at
+  the chaining gate switches the pipeline to that strategy’s spec flow.
+
+Custom strategies MUST declare their type in this table. If the `Type` column is missing,
+the chaining gate cannot include the strategy.
 
 ## Selecting a Strategy
 

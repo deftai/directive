@@ -77,18 +77,22 @@ Produce these in `.planning/codebase/` (or `docs/codebase/`):
 
 ---
 
-## Then: Specification
+## Then: Chaining Gate
 
-After mapping is complete, the project still needs a SPECIFICATION.md.
-Chain into the [interview strategy](./interview.md) sizing gate to generate one.
+After mapping is complete, return to the [chaining gate](./interview.md#chaining-gate)
+so the user can run additional preparatory strategies or proceed to spec generation.
 
-- ! On completion, ask: "Codebase mapped. Ready to start the specification interview?"
-- ! If yes, follow [interview.md](./interview.md) starting at the **Sizing Gate**
-- ! The mapping artifacts MUST inform the interview and specification:
+- ! On completion, register artifacts in `./vbrief/plan.vbrief.json`:
+  - Update `completedStrategies`: increment `runCount` for `"map"`,
+    append artifact paths (`.planning/codebase/STACK.md`, `ARCHITECTURE.md`,
+    `CONVENTIONS.md`, `CONCERNS.md`)
+  - Append all new paths to the flat `artifacts` array
+- ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
+- ! The mapping artifacts MUST inform subsequent strategies and spec generation:
   - CONVENTIONS.md → implementation constraints
   - ARCHITECTURE.md → where new code fits
   - CONCERNS.md → things to avoid or fix
-- ⊗ End the session after mapping without offering specification generation
+- ⊗ End the session after mapping without returning to the chaining gate
 
 ---
 

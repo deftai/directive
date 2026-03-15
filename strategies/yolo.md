@@ -17,6 +17,14 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ? When exploring an idea before committing to a full interview
 - ⊗ Production systems or compliance-heavy projects — use [interview.md](./interview.md) instead
 
+## Chaining Gate
+
+Johnbot auto-selects at the [chaining gate](./interview.md#chaining-gate) too.
+
+- ! Johnbot MUST select **"Proceed to specification"** (option 1) — no preparatory detours
+- ! Johnbot MUST select **"Accept"** at the [acceptance gate](./interview.md#acceptance-gate) — no revisions
+- ⊗ Ask the real user to choose at either gate — Johnbot handles both automatically
+
 ## Sizing Gate
 
 Johnbot picks the size too. The same sizing signals from

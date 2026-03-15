@@ -76,18 +76,22 @@ Adapt question focus to what's being built:
 
 ---
 
-## Then: Specification
+## Then: Chaining Gate
 
 After alignment is complete and decisions are locked in `{scope}-context.md`,
-the project still needs a SPECIFICATION.md. Chain into the
-[interview strategy](./interview.md) sizing gate to generate one.
+return to the [chaining gate](./interview.md#chaining-gate) so the user can
+run additional preparatory strategies or proceed to spec generation.
 
-- ! On completion, ask: "Decisions are locked. Ready to generate the specification?"
-- ! If yes, follow [interview.md](./interview.md) starting at the **Sizing Gate**
+- ! On completion, register artifacts in `./vbrief/plan.vbrief.json`:
+  - Update `completedStrategies`: increment `runCount` for `"discuss"`,
+    append artifact path (`{scope}-context.md`)
+  - Append the path to the flat `artifacts` array
+- ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
   (the discuss phase replaces the interview's question-gathering — decisions are
   already made, so the interview will be short or skipped entirely)
-- ! The locked decisions from `{scope}-context.md` MUST flow into the specification
-- ⊗ End the session after discuss without offering specification generation
+- ! The locked decisions from `{scope}-context.md` MUST flow into subsequent
+  strategies and spec generation
+- ⊗ End the session after discuss without returning to the chaining gate
 
 ---
 

@@ -18,6 +18,77 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
+## Chaining Gate
+
+Before spec generation, offer the user a chance to run preparatory strategies
+or switch to a different spec-generating strategy. This gate is the single
+orchestration point for strategy composition.
+
+! The chaining gate MUST always be shown — even when the interview strategy is
+invoked directly with no prior strategy.
+! The chaining gate is a **blocking question**. The AI MUST present the options
+and wait for the user to choose before proceeding.
+⊗ Skip the chaining gate or proceed to the sizing gate without presenting it.
+
+### When It Appears
+
+- ! Before the [Sizing Gate](#sizing-gate) on every entry to the interview strategy
+- ! After each completed preparatory strategy (recursive — the gate reappears)
+- ! After the [Acceptance Gate](#acceptance-gate) when the user chooses "Revise" or "Switch"
+
+### Options
+
+Present two groups sourced from the `Type` column in
+[strategies/README.md](./README.md#strategy-types):
+
+**Default:**
+1. **Proceed to specification** (default) — continue to the [Sizing Gate](#sizing-gate)
+
+**Preparatory strategies** (type: `preparatory` — loops back to this gate on completion):
+- Research — investigate the domain, find libraries, identify pitfalls
+- Discuss — lock key decisions using Feynman technique
+- Map/Brownfield — analyze existing codebase conventions
+
+**Switch spec-generating strategy** (type: `spec-generating` — replaces current pipeline):
+- Yolo — auto-pilot, Johnbot picks all answers
+- SpecKit — five-phase formal spec process
+
+### Run Count Annotations
+
+- ! Previously-run strategies MUST display with a run count (e.g., `Research (ran 1×)`)
+- ! No strategy is ever removed from the gate — users can re-run any strategy
+- ! Run counts are read from `completedStrategies` in
+  [`./vbrief/plan.vbrief.json`](../vbrief/vbrief.md#strategy-chaining-fields)
+
+### State Tracking
+
+- ! On completion of a preparatory strategy, update `completedStrategies` in
+  `./vbrief/plan.vbrief.json`: increment `runCount`, append artifact paths
+- ! Append all new artifact paths to the flat `artifacts` array
+- ! The next strategy and eventual spec generation MUST load all artifacts
+  listed in `plan.vbrief.json`
+
+### Example Prompt
+
+```
+Ready to generate the specification. Before we proceed, would you like to:
+
+1. Proceed to specification (default)
+
+--- Preparatory (loops back) ---
+2. Run a research phase — investigate the domain, find libraries, identify pitfalls
+3. Run a discuss phase — lock key decisions using Feynman technique
+4. Run a map/brownfield phase — analyze existing codebase conventions
+
+--- Switch strategy ---
+5. Switch to yolo — auto-pilot picks all answers
+6. Switch to speckit — formal five-phase spec process
+
+7. Other (specify)
+```
+
+---
+
 ## Sizing Gate
 
 Before the interview begins, determine project complexity to select the
@@ -284,7 +355,43 @@ Each task SHOULD include:
 - ! Dependencies form a valid DAG (no cycles)
 - ! `./vbrief/specification.vbrief.json` status is `approved`
 - ! `SPECIFICATION.md` has been rendered via `task spec:render`
-- ! Ready for "implement SPECIFICATION.md"
+- ! Proceed to [Acceptance Gate](#acceptance-gate)
+
+---
+
+## Acceptance Gate
+
+After spec generation, present the user with a final decision before
+implementation begins.
+
+! The acceptance gate MUST appear after every spec generation (both Light and
+Full paths).
+! The acceptance gate is a **blocking question**. The AI MUST present the
+options and wait for the user to choose.
+
+### Options
+
+1. **Accept** — spec is approved, proceed to implementation
+2. **Revise** — return to the [Chaining Gate](#chaining-gate) with all prior
+   context preserved (completed strategies, artifacts). Run additional
+   preparatory strategies or regenerate the spec.
+3. **Switch strategy** — return to the [Chaining Gate](#chaining-gate) to select
+   a different spec-generating strategy (e.g., switch from interview to speckit)
+
+### Rejected Spec Archival
+
+- ! When the user chooses "Revise" or "Switch", the current `SPECIFICATION.md`
+  MUST be archived to `history/specs/` before regeneration
+- ! Archived name format: `SPECIFICATION-rejected-{ISO-timestamp}.md`
+  (e.g., `SPECIFICATION-rejected-2026-03-15T19-23-00Z.md`)
+- ! If a `PRD.md` exists (Full path), it is NOT archived — only the spec
+- ~ Include a one-line header in the archived file noting why it was rejected
+
+### State Preservation
+
+- ! All `completedStrategies` and `artifacts` in `plan.vbrief.json` MUST be
+  preserved across revisions
+- ! The chaining gate will show updated run counts reflecting the full session history
 
 ---
 
