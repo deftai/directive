@@ -267,7 +267,10 @@ task clean         # Clean artifacts
 
 **Goal:** Generate an implementable spec using the strategy chosen in Phase 2.
 
-- ~ Skip if user already has a SPECIFICATION.md they're happy with
+- ~ Skip if user already has a `./SPECIFICATION.md` at the **project root** they're happy with
+- ! Check ONLY `./SPECIFICATION.md` (project root) — this is the user's project spec
+- ⊗ Count files inside `./deft/` as the project's spec — those are framework-internal
+  (e.g. `deft/specs/`, `deft/templates/specification.md` are NOT project specs)
 
 ### ⚠️ MANDATORY: Strategy Gate — Do This First
 

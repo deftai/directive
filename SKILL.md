@@ -41,9 +41,13 @@ Then continue with `skills/deft-setup/SKILL.md` Phase 1 for remaining questions.
 
 **If USER.md exists but PROJECT.md is missing**: Skip to `skills/deft-setup/SKILL.md` Phase 2.
 
-**If USER.md and PROJECT.md both exist but no SPECIFICATION.md**: Skip to
-`skills/deft-setup/SKILL.md` Phase 3. Start the specification interview immediately —
-ask what to build and features as the first question.
+**If USER.md and PROJECT.md both exist but no SPECIFICATION.md at the project root**:
+Skip to `skills/deft-setup/SKILL.md` Phase 3. Start the specification interview
+immediately — ask what to build and features as the first question.
+
+- ! Check ONLY `./SPECIFICATION.md` (project root) — this is the user's project spec
+- ⊗ Count files inside `./deft/` as the project's spec — those are framework-internal
+  (e.g. `deft/specs/`, `deft/templates/specification.md` are NOT project specs)
 
 - ⊗ Present a summary of the config and ask what the user wants to do
 - ⊗ Ask "what would you like to do" or "what are we building" — start the interview directly
