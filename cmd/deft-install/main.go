@@ -79,54 +79,72 @@ func main() {
 		return
 	}
 
-	if *debug {
+	code := install(*debug, *branch)
+	pressEnterToExit()
+	if code != 0 {
+		os.Exit(code)
+	}
+}
+
+// install runs the full install/update workflow and returns an exit code.
+func install(debug bool, branch string) int {
+	if debug {
 		fmt.Printf("[debug] OS=%s ARCH=%s\n", runtime.GOOS, runtime.GOARCH)
 	}
 
-	w := NewWizard(os.Stdin, os.Stdout, *debug)
+	w := NewWizard(os.Stdin, os.Stdout, debug)
 	result, err := w.Run()
 	if err != nil {
 		if err == errUserExit {
 			fmt.Println("\nGoodbye!")
-			return
+			return 0
 		}
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
-	if *debug {
+	if debug {
 		fmt.Printf("[debug] project=%s deft=%s\n", result.ProjectDir, result.DeftDir)
 	}
 
 	// Phase 3: ensure git is available.
 	if err := EnsureGit(w); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	// Phase 4: clone or update deft.
 	if result.Update {
-		if err := UpdateDeft(w, result, *branch); err != nil {
+		if err := UpdateDeft(w, result, branch); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return 1
 		}
 	} else {
-		if err := CloneDeft(w, result, *branch); err != nil {
+		if err := CloneDeft(w, result, branch); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+			return 1
 		}
 	}
 
 	if err := WriteAgentsMD(w, result.ProjectDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	configDir, err := CreateUserConfigDir(w)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	PrintNextSteps(w, result, configDir)
+	return 0
+}
+
+// pressEnterToExit waits for the user to press Enter before the process exits.
+// This keeps the console window visible when the installer is launched by
+// double-clicking the .exe, which opens a transient cmd window.
+func pressEnterToExit() {
+	fmt.Print("Press Enter to exit...")
+	fmt.Scanln()
 }
