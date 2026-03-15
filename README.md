@@ -103,7 +103,6 @@ deft/
 ├── REFERENCES.md          # Lazy-loading reference system
 ├── ROADMAP.md             # Development timeline
 ├── SKILL.md               # Entry point for AI agents
-├── SPECIFICATION.md       # Project specification
 ├── main.md                # Entry point - general AI guidelines
 ├── commands.md            # Available commands
 ├── Taskfile.yml           # Task automation
@@ -196,6 +195,10 @@ deft/
 ├── skills/                # Agent skills (SKILL.md format)
 │   ├── deft-build/        # Build/setup skill
 │   └── deft-setup/        # Interactive setup skill
+│
+├── specs/                 # Per-feature specifications
+│   ├── testbed/           # QA testbed Phase 1 spec
+│   └── strategy-chaining/ # Strategy chaining feature spec
 │
 ├── strategies/            # Development strategies
 │   ├── README.md          # Strategy overview
