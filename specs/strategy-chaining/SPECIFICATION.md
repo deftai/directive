@@ -229,12 +229,22 @@ Add a `Type` column to the strategy table:
 - Dependencies: Phase 5
 - Acceptance: no broken cross-references; README categories match file content; schema docs consistent
 
-#### Task 6.2: Content tests update
-- If content test suite exists (from testbed spec), add shape checks for new sections:
-  - interview.md must contain `## Chaining Gate` and `## Acceptance Gate`
-  - README.md table must have `Type` column
+#### Task 6.2: Automated content tests
+- Add to existing pytest content test suite (from testbed spec):
+  - **Shape checks**: interview.md must contain `## Chaining Gate` and `## Acceptance Gate` sections
+  - **README Type column**: parse the strategy table, assert every row has a `Type` value that is exactly `preparatory` or `spec-generating`
+  - **Category consistency**: every file tagged `preparatory` in README contains a "Then:" section referencing the chaining gate; every `spec-generating` file does not
+  - **Cross-reference checks**: all internal links in updated strategy files resolve
+  - **vbrief schema**: validate that `completedStrategies` and `artifacts` fields are documented in `vbrief/vbrief.md`
 - Dependencies: Task 6.1
-- Acceptance: content tests pass with new sections present
+- Acceptance: all new content tests pass; `task test` includes them
+- (traces: FR-1, FR-4, FR-8, FR-11, NFR-3)
+
+#### Task 6.3: Deferred — manual behavioral walkthrough
+- Deferred: invoke `/deft:run:interview`, verify chaining gate appears, select a preparatory strategy, verify it loops back, proceed to spec, verify acceptance gate appears
+- Reason: tests AI agent behavior, not file structure; requires LLM-in-the-loop test harness
+- Track in project backlog for future automation
+- Dependencies: none (deferred)
 
 ---
 
@@ -256,9 +266,15 @@ Phase 6 runs last.
 
 ## Testing Strategy
 
+**Automated (pytest content suite):**
+- Shape tests verify interview.md contains `## Chaining Gate` and `## Acceptance Gate`
+- README Type column parsed and validated (`preparatory` | `spec-generating` only)
+- Category consistency: preparatory strategies reference chaining gate, spec-generating do not
 - Cross-reference tests verify all internal links between strategy files resolve
-- Shape tests verify interview.md contains required gate sections
-- Manual walkthrough: invoke `/deft:run:interview`, verify chaining gate appears, select a preparatory strategy, verify it loops back, proceed to spec, verify acceptance gate appears
+- vbrief schema docs validated for `completedStrategies` and `artifacts` fields
+
+**Deferred:**
+- Behavioral walkthrough (LLM-in-the-loop): invoke strategy, verify gates appear, test loop-back. Requires future test harness.
 
 ---
 
