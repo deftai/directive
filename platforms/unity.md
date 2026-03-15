@@ -2,11 +2,11 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md) | [c#.md](../languages/c#.md)
+**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md) | [csharp.md](../languages/csharp.md)
 
-**Stack**: Unity 6+, C# (see [c#.md](../languages/c#.md) for general C# rules); Rendering: URP (default) or HDRP; Testing: Unity Test Framework (NUnit); Asset Management: Addressables
+**Stack**: Unity 6+, C# (see [csharp.md](../languages/csharp.md) for general C# rules); Rendering: URP (default) or HDRP; Testing: Unity Test Framework (NUnit); Asset Management: Addressables
 
-**Note**: Rules in [c#.md](../languages/c#.md) apply to all Unity C# code. This file covers Unity-specific overrides and additions.
+**Note**: Rules in [csharp.md](../languages/csharp.md) apply to all Unity C# code. This file covers Unity-specific overrides and additions.
 
 ## Standards
 
@@ -312,7 +312,7 @@ public void FloatVariable_OnEnable_ResetsToInitialValue()
 - ! Profile with Unity Profiler before and after optimization
 - ! Zero per-frame heap allocations in hot paths
 - ! Force Text serialization + Visible Meta Files for version control
-- ! See [c#.md](../languages/c#.md) for general C# compliance
+- ! See [csharp.md](../languages/csharp.md) for general C# compliance
 - ⊗ `GetComponent` in `Update`, `GameObject.Find` at runtime, empty lifecycle methods
 - ! Run `task check` before commit
 

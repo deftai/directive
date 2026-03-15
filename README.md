@@ -164,7 +164,7 @@ deft/
 │
 ├── languages/             # Language-specific standards
 │   ├── python.md, go.md, typescript.md, javascript.md
-│   ├── cpp.md, c.md, c#.md, rust.md, zig.md
+│   ├── cpp.md, c.md, csharp.md, rust.md, zig.md
 │   ├── java.md, kotlin.md, swift.md, dart.md
 │   ├── elixir.md, julia.md, r.md, sql.md
 │   ├── delphi.md, visual-basic.md, vhdl.md
@@ -253,7 +253,7 @@ deft/
 **python.md** - Python (≥85% coverage, mypy strict, ruff/black)  
 **go.md** - Go (≥85% coverage, Testify)  
 **typescript.md** / **javascript.md** - TS/JS (strict mode, Vitest)  
-**cpp.md** / **c.md** / **c#.md** - C family  
+**cpp.md** / **c.md** / **csharp.md** - C family
 **rust.md** / **zig.md** - Systems languages  
 **java.md** / **kotlin.md** / **swift.md** / **dart.md** - Mobile/JVM  
 **elixir.md** / **julia.md** / **r.md** / **sql.md** - Specialized  
