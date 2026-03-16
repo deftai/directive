@@ -97,6 +97,7 @@ README updated with NPM + PIP install paths alongside Go binary.
 
 Larger feature work — only after issues are resolved and content is stable.
 
+- **#39** — Strategy chaining options before spec generation (bidirectional strategy orchestration, chaining gate, acceptance gate)
 - **#12** — Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)
 - **#9** — Issue tracking system integration (GitHub Issues, Jira, Asana — optional, via MCP)
 - LLM-assisted content validation
@@ -144,6 +145,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #32 | Strategy selection doesn't work | 1 |
 | #33 | Docker smoke/e2e tests | 3 |
 | #34 | Zero-prerequisite installer (merge to master) | In Progress |
+| #39 | Strategy chaining options before spec generation | 5 |
 
 ---
 
