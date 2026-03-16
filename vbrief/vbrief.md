@@ -144,6 +144,50 @@ The single active work plan. Unifies what were previously separate todo, plan, a
 - ~ Record blocked ideas with `blocked` status and a narrative explaining why
 - ~ On completion, review for learnings worth persisting to [meta/lessons.md](../meta/lessons.md)
 
+### Strategy Chaining Fields
+
+When the [chaining gate](../strategies/interview.md#chaining-gate) is active, the plan
+tracks which strategies have been run and what artifacts they produced.
+
+- ? `completedStrategies` — array of objects tracking each strategy invocation:
+  - ! `strategy` — strategy name (e.g. `"research"`, `"discuss"`, `"map"`)
+  - ! `runCount` — number of times this strategy has been run in the current session
+  - ! `artifacts` — array of file paths produced by this strategy
+- ? `artifacts` — flat array of all artifact paths across all completed strategies.
+  The next strategy and spec generation MUST load all listed artifacts.
+
+**Example:**
+
+```json
+{
+  "vBRIEFInfo": { "version": "0.5" },
+  "plan": {
+    "title": "Auth feature planning",
+    "status": "running",
+    "completedStrategies": [
+      {
+        "strategy": "research",
+        "runCount": 1,
+        "artifacts": ["docs/research/auth-research.md"]
+      },
+      {
+        "strategy": "discuss",
+        "runCount": 1,
+        "artifacts": ["auth-context.md"]
+      }
+    ],
+    "artifacts": [
+      "docs/research/auth-research.md",
+      "auth-context.md"
+    ],
+    "items": []
+  }
+}
+```
+
+- ~ Each preparatory strategy SHOULD append its artifact paths on completion
+- ~ The chaining gate reads `completedStrategies` to display run count annotations
+
 ---
 
 ## continue.vbrief.json

@@ -71,17 +71,20 @@ What goes wrong in this domain, why, and how to avoid it.
 
 ---
 
-## Then: Specification
+## Then: Chaining Gate
 
-After research is complete, the project still needs a SPECIFICATION.md.
-Chain into the [interview strategy](./interview.md) sizing gate to generate one.
+After research is complete, return to the [chaining gate](./interview.md#chaining-gate)
+so the user can run additional preparatory strategies or proceed to spec generation.
 
-- ! On completion, ask: "Research complete. Ready to start the specification interview?"
-- ! If yes, follow [interview.md](./interview.md) starting at the **Sizing Gate**
-- ! The research findings MUST inform interview answers and specification content
-- ! "Don't Hand-Roll" items become constraints in the specification
-- ! "Common Pitfalls" become acceptance criteria or NFRs
-- ⊗ End the session after research without offering specification generation
+- ! On completion, register artifacts in `./vbrief/plan.vbrief.json`:
+  - Update `completedStrategies`: increment `runCount` for `"research"`,
+    append artifact path (`{feature}-research.md`)
+  - Append the path to the flat `artifacts` array
+- ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
+- ! The research findings MUST inform subsequent strategies and spec generation:
+  - "Don't Hand-Roll" items become constraints in the specification
+  - "Common Pitfalls" become acceptance criteria or NFRs
+- ⊗ End the session after research without returning to the chaining gate
 
 ---
 

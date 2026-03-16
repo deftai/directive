@@ -39,11 +39,23 @@ as your FIRST and ONLY response — no summary, no menu, no preamble:
 
 Then continue with `skills/deft-setup/SKILL.md` Phase 1 for remaining questions.
 
-**If USER.md exists but PROJECT.md is missing**: Skip to `skills/deft-setup/SKILL.md` Phase 2.
+**If USER.md exists but PROJECT.md is missing at the project root**: Skip to
+`skills/deft-setup/SKILL.md` Phase 2.
 
-**If USER.md and PROJECT.md both exist but no SPECIFICATION.md**: Skip to
-`skills/deft-setup/SKILL.md` Phase 3. Start the specification interview immediately —
-ask what to build and features as the first question.
+**If USER.md and PROJECT.md both exist but no SPECIFICATION.md at the project root**:
+Skip to `skills/deft-setup/SKILL.md` Phase 3. Start the specification interview
+immediately — ask what to build and features as the first question.
+
+### ⊗ Project Root vs Framework Internals
+
+! When checking for project-level files (`PROJECT.md`, `SPECIFICATION.md`, `PRD.md`,
+`specs/`), ONLY look at the **project root** and its direct subdirectories.
+
+- ! `./PROJECT.md` — the user's project config (project root)
+- ! `./SPECIFICATION.md` or `./specs/*/SPECIFICATION.md` — the user's project spec
+- ⊗ Count ANY file inside `./deft/` as a project-level artifact — those are
+  framework-internal (e.g. `deft/PROJECT.md`, `deft/specs/`, `deft/templates/`,
+  `deft/core/project.md` are all part of the framework, NOT the user's project)
 
 - ⊗ Present a summary of the config and ask what the user wants to do
 - ⊗ Ask "what would you like to do" or "what are we building" — start the interview directly

@@ -174,7 +174,8 @@ for project-scoped settings (strategy, coverage, languages).
 
 **Goal:** Project-specific configuration — tech stack, type, quality standards.
 
-- ~ Skip if `./PROJECT.md` exists (or `$DEFT_PROJECT_PATH` if set) and user doesn't want to replace
+- ~ Skip if `./PROJECT.md` exists at the **project root** (or `$DEFT_PROJECT_PATH` if set) and user doesn't want to replace
+- ⊗ Count `./deft/PROJECT.md` or `./deft/core/project.md` as the user's project config — those are framework-internal
 
 ### Inference
 
@@ -267,7 +268,11 @@ task clean         # Clean artifacts
 
 **Goal:** Generate an implementable spec using the strategy chosen in Phase 2.
 
-- ~ Skip if user already has a SPECIFICATION.md they're happy with
+- ~ Skip if user already has a spec at the **project root** they're happy with
+- ! Check `./SPECIFICATION.md` or `./specs/*/SPECIFICATION.md` (project root)
+- ⊗ Count ANY file inside `./deft/` as the project's spec — those are framework-internal
+  (e.g. `deft/PROJECT.md`, `deft/specs/`, `deft/templates/`, `deft/core/project.md`
+  are all part of the framework, NOT the user's project)
 
 ### ⚠️ MANDATORY: Strategy Gate — Do This First
 
