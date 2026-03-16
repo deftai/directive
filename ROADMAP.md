@@ -18,7 +18,6 @@ Work completed on `beta` that needs validation and merge to `master`.
 
 Fix reported bugs and UX problems. All are against the existing `run` CLI.
 
-- **#32** — Strategy selection in `run project` does not work (selecting "map" still runs "interview")
 - **#7** — Double prompting for programming languages during bootstrap → project flow
 - **#8** — Don't commit until questionnaires are finished (Ctrl+C mid-bootstrap leaves partial files)
 - **#14** — Bootstrap nits: strategy picker needs descriptions per option, unclear defaults on y/N prompts
@@ -107,6 +106,7 @@ Larger feature work — only after issues are resolved and content is stable.
 
 ## Completed
 
+- ~~#32 — Strategy selection doesn't work~~ — 2026-03-16 (fixed on beta: `cmd_spec` now reads strategy from PROJECT.md)
 - ~~Single entry point Go installer~~ — 2026-03-12 (5-platform binaries, GitHub Actions release workflow)
 - ~~Agent-driven skills (deft-setup + deft-build)~~ — 2026-03-12
 - ~~Enforce USER.md gate (skills path)~~ — 2026-03-12
@@ -142,7 +142,6 @@ Larger feature work — only after issues are resolved and content is stable.
 | #24 | speckit.md missing See also banner | 2 |
 | #25 | commands.md vBRIEF example diverges | 2 |
 | #31 | Merge default.md into interview.md | 1 |
-| #32 | Strategy selection doesn't work | 1 |
 | #33 | Docker smoke/e2e tests | 3 |
 | #34 | Zero-prerequisite installer (merge to master) | In Progress |
 | #39 | Strategy chaining options before spec generation | 5 |
