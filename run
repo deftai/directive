@@ -395,7 +395,7 @@ def ask_input(prompt_text: str, default: str = "") -> str:
             else:
                 value = input(f"{prompt_text}: ")
             return value if value else default
-    except (EOFError, KeyboardInterrupt):
+    except EOFError:
         return default
 
 def ask_choice(prompt_text: str, choices: List[str], default: str = None) -> str:
@@ -428,7 +428,7 @@ def ask_choice(prompt_text: str, choices: List[str], default: str = None) -> str
                 except ValueError:
                     pass
                 print("Invalid choice, try again.")
-    except (EOFError, KeyboardInterrupt):
+    except EOFError:
         return default if default else choices[0]
 
 def ask_confirm(prompt_text: str, default: bool = False) -> bool:
@@ -467,10 +467,10 @@ def ask_confirm(prompt_text: str, default: bool = False) -> bool:
             if not response:
                 return default
             return response.strip().lower() in ('y', 'yes')
-    except (EOFError, KeyboardInterrupt):
+    except EOFError:
         return default
 
-# Legacy aliases for backward compatibility
+# Legacy aliases
 read_input = ask_input
 read_yn = ask_confirm
 
@@ -540,7 +540,7 @@ def cmd_bootstrap(args: List[str]):
             print(f"  {i}. {display}")
         print(f"  {other_num}. Other")
     lang_selection = _resume_or_ask(progress, prog_file, 'lang_selection', 'Languages',
-                                     read_input, "Selection (e.g., 1,3)")
+                                     read_input, "Selection (e.g., 1,3 or Enter to skip)")
     
     lang_nums = [s.strip() for s in lang_selection.split(',')]
     languages = []
@@ -560,18 +560,34 @@ def cmd_bootstrap(args: List[str]):
     languages_str = '\n'.join(languages) if languages else "- (None specified)"
     
     available_strats = get_available_strategies()
+    none_num = len(available_strats) + 1
     if 'strat_selection' not in progress:
         print()
         print_section("Development Strategy")
         info("Select your default development strategy:")
         for i, (stem, display) in enumerate(available_strats, 1):
             print(f"  {i}. {display}")
-    strat_selection = _resume_or_ask(progress, prog_file, 'strat_selection', 'Strategy',
-                                      read_input, "Selection", "1")
+        print(f"  {none_num}. None (skip)")
+        while True:
+            strat_selection = read_input("Selection", "1")
+            try:
+                num = int(strat_selection.strip())
+                if 1 <= num <= none_num:
+                    break
+            except ValueError:
+                pass
+            print_error(f"Please enter a number between 1 and {none_num}.")
+        progress['strat_selection'] = strat_selection
+        _save_progress(prog_file, progress)
+    else:
+        strat_selection = progress['strat_selection']
+        info(f"  [resumed] Strategy: {strat_selection}")
     
     try:
         strat_idx = int(strat_selection.strip()) - 1
-        if 0 <= strat_idx < len(available_strats):
+        if strat_idx == none_num - 1:
+            selected_strategy = ("none", "None")
+        elif 0 <= strat_idx < len(available_strats):
             selected_strategy = available_strats[strat_idx]
         else:
             selected_strategy = available_strats[0] if available_strats else ("default", "Default")
@@ -616,6 +632,12 @@ def cmd_bootstrap(args: List[str]):
     # Build coverage override line (only if non-default)
     coverage_line = f"\n**Coverage**: ! ≥{coverage}% test coverage" if coverage != "85" else ""
     
+    # Build strategy line
+    if strategy_stem != "none":
+        strategy_line = f"**Default Strategy**: [{strategy_display}](../strategies/{strategy_stem}.md)"
+    else:
+        strategy_line = "**Default Strategy**: None"
+    
     # Generate user.md
     user_content = f"""# User Preferences
 
@@ -633,7 +655,7 @@ Address the user as: **{user_name}**
 **Primary Languages**:
 {languages_str}
 
-**Default Strategy**: [{strategy_display}](../strategies/{strategy_stem}.md)
+{strategy_line}
 {coverage_line}
 
 ## Custom Rules
@@ -658,7 +680,7 @@ Address the user as: **{user_name}**
     # Always offer to configure project settings
     print()
     print_section("Next Steps")
-    if read_yn("Would you like to run 'run project' now?"):
+    if read_yn("Would you like to run 'run project' now?", default=True):
         print()
         return cmd_project([])
     else:
@@ -713,8 +735,9 @@ def cmd_project(args: List[str]):
     project_file = resolve_path(project_path_str)
     
     # Gather project information
+    dir_default = Path.cwd().name
     project_name = _resume_or_ask(progress, prog_file, 'project_name', 'Project',
-                                   read_input, "Project name")
+                                   read_input, "Project name", dir_default)
     
     type_map = {
         "1": "CLI",
@@ -843,6 +866,7 @@ def cmd_project(args: List[str]):
     
     # Strategy — pre-fill from USER.md if available
     available_strats = get_available_strategies()
+    none_num = len(available_strats) + 1
     if 'strat_selection' not in progress:
         print()
         print_section("Development Strategy")
@@ -853,14 +877,34 @@ def cmd_project(args: List[str]):
             info("Does this project need a different strategy?")
             for i, (stem, display) in enumerate(available_strats, 1):
                 print(f"  {i}. {display}")
-            strat_selection = read_input(
-                f"Selection, or Enter to keep [{user_strat_display}]", ""
-            )
+            print(f"  {none_num}. None (no strategy)")
+            while True:
+                strat_selection = read_input(
+                    f"Selection, or Enter to keep [{user_strat_display}]", ""
+                )
+                if not strat_selection.strip():
+                    break  # Accept USER.md default
+                try:
+                    num = int(strat_selection.strip())
+                    if 1 <= num <= none_num:
+                        break
+                except ValueError:
+                    pass
+                print_error(f"Please enter a number between 1 and {none_num}.")
         else:
             info("Select development strategy for this project:")
             for i, (stem, display) in enumerate(available_strats, 1):
                 print(f"  {i}. {display}")
-            strat_selection = read_input("Selection", "1")
+            print(f"  {none_num}. None (no strategy)")
+            while True:
+                strat_selection = read_input("Selection", "1")
+                try:
+                    num = int(strat_selection.strip())
+                    if 1 <= num <= none_num:
+                        break
+                except ValueError:
+                    pass
+                print_error(f"Please enter a number between 1 and {none_num}.")
         progress['strat_selection'] = strat_selection
         progress['_had_user_strat_default'] = bool(user_defaults.get('strategy'))
         _save_progress(prog_file, progress)
@@ -877,7 +921,9 @@ def cmd_project(args: List[str]):
     else:
         try:
             strat_idx = int(strat_selection.strip()) - 1
-            if 0 <= strat_idx < len(available_strats):
+            if strat_idx == none_num - 1:
+                selected_strategy = ("none", "None")
+            elif 0 <= strat_idx < len(available_strats):
                 selected_strategy = available_strats[strat_idx]
             else:
                 selected_strategy = available_strats[0] if available_strats else ("default", "Default")
@@ -896,6 +942,12 @@ def cmd_project(args: List[str]):
     # Build coverage override line (only if non-default)
     coverage_line = f"\n- **Coverage**: ! ≥{proj_coverage}% (overrides default 85%)" if proj_coverage != "85" else ""
     
+    # Build strategy line
+    if strategy_stem != "none":
+        strategy_use_line = f"Use [{strategy_display}](../strategies/{strategy_stem}.md) for this project."
+    else:
+        strategy_use_line = "No specific strategy selected for this project."
+    
     project_content = f"""# {project_name} Project Guidelines
 
 Only specify items here that **override or extend** the deft defaults.
@@ -909,7 +961,7 @@ See `deft/main.md`, `deft/coding/coding.md`, and language-specific files for bas
 
 ## Strategy
 
-Use [{strategy_display}](../strategies/{strategy_stem}.md) for this project.
+{strategy_use_line}
 
 **Process**:
 
@@ -949,7 +1001,7 @@ Use [{strategy_display}](../strategies/{strategy_stem}.md) for this project.
     info("The 'spec' command creates PRD.md with your project requirements,")
     info("which an AI assistant will use to interview you and generate SPECIFICATION.md.")
     print()
-    if read_yn("Would you like to run 'run spec' now?"):
+    if read_yn("Would you like to run 'run spec' now?", default=True):
         print()
         return cmd_spec([])
     else:
