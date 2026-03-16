@@ -18,7 +18,6 @@ Work completed on `beta` that needs validation and merge to `master`.
 
 Fix reported bugs and UX problems. All are against the existing `run` CLI.
 
-- **#7** — Double prompting for programming languages during bootstrap → project flow
 - **#8** — Don't commit until questionnaires are finished (Ctrl+C mid-bootstrap leaves partial files)
 - **#14** — Bootstrap nits: strategy picker needs descriptions per option, unclear defaults on y/N prompts
 - **#31** — `default.md` and `interview.md` need to be merged into `interview.md` (duplicate strategy files)
@@ -106,6 +105,7 @@ Larger feature work — only after issues are resolved and content is stable.
 
 ## Completed
 
+- ~~#7 — Double prompting for languages during bootstrap~~ — 2026-03-16 (PR #43: `cmd_project` reads USER.md defaults)
 - ~~#32 — Strategy selection doesn't work~~ — 2026-03-16 (fixed on beta: `cmd_spec` now reads strategy from PROJECT.md)
 - ~~Single entry point Go installer~~ — 2026-03-12 (5-platform binaries, GitHub Actions release workflow)
 - ~~Agent-driven skills (deft-setup + deft-build)~~ — 2026-03-12
@@ -131,7 +131,6 @@ Larger feature work — only after issues are resolved and content is stable.
 
 | Issue | Title | Phase |
 |-------|-------|-------|
-| #7 | Double prompting for languages during bootstrap | 1 |
 | #8 | Don't commit until questionnaires finished | 1 |
 | #9 | Issue tracking system integration | 5 |
 | #10 | AGENTS.md setup improvement in docs | 2 |
