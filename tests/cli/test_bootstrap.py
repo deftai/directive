@@ -90,3 +90,51 @@ def test_bootstrap_no_crash(
     assert result.return_code in (0, None), (
         f"Expected success, got rc={result.return_code}\n{result.stderr}"
     )
+
+
+def test_bootstrap_rejects_duplicate_languages(
+    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+):
+    """Duplicate language selections are rejected and the user is re-prompted."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    user_path = isolated_env / "USER.md"
+    mock_user_input([
+        str(user_path),   # 1  output path
+        "TestUser",        # 2  name
+        "85",              # 3  coverage
+        "1,1",             # 4  duplicate language — rejected
+        "1",               # 5  valid language — accepted
+        "1",               # 6  strategy
+        "",                # 7  no custom rules
+        False,             # 8  skip SOUL.md
+        False,             # 9  skip morals.md
+        False,             # 10 skip code-field.md
+        False,             # 11 don't chain to project
+    ])
+
+    result = run_command("cmd_bootstrap", [])
+
+    assert result.return_code in (0, None)
+    assert "Duplicate" in result.stdout
+
+
+def test_bootstrap_keeps_existing_user_md(
+    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+):
+    """When USER.md exists and user declines overwrite, file is preserved."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    user_path = isolated_env / "USER.md"
+    original_content = "# Existing preferences\nKeep me."
+    user_path.write_text(original_content, encoding="utf-8")
+
+    mock_user_input([
+        str(user_path),   # 1  output path
+        False,             # 2  Overwrite with new preferences? → No
+        False,             # 3  Run 'run project' now? → No
+    ])
+
+    result = run_command("cmd_bootstrap", [])
+
+    assert result.return_code in (0, None)
+    assert user_path.read_text(encoding="utf-8") == original_content
+    assert "Keeping existing" in result.stdout

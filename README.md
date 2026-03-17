@@ -352,6 +352,8 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 
 The installer guides you through choosing a project directory, installs git if needed, clones deft, wires it into `AGENTS.md`, and creates your user config directory.
 
+**Manual clone (no installer):** If you clone deft directly via `git clone`, add `See deft/main.md` to your project's `AGENTS.md` (create it if it doesn't exist) so your AI agent discovers the framework.
+
 **Building from source (developers only):** requires Go 1.22+ — `go run ./cmd/deft-install/`
 
 **Manual clone (CLI users):** if you already have git and prefer to skip the installer, clone deft directly into your project:

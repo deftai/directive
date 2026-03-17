@@ -18,10 +18,13 @@ Work completed on `beta` that needs validation and merge to `master`.
 
 Fix reported bugs and UX problems. All are against the existing `run` CLI.
 
-- **#7** — Double prompting for programming languages during bootstrap → project flow
-- **#8** — Don't commit until questionnaires are finished (Ctrl+C mid-bootstrap leaves partial files)
+- **#45** — Agentic workflow bootstrap missing soul/morals/code-field selection prompt (CLI has it, agentic path skips it)
+- **#63** — Installer hardcodes old repo URL (`visionik/deft` → `deftai/directive`)
+- **#65** — Bootstrap custom rules/preferences prompt accepts "yes" but never collects the rules
 - **#14** — Bootstrap nits: strategy picker needs descriptions per option, unclear defaults on y/N prompts
 - **#31** — `default.md` and `interview.md` need to be merged into `interview.md` (duplicate strategy files)
+- **#50** — Strategies still have redundant old names (`brownfield.md` → `map.md`, `default.md` → `interview.md`)
+- **#49** — All CLI commands should display version on startup
 
 ---
 
@@ -29,10 +32,14 @@ Fix reported bugs and UX problems. All are against the existing `run` CLI.
 
 Quick doc/content fixes that don't require code changes.
 
+- **#58** — Stale cross-references to legacy `core/user.md` and `core/project.md` paths throughout framework
+- **#61** — deft-setup SKILL.md Available Strategies table is stale — missing current strategy names
+- **#59** — `history/changes/` directory referenced by `commands.md` doesn't exist
 - **#23** — `yolo.md` duplicates ~80% of `interview.md` — refactor to reference shared phases
 - **#24** — `speckit.md` missing `⚠️ See also` cross-reference banner
 - **#25** — `commands.md` vBRIEF example diverges from `vbrief/vbrief.md` spec (status vocabulary mismatch)
-- **#10** — README Getting Started should explicitly call out AGENTS.md setup step
+- **#67** — Write SPECIFICATION.md and proper PROJECT.md for the deft project itself
+- **#51** — Project should be fully bootstrapped with its own framework (partially done in PR #66)
 - Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml
   - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping"
   - `Taskfile.yml` `VERSION` — update to match latest release
@@ -59,8 +66,8 @@ Quick doc/content fixes that don't require code changes.
 
 ## Phase 3 — Test Infrastructure & CI
 
+- **#57** — Add GitHub Actions CI workflow for linting and tests on PRs and pushes
 - **#33** — When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)
-- GitHub Actions CI workflow (`.github/workflows/test.yml`) — trigger on push to `beta` and PRs
 - CLI tests for remaining commands: `cmd_spec`, `cmd_install`, `cmd_reset`, `cmd_update`
 - Error and edge case testing for core CLI commands
 - Enforce USER.md gate in CLI path
@@ -77,12 +84,14 @@ Quick doc/content fixes that don't require code changes.
 
 ---
 
-## Phase 4 — Package Distribution (#11)
+## Phase 4 — Package Distribution & Install UX
 
 Publish deft as NPM + PIP CLI packages for developer-audience install.
 Complements the Go installer (which targets novice/bare-machine users).
 
-- **#11** — NPM + PIP CLI distribution (`npm i -g @deftai/deft`, `pipx install deft-cli`)
+- **#56** — Reduce installation friction — add shell one-liner, Homebrew, and platform package managers
+- **#53** — deft-install should bootstrap the current directory by default
+- **#11** — NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)
 
 **Prerequisites:** Phase 2 complete (clean content), issue #4 resolved (project-local layout)
 
@@ -96,6 +105,10 @@ README updated with NPM + PIP install paths alongside Go binary.
 
 Larger feature work — only after issues are resolved and content is stable.
 
+- **#52** — Install into `.deft/` (hidden directory) instead of `deft/`
+- **#54** — AGENTS.md provides no actionable onboarding — agents don't know what to do after deft-install
+- **#55** — Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.)
+- **#46** — Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)
 - **#39** — Strategy chaining options before spec generation (bidirectional strategy orchestration, chaining gate, acceptance gate)
 - **#12** — Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)
 - **#9** — Issue tracking system integration (GitHub Issues, Jira, Asana — optional, via MCP)
@@ -106,6 +119,14 @@ Larger feature work — only after issues are resolved and content is stable.
 
 ## Completed
 
+- ~~#10 — AGENTS.md setup improvement in docs~~ — 2026-03-17 (PR #66: added manual-clone wiring note in Getting Started)
+- ~~#51 — Project bootstrap (partial)~~ — 2026-03-17 (PR #66: AGENTS.md added, old/ removed, core/project.md cleaned; remaining work in #67)
+- ~~#60 — pressEnterToExit() Windows-only~~ — 2026-03-17 (PR #66: runtime.GOOS guard)
+- ~~#62 — beta branch 50+ unmerged commits~~ — 2026-03-17 (already merged via PR #42)
+- ~~#47 — PROJECT.md defaults + input validation~~ — 2026-03-17 (PR #66: all items addressed)
+- ~~#44 — CLI bootstrap overwrites USER.md + input validation~~ — 2026-03-17 (PR #66: items 1-4 done, item 5 split to #65)
+- ~~#8 — Don't commit until questionnaires finished~~ — 2026-03-17 (PR #66: Ctrl+C resume protection)
+- ~~#7 — Double prompting for languages during bootstrap~~ — 2026-03-16 (PR #43: `cmd_project` reads USER.md defaults)
 - ~~#32 — Strategy selection doesn't work~~ — 2026-03-16 (fixed on beta: `cmd_spec` now reads strategy from PROJECT.md)
 - ~~Single entry point Go installer~~ — 2026-03-12 (5-platform binaries, GitHub Actions release workflow)
 - ~~Agent-driven skills (deft-setup + deft-build)~~ — 2026-03-12
@@ -131,9 +152,7 @@ Larger feature work — only after issues are resolved and content is stable.
 
 | Issue | Title | Phase |
 |-------|-------|-------|
-| #8 | Don't commit until questionnaires finished | 1 |
 | #9 | Issue tracking system integration | 5 |
-| #10 | AGENTS.md setup improvement in docs | 2 |
 | #11 | NPM + PIP CLI distribution | 4 |
 | #12 | Deft Bootstrap CLI with TUI | 5 |
 | #14 | Bootstrap nits (defaults, strategy descriptions) | 1 |
@@ -144,7 +163,25 @@ Larger feature work — only after issues are resolved and content is stable.
 | #33 | Docker smoke/e2e tests | 3 |
 | #34 | Zero-prerequisite installer (merge to master) | In Progress |
 | #39 | Strategy chaining options before spec generation | 5 |
+| #45 | Agentic workflow missing soul/morals/code-field prompt | 1 |
+| #46 | Provide way to update meta MD files | 5 |
+| #49 | All CLI commands should display version | 1 |
+| #50 | Strategies still have redundant old names | 1 |
+| #51 | Project should be bootstrapped with own framework (partial — #67 tracks remainder) | 2 |
+| #67 | Write SPECIFICATION.md and proper PROJECT.md for deft | 2 |
+| #52 | Install into .deft/ hidden directory | 5 |
+| #53 | deft-install should bootstrap current directory | 4 |
+| #54 | AGENTS.md provides no actionable onboarding | 5 |
+| #55 | Register Deft commands as native agent slash commands | 5 |
+| #56 | Reduce installation friction (shell one-liner, Homebrew) | 4 |
+| #57 | Add GitHub Actions CI workflow | 3 |
+| #58 | Stale cross-references to legacy paths | 2 |
+| #59 | history/changes/ directory missing | 2 |
+| #61 | deft-setup SKILL.md strategies table stale | 2 |
+| #63 | Installer hardcodes old repo URL | 1 |
+| #65 | Bootstrap custom rules stub | 1 |
 
 ---
 
 *Created 2026-03-13 — consolidates todo.md and GitHub Issues into a single roadmap*
+*Updated 2026-03-17 — added issues #44-#65, moved #8/#44/#47 to Completed*
