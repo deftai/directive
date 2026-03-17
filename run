@@ -527,8 +527,24 @@ def cmd_bootstrap(args: List[str]):
     # Gather user information
     user_name = _resume_or_ask(progress, prog_file, 'user_name', 'Name',
                                 read_input, "Your name (how AI should address you)")
-    coverage = _resume_or_ask(progress, prog_file, 'coverage', 'Coverage',
-                               read_input, "Default coverage threshold (default: 85%)", "85")
+    if 'coverage' not in progress:
+        while True:
+            coverage = read_input("Default coverage threshold (default: 85%)", "85")
+            if not coverage.strip():
+                coverage = "85"
+                break
+            try:
+                val = int(coverage.strip())
+                if 0 <= val <= 100:
+                    break
+            except ValueError:
+                pass
+            print_error("Please enter a number between 0 and 100.")
+        progress['coverage'] = coverage
+        _save_progress(prog_file, progress)
+    else:
+        coverage = progress['coverage']
+        info(f"  [resumed] Coverage: {coverage}")
     
     available_langs = get_available_languages()
     other_num = len(available_langs) + 1
@@ -889,12 +905,23 @@ def cmd_project(args: List[str]):
     if 'coverage' not in progress:
         print()
         user_coverage = user_defaults.get('coverage', '85') if user_defaults else None
-        if user_coverage:
-            proj_coverage = read_input(
-                f"Coverage threshold (from USER.md: {user_coverage}%)", user_coverage
-            )
-        else:
-            proj_coverage = read_input("Coverage threshold (default: 85%)", "85")
+        while True:
+            if user_coverage:
+                proj_coverage = read_input(
+                    f"Coverage threshold (from USER.md: {user_coverage}%)", user_coverage
+                )
+            else:
+                proj_coverage = read_input("Coverage threshold (default: 85%)", "85")
+            if not proj_coverage.strip():
+                proj_coverage = user_coverage or "85"
+                break
+            try:
+                val = int(proj_coverage.strip())
+                if 0 <= val <= 100:
+                    break
+            except ValueError:
+                pass
+            print_error("Please enter a number between 0 and 100.")
         progress['coverage'] = proj_coverage
         _save_progress(prog_file, progress)
     else:
