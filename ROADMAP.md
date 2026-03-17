@@ -4,20 +4,11 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 
 ---
 
-## In Progress — Merge to Master
-
-Work completed on `beta` that needs validation and merge to `master`.
-
-- **#34** — Zero-prerequisite installer for novice users (Windows, macOS, Linux)
-  - Go binary implemented on `beta` (`cmd/deft-install/`), 5 platform targets
-  - Remaining: validate macOS + Linux paths, merge to master, tag release, update README
-
----
-
 ## Phase 1 — Bug Fixes & Issue Resolution (Next Up)
 
 Fix reported bugs and UX problems. All are against the existing `run` CLI.
 
+- **#71** — CHANGELOG catch-up: missing entries since v0.6.0 and stale release links (`visionik/deft` → `deftai/directive`)
 - **#45** — Agentic workflow bootstrap missing soul/morals/code-field selection prompt (CLI has it, agentic path skips it)
 - **#63** — Installer hardcodes old repo URL (`visionik/deft` → `deftai/directive`)
 - **#65** — Bootstrap custom rules/preferences prompt accepts "yes" but never collects the rules
@@ -59,8 +50,7 @@ Quick doc/content fixes that don't require code changes.
 - Codify PR workflow standards into `scm/github.md`
   - Opinionated PR workflow rules: single-purpose PRs, review required, squash-merge, well-documented
   - Cross-reference squash-merge rule in Branch Protection settings section
-- Write remaining CHANGELOG entries
-  - v0.6.0 done (PRs #16–20). Still needed: context engineering module, canonical vBRIEF pattern
+- ~~Write remaining CHANGELOG entries~~ — tracked by #71 (Phase 1)
 
 ---
 
@@ -119,6 +109,8 @@ Larger feature work — only after issues are resolved and content is stable.
 
 ## Completed
 
+- ~~#69 — Remove stale beta branch and update docs~~ — 2026-03-17 (trunk-based workflow, beta branch deleted)
+- ~~#34 — Zero-prerequisite installer~~ — 2026-03-17 (merged via PR #42, released as v0.5.0)
 - ~~#10 — AGENTS.md setup improvement in docs~~ — 2026-03-17 (PR #66: added manual-clone wiring note in Getting Started)
 - ~~#51 — Project bootstrap (partial)~~ — 2026-03-17 (PR #66: AGENTS.md added, old/ removed, core/project.md cleaned; remaining work in #67)
 - ~~#60 — pressEnterToExit() Windows-only~~ — 2026-03-17 (PR #66: runtime.GOOS guard)
@@ -161,7 +153,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #25 | commands.md vBRIEF example diverges | 2 |
 | #31 | Merge default.md into interview.md | 1 |
 | #33 | Docker smoke/e2e tests | 3 |
-| #34 | Zero-prerequisite installer (merge to master) | In Progress |
+| #34 | ~~Zero-prerequisite installer~~ (completed, released v0.5.0) | — |
 | #39 | Strategy chaining options before spec generation | 5 |
 | #45 | Agentic workflow missing soul/morals/code-field prompt | 1 |
 | #46 | Provide way to update meta MD files | 5 |
@@ -180,6 +172,8 @@ Larger feature work — only after issues are resolved and content is stable.
 | #61 | deft-setup SKILL.md strategies table stale | 2 |
 | #63 | Installer hardcodes old repo URL | 1 |
 | #65 | Bootstrap custom rules stub | 1 |
+| #69 | ~~Remove stale beta branch~~ (completed) | — |
+| #71 | CHANGELOG catch-up since v0.6.0 + stale release links | 1 |
 
 ---
 

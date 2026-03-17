@@ -752,15 +752,15 @@ Every build is tested on its native platform (including `macos-latest` and `ubun
 - `--help` — flag parsing and usage output render correctly
 - `--debug` — correct OS and architecture detection (e.g. `OS=darwin ARCH=arm64`)
 - Wizard startup — binary initializes and prints the welcome banner
-- `--branch beta` — branch flag is accepted without error
+- `--branch <name>` — branch flag is accepted without error
 - macOS universal binary contains both `x86_64` and `arm64` architectures
 
-### Testing on the Beta Branch
+### Testing Without Publishing
 
-The workflow triggers on version tags (`v*.*.*`). To run a full test on `beta` without publishing a real release, push a disposable test tag:
+The workflow triggers on version tags (`v*.*.*`). To run a full build and smoke test without publishing a real release, push a disposable test tag from any branch:
 
 ```bash
-# Tag the current beta HEAD
+# Tag the current HEAD
 git tag v0.0.0-test.1
 git push origin v0.0.0-test.1
 
@@ -774,17 +774,17 @@ git push origin --delete v0.0.0-test.1
 git tag -d v0.0.0-test.1
 ```
 
-The workflow also includes a `workflow_dispatch` trigger for manual runs without publishing. However, GitHub requires `workflow_dispatch` to exist on the **default branch** (`master`) to be triggerable. Once `release.yml` is merged to `master`, you can run:
+The workflow also includes a `workflow_dispatch` trigger for manual runs without publishing:
 
 ```bash
-gh workflow run release.yml --ref beta -R deftai/directive
+gh workflow run release.yml --ref <branch> -R deftai/directive
 ```
 
 Manual runs skip the release job automatically (guarded by `if: startsWith(github.ref, 'refs/tags/v')`).
 
-### Proper Release Process
+### Release Process
 
-1. Merge `beta` → `master` (or PR and merge via GitHub)
+1. Merge the feature branch PR into `master`
 2. Tag `master` with a semantic version:
    ```bash
    git checkout master
