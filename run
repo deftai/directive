@@ -589,16 +589,23 @@ def cmd_bootstrap(args: List[str]):
     
     available_strats = get_available_strategies()
     max_strat = len(available_strats)
+    # Default to 'interview' strategy if available, otherwise first
+    default_strat_num = "1"
+    for i, (stem, _) in enumerate(available_strats, 1):
+        if stem.lower() == "interview":
+            default_strat_num = str(i)
+            break
     if 'strat_selection' not in progress:
         print()
         print_section("Development Strategy")
         info("Select your default development strategy:")
         for i, (stem, display) in enumerate(available_strats, 1):
-            print(f"  {i}. {display}")
+            marker = " (default)" if str(i) == default_strat_num else ""
+            print(f"  {i}. {display}{marker}")
         while True:
-            strat_selection = read_input("Selection", "1")
+            strat_selection = read_input("Selection", default_strat_num)
             if not strat_selection.strip():
-                strat_selection = "1"
+                strat_selection = default_strat_num
                 break
             try:
                 num = int(strat_selection.strip())
