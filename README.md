@@ -333,7 +333,7 @@ agentuity, aws, azure, cloudflare, cloud-gov, fly-io, google, netlify, vercel
 
 ## 🚀 Getting Started
 
-Download the installer for your platform from [GitHub Releases](https://github.com/visionik/deft/releases), run it, and follow the prompts. No prerequisites required — the installer handles everything (including git if needed).
+Download the installer for your platform from [GitHub Releases](https://github.com/deftai/directive/releases), run it, and follow the prompts.
 
 ### 1. Install Deft
 
@@ -353,6 +353,20 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 The installer guides you through choosing a project directory, installs git if needed, clones deft, wires it into `AGENTS.md`, and creates your user config directory.
 
 **Building from source (developers only):** requires Go 1.22+ — `go run ./cmd/deft-install/`
+
+**Manual clone (CLI users):** if you already have git and prefer to skip the installer, clone deft directly into your project:
+
+```bash
+cd your-project
+git clone https://github.com/deftai/directive.git deft
+```
+
+Then create an `AGENTS.md` in your project root (or append to an existing one):
+
+```markdown
+See deft/main.md
+Skills: deft/SKILL.md, deft/skills/deft-setup/SKILL.md, deft/skills/deft-build/SKILL.md
+```
 
 ### 2. Set Up Your Preferences
 
@@ -749,11 +763,11 @@ git tag v0.0.0-test.1
 git push origin v0.0.0-test.1
 
 # Monitor the workflow run
-gh run list --workflow=release.yml -R visionik/deft
-gh run watch <RUN_ID> -R visionik/deft
+gh run list --workflow=release.yml -R deftai/directive
+gh run watch <RUN_ID> -R deftai/directive
 
 # Clean up after verifying
-gh release delete v0.0.0-test.1 -R visionik/deft --yes
+gh release delete v0.0.0-test.1 -R deftai/directive --yes
 git push origin --delete v0.0.0-test.1
 git tag -d v0.0.0-test.1
 ```
@@ -761,7 +775,7 @@ git tag -d v0.0.0-test.1
 The workflow also includes a `workflow_dispatch` trigger for manual runs without publishing. However, GitHub requires `workflow_dispatch` to exist on the **default branch** (`master`) to be triggerable. Once `release.yml` is merged to `master`, you can run:
 
 ```bash
-gh workflow run release.yml --ref beta -R visionik/deft
+gh workflow run release.yml --ref beta -R deftai/directive
 ```
 
 Manual runs skip the release job automatically (guarded by `if: startsWith(github.ref, 'refs/tags/v')`).
@@ -777,7 +791,7 @@ Manual runs skip the release job automatically (guarded by `if: startsWith(githu
    git push origin v1.2.3
    ```
 3. The workflow runs automatically: **build → universal-macos → smoke-test → release**
-4. Verify the published release at https://github.com/visionik/deft/releases
+4. Verify the published release at https://github.com/deftai/directive/releases
 5. Each release includes: `install-windows-amd64.exe`, `install-windows-arm64.exe`, `install-macos-universal`, `install-linux-amd64`, `install-linux-arm64`
 
 > **Note:** Binaries are not yet code-signed. macOS users may need to bypass Gatekeeper (see [Getting Started](#-getting-started)). Windows users may see a SmartScreen warning. Code signing is planned for a future release.
@@ -793,7 +807,7 @@ Deft embodies:
 
 ---
 
-**Next Steps**: Read [main.md](./main.md) for comprehensive AI guidelines, then [download the installer](https://github.com/visionik/deft/releases) for your platform to get started.
+**Next Steps**: Read [main.md](./main.md) for comprehensive AI guidelines, then [download the installer](https://github.com/deftai/directive/releases) for your platform to get started.
 
 ---
 

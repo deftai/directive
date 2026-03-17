@@ -245,7 +245,7 @@ metadata:
   clawdbot:
     requires:
       bins: ["task"]  # Requires taskfile binary
-    homepage: "https://github.com/visionik/deft"
+    homepage: "https://github.com/deftai/directive"
 os: ["darwin", "linux"]  # macOS and Linux only
 ```
 
@@ -323,7 +323,7 @@ Browse published skills at https://clawdhub.com
 **Deft**:
 - [Deft Framework README](../README.md)
 - [Deft REFERENCES.md](../deft/REFERENCES.md)
-- [GitHub Repository](https://github.com/visionik/deft)
+- [GitHub Repository](https://github.com/deftai/directive)
 
 ## Cross-Platform Benefits
 

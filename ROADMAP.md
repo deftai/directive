@@ -82,7 +82,7 @@ Quick doc/content fixes that don't require code changes.
 Publish deft as NPM + PIP CLI packages for developer-audience install.
 Complements the Go installer (which targets novice/bare-machine users).
 
-- **#11** — NPM + PIP CLI distribution (`npm i -g @visionik/deft`, `pipx install deft-cli`)
+- **#11** — NPM + PIP CLI distribution (`npm i -g @deftai/deft`, `pipx install deft-cli`)
 
 **Prerequisites:** Phase 2 complete (clean content), issue #4 resolved (project-local layout)
 
