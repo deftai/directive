@@ -7,7 +7,7 @@ compose multiple strategies before and after spec generation. Currently, strateg
 chain forward only (e.g., brownfield → interview) with no way to pause, detour into
 another strategy, or reject a generated spec and loop back.
 
-**Issue:** [#39](https://github.com/visionik/deft/issues/39)
+**Issue:** [#39](https://github.com/deftai/directive/issues/39)
 **Branch:** `feat/strategy-chaining`
 
 ---

@@ -325,7 +325,7 @@ def usage():
   run reset --all            # Reset all config files (no prompts)
   run validate               # Check configuration is valid
 
-For more information: [link]https://github.com/visionik/deft[/link]
+For more information: [link]https://github.com/deftai/directive[/link]
 """)
     else:
         tui_section = f"TUI Mode:\n{tui_hint}\n" if HAS_TEXTUAL else ""
@@ -357,7 +357,7 @@ Examples:
   run reset --all            # Reset all config files (no prompts)
   run validate               # Check configuration is valid
 
-For more information: https://github.com/visionik/deft
+For more information: https://github.com/deftai/directive
 """)
 
 def ask_input(prompt_text: str, default: str = "") -> str:
@@ -2919,7 +2919,7 @@ Examples:
   run spec                   # Generate SPECIFICATION.md
   run install ~/my-project   # Install deft in a project
 
-For more information: https://github.com/visionik/deft
+For more information: https://github.com/deftai/directive
 """
             with ScrollableContainer():
                 yield Static(help_text)

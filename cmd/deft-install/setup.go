@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	deftRepoURL = "https://github.com/visionik/deft"
+	deftRepoURL = "https://github.com/deftai/directive"
 
 	agentsMDEntry = `See deft/main.md
 Skills: deft/SKILL.md, deft/skills/deft-setup/SKILL.md, deft/skills/deft-build/SKILL.md

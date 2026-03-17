@@ -6,7 +6,7 @@ metadata:
   clawdbot:
     requires:
       bins: ["task"]
-    homepage: "https://github.com/visionik/deft"
+    homepage: "https://github.com/deftai/directive"
 os: ["darwin", "linux"]
 ---
 
