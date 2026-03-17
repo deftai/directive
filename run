@@ -532,6 +532,7 @@ def cmd_bootstrap(args: List[str]):
     
     available_langs = get_available_languages()
     other_num = len(available_langs) + 1
+    valid_lang_nums = set(str(i) for i in range(1, other_num + 1))
     if 'lang_selection' not in progress:
         print()
         print_section("Programming Languages")
@@ -539,8 +540,19 @@ def cmd_bootstrap(args: List[str]):
         for i, (stem, display) in enumerate(available_langs, 1):
             print(f"  {i}. {display}")
         print(f"  {other_num}. Other")
-    lang_selection = _resume_or_ask(progress, prog_file, 'lang_selection', 'Languages',
-                                     read_input, "Selection (e.g., 1,3 or Enter to skip)")
+        while True:
+            lang_selection = read_input("Selection (e.g., 1,3 or Enter to skip)")
+            if not lang_selection.strip():
+                break  # Skip
+            nums = [s.strip() for s in lang_selection.split(',')]
+            if all(n in valid_lang_nums for n in nums):
+                break
+            print_error(f"Please enter numbers between 1 and {other_num} (comma-separated).")
+        progress['lang_selection'] = lang_selection
+        _save_progress(prog_file, progress)
+    else:
+        lang_selection = progress['lang_selection']
+        info(f"  [resumed] Languages: {lang_selection or '(skipped)'}")
     
     lang_nums = [s.strip() for s in lang_selection.split(',')]
     languages = []
@@ -794,6 +806,7 @@ def cmd_project(args: List[str]):
     # Language selection — pre-fill from USER.md if available
     available_langs = get_available_languages()
     other_num = len(available_langs) + 1
+    valid_lang_nums = set(str(i) for i in range(1, other_num + 1))
     if 'lang_selection' not in progress:
         print()
         if user_defaults.get('languages'):
@@ -804,15 +817,29 @@ def cmd_project(args: List[str]):
             for i, (stem, display) in enumerate(available_langs, 1):
                 print(f"  {i}. {display}")
             print(f"  {other_num}. Other")
-            lang_selection = read_input(
-                f"Selection, or Enter to keep [{user_lang_display}]", ""
-            )
+            while True:
+                lang_selection = read_input(
+                    f"Selection, or Enter to keep [{user_lang_display}]", ""
+                )
+                if not lang_selection.strip():
+                    break  # Accept USER.md defaults
+                nums = [s.strip() for s in lang_selection.split(',')]
+                if all(n in valid_lang_nums for n in nums):
+                    break
+                print_error(f"Please enter numbers between 1 and {other_num} (comma-separated).")
         else:
             info("Select primary programming language(s) (comma-separated):")
             for i, (stem, display) in enumerate(available_langs, 1):
                 print(f"  {i}. {display}")
             print(f"  {other_num}. Other")
-            lang_selection = read_input("Selection (e.g., 1,3)")
+            while True:
+                lang_selection = read_input("Selection (e.g., 1,3)")
+                if not lang_selection.strip():
+                    break  # Skip (falls through to Python default)
+                nums = [s.strip() for s in lang_selection.split(',')]
+                if all(n in valid_lang_nums for n in nums):
+                    break
+                print_error(f"Please enter numbers between 1 and {other_num} (comma-separated).")
         progress['lang_selection'] = lang_selection
         progress['_had_user_lang_defaults'] = bool(user_defaults.get('languages'))
         _save_progress(prog_file, progress)
