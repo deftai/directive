@@ -80,7 +80,9 @@ func main() {
 	}
 
 	code := install(*debug, *branch)
-	pressEnterToExit()
+	if runtime.GOOS == "windows" {
+		pressEnterToExit()
+	}
 	if code != 0 {
 		os.Exit(code)
 	}
