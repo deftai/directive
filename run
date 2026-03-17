@@ -516,9 +516,19 @@ def cmd_bootstrap(args: List[str]):
     # Check if file exists (skip when resuming — user already committed)
     if not progress.get('user_name'):
         if user_file.exists() and "--force" not in args:
-            warn(f"{user_file} already exists. Use --force to overwrite.")
-            if not read_yn("Overwrite existing file?"):
-                return 0
+            info(f"USER.md already exists at {user_file}")
+            if not read_yn("Overwrite with new preferences?"):
+                success("Keeping existing USER.md as-is.")
+                print()
+                # Still offer next steps even when keeping existing file
+                print_section("Next Steps")
+                if read_yn("Would you like to run 'run project' now?", default=True):
+                    print()
+                    return cmd_project([])
+                else:
+                    print()
+                    info("You can run 'run project' later to configure your project")
+                    return 0
     
     if 'user_name' not in progress:
         print()
