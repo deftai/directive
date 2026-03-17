@@ -748,6 +748,7 @@ def cmd_project(args: List[str]):
         "6": "Other"
     }
     
+    valid_type_nums = set(type_map.keys())
     if 'type_selection' not in progress:
         print()
         info("Select project type (comma-separated if multiple):")
@@ -757,8 +758,20 @@ def cmd_project(args: List[str]):
         print("  4. Web App")
         print("  5. Library")
         print("  6. Other")
-    type_selection = _resume_or_ask(progress, prog_file, 'type_selection', 'Type',
-                                     read_input, "Selection")
+        while True:
+            type_selection = read_input("Selection")
+            if not type_selection.strip():
+                print_error("Please enter at least one selection (1-6).")
+                continue
+            nums = [s.strip() for s in type_selection.split(',')]
+            if all(n in valid_type_nums for n in nums):
+                break
+            print_error("Please enter numbers between 1 and 6 (comma-separated).")
+        progress['type_selection'] = type_selection
+        _save_progress(prog_file, progress)
+    else:
+        type_selection = progress['type_selection']
+        info(f"  [resumed] Type: {type_selection}")
     
     type_nums = [s.strip() for s in type_selection.split(',')]
     project_types = []
