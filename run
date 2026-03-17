@@ -535,11 +535,11 @@ def cmd_bootstrap(args: List[str]):
                 break
             try:
                 val = int(coverage.strip())
-                if 0 <= val <= 100:
+                if 1 <= val <= 100:
                     break
             except ValueError:
                 pass
-            print_error("Please enter a number between 0 and 100.")
+            print_error("Please enter a number between 1 and 100.")
         progress['coverage'] = coverage
         _save_progress(prog_file, progress)
     else:
@@ -917,11 +917,11 @@ def cmd_project(args: List[str]):
                 break
             try:
                 val = int(proj_coverage.strip())
-                if 0 <= val <= 100:
+                if 1 <= val <= 100:
                     break
             except ValueError:
                 pass
-            print_error("Please enter a number between 0 and 100.")
+            print_error("Please enter a number between 1 and 100.")
         progress['coverage'] = proj_coverage
         _save_progress(prog_file, progress)
     else:
