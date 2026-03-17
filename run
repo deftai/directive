@@ -561,6 +561,9 @@ def cmd_bootstrap(args: List[str]):
             if not lang_selection.strip():
                 break  # Skip
             nums = [s.strip() for s in lang_selection.split(',')]
+            if len(nums) != len(set(nums)):
+                print_error("Duplicate selections are not allowed.")
+                continue
             if all(n in valid_lang_nums for n in nums):
                 break
             print_error(f"Please enter numbers between 1 and {other_num} (comma-separated).")
@@ -796,6 +799,9 @@ def cmd_project(args: List[str]):
                 print_error("Please enter at least one selection (1-6).")
                 continue
             nums = [s.strip() for s in type_selection.split(',')]
+            if len(nums) != len(set(nums)):
+                print_error("Duplicate selections are not allowed.")
+                continue
             if all(n in valid_type_nums for n in nums):
                 break
             print_error("Please enter numbers between 1 and 6 (comma-separated).")
@@ -844,6 +850,9 @@ def cmd_project(args: List[str]):
                 if not lang_selection.strip():
                     break  # Accept USER.md defaults
                 nums = [s.strip() for s in lang_selection.split(',')]
+                if len(nums) != len(set(nums)):
+                    print_error("Duplicate selections are not allowed.")
+                    continue
                 if all(n in valid_lang_nums for n in nums):
                     break
                 print_error(f"Please enter numbers between 1 and {other_num} (comma-separated).")
@@ -857,6 +866,9 @@ def cmd_project(args: List[str]):
                 if not lang_selection.strip():
                     break  # Skip (falls through to Python default)
                 nums = [s.strip() for s in lang_selection.split(',')]
+                if len(nums) != len(set(nums)):
+                    print_error("Duplicate selections are not allowed.")
+                    continue
                 if all(n in valid_lang_nums for n in nums):
                     break
                 print_error(f"Please enter numbers between 1 and {other_num} (comma-separated).")

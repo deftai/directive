@@ -92,3 +92,28 @@ def test_project_strategy_selection(
     assert target_display in content, (
         f"Expected strategy '{target_display}' in PROJECT.md"
     )
+
+
+def test_project_rejects_duplicate_types(
+    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+):
+    """Duplicate type selections are rejected and the user is re-prompted."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    (isolated_env / "deft").mkdir(exist_ok=True)
+    project_path = isolated_env / "PROJECT.md"
+    mock_user_input([
+        str(project_path),  # 1  output path
+        "TestProject",       # 2  project name
+        "1,1",               # 3  duplicate type — rejected
+        "1",                 # 4  valid type — accepted
+        "1",                 # 5  language
+        "85",                # 6  coverage
+        "Flask",             # 7  tech stack
+        "1",                 # 8  strategy
+        False,               # 9  don't chain to spec
+    ])
+
+    result = run_command("cmd_project", [])
+
+    assert result.return_code in (0, None)
+    assert "Duplicate" in result.stdout
