@@ -38,8 +38,8 @@ Quick doc/content fixes that don't require code changes.
 - **#23** — `yolo.md` duplicates ~80% of `interview.md` — refactor to reference shared phases
 - **#24** — `speckit.md` missing `⚠️ See also` cross-reference banner
 - **#25** — `commands.md` vBRIEF example diverges from `vbrief/vbrief.md` spec (status vocabulary mismatch)
-- **#10** — README Getting Started should explicitly call out AGENTS.md setup step
-- **#51** — Project should be fully bootstrapped with its own framework
+- **#67** — Write SPECIFICATION.md and proper PROJECT.md for the deft project itself
+- **#51** — Project should be fully bootstrapped with its own framework (partially done in PR #66)
 - Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml
   - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping"
   - `Taskfile.yml` `VERSION` — update to match latest release
@@ -119,6 +119,8 @@ Larger feature work — only after issues are resolved and content is stable.
 
 ## Completed
 
+- ~~#10 — AGENTS.md setup improvement in docs~~ — 2026-03-17 (PR #66: added manual-clone wiring note in Getting Started)
+- ~~#51 — Project bootstrap (partial)~~ — 2026-03-17 (PR #66: AGENTS.md added, old/ removed, core/project.md cleaned; remaining work in #67)
 - ~~#60 — pressEnterToExit() Windows-only~~ — 2026-03-17 (PR #66: runtime.GOOS guard)
 - ~~#62 — beta branch 50+ unmerged commits~~ — 2026-03-17 (already merged via PR #42)
 - ~~#47 — PROJECT.md defaults + input validation~~ — 2026-03-17 (PR #66: all items addressed)
@@ -151,7 +153,6 @@ Larger feature work — only after issues are resolved and content is stable.
 | Issue | Title | Phase |
 |-------|-------|-------|
 | #9 | Issue tracking system integration | 5 |
-| #10 | AGENTS.md setup improvement in docs | 2 |
 | #11 | NPM + PIP CLI distribution | 4 |
 | #12 | Deft Bootstrap CLI with TUI | 5 |
 | #14 | Bootstrap nits (defaults, strategy descriptions) | 1 |
@@ -166,7 +167,8 @@ Larger feature work — only after issues are resolved and content is stable.
 | #46 | Provide way to update meta MD files | 5 |
 | #49 | All CLI commands should display version | 1 |
 | #50 | Strategies still have redundant old names | 1 |
-| #51 | Project should be bootstrapped with own framework | 2 |
+| #51 | Project should be bootstrapped with own framework (partial — #67 tracks remainder) | 2 |
+| #67 | Write SPECIFICATION.md and proper PROJECT.md for deft | 2 |
 | #52 | Install into .deft/ hidden directory | 5 |
 | #53 | deft-install should bootstrap current directory | 4 |
 | #54 | AGENTS.md provides no actionable onboarding | 5 |
