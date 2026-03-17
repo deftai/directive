@@ -588,23 +588,25 @@ def cmd_bootstrap(args: List[str]):
     languages_str = '\n'.join(languages) if languages else "- (None specified)"
     
     available_strats = get_available_strategies()
-    none_num = len(available_strats) + 1
+    max_strat = len(available_strats)
     if 'strat_selection' not in progress:
         print()
         print_section("Development Strategy")
         info("Select your default development strategy:")
         for i, (stem, display) in enumerate(available_strats, 1):
             print(f"  {i}. {display}")
-        print(f"  {none_num}. None (skip)")
         while True:
             strat_selection = read_input("Selection", "1")
+            if not strat_selection.strip():
+                strat_selection = "1"
+                break
             try:
                 num = int(strat_selection.strip())
-                if 1 <= num <= none_num:
+                if 1 <= num <= max_strat:
                     break
             except ValueError:
                 pass
-            print_error(f"Please enter a number between 1 and {none_num}.")
+            print_error(f"Please enter a number between 1 and {max_strat}.")
         progress['strat_selection'] = strat_selection
         _save_progress(prog_file, progress)
     else:
@@ -613,9 +615,7 @@ def cmd_bootstrap(args: List[str]):
     
     try:
         strat_idx = int(strat_selection.strip()) - 1
-        if strat_idx == none_num - 1:
-            selected_strategy = ("none", "None")
-        elif 0 <= strat_idx < len(available_strats):
+        if 0 <= strat_idx < len(available_strats):
             selected_strategy = available_strats[strat_idx]
         else:
             selected_strategy = available_strats[0] if available_strats else ("default", "Default")
@@ -661,10 +661,7 @@ def cmd_bootstrap(args: List[str]):
     coverage_line = f"\n**Coverage**: ! ≥{coverage}% test coverage" if coverage != "85" else ""
     
     # Build strategy line
-    if strategy_stem != "none":
-        strategy_line = f"**Default Strategy**: [{strategy_display}](../strategies/{strategy_stem}.md)"
-    else:
-        strategy_line = "**Default Strategy**: None"
+    strategy_line = f"**Default Strategy**: [{strategy_display}](../strategies/{strategy_stem}.md)"
     
     # Generate user.md
     user_content = f"""# User Preferences
@@ -933,7 +930,7 @@ def cmd_project(args: List[str]):
     
     # Strategy — pre-fill from USER.md if available
     available_strats = get_available_strategies()
-    none_num = len(available_strats) + 1
+    max_strat = len(available_strats)
     if 'strat_selection' not in progress:
         print()
         print_section("Development Strategy")
@@ -944,7 +941,6 @@ def cmd_project(args: List[str]):
             info("Does this project need a different strategy?")
             for i, (stem, display) in enumerate(available_strats, 1):
                 print(f"  {i}. {display}")
-            print(f"  {none_num}. None (no strategy)")
             while True:
                 strat_selection = read_input(
                     f"Selection, or Enter to keep [{user_strat_display}]", ""
@@ -953,25 +949,27 @@ def cmd_project(args: List[str]):
                     break  # Accept USER.md default
                 try:
                     num = int(strat_selection.strip())
-                    if 1 <= num <= none_num:
+                    if 1 <= num <= max_strat:
                         break
                 except ValueError:
                     pass
-                print_error(f"Please enter a number between 1 and {none_num}.")
+                print_error(f"Please enter a number between 1 and {max_strat}.")
         else:
             info("Select development strategy for this project:")
             for i, (stem, display) in enumerate(available_strats, 1):
                 print(f"  {i}. {display}")
-            print(f"  {none_num}. None (no strategy)")
             while True:
                 strat_selection = read_input("Selection", "1")
+                if not strat_selection.strip():
+                    strat_selection = "1"
+                    break
                 try:
                     num = int(strat_selection.strip())
-                    if 1 <= num <= none_num:
+                    if 1 <= num <= max_strat:
                         break
                 except ValueError:
                     pass
-                print_error(f"Please enter a number between 1 and {none_num}.")
+                print_error(f"Please enter a number between 1 and {max_strat}.")
         progress['strat_selection'] = strat_selection
         progress['_had_user_strat_default'] = bool(user_defaults.get('strategy'))
         _save_progress(prog_file, progress)
@@ -988,9 +986,7 @@ def cmd_project(args: List[str]):
     else:
         try:
             strat_idx = int(strat_selection.strip()) - 1
-            if strat_idx == none_num - 1:
-                selected_strategy = ("none", "None")
-            elif 0 <= strat_idx < len(available_strats):
+            if 0 <= strat_idx < len(available_strats):
                 selected_strategy = available_strats[strat_idx]
             else:
                 selected_strategy = available_strats[0] if available_strats else ("default", "Default")
@@ -1010,10 +1006,7 @@ def cmd_project(args: List[str]):
     coverage_line = f"\n- **Coverage**: ! ≥{proj_coverage}% (overrides default 85%)" if proj_coverage != "85" else ""
     
     # Build strategy line
-    if strategy_stem != "none":
-        strategy_use_line = f"Use [{strategy_display}](../strategies/{strategy_stem}.md) for this project."
-    else:
-        strategy_use_line = "No specific strategy selected for this project."
+    strategy_use_line = f"Use [{strategy_display}](../strategies/{strategy_stem}.md) for this project."
     
     project_content = f"""# {project_name} Project Guidelines
 
