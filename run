@@ -642,54 +642,135 @@ def cmd_project(args: List[str]):
     
     project_types_str = ", ".join(project_types)
     
+    # Read USER.md defaults to avoid re-asking questions already answered
+    # during bootstrap (fix for #7 — double prompting)
+    user_defaults = _read_user_defaults(defaults)
+    
+    # Language selection — pre-fill from USER.md if available
     print()
     available_langs = get_available_languages()
-    info("Select primary programming language(s) (comma-separated):")
-    for i, (stem, display) in enumerate(available_langs, 1):
-        print(f"  {i}. {display}")
-    other_num = len(available_langs) + 1
-    print(f"  {other_num}. Other")
-    lang_selection = read_input("Selection (e.g., 1,3)")
+    if user_defaults.get('languages'):
+        user_lang_names = user_defaults['languages']
+        user_lang_display = ', '.join(user_lang_names)
+        info(f"Languages from USER.md: {user_lang_display}")
+        info("Select primary programming language(s) (comma-separated):")
+        for i, (stem, display) in enumerate(available_langs, 1):
+            print(f"  {i}. {display}")
+        other_num = len(available_langs) + 1
+        print(f"  {other_num}. Other")
+        lang_selection = read_input(
+            f"Selection, or Enter to keep [{user_lang_display}]", ""
+        )
+        if not lang_selection.strip():
+            # Accept USER.md defaults
+            selected_langs = []
+            for lang_name in user_lang_names:
+                matched = False
+                for stem, display in available_langs:
+                    if display.lower() == lang_name.lower():
+                        selected_langs.append((stem, display))
+                        matched = True
+                        break
+                if not matched:
+                    selected_langs.append((lang_name.lower(), lang_name))
+            if not selected_langs:
+                selected_langs = [("python", "Python")]
+        else:
+            # User wants different languages
+            lang_nums = [s.strip() for s in lang_selection.split(',')]
+            selected_langs = []
+            for num in lang_nums:
+                try:
+                    idx = int(num) - 1
+                    if 0 <= idx < len(available_langs):
+                        selected_langs.append(available_langs[idx])
+                    elif int(num) == other_num:
+                        other_lang = read_input("Enter language name")
+                        if other_lang:
+                            selected_langs.append((other_lang.lower(), other_lang))
+                except ValueError:
+                    pass
+            if not selected_langs:
+                selected_langs = [("python", "Python")]
+    else:
+        info("Select primary programming language(s) (comma-separated):")
+        for i, (stem, display) in enumerate(available_langs, 1):
+            print(f"  {i}. {display}")
+        other_num = len(available_langs) + 1
+        print(f"  {other_num}. Other")
+        lang_selection = read_input("Selection (e.g., 1,3)")
+        
+        lang_nums = [s.strip() for s in lang_selection.split(',')]
+        selected_langs = []
+        for num in lang_nums:
+            try:
+                idx = int(num) - 1
+                if 0 <= idx < len(available_langs):
+                    selected_langs.append(available_langs[idx])
+                elif int(num) == other_num:
+                    other_lang = read_input("Enter language name")
+                    if other_lang:
+                        selected_langs.append((other_lang.lower(), other_lang))
+            except ValueError:
+                pass
+        
+        if not selected_langs:
+            selected_langs = [("python", "Python")]
     
-    lang_nums = [s.strip() for s in lang_selection.split(',')]
-    selected_langs = []  # list of (stem, display) tuples
-    for num in lang_nums:
-        try:
-            idx = int(num) - 1
-            if 0 <= idx < len(available_langs):
-                selected_langs.append(available_langs[idx])
-            elif int(num) == other_num:
-                other_lang = read_input("Enter language name")
-                if other_lang:
-                    selected_langs.append((other_lang.lower(), other_lang))
-        except ValueError:
-            pass
-    
-    if not selected_langs:
-        selected_langs = [("python", "Python")]
     primary_lang = selected_langs[0][1]
     primary_stem = selected_langs[0][0]
     
+    # Coverage — pre-fill from USER.md if available
     print()
-    proj_coverage = read_input("Coverage threshold (default: 85%)", "85")
+    user_coverage = user_defaults.get('coverage', '85') if user_defaults else None
+    if user_coverage:
+        proj_coverage = read_input(
+            f"Coverage threshold (from USER.md: {user_coverage}%)", user_coverage
+        )
+    else:
+        proj_coverage = read_input("Coverage threshold (default: 85%)", "85")
+    
     tech_stack = read_input("Tech stack details (e.g., 'Flask + SQLAlchemy' or 'React + Next.js')")
     
+    # Strategy — pre-fill from USER.md if available
     print()
     print_section("Development Strategy")
     available_strats = get_available_strategies()
-    info("Select development strategy for this project:")
-    for i, (stem, display) in enumerate(available_strats, 1):
-        print(f"  {i}. {display}")
-    strat_selection = read_input("Selection", "1")
-    
-    try:
-        strat_idx = int(strat_selection.strip()) - 1
-        if 0 <= strat_idx < len(available_strats):
-            selected_strategy = available_strats[strat_idx]
+    if user_defaults.get('strategy'):
+        user_strat_stem = user_defaults['strategy']
+        user_strat_display = user_defaults.get('strategy_display', user_strat_stem.title())
+        info(f"Default strategy from USER.md: {user_strat_display}")
+        info("Does this project need a different strategy?")
+        for i, (stem, display) in enumerate(available_strats, 1):
+            print(f"  {i}. {display}")
+        strat_selection = read_input(
+            f"Selection, or Enter to keep [{user_strat_display}]", ""
+        )
+        if not strat_selection.strip():
+            selected_strategy = (user_strat_stem, user_strat_display)
         else:
+            try:
+                strat_idx = int(strat_selection.strip()) - 1
+                if 0 <= strat_idx < len(available_strats):
+                    selected_strategy = available_strats[strat_idx]
+                else:
+                    selected_strategy = (user_strat_stem, user_strat_display)
+            except ValueError:
+                selected_strategy = (user_strat_stem, user_strat_display)
+    else:
+        info("Select development strategy for this project:")
+        for i, (stem, display) in enumerate(available_strats, 1):
+            print(f"  {i}. {display}")
+        strat_selection = read_input("Selection", "1")
+        
+        try:
+            strat_idx = int(strat_selection.strip()) - 1
+            if 0 <= strat_idx < len(available_strats):
+                selected_strategy = available_strats[strat_idx]
+            else:
+                selected_strategy = available_strats[0] if available_strats else ("default", "Default")
+        except ValueError:
             selected_strategy = available_strats[0] if available_strats else ("default", "Default")
-    except ValueError:
-        selected_strategy = available_strats[0] if available_strats else ("default", "Default")
     strategy_stem, strategy_display = selected_strategy
     
     # Generate project.md
@@ -763,6 +844,76 @@ Use [{strategy_display}](../strategies/{strategy_stem}.md) for this project.
         print()
         info("You can run 'run spec' later to generate your specification.")
         return 0
+
+def _read_user_defaults(defaults: dict) -> dict:
+    """Read fallback defaults from USER.md if present.
+    
+    Parses Primary Languages, Default Strategy, and Coverage from USER.md.
+    Returns a dict with keys 'languages', 'strategy', 'coverage' where found.
+    Returns empty dict if USER.md does not exist.
+    """
+    user_path_str = defaults.get('user', '')
+    if not user_path_str:
+        return {}
+    user_file = resolve_path(user_path_str)
+    if not user_file.exists():
+        return {}
+    
+    result = {}
+    try:
+        content = user_file.read_text(encoding='utf-8')
+        lines = content.split('\n')
+        
+        # Parse languages: lines starting with "- " after "**Primary Languages**:"
+        in_languages = False
+        languages = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('**Primary Languages**:'):
+                in_languages = True
+                continue
+            if in_languages:
+                if stripped.startswith('- ') and stripped != '- (None specified)':
+                    languages.append(stripped[2:].strip())
+                elif stripped and not stripped.startswith('- '):
+                    in_languages = False
+        if languages:
+            result['languages'] = languages
+        
+        # Parse strategy: [Name](../strategies/stem.md)
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('**Default Strategy**:') and 'strategies/' in stripped:
+                start = stripped.index('strategies/') + len('strategies/')
+                rest = stripped[start:]
+                if '.md' in rest:
+                    stem = rest[:rest.index('.md')]
+                    if stem:
+                        result['strategy'] = stem
+                        # Also extract display name from [Name](...)
+                        try:
+                            bracket_start = stripped.index('[') + 1
+                            bracket_end = stripped.index(']')
+                            result['strategy_display'] = stripped[bracket_start:bracket_end]
+                        except ValueError:
+                            pass
+                break
+        
+        # Parse coverage: **Coverage**: ! ≥N% 
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('**Coverage**:') and '≥' in stripped and '%' in stripped:
+                ge_pos = stripped.index('≥') + 1
+                pct_pos = stripped.index('%')
+                coverage_val = stripped[ge_pos:pct_pos].strip()
+                if coverage_val.isdigit():
+                    result['coverage'] = coverage_val
+                break
+    except Exception:
+        pass
+    
+    return result
+
 
 def _read_project_process(defaults: dict) -> Optional[str]:
     """Read **Process**: value from PROJECT.md if present.

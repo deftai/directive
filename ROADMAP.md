@@ -131,7 +131,6 @@ Larger feature work — only after issues are resolved and content is stable.
 
 | Issue | Title | Phase |
 |-------|-------|-------|
-| #7 | Double prompting for languages during bootstrap | 1 |
 | #8 | Don't commit until questionnaires finished | 1 |
 | #9 | Issue tracking system integration | 5 |
 | #10 | AGENTS.md setup improvement in docs | 2 |
