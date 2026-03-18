@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bootstrap Defaults**: `cmd_project` defaults project name from current directory and defaults "run spec now" to Yes (#47, #66)
 - **Bootstrap Strategy Default**: Default strategy now uses `interview` instead of alphabetical first match (#66)
 - **Tooling Dependency**: Bumped `black` from `26.3.0` to `26.3.1` (#48)
-- **CHANGELOG Cleanup**: Backfilled post-0.6.0 entries, corrected release links to `deftai/directive`, and added missing `[0.6.0]` and `[Unreleased]` references (#71)
+- **CHANGELOG Cleanup**: Backfilled post-0.6.0 entries, corrected release links to `deftai/directive`, and added missing `[Unreleased]` link reference (#71)
 
 ### Fixed
 - **Double Prompting in Bootstrap Chain**: `cmd_project` now reads USER.md defaults (languages/strategy/coverage) instead of re-asking from scratch (#7, #43)
@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stale `beta` Branch**: Removed legacy beta-branch workflow and references from active docs (#69, #70)
 - **Leaked `old/` Directory**: Removed stale personal configuration artifacts from repository (#51, #66)
 
-## [0.6.0] - 2026-03-11
+## 0.6.0 - 2026-03-11
 
 ### Added
 - **Slash Commands**: `/deft:run:<name>` dispatches to `strategies/<name>.md` (#16)
