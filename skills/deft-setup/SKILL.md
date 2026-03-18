@@ -65,6 +65,8 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 
 ~ When presenting strategies to the user, always use this numbered list format (not a plain table).
 ~ Always include the reiterative note below the list.
+! Always show the FULL strategy list at every chaining gate — never remove a strategy because it was previously run.
+~ If a strategy has been run already, indicate it with a note e.g. `(run 1x)` but keep it selectable.
 
 1. **interview** ⭐ (recommended) — Structured interview with sizing gate: Light or Full path
 2. **yolo** — Auto-pilot interview — Johnbot picks all recommended options
