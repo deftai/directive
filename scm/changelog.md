@@ -82,7 +82,7 @@ At release time, `[Unreleased]` is renamed to the new version (see Release Proce
 
 ## What to Include
 
-! Include changes that affect **users or integrations**:
+! Include changes that affect **users, integrations, or framework-level tooling/structure**:
 
 **Include:**
 - New features users can access
@@ -128,11 +128,12 @@ At release time, `[Unreleased]` is renamed to the new version (see Release Proce
 - "Added dark mode toggle in settings"
 - "Fixed crash when opening large files"
 - "Removed deprecated `--legacy` flag"
+- "Bumped `black` to 26.3.1 (framework tooling update)"
 
 **Bad examples:**
 - "Refactored authentication module" (internal, not user-visible)
-- "Updated ESLint to v8" (dev dependency, not user-facing)
 - "Fixed typo in README" (documentation, minor)
+- "Updated ESLint to v8" (dev CI tooling, no impact on framework users)
 
 ## Unreleased Section
 
