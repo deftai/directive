@@ -5,6 +5,40 @@ All notable changes to the Deft framework will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Go Installer**: Cross-platform self-contained installer in `cmd/deft-install/` with 5 platform binaries, interactive setup wizard, and platform-aware git installation paths (#34, #35)
+- **Agent Skills**: Added `skills/deft-setup/SKILL.md` and `skills/deft-build/SKILL.md` for agent-driven setup and spec implementation workflows (#34, #35)
+- **GitHub Actions Release Workflow**: Multi-platform release pipeline with cross-compilation, macOS universal binary creation, and smoke tests
+- **Context Engineering Module**: Added `context/` guides for deterministic split, long-horizon context, fractal summaries, working memory, and tool design
+- **Canonical vBRIEF Pattern**: Standardized vBRIEF workflow and persistence pattern in `vbrief/vbrief.md`
+- **vBRIEF Schema and Validation Tests**: Added `vbrief/schemas/vbrief-core.schema.json` and schema/doc consistency checks (#28, #29)
+- **Strategy Chaining Gates**: Added chaining and acceptance gates to support preparatory/spec-generating strategy composition (#39, #41)
+- **Testbed Regression Suite**: Expanded content and CLI regression coverage in `tests/` with Taskfile integration (#21, #22)
+- **AGENTS.md Project Entry Point**: Added project-level agent onboarding entry point and wiring guidance in docs (#10, #51, #66)
+- **ROADMAP.md Consolidation**: Added consolidated roadmap replacing scattered planning artifacts
+
+### Changed
+- **Interview Strategy Reconciliation**: Unified CLI and agent entry points around strategy-driven spec flow, including sizing gate behavior (#36, #35)
+- **Repository URL Migration**: Updated hardcoded repository references from `visionik/deft` to `deftai/directive` across source and documentation (#63, #64)
+- **Trunk-Based Workflow**: Updated docs/workflow to remove stale beta-branch model and reflect short-lived feature branches (#69, #70)
+- **Bootstrap Defaults**: `cmd_project` defaults project name from current directory and defaults "run spec now" to Yes (#47, #66)
+- **Bootstrap Strategy Default**: Default strategy now uses `interview` instead of alphabetical first match (#66)
+- **Tooling Dependency**: Bumped `black` from `26.3.0` to `26.3.1` (#48)
+- **CHANGELOG Cleanup**: Backfilled post-0.6.0 entries, corrected release links to `deftai/directive`, and added missing `[Unreleased]` link reference (#71)
+
+### Fixed
+- **Double Prompting in Bootstrap Chain**: `cmd_project` now reads USER.md defaults (languages/strategy/coverage) instead of re-asking from scratch (#7, #43)
+- **Ctrl+C Resume Protection**: Bootstrap/project flows now persist progress and support resume after interruption (#8, #66)
+- **Input Validation Gaps**: Added validation for project type, language/strategy selections, coverage bounds, and duplicate selections (#44, #47, #66)
+- **USER.md Overwrite Flow**: Added explicit keep/overwrite behavior when USER.md already exists (#44, #66)
+- **Installer Exit Prompt on Unix**: `pressEnterToExit()` is now Windows-only, removing extra pause on macOS/Linux (#60, #66)
+
+### Removed
+- **Stale `beta` Branch**: Removed legacy beta-branch workflow and references from active docs (#69, #70)
+- **Leaked `old/` Directory**: Removed stale personal configuration artifacts from repository (#51, #66)
+
 ## [0.6.0] - 2026-03-11
 
 ### Added
@@ -494,25 +528,28 @@ If you have custom scripts or references to deft files, update these paths:
 - Explore new interface guidelines if building CLIs, APIs, or UIs
 - Review enhanced language standards for Python, Go, TypeScript, and C++
 
-[0.5.2]: https://github.com/visionik/deft/releases/tag/v0.5.2
-[0.5.1]: https://github.com/visionik/deft/releases/tag/v0.5.1
-[0.5.0]: https://github.com/visionik/deft/releases/tag/v0.5.0
-[0.4.3]: https://github.com/visionik/deft/releases/tag/v0.4.3
-[0.4.2]: https://github.com/visionik/deft/releases/tag/v0.4.2
-[0.4.1]: https://github.com/visionik/deft/releases/tag/v0.4.1
-[0.4.0]: https://github.com/visionik/deft/releases/tag/v0.4.0
-[0.3.7]: https://github.com/visionik/deft/releases/tag/v0.3.7
-[0.3.6]: https://github.com/visionik/deft/releases/tag/v0.3.6
-[0.3.5]: https://github.com/visionik/deft/releases/tag/v0.3.5
-[0.3.4]: https://github.com/visionik/deft/releases/tag/v0.3.4
-[0.3.3]: https://github.com/visionik/deft/releases/tag/v0.3.3
-[0.3.2]: https://github.com/visionik/deft/releases/tag/v0.3.2
-[0.3.1]: https://github.com/visionik/deft/releases/tag/v0.3.1
-[0.3.0]: https://github.com/visionik/deft/releases/tag/v0.3.0
-[0.2.5]: https://github.com/visionik/deft/releases/tag/v0.2.5
-[0.2.4]: https://github.com/visionik/deft/releases/tag/v0.2.4
-[0.2.3]: https://github.com/visionik/deft/releases/tag/v0.2.3
-[0.2.2]: https://github.com/visionik/deft/releases/tag/v0.2.2
+[Unreleased]: https://github.com/deftai/directive/compare/v0.5.1...HEAD
+<!-- [0.6.0] has no git tag — it was a beta-only version that was never tagged on master. -->
+<!-- The [0.5.x] tags on master are the nearest real tags. Link will be added if v0.6.0 is ever tagged. -->
+[0.5.2]: https://github.com/deftai/directive/releases/tag/v0.5.2
+[0.5.1]: https://github.com/deftai/directive/releases/tag/v0.5.1
+[0.5.0]: https://github.com/deftai/directive/releases/tag/v0.5.0
+[0.4.3]: https://github.com/deftai/directive/releases/tag/v0.4.3
+[0.4.2]: https://github.com/deftai/directive/releases/tag/v0.4.2
+[0.4.1]: https://github.com/deftai/directive/releases/tag/v0.4.1
+[0.4.0]: https://github.com/deftai/directive/releases/tag/v0.4.0
+[0.3.7]: https://github.com/deftai/directive/releases/tag/v0.3.7
+[0.3.6]: https://github.com/deftai/directive/releases/tag/v0.3.6
+[0.3.5]: https://github.com/deftai/directive/releases/tag/v0.3.5
+[0.3.4]: https://github.com/deftai/directive/releases/tag/v0.3.4
+[0.3.3]: https://github.com/deftai/directive/releases/tag/v0.3.3
+[0.3.2]: https://github.com/deftai/directive/releases/tag/v0.3.2
+[0.3.1]: https://github.com/deftai/directive/releases/tag/v0.3.1
+[0.3.0]: https://github.com/deftai/directive/releases/tag/v0.3.0
+[0.2.5]: https://github.com/deftai/directive/releases/tag/v0.2.5
+[0.2.4]: https://github.com/deftai/directive/releases/tag/v0.2.4
+[0.2.3]: https://github.com/deftai/directive/releases/tag/v0.2.3
+[0.2.2]: https://github.com/deftai/directive/releases/tag/v0.2.2
 [0.2.1]: https://github.com/visionik/warping/releases/tag/v0.2.1
 [0.2.0]: https://github.com/visionik/warping/releases/tag/v0.2.0
 [0.1.0]: https://github.com/visionik/warping/releases/tag/v0.1.0

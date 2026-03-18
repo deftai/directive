@@ -8,9 +8,7 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 
 Fix reported bugs and UX problems. All are against the existing `run` CLI.
 
-- **#71** — CHANGELOG catch-up: missing entries since v0.6.0 and stale release links (`visionik/deft` → `deftai/directive`)
 - **#45** — Agentic workflow bootstrap missing soul/morals/code-field selection prompt (CLI has it, agentic path skips it)
-- **#63** — Installer hardcodes old repo URL (`visionik/deft` → `deftai/directive`)
 - **#65** — Bootstrap custom rules/preferences prompt accepts "yes" but never collects the rules
 - **#14** — Bootstrap nits: strategy picker needs descriptions per option, unclear defaults on y/N prompts
 - **#31** — `default.md` and `interview.md` need to be merged into `interview.md` (duplicate strategy files)
@@ -56,6 +54,7 @@ Quick doc/content fixes that don't require code changes.
 
 ## Phase 3 — Test Infrastructure & CI
 
+- **#74** — Automate release process (`task release`) and CI changelog enforcement
 - **#57** — Add GitHub Actions CI workflow for linting and tests on PRs and pushes
 - **#33** — When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)
 - CLI tests for remaining commands: `cmd_spec`, `cmd_install`, `cmd_reset`, `cmd_update`
@@ -109,6 +108,8 @@ Larger feature work — only after issues are resolved and content is stable.
 
 ## Completed
 
+- ~~#71 — CHANGELOG catch-up~~ — 2026-03-18 (PR #73: backfilled post-0.6.0 entries, updated release links to `deftai/directive` for v0.2.2+, preserved historical `visionik` links for older versions)
+- ~~#63 — Installer hardcodes old repo URL~~ — 2026-03-17 (PR #64: all `visionik/deft` → `deftai/directive`)
 - ~~#69 — Remove stale beta branch and update docs~~ — 2026-03-17 (trunk-based workflow, beta branch deleted)
 - ~~#34 — Zero-prerequisite installer~~ — 2026-03-17 (merged via PR #42, released as v0.5.0)
 - ~~#10 — AGENTS.md setup improvement in docs~~ — 2026-03-17 (PR #66: added manual-clone wiring note in Getting Started)
@@ -167,13 +168,14 @@ Larger feature work — only after issues are resolved and content is stable.
 | #55 | Register Deft commands as native agent slash commands | 5 |
 | #56 | Reduce installation friction (shell one-liner, Homebrew) | 4 |
 | #57 | Add GitHub Actions CI workflow | 3 |
+| #74 | Automate release process and CI changelog enforcement | 3 |
 | #58 | Stale cross-references to legacy paths | 2 |
 | #59 | history/changes/ directory missing | 2 |
 | #61 | deft-setup SKILL.md strategies table stale | 2 |
-| #63 | Installer hardcodes old repo URL | 1 |
+| #63 | ~~Installer hardcodes old repo URL~~ (completed) | — |
 | #65 | Bootstrap custom rules stub | 1 |
 | #69 | ~~Remove stale beta branch~~ (completed) | — |
-| #71 | CHANGELOG catch-up since v0.6.0 + stale release links | 1 |
+| #71 | ~~CHANGELOG catch-up since v0.6.0 + stale release links~~ (completed) | — |
 
 ---
 
