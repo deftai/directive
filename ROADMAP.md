@@ -8,9 +8,9 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 
 Fix reported bugs and UX problems. All are against the existing `run` CLI.
 
-- **#45** — Bootstrap parity: CLI and agentic paths should produce consistent output (absorbs #14, #65)
+- **#45** — Bootstrap parity: CLI and agentic paths should produce consistent output (absorbs #14, #61, #65)
   - CLI: strategy picker descriptions, clear defaults on y/N prompts, custom rules prompt stub
-  - Agentic: missing soul/morals/code-field prompt, template parity
+  - Agentic: strategies table corrected, missing soul/morals/code-field prompt, template parity
   - README: document CLI = technical user, agentic = adaptive tracks
 - **#31** — `default.md` and `interview.md` need to be merged into `interview.md` (duplicate strategy files)
 - **#50** — Strategies still have redundant old names (`brownfield.md` → `map.md`, `default.md` → `interview.md`)
@@ -23,8 +23,7 @@ Fix reported bugs and UX problems. All are against the existing `run` CLI.
 Quick doc/content fixes that don't require code changes.
 
 - **#58** — Stale cross-references to legacy `core/user.md` and `core/project.md` paths throughout framework
-- **#61** — deft-setup SKILL.md Available Strategies table is stale — missing current strategy names
-- **#59** — `history/changes/` directory referenced by `commands.md` doesn't exist
+- **#59** —
 - **#23** — `yolo.md` duplicates ~80% of `interview.md` — refactor to reference shared phases
 - **#24** — `speckit.md` missing `⚠️ See also` cross-reference banner
 - **#25** — `commands.md` vBRIEF example diverges from `vbrief/vbrief.md` spec (status vocabulary mismatch)
@@ -172,7 +171,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #74 | Automate release process and CI changelog enforcement | 3 |
 | #58 | Stale cross-references to legacy paths | 2 |
 | #59 | history/changes/ directory missing | 2 |
-| #61 | deft-setup SKILL.md strategies table stale | 2 |
+| #61 | ~~deft-setup SKILL.md strategies table stale~~ (absorbed into #45) | — |
 | #63 | ~~Installer hardcodes old repo URL~~ (completed) | — |
 | #65 | ~~Bootstrap custom rules stub~~ (absorbed into #45) | — |
 | #69 | ~~Remove stale beta branch~~ (completed) | — |

@@ -252,6 +252,18 @@ _STRATEGY_DISPLAY_NAMES = {
     'speckit': 'SpecKit',
 }
 
+# One-line descriptions shown in strategy picker
+_STRATEGY_DESCRIPTIONS = {
+    'interview':  'Structured interview with sizing gate — Light (embedded spec) or Full (PRD → spec)',
+    'yolo':       'Auto-pilot interview — Johnbot picks all recommended options',
+    'map':        'Analyze existing codebase conventions before adding features',
+    'discuss':    'Front-load decisions and alignment before planning',
+    'research':   'Investigate the domain before planning',
+    'speckit':    'Five-phase spec-driven workflow for large/complex projects',
+    'default':    'Structured interview with sizing gate (alias for interview)',
+    'brownfield': 'Analyze existing codebase before adding features (alias for map)',
+}
+
 def get_available_strategies() -> List[tuple]:
     """Scan strategies/ directory and return available strategies.
     
@@ -613,8 +625,11 @@ def cmd_bootstrap(args: List[str]):
         print_section("Development Strategy")
         info("Select your default development strategy:")
         for i, (stem, display) in enumerate(available_strats, 1):
-            marker = " (default)" if str(i) == default_strat_num else ""
+            desc = _STRATEGY_DESCRIPTIONS.get(stem, '')
+            marker = " ★ RECOMMENDED" if str(i) == default_strat_num else ""
             print(f"  {i}. {display}{marker}")
+            if desc:
+                print(f"     {desc}")
         while True:
             strat_selection = read_input("Selection", default_strat_num)
             if not strat_selection.strip():
@@ -646,23 +661,50 @@ def cmd_bootstrap(args: List[str]):
     if 'custom_rules' not in progress:
         print()
         print_section("Custom Rules")
-    custom_rules = _resume_or_ask(progress, prog_file, 'custom_rules', 'Custom rules',
-                                   read_input, "Any custom rules or preferences (optional, press Enter to skip)")
+        info("Add rules the AI must always follow (optional). Enter one rule per line, empty line to finish.")
+        if read_yn("Do you have custom rules to add?"):
+            rules_list = []
+            while True:
+                rule = read_input("  Rule (or Enter to finish)")
+                if not rule.strip():
+                    break
+                rules_list.append(f"- {rule.strip()}")
+            custom_rules = '\n'.join(rules_list) if rules_list else ""
+        else:
+            custom_rules = ""
+        progress['custom_rules'] = custom_rules
+        _save_progress(prog_file, progress)
+    else:
+        custom_rules = progress['custom_rules']
+        info(f"  [resumed] Custom rules: {custom_rules[:60] + '...' if len(custom_rules) > 60 else custom_rules or '(none)'}")
     
     if 'use_soul' not in progress:
         print()
-        print_section("Experimental Rules")
-        info("The meta/ directory contains experimental guidelines:")
-        info("  • SOUL.md       - Strategic context and purpose-driven guidance")
-        info("  • morals.md     - Ethical AI development principles")
-        info("  • code-field.md - Advanced field theory for code architecture")
+        print_section("Meta Guidelines")
+        info("Deft ships three meta-guidelines that shape how the AI behaves. All are included")
+        info("by default — press Enter to keep each, or n to drop it.")
+        print()
+        info("SOUL.md — Results-first agent persona (inspired by Winston Wolf).")
+        info("  Enforces assess-before-acting, finish-what-you-start, right-tool-for-the-job,")
+        info("  and play-the-long-game. Keeps the AI decisive and concise rather than narrating")
+        info("  every step. Includes a named persona ('Vinston') — drop if you prefer to define")
+        info("  your own agent personality.")
+        print()
+        info("morals.md — Epistemic honesty rules.")
+        info("  No presenting speculation as fact, label unverified claims, self-correct when")
+        info("  wrong. Foundational trust rules for any AI agent. Strongly recommended.")
+        print()
+        info("code-field.md — Pre-code assumption protocol.")
+        info("  Requires stating assumptions, naming failure modes, and writing only code the AI")
+        info("  can defend — before writing a single line. Fights the 'it compiles, ship it'")
+        info("  instinct. Based on the NeoVertex1 context-field framework.")
         print()
     use_soul = _resume_or_ask(progress, prog_file, 'use_soul', 'SOUL.md',
-                               read_yn, "Use meta/SOUL.md? (Strategic context guidelines)")
+                               read_yn, "Include meta/SOUL.md? (Results-first persona)", default=True)
     use_morals = _resume_or_ask(progress, prog_file, 'use_morals', 'morals.md',
-                                 read_yn, "Use meta/morals.md? (Ethical AI principles)")
+                                 read_yn, "Include meta/morals.md? (Epistemic honesty rules)", default=True)
     use_code_field = _resume_or_ask(progress, prog_file, 'use_code_field', 'code-field.md',
-                                     read_yn, "Use meta/code-field.md? (Advanced architecture theory)")
+                                     read_yn, "Include meta/code-field.md? (Pre-code assumption protocol)", default=True)
     
     # Build experimental rules section
     experimental_rules = []

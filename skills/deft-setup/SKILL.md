@@ -63,13 +63,14 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 
 ## Available Strategies
 
-| Strategy     | Description                                                              |
-|--------------|--------------------------------------------------------------------------|
-| **default**  | Structured interview with sizing gate: Light or Full path (Recommended) |
-| **brownfield** | Analyze existing codebase before adding features                       |
-| **discuss**  | Front-load decisions and alignment before planning                       |
-| **research** | Investigate the domain before planning                                   |
-| **speckit**  | Five-phase spec-driven workflow (GitHub spec-kit inspired)               |
+| Strategy      | Description                                                               |
+|---------------|---------------------------------------------------------------------------|
+| **interview** | Structured interview with sizing gate: Light or Full path (Recommended)  |
+| **yolo**      | Auto-pilot interview — Johnbot picks all recommended options              |
+| **map**       | Analyze existing codebase conventions before adding features              |
+| **discuss**   | Front-load decisions and alignment before planning                        |
+| **research**  | Investigate the domain before planning                                    |
+| **speckit**   | Five-phase spec-driven workflow for large/complex projects                |
 
 ---
 
@@ -104,23 +105,37 @@ Ask: "How deep do you want to go?"
 
 Wait for answer. Then follow the track below.
 
-**Track 1 (technical) — 5 steps:**
+**Track 1 (technical) — 7 steps:**
 - Step 1: Ask their name
 - Step 2: Ask preferred languages (show Available Languages list; these become fallback defaults)
-- Step 3: Ask strategy preference (show Available Strategies table, recommend "default"; fallback — projects can override)
+- Step 3: Ask strategy preference (show Available Strategies table, recommend "interview"; fallback — projects can override)
 - Step 4: Ask coverage threshold (default 85%; fallback — projects can override)
-- Step 5: Ask for custom rules (optional; okay to skip)
+- Step 5: Ask about meta-guidelines — all three are included by default; user can drop any they don't want.
+  Present each with a description and ask to keep or drop (default: keep):
+  > **SOUL.md** — Results-first agent persona (inspired by Winston Wolf). Enforces assess-before-acting,
+  > finish-what-you-start, right-tool-for-the-job, and play-the-long-game. Keeps the AI decisive and
+  > concise. Includes a named persona ('Vinston') — drop if you prefer to define your own agent personality.
+  >
+  > **morals.md** — Epistemic honesty rules. No presenting speculation as fact, label unverified claims,
+  > self-correct when wrong. Foundational trust rules for any AI agent. Strongly recommended.
+  >
+  > **code-field.md** — Pre-code assumption protocol. Requires stating assumptions and naming failure modes
+  > before writing a single line. Fights the 'it compiles, ship it' instinct. Based on NeoVertex1 context-field.
+  >
+  > Which would you like to drop? (Enter numbers comma-separated, or press Enter to keep all)
+  > 1. SOUL.md  2. morals.md  3. code-field.md
+- Step 6: Ask for custom rules — if user has rules, collect them one per line (empty line to finish); if none, skip
 
 **Track 2 (middle ground) — 3 steps:**
 - Step 1: Ask their name
 - Step 2: Ask preferred languages (show Available Languages list)
-- Step 3: Ask for custom rules (optional; okay to skip)
-- Set defaults without asking: strategy = "default", coverage = 85%
+- Step 3: Ask for custom rules — if user has rules, collect them one per line (empty line to finish); if none, skip
+- Set defaults without asking: strategy = "interview", coverage = 85%, all meta-guidelines included
 
 **Track 3 (non-technical) — 2 steps:**
 - Step 1: Ask their name
 - Step 2: Ask what they're building — infer languages from the answer
-- Set defaults: strategy = "default", coverage = 85%
+- Set defaults: strategy = "interview", coverage = 85%, all meta-guidelines included
 - Pick languages based on project type (web → TypeScript, API → Python/Go, mobile → Swift/Kotlin)
 
 ### Output Path
@@ -157,6 +172,14 @@ for project-scoped settings (strategy, coverage, languages).
 **Default Strategy**: [{strategy name}](../strategies/{strategy-file}.md)
 
 {If coverage != 85: "**Coverage**: ! ≥{N}% test coverage"}
+
+{If any experimental rules selected:
+"## Experimental Rules
+
+{one line per selected rule, e.g.:
+- ! Use meta/SOUL.md for strategic context and purpose-driven guidance
+- ! Use meta/morals.md for ethical AI development principles
+- ~ Use meta/code-field.md for advanced architecture patterns}"}
 
 ---
 
