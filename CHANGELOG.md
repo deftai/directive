@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Stale `beta` Branch**: Removed legacy beta-branch workflow and references from active docs (#69, #70)
 - **Leaked `old/` Directory**: Removed stale personal configuration artifacts from repository (#51, #66)
 
-## 0.6.0 - 2026-03-11
+## [0.6.0] - 2026-03-11
 
 ### Added
 - **Slash Commands**: `/deft:run:<name>` dispatches to `strategies/<name>.md` (#16)

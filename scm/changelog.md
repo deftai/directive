@@ -229,9 +229,10 @@ At release time, `[Unreleased]` is renamed to the new version (see Release Proce
 3. ! Add link reference at bottom: `[X.Y.Z]: https://github.com/deftai/directive/releases/tag/vX.Y.Z`
 4. ! Update comparison link: `[Unreleased]: https://github.com/deftai/directive/compare/vX.Y.Z...HEAD`
 5. ! Commit: `chore: release vX.Y.Z`
-6. ! Tag: `git tag -a vX.Y.Z -m "Release vX.Y.Z"`
-7. ! Push: `git push origin master vX.Y.Z` (triggers release workflow)
-8. ~ Verify GitHub Actions builds and publishes release artifacts
+6. ! Open a PR for the release commit and merge to `master`
+7. ! After merge, tag locally: `git tag -a vX.Y.Z -m "Release vX.Y.Z"`
+8. ! Push the tag: `git push origin vX.Y.Z` (triggers release workflow)
+9. ~ Verify GitHub Actions builds and publishes release artifacts
 
 ⊗ Tag without a corresponding changelog entry.
 ⊗ Write a versioned changelog entry without tagging.
