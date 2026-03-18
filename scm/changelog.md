@@ -70,14 +70,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## When to Update
 
-! Update CHANGELOG.md **as part of the release process**, not on every commit:
+! Update CHANGELOG.md **on every PR**, not just at release time:
 
-1. Develop features with Conventional Commits
-2. Before release, update CHANGELOG.md with notable changes since last release
-3. Move items from `[Unreleased]` to new version section
-4. Commit changelog update
-5. Tag release
-6. Push code + tags
+1. Add your entry under `[Unreleased]` in the appropriate section (Added/Changed/Fixed/Removed)
+2. Reference the issue number: `- **Feature Name**: description (#42)`
+3. The PR template checklist enforces this — reviewers should verify
+
+? Skip the changelog entry only for test-only, CI-only, or purely internal changes.
+
+At release time, `[Unreleased]` is renamed to the new version (see Release Process below).
 
 ## What to Include
 
@@ -219,44 +220,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for deprecated config file format (`.oldrc`)
 ```
 
-## Integration with Release Process
+## Release Process
 
-### Using git/GitHub
+! Follow these steps in order when cutting a release:
 
-```bash
-# 1. Update CHANGELOG.md
-# Move [Unreleased] items to [X.Y.Z] section
+1. ! Rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` (add today's release date)
+2. ! Add a fresh `## [Unreleased]` section above the new version
+3. ! Add link reference at bottom: `[X.Y.Z]: https://github.com/deftai/directive/releases/tag/vX.Y.Z`
+4. ! Update comparison link: `[Unreleased]: https://github.com/deftai/directive/compare/vX.Y.Z...HEAD`
+5. ! Commit: `chore: release vX.Y.Z`
+6. ! Tag: `git tag -a vX.Y.Z -m "Release vX.Y.Z"`
+7. ! Push: `git push origin master vX.Y.Z` (triggers release workflow)
+8. ~ Verify GitHub Actions builds and publishes release artifacts
 
-# 2. Commit changelog
-git add CHANGELOG.md
-git commit -m "docs: update CHANGELOG for v1.2.0"
-
-# 3. Tag release
-git tag -a v1.2.0 -m "Release v1.2.0"
-
-# 4. Push
-git push origin master v1.2.0
-
-# 5. Create GitHub release
-gh release create v1.2.0 --title "v1.2.0" --notes-file CHANGELOG.md
-```
-
-### Automated Generation
-
-? Use tools to help generate changelog from Conventional Commits:
-
-- `conventional-changelog`
-- `git-cliff`
-- `release-please`
-
-≉ Rely solely on automated generation; always review and edit for user clarity.
+⊗ Tag without a corresponding changelog entry.
+⊗ Write a versioned changelog entry without tagging.
 
 ## Compliance
 
 - ! Maintain `CHANGELOG.md` in project root
-- ! Update only during release process, not on every commit
+- ! Update `[Unreleased]` on every PR; rename to versioned entry only at release
 - ! Use Keep a Changelog format with exact section names
-- ! Include only user-facing changes
+- ! Include user-facing changes and framework-level changes (repo structure, tooling, docs) that affect developers who use the framework directly
 - ! Use semantic versioning for release numbers
 - ! Mark breaking changes clearly
 - ! Write entries from user perspective, not developer perspective
