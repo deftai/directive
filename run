@@ -245,7 +245,8 @@ def _lang_widget_id(stem: str) -> str:
     return "lang_" + stem.replace('#', 'sharp').replace('+', 'plus')
 
 # Non-strategy support files to exclude from strategy selection
-_NON_STRATEGY_FILES = {'readme'}
+# Includes aliases (brownfield, default) which are internal and should not appear in the picker
+_NON_STRATEGY_FILES = {'readme', 'brownfield', 'default'}
 
 # Display name overrides for strategy file stems
 _STRATEGY_DISPLAY_NAMES = {
