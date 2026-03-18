@@ -8,7 +8,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Scope
 
-! CHANGELOG.md applies **only to releases** (tagged versions), not individual commits or pushes.
+! CHANGELOG.md is maintained **on every PR** under `[Unreleased]` and published as a versioned entry at release time.
 
 ## Purpose
 
@@ -95,9 +95,8 @@ At release time, `[Unreleased]` is renamed to the new version (see Release Proce
 **Exclude:**
 - Internal refactoring invisible to users
 - Documentation typos
-- Build system changes
-- Development tool updates
-- Test changes
+- Test-only changes
+- CI-only pipeline tweaks
 
 ## Version Format
 
