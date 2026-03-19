@@ -1975,7 +1975,7 @@ if HAS_TEXTUAL:
                 yield Input(id="other_lang", placeholder="Enter language name")
                 yield Label("\nDevelopment strategy:")
                 strategy_options = [(display, stem) for stem, display in self.available_strats]
-                yield Select(strategy_options, id="strategy", allow_blank=False, value=strategy_options[0][1] if strategy_options else "default")
+                yield Select(strategy_options, id="strategy", allow_blank=False, value=strategy_options[0][1] if strategy_options else "interview")
                 yield Label("\nCustom rules (optional):")
                 yield Input(id="rules", placeholder="Press Enter to skip")
                 yield Label("\nExperimental Rules:")
@@ -2019,7 +2019,7 @@ if HAS_TEXTUAL:
             languages_str = '\n'.join(languages) if languages else "- (None specified)"
             
             # Get strategy selection
-            strategy_stem = str(self.query_one("#strategy", Select).value or "default")
+            strategy_stem = str(self.query_one("#strategy", Select).value or "interview")
             strategy_display = dict(self.available_strats).get(strategy_stem, strategy_stem.title())
             
             # Get experimental rules preferences from checkboxes
