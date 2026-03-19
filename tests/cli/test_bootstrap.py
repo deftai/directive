@@ -23,7 +23,7 @@ def _bootstrap_responses(user_path: Path) -> list:
       3. Coverage threshold               (read_input, default 85)
       4. Language selection                (read_input, e.g. "1")
       5. Strategy selection               (read_input, default "1")
-      6. Custom rules                     (read_input, optional)
+      6. Do you have custom rules?        (read_yn)
       7. Use SOUL.md?                     (read_yn)
       8. Use morals.md?                   (read_yn)
       9. Use code-field.md?              (read_yn)

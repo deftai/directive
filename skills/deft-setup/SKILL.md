@@ -64,7 +64,7 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 ## Available Strategies
 
 ~ When presenting strategies to the user, always use this numbered list format (not a plain table).
-~ Always include the reiterative note below the list.
+~ Always include the chaining note below the list.
 ! Always show the FULL strategy list at every chaining gate — never remove a strategy because it was previously run.
 ~ If a strategy has been run already, indicate it with a note e.g. `(run 1x)` but keep it selectable.
 

@@ -1006,6 +1006,12 @@ def cmd_project(args: List[str]):
     # Strategy — pre-fill from USER.md if available
     available_strats = get_available_strategies()
     max_strat = len(available_strats)
+    # Compute recommended marker (same logic as cmd_bootstrap)
+    default_strat_num = "1"
+    for i, (stem, _) in enumerate(available_strats, 1):
+        if stem.lower() == "interview":
+            default_strat_num = str(i)
+            break
     if 'strat_selection' not in progress:
         print()
         print_section("Development Strategy")
@@ -1016,7 +1022,8 @@ def cmd_project(args: List[str]):
             info("Does this project need a different strategy?")
             for i, (stem, display) in enumerate(available_strats, 1):
                 desc = _STRATEGY_DESCRIPTIONS.get(stem, '')
-                print(f"  {i}. {display}")
+                marker = " ★ RECOMMENDED" if str(i) == default_strat_num else ""
+                print(f"  {i}. {display}{marker}")
                 if desc:
                     print(f"     {desc}")
             print()
@@ -1038,7 +1045,8 @@ def cmd_project(args: List[str]):
             info("Select development strategy for this project:")
             for i, (stem, display) in enumerate(available_strats, 1):
                 desc = _STRATEGY_DESCRIPTIONS.get(stem, '')
-                print(f"  {i}. {display}")
+                marker = " ★ RECOMMENDED" if str(i) == default_strat_num else ""
+                print(f"  {i}. {display}{marker}")
                 if desc:
                     print(f"     {desc}")
             print()
