@@ -97,7 +97,7 @@ def _bootstrap_responses(user_path: Path) -> list:
         "85",             # coverage
         "1",              # first language
         "1",              # first strategy
-        "",               # no custom rules
+        False,            # no custom rules (read_yn gate)
         False,            # skip SOUL.md
         False,            # skip morals.md
         False,            # skip code-field.md
@@ -125,7 +125,7 @@ def test_bootstrap_resume_skips_answered(
         True,   # Resume where you left off?
         "1",    # lang_selection
         "1",    # strat_selection
-        "",     # custom_rules
+        False,  # has_custom_rules (read_yn gate)
         False,  # use_soul
         False,  # use_morals
         False,  # use_code_field
