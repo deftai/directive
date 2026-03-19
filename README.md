@@ -1,4 +1,4 @@
-# Deft
+# Deft Directive
 
 **One-shot, anti-slop**
 
