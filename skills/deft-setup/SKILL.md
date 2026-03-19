@@ -63,13 +63,19 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 
 ## Available Strategies
 
-| Strategy     | Description                                                              |
-|--------------|--------------------------------------------------------------------------|
-| **default**  | Structured interview with sizing gate: Light or Full path (Recommended) |
-| **brownfield** | Analyze existing codebase before adding features                       |
-| **discuss**  | Front-load decisions and alignment before planning                       |
-| **research** | Investigate the domain before planning                                   |
-| **speckit**  | Five-phase spec-driven workflow (GitHub spec-kit inspired)               |
+~ When presenting strategies to the user, always use this numbered list format (not a plain table).
+~ Always include the chaining note below the list.
+! Always show the FULL strategy list at every chaining gate — never remove a strategy because it was previously run.
+~ If a strategy has been run already, indicate it with a note e.g. `(run 1x)` but keep it selectable.
+
+1. **interview** ★ (recommended) — Structured interview with sizing gate: Light or Full path
+2. **yolo** — Auto-pilot interview — Johnbot picks all recommended options
+3. **map** — Analyze existing codebase conventions before adding features
+4. **discuss** — Front-load decisions and alignment before planning
+5. **research** — Investigate the domain before planning
+6. **speckit** — Five-phase spec-driven workflow for large/complex projects
+
+> 💡 Strategies can be chained — after one completes, you'll be asked if you want to run another.
 
 ---
 
@@ -104,23 +110,36 @@ Ask: "How deep do you want to go?"
 
 Wait for answer. Then follow the track below.
 
-**Track 1 (technical) — 5 steps:**
+**Track 1 (technical) — 8 steps:**
 - Step 1: Ask their name
 - Step 2: Ask preferred languages (show Available Languages list; these become fallback defaults)
-- Step 3: Ask strategy preference (show Available Strategies table, recommend "default"; fallback — projects can override)
+- Step 3: Ask strategy preference (show Available Strategies numbered list from the Available Strategies section, with descriptions and recommended marker; fallback — projects can override)
 - Step 4: Ask coverage threshold (default 85%; fallback — projects can override)
-- Step 5: Ask for custom rules (optional; okay to skip)
+- Step 5: Ask for custom rules — if user has rules, collect them one per line (empty line to finish); if none, skip
+- Step 6a: Present SOUL.md and ask whether to include it (default: yes):
+  > **SOUL.md** — Results-first agent persona (inspired by Winston Wolf). Enforces assess-before-acting,
+  > finish-what-you-start, right-tool-for-the-job, and play-the-long-game. Keeps the AI decisive and
+  > concise. Includes a named persona ('Vinston') — drop if you prefer to define your own agent personality.
+  > Include SOUL.md? (Y/n)
+- Step 6b: Present morals.md and ask whether to include it (default: yes):
+  > **morals.md** — Epistemic honesty rules. No presenting speculation as fact, label unverified claims,
+  > self-correct when wrong. Foundational trust rules for any AI agent. Strongly recommended.
+  > Include morals.md? (Y/n)
+- Step 6c: Present code-field.md and ask whether to include it (default: yes):
+  > **code-field.md** — Pre-code assumption protocol. Requires stating assumptions and naming failure modes
+  > before writing a single line. Fights the 'it compiles, ship it' instinct. Based on NeoVertex1 context-field.
+  > Include code-field.md? (Y/n)
 
 **Track 2 (middle ground) — 3 steps:**
 - Step 1: Ask their name
 - Step 2: Ask preferred languages (show Available Languages list)
-- Step 3: Ask for custom rules (optional; okay to skip)
-- Set defaults without asking: strategy = "default", coverage = 85%
+- Step 3: Ask for custom rules — if user has rules, collect them one per line (empty line to finish); if none, skip
+- Set defaults without asking: strategy = "interview", coverage = 85%, all meta-guidelines included
 
 **Track 3 (non-technical) — 2 steps:**
 - Step 1: Ask their name
 - Step 2: Ask what they're building — infer languages from the answer
-- Set defaults: strategy = "default", coverage = 85%
+- Set defaults: strategy = "interview", coverage = 85%, all meta-guidelines included
 - Pick languages based on project type (web → TypeScript, API → Python/Go, mobile → Swift/Kotlin)
 
 ### Output Path
@@ -158,6 +177,14 @@ for project-scoped settings (strategy, coverage, languages).
 
 {If coverage != 85: "**Coverage**: ! ≥{N}% test coverage"}
 
+{If any experimental rules selected:
+"## Experimental Rules
+
+{one line per selected rule, e.g.:
+- ! Use meta/SOUL.md for strategic context and purpose-driven guidance
+- ! Use meta/morals.md for ethical AI development principles
+- ~ Use meta/code-field.md for advanced architecture patterns}"}
+
 ---
 
 **Note**: Edit this file anytime to update your preferences.
@@ -182,6 +209,29 @@ for project-scoped settings (strategy, coverage, languages).
 - ! Before asking, infer from codebase — look for `package.json`, `go.mod`, `requirements.txt`, `Cargo.toml`, `pyproject.toml`, `*.csproj`
 - ! Use inferences to pre-fill answers and confirm — don't ask blind
 
+### Track Detection
+
+! If Phase 1 was skipped (USER.md already existed), the user's track is unknown.
+Before asking any Phase 2 questions, ask the depth question:
+
+> "How deep do you want to go?"
+> 1. I'm technical — ask me everything
+> 2. I have some opinions but keep it simple
+> 3. Just pick good defaults — I care about the product, not the tools
+
+Wait for answer. Then follow the corresponding track in the Question Sequence below.
+
+⊗ Assume Track 1 (technical) because USER.md exists or contains strategy/coverage fields.
+⊗ Infer the track from USER.md content — always ask.
+
+### Defaults in Agentic Mode
+
+! When a question has a USER.md default, phrase it as:
+> "{Field}: **{value}** from USER.md — keep this, or enter a different value?"
+
+! Accept any affirmative response ("keep", "yes", "same", "default", ✓) as confirmation to use the default.
+⊗ Phrase defaults as "press Enter to keep" — there is no Enter in conversational mode.
+
 ### Interview Rules (same as Phase 1)
 
 ! **Each message MUST contain exactly ONE question.** The Phase 1 interview rules
@@ -194,14 +244,14 @@ apply here too. Do not combine questions.
 - Step 2: Ask project type (CLI, TUI, REST API, Web App, Library, other)
 - Step 3: Ask languages (show detected, confirm or adjust)
 - Step 4: Ask tech stack (frameworks, libraries)
-- Step 5: Ask strategy (default to USER.md Defaults; ask if this project needs different)
+- Step 5: Ask strategy (default to USER.md Defaults; ask if this project needs different — show Available Strategies numbered list with descriptions and recommended marker)
 - Step 6: Ask coverage (default to USER.md Defaults; ask if this project needs different)
 
 **Track 2 (middle ground) — 4 steps:**
 - Step 1: Ask project name (infer from directory, confirm)
 - Step 2: Ask project type (CLI, TUI, REST API, Web App, Library, other)
 - Step 3: Ask languages (show detected, confirm or adjust)
-- Step 4: Ask strategy (default to USER.md Defaults; ask if this project needs different)
+- Step 4: Ask strategy (default to USER.md Defaults; ask if this project needs different — show Available Strategies numbered list with descriptions and recommended marker)
 - Default coverage to USER.md Defaults without asking
 
 **Track 3 (non-technical) — 1 step:**

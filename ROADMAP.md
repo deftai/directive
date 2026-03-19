@@ -8,9 +8,10 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 
 Fix reported bugs and UX problems. All are against the existing `run` CLI.
 
-- **#45** — Agentic workflow bootstrap missing soul/morals/code-field selection prompt (CLI has it, agentic path skips it)
-- **#65** — Bootstrap custom rules/preferences prompt accepts "yes" but never collects the rules
-- **#14** — Bootstrap nits: strategy picker needs descriptions per option, unclear defaults on y/N prompts
+- **#45** — Bootstrap parity: CLI and agentic paths should produce consistent output (absorbs #14, #61, #65)
+  - CLI: strategy picker descriptions, clear defaults on y/N prompts, custom rules prompt stub
+  - Agentic: strategies table corrected, missing soul/morals/code-field prompt, template parity
+  - README: document CLI = technical user, agentic = adaptive tracks
 - **#31** — `default.md` and `interview.md` need to be merged into `interview.md` (duplicate strategy files)
 - **#50** — Strategies still have redundant old names (`brownfield.md` → `map.md`, `default.md` → `interview.md`)
 - **#49** — All CLI commands should display version on startup
@@ -22,7 +23,6 @@ Fix reported bugs and UX problems. All are against the existing `run` CLI.
 Quick doc/content fixes that don't require code changes.
 
 - **#58** — Stale cross-references to legacy `core/user.md` and `core/project.md` paths throughout framework
-- **#61** — deft-setup SKILL.md Available Strategies table is stale — missing current strategy names
 - **#59** — `history/changes/` directory referenced by `commands.md` doesn't exist
 - **#23** — `yolo.md` duplicates ~80% of `interview.md` — refactor to reference shared phases
 - **#24** — `speckit.md` missing `⚠️ See also` cross-reference banner
@@ -148,7 +148,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #9 | Issue tracking system integration | 5 |
 | #11 | NPM + PIP CLI distribution | 4 |
 | #12 | Deft Bootstrap CLI with TUI | 5 |
-| #14 | Bootstrap nits (defaults, strategy descriptions) | 1 |
+| #14 | ~~Bootstrap nits~~ (absorbed into #45) | — |
 | #23 | yolo.md duplicates interview.md | 2 |
 | #24 | speckit.md missing See also banner | 2 |
 | #25 | commands.md vBRIEF example diverges | 2 |
@@ -156,7 +156,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #33 | Docker smoke/e2e tests | 3 |
 | #34 | ~~Zero-prerequisite installer~~ (completed, released v0.5.0) | — |
 | #39 | Strategy chaining options before spec generation | 5 |
-| #45 | Agentic workflow missing soul/morals/code-field prompt | 1 |
+| #45 | Bootstrap parity: CLI and agentic paths consistent output | 1 |
 | #46 | Provide way to update meta MD files | 5 |
 | #49 | All CLI commands should display version | 1 |
 | #50 | Strategies still have redundant old names | 1 |
@@ -171,9 +171,9 @@ Larger feature work — only after issues are resolved and content is stable.
 | #74 | Automate release process and CI changelog enforcement | 3 |
 | #58 | Stale cross-references to legacy paths | 2 |
 | #59 | history/changes/ directory missing | 2 |
-| #61 | deft-setup SKILL.md strategies table stale | 2 |
+| #61 | ~~deft-setup SKILL.md strategies table stale~~ (absorbed into #45) | — |
 | #63 | ~~Installer hardcodes old repo URL~~ (completed) | — |
-| #65 | Bootstrap custom rules stub | 1 |
+| #65 | ~~Bootstrap custom rules stub~~ (absorbed into #45) | — |
 | #69 | ~~Remove stale beta branch~~ (completed) | — |
 | #71 | ~~CHANGELOG catch-up since v0.6.0 + stale release links~~ (completed) | — |
 

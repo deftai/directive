@@ -10,8 +10,6 @@ Author: Scott Adams (msadams) — 2026-03-16
 
 from pathlib import Path
 
-import pytest
-
 
 def _write_user_md(path: Path, *, lang="Python", strategy_stem="interview",
                    strategy_display="Interview", coverage="90") -> None:
@@ -21,7 +19,10 @@ def _write_user_md(path: Path, *, lang="Python", strategy_stem="interview",
     )
     path.write_text(
         f"# User Preferences\n\n"
-        f"## Overrides\n\n"
+        f"## Personal (always wins)\n\n"
+        f"**Name**: Address the user as: **Test User**\n\n"
+        f"**Custom Rules**:\nNo custom rules defined yet.\n\n"
+        f"## Defaults (fallback)\n\n"
         f"**Primary Languages**:\n- {lang}\n\n"
         f"**Default Strategy**: [{strategy_display}](../strategies/{strategy_stem}.md)\n"
         f"{coverage_line}\n",

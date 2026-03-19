@@ -372,18 +372,23 @@ Skills: deft/SKILL.md, deft/skills/deft-setup/SKILL.md, deft/skills/deft-build/S
 
 ### 2. Set Up Your Preferences
 
-On your next AI session the agent automatically invokes the `deft-setup` skill to walk you through creating your USER.md preferences interactively.
+Deft offers two setup paths that produce the same output (USER.md + PROJECT.md) but adapt to different users:
+
+**Agent-driven** (recommended for most users) — On your next AI session the agent automatically invokes the `deft-setup` skill. It asks how technical you are and adapts accordingly:
+- *Technical*: asks about languages, strategy, coverage, meta rules, and custom rules
+- *Some opinions*: asks name, languages, and custom rules; defaults the rest
+- *Just pick defaults*: asks what you're building, infers everything else
+
+**CLI** (for technical users) — If you're running commands in a terminal, you're technical. The CLI treats you as a power user and asks all configuration questions directly — no skill-level gate.
+
+```bash
+deft/run bootstrap       # Interactive setup for user.md and project.md
+```
 
 **User config location:**
 - Unix / macOS: `~/.config/deft/USER.md`
 - Windows: `%APPDATA%\deft\USER.md`
 - Override: set `DEFT_USER_PATH` environment variable
-
-To set up via CLI instead:
-
-```bash
-deft/run bootstrap       # Interactive setup for user.md and project.md
-```
 
 ### 3. Generate Specification
 

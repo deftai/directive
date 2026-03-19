@@ -13,9 +13,8 @@ Tests:
 Author: Scott Adams (msadams) — 2026-03-16
 """
 
-import json
+import contextlib
 from pathlib import Path
-
 
 # ── Helper function tests ──────────────────────────────────────────
 
@@ -97,7 +96,7 @@ def _bootstrap_responses(user_path: Path) -> list:
         "85",             # coverage
         "1",              # first language
         "1",              # first strategy
-        "",               # no custom rules
+        False,            # no custom rules (read_yn gate)
         False,            # skip SOUL.md
         False,            # skip morals.md
         False,            # skip code-field.md
@@ -125,7 +124,7 @@ def test_bootstrap_resume_skips_answered(
         True,   # Resume where you left off?
         "1",    # lang_selection
         "1",    # strat_selection
-        "",     # custom_rules
+        False,  # has_custom_rules (read_yn gate)
         False,  # use_soul
         False,  # use_morals
         False,  # use_code_field
@@ -212,27 +211,23 @@ def test_ctrlc_preserves_progress(
     user_path = isolated_env / "USER.md"
 
     call_count = 0
-    saved_answers = {}
 
     def _interrupt_after_two(*args, **kwargs):
         nonlocal call_count
         call_count += 1
         if call_count == 1:
             return str(user_path)   # output path
-        elif call_count == 2:
+        if call_count == 2:
             return "PartialUser"    # user name
-        else:
-            raise KeyboardInterrupt()
+        raise KeyboardInterrupt()
 
     monkeypatch.setattr(deft_run_module, "ask_input", _interrupt_after_two)
     monkeypatch.setattr(deft_run_module, "read_input", _interrupt_after_two)
     monkeypatch.setattr(deft_run_module, "ask_confirm", lambda *a, **kw: False)
     monkeypatch.setattr(deft_run_module, "read_yn", lambda *a, **kw: False)
 
-    try:
+    with contextlib.suppress(KeyboardInterrupt):
         deft_run_module.cmd_bootstrap([])
-    except KeyboardInterrupt:
-        pass
 
     # Progress file should exist with the answers given before interruption
     prog_file = deft_run_module._progress_path(user_path)

@@ -245,11 +245,23 @@ def _lang_widget_id(stem: str) -> str:
     return "lang_" + stem.replace('#', 'sharp').replace('+', 'plus')
 
 # Non-strategy support files to exclude from strategy selection
-_NON_STRATEGY_FILES = {'readme'}
+# Includes aliases (brownfield, default) which are internal and should not appear in the picker
+_NON_STRATEGY_FILES = {'readme', 'brownfield', 'default'}
 
 # Display name overrides for strategy file stems
 _STRATEGY_DISPLAY_NAMES = {
     'speckit': 'SpecKit',
+}
+
+# One-line descriptions shown in strategy picker
+_STRATEGY_DESCRIPTIONS = {
+    'interview': 'Structured interview with sizing gate — Light (embedded spec) or Full (PRD → spec)',
+    'yolo':      'Auto-pilot interview — Johnbot picks all recommended options',
+    'map':       'Analyze existing codebase conventions before adding features',
+    'discuss':   'Front-load decisions and alignment before planning',
+    'research':  'Investigate the domain before planning',
+    'speckit':   'Five-phase spec-driven workflow for large/complex projects',
+    # 'default' and 'brownfield' are aliases excluded via _NON_STRATEGY_FILES — no entries needed here
 }
 
 def get_available_strategies() -> List[tuple]:
@@ -613,8 +625,13 @@ def cmd_bootstrap(args: List[str]):
         print_section("Development Strategy")
         info("Select your default development strategy:")
         for i, (stem, display) in enumerate(available_strats, 1):
-            marker = " (default)" if str(i) == default_strat_num else ""
+            desc = _STRATEGY_DESCRIPTIONS.get(stem, '')
+            marker = " ★ RECOMMENDED" if str(i) == default_strat_num else ""
             print(f"  {i}. {display}{marker}")
+            if desc:
+                print(f"     {desc}")
+        print()
+        info("💡 Strategies can be chained — after one completes, you'll be asked if you want to run another.")
         while True:
             strat_selection = read_input("Selection", default_strat_num)
             if not strat_selection.strip():
@@ -643,26 +660,74 @@ def cmd_bootstrap(args: List[str]):
         selected_strategy = available_strats[0] if available_strats else ("default", "Default")
     strategy_stem, strategy_display = selected_strategy
     
-    if 'custom_rules' not in progress:
+    showed_custom_rules_header = 'has_custom_rules' not in progress
+    if 'has_custom_rules' not in progress:
         print()
         print_section("Custom Rules")
-    custom_rules = _resume_or_ask(progress, prog_file, 'custom_rules', 'Custom rules',
-                                   read_input, "Any custom rules or preferences (optional, press Enter to skip)")
+        info("Add rules the AI must always follow (optional). Enter one rule per line, empty line to finish.")
+        has_rules = read_yn("Do you have custom rules to add?")
+        progress['has_custom_rules'] = has_rules
+        _save_progress(prog_file, progress)
+    else:
+        has_rules = progress['has_custom_rules']
+
+    if 'custom_rules' not in progress:
+        if has_rules:
+            if not showed_custom_rules_header:
+                print()
+                print_section("Custom Rules")
+                info("Continuing rule collection (interrupted mid-loop). Empty line to finish.")
+                print()
+            rules_list = list(progress.get('custom_rules_wip', []))
+            if rules_list:
+                info(f"  [resumed] {len(rules_list)} rule(s) already collected:")
+                for r in rules_list:
+                    info(f"    {r}")
+            while True:
+                rule = read_input("  Rule (or Enter to finish)")
+                if not rule.strip():
+                    break
+                rules_list.append(f"- {rule.strip().lstrip('- ').strip()}")
+                progress['custom_rules_wip'] = rules_list
+                _save_progress(prog_file, progress)
+            custom_rules = '\n'.join(rules_list) if rules_list else ""
+        else:
+            custom_rules = ""
+        progress['custom_rules'] = custom_rules
+        progress.pop('custom_rules_wip', None)
+        _save_progress(prog_file, progress)
+    else:
+        custom_rules = progress['custom_rules']
+        display = custom_rules.replace('\n', '; ')
+        info(f"  [resumed] Custom rules: {display[:60] + '...' if len(custom_rules) > 60 else display or '(none)'}")
     
-    if 'use_soul' not in progress:
+    if any(k not in progress for k in ('use_soul', 'use_morals', 'use_code_field')):
         print()
-        print_section("Experimental Rules")
-        info("The meta/ directory contains experimental guidelines:")
-        info("  • SOUL.md       - Strategic context and purpose-driven guidance")
-        info("  • morals.md     - Ethical AI development principles")
-        info("  • code-field.md - Advanced field theory for code architecture")
+        print_section("Meta Guidelines")
+        info("Deft ships three meta-guidelines that shape how the AI behaves. All are included")
+        info("by default — press Enter to keep each, or n to drop it.")
+        print()
+        info("SOUL.md — Results-first agent persona (inspired by Winston Wolf).")
+        info("  Enforces assess-before-acting, finish-what-you-start, right-tool-for-the-job,")
+        info("  and play-the-long-game. Keeps the AI decisive and concise rather than narrating")
+        info("  every step. Includes a named persona ('Vinston') — drop if you prefer to define")
+        info("  your own agent personality.")
+        print()
+        info("morals.md — Epistemic honesty rules.")
+        info("  No presenting speculation as fact, label unverified claims, self-correct when")
+        info("  wrong. Foundational trust rules for any AI agent. Strongly recommended.")
+        print()
+        info("code-field.md — Pre-code assumption protocol.")
+        info("  Requires stating assumptions, naming failure modes, and writing only code the AI")
+        info("  can defend — before writing a single line. Fights the 'it compiles, ship it'")
+        info("  instinct. Based on the NeoVertex1 context-field framework.")
         print()
     use_soul = _resume_or_ask(progress, prog_file, 'use_soul', 'SOUL.md',
-                               read_yn, "Use meta/SOUL.md? (Strategic context guidelines)")
+                               read_yn, "Include meta/SOUL.md? (Results-first persona)", default=True)
     use_morals = _resume_or_ask(progress, prog_file, 'use_morals', 'morals.md',
-                                 read_yn, "Use meta/morals.md? (Ethical AI principles)")
+                                 read_yn, "Include meta/morals.md? (Epistemic honesty rules)", default=True)
     use_code_field = _resume_or_ask(progress, prog_file, 'use_code_field', 'code-field.md',
-                                     read_yn, "Use meta/code-field.md? (Advanced architecture theory)")
+                                     read_yn, "Include meta/code-field.md? (Pre-code assumption protocol)", default=True)
     
     # Build experimental rules section
     experimental_rules = []
@@ -688,24 +753,26 @@ def cmd_bootstrap(args: List[str]):
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**Rule Precedence**: This file has HIGHEST precedence - overrides all other deft rules.
-Only add items here that **override or extend** the defaults in `deft/main.md` and related files.
+## Personal (always wins)
 
-## Name
+Settings in this section have HIGHEST precedence — override all other deft rules,
+including PROJECT.md.
 
-Address the user as: **{user_name}**
+**Name**: Address the user as: **{user_name}**
 
-## Overrides
+**Custom Rules**:
+{custom_rules if custom_rules else "No custom rules defined yet."}
+
+## Defaults (fallback)
+
+Settings in this section are fallback defaults. PROJECT.md overrides these
+for project-scoped settings (strategy, coverage, languages).
 
 **Primary Languages**:
 {languages_str}
 
 {strategy_line}
 {coverage_line}
-
-## Custom Rules
-
-{custom_rules if custom_rules else "No custom rules defined yet."}
 {experimental_section}
 
 ---
@@ -960,6 +1027,12 @@ def cmd_project(args: List[str]):
     # Strategy — pre-fill from USER.md if available
     available_strats = get_available_strategies()
     max_strat = len(available_strats)
+    # Compute recommended marker (same logic as cmd_bootstrap)
+    default_strat_num = "1"
+    for i, (stem, _) in enumerate(available_strats, 1):
+        if stem.lower() == "interview":
+            default_strat_num = str(i)
+            break
     if 'strat_selection' not in progress:
         print()
         print_section("Development Strategy")
@@ -968,8 +1041,19 @@ def cmd_project(args: List[str]):
             user_strat_display = user_defaults.get('strategy_display', user_strat_stem.title())
             info(f"Default strategy from USER.md: {user_strat_display}")
             info("Does this project need a different strategy?")
+            user_pref_strat_num = next(
+                (str(i) for i, (stem, _) in enumerate(available_strats, 1)
+                 if stem.lower() == user_strat_stem.lower()),
+                default_strat_num,
+            )
             for i, (stem, display) in enumerate(available_strats, 1):
-                print(f"  {i}. {display}")
+                desc = _STRATEGY_DESCRIPTIONS.get(stem, '')
+                marker = " ★ your default" if str(i) == user_pref_strat_num else ""
+                print(f"  {i}. {display}{marker}")
+                if desc:
+                    print(f"     {desc}")
+            print()
+            info("💡 Strategies can be chained — after one completes, you'll be asked if you want to run another.")
             while True:
                 strat_selection = read_input(
                     f"Selection, or Enter to keep [{user_strat_display}]", ""
@@ -986,7 +1070,13 @@ def cmd_project(args: List[str]):
         else:
             info("Select development strategy for this project:")
             for i, (stem, display) in enumerate(available_strats, 1):
-                print(f"  {i}. {display}")
+                desc = _STRATEGY_DESCRIPTIONS.get(stem, '')
+                marker = " ★ RECOMMENDED" if str(i) == default_strat_num else ""
+                print(f"  {i}. {display}{marker}")
+                if desc:
+                    print(f"     {desc}")
+            print()
+            info("💡 Strategies can be chained — after one completes, you'll be asked if you want to run another.")
             while True:
                 strat_selection = read_input("Selection", "1")
                 if not strat_selection.strip():
@@ -1277,7 +1367,7 @@ def cmd_spec(args: List[str]):
         
         if spec_name:
             info(f"Project name from project.md: {spec_name}")
-            if not read_yn("Use this name?"):
+            if not read_yn("Use this name?", default=True):
                 spec_name = read_input("Project name")
         else:
             spec_name = read_input("Project name")
@@ -1762,21 +1852,23 @@ def cmd_reset(args: List[str]):
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**Rule Precedence**: This file has HIGHEST precedence - overrides all other deft rules.
-Only add items here that **override or extend** the defaults in `deft/main.md` and related files.
+## Personal (always wins)
 
-## Name
+Settings in this section have HIGHEST precedence — override all other deft rules,
+including PROJECT.md.
 
-Address the user as: **(Your Name)**
+**Name**: Address the user as: **(Your Name)**
 
-## Overrides
+**Custom Rules**:
+No custom rules defined yet.
+
+## Defaults (fallback)
+
+Settings in this section are fallback defaults. PROJECT.md overrides these
+for project-scoped settings (strategy, coverage, languages).
 
 **Primary Languages**:
 - (Add your languages here)
-
-## Custom Rules
-
-No custom rules defined yet.
 
 ---
 
@@ -1894,13 +1986,13 @@ if HAS_TEXTUAL:
                 yield Input(id="other_lang", placeholder="Enter language name")
                 yield Label("\nDevelopment strategy:")
                 strategy_options = [(display, stem) for stem, display in self.available_strats]
-                yield Select(strategy_options, id="strategy", allow_blank=False, value=strategy_options[0][1] if strategy_options else "default")
+                yield Select(strategy_options, id="strategy", allow_blank=False, value=strategy_options[0][1] if strategy_options else "interview")
                 yield Label("\nCustom rules (optional):")
-                yield Input(id="rules", placeholder="Press Enter to skip")
+                yield Input(id="rules", placeholder="Enter one rule — open USER.md to add more")
                 yield Label("\nExperimental Rules:")
-                yield Checkbox("Use meta/SOUL.md (Strategic context)", id="use_soul")
-                yield Checkbox("Use meta/morals.md (Ethical AI)", id="use_morals")
-                yield Checkbox("Use meta/code-field.md (Advanced arch)", id="use_code_field")
+                yield Checkbox("Use meta/SOUL.md (Strategic context)", id="use_soul", value=True)
+                yield Checkbox("Use meta/morals.md (Ethical AI)", id="use_morals", value=True)
+                yield Checkbox("Use meta/code-field.md (Advanced arch)", id="use_code_field", value=True)
                 yield Label("\nOutput location:")
                 yield Input(id="output_path", placeholder="~/.config/deft/USER.md", value=get_default_paths()['user'])
             with Horizontal():
@@ -1921,7 +2013,8 @@ if HAS_TEXTUAL:
         def handle_submit(self) -> None:
             name = self.query_one("#name", Input).value.strip()
             coverage = self.query_one("#coverage", Input).value.strip() or "85"
-            custom_rules = self.query_one("#rules", Input).value.strip()
+            custom_rules_raw = self.query_one("#rules", Input).value.strip()
+            custom_rules = f"- {custom_rules_raw}" if custom_rules_raw else ""
             
             # Get language selections from checkboxes
             languages = []
@@ -1937,7 +2030,7 @@ if HAS_TEXTUAL:
             languages_str = '\n'.join(languages) if languages else "- (None specified)"
             
             # Get strategy selection
-            strategy_stem = str(self.query_one("#strategy", Select).value or "default")
+            strategy_stem = str(self.query_one("#strategy", Select).value or "interview")
             strategy_display = dict(self.available_strats).get(strategy_stem, strategy_stem.title())
             
             # Get experimental rules preferences from checkboxes
@@ -1972,24 +2065,26 @@ if HAS_TEXTUAL:
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**Rule Precedence**: This file has HIGHEST precedence - overrides all other deft rules.
-Only add items here that **override or extend** the defaults in `deft/main.md` and related files.
+## Personal (always wins)
 
-## Name
+Settings in this section have HIGHEST precedence — override all other deft rules,
+including PROJECT.md.
 
-Address the user as: **{name}**
+**Name**: Address the user as: **{name}**
 
-## Overrides
+**Custom Rules**:
+{custom_rules if custom_rules else "No custom rules defined yet."}
+
+## Defaults (fallback)
+
+Settings in this section are fallback defaults. PROJECT.md overrides these
+for project-scoped settings (strategy, coverage, languages).
 
 **Primary Languages**:
 {languages_str}
 
 **Default Strategy**: [{strategy_display}](../strategies/{strategy_stem}.md)
 {coverage_line}
-
-## Custom Rules
-
-{custom_rules if custom_rules else "No custom rules defined yet."}
 {experimental_section}
 
 ---

@@ -55,7 +55,7 @@ def _parse_readme_table() -> list[dict[str, str]]:
         # Skip separator row
         if all(set(c) <= {"-", " ", ":"} for c in cells):
             continue
-        row = dict(zip(headers, cells))
+        row = dict(zip(headers, cells, strict=False))
         rows.append(row)
     return rows
 

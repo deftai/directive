@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **ROADMAP.md Consolidation**: Added consolidated roadmap replacing scattered planning artifacts
 
 ### Changed
+- **Bootstrap Parity**: Aligned CLI and agentic setup paths to produce consistent USER.md output (#45, #14, #61, #65)
+  - CLI strategy picker now shows one-line descriptions and a ★ RECOMMENDED marker for `interview`
+  - CLI custom rules prompt now collects actual rules line-by-line instead of accepting a single silent string
+  - CLI meta-guidelines (SOUL.md, morals.md, code-field.md) now default to **included** with paragraph descriptions; users can drop any they don't want
+  - `deft-setup` SKILL.md strategies table corrected: `interview`, `yolo`, `map`, `discuss`, `research`, `speckit`
+  - `deft-setup` Track 1 now presents all three meta-guidelines as included by default with descriptions; user can drop any; Tracks 2/3 include all silently
+  - `deft-setup` USER.md template now includes `## Experimental Rules` section when rules are selected
+  - `deft-setup` custom rules step now instructs agents to collect rules one per line
 - **Interview Strategy Reconciliation**: Unified CLI and agent entry points around strategy-driven spec flow, including sizing gate behavior (#36, #35)
 - **Repository URL Migration**: Updated hardcoded repository references from `visionik/deft` to `deftai/directive` across source and documentation (#63, #64)
 - **Trunk-Based Workflow**: Updated docs/workflow to remove stale beta-branch model and reflect short-lived feature branches (#69, #70)
