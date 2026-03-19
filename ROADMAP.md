@@ -18,7 +18,6 @@ Fix reported bugs and UX problems blocking adoption.
 
 ### Cleanup
 
-- **#44** — CLI bootstrap overwrites USER.md + input validation (items 1-4 done in PR #66; issue still open on GitHub — verify remaining items and close)
 - **#31** — `default.md` and `interview.md` need to be merged into `interview.md` (duplicate strategy files)
 - **#50** — Strategies still have redundant old names (`brownfield.md` → `map.md`, `default.md` → `interview.md`)
 - **#49** — All CLI commands should display version on startup
@@ -138,6 +137,7 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
+
 - ~~#45 — Bootstrap parity~~ — 2026-03-19 (PR #83: CLI and agentic paths produce consistent output, released as v0.7.0)
 - ~~#39 — Strategy chaining options before spec generation~~ — 2026-03-16 (bidirectional orchestration, chaining gate, acceptance gate)
 - ~~#71 — CHANGELOG catch-up~~ — 2026-03-18 (PR #73: backfilled post-0.6.0 entries, updated release links to `deftai/directive` for v0.2.2+, preserved historical `visionik` links for older versions)
@@ -149,7 +149,7 @@ Larger feature work — only after issues are resolved and content is stable.
 - ~~#60 — pressEnterToExit() Windows-only~~ — 2026-03-17 (PR #66: runtime.GOOS guard)
 - ~~#62 — beta branch 50+ unmerged commits~~ — 2026-03-17 (already merged via PR #42)
 - ~~#47 — PROJECT.md defaults + input validation~~ — 2026-03-17 (PR #66: all items addressed)
-- ~~#44 — CLI bootstrap overwrites USER.md + input validation~~ — 2026-03-17 (PR #66: items 1-4 done, item 5 split to #65)
+- ~~#44 — CLI bootstrap overwrites USER.md + input validation~~ — 2026-03-17 (PR #66: items 1-4 done; item 5 split to #65, absorbed into #45 — all resolved)
 - ~~#8 — Don't commit until questionnaires finished~~ — 2026-03-17 (PR #66: Ctrl+C resume protection)
 - ~~#7 — Double prompting for languages during bootstrap~~ — 2026-03-16 (PR #43: `cmd_project` reads USER.md defaults)
 - ~~#32 — Strategy selection doesn't work~~ — 2026-03-16 (fixed on beta: `cmd_spec` now reads strategy from PROJECT.md)
@@ -185,7 +185,6 @@ Larger feature work — only after issues are resolved and content is stable.
 | #25 | commands.md vBRIEF example diverges | 2 |
 | #31 | Merge default.md into interview.md | 1 |
 | #33 | Docker smoke/e2e tests | 3 |
-| #44 | CLI bootstrap overwrites USER.md + input validation | 1 |
 | #46 | Provide way to update meta MD files | 5 |
 | #49 | All CLI commands should display version | 1 |
 | #50 | Strategies still have redundant old names | 1 |
@@ -218,5 +217,4 @@ Larger feature work — only after issues are resolved and content is stable.
 
 *Created 2026-03-13 — consolidates todo.md and GitHub Issues into a single roadmap*
 *Updated 2026-03-17 — added issues #44-#65, moved #8/#44/#47 to Completed*
-*Updated 2026-03-19 — added #84; moved #45 to Completed (v0.7.0)*
-*Updated 2026-03-19 — full refresh: added #68/#72/#75-#82/#85/#86; moved #39 to Completed; promoted user-reported bugs to Phase 1; cleaned stale entries from index*
+*Updated 2026-03-19 — added #84; moved #39/#45 to Completed; full refresh: added #68/#72/#75-#82/#85/#86; promoted user-reported bugs to Phase 1; resolved #44 (all items done); cleaned stale entries from index*
