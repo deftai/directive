@@ -660,6 +660,7 @@ def cmd_bootstrap(args: List[str]):
         selected_strategy = available_strats[0] if available_strats else ("default", "Default")
     strategy_stem, strategy_display = selected_strategy
     
+    showed_custom_rules_header = 'has_custom_rules' not in progress
     if 'has_custom_rules' not in progress:
         print()
         print_section("Custom Rules")
@@ -672,6 +673,11 @@ def cmd_bootstrap(args: List[str]):
 
     if 'custom_rules' not in progress:
         if has_rules:
+            if not showed_custom_rules_header:
+                print()
+                print_section("Custom Rules")
+                info("Continuing rule collection (interrupted mid-loop). Empty line to finish.")
+                print()
             rules_list = list(progress.get('custom_rules_wip', []))
             if rules_list:
                 info(f"  [resumed] {len(rules_list)} rule(s) already collected:")
@@ -681,7 +687,7 @@ def cmd_bootstrap(args: List[str]):
                 rule = read_input("  Rule (or Enter to finish)")
                 if not rule.strip():
                     break
-                rules_list.append(f"- {rule.strip()}")
+                rules_list.append(f"- {rule.strip().lstrip('- ').strip()}")
                 progress['custom_rules_wip'] = rules_list
                 _save_progress(prog_file, progress)
             custom_rules = '\n'.join(rules_list) if rules_list else ""
@@ -1977,7 +1983,7 @@ if HAS_TEXTUAL:
                 strategy_options = [(display, stem) for stem, display in self.available_strats]
                 yield Select(strategy_options, id="strategy", allow_blank=False, value=strategy_options[0][1] if strategy_options else "interview")
                 yield Label("\nCustom rules (optional):")
-                yield Input(id="rules", placeholder="Press Enter to skip")
+                yield Input(id="rules", placeholder="Enter one rule — open USER.md to add more")
                 yield Label("\nExperimental Rules:")
                 yield Checkbox("Use meta/SOUL.md (Strategic context)", id="use_soul", value=True)
                 yield Checkbox("Use meta/morals.md (Ethical AI)", id="use_morals", value=True)

@@ -10,8 +10,6 @@ Author: Scott Adams (msadams) — 2026-03-16
 
 from pathlib import Path
 
-import pytest
-
 
 def _write_user_md(path: Path, *, lang="Python", strategy_stem="interview",
                    strategy_display="Interview", coverage="90") -> None:
