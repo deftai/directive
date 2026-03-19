@@ -219,6 +219,8 @@ Before asking any Phase 2 questions, ask the depth question:
 > 2. I have some opinions but keep it simple
 > 3. Just pick good defaults — I care about the product, not the tools
 
+Wait for answer. Then follow the corresponding track in the Question Sequence below.
+
 ⊗ Assume Track 1 (technical) because USER.md exists or contains strategy/coverage fields.
 ⊗ Infer the track from USER.md content — always ask.
 
