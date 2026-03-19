@@ -144,8 +144,8 @@ def test_bootstrap_collects_custom_rules(
 
     assert result.return_code in (0, None)
     content = user_path.read_text(encoding="utf-8")
-    assert "Always use types" in content
-    assert "No magic numbers" in content
+    assert "- Always use types" in content
+    assert "- No magic numbers" in content
 
 
 def test_bootstrap_keeps_existing_user_md(

@@ -660,21 +660,31 @@ def cmd_bootstrap(args: List[str]):
         selected_strategy = available_strats[0] if available_strats else ("default", "Default")
     strategy_stem, strategy_display = selected_strategy
     
-    if 'custom_rules' not in progress:
+    if 'has_custom_rules' not in progress:
         print()
         print_section("Custom Rules")
         info("Add rules the AI must always follow (optional). Enter one rule per line, empty line to finish.")
-        if read_yn("Do you have custom rules to add?"):
-            rules_list = []
+        has_rules = read_yn("Do you have custom rules to add?")
+        progress['has_custom_rules'] = has_rules
+        _save_progress(prog_file, progress)
+    else:
+        has_rules = progress['has_custom_rules']
+
+    if 'custom_rules' not in progress:
+        if has_rules:
+            rules_list = list(progress.get('custom_rules_wip', []))
             while True:
                 rule = read_input("  Rule (or Enter to finish)")
                 if not rule.strip():
                     break
                 rules_list.append(f"- {rule.strip()}")
+                progress['custom_rules_wip'] = rules_list
+                _save_progress(prog_file, progress)
             custom_rules = '\n'.join(rules_list) if rules_list else ""
         else:
             custom_rules = ""
         progress['custom_rules'] = custom_rules
+        progress.pop('custom_rules_wip', None)
         _save_progress(prog_file, progress)
     else:
         custom_rules = progress['custom_rules']
