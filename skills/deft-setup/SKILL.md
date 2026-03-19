@@ -68,7 +68,7 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 ! Always show the FULL strategy list at every chaining gate — never remove a strategy because it was previously run.
 ~ If a strategy has been run already, indicate it with a note e.g. `(run 1x)` but keep it selectable.
 
-1. **interview** ⭐ (recommended) — Structured interview with sizing gate: Light or Full path
+1. **interview** ★ (recommended) — Structured interview with sizing gate: Light or Full path
 2. **yolo** — Auto-pilot interview — Johnbot picks all recommended options
 3. **map** — Analyze existing codebase conventions before adding features
 4. **discuss** — Front-load decisions and alignment before planning

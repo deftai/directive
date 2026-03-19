@@ -35,7 +35,7 @@ def _bootstrap_responses(user_path: Path) -> list:
         "85",              # 3  coverage
         "1",               # 4  first language
         "1",               # 5  first strategy
-        "",                # 6  no custom rules
+        False,             # 6  no custom rules
         False,             # 7  skip SOUL.md
         False,             # 8  skip morals.md
         False,             # 9  skip code-field.md
@@ -105,7 +105,7 @@ def test_bootstrap_rejects_duplicate_languages(
         "1,1",             # 4  duplicate language — rejected
         "1",               # 5  valid language — accepted
         "1",               # 6  strategy
-        "",                # 7  no custom rules
+        False,             # 7  no custom rules
         False,             # 8  skip SOUL.md
         False,             # 9  skip morals.md
         False,             # 10 skip code-field.md
@@ -116,6 +116,36 @@ def test_bootstrap_rejects_duplicate_languages(
 
     assert result.return_code in (0, None)
     assert "Duplicate" in result.stdout
+
+
+def test_bootstrap_collects_custom_rules(
+    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+):
+    """When user opts in to custom rules, per-line collection loop runs."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    user_path = isolated_env / "USER.md"
+    mock_user_input([
+        str(user_path),        # 1  output path
+        "TestUser",            # 2  name
+        "85",                  # 3  coverage
+        "1",                   # 4  first language
+        "1",                   # 5  first strategy
+        True,                  # 6  yes, I have custom rules
+        "Always use types",    # 7  rule 1
+        "No magic numbers",    # 8  rule 2
+        "",                    # 9  empty line ends the loop
+        False,                 # 10 skip SOUL.md
+        False,                 # 11 skip morals.md
+        False,                 # 12 skip code-field.md
+        False,                 # 13 don't chain to project
+    ])
+
+    result = run_command("cmd_bootstrap", [])
+
+    assert result.return_code in (0, None)
+    content = user_path.read_text(encoding="utf-8")
+    assert "Always use types" in content
+    assert "No magic numbers" in content
 
 
 def test_bootstrap_keeps_existing_user_md(

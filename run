@@ -680,7 +680,7 @@ def cmd_bootstrap(args: List[str]):
         custom_rules = progress['custom_rules']
         info(f"  [resumed] Custom rules: {custom_rules[:60] + '...' if len(custom_rules) > 60 else custom_rules or '(none)'}")
     
-    if 'use_soul' not in progress:
+    if any(k not in progress for k in ('use_soul', 'use_morals', 'use_code_field')):
         print()
         print_section("Meta Guidelines")
         info("Deft ships three meta-guidelines that shape how the AI behaves. All are included")
