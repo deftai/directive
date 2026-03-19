@@ -6,8 +6,19 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 
 ## Phase 1 — Bug Fixes & Issue Resolution (Next Up)
 
-Fix reported bugs and UX problems. All are against the existing `run` CLI.
+Fix reported bugs and UX problems blocking adoption.
 
+### Adoption Blockers (user-reported, highest priority)
+
+- **#85** — Installer instructions inaccurate/unclear — new users don't know to tell the agent to read AGENTS.md
+- **#79** — deft-setup Phase 2 inference bleeds into `./deft/` framework internals (misidentifies project as "deft")
+- **#80** — deft-setup Phase 2 project name inference has no fallback when no build files exist
+- **#72** — vBRIEF files still invalid on master — users get non-conforming JSON output
+- **#68** — Warp not always enforcing Deft testing protocols (core quality gates silently skipped)
+
+### Cleanup
+
+- **#44** — CLI bootstrap overwrites USER.md + input validation (items 1-4 done in PR #66; issue still open on GitHub — verify remaining items and close)
 - **#31** — `default.md` and `interview.md` need to be merged into `interview.md` (duplicate strategy files)
 - **#50** — Strategies still have redundant old names (`brownfield.md` → `map.md`, `default.md` → `interview.md`)
 - **#49** — All CLI commands should display version on startup
@@ -49,6 +60,8 @@ Quick doc/content fixes that don't require code changes.
   - Verify: `test_standards.py` xfail for Voxio Bot content should flip to passing
 - Update `strategies/interview.md` to probe language/tool choices through the contract lens — when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)
 - Create `meta/philosophy.md` — full contract hierarchy narrative for agent reference and direct user reading (#84 Phase 2)
+- **#82** — Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)
+- **#81** — Add BDD/acceptance-test-first strategy (`strategies/bdd.md` — Given/When/Then scenarios drive requirements)
 - Add missing strategies:
   - `strategies/rapid.md` — Quick prototypes, SPECIFICATION only workflow
   - `strategies/enterprise.md` — Compliance-heavy, PRD → ADR → SPECIFICATION workflow
@@ -91,6 +104,7 @@ Complements the Go installer (which targets novice/bare-machine users).
 
 - **#56** — Reduce installation friction — add shell one-liner, Homebrew, and platform package managers
 - **#53** — deft-install should bootstrap the current directory by default
+- **#75** — Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)
 - **#11** — NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)
 
 **Prerequisites:** Phase 2 complete (clean content), issue #4 resolved (project-local layout)
@@ -112,7 +126,10 @@ Larger feature work — only after issues are resolved and content is stable.
 - **#54** — AGENTS.md provides no actionable onboarding — agents don't know what to do after deft-install
 - **#55** — Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.)
 - **#46** — Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)
-- **#39** — Strategy chaining options before spec generation (bidirectional strategy orchestration, chaining gate, acceptance gate)
+- **#77** — Allow users to change technical rating (1/2/3) when starting a new project
+- **#78** — Bootstrap: offer to update user preferences when USER.md already exists
+- **#86** — Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest)
+- **#76** — Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)
 - **#12** — Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)
 - **#9** — Issue tracking system integration (GitHub Issues, Jira, Asana — optional, via MCP)
 - LLM-assisted content validation
@@ -121,8 +138,8 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
-
 - ~~#45 — Bootstrap parity~~ — 2026-03-19 (PR #83: CLI and agentic paths produce consistent output, released as v0.7.0)
+- ~~#39 — Strategy chaining options before spec generation~~ — 2026-03-16 (bidirectional orchestration, chaining gate, acceptance gate)
 - ~~#71 — CHANGELOG catch-up~~ — 2026-03-18 (PR #73: backfilled post-0.6.0 entries, updated release links to `deftai/directive` for v0.2.2+, preserved historical `visionik` links for older versions)
 - ~~#63 — Installer hardcodes old repo URL~~ — 2026-03-17 (PR #64: all `visionik/deft` → `deftai/directive`)
 - ~~#69 — Remove stale beta branch and update docs~~ — 2026-03-17 (trunk-based workflow, beta branch deleted)
@@ -160,41 +177,46 @@ Larger feature work — only after issues are resolved and content is stable.
 
 | Issue | Title | Phase |
 |-------|-------|-------|
-| #84 | Deft as teacher: contract hierarchy, explain WHY, adaptive teaching mode | 2/5 |
 | #9 | Issue tracking system integration | 5 |
 | #11 | NPM + PIP CLI distribution | 4 |
 | #12 | Deft Bootstrap CLI with TUI | 5 |
-| #14 | ~~Bootstrap nits~~ (absorbed into #45) | — |
 | #23 | yolo.md duplicates interview.md | 2 |
 | #24 | speckit.md missing See also banner | 2 |
 | #25 | commands.md vBRIEF example diverges | 2 |
 | #31 | Merge default.md into interview.md | 1 |
 | #33 | Docker smoke/e2e tests | 3 |
-| #34 | ~~Zero-prerequisite installer~~ (completed, released v0.5.0) | — |
-| #39 | Strategy chaining options before spec generation | 5 |
-| #45 | ~~Bootstrap parity: CLI and agentic paths consistent output~~ (completed, v0.7.0) | — |
+| #44 | CLI bootstrap overwrites USER.md + input validation | 1 |
 | #46 | Provide way to update meta MD files | 5 |
 | #49 | All CLI commands should display version | 1 |
 | #50 | Strategies still have redundant old names | 1 |
 | #51 | Project should be bootstrapped with own framework (partial — #67 tracks remainder) | 2 |
-| #67 | Write SPECIFICATION.md and proper PROJECT.md for deft | 2 |
 | #52 | Install into .deft/ hidden directory | 5 |
 | #53 | deft-install should bootstrap current directory | 4 |
 | #54 | AGENTS.md provides no actionable onboarding | 5 |
 | #55 | Register Deft commands as native agent slash commands | 5 |
 | #56 | Reduce installation friction (shell one-liner, Homebrew) | 4 |
 | #57 | Add GitHub Actions CI workflow | 3 |
-| #74 | Automate release process and CI changelog enforcement | 3 |
 | #58 | Stale cross-references to legacy paths | 2 |
 | #59 | history/changes/ directory missing | 2 |
-| #61 | ~~deft-setup SKILL.md strategies table stale~~ (absorbed into #45) | — |
-| #63 | ~~Installer hardcodes old repo URL~~ (completed) | — |
-| #65 | ~~Bootstrap custom rules stub~~ (absorbed into #45) | — |
-| #69 | ~~Remove stale beta branch~~ (completed) | — |
-| #71 | ~~CHANGELOG catch-up since v0.6.0 + stale release links~~ (completed) | — |
+| #67 | Write SPECIFICATION.md and proper PROJECT.md for deft | 2 |
+| #68 | Warp not always enforcing Deft testing protocols | 1 |
+| #72 | vBRIEF files still invalid on master | 1 |
+| #74 | Automate release process and CI changelog enforcement | 3 |
+| #75 | Skill auto-discovery for deft skills | 4 |
+| #76 | Obsidian Vault generation as structured agent memory | 5 |
+| #77 | Allow users to change technical rating per project | 5 |
+| #78 | Bootstrap: offer to update user preferences | 5 |
+| #79 | deft-setup inference bleeds into ./deft/ internals | 1 |
+| #80 | deft-setup project name inference no fallback | 1 |
+| #81 | Add BDD/acceptance-test-first strategy | 2 |
+| #82 | Replacement strategies need accept-or-scrap exit | 2 |
+| #84 | Deft as teacher: contract hierarchy, explain WHY, adaptive teaching mode | 2/5 |
+| #85 | Installer instructions inaccurate/unclear | 1 |
+| #86 | Artifact-branch binding and complete audit trail for SDD | 5 |
 
 ---
 
 *Created 2026-03-13 — consolidates todo.md and GitHub Issues into a single roadmap*
 *Updated 2026-03-17 — added issues #44-#65, moved #8/#44/#47 to Completed*
-*Updated 2026-03-19 — added #84 (Deft as teacher: contract hierarchy, Phase 2 Philosophy & Positioning sub-section, Phase 5 teach strategy); moved #45 to Completed (v0.7.0)*
+*Updated 2026-03-19 — added #84; moved #45 to Completed (v0.7.0)*
+*Updated 2026-03-19 — full refresh: added #68/#72/#75-#82/#85/#86; moved #39 to Completed; promoted user-reported bugs to Phase 1; cleaned stale entries from index*
