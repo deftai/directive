@@ -8,10 +8,6 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 
 Fix reported bugs and UX problems. All are against the existing `run` CLI.
 
-- **#45** — Bootstrap parity: CLI and agentic paths should produce consistent output (absorbs #14, #61, #65)
-  - CLI: strategy picker descriptions, clear defaults on y/N prompts, custom rules prompt stub
-  - Agentic: strategies table corrected, missing soul/morals/code-field prompt, template parity
-  - README: document CLI = technical user, agentic = adaptive tracks
 - **#31** — `default.md` and `interview.md` need to be merged into `interview.md` (duplicate strategy files)
 - **#50** — Strategies still have redundant old names (`brownfield.md` → `map.md`, `default.md` → `interview.md`)
 - **#49** — All CLI commands should display version on startup
@@ -22,6 +18,18 @@ Fix reported bugs and UX problems. All are against the existing `run` CLI.
 
 Quick doc/content fixes that don't require code changes.
 
+### Philosophy & Positioning
+
+- **#84 Phase 1** — Deft as teacher: contract hierarchy, adaptive teaching, and "state WHY"
+  - Add `! State WHY` rule to `strategies/interview.md` — when making an opinionated recommendation, state the principle (1 sentence)
+  - Create `contracts/hierarchy.md` — Standards > APIs > Specs > Code ranking, Phoenix architecture concept, "contracts are your IP" framing
+  - Add adaptive teaching behavior to `main.md` (always-loaded; not `SOUL.md` — opt-in only):
+    - `~ When a recommendation is accepted without question, be concise`
+    - `! When a recommendation is questioned or overridden, explain the reasoning`
+    - `⊗ Lecture unprompted on every decision`
+
+### Content & Doc Fixes
+
 - **#58** — Stale cross-references to legacy `core/user.md` and `core/project.md` paths throughout framework
 - **#59** — `history/changes/` directory referenced by `commands.md` doesn't exist
 - **#23** — `yolo.md` duplicates ~80% of `interview.md` — refactor to reference shared phases
@@ -29,8 +37,9 @@ Quick doc/content fixes that don't require code changes.
 - **#25** — `commands.md` vBRIEF example diverges from `vbrief/vbrief.md` spec (status vocabulary mismatch)
 - **#67** — Write SPECIFICATION.md and proper PROJECT.md for the deft project itself
 - **#51** — Project should be fully bootstrapped with its own framework (partially done in PR #66)
-- Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml
+- Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml; reframe README as "contract engineering framework" (#84 Phase 2)
   - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping"
+  - Reframe from "coding standards framework" → "contract engineering framework: specifications are your IP, code is a renewable output"
   - `Taskfile.yml` `VERSION` — update to match latest release
   - `warping.sh` still present — remove or deprecate (replaced by `run` in v0.5.0)
   - Verify: `test_standards.py` xfail for Warping references should flip to passing
@@ -38,6 +47,8 @@ Quick doc/content fixes that don't require code changes.
   - `core/project.md` — contains Voxio Bot private project config; replace with generic template
   - `PROJECT.md` (repo root) — leftover from bootstrap test run; remove or replace
   - Verify: `test_standards.py` xfail for Voxio Bot content should flip to passing
+- Update `strategies/interview.md` to probe language/tool choices through the contract lens — when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)
+- Create `meta/philosophy.md` — full contract hierarchy narrative for agent reference and direct user reading (#84 Phase 2)
 - Add missing strategies:
   - `strategies/rapid.md` — Quick prototypes, SPECIFICATION only workflow
   - `strategies/enterprise.md` — Compliance-heavy, PRD → ADR → SPECIFICATION workflow
@@ -94,6 +105,9 @@ README updated with NPM + PIP install paths alongside Go binary.
 
 Larger feature work — only after issues are resolved and content is stable.
 
+- **#84 Phase 3** — Deft as teacher: teach strategy, lessons evolution
+  - Build `strategies/teach.md` — Feynman technique applied to Deft itself, philosophy as a conversation
+  - Evolve `lessons.md` — when adding a lesson, include not just *what* was learned but *why it matters* in the contract hierarchy
 - **#52** — Install into `.deft/` (hidden directory) instead of `deft/`
 - **#54** — AGENTS.md provides no actionable onboarding — agents don't know what to do after deft-install
 - **#55** — Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.)
@@ -108,6 +122,7 @@ Larger feature work — only after issues are resolved and content is stable.
 
 ## Completed
 
+- ~~#45 — Bootstrap parity~~ — 2026-03-19 (PR #83: CLI and agentic paths produce consistent output, released as v0.7.0)
 - ~~#71 — CHANGELOG catch-up~~ — 2026-03-18 (PR #73: backfilled post-0.6.0 entries, updated release links to `deftai/directive` for v0.2.2+, preserved historical `visionik` links for older versions)
 - ~~#63 — Installer hardcodes old repo URL~~ — 2026-03-17 (PR #64: all `visionik/deft` → `deftai/directive`)
 - ~~#69 — Remove stale beta branch and update docs~~ — 2026-03-17 (trunk-based workflow, beta branch deleted)
@@ -145,6 +160,7 @@ Larger feature work — only after issues are resolved and content is stable.
 
 | Issue | Title | Phase |
 |-------|-------|-------|
+| #84 | Deft as teacher: contract hierarchy, explain WHY, adaptive teaching mode | 2/5 |
 | #9 | Issue tracking system integration | 5 |
 | #11 | NPM + PIP CLI distribution | 4 |
 | #12 | Deft Bootstrap CLI with TUI | 5 |
@@ -156,7 +172,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #33 | Docker smoke/e2e tests | 3 |
 | #34 | ~~Zero-prerequisite installer~~ (completed, released v0.5.0) | — |
 | #39 | Strategy chaining options before spec generation | 5 |
-| #45 | Bootstrap parity: CLI and agentic paths consistent output | 1 |
+| #45 | ~~Bootstrap parity: CLI and agentic paths consistent output~~ (completed, v0.7.0) | — |
 | #46 | Provide way to update meta MD files | 5 |
 | #49 | All CLI commands should display version | 1 |
 | #50 | Strategies still have redundant old names | 1 |
@@ -181,3 +197,4 @@ Larger feature work — only after issues are resolved and content is stable.
 
 *Created 2026-03-13 — consolidates todo.md and GitHub Issues into a single roadmap*
 *Updated 2026-03-17 — added issues #44-#65, moved #8/#44/#47 to Completed*
+*Updated 2026-03-19 — added #84 (Deft as teacher: contract hierarchy, Phase 2 Philosophy & Positioning sub-section, Phase 5 teach strategy); moved #45 to Completed (v0.7.0)*
