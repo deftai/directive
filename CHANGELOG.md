@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-19
+
 ### Added
 - **Go Installer**: Cross-platform self-contained installer in `cmd/deft-install/` with 5 platform binaries, interactive setup wizard, and platform-aware git installation paths (#34, #35)
 - **Agent Skills**: Added `skills/deft-setup/SKILL.md` and `skills/deft-build/SKILL.md` for agent-driven setup and spec implementation workflows (#34, #35)
@@ -536,9 +538,9 @@ If you have custom scripts or references to deft files, update these paths:
 - Explore new interface guidelines if building CLIs, APIs, or UIs
 - Review enhanced language standards for Python, Go, TypeScript, and C++
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/deftai/directive/releases/tag/v0.7.0
 <!-- [0.6.0] has no git tag — it was a beta-only version that was never tagged on master. -->
-<!-- The [0.5.x] tags on master are the nearest real tags. Link will be added if v0.6.0 is ever tagged. -->
 [0.5.2]: https://github.com/deftai/directive/releases/tag/v0.5.2
 [0.5.1]: https://github.com/deftai/directive/releases/tag/v0.5.1
 [0.5.0]: https://github.com/deftai/directive/releases/tag/v0.5.0
