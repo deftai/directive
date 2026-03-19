@@ -110,25 +110,24 @@ Ask: "How deep do you want to go?"
 
 Wait for answer. Then follow the track below.
 
-**Track 1 (technical) — 7 steps:**
+**Track 1 (technical) — 8 steps:**
 - Step 1: Ask their name
 - Step 2: Ask preferred languages (show Available Languages list; these become fallback defaults)
 - Step 3: Ask strategy preference (show Available Strategies numbered list from the Available Strategies section, with descriptions and recommended marker; fallback — projects can override)
 - Step 4: Ask coverage threshold (default 85%; fallback — projects can override)
-- Step 5: Ask about meta-guidelines — all three are included by default; user can drop any they don't want.
-  Present each with a description and ask to keep or drop (default: keep):
+- Step 5a: Present SOUL.md and ask whether to include it (default: yes):
   > **SOUL.md** — Results-first agent persona (inspired by Winston Wolf). Enforces assess-before-acting,
   > finish-what-you-start, right-tool-for-the-job, and play-the-long-game. Keeps the AI decisive and
   > concise. Includes a named persona ('Vinston') — drop if you prefer to define your own agent personality.
-  >
+  > Include SOUL.md? (Y/n)
+- Step 5b: Present morals.md and ask whether to include it (default: yes):
   > **morals.md** — Epistemic honesty rules. No presenting speculation as fact, label unverified claims,
   > self-correct when wrong. Foundational trust rules for any AI agent. Strongly recommended.
-  >
+  > Include morals.md? (Y/n)
+- Step 5c: Present code-field.md and ask whether to include it (default: yes):
   > **code-field.md** — Pre-code assumption protocol. Requires stating assumptions and naming failure modes
   > before writing a single line. Fights the 'it compiles, ship it' instinct. Based on NeoVertex1 context-field.
-  >
-  > Which would you like to drop? (Enter numbers comma-separated, or press Enter to keep all)
-  > 1. SOUL.md  2. morals.md  3. code-field.md
+  > Include code-field.md? (Y/n)
 - Step 6: Ask for custom rules — if user has rules, collect them one per line (empty line to finish); if none, skip
 
 **Track 2 (middle ground) — 3 steps:**

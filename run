@@ -255,14 +255,13 @@ _STRATEGY_DISPLAY_NAMES = {
 
 # One-line descriptions shown in strategy picker
 _STRATEGY_DESCRIPTIONS = {
-    'interview':  'Structured interview with sizing gate — Light (embedded spec) or Full (PRD → spec)',
-    'yolo':       'Auto-pilot interview — Johnbot picks all recommended options',
-    'map':        'Analyze existing codebase conventions before adding features',
-    'discuss':    'Front-load decisions and alignment before planning',
-    'research':   'Investigate the domain before planning',
-    'speckit':    'Five-phase spec-driven workflow for large/complex projects',
-    'default':    'Structured interview with sizing gate (alias for interview)',
-    'brownfield': 'Analyze existing codebase before adding features (alias for map)',
+    'interview': 'Structured interview with sizing gate — Light (embedded spec) or Full (PRD → spec)',
+    'yolo':      'Auto-pilot interview — Johnbot picks all recommended options',
+    'map':       'Analyze existing codebase conventions before adding features',
+    'discuss':   'Front-load decisions and alignment before planning',
+    'research':  'Investigate the domain before planning',
+    'speckit':   'Five-phase spec-driven workflow for large/complex projects',
+    # 'default' and 'brownfield' are aliases excluded via _NON_STRATEGY_FILES — no entries needed here
 }
 
 def get_available_strategies() -> List[tuple]:
@@ -733,24 +732,26 @@ def cmd_bootstrap(args: List[str]):
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**Rule Precedence**: This file has HIGHEST precedence - overrides all other deft rules.
-Only add items here that **override or extend** the defaults in `deft/main.md` and related files.
+## Personal (always wins)
 
-## Name
+Settings in this section have HIGHEST precedence — override all other deft rules,
+including PROJECT.md.
 
-Address the user as: **{user_name}**
+**Name**: Address the user as: **{user_name}**
 
-## Overrides
+**Custom Rules**:
+{custom_rules if custom_rules else "No custom rules defined yet."}
+
+## Defaults (fallback)
+
+Settings in this section are fallback defaults. PROJECT.md overrides these
+for project-scoped settings (strategy, coverage, languages).
 
 **Primary Languages**:
 {languages_str}
 
 {strategy_line}
 {coverage_line}
-
-## Custom Rules
-
-{custom_rules if custom_rules else "No custom rules defined yet."}
 {experimental_section}
 
 ---
@@ -1817,21 +1818,23 @@ def cmd_reset(args: List[str]):
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**Rule Precedence**: This file has HIGHEST precedence - overrides all other deft rules.
-Only add items here that **override or extend** the defaults in `deft/main.md` and related files.
+## Personal (always wins)
 
-## Name
+Settings in this section have HIGHEST precedence — override all other deft rules,
+including PROJECT.md.
 
-Address the user as: **(Your Name)**
+**Name**: Address the user as: **(Your Name)**
 
-## Overrides
+**Custom Rules**:
+No custom rules defined yet.
+
+## Defaults (fallback)
+
+Settings in this section are fallback defaults. PROJECT.md overrides these
+for project-scoped settings (strategy, coverage, languages).
 
 **Primary Languages**:
 - (Add your languages here)
-
-## Custom Rules
-
-No custom rules defined yet.
 
 ---
 
@@ -2027,24 +2030,26 @@ if HAS_TEXTUAL:
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**Rule Precedence**: This file has HIGHEST precedence - overrides all other deft rules.
-Only add items here that **override or extend** the defaults in `deft/main.md` and related files.
+## Personal (always wins)
 
-## Name
+Settings in this section have HIGHEST precedence — override all other deft rules,
+including PROJECT.md.
 
-Address the user as: **{name}**
+**Name**: Address the user as: **{name}**
 
-## Overrides
+**Custom Rules**:
+{custom_rules if custom_rules else "No custom rules defined yet."}
+
+## Defaults (fallback)
+
+Settings in this section are fallback defaults. PROJECT.md overrides these
+for project-scoped settings (strategy, coverage, languages).
 
 **Primary Languages**:
 {languages_str}
 
 **Default Strategy**: [{strategy_display}](../strategies/{strategy_stem}.md)
 {coverage_line}
-
-## Custom Rules
-
-{custom_rules if custom_rules else "No custom rules defined yet."}
 {experimental_section}
 
 ---

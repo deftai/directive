@@ -23,7 +23,7 @@ Fix reported bugs and UX problems. All are against the existing `run` CLI.
 Quick doc/content fixes that don't require code changes.
 
 - **#58** — Stale cross-references to legacy `core/user.md` and `core/project.md` paths throughout framework
-- **#59** —
+- **#59** — `history/changes/` directory referenced by `commands.md` doesn't exist
 - **#23** — `yolo.md` duplicates ~80% of `interview.md` — refactor to reference shared phases
 - **#24** — `speckit.md` missing `⚠️ See also` cross-reference banner
 - **#25** — `commands.md` vBRIEF example diverges from `vbrief/vbrief.md` spec (status vocabulary mismatch)

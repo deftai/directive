@@ -55,8 +55,8 @@ def test_bootstrap_happy_path(
 
     assert user_path.exists(), f"USER.md not created at {user_path}"
     content = user_path.read_text(encoding="utf-8")
-    assert "## Name" in content
-    assert "## Overrides" in content
+    assert "## Personal (always wins)" in content
+    assert "## Defaults (fallback)" in content
     assert "TestUser" in content
     assert result.return_code in (0, None)
 

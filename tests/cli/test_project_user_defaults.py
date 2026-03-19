@@ -21,7 +21,7 @@ def _write_user_md(path: Path, *, lang="Python", strategy_stem="interview",
     )
     path.write_text(
         f"# User Preferences\n\n"
-        f"## Overrides\n\n"
+        f"## Defaults (fallback)\n\n"
         f"**Primary Languages**:\n- {lang}\n\n"
         f"**Default Strategy**: [{strategy_display}](../strategies/{strategy_stem}.md)\n"
         f"{coverage_line}\n",
