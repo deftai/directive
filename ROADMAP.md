@@ -30,6 +30,7 @@ Quick doc/content fixes that don't require code changes.
 
 ### Philosophy & Positioning
 
+- **#89** — Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)
 - **#84 Phase 1** — Deft as teacher: contract hierarchy, adaptive teaching, and "state WHY"
   - Add `! State WHY` rule to `strategies/interview.md` — when making an opinionated recommendation, state the principle (1 sentence)
   - Create `contracts/hierarchy.md` — Standards > APIs > Specs > Code ranking, Phoenix architecture concept, "contracts are your IP" framing
@@ -47,9 +48,9 @@ Quick doc/content fixes that don't require code changes.
 - **#25** — `commands.md` vBRIEF example diverges from `vbrief/vbrief.md` spec (status vocabulary mismatch)
 - **#67** — Write SPECIFICATION.md and proper PROJECT.md for the deft project itself
 - **#51** — Project should be fully bootstrapped with its own framework (partially done in PR #66)
-- Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml; reframe README as "contract engineering framework" (#84 Phase 2)
+- Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml; reframe README per #89 resolution (#84 Phase 2, blocked on #89)
   - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping"
-  - Reframe from "coding standards framework" → "contract engineering framework: specifications are your IP, code is a renewable output"
+  - Reframe from "coding standards framework" → resolved tagline from #89
   - `Taskfile.yml` `VERSION` — update to match latest release
   - `warping.sh` still present — remove or deprecate (replaced by `run` in v0.5.0)
   - Verify: `test_standards.py` xfail for Warping references should flip to passing
@@ -212,9 +213,11 @@ Larger feature work — only after issues are resolved and content is stable.
 | #84 | Deft as teacher: contract hierarchy, explain WHY, adaptive teaching mode | 2/5 |
 | #85 | Installer instructions inaccurate/unclear | 1 |
 | #86 | Artifact-branch binding and complete audit trail for SDD | 5 |
+| #89 | Deft identity and positioning: resolve naming before README reframe | 2 |
 
 ---
 
 *Created 2026-03-13 — consolidates todo.md and GitHub Issues into a single roadmap*
 *Updated 2026-03-17 — added issues #44-#65, moved #8/#44/#47 to Completed*
-*Updated 2026-03-19 — added #84; moved #39/#45 to Completed; full refresh: added #68/#72/#75-#82/#85/#86; promoted user-reported bugs to Phase 1; resolved #44 (all items done); cleaned stale entries from index*
+*Updated 2026-03-19 — added #84 (Deft as teacher: contract hierarchy, Phase 2 Philosophy & Positioning sub-section, Phase 5 teach strategy); moved #45 to Completed (v0.7.0)*
+*Updated 2026-03-20 — added #89 (naming/positioning); moved #39 to Completed; full refresh: added #68/#72/#75-#82/#85/#86; promoted user-reported bugs to Phase 1; resolved #44 (all items done); cleaned stale entries from index; #84 Phase 2 README reframe blocked on #89 resolution*
