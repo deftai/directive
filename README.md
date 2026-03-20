@@ -352,7 +352,7 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 
 The installer guides you through choosing a project directory, installs git if needed, clones deft, wires it into `AGENTS.md`, and creates your user config directory.
 
-**Manual clone (no installer):** If you clone deft directly via `git clone`, add `See deft/main.md` to your project's `AGENTS.md` (create it if it doesn't exist), then tell your agent `read AGENTS.md and follow it` to start the setup.
+**Manual clone (no installer):** If you clone deft directly via `git clone`, create an `AGENTS.md` in your project root using the full bootstrap template (see `agentsMDEntry` in `cmd/deft-install/setup.go` for the exact content with `deft/`-prefixed paths and first-session phase detection), then tell your agent `read AGENTS.md and follow it` to start the setup.
 
 **Building from source (developers only):** requires Go 1.22+ — `go run ./cmd/deft-install/`
 
@@ -363,7 +363,7 @@ cd your-project
 git clone https://github.com/deftai/directive.git deft
 ```
 
-Then copy the deft repo's `AGENTS.md` to your project root as your starting template (it contains the full first-session bootstrap logic), and tell your agent `read AGENTS.md and follow it` to kick off the setup.
+Then create an `AGENTS.md` in your project root using the [install-generated template](cmd/deft-install/setup.go) (the `agentsMDEntry` constant), which contains the correct `deft/`-prefixed paths and full first-session bootstrap logic. Then tell your agent `read AGENTS.md and follow it` to kick off the setup.
 
 ### 2. Set Up Your Preferences
 
