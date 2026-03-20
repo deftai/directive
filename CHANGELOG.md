@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **README Getting Started**: Removed false-automatic claims from Step 2 and manual clone path; added explicit agent kick-off instructions (#54, #85)
 - **In-repo AGENTS.md**: Updated deft repo's own AGENTS.md with developer-focused content and correct root-relative paths (no `deft/` prefix) (#54)
 
-## [0.7.0]
+## [0.7.0] - 2026-03-19
 
 ### Added
 - **Go Installer**: Cross-platform self-contained installer in `cmd/deft-install/` with 5 platform binaries, interactive setup wizard, and platform-aware git installation paths (#34, #35)

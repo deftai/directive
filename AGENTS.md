@@ -1,4 +1,4 @@
-﻿# Deft — Development Framework (deft repo)
+# Deft — Development Framework (deft repo)
 
 You are working inside the deft framework repository itself.
 Full guidelines: main.md

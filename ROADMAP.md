@@ -1,4 +1,4 @@
-﻿# Deft Directive — Roadmap
+# Deft Directive — Roadmap
 
 Prioritized work items. **Principle: resolve open issues before new features.**
 
@@ -10,6 +10,7 @@ Fix reported bugs and UX problems blocking adoption.
 
 ### Adoption Blockers (user-reported, highest priority)
 
+- **#94** — Agent auto-alignment on startup: thin .agents/skills/deft/SKILL.md pointer (no symlinks/copies) + prescriptive change lifecycle rule in main.md (depends on #54)
 - **#54** — AGENTS.md provides no actionable onboarding — agents don't know what to do after deft-install; installer 'Next steps' lies about automatic behavior; README lacks kick-off instructions (absorbed #85)
 - **#79** — deft-setup Phase 2 inference bleeds into `./deft/` framework internals (misidentifies project as "deft")
 - **#80** — deft-setup Phase 2 project name inference has no fallback when no build files exist
@@ -221,3 +222,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-19 — added #84 (Deft as teacher: contract hierarchy, Phase 2 Philosophy & Positioning sub-section, Phase 5 teach strategy); moved #45 to Completed (v0.7.0)*
 *Updated 2026-03-20 — added #89 (naming/positioning); moved #39 to Completed; full refresh: added #68/#72/#75-#82/#85/#86; promoted user-reported bugs to Phase 1; resolved #44 (all items done); cleaned stale entries from index; #84 Phase 2 README reframe blocked on #89 resolution*
 *Updated 2026-03-20 — promoted #54 to Phase 1 (absorbed #85); #54 scope narrowed (slash-command registration moved to #55); #75 gains depends-on-#54 note; #85 closed as duplicate*
+*Updated 2026-03-20 — added #94 to Phase 1 (thin skill pointer + change lifecycle rule; prerequisite for all deft behavior improvements)*
