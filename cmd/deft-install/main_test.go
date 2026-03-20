@@ -582,7 +582,7 @@ func TestPrintNextSteps(t *testing.T) {
 		result.DeftDir,
 		"AGENTS.md",
 		"User config",
-		"deft/main.md",
+		"read AGENTS.md and follow it",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q", want)

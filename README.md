@@ -1,4 +1,4 @@
-# Deft
+﻿# Deft
 
 **One-shot, anti-slop**
 
@@ -352,7 +352,7 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 
 The installer guides you through choosing a project directory, installs git if needed, clones deft, wires it into `AGENTS.md`, and creates your user config directory.
 
-**Manual clone (no installer):** If you clone deft directly via `git clone`, add `See deft/main.md` to your project's `AGENTS.md` (create it if it doesn't exist) so your AI agent discovers the framework.
+**Manual clone (no installer):** If you clone deft directly via `git clone`, add `See deft/main.md` to your project's `AGENTS.md` (create it if it doesn't exist), then tell your agent `read AGENTS.md and follow it` to start the setup.
 
 **Building from source (developers only):** requires Go 1.22+ — `go run ./cmd/deft-install/`
 
@@ -363,7 +363,7 @@ cd your-project
 git clone https://github.com/deftai/directive.git deft
 ```
 
-Then create an `AGENTS.md` in your project root (or append to an existing one):
+Then create an `AGENTS.md` in your project root (or append to an existing one), and tell your agent `read AGENTS.md and follow it` to kick off the setup:
 
 ```markdown
 See deft/main.md
@@ -374,7 +374,7 @@ Skills: deft/SKILL.md, deft/skills/deft-setup/SKILL.md, deft/skills/deft-build/S
 
 Deft offers two setup paths that produce the same output (USER.md + PROJECT.md) but adapt to different users:
 
-**Agent-driven** (recommended for most users) — On your next AI session the agent automatically invokes the `deft-setup` skill. It asks how technical you are and adapts accordingly:
+**Agent-driven** (recommended for most users) — Tell your agent `read AGENTS.md and follow it` to start the Deft setup flow. The agent will ask how technical you are and adapt accordingly:
 - *Technical*: asks about languages, strategy, coverage, meta rules, and custom rules
 - *Some opinions*: asks name, languages, and custom rules; defaults the rest
 - *Just pick defaults*: asks what you're building, infers everything else
