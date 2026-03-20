@@ -133,6 +133,11 @@ func install(debug bool, branch string) int {
 		return 1
 	}
 
+	if err := WriteAgentsSkills(w, result.ProjectDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		return 1
+	}
+
 	configDir, err := CreateUserConfigDir(w)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

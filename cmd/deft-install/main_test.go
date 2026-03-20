@@ -505,6 +505,9 @@ func TestWriteAgentsMD_CreateNew(t *testing.T) {
 			t.Errorf("AGENTS.md missing section %q", section)
 		}
 	}
+	if strings.Contains(string(data), "Skills: deft/SKILL.md") {
+		t.Error("AGENTS.md should not contain Skills line — .agents/skills/ handles discovery")
+	}
 }
 
 func TestWriteAgentsMD_AppendExisting(t *testing.T) {
@@ -570,6 +573,50 @@ func TestUserConfigDir_Default(t *testing.T) {
 	}
 }
 
+func TestWriteAgentsSkills_CreateNew(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	if err := WriteAgentsSkills(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, skill := range []string{"deft", "deft-setup", "deft-build"} {
+		path := filepath.Join(tmp, ".agents", "skills", skill, "SKILL.md")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("missing skill file for %s: %v", skill, err)
+		}
+		if !strings.Contains(string(data), "deft/") {
+			t.Errorf("%s/SKILL.md missing deft/-prefixed path, got:\n%s", skill, data)
+		}
+		if !strings.Contains(string(data), "name: "+skill) {
+			t.Errorf("%s/SKILL.md missing name frontmatter", skill)
+		}
+	}
+}
+
+func TestWriteAgentsSkills_Idempotent(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	// Write twice.
+	WriteAgentsSkills(w, tmp)
+
+	// Overwrite the deft SKILL.md with sentinel content.
+	sentinel := []byte("sentinel content")
+	deftPath := filepath.Join(tmp, ".agents", "skills", "deft", "SKILL.md")
+	os.WriteFile(deftPath, sentinel, 0o644)
+
+	// Second call should skip.
+	WriteAgentsSkills(w, tmp)
+
+	data, _ := os.ReadFile(deftPath)
+	if string(data) != string(sentinel) {
+		t.Error("expected second WriteAgentsSkills call to be idempotent (no overwrite)")
+	}
+}
+
 func TestPrintNextSteps(t *testing.T) {
 	var buf bytes.Buffer
 	w := NewWizard(strings.NewReader(""), &buf, false)
@@ -587,9 +634,8 @@ func TestPrintNextSteps(t *testing.T) {
 		result.DeftDir,
 		"AGENTS.md",
 		"User config",
-		"read AGENTS.md and follow it",
+		"auto-discovered",
 		"USER.md and PROJECT.md",
-		"do not read AGENTS.md automatically",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q", want)

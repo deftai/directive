@@ -34,4 +34,3 @@ When all config exists: read the guidelines, your USER.md preferences, and PROJE
 Note: paths here are root-relative — this repo IS the deft directory.
 Install-generated AGENTS.md uses deft/-prefixed paths.
 
-Skills: SKILL.md, skills/deft-setup/SKILL.md, skills/deft-build/SKILL.md

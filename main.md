@@ -46,6 +46,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ~ Question assumptions and probe for clarity
 - ! Explain tradeoffs when multiple approaches exist
 - ~ Suggest improvements even when not asked
+- ! Before implementing any planned change that touches 3+ files or has an accepted plan artifact, propose `/deft:change <name>` and wait for confirmation
 
 **Communication:**
 - ! Be concise and precise

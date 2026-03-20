@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.1] - 2026-03-20
+### Added
+- **Agent Skill Auto-Discovery**: Added `.agents/skills/deft/`, `deft-setup/`, `deft-build/` thin pointer files to the repo — Warp and other agents now auto-discover deft skills on startup without user prompting (#94)
+- **WriteAgentsSkills**: Installer now creates `.agents/skills/` in user project root during install so agents auto-discover deft skills immediately (#94)
+- **Prescriptive Change Lifecycle Rule**: Added `! Before implementing any planned change that touches 3+ files or has an accepted plan artifact, propose /deft:change <name> and wait for confirmation` to `main.md` Decision Making section (#94)
+
+### Changed
+- **PrintNextSteps**: Installer output updated to reflect auto-discovery — no longer tells users to manually say 'read AGENTS.md and follow it' (#94)
+- **AGENTS.md** (in-repo): Removed redundant Skills line — `.agents/skills/` handles discovery (#94)
+- **agentsMDEntry**: Removed Skills line from install-generated AGENTS.md — `.agents/skills/` handles discovery, resolving the TODO from #75 (#94)
+
+## [0.7.1]
 
 ### Fixed
 - **AGENTS.md Onboarding**: Install-generated `AGENTS.md` now contains self-contained bootstrap logic — first-session phase detection (USER.md → Phase 1, PROJECT.md → Phase 2, SPECIFICATION.md → Phase 3), returning-session guidance, and available commands reference (#54, closes #85)

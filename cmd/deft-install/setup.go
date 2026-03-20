@@ -14,7 +14,6 @@ const (
 	// agentsMDEntry is written into the project's AGENTS.md during install.
 	// It must contain agentsMDSentinel ("deft/main.md") for idempotency —
 	// WriteAgentsMD checks for that string before appending.
-	// TODO: remove the Skills line when #75 (skill auto-discovery) ships.
 	agentsMDEntry = `# Deft — AI Development Framework
 
 Deft is installed in deft/. Full guidelines: deft/main.md
@@ -46,11 +45,41 @@ When all config exists: read the guidelines, your USER.md preferences, and PROJE
 - /deft:run:map              — Map an existing codebase
 - deft/run bootstrap         — CLI setup (terminal users)
 - deft/run spec              — CLI spec generation
-
-Skills: deft/SKILL.md, deft/skills/deft-setup/SKILL.md, deft/skills/deft-build/SKILL.md
 `
 	// Sentinel used to detect an existing deft entry in AGENTS.md.
 	agentsMDSentinel = "deft/main.md"
+
+	// agentsSkillDeft is the thin pointer content for .agents/skills/deft/SKILL.md.
+	agentsSkillDeft = `---
+name: deft
+description: Apply deft framework standards for AI-assisted development. Use when starting projects, writing code, running tests, making commits, or when the user references deft, project standards, or coding guidelines.
+---
+
+Read and follow: deft/SKILL.md
+`
+	// agentsSkillDeftSetup is the thin pointer content for .agents/skills/deft-setup/SKILL.md.
+	agentsSkillDeftSetup = `---
+name: deft-setup
+description: >-
+  Set up a new project with Deft framework standards. Use when the user wants
+  to bootstrap user preferences, configure a project, or generate a project
+  specification. Walks through setup conversationally — no separate CLI needed.
+---
+
+Read and follow: deft/skills/deft-setup/SKILL.md
+`
+	// agentsSkillDeftBuild is the thin pointer content for .agents/skills/deft-build/SKILL.md.
+	agentsSkillDeftBuild = `---
+name: deft-build
+description: >-
+  Build a project from a SPECIFICATION.md following Deft framework standards.
+  Use after deft-setup has generated the spec, or when the user has a
+  SPECIFICATION.md ready to implement. Handles scaffolding, implementation,
+  testing, and quality checks phase by phase.
+---
+
+Read and follow: deft/skills/deft-build/SKILL.md
+`
 )
 
 // ---------------------------------------------------------------------------
@@ -147,7 +176,48 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 }
 
 // ---------------------------------------------------------------------------
-// 4.3 Create USER.md config directory
+// 4.3 Write .agents/skills/ thin pointer files
+// ---------------------------------------------------------------------------
+
+// WriteAgentsSkills creates the .agents/skills/ discovery structure in the
+// project root so AI agents auto-discover deft skills without user prompting.
+// Each skill gets its own subdirectory with a thin SKILL.md pointer that
+// redirects agents to the canonical skill files inside deft/.
+// Idempotent — skips if .agents/skills/deft/SKILL.md already exists.
+func WriteAgentsSkills(w *Wizard, projectDir string) error {
+	deftSkillPath := filepath.Join(projectDir, ".agents", "skills", "deft", "SKILL.md")
+
+	if _, err := os.Stat(deftSkillPath); err == nil {
+		w.printf(".agents/skills/ already exists — skipping.\n")
+		return nil
+	}
+
+	skills := []struct {
+		dir     string
+		content string
+	}{
+		{"deft", agentsSkillDeft},
+		{"deft-setup", agentsSkillDeftSetup},
+		{"deft-build", agentsSkillDeftBuild},
+	}
+
+	for _, skill := range skills {
+		dir := filepath.Join(projectDir, ".agents", "skills", skill.dir)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("could not create %s: %w", dir, err)
+		}
+		path := filepath.Join(dir, "SKILL.md")
+		if err := os.WriteFile(path, []byte(skill.content), 0o644); err != nil {
+			return fmt.Errorf("could not write %s: %w", path, err)
+		}
+	}
+
+	w.printf(".agents/skills/ created — deft skills will be auto-discovered.\n")
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// 4.4 Create USER.md config directory
 // ---------------------------------------------------------------------------
 
 // UserConfigDir returns the platform-appropriate deft config directory.
@@ -184,19 +254,19 @@ func CreateUserConfigDir(w *Wizard) (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// 4.4 Print next steps
+// 4.5 Print next steps
 // ---------------------------------------------------------------------------
 
 // PrintNextSteps displays the success banner and post-install instructions.
 func PrintNextSteps(w *Wizard, result *WizardResult, configDir string) {
 	w.printf("\n✓ Deft installed successfully!\n\n")
-	w.printf("  Location  : %s%c\n", result.DeftDir, os.PathSeparator)
-	w.printf("  AGENTS.md : updated\n")
-	w.printf("  User config: %s%c\n", configDir, os.PathSeparator)
+	w.printf("  Location     : %s%c\n", result.DeftDir, os.PathSeparator)
+	w.printf("  AGENTS.md    : updated\n")
+	w.printf("  Skills       : .agents/skills/ created (auto-discovered by AI agents)\n")
+	w.printf("  User config  : %s%c\n", configDir, os.PathSeparator)
 	w.printf("\nNext steps:\n")
 	w.printf("  1. Open your AI coding assistant in %s%c\n", result.ProjectDir, os.PathSeparator)
-	w.printf("  2. Tell your agent: \"read AGENTS.md and follow it\" to start the Deft setup\n")
+	w.printf("  2. Deft skills are auto-discovered — your agent will guide setup automatically\n")
 	w.printf("  3. On first session, the agent will guide you through creating USER.md and PROJECT.md\n")
-	w.printf("     Note: agents do not read AGENTS.md automatically — auto-discovery is planned for a future release\n")
 	w.printf("\n")
 }

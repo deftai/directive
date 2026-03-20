@@ -1,0 +1,139 @@
+﻿{
+    "vBRIEFInfo":  {
+                       "version":  "0.5"
+                   },
+    "plan":  {
+                 "title":  "agent-auto-alignment",
+                 "status":  "completed",
+                 "items":  [
+                               {
+                                   "id":  "t1",
+                                   "title":  "Create .agents/skills/ thin pointer files in deft repo",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "Create three thin pointer SKILL.md files committed to the deft repo root for developer auto-alignment",
+                                                     "AcceptanceCriteria":  [
+                                                                                ".agents/skills/deft/SKILL.md exists with correct frontmatter (name: deft, description matching SKILL.md) and body: \u0027Read and follow: SKILL.md\u0027",
+                                                                                ".agents/skills/deft-setup/SKILL.md exists with correct frontmatter and body: \u0027Read and follow: skills/deft-setup/SKILL.md\u0027",
+                                                                                ".agents/skills/deft-build/SKILL.md exists with correct frontmatter and body: \u0027Read and follow: skills/deft-build/SKILL.md\u0027",
+                                                                                "Paths are root-relative (no deft/ prefix)"
+                                                                            ]
+                                                 }
+                               },
+                               {
+                                   "id":  "t2",
+                                   "title":  "Add WriteAgentsSkills to setup.go + remove Skills line from agentsMDEntry",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "New WriteAgentsSkills function creates .agents/skills/ structure in user project root during install. Also remove Skills line and TODO comment from agentsMDEntry.",
+                                                     "AcceptanceCriteria":  [
+                                                                                "WriteAgentsSkills creates .agents/skills/deft/, deft-setup/, deft-build/ subdirs with SKILL.md thin pointers using deft/-prefixed paths",
+                                                                                "Idempotent: second call skips if .agents/skills/deft/SKILL.md already exists",
+                                                                                "WriteAgentsSkills is called from install sequence after WriteAgentsMD",
+                                                                                "agentsMDEntry no longer contains Skills line or TODO comment",
+                                                                                "agentsMDSentinel string (\u0027deft/main.md\u0027) still present in agentsMDEntry content"
+                                                                            ]
+                                                 }
+                               },
+                               {
+                                   "id":  "t3",
+                                   "title":  "Update PrintNextSteps in setup.go",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "Replace explicit \u0027tell your agent to read AGENTS.md\u0027 instruction with auto-discovery messaging",
+                                                     "AcceptanceCriteria":  [
+                                                                                "Step 2 no longer says \u0027Tell your agent: read AGENTS.md and follow it\u0027",
+                                                                                "Step 2 reflects that deft skills are auto-discovered",
+                                                                                "Note about agents not reading AGENTS.md automatically is removed"
+                                                                            ]
+                                                 }
+                               },
+                               {
+                                   "id":  "t4",
+                                   "title":  "Add TestWriteAgentsSkills tests to main_test.go",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "Add TestWriteAgentsSkills_CreateNew and TestWriteAgentsSkills_Idempotent",
+                                                     "AcceptanceCriteria":  [
+                                                                                "TestWriteAgentsSkills_CreateNew verifies all three subdirs exist with SKILL.md files containing deft/-prefixed paths",
+                                                                                "TestWriteAgentsSkills_Idempotent verifies second call does not overwrite existing files",
+                                                                                "Update TestPrintNextSteps assertions to match new step 2 output",
+                                                                                "Update TestWriteAgentsMD_CreateNew to confirm Skills line no longer present in agentsMDEntry"
+                                                                            ]
+                                                 }
+                               },
+                               {
+                                   "id":  "t5",
+                                   "title":  "Add prescriptive change lifecycle rule to main.md",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "Add mandatory /deft:change rule to Decision Making section of Agent Behavior",
+                                                     "AcceptanceCriteria":  [
+                                                                                "Rule added: \u0027! Before implementing any planned change that touches 3+ files or has an accepted plan artifact, propose /deft:change \u003cname\u003e and wait for confirmation\u0027",
+                                                                                "Placed in Decision Making block of Agent Behavior section"
+                                                                            ]
+                                                 }
+                               },
+                               {
+                                   "id":  "t6",
+                                   "title":  "Remove Skills line from in-repo AGENTS.md",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "Remove the \u0027Skills: SKILL.md, skills/deft-setup/SKILL.md, skills/deft-build/SKILL.md\u0027 line from AGENTS.md â€” .agents/skills/ now handles discovery",
+                                                     "AcceptanceCriteria":  [
+                                                                                "Skills: line removed from AGENTS.md",
+                                                                                "AGENTS.md still contains bootstrap logic and commands from #54"
+                                                                            ]
+                                                 }
+                               },
+                               {
+                                   "id":  "t7",
+                                   "title":  "Run task check and verify all tests pass",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "Run task check to verify fmt, lint, and all tests pass",
+                                                     "AcceptanceCriteria":  [
+                                                                                "go test ./cmd/deft-install/... passes",
+                                                                                "TestWriteAgentsSkills_CreateNew passes",
+                                                                                "TestWriteAgentsSkills_Idempotent passes",
+                                                                                "TestPrintNextSteps passes with updated assertions",
+                                                                                "TestWriteAgentsMD_* tests pass",
+                                                                                "No regressions"
+                                                                            ]
+                                                 }
+                               }
+                           ],
+                 "edges":  [
+                               {
+                                   "from":  "t2",
+                                   "to":  "t4",
+                                   "type":  "blocks"
+                               },
+                               {
+                                   "from":  "t3",
+                                   "to":  "t4",
+                                   "type":  "blocks"
+                               },
+                               {
+                                   "from":  "t4",
+                                   "to":  "t7",
+                                   "type":  "blocks"
+                               },
+                               {
+                                   "from":  "t1",
+                                   "to":  "t7",
+                                   "type":  "blocks"
+                               },
+                               {
+                                   "from":  "t5",
+                                   "to":  "t7",
+                                   "type":  "blocks"
+                               },
+                               {
+                                   "from":  "t6",
+                                   "to":  "t7",
+                                   "type":  "blocks"
+                               }
+                           ]
+             }
+}
