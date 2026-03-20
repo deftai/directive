@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-03-20
+
+### Fixed
+- **AGENTS.md Onboarding**: Install-generated `AGENTS.md` now contains self-contained bootstrap logic — first-session phase detection (USER.md → Phase 1, PROJECT.md → Phase 2, SPECIFICATION.md → Phase 3), returning-session guidance, and available commands reference (#54, closes #85)
+- **Installer 'Next Steps' Output**: Removed false claim that agents read AGENTS.md automatically; users are now told to explicitly say `read AGENTS.md and follow it` with a note that auto-discovery is planned for a future release (#54, #85)
+- **README Getting Started**: Removed false-automatic claims from Step 2 and manual clone path; added explicit agent kick-off instructions (#54, #85)
+- **In-repo AGENTS.md**: Updated deft repo's own AGENTS.md with developer-focused content and correct root-relative paths (no `deft/` prefix) (#54)
+
 ## [0.7.0] - 2026-03-19
 
 ### Added
@@ -538,7 +546,7 @@ If you have custom scripts or references to deft files, update these paths:
 - Explore new interface guidelines if building CLIs, APIs, or UIs
 - Review enhanced language standards for Python, Go, TypeScript, and C++
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.7.1...HEAD
 [0.7.0]: https://github.com/deftai/directive/releases/tag/v0.7.0
 <!-- [0.6.0] has no git tag — it was a beta-only version that was never tagged on master. -->
 [0.5.2]: https://github.com/deftai/directive/releases/tag/v0.5.2
@@ -548,6 +556,8 @@ If you have custom scripts or references to deft files, update these paths:
 [0.4.2]: https://github.com/deftai/directive/releases/tag/v0.4.2
 [0.4.1]: https://github.com/deftai/directive/releases/tag/v0.4.1
 [0.4.0]: https://github.com/deftai/directive/releases/tag/v0.4.0
+[0.7.1]: https://github.com/deftai/directive/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/deftai/directive/releases/tag/v0.7.0
 [0.3.7]: https://github.com/deftai/directive/releases/tag/v0.3.7
 [0.3.6]: https://github.com/deftai/directive/releases/tag/v0.3.6
 [0.3.5]: https://github.com/deftai/directive/releases/tag/v0.3.5

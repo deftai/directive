@@ -500,6 +500,11 @@ func TestWriteAgentsMD_CreateNew(t *testing.T) {
 	if !strings.Contains(string(data), agentsMDSentinel) {
 		t.Errorf("AGENTS.md missing deft entry, got:\n%s", data)
 	}
+	for _, section := range []string{"## First Session", "## Returning Sessions", "## Commands"} {
+		if !strings.Contains(string(data), section) {
+			t.Errorf("AGENTS.md missing section %q", section)
+		}
+	}
 }
 
 func TestWriteAgentsMD_AppendExisting(t *testing.T) {
@@ -582,7 +587,9 @@ func TestPrintNextSteps(t *testing.T) {
 		result.DeftDir,
 		"AGENTS.md",
 		"User config",
-		"deft/main.md",
+		"read AGENTS.md and follow it",
+		"USER.md and PROJECT.md",
+		"do not read AGENTS.md automatically",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q", want)

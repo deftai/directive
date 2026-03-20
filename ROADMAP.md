@@ -10,7 +10,8 @@ Fix reported bugs and UX problems blocking adoption.
 
 ### Adoption Blockers (user-reported, highest priority)
 
-- **#85** — Installer instructions inaccurate/unclear — new users don't know to tell the agent to read AGENTS.md
+- **#94** — Agent auto-alignment on startup: thin .agents/skills/deft/SKILL.md pointer (no symlinks/copies) + prescriptive change lifecycle rule in main.md (depends on #54)
+- **#54** — AGENTS.md provides no actionable onboarding — agents don't know what to do after deft-install; installer 'Next steps' lies about automatic behavior; README lacks kick-off instructions (absorbed #85)
 - **#79** — deft-setup Phase 2 inference bleeds into `./deft/` framework internals (misidentifies project as "deft")
 - **#80** — deft-setup Phase 2 project name inference has no fallback when no build files exist
 - **#72** — vBRIEF files still invalid on master — users get non-conforming JSON output
@@ -104,7 +105,7 @@ Complements the Go installer (which targets novice/bare-machine users).
 
 - **#56** — Reduce installation friction — add shell one-liner, Homebrew, and platform package managers
 - **#53** — deft-install should bootstrap the current directory by default
-- **#75** — Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)
+- **#75** — Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.) *(depends on #54)*
 - **#11** — NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)
 
 **Prerequisites:** Phase 2 complete (clean content), issue #4 resolved (project-local layout)
@@ -123,8 +124,7 @@ Larger feature work — only after issues are resolved and content is stable.
   - Build `strategies/teach.md` — Feynman technique applied to Deft itself, philosophy as a conversation
   - Evolve `lessons.md` — when adding a lesson, include not just *what* was learned but *why it matters* in the contract hierarchy
 - **#52** — Install into `.deft/` (hidden directory) instead of `deft/`
-- **#54** — AGENTS.md provides no actionable onboarding — agents don't know what to do after deft-install
-- **#55** — Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.)
+- **#55** — Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) — also absorbs slash-command registration scope from #54
 - **#46** — Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)
 - **#77** — Allow users to change technical rating (1/2/3) when starting a new project
 - **#78** — Bootstrap: offer to update user preferences when USER.md already exists
@@ -192,8 +192,8 @@ Larger feature work — only after issues are resolved and content is stable.
 | #51 | Project should be bootstrapped with own framework (partial — #67 tracks remainder) | 2 |
 | #52 | Install into .deft/ hidden directory | 5 |
 | #53 | deft-install should bootstrap current directory | 4 |
-| #54 | AGENTS.md provides no actionable onboarding | 5 |
-| #55 | Register Deft commands as native agent slash commands | 5 |
+| #54 | AGENTS.md provides no actionable onboarding (absorbed #85) | 1 |
+| #55 | Register Deft commands as native agent slash commands (absorbs slash-command scope from #54) | 5 |
 | #56 | Reduce installation friction (shell one-liner, Homebrew) | 4 |
 | #57 | Add GitHub Actions CI workflow | 3 |
 | #58 | Stale cross-references to legacy paths | 2 |
@@ -202,7 +202,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #68 | Warp not always enforcing Deft testing protocols | 1 |
 | #72 | vBRIEF files still invalid on master | 1 |
 | #74 | Automate release process and CI changelog enforcement | 3 |
-| #75 | Skill auto-discovery for deft skills | 4 |
+| #75 | Skill auto-discovery for deft skills (depends on #54) | 4 |
 | #76 | Obsidian Vault generation as structured agent memory | 5 |
 | #77 | Allow users to change technical rating per project | 5 |
 | #78 | Bootstrap: offer to update user preferences | 5 |
@@ -211,7 +211,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #81 | Add BDD/acceptance-test-first strategy | 2 |
 | #82 | Replacement strategies need accept-or-scrap exit | 2 |
 | #84 | Deft as teacher: contract hierarchy, explain WHY, adaptive teaching mode | 2/5 |
-| #85 | Installer instructions inaccurate/unclear | 1 |
+| ~~#85~~ | ~~Installer instructions inaccurate/unclear~~ | closed — absorbed by #54 |
 | #86 | Artifact-branch binding and complete audit trail for SDD | 5 |
 | #89 | Deft identity and positioning: resolve naming before README reframe | 2 |
 
@@ -221,3 +221,5 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-17 — added issues #44-#65, moved #8/#44/#47 to Completed*
 *Updated 2026-03-19 — added #84 (Deft as teacher: contract hierarchy, Phase 2 Philosophy & Positioning sub-section, Phase 5 teach strategy); moved #45 to Completed (v0.7.0)*
 *Updated 2026-03-20 — added #89 (naming/positioning); moved #39 to Completed; full refresh: added #68/#72/#75-#82/#85/#86; promoted user-reported bugs to Phase 1; resolved #44 (all items done); cleaned stale entries from index; #84 Phase 2 README reframe blocked on #89 resolution*
+*Updated 2026-03-20 — promoted #54 to Phase 1 (absorbed #85); #54 scope narrowed (slash-command registration moved to #55); #75 gains depends-on-#54 note; #85 closed as duplicate*
+*Updated 2026-03-20 — added #94 to Phase 1 (thin skill pointer + change lifecycle rule; prerequisite for all deft behavior improvements)*

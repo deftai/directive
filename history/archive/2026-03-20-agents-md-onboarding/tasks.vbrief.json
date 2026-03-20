@@ -1,0 +1,125 @@
+{
+    "vBRIEFInfo":  {
+                       "version":  "0.5"
+                   },
+    "plan":  {
+                 "title":  "agents-md-onboarding",
+                 "status":  "completed",
+                 "items":  [
+                               {
+                                   "id":  "t1",
+                                   "title":  "Update agentsMDEntry in setup.go",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "Replace the two-line agentsMDEntry constant with self-contained onboarding content (~45 lines)",
+                                                     "AcceptanceCriteria":  [
+                                                                                "Content contains the string \u0027deft/main.md\u0027 (sentinel preserved for idempotency)",
+                                                                                "Includes first-session bootstrap logic: USER.md missing â†’ Phase 1, PROJECT.md missing â†’ Phase 2, SPECIFICATION.md missing â†’ Phase 3",
+                                                                                "Includes returning-session guidance",
+                                                                                "Includes available commands (/deft:change, /deft:run:*, deft/run equivalents)",
+                                                                                "Includes skills line with Go comment noting temporary pending #75",
+                                                                                "Content is under 50 lines",
+                                                                                "Platform-neutral (no OS-specific paths)"
+                                                                            ]
+                                                 }
+                               },
+                               {
+                                   "id":  "t2",
+                                   "title":  "Fix PrintNextSteps in setup.go",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "Replace the false-automatic claims in PrintNextSteps with honest instructions",
+                                                     "AcceptanceCriteria":  [
+                                                                                "Step 2 tells user to explicitly say \u0027read AGENTS.md and follow it\u0027 to kick off Deft",
+                                                                                "Step 3 says agent will guide through USER.md and PROJECT.md setup on first session",
+                                                                                "Output includes a note that automatic agent detection is a future feature",
+                                                                                "No claim that agents read AGENTS.md automatically"
+                                                                            ]
+                                                 }
+                               },
+                               {
+                                   "id":  "t3",
+                                   "title":  "Update TestPrintNextSteps in main_test.go",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "Update TestPrintNextSteps assertions to match new PrintNextSteps output",
+                                                     "AcceptanceCriteria":  [
+                                                                                "Remove assertion for \u0027deft/main.md\u0027 (no longer in output)",
+                                                                                "Add assertion for \u0027read AGENTS.md\u0027 or equivalent new step 2 text",
+                                                                                "Retain assertions for: \u0027Deft installed successfully\u0027, result.DeftDir, \u0027AGENTS.md\u0027, \u0027User config\u0027",
+                                                                                "TestWriteAgentsMD_* tests pass unchanged (sentinel check unaffected)"
+                                                                            ]
+                                                 }
+                               },
+                               {
+                                   "id":  "t4",
+                                   "title":  "Update README.md Getting Started",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "Remove false-automatic claims from Getting Started and add explicit kick-off instructions",
+                                                     "AcceptanceCriteria":  [
+                                                                                "Line 377 no longer says \u0027the agent automatically invokes the deft-setup skill\u0027",
+                                                                                "Step 2 tells users to tell their agent \u0027read AGENTS.md and follow it\u0027",
+                                                                                "Manual clone path (line 355) includes the same explicit kick-off instruction",
+                                                                                "No remaining false-automatic claims in the Getting Started section"
+                                                                            ]
+                                                 }
+                               },
+                               {
+                                   "id":  "t5",
+                                   "title":  "Update in-repo AGENTS.md",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "Replace the two-line in-repo AGENTS.md with developer-focused onboarding content using root-relative paths",
+                                                     "AcceptanceCriteria":  [
+                                                                                "No deft/-prefixed paths (root of repo IS the deft directory)",
+                                                                                "Same bootstrap logic structure as install-generated but scoped to deft development",
+                                                                                "Skills line uses root-relative paths: SKILL.md, skills/deft-setup/SKILL.md, skills/deft-build/SKILL.md",
+                                                                                "Under 50 lines"
+                                                                            ]
+                                                 }
+                               },
+                               {
+                                   "id":  "t6",
+                                   "title":  "Run task check and verify all tests pass",
+                                   "status":  "completed",
+                                   "narrative":  {
+                                                     "Action":  "Run task check to verify fmt, lint, and tests all pass before marking complete",
+                                                     "AcceptanceCriteria":  [
+                                                                                "task check exits 0",
+                                                                                "All TestWriteAgentsMD_* tests pass",
+                                                                                "TestPrintNextSteps passes with updated assertions",
+                                                                                "No regressions in other test suites"
+                                                                            ]
+                                                 }
+                               }
+                           ],
+                 "edges":  [
+                               {
+                                   "from":  "t1",
+                                   "to":  "t3",
+                                   "type":  "blocks"
+                               },
+                               {
+                                   "from":  "t2",
+                                   "to":  "t3",
+                                   "type":  "blocks"
+                               },
+                               {
+                                   "from":  "t3",
+                                   "to":  "t6",
+                                   "type":  "blocks"
+                               },
+                               {
+                                   "from":  "t4",
+                                   "to":  "t6",
+                                   "type":  "blocks"
+                               },
+                               {
+                                   "from":  "t5",
+                                   "to":  "t6",
+                                   "type":  "blocks"
+                               }
+                           ]
+             }
+}

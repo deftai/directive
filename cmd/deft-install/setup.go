@@ -11,7 +11,42 @@ import (
 const (
 	deftRepoURL = "https://github.com/deftai/directive"
 
-	agentsMDEntry = `See deft/main.md
+	// agentsMDEntry is written into the project's AGENTS.md during install.
+	// It must contain agentsMDSentinel ("deft/main.md") for idempotency —
+	// WriteAgentsMD checks for that string before appending.
+	// TODO: remove the Skills line when #75 (skill auto-discovery) ships.
+	agentsMDEntry = `# Deft — AI Development Framework
+
+Deft is installed in deft/. Full guidelines: deft/main.md
+
+## First Session
+
+Check what exists before doing anything else:
+
+**USER.md missing** (~/.config/deft/USER.md or %APPDATA%\deft\USER.md):
+→ Read deft/skills/deft-setup/SKILL.md and start Phase 1 (user preferences)
+
+**USER.md exists, PROJECT.md missing** (project root):
+→ Read deft/skills/deft-setup/SKILL.md and start Phase 2 (project configuration)
+
+**USER.md and PROJECT.md exist, SPECIFICATION.md missing** (project root):
+→ Read deft/skills/deft-setup/SKILL.md and start Phase 3 (specification interview)
+
+## Returning Sessions
+
+When all config exists: read the guidelines, your USER.md preferences, and PROJECT.md, then continue with your task.
+
+## Commands
+
+- /deft:change <name>        — Propose a scoped change
+- /deft:run:interview        — Structured spec interview
+- /deft:run:speckit          — Five-phase spec workflow (large projects)
+- /deft:run:discuss <topic>  — Feynman-style alignment
+- /deft:run:research <topic> — Research before planning
+- /deft:run:map              — Map an existing codebase
+- deft/run bootstrap         — CLI setup (terminal users)
+- deft/run spec              — CLI spec generation
+
 Skills: deft/SKILL.md, deft/skills/deft-setup/SKILL.md, deft/skills/deft-build/SKILL.md
 `
 	// Sentinel used to detect an existing deft entry in AGENTS.md.
@@ -117,9 +152,9 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 
 // UserConfigDir returns the platform-appropriate deft config directory.
 //
-//	Windows:    %APPDATA%\deft\
-//	macOS/Linux: ~/.config/deft/
-//	Override:    DEFT_USER_PATH env var
+// Windows:    %APPDATA%\deft\
+// macOS/Linux: ~/.config/deft/
+// Override:    DEFT_USER_PATH env var
 func UserConfigDir() string {
 	if p := os.Getenv("DEFT_USER_PATH"); p != "" {
 		return p
@@ -160,7 +195,8 @@ func PrintNextSteps(w *Wizard, result *WizardResult, configDir string) {
 	w.printf("  User config: %s%c\n", configDir, os.PathSeparator)
 	w.printf("\nNext steps:\n")
 	w.printf("  1. Open your AI coding assistant in %s%c\n", result.ProjectDir, os.PathSeparator)
-	w.printf("  2. The agent will read deft/main.md automatically via AGENTS.md\n")
-	w.printf("  3. On first session, the deft-setup skill will create your USER.md preferences\n")
+	w.printf("  2. Tell your agent: \"read AGENTS.md and follow it\" to start the Deft setup\n")
+	w.printf("  3. On first session, the agent will guide you through creating USER.md and PROJECT.md\n")
+	w.printf("     Note: agents do not read AGENTS.md automatically — auto-discovery is planned for a future release\n")
 	w.printf("\n")
 }
