@@ -36,3 +36,15 @@ When a linter demands an explicit parameter (e.g. `strict=` on `zip()`), the cho
 **5. CHANGELOG promotion is a release step, not a PR step — treat them as distinct**
 
 The PR checklist correctly guards `[Unreleased]` entries during review. But promoting `[Unreleased]` → `[X.Y.Z]` (and updating the comparison links) is a **post-merge release step** that happens at tag time, not PR time. These two steps are easy to conflate and the promotion is easy to forget when the tag and push happen in rapid succession. Until `task release` is implemented (tracked in issue #74), the release sequence MUST be: (1) promote CHANGELOG, (2) commit, (3) tag, (4) push tag. MUST NOT tag before the CHANGELOG promotion commit is on the target branch.
+
+## Windows File Editing (2026-03)
+
+**Source:** ROADMAP.md edits during feat/agents-md-onboarding-54 — three sequential failures before clean write
+
+**1. CRLF line endings break multi-line edit_files searches — MUST verify line endings before batch edits**
+
+The edit_files tool matches search strings against file content byte-for-byte. Files with Windows CRLF (\r\n) line endings will silently fail to match search strings that assume LF (\n) only. On any Windows repo, MUST check line endings first ((Get-Content file -Raw) -match '\r\n'). If CRLF is present, fall back to PowerShell Get-Content -Raw / [System.IO.File]::WriteAllText for multi-line edits rather than batching multiple edit_files diffs.
+
+**2. PowerShell 5.1 Set-Content MUST NOT be used on UTF-8 files without explicit encoding**
+
+Get-Content | ... | Set-Content in PowerShell 5.1 defaults to the system ANSI code page (Windows-1252), not UTF-8. This silently mangles any non-ASCII characters (em-dashes, curly quotes, etc.) to mojibake (— → â€"). MUST use [System.IO.File]::WriteAllText(path, content, [System.Text.Encoding]::UTF8) when writing back UTF-8 files. Never pipe through Set-Content without -Encoding UTF8.
