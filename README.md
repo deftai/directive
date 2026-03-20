@@ -363,12 +363,7 @@ cd your-project
 git clone https://github.com/deftai/directive.git deft
 ```
 
-Then create an `AGENTS.md` in your project root (or append to an existing one), and tell your agent `read AGENTS.md and follow it` to kick off the setup:
-
-```markdown
-See deft/main.md
-Skills: deft/SKILL.md, deft/skills/deft-setup/SKILL.md, deft/skills/deft-build/SKILL.md
-```
+Then copy the deft repo's `AGENTS.md` to your project root as your starting template (it contains the full first-session bootstrap logic), and tell your agent `read AGENTS.md and follow it` to kick off the setup.
 
 ### 2. Set Up Your Preferences
 
