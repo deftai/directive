@@ -583,6 +583,8 @@ func TestPrintNextSteps(t *testing.T) {
 		"AGENTS.md",
 		"User config",
 		"read AGENTS.md and follow it",
+		"USER.md and PROJECT.md",
+		"do not read AGENTS.md automatically",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output missing %q", want)

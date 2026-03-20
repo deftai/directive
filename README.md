@@ -1,4 +1,4 @@
-﻿# Deft
+# Deft
 
 **One-shot, anti-slop**
 
