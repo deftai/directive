@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -191,6 +192,9 @@ func WriteAgentsSkills(w *Wizard, projectDir string) (bool, error) {
 	for _, skill := range []string{"deft", "deft-setup", "deft-build"} {
 		p := filepath.Join(projectDir, ".agents", "skills", skill, "SKILL.md")
 		if _, err := os.Stat(p); err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				return false, fmt.Errorf("could not check %s: %w", p, err)
+			}
 			allExist = false
 			break
 		}
@@ -215,6 +219,9 @@ func WriteAgentsSkills(w *Wizard, projectDir string) (bool, error) {
 			return false, fmt.Errorf("could not create %s: %w", dir, err)
 		}
 		path := filepath.Join(dir, "SKILL.md")
+		if _, err := os.Stat(path); err == nil {
+			continue // already present — leave as-is
+		}
 		if err := os.WriteFile(path, []byte(skill.content), 0o644); err != nil {
 			return false, fmt.Errorf("could not write %s: %w", path, err)
 		}
