@@ -10,6 +10,8 @@ Fix reported bugs and UX problems blocking adoption.
 
 ### Adoption Blockers (user-reported, highest priority)
 
+- **#105** — Add build output validation directive for custom build scripts (user-impacting directive gap: silent dist/ failures not caught by existing rules)
+
 - **#94** — Agent auto-alignment on startup: thin .agents/skills/deft/SKILL.md pointer (no symlinks/copies) + prescriptive change lifecycle rule in main.md (depends on #54)
 - **#54** — AGENTS.md provides no actionable onboarding — agents don't know what to do after deft-install; installer 'Next steps' lies about automatic behavior; README lacks kick-off instructions (absorbed #85)
 - **#79** — deft-setup Phase 2 inference bleeds into `./deft/` framework internals (misidentifies project as "deft")
@@ -63,6 +65,9 @@ Quick doc/content fixes that don't require code changes.
 - Create `meta/philosophy.md` — full contract hierarchy narrative for agent reference and direct user reading (#84 Phase 2)
 - **#82** — Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)
 - **#81** — Add BDD/acceptance-test-first strategy (`strategies/bdd.md` — Given/When/Then scenarios drive requirements)
+- **#103** — Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)
+- **#102** — Codify Mermaid gist-rendering best practices as must/should rules (`coding/mermaid.md`)
+- **#104** — Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)
 - Add missing strategies:
   - `strategies/rapid.md` — Quick prototypes, SPECIFICATION only workflow
   - `strategies/enterprise.md` — Compliance-heavy, PRD → ADR → SPECIFICATION workflow
@@ -104,7 +109,7 @@ Quick doc/content fixes that don't require code changes.
 Publish deft as NPM + PIP CLI packages for developer-audience install.
 Complements the Go installer (which targets novice/bare-machine users).
 
-- **#56** — Reduce installation friction — add shell one-liner, Homebrew, and platform package managers
+- **#56** — Reduce installation friction — add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)
 - **#53** — deft-install should bootstrap the current directory by default
 - **#75** — Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.) *(depends on #54)*
 - **#11** — NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)
@@ -219,7 +224,11 @@ Larger feature work — only after issues are resolved and content is stable.
 | ~~#85~~ | ~~Installer instructions inaccurate/unclear~~ | closed — absorbed by #54 |
 | #95 | Compliance templates + readiness scanners (SOC 2, ISO 27001, HIPAA; sub-issues #96-#100) | 5 |
 | #86 | Artifact-branch binding and complete audit trail for SDD | 5 |
-| #89 | Deft identity and positioning: resolve naming before README reframe | 2 |
+|| #89 | Deft identity and positioning: resolve naming before README reframe | 2 |
+|| ~~#101~~ | ~~Should manual clone path exist?~~ | closed — absorbed by #56 |
+|| #102 | Codify Mermaid gist-rendering best practices | 2 |
+|| #103 | Standalone brownfield/map analysis without requiring interview | 2 |
+|| #104 | Holzmann Power of 10 rules (`coding/holzmann.md`) | 2 |
 
 ---
 
@@ -230,3 +239,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-20 — promoted #54 to Phase 1 (absorbed #85); #54 scope narrowed (slash-command registration moved to #55); #75 gains depends-on-#54 note; #85 closed as duplicate*
 *Updated 2026-03-20 — added #94 to Phase 1 (thin skill pointer + change lifecycle rule; prerequisite for all deft behavior improvements)*
 *Updated 2026-03-20 — added #91/#92 (bootstrap loop) to Phase 1; added #95 compliance cluster to Phase 5 (#96–#100 sub-issues)*
+*Updated 2026-03-22 — triaged #101–#108: #101 absorbed into #56 (install path decision); #102 (Mermaid rules), #103 (standalone map), #104 (Holzmann rules) added to Phase 2; #105/#106 (build output + toolchain validation), #107/#108 (remove language from USER.md + platform-driven language shortlist) added to Phase 1*
