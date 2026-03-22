@@ -133,7 +133,8 @@ func install(debug bool, branch string) int {
 		return 1
 	}
 
-	if err := WriteAgentsSkills(w, result.ProjectDir); err != nil {
+	skillsCreated, err := WriteAgentsSkills(w, result.ProjectDir)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
 	}
@@ -144,7 +145,7 @@ func install(debug bool, branch string) int {
 		return 1
 	}
 
-	PrintNextSteps(w, result, configDir)
+	PrintNextSteps(w, result, configDir, skillsCreated)
 	return 0
 }
 

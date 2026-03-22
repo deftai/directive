@@ -577,7 +577,7 @@ func TestWriteAgentsSkills_CreateNew(t *testing.T) {
 	tmp := t.TempDir()
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
 
-	if err := WriteAgentsSkills(w, tmp); err != nil {
+	if _, err := WriteAgentsSkills(w, tmp); err != nil {
 		t.Fatal(err)
 	}
 
@@ -600,16 +600,18 @@ func TestWriteAgentsSkills_Idempotent(t *testing.T) {
 	tmp := t.TempDir()
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
 
-	// Write twice.
-	WriteAgentsSkills(w, tmp)
+	// Write once (setup).
+	if _, err := WriteAgentsSkills(w, tmp); err != nil {
+		t.Fatal("setup WriteAgentsSkills failed:", err)
+	}
 
 	// Overwrite the deft SKILL.md with sentinel content.
 	sentinel := []byte("sentinel content")
 	deftPath := filepath.Join(tmp, ".agents", "skills", "deft", "SKILL.md")
 	os.WriteFile(deftPath, sentinel, 0o644)
 
-	// Second call should skip.
-	WriteAgentsSkills(w, tmp)
+	// Second call should skip (all three files exist).
+	_, _ = WriteAgentsSkills(w, tmp)
 
 	data, _ := os.ReadFile(deftPath)
 	if string(data) != string(sentinel) {
@@ -626,7 +628,7 @@ func TestPrintNextSteps(t *testing.T) {
 		DeftDir:     `E:\Repos\myproj\deft`,
 	}
 
-	PrintNextSteps(w, result, `C:\Users\me\AppData\Roaming\deft`)
+	PrintNextSteps(w, result, `C:\Users\me\AppData\Roaming\deft`, true)
 
 	out := buf.String()
 	for _, want := range []string{

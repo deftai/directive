@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **AGENTS.md** (in-repo): Removed redundant Skills line — `.agents/skills/` handles discovery (#94)
 - **agentsMDEntry**: Removed Skills line from install-generated AGENTS.md — `.agents/skills/` handles discovery, resolving the TODO from #75 (#94)
 
-## [0.7.1]
+## [0.7.1] - 2026-03-20
 
 ### Fixed
 - **AGENTS.md Onboarding**: Install-generated `AGENTS.md` now contains self-contained bootstrap logic — first-session phase detection (USER.md → Phase 1, PROJECT.md → Phase 2, SPECIFICATION.md → Phase 3), returning-session guidance, and available commands reference (#54, closes #85)

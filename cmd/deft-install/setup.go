@@ -183,13 +183,21 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 // project root so AI agents auto-discover deft skills without user prompting.
 // Each skill gets its own subdirectory with a thin SKILL.md pointer that
 // redirects agents to the canonical skill files inside deft/.
-// Idempotent — skips if .agents/skills/deft/SKILL.md already exists.
-func WriteAgentsSkills(w *Wizard, projectDir string) error {
-	deftSkillPath := filepath.Join(projectDir, ".agents", "skills", "deft", "SKILL.md")
-
-	if _, err := os.Stat(deftSkillPath); err == nil {
-		w.printf(".agents/skills/ already exists — skipping.\n")
-		return nil
+// Idempotent — skips only when all three skill files are present.
+// Returns true if files were created, false if skipped.
+func WriteAgentsSkills(w *Wizard, projectDir string) (bool, error) {
+	// Check all three skill files before deciding to skip.
+	allExist := true
+	for _, skill := range []string{"deft", "deft-setup", "deft-build"} {
+		p := filepath.Join(projectDir, ".agents", "skills", skill, "SKILL.md")
+		if _, err := os.Stat(p); err != nil {
+			allExist = false
+			break
+		}
+	}
+	if allExist {
+		w.printf(".agents/skills/ already present — skipping.\n")
+		return false, nil
 	}
 
 	skills := []struct {
@@ -204,16 +212,16 @@ func WriteAgentsSkills(w *Wizard, projectDir string) error {
 	for _, skill := range skills {
 		dir := filepath.Join(projectDir, ".agents", "skills", skill.dir)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("could not create %s: %w", dir, err)
+			return false, fmt.Errorf("could not create %s: %w", dir, err)
 		}
 		path := filepath.Join(dir, "SKILL.md")
 		if err := os.WriteFile(path, []byte(skill.content), 0o644); err != nil {
-			return fmt.Errorf("could not write %s: %w", path, err)
+			return false, fmt.Errorf("could not write %s: %w", path, err)
 		}
 	}
 
 	w.printf(".agents/skills/ created — deft skills will be auto-discovered.\n")
-	return nil
+	return true, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -258,11 +266,15 @@ func CreateUserConfigDir(w *Wizard) (string, error) {
 // ---------------------------------------------------------------------------
 
 // PrintNextSteps displays the success banner and post-install instructions.
-func PrintNextSteps(w *Wizard, result *WizardResult, configDir string) {
+func PrintNextSteps(w *Wizard, result *WizardResult, configDir string, skillsCreated bool) {
+	skillsStatus := "already present"
+	if skillsCreated {
+		skillsStatus = "created"
+	}
 	w.printf("\n✓ Deft installed successfully!\n\n")
 	w.printf("  Location     : %s%c\n", result.DeftDir, os.PathSeparator)
 	w.printf("  AGENTS.md    : updated\n")
-	w.printf("  Skills       : .agents/skills/ created (auto-discovered by AI agents)\n")
+	w.printf("  Skills       : .agents/skills/ %s (auto-discovered by AI agents)\n", skillsStatus)
 	w.printf("  User config  : %s%c\n", configDir, os.PathSeparator)
 	w.printf("\nNext steps:\n")
 	w.printf("  1. Open your AI coding assistant in %s%c\n", result.ProjectDir, os.PathSeparator)
