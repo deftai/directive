@@ -4,7 +4,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 Only specify items here that **override or extend** the deft defaults.
 
-**Reference**: `main.md` | [languages/go.md](languages/go.md) | [languages/python.md](languages/python.md)
+**Reference**: [main.md](main.md) | [languages/go.md](languages/go.md) | [languages/python.md](languages/python.md)
 
 ## Project Configuration
 

@@ -315,7 +315,7 @@
       "traces": ["FR-25", "FR-26", "NFR-3"]
     },
     {
-      "id": "t3.1.3",
+      "id": "t3.1.2",
       "do": "Open GitHub issue for run CLI coverage tracking (NFR-2)",
       "status": "pending",
       "narrative": "Open a new GitHub issue titled 'Bring run CLI into test coverage measurement' in the Phase 4/5 backlog. Reference the exclusion in pyproject.toml. Include the rationale: run is terminal-only, excluded for now, refactor needed before coverage is meaningful.",
@@ -326,7 +326,7 @@
       "traces": ["NFR-2"]
     },
     {
-      "id": "t3.1.2",
+      "id": "t3.1.3",
       "do": "Raise pyproject.toml coverage threshold to 85% and document run exclusion (NFR-1, NFR-2, FR-27)",
       "status": "pending",
       "narrative": "Update pyproject.toml: fail_under = 85. Add comment in [tool.coverage.run] omit section explaining why run and run.py are excluded (terminal-only CLI path; pending dedicated refactor issue). Resolves stated-vs-enforced coverage gap.",
@@ -336,7 +336,7 @@
         "task test:coverage passes on current test suite (or failing tests are identified and fixed first)"
       ],
       "traces": ["NFR-1", "NFR-2", "FR-27"],
-      "dependencies": ["t3.1.1", "t3.1.3"]
+      "dependencies": ["t3.1.1", "t3.1.2"]
     }
   ]
 }

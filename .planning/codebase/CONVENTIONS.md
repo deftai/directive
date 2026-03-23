@@ -75,6 +75,11 @@ Use these symbols consistently — no raw "MUST/SHOULD" prose without the symbol
 
 **Schema:** Follow `https://github.com/deftai/vBRIEF` spec. Use `blocks` edges in `plan.vbrief.json` (outbound: "task A blocks task B"). Use `dependencies` in `specification.vbrief.json` (inbound: "task B depends on task A"). Both express the same relationship from different perspectives. Do not use `[P]`/`[S]`/`[B]` markers.
 
+**Required top-level fields (in order):**
+- `"vbrief": "0.5.0"` — schema version (must be first field)
+- `"plan"` — spec/plan name
+- `"status"` — document lifecycle state (`draft` | `proposed` | `approved`)
+
 ---
 
 ## SKILL.md Files
