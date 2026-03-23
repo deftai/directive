@@ -48,7 +48,7 @@ The run script's cmd_spec generates specification.vbrief.json. Audit the output 
 
 The deft-setup skill Phase 3 also generates specification.vbrief.json. Same audit as t1.2.1 for the agent-skill path. Update skills/deft-setup/SKILL.md Output sections to reference the correct schema. Closes #72 (agent skill path).
 
-- SKILL.md Phase 3 Output sections reference correct vBRIEF field names (plan not title as top-level key; pending/running/completed/blocked for task status, not legacy todo/doing/done)
+- SKILL.md Phase 3 Output sections reference correct vBRIEF field names (plan not title as top-level key; pending/running/completed/blocked/cancelled for task status, not legacy todo/doing/done)
 - tests/content/test_vbrief_schema.py assertions strengthened to catch field name violations
 
 ## t1.3.1: Fix run bootstrap infinite loop when strategies/ is empty (FR-7)  `[pending]`
@@ -193,7 +193,7 @@ Create meta/philosophy.md with full contract hierarchy narrative per #84 Phase 2
 
 ## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
 
-GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: (1) Python: ruff check, mypy run.py, pytest tests/ with coverage. (2) Go: go build ./cmd/deft-install/ for each platform matrix (linux/amd64, darwin/arm64, windows/amd64). Use current action versions. Closes #57.
+GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: (1) Python: ruff check, mypy tests/ (the shim run.py cannot be typed directly - exclude run and run.py from mypy per pyproject.toml, type-check the test suite instead), pytest tests/ with coverage. (2) Go: go build ./cmd/deft-install/ for each platform matrix (linux/amd64, darwin/arm64, windows/amd64). Use current action versions. Closes #57.
 
 - .github/workflows/ci.yml exists and is valid YAML
 - Python job runs: ruff, mypy, pytest with coverage

@@ -28,7 +28,7 @@ Use these symbols consistently — no raw "MUST/SHOULD" prose without the symbol
 
 **Naming:** `snake_case` for all functions, variables, modules. `UPPER_SNAKE_CASE` for constants.
 
-**Type hints:** Required on all function signatures (mypy enforced). Use `List`, `Optional` from `typing` for 3.11 compat.
+**Type hints:** Required on all function signatures (mypy enforced). Prefer built-in generics (`list[X]`, `dict[K, V]`, `X | None`) available since Python 3.10+; `typing.List` / `typing.Optional` are accepted for consistency with existing code.
 
 **Docstrings:** All public functions require a docstring. Format: one-line summary, blank line, Args/Returns if non-trivial.
 

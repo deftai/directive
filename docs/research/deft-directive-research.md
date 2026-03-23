@@ -20,7 +20,7 @@ Informed by `ROADMAP.md` and GitHub issues. Feeds into spec generation.
 ## Common Pitfalls
 
 **Pitfall: vBRIEF schema mismatches**
-- What happens: Agents generate spec JSON that fails validation — wrong field names (`title` instead of `plan`), wrong status values (`pending` instead of `todo`), missing required fields
+- What happens: Agents generate spec JSON that fails validation — wrong field names (`title` instead of `plan`), wrong status values (`todo` instead of `pending`), missing required fields
 - Why it happens: `vbrief/vbrief.md` documents the schema but agents don't read it unless explicitly directed; no validation gate before generating output
 - Avoid: Add `task spec:validate` to the pre-spec workflow gate; reference the vBRIEF schema from both `strategies/interview.md` and `deft-setup` Phase 3
 - Warning signs: #72 reproducer — `"status": "approved"` at the root level instead of per-task; `"title"` key at top level instead of `"plan"`; legacy `"todo"`/`"doing"`/`"done"` status values instead of `"pending"`/`"running"`/`"completed"`
