@@ -149,8 +149,8 @@
       "id": "t1.5.2",
       "do": "Document toolchain validation gate in framework (FR-12)",
       "status": "pending",
-      "narrative": "Create a new coding/toolchain.md requiring agents to verify required tools are installed before beginning implementation. Reference it from coding/coding.md. Closes #106."
-      "acceptance": [
+      "narrative": "Create a new coding/toolchain.md requiring agents to verify required tools are installed before beginning implementation. Reference it from coding/coding.md. Closes #106.",
+      "acceptance":
         "Framework contains ! rule: before implementation begins, verify all required tools are available (e.g. go version, uv --version, task --version)",
         "Rule lives in a new coding/toolchain.md, referenced (linked) from coding/coding.md"
       ],
