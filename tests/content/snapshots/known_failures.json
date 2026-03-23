@@ -282,6 +282,82 @@
       "xfail": false,
       "exempt": true,
       "fix_in": "N/A — historical record, intentionally preserved"
+    },
+    {
+      "id": "conventions-see-also-example",
+      "check": "test_contracts.see_also_links_resolve",
+      "composite_key": ".planning/codebase/CONVENTIONS.md::./relative-path",
+      "reason": "Inline code example demonstrating the See also pattern — not a real link.",
+      "xfail": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "deprecated-path-exempt-concerns",
+      "check": "test_standards.no_deprecated_user_path",
+      "file": ".planning/codebase/CONCERNS.md",
+      "reason": "Codebase mapping doc describing the legacy path as a known concern. Meta doc — exempt.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "deprecated-path-exempt-prd",
+      "check": "test_standards.no_deprecated_user_path",
+      "file": "PRD.md",
+      "reason": "PRD describes the deprecated path as a problem to fix (FR-13). Meta doc — exempt.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "warping-exempt-prd",
+      "check": "test_standards.no_warping_references",
+      "file": "PRD.md",
+      "reason": "PRD describes the Warping rename as a problem to fix (FR-23). Meta doc — exempt.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "deprecated-path-roadmap",
+      "check": "test_standards.no_deprecated_user_path",
+      "file": "ROADMAP.md",
+      "reason": "Roadmap references the deprecated path in task descriptions. Pre-existing.",
+      "xfail": true,
+      "fix_in": "Phase 2 (t2.1.1)"
+    },
+    {
+      "id": "warping-roadmap",
+      "check": "test_standards.no_warping_references",
+      "file": "ROADMAP.md",
+      "reason": "Roadmap references warping in task descriptions. Pre-existing.",
+      "xfail": true,
+      "fix_in": "Phase 2 (t2.4.1)"
+    },
+    {
+      "id": "deprecated-path-testbed-spec",
+      "check": "test_standards.no_deprecated_user_path",
+      "file": "specs/testbed/SPECIFICATION.md",
+      "reason": "Testbed spec references the deprecated path. Pre-existing.",
+      "xfail": true,
+      "fix_in": "Phase 2 (t2.1.1)"
+    },
+    {
+      "id": "warping-testbed-spec",
+      "check": "test_standards.no_warping_references",
+      "file": "specs/testbed/SPECIFICATION.md",
+      "reason": "Testbed spec references warping. Pre-existing.",
+      "xfail": true,
+      "fix_in": "Phase 2 (t2.4.1)"
+    },
+    {
+      "id": "warping-retired-todo",
+      "check": "test_standards.no_warping_references",
+      "file": "history/todo-2026-03-13-retired.md",
+      "reason": "Retired todo doc with historical warping references. Intentionally preserved.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A — historical record"
     }
   ]
 }

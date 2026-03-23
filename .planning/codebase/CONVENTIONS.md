@@ -12,7 +12,7 @@ Use these symbols consistently — no raw "MUST/SHOULD" prose without the symbol
 
 **File naming:** Lowercase hyphen-separated (e.g., `make-spec.md`, `code-field.md`).
 
-**Cross-references:** Top of file with `**⚠️ See also**: [file](./path)` pattern for related files.
+**Cross-references:** Top of file with `**⚠️ See also**: [file](./relative-path)` pattern for related files.
 
 **Where to add new content:**
 - New language standard → `languages/{language}.md` (copy an existing one for structure)
