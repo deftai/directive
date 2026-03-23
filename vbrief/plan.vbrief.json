@@ -1,0 +1,31 @@
+{
+  "vbrief": "0.5.0",
+  "plan": "Deft Directive specification",
+  "completedStrategies": [
+    {
+      "name": "map",
+      "runCount": 1,
+      "artifacts": [
+        ".planning/codebase/STACK.md",
+        ".planning/codebase/ARCHITECTURE.md",
+        ".planning/codebase/CONVENTIONS.md",
+        ".planning/codebase/CONCERNS.md"
+      ]
+    },
+    {
+      "name": "research",
+      "runCount": 1,
+      "artifacts": [
+        "docs/research/deft-directive-research.md"
+      ]
+    }
+  ],
+  "artifacts": [
+    ".planning/codebase/STACK.md",
+    ".planning/codebase/ARCHITECTURE.md",
+    ".planning/codebase/CONVENTIONS.md",
+    ".planning/codebase/CONCERNS.md",
+    "docs/research/deft-directive-research.md"
+  ],
+  "tasks": []
+}
