@@ -100,8 +100,8 @@
       "id": "t1.3.2",
       "do": "Add version display to all run CLI commands on startup (FR-10)",
       "status": "pending",
-      "narrative": "All cmd_* functions should print the VERSION on entry (e.g. 'Deft CLI v0.4.2'). Note: VERSION in run is currently 0.4.2; this value is provisional and will display behind the framework's 0.5.2 until version unification is addressed (see PRD Open Question 1). Closes #49."
-      "acceptance": [
+      "narrative": "All cmd_* functions should print the VERSION on entry (e.g. 'Deft CLI v0.4.2'). Note: VERSION in run is currently 0.4.2; this value is provisional and will display behind the framework's 0.5.2 until version unification is addressed (see PRD Open Question 1). Closes #49.",
+      "acceptance":
         "All cmd_* functions print version string on startup",
         "Version string format: 'Deft CLI v{VERSION}'",
         "tests/cli/test_import_smoke.py or per-command tests assert version output"
