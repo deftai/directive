@@ -305,7 +305,7 @@
       "narrative": "GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: (1) Python: ruff check, mypy tests/ (the shim run.py cannot be typed directly - exclude run and run.py from mypy per pyproject.toml, type-check the test suite instead), pytest tests/ with coverage. (2) Go: go build ./cmd/deft-install/ for each platform matrix (linux/amd64, darwin/arm64, windows/amd64). Use current action versions. Closes #57.",
       "acceptance": [
         ".github/workflows/ci.yml exists and is valid YAML",
-        "Python job runs: ruff, mypy, pytest with coverage",
+        "Python job runs: ruff, mypy tests/ (run and run.py excluded via pyproject.toml), pytest with coverage",
         "Go job builds installer for linux/amd64, darwin/arm64, and windows/amd64 (per NFR-3)",
         "Workflow triggers on pull_request and push to master",
         "CI passes on a clean branch"
