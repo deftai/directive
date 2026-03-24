@@ -1,4 +1,4 @@
-# Deft Directive — Roadmap
+﻿# Deft Directive — Roadmap
 
 Prioritized work items. **Principle: resolve open issues before new features.**
 
@@ -9,8 +9,7 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 Fix reported bugs and UX problems blocking adoption.
 
 ### Adoption Blockers (user-reported, highest priority)
-
-- **#105** — Add build output validation directive for custom build scripts (user-impacting directive gap: silent dist/ failures not caught by existing rules)
+- **#106**
 - **#106** — Add toolchain/environment validation gate before implementation (user-impacting: agent completed full workflow without required toolchain installed)
 
 - **#79** — deft-setup Phase 2 inference bleeds into `./deft/` framework internals (misidentifies project as "deft")
@@ -153,7 +152,7 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
-
+- ~~#105 — Add build output validation directive for custom build scripts (`coding/build-output.md`, `coding/testing.md` Build Output Tests, `meta/lessons.md` incident entry)~~ — 2026-03-24 (PR #121)
 - ~~#117 — Interview command loops in CLI — `cmd_project` no longer re-runs questionnaire after `cmd_install` chains through `cmd_spec`~~ — 2026-03-24 (Unreleased)
 - ~~#94 — Agent auto-alignment on startup: thin skill pointer + change lifecycle rule~~ — 2026-03-22 (PR #109)
 - ~~#54 — AGENTS.md provides no actionable onboarding~~ — 2026-03-20 (PR #93: actionable AGENTS.md, honest installer output, README fixes; absorbed #85)
@@ -267,3 +266,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-22 — triaged #101–#108: #101 absorbed into #56 (install path decision); #102 (Mermaid rules), #103 (standalone map), #104 (Holzmann rules) added to Phase 2; #105/#106 (build output + toolchain validation), #107/#108 (remove language from USER.md + platform-driven language shortlist) added to Phase 1*
 *Updated 2026-03-24 — moved #54/#94 to Completed (PRs #93/#109); added #112/#114 to Phase 2, #115 to Phase 3, #116/#117/#118 to Phase 1; indexed #96–#100 (compliance sub-issues individually); removed incorrect Node.js 24 deadline note*
 *Updated 2026-03-24 — moved #117 to Completed (CLI command chaining loop fixed, Unreleased)*
+*Updated 2026-03-24 — moved #105 to Completed (PR #121)*
