@@ -21,7 +21,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Task runner: `task --version` (required for quality gates)
 - ! Language runtime/compiler: e.g. `go version`, `python --version`, `node --version`, `swift --version`
 - ~ Platform SDK: e.g. `xcode-select -p` for iOS/macOS, Android SDK path for Android
-- ~ Project-specific tools listed in PROJECT.md or SPECIFICATION.md
+- ! Project-specific tools listed in PROJECT.md or SPECIFICATION.md
 
 ## On Missing Tools
 
