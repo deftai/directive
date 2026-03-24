@@ -372,6 +372,7 @@ options and wait for the user to choose.
 ### Options
 
 1. **Accept** — spec is approved, proceed to implementation
+   - ! Before handing off to implementation, verify the project toolchain is installed and functional — see [../coding/toolchain.md](../coding/toolchain.md); stop and report if any required tool is missing
 2. **Revise** — return to the [Chaining Gate](#chaining-gate) with all prior
    context preserved (completed strategies, artifacts). Run additional
    preparatory strategies or regenerate the spec.

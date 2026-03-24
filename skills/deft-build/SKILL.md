@@ -76,7 +76,14 @@ SPECIFICATION.md   ← LOWEST
 
 > "Here's what I see: Phase 1: {name} ({N} tasks), Phase 2: {name} (depends on Phase 1). I'll start with Phase 1. Ready?"
 
-### Step 2: Build Phase by Phase
+### Step 2: Verify Toolchain
+
+- ! Before any implementation, verify all tools required by this project are installed and functional — see `deft/coding/toolchain.md` for full rules
+- ! At minimum: confirm task runner (`task --version`), language compiler/runtime, and platform SDK are available
+- ! If any required tool is missing, stop and report — do not proceed to Step 3
+- ⊗ Assume tools are available because the spec references them
+
+### Step 3: Build Phase by Phase
 
 For each phase:
 
@@ -88,7 +95,7 @@ For each phase:
 
 - ⊗ Move to next phase until current phase passes all checks
 
-### Step 3: Quality Gates
+### Step 4: Quality Gates
 
 After EVERY phase:
 
