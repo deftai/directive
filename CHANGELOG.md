@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Build Output Validation Directive**: Added `coding/build-output.md` with RFC2119 rules for post-build artifact verification — MUST verify expected output files exist and are structurally valid after custom build scripts, especially non-compiled assets bundlers don't track; referenced from `coding/coding.md`; added `### Build Output Tests` section to `coding/testing.md`; codified root cause in `meta/lessons.md` (#105)
 - **AGENTS.md Development Process**: Added "Development Process (always follow)" section codifying pre-code spec review, pre-commit `task check` gate, CHANGELOG/PR-template requirements, and commit message conventions — ensures agents follow deft conventions automatically via Warp project rules (partially addresses #114)
 
 ### Fixed
