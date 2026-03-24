@@ -113,8 +113,9 @@ def test_project_returns_after_install_chain(
 
     result = run_command("cmd_project", [])
 
-    assert result.return_code in (0, None), (
-        f"Expected success, got rc={result.return_code}\n{result.stderr}"
+    assert result.return_code == 0, (
+        f"Expected return 0 from cmd_install chain, "
+        f"got rc={result.return_code}\n{result.stderr}"
     )
     assert call_count["cmd_install"] == 1, "cmd_install should be called exactly once"
     # PROJECT.md should NOT exist — the original cmd_project returned
