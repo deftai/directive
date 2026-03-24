@@ -120,7 +120,7 @@ Complements the Go installer (which targets novice/bare-machine users).
 
 - **#56** — Reduce installation friction — add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)
 - **#53** — deft-install should bootstrap the current directory by default
-- **#75** — Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.) *(depends on #54)*
+- **#75** — Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)
 - **#11** — NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)
 
 **Prerequisites:** Phase 2 complete (clean content), issue #4 resolved (project-local layout)
@@ -223,7 +223,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #68 | Warp not always enforcing Deft testing protocols | 1 |
 | #72 | vBRIEF files still invalid on master | 1 |
 | #74 | Automate release process and CI changelog enforcement | 3 |
-| #75 | Skill auto-discovery for deft skills (depends on #54) | 4 |
+| #75 | Skill auto-discovery for deft skills | 4 |
 | #76 | Obsidian Vault generation as structured agent memory | 5 |
 | #77 | Allow users to change technical rating per project | 5 |
 | #78 | Bootstrap: offer to update user preferences | 5 |
@@ -241,11 +241,8 @@ Larger feature work — only after issues are resolved and content is stable.
 | #103 | Standalone brownfield/map analysis without requiring interview | 2 |
 | #104 | Holzmann Power of 10 rules (`coding/holzmann.md`) | 2 |
 | #105 | Build output validation directive for custom build scripts | 1 |
-
 | #106 | Toolchain/environment validation gate before implementation | 1 |
-
 | #107 | Remove language defaults from USER.md | 1 |
-
 | #108 | Ask deployment platform before language | 1 |
 | #96 | [Compliance] Config schema + compliance-aware constitution templates | 5 |
 | #97 | [Compliance] Framework control mapping registry | 5 |
@@ -258,8 +255,6 @@ Larger feature work — only after issues are resolved and content is stable.
 | #116 | All files must be installed consistently under `./deft/` | 1 |
 | #117 | Interview command loops in CLI after `run spec` completes | 1 |
 | #118 | CLI code quality sweep (version mismatch, bare except, undocumented flags, env var naming) | 1 |
-
-
 
 ---
 
