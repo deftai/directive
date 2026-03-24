@@ -28,4 +28,3 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Report exactly which tools are missing and provide install guidance
 - ! Do not partially implement using available tools while skipping quality gates
 - ~ Offer to help install missing tools if the user consents
-- ⊗ Proceed with any implementation phase when a required quality gate tool (task, compiler, SDK) is unavailable
