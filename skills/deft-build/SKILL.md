@@ -48,7 +48,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
   4. `deft/main.md` — framework guidelines
   5. `deft/coding/coding.md` — coding standards
   6. `deft/coding/testing.md` — testing requirements
-  7. `deft/languages/{language}.md` — only for languages this project uses
+  7. `deft/coding/toolchain.md` — toolchain validation rules
+  8. `deft/languages/{language}.md` — only for languages this project uses
 - ⊗ Read all language/interface/tool files upfront
 
 ## Rule Precedence
