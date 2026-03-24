@@ -273,7 +273,6 @@ def get_available_strategies() -> List[tuple]:
     """
     strat_dir = get_script_dir() / "strategies"
     if not strat_dir.is_dir():
-        print_warn(f"strategies/ directory not found at {strat_dir}")
         return []
     
     strategies = []
@@ -750,8 +749,11 @@ def cmd_bootstrap(args: List[str]):
     # Build coverage override line (only if non-default)
     coverage_line = f"\n**Coverage**: ! ≥{coverage}% test coverage" if coverage != "85" else ""
     
-    # Build strategy line
-    strategy_line = f"**Default Strategy**: [{strategy_display}](../strategies/{strategy_stem}.md)"
+    # Build strategy line (omit link when no strategy files exist)
+    if available_strats:
+        strategy_line = f"**Default Strategy**: [{strategy_display}](../strategies/{strategy_stem}.md)"
+    else:
+        strategy_line = f"**Default Strategy**: {strategy_display}"
     
     # Generate user.md
     user_content = f"""# User Preferences
@@ -1133,8 +1135,11 @@ def cmd_project(args: List[str]):
     # Build coverage override line (only if non-default)
     coverage_line = f"\n- **Coverage**: ! ≥{proj_coverage}% (overrides default 85%)" if proj_coverage != "85" else ""
     
-    # Build strategy line
-    strategy_use_line = f"Use [{strategy_display}](../strategies/{strategy_stem}.md) for this project."
+    # Build strategy line (omit link when no strategy files exist)
+    if available_strats:
+        strategy_use_line = f"Use [{strategy_display}](../strategies/{strategy_stem}.md) for this project."
+    else:
+        strategy_use_line = f"Use {strategy_display} for this project."
     
     project_content = f"""# {project_name} Project Guidelines
 
