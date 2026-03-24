@@ -48,7 +48,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
   4. `deft/main.md` — framework guidelines
   5. `deft/coding/coding.md` — coding standards
   6. `deft/coding/testing.md` — testing requirements
-  7. `deft/languages/{language}.md` — only for languages this project uses
+  7. `deft/coding/toolchain.md` — toolchain validation rules
+  8. `deft/languages/{language}.md` — only for languages this project uses
 - ⊗ Read all language/interface/tool files upfront
 
 ## Rule Precedence
@@ -76,7 +77,14 @@ SPECIFICATION.md   ← LOWEST
 
 > "Here's what I see: Phase 1: {name} ({N} tasks), Phase 2: {name} (depends on Phase 1). I'll start with Phase 1. Ready?"
 
-### Step 2: Build Phase by Phase
+### Step 2: Verify Toolchain
+
+- ! Before any implementation, verify all tools required by this project are installed and functional — see `deft/coding/toolchain.md` for full rules
+- ! At minimum: confirm task runner (`task --version`), language compiler/runtime, and platform SDK (if applicable) are available
+- ! If any required tool is missing, stop and report — do not proceed to Step 3
+- ⊗ Assume tools are available because the spec references them
+
+### Step 3: Build Phase by Phase
 
 For each phase:
 
@@ -88,7 +96,7 @@ For each phase:
 
 - ⊗ Move to next phase until current phase passes all checks
 
-### Step 3: Quality Gates
+### Step 4: Quality Gates
 
 After EVERY phase:
 
@@ -149,3 +157,4 @@ feat(phase-2): add REST API endpoints with integration tests
 - ⊗ Move to next phase before current passes checks
 - ⊗ Make commits without running `task check`
 - ⊗ Proceed without USER.md — always run the USER.md Gate first
+- ⊗ Proceed with implementation when the build or test toolchain is unavailable — always run the Toolchain Gate (Step 2) first

@@ -37,6 +37,18 @@ When a linter demands an explicit parameter (e.g. `strict=` on `zip()`), the cho
 
 The PR checklist correctly guards `[Unreleased]` entries during review. But promoting `[Unreleased]` → `[X.Y.Z]` (and updating the comparison links) is a **post-merge release step** that happens at tag time, not PR time. These two steps are easy to conflate and the promotion is easy to forget when the tag and push happen in rapid succession. Until `task release` is implemented (tracked in issue #74), the release sequence MUST be: (1) promote CHANGELOG, (2) commit, (3) tag, (4) push tag. MUST NOT tag before the CHANGELOG promotion commit is on the target branch.
 
+## Toolchain Validation Gate (2026-03)
+
+**Source:** Issue #106 — full DEFT workflow completed on iOS/Swift project without Xcode or task installed
+
+**The agent completed interview → PRD → SPEC → implementation without verifying the toolchain**
+
+An agent ran the full DEFT interview (selecting strict release gate: unit + UI + accessibility + performance tests), scaffolded and implemented an iOS app, ran only `swift test` (4 tests, no coverage), and declared success. Neither `task` nor Xcode were available in the session. The quality gates the user explicitly chose were never enforceable.
+
+Existing directives (`! Run all relevant checks`, `⊗ Claim checks passed without running them`) did not prevent this — they govern *execution*, not *prerequisite verification*. There was no rule requiring the agent to verify that the tools needed to enforce quality gates existed before implementation began.
+
+**Before beginning any implementation phase, MUST verify that the complete toolchain required for that phase is installed and functional. If the build or test toolchain is unavailable, stop and report — do not proceed. Quality gates chosen during the interview are meaningless if the tools to enforce them are absent.**
+
 ## Build Script Output Validation (2026-03)
 
 **Source:** Issue #105 — silent `dist/` failure in a Chrome extension build

@@ -106,12 +106,15 @@ New file documenting rules for validating build output (dist/, bin/, artifacts).
 - Contains ! rules for: verifying artifact existence, checking non-zero size, failing on missing expected outputs
 - Referenced from coding/coding.md
 
-## t1.5.2: Document toolchain validation gate in framework (FR-12)  `[pending]`
+## t1.5.2: Document toolchain validation gate in framework (FR-12)  `[done]`
 
-Create a new coding/toolchain.md requiring agents to verify required tools are installed before beginning implementation. Reference it from coding/coding.md. Closes #106.
+Create a new coding/toolchain.md requiring agents to verify required tools are installed before beginning implementation. Reference it from coding/coding.md. Add a toolchain check step to the strategies/interview.md Acceptance Gate (the blocking gate between spec and implementation). Add a toolchain check step to skills/deft-build/SKILL.md as the explicit implementation-kickoff skill. Document the incident in meta/lessons.md. Closes #106.
 
-- Framework contains ! rule: before implementation begins, verify all required tools are available (e.g. go version, uv --version, task --version)
-- Rule lives in a new coding/toolchain.md, referenced (linked) from coding/coding.md
+- coding/toolchain.md exists with RFC2119 legend and ! rule: before implementation begins, verify all required tools are available (e.g. task --version, language compiler/runtime, platform SDK if applicable); stop and report if any are missing
+- coding/toolchain.md referenced (linked) from coding/coding.md under Build Automation
+- strategies/interview.md Acceptance Gate includes a toolchain verification step before handing off to implementation (pointer to coding/toolchain.md)
+- skills/deft-build/SKILL.md includes an explicit pre-implementation toolchain check step (pointer to coding/toolchain.md)
+- meta/lessons.md documents the iOS/Swift incident: full DEFT workflow completed without Xcode or task installed; quality gates chosen by user were never enforceable
 
 ## t2.1.1: Update all stale core/user.md and core/project.md references to canonical paths (FR-13)  `[pending]`
 
