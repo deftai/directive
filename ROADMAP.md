@@ -9,8 +9,6 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 Fix reported bugs and UX problems blocking adoption.
 
 ### Adoption Blockers (user-reported, highest priority)
-- **#106**
-- **#106** — Add toolchain/environment validation gate before implementation (user-impacting: agent completed full workflow without required toolchain installed)
 
 - **#79** — deft-setup Phase 2 inference bleeds into `./deft/` framework internals (misidentifies project as "deft")
 - **#80** — deft-setup Phase 2 project name inference has no fallback when no build files exist
@@ -27,6 +25,7 @@ Fix reported bugs and UX problems blocking adoption.
 - **#50** — Strategies still have redundant old names (`brownfield.md` → `map.md`, `default.md` → `interview.md`)
 - **#49** — All CLI commands should display version on startup
 - **#116** — All deft files must be installed consistently under `./deft/` — placement is inconsistent across projects
+- **#123** — Change lifecycle gate skipped when agent receives broad ‘proceed’ instruction on multi-file changes — strengthen /deft:change rule, add PR template checklist item, add enforcement to deft-build SKILL.md
 - **#118** — CLI code quality sweep: version mismatch in docstring, bare `except` swallowing critical errors, undocumented `--force` flag, `DEFT_PRD_PATH` env var misused on Light path
 
 ---
@@ -152,6 +151,7 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#106 — Add toolchain/environment validation gate (coding/toolchain.md, deft-build Step 2, strategies/interview.md Acceptance Gate, meta/lessons.md incident entry)~~ — 2026-03-24 (PR #122)
 - ~~#105 — Add build output validation directive for custom build scripts (`coding/build-output.md`, `coding/testing.md` Build Output Tests, `meta/lessons.md` incident entry)~~ — 2026-03-24 (PR #121)
 - ~~#117 — Interview command loops in CLI — `cmd_project` no longer re-runs questionnaire after `cmd_install` chains through `cmd_spec`~~ — 2026-03-24 (Unreleased)
 - ~~#94 — Agent auto-alignment on startup: thin skill pointer + change lifecycle rule~~ — 2026-03-22 (PR #109)
@@ -240,7 +240,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #103 | Standalone brownfield/map analysis without requiring interview | 2 |
 | #104 | Holzmann Power of 10 rules (`coding/holzmann.md`) | 2 |
 | #105 | Build output validation directive for custom build scripts | 1 |
-| #106 | Toolchain/environment validation gate before implementation | 1 |
+| ~~#106~~ | ~~Toolchain/environment validation gate before implementation~~ | completed — PR #122 |
 | #107 | Remove language defaults from USER.md | 1 |
 | #108 | Ask deployment platform before language | 1 |
 | #96 | [Compliance] Config schema + compliance-aware constitution templates | 5 |
@@ -252,6 +252,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #114 | Document all global Warp rules used for deft directive development | 2 |
 | #115 | Strengthen spec validation gate and rendered artifact freshness | 3 |
 | #116 | All files must be installed consistently under `./deft/` | 1 |
+| #123 | Change lifecycle gate skipped on broad ‘proceed’ instruction | 1 |
 | #118 | CLI code quality sweep (version mismatch, bare except, undocumented flags, env var naming) | 1 |
 
 ---
@@ -267,3 +268,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #54/#94 to Completed (PRs #93/#109); added #112/#114 to Phase 2, #115 to Phase 3, #116/#117/#118 to Phase 1; indexed #96–#100 (compliance sub-issues individually); removed incorrect Node.js 24 deadline note*
 *Updated 2026-03-24 — moved #117 to Completed (CLI command chaining loop fixed, Unreleased)*
 *Updated 2026-03-24 — moved #105 to Completed (PR #121)*
+*Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
