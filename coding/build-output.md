@@ -18,5 +18,5 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Smoke Tests
 
-- ~ Build scripts that produce `dist/` artifacts SHOULD have a smoke test verifying expected output files exist and contain expected content
+- ~ Build scripts that produce `dist/` artifacts have a smoke test verifying expected output files exist and contain expected content
 - ~ See [testing.md](../coding/testing.md#build-output-tests) for test type guidance and examples

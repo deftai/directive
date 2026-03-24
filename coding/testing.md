@@ -88,8 +88,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ### Build Output Tests
 
-- ~ Build scripts that produce `dist/` artifacts SHOULD have a smoke test verifying expected output files exist and contain expected content
-- ! Non-compiled assets (manifests, configs, extension metadata) that bundlers don't track MUST be explicitly verified post-build
+- ~ Build scripts that produce `dist/` artifacts have a smoke test verifying expected output files exist and contain expected content
+- ! Non-compiled assets (manifests, configs, extension metadata) that bundlers don't track are explicitly verified post-build
 - ~ Verify file presence, non-empty size, and structural validity (e.g. required JSON keys present)
 - ! A build that exits 0 but produces stale or incomplete artifacts is a silent failure — treat it as a build failure (#105)
 
