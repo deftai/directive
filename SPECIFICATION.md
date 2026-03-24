@@ -110,7 +110,7 @@ New file documenting rules for validating build output (dist/, bin/, artifacts).
 
 Create a new coding/toolchain.md requiring agents to verify required tools are installed before beginning implementation. Reference it from coding/coding.md. Add a toolchain check step to the strategies/interview.md Acceptance Gate (the blocking gate between spec and implementation). Add a toolchain check step to skills/deft-build/SKILL.md as the explicit implementation-kickoff skill. Document the incident in meta/lessons.md. Closes #106.
 
-- coding/toolchain.md exists with RFC2119 legend and ! rule: before implementation begins, verify all required tools are available (e.g. task --version, language compiler/runtime, platform SDK); stop and report if any are missing
+- coding/toolchain.md exists with RFC2119 legend and ! rule: before implementation begins, verify all required tools are available (e.g. task --version, language compiler/runtime, platform SDK if applicable); stop and report if any are missing
 - coding/toolchain.md referenced (linked) from coding/coding.md under Build Automation
 - strategies/interview.md Acceptance Gate includes a toolchain verification step before handing off to implementation (pointer to coding/toolchain.md)
 - skills/deft-build/SKILL.md includes an explicit pre-implementation toolchain check step (pointer to coding/toolchain.md)
