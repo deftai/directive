@@ -273,6 +273,7 @@ def get_available_strategies() -> List[tuple]:
     """
     strat_dir = get_script_dir() / "strategies"
     if not strat_dir.is_dir():
+        print_warn(f"strategies/ directory not found at {strat_dir}")
         return []
     
     strategies = []
@@ -621,29 +622,33 @@ def cmd_bootstrap(args: List[str]):
             default_strat_num = str(i)
             break
     if 'strat_selection' not in progress:
-        print()
-        print_section("Development Strategy")
-        info("Select your default development strategy:")
-        for i, (stem, display) in enumerate(available_strats, 1):
-            desc = _STRATEGY_DESCRIPTIONS.get(stem, '')
-            marker = " ★ RECOMMENDED" if str(i) == default_strat_num else ""
-            print(f"  {i}. {display}{marker}")
-            if desc:
-                print(f"     {desc}")
-        print()
-        info("💡 Strategies can be chained — after one completes, you'll be asked if you want to run another.")
-        while True:
-            strat_selection = read_input("Selection", default_strat_num)
-            if not strat_selection.strip():
-                strat_selection = default_strat_num
-                break
-            try:
-                num = int(strat_selection.strip())
-                if 1 <= num <= max_strat:
+        if max_strat == 0:
+            warn("No strategy files found in strategies/ — defaulting to Interview.")
+            strat_selection = "1"
+        else:
+            print()
+            print_section("Development Strategy")
+            info("Select your default development strategy:")
+            for i, (stem, display) in enumerate(available_strats, 1):
+                desc = _STRATEGY_DESCRIPTIONS.get(stem, '')
+                marker = " ★ RECOMMENDED" if str(i) == default_strat_num else ""
+                print(f"  {i}. {display}{marker}")
+                if desc:
+                    print(f"     {desc}")
+            print()
+            info("💡 Strategies can be chained — after one completes, you'll be asked if you want to run another.")
+            while True:
+                strat_selection = read_input("Selection", default_strat_num)
+                if not strat_selection.strip():
+                    strat_selection = default_strat_num
                     break
-            except ValueError:
-                pass
-            print_error(f"Please enter a number between 1 and {max_strat}.")
+                try:
+                    num = int(strat_selection.strip())
+                    if 1 <= num <= max_strat:
+                        break
+                except ValueError:
+                    pass
+                print_error(f"Please enter a number between 1 and {max_strat}.")
         progress['strat_selection'] = strat_selection
         _save_progress(prog_file, progress)
     else:
@@ -655,9 +660,9 @@ def cmd_bootstrap(args: List[str]):
         if 0 <= strat_idx < len(available_strats):
             selected_strategy = available_strats[strat_idx]
         else:
-            selected_strategy = available_strats[0] if available_strats else ("default", "Default")
+            selected_strategy = available_strats[0] if available_strats else ("interview", "Interview")
     except ValueError:
-        selected_strategy = available_strats[0] if available_strats else ("default", "Default")
+        selected_strategy = available_strats[0] if available_strats else ("interview", "Interview")
     strategy_stem, strategy_display = selected_strategy
     
     showed_custom_rules_header = 'has_custom_rules' not in progress
@@ -836,7 +841,7 @@ def cmd_project(args: List[str]):
     if not Path("./deft").is_dir():
         warn("No ./deft directory found. Run 'run install' first or specify a project directory.")
         if read_yn("Install deft in current directory?"):
-            cmd_install(["."])
+            return cmd_install(["."])
         else:
             return 1
     
@@ -1034,61 +1039,65 @@ def cmd_project(args: List[str]):
             default_strat_num = str(i)
             break
     if 'strat_selection' not in progress:
-        print()
-        print_section("Development Strategy")
-        if user_defaults.get('strategy'):
-            user_strat_stem = user_defaults['strategy']
-            user_strat_display = user_defaults.get('strategy_display', user_strat_stem.title())
-            info(f"Default strategy from USER.md: {user_strat_display}")
-            info("Does this project need a different strategy?")
-            user_pref_strat_num = next(
-                (str(i) for i, (stem, _) in enumerate(available_strats, 1)
-                 if stem.lower() == user_strat_stem.lower()),
-                default_strat_num,
-            )
-            for i, (stem, display) in enumerate(available_strats, 1):
-                desc = _STRATEGY_DESCRIPTIONS.get(stem, '')
-                marker = " ★ your default" if str(i) == user_pref_strat_num else ""
-                print(f"  {i}. {display}{marker}")
-                if desc:
-                    print(f"     {desc}")
-            print()
-            info("💡 Strategies can be chained — after one completes, you'll be asked if you want to run another.")
-            while True:
-                strat_selection = read_input(
-                    f"Selection, or Enter to keep [{user_strat_display}]", ""
-                )
-                if not strat_selection.strip():
-                    break  # Accept USER.md default
-                try:
-                    num = int(strat_selection.strip())
-                    if 1 <= num <= max_strat:
-                        break
-                except ValueError:
-                    pass
-                print_error(f"Please enter a number between 1 and {max_strat}.")
+        if max_strat == 0:
+            warn("No strategy files found in strategies/ — defaulting to Interview.")
+            strat_selection = ""
         else:
-            info("Select development strategy for this project:")
-            for i, (stem, display) in enumerate(available_strats, 1):
-                desc = _STRATEGY_DESCRIPTIONS.get(stem, '')
-                marker = " ★ RECOMMENDED" if str(i) == default_strat_num else ""
-                print(f"  {i}. {display}{marker}")
-                if desc:
-                    print(f"     {desc}")
             print()
-            info("💡 Strategies can be chained — after one completes, you'll be asked if you want to run another.")
-            while True:
-                strat_selection = read_input("Selection", "1")
-                if not strat_selection.strip():
-                    strat_selection = "1"
-                    break
-                try:
-                    num = int(strat_selection.strip())
-                    if 1 <= num <= max_strat:
+            print_section("Development Strategy")
+            if user_defaults.get('strategy'):
+                user_strat_stem = user_defaults['strategy']
+                user_strat_display = user_defaults.get('strategy_display', user_strat_stem.title())
+                info(f"Default strategy from USER.md: {user_strat_display}")
+                info("Does this project need a different strategy?")
+                user_pref_strat_num = next(
+                    (str(i) for i, (stem, _) in enumerate(available_strats, 1)
+                     if stem.lower() == user_strat_stem.lower()),
+                    default_strat_num,
+                )
+                for i, (stem, display) in enumerate(available_strats, 1):
+                    desc = _STRATEGY_DESCRIPTIONS.get(stem, '')
+                    marker = " ★ your default" if str(i) == user_pref_strat_num else ""
+                    print(f"  {i}. {display}{marker}")
+                    if desc:
+                        print(f"     {desc}")
+                print()
+                info("💡 Strategies can be chained — after one completes, you'll be asked if you want to run another.")
+                while True:
+                    strat_selection = read_input(
+                        f"Selection, or Enter to keep [{user_strat_display}]", ""
+                    )
+                    if not strat_selection.strip():
+                        break  # Accept USER.md default
+                    try:
+                        num = int(strat_selection.strip())
+                        if 1 <= num <= max_strat:
+                            break
+                    except ValueError:
+                        pass
+                    print_error(f"Please enter a number between 1 and {max_strat}.")
+            else:
+                info("Select development strategy for this project:")
+                for i, (stem, display) in enumerate(available_strats, 1):
+                    desc = _STRATEGY_DESCRIPTIONS.get(stem, '')
+                    marker = " ★ RECOMMENDED" if str(i) == default_strat_num else ""
+                    print(f"  {i}. {display}{marker}")
+                    if desc:
+                        print(f"     {desc}")
+                print()
+                info("💡 Strategies can be chained — after one completes, you'll be asked if you want to run another.")
+                while True:
+                    strat_selection = read_input("Selection", "1")
+                    if not strat_selection.strip():
+                        strat_selection = "1"
                         break
-                except ValueError:
-                    pass
-                print_error(f"Please enter a number between 1 and {max_strat}.")
+                    try:
+                        num = int(strat_selection.strip())
+                        if 1 <= num <= max_strat:
+                            break
+                    except ValueError:
+                        pass
+                    print_error(f"Please enter a number between 1 and {max_strat}.")
         progress['strat_selection'] = strat_selection
         progress['_had_user_strat_default'] = bool(user_defaults.get('strategy'))
         _save_progress(prog_file, progress)
@@ -1099,7 +1108,7 @@ def cmd_project(args: List[str]):
     # Parse strategy selection
     has_user_strat_default = user_defaults.get('strategy') or progress.get('_had_user_strat_default')
     if not strat_selection.strip() and has_user_strat_default:
-        user_strat_stem = user_defaults.get('strategy', 'default')
+        user_strat_stem = user_defaults.get('strategy', 'interview')
         user_strat_display = user_defaults.get('strategy_display', user_strat_stem.title())
         selected_strategy = (user_strat_stem, user_strat_display)
     else:
@@ -1108,9 +1117,9 @@ def cmd_project(args: List[str]):
             if 0 <= strat_idx < len(available_strats):
                 selected_strategy = available_strats[strat_idx]
             else:
-                selected_strategy = available_strats[0] if available_strats else ("default", "Default")
+                selected_strategy = available_strats[0] if available_strats else ("interview", "Interview")
         except ValueError:
-            selected_strategy = available_strats[0] if available_strats else ("default", "Default")
+            selected_strategy = available_strats[0] if available_strats else ("interview", "Interview")
     strategy_stem, strategy_display = selected_strategy
     
     # Generate project.md

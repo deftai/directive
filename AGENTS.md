@@ -20,6 +20,21 @@ Check what exists before doing anything else:
 
 When all config exists: read the guidelines, your USER.md preferences, and PROJECT.md, then continue with your task.
 
+## Development Process (always follow)
+
+**Before code changes:**
+- Read SPECIFICATION.md for existing task coverage of the issue being fixed
+- If no spec task exists for the work, add one before implementing
+
+**Before committing:**
+- Run `task check` (validate + lint + test) — this is the pre-commit gate
+- Add CHANGELOG.md entry under `[Unreleased]`
+- Verify .github/PULL_REQUEST_TEMPLATE.md checklist items are satisfied
+
+**PR conventions:**
+- ROADMAP.md updates happen on merge (don't move issues to Completed prematurely)
+- Commit messages: `feat/fix/docs/chore` prefix, concise subject, bullet-point body
+
 ## Commands
 
 - /deft:change <name>        — Propose a scoped change

@@ -65,6 +65,14 @@ cmd_bootstrap enters an infinite loop when get_available_strategies() returns an
 - Fallback to 'interview' strategy is logged as a warning
 - tests/cli/test_bootstrap.py covers empty-strategies-dir scenario
 
+## t1.3.3: Fix cmd_project command-chaining loop after cmd_install (FR-7b)  `[pending]`
+
+cmd_project calls cmd_install(["."]]) without return when ./deft/ is missing. After cmd_install chains → cmd_project → cmd_spec and unwinds, the original cmd_project falls through and re-runs the entire questionnaire, overwriting completed work. Fix: return cmd_install(["."]). Closes #117.
+
+- cmd_project returns cleanly after cmd_install chains through the full workflow
+- No duplicate PROJECT.md questionnaire after run spec completes
+- tests/cli/test_project.py covers install-chain-through scenario
+
 ## t1.3.2: Add version display to all run CLI commands on startup (FR-10)  `[pending]`
 
 All cmd_* functions should print the VERSION on entry (e.g. 'Deft CLI v0.4.2'). Note: VERSION in run is currently 0.4.2; this value is provisional and will display behind the framework's 0.5.2 until version unification is addressed (see PRD Open Question 1). Closes #49.
