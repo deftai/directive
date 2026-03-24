@@ -63,7 +63,7 @@ cmd_bootstrap enters an infinite loop when get_available_strategies() returns an
 
 - cmd_bootstrap completes without looping when strategies/ is empty
 - Fallback to 'interview' strategy is logged as a warning
-- tests/cli/test_bootstrap.py covers empty-strategies-dir scenario
+- tests/cli/test_loop_bugs.py covers empty-strategies-dir scenario (cmd_bootstrap and cmd_project)
 
 ## t1.3.3: Fix cmd_project command-chaining loop after cmd_install (FR-7b)  `[pending]`
 
@@ -71,7 +71,7 @@ cmd_project calls cmd_install(["."]) without return when ./deft/ is missing. Aft
 
 - cmd_project returns cleanly after cmd_install chains through the full workflow
 - No duplicate PROJECT.md questionnaire after run spec completes
-- tests/cli/test_project.py covers install-chain-through scenario
+- tests/cli/test_loop_bugs.py covers install-chain-through scenario
 
 ## t1.3.2: Add version display to all run CLI commands on startup (FR-10)  `[pending]`
 
