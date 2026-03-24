@@ -37,6 +37,18 @@ When a linter demands an explicit parameter (e.g. `strict=` on `zip()`), the cho
 
 The PR checklist correctly guards `[Unreleased]` entries during review. But promoting `[Unreleased]` → `[X.Y.Z]` (and updating the comparison links) is a **post-merge release step** that happens at tag time, not PR time. These two steps are easy to conflate and the promotion is easy to forget when the tag and push happen in rapid succession. Until `task release` is implemented (tracked in issue #74), the release sequence MUST be: (1) promote CHANGELOG, (2) commit, (3) tag, (4) push tag. MUST NOT tag before the CHANGELOG promotion commit is on the target branch.
 
+## Build Script Output Validation (2026-03)
+
+**Source:** Issue #105 — silent `dist/` failure in a Chrome extension build
+
+**AI edits to build scripts can silently drop asset copy steps — builds succeed but `dist/` is stale**
+
+An AI edit to `build.mjs` dropped a `copyFileSync` call for `manifest.json`. The build ran without error, but `dist/manifest.json` was stale — missing `content_scripts`, `storage`, and `host_permissions`. The extension overlay silently failed with no visible error.
+
+Existing directives (`! Run all relevant checks`, `! Call out risk when touching build systems`) did not prevent this — they are process rules (run checks) not output validation rules (verify what was produced). A build exiting 0 is not proof that `dist/` is correct.
+
+**When modifying a build script, MUST verify that expected output artifacts exist and are structurally valid after the build runs. Non-compiled assets that bundlers don't track (manifests, configs, extension metadata) are especially at risk of silent omission.**
+
 ## Windows File Editing (2026-03)
 
 **Source:** ROADMAP.md edits during feat/agents-md-onboarding-54 — three sequential failures before clean write

@@ -98,7 +98,7 @@ brownfield.md is a legacy alias for map.md. Replace content with a short redirec
 - strategies/map.md is the canonical document
 - tests/content/test_standards.py passes
 
-## t1.5.1: Write coding/build-output.md — build output validation directive (FR-11)  `[pending]`
+## t1.5.1: Write coding/build-output.md — build output validation directive (FR-11)  `[done]`
 
 New file documenting rules for validating build output (dist/, bin/, artifacts). Agents must: verify expected artifacts exist post-build, check artifact sizes are non-zero, fail loudly on silent build failures. Closes #105.
 

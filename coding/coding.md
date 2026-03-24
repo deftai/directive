@@ -91,6 +91,9 @@ See [../scm/git.md](../scm/git.md) for:
 - ! If installation fails, stop and ask user for help
 - See [../tools/taskfile.md](../tools/taskfile.md) for standards and common commands
 
+**Build Output Validation:**
+- See [../coding/build-output.md](../coding/build-output.md) for rules on verifying `dist/` artifacts and non-compiled assets after custom build scripts run
+
 ## Change Management
 
 **Impact Awareness:**
