@@ -80,7 +80,7 @@ SPECIFICATION.md   ← LOWEST
 ### Step 2: Verify Toolchain
 
 - ! Before any implementation, verify all tools required by this project are installed and functional — see `deft/coding/toolchain.md` for full rules
-- ! At minimum: confirm task runner (`task --version`), language compiler/runtime, and platform SDK are available
+- ! At minimum: confirm task runner (`task --version`), language compiler/runtime, and platform SDK (if applicable) are available
 - ! If any required tool is missing, stop and report — do not proceed to Step 3
 - ⊗ Assume tools are available because the spec references them
 
