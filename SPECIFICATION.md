@@ -67,7 +67,7 @@ cmd_bootstrap enters an infinite loop when get_available_strategies() returns an
 
 ## t1.3.3: Fix cmd_project command-chaining loop after cmd_install (FR-7b)  `[pending]`
 
-cmd_project calls cmd_install(["."]]) without return when ./deft/ is missing. After cmd_install chains → cmd_project → cmd_spec and unwinds, the original cmd_project falls through and re-runs the entire questionnaire, overwriting completed work. Fix: return cmd_install(["."]). Closes #117.
+cmd_project calls cmd_install(["."]) without return when ./deft/ is missing. After cmd_install chains → cmd_project → cmd_spec and unwinds, the original cmd_project falls through and re-runs the entire questionnaire, overwriting completed work. Fix: return cmd_install(["."]).  Closes #117.
 
 - cmd_project returns cleanly after cmd_install chains through the full workflow
 - No duplicate PROJECT.md questionnaire after run spec completes

@@ -106,7 +106,6 @@ def test_project_returns_after_install_chain(
 
     project_path = isolated_env / "PROJECT.md"
     mock_user_input([
-        str(project_path),  # 1  output path (asked before deft/ check? no)
         True,               # 1  Install deft in current directory? → Yes
         # cmd_install runs and returns 0
         # Original cmd_project should return here — no more prompts

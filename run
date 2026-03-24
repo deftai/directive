@@ -1041,7 +1041,7 @@ def cmd_project(args: List[str]):
     if 'strat_selection' not in progress:
         if max_strat == 0:
             warn("No strategy files found in strategies/ — defaulting to Interview.")
-            strat_selection = ""
+            strat_selection = "1"
         else:
             print()
             print_section("Development Strategy")
