@@ -16,7 +16,6 @@ Fix reported bugs and UX problems blocking adoption.
 
 - **#108** — Ask deployment platform before language — platform context drives language shortlist (depends on #107)
 
-- **#72** — vBRIEF files still invalid on master — users get non-conforming JSON output
 - **#68** — Warp not always enforcing Deft testing protocols (core quality gates silently skipped)
 
 ### Cleanup
@@ -91,9 +90,9 @@ Quick doc/content fixes that don't require code changes.
 ## Phase 3 — Test Infrastructure & CI
 
 - **#74** — Automate release process (`task release`) and CI changelog enforcement
-- **#57** — Add GitHub Actions CI workflow for linting and tests on PRs and pushes
+- **#57** — Add GitHub Actions CI workflow for linting and tests on PRs and pushes (minimal Python CI landed in PR #130; Go matrix + coverage remain)
 - **#128** — CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)
-- **#115** — Strengthen spec validation gate: `spec_validate.py` is JSON-only — add schema checks (`plan` key, `vbrief` version, valid task status enum); add CI freshness check detecting stale `SPECIFICATION.md`
+- **#115** — Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 — `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)
 - **#33** — When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)
 - CLI tests for remaining commands: `cmd_spec`, `cmd_install`, `cmd_reset`, `cmd_update`
 - Error and edge case testing for core CLI commands
@@ -152,6 +151,7 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#72 — vBRIEF files still invalid on master — five-component generation chain fix (CONVENTIONS.md root cause, validator, renderer, data migration, templates, 7 new tests, minimal CI)~~ — 2026-03-29 (PR #130)
 - ~~#106 — Add toolchain/environment validation gate (coding/toolchain.md, deft-build Step 2, strategies/interview.md Acceptance Gate, meta/lessons.md incident entry)~~ — 2026-03-24 (PR #122)
 - ~~#105 — Add build output validation directive for custom build scripts (`coding/build-output.md`, `coding/testing.md` Build Output Tests, `meta/lessons.md` incident entry)~~ — 2026-03-24 (PR #121)
 - ~~#117 — Interview command loops in CLI — `cmd_project` no longer re-runs questionnaire after `cmd_install` chains through `cmd_spec`~~ — 2026-03-24 (Unreleased)
@@ -222,7 +222,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #59 | history/changes/ directory missing | 2 |
 | #67 | Write SPECIFICATION.md and proper PROJECT.md for deft | 2 |
 | #68 | Warp not always enforcing Deft testing protocols | 1 |
-| #72 | vBRIEF files still invalid on master | 1 |
+| ~~#72~~ | ~~vBRIEF files still invalid on master~~ | completed — PR #130 |
 | #74 | Automate release process and CI changelog enforcement | 3 |
 | #75 | Skill auto-discovery for deft skills | 4 |
 | #76 | Obsidian Vault generation as structured agent memory | 5 |
@@ -272,3 +272,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #105 to Completed (PR #121)*
 *Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
 *Updated 2026-03-29 — added #128 (CI vBRIEF schema sync check, depends on #57) to Phase 3*
+*Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions*
