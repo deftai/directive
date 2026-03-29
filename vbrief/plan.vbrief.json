@@ -9,7 +9,7 @@
     "metadata": {
       "completedStrategies": [
         {
-          "strategy": "map",
+          "name": "map",
           "runCount": 1,
           "artifacts": [
             ".planning/codebase/STACK.md",
@@ -19,7 +19,7 @@
           ]
         },
         {
-          "strategy": "research",
+          "name": "research",
           "runCount": 1,
           "artifacts": [
             "docs/research/deft-directive-research.md"

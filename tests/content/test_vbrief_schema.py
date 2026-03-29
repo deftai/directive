@@ -25,6 +25,10 @@ _PLAN_PATH = _REPO_ROOT / "vbrief/plan.vbrief.json"
 _sv_spec = importlib.util.spec_from_file_location(
     "spec_validate", _REPO_ROOT / "scripts/spec_validate.py"
 )
+assert _sv_spec is not None, (
+    f"Could not locate spec_validate.py at {_REPO_ROOT / 'scripts/spec_validate.py'}"
+)
+assert _sv_spec.loader is not None
 _sv_mod = importlib.util.module_from_spec(_sv_spec)
 _sv_spec.loader.exec_module(_sv_mod)
 _validate_schema = _sv_mod._validate_schema
