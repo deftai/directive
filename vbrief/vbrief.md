@@ -110,7 +110,7 @@ draft | proposed | approved | pending | running | completed | blocked | cancelle
 
 A copy of the canonical JSON Schema is available at
 [`./schemas/vbrief-core.schema.json`](./schemas/vbrief-core.schema.json)
-for local validation. Source: [github.com/visionik/vBRIEF](https://github.com/visionik/vBRIEF).
+for local validation. Source: [github.com/deftai/vBRIEF](https://github.com/deftai/vBRIEF).
 
 ---
 

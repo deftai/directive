@@ -10,6 +10,8 @@ Add ⊗ rules to the Inference section of Phase 2 in skills/deft-setup/SKILL.md:
 - SKILL.md Phase 2 Inference section contains ⊗ rule: MUST NOT run git commands inside ./deft/
 - tests/content/test_skills.py passes
 
+**Traces**: FR-1, FR-2
+
 ## t1.1.2: Add project name fallback prompt when no build files detected (FR-3)  `[pending]`
 
 **Depends on**: t1.1.1
@@ -20,6 +22,8 @@ Update deft-setup SKILL.md Phase 2 to prompt the user for a project name when co
 - Fallback prompt appears in Track 1, Track 2, and Track 3 paths
 - tests/cli/test_project.py covers no-build-files scenario
 
+**Traces**: FR-3
+
 ## t1.1.3: Remove Primary Languages from USER.md template and Phase 1 interview (FR-4)  `[pending]`
 
 Language is a project-level concern determined per-project via codebase inference, not a user preference. Remove from USER.md template, Phase 1 Track 1 Step 2, Track 2 Step 2. Update Phase 2 Step 3 to always infer first. Closes #107.
@@ -27,8 +31,12 @@ Language is a project-level concern determined per-project via codebase inferenc
 - USER.md template in SKILL.md no longer includes **Primary Languages** field
 - Phase 1 Track 1 has no Step 2 asking about languages
 - Phase 1 Track 2 has no language step
-- Phase 2 Step 3 infers from codebase; falls back to open ask (no USER.md default pre-fill)
-- tests/cli/test_bootstrap.py updated; no language question in happy path
+- Phase 2 Step 3 infers from codebase
+- falls back to open ask (no USER.md default pre-fill)
+- tests/cli/test_bootstrap.py updated
+- no language question in happy path
+
+**Traces**: FR-4
 
 ## t1.1.4: Add deployment platform question before language in deft-setup Phase 2 (FR-5)  `[pending]`
 
@@ -40,13 +48,17 @@ Ask deployment platform (web, mobile, desktop, embedded, CLI, cloud service, oth
 - Platform answer informs language shortlist shown in next question
 - Track 2 and Track 3 unaffected (simplified paths)
 
+**Traces**: FR-5
+
 ## t1.2.1: Audit and fix vBRIEF generation in cmd_spec (FR-6)  `[pending]`
 
-The run script's cmd_spec generates specification.vbrief.json. Audit the output format against spec_validate.py and vbrief/vbrief.md. Ensure: flat structure with top-level key 'plan' (not 'title') holding the spec name; task status values from valid enum (pending/running/completed/blocked/cancelled); top-level status 'approved' on render. The legacy 'todo'/'doing'/'done' values from old vBRIEF must not be used. Closes #72 (CLI path).
+The run script's cmd_spec generates specification.vbrief.json. Audit the output format against spec_validate.py and vbrief/vbrief.md. Ensure: vBRIEFInfo envelope with version 0.5; plan object with title, status, items; task status values from valid enum (pending/running/completed/blocked/cancelled). The legacy 'todo'/'doing'/'done' values from old vBRIEF must not be used. Closes #72 (CLI path).
 
 - task spec:validate passes on all cmd_spec output
 - task spec:render succeeds on approved spec
 - tests/cli/test_spec.py covers vBRIEF output format
+
+**Traces**: FR-6, NFR-4
 
 ## t1.2.2: Audit and fix vBRIEF generation in deft-setup Phase 3 (FR-6)  `[pending]`
 
@@ -54,8 +66,11 @@ The run script's cmd_spec generates specification.vbrief.json. Audit the output 
 
 The deft-setup skill Phase 3 also generates specification.vbrief.json. Same audit as t1.2.1 for the agent-skill path. Update skills/deft-setup/SKILL.md Output sections to reference the correct schema. Closes #72 (agent skill path).
 
-- SKILL.md Phase 3 Output sections reference correct vBRIEF field names (plan not title as top-level key; pending/running/completed/blocked/cancelled for task status, not legacy todo/doing/done)
+- SKILL.md Phase 3 Output sections reference correct vBRIEF field names (vBRIEFInfo envelope with plan object containing title, status, items
+- pending/running/completed/blocked/cancelled for task status, not legacy todo/doing/done)
 - tests/content/test_vbrief_schema.py assertions strengthened to catch field name violations
+
+**Traces**: FR-6, NFR-4
 
 ## t1.3.1: Fix run bootstrap infinite loop when strategies/ is empty (FR-7)  `[pending]`
 
@@ -63,15 +78,9 @@ cmd_bootstrap enters an infinite loop when get_available_strategies() returns an
 
 - cmd_bootstrap completes without looping when strategies/ is empty
 - Fallback to 'interview' strategy is logged as a warning
-- tests/cli/test_loop_bugs.py covers empty-strategies-dir scenario (cmd_bootstrap and cmd_project)
+- tests/cli/test_bootstrap.py covers empty-strategies-dir scenario
 
-## t1.3.3: Fix cmd_project command-chaining loop after cmd_install (FR-7b)  `[pending]`
-
-cmd_project calls cmd_install(["."]) without return when ./deft/ is missing. After cmd_install chains → cmd_project → cmd_spec and unwinds, the original cmd_project falls through and re-runs the entire questionnaire, overwriting completed work. Fix: return cmd_install(["."]).  Closes #117.
-
-- cmd_project returns cleanly after cmd_install chains through the full workflow
-- No duplicate PROJECT.md questionnaire after run spec completes
-- tests/cli/test_loop_bugs.py covers install-chain-through scenario
+**Traces**: FR-7
 
 ## t1.3.2: Add version display to all run CLI commands on startup (FR-10)  `[pending]`
 
@@ -81,6 +90,8 @@ All cmd_* functions should print the VERSION on entry (e.g. 'Deft CLI v0.4.2'). 
 - Version string format: 'Deft CLI v{VERSION}'
 - tests/cli/test_import_smoke.py or per-command tests assert version output
 
+**Traces**: FR-10
+
 ## t1.4.1: Merge strategies/default.md into strategies/interview.md and remove default.md (FR-8)  `[pending]`
 
 default.md is a duplicate of interview.md. Merge any unique content into interview.md, then delete default.md. Update any references to default.md. Closes #31.
@@ -88,7 +99,10 @@ default.md is a duplicate of interview.md. Merge any unique content into intervi
 - strategies/default.md no longer exists
 - strategies/interview.md contains all content from former default.md (or supersedes it)
 - No .md file in the repo references strategies/default.md
-- tests/content/test_structure.py updated to not assert default.md exists; test passes
+- tests/content/test_structure.py updated to not assert default.md exists
+- test passes
+
+**Traces**: FR-8
 
 ## t1.4.2: Update strategies/brownfield.md to redirect to strategies/map.md (FR-9)  `[pending]`
 
@@ -98,7 +112,9 @@ brownfield.md is a legacy alias for map.md. Replace content with a short redirec
 - strategies/map.md is the canonical document
 - tests/content/test_standards.py passes
 
-## t1.5.1: Write coding/build-output.md — build output validation directive (FR-11)  `[done]`
+**Traces**: FR-9
+
+## t1.5.1: Write coding/build-output.md — build output validation directive (FR-11)  `[completed]`
 
 New file documenting rules for validating build output (dist/, bin/, artifacts). Agents must: verify expected artifacts exist post-build, check artifact sizes are non-zero, fail loudly on silent build failures. Closes #105.
 
@@ -106,15 +122,16 @@ New file documenting rules for validating build output (dist/, bin/, artifacts).
 - Contains ! rules for: verifying artifact existence, checking non-zero size, failing on missing expected outputs
 - Referenced from coding/coding.md
 
-## t1.5.2: Document toolchain validation gate in framework (FR-12)  `[done]`
+**Traces**: FR-11
 
-Create a new coding/toolchain.md requiring agents to verify required tools are installed before beginning implementation. Reference it from coding/coding.md. Add a toolchain check step to the strategies/interview.md Acceptance Gate (the blocking gate between spec and implementation). Add a toolchain check step to skills/deft-build/SKILL.md as the explicit implementation-kickoff skill. Document the incident in meta/lessons.md. Closes #106.
+## t1.5.2: Document toolchain validation gate in framework (FR-12)  `[completed]`
 
-- coding/toolchain.md exists with RFC2119 legend and ! rule: before implementation begins, verify all required tools are available (e.g. task --version, language compiler/runtime, platform SDK if applicable); stop and report if any are missing
-- coding/toolchain.md referenced (linked) from coding/coding.md under Build Automation
-- strategies/interview.md Acceptance Gate includes a toolchain verification step before handing off to implementation (pointer to coding/toolchain.md)
-- skills/deft-build/SKILL.md includes an explicit pre-implementation toolchain check step (pointer to coding/toolchain.md)
-- meta/lessons.md documents the iOS/Swift incident: full DEFT workflow completed without Xcode or task installed; quality gates chosen by user were never enforceable
+Create a new coding/toolchain.md requiring agents to verify required tools are installed before beginning implementation. Reference it from coding/coding.md. Closes #106.
+
+- Framework contains ! rule: before implementation begins, verify all required tools are available (e.g. go version, uv --version, task --version)
+- Rule lives in a new coding/toolchain.md, referenced (linked) from coding/coding.md
+
+**Traces**: FR-12
 
 ## t2.1.1: Update all stale core/user.md and core/project.md references to canonical paths (FR-13)  `[pending]`
 
@@ -124,6 +141,8 @@ Find all .md references to core/user.md and core/project.md legacy paths. Replac
 - grep for 'core/project.md' returns zero matches in non-history .md files (except legacy fallback note in SKILL.md)
 - tests/content/test_contracts.py passes
 
+**Traces**: FR-13
+
 ## t2.1.2: Create history/changes/ directory with README.md (FR-14)  `[pending]`
 
 commands.md references history/changes/<name>/ but the directory doesn't exist. Create it with a README.md documenting the change lifecycle artifact structure. Closes #59.
@@ -131,6 +150,8 @@ commands.md references history/changes/<name>/ but the directory doesn't exist. 
 - history/changes/ directory exists
 - history/changes/README.md documents: what /deft:change creates, directory structure per change, lifecycle from proposal to archive
 - tests/content/test_structure.py passes
+
+**Traces**: FR-14
 
 ## t2.1.3: Refactor strategies/yolo.md to reference interview.md shared phases (FR-15)  `[pending]`
 
@@ -140,6 +161,8 @@ yolo.md duplicates ~80% of interview.md. Replace duplicated sections (sizing gat
 - yolo.md is ≤60% of its current line count
 - Functional behavior unchanged (yolo still selects recommended options)
 
+**Traces**: FR-15
+
 ## t2.1.4: Add See also banner to strategies/speckit.md (FR-16)  `[pending]`
 
 speckit.md is missing the standard **⚠️ See also** cross-reference banner at the top. Add it with links to interview.md and relevant strategy files. Closes #24.
@@ -147,13 +170,18 @@ speckit.md is missing the standard **⚠️ See also** cross-reference banner at
 - speckit.md line 3-4 contains **⚠️ See also**: [...] banner
 - Banner links to at minimum: interview.md, discuss.md
 
+**Traces**: FR-16
+
 ## t2.1.5: Fix commands.md vBRIEF example vocabulary (FR-17)  `[pending]`
 
 commands.md vBRIEF examples use status vocabulary that diverges from vbrief/vbrief.md. Update to use the canonical status enum. Closes #25.
 
 - commands.md vBRIEF file-level status examples use: draft | proposed | approved
 - commands.md vBRIEF task-level status examples use: pending | running | completed | blocked | cancelled
-- No use of 'todo', 'doing', 'done' in commands.md examples; no use of 'approved' as a task-level status
+- No use of 'todo', 'doing', 'done' in commands.md examples
+- no use of 'approved' as a task-level status
+
+**Traces**: FR-17
 
 ## t2.1.6: Clean core/project.md — remove Voxio Bot private content (FR-18)  `[pending]`
 
@@ -163,6 +191,8 @@ core/project.md contains private project config (Voxio Bot). Replace with a gene
 - Content is either a generic template or a redirect to ./PROJECT.md
 - tests/content/test_standards.py Voxio xfail flips to passing
 
+**Traces**: FR-18
+
 ## t2.2.1: Create contracts/hierarchy.md — dual-hierarchy framework (FR-19)  `[pending]`
 
 Document the two hierarchy lenses from #84/#89 debate: (1) durability axis (Standards > APIs > Specs > Code — what to invest in maintaining); (2) generative axis (Spec → Contracts → Code — what to write first). Explain when each applies. Closes #84 Phase 1 (hierarchy doc portion).
@@ -171,12 +201,16 @@ Document the two hierarchy lenses from #84/#89 debate: (1) durability axis (Stan
 - Both axes documented with examples
 - File referenced from main.md or contracts/ README
 
+**Traces**: FR-19
+
 ## t2.2.2: Add adaptive teaching behavior to main.md (FR-20)  `[pending]`
 
 Add to Agent Behavior section of main.md: ~ When a recommendation is accepted without question, be concise. ! When a recommendation is questioned or overridden, explain the reasoning. ⊗ Lecture unprompted on every decision. Closes #84 Phase 1 (adaptive teaching portion).
 
 - main.md Agent Behavior section contains the three adaptive teaching rules
 - Rules use RFC2119 symbols correctly
+
+**Traces**: FR-20
 
 ## t2.2.3: Add State WHY rule to strategies/interview.md (FR-21)  `[pending]`
 
@@ -185,6 +219,8 @@ Add ! rule to interview.md Interview Rules section: when making an opinionated r
 - interview.md Interview Rules contains: ! When making an opinionated recommendation, state the principle (1 sentence)
 - Rule positioned near existing RECOMMENDED marker rule
 
+**Traces**: FR-21
+
 ## t2.3.1: Write CONTRIBUTING.md with full contributor bootstrap (FR-22, NFR-5)  `[pending]`
 
 Create CONTRIBUTING.md at repo root. Must cover: prerequisites (Go 1.22+, Python 3.11+, uv, task), dev environment setup, running tests (task test, task check), running CLI locally (python run or uv run python run), building the Go installer (go build ./cmd/deft-install/). Closes #67 AC item 3.
@@ -192,7 +228,10 @@ Create CONTRIBUTING.md at repo root. Must cover: prerequisites (Go 1.22+, Python
 - CONTRIBUTING.md exists at repo root
 - Contains sections: Prerequisites, Dev Environment Setup, Running Tests, Running CLI Locally, Building the Installer
 - All commands listed are accurate and runnable
-- CONTRIBUTING.md documents `task check` as the authoritative pre-commit gate; explicitly states that a passing `task check` is the definition of ready-to-commit
+- CONTRIBUTING.md documents `task check` as the authoritative pre-commit gate
+- explicitly states that a passing `task check` is the definition of ready-to-commit
+
+**Traces**: FR-22, NFR-5
 
 ## t2.4.1: Reframe README.md — remove Warping references (FR-23, depends on #89)  `[blocked]`
 
@@ -202,6 +241,8 @@ Remove 'Warping Process', 'What is Warping?', 'Contributing to Warping' from REA
 - Tagline reflects #89 resolution
 - tests/content/test_standards.py Warping xfail flips to passing
 
+**Traces**: FR-23
+
 ## t2.4.2: Create meta/philosophy.md (FR-24, depends on #89)  `[blocked]`
 
 Create meta/philosophy.md with full contract hierarchy narrative per #84 Phase 2. Framing depends on #89 resolution (SDD vs. CDE vs. hybrid tagline).
@@ -209,6 +250,8 @@ Create meta/philosophy.md with full contract hierarchy narrative per #84 Phase 2
 - meta/philosophy.md exists with RFC2119 legend
 - Covers: spec as primary IP, contracts as derived artifacts, code as renewable output
 - Consistent with #89 resolved framing
+
+**Traces**: FR-24
 
 ## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
 
@@ -220,12 +263,16 @@ GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: 
 - Workflow triggers on pull_request and push to master
 - CI passes on a clean branch
 
+**Traces**: FR-25, FR-26, NFR-3
+
 ## t3.1.2: Open GitHub issue for run CLI coverage tracking (NFR-2)  `[pending]`
 
 Open a new GitHub issue titled 'Bring run CLI into test coverage measurement' in the Phase 4/5 backlog. Reference the exclusion in pyproject.toml. Include the rationale: run is terminal-only, excluded for now, refactor needed before coverage is meaningful.
 
 - GitHub issue exists with title containing 'run CLI' and 'coverage'
 - Issue is assigned to Phase 4 or Phase 5 milestone/label
+
+**Traces**: NFR-2
 
 ## t3.1.3: Raise pyproject.toml coverage threshold to 85% and document run exclusion (NFR-1, NFR-2, FR-27)  `[pending]`
 
@@ -234,5 +281,8 @@ Open a new GitHub issue titled 'Bring run CLI into test coverage measurement' in
 Update pyproject.toml: fail_under = 85. Add comment in [tool.coverage.run] omit section explaining why run and run.py are excluded (terminal-only CLI path; pending dedicated refactor issue). Resolves stated-vs-enforced coverage gap.
 
 - pyproject.toml fail_under = 85
-- omit entries for run and run.py include inline comment: '# terminal-only CLI; excluded pending #<issue>'
+- omit entries for run and run.py include inline comment: '# terminal-only CLI
+- excluded pending #<issue>'
 - task test:coverage passes at >=85% threshold on the current test suite
+
+**Traces**: NFR-1, NFR-2, FR-27

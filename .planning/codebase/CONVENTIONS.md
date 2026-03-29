@@ -75,12 +75,27 @@ Use these symbols consistently — no raw "MUST/SHOULD" prose without the symbol
 
 **Schema:** Follow `https://github.com/deftai/vBRIEF` spec. Use `blocks` edges in `plan.vbrief.json` (outbound: "task A blocks task B"). Use `dependencies` in `specification.vbrief.json` (inbound: "task B depends on task A"). Both express the same relationship from different perspectives. Do not use `[P]`/`[S]`/`[B]` markers.
 
-**Required top-level fields (in order):**
-- `"vbrief": "0.5.0"` — schema version (must be first field)
-- `"plan"` — spec/plan name
-- `"status"` — document lifecycle state:
-  - `specification.vbrief.json`: `draft` | `proposed` | `approved`
-  - `plan.vbrief.json`: `pending` | `completed`
+**Required structure (vBRIEF v0.5):**
+
+Every `.vbrief.json` file MUST have exactly two top-level keys:
+
+```json
+{
+  "vBRIEFInfo": { "version": "0.5" },
+  "plan": {
+    "title": "Plan or spec name",
+    "status": "draft",
+    "items": []
+  }
+}
+```
+
+- `"vBRIEFInfo"` — envelope with `"version": "0.5"` (not `"vbrief": "0.5.0"`)
+- `"plan"` — an object (not a string) with required fields: `title`, `status`, `items`
+- `"plan.items"` — array of `PlanItem` objects, each with `title` and `status`
+- Status enum: `draft | proposed | approved | pending | running | completed | blocked | cancelled`
+- Schema: [`vbrief/schemas/vbrief-core.schema.json`](../../vbrief/schemas/vbrief-core.schema.json)
+- Source: [github.com/deftai/vBRIEF](https://github.com/deftai/vBRIEF)
 
 ---
 

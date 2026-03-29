@@ -27,14 +27,17 @@ Patterns for externalizing intermediate state to files.
 
 ```json
 {
-  "vbrief": "0.4.0",
-  "plan": "Implement user avatar upload",
-  "tasks": [
-    { "id": "t1", "do": "Add upload endpoint to API", "status": "done" },
-    { "id": "t2", "do": "Write image resize utility", "status": "doing" },
-    { "id": "t3", "do": "Update user profile component", "status": "todo" },
-    { "id": "t4", "do": "Add integration tests", "status": "blocked" }
-  ]
+  "vBRIEFInfo": { "version": "0.5" },
+  "plan": {
+    "title": "Implement user avatar upload",
+    "status": "running",
+    "items": [
+      { "id": "t1", "title": "Add upload endpoint to API", "status": "completed" },
+      { "id": "t2", "title": "Write image resize utility", "status": "running" },
+      { "id": "t3", "title": "Update user profile component", "status": "pending" },
+      { "id": "t4", "title": "Add integration tests", "status": "blocked" }
+    ]
+  }
 }
 ```
 
