@@ -92,6 +92,7 @@ Quick doc/content fixes that don't require code changes.
 
 - **#74** — Automate release process (`task release`) and CI changelog enforcement
 - **#57** — Add GitHub Actions CI workflow for linting and tests on PRs and pushes
+- **#128** — CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)
 - **#115** — Strengthen spec validation gate: `spec_validate.py` is JSON-only — add schema checks (`plan` key, `vbrief` version, valid task status enum); add CI freshness check detecting stale `SPECIFICATION.md`
 - **#33** — When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)
 - CLI tests for remaining commands: `cmd_spec`, `cmd_install`, `cmd_reset`, `cmd_update`
@@ -216,6 +217,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #55 | Register Deft commands as native agent slash commands (absorbs slash-command scope from #54) | 5 |
 | #56 | Reduce installation friction (shell one-liner, Homebrew) | 4 |
 | #57 | Add GitHub Actions CI workflow | 3 |
+| #128 | CI vBRIEF schema sync check (depends on #57) | 3 |
 | #58 | Stale cross-references to legacy paths | 2 |
 | #59 | history/changes/ directory missing | 2 |
 | #67 | Write SPECIFICATION.md and proper PROJECT.md for deft | 2 |
@@ -269,3 +271,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #117 to Completed (CLI command chaining loop fixed, Unreleased)*
 *Updated 2026-03-24 — moved #105 to Completed (PR #121)*
 *Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
+*Updated 2026-03-29 — added #128 (CI vBRIEF schema sync check, depends on #57) to Phase 3*
