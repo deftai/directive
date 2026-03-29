@@ -69,36 +69,51 @@ def render_mod():
 # ---------------------------------------------------------------------------
 
 _MINIMAL_APPROVED = {
-    "title": "Test Spec",
-    "status": "approved",
-    "tasks": [],
+    "vBRIEFInfo": {"version": "0.5"},
+    "plan": {
+        "title": "Test Spec",
+        "status": "approved",
+        "items": [],
+    },
 }
 
 _MINIMAL_DRAFT = {
-    "title": "Test Spec",
-    "status": "draft",
-    "tasks": [],
+    "vBRIEFInfo": {"version": "0.5"},
+    "plan": {
+        "title": "Test Spec",
+        "status": "draft",
+        "items": [],
+    },
 }
 
 _FULL_APPROVED = {
-    "title": "Full Spec",
-    "overview": "A complete specification.",
-    "status": "approved",
-    "tasks": [
-        {
-            "id": "T1",
-            "do": "Build the thing",
-            "status": "todo",
-            "narrative": "This is the narrative.",
-            "acceptance": ["Criterion A", "Criterion B"],
+    "vBRIEFInfo": {"version": "0.5"},
+    "plan": {
+        "title": "Full Spec",
+        "status": "approved",
+        "narratives": {
+            "Overview": "A complete specification.",
         },
-        {
-            "id": "T2",
-            "title": "Fallback title key",
-            "status": "done",
-            "why": "Because it matters.",
-        },
-    ],
+        "items": [
+            {
+                "id": "T1",
+                "title": "Build the thing",
+                "status": "pending",
+                "narrative": {
+                    "Description": "This is the narrative.",
+                    "Acceptance": "Criterion A; Criterion B",
+                },
+            },
+            {
+                "id": "T2",
+                "title": "Fallback title key",
+                "status": "completed",
+                "narrative": {
+                    "Description": "Because it matters.",
+                },
+            },
+        ],
+    },
 }
 
 
@@ -265,7 +280,7 @@ def test_render_output_contains_overview(render_mod, tmp_path) -> None:
 
 
 def test_render_output_contains_task_heading(render_mod, tmp_path) -> None:
-    """Rendered markdown must contain task headings as H2s."""
+    """Rendered markdown must contain item headings as H2s."""
     spec_file = tmp_path / "spec.json"
     out_file = tmp_path / "SPECIFICATION.md"
     _write_json(spec_file, _FULL_APPROVED)
@@ -274,8 +289,8 @@ def test_render_output_contains_task_heading(render_mod, tmp_path) -> None:
     assert "## T1: Build the thing" in content
 
 
-def test_render_output_task_list_acceptance_as_bullets(render_mod, tmp_path) -> None:
-    """List acceptance criteria must be rendered as markdown bullet points."""
+def test_render_output_acceptance_as_bullets(render_mod, tmp_path) -> None:
+    """Acceptance criteria in narrative must be rendered as markdown bullet points."""
     spec_file = tmp_path / "spec.json"
     out_file = tmp_path / "SPECIFICATION.md"
     _write_json(spec_file, _FULL_APPROVED)
@@ -285,8 +300,8 @@ def test_render_output_task_list_acceptance_as_bullets(render_mod, tmp_path) -> 
     assert "- Criterion B" in content
 
 
-def test_render_output_task_fallback_title_key(render_mod, tmp_path) -> None:
-    """Tasks using 'title' instead of 'do' must still render correctly."""
+def test_render_output_item_title(render_mod, tmp_path) -> None:
+    """Items using 'title' field must render correctly."""
     spec_file = tmp_path / "spec.json"
     out_file = tmp_path / "SPECIFICATION.md"
     _write_json(spec_file, _FULL_APPROVED)
@@ -295,9 +310,12 @@ def test_render_output_task_fallback_title_key(render_mod, tmp_path) -> None:
     assert "## T2: Fallback title key" in content
 
 
-def test_render_output_plan_key_as_title(render_mod, tmp_path) -> None:
-    """Spec using 'plan' instead of 'title' must render its plan value as H1."""
-    spec = {"plan": "Plan Title", "status": "approved", "tasks": []}
+def test_render_output_plan_title_as_h1(render_mod, tmp_path) -> None:
+    """plan.title must render as the H1 heading."""
+    spec = {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {"title": "Plan Title", "status": "approved", "items": []},
+    }
     spec_file = tmp_path / "spec.json"
     out_file = tmp_path / "SPECIFICATION.md"
     _write_json(spec_file, spec)

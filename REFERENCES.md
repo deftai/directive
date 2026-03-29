@@ -122,7 +122,7 @@ Load as needed:
 **[vbrief/schemas/vbrief-core.schema.json](./vbrief/schemas/vbrief-core.schema.json)** — vBRIEF JSON Schema
 - Load: When creating, validating, or debugging `.vbrief.json` files
 - Contains: JSON Schema (draft 2020-12) defining `vBRIEFInfo`, `Plan`, `PlanItem`, `Status` enum
-- Source: [github.com/visionik/vBRIEF](https://github.com/visionik/vBRIEF)
+- Source: [github.com/deftai/vBRIEF](https://github.com/deftai/vBRIEF)
 
 ## 🔄 Reference Chains
 

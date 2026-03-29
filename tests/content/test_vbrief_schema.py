@@ -12,9 +12,19 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _SCHEMA_PATH = _REPO_ROOT / "vbrief/schemas/vbrief-core.schema.json"
 _VBRIEF_MD_PATH = _REPO_ROOT / "vbrief/vbrief.md"
+_SPEC_PATH = _REPO_ROOT / "vbrief/specification.vbrief.json"
+_PLAN_PATH = _REPO_ROOT / "vbrief/plan.vbrief.json"
+
+_VALID_STATUSES = {
+    "draft", "proposed", "approved", "pending",
+    "running", "completed", "blocked", "cancelled",
+}
+_LEGACY_TOP_LEVEL_KEYS = {"vbrief", "tasks", "overview", "architecture"}
 
 
 # ---------------------------------------------------------------------------
@@ -110,3 +120,119 @@ def test_no_non_conforming_status_in_prose() -> None:
         f"Non-conforming status values found in vbrief.md lifecycle prose: {sorted(violations)}\n"
         f"Use spec-conforming values: pending, running, completed, blocked, cancelled"
     )
+
+
+# ---------------------------------------------------------------------------
+# vBRIEF file validation tests
+# ---------------------------------------------------------------------------
+
+def _validate_vbrief_structure(data: dict, path: str) -> list[str]:
+    """Validate vBRIEF v0.5 structural requirements. Returns a list of errors."""
+    errors: list[str] = []
+
+    if "vBRIEFInfo" not in data:
+        errors.append(f"{path}: missing required top-level key 'vBRIEFInfo'")
+    else:
+        info = data["vBRIEFInfo"]
+        if not isinstance(info, dict):
+            errors.append(f"{path}: 'vBRIEFInfo' must be an object")
+        elif info.get("version") != "0.5":
+            errors.append(f"{path}: 'vBRIEFInfo.version' must be '0.5'")
+
+    if "plan" not in data:
+        errors.append(f"{path}: missing required top-level key 'plan'")
+    else:
+        plan = data["plan"]
+        if not isinstance(plan, dict):
+            errors.append(f"{path}: 'plan' must be an object")
+        else:
+            for field in ("title", "status", "items"):
+                if field not in plan:
+                    errors.append(f"{path}: 'plan' missing required field '{field}'")
+            if "status" in plan and plan["status"] not in _VALID_STATUSES:
+                errors.append(
+                    f"{path}: invalid plan.status '{plan['status']}'"
+                )
+            if "items" in plan and isinstance(plan["items"], list):
+                for i, item in enumerate(plan["items"]):
+                    if not isinstance(item, dict):
+                        continue
+                    item_id = item.get("id", f"index {i}")
+                    if "title" not in item:
+                        errors.append(f"{path}: item {item_id} missing 'title'")
+                    if "status" not in item:
+                        errors.append(f"{path}: item {item_id} missing 'status'")
+                    elif item["status"] not in _VALID_STATUSES:
+                        errors.append(
+                            f"{path}: item {item_id} invalid status '{item['status']}'"
+                        )
+
+    # Detect legacy flat format
+    found_legacy = _LEGACY_TOP_LEVEL_KEYS & set(data.keys())
+    if found_legacy:
+        errors.append(
+            f"{path}: legacy top-level keys found: {sorted(found_legacy)}"
+        )
+
+    return errors
+
+
+@pytest.mark.parametrize(
+    "vbrief_path",
+    [_SPEC_PATH, _PLAN_PATH],
+    ids=["specification.vbrief.json", "plan.vbrief.json"],
+)
+def test_vbrief_file_is_valid_json(vbrief_path: Path) -> None:
+    """Each .vbrief.json file in the repo must be parseable JSON."""
+    assert vbrief_path.exists(), f"{vbrief_path.name} not found"
+    json.loads(vbrief_path.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize(
+    "vbrief_path",
+    [_SPEC_PATH, _PLAN_PATH],
+    ids=["specification.vbrief.json", "plan.vbrief.json"],
+)
+def test_vbrief_file_conforms_to_schema(vbrief_path: Path) -> None:
+    """Each .vbrief.json file must conform to vBRIEF v0.5 structure."""
+    data = json.loads(vbrief_path.read_text(encoding="utf-8"))
+    errors = _validate_vbrief_structure(data, vbrief_path.name)
+    assert not errors, "\n".join(errors)
+
+
+def test_spec_has_required_top_level_keys() -> None:
+    """specification.vbrief.json must have exactly vBRIEFInfo and plan at top level."""
+    data = json.loads(_SPEC_PATH.read_text(encoding="utf-8"))
+    assert "vBRIEFInfo" in data, "Missing 'vBRIEFInfo' key"
+    assert "plan" in data, "Missing 'plan' key"
+    assert isinstance(data["plan"], dict), "'plan' must be an object, not a string"
+
+
+def test_spec_has_no_legacy_top_level_fields() -> None:
+    """specification.vbrief.json must not have legacy flat-format keys at top level."""
+    data = json.loads(_SPEC_PATH.read_text(encoding="utf-8"))
+    found = _LEGACY_TOP_LEVEL_KEYS & set(data.keys())
+    assert not found, (
+        f"Legacy flat-format keys found at top level: {sorted(found)}. "
+        "File should use vBRIEF v0.5 envelope (vBRIEFInfo + plan)"
+    )
+
+
+def test_plan_has_no_legacy_top_level_fields() -> None:
+    """plan.vbrief.json must not have legacy flat-format keys at top level."""
+    data = json.loads(_PLAN_PATH.read_text(encoding="utf-8"))
+    found = _LEGACY_TOP_LEVEL_KEYS & set(data.keys())
+    assert not found, (
+        f"Legacy flat-format keys found at top level: {sorted(found)}. "
+        "File should use vBRIEF v0.5 envelope (vBRIEFInfo + plan)"
+    )
+
+
+def test_spec_plan_has_title_status_items() -> None:
+    """The plan object must have title, status, and items."""
+    data = json.loads(_SPEC_PATH.read_text(encoding="utf-8"))
+    plan = data["plan"]
+    assert "title" in plan, "plan missing 'title'"
+    assert "status" in plan, "plan missing 'status'"
+    assert "items" in plan, "plan missing 'items'"
+    assert isinstance(plan["items"], list), "plan.items must be an array"

@@ -10,7 +10,7 @@ Patterns for tasks that span multiple sessions or phases.
 
 - ! **On resume, read the checkpoint — don't replay history.** The checkpoint file is the source of truth, not the conversation that produced it.
 - ~ Write checkpoints to `./vbrief/plan.vbrief.json` in the workspace
-- ~ Use vBRIEF status lifecycle: `todo` → `doing` → `done` / `blocked` / `skip`
+- ~ Use vBRIEF status lifecycle: `pending` → `running` → `completed` / `blocked` / `cancelled`
 - ~ Include a `plan` field summarizing the overall objective
 - ? Add a `narrative` to tasks that need explanation for a future session or agent
 

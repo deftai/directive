@@ -104,6 +104,28 @@ Any remaining decisions deferred to implementation.
 4. ! Run `task spec:render` (or generate `SPECIFICATION.md` directly if task unavailable)
 5. ? For add-on specs: write `./vbrief/specification-{name}.vbrief.json` → `SPECIFICATION-{name}.md`
 
+! The vBRIEF file MUST use this exact top-level structure:
+
+```json
+{
+  "vBRIEFInfo": { "version": "0.5" },
+  "plan": {
+    "title": "Project Name SPECIFICATION",
+    "status": "draft",
+    "items": [
+      {
+        "id": "1.1.1",
+        "title": "Task description",
+        "status": "pending",
+        "narrative": { "Acceptance": "...", "Traces": "FR-1" }
+      }
+    ]
+  }
+}
+```
+
+~ See [vbrief/vbrief.md](../vbrief/vbrief.md) for full schema documentation and [vbrief/schemas/vbrief-core.schema.json](../vbrief/schemas/vbrief-core.schema.json) for the JSON Schema.
+
 - ⊗ Write `SPECIFICATION.md` directly — it is generated from the vbrief source
 - ! Follow all relevant deft guidelines
 - ! Use RFC 2119 MUST, SHOULD, MAY, SHOULD NOT, MUST NOT wording

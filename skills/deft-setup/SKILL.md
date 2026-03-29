@@ -402,11 +402,31 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ! Each task SHOULD reference which FR/NFR it implements via `(traces: FR-N)`
 - ⊗ Create a separate PRD.md on the Light path
 
+! The vBRIEF file MUST conform to `vbrief/schemas/vbrief-core.schema.json`:
+
+```json
+{
+  "vBRIEFInfo": { "version": "0.5" },
+  "plan": {
+    "title": "Project Name SPECIFICATION",
+    "status": "draft",
+    "items": [
+      {
+        "id": "1.1.1",
+        "title": "Task description",
+        "status": "pending",
+        "narrative": { "Acceptance": "...", "Traces": "FR-1" }
+      }
+    ]
+  }
+}
+```
+
 ### Output — Full Path
 
 1. ! Generate `PRD.md` with structured requirements (Problem Statement, Goals, User Stories, FR/NFR, Success Metrics)
 2. ! Ask user to review and approve PRD before proceeding
-3. ! Write `./vbrief/specification.vbrief.json` with `status: draft`
+3. ! Write `./vbrief/specification.vbrief.json` with `status: draft` (same vBRIEF v0.5 structure as Light Path above)
 4. ! Summarize decisions, ask user to review
 5. ! On approval, update `status` to `approved`
 6. ! Generate `./SPECIFICATION.md` (run `task spec:render` if available, else directly)

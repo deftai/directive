@@ -41,7 +41,10 @@ def render_spec(spec_path: str, out_path: str) -> tuple[bool, str]:
     with open(spec_path, encoding="utf-8") as fh:
         spec = json.load(fh)
 
-    status = spec.get("status", "")
+    # Support vBRIEF v0.5 envelope structure
+    plan = spec.get("plan", {})
+    status = plan.get("status", "") if isinstance(plan, dict) else spec.get("status", "")
+
     if status != "approved":
         return (
             False,
@@ -51,28 +54,57 @@ def render_spec(spec_path: str, out_path: str) -> tuple[bool, str]:
 
     lines: list[str] = []
 
-    title = spec.get("plan") or spec.get("title") or "Specification"
+    if isinstance(plan, dict):
+        title = plan.get("title", "Specification")
+    else:
+        title = plan or spec.get("title", "Specification")
     lines.append(f"# {title}\n")
 
-    if overview := spec.get("overview") or spec.get("description"):
+    # Extract overview from narratives (v0.5) or top-level (legacy)
+    if isinstance(plan, dict):
+        narratives = plan.get("narratives", {})
+        overview = narratives.get("Overview", "")
+    else:
+        overview = spec.get("overview") or spec.get("description") or ""
+    if overview:
         lines.append(f"{overview}\n")
 
-    for task in spec.get("tasks", []):
-        task_id = task.get("id", "")
-        do = task.get("do") or task.get("title") or ""
-        task_status = task.get("status", "")
-        lines.append(f"## {task_id}: {do}  `[{task_status}]`\n")
-        if deps := task.get("dependencies"):
+    # Extract items from plan.items (v0.5) or spec.tasks (legacy)
+    items = plan.get("items", []) if isinstance(plan, dict) else spec.get("tasks", [])
+    for item in items:
+        item_id = item.get("id", "")
+        title_text = item.get("title", "")
+        item_status = item.get("status", "")
+        lines.append(f"## {item_id}: {title_text}  `[{item_status}]`\n")
+
+        # Dependencies from metadata (v0.5) or inline (legacy)
+        deps = None
+        if metadata := item.get("metadata"):
+            deps = metadata.get("dependencies")
+        if not deps:
+            deps = item.get("dependencies")
+        if deps:
             dep_list = ", ".join(deps)
             lines.append(f"**Depends on**: {dep_list}\n")
-        for key in ("narrative", "acceptance", "why"):
-            if val := task.get(key):
-                if isinstance(val, list):
-                    for item in val:
-                        lines.append(f"- {item}")
+
+        # Narrative is an object in v0.5, string/list in legacy
+        narrative = item.get("narrative")
+        if isinstance(narrative, dict):
+            for key, val in narrative.items():
+                if key == "Traces":
+                    lines.append(f"**Traces**: {val}\n")
+                elif key == "Acceptance":
+                    for criterion in val.split("; "):
+                        lines.append(f"- {criterion}")
                     lines.append("")
                 else:
                     lines.append(f"{val}\n")
+        elif isinstance(narrative, list):
+            for entry in narrative:
+                lines.append(f"- {entry}")
+            lines.append("")
+        elif narrative:
+            lines.append(f"{narrative}\n")
 
     Path(out_path).write_text("\n".join(lines), encoding="utf-8")
     return True, f"✓ Rendered to {out_path}"
