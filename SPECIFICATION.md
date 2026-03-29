@@ -114,7 +114,7 @@ brownfield.md is a legacy alias for map.md. Replace content with a short redirec
 
 **Traces**: FR-9
 
-## t1.5.1: Write coding/build-output.md — build output validation directive (FR-11)  `[pending]`
+## t1.5.1: Write coding/build-output.md — build output validation directive (FR-11)  `[completed]`
 
 New file documenting rules for validating build output (dist/, bin/, artifacts). Agents must: verify expected artifacts exist post-build, check artifact sizes are non-zero, fail loudly on silent build failures. Closes #105.
 
@@ -124,7 +124,7 @@ New file documenting rules for validating build output (dist/, bin/, artifacts).
 
 **Traces**: FR-11
 
-## t1.5.2: Document toolchain validation gate in framework (FR-12)  `[pending]`
+## t1.5.2: Document toolchain validation gate in framework (FR-12)  `[completed]`
 
 Create a new coding/toolchain.md requiring agents to verify required tools are installed before beginning implementation. Reference it from coding/coding.md. Closes #106.
 

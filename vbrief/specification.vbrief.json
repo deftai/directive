@@ -120,7 +120,7 @@
       {
         "id": "t1.5.1",
         "title": "Write coding/build-output.md — build output validation directive (FR-11)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Description": "New file documenting rules for validating build output (dist/, bin/, artifacts). Agents must: verify expected artifacts exist post-build, check artifact sizes are non-zero, fail loudly on silent build failures. Closes #105.",
           "Acceptance": "coding/build-output.md exists with RFC2119 legend; Contains ! rules for: verifying artifact existence, checking non-zero size, failing on missing expected outputs; Referenced from coding/coding.md",
@@ -130,7 +130,7 @@
       {
         "id": "t1.5.2",
         "title": "Document toolchain validation gate in framework (FR-12)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Description": "Create a new coding/toolchain.md requiring agents to verify required tools are installed before beginning implementation. Reference it from coding/coding.md. Closes #106.",
           "Acceptance": "Framework contains ! rule: before implementation begins, verify all required tools are available (e.g. go version, uv --version, task --version); Rule lives in a new coding/toolchain.md, referenced (linked) from coding/coding.md",

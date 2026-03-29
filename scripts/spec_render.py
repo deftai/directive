@@ -94,7 +94,11 @@ def render_spec(spec_path: str, out_path: str) -> tuple[bool, str]:
                 if key == "Traces":
                     lines.append(f"**Traces**: {val}\n")
                 elif key == "Acceptance":
-                    for criterion in val.split("; "):
+                    if isinstance(val, list):
+                        criteria = val
+                    else:
+                        criteria = [c for c in str(val).split("; ") if c]
+                    for criterion in criteria:
                         lines.append(f"- {criterion}")
                     lines.append("")
                 else:
