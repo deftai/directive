@@ -11,6 +11,7 @@ Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
 
 - **#126** — specification.vbrief.json does not conform to vbrief schema/spec — agent generates wildly non-conformant output (possibly fixed by #72 / PR #130; verify before working)
+- **#133** — Generated vBRIEF files use invalid reference types (`x-vbrief/context`, `x-vbrief/research`) that fail schema validation — blocked on upstream `deftai/vBRIEF#2` to expand the enum; vendor updated schema once resolved
 - **#79** — deft-setup Phase 2 inference bleeds into `./deft/` framework internals (misidentifies project as "deft")
 - **#80** — deft-setup Phase 2 project name inference has no fallback when no build files exist
 - **#107** — Remove language defaults from USER.md — language is a project-level concern (deft-setup interview noise)
@@ -266,6 +267,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #126 | specification.vbrief.json does not conform to vbrief schema/spec (verify post-PR #130) | 1 |
 | #127 | Improved support for Deft in existing repositories (brownfield bootstrap path; related #103, #53) | 2 |
 | #131 | Mac installer post-install text wording fix (bundle with #118) | 1 |
+| #133 | Generated vBRIEF files use invalid reference types (blocked on upstream deftai/vBRIEF#2) | 1 |
 
 ---
 
@@ -283,4 +285,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
 *Updated 2026-03-29 — added #128 (CI vBRIEF schema sync check, depends on #57) to Phase 3*
 *Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions
-*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131; moved #67, #91, #92 to Completed; cleaned stale index entries*
+*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131, #133; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133*
