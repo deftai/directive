@@ -22,7 +22,23 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 - ! ROADMAP.md exists in the project root
 - ! GitHub CLI (`gh`) is authenticated and can access the repo
-- ~ A dedicated branch for the refresh (e.g. `roadmap-refresh`)
+
+## Phase 0 — Branch Setup
+
+! Before making any changes, ensure you are working on the correct branch.
+
+1. ! Check if a `roadmap-refresh` branch already exists (`git branch --list roadmap-refresh`)
+2. ! Check the current working tree state:
+   - If the working tree has uncommitted changes to ROADMAP.md or other files that would conflict, stop and ask the user to resolve them first
+   - If you are already on `roadmap-refresh` and it is up to date with the base branch, proceed
+3. ! Decide branch vs. worktree:
+   - **Branch is sufficient** when: you are in the main working tree, no other long-running work is in progress on the current branch, and the user is not actively developing on another branch
+   - **Worktree is needed** when: the user is actively working on another branch they don't want to leave, or parallel work would conflict with a branch switch
+   - ? Ask the user if unsure which approach to take
+4. ! Set up the workspace:
+   - **Branch path:** `git checkout roadmap-refresh` (or `git checkout -b roadmap-refresh` if new), then rebase/merge from the base branch if needed
+   - **Worktree path:** `git worktree add ../deft-roadmap-refresh roadmap-refresh` (or create the branch first if it doesn't exist), then work from that directory
+5. ! Confirm the branch and working directory to the user before proceeding to Discovery
 
 ## Phase 1 — Discovery
 
