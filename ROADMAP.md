@@ -89,6 +89,7 @@ Quick doc/content fixes that don't require code changes.
 - ~~Write remaining CHANGELOG entries~~ — tracked by #71 (Phase 1)
 - **#112** — External “Deft Directive” PDF is premature — describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship
 - **#114** — Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`
+- **#135** — Greptile review rules SKILL.md should be in the Directive repo — version and co-locate bot reviewer configuration (to be done with #114)
 
 ---
 
@@ -270,6 +271,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #131 | Mac installer post-install text wording fix (bundle with #118) | 1 |
 | #133 | Generated vBRIEF files use invalid reference types (blocked on upstream deftai/vBRIEF#2) | 1 |
 | #134 | Visual indicator that Deft is active (behavioral rule with #124; true UI deferred Phase 5) | 2 |
+| #135 | Greptile review rules SKILL.md in repo (with #114) | 2 |
 
 ---
 
@@ -287,4 +289,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
 *Updated 2026-03-29 — added #128 (CI vBRIEF schema sync check, depends on #57) to Phase 3*
 *Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions
-*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131, #133, #134; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133*
+*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131, #133, #134, #135; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133*
