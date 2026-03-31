@@ -71,6 +71,7 @@ Quick doc/content fixes that don't require code changes.
 - **#81** — Add BDD/acceptance-test-first strategy (`strategies/bdd.md` — Given/When/Then scenarios drive requirements)
 - **#102** — Codify Mermaid gist-rendering best practices as must/should rules (`coding/mermaid.md`)
 - **#124** — Warp context window improvements: add behavioral rule for periodic context checkpointing and structured handoff notes before context resets (lightweight; deeper Warp platform integration deferred to Phase 5)
+- **#134** — Visual indicator that Deft is active — add behavioral rule for agent to confirm Deft alignment at session start and after context resets (to be done with #124; true UI indicator deferred to Phase 5 / platform support)
 - **#103** — Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)
 - **#127** — Improved support for Deft in existing repositories — bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)
 - **#104** — Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)
@@ -268,6 +269,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #127 | Improved support for Deft in existing repositories (brownfield bootstrap path; related #103, #53) | 2 |
 | #131 | Mac installer post-install text wording fix (bundle with #118) | 1 |
 | #133 | Generated vBRIEF files use invalid reference types (blocked on upstream deftai/vBRIEF#2) | 1 |
+| #134 | Visual indicator that Deft is active (behavioral rule with #124; true UI deferred Phase 5) | 2 |
 
 ---
 
@@ -285,4 +287,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
 *Updated 2026-03-29 — added #128 (CI vBRIEF schema sync check, depends on #57) to Phase 3*
 *Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions
-*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131, #133; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133*
+*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131, #133, #134; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133*
