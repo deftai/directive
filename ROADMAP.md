@@ -21,6 +21,7 @@ Fix reported bugs and UX problems blocking adoption.
 - **#68** — Warp not always enforcing Deft testing protocols (core quality gates silently skipped)
 - **#137** — README: move startup instructions higher and clarify where to get installers — new users can't find how to get started (quick win, independent of #89 reframe)
 - **#138** — Branching requirement too prescriptive for single-author projects — relax change lifecycle rule in `main.md` for solo contexts (easy content fix; full config-driven approach deferred to Phase 5 with #77)
+- **#139** — Agent skips vbrief source step and writes SPECIFICATION.md directly — strengthen prohibition in `main.md`/deft-build skill; add validation step (address with #68, #123)
 
 ### Cleanup
 
@@ -278,6 +279,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #136 | Warp doesn't auto-load AGENTS.md — document workaround (with #114) | 2 |
 | #137 | README: move startup instructions higher, clarify installer location | 1 |
 | #138 | Branching requirement too prescriptive for solo projects (content fix; full config Phase 5) | 1 |
+| #139 | Agent skips vbrief source step, writes SPECIFICATION.md directly (with #68, #123) | 1 |
 
 ---
 
@@ -295,4 +297,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
 *Updated 2026-03-29 — added #128 (CI vBRIEF schema sync check, depends on #57) to Phase 3*
 *Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions
-*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131, #133–#138; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133*
+*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131, #133–#139; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133*
