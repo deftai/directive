@@ -27,6 +27,7 @@ Fix reported bugs and UX problems blocking adoption.
 - **#116** — All deft files must be installed consistently under `./deft/` — placement is inconsistent across projects
 - **#123** — Change lifecycle gate skipped when agent receives broad ‘proceed’ instruction on multi-file changes — strengthen /deft:change rule, add PR template checklist item, add enforcement to deft-build SKILL.md
 - **#118** — CLI code quality sweep: version mismatch in docstring, bare `except` swallowing critical errors, undocumented `--force` flag, `DEFT_PRD_PATH` env var misused on Light path
+- **#131** — Mac installer 0.7.1: post-install text says "read agents.md" — should say "use agents.md" (trivial string fix; can bundle with #118)
 
 ---
 
@@ -264,6 +265,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #124 | Warp context window improvements (behavioral rule + handoff notes) | 2 |
 | #126 | specification.vbrief.json does not conform to vbrief schema/spec (verify post-PR #130) | 1 |
 | #127 | Improved support for Deft in existing repositories (brownfield bootstrap path; related #103, #53) | 2 |
+| #131 | Mac installer post-install text wording fix (bundle with #118) | 1 |
 
 ---
 
@@ -281,4 +283,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
 *Updated 2026-03-29 — added #128 (CI vBRIEF schema sync check, depends on #57) to Phase 3*
 *Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions
-*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127; moved #67, #91, #92 to Completed; cleaned stale index entries*
+*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131; moved #67, #91, #92 to Completed; cleaned stale index entries*
