@@ -10,6 +10,7 @@ Fix reported bugs and UX problems blocking adoption.
 
 ### Adoption Blockers (user-reported, highest priority)
 
+- **#126** — specification.vbrief.json does not conform to vbrief schema/spec — agent generates wildly non-conformant output (possibly fixed by #72 / PR #130; verify before working)
 - **#79** — deft-setup Phase 2 inference bleeds into `./deft/` framework internals (misidentifies project as "deft")
 - **#80** — deft-setup Phase 2 project name inference has no fallback when no build files exist
 - **#107** — Remove language defaults from USER.md — language is a project-level concern (deft-setup interview noise)
@@ -260,6 +261,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #123 | Change lifecycle gate skipped on broad ‘proceed’ instruction | 1 |
 | #118 | CLI code quality sweep (version mismatch, bare except, undocumented flags, env var naming) | 1 |
 | #124 | Warp context window improvements (behavioral rule + handoff notes) | 2 |
+| #126 | specification.vbrief.json does not conform to vbrief schema/spec (verify post-PR #130) | 1 |
 
 ---
 
@@ -277,4 +279,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
 *Updated 2026-03-29 — added #128 (CI vBRIEF schema sync check, depends on #57) to Phase 3*
 *Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions
-*Updated 2026-03-31 — roadmap refresh pass: added #124 (Warp context window improvements) to Phase 2; moved #67, #91, #92 to Completed (closed on GitHub); cleaned stale #105 from Open Issues Index*
+*Updated 2026-03-31 — roadmap refresh pass: added #124 (Warp context window improvements) to Phase 2; added #126 (vBRIEF non-conformance, verify post-PR #130) to Phase 1 Adoption Blockers; moved #67, #91, #92 to Completed (closed on GitHub); cleaned stale #105 from Open Issues Index*
