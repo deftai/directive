@@ -298,5 +298,5 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #105 to Completed (PR #121)*
 *Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
 *Updated 2026-03-29 — added #128 (CI vBRIEF schema sync check, depends on #57) to Phase 3*
-*Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions
+*Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions*
 *Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131, #133–#140; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133*
