@@ -70,6 +70,7 @@ Quick doc/content fixes that don't require code changes.
 - **#102** — Codify Mermaid gist-rendering best practices as must/should rules (`coding/mermaid.md`)
 - **#124** — Warp context window improvements: add behavioral rule for periodic context checkpointing and structured handoff notes before context resets (lightweight; deeper Warp platform integration deferred to Phase 5)
 - **#103** — Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)
+- **#127** — Improved support for Deft in existing repositories — bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)
 - **#104** — Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)
 - Add missing strategies:
   - `strategies/rapid.md` — Quick prototypes, SPECIFICATION only workflow
@@ -262,6 +263,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #118 | CLI code quality sweep (version mismatch, bare except, undocumented flags, env var naming) | 1 |
 | #124 | Warp context window improvements (behavioral rule + handoff notes) | 2 |
 | #126 | specification.vbrief.json does not conform to vbrief schema/spec (verify post-PR #130) | 1 |
+| #127 | Improved support for Deft in existing repositories (brownfield bootstrap path; related #103, #53) | 2 |
 
 ---
 
@@ -279,4 +281,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
 *Updated 2026-03-29 — added #128 (CI vBRIEF schema sync check, depends on #57) to Phase 3*
 *Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions
-*Updated 2026-03-31 — roadmap refresh pass: added #124 (Warp context window improvements) to Phase 2; added #126 (vBRIEF non-conformance, verify post-PR #130) to Phase 1 Adoption Blockers; moved #67, #91, #92 to Completed (closed on GitHub); cleaned stale #105 from Open Issues Index*
+*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127; moved #67, #91, #92 to Completed; cleaned stale index entries*
