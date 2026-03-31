@@ -10,6 +10,8 @@ Fix reported bugs and UX problems blocking adoption.
 
 ### Adoption Blockers (user-reported, highest priority)
 
+- **#126** — specification.vbrief.json does not conform to vbrief schema/spec — agent generates wildly non-conformant output (possibly fixed by #72 / PR #130; verify before working)
+- **#133** — Generated vBRIEF files use invalid reference types (`x-vbrief/context`, `x-vbrief/research`) that fail schema validation — blocked on upstream `deftai/vBRIEF#2` to expand the enum; vendor updated schema once resolved
 - **#79** — deft-setup Phase 2 inference bleeds into `./deft/` framework internals (misidentifies project as "deft")
 - **#80** — deft-setup Phase 2 project name inference has no fallback when no build files exist
 - **#107** — Remove language defaults from USER.md — language is a project-level concern (deft-setup interview noise)
@@ -17,6 +19,9 @@ Fix reported bugs and UX problems blocking adoption.
 - **#108** — Ask deployment platform before language — platform context drives language shortlist (depends on #107)
 
 - **#68** — Warp not always enforcing Deft testing protocols (core quality gates silently skipped)
+- **#137** — README: move startup instructions higher and clarify where to get installers — new users can't find how to get started (quick win, independent of #89 reframe)
+- **#138** — Branching requirement too prescriptive for single-author projects — relax change lifecycle rule in `main.md` for solo contexts (easy content fix; full config-driven approach deferred to Phase 5 with #77)
+- **#139** — Agent skips vbrief source step and writes SPECIFICATION.md directly — strengthen prohibition in `main.md`/deft-build skill; add validation step (address with #68, #123)
 
 ### Cleanup
 
@@ -26,6 +31,7 @@ Fix reported bugs and UX problems blocking adoption.
 - **#116** — All deft files must be installed consistently under `./deft/` — placement is inconsistent across projects
 - **#123** — Change lifecycle gate skipped when agent receives broad ‘proceed’ instruction on multi-file changes — strengthen /deft:change rule, add PR template checklist item, add enforcement to deft-build SKILL.md
 - **#118** — CLI code quality sweep: version mismatch in docstring, bare `except` swallowing critical errors, undocumented `--force` flag, `DEFT_PRD_PATH` env var misused on Light path
+- **#131** — Mac installer 0.7.1: post-install text says "read agents.md" — should say "use agents.md" (trivial string fix; can bundle with #118)
 
 ---
 
@@ -51,7 +57,6 @@ Quick doc/content fixes that don't require code changes.
 - **#23** — `yolo.md` duplicates ~80% of `interview.md` — refactor to reference shared phases
 - **#24** — `speckit.md` missing `⚠️ See also` cross-reference banner
 - **#25** — `commands.md` vBRIEF example diverges from `vbrief/vbrief.md` spec (status vocabulary mismatch)
-- **#67** — Write SPECIFICATION.md and proper PROJECT.md for the deft project itself
 - **#51** — Project should be fully bootstrapped with its own framework (partially done in PR #66)
 - Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml; reframe README per #89 resolution (#84 Phase 2, blocked on #89)
   - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping"
@@ -68,7 +73,10 @@ Quick doc/content fixes that don't require code changes.
 - **#82** — Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)
 - **#81** — Add BDD/acceptance-test-first strategy (`strategies/bdd.md` — Given/When/Then scenarios drive requirements)
 - **#102** — Codify Mermaid gist-rendering best practices as must/should rules (`coding/mermaid.md`)
+- **#124** — Warp context window improvements: add behavioral rule for periodic context checkpointing and structured handoff notes before context resets (lightweight; deeper Warp platform integration deferred to Phase 5)
+- **#134** — Visual indicator that Deft is active — add behavioral rule for agent to confirm Deft alignment at session start and after context resets (to be done with #124; true UI indicator deferred to Phase 5 / platform support)
 - **#103** — Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)
+- **#127** — Improved support for Deft in existing repositories — bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)
 - **#104** — Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)
 - Add missing strategies:
   - `strategies/rapid.md` — Quick prototypes, SPECIFICATION only workflow
@@ -84,6 +92,8 @@ Quick doc/content fixes that don't require code changes.
 - ~~Write remaining CHANGELOG entries~~ — tracked by #71 (Phase 1)
 - **#112** — External “Deft Directive” PDF is premature — describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship
 - **#114** — Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`
+- **#135** — Greptile review rules SKILL.md should be in the Directive repo — version and co-locate bot reviewer configuration (to be done with #114)
+- **#136** — Warp doesn't load deft's AGENTS.md by default — document global rule workaround in README/installer output; real fix is Warp platform feature request (to be done with #114)
 
 ---
 
@@ -145,13 +155,17 @@ Larger feature work — only after issues are resolved and content is stable.
 - **#12** — Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)
 - **#9** — Issue tracking system integration (GitHub Issues, Jira, Asana — optional, via MCP)
 - **#95** — Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks
+- **#140** — Automatically check for updates to cloned repos in a project — detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)
 - LLM-assisted content validation
 - Self-upgrade to Deft Directive product (branding, public docs, distribution packaging)
 
 ---
 
 ## Completed
+- ~~#67 — Write SPECIFICATION.md and proper PROJECT.md for the deft project itself~~ — closed (completed)
 - ~~#72 — vBRIEF files still invalid on master — five-component generation chain fix (CONVENTIONS.md root cause, validator, renderer, data migration, templates, 7 new tests, minimal CI)~~ — 2026-03-29 (PR #130)
+- ~~#91 — run bootstrap goes in a loop~~ — closed (completed)
+- ~~#92 — Strategy selection infinite loop when strategies/ empty~~ — closed (completed)
 - ~~#106 — Add toolchain/environment validation gate (coding/toolchain.md, deft-build Step 2, strategies/interview.md Acceptance Gate, meta/lessons.md incident entry)~~ — 2026-03-24 (PR #122)
 - ~~#105 — Add build output validation directive for custom build scripts (`coding/build-output.md`, `coding/testing.md` Build Output Tests, `meta/lessons.md` incident entry)~~ — 2026-03-24 (PR #121)
 - ~~#117 — Interview command loops in CLI — `cmd_project` no longer re-runs questionnaire after `cmd_install` chains through `cmd_spec`~~ — 2026-03-24 (Unreleased)
@@ -207,11 +221,11 @@ Larger feature work — only after issues are resolved and content is stable.
 | #46 | Provide way to update meta MD files | 5 |
 | #49 | All CLI commands should display version | 1 |
 | #50 | Strategies still have redundant old names | 1 |
-| #51 | Project should be bootstrapped with own framework (partial — #67 tracks remainder) | 2 |
+| #51 | Project should be bootstrapped with own framework (partially done — see PR #66; #67 now complete) | 2 |
 | #52 | Install into .deft/ hidden directory | 5 |
 | #53 | deft-install should bootstrap current directory | 4 |
-| #91 | run bootstrap goes in a loop (usage log pending; #92 tracks code fix) | 1 |
-| #92 | Strategy selection infinite loop when strategies/ empty | 1 |
+| ~~#91~~ | ~~run bootstrap goes in a loop~~ | completed |
+| ~~#92~~ | ~~Strategy selection infinite loop when strategies/ empty~~ | completed |
 | ~~#94~~ | ~~Agent auto-alignment on startup: thin skill pointer + change lifecycle rule~~ | completed — PR #109 |
 | ~~#54~~ | ~~AGENTS.md provides no actionable onboarding (absorbed #85)~~ | completed — PR #93 |
 | #55 | Register Deft commands as native agent slash commands (absorbs slash-command scope from #54) | 5 |
@@ -220,7 +234,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #128 | CI vBRIEF schema sync check (depends on #57) | 3 |
 | #58 | Stale cross-references to legacy paths | 2 |
 | #59 | history/changes/ directory missing | 2 |
-| #67 | Write SPECIFICATION.md and proper PROJECT.md for deft | 2 |
+| ~~#67~~ | ~~Write SPECIFICATION.md and proper PROJECT.md for deft~~ | completed |
 | #68 | Warp not always enforcing Deft testing protocols | 1 |
 | ~~#72~~ | ~~vBRIEF files still invalid on master~~ | completed — PR #130 |
 | #74 | Automate release process and CI changelog enforcement | 3 |
@@ -241,7 +255,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #102 | Codify Mermaid gist-rendering best practices | 2 |
 | #103 | Standalone brownfield/map analysis without requiring interview | 2 |
 | #104 | Holzmann Power of 10 rules (`coding/holzmann.md`) | 2 |
-| #105 | Build output validation directive for custom build scripts | 1 |
+| ~~#105~~ | ~~Build output validation directive for custom build scripts~~ | completed — PR #121 |
 | ~~#106~~ | ~~Toolchain/environment validation gate before implementation~~ | completed — PR #122 |
 | #107 | Remove language defaults from USER.md | 1 |
 | #108 | Ask deployment platform before language | 1 |
@@ -256,6 +270,18 @@ Larger feature work — only after issues are resolved and content is stable.
 | #116 | All files must be installed consistently under `./deft/` | 1 |
 | #123 | Change lifecycle gate skipped on broad ‘proceed’ instruction | 1 |
 | #118 | CLI code quality sweep (version mismatch, bare except, undocumented flags, env var naming) | 1 |
+| #124 | Warp context window improvements (behavioral rule + handoff notes) | 2 |
+| #126 | specification.vbrief.json does not conform to vbrief schema/spec (verify post-PR #130) | 1 |
+| #127 | Improved support for Deft in existing repositories (brownfield bootstrap path; related #103, #53) | 2 |
+| #131 | Mac installer post-install text wording fix (bundle with #118) | 1 |
+| #133 | Generated vBRIEF files use invalid reference types (blocked on upstream deftai/vBRIEF#2) | 1 |
+| #134 | Visual indicator that Deft is active (behavioral rule with #124; true UI deferred Phase 5) | 2 |
+| #135 | Greptile review rules SKILL.md in repo (with #114) | 2 |
+| #136 | Warp doesn't auto-load AGENTS.md — document workaround (with #114) | 2 |
+| #137 | README: move startup instructions higher, clarify installer location | 1 |
+| #138 | Branching requirement too prescriptive for solo projects (content fix; full config Phase 5) | 1 |
+| #139 | Agent skips vbrief source step, writes SPECIFICATION.md directly (with #68, #123) | 1 |
+| #140 | Automatically check for updates to cloned repos in a project (deft doctor/update) | 5 |
 
 ---
 
@@ -273,3 +299,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
 *Updated 2026-03-29 — added #128 (CI vBRIEF schema sync check, depends on #57) to Phase 3*
 *Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions*
+*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131, #133–#140; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133*

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Roadmap Refresh Skill**: Added `skills/deft-roadmap-refresh/SKILL.md` — structured contributor workflow for triaging open issues into the phased roadmap (discovery, one-at-a-time analysis with human review, cleanup)
+- **Roadmap Maintenance Strategy**: Added `strategies/roadmap.md` — optional user-facing guide for maintaining a living roadmap with agent-assisted triage
+- **Agent Skill Pointer**: Added `.agents/skills/deft-roadmap-refresh/SKILL.md` thin pointer for auto-discovery
+
+### Changed
+- **Roadmap Refresh**: Triaged 12 new issues (#124, #126, #127, #131, #133–#140) into roadmap phases; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133
+- **Strategies README**: Added roadmap strategy to the strategy table
+
 ## [0.9.0] - 2026-03-29
 
 ### Added
