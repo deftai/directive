@@ -221,7 +221,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #46 | Provide way to update meta MD files | 5 |
 | #49 | All CLI commands should display version | 1 |
 | #50 | Strategies still have redundant old names | 1 |
-| #51 | Project should be bootstrapped with own framework (partial — #67 tracks remainder) | 2 |
+| #51 | Project should be bootstrapped with own framework (partially done — see PR #66; #67 now complete) | 2 |
 | #52 | Install into .deft/ hidden directory | 5 |
 | #53 | deft-install should bootstrap current directory | 4 |
 | ~~#91~~ | ~~run bootstrap goes in a loop~~ | completed |

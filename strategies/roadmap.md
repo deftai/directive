@@ -35,7 +35,7 @@ For each new issue:
 1. ~ Fetch full details (title, body, labels, comments)
 2. ~ Analyze: category, scope, relationship to existing work, suggested phase
 3. ~ Present the analysis and wait for human decision
-4. ~ On approval: update the roadmap and optionally comment on the issue
+4. ~ On approval: update the roadmap and comment on the issue with the analysis
 
 ### Step 3 — Clean Up
 
