@@ -155,6 +155,7 @@ Larger feature work — only after issues are resolved and content is stable.
 - **#12** — Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)
 - **#9** — Issue tracking system integration (GitHub Issues, Jira, Asana — optional, via MCP)
 - **#95** — Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks
+- **#140** — Automatically check for updates to cloned repos in a project — detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)
 - LLM-assisted content validation
 - Self-upgrade to Deft Directive product (branding, public docs, distribution packaging)
 
@@ -280,6 +281,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #137 | README: move startup instructions higher, clarify installer location | 1 |
 | #138 | Branching requirement too prescriptive for solo projects (content fix; full config Phase 5) | 1 |
 | #139 | Agent skips vbrief source step, writes SPECIFICATION.md directly (with #68, #123) | 1 |
+| #140 | Automatically check for updates to cloned repos in a project (deft doctor/update) | 5 |
 
 ---
 
@@ -297,4 +299,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-24 — moved #106 to Completed (PR #122); added #123 to Phase 1 Cleanup*
 *Updated 2026-03-29 — added #128 (CI vBRIEF schema sync check, depends on #57) to Phase 3*
 *Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions
-*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131, #133–#139; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133*
+*Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131, #133–#140; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133*
