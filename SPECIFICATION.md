@@ -253,7 +253,7 @@ Create meta/philosophy.md with full contract hierarchy narrative per #84 Phase 2
 
 **Traces**: FR-24
 
-## t2.5.1: Create skills/deft-review-cycle/SKILL.md — Greptile review cycle skill (FR-28)  `[pending]`
+## t2.5.1: Create skills/deft-review-cycle/SKILL.md — Greptile review cycle skill (FR-28)  `[completed]`
 
 Add a versioned, repo-local skill for running Greptile bot reviewer response cycles on PRs. Currently the review cycle rules live only in local Warp global rules, making them inaccessible to cloud agents. Moving them into the repo as a skill enables fully autonomous PR workflows: cloud agent creates PR → Greptile reviews → agent runs review cycle → agent resolves findings. Closes #135.
 

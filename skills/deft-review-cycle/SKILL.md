@@ -25,7 +25,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 1. ! `SPECIFICATION.md` has task coverage for all changes in the PR
 2. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes
-3. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥85%)
+3. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥75%)
 4. ! `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfied in the PR description
 
 ⊗ Proceed to Phase 2 while any prerequisite is unmet.
@@ -52,7 +52,7 @@ gh pr view <number> --comments
 
 - Read every finding across all files
 - Identify cross-file dependencies (a term, value, or field mentioned in multiple files)
-- Categorize by severity (P1, P2, P3, style)
+- Categorize by severity (P0, P1, P2 — where P0 is critical/blocking, P1 is a real defect, P2 is a style or non-blocking suggestion)
 - Plan a single coherent batch of fixes
 
 ⊗ Start fixing individual findings as you encounter them.
