@@ -164,7 +164,7 @@ including PROJECT.md.
 ## Defaults (fallback)
 
 Settings in this section are fallback defaults. PROJECT.md overrides these
-for project-scoped settings (strategy, coverage, languages).
+for project-scoped settings (strategy, coverage).
 
 **Default Strategy**: [{strategy name}](../strategies/{strategy-file}.md)
 

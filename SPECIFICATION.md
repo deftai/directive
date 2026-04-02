@@ -18,9 +18,9 @@ Add ⊗ rules to the Inference section of Phase 2 in skills/deft-setup/SKILL.md:
 
 Update deft-setup SKILL.md Phase 2 to prompt the user for a project name when codebase inference finds no build files at the project root. Currently falls through to deft internals. Closes #80.
 
-- Phase 2 Question Sequence includes explicit fallback: if no build files found at project root, ask user to provide project name
-- Fallback prompt appears in Track 1, Track 2, and Track 3 paths
-- tests/cli/test_project.py covers no-build-files scenario
+- Phase 2 Inference section includes explicit fallback: if no build files found at project root, default to directory name and ask for confirmation
+- Fallback rule applies to all tracks via the global Inference section; Track 1 and Track 2 Step 1 text references "directory name" explicitly
+- tests/content/test_skills.py covers no-build-files fallback presence in SKILL.md
 
 **Traces**: FR-3
 
