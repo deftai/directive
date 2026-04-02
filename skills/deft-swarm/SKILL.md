@@ -73,16 +73,28 @@ git worktree add <path> -b <branch-name> master
 
 ## Phase 3 — Launch
 
+! **Warp tabs cannot be opened programmatically.** There is no API or CLI command to open a new Warp terminal tab from an agent or script. The monitor agent MUST inform the user of this limitation and ask them to choose:
+
+- **Option A (preferred):** User manually opens Warp tabs — agents get MCP, codebase indexing, and Warp Drive rules
+- **Option B (fallback):** Agent launches standalone terminals via `Start-Process` — agents lose MCP access and must use `gh` CLI
+
+! If the user says "launch" or "do it", default to asking them to open tabs manually (Option A). Only use Option B if the user explicitly confirms they want standalone shells instead of Warp tabs.
+
+⊗ Silently launch standalone terminals when the user expects Warp tabs — always warn about the MCP/indexing tradeoff first.
+
 ### Option A: Warp Terminal Tabs (preferred)
 
-Open a new Warp terminal tab for each agent, navigate to its worktree, and run the generated launch script:
+Ask the user to open N new Warp terminal tabs. Provide the cd + launch command for each:
 
 ```powershell
-# The launch script sets $prompt from a here-string and passes it to oz
-.\launch-agent.ps1
+# Tab 1
+cd <worktree-1>; .\launch-agent.ps1
+
+# Tab 2
+cd <worktree-2>; .\launch-agent.ps1
 ```
 
-Alternatively, paste the prompt directly:
+Alternatively, the user can paste the prompt directly:
 
 ```
 oz agent run --prompt "TASK: You must complete..."
@@ -92,10 +104,10 @@ This preserves MCP server access, codebase indexing, and Warp Drive rules.
 
 ### Option B: Standalone Terminals (fallback)
 
-If Warp tabs are not available, launch via the generated scripts:
+Only use this if the user explicitly requests standalone shells instead of Warp tabs.
 
 ```powershell
-Start-Process powershell -ArgumentList "-NoExit", "-File", "<worktree>/launch-agent.ps1"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '<worktree>'; .\launch-agent.ps1"
 ```
 
 ⊗ Use `--mcp` with Warp MCP server UUIDs from standalone terminals — they require Warp app context and will fail with "Failed to start MCP servers". Agents MUST use `gh` CLI for GitHub operations in this mode.
@@ -230,3 +242,4 @@ CONSTRAINTS:
 - ⊗ Launch agents without checking SPECIFICATION.md for task coverage first
 - ⊗ Skip the file-overlap audit in Phase 1
 - ⊗ Use `git reset --hard` or force-push in any worktree
+- ⊗ Launch standalone terminals without first asking the user if they want Warp tabs instead — Warp tabs preserve MCP, codebase indexing, and Warp Drive rules; standalone shells do not. Always default to asking for manual tab opens (Option A) unless the user explicitly requests standalone shells.
