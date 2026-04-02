@@ -264,6 +264,48 @@ Add a versioned, repo-local skill for running Greptile bot reviewer response cyc
 
 **Traces**: FR-28
 
+## t1.6.1: Strengthen testing enforcement as a hard gate (#68) (FR-30)  `[pending]`
+
+Agents treat testing as a cleanup step rather than a gate. Add a MUST rule to main.md Decision Making section requiring tests to pass before any implementation is considered complete. Add testing anti-pattern to deft-build SKILL.md. A general "proceed" instruction does not waive the testing gate. Closes #68.
+
+- main.md Decision Making section contains ! rule: no implementation is complete until tests are written and `task check` passes
+- deft-build SKILL.md Anti-Patterns contains ⊗ rule: proceed to next task or phase without tests passing
+- tests/content/test_standards.py passes
+
+**Traces**: FR-30
+
+## t1.6.2: Strengthen change lifecycle gate against broad 'proceed' instructions (#123) (FR-31)  `[pending]`
+
+Agents skip the `/deft:change` proposal when the user says "proceed". Strengthen the rule in main.md to explicitly state broad approval does NOT satisfy the gate. Add checklist item to PR template. Add pre-flight gate to deft-build SKILL.md. Add `/deft:change` verification to deft-review-cycle Phase 1 audit. Batch Phase 1 audit gaps with Phase 2 fixes. Closes #123.
+
+- main.md Decision Making `/deft:change` rule explicitly states: a broad 'proceed' does NOT satisfy this gate; user must acknowledge the named change
+- .github/PULL_REQUEST_TEMPLATE.md checklist contains `/deft:change <name>` item (or N/A for <3 file changes)
+- deft-build SKILL.md contains change lifecycle pre-flight gate before Step 1
+- deft-review-cycle SKILL.md Phase 1 audit includes `/deft:change` verification step
+- deft-review-cycle SKILL.md Step 3 explicitly requires Phase 1 audit gaps to be batched with Phase 2 fixes
+- tests/content/test_standards.py passes
+
+**Traces**: FR-31
+
+## t1.6.3: Context-aware branching for solo projects (#138) (FR-32)  `[pending]`
+
+The mandatory branch + change-proposal rule is too prescriptive for single-author projects. Add conditional wording to main.md: team projects (2+ contributors) keep mandatory branch; solo projects may commit directly for changes covered by the quality gate, but SHOULD branch for risky/architectural changes. Full config-driven approach deferred to Phase 5 with #77. Closes #138.
+
+- main.md Decision Making change lifecycle rule has context-aware qualifier: mandatory for team projects, recommended for solo projects with quality gate as enforcement
+- tests/content/test_standards.py passes
+
+**Traces**: FR-32
+
+## t1.6.4: Strengthen vBRIEF source step prohibition (#139) (FR-33)  `[pending]`
+
+Agent writes SPECIFICATION.md directly instead of creating the vbrief source file first. Add explicit ⊗ rule to main.md vBRIEF Persistence section. Add anti-pattern to deft-build SKILL.md. Closes #139.
+
+- main.md vBRIEF Persistence section contains ⊗ rule: Write SPECIFICATION.md directly — it MUST be generated from specification.vbrief.json
+- deft-build SKILL.md Anti-Patterns contains ⊗ rule against writing SPECIFICATION.md directly
+- tests/content/test_standards.py passes
+
+**Traces**: FR-33
+
 ## t2.5.2: Create skills/deft-swarm/SKILL.md — parallel local agent orchestration (FR-29)  `[pending]`
 
 Add a versioned skill for orchestrating multiple parallel local agents working on roadmap items. A monitor agent reads the skill to set up worktrees, generate action-first prompts, launch agents, poll for progress, handle stalled review cycles, and close out PRs. Codifies the workflow proven in PRs #149/#150 and lessons from meta/lessons.md. Closes #152.

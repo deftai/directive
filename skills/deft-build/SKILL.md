@@ -67,6 +67,16 @@ SPECIFICATION.md   ← LOWEST
 - ! USER.md Personal section always wins over any other file
 - ! For project-scoped settings, PROJECT.md overrides USER.md Defaults
 
+## Change Lifecycle Gate
+
+! Before any implementation that touches 3+ files, verify that a `/deft:change <name>` proposal exists and has been confirmed by the user:
+
+- ! Check `history/changes/` for an active change proposal matching this work
+- ! If no proposal exists: propose `/deft:change <name>` and wait for the user to acknowledge the **named** change
+- ! A general 'proceed', 'do it', or 'go ahead' does NOT satisfy this gate — the user must confirm the specific change name
+- ? For solo projects: this gate is RECOMMENDED but not mandatory for changes fully covered by `task check`; it remains mandatory for cross-cutting, architectural, or high-risk changes
+- ⊗ Skip this gate because the user has already said "proceed" or "go ahead"
+
 ## Build Process
 
 ### Step 1: Understand the Spec
@@ -158,3 +168,6 @@ feat(phase-2): add REST API endpoints with integration tests
 - ⊗ Make commits without running `task check`
 - ⊗ Proceed without USER.md — always run the USER.md Gate first
 - ⊗ Proceed with implementation when the build or test toolchain is unavailable — always run the Toolchain Gate (Step 2) first
+- ⊗ Proceed to next task or phase without tests passing — testing is a hard gate, not a cleanup step
+- ⊗ Skip the Change Lifecycle Gate because the user said "proceed" — broad approval does not satisfy a named-change confirmation
+- ⊗ Write `SPECIFICATION.md` directly — always create `specification.vbrief.json` first and render from it
