@@ -63,7 +63,7 @@ history/changes/<name>/
 - ! Use vBRIEF format with `blocks` edges for dependencies
 - ! Each task has `narrative` with acceptance criteria
 - ~ Size tasks for 1–4 hours of work
-- ! Status lifecycle: plan-level `draft` → `proposed` → `approved`; task-level `pending` → `running` → `completed` / `blocked` / `cancelled`
+- ! Status lifecycle: plan-level `draft` → `proposed` → `approved` → `completed`; task-level `pending` → `running` → `completed` / `blocked` / `cancelled`
 
 Example:
 
@@ -160,7 +160,8 @@ Archive a completed change.
 
 ### Process
 
-- ! Verify all tasks in `tasks.vbrief.json` have status `completed`
+- ! Verify all tasks in `tasks.vbrief.json` have a terminal status (`completed`, `blocked`, or `cancelled`)
+- ~ If any tasks are `blocked` or `cancelled`, confirm with the user that archiving is intentional
 - ! Update `tasks.vbrief.json` plan status to `completed`
 - ! Move `history/changes/<name>/` to `history/archive/<date>-<name>/`
 - ! Date format: `YYYY-MM-DD` (e.g., `history/archive/2026-03-10-add-dark-mode/`)
