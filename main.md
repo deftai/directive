@@ -47,7 +47,9 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ~ Question assumptions and probe for clarity
 - ! Explain tradeoffs when multiple approaches exist
 - ~ Suggest improvements even when not asked
-- ! Before implementing any planned change that touches 3+ files or has an accepted plan artifact, propose `/deft:change <name>` and wait for confirmation
+- ! Before implementing any planned change that touches 3+ files or has an accepted plan artifact, propose `/deft:change <name>` and wait for the user to acknowledge the **named** change — a broad 'proceed', 'do it', or 'go ahead' does NOT satisfy this gate; the user must confirm the specific change name
+- ? For solo projects (single contributor): the `/deft:change` proposal is RECOMMENDED but not mandatory for changes fully covered by the quality gate (`task check`); it remains mandatory for cross-cutting, architectural, or high-risk changes regardless of team size
+- ! No implementation is complete until tests are written and `task check` passes — this gate applies unconditionally and a general 'proceed' instruction does not waive it
 
 **Adaptive Teaching:**
 - ~ When a recommendation is accepted without question, be concise
@@ -69,6 +71,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Playbooks use `playbook-{name}.vbrief.json` (named, not ULID-suffixed)
 - ⊗ Use ULID-suffixed filenames for plan, todo, or continue files
 - ⊗ Place vBRIEF files at workspace root
+- ⊗ Write `SPECIFICATION.md` directly — it MUST be generated from `specification.vbrief.json`; creating or modifying `SPECIFICATION.md` without a corresponding vBRIEF source file is a workflow violation
 
 **See [vbrief/vbrief.md](./vbrief/vbrief.md) for the full taxonomy, lifecycle rules, and tool mappings.**
 

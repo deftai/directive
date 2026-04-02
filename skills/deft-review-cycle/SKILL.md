@@ -27,8 +27,10 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 2. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes
 3. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥75%)
 4. ! `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfied in the PR description
+5. ! If the PR touches 3+ files: verify a `/deft:change` proposal exists in `history/changes/` for this branch, or document N/A with reason in the PR checklist
 
 ⊗ Proceed to Phase 2 while any prerequisite is unmet.
+! Phase 1 audit gaps (ROADMAP, CHANGELOG, missing `/deft:change`, etc.) must be held and batched with Phase 2 fix commits — do NOT push Phase 1 audit changes independently before gathering Phase 2 findings.
 
 ## Phase 2 — Review/Fix Loop
 
