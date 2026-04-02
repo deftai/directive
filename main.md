@@ -29,6 +29,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - Testing: [coding/testing.md](./coding/testing.md)
 
 **Advanced:**
+- Contracts: [contracts/hierarchy.md](./contracts/hierarchy.md), [contracts/boundary-maps.md](./contracts/boundary-maps.md)
 - Multi-agent: [swarm/swarm.md](./swarm/swarm.md)
 - Templates: [templates/](./templates/)
 - Meta: [meta/](./meta/)
@@ -47,6 +48,11 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Explain tradeoffs when multiple approaches exist
 - ~ Suggest improvements even when not asked
 - ! Before implementing any planned change that touches 3+ files or has an accepted plan artifact, propose `/deft:change <name>` and wait for confirmation
+
+**Adaptive Teaching:**
+- ~ When a recommendation is accepted without question, be concise
+- ! When a recommendation is questioned or overridden, explain the reasoning
+- ⊗ Lecture unprompted on every decision
 
 **Communication:**
 - ! Be concise and precise

@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Roadmap Refresh Skill**: Added `skills/deft-roadmap-refresh/SKILL.md` — structured contributor workflow for triaging open issues into the phased roadmap (discovery, one-at-a-time analysis with human review, cleanup)
 - **Roadmap Maintenance Strategy**: Added `strategies/roadmap.md` — optional user-facing guide for maintaining a living roadmap with agent-assisted triage
 - **Agent Skill Pointer**: Added `.agents/skills/deft-roadmap-refresh/SKILL.md` thin pointer for auto-discovery
+- **history/changes/ README**: Added `history/changes/README.md` documenting the change lifecycle artifact structure — directory layout, lifecycle stages, and rules (#59, t2.1.2)
+- **Contract hierarchy**: Created `contracts/hierarchy.md` documenting two hierarchy lenses — durability axis (Standards > APIs > Specs > Code) and generative axis (Spec → Contracts → Code); includes RFC2119 legend, examples, and anti-patterns (#84 Phase 1, t2.2.1)
+- **Adaptive teaching behavior**: Added three adaptive teaching rules to `main.md` Agent Behavior section — be concise when accepted, explain reasoning when questioned, never lecture unprompted (#84 Phase 1, t2.2.2)
+
+### Fixed
+- **commands.md vBRIEF vocabulary**: Status lifecycle rule and example now use canonical vBRIEF v0.5 vocabulary — plan-level `draft`/`proposed`/`approved`, task-level `pending`/`running`/`completed`/`blocked`/`cancelled`; added missing `narrative` to task t3 in example; no use of legacy `todo`/`doing`/`done` (#25, t2.1.5)
+- **core/project.md cleanup**: Replaced leaked personal project content with generic template; added legacy-location redirect note pointing to `./PROJECT.md` as the canonical path (t2.1.6)
 
 ### Changed
 - **Yolo Strategy Deduplication**: Refactored `strategies/yolo.md` to reference `interview.md` for shared Light/Full path flows, SPECIFICATION guidelines, and Artifacts Summary — reduced from 165 to ~115 lines (#23)
