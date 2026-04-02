@@ -281,7 +281,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #127 | Improved support for Deft in existing repositories (brownfield bootstrap path; related #103, #53) | 2 |
 | #131 | Mac installer post-install text wording fix (bundle with #118) | 1 |
 | #133 | Generated vBRIEF files use invalid reference types (blocked on upstream deftai/vBRIEF#2) | 1 |
-| #134 | Visual indicator that Deft is active (behavioral rule with #124; true UI deferred Phase 5) | 2 |
+| #134 | Visual indicator that Deft is active (behavioral rule; true UI deferred Phase 5) | 2 |
 | #135 | Greptile review rules SKILL.md in repo (with #114) | 2 |
 | #136 | Warp doesn't auto-load AGENTS.md — document workaround (with #114) | 2 |
 | #137 | README: move startup instructions higher, clarify installer location | 1 |
@@ -314,3 +314,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-02 — roadmap refresh: added #144 to Phase 1 (vBRIEF wrong narrative type + items/subItems bug, address with #126); fixed stray pipes in index*
 *Updated 2026-04-02 — roadmap refresh: added #145 to Phase 1 Adoption Blockers (deft-review-cycle Greptile signal bug, split from #135)*
 *Updated 2026-04-02 — roadmap refresh: added #146 to Phase 2 (deft-sync skill, session-start framework sync); added #147 to Phase 2 (skills undocumented in README/AGENTS.md)*
+*Updated 2026-04-02 — note: #143 is a merged PR (feat: add deft-review-cycle skill, PR #143), not an open issue; correctly absent from triage*
