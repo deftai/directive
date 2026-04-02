@@ -75,10 +75,17 @@ git worktree add <path> -b <branch-name> master
 
 ### Option A: Warp Terminal Tabs (preferred)
 
-Open a new Warp terminal tab for each agent, navigate to its worktree, and run:
+Open a new Warp terminal tab for each agent, navigate to its worktree, and run the generated launch script:
+
+```powershell
+# The launch script sets $prompt from a here-string and passes it to oz
+.\launch-agent.ps1
+```
+
+Alternatively, paste the prompt directly:
 
 ```
-oz agent run --prompt $prompt
+oz agent run --prompt "TASK: You must complete..."
 ```
 
 This preserves MCP server access, codebase indexing, and Warp Drive rules.
@@ -138,7 +145,7 @@ For each agent's PR:
 
 All PRs meet ALL of:
 - Greptile confidence > 3
-- No P1 or P2 issues
+- No P0 or P1 issues remain (P2 issues are non-blocking style suggestions and do not gate merge)
 - `task check` passed (or equivalent validation completed)
 - CHANGELOG entries present under `[Unreleased]`
 
@@ -218,7 +225,7 @@ CONSTRAINTS:
 - ⊗ Start prompts with context or description instead of an imperative TASK directive
 - ⊗ Use `--mcp` with Warp MCP server UUIDs from standalone (non-Warp) terminals
 - ⊗ Assign overlapping files to multiple agents
-- ⊗ Merge PRs before Greptile exit condition is met (score > 3, no P1/P2)
+- ⊗ Merge PRs before Greptile exit condition is met (score > 3, no P0/P1)
 - ⊗ Assume agents will complete the full workflow — always verify review cycle completion
 - ⊗ Launch agents without checking SPECIFICATION.md for task coverage first
 - ⊗ Skip the file-overlap audit in Phase 1
