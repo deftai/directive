@@ -81,6 +81,38 @@ Two agents working the same repo on different branches need separate working dir
 
 Agent 1 created its PR and stopped before running the Greptile review cycle (the prompt's Step 9). Agent 2 ran 4 autonomous review rounds successfully. The difference was prompt structure. A monitoring agent MUST check whether each spawned agent completed the full workflow and be prepared to finish incomplete steps.
 
+## Parallel Agent Swarm — First Full Run (2026-04)
+
+**Source:** 4-agent swarm on Phase 1 roadmap items — PRs #154, #155, #156, #157 (14 issues closed)
+
+**1. `oz agent run` launches CLOUD agents, not local agents — MUST NOT use for local execution**
+
+The `oz` CLI always spawns agents on remote VMs, even when run from a local Warp tab. The swarm skill originally used `oz agent run --prompt` in launch scripts, expecting local execution. All 4 agents ran on cloud VMs instead, losing MCP server access, codebase indexing, and Warp Drive rules. For truly local agent execution, the user MUST paste the prompt directly into a Warp agent conversation (the chat input). `oz agent run` is the cloud path.
+
+**2. Warp terminal tabs MUST NOT be assumed openable programmatically**
+
+There is no API or CLI command to open a new Warp terminal tab from an agent or script. When the user said "launch", the monitor agent silently used `Start-Process` to open standalone PowerShell windows instead of asking the user to open Warp tabs manually. The user expected Warp tabs with full context. Agents MUST present the tradeoffs (local vs. cloud vs. standalone) and let the user choose before launching.
+
+**3. Sequential merging of PRs with shared append-only files causes rebase cascades**
+
+CHANGELOG.md and SPECIFICATION.md are "append-only" shared files — each agent adds entries without editing existing content. However, when PRs are merged sequentially, each merge changes the file at the same insertion point, causing merge conflicts for remaining PRs. Merging #154 conflicted #155 and #157; merging #155 conflicted #157 again. Each conflict required rebase → push → wait for checks (~3 min). Four PRs required 3 rebase cycles. SHOULD merge all PRs in rapid succession or rebase all remaining PRs before starting merges.
+
+**4. File-overlap audit MUST check transitive file touches, not just primary scope**
+
+The file-overlap audit assigned `skills/deft-review-cycle/SKILL.md` exclusively to Agent 3. But Agent 2 (enforcement rules, #123) added a `/deft:change` verification step to the same file as part of strengthening the review cycle's Phase 1 audit. This was a transitive touch — the enforcement task's acceptance criteria required changes to a file in another agent's scope. The overlap audit MUST trace each task's acceptance criteria to specific files, not just the task's primary scope.
+
+**5. SPECIFICATION.md task status MUST be verified before assigning work**
+
+The original Agent 2 was scoped to #31 and #50 (strategy consolidation). Both had spec tasks (t1.4.1, t1.4.2) marked `[completed]` in SPECIFICATION.md, but the ROADMAP.md still listed them as open. Verifying the spec caught this before agents wasted time reimplementing done work. The select phase MUST cross-reference ROADMAP.md against SPECIFICATION.md status before assigning.
+
+**6. PR numbers don't match agent numbers — include agent ID in branch/PR naming**
+
+GitHub assigns PR numbers in creation order, which depends on which cloud agent finishes first. Agent 2's PR became #154 while Agent 1's became #156. This caused confusion during monitoring and merging. Branch names SHOULD include the agent number (e.g. `agent1/fix/...`) or PR titles SHOULD include `[Agent N]` for traceability.
+
+**7. Cloud agents stop after PR creation — review cycle requires separate launch**
+
+All 4 agents (running as cloud agents via `oz agent run`) completed through Step 5 (push + PR creation) but stopped before Step 6 (review cycle). The review cycle had to be launched as a separate swarm pass. When using cloud agents, SHOULD expect the workflow to require at least two passes: implementation + review cycle.
+
 ## Windows File Editing (2026-03)
 
 **Source:** ROADMAP.md edits during feat/agents-md-onboarding-54 — three sequential failures before clean write

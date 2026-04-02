@@ -36,6 +36,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 - ! Read ROADMAP.md for open items, prioritizing Phase 1 before Phase 2
 - ! Read SPECIFICATION.md for acceptance criteria of candidate tasks
+- ! Cross-reference ROADMAP.md items against SPECIFICATION.md task status — if a roadmap item has a spec task marked `[completed]`, verify the work is actually done (check files) before assigning. ROADMAP.md may lag behind SPECIFICATION.md.
 - ! Exclude items that are blocked, have unresolved dependencies, or require design decisions
 
 ### Step 2: File-Overlap Audit
@@ -43,10 +44,12 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ! Before assigning tasks to agents, list every file each task is expected to touch.
 
 - ! Verify ZERO file overlap between agents — no two agents may modify the same file
+- ! Check **transitive** file touches, not just primary scope — trace each task's acceptance criteria to specific files. A task may require changes to files outside its obvious scope (e.g., an enforcement task adding an anti-pattern to a skill file owned by another agent).
 - ! Shared files (CHANGELOG.md, SPECIFICATION.md) are exceptions — each agent adds entries but does not edit existing content
 - ! If overlap exists, reassign tasks until overlap is eliminated
 
 ⊗ Proceed to Phase 2 while any file overlap exists between agents (excluding shared append-only files).
+⊗ Assume a task only touches files in its primary scope — always check acceptance criteria for cross-file requirements.
 
 ### Step 3: Present Assignment
 
@@ -64,7 +67,7 @@ git worktree add <path> -b <branch-name> master
 ```
 
 - ! One worktree per agent (e.g. `E:\Repos\deft-agent1`, `E:\Repos\deft-agent2`)
-- ! Branch naming: `<type>/<issue-numbers>-<short-description>` (e.g. `cleanup/31-50-23-strategy-consolidation`)
+- ! Branch naming: `agent<N>/<type>/<issue-numbers>-<short-description>` (e.g. `agent1/cleanup/31-50-23-strategy-consolidation`) — the agent number prefix aids traceability since GitHub PR numbers won't match agent numbers
 - ! All worktrees branch from the same base (typically `master`)
 
 ### Step 2: Generate Prompt Files
@@ -172,9 +175,14 @@ All PRs meet ALL of:
 
 ### Step 1: Merge
 
+! **Merge cascade warning:** Shared append-only files (CHANGELOG.md, SPECIFICATION.md) cause merge conflicts when PRs are merged sequentially — each merge changes the insertion point, conflicting remaining PRs. Each conflict requires rebase → push → wait for checks (~3 min). Plan for N-1 rebase cycles when merging N PRs.
+
+~ To minimize cascades: rebase ALL remaining PRs onto latest master before starting any merges, then merge in rapid succession.
+
 - ! Undraft PRs: `gh pr ready <number> --repo <owner/repo>`
 - ! Squash merge: `gh pr merge <number> --squash --delete-branch --admin` (if branch protection requires)
 - ! Use descriptive squash subject: `type(scope): description (#issues)`
+- ! After each merge, rebase remaining PRs onto updated master before merging the next
 
 ### Step 2: Close Issues
 
