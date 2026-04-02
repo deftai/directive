@@ -47,7 +47,7 @@ Present two groups sourced from the `Type` column in
 **Preparatory strategies** (type: `preparatory` — loops back to this gate on completion):
 - Research — investigate the domain, find libraries, identify pitfalls
 - Discuss — lock key decisions using Feynman technique
-- Map/Brownfield — analyze existing codebase conventions
+- Map — analyze existing codebase conventions
 
 **Switch spec-generating strategy** (type: `spec-generating` — replaces current pipeline):
 - Yolo — auto-pilot, Johnbot picks all answers
@@ -78,7 +78,7 @@ Ready to generate the specification. Before we proceed, would you like to:
 --- Preparatory (loops back) ---
 2. Run a research phase — investigate the domain, find libraries, identify pitfalls
 3. Run a discuss phase — lock key decisions using Feynman technique
-4. Run a map/brownfield phase — analyze existing codebase conventions
+4. Run a map phase — analyze existing codebase conventions
 
 --- Switch strategy ---
 5. Switch to yolo — auto-pilot picks all answers

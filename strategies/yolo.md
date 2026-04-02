@@ -82,43 +82,17 @@ with Johnbot additions:
 
 ---
 
-## Light Path (small/medium projects)
+## Light Path
 
-Interview → SPECIFICATION with embedded Requirements.
 Same as [interview.md Light path](./interview.md#light-path-smallmedium-projects)
-but Johnbot answers all questions.
-
-### Flow
-
-1. Johnbot picks Light at the sizing gate
-2. Interview (Johnbot picks RECOMMENDED for each question)
-3. Write `./vbrief/specification.vbrief.json` with `status: draft`
-4. Auto-approve (update `status` to `approved`)
-5. Run `task spec:render` (or generate `SPECIFICATION.md` directly if task unavailable)
-
-- ! SPECIFICATION.md MUST include embedded Requirements section (FR-1, NFR-1)
-- ! Each task SHOULD reference which FR/NFR it implements via `(traces: FR-N)`
-- ⊗ Create a separate PRD.md on the Light path
+but Johnbot answers all questions and auto-approves.
 
 ---
 
-## Full Path (large/complex projects)
+## Full Path
 
-Interview → PRD → SPECIFICATION with traceability.
 Same as [interview.md Full path](./interview.md#full-path-largecomplex-projects)
 but Johnbot answers all questions and auto-approves the PRD.
-
-### Flow
-
-1. Johnbot picks Full at the sizing gate
-2. Interview (Johnbot picks RECOMMENDED for each question)
-3. Generate `PRD.md` with structured requirements
-4. Auto-approve PRD
-5. Write `./vbrief/specification.vbrief.json` with `status: draft`
-6. Auto-approve (update `status` to `approved`)
-7. Run `task spec:render` (or generate `SPECIFICATION.md` directly if task unavailable)
-
-- ! SPECIFICATION.md MUST trace tasks back to PRD requirement IDs (FR-1, NFR-1)
 
 ---
 
@@ -130,20 +104,8 @@ Same as [interview.md](./interview.md#specification-guidelines-both-paths).
 
 ## Artifacts Summary
 
-**Light path:**
-
-| Artifact | Purpose | Created By |
-|----------|---------|------------|
-| `./vbrief/specification.vbrief.json` | Spec source of truth | Interview |
-| `SPECIFICATION.md` | Generated plan with embedded Requirements | Rendered |
-
-**Full path:**
-
-| Artifact | Purpose | Created By |
-|----------|---------|------------|
-| `PRD.md` | What to build (auto-approved) | Interview |
-| `./vbrief/specification.vbrief.json` | Spec source of truth | Post-PRD |
-| `SPECIFICATION.md` | Generated implementation plan | Rendered |
+Same as [interview.md](./interview.md#artifacts-summary) — identical for both
+Light and Full paths (PRD is auto-approved on Full path).
 
 ## Invoking This Strategy
 

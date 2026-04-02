@@ -4,6 +4,8 @@ A five-phase spec-driven development workflow inspired by [GitHub's spec-kit](ht
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
+**⚠️ See also**: [strategies/interview.md](./interview.md) | [strategies/discuss.md](./discuss.md) | [core/glossary.md](../core/glossary.md)
+
 ## When to Use
 
 - ~ Large or complex projects with multiple contributors
