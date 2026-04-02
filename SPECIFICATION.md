@@ -33,8 +33,7 @@ Language is a project-level concern determined per-project via codebase inferenc
 - Phase 1 Track 2 has no language step
 - Phase 2 Step 3 infers from codebase
 - falls back to open ask (no USER.md default pre-fill)
-- tests/cli/test_bootstrap.py updated
-- no language question in happy path
+- tests/content/test_skills.py covers: USER.md template has no Primary Languages field, Phase 1 Track 1 has no language step
 
 **Traces**: FR-4
 
