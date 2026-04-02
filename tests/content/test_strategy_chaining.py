@@ -123,7 +123,7 @@ class TestReadmeTypeColumn:
 
     def test_known_preparatory_strategies(self) -> None:
         """Known preparatory strategies must be typed correctly."""
-        expected_prep = {"map.md", "brownfield.md", "discuss.md", "research.md"}
+        expected_prep = {"map.md", "discuss.md", "research.md"}
         for row in self._rows:
             # Extract filename from markdown link if present
             strategy_cell = row.get("strategy", "")
@@ -151,7 +151,7 @@ class TestReadmeTypeColumn:
 # 3. Category consistency: preparatory strategies reference chaining gate
 # ---------------------------------------------------------------------------
 
-_PREPARATORY_FILES = ["brownfield.md", "map.md", "research.md", "discuss.md"]
+_PREPARATORY_FILES = ["map.md", "research.md", "discuss.md"]
 _SPEC_GENERATING_FILES = ["interview.md", "yolo.md", "speckit.md"]
 
 

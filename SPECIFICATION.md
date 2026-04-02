@@ -92,7 +92,7 @@ All cmd_* functions should print the VERSION on entry (e.g. 'Deft CLI v0.4.2'). 
 
 **Traces**: FR-10
 
-## t1.4.1: Merge strategies/default.md into strategies/interview.md and remove default.md (FR-8)  `[pending]`
+## t1.4.1: Merge strategies/default.md into strategies/interview.md and remove default.md (FR-8)  `[completed]`
 
 default.md is a duplicate of interview.md. Merge any unique content into interview.md, then delete default.md. Update any references to default.md. Closes #31.
 
@@ -104,7 +104,7 @@ default.md is a duplicate of interview.md. Merge any unique content into intervi
 
 **Traces**: FR-8
 
-## t1.4.2: Update strategies/brownfield.md to redirect to strategies/map.md (FR-9)  `[pending]`
+## t1.4.2: Update strategies/brownfield.md to redirect to strategies/map.md (FR-9)  `[completed]`
 
 brownfield.md is a legacy alias for map.md. Replace content with a short redirect note pointing to map.md. Do not delete (backward compatibility for any existing references). Closes #50 (brownfield portion).
 
@@ -153,7 +153,7 @@ commands.md references history/changes/<name>/ but the directory doesn't exist. 
 
 **Traces**: FR-14
 
-## t2.1.3: Refactor strategies/yolo.md to reference interview.md shared phases (FR-15)  `[pending]`
+## t2.1.3: Refactor strategies/yolo.md to reference interview.md shared phases (FR-15)  `[completed]`
 
 yolo.md duplicates ~80% of interview.md. Replace duplicated sections (sizing gate, chaining gate, acceptance gate, SPECIFICATION structure) with references to interview.md. Keep only yolo-specific content (Johnbot persona, auto-pick rules). Closes #23.
 
@@ -163,7 +163,7 @@ yolo.md duplicates ~80% of interview.md. Replace duplicated sections (sizing gat
 
 **Traces**: FR-15
 
-## t2.1.4: Add See also banner to strategies/speckit.md (FR-16)  `[pending]`
+## t2.1.4: Add See also banner to strategies/speckit.md (FR-16)  `[completed]`
 
 speckit.md is missing the standard **⚠️ See also** cross-reference banner at the top. Add it with links to interview.md and relevant strategy files. Closes #24.
 

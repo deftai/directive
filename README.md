@@ -202,10 +202,9 @@ deft/
 │
 ├── strategies/            # Development strategies
 │   ├── README.md          # Strategy overview
-│   ├── brownfield.md      # Existing codebase work
-│   ├── default.md         # Default strategy
+│   ├── brownfield.md      # Redirect → map.md (backward compat)
 │   ├── discuss.md         # Discussion mode
-│   ├── interview.md       # Interview-driven development
+│   ├── interview.md       # Interview-driven development (default)
 │   ├── map.md             # Codebase mapping
 │   ├── research.md        # Research mode
 │   ├── speckit.md         # Specification toolkit
@@ -288,7 +287,7 @@ Plus: delphi, visual-basic, vhdl, 6502-DASM
 
 ### 🧭 Strategies
 **strategies/** - Development approach strategies:  
-**default.md** / **brownfield.md** / **interview.md** / **discuss.md** / **map.md** / **research.md** / **speckit.md** / **yolo.md**
+**interview.md** / **discuss.md** / **map.md** / **research.md** / **speckit.md** / **yolo.md** / **brownfield.md** (redirect to map.md)
 
 ### 🧠 Context
 **context/context.md** - Context management overview  
