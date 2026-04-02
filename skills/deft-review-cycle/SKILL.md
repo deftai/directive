@@ -74,9 +74,24 @@ gh pr view <number> --comments
 
 ! Push the batch commit, then wait for the bot to review the latest commit.
 
-! Confirm the review is current by comparing the "Last reviewed commit" hash at the bottom of the Greptile comment to the pushed commit SHA. Fetch the full untruncated comment body or use MCP `get_comments` to get the actual commit URL containing the full SHA — do NOT rely on grepping truncated link text.
+! Greptile may advance its review by **editing an existing PR issue comment** rather than creating a new PR review object. Do NOT rely solely on `pulls/{number}/reviews` — that endpoint may remain stale at an older commit SHA even after Greptile has reviewed the latest commit.
 
-⊗ Re-fetch or re-trigger while the bot's last review still targets an older commit.
+! To confirm the review is current, check **both** surfaces:
+
+1. **PR issue comments** (primary signal) — Greptile edits its existing summary comment in place:
+   - `gh pr view <number> --comments` (with `do_not_summarize_output: true`)
+   - Or `gh api repos/<owner>/<repo>/issues/<number>/comments`
+   - Parse the comment body for `Last reviewed commit` and compare to the pushed commit SHA
+   - Check the comment's `updated_at` timestamp to confirm it was refreshed after your push
+2. **PR review objects** (secondary signal) — may or may not be updated:
+   - `gh api repos/<owner>/<repo>/pulls/<number>/reviews`
+   - Check `commit_id` on the latest review object
+
+! Treat an edited Greptile issue comment as a valid new review pass even if no new PR review object was created.
+
+! Fetch the full untruncated comment body or use MCP `get_comments` to get the actual commit URL containing the full SHA — do NOT rely on grepping truncated link text.
+
+⊗ Re-fetch or re-trigger while the bot's last review still targets an older commit on **both** surfaces.
 
 ### Step 5: Re-fetch and analyze
 
@@ -123,3 +138,5 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 - ⊗ Report "all comments resolved" without checking both MCP and `gh pr view`
 - ⊗ Use `add_issue_comment` for formal review submission
 - ⊗ Commit or push Phase 1 audit fixes independently — always batch with Phase 2 fixes
+- ⊗ Proceed to Phase 2 while any Phase 1 prerequisite is unmet
+- ⊗ Rely solely on `pulls/{number}/reviews` to detect whether Greptile has reviewed the latest commit — Greptile may update via an edited issue comment instead of a new review object

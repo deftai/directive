@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **README restructure**: Moved Getting Started section (install, setup, spec, build) from below the architecture/layers documentation to immediately after the TL;DR; added prominent installer download callout at the top of the page (#137, t2.5.3)
+
 ### Fixed
 - **Testing enforcement gate**: Added `!` hard gate rule to `main.md` Decision Making — no implementation is complete until tests written and `task check` passes; a general 'proceed' does not waive testing; added anti-pattern to `deft-build/SKILL.md` (#68, t1.6.1)
 - **Change lifecycle gate enforcement**: Strengthened `/deft:change` rule in `main.md` — broad 'proceed'/'do it'/'go ahead' explicitly does NOT satisfy the gate; user must acknowledge the **named** change; added pre-flight gate to `deft-build/SKILL.md`, checklist item to `.github/PULL_REQUEST_TEMPLATE.md`, verification step to `deft-review-cycle/SKILL.md` Phase 1 audit; Phase 1 audit gaps now batched with Phase 2 fixes (#123, t1.6.2)
 - **Context-aware branching for solo projects**: Added solo-project qualifier to `main.md` change lifecycle rule — `/deft:change` mandatory for team projects (2+ contributors), recommended for solo projects with quality gate as enforcement; mandatory regardless of team size for cross-cutting, architectural, or high-risk changes; full config-driven approach deferred to Phase 5 (#138, t1.6.3)
 - **vBRIEF source step enforcement**: Added `⊗` rule to `main.md` vBRIEF Persistence — SPECIFICATION.md must never be written directly, must be generated from `specification.vbrief.json`; added anti-pattern to `deft-build/SKILL.md` (#139, t1.6.4)
+- **deft-review-cycle Greptile signal**: Updated `skills/deft-review-cycle/SKILL.md` Step 4 to document that Greptile may advance its review by editing an existing PR issue comment rather than creating a new PR review object; added dual-surface detection guidance (issue comments as primary signal, PR review objects as secondary) with `updated_at` timestamp checking; added anti-pattern for relying solely on `pulls/{number}/reviews` (#145, t2.5.2)
 
 ## [0.10.0] - 2026-04-02
 

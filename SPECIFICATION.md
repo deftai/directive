@@ -305,8 +305,29 @@ Agent writes SPECIFICATION.md directly instead of creating the vbrief source fil
 - tests/content/test_standards.py passes
 
 **Traces**: FR-33
+## t2.5.2: Update deft-review-cycle SKILL.md — handle Greptile edited issue comments (FR-30)  `[completed]`
 
-## t2.5.2: Create skills/deft-swarm/SKILL.md — parallel local agent orchestration (FR-29)  `[pending]`
+Update skills/deft-review-cycle/SKILL.md Step 4 to explicitly document that Greptile may advance its review by editing an existing PR issue comment rather than creating a new PR review object. Add guidance to check issue comments via `gh api repos/<owner>/<repo>/issues/<number>/comments` or `gh pr view --comments`, parse the `Last reviewed commit` field and `updated_at` from the comment body, and treat an edited issue comment as a valid new review pass. Add anti-pattern for relying solely on `pulls/{number}/reviews`. Closes #145.
+
+- Step 4 documents both review detection methods: PR review objects and edited issue comments
+- Guidance includes parsing `Last reviewed commit` and `updated_at` from issue comments
+- Anti-patterns section includes entry about relying solely on PR review API
+- tests/content/test_skills.py passes
+
+**Traces**: FR-30
+
+## t2.5.3: README — move startup instructions higher and clarify installer location (FR-31)  `[completed]`
+
+Move the Getting Started section in README.md to appear immediately after the TL;DR section, before detailed architecture/layer documentation. Add a prominent callout near the top directing users to the GitHub Releases page for installers. Closes #137.
+
+- Getting Started section appears within the first ~40 lines of README.md
+- Installer download link is visible without scrolling past architecture details
+- All existing content preserved, just reordered
+- No broken internal links
+
+**Traces**: FR-31
+
+## t2.5.4: Create skills/deft-swarm/SKILL.md — parallel local agent orchestration (FR-29)  `[completed]`
 
 Add a versioned skill for orchestrating multiple parallel local agents working on roadmap items. A monitor agent reads the skill to set up worktrees, generate action-first prompts, launch agents, poll for progress, handle stalled review cycles, and close out PRs. Codifies the workflow proven in PRs #149/#150 and lessons from meta/lessons.md. Closes #152.
 
@@ -319,6 +340,7 @@ Add a versioned skill for orchestrating multiple parallel local agents working o
 - Cross-references swarm/swarm.md for general multi-agent guidelines and skills/deft-review-cycle/SKILL.md for review cycle
 
 **Traces**: FR-29
+
 ## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
 
 GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: (1) Python: ruff check, mypy tests/ (the shim run.py cannot be typed directly - exclude run and run.py from mypy per pyproject.toml, type-check the test suite instead), pytest tests/ with coverage. (2) Go: go test ./cmd/deft-install/ + go build ./cmd/deft-install/ for each platform matrix (linux/amd64, darwin/arm64, windows/amd64). main_test.go already exists so go test is zero-cost. Use current action versions. Closes #57.

@@ -18,6 +18,86 @@ Deft is a SKILL.md that makes AI coding significantly more effective by providin
 
 **📍 Roadmap:** See [ROADMAP.md](./ROADMAP.md) for the development timeline, open issues, and planned work.
 
+> **⬇️ Get Deft:** Download the installer for your platform from [GitHub Releases](https://github.com/deftai/directive/releases), run it, and follow the prompts. See [Getting Started](#-getting-started) below.
+
+## 🚀 Getting Started
+
+Download the installer for your platform from [GitHub Releases](https://github.com/deftai/directive/releases), run it, and follow the prompts.
+
+### 1. Install Deft
+
+**Windows:**
+- Download `install-windows-amd64.exe` (or `install-windows-arm64.exe` for Surface / Copilot+ PCs)
+- Run the downloaded file — Windows SmartScreen may warn about an unrecognised publisher; click "More info" → "Run anyway" (code signing is planned for a future release)
+
+**macOS:**
+- Download `install-macos-universal` — works on all Macs (Intel and Apple Silicon)
+- Make it executable and run: `chmod +x install-macos-universal && ./install-macos-universal`
+- If macOS Gatekeeper blocks the file: right-click → Open, or run `xattr -d com.apple.quarantine install-macos-universal` first (code signing is planned for a future release)
+
+**Linux:**
+- Download `install-linux-amd64` (or `install-linux-arm64` for Raspberry Pi / ARM cloud)
+- Make it executable and run: `chmod +x install-linux-amd64 && ./install-linux-amd64`
+
+The installer guides you through choosing a project directory, installs git if needed, clones deft, wires it into `AGENTS.md`, and creates your user config directory.
+
+**Manual clone (no installer):** If you clone deft directly via `git clone`, create an `AGENTS.md` in your project root using the full bootstrap template (see `agentsMDEntry` in `cmd/deft-install/setup.go` for the exact content with `deft/`-prefixed paths and first-session phase detection), then tell your agent `read AGENTS.md and follow it` to start the setup.
+
+**Building from source (developers only):** requires Go 1.22+ — `go run ./cmd/deft-install/`
+
+**Manual clone (CLI users):** if you already have git and prefer to skip the installer, clone deft directly into your project:
+
+```bash
+cd your-project
+git clone https://github.com/deftai/directive.git deft
+```
+
+Then create an `AGENTS.md` in your project root using the [install-generated template](cmd/deft-install/setup.go) (the `agentsMDEntry` constant), which contains the correct `deft/`-prefixed paths and full first-session bootstrap logic. Then tell your agent `read AGENTS.md and follow it` to kick off the setup.
+
+### 2. Set Up Your Preferences
+
+Deft offers two setup paths that produce the same output (USER.md + PROJECT.md) but adapt to different users:
+
+**Agent-driven** (recommended for most users) — Tell your agent `read AGENTS.md and follow it` to start the Deft setup flow. The agent will ask how technical you are and adapt accordingly:
+- *Technical*: asks about languages, strategy, coverage, meta rules, and custom rules
+- *Some opinions*: asks name, languages, and custom rules; defaults the rest
+- *Just pick defaults*: asks what you're building, infers everything else
+
+**CLI** (for technical users) — If you're running commands in a terminal, you're technical. The CLI treats you as a power user and asks all configuration questions directly — no skill-level gate.
+
+```bash
+deft/run bootstrap       # Interactive setup for user.md and project.md
+```
+
+**User config location:**
+- Unix / macOS: `~/.config/deft/USER.md`
+- Windows: `%APPDATA%\deft\USER.md`
+- Override: set `DEFT_USER_PATH` environment variable
+
+### 3. Generate Specification
+
+`deft/run bootstrap` will guide you through creating a `SPECIFICATION.md`, or create one anytime:
+
+```bash
+deft/run spec            # AI-assisted specification interview
+```
+
+Other commands:
+
+```bash
+deft/run reset           # Reset config files
+deft/run validate        # Check deft configuration
+deft/run doctor          # Check system dependencies
+```
+
+### 4. Build With AI
+
+Ask your AI to build the product/project from `SPECIFICATION.md` and away you go:
+
+```
+Read SPECIFICATION.md and implement the project following deft/main.md standards.
+```
+
 ## 🎸 From Vibe to Virtuoso
 
 **AGENTS.md** is great for vibe-coding—loose guidance, good enough for quick work:
@@ -329,84 +409,6 @@ agentuity, aws, azure, cloudflare, cloud-gov, fly-io, google, netlify, vercel
 **meta/lessons.md** - Codified learnings (AI-updatable)  
 **meta/ideas.md** - Future directions  
 **meta/suggestions.md** - Improvement suggestions
-
-## 🚀 Getting Started
-
-Download the installer for your platform from [GitHub Releases](https://github.com/deftai/directive/releases), run it, and follow the prompts.
-
-### 1. Install Deft
-
-**Windows:**
-- Download `install-windows-amd64.exe` (or `install-windows-arm64.exe` for Surface / Copilot+ PCs)
-- Run the downloaded file — Windows SmartScreen may warn about an unrecognised publisher; click "More info" → "Run anyway" (code signing is planned for a future release)
-
-**macOS:**
-- Download `install-macos-universal` — works on all Macs (Intel and Apple Silicon)
-- Make it executable and run: `chmod +x install-macos-universal && ./install-macos-universal`
-- If macOS Gatekeeper blocks the file: right-click → Open, or run `xattr -d com.apple.quarantine install-macos-universal` first (code signing is planned for a future release)
-
-**Linux:**
-- Download `install-linux-amd64` (or `install-linux-arm64` for Raspberry Pi / ARM cloud)
-- Make it executable and run: `chmod +x install-linux-amd64 && ./install-linux-amd64`
-
-The installer guides you through choosing a project directory, installs git if needed, clones deft, wires it into `AGENTS.md`, and creates your user config directory.
-
-**Manual clone (no installer):** If you clone deft directly via `git clone`, create an `AGENTS.md` in your project root using the full bootstrap template (see `agentsMDEntry` in `cmd/deft-install/setup.go` for the exact content with `deft/`-prefixed paths and first-session phase detection), then tell your agent `read AGENTS.md and follow it` to start the setup.
-
-**Building from source (developers only):** requires Go 1.22+ — `go run ./cmd/deft-install/`
-
-**Manual clone (CLI users):** if you already have git and prefer to skip the installer, clone deft directly into your project:
-
-```bash
-cd your-project
-git clone https://github.com/deftai/directive.git deft
-```
-
-Then create an `AGENTS.md` in your project root using the [install-generated template](cmd/deft-install/setup.go) (the `agentsMDEntry` constant), which contains the correct `deft/`-prefixed paths and full first-session bootstrap logic. Then tell your agent `read AGENTS.md and follow it` to kick off the setup.
-
-### 2. Set Up Your Preferences
-
-Deft offers two setup paths that produce the same output (USER.md + PROJECT.md) but adapt to different users:
-
-**Agent-driven** (recommended for most users) — Tell your agent `read AGENTS.md and follow it` to start the Deft setup flow. The agent will ask how technical you are and adapt accordingly:
-- *Technical*: asks about languages, strategy, coverage, meta rules, and custom rules
-- *Some opinions*: asks name, languages, and custom rules; defaults the rest
-- *Just pick defaults*: asks what you're building, infers everything else
-
-**CLI** (for technical users) — If you're running commands in a terminal, you're technical. The CLI treats you as a power user and asks all configuration questions directly — no skill-level gate.
-
-```bash
-deft/run bootstrap       # Interactive setup for user.md and project.md
-```
-
-**User config location:**
-- Unix / macOS: `~/.config/deft/USER.md`
-- Windows: `%APPDATA%\deft\USER.md`
-- Override: set `DEFT_USER_PATH` environment variable
-
-### 3. Generate Specification
-
-`deft/run bootstrap` will guide you through creating a `SPECIFICATION.md`, or create one anytime:
-
-```bash
-deft/run spec            # AI-assisted specification interview
-```
-
-Other commands:
-
-```bash
-deft/run reset           # Reset config files
-deft/run validate        # Check deft configuration
-deft/run doctor          # Check system dependencies
-```
-
-### 4. Build With AI
-
-Ask your AI to build the product/project from `SPECIFICATION.md` and away you go:
-
-```
-Read SPECIFICATION.md and implement the project following deft/main.md standards.
-```
 
 ### Rule Hierarchy
 
