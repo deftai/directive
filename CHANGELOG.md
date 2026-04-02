@@ -13,17 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Roadmap Maintenance Strategy**: Added `strategies/roadmap.md` — optional user-facing guide for maintaining a living roadmap with agent-assisted triage
 - **Agent Skill Pointer**: Added `.agents/skills/deft-roadmap-refresh/SKILL.md` thin pointer for auto-discovery
 
-### Removed
-- **Redundant Strategy Files**: Deleted `strategies/default.md` (fully superseded by `interview.md`) and replaced `strategies/brownfield.md` with a redirect to `map.md` (#31, #50)
-
 ### Changed
 - **Yolo Strategy Deduplication**: Refactored `strategies/yolo.md` to reference `interview.md` for shared Light/Full path flows, SPECIFICATION guidelines, and Artifacts Summary — reduced from 165 to ~115 lines (#23)
 - **Chaining Gate Cleanup**: Removed "Brownfield" alias from `interview.md` chaining gate options — now just "Map"
 - **SpecKit Cross-Reference**: Added **⚠️ See also** banner to `strategies/speckit.md` (#24)
-- **Strategies README**: Removed redundant `brownfield.md` row from strategy table
+- **Strategies README**: Removed redundant `brownfield.md` row from strategy table; added roadmap strategy
+- **README.md**: Updated directory tree and strategies reference list to reflect `default.md` deletion and `brownfield.md` redirect
+- **Baseline Snapshot**: Regenerated `tests/content/snapshots/baseline.json` to reflect strategy file changes
 - **Roadmap Refresh**: Triaged 12 new issues (#124, #126, #127, #131, #133–#140) into roadmap phases; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133
 - **Roadmap Refresh (2026-04-02)**: Triaged 5 new issues — #142 (AGENTS.md onboarding gate blocks headless/cloud agents, Phase 1), #144 (vBRIEF wrong narrative type + items/subItems, Phase 1 with #126), #145 (deft-review-cycle Greptile signal bug, Phase 1), #146 (deft-sync session-start skill, Phase 2), #147 (skills undocumented in README/AGENTS.md, Phase 2); fixed index formatting
-- **Strategies README**: Added roadmap strategy to the strategy table
+
+### Removed
+- **Redundant Strategy Files**: Deleted `strategies/default.md` (fully superseded by `interview.md`) and replaced `strategies/brownfield.md` with a redirect to `map.md` (#31, #50)
 
 ## [0.9.0] - 2026-03-29
 
