@@ -138,7 +138,7 @@ For each agent's PR:
 
 1. ! Check that Greptile has reviewed the latest commit (compare "Last reviewed commit" SHA to branch HEAD)
 2. ! Verify Greptile confidence score > 3
-3. ! Verify no P1 or P2 issues remain
+3. ! Verify no P0 or P1 issues remain (P2 are non-blocking style suggestions)
 4. ! If the agent did not complete its review cycle, the monitor runs it per `skills/deft-review-cycle/SKILL.md`
 
 ### Exit Condition
