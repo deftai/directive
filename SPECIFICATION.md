@@ -50,6 +50,18 @@ Ask deployment platform (web, mobile, desktop, embedded, CLI, cloud service, oth
 
 **Traces**: FR-5
 
+## t1.1.5: Add headless/cloud agent bypass to AGENTS.md First Session gate (FR-30)  `[pending]`
+
+**Depends on**: none
+
+Add a bypass instruction at the top of the First Session block in AGENTS.md so cloud agents, CI agents, and scheduled tasks skip the interactive onboarding flow when dispatched with an explicit task. Closes #142.
+
+- AGENTS.md First Session section contains a bypass rule: if dispatched with a specific task, skip onboarding and proceed directly
+- Bypass rule appears before the USER.md/PROJECT.md/SPECIFICATION.md checks
+- tests/content/test_standards.py or equivalent covers bypass presence
+
+**Traces**: FR-30
+
 ## t1.2.1: Audit and fix vBRIEF generation in cmd_spec (FR-6)  `[pending]`
 
 The run script's cmd_spec generates specification.vbrief.json. Audit the output format against spec_validate.py and vbrief/vbrief.md. Ensure: vBRIEFInfo envelope with version 0.5; plan object with title, status, items; task status values from valid enum (pending/running/completed/blocked/cancelled). The legacy 'todo'/'doing'/'done' values from old vBRIEF must not be used. Closes #72 (CLI path).

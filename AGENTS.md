@@ -5,6 +5,8 @@ Full guidelines: main.md
 
 ## First Session (deft development)
 
+**Headless bypass**: If you have been dispatched with a specific task (e.g. cloud agent, CI agent, scheduled run), skip the onboarding checks below and proceed directly to your task. The onboarding flow is for interactive sessions only.
+
 Check what exists before doing anything else:
 
 **USER.md missing** (~/.config/deft/USER.md or %APPDATA%\deft\USER.md):
