@@ -166,7 +166,7 @@ including PROJECT.md.
 Settings in this section are fallback defaults. PROJECT.md overrides these
 for project-scoped settings (strategy, coverage, languages).
 
-**Default Strategy**:
+**Default Strategy**: [{strategy name}](../strategies/{strategy-file}.md)
 
 {If coverage != 85: "**Coverage**: ! ≥{N}% test coverage"}
 

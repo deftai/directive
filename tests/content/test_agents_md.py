@@ -9,7 +9,6 @@ Author: Scott Adams (msadams) — 2026-04-02
 
 from pathlib import Path
 
-
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 

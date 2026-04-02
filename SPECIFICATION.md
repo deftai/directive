@@ -2,7 +2,7 @@
 
 Deft Directive is a Markdown framework for AI agents to use when generating software. It defines layered behavioral rules, workflow strategies, and quality gates across four components: (1) the Markdown framework (primary product — .md files consumed by agents at runtime), (2) the Python CLI (`run` — terminal setup and spec generation), (3) the Go installer (`cmd/deft-install/` — standalone binary for end-user install), and (4) the test suite (`tests/` — CLI and content validation). This specification covers Phase 1 (bug fixes and adoption blockers), Phase 2 (content fixes), and Phase 3 (CI). Phases 4–5 are deferred; see PRD.md and #67 for scope boundaries. References: PRD.md, .planning/codebase/ARCHITECTURE.md, docs/research/deft-directive-research.md.
 
-## t1.1.1: Add inference boundary guards to deft-setup SKILL.md Phase 2 (FR-1, FR-2)  `[pending]`
+## t1.1.1: Add inference boundary guards to deft-setup SKILL.md Phase 2 (FR-1, FR-2)  `[completed]`
 
 Add ⊗ rules to the Inference section of Phase 2 in skills/deft-setup/SKILL.md: never scan ./deft/ for build files; never run git commands inside ./deft/. Only inspect project root and non-deft subdirectories. Closes #79.
 
@@ -12,7 +12,7 @@ Add ⊗ rules to the Inference section of Phase 2 in skills/deft-setup/SKILL.md:
 
 **Traces**: FR-1, FR-2
 
-## t1.1.2: Add project name fallback prompt when no build files detected (FR-3)  `[pending]`
+## t1.1.2: Add project name fallback prompt when no build files detected (FR-3)  `[completed]`
 
 **Depends on**: t1.1.1
 
@@ -24,7 +24,7 @@ Update deft-setup SKILL.md Phase 2 to prompt the user for a project name when co
 
 **Traces**: FR-3
 
-## t1.1.3: Remove Primary Languages from USER.md template and Phase 1 interview (FR-4)  `[pending]`
+## t1.1.3: Remove Primary Languages from USER.md template and Phase 1 interview (FR-4)  `[completed]`
 
 Language is a project-level concern determined per-project via codebase inference, not a user preference. Remove from USER.md template, Phase 1 Track 1 Step 2, Track 2 Step 2. Update Phase 2 Step 3 to always infer first. Closes #107.
 
@@ -38,7 +38,7 @@ Language is a project-level concern determined per-project via codebase inferenc
 
 **Traces**: FR-4
 
-## t1.1.4: Add deployment platform question before language in deft-setup Phase 2 (FR-5)  `[pending]`
+## t1.1.4: Add deployment platform question before language in deft-setup Phase 2 (FR-5)  `[completed]`
 
 **Depends on**: t1.1.3
 
@@ -50,7 +50,7 @@ Ask deployment platform (web, mobile, desktop, embedded, CLI, cloud service, oth
 
 **Traces**: FR-5
 
-## t1.1.5: Add headless/cloud agent bypass to AGENTS.md First Session gate (FR-30)  `[pending]`
+## t1.1.5: Add headless/cloud agent bypass to AGENTS.md First Session gate (FR-30)  `[completed]`
 
 **Depends on**: none
 
@@ -58,7 +58,7 @@ Add a bypass instruction at the top of the First Session block in AGENTS.md so c
 
 - AGENTS.md First Session section contains a bypass rule: if dispatched with a specific task, skip onboarding and proceed directly
 - Bypass rule appears before the USER.md/PROJECT.md/SPECIFICATION.md checks
-- tests/content/test_standards.py or equivalent covers bypass presence
+- tests/content/test_agents_md.py covers bypass presence
 
 **Traces**: FR-30
 
