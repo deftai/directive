@@ -17,10 +17,11 @@ history/changes/<name>/
 ## Lifecycle
 
 1. **Create** — `/deft:change <name>` creates the folder with proposal, design, and task artifacts
-2. **Approve** — User reviews and approves the proposal; plan status moves to `approved`
-3. **Apply** — `/deft:change:apply` implements tasks following `blocks` edge ordering
-4. **Verify** — `/deft:change:verify` checks acceptance criteria from task narratives
-5. **Archive** — `/deft:change:archive` moves the folder to `history/archive/<date>-<name>/`
+2. **Propose** — Plan status moves from `draft` to `proposed` once submitted for review
+3. **Approve** — User reviews and approves the proposal; plan status moves to `approved`
+4. **Apply** — `/deft:change:apply` implements tasks following `blocks` edge ordering
+5. **Verify** — `/deft:change:verify` checks acceptance criteria from task narratives
+6. **Archive** — `/deft:change:archive` moves the folder to `history/archive/<date>-<name>/`
 
 ## Rules
 
