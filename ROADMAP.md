@@ -110,7 +110,7 @@ Quick doc/content fixes that don't require code changes.
 - **#33** — When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)
 - CLI tests for remaining commands: `cmd_spec`, `cmd_install`, `cmd_reset`, `cmd_update`
 - Error and edge case testing for core CLI commands
-- Enforce USER.md gate in CLI path
+- **#163** — Enforce USER.md gate in CLI path — parity with agentic (skills) path
   - `cmd_spec` and `cmd_project` should check for USER.md at entry; if absent, warn and redirect to `run bootstrap`
   - Skills path already done (deft-build); this covers the CLI fallback path only
 - Code signing for installer binaries (Windows Authenticode, macOS Developer ID + notarisation)
@@ -237,6 +237,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #56 | Reduce installation friction (shell one-liner, Homebrew) | 4 |
 | #57 | Add GitHub Actions CI workflow | 3 |
 | #128 | CI vBRIEF schema sync check (depends on #57) | 3 |
+| #163 | Enforce USER.md gate in CLI path — parity with agentic (skills) path | 3 |
 | #58 | Stale cross-references to legacy paths | 2 |
 | #59 | history/changes/ directory missing | 2 |
 | ~~#67~~ | ~~Write SPECIFICATION.md and proper PROJECT.md for deft~~ | completed |
@@ -315,3 +316,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-02 — roadmap refresh: added #145 to Phase 1 Adoption Blockers (deft-review-cycle Greptile signal bug, split from #135)*
 *Updated 2026-04-02 — roadmap refresh: added #146 to Phase 2 (deft-sync skill, session-start framework sync); added #147 to Phase 2 (skills undocumented in README/AGENTS.md)*
 *Updated 2026-04-02 — note: #143 is a merged PR (feat: add deft-review-cycle skill, PR #143), not an open issue; correctly absent from triage*
+*Updated 2026-04-02 — added #163 to Phase 3 (Enforce USER.md gate in CLI path — parity with agentic skills path)*
