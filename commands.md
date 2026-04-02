@@ -133,7 +133,7 @@ Implement the active change's tasks.
 
 ### Active Change Detection
 
-- ! Look for a single change in `history/changes/` with `status: approved` or `status: running`
+- ! Look for a single change in `history/changes/` with `status: approved`
 - ~ If multiple changes exist, ask the user which one to apply
 - ⊗ Apply a change that hasn't been reviewed
 
