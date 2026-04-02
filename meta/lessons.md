@@ -61,6 +61,26 @@ Existing directives (`! Run all relevant checks`, `! Call out risk when touching
 
 **When modifying a build script, MUST verify that expected output artifacts exist and are structurally valid after the build runs. Non-compiled assets that bundlers don't track (manifests, configs, extension metadata) are especially at risk of silent omission.**
 
+## Multi-Agent Orchestration via Oz CLI (2026-04)
+
+**Source:** Two parallel local agents on roadmap items — PR #149 (strategy consolidation) and PR #150 (content fixes)
+
+**1. `oz agent run --mcp` with UUID MUST NOT be used from standalone terminals**
+
+The `--mcp` flag with a Warp-configured MCP server UUID requires Warp app context (OAuth tokens, session state). Spawning `oz agent run` in a standalone PowerShell window via `Start-Process` fails with "Failed to start MCP servers". Agents launched outside Warp MUST use `gh` CLI for GitHub operations instead of MCP.
+
+**2. Agent prompts MUST lead with explicit task directives, not context**
+
+An agent given a prompt starting with "You are working in the deft directive repository..." followed by task instructions treated the entire message as passive context, read the directives, and stopped without doing any work. The same tasks given with a prompt starting "TASK: You must complete 5 documentation fixes..." executed correctly. When prompting autonomous agents via `oz agent run --prompt`, the first line MUST be an imperative action statement. Context and constraints SHOULD follow the task.
+
+**3. Agents SHOULD be isolated in separate git worktrees for parallel work**
+
+Two agents working the same repo on different branches need separate working directories. Git worktrees (`git worktree add`) provide branch isolation without full clones. Each worktree gets its own launch script. MUST ensure no file overlap between agents' assigned tasks to avoid merge conflicts.
+
+**4. Review cycle completion is not guaranteed — monitor agent MUST be prepared to take over**
+
+Agent 1 created its PR and stopped before running the Greptile review cycle (the prompt's Step 9). Agent 2 ran 4 autonomous review rounds successfully. The difference was prompt structure. A monitoring agent MUST check whether each spawned agent completed the full workflow and be prepared to finish incomplete steps.
+
 ## Windows File Editing (2026-03)
 
 **Source:** ROADMAP.md edits during feat/agents-md-onboarding-54 — three sequential failures before clean write
