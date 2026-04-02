@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-04-02
+
 ### Added
 - **Review Cycle Skill**: Added `skills/deft-review-cycle/SKILL.md` — Greptile bot reviewer response workflow covering Phase 1 deft process audit, Phase 2 review/fix loop (batch fixes, wait-for-bot, exit condition), GitHub review submission rules, and anti-patterns; enables cloud agents to run autonomous PR review cycles; thin pointer added at `.agents/skills/deft-review-cycle/SKILL.md` (#135)
 - **Roadmap Refresh Skill**: Added `skills/deft-roadmap-refresh/SKILL.md` — structured contributor workflow for triaging open issues into the phased roadmap (discovery, one-at-a-time analysis with human review, cleanup)
@@ -604,7 +606,9 @@ If you have custom scripts or references to deft files, update these paths:
 - Explore new interface guidelines if building CLIs, APIs, or UIs
 - Review enhanced language standards for Python, Go, TypeScript, and C++
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/deftai/directive/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/deftai/directive/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/deftai/directive/compare/v0.7.1...v0.8.0
 [0.7.0]: https://github.com/deftai/directive/releases/tag/v0.7.0
 <!-- [0.6.0] has no git tag — it was a beta-only version that was never tagged on master. -->
