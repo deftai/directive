@@ -82,7 +82,7 @@ cmd_bootstrap enters an infinite loop when get_available_strategies() returns an
 
 **Traces**: FR-7
 
-## t1.3.2: Add version display to all run CLI commands on startup (FR-10)  `[pending]`
+## t1.3.2: Add version display to all run CLI commands on startup (FR-10)  `[completed]`
 
 All cmd_* functions should print the VERSION on entry (e.g. 'Deft CLI v0.4.2'). Note: VERSION in run is currently 0.4.2; this value is provisional and will display behind the framework's 0.5.2 until version unification is addressed (see PRD Open Question 1). Closes #49.
 

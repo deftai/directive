@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Context-aware branching for solo projects**: Added solo-project qualifier to `main.md` change lifecycle rule — `/deft:change` mandatory for team projects (2+ contributors), recommended for solo projects with quality gate as enforcement; mandatory regardless of team size for cross-cutting, architectural, or high-risk changes; full config-driven approach deferred to Phase 5 (#138, t1.6.3)
 - **vBRIEF source step enforcement**: Added `⊗` rule to `main.md` vBRIEF Persistence — SPECIFICATION.md must never be written directly, must be generated from `specification.vbrief.json`; added anti-pattern to `deft-build/SKILL.md` (#139, t1.6.4)
 - **deft-review-cycle Greptile signal**: Updated `skills/deft-review-cycle/SKILL.md` Step 4 to document that Greptile may advance its review by editing an existing PR issue comment rather than creating a new PR review object; added dual-surface detection guidance (issue comments as primary signal, PR review objects as secondary) with `updated_at` timestamp checking; added anti-pattern for relying solely on `pulls/{number}/reviews` (#145, t2.5.2)
+- **CLI version display**: All `cmd_*` functions now print `Deft CLI v{VERSION}` on startup — previously `cmd_validate`, `cmd_doctor`, and `cmd_update` had no version display; existing headers normalized from `Deft v` to `Deft CLI v` (#49, t1.3.2)
+- **CLI code quality sweep** (#118):
+  - Removed stale `v0.3.7` from module docstring — VERSION constant (`0.4.2`) is the single source of truth
+  - Removed `Requires: Python 3.6+` from docstring — conflicts with `run.bat` enforcing 3.13+; `run.bat` handles Windows version check independently
+  - Changed bare `except:` in `cmd_spec` project-name parsing to `except (OSError, UnicodeDecodeError):` — no longer swallows `KeyboardInterrupt`/`SystemExit`
+  - Documented `--force` flag in `usage()` help text for the `spec` command
+  - Fixed `DEFT_PRD_PATH` env var misuse on Light sizing path — Light path now reads `DEFT_INTERVIEW_PATH` instead of overloading the PRD env var
+- **Installer post-install text** (#131): Verified already fixed in v0.8.0 — `PrintNextSteps` says "Use AGENTS.md" (not "read agents.md")
 
 ## [0.10.0] - 2026-04-02
 
