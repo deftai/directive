@@ -11,6 +11,7 @@ Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
 
 - **#126** — specification.vbrief.json does not conform to vbrief schema/spec — agent generates wildly non-conformant output (possibly fixed by #72 / PR #130; verify before working)
+- **#144** — Directive generates vBRIEF files with wrong narrative value type (object instead of string) and wrong child key (`items` instead of `subItems`), causing nested items to be invisible in vBRIEF-Studio — address with #126
 - **#133** — Generated vBRIEF files use invalid reference types (`x-vbrief/context`, `x-vbrief/research`) that fail schema validation — blocked on upstream `deftai/vBRIEF#2` to expand the enum; vendor updated schema once resolved
 - **#79** — deft-setup Phase 2 inference bleeds into `./deft/` framework internals (misidentifies project as "deft")
 - **#80** — deft-setup Phase 2 project name inference has no fallback when no build files exist
@@ -23,6 +24,7 @@ Fix reported bugs and UX problems blocking adoption.
 - **#137** — README: move startup instructions higher and clarify where to get installers — new users can't find how to get started (quick win, independent of #89 reframe)
 - **#138** — Branching requirement too prescriptive for single-author projects — relax change lifecycle rule in `main.md` for solo contexts (easy content fix; full config-driven approach deferred to Phase 5 with #77)
 - **#139** — Agent skips vbrief source step and writes SPECIFICATION.md directly — strengthen prohibition in `main.md`/deft-build skill; add validation step (address with #68, #123)
+- **#145** — `deft-review-cycle` skill doesn't designate the Greptile issue comment as the primary review signal — agent can drift to polling `/pulls/{n}/reviews` and report stale status or loop unnecessarily; fix: promote issue comment + `Last reviewed commit` SHA as explicit primary check, add anti-pattern entry
 
 ### Cleanup
 
@@ -94,6 +96,8 @@ Quick doc/content fixes that don't require code changes.
 - **#114** — Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`
 - **#135** — Greptile review rules SKILL.md should be in the Directive repo — version and co-locate bot reviewer configuration (to be done with #114)
 - **#136** — Warp doesn't load deft's AGENTS.md by default — document global rule workaround in README/installer output; real fix is Warp platform feature request (to be done with #114)
+- **#146** — Add `skills/deft-sync/SKILL.md` — session-start sync skill: submodule update, vBRIEF file validation, AGENTS.md freshness check, new-skills listing; design complete in issue body (related: #140 CLI counterpart, #75 auto-discovery)
+- **#147** — Skills `deft-roadmap-refresh` and `deft-review-cycle` not documented in README or AGENTS.md — add to README directory tree and `### 🤖 Skills` section; add `deft-roadmap-refresh` reference to AGENTS.md (to be done with #114)
 
 ---
 
@@ -271,8 +275,9 @@ Larger feature work — only after issues are resolved and content is stable.
 | #116 | All files must be installed consistently under `./deft/` | 1 |
 | #123 | Change lifecycle gate skipped on broad ‘proceed’ instruction | 1 |
 | #118 | CLI code quality sweep (version mismatch, bare except, undocumented flags, env var naming) | 1 |
-|| ~~#124~~ | ~~Warp context window improvements (behavioral rule + handoff notes)~~ | completed |
+| ~~#124~~ | ~~Warp context window improvements (behavioral rule + handoff notes)~~ | completed |
 | #126 | specification.vbrief.json does not conform to vbrief schema/spec (verify post-PR #130) | 1 |
+| #144 | Directive giving invalid vBRIEF files & wrong key names (address with #126) | 1 |
 | #127 | Improved support for Deft in existing repositories (brownfield bootstrap path; related #103, #53) | 2 |
 | #131 | Mac installer post-install text wording fix (bundle with #118) | 1 |
 | #133 | Generated vBRIEF files use invalid reference types (blocked on upstream deftai/vBRIEF#2) | 1 |
@@ -282,8 +287,11 @@ Larger feature work — only after issues are resolved and content is stable.
 | #137 | README: move startup instructions higher, clarify installer location | 1 |
 | #138 | Branching requirement too prescriptive for solo projects (content fix; full config Phase 5) | 1 |
 | #139 | Agent skips vbrief source step, writes SPECIFICATION.md directly (with #68, #123) | 1 |
-|| #140 | Automatically check for updates to cloned repos in a project (deft doctor/update) | 5 |
-|| #142 | AGENTS.md onboarding gate blocks headless/cloud agents | 1 |
+| #140 | Automatically check for updates to cloned repos in a project (deft doctor/update) | 5 |
+| #142 | AGENTS.md onboarding gate blocks headless/cloud agents | 1 |
+| #145 | deft-review-cycle: Greptile issue comment not primary review signal (false wait loops) | 1 |
+| #146 | Add skills/deft-sync/SKILL.md — session-start framework sync skill | 2 |
+| #147 | Skills deft-roadmap-refresh and deft-review-cycle not documented in README or AGENTS.md | 2 |
 
 ---
 
@@ -303,3 +311,6 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-03-29 — moved #72 to Completed (PR #130); updated #57 (minimal CI landed) and #115 (schema checks landed) descriptions*
 *Updated 2026-03-31 — roadmap refresh pass: added #124, #126, #127, #131, #133–#140; moved #67, #91, #92 to Completed; cleaned stale index entries; filed upstream deftai/vBRIEF#2 for #133*
 *Updated 2026-03-31 — roadmap refresh: added #142 to Phase 1 Adoption Blockers; moved #124 to completed; updated #134 description (no longer grouped with #124); improved deft-roadmap-refresh skill with Phase 0 branch/worktree setup*
+*Updated 2026-04-02 — roadmap refresh: added #144 to Phase 1 (vBRIEF wrong narrative type + items/subItems bug, address with #126); fixed stray pipes in index*
+*Updated 2026-04-02 — roadmap refresh: added #145 to Phase 1 Adoption Blockers (deft-review-cycle Greptile signal bug, split from #135)*
+*Updated 2026-04-02 — roadmap refresh: added #146 to Phase 2 (deft-sync skill, session-start framework sync); added #147 to Phase 2 (skills undocumented in README/AGENTS.md)*
