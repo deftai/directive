@@ -143,7 +143,7 @@ Find all .md references to core/user.md and core/project.md legacy paths. Replac
 
 **Traces**: FR-13
 
-## t2.1.2: Create history/changes/ directory with README.md (FR-14)  `[pending]`
+## t2.1.2: Create history/changes/ directory with README.md (FR-14)  `[completed]`
 
 commands.md references history/changes/<name>/ but the directory doesn't exist. Create it with a README.md documenting the change lifecycle artifact structure. Closes #59.
 
@@ -172,7 +172,7 @@ speckit.md is missing the standard **⚠️ See also** cross-reference banner at
 
 **Traces**: FR-16
 
-## t2.1.5: Fix commands.md vBRIEF example vocabulary (FR-17)  `[pending]`
+## t2.1.5: Fix commands.md vBRIEF example vocabulary (FR-17)  `[completed]`
 
 commands.md vBRIEF examples use status vocabulary that diverges from vbrief/vbrief.md. Update to use the canonical status enum. Closes #25.
 
@@ -183,7 +183,7 @@ commands.md vBRIEF examples use status vocabulary that diverges from vbrief/vbri
 
 **Traces**: FR-17
 
-## t2.1.6: Clean core/project.md — remove Voxio Bot private content (FR-18)  `[pending]`
+## t2.1.6: Clean core/project.md — remove Voxio Bot private content (FR-18)  `[completed]`
 
 core/project.md contains private project config (Voxio Bot). Replace with a generic template showing example project config, or note it as a legacy location with a pointer to PROJECT.md.
 
@@ -193,7 +193,7 @@ core/project.md contains private project config (Voxio Bot). Replace with a gene
 
 **Traces**: FR-18
 
-## t2.2.1: Create contracts/hierarchy.md — dual-hierarchy framework (FR-19)  `[pending]`
+## t2.2.1: Create contracts/hierarchy.md — dual-hierarchy framework (FR-19)  `[completed]`
 
 Document the two hierarchy lenses from #84/#89 debate: (1) durability axis (Standards > APIs > Specs > Code — what to invest in maintaining); (2) generative axis (Spec → Contracts → Code — what to write first). Explain when each applies. Closes #84 Phase 1 (hierarchy doc portion).
 
@@ -203,7 +203,7 @@ Document the two hierarchy lenses from #84/#89 debate: (1) durability axis (Stan
 
 **Traces**: FR-19
 
-## t2.2.2: Add adaptive teaching behavior to main.md (FR-20)  `[pending]`
+## t2.2.2: Add adaptive teaching behavior to main.md (FR-20)  `[completed]`
 
 Add to Agent Behavior section of main.md: ~ When a recommendation is accepted without question, be concise. ! When a recommendation is questioned or overridden, explain the reasoning. ⊗ Lecture unprompted on every decision. Closes #84 Phase 1 (adaptive teaching portion).
 

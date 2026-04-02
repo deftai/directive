@@ -63,7 +63,7 @@ history/changes/<name>/
 - ! Use vBRIEF format with `blocks` edges for dependencies
 - ! Each task has `narrative` with acceptance criteria
 - ~ Size tasks for 1–4 hours of work
-- ! Status lifecycle: `draft` → `approved` → `running` → `completed`
+- ! Status lifecycle: plan-level `draft` → `proposed` → `approved`; task-level `pending` → `running` → `completed` / `blocked` / `cancelled`
 
 Example:
 
@@ -89,7 +89,8 @@ Example:
       {
         "id": "t3",
         "title": "Add CSS variables for themes",
-        "status": "pending"
+        "status": "pending",
+        "narrative": { "Action": "Define CSS custom properties for light and dark palettes" }
       }
     ],
     "edges": [
