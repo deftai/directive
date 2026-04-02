@@ -24,6 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Documented `--force` flag in `usage()` help text for the `spec` command
   - Fixed `DEFT_PRD_PATH` env var misuse on Light sizing path — Light path now reads `DEFT_INTERVIEW_PATH` instead of overloading the PRD env var
 - **Installer post-install text** (#131): Verified already fixed in v0.8.0 — `PrintNextSteps` says "Use AGENTS.md" (not "read agents.md")
+### Fixed
+- **Phase 2 inference boundary**: Added ⊗ rules to `deft-setup/SKILL.md` Phase 2 Inference section — MUST NOT scan `./deft/` for build files or run git commands inside `./deft/`; only inspect project root and non-deft subdirectories (#79, t1.1.1)
+- **Phase 2 project name fallback**: Added fallback rule — when no build files exist at project root, default project name to current directory name and ask for confirmation (#80, t1.1.2)
+- **AGENTS.md headless bypass**: Added headless/task-mode bypass to First Session gate so cloud agents, CI agents, and scheduled tasks skip interactive onboarding when dispatched with an explicit task (#142, t1.1.5)
+
+### Changed
+- **Language removed from USER.md**: Removed `**Primary Languages**` field from USER.md template and Phase 1 interview (Track 1 Step 2, Track 2 Step 2, Track 3 language inference) — language is a project-level concern determined per-project via codebase inference, not a user preference (#107, t1.1.3)
+- **Deployment platform question**: Phase 2 Track 1 now asks deployment platform (cross-platform, Windows-native, macOS-native, Linux/Unix, embedded, web/cloud, mobile, other) before language — platform context drives a filtered language shortlist with progressive "Other" disclosure and missing-standards-file warning (#108, t1.1.4)
 
 ## [0.10.0] - 2026-04-02
 

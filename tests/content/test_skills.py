@@ -157,7 +157,109 @@ def test_deft_setup_has_no_user_md_gate() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 7. task check and task test:coverage referenced in deft-build
+# 7. Phase 2 inference must not scan ./deft/ for build files (#79, t1.1.1)
+# ---------------------------------------------------------------------------
+
+def test_phase2_inference_no_deft_build_files() -> None:
+    """Phase 2 Inference must forbid scanning ./deft/ for build files."""
+    text = _read_skill("skills/deft-setup/SKILL.md")
+    assert "\u2297" in text and "./deft/" in text and "build files" in text.lower(), (
+        "skills/deft-setup/SKILL.md: Phase 2 Inference must contain a \u2297 rule "
+        "forbidding scanning ./deft/ for build files"
+    )
+
+
+def test_phase2_inference_no_deft_git() -> None:
+    """Phase 2 Inference must forbid running git inside ./deft/."""
+    text = _read_skill("skills/deft-setup/SKILL.md")
+    assert "git" in text.lower() and "./deft/" in text and "framework repo" in text.lower(), (
+        "skills/deft-setup/SKILL.md: Phase 2 Inference must contain a \u2297 rule "
+        "forbidding git commands inside ./deft/"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 8. Phase 2 inference fallback to directory name (#80, t1.1.2)
+# ---------------------------------------------------------------------------
+
+def test_phase2_inference_directory_name_fallback() -> None:
+    """Phase 2 Inference must fall back to directory name when no build files found."""
+    text = _read_skill("skills/deft-setup/SKILL.md")
+    assert "directory name" in text.lower() and "no build files" in text.lower(), (
+        "skills/deft-setup/SKILL.md: Phase 2 Inference must contain a fallback rule "
+        "using the current directory name when no build files are found"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 9. USER.md template must not include Primary Languages (#107, t1.1.3)
+# ---------------------------------------------------------------------------
+
+def test_user_md_template_no_primary_languages() -> None:
+    """USER.md template must not contain a Primary Languages field."""
+    text = _read_skill("skills/deft-setup/SKILL.md")
+    # The template is between ```markdown and ``` — check the whole file
+    assert "**Primary Languages**" not in text, (
+        "skills/deft-setup/SKILL.md: USER.md template still contains "
+        "**Primary Languages** — language is a project-level concern (#107)"
+    )
+
+
+def test_phase1_track1_no_language_step() -> None:
+    """Phase 1 Track 1 must not ask about preferred languages."""
+    text = _read_skill("skills/deft-setup/SKILL.md")
+    # Track 1 should not have "Ask preferred languages" in its steps
+    assert "Ask preferred languages" not in text, (
+        "skills/deft-setup/SKILL.md: Phase 1 Track 1 still asks about "
+        "preferred languages — removed per #107"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 10. Phase 2 Track 1 deployment platform question (#108, t1.1.4)
+# ---------------------------------------------------------------------------
+
+def test_phase2_track1_has_deployment_platform() -> None:
+    """Phase 2 Track 1 must ask about deployment platform before language."""
+    text = _read_skill("skills/deft-setup/SKILL.md")
+    assert "deployment platform" in text.lower(), (
+        "skills/deft-setup/SKILL.md: Phase 2 Track 1 must ask about "
+        "deployment platform (#108)"
+    )
+
+
+def test_phase2_track1_platform_before_language() -> None:
+    """Deployment platform question must appear before language question in Track 1."""
+    text = _read_skill("skills/deft-setup/SKILL.md")
+    platform_pos = text.lower().find("deployment platform")
+    # Find the language step that follows platform (Step 4 in Track 1)
+    language_pos = text.lower().find("ask languages", platform_pos)
+    assert platform_pos != -1 and language_pos != -1 and platform_pos < language_pos, (
+        "skills/deft-setup/SKILL.md: deployment platform must appear before "
+        "language question in Phase 2 Track 1"
+    )
+
+
+def test_phase2_track1_progressive_other_disclosure() -> None:
+    """Phase 2 Track 1 language step must include progressive Other disclosure."""
+    text = _read_skill("skills/deft-setup/SKILL.md")
+    assert "Tier 2" in text and "Tier 3" in text, (
+        "skills/deft-setup/SKILL.md: Phase 2 Track 1 language step must include "
+        "progressive Other disclosure (Tier 2, Tier 3)"
+    )
+
+
+def test_phase2_track1_missing_standards_warning() -> None:
+    """Phase 2 Track 1 must warn when entered language has no standards file."""
+    text = _read_skill("skills/deft-setup/SKILL.md")
+    assert "standards file" in text.lower() and "general defaults" in text.lower(), (
+        "skills/deft-setup/SKILL.md: Phase 2 Track 1 must warn when entered "
+        "language has no deft standards file"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 11. task check and task test:coverage referenced in deft-build
 # ---------------------------------------------------------------------------
 
 def test_deft_build_references_task_check() -> None:

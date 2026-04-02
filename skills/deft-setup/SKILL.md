@@ -83,7 +83,7 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 
 **Goal:** Personal preferences file with two sections:
 - **Personal** — always wins over everything (name, custom rules)
-- **Defaults** — fallback values that PROJECT.md can override (strategy, coverage, languages)
+- **Defaults** — fallback values that PROJECT.md can override (strategy, coverage)
 
 - ~ Skip if USER.md exists at the platform-appropriate path (see Platform Detection) and user doesn't want to overwrite
 - ⊗ Scan filesystem beyond checking that one path
@@ -110,37 +110,34 @@ Ask: "How deep do you want to go?"
 
 Wait for answer. Then follow the track below.
 
-**Track 1 (technical) — 8 steps:**
+**Track 1 (technical) — 7 steps:**
 - Step 1: Ask their name
-- Step 2: Ask preferred languages (show Available Languages list; these become fallback defaults)
-- Step 3: Ask strategy preference (show Available Strategies numbered list from the Available Strategies section, with descriptions and recommended marker; fallback — projects can override)
-- Step 4: Ask coverage threshold (default 85%; fallback — projects can override)
-- Step 5: Ask for custom rules — if user has rules, collect them one per line (empty line to finish); if none, skip
-- Step 6a: Present SOUL.md and ask whether to include it (default: yes):
+- Step 2: Ask strategy preference (show Available Strategies numbered list from the Available Strategies section, with descriptions and recommended marker; fallback — projects can override)
+- Step 3: Ask coverage threshold (default 85%; fallback — projects can override)
+- Step 4: Ask for custom rules — if user has rules, collect them one per line (empty line to finish); if none, skip
+- Step 5a: Present SOUL.md and ask whether to include it (default: yes):
   > **SOUL.md** — Results-first agent persona (inspired by Winston Wolf). Enforces assess-before-acting,
   > finish-what-you-start, right-tool-for-the-job, and play-the-long-game. Keeps the AI decisive and
   > concise. Includes a named persona ('Vinston') — drop if you prefer to define your own agent personality.
   > Include SOUL.md? (Y/n)
-- Step 6b: Present morals.md and ask whether to include it (default: yes):
+- Step 5b: Present morals.md and ask whether to include it (default: yes):
   > **morals.md** — Epistemic honesty rules. No presenting speculation as fact, label unverified claims,
   > self-correct when wrong. Foundational trust rules for any AI agent. Strongly recommended.
   > Include morals.md? (Y/n)
-- Step 6c: Present code-field.md and ask whether to include it (default: yes):
+- Step 5c: Present code-field.md and ask whether to include it (default: yes):
   > **code-field.md** — Pre-code assumption protocol. Requires stating assumptions and naming failure modes
   > before writing a single line. Fights the 'it compiles, ship it' instinct. Based on NeoVertex1 context-field.
   > Include code-field.md? (Y/n)
 
-**Track 2 (middle ground) — 3 steps:**
+**Track 2 (middle ground) — 2 steps:**
 - Step 1: Ask their name
-- Step 2: Ask preferred languages (show Available Languages list)
-- Step 3: Ask for custom rules — if user has rules, collect them one per line (empty line to finish); if none, skip
+- Step 2: Ask for custom rules — if user has rules, collect them one per line (empty line to finish); if none, skip
 - Set defaults without asking: strategy = "interview", coverage = 85%, all meta-guidelines included
 
 **Track 3 (non-technical) — 2 steps:**
 - Step 1: Ask their name
-- Step 2: Ask what they're building — infer languages from the answer
+- Step 2: Ask what they're building (brief description — used for PROJECT.md later)
 - Set defaults: strategy = "interview", coverage = 85%, all meta-guidelines included
-- Pick languages based on project type (web → TypeScript, API → Python/Go, mobile → Swift/Kotlin)
 
 ### Output Path
 
@@ -167,11 +164,7 @@ including PROJECT.md.
 ## Defaults (fallback)
 
 Settings in this section are fallback defaults. PROJECT.md overrides these
-for project-scoped settings (strategy, coverage, languages).
-
-**Primary Languages**:
-- {language 1}
-- {language 2}
+for project-scoped settings (strategy, coverage).
 
 **Default Strategy**: [{strategy name}](../strategies/{strategy-file}.md)
 
@@ -208,6 +201,9 @@ for project-scoped settings (strategy, coverage, languages).
 
 - ! Before asking, infer from codebase — look for `package.json`, `go.mod`, `requirements.txt`, `Cargo.toml`, `pyproject.toml`, `*.csproj`
 - ! Use inferences to pre-fill answers and confirm — don't ask blind
+- ⊗ Look inside `./deft/` for build files (`go.mod`, `package.json`, `pyproject.toml`, `Cargo.toml`, `*.csproj`, etc.) — those are framework-internal. Only inspect files at the project root and its non-`deft` subdirectories.
+- ⊗ Run git commands inside `./deft/` to determine project identity — that directory is the framework repo, not the user's project.
+- ~ If no build files are found at the project root, default the project name to the current directory name and ask for confirmation.
 
 ### Track Detection
 
@@ -239,18 +235,31 @@ apply here too. Do not combine questions.
 
 ### Question Sequence
 
-**Track 1 (technical) — 6 steps:**
-- Step 1: Ask project name (infer from directory, confirm)
+**Track 1 (technical) — 8 steps:**
+- Step 1: Ask project name (infer from build files or directory name, confirm)
 - Step 2: Ask project type (CLI, TUI, REST API, Web App, Library, other)
-- Step 3: Ask languages (show detected, confirm or adjust)
-- Step 4: Ask tech stack (frameworks, libraries)
-- Step 5: Ask strategy (default to USER.md Defaults; ask if this project needs different — show Available Strategies numbered list with descriptions and recommended marker)
-- Step 6: Ask coverage (default to USER.md Defaults; ask if this project needs different)
+- Step 3: Ask deployment platform:
+  1. Cross-platform (Linux / macOS / Windows)
+  2. Windows-native
+  3. macOS-native
+  4. Linux / Unix
+  5. Embedded / low-resource
+  6. Web / Cloud
+  7. Mobile (iOS / Android)
+  8. Other / not sure
+- Step 4: Ask languages — show a filtered shortlist (3–4 recommendations) based on project type + platform. If codebase markers exist (`go.mod`, `pyproject.toml`, etc.), skip and confirm: "Detected {lang} — correct?"
+  - If user selects "Other": show remaining plausible languages for the type+platform context (Tier 2)
+  - If still not found: free text input (Tier 3)
+  - If entered language has no deft `languages/{lang}.md` standards file, warn: "deft doesn't have a standards file for {lang} yet — general defaults will be used. Continue?"
+- Step 5: Ask tech stack (frameworks, libraries)
+- Step 6: Ask strategy (default to USER.md Defaults; ask if this project needs different — show Available Strategies numbered list with descriptions and recommended marker)
+- Step 7: Ask coverage (default to USER.md Defaults; ask if this project needs different)
+- Step 8: Ask for project-specific rules (optional, same one-per-line format as Phase 1 custom rules)
 
 **Track 2 (middle ground) — 4 steps:**
-- Step 1: Ask project name (infer from directory, confirm)
+- Step 1: Ask project name (infer from build files or directory name, confirm)
 - Step 2: Ask project type (CLI, TUI, REST API, Web App, Library, other)
-- Step 3: Ask languages (show detected, confirm or adjust)
+- Step 3: Ask languages (show detected, confirm or adjust; if none detected, infer from type and ask)
 - Step 4: Ask strategy (default to USER.md Defaults; ask if this project needs different — show Available Strategies numbered list with descriptions and recommended marker)
 - Default coverage to USER.md Defaults without asking
 

@@ -2,7 +2,7 @@
 
 Deft Directive is a Markdown framework for AI agents to use when generating software. It defines layered behavioral rules, workflow strategies, and quality gates across four components: (1) the Markdown framework (primary product — .md files consumed by agents at runtime), (2) the Python CLI (`run` — terminal setup and spec generation), (3) the Go installer (`cmd/deft-install/` — standalone binary for end-user install), and (4) the test suite (`tests/` — CLI and content validation). This specification covers Phase 1 (bug fixes and adoption blockers), Phase 2 (content fixes), and Phase 3 (CI). Phases 4–5 are deferred; see PRD.md and #67 for scope boundaries. References: PRD.md, .planning/codebase/ARCHITECTURE.md, docs/research/deft-directive-research.md.
 
-## t1.1.1: Add inference boundary guards to deft-setup SKILL.md Phase 2 (FR-1, FR-2)  `[pending]`
+## t1.1.1: Add inference boundary guards to deft-setup SKILL.md Phase 2 (FR-1, FR-2)  `[completed]`
 
 Add ⊗ rules to the Inference section of Phase 2 in skills/deft-setup/SKILL.md: never scan ./deft/ for build files; never run git commands inside ./deft/. Only inspect project root and non-deft subdirectories. Closes #79.
 
@@ -12,19 +12,19 @@ Add ⊗ rules to the Inference section of Phase 2 in skills/deft-setup/SKILL.md:
 
 **Traces**: FR-1, FR-2
 
-## t1.1.2: Add project name fallback prompt when no build files detected (FR-3)  `[pending]`
+## t1.1.2: Add project name fallback prompt when no build files detected (FR-3)  `[completed]`
 
 **Depends on**: t1.1.1
 
 Update deft-setup SKILL.md Phase 2 to prompt the user for a project name when codebase inference finds no build files at the project root. Currently falls through to deft internals. Closes #80.
 
-- Phase 2 Question Sequence includes explicit fallback: if no build files found at project root, ask user to provide project name
-- Fallback prompt appears in Track 1, Track 2, and Track 3 paths
-- tests/cli/test_project.py covers no-build-files scenario
+- Phase 2 Inference section includes explicit fallback: if no build files found at project root, default to directory name and ask for confirmation
+- Fallback rule applies to all tracks via the global Inference section; Track 1 and Track 2 Step 1 text references "directory name" explicitly
+- tests/content/test_skills.py covers no-build-files fallback presence in SKILL.md
 
 **Traces**: FR-3
 
-## t1.1.3: Remove Primary Languages from USER.md template and Phase 1 interview (FR-4)  `[pending]`
+## t1.1.3: Remove Primary Languages from USER.md template and Phase 1 interview (FR-4)  `[completed]`
 
 Language is a project-level concern determined per-project via codebase inference, not a user preference. Remove from USER.md template, Phase 1 Track 1 Step 2, Track 2 Step 2. Update Phase 2 Step 3 to always infer first. Closes #107.
 
@@ -33,12 +33,11 @@ Language is a project-level concern determined per-project via codebase inferenc
 - Phase 1 Track 2 has no language step
 - Phase 2 Step 3 infers from codebase
 - falls back to open ask (no USER.md default pre-fill)
-- tests/cli/test_bootstrap.py updated
-- no language question in happy path
+- tests/content/test_skills.py covers: USER.md template has no Primary Languages field, Phase 1 Track 1 has no language step
 
 **Traces**: FR-4
 
-## t1.1.4: Add deployment platform question before language in deft-setup Phase 2 (FR-5)  `[pending]`
+## t1.1.4: Add deployment platform question before language in deft-setup Phase 2 (FR-5)  `[completed]`
 
 **Depends on**: t1.1.3
 
@@ -49,6 +48,18 @@ Ask deployment platform (web, mobile, desktop, embedded, CLI, cloud service, oth
 - Track 2 and Track 3 unaffected (simplified paths)
 
 **Traces**: FR-5
+
+## t1.1.5: Add headless/cloud agent bypass to AGENTS.md First Session gate (FR-30)  `[completed]`
+
+**Depends on**: none
+
+Add a bypass instruction at the top of the First Session block in AGENTS.md so cloud agents, CI agents, and scheduled tasks skip the interactive onboarding flow when dispatched with an explicit task. Closes #142.
+
+- AGENTS.md First Session section contains a bypass rule: if dispatched with a specific task, skip onboarding and proceed directly
+- Bypass rule appears before the USER.md/PROJECT.md/SPECIFICATION.md checks
+- tests/content/test_agents_md.py covers bypass presence
+
+**Traces**: FR-30
 
 ## t1.2.1: Audit and fix vBRIEF generation in cmd_spec (FR-6)  `[pending]`
 
