@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-04-02
+
 ### Changed
 - **README restructure**: Moved Getting Started section (install, setup, spec, build) from below the architecture/layers documentation to immediately after the TL;DR; added prominent installer download callout at the top of the page (#137, t2.5.3)
+- **Language removed from USER.md**: Removed `**Primary Languages**` field from USER.md template and Phase 1 interview (Track 1 Step 2, Track 2 Step 2, Track 3 language inference) — language is a project-level concern determined per-project via codebase inference, not a user preference (#107, t1.1.3)
+- **Deployment platform question**: Phase 2 Track 1 now asks deployment platform (cross-platform, Windows-native, macOS-native, Linux/Unix, embedded, web/cloud, mobile, other) before language — platform context drives a filtered language shortlist with progressive "Other" disclosure and missing-standards-file warning (#108, t1.1.4)
 
 ### Fixed
 - **Testing enforcement gate**: Added `!` hard gate rule to `main.md` Decision Making — no implementation is complete until tests written and `task check` passes; a general 'proceed' does not waive testing; added anti-pattern to `deft-build/SKILL.md` (#68, t1.6.1)
@@ -16,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Context-aware branching for solo projects**: Added solo-project qualifier to `main.md` change lifecycle rule — `/deft:change` mandatory for team projects (2+ contributors), recommended for solo projects with quality gate as enforcement; mandatory regardless of team size for cross-cutting, architectural, or high-risk changes; full config-driven approach deferred to Phase 5 (#138, t1.6.3)
 - **vBRIEF source step enforcement**: Added `⊗` rule to `main.md` vBRIEF Persistence — SPECIFICATION.md must never be written directly, must be generated from `specification.vbrief.json`; added anti-pattern to `deft-build/SKILL.md` (#139, t1.6.4)
 - **deft-review-cycle Greptile signal**: Updated `skills/deft-review-cycle/SKILL.md` Step 4 to document that Greptile may advance its review by editing an existing PR issue comment rather than creating a new PR review object; added dual-surface detection guidance (issue comments as primary signal, PR review objects as secondary) with `updated_at` timestamp checking; added anti-pattern for relying solely on `pulls/{number}/reviews` (#145, t2.5.2)
+- **Phase 2 inference boundary**: Added ⊗ rules to `deft-setup/SKILL.md` Phase 2 Inference section — MUST NOT scan `./deft/` for build files or run git commands inside `./deft/`; only inspect project root and non-deft subdirectories (#79, t1.1.1)
+- **Phase 2 project name fallback**: Added fallback rule — when no build files exist at project root, default project name to current directory name and ask for confirmation (#80, t1.1.2)
+- **AGENTS.md headless bypass**: Added headless/task-mode bypass to First Session gate so cloud agents, CI agents, and scheduled tasks skip interactive onboarding when dispatched with an explicit task (#142, t1.1.5)
 - **CLI version display**: All `cmd_*` functions now print `Deft CLI v{VERSION}` on startup — previously `cmd_validate`, `cmd_doctor`, and `cmd_update` had no version display; existing headers normalized from `Deft v` to `Deft CLI v` (#49, t1.3.2)
 - **CLI code quality sweep** (#118):
   - Removed stale `v0.3.7` from module docstring — VERSION constant (`0.4.2`) is the single source of truth
@@ -24,14 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Documented `--force` flag in `usage()` help text for the `spec` command
   - Fixed `DEFT_PRD_PATH` env var misuse on Light sizing path — Light path now reads `DEFT_INTERVIEW_PATH` instead of overloading the PRD env var
 - **Installer post-install text** (#131): Verified already fixed in v0.8.0 — `PrintNextSteps` says "Use AGENTS.md" (not "read agents.md")
-### Fixed
-- **Phase 2 inference boundary**: Added ⊗ rules to `deft-setup/SKILL.md` Phase 2 Inference section — MUST NOT scan `./deft/` for build files or run git commands inside `./deft/`; only inspect project root and non-deft subdirectories (#79, t1.1.1)
-- **Phase 2 project name fallback**: Added fallback rule — when no build files exist at project root, default project name to current directory name and ask for confirmation (#80, t1.1.2)
-- **AGENTS.md headless bypass**: Added headless/task-mode bypass to First Session gate so cloud agents, CI agents, and scheduled tasks skip interactive onboarding when dispatched with an explicit task (#142, t1.1.5)
-
-### Changed
-- **Language removed from USER.md**: Removed `**Primary Languages**` field from USER.md template and Phase 1 interview (Track 1 Step 2, Track 2 Step 2, Track 3 language inference) — language is a project-level concern determined per-project via codebase inference, not a user preference (#107, t1.1.3)
-- **Deployment platform question**: Phase 2 Track 1 now asks deployment platform (cross-platform, Windows-native, macOS-native, Linux/Unix, embedded, web/cloud, mobile, other) before language — platform context drives a filtered language shortlist with progressive "Other" disclosure and missing-standards-file warning (#108, t1.1.4)
 
 ## [0.10.0] - 2026-04-02
 
@@ -632,7 +631,8 @@ If you have custom scripts or references to deft files, update these paths:
 - Explore new interface guidelines if building CLIs, APIs, or UIs
 - Review enhanced language standards for Python, Go, TypeScript, and C++
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/deftai/directive/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/deftai/directive/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/deftai/directive/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/deftai/directive/compare/v0.7.1...v0.8.0
