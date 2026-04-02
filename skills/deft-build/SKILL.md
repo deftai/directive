@@ -74,7 +74,7 @@ SPECIFICATION.md   ← LOWEST
 - ! Check `history/changes/` for an active change proposal matching this work
 - ! If no proposal exists: propose `/deft:change <name>` and wait for the user to acknowledge the **named** change
 - ! A general 'proceed', 'do it', or 'go ahead' does NOT satisfy this gate — the user must confirm the specific change name
-- ? For solo projects: this gate is RECOMMENDED but not mandatory for changes fully covered by `task check`; it remains mandatory for cross-cutting or architectural changes
+- ? For solo projects: this gate is RECOMMENDED but not mandatory for changes fully covered by `task check`; it remains mandatory for cross-cutting, architectural, or high-risk changes
 - ⊗ Skip this gate because the user has already said "proceed" or "go ahead"
 
 ## Build Process
