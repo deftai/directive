@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Roadmap Refresh Skill**: Added `skills/deft-roadmap-refresh/SKILL.md` — structured contributor workflow for triaging open issues into the phased roadmap (discovery, one-at-a-time analysis with human review, cleanup)
 - **Roadmap Maintenance Strategy**: Added `strategies/roadmap.md` — optional user-facing guide for maintaining a living roadmap with agent-assisted triage
 - **Agent Skill Pointer**: Added `.agents/skills/deft-roadmap-refresh/SKILL.md` thin pointer for auto-discovery
+- **Swarm Skill**: Added `skills/deft-swarm/SKILL.md` — parallel local agent orchestration workflow with 6 phases (Select, Setup, Launch, Monitor, Review, Close), proven prompt template, file-overlap audit gate, monitoring checkpoints, takeover triggers, and anti-patterns; thin pointer at `.agents/skills/deft-swarm/SKILL.md` (#152)
 - **history/changes/ README**: Added `history/changes/README.md` documenting the change lifecycle artifact structure — directory layout, lifecycle stages, and rules (#59, t2.1.2)
 - **Contract hierarchy**: Created `contracts/hierarchy.md` documenting two hierarchy lenses — durability axis (Standards > APIs > Specs > Code) and generative axis (Spec → Contracts → Code); includes RFC2119 legend, examples, and anti-patterns (#84 Phase 1, t2.2.1)
 - **Adaptive teaching behavior**: Added three adaptive teaching rules to `main.md` Agent Behavior section — be concise when accepted, explain reasoning when questioned, never lecture unprompted (#84 Phase 1, t2.2.2)

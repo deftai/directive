@@ -3,8 +3,8 @@ name: deft-review-cycle
 description: >
   Greptile bot reviewer response workflow. Use when running a review cycle
   on a PR — to audit process prerequisites, fetch bot findings, fix all
-  issues in a single batch commit, and exit cleanly when no P1/P2 issues
-  remain. Enables cloud agents to run autonomous PR review cycles.
+  issues in a single batch commit, and exit cleanly when no P0 or P1 issues
+  remain.
 ---
 
 # Deft Review Cycle
@@ -86,7 +86,7 @@ gh pr view <number> --comments
 
 ! Exit the loop and report to the user when ALL of these are true:
 
-- No P1 or P2 issues remain
+- No P0 or P1 issues remain (P2 issues are non-blocking style suggestions and do not gate the loop)
 - Greptile confidence score is greater than 3
 
 ? If the bot says "all prior issues resolved" but lists new issues, treat it as one final batch — not the start of another loop. Go back to Step 2 one more time, then stop.

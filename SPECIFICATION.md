@@ -264,6 +264,19 @@ Add a versioned, repo-local skill for running Greptile bot reviewer response cyc
 
 **Traces**: FR-28
 
+## t2.5.2: Create skills/deft-swarm/SKILL.md — parallel local agent orchestration (FR-29)  `[pending]`
+
+Add a versioned skill for orchestrating multiple parallel local agents working on roadmap items. A monitor agent reads the skill to set up worktrees, generate action-first prompts, launch agents, poll for progress, handle stalled review cycles, and close out PRs. Codifies the workflow proven in PRs #149/#150 and lessons from meta/lessons.md. Closes #152.
+
+- skills/deft-swarm/SKILL.md exists with RFC2119 legend and frontmatter
+- Skill covers 6 phases: Select (task assignment + file-overlap audit), Setup (worktrees + prompt generation), Launch (Warp tabs preferred, oz agent run fallback), Monitor (polling cadence + checkpoints + takeover triggers), Review (Greptile cycle completion verification), Close (merge + issue close + worktree cleanup)
+- Prompt template included with action-first structure (imperative first line, numbered STEPs, CONSTRAINTS)
+- File-overlap audit is a MUST gate before launch
+- Anti-patterns section covers: context-first prompts, MCP from standalone terminals, overlapping file assignments, merging without Greptile exit condition
+- .agents/skills/deft-swarm/SKILL.md thin pointer exists for auto-discovery
+- Cross-references swarm/swarm.md for general multi-agent guidelines and skills/deft-review-cycle/SKILL.md for review cycle
+
+**Traces**: FR-29
 ## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
 
 GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: (1) Python: ruff check, mypy tests/ (the shim run.py cannot be typed directly - exclude run and run.py from mypy per pyproject.toml, type-check the test suite instead), pytest tests/ with coverage. (2) Go: go test ./cmd/deft-install/ + go build ./cmd/deft-install/ for each platform matrix (linux/amd64, darwin/arm64, windows/amd64). main_test.go already exists so go test is zero-cost. Use current action versions. Closes #57.
