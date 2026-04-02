@@ -126,7 +126,7 @@ def get_default_paths() -> dict:
         DEFT_PROJECT_PATH       default: ./PROJECT.md
         DEFT_PRD_PATH           default: ./PRD.md
         DEFT_SPECIFICATION_PATH default: ./SPECIFICATION.md
-        DEFT_INTERVIEW_PATH     default: ./INTERVIEW.md (Light sizing path only)
+        DEFT_INTERVIEW_PATH     default: ./INTERVIEW.md (Light sizing path only; not in returned dict)
     
     Returns:
         dict with keys 'user', 'project', 'prd', 'specification'
@@ -319,7 +319,7 @@ def usage():
 [bold cyan]Commands:[/bold cyan]
   [green]bootstrap[/green]       Set up your user preferences (user.md)
   [green]project[/green]         Create/update project configuration (project.md)
-  [green]spec[/green]            Generate project specification (--force to overwrite)
+  [green]spec[/green]            Generate project specification via interview (--force to overwrite)
   [green]install[/green]         Install deft framework in a project directory
   [green]reset[/green]           Reset configuration files to default state
   [green]validate[/green]        Validate deft configuration files
@@ -351,7 +351,7 @@ For more information: [link]https://github.com/deftai/directive[/link]
 Commands:
   bootstrap       Set up your user preferences (user.md)
   project         Create/update project configuration (project.md)
-  spec            Generate project specification (--force to overwrite)
+  spec            Generate project specification via interview (--force to overwrite)
   install         Install deft framework in a project directory
   reset           Reset configuration files to default state
   validate        Validate deft configuration files
