@@ -253,6 +253,17 @@ Create meta/philosophy.md with full contract hierarchy narrative per #84 Phase 2
 
 **Traces**: FR-24
 
+## t2.5.1: Create skills/deft-review-cycle/SKILL.md — Greptile review cycle skill (FR-28)  `[completed]`
+
+Add a versioned, repo-local skill for running Greptile bot reviewer response cycles on PRs. Currently the review cycle rules live only in local Warp global rules, making them inaccessible to cloud agents. Moving them into the repo as a skill enables fully autonomous PR workflows: cloud agent creates PR → Greptile reviews → agent runs review cycle → agent resolves findings. Closes #135.
+
+- skills/deft-review-cycle/SKILL.md exists with RFC2119 legend
+- Skill covers: Phase 1 deft process audit (spec coverage, changelog, task check, PR template); Phase 2 review/fix loop (fetch both MCP + gh, analyze all, batch commit, wait, exit condition); GitHub review submission rules; interface selection guidance; anti-patterns
+- .agents/skills/deft-review-cycle/SKILL.md thin pointer exists for auto-discovery
+- AGENTS.md PR conventions section references skills/deft-review-cycle/SKILL.md
+
+**Traces**: FR-28
+
 ## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
 
 GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: (1) Python: ruff check, mypy tests/ (the shim run.py cannot be typed directly - exclude run and run.py from mypy per pyproject.toml, type-check the test suite instead), pytest tests/ with coverage. (2) Go: go test ./cmd/deft-install/ + go build ./cmd/deft-install/ for each platform matrix (linux/amd64, darwin/arm64, windows/amd64). main_test.go already exists so go test is zero-cost. Use current action versions. Closes #57.
