@@ -26,7 +26,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! ROADMAP.md and SPECIFICATION.md exist with actionable items
 - ! GitHub CLI (`gh`) is authenticated
 - ! `git` supports worktrees (`git worktree` available)
-- ~ `oz` CLI available (for cloud agent fallback — see Phase 3 Option C)
+- ~ `oz` CLI available (for `oz agent run` local launch — see Phase 3 Option A)
 
 ## Phase 1 — Select
 
@@ -74,53 +74,56 @@ git worktree add <path> -b <branch-name> master
 
 ! Create a `launch-agent.ps1` (Windows) or `launch-agent.sh` (Unix) in each worktree using the Prompt Template below.
 
-~ For Option A (Warp agent chat), also prepare a plain-text version of each prompt that the user can paste directly. The launch scripts are still useful for Option B/C (they call `oz agent run`).
+~ Generate `launch-agent.ps1` scripts using `oz agent run --cwd <worktree> --prompt` (Option A). Also prepare plain-text prompt versions for users who prefer Option B (manual Warp tab paste).
 
 ## Phase 3 — Launch
 
-! **Critical distinction: `oz agent run` launches CLOUD agents, not local agents.** The `oz` CLI always spawns agents on remote VMs. Cloud agents work (they can push, create PRs, run review cycles) but they do NOT have access to the user's local MCP servers, codebase indexing, or Warp Drive rules. For truly local agent execution, the user must paste the prompt into a Warp agent conversation.
+! **`oz agent run` runs LOCAL agents on your machine.** It supports `--cwd` (working directory), `--profile` (agent profile), and `--mcp` (MCP server access). Codebase indexing is non-blocking — available once indexing completes after launch. Use `oz agent run-cloud` for remote VM execution.
 
 ! **Warp tabs cannot be opened programmatically.** There is no API or CLI command to open a new Warp terminal tab from an agent or script.
 
-! The monitor agent MUST present all three options and their tradeoffs before launching:
+! The monitor agent MUST present options and their tradeoffs before launching:
 
-- **Option A (preferred):** User manually opens Warp tabs, pastes prompt into agent chat — fully local, gets MCP, codebase indexing, Warp Drive rules
-- **Option B:** `oz agent run` — cloud execution, no local context, but runs in parallel without user tab management
-- **Option C:** `Start-Process` standalone terminals with `oz agent run` — same as B but in visible local windows
+- **Option A (preferred — automated local):** `oz agent run --cwd <worktree> --prompt "..."` — local execution, codebase indexing, Warp Drive rules, agent profiles; MCP available via `--mcp` only when launched from within Warp; no user tab management required
+- **Option B (interactive local):** User manually opens Warp tabs, pastes prompt into agent chat — local, gets MCP, codebase indexing, Warp Drive rules; better for monitoring agent progress interactively
+- **Option C (cloud):** `oz agent run-cloud --prompt "..."` — remote VM execution, no local context (no MCP, no codebase indexing, no Warp Drive rules)
 
-! If the user says "launch" or "do it", default to Option A (ask user to open tabs). Only use Option B/C if the user explicitly chooses cloud or standalone execution.
+! If the user says "launch" or "do it", default to Option A (`oz agent run`). Only use Option C if the user explicitly requests cloud execution.
 
-⊗ Use `oz agent run` when the user expects local execution — always clarify that `oz` routes to cloud.
+⊗ Use `oz agent run-cloud` when the user expects local execution — `run-cloud` routes to remote VMs with no local context.
 ⊗ Silently launch any option without presenting the tradeoffs first.
 
-### Option A: Warp Agent Conversations (preferred — truly local)
+### Option A: oz agent run (preferred — automated local)
+
+! For each agent, launch via the `oz` CLI:
+
+```powershell
+oz agent run --cwd "<worktree-path>" --prompt "TASK: You must complete..."
+```
+
+- ! `--cwd` sets the working directory to the agent's worktree
+- ~ `--profile <id>` sets the agent profile; get IDs with `oz agent profile list`
+- ~ `--mcp` adds MCP server access when launching from within Warp
+- ! Codebase indexing is non-blocking — agent starts immediately, indexing completes in the background
+- ~ The generated `launch-agent.ps1` scripts should use this command
+- ! `--mcp` requires Warp app context — MUST NOT use `--mcp` with Warp MCP server UUIDs when launching from a standalone (non-Warp) terminal; it will fail with "Failed to start MCP servers"
+
+### Option B: Warp Agent Conversations (interactive local)
 
 Ask the user to open N new Warp terminal tabs. For each tab, the user:
 1. Navigates to the worktree: `cd <worktree>`
 2. Pastes the prompt directly into the Warp agent chat input (not the terminal)
 
-Provide the prompt text for each agent (from the generated launch scripts or the Prompt Template).
+Preferred when the user wants to monitor each agent interactively. Gets full MCP, codebase indexing, and Warp Drive rules.
 
-This is the only option that preserves MCP server access, codebase indexing, and Warp Drive rules.
-
-### Option B: Cloud Agents via `oz` CLI (parallel, no local context)
+### Option C: Cloud Agents via oz agent run-cloud (remote, no local context)
 
 ```powershell
-# From any terminal — agents run on cloud VMs
-oz agent run --prompt "TASK: You must complete..."
+# Agents run on remote VMs — no local MCP, codebase indexing, or Warp Drive rules
+oz agent run-cloud --prompt "TASK: You must complete..."
 ```
 
-Agents execute on remote VMs with access to the git repo (they can clone, push, create PRs) but without the user's local MCP servers, codebase indexing, or Warp Drive rules. Agents MUST use `gh` CLI for GitHub operations.
-
-### Option C: Standalone Terminal Windows (visible cloud agents)
-
-```powershell
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '<worktree>'; .\launch-agent.ps1"
-```
-
-Same as Option B (cloud execution) but launched in visible terminal windows. The worktree directory provides context for the launch script but the actual agent runs remotely.
-
-⊗ Use `--mcp` with Warp MCP server UUIDs from standalone terminals — they require Warp app context and will fail.
+Agents execute on remote VMs without local MCP servers, codebase indexing, or Warp Drive rules. Agents MUST use `gh` CLI for GitHub operations.
 
 ## Phase 4 — Monitor
 
@@ -257,5 +260,5 @@ CONSTRAINTS:
 - ⊗ Launch agents without checking SPECIFICATION.md for task coverage first
 - ⊗ Skip the file-overlap audit in Phase 1
 - ⊗ Use `git reset --hard` or force-push in any worktree
-- ⊗ Launch standalone terminals without first asking the user if they want Warp tabs instead — Warp tabs preserve MCP, codebase indexing, and Warp Drive rules; standalone shells do not. Always default to asking for manual tab opens (Option A) unless the user explicitly requests standalone shells.
-- ⊗ Use `oz agent run` when the user asked for local agents — `oz` always spawns cloud agents on remote VMs, not local Warp agents. For truly local execution, the user must paste the prompt into a Warp agent conversation.
+- ⊗ Launch agents without presenting all options and their tradeoffs — always show Option A/B/C tradeoffs and confirm with the user before launching.
+- ⊗ Use `oz agent run-cloud` when the user asked for local agents — `run-cloud` spawns agents on remote VMs with no local context. Use `oz agent run` for local execution.
