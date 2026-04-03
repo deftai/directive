@@ -41,7 +41,7 @@ Quick doc/content fixes that don't require code changes.
 - **#151** — [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) — umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)
 - **#159** — Deterministic > Probabilistic — design principle: prefer deterministic components for repeatable actions; document in `meta/philosophy.md` or `contracts/hierarchy.md`; ongoing application across CLI/skills/workflows is Phase 5 (xrefs #84, #160, #95, #86)
 - **#168** — deft-roadmap-refresh skill: add MUST rule to confirm analysis comment posting to user — transparency improvement (xref #147)
-- **#174** — deft-roadmap-refresh skill: add review cycle step after PR push — skill should automatically sequence into `skills/deft-review-cycle/SKILL.md` after pushing the PR, no separate user instruction required (xrefs #168, #147)
+- **#174** — deft-roadmap-refresh skill: add PR & review cycle phase — when triage is complete, prompt user for PR readiness; run pre-push pre-flight (CHANGELOG + `task check`) before pushing; after PR creation, automatically sequence into `skills/deft-review-cycle/SKILL.md` (review cycle Phase 1 audit must happen before push, not after) (xrefs #168, #147)
 - **#58** — Stale cross-references to legacy `core/user.md` and `core/project.md` paths throughout framework
 - **#51** — Project should be fully bootstrapped with its own framework (partially done in PR #66)
 - Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml; reframe README per #89 resolution (#84 Phase 2, blocked on #89)
