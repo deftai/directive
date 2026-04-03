@@ -109,7 +109,7 @@ The original Agent 2 was scoped to #31 and #50 (strategy consolidation). Both ha
 
 **6. PR numbers don't match agent numbers — include agent ID in branch/PR naming**
 
-GitHub assigns PR numbers in creation order, which depends on which cloud agent finishes first. Agent 2's PR became #154 while Agent 1's became #156. This caused confusion during monitoring and merging. Branch names SHOULD include the agent number (e.g. `agent1/fix/...`) or PR titles SHOULD include `[Agent N]` for traceability.
+GitHub assigns PR numbers in creation order, which depends on which agent finishes first. Agent 2's PR became #154 while Agent 1's became #156. This caused confusion during monitoring and merging. Branch names SHOULD include the agent number (e.g. `agent1/fix/...`) or PR titles SHOULD include `[Agent N]` for traceability.
 
 **7. ~~Cloud agents~~ Agents stopped after PR creation — likely a prompt completeness issue, not a cloud limitation**
 

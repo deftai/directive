@@ -106,6 +106,7 @@ oz agent run --cwd "<worktree-path>" --prompt "TASK: You must complete..."
 - ~ `--mcp` adds MCP server access when launching from within Warp
 - ! Codebase indexing is non-blocking — agent starts immediately, indexing completes in the background
 - ~ The generated `launch-agent.ps1` scripts should use this command
+- ! `--mcp` requires Warp app context — MUST NOT use `--mcp` with Warp MCP server UUIDs when launching from a standalone (non-Warp) terminal; it will fail with "Failed to start MCP servers"
 
 ### Option B: Warp Agent Conversations (interactive local)
 
@@ -124,9 +125,7 @@ oz agent run-cloud --prompt "TASK: You must complete..."
 
 Agents execute on remote VMs without local MCP servers, codebase indexing, or Warp Drive rules. Agents MUST use `gh` CLI for GitHub operations.
 
-⊗ Use `--mcp` with Warp MCP server UUIDs from standalone terminals — they require Warp app context and will fail.
-
-## Phase 4 — Monitor
+## Phase 4
 
 ### Polling Cadence
 

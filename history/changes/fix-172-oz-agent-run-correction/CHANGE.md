@@ -2,7 +2,7 @@
 
 **Issue:** #172
 **Branch:** fix/172-oz-agent-run-correction
-**Status:** in-progress
+**Status:** completed
 
 ## Problem
 
