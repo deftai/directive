@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 def _project_responses(project_path: Path, strategy_idx: str = "1") -> list:
-    """Build the standard 8-response queue for cmd_project.
+    """Build the standard 9-response queue for cmd_project.
 
     Assumes ./deft/ directory exists (no install prompt).
 
@@ -27,7 +27,8 @@ def _project_responses(project_path: Path, strategy_idx: str = "1") -> list:
       5. Coverage threshold                (read_input, default 85)
       6. Tech stack details                (read_input, optional)
       7. Strategy selection                (read_input, default "1")
-      8. Run 'run spec' now?              (read_yn)
+      8. Branching preference              (read_input, "1" = branch-based)
+      9. Run 'run spec' now?              (read_yn)
     """
     return [
         str(project_path),   # 1  output path
@@ -37,7 +38,8 @@ def _project_responses(project_path: Path, strategy_idx: str = "1") -> list:
         "85",                 # 5  coverage
         "Flask",              # 6  tech stack
         strategy_idx,         # 7  strategy
-        False,                # 8  don't chain to spec
+        "1",                  # 8  branch-based (default)
+        False,                # 9  don't chain to spec
     ]
 
 
@@ -110,7 +112,8 @@ def test_project_rejects_duplicate_types(
         "85",                # 6  coverage
         "Flask",             # 7  tech stack
         "1",                 # 8  strategy
-        False,               # 9  don't chain to spec
+        "1",                 # 9  branch-based (default)
+        False,               # 10 don't chain to spec
     ])
 
     result = run_command("cmd_project", [])

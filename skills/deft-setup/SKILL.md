@@ -255,6 +255,13 @@ apply here too. Do not combine questions.
 - Step 6: Ask strategy (default to USER.md Defaults; ask if this project needs different — show Available Strategies numbered list with descriptions and recommended marker)
 - Step 7: Ask coverage (default to USER.md Defaults; ask if this project needs different)
 - Step 8: Ask for project-specific rules (optional, same one-per-line format as Phase 1 custom rules)
+- Step 9: Ask branching preference:
+  > "Do you prefer branch-based workflow (create a feature branch for every change) or
+  > trunk-based (commit directly to master)? Branch-based is the default and recommended
+  > for teams; trunk-based is common for solo projects."
+  > 1. Branch-based ★ (recommended — default)
+  > 2. Trunk-based (direct commits to master)
+  If trunk-based: add `Allow direct commits to master: true` under `## Branching` in PROJECT.md
 
 **Track 2 (middle ground) — 4 steps:**
 - Step 1: Ask project name (infer from build files or directory name, confirm)
@@ -310,6 +317,11 @@ task clean         # Clean artifacts
 ## Project-Specific Rules
 
 {Any rules the user specified, or "(Add your custom rules here)"}
+
+## Branching
+
+{If trunk-based chosen: "Allow direct commits to master: true"
+ If branch-based (default): omit this section entirely}
 
 ---
 

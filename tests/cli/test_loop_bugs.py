@@ -63,7 +63,8 @@ def test_project_empty_strategies_defaults_to_interview(
         "85",                # 5  coverage
         "Flask",             # 6  tech stack
         # No strategy prompt — guard skips the loop
-        False,               # 7  don't chain to spec
+        "1",                 # 7  branch-based (default)
+        False,               # 8  don't chain to spec
     ])
 
     result = run_command("cmd_project", [])

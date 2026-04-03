@@ -33,6 +33,9 @@ When all config exists: read the guidelines, your USER.md preferences, and PROJE
 - Add CHANGELOG.md entry under `[Unreleased]`
 - Verify .github/PULL_REQUEST_TEMPLATE.md checklist items are satisfied
 
+**Branching:**
+- ! Always work on a feature branch — never commit directly to master/main unless the user explicitly instructs it or `PROJECT.md` contains `Allow direct commits to master: true`
+
 **PR conventions:**
 - ROADMAP.md updates happen on merge (don't move issues to Completed prematurely)
 - Commit messages: `feat/fix/docs/chore` prefix, concise subject, bullet-point body

@@ -39,6 +39,11 @@ cp secrets/[example].example secrets/[example]  # [Description]
 - **API**: [api.md](./docs/api.md)
 - **Deployment**: [deployment.md](./docs/deployment.md)
 
+## ① Branching
+
+<!-- Uncomment the line below to allow direct commits to master (trunk-based workflow). -->
+<!-- Allow direct commits to master: true -->
+
 ## 🚧 Constraints
 
 <!-- Optional: timeline, compliance, compatibility requirements -->

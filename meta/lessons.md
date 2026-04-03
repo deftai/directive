@@ -146,3 +146,11 @@ The only correct recovery from `Set-Content` corruption is: (1) restore the orig
 **1. Greptile review completion MUST be polled via MCP `get_check_runs` against the PR head, not `gh api` with a static commit SHA**
 
 When a new commit is pushed while a polling loop is running, Greptile starts a fresh check run on the new head SHA. A shell `while` loop polling `gh api repos/{owner}/{repo}/commits/{old_sha}/check-runs` will never see completion because the completed run is on a different commit. MUST use MCP `pull_request_read` with `method: get_check_runs` — this always targets the current PR head regardless of how many commits have been pushed. Compare the `completed_at` field and `conclusion` to confirm the review is current and passed.
+
+**2. MUST NOT push any commit while Greptile review is in progress — even for unrelated changes**
+
+Every push re-triggers Greptile on the new head. If additional fixes or improvements are identified while waiting for a review, stage them locally but hold the push until the review of the current head is complete and analyzed. "Trivial" or "safe" commits are not exceptions — the rule applies unconditionally. Violating this resets Greptile's clock and can create a loop where the bot never finishes reviewing a stable state. (#175, incident: PR #173)
+
+**3. Poll interval MUST include a genuine delay (≥60 seconds) between `get_check_runs` calls**
+
+Greptile reviews typically take 3–7 minutes. Calling `get_check_runs` in rapid back-to-back succession (seconds apart) adds no information and creates noise in the conversation. MUST use a real sleep between polls — `Start-Sleep -Seconds 60` (PowerShell) or equivalent. Do NOT report "polling again" as if time has passed when it has not. (#175, incident: PR #173 monitoring loop)

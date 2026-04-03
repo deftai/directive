@@ -46,6 +46,7 @@ gh api repos/<owner>/<repo>/commits/<sha>/check-runs --jq '.check_runs[] | selec
 3. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥75%)
 4. ! `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfied in the PR description
 5. ! If the PR touches 3+ files: verify a `/deft:change` proposal exists in `history/changes/` for this branch, or document N/A with reason in the PR checklist
+6. ! Verify the PR is on a feature branch — work MUST NOT have been committed directly to the default branch (master/main)
 
 ! Phase 1 audit gaps must be resolved before merging — but hold the fixes (do NOT commit or push them independently). Proceed to Phase 2 analysis to gather bot findings, then batch all Phase 1 + Phase 2 fixes into a single commit.
 ⊗ Commit or push Phase 1 audit fixes independently before gathering Phase 2 findings.
@@ -91,6 +92,10 @@ gh pr view <number> --comments
 ### Step 4: Push and wait
 
 ! Push the batch commit, then wait for the bot to review the latest commit.
+
+⊗ Push any additional commits — including unrelated fixes, doc updates, or lessons — while waiting for the bot to finish reviewing the current head. Every push re-triggers Greptile and resets the review clock. If you discover additional work while waiting, stage it locally but do NOT push until the current review completes.
+
+~ Poll for completion no more than once every 60 seconds. Greptile reviews typically take 3–7 minutes; polling faster than once per minute adds no value and creates noise. Use `Start-Sleep -Seconds 60` (PowerShell) or `time.sleep(60)` (Python) between MCP `get_check_runs` calls. Do not report a delay that did not occur.
 
 ! Greptile may advance its review by **editing an existing PR issue comment** rather than creating a new PR review object. Do NOT rely solely on `pulls/{number}/reviews` — that endpoint may remain stale at an older commit SHA even after Greptile has reviewed the latest commit.
 
@@ -158,3 +163,5 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 - ⊗ Commit or push Phase 1 audit fixes independently — always batch with Phase 2 fixes
 - ⊗ Proceed to Phase 2 while any Phase 1 prerequisite is unmet
 - ⊗ Rely solely on `pulls/{number}/reviews` to detect whether Greptile has reviewed the latest commit — Greptile may update via an edited issue comment instead of a new review object
+- ⊗ Push additional commits while Greptile is reviewing the current head — each push re-triggers Greptile and resets the review clock
+- ⊗ Poll `get_check_runs` more frequently than once per 60 seconds — use a real delay between polls, not back-to-back calls

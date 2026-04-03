@@ -95,7 +95,8 @@ def test_project_uses_user_defaults_fewer_prompts(
       5. Coverage — Enter to keep        (read_input, "" = accept)
       6. Tech stack details              (read_input)
       7. Strategy — Enter to keep        (read_input, "" = accept)
-      8. Run 'run spec' now?            (read_yn)
+      8. Branching preference              (read_input, "1" = branch-based)
+      9. Run 'run spec' now?            (read_yn)
     """
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
     (isolated_env / "deft").mkdir(exist_ok=True)
@@ -114,7 +115,8 @@ def test_project_uses_user_defaults_fewer_prompts(
         "",                   # 5  accept coverage from USER.md
         "Flask",              # 6  tech stack
         "",                   # 7  accept strategy from USER.md
-        False,                # 8  don't chain to spec
+        "1",                  # 8  branch-based (default)
+        False,                # 9  don't chain to spec
     ])
 
     result = run_command("cmd_project", [])
@@ -145,7 +147,8 @@ def test_project_still_works_without_user_md(
         "85",                 # 5  coverage
         "Flask",              # 6  tech stack
         "1",                  # 7  strategy
-        False,                # 8  don't chain to spec
+        "1",                  # 8  branch-based (default)
+        False,                # 9  don't chain to spec
     ])
 
     result = run_command("cmd_project", [])

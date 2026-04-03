@@ -171,3 +171,4 @@ feat(phase-2): add REST API endpoints with integration tests
 - ⊗ Proceed to next task or phase without tests passing — testing is a hard gate, not a cleanup step
 - ⊗ Skip the Change Lifecycle Gate because the user said "proceed" — broad approval does not satisfy a named-change confirmation
 - ⊗ Write `SPECIFICATION.md` directly — always create `specification.vbrief.json` first and render from it
+- ⊗ Commit or push directly to the default branch — always create a feature branch first. Exception: user explicitly instructs a direct commit, or `PROJECT.md` contains `Allow direct commits to master: true` under `## Branching`

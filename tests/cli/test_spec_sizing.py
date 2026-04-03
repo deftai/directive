@@ -525,6 +525,7 @@ class TestCmdProjectProcessField:
             "85",                # coverage
             "Flask",             # tech stack
             "1",                 # strategy
+            "1",                 # branch-based (default)
             False,               # don't chain to spec
         ])
 
