@@ -1,4 +1,4 @@
-﻿# Deft Directive — Roadmap
+# Deft Directive — Roadmap
 
 Prioritized work items. **Principle: resolve open issues before new features.**
 
@@ -21,6 +21,7 @@ Fix reported bugs and UX problems blocking adoption.
 - **#116** — All deft files must be installed consistently under `./deft/` — placement is inconsistent across projects
 - **#167** — PRs merged but issues not closed and roadmap not updated — root cause investigation needed (closing keywords, squash merge, ROADMAP convention); update PR template and review cycle skill (xrefs #114, #123, #166)
 - **#171** — Agents must not commit/push directly to master — add `⊗` hard gate to `main.md`, `skills/deft-build/SKILL.md`, `skills/deft-review-cycle/SKILL.md`, and `AGENTS.md`; closes gap exposed when an agent pushed directly to master during #166 work (xrefs #138)
+- **#175** — deft-review-cycle skill: prohibit pushing commits while Greptile review is in progress — add `⊗` rule to Step 4 preventing any push while bot is reviewing current head; add lesson to `meta/lessons.md` (incident: PR #173 lessons commit re-triggered Greptile mid-review)
 
 ---
 
@@ -300,6 +301,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #166 | Greptile Review status check blocks merge — no re-review after fixes pushed | 1 |
 | #167 | PRs merged but issues not closed and roadmap not updated | 1 |
 | #171 | Agents must not commit/push directly to master — add hard gate | 1 |
+| #175 | deft-review-cycle: prohibit pushing while Greptile review in progress | 1 |
 | #151 | [Playtest Feedback] First-time non-technical user session report (umbrella) | 2 |
 | #159 | Deterministic > Probabilistic — design principle documentation | 2 |
 | #160 | Consider TypeScript instead of Python for run CLI | 5 |
@@ -337,4 +339,5 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-03 — roadmap refresh triage: added #170 (ROADMAP update timing, Phase 2)*
 *Updated 2026-04-03 — roadmap refresh triage: added #171 (no direct-to-master agent commits, Phase 1 Cleanup)*
 *Updated 2026-04-03 — roadmap refresh triage: added #172 (deft-swarm oz agent run correction, Phase 1 Adoption Blockers, priority next)*
+*Updated 2026-04-03 — filed and triaged #175 (deft-review-cycle no-push-during-review gate, Phase 1 Cleanup)*
 *Updated 2026-04-03 — filed and triaged #174 (deft-roadmap-refresh review cycle chaining, Phase 2)*
