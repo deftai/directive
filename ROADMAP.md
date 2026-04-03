@@ -13,28 +13,12 @@ Fix reported bugs and UX problems blocking adoption.
 - **#126** — specification.vbrief.json does not conform to vbrief schema/spec — agent generates wildly non-conformant output (possibly fixed by #72 / PR #130; verify before working)
 - **#144** — Directive generates vBRIEF files with wrong narrative value type (object instead of string) and wrong child key (`items` instead of `subItems`), causing nested items to be invisible in vBRIEF-Studio — address with #126
 - **#133** — Generated vBRIEF files use invalid reference types (`x-vbrief/context`, `x-vbrief/research`) that fail schema validation — blocked on upstream `deftai/vBRIEF#2` to expand the enum; vendor updated schema once resolved
-- **#79** — deft-setup Phase 2 inference bleeds into `./deft/` framework internals (misidentifies project as "deft")
-- **#80** — deft-setup Phase 2 project name inference has no fallback when no build files exist
-- **#142** — AGENTS.md onboarding gate blocks headless/cloud agents — First Session checks trap cloud/CI agents on missing USER.md instead of executing their task (xrefs #68, #79, #134, #136)
-- **#107** — Remove language defaults from USER.md — language is a project-level concern (deft-setup interview noise)
-
-- **#108** — Ask deployment platform before language — platform context drives language shortlist (depends on #107)
-
-- **#68** — Warp not always enforcing Deft testing protocols (core quality gates silently skipped)
-- **#137** — README: move startup instructions higher and clarify where to get installers — new users can't find how to get started (quick win, independent of #89 reframe)
-- **#138** — Branching requirement too prescriptive for single-author projects — relax change lifecycle rule in `main.md` for solo contexts (easy content fix; full config-driven approach deferred to Phase 5 with #77)
-- **#139** — Agent skips vbrief source step and writes SPECIFICATION.md directly — strengthen prohibition in `main.md`/deft-build skill; add validation step (address with #68, #123)
-- **#145** — `deft-review-cycle` skill doesn't designate the Greptile issue comment as the primary review signal — agent can drift to polling `/pulls/{n}/reviews` and report stale status or loop unnecessarily; fix: promote issue comment + `Last reviewed commit` SHA as explicit primary check, add anti-pattern entry
+- **#166** — Greptile Review status check blocks merge — no re-review after fixes pushed; `triggerOnUpdates` defaults to `false`; need `.greptile/config.json` and deft-review-cycle pre-flight check (xrefs #145, #135)
 
 ### Cleanup
 
-- **#31** — `default.md` and `interview.md` need to be merged into `interview.md` (duplicate strategy files)
-- **#50** — Strategies still have redundant old names (`brownfield.md` → `map.md`, `default.md` → `interview.md`)
-- **#49** — All CLI commands should display version on startup
 - **#116** — All deft files must be installed consistently under `./deft/` — placement is inconsistent across projects
-- **#123** — Change lifecycle gate skipped when agent receives broad ‘proceed’ instruction on multi-file changes — strengthen /deft:change rule, add PR template checklist item, add enforcement to deft-build SKILL.md
-- **#118** — CLI code quality sweep: version mismatch in docstring, bare `except` swallowing critical errors, undocumented `--force` flag, `DEFT_PRD_PATH` env var misused on Light path
-- **#131** — Mac installer 0.7.1: post-install text says "read agents.md" — should say "use agents.md" (trivial string fix; can bundle with #118)
+- **#167** — PRs merged but issues not closed and roadmap not updated — root cause investigation needed (closing keywords, squash merge, ROADMAP convention); update PR template and review cycle skill (xrefs #114, #123, #166)
 
 ---
 
@@ -47,19 +31,15 @@ Quick doc/content fixes that don't require code changes.
 - **#89** — Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)
 - **#84 Phase 1** — Deft as teacher: contract hierarchy, adaptive teaching, and "state WHY"
   - Add `! State WHY` rule to `strategies/interview.md` — when making an opinionated recommendation, state the principle (1 sentence)
-  - Create `contracts/hierarchy.md` — Standards > APIs > Specs > Code ranking, Phoenix architecture concept, "contracts are your IP" framing
-  - Add adaptive teaching behavior to `main.md` (always-loaded; not `SOUL.md` — opt-in only):
-    - `~ When a recommendation is accepted without question, be concise`
-    - `! When a recommendation is questioned or overridden, explain the reasoning`
-    - `⊗ Lecture unprompted on every decision`
+  - ~~Create `contracts/hierarchy.md`~~ — done (v0.10.0, t2.2.1)
+  - ~~Add adaptive teaching behavior to `main.md`~~ — done (v0.10.0, t2.2.2)
 
 ### Content & Doc Fixes
 
+- **#151** — [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) — umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)
+- **#159** — Deterministic > Probabilistic — design principle: prefer deterministic components for repeatable actions; document in `meta/philosophy.md` or `contracts/hierarchy.md`; ongoing application across CLI/skills/workflows is Phase 5 (xrefs #84, #160, #95, #86)
+- **#168** — deft-roadmap-refresh skill: add MUST rule to confirm analysis comment posting to user — transparency improvement (xref #147)
 - **#58** — Stale cross-references to legacy `core/user.md` and `core/project.md` paths throughout framework
-- **#59** — `history/changes/` directory referenced by `commands.md` doesn't exist
-- **#23** — `yolo.md` duplicates ~80% of `interview.md` — refactor to reference shared phases
-- **#24** — `speckit.md` missing `⚠️ See also` cross-reference banner
-- **#25** — `commands.md` vBRIEF example diverges from `vbrief/vbrief.md` spec (status vocabulary mismatch)
 - **#51** — Project should be fully bootstrapped with its own framework (partially done in PR #66)
 - Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml; reframe README per #89 resolution (#84 Phase 2, blocked on #89)
   - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping"
@@ -68,7 +48,7 @@ Quick doc/content fixes that don't require code changes.
   - `warping.sh` still present — remove or deprecate (replaced by `run` in v0.5.0)
   - Verify: `test_standards.py` xfail for Warping references should flip to passing
 - Clean leaked personal files:
-  - `core/project.md` — contains Voxio Bot private project config; replace with generic template
+  - ~~`core/project.md` — Voxio Bot private project config~~ — done (v0.10.0, t2.1.6: replaced with generic template + legacy redirect)
   - `PROJECT.md` (repo root) — leftover from bootstrap test run; remove or replace
   - Verify: `test_standards.py` xfail for Voxio Bot content should flip to passing
 - Update `strategies/interview.md` to probe language/tool choices through the contract lens — when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)
@@ -93,8 +73,7 @@ Quick doc/content fixes that don't require code changes.
 - ~~Write remaining CHANGELOG entries~~ — tracked by #71 (Phase 1)
 - **#112** — External “Deft Directive” PDF is premature — describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship
 - **#114** — Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`
-- **#135** — Greptile review rules SKILL.md should be in the Directive repo — version and co-locate bot reviewer configuration (to be done with #114)
-- **#136** — Warp doesn't load deft's AGENTS.md by default — document global rule workaround in README/installer output; real fix is Warp platform feature request (to be done with #114)
+- **#136** — Warp doesn't load deft's AGENTS.md by default
 - **#146** — Add `skills/deft-sync/SKILL.md` — session-start sync skill: submodule update, vBRIEF file validation, AGENTS.md freshness check, new-skills listing; design complete in issue body (related: #140 CLI counterpart, #75 auto-discovery)
 - **#147** — Skills `deft-roadmap-refresh` and `deft-review-cycle` not documented in README or AGENTS.md — add to README directory tree and `### 🤖 Skills` section; add `deft-roadmap-refresh` reference to AGENTS.md (to be done with #114)
 
@@ -159,12 +138,34 @@ Larger feature work — only after issues are resolved and content is stable.
 - **#9** — Issue tracking system integration (GitHub Issues, Jira, Asana — optional, via MCP)
 - **#95** — Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks
 - **#140** — Automatically check for updates to cloned repos in a project — detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)
+- **#160** — Consider TypeScript instead of Python for `run` CLI — architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118)
 - LLM-assisted content validation
 - Self-upgrade to Deft Directive product (branding, public docs, distribution packaging)
 
 ---
 
 ## Completed
+- ~~#145 — deft-review-cycle Greptile issue comment as primary review signal~~ — 2026-04-02 (v0.10.1)
+- ~~#142 — AGENTS.md onboarding gate blocks headless/cloud agents — headless bypass added~~ — 2026-04-02 (v0.10.1)
+- ~~#139 — Agent skips vbrief source step — ⊗ rule added to main.md and deft-build SKILL.md~~ — 2026-04-02 (v0.10.1)
+- ~~#138 — Branching requirement too prescriptive — context-aware solo-project qualifier~~ — 2026-04-02 (v0.10.1)
+- ~~#135 — Greptile review rules SKILL.md in repo~~ — 2026-03-31 (PR #143, v0.10.0)
+- ~~#131 — Mac installer post-install text~~ — 2026-04-02 (verified fixed in v0.8.0)
+- ~~#123 — Change lifecycle gate enforcement — strengthened /deft:change rule~~ — 2026-04-02 (v0.10.1)
+- ~~#118 — CLI code quality sweep~~ — 2026-04-02 (v0.10.1)
+- ~~#108 — Ask deployment platform before language~~ — 2026-04-02 (v0.10.1)
+- ~~#107 — Remove language defaults from USER.md~~ — 2026-04-02 (v0.10.1)
+- ~~#80 — deft-setup project name fallback~~ — 2026-04-02 (v0.10.1)
+- ~~#79 — deft-setup inference boundary guards~~ — 2026-04-02 (v0.10.1)
+- ~~#137 — README: move startup instructions higher, clarify installer location~~ — 2026-04-02 (v0.10.1)
+- ~~#68 — Testing enforcement gate — hard gate rule added to main.md~~ — 2026-04-02 (v0.10.1)
+- ~~#59 — history/changes/ directory created with README.md~~ — 2026-04-02 (v0.10.0)
+- ~~#50 — Strategies redundant old names — brownfield.md redirect, default.md deleted~~ — 2026-04-02 (v0.10.0)
+- ~~#49 — All CLI commands display version on startup~~ — 2026-04-02 (v0.10.1)
+- ~~#31 — Merge default.md into interview.md~~ — 2026-04-02 (v0.10.0)
+- ~~#25 — commands.md vBRIEF example fixed~~ — 2026-04-02 (v0.10.0)
+- ~~#24 — speckit.md See also banner~~ — 2026-04-02 (v0.10.0)
+- ~~#23 — yolo.md refactored to reference interview.md shared phases~~ — 2026-04-02 (v0.10.0)
 - ~~#104 — Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)~~ — 2026-04-03 (PR #158)
 - ~~#124 — Warp context window improvements: behavioral rule for periodic context checkpointing and structured handoff notes~~ — closed (completed)
 - ~~#67 — Write SPECIFICATION.md and proper PROJECT.md for the deft project itself~~ — closed (completed)
@@ -218,14 +219,14 @@ Larger feature work — only after issues are resolved and content is stable.
 | #9 | Issue tracking system integration | 5 |
 | #11 | NPM + PIP CLI distribution | 4 |
 | #12 | Deft Bootstrap CLI with TUI | 5 |
-| #23 | yolo.md duplicates interview.md | 2 |
-| #24 | speckit.md missing See also banner | 2 |
-| #25 | commands.md vBRIEF example diverges | 2 |
-| #31 | Merge default.md into interview.md | 1 |
+| ~~#23~~ | ~~yolo.md duplicates interview.md~~ | completed — v0.10.0 |
+| ~~#24~~ | ~~speckit.md missing See also banner~~ | completed — v0.10.0 |
+| ~~#25~~ | ~~commands.md vBRIEF example diverges~~ | completed — v0.10.0 |
+| ~~#31~~ | ~~Merge default.md into interview.md~~ | completed — v0.10.0 |
 | #33 | Docker smoke/e2e tests | 3 |
 | #46 | Provide way to update meta MD files | 5 |
-| #49 | All CLI commands should display version | 1 |
-| #50 | Strategies still have redundant old names | 1 |
+| ~~#49~~ | ~~All CLI commands should display version~~ | completed — v0.10.1 |
+| ~~#50~~ | ~~Strategies still have redundant old names~~ | completed — v0.10.0 |
 | #51 | Project should be bootstrapped with own framework (partially done — see PR #66; #67 now complete) | 2 |
 | #52 | Install into .deft/ hidden directory | 5 |
 | #53 | deft-install should bootstrap current directory | 4 |
@@ -239,17 +240,17 @@ Larger feature work — only after issues are resolved and content is stable.
 | #128 | CI vBRIEF schema sync check (depends on #57) | 3 |
 | #163 | Enforce USER.md gate in CLI path — parity with agentic (skills) path | 3 |
 | #58 | Stale cross-references to legacy paths | 2 |
-| #59 | history/changes/ directory missing | 2 |
+| ~~#59~~ | ~~history/changes/ directory missing~~ | completed — v0.10.0 |
 | ~~#67~~ | ~~Write SPECIFICATION.md and proper PROJECT.md for deft~~ | completed |
-| #68 | Warp not always enforcing Deft testing protocols | 1 |
+| ~~#68~~ | ~~Warp not always enforcing Deft testing protocols~~ | completed — v0.10.1 |
 | ~~#72~~ | ~~vBRIEF files still invalid on master~~ | completed — PR #130 |
 | #74 | Automate release process and CI changelog enforcement | 3 |
 | #75 | Skill auto-discovery for deft skills | 4 |
 | #76 | Obsidian Vault generation as structured agent memory | 5 |
 | #77 | Allow users to change technical rating per project | 5 |
 | #78 | Bootstrap: offer to update user preferences | 5 |
-| #79 | deft-setup inference bleeds into ./deft/ internals | 1 |
-| #80 | deft-setup project name inference no fallback | 1 |
+| ~~#79~~ | ~~deft-setup inference bleeds into ./deft/ internals~~ | completed — v0.10.1 |
+| ~~#80~~ | ~~deft-setup project name inference no fallback~~ | completed — v0.10.1 |
 | #81 | Add BDD/acceptance-test-first strategy | 2 |
 | #82 | Replacement strategies need accept-or-scrap exit | 2 |
 | #84 | Deft as teacher: contract hierarchy, explain WHY, adaptive teaching mode | 2/5 |
@@ -260,11 +261,11 @@ Larger feature work — only after issues are resolved and content is stable.
 | ~~#101~~ | ~~Should manual clone path exist?~~ | closed — absorbed by #56 |
 | #102 | Codify Mermaid gist-rendering best practices | 2 |
 | #103 | Standalone brownfield/map analysis without requiring interview | 2 |
-| #104 | Holzmann Power of 10 rules (`coding/holzmann.md`) | 2 |
+| ~~#104~~ | ~~Holzmann Power of 10 rules (`coding/holzmann.md`)~~ | completed — PR #158 |
 | ~~#105~~ | ~~Build output validation directive for custom build scripts~~ | completed — PR #121 |
 | ~~#106~~ | ~~Toolchain/environment validation gate before implementation~~ | completed — PR #122 |
-| #107 | Remove language defaults from USER.md | 1 |
-| #108 | Ask deployment platform before language | 1 |
+| ~~#107~~ | ~~Remove language defaults from USER.md~~ | completed — v0.10.1 |
+| ~~#108~~ | ~~Ask deployment platform before language~~ | completed — v0.10.1 |
 | #96 | [Compliance] Config schema + compliance-aware constitution templates | 5 |
 | #97 | [Compliance] Framework control mapping registry | 5 |
 | #98 | [Compliance] Readiness scanner — control design scoring | 5 |
@@ -274,23 +275,29 @@ Larger feature work — only after issues are resolved and content is stable.
 | #114 | Document all global Warp rules used for deft directive development | 2 |
 | #115 | Strengthen spec validation gate and rendered artifact freshness | 3 |
 | #116 | All files must be installed consistently under `./deft/` | 1 |
-| #123 | Change lifecycle gate skipped on broad ‘proceed’ instruction | 1 |
-| #118 | CLI code quality sweep (version mismatch, bare except, undocumented flags, env var naming) | 1 |
+| ~~#123~~ | ~~Change lifecycle gate skipped on broad 'proceed' instruction~~ | completed — v0.10.1 |
+| ~~#118~~ | ~~CLI code quality sweep (version mismatch, bare except, undocumented flags, env var naming)~~ | completed — v0.10.1 |
 | ~~#124~~ | ~~Warp context window improvements (behavioral rule + handoff notes)~~ | completed |
 | #126 | specification.vbrief.json does not conform to vbrief schema/spec (verify post-PR #130) | 1 |
 | #144 | Directive giving invalid vBRIEF files & wrong key names (address with #126) | 1 |
 | #127 | Improved support for Deft in existing repositories (brownfield bootstrap path; related #103, #53) | 2 |
-| #131 | Mac installer post-install text wording fix (bundle with #118) | 1 |
+| ~~#131~~ | ~~Mac installer post-install text wording fix~~ | completed — v0.10.1 |
 | #133 | Generated vBRIEF files use invalid reference types (blocked on upstream deftai/vBRIEF#2) | 1 |
 | #134 | Visual indicator that Deft is active (behavioral rule; true UI deferred Phase 5) | 2 |
-| #135 | Greptile review rules SKILL.md in repo (with #114) | 2 |
+| ~~#135~~ | ~~Greptile review rules SKILL.md in repo~~ | completed — PR #143 |
 | #136 | Warp doesn't auto-load AGENTS.md — document workaround (with #114) | 2 |
-| #137 | README: move startup instructions higher, clarify installer location | 1 |
-| #138 | Branching requirement too prescriptive for solo projects (content fix; full config Phase 5) | 1 |
-| #139 | Agent skips vbrief source step, writes SPECIFICATION.md directly (with #68, #123) | 1 |
+| ~~#137~~ | ~~README: move startup instructions higher, clarify installer location~~ | completed — v0.10.1 |
+| ~~#138~~ | ~~Branching requirement too prescriptive for solo projects~~ | completed — v0.10.1 |
+| ~~#139~~ | ~~Agent skips vbrief source step, writes SPECIFICATION.md directly~~ | completed — v0.10.1 |
 | #140 | Automatically check for updates to cloned repos in a project (deft doctor/update) | 5 |
-| #142 | AGENTS.md onboarding gate blocks headless/cloud agents | 1 |
-| #145 | deft-review-cycle: Greptile issue comment not primary review signal (false wait loops) | 1 |
+| ~~#142~~ | ~~AGENTS.md onboarding gate blocks headless/cloud agents~~ | completed — v0.10.1 |
+| ~~#145~~ | ~~deft-review-cycle: Greptile issue comment not primary review signal (false wait loops)~~ | completed — v0.10.1 |
+| #166 | Greptile Review status check blocks merge — no re-review after fixes pushed | 1 |
+| #167 | PRs merged but issues not closed and roadmap not updated | 1 |
+| #151 | [Playtest Feedback] First-time non-technical user session report (umbrella) | 2 |
+| #159 | Deterministic > Probabilistic — design principle documentation | 2 |
+| #160 | Consider TypeScript instead of Python for run CLI | 5 |
+| #168 | deft-roadmap-refresh skill: confirm analysis comment posting to user | 2 |
 | #146 | Add skills/deft-sync/SKILL.md — session-start framework sync skill | 2 |
 | #147 | Skills deft-roadmap-refresh and deft-review-cycle not documented in README or AGENTS.md | 2 |
 
@@ -316,7 +323,6 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-02 — roadmap refresh: added #145 to Phase 1 Adoption Blockers (deft-review-cycle Greptile signal bug, split from #135)*
 *Updated 2026-04-02 — roadmap refresh: added #146 to Phase 2 (deft-sync skill, session-start framework sync); added #147 to Phase 2 (skills undocumented in README/AGENTS.md)*
 *Updated 2026-04-02 — note: #143 is a merged PR (feat: add deft-review-cycle skill, PR #143), not an open issue; correctly absent from triage*
-<<<<<<< HEAD
-=======
 *Updated 2026-04-02 — added #163 to Phase 3 (Enforce USER.md gate in CLI path — parity with agentic skills path)*
->>>>>>> master
+*Updated 2026-04-03 — stale entry cleanup: moved 21 closed issues (#23–#145) from Phase 1/2 body to Completed section; struck through in Open Issues Index; closed #104, #137, #145 on GitHub*
+*Updated 2026-04-03 — roadmap refresh triage: added #166 (Greptile re-review, Phase 1), #167 (PR merge hygiene, Phase 1), #151 (playtest feedback umbrella, Phase 2), #159 (deterministic principle, Phase 2), #160 (TypeScript CLI, Phase 5), #168 (skill transparency, Phase 2)*
