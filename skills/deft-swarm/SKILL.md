@@ -84,7 +84,7 @@ git worktree add <path> -b <branch-name> master
 
 ! The monitor agent MUST present options and their tradeoffs before launching:
 
-- **Option A (preferred — automated local):** `oz agent run --cwd <worktree> --prompt "..."` — local execution, codebase indexing, Warp Drive rules, agent profiles; no user tab management required
+- **Option A (preferred — automated local):** `oz agent run --cwd <worktree> --prompt "..."` — local execution, codebase indexing, Warp Drive rules, agent profiles; MCP available via `--mcp` only when launched from within Warp; no user tab management required
 - **Option B (interactive local):** User manually opens Warp tabs, pastes prompt into agent chat — local, gets MCP, codebase indexing, Warp Drive rules; better for monitoring agent progress interactively
 - **Option C (cloud):** `oz agent run-cloud --prompt "..."` — remote VM execution, no local context (no MCP, no codebase indexing, no Warp Drive rules)
 
