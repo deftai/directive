@@ -129,6 +129,12 @@ Get-Content | ... | Set-Content in PowerShell 5.1 defaults to the system ANSI co
 
 The edit_files tool matches byte-for-byte. ROADMAP.md uses CRLF line endings. When inserting new table rows using edit_files, the mismatch between LF in the search/replace strings and CRLF in the file causes row content to be inserted with a doubled leading pipe (`|| #NNN |` instead of `| #NNN |`), shifting all columns right and breaking table alignment. This has surfaced in multiple sessions (PR #130, PR #173). When appending rows to the Open Issues Index or any markdown table in a CRLF file, MUST use PowerShell `[System.IO.File]` methods or a targeted regex replace — never edit_files for table row insertions. After any table edit, MUST verify row prefixes before committing: `Select-String -Path ROADMAP.md -Pattern '\|\| #[0-9]'` should return no matches.
 
+**4. PowerShell 5.1 `Set-Content` corrupts UTF-8 files in TWO ways — BOM removal alone is not a fix**
+
+When PS5.1 `Set-Content` (or `Set-Content -Encoding UTF8`) writes a UTF-8 file, it causes two distinct corruptions: (1) a BOM is prepended at byte 0, and (2) the entire file body is re-encoded from UTF-8 to Windows-1252 (ANSI), converting every multi-byte character to mojibake (for example em-dashes `—` become `â€”`, arrows `→` become `â†’`, and other Unicode symbols are mangled similarly). These are independent corruptions — stripping the BOM does NOT restore the body. A file can have no BOM and still be corrupted throughout.
+
+The only correct recovery from `Set-Content` corruption is: (1) restore the original content from the git object (`git show <ref>:path/to/file`), (2) re-apply only the intended edits, and (3) write back using `[System.IO.File]::WriteAllText(path, content, (New-Object System.Text.UTF8Encoding $false))`. MUST NOT attempt to "fix" `Set-Content` corruption by removing the BOM from already-mangled content — that produces a file that passes a byte-0 check while still failing content integrity.
+
 ## Review Cycle Monitoring (2026-04)
 
 **Source:** PR #173 review cycle — shell polling loop against static SHA failed to detect Greptile completion

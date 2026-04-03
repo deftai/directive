@@ -20,7 +20,7 @@ Fix reported bugs and UX problems blocking adoption.
 - **#116** — All deft files must be installed consistently under `./deft/` — placement is inconsistent across projects
 - **#167** — PRs merged but issues not closed and roadmap not updated — root cause investigation needed (closing keywords, squash merge, ROADMAP convention); update PR template and review cycle skill (xrefs #114, #123, #166)
 - **#171** — Agents must not commit/push directly to master — add `⊗` hard gate to `main.md`, `skills/deft-build/SKILL.md`, `skills/deft-review-cycle/SKILL.md`, and `AGENTS.md`; closes gap exposed when an agent pushed directly to master during #166 work (xrefs #138)
-- **#175** — deft-review-cycle skill: prohibit pushing commits while Greptile review is in progress — add `⊗` rule to Step 4 preventing any push while bot is reviewing current head; add lesson to `meta/lessons.md` (incident: PR #173 lessons commit re-triggered Greptile mid-review)
+- **#175** — deft-review-cycle skill: prohibit pushing while review in progress + fix polling cadence — add `⊗` no-push rule to Step 4; add `~` 60s minimum poll interval guidance (agents were spamming `get_check_runs` seconds apart with no real delay); add both lessons to `meta/lessons.md` (incident: PR #173)
 
 ---
 
