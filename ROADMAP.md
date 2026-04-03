@@ -296,18 +296,18 @@ Larger feature work — only after issues are resolved and content is stable.
 | #140 | Automatically check for updates to cloned repos in a project (deft doctor/update) | 5 |
 | ~~#142~~ | ~~AGENTS.md onboarding gate blocks headless/cloud agents~~ | completed — v0.10.1 |
 | ~~#145~~ | ~~deft-review-cycle: Greptile issue comment not primary review signal (false wait loops)~~ | completed — v0.10.1 |
-|| #172 | deft-swarm skill: `oz agent run` incorrectly described as cloud (tackle next) | 1 |
-|| #166 | Greptile Review status check blocks merge — no re-review after fixes pushed | 1 |
-|| #167 | PRs merged but issues not closed and roadmap not updated | 1 |
-|| #171 | Agents must not commit/push directly to master — add hard gate | 1 |
+| #172 | deft-swarm skill: `oz agent run` incorrectly described as cloud (tackle next) | 1 |
+| #166 | Greptile Review status check blocks merge — no re-review after fixes pushed | 1 |
+| #167 | PRs merged but issues not closed and roadmap not updated | 1 |
+| #171 | Agents must not commit/push directly to master — add hard gate | 1 |
 | #151 | [Playtest Feedback] First-time non-technical user session report (umbrella) | 2 |
 | #159 | Deterministic > Probabilistic — design principle documentation | 2 |
 | #160 | Consider TypeScript instead of Python for run CLI | 5 |
-|| #168 | deft-roadmap-refresh skill: confirm analysis comment posting to user | 2 |
-|| #174 | deft-roadmap-refresh skill: add review cycle step after PR push | 2 |
+| #168 | deft-roadmap-refresh skill: confirm analysis comment posting to user | 2 |
+| #174 | deft-roadmap-refresh skill: add review cycle step after PR push | 2 |
 | #146 | Add skills/deft-sync/SKILL.md — session-start framework sync skill | 2 |
-|| #147 | Skills deft-roadmap-refresh and deft-review-cycle not documented in README or AGENTS.md | 2 |
-|| #170 | Move ROADMAP.md updates from merge-time to release-time | 2 |
+| #147 | Skills deft-roadmap-refresh and deft-review-cycle not documented in README or AGENTS.md | 2 |
+| #170 | Move ROADMAP.md updates from merge-time to release-time | 2 |
 
 ---
 
