@@ -121,6 +121,18 @@ All 4 agents (running as cloud agents via `oz agent run`) completed through Step
 
 The edit_files tool matches search strings against file content byte-for-byte. Files with Windows CRLF (\r\n) line endings will silently fail to match search strings that assume LF (\n) only. On any Windows repo, MUST check line endings first ((Get-Content file -Raw) -match '\r\n'). If CRLF is present, fall back to PowerShell Get-Content -Raw / [System.IO.File]::WriteAllText for multi-line edits rather than batching multiple edit_files diffs.
 
-**2. PowerShell 5.1 Set-Content MUST NOT be used on UTF-8 files without explicit encoding**
+**2. PowerShell 5.1 Set-Content MUST NOT be used on UTF-8 files — not even with -Encoding UTF8**
 
-Get-Content | ... | Set-Content in PowerShell 5.1 defaults to the system ANSI code page (Windows-1252), not UTF-8. This silently mangles any non-ASCII characters (em-dashes, curly quotes, etc.) to mojibake (— → â€"). MUST use [System.IO.File]::WriteAllText(path, content, [System.Text.Encoding]::UTF8) when writing back UTF-8 files. Never pipe through Set-Content without -Encoding UTF8.
+Get-Content | ... | Set-Content in PowerShell 5.1 defaults to the system ANSI code page (Windows-1252), silently mangling non-ASCII characters. But using `-Encoding UTF8` is also wrong: PowerShell 5.1's UTF8 encoding writes a BOM (byte-order mark, \xEF\xBB\xBF) at byte 0, corrupting every special character across the entire file when re-read by tools that don't expect a BOM. MUST use `[System.IO.File]::WriteAllText(path, content, (New-Object System.Text.UTF8Encoding $false))` — the `$false` argument explicitly disables the BOM. Never use Set-Content for UTF-8 files on Windows PowerShell 5.1.
+
+**3. Markdown table rows in files with CRLF endings MUST be inserted via PowerShell, not edit_files**
+
+The edit_files tool matches byte-for-byte. ROADMAP.md uses CRLF line endings. When inserting new table rows using edit_files, the mismatch between LF in the search/replace strings and CRLF in the file causes row content to be inserted with a doubled leading pipe (`|| #NNN |` instead of `| #NNN |`), shifting all columns right and breaking table alignment. This has surfaced in multiple sessions (PR #130, PR #173). When appending rows to the Open Issues Index or any markdown table in a CRLF file, MUST use PowerShell `[System.IO.File]` methods or a targeted regex replace — never edit_files for table row insertions. After any table edit, MUST verify row prefixes before committing: `Select-String -Path ROADMAP.md -Pattern '\|\| #[0-9]'` should return no matches.
+
+## Review Cycle Monitoring (2026-04)
+
+**Source:** PR #173 review cycle — shell polling loop against static SHA failed to detect Greptile completion
+
+**1. Greptile review completion MUST be polled via MCP `get_check_runs` against the PR head, not `gh api` with a static commit SHA**
+
+When a new commit is pushed while a polling loop is running, Greptile starts a fresh check run on the new head SHA. A shell `while` loop polling `gh api repos/{owner}/{repo}/commits/{old_sha}/check-runs` will never see completion because the completed run is on a different commit. MUST use MCP `pull_request_read` with `method: get_check_runs` — this always targets the current PR head regardless of how many commits have been pushed. Compare the `completed_at` field and `conclusion` to confirm the review is current and passed.
