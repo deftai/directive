@@ -41,6 +41,7 @@ Quick doc/content fixes that don't require code changes.
 - **#151** — [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) — umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)
 - **#159** — Deterministic > Probabilistic — design principle: prefer deterministic components for repeatable actions; document in `meta/philosophy.md` or `contracts/hierarchy.md`; ongoing application across CLI/skills/workflows is Phase 5 (xrefs #84, #160, #95, #86)
 - **#168** — deft-roadmap-refresh skill: add MUST rule to confirm analysis comment posting to user — transparency improvement (xref #147)
+- **#174** — deft-roadmap-refresh skill: add review cycle step after PR push — skill should automatically sequence into `skills/deft-review-cycle/SKILL.md` after pushing the PR, no separate user instruction required (xrefs #168, #147)
 - **#58** — Stale cross-references to legacy `core/user.md` and `core/project.md` paths throughout framework
 - **#51** — Project should be fully bootstrapped with its own framework (partially done in PR #66)
 - Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml; reframe README per #89 resolution (#84 Phase 2, blocked on #89)
@@ -302,7 +303,8 @@ Larger feature work — only after issues are resolved and content is stable.
 | #151 | [Playtest Feedback] First-time non-technical user session report (umbrella) | 2 |
 | #159 | Deterministic > Probabilistic — design principle documentation | 2 |
 | #160 | Consider TypeScript instead of Python for run CLI | 5 |
-| #168 | deft-roadmap-refresh skill: confirm analysis comment posting to user | 2 |
+|| #168 | deft-roadmap-refresh skill: confirm analysis comment posting to user | 2 |
+|| #174 | deft-roadmap-refresh skill: add review cycle step after PR push | 2 |
 | #146 | Add skills/deft-sync/SKILL.md — session-start framework sync skill | 2 |
 || #147 | Skills deft-roadmap-refresh and deft-review-cycle not documented in README or AGENTS.md | 2 |
 || #170 | Move ROADMAP.md updates from merge-time to release-time | 2 |
@@ -335,3 +337,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-03 — roadmap refresh triage: added #170 (ROADMAP update timing, Phase 2)*
 *Updated 2026-04-03 — roadmap refresh triage: added #171 (no direct-to-master agent commits, Phase 1 Cleanup)*
 *Updated 2026-04-03 — roadmap refresh triage: added #172 (deft-swarm oz agent run correction, Phase 1 Adoption Blockers, priority next)*
+*Updated 2026-04-03 — filed and triaged #174 (deft-roadmap-refresh review cycle chaining, Phase 2)*
