@@ -9,7 +9,6 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
 
-- **#172** — deft-swarm skill incorrectly claims `oz agent run` launches cloud agents — rewrite Phase 3 to use `oz agent run` as preferred local launch path; correct `meta/lessons.md` lessons #1 and #7; update `SPECIFICATION.md` t2.5.4 acceptance criteria (**tackle next**)
 - **#126** — specification.vbrief.json does not conform to vbrief schema/spec — agent generates wildly non-conformant output (possibly fixed by #72 / PR #130; verify before working)
 - **#144** — Directive generates vBRIEF files with wrong narrative value type (object instead of string) and wrong child key (`items` instead of `subItems`), causing nested items to be invisible in vBRIEF-Studio — address with #126
 - **#133** — Generated vBRIEF files use invalid reference types (`x-vbrief/context`, `x-vbrief/research`) that fail schema validation — blocked on upstream `deftai/vBRIEF#2` to expand the enum; vendor updated schema once resolved
@@ -149,6 +148,9 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#175 — deft-review-cycle: no-push-while-reviewing + 60s poll cadence — ⊗ rule + ~ guidance + meta/lessons.md #2+#3~~ — 2026-04-03 (PR #178, v0.10.2)
+- ~~#172 — deft-swarm skill: oz agent run is local, oz agent run-cloud is cloud — corrected Phase 3, lessons #1+#7, SPECIFICATION.md t2.5.4~~ — 2026-04-03 (PR #177, v0.10.2)
+- ~~#171 — No direct-to-master agent commits — ⊗ gate + PROJECT.md trunk-based opt-in, full agentic + CLI parity~~ — 2026-04-03 (PR #178, v0.10.2)
 - ~~#145 — deft-review-cycle Greptile issue comment as primary review signal~~ — 2026-04-02 (v0.10.1)
 - ~~#142 — AGENTS.md onboarding gate blocks headless/cloud agents — headless bypass added~~ — 2026-04-02 (v0.10.1)
 - ~~#139 — Agent skips vbrief source step — ⊗ rule added to main.md and deft-build SKILL.md~~ — 2026-04-02 (v0.10.1)
@@ -296,11 +298,11 @@ Larger feature work — only after issues are resolved and content is stable.
 | #140 | Automatically check for updates to cloned repos in a project (deft doctor/update) | 5 |
 | ~~#142~~ | ~~AGENTS.md onboarding gate blocks headless/cloud agents~~ | completed — v0.10.1 |
 | ~~#145~~ | ~~deft-review-cycle: Greptile issue comment not primary review signal (false wait loops)~~ | completed — v0.10.1 |
-| #172 | deft-swarm skill: `oz agent run` incorrectly described as cloud (tackle next) | 1 |
+| ~~#172~~ | ~~deft-swarm skill: oz agent run correction (Phase 3, lessons, SPECIFICATION.md)~~ | completed — v0.10.2 |
 | #166 | Greptile Review status check blocks merge — no re-review after fixes pushed | 1 |
 | #167 | PRs merged but issues not closed and roadmap not updated | 1 |
-| #171 | Agents must not commit/push directly to master — add hard gate | 1 |
-| #175 | deft-review-cycle: prohibit pushing while Greptile review in progress | 1 |
+| ~~#171~~ | ~~No direct-to-master agent commits — ⊗ gate + PROJECT.md opt-in~~ | completed — v0.10.2 |
+| ~~#175~~ | ~~deft-review-cycle: no-push-while-reviewing + 60s poll cadence~~ | completed — v0.10.2 |
 | #151 | [Playtest Feedback] First-time non-technical user session report (umbrella) | 2 |
 | #159 | Deterministic > Probabilistic — design principle documentation | 2 |
 | #160 | Consider TypeScript instead of Python for run CLI | 5 |
@@ -340,3 +342,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-03 — roadmap refresh triage: added #172 (deft-swarm oz agent run correction, Phase 1 Adoption Blockers, priority next)*
 *Updated 2026-04-03 — filed and triaged #175 (deft-review-cycle no-push-during-review gate, Phase 1 Cleanup)*
 *Updated 2026-04-03 — filed and triaged #174 (deft-roadmap-refresh review cycle chaining, Phase 2)*
+*Updated 2026-04-03 — v0.10.2 release: moved #171, #172, #175 to Completed*

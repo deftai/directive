@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-04-03
+
+### Added
+- **Branching preference in project setup**: `cmd_project` and `deft-setup` Phase 2 Track 1 now ask branching preference (branch-based — default/recommended, or trunk-based); emits `Allow direct commits to master: true` under `## Branching` in PROJECT.md if trunk-based is chosen (#171)
+
+### Fixed
+- **No direct-to-master agent commits**: Added `⊗` hard gate to `main.md`, `AGENTS.md`, and `skills/deft-build/SKILL.md` — agents must always create a feature branch and open a PR; `Allow direct commits to master: true` in `PROJECT.md ## Branching` provides opt-in escape hatch for solo/trunk-based projects (#171)
+- **Review cycle push discipline + polling cadence**: Added `⊗` rule to `skills/deft-review-cycle/SKILL.md` Step 4 prohibiting additional commits while Greptile is reviewing current head; added `~` `60s` minimum poll interval guidance; codified both as `meta/lessons.md` Review Cycle Monitoring lessons #2 and #3 (#175)
+
 ### Fixed
 - **oz agent run correction**: Corrected `skills/deft-swarm/SKILL.md` Phase 3 — `oz agent run` is local (preferred automated launch path), `oz agent run-cloud` is the cloud path; rewrote options A/B/C, fixed prerequisites and anti-patterns; added correction addenda to `meta/lessons.md` lessons #1 and #7; updated `SPECIFICATION.md` t2.5.4 acceptance criteria (#172)
 
@@ -643,7 +652,8 @@ If you have custom scripts or references to deft files, update these paths:
 - Explore new interface guidelines if building CLIs, APIs, or UIs
 - Review enhanced language standards for Python, Go, TypeScript, and C++
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.10.1...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.10.2...HEAD
+[0.10.2]: https://github.com/deftai/directive/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/deftai/directive/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/deftai/directive/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/deftai/directive/compare/v0.8.0...v0.9.0
