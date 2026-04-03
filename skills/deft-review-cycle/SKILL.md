@@ -19,6 +19,24 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - A bot reviewer (Greptile) has posted findings on an open PR
 - Dispatching a cloud agent to monitor and resolve PR review findings
 
+## Pre-Flight Check
+
+! Before entering the review/fix loop, verify the Greptile configuration supports it:
+
+1. ! `triggerOnUpdates` must be enabled (via Greptile dashboard or `.greptile/config.json`) — without this, Greptile only reviews the initial PR and never re-reviews after fix pushes, so the loop cannot reach the exit condition
+2. ~ `statusCheck` should be enabled so Greptile posts a `"Greptile Review"` check run on each commit — this is the signal the org ruleset uses to gate merges
+3. ? If Greptile does not re-review after a push despite `triggerOnUpdates` being enabled, comment `@greptileai` on the PR as a manual re-trigger fallback
+
+! Greptile posts **check runs** (GitHub Checks API), not **commit statuses** (Statuses API). To verify the check run is present on a commit:
+
+```
+gh api repos/<owner>/<repo>/commits/<sha>/check-runs --jq '.check_runs[] | select(.name == "Greptile Review")'
+```
+
+⊗ Use `commits/<sha>/statuses` to check for Greptile — that endpoint will always be empty.
+
+~ See `tools/greptile.md` for recommended dashboard and per-repo settings.
+
 ## Phase 1 — Deft Process Audit
 
 ! Before touching code, verify ALL prerequisites are satisfied. Fix any gaps first:

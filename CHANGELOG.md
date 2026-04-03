@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Greptile integration guide**: Added 	ools/greptile.md — recommended Greptile dashboard and per-repo settings for teams using deft, covering 	riggerOnUpdates/statusCheck configuration, check runs vs. commit statuses distinction, troubleshooting, and anti-patterns (#166, t1.7.1)
 - **Holzmann Power of Ten adaptation**: Added `coding/holzmann.md` — JPL/NASA Power of Ten rules (Holzmann, 2006) adapted for Deft with RFC 2119 notation; covers simple control flow, bounded loops, fixed resource allocation, small functions, runtime checks, minimal data scope, error/return checking, restricted metaprogramming/indirection, and maximum static checking (#104)
 - **Superpowers adoption plan**: Added `docs/superpowers.md` — prioritized adoption plan identifying 8 patterns from [obra/superpowers](https://github.com/obra/superpowers) worth integrating into the Deft Directive (systematic debugging, verification gate, code review protocol, rationalization prevention, subagent dispatch, no-placeholders rule, git worktrees, branch completion)
 
@@ -19,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Deployment platform question**: Phase 2 Track 1 now asks deployment platform (cross-platform, Windows-native, macOS-native, Linux/Unix, embedded, web/cloud, mobile, other) before language — platform context drives a filtered language shortlist with progressive "Other" disclosure and missing-standards-file warning (#108, t1.1.4)
 
 ### Fixed
+- **deft-review-cycle Greptile pre-flight**: Added Pre-Flight Check section to skills/deft-review-cycle/SKILL.md — verifies 	riggerOnUpdates is enabled before entering the review/fix loop, documents that Greptile posts check runs (Checks API) not commit statuses, adds @greptileai manual re-trigger fallback and anti-pattern for using wrong API endpoint (#166, t1.7.1)
 - **Testing enforcement gate**: Added `!` hard gate rule to `main.md` Decision Making — no implementation is complete until tests written and `task check` passes; a general 'proceed' does not waive testing; added anti-pattern to `deft-build/SKILL.md` (#68, t1.6.1)
 - **Change lifecycle gate enforcement**: Strengthened `/deft:change` rule in `main.md` — broad 'proceed'/'do it'/'go ahead' explicitly does NOT satisfy the gate; user must acknowledge the **named** change; added pre-flight gate to `deft-build/SKILL.md`, checklist item to `.github/PULL_REQUEST_TEMPLATE.md`, verification step to `deft-review-cycle/SKILL.md` Phase 1 audit; Phase 1 audit gaps now batched with Phase 2 fixes (#123, t1.6.2)
 - **Context-aware branching for solo projects**: Added solo-project qualifier to `main.md` change lifecycle rule — `/deft:change` mandatory for team projects (2+ contributors), recommended for solo projects with quality gate as enforcement; mandatory regardless of team size for cross-cutting, architectural, or high-risk changes; full config-driven approach deferred to Phase 5 (#138, t1.6.3)
