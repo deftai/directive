@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **oz agent run correction**: Corrected `skills/deft-swarm/SKILL.md` Phase 3 — `oz agent run` is local (preferred automated launch path), `oz agent run-cloud` is the cloud path; rewrote options A/B/C, fixed prerequisites and anti-patterns; added correction addenda to `meta/lessons.md` lessons #1 and #7; updated `SPECIFICATION.md` t2.5.4 acceptance criteria (#172)
+
 ### Changed
 - **Roadmap Refresh (2026-04-03)**: Triaged 5 new issues — #170 (move ROADMAP.md updates to release-time, Phase 2), #171 (hard gate against agent direct-to-master commits, Phase 1 Cleanup), #172 (deft-swarm skill oz agent run/run-cloud correction, Phase 1 Adoption Blockers — priority next), #174 (deft-roadmap-refresh review cycle chaining after PR push, Phase 2), #175 (deft-review-cycle no-push-during-review + polling cadence, Phase 1 Cleanup); analysis comments posted on all issues; meta/lessons.md updated with 3 new Windows/review-cycle encoding and monitoring lessons
 

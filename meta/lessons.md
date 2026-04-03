@@ -85,9 +85,11 @@ Agent 1 created its PR and stopped before running the Greptile review cycle (the
 
 **Source:** 4-agent swarm on Phase 1 roadmap items — PRs #154, #155, #156, #157 (14 issues closed)
 
-**1. `oz agent run` launches CLOUD agents, not local agents — MUST NOT use for local execution**
+**1. ~~`oz agent run` launches CLOUD agents~~ — CORRECTION: `oz agent run` is LOCAL; `oz agent run-cloud` is the cloud path**
 
-The `oz` CLI always spawns agents on remote VMs, even when run from a local Warp tab. The swarm skill originally used `oz agent run --prompt` in launch scripts, expecting local execution. All 4 agents ran on cloud VMs instead, losing MCP server access, codebase indexing, and Warp Drive rules. For truly local agent execution, the user MUST paste the prompt directly into a Warp agent conversation (the chat input). `oz agent run` is the cloud path.
+⚠️ **This lesson was incorrect.** Warp confirmed: `oz agent run` runs agents **locally** on the user's machine (supports `--cwd`, `--profile`, `--mcp`; gets codebase indexing and Warp Drive rules). `oz agent run-cloud` runs agents **remotely** on cloud VMs with no local context.
+
+The original lesson was written after the 4-agent swarm (PRs #154–#157) where agents appeared to lose MCP and local context. The actual cause was not that `oz agent run` routes to cloud. **Corrected rule:** `oz agent run --cwd <path> --prompt "..."` is the PREFERRED automated local launch path. MUST use `oz agent run-cloud` only when cloud execution is explicitly desired. MUST NOT conflate the two commands. (#172)
 
 **2. Warp terminal tabs MUST NOT be assumed openable programmatically**
 
@@ -109,9 +111,11 @@ The original Agent 2 was scoped to #31 and #50 (strategy consolidation). Both ha
 
 GitHub assigns PR numbers in creation order, which depends on which cloud agent finishes first. Agent 2's PR became #154 while Agent 1's became #156. This caused confusion during monitoring and merging. Branch names SHOULD include the agent number (e.g. `agent1/fix/...`) or PR titles SHOULD include `[Agent N]` for traceability.
 
-**7. Cloud agents stop after PR creation — review cycle requires separate launch**
+**7. ~~Cloud agents~~ Agents stopped after PR creation — likely a prompt completeness issue, not a cloud limitation**
 
-All 4 agents (running as cloud agents via `oz agent run`) completed through Step 5 (push + PR creation) but stopped before Step 6 (review cycle). The review cycle had to be launched as a separate swarm pass. When using cloud agents, SHOULD expect the workflow to require at least two passes: implementation + review cycle.
+⚠️ **Context correction:** The agents in this lesson were launched via `oz agent run` which (see corrected Lesson #1) is **local**, not cloud. The two-pass behavior was likely due to incomplete prompt instructions, not an inherent limitation of the execution environment.
+
+The core lesson remains valid: when agents stop before completing the full workflow (PR + review cycle), the monitor MUST be prepared to complete the remaining steps. Ensure the prompt's STEP 6 (review cycle) instruction is explicit enough to prevent early termination — regardless of whether agents are local or cloud. (#172)
 
 ## Windows File Editing (2026-03)
 

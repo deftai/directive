@@ -343,7 +343,7 @@ Move the Getting Started section in README.md to appear immediately after the TL
 Add a versioned skill for orchestrating multiple parallel local agents working on roadmap items. A monitor agent reads the skill to set up worktrees, generate action-first prompts, launch agents, poll for progress, handle stalled review cycles, and close out PRs. Codifies the workflow proven in PRs #149/#150 and lessons from meta/lessons.md. Closes #152.
 
 - skills/deft-swarm/SKILL.md exists with RFC2119 legend and frontmatter
-- Skill covers 6 phases: Select (task assignment + file-overlap audit), Setup (worktrees + prompt generation), Launch (Warp tabs preferred, oz agent run fallback), Monitor (polling cadence + checkpoints + takeover triggers), Review (Greptile cycle completion verification), Close (merge + issue close + worktree cleanup)
+- Skill covers 6 phases: Select (task assignment + file-overlap audit), Setup (worktrees + prompt generation), Launch (oz agent run preferred automated local path; manual Warp tabs for interactive monitoring; oz agent run-cloud for cloud), Monitor (polling cadence + checkpoints + takeover triggers), Review (Greptile cycle completion verification), Close (merge + issue close + worktree cleanup)
 - Prompt template included with action-first structure (imperative first line, numbered STEPs, CONSTRAINTS)
 - File-overlap audit is a MUST gate before launch
 - Anti-patterns section covers: context-first prompts, MCP from standalone terminals, overlapping file assignments, merging without Greptile exit condition
