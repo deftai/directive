@@ -96,6 +96,32 @@ def test_project_strategy_selection(
     )
 
 
+def test_project_trunk_based_emits_branching_section(
+    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+):
+    """Selecting trunk-based (option 2) emits Allow direct commits to master in PROJECT.md."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    (isolated_env / "deft").mkdir(exist_ok=True)
+    project_path = isolated_env / "PROJECT.md"
+    mock_user_input([
+        str(project_path),   # 1  output path
+        "TestProject",        # 2  project name
+        "1",                  # 3  CLI
+        "1",                  # 4  first language
+        "85",                 # 5  coverage
+        "Flask",              # 6  tech stack
+        "1",                  # 7  strategy
+        "2",                  # 8  trunk-based
+        False,                # 9  don't chain to spec
+    ])
+
+    run_command("cmd_project", [])
+
+    content = project_path.read_text(encoding="utf-8")
+    assert "Allow direct commits to master: true" in content
+    assert "## Branching" in content
+
+
 def test_project_rejects_duplicate_types(
     run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
 ):

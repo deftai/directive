@@ -2,7 +2,7 @@
 
 **Issues:** #171, #175
 **Branch:** fix/171-175-commit-gate-review-discipline
-**Status:** in-progress
+**Status:** completed
 
 ## Problem
 
