@@ -79,7 +79,6 @@ Quick doc/content fixes that don't require code changes.
 - **#134** — Visual indicator that Deft is active — add behavioral rule for agent to confirm Deft alignment at session start and after context resets (true UI indicator deferred to Phase 5 / platform support)
 - **#103** — Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)
 - **#127** — Improved support for Deft in existing repositories — bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)
-- **#104** — Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)
 - Add missing strategies:
   - `strategies/rapid.md` — Quick prototypes, SPECIFICATION only workflow
   - `strategies/enterprise.md` — Compliance-heavy, PRD → ADR → SPECIFICATION workflow
@@ -110,7 +109,7 @@ Quick doc/content fixes that don't require code changes.
 - **#33** — When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)
 - CLI tests for remaining commands: `cmd_spec`, `cmd_install`, `cmd_reset`, `cmd_update`
 - Error and edge case testing for core CLI commands
-- Enforce USER.md gate in CLI path
+- **#163** — Enforce USER.md gate in CLI path — parity with agentic (skills) path
   - `cmd_spec` and `cmd_project` should check for USER.md at entry; if absent, warn and redirect to `run bootstrap`
   - Skills path already done (deft-build); this covers the CLI fallback path only
 - Code signing for installer binaries (Windows Authenticode, macOS Developer ID + notarisation)
@@ -166,6 +165,7 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#104 — Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)~~ — 2026-04-03 (PR #158)
 - ~~#124 — Warp context window improvements: behavioral rule for periodic context checkpointing and structured handoff notes~~ — closed (completed)
 - ~~#67 — Write SPECIFICATION.md and proper PROJECT.md for the deft project itself~~ — closed (completed)
 - ~~#72 — vBRIEF files still invalid on master — five-component generation chain fix (CONVENTIONS.md root cause, validator, renderer, data migration, templates, 7 new tests, minimal CI)~~ — 2026-03-29 (PR #130)
@@ -237,6 +237,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #56 | Reduce installation friction (shell one-liner, Homebrew) | 4 |
 | #57 | Add GitHub Actions CI workflow | 3 |
 | #128 | CI vBRIEF schema sync check (depends on #57) | 3 |
+| #163 | Enforce USER.md gate in CLI path — parity with agentic (skills) path | 3 |
 | #58 | Stale cross-references to legacy paths | 2 |
 | #59 | history/changes/ directory missing | 2 |
 | ~~#67~~ | ~~Write SPECIFICATION.md and proper PROJECT.md for deft~~ | completed |
@@ -315,3 +316,7 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-02 — roadmap refresh: added #145 to Phase 1 Adoption Blockers (deft-review-cycle Greptile signal bug, split from #135)*
 *Updated 2026-04-02 — roadmap refresh: added #146 to Phase 2 (deft-sync skill, session-start framework sync); added #147 to Phase 2 (skills undocumented in README/AGENTS.md)*
 *Updated 2026-04-02 — note: #143 is a merged PR (feat: add deft-review-cycle skill, PR #143), not an open issue; correctly absent from triage*
+<<<<<<< HEAD
+=======
+*Updated 2026-04-02 — added #163 to Phase 3 (Enforce USER.md gate in CLI path — parity with agentic skills path)*
+>>>>>>> master

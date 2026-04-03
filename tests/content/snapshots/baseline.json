@@ -1,12 +1,319 @@
 {
-  "repo_root": "E:/Repos/deft",
-  "file_count": 145,
+  "repo_root": "E:/Repos/deft-agent1",
+  "file_count": 176,
   "files": {
+    ".agents/skills/deft/SKILL.md": {
+      "headers": [],
+      "links": []
+    },
+    ".agents/skills/deft-build/SKILL.md": {
+      "headers": [],
+      "links": []
+    },
+    ".agents/skills/deft-review-cycle/SKILL.md": {
+      "headers": [],
+      "links": []
+    },
+    ".agents/skills/deft-roadmap-refresh/SKILL.md": {
+      "headers": [],
+      "links": []
+    },
+    ".agents/skills/deft-setup/SKILL.md": {
+      "headers": [],
+      "links": []
+    },
+    ".github/PULL_REQUEST_TEMPLATE.md": {
+      "headers": [
+        {
+          "level": 2,
+          "text": "Summary"
+        },
+        {
+          "level": 2,
+          "text": "Related Issues"
+        },
+        {
+          "level": 2,
+          "text": "Checklist"
+        },
+        {
+          "level": 2,
+          "text": "Post-Merge"
+        }
+      ],
+      "links": []
+    },
+    ".planning/codebase/ARCHITECTURE.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "ARCHITECTURE.md — Deft Directive System Design"
+        },
+        {
+          "level": 2,
+          "text": "Components"
+        },
+        {
+          "level": 3,
+          "text": "1. Markdown Framework (`/` root) — Primary Product"
+        },
+        {
+          "level": 3,
+          "text": "2. Python CLI (`run`) — Setup & Spec Generation"
+        },
+        {
+          "level": 3,
+          "text": "3. Go Installer (`cmd/deft-install/`) — Standalone Binary"
+        },
+        {
+          "level": 3,
+          "text": "4. Test Suite (`tests/`)"
+        },
+        {
+          "level": 2,
+          "text": "Data Flow"
+        },
+        {
+          "level": 2,
+          "text": "Entry Points"
+        }
+      ],
+      "links": []
+    },
+    ".planning/codebase/CONCERNS.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "CONCERNS.md — Deft Directive Technical Debt & Risks"
+        },
+        {
+          "level": 2,
+          "text": "Large Files"
+        },
+        {
+          "level": 2,
+          "text": "Coverage Gap"
+        },
+        {
+          "level": 2,
+          "text": "Linting Exclusion"
+        },
+        {
+          "level": 2,
+          "text": "Importlib Test Shim"
+        },
+        {
+          "level": 2,
+          "text": "Version Drift"
+        },
+        {
+          "level": 2,
+          "text": "Legacy Paths"
+        },
+        {
+          "level": 2,
+          "text": "Missing Test Coverage Areas"
+        },
+        {
+          "level": 2,
+          "text": "Stubs / Placeholders"
+        }
+      ],
+      "links": []
+    },
+    ".planning/codebase/CONVENTIONS.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "CONVENTIONS.md — Deft Directive Code Conventions"
+        },
+        {
+          "level": 2,
+          "text": "Markdown (Primary Product)"
+        },
+        {
+          "level": 2,
+          "text": "Python (`run` script and `tests/`)"
+        },
+        {
+          "level": 2,
+          "text": "Go (`cmd/deft-install/`)"
+        },
+        {
+          "level": 2,
+          "text": "vBRIEF Files"
+        },
+        {
+          "level": 2,
+          "text": "SKILL.md Files"
+        },
+        {
+          "level": 2,
+          "text": "Review Workflow (Bot Reviewers)"
+        },
+        {
+          "level": 1,
+          "text": "Unix (bash/zsh)"
+        },
+        {
+          "level": 1,
+          "text": "PowerShell"
+        }
+      ],
+      "links": [
+        {
+          "text": "file",
+          "target": "./relative-path"
+        },
+        {
+          "text": "`vbrief/schemas/vbrief-core.schema.json`",
+          "target": "../../vbrief/schemas/vbrief-core.schema.json"
+        }
+      ]
+    },
+    ".planning/codebase/STACK.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "STACK.md — Deft Directive Technology Inventory"
+        },
+        {
+          "level": 2,
+          "text": "Languages & Runtimes"
+        },
+        {
+          "level": 2,
+          "text": "Key Dependencies"
+        },
+        {
+          "level": 3,
+          "text": "Python (`pyproject.toml`)"
+        },
+        {
+          "level": 3,
+          "text": "Go (`go.mod`)"
+        },
+        {
+          "level": 3,
+          "text": "vBRIEF (`https://github.com/deftai/vBRIEF`)"
+        },
+        {
+          "level": 2,
+          "text": "Build & Tooling"
+        },
+        {
+          "level": 2,
+          "text": "Environment Configuration"
+        },
+        {
+          "level": 2,
+          "text": "Version"
+        }
+      ],
+      "links": []
+    },
+    "AGENTS.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Deft — Development Framework (deft repo)"
+        },
+        {
+          "level": 2,
+          "text": "First Session (deft development)"
+        },
+        {
+          "level": 2,
+          "text": "Returning Sessions"
+        },
+        {
+          "level": 2,
+          "text": "Development Process (always follow)"
+        },
+        {
+          "level": 2,
+          "text": "Commands"
+        }
+      ],
+      "links": []
+    },
     "CHANGELOG.md": {
       "headers": [
         {
           "level": 1,
           "text": "Changelog"
+        },
+        {
+          "level": 2,
+          "text": "[Unreleased]"
+        },
+        {
+          "level": 3,
+          "text": "Added"
+        },
+        {
+          "level": 3,
+          "text": "Changed"
+        },
+        {
+          "level": 3,
+          "text": "Removed"
+        },
+        {
+          "level": 2,
+          "text": "[0.9.0] - 2026-03-29"
+        },
+        {
+          "level": 3,
+          "text": "Added"
+        },
+        {
+          "level": 3,
+          "text": "Fixed"
+        },
+        {
+          "level": 3,
+          "text": "Changed"
+        },
+        {
+          "level": 2,
+          "text": "[0.8.0] - 2026-03-22"
+        },
+        {
+          "level": 3,
+          "text": "Added"
+        },
+        {
+          "level": 3,
+          "text": "Changed"
+        },
+        {
+          "level": 2,
+          "text": "[0.7.1] - 2026-03-20"
+        },
+        {
+          "level": 3,
+          "text": "Fixed"
+        },
+        {
+          "level": 2,
+          "text": "[0.7.0] - 2026-03-19"
+        },
+        {
+          "level": 3,
+          "text": "Added"
+        },
+        {
+          "level": 3,
+          "text": "Changed"
+        },
+        {
+          "level": 3,
+          "text": "Fixed"
+        },
+        {
+          "level": 3,
+          "text": "Removed"
         },
         {
           "level": 2,
@@ -303,6 +610,36 @@
       ],
       "links": []
     },
+    "coding/build-output.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Build Output Validation"
+        },
+        {
+          "level": 2,
+          "text": "Artifact Verification"
+        },
+        {
+          "level": 2,
+          "text": "Smoke Tests"
+        }
+      ],
+      "links": [
+        {
+          "text": "coding.md",
+          "target": "../coding/coding.md"
+        },
+        {
+          "text": "testing.md",
+          "target": "../coding/testing.md"
+        },
+        {
+          "text": "testing.md",
+          "target": "../coding/testing.md#build-output-tests"
+        }
+      ]
+    },
     "coding/coding.md": {
       "headers": [
         {
@@ -382,6 +719,14 @@
         {
           "text": "../tools/taskfile.md",
           "target": "../tools/taskfile.md"
+        },
+        {
+          "text": "../coding/toolchain.md",
+          "target": "../coding/toolchain.md"
+        },
+        {
+          "text": "../coding/build-output.md",
+          "target": "../coding/build-output.md"
         },
         {
           "text": "../languages/cpp.md",
@@ -468,6 +813,10 @@
           "text": "Snapshot Tests"
         },
         {
+          "level": 3,
+          "text": "Build Output Tests"
+        },
+        {
           "level": 2,
           "text": "Language-Specific Details"
         },
@@ -516,6 +865,36 @@
         {
           "text": "main.md",
           "target": "../main.md"
+        }
+      ]
+    },
+    "coding/toolchain.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Toolchain Validation"
+        },
+        {
+          "level": 2,
+          "text": "Pre-Implementation Gate"
+        },
+        {
+          "level": 2,
+          "text": "What to Verify"
+        },
+        {
+          "level": 2,
+          "text": "On Missing Tools"
+        }
+      ],
+      "links": [
+        {
+          "text": "coding.md",
+          "target": "coding.md"
+        },
+        {
+          "text": "build-output.md",
+          "target": "build-output.md"
         }
       ]
     },
@@ -1131,7 +1510,7 @@
       "headers": [
         {
           "level": 1,
-          "text": "Iglesia Project Guidelines"
+          "text": "{Project Name} Project Guidelines"
         },
         {
           "level": 2,
@@ -1160,10 +1539,6 @@
         {
           "level": 2,
           "text": "Project-Specific Rules"
-        },
-        {
-          "level": 3,
-          "text": "Volatile Dependency Abstraction"
         }
       ],
       "links": [
@@ -1172,8 +1547,8 @@
           "target": "../main.md"
         },
         {
-          "text": "../languages/typescript.md",
-          "target": "../languages/typescript.md"
+          "text": "../languages/{language}.md",
+          "target": "../languages/"
         },
         {
           "text": "../tools/telemetry.md",
@@ -1288,44 +1663,6 @@
         {
           "text": "go.md",
           "target": "../languages/go.md"
-        }
-      ]
-    },
-    "core/user.md": {
-      "headers": [
-        {
-          "level": 1,
-          "text": "User Preferences"
-        },
-        {
-          "level": 2,
-          "text": "Name"
-        },
-        {
-          "level": 2,
-          "text": "Default Standards"
-        },
-        {
-          "level": 2,
-          "text": "Custom Rules"
-        },
-        {
-          "level": 2,
-          "text": "Experimental Rules"
-        },
-        {
-          "level": 2,
-          "text": "Workflow Preferences"
-        },
-        {
-          "level": 2,
-          "text": "AI Behavior"
-        }
-      ],
-      "links": [
-        {
-          "text": "../main.md",
-          "target": "../main.md"
         }
       ]
     },
@@ -9939,6 +10276,895 @@
         }
       ]
     },
+    "docs/research/deft-directive-research.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Deft Directive — Research: Roadmap & Open Issues"
+        },
+        {
+          "level": 2,
+          "text": "Don't Hand-Roll"
+        },
+        {
+          "level": 2,
+          "text": "Common Pitfalls"
+        },
+        {
+          "level": 2,
+          "text": "Key Observations for Spec Generation"
+        }
+      ],
+      "links": []
+    },
+    "history/analysis-2026-03-22-issue-chain-68-94.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Analysis: Agent Non-Compliance Failure Chain (#68 → #94)"
+        },
+        {
+          "level": 2,
+          "text": "User Report Summary"
+        },
+        {
+          "level": 2,
+          "text": "Issue Mapping"
+        },
+        {
+          "level": 3,
+          "text": "#68 — Warp not always enforcing Deft testing protocols (direct match)"
+        },
+        {
+          "level": 3,
+          "text": "#94 — Agent auto-alignment on startup (root cause)"
+        },
+        {
+          "level": 3,
+          "text": "#72 — Trouble creating proper vBRIEF files"
+        },
+        {
+          "level": 3,
+          "text": "#75 — Skill auto-discovery"
+        },
+        {
+          "level": 3,
+          "text": "#84 — Deft as teacher, not just enforcer"
+        },
+        {
+          "level": 2,
+          "text": "Failure Chain"
+        },
+        {
+          "level": 2,
+          "text": "Recommendation"
+        }
+      ],
+      "links": []
+    },
+    "history/archive/2026-03-20-agent-auto-alignment/design.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Technical Design: agent-auto-alignment"
+        },
+        {
+          "level": 2,
+          "text": "Approach"
+        },
+        {
+          "level": 3,
+          "text": "Thin pointer file content"
+        },
+        {
+          "level": 3,
+          "text": "`WriteAgentsSkills` function in `setup.go`"
+        },
+        {
+          "level": 3,
+          "text": "`agentsMDEntry` update"
+        },
+        {
+          "level": 3,
+          "text": "`PrintNextSteps` update"
+        },
+        {
+          "level": 3,
+          "text": "`main.md` rule placement"
+        },
+        {
+          "level": 2,
+          "text": "Alternatives Considered"
+        },
+        {
+          "level": 2,
+          "text": "Dependencies"
+        }
+      ],
+      "links": []
+    },
+    "history/archive/2026-03-20-agent-auto-alignment/proposal.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Change Proposal: agent-auto-alignment"
+        },
+        {
+          "level": 2,
+          "text": "Problem"
+        },
+        {
+          "level": 2,
+          "text": "Change"
+        },
+        {
+          "level": 2,
+          "text": "Scope"
+        },
+        {
+          "level": 2,
+          "text": "Impact"
+        },
+        {
+          "level": 2,
+          "text": "Risks"
+        }
+      ],
+      "links": []
+    },
+    "history/archive/2026-03-20-agents-md-onboarding/design.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Technical Design: agents-md-onboarding"
+        },
+        {
+          "level": 2,
+          "text": "Approach"
+        },
+        {
+          "level": 3,
+          "text": "`agentsMDEntry` content"
+        },
+        {
+          "level": 1,
+          "text": "Deft — AI Development Framework"
+        },
+        {
+          "level": 2,
+          "text": "First Session"
+        },
+        {
+          "level": 2,
+          "text": "Returning Sessions"
+        },
+        {
+          "level": 2,
+          "text": "Commands"
+        },
+        {
+          "level": 3,
+          "text": "`PrintNextSteps` changes"
+        },
+        {
+          "level": 3,
+          "text": "README changes"
+        },
+        {
+          "level": 3,
+          "text": "In-repo `AGENTS.md`"
+        },
+        {
+          "level": 3,
+          "text": "`TestPrintNextSteps`"
+        },
+        {
+          "level": 2,
+          "text": "Alternatives Considered"
+        },
+        {
+          "level": 2,
+          "text": "Dependencies"
+        }
+      ],
+      "links": []
+    },
+    "history/archive/2026-03-20-agents-md-onboarding/proposal.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Change Proposal: agents-md-onboarding"
+        },
+        {
+          "level": 2,
+          "text": "Problem"
+        },
+        {
+          "level": 2,
+          "text": "Change"
+        },
+        {
+          "level": 2,
+          "text": "Scope"
+        },
+        {
+          "level": 2,
+          "text": "Impact"
+        },
+        {
+          "level": 2,
+          "text": "Risks"
+        }
+      ],
+      "links": []
+    },
+    "history/implementation-2026-03-13-fix-interview-strategy.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Implementation: Fix #36 — Reconcile Interview Strategy"
+        },
+        {
+          "level": 2,
+          "text": "Phase 1: Canonical Strategy (interview.md)"
+        },
+        {
+          "level": 3,
+          "text": "Task 1.1: Rewrite `strategies/interview.md`"
+        },
+        {
+          "level": 2,
+          "text": "Phase 2: Template Alignment (make-spec.md)"
+        },
+        {
+          "level": 3,
+          "text": "Task 2.1: Rewrite `templates/make-spec.md`"
+        },
+        {
+          "level": 2,
+          "text": "Phase 3: Agent Path (deft-setup)"
+        },
+        {
+          "level": 3,
+          "text": "Task 3.1: Update `skills/deft-setup/SKILL.md` Phase 3"
+        },
+        {
+          "level": 2,
+          "text": "Phase 4: CLI Path (run)"
+        },
+        {
+          "level": 3,
+          "text": "Task 4.1: Update `cmd_spec` in `run`"
+        },
+        {
+          "level": 3,
+          "text": "Task 4.2: Update `cmd_project` template in `run`"
+        },
+        {
+          "level": 2,
+          "text": "Phase 5: Sibling Strategy (yolo.md)"
+        },
+        {
+          "level": 3,
+          "text": "Task 5.1: Update `strategies/yolo.md`"
+        },
+        {
+          "level": 2,
+          "text": "Phase 6: Reference Updates"
+        },
+        {
+          "level": 3,
+          "text": "Task 6.1: Update `strategies/README.md`"
+        },
+        {
+          "level": 3,
+          "text": "Task 6.2: Update `vbrief/vbrief.md`"
+        },
+        {
+          "level": 3,
+          "text": "Task 6.3: Update `SKILL.md` (root)"
+        },
+        {
+          "level": 3,
+          "text": "Task 6.4: Update `main.md`"
+        },
+        {
+          "level": 2,
+          "text": "Phase 7: Verification"
+        },
+        {
+          "level": 3,
+          "text": "Task 7.1: Content integrity"
+        },
+        {
+          "level": 3,
+          "text": "Task 7.2: Walkthrough"
+        },
+        {
+          "level": 2,
+          "text": "Completion Checklist"
+        }
+      ],
+      "links": []
+    },
+    "history/plan-2026-03-11-cross-platform-agent-skills.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Cross-Platform Design: Agent-Driven Skills"
+        },
+        {
+          "level": 2,
+          "text": "Problem"
+        },
+        {
+          "level": 2,
+          "text": "Analysis"
+        },
+        {
+          "level": 3,
+          "text": "Skills (SKILL.md) — No Issue"
+        },
+        {
+          "level": 3,
+          "text": "Installer (`install.sh`) — Unix Only"
+        },
+        {
+          "level": 3,
+          "text": "Symlinks for Skill Discovery — Admin Required on Windows"
+        },
+        {
+          "level": 3,
+          "text": "Config Paths — `~/.config/` Is Not a Windows Convention"
+        },
+        {
+          "level": 3,
+          "text": "Taskfile Commands — Bash Syntax"
+        },
+        {
+          "level": 2,
+          "text": "Decisions"
+        },
+        {
+          "level": 3,
+          "text": "1. Installer: Python with Platform Wrappers (Revised 2026-03-11)"
+        },
+        {
+          "level": 1,
+          "text": "Windows (cmd or PowerShell)"
+        },
+        {
+          "level": 1,
+          "text": "Unix"
+        },
+        {
+          "level": 3,
+          "text": "2. Skill Discovery: AGENTS.md Only — No Symlinks (Revised 2026-03-11)"
+        },
+        {
+          "level": 3,
+          "text": "3. Config Path: Platform-Aware Default with Env Var Override (Revised 2026-03-11)"
+        },
+        {
+          "level": 3,
+          "text": "4. Taskfile: Hard Dependency with Guided Install (Revised 2026-03-11)"
+        },
+        {
+          "level": 2,
+          "text": "Key Insight"
+        }
+      ],
+      "links": []
+    },
+    "history/plan-2026-03-12-cross-platform-agent-skills-impl.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Cross-Platform Agent-Driven Skills — Implementation Plan"
+        },
+        {
+          "level": 2,
+          "text": "Phase 1 — Skills (No Dependencies)"
+        },
+        {
+          "level": 3,
+          "text": "1.1 Create `skills/deft-setup/SKILL.md`"
+        },
+        {
+          "level": 3,
+          "text": "1.2 Create `skills/deft-build/SKILL.md`"
+        },
+        {
+          "level": 3,
+          "text": "1.3 Tests for skills"
+        },
+        {
+          "level": 2,
+          "text": "Phase 2 — Installer (Depends on Phase 1)"
+        },
+        {
+          "level": 3,
+          "text": "2.1 Create `install.py`"
+        },
+        {
+          "level": 3,
+          "text": "2.2 Create `install.bat`"
+        },
+        {
+          "level": 3,
+          "text": "2.3 Create `install` (Unix wrapper)"
+        },
+        {
+          "level": 3,
+          "text": "2.4 Tests for installer"
+        },
+        {
+          "level": 2,
+          "text": "Phase 3 — Taskfile Cross-Platform Fixes (Depends on Phase 1)"
+        },
+        {
+          "level": 3,
+          "text": "3.1 Fix `install` task"
+        },
+        {
+          "level": 3,
+          "text": "3.2 Fix `build` task"
+        },
+        {
+          "level": 3,
+          "text": "3.3 Fix `stats` task"
+        },
+        {
+          "level": 3,
+          "text": "3.4 Fix `uninstall` task"
+        },
+        {
+          "level": 3,
+          "text": "3.5 Verify cross-platform tasks"
+        },
+        {
+          "level": 2,
+          "text": "Phase 4 — Documentation Updates (Depends on Phases 1–3)"
+        },
+        {
+          "level": 3,
+          "text": "4.1 Update README.md"
+        },
+        {
+          "level": 3,
+          "text": "4.2 Update todo.md"
+        },
+        {
+          "level": 2,
+          "text": "Phase 5 — spec:* Cross-Platform Fixes (Depends on Phase 3)"
+        },
+        {
+          "level": 3,
+          "text": "5.1 Extract `spec:validate` logic into `scripts/spec_validate.py`"
+        },
+        {
+          "level": 3,
+          "text": "5.2 Extract `spec:render` logic into `scripts/spec_render.py`"
+        },
+        {
+          "level": 3,
+          "text": "5.3 Tests for spec scripts"
+        },
+        {
+          "level": 2,
+          "text": "Dependency Order"
+        },
+        {
+          "level": 2,
+          "text": "Workflow Rules"
+        }
+      ],
+      "links": []
+    },
+    "history/plan-2026-03-12-go-installer-impl.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Go Installer — Implementation Plan"
+        },
+        {
+          "level": 2,
+          "text": "Overview"
+        },
+        {
+          "level": 2,
+          "text": "Phase 1 — Go Module and Skeleton (No Dependencies)"
+        },
+        {
+          "level": 3,
+          "text": "1.1 Initialise Go module"
+        },
+        {
+          "level": 3,
+          "text": "1.2 Create `cmd/deft-install/main.go` skeleton"
+        },
+        {
+          "level": 3,
+          "text": "1.3 Create `cmd/deft-install/main_test.go` skeleton"
+        },
+        {
+          "level": 2,
+          "text": "Phase 2 — Directory Positioning Wizard (No Git Required)"
+        },
+        {
+          "level": 3,
+          "text": "2.1 Welcome screen and project name prompt"
+        },
+        {
+          "level": 3,
+          "text": "2.2 Drive selection (Windows only)"
+        },
+        {
+          "level": 3,
+          "text": "2.3 Parent folder selection"
+        },
+        {
+          "level": 3,
+          "text": "2.4 Confirmation screen"
+        },
+        {
+          "level": 3,
+          "text": "2.5 Guards"
+        },
+        {
+          "level": 3,
+          "text": "2.6 Tests for directory wizard"
+        },
+        {
+          "level": 2,
+          "text": "Phase 3 — Git Detection and Installation (Depends on Phase 1)"
+        },
+        {
+          "level": 3,
+          "text": "3.1 Git detection"
+        },
+        {
+          "level": 3,
+          "text": "3.2 Windows git install"
+        },
+        {
+          "level": 3,
+          "text": "3.3 macOS git install"
+        },
+        {
+          "level": 3,
+          "text": "3.4 Linux git install"
+        },
+        {
+          "level": 3,
+          "text": "3.5 Tests for git detection"
+        },
+        {
+          "level": 2,
+          "text": "Phase 4 — Clone and Setup (Depends on Phases 2 and 3)"
+        },
+        {
+          "level": 3,
+          "text": "4.1 Clone deft"
+        },
+        {
+          "level": 3,
+          "text": "4.2 Write AGENTS.md entries"
+        },
+        {
+          "level": 3,
+          "text": "4.3 Create USER.md config directory"
+        },
+        {
+          "level": 3,
+          "text": "4.4 Print next steps"
+        },
+        {
+          "level": 3,
+          "text": "4.5 Tests for clone and setup"
+        },
+        {
+          "level": 2,
+          "text": "Phase 5 — Remove Legacy Install Files (Depends on Phase 4 passing tests)"
+        },
+        {
+          "level": 3,
+          "text": "5.1 Delete legacy files"
+        },
+        {
+          "level": 3,
+          "text": "5.2 Update `Taskfile.yml` install task"
+        },
+        {
+          "level": 3,
+          "text": "5.3 Update tests"
+        },
+        {
+          "level": 2,
+          "text": "Phase 6 — GitHub Actions Release Workflow (Depends on Phase 4)"
+        },
+        {
+          "level": 3,
+          "text": "6.1 Create `.github/workflows/release.yml`"
+        },
+        {
+          "level": 3,
+          "text": "6.2 Upload release assets"
+        },
+        {
+          "level": 3,
+          "text": "6.3 Smoke test in workflow"
+        },
+        {
+          "level": 2,
+          "text": "Phase 7 — README and Documentation Updates (Depends on Phase 6)"
+        },
+        {
+          "level": 3,
+          "text": "7.1 Update README Getting Started section"
+        },
+        {
+          "level": 3,
+          "text": "7.2 Add `go.md` reference to README if needed"
+        },
+        {
+          "level": 3,
+          "text": "7.3 Update `todo.md`"
+        },
+        {
+          "level": 2,
+          "text": "Phase 8 — Archive This Plan (Final Phase)"
+        },
+        {
+          "level": 2,
+          "text": "Dependency Order"
+        },
+        {
+          "level": 2,
+          "text": "Workflow Rules"
+        }
+      ],
+      "links": []
+    },
+    "history/plan-2026-03-12-single-entry-installer.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Single Entry Point Installer — Planning"
+        },
+        {
+          "level": 2,
+          "text": "Problem to Solve"
+        },
+        {
+          "level": 3,
+          "text": "Why the current model falls short"
+        },
+        {
+          "level": 2,
+          "text": "What's Built Into Each Platform (zero-install baseline)"
+        },
+        {
+          "level": 2,
+          "text": "Chosen Direction: Go Binary for All Platforms"
+        },
+        {
+          "level": 3,
+          "text": "Release artifacts (built by GitHub Actions on version tag)"
+        },
+        {
+          "level": 3,
+          "text": "Developer vs end-user requirements"
+        },
+        {
+          "level": 2,
+          "text": "Install Flow — Decision: Go does everything, `install.py` removed"
+        },
+        {
+          "level": 2,
+          "text": "Git Install Strategy Per Platform"
+        },
+        {
+          "level": 2,
+          "text": "Directory Positioning UX"
+        },
+        {
+          "level": 3,
+          "text": "Step 1 — Welcome and project name"
+        },
+        {
+          "level": 3,
+          "text": "Step 2 — Pick a drive (Windows only)"
+        },
+        {
+          "level": 3,
+          "text": "Step 3 — Pick or create a parent folder"
+        },
+        {
+          "level": 3,
+          "text": "Step 4 — Confirm everything before touching the filesystem"
+        },
+        {
+          "level": 3,
+          "text": "Guards (apply on all platforms)"
+        },
+        {
+          "level": 2,
+          "text": "File Layout After This Work"
+        },
+        {
+          "level": 2,
+          "text": "Engineering Investment"
+        },
+        {
+          "level": 2,
+          "text": "Future Work"
+        },
+        {
+          "level": 3,
+          "text": "Code signing"
+        }
+      ],
+      "links": []
+    },
+    "history/plan-2026-03-13-fix-interview-strategy.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Fix #36: Reconcile Interview Strategy"
+        },
+        {
+          "level": 2,
+          "text": "Problem"
+        },
+        {
+          "level": 2,
+          "text": "Current State"
+        },
+        {
+          "level": 2,
+          "text": "Design: Sizing Gate"
+        },
+        {
+          "level": 2,
+          "text": "Changes"
+        },
+        {
+          "level": 3,
+          "text": "1. `strategies/interview.md` — Single source of truth"
+        },
+        {
+          "level": 3,
+          "text": "2. `templates/make-spec.md` — Align with interview.md"
+        },
+        {
+          "level": 3,
+          "text": "3. `skills/deft-setup/SKILL.md` Phase 3"
+        },
+        {
+          "level": 3,
+          "text": "4. `run` — `cmd_spec` function"
+        },
+        {
+          "level": 3,
+          "text": "5. `strategies/yolo.md` — Mirror interview.md updates"
+        },
+        {
+          "level": 3,
+          "text": "6. `strategies/README.md`"
+        },
+        {
+          "level": 3,
+          "text": "7. `vbrief/vbrief.md` — Update specification flow"
+        },
+        {
+          "level": 3,
+          "text": "8. `SKILL.md` (root) — Update SDD reference"
+        },
+        {
+          "level": 3,
+          "text": "9. `PROJECT.md` template in `cmd_project`"
+        },
+        {
+          "level": 2,
+          "text": "File Impact Summary"
+        },
+        {
+          "level": 2,
+          "text": "Order of Operations"
+        },
+        {
+          "level": 2,
+          "text": "Out of Scope"
+        }
+      ],
+      "links": []
+    },
+    "history/plan-2026-03-29-fix-vbrief-generation.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Fix #72: vBRIEF Generation Chain"
+        },
+        {
+          "level": 2,
+          "text": "Problem"
+        },
+        {
+          "level": 2,
+          "text": "Current State"
+        },
+        {
+          "level": 2,
+          "text": "Changes"
+        },
+        {
+          "level": 3,
+          "text": "1. `scripts/spec_validate.py` — Add real schema validation"
+        },
+        {
+          "level": 3,
+          "text": "2. `vbrief/specification.vbrief.json` — Migrate to valid vBRIEF v0.5"
+        },
+        {
+          "level": 3,
+          "text": "3. `vbrief/plan.vbrief.json` — Migrate to valid vBRIEF v0.5"
+        },
+        {
+          "level": 3,
+          "text": "4. `scripts/spec_render.py` — Read from vBRIEF v0.5 structure"
+        },
+        {
+          "level": 3,
+          "text": "5. `templates/make-spec.md` — Add concrete vBRIEF output example"
+        },
+        {
+          "level": 3,
+          "text": "6. `skills/deft-setup/SKILL.md` Phase 3 — Add concrete vBRIEF output example"
+        },
+        {
+          "level": 3,
+          "text": "7. `.planning/codebase/CONVENTIONS.md` — Fix vBRIEF section"
+        },
+        {
+          "level": 3,
+          "text": "8. `tests/content/test_vbrief_schema.py` — Add file validation tests"
+        },
+        {
+          "level": 3,
+          "text": "9. Fix vBRIEF examples and status values in context docs"
+        },
+        {
+          "level": 3,
+          "text": "10. Normalize vBRIEF repo references"
+        },
+        {
+          "level": 3,
+          "text": "11. CI schema sync check (future-proofing)"
+        },
+        {
+          "level": 2,
+          "text": "Order of Operations"
+        },
+        {
+          "level": 2,
+          "text": "Deft Process"
+        },
+        {
+          "level": 2,
+          "text": "Out of Scope"
+        },
+        {
+          "level": 2,
+          "text": "Spec Task Mapping"
+        },
+        {
+          "level": 2,
+          "text": "File Impact Summary"
+        }
+      ],
+      "links": []
+    },
     "history/README.md": {
       "headers": [
         {
@@ -9973,91 +11199,86 @@
         }
       ]
     },
-    "IMPLEMENTATION.md": {
+    "history/todo-2026-03-13-retired.md": {
       "headers": [
         {
           "level": 1,
-          "text": "Issue #28 — vBRIEF Schema Reference & Status Value Fix"
+          "text": "Todo"
         },
         {
           "level": 2,
-          "text": "Problem"
+          "text": "LATER — Phase 2 (Deft Directive Upgrade)"
+        },
+        {
+          "level": 3,
+          "text": "Open issues from review"
+        },
+        {
+          "level": 3,
+          "text": "Rename:"
+        },
+        {
+          "level": 3,
+          "text": "Clean leaked personal files"
+        },
+        {
+          "level": 3,
+          "text": "Add missing strategies"
+        },
+        {
+          "level": 3,
+          "text": "Port `SKILL.md` from master → superseded by agent skills"
+        },
+        {
+          "level": 3,
+          "text": "Codify PR workflow standards into `scm/github.md`"
+        },
+        {
+          "level": 3,
+          "text": "Write remaining CHANGELOG entries"
         },
         {
           "level": 2,
-          "text": "Current State"
+          "text": "LATER — Deferred Test Coverage"
         },
         {
           "level": 3,
-          "text": "Non-conforming status values in `vbrief.md`"
+          "text": "CI: GitHub Actions workflow"
+        },
+        {
+          "level": 3,
+          "text": "Enforce USER.md gate in CLI path"
+        },
+        {
+          "level": 3,
+          "text": "CLI tests: additional commands"
+        },
+        {
+          "level": 3,
+          "text": "CLI tests: error and edge cases"
         },
         {
           "level": 2,
-          "text": "Proposed Changes"
+          "text": "LATER — Future Phases (Unscheduled)"
         },
         {
           "level": 3,
-          "text": "1. Import the JSON Schema"
+          "text": "Code signing for installer binaries"
         },
         {
           "level": 3,
-          "text": "2. Add a \"File Format\" section to `vbrief/vbrief.md`"
+          "text": "LLM-assisted content validation"
         },
         {
           "level": 3,
-          "text": "3. Fix status values throughout `vbrief.md`"
-        },
-        {
-          "level": 3,
-          "text": "4. Update `REFERENCES.md`"
+          "text": "Spec: self-upgrade to Deft Directive product"
         },
         {
           "level": 2,
-          "text": "Test Updates"
-        },
-        {
-          "level": 3,
-          "text": "5. `test_structure.py` — new directory and file checks"
-        },
-        {
-          "level": 3,
-          "text": "6. `test_contracts.py` — link resolution"
-        },
-        {
-          "level": 3,
-          "text": "7. `test_standards.py` — RFC2119 legend"
-        },
-        {
-          "level": 3,
-          "text": "8. `test_shape.py` — optional vBRIEF shape"
-        },
-        {
-          "level": 3,
-          "text": "9. `known_failures.json` — review for new entries"
-        },
-        {
-          "level": 3,
-          "text": "10. Regenerate `baseline.json`"
-        },
-        {
-          "level": 3,
-          "text": "11. Run full test suite and `task check`"
-        },
-        {
-          "level": 2,
-          "text": "Dependency Order"
-        },
-        {
-          "level": 2,
-          "text": "Workflow Rules"
+          "text": "Completed"
         }
       ],
-      "links": [
-        {
-          "text": "vbrief/schemas/vbrief-core.schema.json",
-          "target": "./vbrief/schemas/vbrief-core.schema.json"
-        }
-      ]
+      "links": []
     },
     "interfaces/cli.md": {
       "headers": [
@@ -10428,140 +11649,6 @@
         }
       ]
     },
-"languages/csharp.md": {
-      "headers": [
-        {
-          "level": 1,
-          "text": "C# Standards"
-        },
-        {
-          "level": 2,
-          "text": "Standards"
-        },
-        {
-          "level": 3,
-          "text": "Documentation"
-        },
-        {
-          "level": 3,
-          "text": "Testing"
-        },
-        {
-          "level": 3,
-          "text": "Coverage"
-        },
-        {
-          "level": 3,
-          "text": "Style"
-        },
-        {
-          "level": 3,
-          "text": "Naming Conventions"
-        },
-        {
-          "level": 3,
-          "text": "Modern Language Features (C# 12+)"
-        },
-        {
-          "level": 3,
-          "text": "Nullable Reference Types"
-        },
-        {
-          "level": 3,
-          "text": "Resource Management"
-        },
-        {
-          "level": 3,
-          "text": "Error Handling"
-        },
-        {
-          "level": 3,
-          "text": "Async/Await"
-        },
-        {
-          "level": 3,
-          "text": "Dependency Injection"
-        },
-        {
-          "level": 3,
-          "text": "Collections & LINQ"
-        },
-        {
-          "level": 3,
-          "text": "Database (EF Core)"
-        },
-        {
-          "level": 3,
-          "text": "Telemetry"
-        },
-        {
-          "level": 3,
-          "text": "Safety"
-        },
-        {
-          "level": 2,
-          "text": "Commands"
-        },
-        {
-          "level": 2,
-          "text": "Patterns"
-        },
-        {
-          "level": 3,
-          "text": "Testing (xUnit + FluentAssertions + NSubstitute)"
-        },
-        {
-          "level": 3,
-          "text": "Records, Primary Constructors & Pattern Matching"
-        },
-        {
-          "level": 3,
-          "text": "Async/Await & Resources"
-        },
-        {
-          "level": 2,
-          "text": "Build Configuration"
-        },
-        {
-          "level": 2,
-          "text": "Anti-Patterns"
-        },
-        {
-          "level": 2,
-          "text": "Compliance Checklist"
-        }
-      ],
-      "links": [
-        {
-          "text": "main.md",
-          "target": "../main.md"
-        },
-        {
-          "text": "project.md",
-          "target": "../core/project.md"
-        },
-        {
-          "text": "telemetry.md",
-          "target": "../tools/telemetry.md"
-        },
-        {
-          "text": "testing.md",
-          "target": "../coding/testing.md"
-        },
-        {
-          "text": "telemetry.md",
-          "target": "../tools/telemetry.md"
-        },
-        {
-          "text": "commands.md",
-          "target": "./commands.md"
-        },
-        {
-          "text": "testing.md",
-          "target": "../coding/testing.md"
-        }
-      ]
-    },
     "languages/c.md": {
       "headers": [
         {
@@ -10787,6 +11874,140 @@
         {
           "level": 2,
           "text": "Interface Design"
+        },
+        {
+          "level": 2,
+          "text": "Compliance Checklist"
+        }
+      ],
+      "links": [
+        {
+          "text": "main.md",
+          "target": "../main.md"
+        },
+        {
+          "text": "project.md",
+          "target": "../core/project.md"
+        },
+        {
+          "text": "telemetry.md",
+          "target": "../tools/telemetry.md"
+        },
+        {
+          "text": "testing.md",
+          "target": "../coding/testing.md"
+        },
+        {
+          "text": "telemetry.md",
+          "target": "../tools/telemetry.md"
+        },
+        {
+          "text": "commands.md",
+          "target": "./commands.md"
+        },
+        {
+          "text": "testing.md",
+          "target": "../coding/testing.md"
+        }
+      ]
+    },
+    "languages/csharp.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "C# Standards"
+        },
+        {
+          "level": 2,
+          "text": "Standards"
+        },
+        {
+          "level": 3,
+          "text": "Documentation"
+        },
+        {
+          "level": 3,
+          "text": "Testing"
+        },
+        {
+          "level": 3,
+          "text": "Coverage"
+        },
+        {
+          "level": 3,
+          "text": "Style"
+        },
+        {
+          "level": 3,
+          "text": "Naming Conventions"
+        },
+        {
+          "level": 3,
+          "text": "Modern Language Features (C# 12+)"
+        },
+        {
+          "level": 3,
+          "text": "Nullable Reference Types"
+        },
+        {
+          "level": 3,
+          "text": "Resource Management"
+        },
+        {
+          "level": 3,
+          "text": "Error Handling"
+        },
+        {
+          "level": 3,
+          "text": "Async/Await"
+        },
+        {
+          "level": 3,
+          "text": "Dependency Injection"
+        },
+        {
+          "level": 3,
+          "text": "Collections & LINQ"
+        },
+        {
+          "level": 3,
+          "text": "Database (EF Core)"
+        },
+        {
+          "level": 3,
+          "text": "Telemetry"
+        },
+        {
+          "level": 3,
+          "text": "Safety"
+        },
+        {
+          "level": 2,
+          "text": "Commands"
+        },
+        {
+          "level": 2,
+          "text": "Patterns"
+        },
+        {
+          "level": 3,
+          "text": "Testing (xUnit + FluentAssertions + NSubstitute)"
+        },
+        {
+          "level": 3,
+          "text": "Records, Primary Constructors & Pattern Matching"
+        },
+        {
+          "level": 3,
+          "text": "Async/Await & Resources"
+        },
+        {
+          "level": 2,
+          "text": "Build Configuration"
+        },
+        {
+          "level": 2,
+          "text": "Anti-Patterns"
         },
         {
           "level": 2,
@@ -13105,6 +14326,22 @@
         {
           "level": 2,
           "text": "Context Engineering (2026-03)"
+        },
+        {
+          "level": 2,
+          "text": "PR Review Process (2026-03)"
+        },
+        {
+          "level": 2,
+          "text": "Toolchain Validation Gate (2026-03)"
+        },
+        {
+          "level": 2,
+          "text": "Build Script Output Validation (2026-03)"
+        },
+        {
+          "level": 2,
+          "text": "Windows File Editing (2026-03)"
         }
       ],
       "links": []
@@ -13156,90 +14393,6 @@
         }
       ],
       "links": []
-    },
-    "old/project.md": {
-      "headers": [
-        {
-          "level": 1,
-          "text": "reminderbot.ai Project Guidelines"
-        },
-        {
-          "level": 2,
-          "text": "Project Configuration"
-        },
-        {
-          "level": 2,
-          "text": "📋 Workflow"
-        },
-        {
-          "level": 2,
-          "text": "🔐 Secrets"
-        },
-        {
-          "level": 2,
-          "text": "Standards"
-        }
-      ],
-      "links": [
-        {
-          "text": "main.md",
-          "target": "../main.md"
-        },
-        {
-          "text": "typescript.md",
-          "target": "../languages/typescript.md"
-        },
-        {
-          "text": "taskfile.md",
-          "target": "../tools/taskfile.md"
-        },
-        {
-          "text": "telemetry.md",
-          "target": "../tools/telemetry.md"
-        },
-        {
-          "text": "specification.md",
-          "target": "../templates/specification.md"
-        },
-        {
-          "text": "telemetry.md",
-          "target": "../tools/telemetry.md"
-        }
-      ]
-    },
-    "old/user.md": {
-      "headers": [
-        {
-          "level": 1,
-          "text": "User Preferences"
-        },
-        {
-          "level": 2,
-          "text": "Name"
-        },
-        {
-          "level": 2,
-          "text": "Default Standards"
-        },
-        {
-          "level": 2,
-          "text": "Custom Rules"
-        },
-        {
-          "level": 2,
-          "text": "Workflow Preferences"
-        },
-        {
-          "level": 2,
-          "text": "AI Behavior"
-        }
-      ],
-      "links": [
-        {
-          "text": "../main.md",
-          "target": "../main.md"
-        }
-      ]
     },
     "platforms/2600.md": {
       "headers": [
@@ -13343,11 +14496,202 @@
         }
       ]
     },
+    "platforms/unity.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Unity Standards"
+        },
+        {
+          "level": 2,
+          "text": "Standards"
+        },
+        {
+          "level": 3,
+          "text": "Project Structure"
+        },
+        {
+          "level": 3,
+          "text": "Naming Conventions (Unity-Specific)"
+        },
+        {
+          "level": 3,
+          "text": "MonoBehaviour Guidelines"
+        },
+        {
+          "level": 3,
+          "text": "ScriptableObjects"
+        },
+        {
+          "level": 3,
+          "text": "Architecture & Patterns"
+        },
+        {
+          "level": 3,
+          "text": "Performance & Memory"
+        },
+        {
+          "level": 3,
+          "text": "Asset Management"
+        },
+        {
+          "level": 3,
+          "text": "Rendering"
+        },
+        {
+          "level": 3,
+          "text": "Unity-Specific C# Gotchas"
+        },
+        {
+          "level": 3,
+          "text": "Testing"
+        },
+        {
+          "level": 3,
+          "text": "Coverage"
+        },
+        {
+          "level": 3,
+          "text": "Editor Workflow"
+        },
+        {
+          "level": 3,
+          "text": "Source Control"
+        },
+        {
+          "level": 3,
+          "text": "Native Plugins (C++/Rust)"
+        },
+        {
+          "level": 3,
+          "text": "Safety"
+        },
+        {
+          "level": 2,
+          "text": "Anti-Patterns"
+        },
+        {
+          "level": 2,
+          "text": "Patterns"
+        },
+        {
+          "level": 3,
+          "text": "ScriptableObject Variable"
+        },
+        {
+          "level": 3,
+          "text": "ScriptableObject Event"
+        },
+        {
+          "level": 3,
+          "text": "Object Pooling (Unity 2021+)"
+        },
+        {
+          "level": 3,
+          "text": "Cached Component References"
+        },
+        {
+          "level": 3,
+          "text": "Play Mode Test"
+        },
+        {
+          "level": 2,
+          "text": "Compliance Checklist"
+        },
+        {
+          "level": 2,
+          "text": "Resources"
+        }
+      ],
+      "links": [
+        {
+          "text": "main.md",
+          "target": "../main.md"
+        },
+        {
+          "text": "project.md",
+          "target": "../core/project.md"
+        },
+        {
+          "text": "csharp.md",
+          "target": "../languages/csharp.md"
+        },
+        {
+          "text": "csharp.md",
+          "target": "../languages/csharp.md"
+        },
+        {
+          "text": "csharp.md",
+          "target": "../languages/csharp.md"
+        },
+        {
+          "text": "testing.md",
+          "target": "../coding/testing.md"
+        },
+        {
+          "text": "csharp.md",
+          "target": "../languages/csharp.md"
+        }
+      ]
+    },
+    "PRD.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Deft Directive PRD"
+        },
+        {
+          "level": 2,
+          "text": "Problem Statement"
+        },
+        {
+          "level": 2,
+          "text": "Goals"
+        },
+        {
+          "level": 2,
+          "text": "Non-Goals"
+        },
+        {
+          "level": 2,
+          "text": "User Stories"
+        },
+        {
+          "level": 2,
+          "text": "Functional Requirements"
+        },
+        {
+          "level": 3,
+          "text": "Phase 1 — Bug Fixes & Adoption Blockers"
+        },
+        {
+          "level": 3,
+          "text": "Phase 2 — Content Fixes"
+        },
+        {
+          "level": 3,
+          "text": "Phase 3 — CI"
+        },
+        {
+          "level": 2,
+          "text": "Non-Functional Requirements"
+        },
+        {
+          "level": 2,
+          "text": "Success Metrics"
+        },
+        {
+          "level": 2,
+          "text": "Open Questions"
+        }
+      ],
+      "links": []
+    },
     "PROJECT.md": {
       "headers": [
         {
           "level": 1,
-          "text": "Project Guidelines"
+          "text": "Deft Directive Project Guidelines"
         },
         {
           "level": 2,
@@ -13363,18 +14707,6 @@
         },
         {
           "level": 2,
-          "text": "Secrets"
-        },
-        {
-          "level": 1,
-          "text": "Add your secrets to secrets/ directory"
-        },
-        {
-          "level": 1,
-          "text": "Use .example files as templates"
-        },
-        {
-          "level": 2,
           "text": "Standards"
         },
         {
@@ -13384,20 +14716,20 @@
       ],
       "links": [
         {
-          "text": "../main.md",
-          "target": "../main.md"
+          "text": "main.md",
+          "target": "main.md"
         },
         {
-          "text": "../languages/python.md",
-          "target": "../languages/python.md"
+          "text": "languages/go.md",
+          "target": "languages/go.md"
         },
         {
-          "text": "Interview",
-          "target": "../strategies/interview.md"
+          "text": "languages/python.md",
+          "target": "languages/python.md"
         },
         {
-          "text": "../tools/telemetry.md",
-          "target": "../tools/telemetry.md"
+          "text": "map",
+          "target": "strategies/map.md"
         }
       ]
     },
@@ -13445,11 +14777,27 @@
         },
         {
           "level": 3,
+          "text": "🎮 Platforms"
+        },
+        {
+          "level": 3,
           "text": "🛠️ Tools"
         },
         {
           "level": 3,
+          "text": "📂 SCM"
+        },
+        {
+          "level": 3,
           "text": "🐝 Swarm"
+        },
+        {
+          "level": 3,
+          "text": "🧭 Strategies"
+        },
+        {
+          "level": 3,
+          "text": "🧠 Context"
         },
         {
           "level": 3,
@@ -13461,7 +14809,19 @@
         },
         {
           "level": 3,
+          "text": "📋 vBRIEF"
+        },
+        {
+          "level": 3,
           "text": "📜 Contracts"
+        },
+        {
+          "level": 3,
+          "text": "🚀 Deployments"
+        },
+        {
+          "level": 3,
+          "text": "🤖 Skills"
         },
         {
           "level": 3,
@@ -13480,12 +14840,8 @@
           "text": "1. Install Deft"
         },
         {
-          "level": 1,
-          "text": "OR"
-        },
-        {
           "level": 3,
-          "text": "2. Bootstrap Your Configuration"
+          "text": "2. Set Up Your Preferences"
         },
         {
           "level": 3,
@@ -13581,13 +14937,49 @@
         },
         {
           "level": 2,
+          "text": "🚢 Release & Testing"
+        },
+        {
+          "level": 3,
+          "text": "What the Smoke Tests Verify"
+        },
+        {
+          "level": 3,
+          "text": "Testing Without Publishing"
+        },
+        {
+          "level": 1,
+          "text": "Tag the current HEAD"
+        },
+        {
+          "level": 1,
+          "text": "Monitor the workflow run"
+        },
+        {
+          "level": 1,
+          "text": "Clean up after verifying"
+        },
+        {
+          "level": 3,
+          "text": "Release Process"
+        },
+        {
+          "level": 2,
           "text": "🎓 Philosophy"
         }
       ],
       "links": [
         {
+          "text": "ROADMAP.md",
+          "target": "./ROADMAP.md"
+        },
+        {
           "text": "REFERENCES.md",
           "target": "./REFERENCES.md"
+        },
+        {
+          "text": "install-generated template",
+          "target": "cmd/deft-install/setup.go"
         },
         {
           "text": "main.md",
@@ -14013,6 +15405,55 @@
         }
       ]
     },
+    "ROADMAP.md": {
+      "headers": [
+        {
+          "level": 2,
+          "text": "Phase 1 — Bug Fixes & Issue Resolution (Next Up)"
+        },
+        {
+          "level": 3,
+          "text": "Adoption Blockers (user-reported, highest priority)"
+        },
+        {
+          "level": 3,
+          "text": "Cleanup"
+        },
+        {
+          "level": 2,
+          "text": "Phase 2 — Documentation & Content Fixes"
+        },
+        {
+          "level": 3,
+          "text": "Philosophy & Positioning"
+        },
+        {
+          "level": 3,
+          "text": "Content & Doc Fixes"
+        },
+        {
+          "level": 2,
+          "text": "Phase 3 — Test Infrastructure & CI"
+        },
+        {
+          "level": 2,
+          "text": "Phase 4 — Package Distribution & Install UX"
+        },
+        {
+          "level": 2,
+          "text": "Phase 5 — CLI Overhaul & New Features"
+        },
+        {
+          "level": 2,
+          "text": "Completed"
+        },
+        {
+          "level": 2,
+          "text": "Open Issues Index"
+        }
+      ],
+      "links": []
+    },
     "scm/changelog.md": {
       "headers": [
         {
@@ -14177,39 +15618,7 @@
         },
         {
           "level": 2,
-          "text": "Integration with Release Process"
-        },
-        {
-          "level": 3,
-          "text": "Using git/GitHub"
-        },
-        {
-          "level": 1,
-          "text": "1. Update CHANGELOG.md"
-        },
-        {
-          "level": 1,
-          "text": "Move [Unreleased] items to [X.Y.Z] section"
-        },
-        {
-          "level": 1,
-          "text": "2. Commit changelog"
-        },
-        {
-          "level": 1,
-          "text": "3. Tag release"
-        },
-        {
-          "level": 1,
-          "text": "4. Push"
-        },
-        {
-          "level": 1,
-          "text": "5. Create GitHub release"
-        },
-        {
-          "level": 3,
-          "text": "Automated Generation"
+          "text": "Release Process"
         },
         {
           "level": 2,
@@ -14527,6 +15936,14 @@
         },
         {
           "level": 2,
+          "text": "Missing Config Auto-Setup"
+        },
+        {
+          "level": 3,
+          "text": "⊗ Project Root vs Framework Internals"
+        },
+        {
+          "level": 2,
           "text": "Core Principle: Rule Precedence"
         },
         {
@@ -14572,7 +15989,634 @@
       ],
       "links": []
     },
+    "skills/deft-build/SKILL.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Deft Build"
+        },
+        {
+          "level": 2,
+          "text": "When to Use"
+        },
+        {
+          "level": 2,
+          "text": "Platform Detection"
+        },
+        {
+          "level": 2,
+          "text": "USER.md Gate"
+        },
+        {
+          "level": 2,
+          "text": "File Reading"
+        },
+        {
+          "level": 2,
+          "text": "Rule Precedence"
+        },
+        {
+          "level": 2,
+          "text": "Build Process"
+        },
+        {
+          "level": 3,
+          "text": "Step 1: Understand the Spec"
+        },
+        {
+          "level": 3,
+          "text": "Step 2: Verify Toolchain"
+        },
+        {
+          "level": 3,
+          "text": "Step 3: Build Phase by Phase"
+        },
+        {
+          "level": 3,
+          "text": "Step 4: Quality Gates"
+        },
+        {
+          "level": 2,
+          "text": "Coding Standards (Summary)"
+        },
+        {
+          "level": 2,
+          "text": "Commit Strategy"
+        },
+        {
+          "level": 2,
+          "text": "Error Recovery"
+        },
+        {
+          "level": 2,
+          "text": "Completion"
+        },
+        {
+          "level": 2,
+          "text": "Anti-Patterns"
+        }
+      ],
+      "links": []
+    },
+    "skills/deft-review-cycle/SKILL.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Deft Review Cycle"
+        },
+        {
+          "level": 2,
+          "text": "When to Use"
+        },
+        {
+          "level": 2,
+          "text": "Phase 1 — Deft Process Audit"
+        },
+        {
+          "level": 2,
+          "text": "Phase 2 — Review/Fix Loop"
+        },
+        {
+          "level": 3,
+          "text": "Step 1: Fetch ALL bot comments"
+        },
+        {
+          "level": 3,
+          "text": "Step 2: Analyze ALL findings before changing anything"
+        },
+        {
+          "level": 3,
+          "text": "Step 3: Fix all findings in ONE batch commit"
+        },
+        {
+          "level": 3,
+          "text": "Step 4: Push and wait"
+        },
+        {
+          "level": 3,
+          "text": "Step 5: Re-fetch and analyze"
+        },
+        {
+          "level": 3,
+          "text": "Step 6: Exit condition check"
+        },
+        {
+          "level": 2,
+          "text": "Submitting GitHub Reviews"
+        },
+        {
+          "level": 2,
+          "text": "GitHub Interface Selection"
+        },
+        {
+          "level": 2,
+          "text": "Anti-Patterns"
+        }
+      ],
+      "links": []
+    },
+    "skills/deft-roadmap-refresh/SKILL.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Deft Roadmap Refresh"
+        },
+        {
+          "level": 2,
+          "text": "When to Use"
+        },
+        {
+          "level": 2,
+          "text": "Prerequisites"
+        },
+        {
+          "level": 2,
+          "text": "Phase 0 — Branch Setup"
+        },
+        {
+          "level": 2,
+          "text": "Phase 1 — Discovery"
+        },
+        {
+          "level": 2,
+          "text": "Phase 2 — One-at-a-Time Triage"
+        },
+        {
+          "level": 3,
+          "text": "Step 1: Fetch Details"
+        },
+        {
+          "level": 3,
+          "text": "Step 2: Analyze"
+        },
+        {
+          "level": 3,
+          "text": "Step 3: Wait for User Decision"
+        },
+        {
+          "level": 3,
+          "text": "Step 4: Apply (on user approval)"
+        },
+        {
+          "level": 2,
+          "text": "Phase 3 — Cleanup"
+        },
+        {
+          "level": 2,
+          "text": "Analysis Comment Template"
+        },
+        {
+          "level": 2,
+          "text": "Roadmap Refresh Analysis ({date})"
+        },
+        {
+          "level": 2,
+          "text": "Commit Strategy"
+        },
+        {
+          "level": 2,
+          "text": "Anti-Patterns"
+        }
+      ],
+      "links": []
+    },
+    "skills/deft-setup/SKILL.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Deft Setup"
+        },
+        {
+          "level": 2,
+          "text": "When to Use"
+        },
+        {
+          "level": 2,
+          "text": "Platform Detection"
+        },
+        {
+          "level": 2,
+          "text": "Agent Behavior"
+        },
+        {
+          "level": 2,
+          "text": "Available Languages"
+        },
+        {
+          "level": 2,
+          "text": "Available Strategies"
+        },
+        {
+          "level": 2,
+          "text": "Phase 1 — User Preferences (USER.md)"
+        },
+        {
+          "level": 3,
+          "text": "Interview Rules"
+        },
+        {
+          "level": 3,
+          "text": "Question Sequence"
+        },
+        {
+          "level": 3,
+          "text": "Output Path"
+        },
+        {
+          "level": 3,
+          "text": "Template"
+        },
+        {
+          "level": 1,
+          "text": "User Preferences"
+        },
+        {
+          "level": 2,
+          "text": "Personal (always wins)"
+        },
+        {
+          "level": 2,
+          "text": "Defaults (fallback)"
+        },
+        {
+          "level": 3,
+          "text": "Then"
+        },
+        {
+          "level": 2,
+          "text": "Phase 2 — Project Configuration (PROJECT.md)"
+        },
+        {
+          "level": 3,
+          "text": "Inference"
+        },
+        {
+          "level": 3,
+          "text": "Track Detection"
+        },
+        {
+          "level": 3,
+          "text": "Defaults in Agentic Mode"
+        },
+        {
+          "level": 3,
+          "text": "Interview Rules (same as Phase 1)"
+        },
+        {
+          "level": 3,
+          "text": "Question Sequence"
+        },
+        {
+          "level": 3,
+          "text": "Output Path"
+        },
+        {
+          "level": 3,
+          "text": "Template"
+        },
+        {
+          "level": 1,
+          "text": "{Project Name} Project Guidelines"
+        },
+        {
+          "level": 2,
+          "text": "Project Configuration"
+        },
+        {
+          "level": 2,
+          "text": "Strategy"
+        },
+        {
+          "level": 2,
+          "text": "Workflow"
+        },
+        {
+          "level": 2,
+          "text": "Standards"
+        },
+        {
+          "level": 2,
+          "text": "Project-Specific Rules"
+        },
+        {
+          "level": 3,
+          "text": "Then"
+        },
+        {
+          "level": 2,
+          "text": "Phase 3 — Specification (SPECIFICATION.md)"
+        },
+        {
+          "level": 3,
+          "text": "⚠️ MANDATORY: Strategy Gate — Do This First"
+        },
+        {
+          "level": 3,
+          "text": "Sizing Gate (interview and yolo strategies only)"
+        },
+        {
+          "level": 3,
+          "text": "Interview Process (interview strategy)"
+        },
+        {
+          "level": 3,
+          "text": "Output — Light Path"
+        },
+        {
+          "level": 3,
+          "text": "Output — Full Path"
+        },
+        {
+          "level": 3,
+          "text": "Handoff to deft-build"
+        },
+        {
+          "level": 2,
+          "text": "Anti-Patterns"
+        }
+      ],
+      "links": [
+        {
+          "text": "{strategy name}",
+          "target": "../strategies/{strategy-file}.md"
+        },
+        {
+          "text": "../main.md",
+          "target": "../main.md"
+        },
+        {
+          "text": "{strategy name}",
+          "target": "deft/strategies/{strategy-file}.md"
+        },
+        {
+          "text": "Name",
+          "target": "deft/strategies/file.md"
+        },
+        {
+          "text": "strategies/interview.md",
+          "target": "../../strategies/interview.md#sizing-gate"
+        },
+        {
+          "text": "strategies/interview.md",
+          "target": "../../strategies/interview.md#interview-rules-shared-by-both-paths"
+        }
+      ]
+    },
     "SPECIFICATION.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Deft Directive — Phases 1–3 SPECIFICATION"
+        },
+        {
+          "level": 2,
+          "text": "t1.1.1: Add inference boundary guards to deft-setup SKILL.md Phase 2 (FR-1, FR-2)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t1.1.2: Add project name fallback prompt when no build files detected (FR-3)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t1.1.3: Remove Primary Languages from USER.md template and Phase 1 interview (FR-4)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t1.1.4: Add deployment platform question before language in deft-setup Phase 2 (FR-5)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t1.2.1: Audit and fix vBRIEF generation in cmd_spec (FR-6)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t1.2.2: Audit and fix vBRIEF generation in deft-setup Phase 3 (FR-6)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t1.3.1: Fix run bootstrap infinite loop when strategies/ is empty (FR-7)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t1.3.2: Add version display to all run CLI commands on startup (FR-10)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t1.4.1: Merge strategies/default.md into strategies/interview.md and remove default.md (FR-8)  `[completed]`"
+        },
+        {
+          "level": 2,
+          "text": "t1.4.2: Update strategies/brownfield.md to redirect to strategies/map.md (FR-9)  `[completed]`"
+        },
+        {
+          "level": 2,
+          "text": "t1.5.1: Write coding/build-output.md — build output validation directive (FR-11)  `[completed]`"
+        },
+        {
+          "level": 2,
+          "text": "t1.5.2: Document toolchain validation gate in framework (FR-12)  `[completed]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.1.1: Update all stale core/user.md and core/project.md references to canonical paths (FR-13)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.1.2: Create history/changes/ directory with README.md (FR-14)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.1.3: Refactor strategies/yolo.md to reference interview.md shared phases (FR-15)  `[completed]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.1.4: Add See also banner to strategies/speckit.md (FR-16)  `[completed]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.1.5: Fix commands.md vBRIEF example vocabulary (FR-17)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.1.6: Clean core/project.md — remove Voxio Bot private content (FR-18)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.2.1: Create contracts/hierarchy.md — dual-hierarchy framework (FR-19)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.2.2: Add adaptive teaching behavior to main.md (FR-20)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.2.3: Add State WHY rule to strategies/interview.md (FR-21)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.3.1: Write CONTRIBUTING.md with full contributor bootstrap (FR-22, NFR-5)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.4.1: Reframe README.md — remove Warping references (FR-23, depends on #89)  `[blocked]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.4.2: Create meta/philosophy.md (FR-24, depends on #89)  `[blocked]`"
+        },
+        {
+          "level": 2,
+          "text": "t2.5.1: Create skills/deft-review-cycle/SKILL.md — Greptile review cycle skill (FR-28)  `[completed]`"
+        },
+        {
+          "level": 2,
+          "text": "t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t3.1.2: Open GitHub issue for run CLI coverage tracking (NFR-2)  `[pending]`"
+        },
+        {
+          "level": 2,
+          "text": "t3.1.3: Raise pyproject.toml coverage threshold to 85% and document run exclusion (NFR-1, NFR-2, FR-27)  `[pending]`"
+        }
+      ],
+      "links": []
+    },
+    "specs/strategy-chaining/SPECIFICATION.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Strategy Chaining SPECIFICATION"
+        },
+        {
+          "level": 2,
+          "text": "Overview"
+        },
+        {
+          "level": 2,
+          "text": "Requirements"
+        },
+        {
+          "level": 3,
+          "text": "Functional Requirements"
+        },
+        {
+          "level": 3,
+          "text": "Non-Functional Requirements"
+        },
+        {
+          "level": 2,
+          "text": "Architecture"
+        },
+        {
+          "level": 3,
+          "text": "Flow"
+        },
+        {
+          "level": 3,
+          "text": "State in plan.vbrief.json"
+        },
+        {
+          "level": 3,
+          "text": "Rejected Spec Naming"
+        },
+        {
+          "level": 3,
+          "text": "strategies/README.md Category Column"
+        },
+        {
+          "level": 2,
+          "text": "Implementation Plan"
+        },
+        {
+          "level": 3,
+          "text": "Phase 1: Schema & State (no dependencies)"
+        },
+        {
+          "level": 4,
+          "text": "Task 1.1: Extend plan.vbrief.json schema"
+        },
+        {
+          "level": 3,
+          "text": "Phase 2: Strategy categorization (no dependencies)"
+        },
+        {
+          "level": 4,
+          "text": "Task 2.1: Add Type column to strategies/README.md"
+        },
+        {
+          "level": 3,
+          "text": "Phase 3: Chaining gate (depends on Phase 1, Phase 2)"
+        },
+        {
+          "level": 4,
+          "text": "Task 3.1: Add chaining gate section to strategies/interview.md"
+        },
+        {
+          "level": 4,
+          "text": "Task 3.2: Add acceptance gate section to strategies/interview.md"
+        },
+        {
+          "level": 3,
+          "text": "Phase 4: Update preparatory strategies (depends on Phase 3)"
+        },
+        {
+          "level": 4,
+          "text": "Task 4.1: Simplify brownfield.md \"Then: Specification\" section"
+        },
+        {
+          "level": 4,
+          "text": "Task 4.2: Simplify map.md \"Then: Specification\" section"
+        },
+        {
+          "level": 4,
+          "text": "Task 4.3: Simplify research.md \"Then: Specification\" section"
+        },
+        {
+          "level": 4,
+          "text": "Task 4.4: Simplify discuss.md \"Then: Specification\" section"
+        },
+        {
+          "level": 4,
+          "text": "Task 4.5: Update artifact carry-forward rules"
+        },
+        {
+          "level": 3,
+          "text": "Phase 5: Yolo strategy alignment (depends on Phase 3)"
+        },
+        {
+          "level": 4,
+          "text": "Task 5.1: Update yolo.md for chaining gate compatibility"
+        },
+        {
+          "level": 3,
+          "text": "Phase 6: Validation (depends on all previous phases)"
+        },
+        {
+          "level": 4,
+          "text": "Task 6.1: Cross-reference check"
+        },
+        {
+          "level": 4,
+          "text": "Task 6.2: Automated content tests"
+        },
+        {
+          "level": 4,
+          "text": "Task 6.3: Deferred — manual behavioral walkthrough"
+        },
+        {
+          "level": 2,
+          "text": "Dependency Map"
+        },
+        {
+          "level": 2,
+          "text": "Testing Strategy"
+        }
+      ],
+      "links": []
+    },
+    "specs/testbed/SPECIFICATION.md": {
       "headers": [
         {
           "level": 1,
@@ -14682,220 +16726,15 @@
       "headers": [
         {
           "level": 1,
-          "text": "Brownfield Strategy"
-        },
-        {
-          "level": 2,
-          "text": "When to Use"
-        },
-        {
-          "level": 2,
-          "text": "Workflow"
-        },
-        {
-          "level": 2,
-          "text": "Mapping Artifacts"
-        },
-        {
-          "level": 3,
-          "text": "STACK.md — Technology inventory"
-        },
-        {
-          "level": 3,
-          "text": "ARCHITECTURE.md — System design"
-        },
-        {
-          "level": 3,
-          "text": "CONVENTIONS.md — How code is written here"
-        },
-        {
-          "level": 3,
-          "text": "CONCERNS.md — Technical debt and risks"
-        },
-        {
-          "level": 2,
-          "text": "Mapping Rules"
-        },
-        {
-          "level": 2,
-          "text": "How Artifacts Feed Downstream"
-        },
-        {
-          "level": 2,
-          "text": "Invoking This Strategy"
+          "text": "Brownfield Strategy (Redirect)"
         }
       ],
       "links": [
         {
-          "text": "strategies/default.md",
-          "target": "./default.md"
-        },
-        {
-          "text": "strategies/discuss.md",
-          "target": "./discuss.md"
-        },
-        {
-          "text": "core/glossary.md",
-          "target": "../core/glossary.md"
-        },
-        {
-          "text": "strategies/brownfield.md",
-          "target": "./deft/strategies/brownfield.md"
+          "text": "strategies/map.md",
+          "target": "./map.md"
         }
       ]
-    },
-    "strategies/default.md": {
-      "headers": [
-        {
-          "level": 1,
-          "text": "DEFaulT Strategy"
-        },
-        {
-          "level": 2,
-          "text": "When to Use"
-        },
-        {
-          "level": 2,
-          "text": "Workflow Overview"
-        },
-        {
-          "level": 2,
-          "text": "Phase 1: Interview"
-        },
-        {
-          "level": 3,
-          "text": "Process"
-        },
-        {
-          "level": 3,
-          "text": "Question Areas"
-        },
-        {
-          "level": 3,
-          "text": "Transition Criteria"
-        },
-        {
-          "level": 2,
-          "text": "Phase 2: PRD Generation"
-        },
-        {
-          "level": 3,
-          "text": "PRD Structure"
-        },
-        {
-          "level": 1,
-          "text": "[Project Name] PRD"
-        },
-        {
-          "level": 2,
-          "text": "Problem Statement"
-        },
-        {
-          "level": 2,
-          "text": "Goals"
-        },
-        {
-          "level": 2,
-          "text": "User Stories"
-        },
-        {
-          "level": 2,
-          "text": "Requirements"
-        },
-        {
-          "level": 3,
-          "text": "Functional Requirements"
-        },
-        {
-          "level": 3,
-          "text": "Non-Functional Requirements"
-        },
-        {
-          "level": 2,
-          "text": "Success Metrics"
-        },
-        {
-          "level": 2,
-          "text": "Open Questions"
-        },
-        {
-          "level": 3,
-          "text": "Guidelines"
-        },
-        {
-          "level": 3,
-          "text": "Transition Criteria"
-        },
-        {
-          "level": 2,
-          "text": "Phase 3: SPECIFICATION Generation"
-        },
-        {
-          "level": 3,
-          "text": "SPECIFICATION Structure"
-        },
-        {
-          "level": 1,
-          "text": "[Project Name] SPECIFICATION"
-        },
-        {
-          "level": 2,
-          "text": "Overview"
-        },
-        {
-          "level": 2,
-          "text": "Architecture"
-        },
-        {
-          "level": 2,
-          "text": "Implementation Plan"
-        },
-        {
-          "level": 3,
-          "text": "Phase 1: Foundation"
-        },
-        {
-          "level": 4,
-          "text": "Subphase 1.1: Setup"
-        },
-        {
-          "level": 4,
-          "text": "Subphase 1.2: Core (depends on: 1.1)"
-        },
-        {
-          "level": 3,
-          "text": "Phase 2: Features (depends on: Phase 1)"
-        },
-        {
-          "level": 2,
-          "text": "Testing Strategy"
-        },
-        {
-          "level": 2,
-          "text": "Deployment"
-        },
-        {
-          "level": 3,
-          "text": "Guidelines"
-        },
-        {
-          "level": 3,
-          "text": "Task Format"
-        },
-        {
-          "level": 3,
-          "text": "Transition Criteria"
-        },
-        {
-          "level": 2,
-          "text": "Artifacts Summary"
-        },
-        {
-          "level": 2,
-          "text": "Invoking This Strategy"
-        }
-      ],
-      "links": []
     },
     "strategies/discuss.md": {
       "headers": [
@@ -14945,6 +16784,10 @@
         },
         {
           "level": 2,
+          "text": "Then: Chaining Gate"
+        },
+        {
+          "level": 2,
           "text": "Anti-Patterns"
         }
       ],
@@ -14960,6 +16803,14 @@
         {
           "text": "core/glossary.md",
           "target": "../core/glossary.md"
+        },
+        {
+          "text": "chaining gate",
+          "target": "./interview.md#chaining-gate"
+        },
+        {
+          "text": "interview.md Chaining Gate",
+          "target": "./interview.md#chaining-gate"
         }
       ]
     },
@@ -14975,15 +16826,47 @@
         },
         {
           "level": 2,
+          "text": "Chaining Gate"
+        },
+        {
+          "level": 3,
+          "text": "When It Appears"
+        },
+        {
+          "level": 3,
+          "text": "Options"
+        },
+        {
+          "level": 3,
+          "text": "Run Count Annotations"
+        },
+        {
+          "level": 3,
+          "text": "State Tracking"
+        },
+        {
+          "level": 3,
+          "text": "Example Prompt"
+        },
+        {
+          "level": 2,
+          "text": "Sizing Gate"
+        },
+        {
+          "level": 3,
+          "text": "Sizing Signals"
+        },
+        {
+          "level": 3,
+          "text": "PROJECT.md Override"
+        },
+        {
+          "level": 2,
           "text": "Workflow Overview"
         },
         {
           "level": 2,
-          "text": "Phase 1: Interview"
-        },
-        {
-          "level": 3,
-          "text": "Process"
+          "text": "Interview Rules (shared by both paths)"
         },
         {
           "level": 3,
@@ -14991,15 +16874,83 @@
         },
         {
           "level": 3,
-          "text": "Transition Criteria"
+          "text": "Transition Criteria (interview complete)"
         },
         {
           "level": 2,
-          "text": "Phase 2: PRD Generation"
+          "text": "Light Path (small/medium projects)"
         },
         {
           "level": 3,
-          "text": "PRD Structure"
+          "text": "Flow"
+        },
+        {
+          "level": 3,
+          "text": "SPECIFICATION Structure (Light)"
+        },
+        {
+          "level": 1,
+          "text": "[Project Name] SPECIFICATION"
+        },
+        {
+          "level": 2,
+          "text": "Overview"
+        },
+        {
+          "level": 2,
+          "text": "Requirements"
+        },
+        {
+          "level": 3,
+          "text": "Functional Requirements"
+        },
+        {
+          "level": 3,
+          "text": "Non-Functional Requirements"
+        },
+        {
+          "level": 2,
+          "text": "Architecture"
+        },
+        {
+          "level": 2,
+          "text": "Implementation Plan"
+        },
+        {
+          "level": 3,
+          "text": "Phase 1: Foundation"
+        },
+        {
+          "level": 4,
+          "text": "Subphase 1.1: Setup"
+        },
+        {
+          "level": 4,
+          "text": "Subphase 1.2: Core (depends on: 1.1)"
+        },
+        {
+          "level": 3,
+          "text": "Phase 2: Features (depends on: Phase 1)"
+        },
+        {
+          "level": 2,
+          "text": "Testing Strategy"
+        },
+        {
+          "level": 2,
+          "text": "Deployment"
+        },
+        {
+          "level": 2,
+          "text": "Full Path (large/complex projects)"
+        },
+        {
+          "level": 3,
+          "text": "Flow"
+        },
+        {
+          "level": 3,
+          "text": "PRD Structure (Full path only)"
         },
         {
           "level": 1,
@@ -15039,19 +16990,15 @@
         },
         {
           "level": 3,
-          "text": "Guidelines"
+          "text": "PRD Guidelines"
         },
         {
           "level": 3,
-          "text": "Transition Criteria"
-        },
-        {
-          "level": 2,
-          "text": "Phase 3: SPECIFICATION Generation"
+          "text": "PRD Transition Criteria"
         },
         {
           "level": 3,
-          "text": "SPECIFICATION Structure"
+          "text": "SPECIFICATION Structure (Full)"
         },
         {
           "level": 1,
@@ -15094,8 +17041,8 @@
           "text": "Deployment"
         },
         {
-          "level": 3,
-          "text": "Guidelines"
+          "level": 2,
+          "text": "SPECIFICATION Guidelines (both paths)"
         },
         {
           "level": 3,
@@ -15104,6 +17051,22 @@
         {
           "level": 3,
           "text": "Transition Criteria"
+        },
+        {
+          "level": 2,
+          "text": "Acceptance Gate"
+        },
+        {
+          "level": 3,
+          "text": "Options"
+        },
+        {
+          "level": 3,
+          "text": "Rejected Spec Archival"
+        },
+        {
+          "level": 3,
+          "text": "State Preservation"
         },
         {
           "level": 2,
@@ -15126,6 +17089,18 @@
         {
           "text": "core/glossary.md",
           "target": "../core/glossary.md"
+        },
+        {
+          "text": "strategies/README.md",
+          "target": "./README.md#strategy-types"
+        },
+        {
+          "text": "`./vbrief/plan.vbrief.json`",
+          "target": "../vbrief/vbrief.md#strategy-chaining-fields"
+        },
+        {
+          "text": "../coding/toolchain.md",
+          "target": "../coding/toolchain.md"
         }
       ]
     },
@@ -15173,6 +17148,10 @@
         },
         {
           "level": 2,
+          "text": "Then: Chaining Gate"
+        },
+        {
+          "level": 2,
           "text": "Invoking This Strategy"
         }
       ],
@@ -15190,6 +17169,14 @@
           "target": "../core/glossary.md"
         },
         {
+          "text": "chaining gate",
+          "target": "./interview.md#chaining-gate"
+        },
+        {
+          "text": "interview.md Chaining Gate",
+          "target": "./interview.md#chaining-gate"
+        },
+        {
           "text": "strategies/map.md",
           "target": "./deft/strategies/map.md"
         }
@@ -15204,6 +17191,10 @@
         {
           "level": 2,
           "text": "Available Strategies"
+        },
+        {
+          "level": 2,
+          "text": "Strategy Types"
         },
         {
           "level": 2,
@@ -15244,6 +17235,14 @@
           "target": "./research.md"
         },
         {
+          "text": "roadmap.md",
+          "target": "./roadmap.md"
+        },
+        {
+          "text": "chaining gate",
+          "target": "./interview.md#chaining-gate"
+        },
+        {
           "text": "strategies/interview.md",
           "target": "../strategies/interview.md"
         }
@@ -15281,6 +17280,10 @@
         },
         {
           "level": 2,
+          "text": "Then: Chaining Gate"
+        },
+        {
+          "level": 2,
           "text": "Anti-Patterns"
         }
       ],
@@ -15296,8 +17299,93 @@
         {
           "text": "strategies/map.md",
           "target": "./map.md"
+        },
+        {
+          "text": "chaining gate",
+          "target": "./interview.md#chaining-gate"
+        },
+        {
+          "text": "interview.md Chaining Gate",
+          "target": "./interview.md#chaining-gate"
         }
       ]
+    },
+    "strategies/roadmap.md": {
+      "headers": [
+        {
+          "level": 1,
+          "text": "Roadmap Maintenance Strategy"
+        },
+        {
+          "level": 2,
+          "text": "When to Use"
+        },
+        {
+          "level": 2,
+          "text": "Overview"
+        },
+        {
+          "level": 2,
+          "text": "Workflow"
+        },
+        {
+          "level": 3,
+          "text": "Step 1 — Discover"
+        },
+        {
+          "level": 3,
+          "text": "Step 2 — Triage One-at-a-Time"
+        },
+        {
+          "level": 3,
+          "text": "Step 3 — Clean Up"
+        },
+        {
+          "level": 2,
+          "text": "Roadmap Structure (Suggested)"
+        },
+        {
+          "level": 1,
+          "text": "Project Roadmap"
+        },
+        {
+          "level": 2,
+          "text": "Phase 1 — {Urgent / Bugs / Blockers}"
+        },
+        {
+          "level": 2,
+          "text": "Phase 2 — {Content / Documentation}"
+        },
+        {
+          "level": 2,
+          "text": "Phase 3 — {Infrastructure / CI}"
+        },
+        {
+          "level": 2,
+          "text": "Phase 4 — {Distribution / Packaging}"
+        },
+        {
+          "level": 2,
+          "text": "Phase 5 — {New Features / Long-term}"
+        },
+        {
+          "level": 2,
+          "text": "Completed"
+        },
+        {
+          "level": 2,
+          "text": "Open Issues Index"
+        },
+        {
+          "level": 2,
+          "text": "Analysis Template (Suggested)"
+        },
+        {
+          "level": 2,
+          "text": "Tips"
+        }
+      ],
+      "links": []
     },
     "strategies/speckit.md": {
       "headers": [
@@ -15488,6 +17576,18 @@
       ],
       "links": [
         {
+          "text": "strategies/interview.md",
+          "target": "./interview.md"
+        },
+        {
+          "text": "strategies/discuss.md",
+          "target": "./discuss.md"
+        },
+        {
+          "text": "core/glossary.md",
+          "target": "../core/glossary.md"
+        },
+        {
           "text": "strategies/speckit.md",
           "target": "./deft/strategies/speckit.md"
         }
@@ -15505,135 +17605,31 @@
         },
         {
           "level": 2,
+          "text": "Chaining Gate"
+        },
+        {
+          "level": 2,
+          "text": "Sizing Gate"
+        },
+        {
+          "level": 2,
           "text": "Workflow Overview"
         },
         {
           "level": 2,
-          "text": "Phase 1: Interview"
-        },
-        {
-          "level": 3,
-          "text": "Process"
-        },
-        {
-          "level": 3,
-          "text": "Question Areas"
-        },
-        {
-          "level": 3,
-          "text": "Transition Criteria"
+          "text": "Interview Rules"
         },
         {
           "level": 2,
-          "text": "Phase 2: PRD Generation"
-        },
-        {
-          "level": 3,
-          "text": "PRD Structure"
-        },
-        {
-          "level": 1,
-          "text": "[Project Name] PRD"
+          "text": "Light Path"
         },
         {
           "level": 2,
-          "text": "Problem Statement"
+          "text": "Full Path"
         },
         {
           "level": 2,
-          "text": "Goals"
-        },
-        {
-          "level": 2,
-          "text": "User Stories"
-        },
-        {
-          "level": 2,
-          "text": "Requirements"
-        },
-        {
-          "level": 3,
-          "text": "Functional Requirements"
-        },
-        {
-          "level": 3,
-          "text": "Non-Functional Requirements"
-        },
-        {
-          "level": 2,
-          "text": "Success Metrics"
-        },
-        {
-          "level": 2,
-          "text": "Open Questions"
-        },
-        {
-          "level": 3,
-          "text": "Guidelines"
-        },
-        {
-          "level": 3,
-          "text": "Transition Criteria"
-        },
-        {
-          "level": 2,
-          "text": "Phase 3: SPECIFICATION Generation"
-        },
-        {
-          "level": 3,
-          "text": "SPECIFICATION Structure"
-        },
-        {
-          "level": 1,
-          "text": "[Project Name] SPECIFICATION"
-        },
-        {
-          "level": 2,
-          "text": "Overview"
-        },
-        {
-          "level": 2,
-          "text": "Architecture"
-        },
-        {
-          "level": 2,
-          "text": "Implementation Plan"
-        },
-        {
-          "level": 3,
-          "text": "Phase 1: Foundation"
-        },
-        {
-          "level": 4,
-          "text": "Subphase 1.1: Setup"
-        },
-        {
-          "level": 4,
-          "text": "Subphase 1.2: Core (depends on: 1.1)"
-        },
-        {
-          "level": 3,
-          "text": "Phase 2: Features (depends on: Phase 1)"
-        },
-        {
-          "level": 2,
-          "text": "Testing Strategy"
-        },
-        {
-          "level": 2,
-          "text": "Deployment"
-        },
-        {
-          "level": 3,
-          "text": "Guidelines"
-        },
-        {
-          "level": 3,
-          "text": "Task Format"
-        },
-        {
-          "level": 3,
-          "text": "Transition Criteria"
+          "text": "SPECIFICATION Guidelines"
         },
         {
           "level": 2,
@@ -15645,6 +17641,10 @@
         }
       ],
       "links": [
+        {
+          "text": "interview.md",
+          "target": "./interview.md"
+        },
         {
           "text": "strategies/interview.md",
           "target": "./interview.md"
@@ -15662,8 +17662,36 @@
           "target": "./interview.md"
         },
         {
+          "text": "chaining gate",
+          "target": "./interview.md#chaining-gate"
+        },
+        {
+          "text": "acceptance gate",
+          "target": "./interview.md#acceptance-gate"
+        },
+        {
           "text": "interview.md",
-          "target": "./interview.md"
+          "target": "./interview.md#sizing-gate"
+        },
+        {
+          "text": "interview.md",
+          "target": "./interview.md#interview-rules-shared-by-both-paths"
+        },
+        {
+          "text": "interview.md Light path",
+          "target": "./interview.md#light-path-smallmedium-projects"
+        },
+        {
+          "text": "interview.md Full path",
+          "target": "./interview.md#full-path-largecomplex-projects"
+        },
+        {
+          "text": "interview.md",
+          "target": "./interview.md#specification-guidelines-both-paths"
+        },
+        {
+          "text": "interview.md",
+          "target": "./interview.md#artifacts-summary"
         }
       ]
     },
@@ -15797,11 +17825,59 @@
         },
         {
           "level": 2,
+          "text": "Sizing Gate"
+        },
+        {
+          "level": 2,
           "text": "Interview Process"
         },
         {
           "level": 2,
           "text": "Output Generation"
+        },
+        {
+          "level": 3,
+          "text": "Full Path: PRD Generation"
+        },
+        {
+          "level": 1,
+          "text": "[Project Name] PRD"
+        },
+        {
+          "level": 2,
+          "text": "Problem Statement"
+        },
+        {
+          "level": 2,
+          "text": "Goals"
+        },
+        {
+          "level": 2,
+          "text": "User Stories"
+        },
+        {
+          "level": 2,
+          "text": "Requirements"
+        },
+        {
+          "level": 3,
+          "text": "Functional Requirements"
+        },
+        {
+          "level": 3,
+          "text": "Non-Functional Requirements"
+        },
+        {
+          "level": 2,
+          "text": "Success Metrics"
+        },
+        {
+          "level": 2,
+          "text": "Open Questions"
+        },
+        {
+          "level": 3,
+          "text": "Specification Flow (both paths)"
         },
         {
           "level": 2,
@@ -15818,6 +17894,54 @@
         {
           "level": 2,
           "text": "Requirements"
+        },
+        {
+          "level": 3,
+          "text": "Functional Requirements"
+        },
+        {
+          "level": 3,
+          "text": "Non-Functional Requirements"
+        },
+        {
+          "level": 2,
+          "text": "Architecture"
+        },
+        {
+          "level": 2,
+          "text": "Implementation Plan"
+        },
+        {
+          "level": 3,
+          "text": "Phase 1: Foundation"
+        },
+        {
+          "level": 4,
+          "text": "Subphase 1.1: Setup"
+        },
+        {
+          "level": 4,
+          "text": "Subphase 1.2: Core (depends on: 1.1)"
+        },
+        {
+          "level": 3,
+          "text": "Phase 2: Features (depends on: Phase 1)"
+        },
+        {
+          "level": 2,
+          "text": "Testing Strategy"
+        },
+        {
+          "level": 2,
+          "text": "Deployment"
+        },
+        {
+          "level": 1,
+          "text": "Project Name"
+        },
+        {
+          "level": 2,
+          "text": "Overview"
         },
         {
           "level": 2,
@@ -15860,139 +17984,27 @@
           "text": "Anti-Patterns"
         }
       ],
-      "links": []
+      "links": [
+        {
+          "text": "strategies/interview.md",
+          "target": "../strategies/interview.md"
+        },
+        {
+          "text": "strategies/interview.md",
+          "target": "../strategies/interview.md#sizing-gate"
+        },
+        {
+          "text": "vbrief/vbrief.md",
+          "target": "../vbrief/vbrief.md"
+        },
+        {
+          "text": "vbrief/schemas/vbrief-core.schema.json",
+          "target": "../vbrief/schemas/vbrief-core.schema.json"
+        }
+      ]
     },
     "templates/specification.md": {
       "headers": [],
-      "links": []
-    },
-    "todo.md": {
-      "headers": [
-        {
-          "level": 1,
-          "text": "Todo"
-        },
-        {
-          "level": 2,
-          "text": "NOW — Blockers for testbed → master"
-        },
-        {
-          "level": 3,
-          "text": "1. Land PR #26 on master"
-        },
-        {
-          "level": 3,
-          "text": "2. Merge master → beta"
-        },
-        {
-          "level": 3,
-          "text": "3. Update test suite for v0.6.0 content"
-        },
-        {
-          "level": 3,
-          "text": "4. Reopen PR #22 and merge testbed to master"
-        },
-        {
-          "level": 2,
-          "text": "What landed on master (PRs #16–#20, 2026-03-11)"
-        },
-        {
-          "level": 3,
-          "text": "PR #16 — Slash commands, strategy renames, yolo strategy"
-        },
-        {
-          "level": 3,
-          "text": "PR #17 — Change lifecycle workflow and history directory"
-        },
-        {
-          "level": 3,
-          "text": "PR #19 — Spec deltas with vBRIEF chain pattern"
-        },
-        {
-          "level": 3,
-          "text": "PR #20 — Archive lifecycle expansion"
-        },
-        {
-          "level": 3,
-          "text": "Open issues from review"
-        },
-        {
-          "level": 2,
-          "text": "NEXT — Priority Refactors (after testbed lands on master)"
-        },
-        {
-          "level": 3,
-          "text": "Convert to TDD mode"
-        },
-        {
-          "level": 3,
-          "text": "Agent-driven skills as primary onboarding path"
-        },
-        {
-          "level": 3,
-          "text": "Enforce USER.md gate in both paths"
-        },
-        {
-          "level": 2,
-          "text": "LATER — Phase 2 (Deft Directive Upgrade)"
-        },
-        {
-          "level": 3,
-          "text": "Rename: \"Warping\" → \"Deft Directive\""
-        },
-        {
-          "level": 3,
-          "text": "Clean leaked personal files"
-        },
-        {
-          "level": 3,
-          "text": "Add missing strategies"
-        },
-        {
-          "level": 3,
-          "text": "Port `SKILL.md` from master → superseded by agent skills"
-        },
-        {
-          "level": 3,
-          "text": "Codify PR workflow standards into `scm/github.md`"
-        },
-        {
-          "level": 3,
-          "text": "Write remaining CHANGELOG entries"
-        },
-        {
-          "level": 2,
-          "text": "LATER — Deferred Test Coverage"
-        },
-        {
-          "level": 3,
-          "text": "CI: GitHub Actions workflow"
-        },
-        {
-          "level": 3,
-          "text": "CLI tests: additional commands"
-        },
-        {
-          "level": 3,
-          "text": "CLI tests: error and edge cases"
-        },
-        {
-          "level": 2,
-          "text": "LATER — Future Phases (Unscheduled)"
-        },
-        {
-          "level": 3,
-          "text": "LLM-assisted content validation"
-        },
-        {
-          "level": 3,
-          "text": "Spec: self-upgrade to Deft Directive product"
-        },
-        {
-          "level": 2,
-          "text": "Completed"
-        }
-      ],
       "links": []
     },
     "tools/RWLDL.md": {
@@ -16240,6 +18252,10 @@
           "text": "plan.vbrief.json"
         },
         {
+          "level": 3,
+          "text": "Strategy Chaining Fields"
+        },
+        {
           "level": 2,
           "text": "continue.vbrief.json"
         },
@@ -16278,12 +18294,20 @@
           "target": "./schemas/vbrief-core.schema.json"
         },
         {
+          "text": "strategies/interview.md",
+          "target": "../strategies/interview.md"
+        },
+        {
           "text": "templates/make-spec.md",
           "target": "../templates/make-spec.md"
         },
         {
           "text": "meta/lessons.md",
           "target": "../meta/lessons.md"
+        },
+        {
+          "text": "chaining gate",
+          "target": "../strategies/interview.md#chaining-gate"
         },
         {
           "text": "resilience/continue-here.md",

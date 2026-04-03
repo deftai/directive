@@ -76,6 +76,15 @@
       "fix_in": "N/A"
     },
     {
+      "id": "shape-strategy-brownfield-redirect-exempt",
+      "check": "test_shape.strategy_file_shape",
+      "file": "strategies/brownfield.md",
+      "reason": "Legacy redirect file — brownfield strategy has been renamed to map. File kept only for backward compatibility.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
       "id": "shape-strategy-research-no-workflow",
       "check": "test_shape.strategy_file_shape",
       "file": "strategies/research.md",
@@ -192,6 +201,15 @@
       "check": "test_standards.rfc2119_legend_present",
       "file": "strategies/README.md",
       "reason": "Index/overview file — not a standards document. RFC2119 legend not appropriate here.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "rfc2119-exempt-strategies-brownfield",
+      "check": "test_standards.rfc2119_legend_present",
+      "file": "strategies/brownfield.md",
+      "reason": "Legacy redirect file — brownfield strategy renamed to map. No RFC2119 content.",
       "xfail": false,
       "exempt": true,
       "fix_in": "N/A"

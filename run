@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-run - Cross-platform CLI tool for Deft framework v0.3.7
+run - Cross-platform CLI tool for Deft framework
 A layered framework for AI-assisted development
 
 Works on: macOS, Linux, Windows, FreeBSD
-Requires: Python 3.6+
 Optional: rich (for enhanced output and better UX)
 """
 
@@ -127,6 +126,7 @@ def get_default_paths() -> dict:
         DEFT_PROJECT_PATH       default: ./PROJECT.md
         DEFT_PRD_PATH           default: ./PRD.md
         DEFT_SPECIFICATION_PATH default: ./SPECIFICATION.md
+        DEFT_INTERVIEW_PATH     default: ./INTERVIEW.md (Light sizing path only; not in returned dict)
     
     Returns:
         dict with keys 'user', 'project', 'prd', 'specification'
@@ -319,7 +319,7 @@ def usage():
 [bold cyan]Commands:[/bold cyan]
   [green]bootstrap[/green]       Set up your user preferences (user.md)
   [green]project[/green]         Create/update project configuration (project.md)
-  [green]spec[/green]            Generate project specification (interactive interview)
+  [green]spec[/green]            Generate project specification via interview (--force to overwrite)
   [green]install[/green]         Install deft framework in a project directory
   [green]reset[/green]           Reset configuration files to default state
   [green]validate[/green]        Validate deft configuration files
@@ -351,7 +351,7 @@ For more information: [link]https://github.com/deftai/directive[/link]
 Commands:
   bootstrap       Set up your user preferences (user.md)
   project         Create/update project configuration (project.md)
-  spec            Generate project specification (interactive interview)
+  spec            Generate project specification via interview (--force to overwrite)
   install         Install deft framework in a project directory
   reset           Reset configuration files to default state
   validate        Validate deft configuration files
@@ -488,7 +488,7 @@ read_yn = ask_confirm
 
 def cmd_bootstrap(args: List[str]):
     """Bootstrap command - set up user.md"""
-    print_header(f"Deft v{VERSION} - Bootstrap")
+    print_header(f"Deft CLI v{VERSION} - Bootstrap")
     print()
     info("This command creates user.md, which defines YOUR personal preferences:")
     info("  • Your name (how the AI should address you)")
@@ -809,7 +809,7 @@ for project-scoped settings (strategy, coverage, languages).
 
 def cmd_project(args: List[str]):
     """Project command - configure project.md"""
-    print_header(f"Deft v{VERSION} - Project Configuration")
+    print_header(f"Deft CLI v{VERSION} - Project Configuration")
     print()
     info("This command creates project.md, which defines YOUR project's specifics:")
     info("  • Tech stack and programming language")
@@ -1324,7 +1324,7 @@ def _read_project_strategy(defaults: dict) -> Optional[str]:
 
 def cmd_spec(args: List[str]):
     """Spec command - generate specification via interview"""
-    print_header(f"Deft v{VERSION} - Specification Generator")
+    print_header(f"Deft CLI v{VERSION} - Specification Generator")
     print()
     
     defaults = get_default_paths()
@@ -1376,7 +1376,7 @@ def cmd_spec(args: List[str]):
                     if line.startswith('# ') and 'Project Guidelines' in line:
                         spec_name = line.replace('# ', '').replace(' Project Guidelines', '').strip()
                         break
-            except:
+            except (OSError, UnicodeDecodeError):
                 pass
         
         if spec_name:
@@ -1433,7 +1433,7 @@ def cmd_spec(args: List[str]):
     
     # Determine output file
     if sizing == "Light":
-        output_default = os.environ.get('DEFT_PRD_PATH', './INTERVIEW.md')
+        output_default = os.environ.get('DEFT_INTERVIEW_PATH', './INTERVIEW.md')
     else:
         output_default = defaults['prd']  # ./PRD.md
     
@@ -1568,7 +1568,7 @@ def cmd_install(args: List[str]):
     """Install command - install deft framework in a project"""
     target_dir = Path(args[0]) if args else Path(".")
     
-    print_header(f"Deft v{VERSION} - Installation")
+    print_header(f"Deft CLI v{VERSION} - Installation")
     print()
     info("This command installs the Deft framework in your project directory.")
     info("It will create:")
@@ -1688,6 +1688,8 @@ tasks:
 
 def cmd_validate(args: List[str]):
     """Validate command - check deft configuration"""
+    print_header(f"Deft CLI v{VERSION} - Validate")
+    print()
     info("Validating Deft configuration...")
     print()
     
@@ -1732,7 +1734,9 @@ def cmd_validate(args: List[str]):
 
 def cmd_doctor(args: List[str]):
     """Doctor command - check system dependencies"""
-    info("Deft Doctor - Checking system...")
+    print_header(f"Deft CLI v{VERSION} - Doctor")
+    print()
+    info("Checking system dependencies...")
     print()
     
     warnings = 0
@@ -1781,13 +1785,15 @@ def cmd_doctor(args: List[str]):
 
 def cmd_update(args: List[str]):
     """Update command - update deft framework"""
+    print_header(f"Deft CLI v{VERSION} - Update")
+    print()
     info("Deft update functionality not yet implemented")
     warn("Manual update: Replace deft directory with latest version from repository")
     return 0
 
 def cmd_reset(args: List[str]):
     """Reset command - reset configuration files to default/empty state"""
-    print_header(f"Deft v{VERSION} - Reset")
+    print_header(f"Deft CLI v{VERSION} - Reset")
     print()
     info("This command resets deft configuration files to their default state.")
     info("You can choose which files to reset:")

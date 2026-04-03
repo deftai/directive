@@ -3,8 +3,8 @@ name: deft-review-cycle
 description: >
   Greptile bot reviewer response workflow. Use when running a review cycle
   on a PR — to audit process prerequisites, fetch bot findings, fix all
-  issues in a single batch commit, and exit cleanly when no P1/P2 issues
-  remain. Enables cloud agents to run autonomous PR review cycles.
+  issues in a single batch commit, and exit cleanly when no P0 or P1 issues
+  remain.
 ---
 
 # Deft Review Cycle
@@ -27,8 +27,10 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 2. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes
 3. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥75%)
 4. ! `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfied in the PR description
+5. ! If the PR touches 3+ files: verify a `/deft:change` proposal exists in `history/changes/` for this branch, or document N/A with reason in the PR checklist
 
-⊗ Proceed to Phase 2 while any prerequisite is unmet.
+! Phase 1 audit gaps must be resolved before merging — but hold the fixes (do NOT commit or push them independently). Proceed to Phase 2 analysis to gather bot findings, then batch all Phase 1 + Phase 2 fixes into a single commit.
+⊗ Commit or push Phase 1 audit fixes independently before gathering Phase 2 findings.
 
 ## Phase 2 — Review/Fix Loop
 
@@ -72,9 +74,24 @@ gh pr view <number> --comments
 
 ! Push the batch commit, then wait for the bot to review the latest commit.
 
-! Confirm the review is current by comparing the "Last reviewed commit" hash at the bottom of the Greptile comment to the pushed commit SHA. Fetch the full untruncated comment body or use MCP `get_comments` to get the actual commit URL containing the full SHA — do NOT rely on grepping truncated link text.
+! Greptile may advance its review by **editing an existing PR issue comment** rather than creating a new PR review object. Do NOT rely solely on `pulls/{number}/reviews` — that endpoint may remain stale at an older commit SHA even after Greptile has reviewed the latest commit.
 
-⊗ Re-fetch or re-trigger while the bot's last review still targets an older commit.
+! To confirm the review is current, check **both** surfaces:
+
+1. **PR issue comments** (primary signal) — Greptile edits its existing summary comment in place:
+   - `gh pr view <number> --comments` (with `do_not_summarize_output: true`)
+   - Or `gh api repos/<owner>/<repo>/issues/<number>/comments`
+   - Parse the comment body for `Last reviewed commit` and compare to the pushed commit SHA
+   - Check the comment's `updated_at` timestamp to confirm it was refreshed after your push
+2. **PR review objects** (secondary signal) — may or may not be updated:
+   - `gh api repos/<owner>/<repo>/pulls/<number>/reviews`
+   - Check `commit_id` on the latest review object
+
+! Treat an edited Greptile issue comment as a valid new review pass even if no new PR review object was created.
+
+! Fetch the full untruncated comment body or use MCP `get_comments` to get the actual commit URL containing the full SHA — do NOT rely on grepping truncated link text.
+
+⊗ Re-fetch or re-trigger while the bot's last review still targets an older commit on **both** surfaces.
 
 ### Step 5: Re-fetch and analyze
 
@@ -86,7 +103,7 @@ gh pr view <number> --comments
 
 ! Exit the loop and report to the user when ALL of these are true:
 
-- No P1 or P2 issues remain
+- No P0 or P1 issues remain (P2 issues are non-blocking style suggestions and do not gate the loop)
 - Greptile confidence score is greater than 3
 
 ? If the bot says "all prior issues resolved" but lists new issues, treat it as one final batch — not the start of another loop. Go back to Step 2 one more time, then stop.
@@ -120,4 +137,6 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 - ⊗ Re-trigger a bot review before the previous one has updated
 - ⊗ Report "all comments resolved" without checking both MCP and `gh pr view`
 - ⊗ Use `add_issue_comment` for formal review submission
+- ⊗ Commit or push Phase 1 audit fixes independently — always batch with Phase 2 fixes
 - ⊗ Proceed to Phase 2 while any Phase 1 prerequisite is unmet
+- ⊗ Rely solely on `pulls/{number}/reviews` to detect whether Greptile has reviewed the latest commit — Greptile may update via an edited issue comment instead of a new review object

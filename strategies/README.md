@@ -10,7 +10,6 @@ Development strategies define the workflow from idea to implementation.
 | [yolo.md](./yolo.md) | `/deft:run:yolo` | spec-generating | Quick prototyping | Auto-pilot sizing gate: Light or Full (Johnbot picks) |
 | [speckit.md](./speckit.md) | `/deft:run:speckit` | spec-generating | Large/complex projects | Principles → Specify → Plan → Tasks → Implement |
 | [map.md](./map.md) | `/deft:run:map` | preparatory | Existing codebases | Map → Chaining Gate |
-| [brownfield.md](./brownfield.md) | `/deft:run:brownfield` | preparatory | Existing codebases | Map → Chaining Gate |
 | [discuss.md](./discuss.md) | `/deft:run:discuss` | preparatory | Alignment before planning | Feynman technique → locked decisions → Chaining Gate |
 | [research.md](./research.md) | `/deft:run:research` | preparatory | Pre-implementation research | Research → Don’t Hand-Roll + Common Pitfalls → Chaining Gate |
 | [roadmap.md](./roadmap.md) | `/deft:run:roadmap` | preparatory | Roadmap maintenance | Discover → Triage → Cleanup |

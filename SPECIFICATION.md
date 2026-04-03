@@ -2,7 +2,7 @@
 
 Deft Directive is a Markdown framework for AI agents to use when generating software. It defines layered behavioral rules, workflow strategies, and quality gates across four components: (1) the Markdown framework (primary product — .md files consumed by agents at runtime), (2) the Python CLI (`run` — terminal setup and spec generation), (3) the Go installer (`cmd/deft-install/` — standalone binary for end-user install), and (4) the test suite (`tests/` — CLI and content validation). This specification covers Phase 1 (bug fixes and adoption blockers), Phase 2 (content fixes), and Phase 3 (CI). Phases 4–5 are deferred; see PRD.md and #67 for scope boundaries. References: PRD.md, .planning/codebase/ARCHITECTURE.md, docs/research/deft-directive-research.md.
 
-## t1.1.1: Add inference boundary guards to deft-setup SKILL.md Phase 2 (FR-1, FR-2)  `[pending]`
+## t1.1.1: Add inference boundary guards to deft-setup SKILL.md Phase 2 (FR-1, FR-2)  `[completed]`
 
 Add ⊗ rules to the Inference section of Phase 2 in skills/deft-setup/SKILL.md: never scan ./deft/ for build files; never run git commands inside ./deft/. Only inspect project root and non-deft subdirectories. Closes #79.
 
@@ -12,19 +12,19 @@ Add ⊗ rules to the Inference section of Phase 2 in skills/deft-setup/SKILL.md:
 
 **Traces**: FR-1, FR-2
 
-## t1.1.2: Add project name fallback prompt when no build files detected (FR-3)  `[pending]`
+## t1.1.2: Add project name fallback prompt when no build files detected (FR-3)  `[completed]`
 
 **Depends on**: t1.1.1
 
 Update deft-setup SKILL.md Phase 2 to prompt the user for a project name when codebase inference finds no build files at the project root. Currently falls through to deft internals. Closes #80.
 
-- Phase 2 Question Sequence includes explicit fallback: if no build files found at project root, ask user to provide project name
-- Fallback prompt appears in Track 1, Track 2, and Track 3 paths
-- tests/cli/test_project.py covers no-build-files scenario
+- Phase 2 Inference section includes explicit fallback: if no build files found at project root, default to directory name and ask for confirmation
+- Fallback rule applies to all tracks via the global Inference section; Track 1 and Track 2 Step 1 text references "directory name" explicitly
+- tests/content/test_skills.py covers no-build-files fallback presence in SKILL.md
 
 **Traces**: FR-3
 
-## t1.1.3: Remove Primary Languages from USER.md template and Phase 1 interview (FR-4)  `[pending]`
+## t1.1.3: Remove Primary Languages from USER.md template and Phase 1 interview (FR-4)  `[completed]`
 
 Language is a project-level concern determined per-project via codebase inference, not a user preference. Remove from USER.md template, Phase 1 Track 1 Step 2, Track 2 Step 2. Update Phase 2 Step 3 to always infer first. Closes #107.
 
@@ -33,12 +33,11 @@ Language is a project-level concern determined per-project via codebase inferenc
 - Phase 1 Track 2 has no language step
 - Phase 2 Step 3 infers from codebase
 - falls back to open ask (no USER.md default pre-fill)
-- tests/cli/test_bootstrap.py updated
-- no language question in happy path
+- tests/content/test_skills.py covers: USER.md template has no Primary Languages field, Phase 1 Track 1 has no language step
 
 **Traces**: FR-4
 
-## t1.1.4: Add deployment platform question before language in deft-setup Phase 2 (FR-5)  `[pending]`
+## t1.1.4: Add deployment platform question before language in deft-setup Phase 2 (FR-5)  `[completed]`
 
 **Depends on**: t1.1.3
 
@@ -49,6 +48,18 @@ Ask deployment platform (web, mobile, desktop, embedded, CLI, cloud service, oth
 - Track 2 and Track 3 unaffected (simplified paths)
 
 **Traces**: FR-5
+
+## t1.1.5: Add headless/cloud agent bypass to AGENTS.md First Session gate (FR-30)  `[completed]`
+
+**Depends on**: none
+
+Add a bypass instruction at the top of the First Session block in AGENTS.md so cloud agents, CI agents, and scheduled tasks skip the interactive onboarding flow when dispatched with an explicit task. Closes #142.
+
+- AGENTS.md First Session section contains a bypass rule: if dispatched with a specific task, skip onboarding and proceed directly
+- Bypass rule appears before the USER.md/PROJECT.md/SPECIFICATION.md checks
+- tests/content/test_agents_md.py covers bypass presence
+
+**Traces**: FR-30
 
 ## t1.2.1: Audit and fix vBRIEF generation in cmd_spec (FR-6)  `[pending]`
 
@@ -82,7 +93,7 @@ cmd_bootstrap enters an infinite loop when get_available_strategies() returns an
 
 **Traces**: FR-7
 
-## t1.3.2: Add version display to all run CLI commands on startup (FR-10)  `[pending]`
+## t1.3.2: Add version display to all run CLI commands on startup (FR-10)  `[completed]`
 
 All cmd_* functions should print the VERSION on entry (e.g. 'Deft CLI v0.4.2'). Note: VERSION in run is currently 0.4.2; this value is provisional and will display behind the framework's 0.5.2 until version unification is addressed (see PRD Open Question 1). Closes #49.
 
@@ -92,7 +103,7 @@ All cmd_* functions should print the VERSION on entry (e.g. 'Deft CLI v0.4.2'). 
 
 **Traces**: FR-10
 
-## t1.4.1: Merge strategies/default.md into strategies/interview.md and remove default.md (FR-8)  `[pending]`
+## t1.4.1: Merge strategies/default.md into strategies/interview.md and remove default.md (FR-8)  `[completed]`
 
 default.md is a duplicate of interview.md. Merge any unique content into interview.md, then delete default.md. Update any references to default.md. Closes #31.
 
@@ -104,7 +115,7 @@ default.md is a duplicate of interview.md. Merge any unique content into intervi
 
 **Traces**: FR-8
 
-## t1.4.2: Update strategies/brownfield.md to redirect to strategies/map.md (FR-9)  `[pending]`
+## t1.4.2: Update strategies/brownfield.md to redirect to strategies/map.md (FR-9)  `[completed]`
 
 brownfield.md is a legacy alias for map.md. Replace content with a short redirect note pointing to map.md. Do not delete (backward compatibility for any existing references). Closes #50 (brownfield portion).
 
@@ -143,7 +154,7 @@ Find all .md references to core/user.md and core/project.md legacy paths. Replac
 
 **Traces**: FR-13
 
-## t2.1.2: Create history/changes/ directory with README.md (FR-14)  `[pending]`
+## t2.1.2: Create history/changes/ directory with README.md (FR-14)  `[completed]`
 
 commands.md references history/changes/<name>/ but the directory doesn't exist. Create it with a README.md documenting the change lifecycle artifact structure. Closes #59.
 
@@ -153,7 +164,7 @@ commands.md references history/changes/<name>/ but the directory doesn't exist. 
 
 **Traces**: FR-14
 
-## t2.1.3: Refactor strategies/yolo.md to reference interview.md shared phases (FR-15)  `[pending]`
+## t2.1.3: Refactor strategies/yolo.md to reference interview.md shared phases (FR-15)  `[completed]`
 
 yolo.md duplicates ~80% of interview.md. Replace duplicated sections (sizing gate, chaining gate, acceptance gate, SPECIFICATION structure) with references to interview.md. Keep only yolo-specific content (Johnbot persona, auto-pick rules). Closes #23.
 
@@ -163,7 +174,7 @@ yolo.md duplicates ~80% of interview.md. Replace duplicated sections (sizing gat
 
 **Traces**: FR-15
 
-## t2.1.4: Add See also banner to strategies/speckit.md (FR-16)  `[pending]`
+## t2.1.4: Add See also banner to strategies/speckit.md (FR-16)  `[completed]`
 
 speckit.md is missing the standard **⚠️ See also** cross-reference banner at the top. Add it with links to interview.md and relevant strategy files. Closes #24.
 
@@ -172,7 +183,7 @@ speckit.md is missing the standard **⚠️ See also** cross-reference banner at
 
 **Traces**: FR-16
 
-## t2.1.5: Fix commands.md vBRIEF example vocabulary (FR-17)  `[pending]`
+## t2.1.5: Fix commands.md vBRIEF example vocabulary (FR-17)  `[completed]`
 
 commands.md vBRIEF examples use status vocabulary that diverges from vbrief/vbrief.md. Update to use the canonical status enum. Closes #25.
 
@@ -183,7 +194,7 @@ commands.md vBRIEF examples use status vocabulary that diverges from vbrief/vbri
 
 **Traces**: FR-17
 
-## t2.1.6: Clean core/project.md — remove Voxio Bot private content (FR-18)  `[pending]`
+## t2.1.6: Clean core/project.md — remove Voxio Bot private content (FR-18)  `[completed]`
 
 core/project.md contains private project config (Voxio Bot). Replace with a generic template showing example project config, or note it as a legacy location with a pointer to PROJECT.md.
 
@@ -193,7 +204,7 @@ core/project.md contains private project config (Voxio Bot). Replace with a gene
 
 **Traces**: FR-18
 
-## t2.2.1: Create contracts/hierarchy.md — dual-hierarchy framework (FR-19)  `[pending]`
+## t2.2.1: Create contracts/hierarchy.md — dual-hierarchy framework (FR-19)  `[completed]`
 
 Document the two hierarchy lenses from #84/#89 debate: (1) durability axis (Standards > APIs > Specs > Code — what to invest in maintaining); (2) generative axis (Spec → Contracts → Code — what to write first). Explain when each applies. Closes #84 Phase 1 (hierarchy doc portion).
 
@@ -203,7 +214,7 @@ Document the two hierarchy lenses from #84/#89 debate: (1) durability axis (Stan
 
 **Traces**: FR-19
 
-## t2.2.2: Add adaptive teaching behavior to main.md (FR-20)  `[pending]`
+## t2.2.2: Add adaptive teaching behavior to main.md (FR-20)  `[completed]`
 
 Add to Agent Behavior section of main.md: ~ When a recommendation is accepted without question, be concise. ! When a recommendation is questioned or overridden, explain the reasoning. ⊗ Lecture unprompted on every decision. Closes #84 Phase 1 (adaptive teaching portion).
 
@@ -263,6 +274,83 @@ Add a versioned, repo-local skill for running Greptile bot reviewer response cyc
 - AGENTS.md PR conventions section references skills/deft-review-cycle/SKILL.md
 
 **Traces**: FR-28
+
+## t1.6.1: Strengthen testing enforcement as a hard gate (#68) (FR-30)  `[pending]`
+
+Agents treat testing as a cleanup step rather than a gate. Add a MUST rule to main.md Decision Making section requiring tests to pass before any implementation is considered complete. Add testing anti-pattern to deft-build SKILL.md. A general "proceed" instruction does not waive the testing gate. Closes #68.
+
+- main.md Decision Making section contains ! rule: no implementation is complete until tests are written and `task check` passes
+- deft-build SKILL.md Anti-Patterns contains ⊗ rule: proceed to next task or phase without tests passing
+- tests/content/test_standards.py passes
+
+**Traces**: FR-30
+
+## t1.6.2: Strengthen change lifecycle gate against broad 'proceed' instructions (#123) (FR-31)  `[pending]`
+
+Agents skip the `/deft:change` proposal when the user says "proceed". Strengthen the rule in main.md to explicitly state broad approval does NOT satisfy the gate. Add checklist item to PR template. Add pre-flight gate to deft-build SKILL.md. Add `/deft:change` verification to deft-review-cycle Phase 1 audit. Batch Phase 1 audit gaps with Phase 2 fixes. Closes #123.
+
+- main.md Decision Making `/deft:change` rule explicitly states: a broad 'proceed' does NOT satisfy this gate; user must acknowledge the named change
+- .github/PULL_REQUEST_TEMPLATE.md checklist contains `/deft:change <name>` item (or N/A for <3 file changes)
+- deft-build SKILL.md contains change lifecycle pre-flight gate before Step 1
+- deft-review-cycle SKILL.md Phase 1 audit includes `/deft:change` verification step
+- deft-review-cycle SKILL.md Step 3 explicitly requires Phase 1 audit gaps to be batched with Phase 2 fixes
+- tests/content/test_standards.py passes
+
+**Traces**: FR-31
+
+## t1.6.3: Context-aware branching for solo projects (#138) (FR-32)  `[pending]`
+
+The mandatory branch + change-proposal rule is too prescriptive for single-author projects. Add conditional wording to main.md: team projects (2+ contributors) keep mandatory branch; solo projects may commit directly for changes covered by the quality gate, but SHOULD branch for risky/architectural changes. Full config-driven approach deferred to Phase 5 with #77. Closes #138.
+
+- main.md Decision Making change lifecycle rule has context-aware qualifier: mandatory for team projects, recommended for solo projects with quality gate as enforcement
+- tests/content/test_standards.py passes
+
+**Traces**: FR-32
+
+## t1.6.4: Strengthen vBRIEF source step prohibition (#139) (FR-33)  `[pending]`
+
+Agent writes SPECIFICATION.md directly instead of creating the vbrief source file first. Add explicit ⊗ rule to main.md vBRIEF Persistence section. Add anti-pattern to deft-build SKILL.md. Closes #139.
+
+- main.md vBRIEF Persistence section contains ⊗ rule: Write SPECIFICATION.md directly — it MUST be generated from specification.vbrief.json
+- deft-build SKILL.md Anti-Patterns contains ⊗ rule against writing SPECIFICATION.md directly
+- tests/content/test_standards.py passes
+
+**Traces**: FR-33
+## t2.5.2: Update deft-review-cycle SKILL.md — handle Greptile edited issue comments (FR-30)  `[completed]`
+
+Update skills/deft-review-cycle/SKILL.md Step 4 to explicitly document that Greptile may advance its review by editing an existing PR issue comment rather than creating a new PR review object. Add guidance to check issue comments via `gh api repos/<owner>/<repo>/issues/<number>/comments` or `gh pr view --comments`, parse the `Last reviewed commit` field and `updated_at` from the comment body, and treat an edited issue comment as a valid new review pass. Add anti-pattern for relying solely on `pulls/{number}/reviews`. Closes #145.
+
+- Step 4 documents both review detection methods: PR review objects and edited issue comments
+- Guidance includes parsing `Last reviewed commit` and `updated_at` from issue comments
+- Anti-patterns section includes entry about relying solely on PR review API
+- tests/content/test_skills.py passes
+
+**Traces**: FR-30
+
+## t2.5.3: README — move startup instructions higher and clarify installer location (FR-31)  `[completed]`
+
+Move the Getting Started section in README.md to appear immediately after the TL;DR section, before detailed architecture/layer documentation. Add a prominent callout near the top directing users to the GitHub Releases page for installers. Closes #137.
+
+- Getting Started section appears within the first ~40 lines of README.md
+- Installer download link is visible without scrolling past architecture details
+- All existing content preserved, just reordered
+- No broken internal links
+
+**Traces**: FR-31
+
+## t2.5.4: Create skills/deft-swarm/SKILL.md — parallel local agent orchestration (FR-29)  `[completed]`
+
+Add a versioned skill for orchestrating multiple parallel local agents working on roadmap items. A monitor agent reads the skill to set up worktrees, generate action-first prompts, launch agents, poll for progress, handle stalled review cycles, and close out PRs. Codifies the workflow proven in PRs #149/#150 and lessons from meta/lessons.md. Closes #152.
+
+- skills/deft-swarm/SKILL.md exists with RFC2119 legend and frontmatter
+- Skill covers 6 phases: Select (task assignment + file-overlap audit), Setup (worktrees + prompt generation), Launch (Warp tabs preferred, oz agent run fallback), Monitor (polling cadence + checkpoints + takeover triggers), Review (Greptile cycle completion verification), Close (merge + issue close + worktree cleanup)
+- Prompt template included with action-first structure (imperative first line, numbered STEPs, CONSTRAINTS)
+- File-overlap audit is a MUST gate before launch
+- Anti-patterns section covers: context-first prompts, MCP from standalone terminals, overlapping file assignments, merging without Greptile exit condition
+- .agents/skills/deft-swarm/SKILL.md thin pointer exists for auto-discovery
+- Cross-references swarm/swarm.md for general multi-agent guidelines and skills/deft-review-cycle/SKILL.md for review cycle
+
+**Traces**: FR-29
 
 ## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
 
