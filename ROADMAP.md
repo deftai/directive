@@ -10,7 +10,6 @@ Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
 
 - **#172** — deft-swarm skill incorrectly claims `oz agent run` launches cloud agents — rewrite Phase 3 to use `oz agent run` as preferred local launch path; correct `meta/lessons.md` lessons #1 and #7; update `SPECIFICATION.md` t2.5.4 acceptance criteria (**tackle next**)
-- **#126**
 - **#126** — specification.vbrief.json does not conform to vbrief schema/spec — agent generates wildly non-conformant output (possibly fixed by #72 / PR #130; verify before working)
 - **#144** — Directive generates vBRIEF files with wrong narrative value type (object instead of string) and wrong child key (`items` instead of `subItems`), causing nested items to be invisible in vBRIEF-Studio — address with #126
 - **#133** — Generated vBRIEF files use invalid reference types (`x-vbrief/context`, `x-vbrief/research`) that fail schema validation — blocked on upstream `deftai/vBRIEF#2` to expand the enum; vendor updated schema once resolved
