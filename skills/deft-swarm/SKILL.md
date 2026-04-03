@@ -125,7 +125,7 @@ oz agent run-cloud --prompt "TASK: You must complete..."
 
 Agents execute on remote VMs without local MCP servers, codebase indexing, or Warp Drive rules. Agents MUST use `gh` CLI for GitHub operations.
 
-## Phase 4
+## Phase 4 — Monitor
 
 ### Polling Cadence
 
