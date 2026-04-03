@@ -122,6 +122,23 @@ def test_project_trunk_based_emits_branching_section(
     assert "## Branching" in content
 
 
+def test_project_branch_based_does_not_emit_branching_section(
+    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+):
+    """Selecting branch-based (option 1 / default) must NOT emit Allow direct commits."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    (isolated_env / "deft").mkdir(exist_ok=True)
+    project_path = isolated_env / "PROJECT.md"
+    mock_user_input([
+        str(project_path), "TestProject", "1", "1", "85", "Flask", "1",
+        "1",   # branch-based (default)
+        False,
+    ])
+    run_command("cmd_project", [])
+    content = project_path.read_text(encoding="utf-8")
+    assert "Allow direct commits to master" not in content
+
+
 def test_project_rejects_duplicate_types(
     run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
 ):

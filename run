@@ -1135,9 +1135,6 @@ def cmd_project(args: List[str]):
             branch_selection = read_input("Selection", "1")
             if branch_selection.strip() in ("1", "2"):
                 break
-            if not branch_selection.strip():
-                branch_selection = "1"
-                break
             print_error("Please enter 1 or 2.")
         progress['branching'] = branch_selection.strip()
         _save_progress(prog_file, progress)
