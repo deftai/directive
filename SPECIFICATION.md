@@ -471,7 +471,7 @@ Referenced from coding/coding.md or discoverable via directory listing
 
 **Traces**: #104
 
-## t2.6.2: Move ROADMAP.md updates from merge-time to release-time (#170)  `[pending]`
+## t2.6.2: Move ROADMAP.md updates from merge-time to release-time (#170)  `[completed]`
 
 The AGENTS.md PR conventions section says "ROADMAP.md updates happen on merge" — in practice this is routinely skipped, especially during swarm runs. Change the convention so ROADMAP.md is batch-updated during the CHANGELOG promotion commit (the release commit) instead. Update AGENTS.md, add a Phase 6 Step 5 and ⊗ anti-pattern to skills/deft-swarm/SKILL.md. Closes #170.
 
