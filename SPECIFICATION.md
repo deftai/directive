@@ -51,8 +51,6 @@ Ask deployment platform (web, mobile, desktop, embedded, CLI, cloud service, oth
 
 ## t1.1.5: Add headless/cloud agent bypass to AGENTS.md First Session gate (FR-30)  `[completed]`
 
-**Depends on**: none
-
 Add a bypass instruction at the top of the First Session block in AGENTS.md so cloud agents, CI agents, and scheduled tasks skip the interactive onboarding flow when dispatched with an explicit task. Closes #142.
 
 - AGENTS.md First Session section contains a bypass rule: if dispatched with a specific task, skip onboarding and proceed directly
@@ -61,7 +59,7 @@ Add a bypass instruction at the top of the First Session block in AGENTS.md so c
 
 **Traces**: FR-30
 
-## t1.2.1: Audit and fix vBRIEF generation in cmd_spec (FR-6)  `[pending]`
+## t1.2.1: Audit and fix vBRIEF generation in cmd_spec (FR-6)  `[completed]`
 
 The run script's cmd_spec generates specification.vbrief.json. Audit the output format against spec_validate.py and vbrief/vbrief.md. Ensure: vBRIEFInfo envelope with version 0.5; plan object with title, status, items; task status values from valid enum (pending/running/completed/blocked/cancelled). The legacy 'todo'/'doing'/'done' values from old vBRIEF must not be used. Closes #72 (CLI path).
 
@@ -71,19 +69,18 @@ The run script's cmd_spec generates specification.vbrief.json. Audit the output 
 
 **Traces**: FR-6, NFR-4
 
-## t1.2.2: Audit and fix vBRIEF generation in deft-setup Phase 3 (FR-6)  `[pending]`
+## t1.2.2: Audit and fix vBRIEF generation in deft-setup Phase 3 (FR-6)  `[completed]`
 
 **Depends on**: t1.2.1
 
 The deft-setup skill Phase 3 also generates specification.vbrief.json. Same audit as t1.2.1 for the agent-skill path. Update skills/deft-setup/SKILL.md Output sections to reference the correct schema. Closes #72 (agent skill path).
 
-- SKILL.md Phase 3 Output sections reference correct vBRIEF field names (vBRIEFInfo envelope with plan object containing title, status, items
-- pending/running/completed/blocked/cancelled for task status, not legacy todo/doing/done)
+- SKILL.md Phase 3 Output sections reference correct vBRIEF field names (vBRIEFInfo envelope with plan object containing title, status, items; pending/running/completed/blocked/cancelled for task status, not legacy todo/doing/done)
 - tests/content/test_vbrief_schema.py assertions strengthened to catch field name violations
 
 **Traces**: FR-6, NFR-4
 
-## t1.3.1: Fix run bootstrap infinite loop when strategies/ is empty (FR-7)  `[pending]`
+## t1.3.1: Fix run bootstrap infinite loop when strategies/ is empty (FR-7)  `[completed]`
 
 cmd_bootstrap enters an infinite loop when get_available_strategies() returns an empty list or the strategies/ directory is unresolvable. Add a guard: if no strategies found, default to 'interview' and warn rather than looping. Closes #91, #92.
 
@@ -143,6 +140,137 @@ Create a new coding/toolchain.md requiring agents to verify required tools are i
 - Rule lives in a new coding/toolchain.md, referenced (linked) from coding/coding.md
 
 **Traces**: FR-12
+
+## t1.6.1: Strengthen testing enforcement as a hard gate (#68) (FR-30)  `[completed]`
+
+Agents treat testing as a cleanup step rather than a gate. Add a MUST rule to main.md Decision Making section requiring tests to pass before any implementation is considered complete. Add testing anti-pattern to deft-build SKILL.md. A general 'proceed' instruction does not waive the testing gate. Closes #68.
+
+- main.md Decision Making section contains ! rule: no implementation is complete until tests are written and `task check` passes
+- deft-build SKILL.md Anti-Patterns contains ⊗ rule: proceed to next task or phase without tests passing
+- tests/content/test_standards.py passes
+
+**Traces**: FR-30
+
+## t1.6.2: Strengthen change lifecycle gate against broad 'proceed' instructions (#123) (FR-31)  `[completed]`
+
+Agents skip the `/deft:change` proposal when the user says 'proceed'. Strengthen the rule in main.md to explicitly state broad approval does NOT satisfy the gate. Add checklist item to PR template. Add pre-flight gate to deft-build SKILL.md. Add `/deft:change` verification to deft-review-cycle Phase 1 audit. Batch Phase 1 audit gaps with Phase 2 fixes. Closes #123.
+
+- main.md Decision Making `/deft:change` rule explicitly states: a broad 'proceed' does NOT satisfy this gate; user must acknowledge the named change
+- .github/PULL_REQUEST_TEMPLATE.md checklist contains `/deft:change <name>` item (or N/A for <3 file changes)
+- deft-build SKILL.md contains change lifecycle pre-flight gate before Step 1
+- deft-review-cycle SKILL.md Phase 1 audit includes `/deft:change` verification step
+- deft-review-cycle SKILL.md Step 3 explicitly requires Phase 1 audit gaps to be batched with Phase 2 fixes
+- tests/content/test_standards.py passes
+
+**Traces**: FR-31
+
+## t1.6.3: Context-aware branching for solo projects (#138) (FR-32)  `[completed]`
+
+The mandatory branch + change-proposal rule is too prescriptive for single-author projects. Add conditional wording to main.md: team projects (2+ contributors) keep mandatory branch; solo projects may commit directly for changes covered by the quality gate, but SHOULD branch for risky/architectural changes. Full config-driven approach deferred to Phase 5 with #77. Closes #138.
+
+- main.md Decision Making change lifecycle rule has context-aware qualifier: mandatory for team projects, recommended for solo projects with quality gate as enforcement
+- tests/content/test_standards.py passes
+
+**Traces**: FR-32
+
+## t1.6.4: Strengthen vBRIEF source step prohibition (#139) (FR-33)  `[completed]`
+
+Agent writes SPECIFICATION.md directly instead of creating the vbrief source file first. Add explicit ⊗ rule to main.md vBRIEF Persistence section. Add anti-pattern to deft-build SKILL.md. Closes #139.
+
+- main.md vBRIEF Persistence section contains ⊗ rule: Write SPECIFICATION.md directly — it MUST be generated from specification.vbrief.json
+- deft-build SKILL.md Anti-Patterns contains ⊗ rule against writing SPECIFICATION.md directly
+- tests/content/test_standards.py passes
+
+**Traces**: FR-33
+
+## t1.7.1: Add Greptile pre-flight check and integration guide (#166)  `[completed]`
+
+Add pre-flight check to deft-review-cycle SKILL.md verifying triggerOnUpdates is enabled before entering the review/fix loop. Create tools/greptile.md documenting recommended Greptile dashboard and per-repo settings, covering triggerOnUpdates/statusCheck configuration, check runs vs. commit statuses distinction, troubleshooting, and anti-patterns. Closes #166.
+
+- skills/deft-review-cycle/SKILL.md contains Pre-Flight Check section verifying triggerOnUpdates is enabled
+- tools/greptile.md exists documenting Greptile configuration, check runs vs. commit statuses, troubleshooting, and anti-patterns
+- tests/content/test_skills.py passes
+
+**Traces**: #166
+
+## t1.7.2: Add hard gate against direct-to-master agent commits (#171)  `[completed]`
+
+Add ⊗ hard gate to main.md, AGENTS.md, and skills/deft-build/SKILL.md prohibiting agents from committing or pushing directly to master. PROJECT.md `Allow direct commits to master: true` under `## Branching` provides opt-in escape hatch for solo/trunk-based projects. Add branching preference question to cmd_project and deft-setup Phase 2 Track 1. Closes #171.
+
+- main.md Decision Making contains ⊗ rule: commit or push directly to the default branch
+- AGENTS.md Branching section contains the same ⊗ rule
+- skills/deft-build/SKILL.md contains the same ⊗ rule
+- PROJECT.md `Allow direct commits to master: true` documented as opt-in escape hatch
+- cmd_project and deft-setup Phase 2 Track 1 ask branching preference
+- tests/content/test_standards.py passes
+
+**Traces**: #171
+
+## t1.7.3: Review cycle push discipline and polling cadence (#175)  `[completed]`
+
+Add ⊗ rule to skills/deft-review-cycle/SKILL.md Step 4 prohibiting additional commits while Greptile is reviewing current head. Add ~ 60s minimum poll interval guidance. Codify both as meta/lessons.md Review Cycle Monitoring lessons. Closes #175.
+
+- skills/deft-review-cycle/SKILL.md Step 4 contains ⊗ rule: do not push additional commits while Greptile is reviewing
+- skills/deft-review-cycle/SKILL.md Step 4 contains ~ 60s minimum poll interval guidance
+- meta/lessons.md contains Review Cycle Monitoring lessons #2 and #3
+- tests/content/test_skills.py passes
+
+**Traces**: #175
+
+## t1.7.4: Correct oz agent run/run-cloud distinction in deft-swarm (#172)  `[completed]`
+
+Correct skills/deft-swarm/SKILL.md Phase 3 — oz agent run is local (preferred automated launch path), oz agent run-cloud is the cloud path. Rewrite launch options A/B/C, fix prerequisites and anti-patterns. Add correction addenda to meta/lessons.md lessons #1 and #7. Closes #172.
+
+- skills/deft-swarm/SKILL.md Phase 3 correctly states oz agent run is local, oz agent run-cloud is cloud
+- Launch options A/B/C accurately reflect local vs. cloud paths
+- meta/lessons.md lessons #1 and #7 contain correction addenda
+- tests/content/test_skills.py passes
+
+**Traces**: #172
+
+## t1.8.1: vBRIEF conformance audit — remaining issues post-PR #130 (#126, #144)  `[pending]`
+
+**Depends on**: t1.2.1, t1.2.2
+
+Agent-generated specification.vbrief.json files have remaining conformance issues beyond the #72 fix (PR #130): wrong narrative value type (object instead of string per #144), wrong child key (`items` instead of `subItems` per #144). Verify current state post-PR #130 and fix any remaining violations in the generation chain (cmd_spec, deft-setup Phase 3, templates). Closes #126, #144.
+
+- task spec:validate passes on freshly agent-generated specification.vbrief.json
+- narrative values conform to vBRIEF schema type expectations
+- Nested items use correct key name per vBRIEF schema
+- tests/content/test_vbrief_schema.py updated to catch these specific violations
+
+**Traces**: #126, #144
+
+## t1.8.2: Fix invalid vBRIEF reference types (#133)  `[blocked]`
+
+Generated vBRIEF files use invalid reference types (`x-vbrief/context`, `x-vbrief/research`) that fail schema validation. Blocked on upstream deftai/vBRIEF#2 to expand the reference type enum. Vendor updated schema once resolved. Closes #133.
+
+- vbrief/schemas/vbrief-core.schema.json updated with expanded reference type enum from upstream
+- Generated vBRIEF files pass schema validation for reference types
+- tests/content/test_vbrief_schema.py covers reference type validation
+
+**Traces**: #133
+
+## t1.8.3: Consistent ./deft/ installation path (#116)  `[pending]`
+
+All deft files must be installed consistently under ./deft/ — placement is currently inconsistent across projects. Audit the installer and documentation to ensure consistent placement. Closes #116.
+
+- deft-install places all framework files under ./deft/ consistently
+- No framework files installed outside ./deft/ (except AGENTS.md and .agents/ at project root)
+- Installer tests cover consistent path placement
+
+**Traces**: #116
+
+## t1.8.4: PR merge hygiene — issues not closed and roadmap not updated (#167)  `[pending]`
+
+PRs merged but issues not closed and roadmap not updated. Root cause investigation needed (closing keywords, squash merge, ROADMAP convention). Update PR template and review cycle skill. Closes #167.
+
+- Root cause identified and documented (closing keywords vs. squash merge behavior)
+- .github/PULL_REQUEST_TEMPLATE.md updated with closing keyword guidance
+- skills/deft-review-cycle/SKILL.md updated with post-merge verification step
+- AGENTS.md or CONTRIBUTING.md documents ROADMAP update convention
+
+**Traces**: #167
 
 ## t2.1.1: Update all stale core/user.md and core/project.md references to canonical paths (FR-13)  `[pending]`
 
@@ -275,47 +403,6 @@ Add a versioned, repo-local skill for running Greptile bot reviewer response cyc
 
 **Traces**: FR-28
 
-## t1.6.1: Strengthen testing enforcement as a hard gate (#68) (FR-30)  `[pending]`
-
-Agents treat testing as a cleanup step rather than a gate. Add a MUST rule to main.md Decision Making section requiring tests to pass before any implementation is considered complete. Add testing anti-pattern to deft-build SKILL.md. A general "proceed" instruction does not waive the testing gate. Closes #68.
-
-- main.md Decision Making section contains ! rule: no implementation is complete until tests are written and `task check` passes
-- deft-build SKILL.md Anti-Patterns contains ⊗ rule: proceed to next task or phase without tests passing
-- tests/content/test_standards.py passes
-
-**Traces**: FR-30
-
-## t1.6.2: Strengthen change lifecycle gate against broad 'proceed' instructions (#123) (FR-31)  `[pending]`
-
-Agents skip the `/deft:change` proposal when the user says "proceed". Strengthen the rule in main.md to explicitly state broad approval does NOT satisfy the gate. Add checklist item to PR template. Add pre-flight gate to deft-build SKILL.md. Add `/deft:change` verification to deft-review-cycle Phase 1 audit. Batch Phase 1 audit gaps with Phase 2 fixes. Closes #123.
-
-- main.md Decision Making `/deft:change` rule explicitly states: a broad 'proceed' does NOT satisfy this gate; user must acknowledge the named change
-- .github/PULL_REQUEST_TEMPLATE.md checklist contains `/deft:change <name>` item (or N/A for <3 file changes)
-- deft-build SKILL.md contains change lifecycle pre-flight gate before Step 1
-- deft-review-cycle SKILL.md Phase 1 audit includes `/deft:change` verification step
-- deft-review-cycle SKILL.md Step 3 explicitly requires Phase 1 audit gaps to be batched with Phase 2 fixes
-- tests/content/test_standards.py passes
-
-**Traces**: FR-31
-
-## t1.6.3: Context-aware branching for solo projects (#138) (FR-32)  `[pending]`
-
-The mandatory branch + change-proposal rule is too prescriptive for single-author projects. Add conditional wording to main.md: team projects (2+ contributors) keep mandatory branch; solo projects may commit directly for changes covered by the quality gate, but SHOULD branch for risky/architectural changes. Full config-driven approach deferred to Phase 5 with #77. Closes #138.
-
-- main.md Decision Making change lifecycle rule has context-aware qualifier: mandatory for team projects, recommended for solo projects with quality gate as enforcement
-- tests/content/test_standards.py passes
-
-**Traces**: FR-32
-
-## t1.6.4: Strengthen vBRIEF source step prohibition (#139) (FR-33)  `[pending]`
-
-Agent writes SPECIFICATION.md directly instead of creating the vbrief source file first. Add explicit ⊗ rule to main.md vBRIEF Persistence section. Add anti-pattern to deft-build SKILL.md. Closes #139.
-
-- main.md vBRIEF Persistence section contains ⊗ rule: Write SPECIFICATION.md directly — it MUST be generated from specification.vbrief.json
-- deft-build SKILL.md Anti-Patterns contains ⊗ rule against writing SPECIFICATION.md directly
-- tests/content/test_standards.py passes
-
-**Traces**: FR-33
 ## t2.5.2: Update deft-review-cycle SKILL.md — handle Greptile edited issue comments (FR-30)  `[completed]`
 
 Update skills/deft-review-cycle/SKILL.md Step 4 to explicitly document that Greptile may advance its review by editing an existing PR issue comment rather than creating a new PR review object. Add guidance to check issue comments via `gh api repos/<owner>/<repo>/issues/<number>/comments` or `gh pr view --comments`, parse the `Last reviewed commit` field and `updated_at` from the comment body, and treat an edited issue comment as a valid new review pass. Add anti-pattern for relying solely on `pulls/{number}/reviews`. Closes #145.
@@ -356,15 +443,22 @@ Add a versioned skill for orchestrating multiple parallel local agents working o
 
 Codify issue #102 in `languages/mermaid.md` using explicit RFC2119 MUST/SHOULD rules that are scoped to `sequenceDiagram` behavior on GitHub/Gist renderers. Document that `init.background` and `themeCSS` are insufficient on their own for reliable readability, require the participant-only `box ... end` pattern for gist-safe sequence diagrams, and preserve black text with grayscale fills. Add focused content tests so these rules and example pattern are regression-protected. Closes #102.
 
-- `languages/mermaid.md` contains explicit GitHub/Gist `sequenceDiagram` MUST guidance:
-  - do not rely on `init.background` or `themeCSS` alone
-  - require grey `box ... end` around participant declarations
-  - require messages and notes outside the `box ... end` block
+- `languages/mermaid.md` contains explicit GitHub/Gist `sequenceDiagram` MUST guidance: do not rely on `init.background` or `themeCSS` alone; require grey `box ... end` around participant declarations; require messages and notes outside the `box ... end` block
 - `languages/mermaid.md` includes a concrete gist-safe sequence example with `box rgb(192, 192, 192)` and message flow outside the box
 - Guidance explicitly states diagram-type specificity (`sequenceDiagram` workarounds SHOULD NOT be generalized without testing)
 - `tests/content/test_mermaid_guidance.py` asserts rule presence and safe example structure
 
 **Traces**: #102
+
+## t2.6.1: Holzmann Power of Ten rules adaptation (#104)  `[completed]`
+
+Add coding/holzmann.md adapting JPL/NASA Power of Ten rules (Holzmann, 2006) for the Deft framework with RFC2119 notation. Covers simple control flow, bounded loops, fixed resource allocation, small functions, runtime checks, minimal data scope, error/return checking, restricted metaprogramming/indirection, and maximum static checking. Closes #104.
+
+- coding/holzmann.md exists with RFC2119 legend
+- All 10 Holzmann rules adapted with Deft-appropriate MUST/SHOULD/MAY modifiers
+- Referenced from coding/coding.md or discoverable via directory listing
+
+**Traces**: #104
 
 ## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
 
@@ -394,8 +488,7 @@ Open a new GitHub issue titled 'Bring run CLI into test coverage measurement' in
 Update pyproject.toml: fail_under = 85. Add comment in [tool.coverage.run] omit section explaining why run and run.py are excluded (terminal-only CLI path; pending dedicated refactor issue). Resolves stated-vs-enforced coverage gap.
 
 - pyproject.toml fail_under = 85
-- omit entries for run and run.py include inline comment: '# terminal-only CLI
-- excluded pending #<issue>'
+- omit entries for run and run.py include inline comment: '# terminal-only CLI; excluded pending #<issue>'
 - task test:coverage passes at >=85% threshold on the current test suite
 
 **Traces**: NFR-1, NFR-2, FR-27
