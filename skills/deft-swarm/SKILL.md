@@ -48,6 +48,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Shared files (CHANGELOG.md, SPECIFICATION.md) are exceptions — each agent adds entries but does not edit existing content
 - ! If overlap exists, reassign tasks until overlap is eliminated
 
+⊗ Include ROADMAP.md as a shared exception — ROADMAP.md is updated only at release time by the monitor/release manager, not by swarm agents.
+
 ⊗ Proceed to Phase 2 while any file overlap exists between agents (excluding shared append-only files).
 ⊗ Assume a task only touches files in its primary scope — always check acceptance criteria for cross-file requirements.
 
@@ -203,6 +205,12 @@ All PRs meet ALL of:
 - ~ Delete launch scripts if still present
 - ? If worktree removal fails (locked files from open terminals), note for manual cleanup
 
+### Step 5: Update ROADMAP.md (release time only)
+
+~ ROADMAP.md is updated during the CHANGELOG promotion commit (the release commit), not during swarm close. Batch-move all issues resolved in this release from their roadmap phase to the Completed section at that time.
+
+⊗ Update ROADMAP.md during swarm close — leave it for the release commit.
+
 ## Prompt Template
 
 ! Use this template for all agent prompts. The first line MUST be an imperative task statement.
@@ -262,3 +270,4 @@ CONSTRAINTS:
 - ⊗ Use `git reset --hard` or force-push in any worktree
 - ⊗ Launch agents without presenting all options and their tradeoffs — always show Option A/B/C tradeoffs and confirm with the user before launching.
 - ⊗ Use `oz agent run-cloud` when the user asked for local agents — `run-cloud` spawns agents on remote VMs with no local context. Use `oz agent run` for local execution.
+- ⊗ Update ROADMAP.md during swarm close — it is updated only at release time (CHANGELOG promotion commit), not by individual agents or during PR merges.

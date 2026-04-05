@@ -37,7 +37,7 @@ When all config exists: read the guidelines, your USER.md preferences, and PROJE
 - ! Always work on a feature branch — never commit directly to master/main unless the user explicitly instructs it or `PROJECT.md` contains `Allow direct commits to master: true`
 
 **PR conventions:**
-- ROADMAP.md updates happen on merge (don't move issues to Completed prematurely)
+- ROADMAP.md updates happen at release time — batch-move merged issues to Completed during the CHANGELOG promotion commit
 - Commit messages: `feat/fix/docs/chore` prefix, concise subject, bullet-point body
 - When running a review cycle on a PR, follow `skills/deft-review-cycle/SKILL.md`
 

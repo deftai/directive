@@ -471,7 +471,18 @@ Referenced from coding/coding.md or discoverable via directory listing
 
 **Traces**: #104
 
-## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
+## t2.6.2: Move ROADMAP.md updates from merge-time to release-time (#170)  `[pending]`
+
+The AGENTS.md PR conventions section says "ROADMAP.md updates happen on merge" — in practice this is routinely skipped, especially during swarm runs. Change the convention so ROADMAP.md is batch-updated during the CHANGELOG promotion commit (the release commit) instead. Update AGENTS.md, add a Phase 6 Step 5 and ⊗ anti-pattern to skills/deft-swarm/SKILL.md. Closes #170.
+
+- AGENTS.md PR conventions line reads: "ROADMAP.md updates happen at release time — batch-move merged issues to Completed during the CHANGELOG promotion commit"
+- skills/deft-swarm/SKILL.md Phase 6 contains Step 5 instructing monitor to update ROADMAP.md at release time, not during swarm close
+- skills/deft-swarm/SKILL.md Phase 1 Step 2 contains ⊗ rule: MUST NOT include ROADMAP.md as a shared exception for swarm agents
+- skills/deft-swarm/SKILL.md Anti-Patterns contains ⊗ entry: update ROADMAP.md during swarm close
+
+**Traces**: #170
+
+## t3.1.1:
 
 GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: (1) Python: ruff check, mypy tests/ (the shim run.py cannot be typed directly - exclude run and run.py from mypy per pyproject.toml, type-check the test suite instead), pytest tests/ with coverage. (2) Go: go test ./cmd/deft-install/ + go build ./cmd/deft-install/ for each platform matrix (linux/amd64, darwin/arm64, windows/amd64). main_test.go already exists so go test is zero-cost. Use current action versions. Closes #57.
 
