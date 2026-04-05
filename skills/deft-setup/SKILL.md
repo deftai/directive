@@ -446,10 +446,17 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
         "status": "pending",
         "subItems": [
           {
-            "id": "1.1.1",
-            "title": "Task description",
+            "id": "1.1",
+            "title": "Subphase 1.1: Setup",
             "status": "pending",
-            "narrative": { "Acceptance": "...", "Traces": "FR-1" }
+            "subItems": [
+              {
+                "id": "1.1.1",
+                "title": "Task description",
+                "status": "pending",
+                "narrative": { "Acceptance": "...", "Traces": "FR-1" }
+              }
+            ]
           }
         ]
       }

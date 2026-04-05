@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Mermaid gist-rendering guidance**: Codified GitHub/Gist sequence-diagram readability rules in `languages/mermaid.md` as explicit RFC2119 MUST/SHOULD guidance: do not rely on `init.background`/`themeCSS` alone, use a grey participant-only `box ... end`, keep messages/notes outside the box, and keep sequence workarounds diagram-type-scoped; added regression tests in `tests/content/test_mermaid_guidance.py` (#102)
-- **Specification sync**: Full sync of `vbrief/specification.vbrief.json` and rendered `SPECIFICATION.md` — corrected 15 stale task statuses (t1.1.1–t1.5.2, t1.6.1–t1.6.4, t2.1.2–t2.2.2, t2.5.1–t2.5.5 all now `completed`); added 9 missing tasks: retroactive coverage for completed work (t1.7.1 #166, t1.7.2 #171, t1.7.3 #175, t1.7.4 #172, t2.6.1 #104), new tasks for open Phase 1 issues (t1.8.1 #126/#144, t1.8.2 #133, t1.8.3 #116, t1.8.4 #167); reordered all tasks by phase (1→2→3); switched acceptance criteria to array format for clean rendering; total 46 tasks (34 completed, 9 pending, 3 blocked)
+- **Specification sync**: Full sync of `vbrief/specification.vbrief.json` and rendered `SPECIFICATION.md` — corrected 15 stale task statuses (t1.1.1–t1.5.2, t1.6.1–t1.6.4, t2.1.2–t2.2.2, t2.5.1–t2.5.5 all now `completed`); added 9 missing tasks: retroactive coverage for completed work (t1.7.1 #166, t1.7.2 #171, t1.7.3 #175, t1.7.4 #172, t2.6.1 #104), new tasks for open Phase 1 issues (t1.8.1 #126/#144, t1.8.2 #133, t1.8.3 #116, t1.8.4 #167); reordered all tasks by phase (1→2→3); total 46 tasks (34 completed, 9 pending, 3 blocked)
 
 ## [0.10.2] - 2026-04-03
 

@@ -39,7 +39,7 @@ def _validate_plan_item(
     item: dict, path: str, errors: list[str],
 ) -> None:
     """Recursively validate a PlanItem and its subItems."""
-    item_id = item.get("id", path.rsplit("[", 1)[-1].rstrip("]"))
+    item_id = item.get("id", "<no-id>")
     item_path = f"{path}[{item_id}]"
 
     if "title" not in item:
