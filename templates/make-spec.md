@@ -106,18 +106,33 @@ Any remaining decisions deferred to implementation.
 
 ! The vBRIEF file MUST use this exact top-level structure:
 
+- ! All `narratives` and `narrative` values MUST be plain strings — never objects or arrays
+- ! Nested children within a PlanItem MUST use `subItems` (not `items`)
+- ⊗ Use `items` inside a PlanItem — only `plan.items` is valid; within items use `subItems`
+
 ```json
 {
   "vBRIEFInfo": { "version": "0.5" },
   "plan": {
     "title": "Project Name SPECIFICATION",
     "status": "draft",
+    "narratives": {
+      "Overview": "Brief project summary as a plain string.",
+      "Architecture": "System design as a plain string."
+    },
     "items": [
       {
-        "id": "1.1.1",
-        "title": "Task description",
+        "id": "phase-1",
+        "title": "Phase 1: Foundation",
         "status": "pending",
-        "narrative": { "Acceptance": "...", "Traces": "FR-1" }
+        "subItems": [
+          {
+            "id": "1.1.1",
+            "title": "Task description",
+            "status": "pending",
+            "narrative": { "Acceptance": "...", "Traces": "FR-1" }
+          }
+        ]
       }
     ]
   }

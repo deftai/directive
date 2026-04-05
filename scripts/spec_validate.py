@@ -23,6 +23,57 @@ VALID_STATUSES = frozenset({
 })
 
 
+def _validate_narratives(narratives: object, path: str, errors: list[str]) -> None:
+    """Validate that all values in a narratives/narrative object are strings."""
+    if not isinstance(narratives, dict):
+        errors.append(f"{path} must be an object")
+        return
+    for key, value in narratives.items():
+        if not isinstance(value, str):
+            errors.append(
+                f"{path}.{key} must be a string, got {type(value).__name__}"
+            )
+
+
+def _validate_plan_item(
+    item: dict, path: str, errors: list[str],
+) -> None:
+    """Recursively validate a PlanItem and its subItems."""
+    item_id = item.get("id", path.rsplit("[", 1)[-1].rstrip("]"))
+    item_path = f"{path}[{item_id}]"
+
+    if "title" not in item:
+        errors.append(f"{item_path} missing 'title'")
+    if "status" not in item:
+        errors.append(f"{item_path} missing 'status'")
+    elif item["status"] not in VALID_STATUSES:
+        errors.append(
+            f"{item_path} invalid status: {item['status']!r}"
+        )
+
+    # Narrative values must be strings
+    if "narrative" in item:
+        _validate_narratives(item["narrative"], f"{item_path}.narrative", errors)
+
+    # Detect items misuse inside PlanItem (should be subItems)
+    if "items" in item:
+        errors.append(
+            f"{item_path} uses 'items' for children — use 'subItems' instead "
+            "('items' is only valid at plan level)"
+        )
+
+    # Recurse into subItems
+    if "subItems" in item:
+        if not isinstance(item["subItems"], list):
+            errors.append(f"{item_path}.subItems must be an array")
+        else:
+            for j, sub in enumerate(item["subItems"]):
+                if not isinstance(sub, dict):
+                    errors.append(f"{item_path}.subItems[{j}] must be an object")
+                    continue
+                _validate_plan_item(sub, f"{item_path}.subItems", errors)
+
+
 def _validate_schema(data: dict, path: str) -> list[str]:
     """Validate vBRIEF v0.5 structural requirements. Returns a list of errors."""
     errors: list[str] = []
@@ -59,6 +110,12 @@ def _validate_schema(data: dict, path: str) -> list[str]:
                     f"(expected one of {sorted(VALID_STATUSES)})"
                 )
 
+            # Validate plan-level narratives
+            if "narratives" in plan:
+                _validate_narratives(
+                    plan["narratives"], "plan.narratives", errors
+                )
+
             if "items" in plan:
                 if not isinstance(plan["items"], list):
                     errors.append("'plan.items' must be an array")
@@ -67,18 +124,7 @@ def _validate_schema(data: dict, path: str) -> list[str]:
                         if not isinstance(item, dict):
                             errors.append(f"plan.items[{i}] must be an object")
                             continue
-                        if "title" not in item:
-                            item_id = item.get("id", f"index {i}")
-                            errors.append(f"plan.items[{item_id}] missing 'title'")
-                        if "status" not in item:
-                            item_id = item.get("id", f"index {i}")
-                            errors.append(f"plan.items[{item_id}] missing 'status'")
-                        elif item["status"] not in VALID_STATUSES:
-                            item_id = item.get("id", f"index {i}")
-                            errors.append(
-                                f"plan.items[{item_id}] invalid status: "
-                                f"{item['status']!r}"
-                            )
+                        _validate_plan_item(item, "plan.items", errors)
 
     # Detect legacy flat format
     legacy_keys = {"vbrief", "tasks", "overview", "architecture"}

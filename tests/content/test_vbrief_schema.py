@@ -195,3 +195,152 @@ def test_spec_plan_has_title_status_items() -> None:
     assert "status" in plan, "plan missing 'status'"
     assert "items" in plan, "plan missing 'items'"
     assert isinstance(plan["items"], list), "plan.items must be an array"
+
+
+# ---------------------------------------------------------------------------
+# Narrative value type validation tests
+# ---------------------------------------------------------------------------
+
+def test_narrative_object_value_must_be_string() -> None:
+    """Narrative values that are objects (not strings) must be flagged."""
+    data = {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {
+            "title": "Test",
+            "status": "draft",
+            "narratives": {
+                "Overview": "valid string",
+                "Requirements": {"Functional": ["FR-1"], "NonFunctional": ["NFR-1"]},
+            },
+            "items": [],
+        },
+    }
+    errors = _validate_schema(data, "test")
+    assert any("plan.narratives.Requirements must be a string" in e for e in errors)
+
+
+def test_item_narrative_value_must_be_string() -> None:
+    """PlanItem narrative values that are objects (not strings) must be flagged."""
+    data = {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {
+            "title": "Test",
+            "status": "draft",
+            "items": [
+                {
+                    "id": "t1",
+                    "title": "Task",
+                    "status": "pending",
+                    "narrative": {
+                        "Acceptance": "valid",
+                        "Details": ["invalid", "array"],
+                    },
+                }
+            ],
+        },
+    }
+    errors = _validate_schema(data, "test")
+    assert any("narrative.Details must be a string" in e for e in errors)
+
+
+# ---------------------------------------------------------------------------
+# subItems / items-inside-PlanItem validation tests
+# ---------------------------------------------------------------------------
+
+def test_items_inside_plan_item_detected() -> None:
+    """Using 'items' inside a PlanItem (instead of 'subItems') must be flagged."""
+    data = {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {
+            "title": "Test",
+            "status": "draft",
+            "items": [
+                {
+                    "id": "phase-1",
+                    "title": "Phase 1",
+                    "status": "pending",
+                    "items": [
+                        {"id": "t1", "title": "Task", "status": "pending"}
+                    ],
+                }
+            ],
+        },
+    }
+    errors = _validate_schema(data, "test")
+    assert any("use 'subItems' instead" in e for e in errors)
+
+
+def test_recursive_subitems_validation() -> None:
+    """Nested subItems must be validated recursively."""
+    data = {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {
+            "title": "Test",
+            "status": "draft",
+            "items": [
+                {
+                    "id": "phase-1",
+                    "title": "Phase 1",
+                    "status": "pending",
+                    "subItems": [
+                        {
+                            "id": "1.1",
+                            "title": "Subphase",
+                            "status": "pending",
+                            "subItems": [
+                                {
+                                    "id": "1.1.1",
+                                    "title": "Task",
+                                    "status": "bogus",
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        },
+    }
+    errors = _validate_schema(data, "test")
+    assert any("1.1.1" in e and "invalid status" in e for e in errors)
+
+
+def test_valid_hierarchical_spec_passes() -> None:
+    """A correctly structured hierarchical spec must pass validation."""
+    data = {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {
+            "title": "Project SPECIFICATION",
+            "status": "draft",
+            "narratives": {
+                "Overview": "A project summary.",
+                "Architecture": "System design.",
+            },
+            "items": [
+                {
+                    "id": "phase-1",
+                    "title": "Phase 1: Foundation",
+                    "status": "pending",
+                    "subItems": [
+                        {
+                            "id": "1.1",
+                            "title": "Subphase 1.1: Setup",
+                            "status": "pending",
+                            "subItems": [
+                                {
+                                    "id": "1.1.1",
+                                    "title": "Scaffolding",
+                                    "status": "pending",
+                                    "narrative": {
+                                        "Acceptance": "Build passes",
+                                        "Traces": "FR-1",
+                                    },
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        },
+    }
+    errors = _validate_schema(data, "test")
+    assert not errors, f"Valid hierarchical spec should pass: {errors}"

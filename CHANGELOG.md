@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **vBRIEF schema conformance — agent generation guidance + validation** (#126, #144):
+  - Fixed `speckit.md` Phase 4 Task Structure: replaced legacy flat format (`vbrief`, `tasks`, `do`, `todo/doing/done`) with correct vBRIEF v0.5 envelope (`vBRIEFInfo` + `plan` object, `title` field, `pending/running/completed` lifecycle)
+  - Added hierarchical `subItems` guidance and examples to `vbrief/vbrief.md`, `skills/deft-setup/SKILL.md`, and `templates/make-spec.md` — agents now have explicit instructions for representing Phase → Subphase → Task nesting in vBRIEF JSON
+  - Added narrative-must-be-string rules (`plan.narratives` and `PlanItem.narrative` values must be plain strings, never objects or arrays) across all generation docs
+  - Strengthened `spec_validate.py`: recursive `subItems` validation (title, status, narrative types at all nesting levels), `plan.narratives` string enforcement, detection of `items` key misuse inside PlanItems (should be `subItems`)
+  - Added 5 new tests: narrative object detection, item narrative array detection, `items`-inside-PlanItem detection, recursive subItems invalid status, valid hierarchical spec passthrough
+
 ### Changed
 - **Mermaid gist-rendering guidance**: Codified GitHub/Gist sequence-diagram readability rules in `languages/mermaid.md` as explicit RFC2119 MUST/SHOULD guidance: do not rely on `init.background`/`themeCSS` alone, use a grey participant-only `box ... end`, keep messages/notes outside the box, and keep sequence workarounds diagram-type-scoped; added regression tests in `tests/content/test_mermaid_guidance.py` (#102)
 - **Specification sync**: Full sync of `vbrief/specification.vbrief.json` and rendered `SPECIFICATION.md` — corrected 15 stale task statuses (t1.1.1–t1.5.2, t1.6.1–t1.6.4, t2.1.2–t2.2.2, t2.5.1–t2.5.5 all now `completed`); added 9 missing tasks: retroactive coverage for completed work (t1.7.1 #166, t1.7.2 #171, t1.7.3 #175, t1.7.4 #172, t2.6.1 #104), new tasks for open Phase 1 issues (t1.8.1 #126/#144, t1.8.2 #133, t1.8.3 #116, t1.8.4 #167); reordered all tasks by phase (1→2→3); switched acceptance criteria to array format for clean rendering; total 46 tasks (34 completed, 9 pending, 3 blocked)

@@ -209,32 +209,37 @@ flowchart LR
 
 ### Task Structure
 
-Write tasks to `./vbrief/plan.vbrief.json` using vBRIEF format:
+Write tasks to `./vbrief/plan.vbrief.json` using vBRIEF v0.5 format:
 
 ```json
 {
-  "vbrief": "0.5.0",
-  "plan": "[Feature name]",
-  "tasks": [
-    {
-      "id": "t1.1",
-      "do": "Initialize project structure",
-      "status": "todo",
-      "narrative": "[why this task / acceptance criteria from spec]"
-    },
-    {
-      "id": "t2.1",
-      "do": "Define API contracts",
-      "status": "todo",
-      "edges": [{"type": "blocks", "target": "t3.3"}]
-    },
-    {
-      "id": "t3.1",
-      "do": "Implement data layer",
-      "status": "todo",
-      "edges": [{"type": "blocks", "target": "t3.2"}]
-    }
-  ]
+  "vBRIEFInfo": { "version": "0.5" },
+  "plan": {
+    "title": "[Feature name]",
+    "status": "running",
+    "items": [
+      {
+        "id": "t1.1",
+        "title": "Initialize project structure",
+        "status": "pending",
+        "narrative": { "Acceptance": "[criteria from spec]" }
+      },
+      {
+        "id": "t2.1",
+        "title": "Define API contracts",
+        "status": "pending"
+      },
+      {
+        "id": "t3.1",
+        "title": "Implement data layer",
+        "status": "pending"
+      }
+    ],
+    "edges": [
+      { "from": "t2.1", "to": "t3.3", "type": "blocks" },
+      { "from": "t3.1", "to": "t3.2", "type": "blocks" }
+    ]
+  }
 }
 ```
 
@@ -261,14 +266,14 @@ Write tasks to `./vbrief/plan.vbrief.json` using vBRIEF format:
 
 **Goal:** Execute tasks following test-first discipline.
 
-**Input:** `./vbrief/plan.vbrief.json` with all tasks at `todo` status
+**Input:** `./vbrief/plan.vbrief.json` with all tasks at `pending` status
 
 ### Process
 
 - ! Write tests BEFORE implementation (Red)
 - ! Implement minimal code to pass tests (Green)
 - ! Refactor while keeping tests green (Refactor)
-- ! Update task status in `./vbrief/plan.vbrief.json` as work progresses (`todo` → `doing` → `done`)
+- ! Update task status in `./vbrief/plan.vbrief.json` as work progresses (`pending` → `running` → `completed`)
 - ~ Work on tasks with no incoming `blocks` edges in parallel when possible
 
 ### File Creation Order

@@ -106,6 +106,59 @@ draft | proposed | approved | pending | running | completed | blocked | cancelle
 }
 ```
 
+### Narratives
+
+- ! `plan.narratives` values MUST be plain strings — never objects or arrays
+- ! `PlanItem.narrative` values MUST be plain strings — never objects or arrays
+- ⊗ Use `{"Requirements": {"Functional": [...], "NonFunctional": [...]}}` — split into separate string keys instead (e.g. `"FunctionalRequirements": "FR-1: ...\nFR-2: ..."`, `"NonFunctionalRequirements": "NFR-1: ...\nNFR-2: ..."`)
+
+### Hierarchical Items (subItems)
+
+Specs with phases, subphases, and tasks use `subItems` to express nesting:
+
+- ! Nested children within a PlanItem MUST use `subItems` (not `items`)
+- ! `items` is ONLY valid at the `plan` level — inside a PlanItem it is ignored by tools
+- ⊗ Use `items` inside a PlanItem — it will be silently dropped by vBRIEF-Studio and other tools
+
+```json
+{
+  "vBRIEFInfo": { "version": "0.5" },
+  "plan": {
+    "title": "Project SPECIFICATION",
+    "status": "draft",
+    "narratives": {
+      "Overview": "Brief project summary as a plain string.",
+      "Architecture": "System design description as a plain string."
+    },
+    "items": [
+      {
+        "id": "phase-1",
+        "title": "Phase 1: Foundation",
+        "status": "pending",
+        "subItems": [
+          {
+            "id": "1.1",
+            "title": "Subphase 1.1: Setup",
+            "status": "pending",
+            "subItems": [
+              {
+                "id": "1.1.1",
+                "title": "Project scaffolding",
+                "status": "pending",
+                "narrative": {
+                  "Acceptance": "Build succeeds with empty project",
+                  "Traces": "FR-1"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
 ### Local Schema
 
 A copy of the canonical JSON Schema is available at
