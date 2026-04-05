@@ -319,9 +319,9 @@ Find all .md references to core/user.md and core/project.md legacy paths. Replac
 grep for 'core/project.md' returns zero matches in non-history .md files (except legacy fallback note in SKILL.md)
 tests/content/test_contracts.py passes
 
-**Traces**: #185
+**Traces**: FR-13
 
-## t2.1.1: Create history/changes/ directory with README.md (FR-14)  `[completed]`
+## t2.1.2: Create history/changes/ directory with README.md (FR-14)  `[completed]`
 
 commands.md references history/changes/<name>/ but the directory doesn't exist. Create it with a README.md documenting the change lifecycle artifact structure. Closes #59.
 

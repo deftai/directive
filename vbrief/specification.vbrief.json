@@ -326,11 +326,11 @@
         "narrative": {
           "Description": "Find all .md references to core/user.md and core/project.md legacy paths. Replace with canonical paths: ~/.config/deft/USER.md (or %APPDATA%\\deft\\USER.md on Windows) and ./PROJECT.md respectively. Closes #58.",
           "Acceptance": "grep for 'core/user.md' returns zero matches in non-history .md files (except legacy fallback note in SKILL.md)\ngrep for 'core/project.md' returns zero matches in non-history .md files (except legacy fallback note in SKILL.md)\ntests/content/test_contracts.py passes",
-          "Traces": "#185"
+          "Traces": "FR-13"
         }
       },
       {
-        "id": "t2.1.1",
+        "id": "t2.1.2",
         "title": "Create history/changes/ directory with README.md (FR-14)",
         "status": "completed",
         "narrative": {
