@@ -289,6 +289,18 @@ AGENTS.md or CONTRIBUTING.md documents ROADMAP update convention
 
 **Traces**: #167
 
+## t1.9.1: Change gate UX — replace name-echo with yes/no confirmation (#185)  `[completed]`
+
+The /deft:change confirmation gate requires users to retype the full change name, which is tedious for long descriptive names. Replace with a simple yes/no confirmation prompt — the agent presents the change name and asks for explicit confirmation (yes/confirmed/approve). Still rejects vague 'proceed'/'do it'/'go ahead'. Closes #185.
+
+- main.md Decision Making /deft:change rule uses yes/no confirmation instead of name echo
+skills/deft-build/SKILL.md Change Lifecycle Gate uses same yes/no confirmation semantics
+skills/deft-review-cycle/SKILL.md Phase 1 audit updated to match
+.github/PULL_REQUEST_TEMPLATE.md checklist reflects new confirmation wording
+tests/content/test_standards.py passes
+
+**Traces**: #185
+
 ## t1.9.2: Add enforcement markers to AGENTS.md pre-implementation checklist (#186)  `[completed]`
 
 AGENTS.md 'Before code changes' checklist uses plain language without RFC2119 enforcement markers. Agent treated it as advisory and skipped spec coverage check, branch creation, and /deft:change proposal when user said 'yes'. Add ! (MUST) markers to all pre-implementation items and add a new anti-pattern. Closes #186.

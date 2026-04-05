@@ -45,7 +45,7 @@ gh api repos/<owner>/<repo>/commits/<sha>/check-runs --jq '.check_runs[] | selec
 2. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes
 3. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥75%)
 4. ! `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfied in the PR description
-5. ! If the PR touches 3+ files: verify a `/deft:change` proposal exists in `history/changes/` for this branch, or document N/A with reason in the PR checklist
+5. ! If the PR touches 3+ files: verify a `/deft:change` proposal exists in `history/changes/` for this branch and was explicitly confirmed by the user (affirmative response, not a broad 'proceed'), or document N/A with reason in the PR checklist
 6. ! Verify the PR is on a feature branch — work MUST NOT have been committed directly to the default branch (master/main)
 
 ! Phase 1 audit gaps must be resolved before merging — but hold the fixes (do NOT commit or push them independently). Proceed to Phase 2 analysis to gather bot findings, then batch all Phase 1 + Phase 2 fixes into a single commit.

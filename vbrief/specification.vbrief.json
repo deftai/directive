@@ -300,6 +300,16 @@
         }
       },
       {
+        "id": "t1.9.1",
+        "title": "Change gate UX — replace name-echo with yes/no confirmation (#185)",
+        "status": "completed",
+        "narrative": {
+          "Description": "The /deft:change confirmation gate requires users to retype the full change name, which is tedious for long descriptive names. Replace with a simple yes/no confirmation prompt — the agent presents the change name and asks for explicit confirmation (yes/confirmed/approve). Still rejects vague 'proceed'/'do it'/'go ahead'. Closes #185.",
+          "Acceptance": "main.md Decision Making /deft:change rule uses yes/no confirmation instead of name echo\nskills/deft-build/SKILL.md Change Lifecycle Gate uses same yes/no confirmation semantics\nskills/deft-review-cycle/SKILL.md Phase 1 audit updated to match\n.github/PULL_REQUEST_TEMPLATE.md checklist reflects new confirmation wording\ntests/content/test_standards.py passes",
+          "Traces": "#185"
+        }
+      },
+      {
         "id": "t1.9.2",
         "title": "Add enforcement markers to AGENTS.md pre-implementation checklist (#186)",
         "status": "completed",

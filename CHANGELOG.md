@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-04-05
+
 ### Fixed
+- **Change gate UX — replace name-echo with yes/no confirmation** (#185, t1.9.1):
+  - `/deft:change` confirmation gate no longer requires users to retype the full change name; agents now present the change name and ask for explicit yes/no confirmation
+  - Accepted responses: `yes`, `confirmed`, `approve`; vague responses (`proceed`, `do it`, `go ahead`) still rejected
+  - Updated across all framework surfaces: `main.md` Decision Making rule, `skills/deft-build/SKILL.md` Change Lifecycle Gate, `skills/deft-review-cycle/SKILL.md` Phase 1 audit, `.github/PULL_REQUEST_TEMPLATE.md` checklist
+  - Spec task t1.9.1 added to `vbrief/specification.vbrief.json` and rendered to `SPECIFICATION.md`
 - **deft-swarm Option A limitations documented** (#179): Updated `skills/deft-swarm/SKILL.md` Phase 3 — demoted Option A (`oz agent run`) from preferred to "currently limited"; elevated Option B (interactive Warp tab) as recommended launch method; added known-limitations callout noting Option A does not receive global Warp Drive rules, MCP UUIDs, or auto-injected context; documented inline MCP JSON workaround; added two new anti-patterns; updated default launch from Option A to Option B; recorded finding in `meta/lessons.md`
 - **AGENTS.md pre-implementation gate enforcement** (#186): Added `!` (MUST) markers to "Before code changes" checklist items in `AGENTS.md`; added `⊗` anti-pattern prohibiting file edits before spec coverage check and branch creation — even if user says "yes" or "proceed"; root cause: agent loaded AGENTS.md but treated pre-implementation checklist as advisory due to missing RFC2119 enforcement markers
 
