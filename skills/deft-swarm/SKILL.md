@@ -80,22 +80,25 @@ git worktree add <path> -b <branch-name> master
 
 ## Phase 3 — Launch
 
-! **`oz agent run` runs LOCAL agents on your machine.** It supports `--cwd` (working directory), `--profile` (agent profile), and `--mcp` (MCP server access). Codebase indexing is non-blocking — available once indexing completes after launch. Use `oz agent run-cloud` for remote VM execution.
-
 ! **Warp tabs cannot be opened programmatically.** There is no API or CLI command to open a new Warp terminal tab from an agent or script.
+
+! **⚠️ Option A (`oz agent run`) is currently limited** — it does NOT receive global Warp Drive rules, MCP server UUIDs, or auto-injected context. It is effectively as limited as cloud agents with respect to global context. A future Warp build with experimental orchestration support is expected to bring Option A to full parity. See issue #179 for details.
 
 ! The monitor agent MUST present options and their tradeoffs before launching:
 
-- **Option A (preferred — automated local):** `oz agent run --cwd <worktree> --prompt "..."` — local execution, codebase indexing, Warp Drive rules, agent profiles; MCP available via `--mcp` only when launched from within Warp; no user tab management required
-- **Option B (interactive local):** User manually opens Warp tabs, pastes prompt into agent chat — local, gets MCP, codebase indexing, Warp Drive rules; better for monitoring agent progress interactively
-- **Option C (cloud):** `oz agent run-cloud --prompt "..."` — remote VM execution, no local context (no MCP, no codebase indexing, no Warp Drive rules)
+- **Option A (automated local — currently limited):** `oz agent run --cwd <worktree> --prompt "..."` — local execution, codebase indexing, agent profiles; does NOT get global Warp Drive rules or MCP via UUID; inline MCP JSON workaround available but not zero-config
+- **Option B (recommended — interactive local):** User manually opens Warp tabs, pastes prompt into agent chat — full MCP, codebase indexing, global Warp Drive rules, warm index from active session; requires manual tab management
+- **Option C (cloud):** `oz agent run-cloud --prompt "..."` — remote VM execution, fully automated, no local context (no MCP, no codebase indexing, no Warp Drive rules); agents must rely on `gh` CLI and `AGENTS.md` only
 
-! If the user says "launch" or "do it", default to Option A (`oz agent run`). Only use Option C if the user explicitly requests cloud execution.
+! If the user says "launch" or "do it", default to Option B. Only use Option C if the user explicitly requests cloud execution. Option A may be used if the user explicitly requests it after being informed of its limitations.
 
 ⊗ Use `oz agent run-cloud` when the user expects local execution — `run-cloud` routes to remote VMs with no local context.
 ⊗ Silently launch any option without presenting the tradeoffs first.
+⊗ Default to Option A without informing the user of its current limitations — always explain that it lacks global rules and MCP UUID support.
 
-### Option A: oz agent run (preferred — automated local)
+### Option A: oz agent run (automated local — currently limited)
+
+⚠️ **Known limitations (see issue #179):** Option A agents do NOT receive global Warp Drive rules, MCP server UUIDs, Warp Drive notebooks, or any other auto-injected context. The only context they get is: `AGENTS.md` in the `--cwd` directory, the agent profile, and codebase indexing (non-blocking). This makes Option A as context-limited as Option C (cloud) — the only difference is execution location (local vs remote VM). A future Warp build with experimental orchestration support is expected to resolve this.
 
 ! For each agent, launch via the `oz` CLI:
 
@@ -105,18 +108,35 @@ oz agent run --cwd "<worktree-path>" --prompt "TASK: You must complete..."
 
 - ! `--cwd` sets the working directory to the agent's worktree
 - ~ `--profile <id>` sets the agent profile; get IDs with `oz agent profile list`
-- ~ `--mcp` adds MCP server access when launching from within Warp
-- ! Codebase indexing is non-blocking — agent starts immediately, indexing completes in the background
+- ! Codebase indexing is non-blocking — agent starts immediately, indexing completes in the background (not pre-warmed like Option B)
 - ~ The generated `launch-agent.ps1` scripts should use this command
-- ! `--mcp` requires Warp app context — MUST NOT use `--mcp` with Warp MCP server UUIDs when launching from a standalone (non-Warp) terminal; it will fail with "Failed to start MCP servers"
+- ! `--mcp` with Warp MCP server UUIDs does NOT work — fails with "Failed to start MCP servers"
+- ? **Inline MCP JSON workaround** — MCP can be passed as inline JSON instead of UUID, but requires knowing the endpoint URL and managing auth externally (not zero-config):
 
-### Option B: Warp Agent Conversations (interactive local)
+```powershell
+oz agent run --cwd "<worktree-path>" --mcp '{"github": {"url": "https://api.githubcopilot.com/mcp/"}}' --prompt "TASK: ..."
+```
+
+- ! `AGENTS.md` in the worktree is the only reliable behavioral control surface for Option A agents — do not assume global rules are available
+- ! Option A runs fully headless — permissions must be pre-configured in the agent profile; commands will silently fail if not
+- ! Option A agents cannot be steered mid-run without going to oz.warp.dev; Option B agents are interruptible
+
+### Option B: Warp Agent Conversations (recommended — interactive local)
+
+! **This is the recommended launch method** until Option A gains parity with Warp's interactive context injection.
 
 Ask the user to open N new Warp terminal tabs. For each tab, the user:
 1. Navigates to the worktree: `cd <worktree>`
-2. Pastes the prompt directly into the Warp agent chat input (not the terminal)
+2. Pastes the prompt directly into the **Warp agent chat input** (not the terminal)
 
-Preferred when the user wants to monitor each agent interactively. Gets full MCP, codebase indexing, and Warp Drive rules.
+**What Option B gets that Option A does not:**
+- Global Warp Drive rules (personal rules auto-injected)
+- MCP servers via UUID (GitHub, etc. — zero-config)
+- Warp Drive notebooks, workflows, and other auto-injected context
+- Warm codebase index from the active Warp session (no cold-start delay)
+- Agent is interruptible and steerable mid-run
+
+**Tradeoff:** Requires the user to manually open and manage one Warp tab per agent. Not as scalable for large swarms, but provides the richest agent context.
 
 ### Option C: Cloud Agents via oz agent run-cloud (remote, no local context)
 
@@ -126,6 +146,8 @@ oz agent run-cloud --prompt "TASK: You must complete..."
 ```
 
 Agents execute on remote VMs without local MCP servers, codebase indexing, or Warp Drive rules. Agents MUST use `gh` CLI for GitHub operations.
+
+**Tradeoff vs Option B:** Fully automated with zero tab management, but context-starved — the agent has no MCP, no Warp Drive rules, and no codebase indexing. Best for tasks that are self-contained and don't need MCP or local file context. `AGENTS.md` is the only behavioral control surface.
 
 ## Phase 4 — Monitor
 
@@ -270,4 +292,6 @@ CONSTRAINTS:
 - ⊗ Use `git reset --hard` or force-push in any worktree
 - ⊗ Launch agents without presenting all options and their tradeoffs — always show Option A/B/C tradeoffs and confirm with the user before launching.
 - ⊗ Use `oz agent run-cloud` when the user asked for local agents — `run-cloud` spawns agents on remote VMs with no local context. Use `oz agent run` for local execution.
+- ⊗ Assume Option A (`oz agent run`) gets global Warp Drive rules — it only gets `AGENTS.md` and explicitly passed context. Global rules, MCP UUIDs, and Warp Drive context require Option B (interactive Warp tab).
+- ⊗ Default to Option A without disclosing its current limitations — always inform the user that Option A lacks global rules and MCP UUID support before launching.
 - ⊗ Update ROADMAP.md during swarm close — it is updated only at release time (CHANGELOG promotion commit), not by individual agents or during PR merges.

@@ -231,6 +231,20 @@ tests/content/test_skills.py passes
 
 **Traces**: #172
 
+## t1.7.5: Document Option A (oz agent run) context limitations in deft-swarm (#179)  `[pending]`
+
+Update skills/deft-swarm/SKILL.md Phase 3 to accurately reflect that Option A (oz agent run) does not receive global Warp Drive rules, MCP server UUIDs, or auto-injected context. Demote Option A from preferred, elevate Option B as recommended launch method. Document inline MCP JSON workaround. Add anti-patterns. Record finding in meta/lessons.md. Closes #179.
+
+- skills/deft-swarm/SKILL.md Phase 3 Option A marked as currently limited with known-limitations callout referencing #179
+Option B marked as recommended with explicit list of context advantages over Option A
+Inline MCP JSON workaround documented in Option A section
+Anti-patterns section contains entry about assuming Option A gets global Warp Drive rules
+Default launch changed from Option A to Option B
+meta/lessons.md contains Option A context limitations lesson
+tests/content/test_skills.py passes
+
+**Traces**: #179
+
 ## t1.8.1: vBRIEF conformance audit — remaining issues post-PR #130 (#126, #144)  `[completed]`
 
 **Depends on**: t1.2.1, t1.2.2
@@ -283,9 +297,19 @@ Find all .md references to core/user.md and core/project.md legacy paths. Replac
 grep for 'core/project.md' returns zero matches in non-history .md files (except legacy fallback note in SKILL.md)
 tests/content/test_contracts.py passes
 
-**Traces**: FR-13
+**Traces**: #185
 
-## t2.1.2: Create history/changes/ directory with README.md (FR-14)  `[completed]`
+## t1.9.2: Add enforcement markers to AGENTS.md pre-implementation checklist (#186)  `[pending]`
+
+AGENTS.md 'Before code changes' checklist uses plain language without RFC2119 enforcement markers. Agent treated it as advisory and skipped spec coverage check, branch creation, and /deft:change proposal when user said 'yes'. Add ! (MUST) markers to all pre-implementation items and add a new anti-pattern. Closes #186.
+
+- AGENTS.md 'Before code changes' items prefixed with ! (MUST) markers
+AGENTS.md contains anti-pattern: Begin editing files before checking spec coverage and creating a feature branch
+tests/content/test_agents_md.py passes
+
+**Traces**: #186
+
+## t2.1.1: Create history/changes/ directory with README.md (FR-14)  `[completed]`
 
 commands.md references history/changes/<name>/ but the directory doesn't exist. Create it with a README.md documenting the change lifecycle artifact structure. Closes #59.
 
@@ -473,16 +497,16 @@ Referenced from coding/coding.md or discoverable via directory listing
 
 ## t2.6.2: Move ROADMAP.md updates from merge-time to release-time (#170)  `[completed]`
 
-The AGENTS.md PR conventions section says "ROADMAP.md updates happen on merge" — in practice this is routinely skipped, especially during swarm runs. Change the convention so ROADMAP.md is batch-updated during the CHANGELOG promotion commit (the release commit) instead. Update AGENTS.md, add a Phase 6 Step 5 and ⊗ anti-pattern to skills/deft-swarm/SKILL.md. Closes #170.
+The AGENTS.md PR conventions section says 'ROADMAP.md updates happen on merge' — in practice this is routinely skipped, especially during swarm runs. Change the convention so ROADMAP.md is batch-updated during the CHANGELOG promotion commit (the release commit) instead. Update AGENTS.md, add a Phase 6 Step 5 and ⊗ anti-pattern to skills/deft-swarm/SKILL.md. Closes #170.
 
-- AGENTS.md PR conventions line reads: "ROADMAP.md updates happen at release time — batch-move merged issues to Completed during the CHANGELOG promotion commit"
-- skills/deft-swarm/SKILL.md Phase 6 contains Step 5 instructing monitor to update ROADMAP.md at release time, not during swarm close
-- skills/deft-swarm/SKILL.md Phase 1 Step 2 contains ⊗ rule: MUST NOT include ROADMAP.md as a shared exception for swarm agents
-- skills/deft-swarm/SKILL.md Anti-Patterns contains ⊗ entry: update ROADMAP.md during swarm close
+- AGENTS.md PR conventions line reads: 'ROADMAP.md updates happen at release time — batch-move merged issues to Completed during the CHANGELOG promotion commit'
+skills/deft-swarm/SKILL.md Phase 6 contains Step 5 instructing monitor to update ROADMAP.md at release time, not during swarm close
+skills/deft-swarm/SKILL.md Phase 1 Step 2 contains ⊗ rule: MUST NOT include ROADMAP.md as a shared exception for swarm agents
+skills/deft-swarm/SKILL.md Anti-Patterns contains ⊗ entry: update ROADMAP.md during swarm close
 
 **Traces**: #170
 
-## t3.1.1:
+## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
 
 GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: (1) Python: ruff check, mypy tests/ (the shim run.py cannot be typed directly - exclude run and run.py from mypy per pyproject.toml, type-check the test suite instead), pytest tests/ with coverage. (2) Go: go test ./cmd/deft-install/ + go build ./cmd/deft-install/ for each platform matrix (linux/amd64, darwin/arm64, windows/amd64). main_test.go already exists so go test is zero-cost. Use current action versions. Closes #57.
 

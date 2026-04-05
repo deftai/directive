@@ -117,6 +117,20 @@ GitHub assigns PR numbers in creation order, which depends on which agent finish
 
 The core lesson remains valid: when agents stop before completing the full workflow (PR + review cycle), the monitor MUST be prepared to complete the remaining steps. Ensure the prompt's STEP 6 (review cycle) instruction is explicit enough to prevent early termination — regardless of whether agents are local or cloud. (#172)
 
+## Option A (oz agent run) Context Limitations (2026-04)
+
+**Source:** Issue #179 — live testing of `oz agent run` during swarm orchestration
+
+**1. `oz agent run` does NOT receive global Warp Drive rules, MCP UUIDs, or auto-injected context**
+
+Testing revealed that `oz agent run` launched from the terminal does not automatically receive global Warp Drive rules (personal rules stored in Warp Drive > Personal > Rules), MCP servers via UUID, or Warp Drive notebooks/workflows. The only context an Option A agent gets is: `AGENTS.md` in the `--cwd` directory, the agent profile specified with `--profile`, and codebase indexing (non-blocking, background). This makes Option A effectively as context-limited as cloud agents (`oz agent run-cloud`) — the only difference is execution location (local vs remote VM).
+
+**Option B (interactive Warp tab) is the correct choice for full local context** until a future Warp build with experimental orchestration support brings Option A to parity. Option B agents get full MCP, global rules, Warp Drive context, warm codebase indexing, and are interruptible mid-run.
+
+**2. Inline MCP JSON is a partial workaround for Option A but not zero-config**
+
+MCP servers can be passed via inline JSON instead of UUID: `--mcp '{"github": {"url": "https://api.githubcopilot.com/mcp/"}}'`. This works around the UUID proxy issue but requires knowing the MCP endpoint URL and managing auth separately. Not a substitute for Option B's zero-config MCP injection.
+
 ## Windows File Editing (2026-03)
 
 **Source:** ROADMAP.md edits during feat/agents-md-onboarding-54 — three sequential failures before clean write

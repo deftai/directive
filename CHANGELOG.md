@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **deft-swarm Option A limitations documented** (#179): Updated `skills/deft-swarm/SKILL.md` Phase 3 — demoted Option A (`oz agent run`) from preferred to "currently limited"; elevated Option B (interactive Warp tab) as recommended launch method; added known-limitations callout noting Option A does not receive global Warp Drive rules, MCP UUIDs, or auto-injected context; documented inline MCP JSON workaround; added two new anti-patterns; updated default launch from Option A to Option B; recorded finding in `meta/lessons.md`
+- **AGENTS.md pre-implementation gate enforcement** (#186): Added `!` (MUST) markers to "Before code changes" checklist items in `AGENTS.md`; added `⊗` anti-pattern prohibiting file edits before spec coverage check and branch creation — even if user says "yes" or "proceed"; root cause: agent loaded AGENTS.md but treated pre-implementation checklist as advisory due to missing RFC2119 enforcement markers
+
 ## [0.10.3] - 2026-04-05
 
 ### Fixed

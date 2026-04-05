@@ -25,8 +25,9 @@ When all config exists: read the guidelines, your USER.md preferences, and PROJE
 ## Development Process (always follow)
 
 **Before code changes:**
-- Read SPECIFICATION.md for existing task coverage of the issue being fixed
-- If no spec task exists for the work, add one before implementing
+- ! Read SPECIFICATION.md for existing task coverage of the issue being fixed
+- ! If no spec task exists for the work, add one before implementing
+- ⊗ Begin editing files before checking spec coverage and creating a feature branch — even if the user says "yes" or "proceed"
 
 **Before committing:**
 - Run `task check` (validate + lint + test) — this is the pre-commit gate
