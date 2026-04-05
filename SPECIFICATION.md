@@ -231,7 +231,7 @@ tests/content/test_skills.py passes
 
 **Traces**: #172
 
-## t1.7.5: Document Option A (oz agent run) context limitations in deft-swarm (#179)  `[pending]`
+## t1.7.5: Document Option A (oz agent run) context limitations in deft-swarm (#179)  `[completed]`
 
 Update skills/deft-swarm/SKILL.md Phase 3 to accurately reflect that Option A (oz agent run) does not receive global Warp Drive rules, MCP server UUIDs, or auto-injected context. Demote Option A from preferred, elevate Option B as recommended launch method. Document inline MCP JSON workaround. Add anti-patterns. Record finding in meta/lessons.md. Closes #179.
 
@@ -289,6 +289,16 @@ AGENTS.md or CONTRIBUTING.md documents ROADMAP update convention
 
 **Traces**: #167
 
+## t1.9.2: Add enforcement markers to AGENTS.md pre-implementation checklist (#186)  `[completed]`
+
+AGENTS.md 'Before code changes' checklist uses plain language without RFC2119 enforcement markers. Agent treated it as advisory and skipped spec coverage check, branch creation, and /deft:change proposal when user said 'yes'. Add ! (MUST) markers to all pre-implementation items and add a new anti-pattern. Closes #186.
+
+- AGENTS.md 'Before code changes' items prefixed with ! (MUST) markers
+AGENTS.md contains anti-pattern: Begin editing files before checking spec coverage and creating a feature branch
+tests/content/test_agents_md.py passes
+
+**Traces**: #186
+
 ## t2.1.1: Update all stale core/user.md and core/project.md references to canonical paths (FR-13)  `[pending]`
 
 Find all .md references to core/user.md and core/project.md legacy paths. Replace with canonical paths: ~/.config/deft/USER.md (or %APPDATA%\deft\USER.md on Windows) and ./PROJECT.md respectively. Closes #58.
@@ -298,16 +308,6 @@ grep for 'core/project.md' returns zero matches in non-history .md files (except
 tests/content/test_contracts.py passes
 
 **Traces**: #185
-
-## t1.9.2: Add enforcement markers to AGENTS.md pre-implementation checklist (#186)  `[pending]`
-
-AGENTS.md 'Before code changes' checklist uses plain language without RFC2119 enforcement markers. Agent treated it as advisory and skipped spec coverage check, branch creation, and /deft:change proposal when user said 'yes'. Add ! (MUST) markers to all pre-implementation items and add a new anti-pattern. Closes #186.
-
-- AGENTS.md 'Before code changes' items prefixed with ! (MUST) markers
-AGENTS.md contains anti-pattern: Begin editing files before checking spec coverage and creating a feature branch
-tests/content/test_agents_md.py passes
-
-**Traces**: #186
 
 ## t2.1.1: Create history/changes/ directory with README.md (FR-14)  `[completed]`
 

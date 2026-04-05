@@ -246,7 +246,7 @@
       {
         "id": "t1.7.5",
         "title": "Document Option A (oz agent run) context limitations in deft-swarm (#179)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Description": "Update skills/deft-swarm/SKILL.md Phase 3 to accurately reflect that Option A (oz agent run) does not receive global Warp Drive rules, MCP server UUIDs, or auto-injected context. Demote Option A from preferred, elevate Option B as recommended launch method. Document inline MCP JSON workaround. Add anti-patterns. Record finding in meta/lessons.md. Closes #179.",
           "Acceptance": "skills/deft-swarm/SKILL.md Phase 3 Option A marked as currently limited with known-limitations callout referencing #179\nOption B marked as recommended with explicit list of context advantages over Option A\nInline MCP JSON workaround documented in Option A section\nAnti-patterns section contains entry about assuming Option A gets global Warp Drive rules\nDefault launch changed from Option A to Option B\nmeta/lessons.md contains Option A context limitations lesson\ntests/content/test_skills.py passes",
@@ -300,6 +300,16 @@
         }
       },
       {
+        "id": "t1.9.2",
+        "title": "Add enforcement markers to AGENTS.md pre-implementation checklist (#186)",
+        "status": "completed",
+        "narrative": {
+          "Description": "AGENTS.md 'Before code changes' checklist uses plain language without RFC2119 enforcement markers. Agent treated it as advisory and skipped spec coverage check, branch creation, and /deft:change proposal when user said 'yes'. Add ! (MUST) markers to all pre-implementation items and add a new anti-pattern. Closes #186.",
+          "Acceptance": "AGENTS.md 'Before code changes' items prefixed with ! (MUST) markers\nAGENTS.md contains anti-pattern: Begin editing files before checking spec coverage and creating a feature branch\ntests/content/test_agents_md.py passes",
+          "Traces": "#186"
+        }
+      },
+      {
         "id": "t2.1.1",
         "title": "Update all stale core/user.md and core/project.md references to canonical paths (FR-13)",
         "status": "pending",
@@ -307,16 +317,6 @@
           "Description": "Find all .md references to core/user.md and core/project.md legacy paths. Replace with canonical paths: ~/.config/deft/USER.md (or %APPDATA%\\deft\\USER.md on Windows) and ./PROJECT.md respectively. Closes #58.",
           "Acceptance": "grep for 'core/user.md' returns zero matches in non-history .md files (except legacy fallback note in SKILL.md)\ngrep for 'core/project.md' returns zero matches in non-history .md files (except legacy fallback note in SKILL.md)\ntests/content/test_contracts.py passes",
           "Traces": "#185"
-        }
-      },
-      {
-        "id": "t1.9.2",
-        "title": "Add enforcement markers to AGENTS.md pre-implementation checklist (#186)",
-        "status": "pending",
-        "narrative": {
-          "Description": "AGENTS.md 'Before code changes' checklist uses plain language without RFC2119 enforcement markers. Agent treated it as advisory and skipped spec coverage check, branch creation, and /deft:change proposal when user said 'yes'. Add ! (MUST) markers to all pre-implementation items and add a new anti-pattern. Closes #186.",
-          "Acceptance": "AGENTS.md 'Before code changes' items prefixed with ! (MUST) markers\nAGENTS.md contains anti-pattern: Begin editing files before checking spec coverage and creating a feature branch\ntests/content/test_agents_md.py passes",
-          "Traces": "#186"
         }
       },
       {

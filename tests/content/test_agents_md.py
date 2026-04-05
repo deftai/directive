@@ -45,3 +45,23 @@ def test_agents_md_headless_bypass_mentions_cloud_agent() -> None:
     assert "cloud agent" in text.lower(), (
         "AGENTS.md: headless bypass must mention cloud agents as a use case"
     )
+
+
+# ---------------------------------------------------------------------------
+# 2. Pre-implementation checklist enforcement markers (#186, t1.9.2)
+# ---------------------------------------------------------------------------
+
+def test_agents_md_before_code_changes_must_markers() -> None:
+    """'Before code changes' items must carry ! (MUST) markers (#186, t1.9.2)."""
+    text = _read_agents_md()
+    assert "! Read SPECIFICATION.md" in text, (
+        "AGENTS.md: 'Before code changes' items must carry ! (MUST) markers (#186)"
+    )
+
+
+def test_agents_md_pre_implementation_anti_pattern() -> None:
+    """AGENTS.md must contain anti-pattern for editing before spec check (#186, t1.9.2)."""
+    text = _read_agents_md()
+    assert "\u2297" in text and "editing files before" in text.lower(), (
+        "AGENTS.md: must contain \u2297 anti-pattern for editing before spec/branch check (#186)"
+    )
