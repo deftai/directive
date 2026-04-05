@@ -12,7 +12,7 @@ _MERMAID_MD = _REPO_ROOT / "languages" / "mermaid.md"
 
 
 def _read_mermaid_rules() -> str:
-    return _MERMAID_MD.read_text(encoding="utf-8", errors="replace")
+    return _MERMAID_MD.read_text(encoding="utf-8")
 
 
 def test_github_gist_sequence_rules_present() -> None:
