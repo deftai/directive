@@ -8,7 +8,7 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 
 Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
-- **#192** — Proactively
+- **#192** — Proactively add test coverage after review-fix commits before CI re-run — after committing Greptile fixes, scan changed lines and write tests in the same batch before re-triggering CI; eliminates one CI round-trip per fix cycle; add explicit step to `skills/deft-review-cycle/SKILL.md` (xrefs #174, #175)
 - **#191** — Remove defensive vBRIEF reference-type workarounds — deftai/vBRIEF#2 resolved; remove `⊗` anti-pattern from `vbrief/vbrief.md`, interim `uris[]` callout from `templates/make-spec.md`, and workaround error catch from `spec_validate.py`; closing #191 also closes #189 as superseded (xrefs #133, #189)
 - **#184** — deft-review-cycle: add autonomous polling imperative — agents must not stop and ask after pushing; add `!` rule + `⊗` anti-pattern to Step 4; candidate `meta/lessons.md` entry (xrefs #175, #174, #192)
 - **#188** — Update deft-swarm skill: runtime capability detection for `start_agent` (probe tool set, use when present, fall back to Option B silently); add Warp environment gate; dynamic path selection replaces static A/B/C list (xref #179)
