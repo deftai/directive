@@ -340,9 +340,37 @@ tests/content/test_agents_md.py passes
 
 **Traces**: #186
 
+## t1.9.3: Replace static launch options with runtime capability detection in deft-swarm (#188)  `[completed]`
+
+Replace the static Option A/B/C launch path selection in skills/deft-swarm/SKILL.md Phase 3 with runtime capability detection. The agent probes for `start_agent` tool availability at runtime, uses it directly if available (Warp orchestration support), falls back to manual Warp tabs if not. A Warp environment gate detects whether running inside Warp (`WARP_*` environment variables or `start_agent` presence) before offering Warp-specific launch paths. Cloud via `oz agent run-cloud` preserved as explicit user-requested escape hatch only. Closes #188.
+
+- skills/deft-swarm/SKILL.md Phase 3 uses runtime detection instead of static Option A/B/C presentation
+- `start_agent` availability probed at runtime; if available, used as preferred launch path
+- Warp environment detected via `WARP_*` environment variables or `start_agent` tool presence
+- Manual Warp tabs used as fallback when `start_agent` not available but Warp detected
+- Cloud (`oz agent run-cloud`) preserved as explicit user-requested escape hatch only
+- Anti-patterns updated to reflect dynamic detection approach
+- tests/content/test_skills.py passes
+
+**Traces**: #188
+
+## t1.9.4: Add mandatory analyze phase to deft-swarm before task selection (#199)  `[completed]`
+
+Add Phase 0 — Analyze to skills/deft-swarm/SKILL.md before Phase 1 (Select). The new phase reads ROADMAP.md and SPECIFICATION.md, surfaces blockers (blocked spec tasks, missing spec coverage, dependency conflicts), presents analysis summary to the user, and requires explicit user approval before proceeding to task selection. Closes #199.
+
+- skills/deft-swarm/SKILL.md contains Phase 0 — Analyze before Phase 1 — Select
+- Phase 0 reads ROADMAP.md and SPECIFICATION.md
+- Phase 0 surfaces blockers: blocked spec tasks, missing spec coverage, dependency conflicts
+- Phase 0 presents analysis summary with candidate items, blockers, and missing spec tasks
+- Phase 0 requires explicit user approval (yes/confirmed) before proceeding
+- Anti-patterns section contains entry prohibiting proceeding to Phase 1 without Phase 0 completion
+- tests/content/test_skills.py passes
+
+**Traces**: #199
+
 ## t2.1.1: Update all stale core/user.md and core/project.md references to canonical paths (FR-13)  `[pending]`
 
-Find all .md references to core/user.md and core/project.md legacy paths. Replace with canonical paths: ~/.config/deft/USER.md (or %APPDATA%\deft\USER.md on Windows) and ./PROJECT.md respectively. Closes #58.
+Find all .md references to core/user.md and core/project.md legacy paths.
 
 - grep for 'core/user.md' returns zero matches in non-history .md files (except legacy fallback note in SKILL.md)
 grep for 'core/project.md' returns zero matches in non-history .md files (except legacy fallback note in SKILL.md)

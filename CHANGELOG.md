@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Deft-swarm runtime capability detection** (#188, t1.9.3): Replaced static Option A/B/C launch path selection in `skills/deft-swarm/SKILL.md` Phase 3 with runtime capability detection — agent probes for `start_agent` tool at runtime, uses it as preferred path if available (Warp orchestration), falls back to manual Warp tabs silently when unavailable but Warp detected, gates Warp-specific paths on `WARP_*` environment variables; cloud (`oz agent run-cloud`) preserved as explicit user-requested escape hatch only; anti-patterns updated for dynamic approach
+- **Deft-swarm mandatory analyze phase** (#199, t1.9.4): Added Phase 0 — Analyze to `skills/deft-swarm/SKILL.md` before Phase 1 (Select) — reads ROADMAP.md and SPECIFICATION.md, surfaces blockers (blocked spec tasks, missing spec coverage, dependency conflicts), presents analysis summary to user, requires explicit user approval before proceeding to task selection; anti-pattern added prohibiting Phase 1 entry without Phase 0 completion
+
 ### Fixed
 - **vBRIEF reference type schema vendor** (#133, t1.8.2): Vendored updated upstream vBRIEF schema — `VBriefReference.type` expanded from `{"enum": ["x-vbrief/plan"]}` to pattern-based `^x-vbrief/` accepting all `x-vbrief/*` reference types (e.g. `x-vbrief/plan`, `x-vbrief/context`, `x-vbrief/research`); unblocks generated vBRIEF files that use context/research references; task t1.8.2 moved from `[blocked]` to `[completed]`
 - **deft-review-cycle autonomous polling** (#184, t1.9.4): Added `!` rule to Step 4 requiring agents to autonomously poll for Greptile review updates after pushing without stopping to ask the user; added `⊗` anti-pattern for pausing the review/fix loop for user confirmation; added candidate lesson to `meta/lessons.md` Review Cycle Monitoring section
