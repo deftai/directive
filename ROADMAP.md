@@ -8,8 +8,7 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 
 Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
-
-- ~~**#133** — Generated vBRIEF files use invalid reference types — upstream deftai/vBRIEF#2 resolved; defensive workarounds cleaned up by #191~~ — closed 2026-04-05
+- **#166**
 - **#166** — Greptile Review status check blocks merge — no re-review after fixes pushed; `triggerOnUpdates` defaults to `false`; need `.greptile/config.json` and deft-review-cycle pre-flight check (xrefs #145, #135)
 - **#192** — Proactively add test coverage after review-fix commits before CI re-run — after committing Greptile fixes, scan changed lines and write tests in the same batch before re-triggering CI; eliminates one CI round-trip per fix cycle; add explicit step to `skills/deft-review-cycle/SKILL.md` (xrefs #174, #175)
 - **#191** — Remove defensive vBRIEF reference-type workarounds — deftai/vBRIEF#2 resolved; remove `⊗` anti-pattern from `vbrief/vbrief.md`, interim `uris[]` callout from `templates/make-spec.md`, and workaround error catch from `spec_validate.py`; closing #191 also closes #189 as superseded (xrefs #133, #189)
@@ -40,8 +39,7 @@ Quick doc/content fixes that don't require code changes.
 - **#159** — Deterministic > Probabilistic — design principle: prefer deterministic components for repeatable actions; document in `meta/philosophy.md` or `contracts/hierarchy.md`; ongoing application across CLI/skills/workflows is Phase 5 (xrefs #84, #160, #95, #86)
 - **#168** — deft-roadmap-refresh skill: add MUST rule to confirm analysis comment posting to user — transparency improvement (xref #147)
 - **#174** — deft-roadmap-refresh skill: add PR & review cycle phase — when triage is complete, prompt user for PR readiness; run pre-push pre-flight (CHANGELOG + `task check`) before pushing; after PR creation, automatically sequence into `skills/deft-review-cycle/SKILL.md` (review cycle Phase 1 audit must happen before push, not after) (xrefs #168, #147)
-- ~~**#58** — Stale cross-references to legacy `core/user.md` and `core/project.md` paths~~ — closed 2026-04-06
-- **#51** — Project should be fully bootstrapped with its own framework (partially done in PR #66)
+- **#51**
 - Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml; reframe README per #89 resolution (#84 Phase 2, blocked on #89)
   - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping"
   - Reframe from "coding standards framework" → resolved tagline from #89
