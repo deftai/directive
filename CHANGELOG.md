@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **State WHY rule for interview strategy** (#84, t2.2.3): Added `!` rule to `strategies/interview.md` Interview Rules requiring agents to state the underlying principle (1 sentence) when making an opinionated recommendation — part of "Deft as teacher" so users understand the contract hierarchy reasoning behind recommendations
+- **CONTRIBUTING.md contributor bootstrap guide** (#67, t2.3.1): Created `CONTRIBUTING.md` at repo root with full contributor onboarding — prerequisites (Go 1.22+, Python 3.11+, uv, task), dev environment setup, running tests (`task test`, `task check`), running CLI locally (`uv run python run`), building the Go installer (`go build ./cmd/deft-install/`); documents `task check` as the authoritative pre-commit gate and defines a passing `task check` as the definition of ready-to-commit
 
 ## [0.12.0] - 2026-04-06
 
