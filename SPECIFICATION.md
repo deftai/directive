@@ -258,15 +258,43 @@ tests/content/test_vbrief_schema.py updated to catch these specific violations
 
 **Traces**: #126, #144
 
-## t1.8.2: Fix invalid vBRIEF reference types (#133)  `[blocked]`
+## t1.8.2: Fix invalid vBRIEF reference types (#133)  `[completed]`
 
-Generated vBRIEF files use invalid reference types (`x-vbrief/context`, `x-vbrief/research`) that fail schema validation. Blocked on upstream deftai/vBRIEF#2 to expand the reference type enum. Vendor updated schema once resolved. Closes #133.
+Generated vBRIEF files use invalid reference types (`x-vbrief/context`, `x-vbrief/research`) that fail schema validation. Upstream deftai/vBRIEF#2 resolved — reference type expanded from enum to pattern. Vendor updated schema. Closes #133.
 
-- vbrief/schemas/vbrief-core.schema.json updated with expanded reference type enum from upstream
+- vbrief/schemas/vbrief-core.schema.json updated with expanded reference type pattern from upstream
 Generated vBRIEF files pass schema validation for reference types
 tests/content/test_vbrief_schema.py covers reference type validation
 
 **Traces**: #133
+
+## t1.9.3: Remove defensive vBRIEF reference-type workarounds (#191)  `[completed]`
+
+Upstream deftai/vBRIEF#2 resolved — remove any defensive workarounds that were added while the reference type enum was restricted to `x-vbrief/plan`. Verify no interim callouts remain in vbrief/vbrief.md, templates/make-spec.md, or spec_validate.py. Closes #191.
+
+- No defensive reference-type workarounds remain in vbrief/vbrief.md, templates/make-spec.md, or scripts/spec_validate.py
+- vbrief/schemas/vbrief-core.schema.json uses expanded reference type pattern (prerequisite: t1.8.2)
+
+**Traces**: #191
+
+## t1.9.4: Add autonomous polling imperative to deft-review-cycle (#184)  `[completed]`
+
+Agents stop and ask the user after pushing instead of autonomously polling for the Greptile review. Add ! rule to Step 4 requiring autonomous polling without stopping. Add anti-pattern. Add candidate meta/lessons.md entry. Closes #184.
+
+- skills/deft-review-cycle/SKILL.md Step 4 contains ! rule: after pushing, agent MUST autonomously poll for review updates without stopping to ask the user
+- skills/deft-review-cycle/SKILL.md Anti-Patterns contains ⊗ entry: stopping and asking the user whether to continue after pushing
+- meta/lessons.md contains candidate entry about autonomous polling
+
+**Traces**: #184
+
+## t1.9.5: Add proactive test coverage step to deft-review-cycle (#192)  `[completed]`
+
+After committing Greptile fixes, agents re-trigger CI without checking test coverage of changed lines. Add explicit step between fix commit and CI re-trigger to scan changed lines, identify untested code paths, and write tests in the same batch. Eliminates one CI round-trip per fix cycle. Closes #192.
+
+- skills/deft-review-cycle/SKILL.md contains explicit step (between Step 3 fix commit and Step 4 push) to scan changed lines, identify untested code paths, and write tests
+- Step is positioned to eliminate one CI round-trip per fix cycle
+
+**Traces**: #192
 
 ## t1.8.3: Consistent ./deft/ installation path (#116)  `[pending]`
 

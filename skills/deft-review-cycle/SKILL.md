@@ -89,9 +89,24 @@ gh pr view <number> --comments
 
 ⊗ Push individual fix commits per finding — always batch.
 
+### Step 3b: Proactive test coverage scan
+
+! After committing the fix batch but before pushing, scan the changed lines for untested code paths:
+
+1. ! Run `git --no-pager diff HEAD~1 --name-only` to identify files touched in the fix batch
+2. ! For each changed file that has a corresponding test file, review whether the fix introduced or modified logic that lacks test coverage
+3. ! If untested code paths are found, write tests and amend them into the fix batch commit (or add as a second commit in the same push)
+4. ! Run `task check` again after adding tests to verify they pass
+
+~ This eliminates one CI round-trip per fix cycle — catching coverage gaps before CI does.
+
+⊗ Push fix commits without scanning for untested code paths in changed files.
+
 ### Step 4: Push and wait
 
 ! Push the batch commit, then wait for the bot to review the latest commit.
+
+! After pushing, the agent MUST autonomously poll for review updates and continue the review cycle without stopping to ask the user. Do not pause for confirmation, do not ask "should I continue?", do not wait for user input between push and review completion. The review/fix loop is designed to run to the exit condition without human intervention.
 
 ⊗ Push any additional commits — including unrelated fixes, doc updates, or lessons — while waiting for the bot to finish reviewing the current head. Every push re-triggers Greptile and resets the review clock. If you discover additional work while waiting, stage it locally but do NOT push until the current review completes.
 
@@ -165,3 +180,5 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 - ⊗ Rely solely on `pulls/{number}/reviews` to detect whether Greptile has reviewed the latest commit — Greptile may update via an edited issue comment instead of a new review object
 - ⊗ Push additional commits while Greptile is reviewing the current head — each push re-triggers Greptile and resets the review clock
 - ⊗ Poll `get_check_runs` more frequently than once per 60 seconds — use a real delay between polls, not back-to-back calls
+- ⊗ Stop and ask the user whether to continue after pushing — the review/fix loop MUST run autonomously to the exit condition
+- ⊗ Push fix commits without scanning changed lines for untested code paths — always check test coverage before pushing
