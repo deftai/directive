@@ -8,9 +8,10 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 
 Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
-
-- **#133** — Generated vBRIEF files use invalid reference types (`x-vbrief/context`, `x-vbrief/research`) that fail schema validation — blocked on upstream `deftai/vBRIEF#2` to expand the enum; vendor updated schema once resolved
 - **#166** — Greptile Review status check blocks merge — no re-review after fixes pushed; `triggerOnUpdates` defaults to `false`; need `.greptile/config.json` and deft-review-cycle pre-flight check (xrefs #145, #135)
+- **#192** — Proactively add test coverage after review-fix commits before CI re-run — after committing Greptile fixes, scan changed lines and write tests in the same batch before re-triggering CI; eliminates one CI round-trip per fix cycle; add explicit step to `skills/deft-review-cycle/SKILL.md` (xrefs #174, #175)
+- **#191** — Remove defensive vBRIEF reference-type workarounds — deftai/vBRIEF#2 resolved; remove `⊗` anti-pattern from `vbrief/vbrief.md`, interim `uris[]` callout from `templates/make-spec.md`, and workaround error catch from `spec_validate.py`; closing #191 also closes #189 as superseded (xrefs #133, #189)
+- **#184** — deft-review-cycle: add autonomous polling imperative — agents must not stop and ask after pushing; add `!` rule + `⊗` anti-pattern to Step 4; candidate `meta/lessons.md` entry (xrefs #175, #174, #192)
 
 ### Cleanup
 
@@ -37,7 +38,6 @@ Quick doc/content fixes that don't require code changes.
 - **#159** — Deterministic > Probabilistic — design principle: prefer deterministic components for repeatable actions; document in `meta/philosophy.md` or `contracts/hierarchy.md`; ongoing application across CLI/skills/workflows is Phase 5 (xrefs #84, #160, #95, #86)
 - **#168** — deft-roadmap-refresh skill: add MUST rule to confirm analysis comment posting to user — transparency improvement (xref #147)
 - **#174** — deft-roadmap-refresh skill: add PR & review cycle phase — when triage is complete, prompt user for PR readiness; run pre-push pre-flight (CHANGELOG + `task check`) before pushing; after PR creation, automatically sequence into `skills/deft-review-cycle/SKILL.md` (review cycle Phase 1 audit must happen before push, not after) (xrefs #168, #147)
-- **#58** — Stale cross-references to legacy `core/user.md` and `core/project.md` paths throughout framework
 - **#51** — Project should be fully bootstrapped with its own framework (partially done in PR #66)
 - Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml; reframe README per #89 resolution (#84 Phase 2, blocked on #89)
   - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping"
@@ -73,6 +73,8 @@ Quick doc/content fixes that don't require code changes.
 - **#136** — Warp doesn't load deft's AGENTS.md by default — document global rule workaround in README/installer output; real fix is Warp platform feature request (to be done with #114)
 - **#146** — Add `skills/deft-sync/SKILL.md` — session-start sync skill: submodule update, vBRIEF file validation, AGENTS.md freshness check, new-skills listing; design complete in issue body (related: #140 CLI counterpart, #75 auto-discovery)
 - **#147** — Skills `deft-roadmap-refresh` and `deft-review-cycle` not documented in README or AGENTS.md — add to README directory tree and `### 🤖 Skills` section; add `deft-roadmap-refresh` reference to AGENTS.md (to be done with #114)
+- **#188** — Update deft-swarm skill: runtime capability detection for `start_agent` (probe tool set, use when present, fall back to Option B silently); add Warp environment gate distinguishing in-session options (require Warp) from `oz` CLI dispatch (environment-agnostic); dynamic path selection replaces static A/B/C list (xref #179)
+- **#182** — Add `skills/deft-rwldl/SKILL.md` — iterative pre-PR self-improvement loop (Micro Review → Implement → Macro Review → Implement → Verify); adapts `tools/RWLDL.md` with deft-specific quality gates (doc consistency, vBRIEF/spec sync, `task check` exit criterion); fills gap between single-pass gate and external bot review loop (xrefs #174, #147, #115)
 
 ---
 
@@ -142,6 +144,9 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#189 — vBRIEF defensive reference-type mitigations — superseded by #191 (deftai/vBRIEF#2 resolved; mitigations no longer needed)~~ — 2026-04-06 (closed, superseded)
+- ~~#133 — Generated vBRIEF files use invalid reference types — upstream deftai/vBRIEF#2 resolved; cleanup tracked in #191~~ — 2026-04-05 (closed)
+- ~~#58 — Stale cross-references to legacy `core/user.md` and `core/project.md` paths~~ — 2026-04-06 (closed)
 - ~~#185 — Change gate UX: replace name-echo with yes/no confirmation — main.md, deft-build, deft-review-cycle, PR template all updated~~ — 2026-04-05 (v0.11.0)
 - ~~#179 — deft-swarm Option A limitations documented — Option A demoted, Option B elevated as recommended~~ — 2026-04-05 (v0.11.0)
 - ~~#186 — AGENTS.md pre-implementation gate enforcement — ! markers added to Before code changes checklist~~ — 2026-04-05 (v0.11.0)
@@ -246,7 +251,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #57 | Add GitHub Actions CI workflow | 3 |
 | #128 | CI vBRIEF schema sync check (depends on #57) | 3 |
 | #163 | Enforce USER.md gate in CLI path — parity with agentic (skills) path | 3 |
-| #58 | Stale cross-references to legacy paths | 2 |
+| ~~#58~~ | ~~Stale cross-references to legacy paths~~ | closed 2026-04-06 |
 | ~~#59~~ | ~~history/changes/ directory missing~~ | completed — v0.10.0 |
 | ~~#67~~ | ~~Write SPECIFICATION.md and proper PROJECT.md for deft~~ | completed |
 | ~~#68~~ | ~~Warp not always enforcing Deft testing protocols~~ | completed — v0.10.1 |
@@ -289,7 +294,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | ~~#144~~ | ~~Directive giving invalid vBRIEF files & wrong key names (address with #126)~~ | completed — v0.10.3 |
 | #127 | Improved support for Deft in existing repositories (brownfield bootstrap path; related #103, #53) | 2 |
 | ~~#131~~ | ~~Mac installer post-install text wording fix~~ | completed — v0.10.1 |
-| #133 | Generated vBRIEF files use invalid reference types (blocked on upstream deftai/vBRIEF#2) | 1 |
+| ~~#133~~ | ~~Generated vBRIEF files use invalid reference types~~ | closed 2026-04-05 |
 | #134 | Visual indicator that Deft is active (behavioral rule; true UI deferred Phase 5) | 2 |
 | ~~#135~~ | ~~Greptile review rules SKILL.md in repo~~ | completed — PR #143 |
 | #136 | Warp doesn't auto-load AGENTS.md — document workaround (with #114) | 2 |
@@ -301,6 +306,9 @@ Larger feature work — only after issues are resolved and content is stable.
 | ~~#145~~ | ~~deft-review-cycle: Greptile issue comment not primary review signal (false wait loops)~~ | completed — v0.10.1 |
 | ~~#172~~ | ~~deft-swarm skill: oz agent run correction (Phase 3, lessons, SPECIFICATION.md)~~ | completed — v0.10.2 |
 | #166 | Greptile Review status check blocks merge — no re-review after fixes pushed | 1 |
+| #192 | Proactively add test coverage after review-fix commits before CI re-run | 1 |
+| #191 | Remove defensive vBRIEF reference-type workarounds — deftai/vBRIEF#2 resolved | 1 |
+| #184 | deft-review-cycle: add autonomous polling imperative after push | 1 |
 | #167 | PRs merged but issues not closed and roadmap not updated | 1 |
 | ~~#171~~ | ~~No direct-to-master agent commits — ⊗ gate + PROJECT.md opt-in~~ | completed — v0.10.2 |
 | ~~#175~~ | ~~deft-review-cycle: no-push-while-reviewing + 60s poll cadence~~ | completed — v0.10.2 |
@@ -311,6 +319,8 @@ Larger feature work — only after issues are resolved and content is stable.
 | #174 | deft-roadmap-refresh skill: add review cycle step after PR push | 2 |
 | #146 | Add skills/deft-sync/SKILL.md — session-start framework sync skill | 2 |
 | #147 | Skills deft-roadmap-refresh and deft-review-cycle not documented in README or AGENTS.md | 2 |
+| #188 | Update deft-swarm: runtime start_agent capability detection + Warp environment gate | 2 |
+| #182 | Add skills/deft-rwldl/SKILL.md — iterative pre-PR quality improvement loop | 2 |
 | ~~#170~~ | ~~Move ROADMAP.md updates from merge-time to release-time~~ | completed — v0.10.3 |
 
 ---
@@ -345,3 +355,10 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-03 — filed and triaged #174 (deft-roadmap-refresh review cycle chaining, Phase 2)*
 *Updated 2026-04-03 — v0.10.2 release: moved #171, #172, #175 to Completed*
 *Updated 2026-04-05 — v0.10.3 release: moved #126, #144 (vBRIEF conformance), #102 (Mermaid guidance), #170 (ROADMAP update convention) to Completed; cleaned #171/#175 from Phase 1 Cleanup body (already completed in v0.10.2)*
+*Updated 2026-04-06 — roadmap refresh triage: added #192 to Phase 1 Adoption Blockers (proactive test coverage after review-fix commits)*
+*Updated 2026-04-06 — roadmap refresh triage: added #191 to Phase 1 Adoption Blockers (remove vBRIEF defensive workarounds, deftai/vBRIEF#2 resolved)*
+*Updated 2026-04-06 — roadmap refresh triage: added #188 to Phase 2 (deft-swarm runtime capability detection + Warp environment gate; issue reshaped from static Option D to tool-presence-based detection)*
+*Updated 2026-04-06 — roadmap refresh triage: added #184 to Phase 1 Adoption Blockers (deft-review-cycle autonomous polling imperative)*
+*Updated 2026-04-06 — roadmap refresh cleanup: moved #133 (closed 2026-04-05) and #58 (closed 2026-04-06) to Completed; struck through in phase bodies and index*
+*Updated 2026-04-06 — closed #189 on GitHub as superseded by #191 (vBRIEF defensive mitigations no longer needed now that deftai/vBRIEF#2 is resolved)*
+*Updated 2026-04-06 — roadmap refresh triage: added #182 to Phase 2 (deft-rwldl skill: iterative pre-PR quality loop)*
