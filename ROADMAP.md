@@ -9,7 +9,7 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
 
-- ~~**#133** — Generated vBRIEF files use invalid reference types — upstream deftai/vBRIEF#2 resolved; defensive workarounds removed by #191~~ — closed 2026-04-05
+- ~~**#133** — Generated vBRIEF files use invalid reference types — upstream deftai/vBRIEF#2 resolved; defensive workarounds cleaned up by #191~~ — closed 2026-04-05
 - **#166** — Greptile Review status check blocks merge — no re-review after fixes pushed; `triggerOnUpdates` defaults to `false`; need `.greptile/config.json` and deft-review-cycle pre-flight check (xrefs #145, #135)
 - **#192** — Proactively add test coverage after review-fix commits before CI re-run — after committing Greptile fixes, scan changed lines and write tests in the same batch before re-triggering CI; eliminates one CI round-trip per fix cycle; add explicit step to `skills/deft-review-cycle/SKILL.md` (xrefs #174, #175)
 - **#191** — Remove defensive vBRIEF reference-type workarounds — deftai/vBRIEF#2 resolved; remove `⊗` anti-pattern from `vbrief/vbrief.md`, interim `uris[]` callout from `templates/make-spec.md`, and workaround error catch from `spec_validate.py`; closing #191 also closes #189 as superseded (xrefs #133, #189)
@@ -362,4 +362,5 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-06 — roadmap refresh triage: added #188 to Phase 2 (deft-swarm runtime capability detection + Warp environment gate; issue reshaped from static Option D to tool-presence-based detection)*
 *Updated 2026-04-06 — roadmap refresh triage: added #184 to Phase 1 Adoption Blockers (deft-review-cycle autonomous polling imperative)*
 *Updated 2026-04-06 — roadmap refresh cleanup: moved #133 (closed 2026-04-05) and #58 (closed 2026-04-06) to Completed; struck through in phase bodies and index*
+*Updated 2026-04-06 — closed #189 on GitHub as superseded by #191 (vBRIEF defensive mitigations no longer needed now that deftai/vBRIEF#2 is resolved)*
 *Updated 2026-04-06 — roadmap refresh triage: added #182 to Phase 2 (deft-rwldl skill: iterative pre-PR quality loop)*
