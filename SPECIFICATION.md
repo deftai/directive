@@ -297,7 +297,7 @@ After committing Greptile fixes, agents re-trigger CI without checking test cove
 
 **Traces**: #192
 
-## t1.8.3: Consistent ./deft/ installation path (#116)  `[pending]`
+## t1.8.3: Consistent ./deft/ installation path (#116)  `[completed]`
 
 All deft files must be installed consistently under ./deft/ — placement is currently inconsistent across projects. Audit the installer and documentation to ensure consistent placement. Closes #116.
 

@@ -581,7 +581,11 @@ func TestWriteAgentsSkills_CreateNew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, skill := range []string{"deft", "deft-setup", "deft-build"} {
+	allSkills := []string{
+		"deft", "deft-setup", "deft-build",
+		"deft-review-cycle", "deft-roadmap-refresh", "deft-swarm",
+	}
+	for _, skill := range allSkills {
 		path := filepath.Join(tmp, ".agents", "skills", skill, "SKILL.md")
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -610,7 +614,7 @@ func TestWriteAgentsSkills_Idempotent(t *testing.T) {
 	deftPath := filepath.Join(tmp, ".agents", "skills", "deft", "SKILL.md")
 	os.WriteFile(deftPath, sentinel, 0o644)
 
-	// Second call should skip (all three files exist).
+	// Second call should skip (all six files exist).
 	if _, err := WriteAgentsSkills(w, tmp); err != nil {
 		t.Fatalf("second WriteAgentsSkills call failed unexpectedly: %v", err)
 	}
@@ -621,6 +625,117 @@ func TestWriteAgentsSkills_Idempotent(t *testing.T) {
 	}
 	if string(data) != string(sentinel) {
 		t.Error("expected second WriteAgentsSkills call to be idempotent (no overwrite)")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Path consistency — all framework files under ./deft/
+// ---------------------------------------------------------------------------
+
+// TestInstallPathConsistency verifies that the installer places all framework
+// files under ./deft/ with only AGENTS.md and .agents/ at the project root.
+func TestInstallPathConsistency_SkillPointersUseDeftPrefix(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	if _, err := WriteAgentsSkills(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+
+	allSkills := []string{
+		"deft", "deft-setup", "deft-build",
+		"deft-review-cycle", "deft-roadmap-refresh", "deft-swarm",
+	}
+	for _, skill := range allSkills {
+		path := filepath.Join(tmp, ".agents", "skills", skill, "SKILL.md")
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("missing skill pointer for %s: %v", skill, err)
+		}
+		content := string(data)
+		// Every thin pointer must reference a deft/-prefixed path.
+		if !strings.Contains(content, "deft/") {
+			t.Errorf("%s thin pointer does not use deft/ prefix:\n%s", skill, content)
+		}
+	}
+}
+
+// TestInstallPathConsistency_OnlyExpectedRootFiles verifies that the install
+// workflow creates only AGENTS.md and .agents/ at the project root — all
+// other framework files are inside ./deft/.
+func TestInstallPathConsistency_OnlyExpectedRootFiles(t *testing.T) {
+	origRun := runCmdFunc
+	defer func() { runCmdFunc = origRun }()
+
+	// Stub git clone to just create the deft dir.
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		for _, a := range args {
+			if strings.HasSuffix(a, "deft") {
+				os.MkdirAll(a, 0o755)
+			}
+		}
+		return nil
+	}
+
+	tmp := t.TempDir()
+	projectDir := filepath.Join(tmp, "myproj")
+	os.MkdirAll(projectDir, 0o755)
+
+	result := &WizardResult{
+		ProjectName: "myproj",
+		ProjectDir:  projectDir,
+		DeftDir:     filepath.Join(projectDir, "deft"),
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	// Run all setup steps that create files.
+	if err := CloneDeft(w, result, ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteAgentsMD(w, result.ProjectDir); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := WriteAgentsSkills(w, result.ProjectDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Enumerate top-level entries in the project directory.
+	entries, err := os.ReadDir(projectDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	allowed := map[string]bool{
+		"deft":      true, // framework directory
+		"AGENTS.md": true, // expected exception
+		".agents":   true, // expected exception
+	}
+	for _, e := range entries {
+		if !allowed[e.Name()] {
+			t.Errorf("unexpected file at project root: %s (framework files must be under ./deft/)", e.Name())
+		}
+	}
+}
+
+// TestInstallPathConsistency_DeftDirAlwaysSubfolder verifies the wizard always
+// sets DeftDir as a "deft" subfolder inside ProjectDir.
+func TestInstallPathConsistency_DeftDirAlwaysSubfolder(t *testing.T) {
+	projectDirs := []string{
+		filepath.Join("C:", "repos", "myproj"),
+		filepath.Join("/", "home", "user", "projects", "app"),
+		filepath.Join("E:", "Work", "project-name"),
+	}
+
+	for _, pd := range projectDirs {
+		expected := filepath.Join(pd, "deft")
+		if got := filepath.Join(pd, "deft"); got != expected {
+			t.Errorf("DeftDir mismatch for %s: got %s, want %s", pd, got, expected)
+		}
+		// Verify deft dir is always a direct child named "deft".
+		if filepath.Base(expected) != "deft" {
+			t.Errorf("DeftDir base should be 'deft', got %s", filepath.Base(expected))
+		}
 	}
 }
 

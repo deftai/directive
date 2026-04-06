@@ -81,6 +81,41 @@ description: >-
 
 Read and follow: deft/skills/deft-build/SKILL.md
 `
+	// agentsSkillDeftReviewCycle is the thin pointer content for .agents/skills/deft-review-cycle/SKILL.md.
+	agentsSkillDeftReviewCycle = `---
+name: deft-review-cycle
+description: >-
+  Greptile bot reviewer response workflow. Use when running a review cycle
+  on a PR — to audit process prerequisites, fetch bot findings, fix all
+  issues in a single batch commit, and exit cleanly when no P1/P2 issues
+  remain. Enables cloud agents to run autonomous PR review cycles.
+---
+
+Read and follow: deft/skills/deft-review-cycle/SKILL.md
+`
+	// agentsSkillDeftRoadmapRefresh is the thin pointer content for .agents/skills/deft-roadmap-refresh/SKILL.md.
+	agentsSkillDeftRoadmapRefresh = `---
+name: deft-roadmap-refresh
+description: >-
+  Structured roadmap refresh workflow. Compares open GitHub issues against
+  ROADMAP.md, triages new issues one-at-a-time with human review, and updates
+  the roadmap with phase placement, analysis comments, and index entries.
+---
+
+Read and follow: deft/skills/deft-roadmap-refresh/SKILL.md
+`
+	// agentsSkillDeftSwarm is the thin pointer content for .agents/skills/deft-swarm/SKILL.md.
+	agentsSkillDeftSwarm = `---
+name: deft-swarm
+description: >-
+  Parallel local agent orchestration. Use when running multiple agents
+  on roadmap items simultaneously — to select non-overlapping tasks, set up
+  isolated worktrees, launch agents with proven prompts, monitor progress,
+  handle stalled review cycles, and close out PRs cleanly.
+---
+
+Read and follow: deft/skills/deft-swarm/SKILL.md
+`
 )
 
 // ---------------------------------------------------------------------------
@@ -184,12 +219,18 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 // project root so AI agents auto-discover deft skills without user prompting.
 // Each skill gets its own subdirectory with a thin SKILL.md pointer that
 // redirects agents to the canonical skill files inside deft/.
-// Idempotent — skips only when all three skill files are present.
+// Idempotent — skips only when all skill files are present.
 // Returns true if files were created, false if skipped.
 func WriteAgentsSkills(w *Wizard, projectDir string) (bool, error) {
-	// Check all three skill files before deciding to skip.
+	// All skills that the installer creates thin pointers for.
+	allSkillNames := []string{
+		"deft", "deft-setup", "deft-build",
+		"deft-review-cycle", "deft-roadmap-refresh", "deft-swarm",
+	}
+
+	// Check all skill files before deciding to skip.
 	allExist := true
-	for _, skill := range []string{"deft", "deft-setup", "deft-build"} {
+	for _, skill := range allSkillNames {
 		p := filepath.Join(projectDir, ".agents", "skills", skill, "SKILL.md")
 		if _, err := os.Stat(p); err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
@@ -211,6 +252,9 @@ func WriteAgentsSkills(w *Wizard, projectDir string) (bool, error) {
 		{"deft", agentsSkillDeft},
 		{"deft-setup", agentsSkillDeftSetup},
 		{"deft-build", agentsSkillDeftBuild},
+		{"deft-review-cycle", agentsSkillDeftReviewCycle},
+		{"deft-roadmap-refresh", agentsSkillDeftRoadmapRefresh},
+		{"deft-swarm", agentsSkillDeftSwarm},
 	}
 
 	for _, skill := range skills {
