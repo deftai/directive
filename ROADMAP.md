@@ -142,6 +142,9 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#185 — Change gate UX: replace name-echo with yes/no confirmation — main.md, deft-build, deft-review-cycle, PR template all updated~~ — 2026-04-05 (v0.11.0)
+- ~~#179 — deft-swarm Option A limitations documented — Option A demoted, Option B elevated as recommended~~ — 2026-04-05 (v0.11.0)
+- ~~#186 — AGENTS.md pre-implementation gate enforcement — ! markers added to Before code changes checklist~~ — 2026-04-05 (v0.11.0)
 - ~~#170 — Move ROADMAP.md updates from merge-time to release-time — AGENTS.md convention updated, deft-swarm SKILL.md Phase 6 Step 5 added, ⊗ swarm anti-patterns added~~ — 2026-04-05 (PR #183, v0.10.3)
 - ~~#102 — Codify Mermaid gist-rendering best practices — RFC2119 MUST/SHOULD rules + box/end pattern in `languages/mermaid.md`, regression tests added~~ — 2026-04-05 (PR #176, v0.10.3)
 - ~~#144 — vBRIEF wrong narrative type (object) + wrong child key (`items` vs `subItems`) — fixed in agent guidance + spec_validate.py (with #126)~~ — 2026-04-05 (PR #181, v0.10.3)

@@ -47,7 +47,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ~ Question assumptions and probe for clarity
 - ! Explain tradeoffs when multiple approaches exist
 - ~ Suggest improvements even when not asked
-- ! Before implementing any planned change that touches 3+ files or has an accepted plan artifact, propose `/deft:change <name>` and wait for the user to acknowledge the **named** change — a broad 'proceed', 'do it', or 'go ahead' does NOT satisfy this gate; the user must confirm the specific change name
+- ! Before implementing any planned change that touches 3+ files or has an accepted plan artifact, propose `/deft:change <name>` and present the change name for explicit confirmation (e.g. "Confirm? yes/no") — the user must reply with an affirmative (`yes`, `confirmed`, `approve`) to satisfy this gate; a broad 'proceed', 'do it', or 'go ahead' does NOT satisfy it
 - ? For solo projects (single contributor): the `/deft:change` proposal is RECOMMENDED but not mandatory for changes fully covered by the quality gate (`task check`); it remains mandatory for cross-cutting, architectural, or high-risk changes regardless of team size
 - ! No implementation is complete until tests are written and `task check` passes — this gate applies unconditionally and a general 'proceed' instruction does not waive it
 - ⊗ Commit or push directly to the default branch (master/main) — always create a feature branch and open a PR, even for single-commit changes. The only exception is if the user **explicitly** instructs a direct commit for the current task, or if `PROJECT.md` contains `Allow direct commits to master: true` under `## Branching`.
