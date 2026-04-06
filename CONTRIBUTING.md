@@ -59,7 +59,7 @@ task test:coverage
 
 ### The `task check` Gate
 
-! `task check` is the **authoritative pre-commit gate**. It runs formatting, linting, and the full test suite in sequence:
+! `task check` is the **authoritative pre-commit gate**. It runs validation, linting, and the full test suite in sequence:
 
 ```bash
 task check    # runs: validate + lint + test
