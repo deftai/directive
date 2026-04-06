@@ -229,7 +229,7 @@ All PRs meet ALL of:
 
 ! **Rebase cascade ownership:** Monitor owns rebase cascade sequencing. Swarm agents do not rebase -- by the time merges begin, swarm agents are idle or complete. The monitor fetches updated master, rebases each remaining branch, resolves conflicts, and force-pushes.
 
-! **Non-interactive rebase:** Monitor MUST set `GIT_EDITOR=true` (or equivalent no-op) before running `git rebase --continue` during merge cascade to prevent the default editor from blocking the agent.
+! **Non-interactive rebase:** Monitor MUST set `GIT_EDITOR=true` (Unix/WSL/Git Bash) or `$env:GIT_EDITOR="echo"` (Windows PowerShell) before running `git rebase --continue` during merge cascade to prevent the default editor from blocking the agent.
 
 ! **Merge cascade warning:** Shared append-only files (CHANGELOG.md, SPECIFICATION.md) cause merge conflicts when PRs are merged sequentially — each merge changes the insertion point, conflicting remaining PRs. Each conflict requires rebase → push → wait for checks (~3 min). Plan for N-1 rebase cycles when merging N PRs.
 
@@ -323,7 +323,7 @@ CONSTRAINTS:
 - ⊗ Assume agents will complete the full workflow — always verify review cycle completion
 - ⊗ Launch agents without checking SPECIFICATION.md for task coverage first
 - ⊗ Skip the file-overlap audit in Phase 1
-- ⊗ Use `git reset --hard` or force-push in any worktree
+- ⊗ Use `git reset --hard` or force-push in any worktree (swarm agents only -- monitor may `--force-with-lease` after rebase cascade per Phase 6 Step 1)
 - ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime — always probe for `start_agent` and Warp environment variables before choosing a launch path
 - ⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate on `WARP_*` environment variables or `start_agent` tool presence
 - ⊗ Default to `oz agent run-cloud` — cloud is an explicit user-requested escape hatch, not a default path

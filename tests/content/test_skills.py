@@ -380,3 +380,62 @@ def test_deft_swarm_cloud_escape_hatch_only() -> None:
     assert "explicit" in text.lower() and "user" in text.lower() and "run-cloud" in text, (
         f"{_SWARM_PATH}: oz agent run-cloud must be explicit user-requested escape hatch only"
     )
+
+
+# ---------------------------------------------------------------------------
+# 15. deft-swarm Phase 6 — Close-out orchestration rules (#206, t2.6.3)
+# ---------------------------------------------------------------------------
+
+def test_deft_swarm_phase6_merge_authority() -> None:
+    """Phase 6 must contain merge authority rule."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Merge authority" in text and "user approves" in text, (
+        f"{_SWARM_PATH}: Phase 6 must contain merge authority rule (#206)"
+    )
+
+
+def test_deft_swarm_phase6_rebase_ownership() -> None:
+    """Phase 6 must assign rebase cascade ownership to monitor."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Rebase cascade ownership" in text and "Monitor owns" in text, (
+        f"{_SWARM_PATH}: Phase 6 must assign rebase ownership to monitor (#206)"
+    )
+
+
+def test_deft_swarm_phase6_git_editor() -> None:
+    """Phase 6 must document GIT_EDITOR override for non-interactive rebase."""
+    text = _read_skill(_SWARM_PATH)
+    assert "GIT_EDITOR" in text, (
+        f"{_SWARM_PATH}: Phase 6 must document GIT_EDITOR override (#206)"
+    )
+
+
+def test_deft_swarm_phase6_post_merge_verification() -> None:
+    """Phase 6 must verify issues closed after squash merge."""
+    text = _read_skill(_SWARM_PATH)
+    assert "verify issues actually closed" in text, (
+        f"{_SWARM_PATH}: Phase 6 must include post-merge issue verification (#206)"
+    )
+
+
+def test_deft_swarm_push_autonomy() -> None:
+    """Swarm skill must contain push autonomy carve-out."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Push Autonomy" in text and "task check" in text.lower(), (
+        f"{_SWARM_PATH}: must contain push autonomy carve-out section (#206)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 16. deft-review-cycle MCP fallback (#206, t2.6.3)
+# ---------------------------------------------------------------------------
+
+_REVIEW_CYCLE_PATH = "skills/deft-review-cycle/SKILL.md"
+
+
+def test_deft_review_cycle_mcp_fallback() -> None:
+    """Review cycle skill must document MCP fallback (gh-only when MCP unavailable)."""
+    text = _read_skill(_REVIEW_CYCLE_PATH)
+    assert "MCP is unavailable" in text and "gh" in text, (
+        f"{_REVIEW_CYCLE_PATH}: must document MCP fallback for start_agent/cloud agents (#206)"
+    )
