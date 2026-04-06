@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-04-06
+
 ### Added
 - **Swarm close-out orchestration rules** (#206, t2.6.3): Added monitor-centric close-out rules to skills/deft-swarm/SKILL.md Phase 6 -- merge authority (monitor proposes, user approves), rebase cascade ownership (monitor owns), GIT_EDITOR=true for non-interactive rebase, post-merge issue verification step; added push autonomy carve-out for swarm agents; added MCP fallback note to skills/deft-review-cycle/SKILL.md (gh-only when MCP unavailable)
 - **Deft-swarm runtime capability detection** (#188, t1.9.3): Replaced static Option A/B/C launch path selection in `skills/deft-swarm/SKILL.md` Phase 3 with runtime capability detection — agent probes for `start_agent` tool at runtime, uses it as preferred path if available (Warp orchestration), falls back to manual Warp tabs silently when unavailable but Warp detected, gates Warp-specific paths on `WARP_*` environment variables; cloud (`oz agent run-cloud`) preserved as explicit user-requested escape hatch only; anti-patterns updated for dynamic approach

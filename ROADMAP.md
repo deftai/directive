@@ -8,11 +8,6 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 
 Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
-- **#192** — Proactively add test coverage after review-fix commits before CI re-run — after committing Greptile fixes, scan changed lines and write tests in the same batch before re-triggering CI; eliminates one CI round-trip per fix cycle; add explicit step to `skills/deft-review-cycle/SKILL.md` (xrefs #174, #175)
-- **#191** — Remove defensive vBRIEF reference-type workarounds — deftai/vBRIEF#2 resolved; remove `⊗` anti-pattern from `vbrief/vbrief.md`, interim `uris[]` callout from `templates/make-spec.md`, and workaround error catch from `spec_validate.py`; closing #191 also closes #189 as superseded (xrefs #133, #189)
-- **#184** — deft-review-cycle: add autonomous polling imperative — agents must not stop and ask after pushing; add `!` rule + `⊗` anti-pattern to Step 4; candidate `meta/lessons.md` entry (xrefs #175, #174, #192)
-- **#188** — Update deft-swarm skill: runtime capability detection for `start_agent` (probe tool set, use when present, fall back to Option B silently); add Warp environment gate; dynamic path selection replaces static A/B/C list (xref #179)
-- **#199** — deft-swarm skill: add mandatory analyze phase with user approval gate before launch — read ROADMAP/SPEC, surface blockers and missing spec coverage, require `!` approval before Phase 1 (Select); bundle with #188 (xrefs #200, #147)
 
 ### Cleanup
 
@@ -147,6 +142,13 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#209 -- Swarm force-push anti-pattern scope fix + GIT_EDITOR Windows portability + 7 regression tests~~ -- 2026-04-06 (v0.12.0)
+- ~~#206 -- Swarm close-out orchestration rules for start_agent monitor workflow -- merge authority, rebase ownership, GIT_EDITOR, post-merge verification, push autonomy, MCP fallback~~ -- 2026-04-06 (v0.12.0)
+- ~~#199 -- deft-swarm mandatory analyze phase with user approval gate before launch~~ -- 2026-04-06 (v0.12.0)
+- ~~#192 -- Proactively add test coverage after review-fix commits before CI re-run~~ -- 2026-04-06 (v0.12.0)
+- ~~#191 -- Remove defensive vBRIEF reference-type workarounds -- deftai/vBRIEF#2 resolved~~ -- 2026-04-06 (v0.12.0)
+- ~~#188 -- deft-swarm runtime capability detection for start_agent + Warp environment gate~~ -- 2026-04-06 (v0.12.0)
+- ~~#184 -- deft-review-cycle autonomous polling imperative after push~~ -- 2026-04-06 (v0.12.0)
 - ~~#166 — Greptile Review status check blocks merge — .greptile/config.json added with triggerOnUpdates, deft-review-cycle pre-flight check~~ — 2026-04-06 (closed)
 - ~~#189 — vBRIEF defensive reference-type mitigations — superseded by #191 (deftai/vBRIEF#2 resolved; mitigations no longer needed)~~ — 2026-04-06 (closed, superseded)
 - ~~#133 — Generated vBRIEF files use invalid reference types — upstream deftai/vBRIEF#2 resolved; cleanup tracked in #191~~ — 2026-04-05 (closed)
