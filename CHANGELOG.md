@@ -7,15 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-04-06
+
 ### Added
 - **State WHY rule for interview strategy** (#84, t2.2.3): Added `!` rule to `strategies/interview.md` Interview Rules requiring agents to state the underlying principle (1 sentence) when making an opinionated recommendation — part of "Deft as teacher" so users understand the contract hierarchy reasoning behind recommendations
 - **CONTRIBUTING.md contributor bootstrap guide** (#67, t2.3.1): Created `CONTRIBUTING.md` at repo root with full contributor onboarding — prerequisites (Go 1.22+, Python 3.11+, uv, task), dev environment setup, running tests (`task test`, `task check`), running CLI locally (`uv run python run`), building the Go installer (`go build ./cmd/deft-install/`); documents `task check` as the authoritative pre-commit gate and defines a passing `task check` as the definition of ready-to-commit
 
 ### Fixed
-- **PR merge hygiene — squash-merge issue-close verification** (#167, t1.8.4): Root cause documented in `meta/lessons.md` — GitHub squash merges can silently fail to process closing keywords (`Closes #N`) from PR bodies, leaving referenced issues open with no error; added closing keyword guidance and post-merge verification checklist to `.github/PULL_REQUEST_TEMPLATE.md`; added Post-Merge Verification section to `skills/deft-review-cycle/SKILL.md` mirroring `deft-swarm` Phase 6 Step 2; added issue-close verification convention to `AGENTS.md` PR conventions; added anti-pattern for assuming squash merge auto-closed issues
-
-### Fixed
-- **Consistent ./deft/ installation path** (#116, t1.8.3): Installer now creates thin pointers for all 6 skills (deft, deft-setup, deft-build, deft-review-cycle, deft-roadmap-refresh, deft-swarm) instead of only 3 — previously deft-review-cycle, deft-roadmap-refresh, and deft-swarm were missing from the installer's `.agents/skills/` setup, making them undiscoverable in installed projects; all thin pointers consistently use `deft/`-prefixed paths; added 3 path consistency tests verifying skill pointer `deft/` prefix, only expected files at project root, and DeftDir placement
+- **PR merge hygiene -- squash-merge issue-close verification** (#167, t1.8.4): Root cause documented in `meta/lessons.md` -- GitHub squash merges can silently fail to process closing keywords (`Closes #N`) from PR bodies, leaving referenced issues open with no error; added closing keyword guidance and post-merge verification checklist to `.github/PULL_REQUEST_TEMPLATE.md`; added Post-Merge Verification section to `skills/deft-review-cycle/SKILL.md` mirroring `deft-swarm` Phase 6 Step 2; added issue-close verification convention to `AGENTS.md` PR conventions; added anti-pattern for assuming squash merge auto-closed issues
+- **Consistent ./deft/ installation path** (#116, t1.8.3): Installer now creates thin pointers for all 6 skills (deft, deft-setup, deft-build, deft-review-cycle, deft-roadmap-refresh, deft-swarm) instead of only 3 -- previously deft-review-cycle, deft-roadmap-refresh, and deft-swarm were missing from the installer's `.agents/skills/` setup, making them undiscoverable in installed projects; all thin pointers consistently use `deft/`-prefixed paths; added 3 path consistency tests verifying skill pointer `deft/` prefix, only expected files at project root, and DeftDir placement
 
 ## [0.12.0] - 2026-04-06
 
@@ -707,7 +707,11 @@ If you have custom scripts or references to deft files, update these paths:
 - Explore new interface guidelines if building CLIs, APIs, or UIs
 - Review enhanced language standards for Python, Go, TypeScript, and C++
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.10.2...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.12.1...HEAD
+[0.12.1]: https://github.com/deftai/directive/compare/v0.12.0...v0.12.1
+[0.12.0]: https://github.com/deftai/directive/compare/v0.11.0...v0.12.0
+[0.11.0]: https://github.com/deftai/directive/compare/v0.10.3...v0.11.0
+[0.10.3]: https://github.com/deftai/directive/compare/v0.10.2...v0.10.3
 [0.10.2]: https://github.com/deftai/directive/compare/v0.10.1...v0.10.2
 [0.10.1]: https://github.com/deftai/directive/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/deftai/directive/compare/v0.9.0...v0.10.0

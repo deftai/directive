@@ -8,11 +8,9 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 
 Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
-
 ### Cleanup
 
-- **#116** — All deft files must be installed consistently under `./deft/` — placement is inconsistent across projects
-- **#167** — PRs merged but issues not closed and roadmap not updated — root cause investigation needed (closing keywords, squash merge, ROADMAP convention); update PR template and review cycle skill (xrefs #114, #123, #166)
+- **#198**
 - **#198** — main.md: add rules against mid-task instant-fix drift and skill-context bleed past instruction boundary — add `⊗` prohibitions (fix-in-place vs. file issue, continue skill past instruction scope) and `!` rule (instruction boundary = exit condition) to Decision Making section; companion `meta/lessons.md` entry (xrefs #159, #167, #184)
 - **#200** — Agent must scan `skills/` before improvising multi-step workflows — add `!` rule and `⊗` anti-pattern to AGENTS.md; safety net for #147 routing table gaps; companion `meta/lessons.md` entry (xrefs #147, #75, #198)
 
@@ -25,10 +23,6 @@ Quick doc/content fixes that don't require code changes.
 ### Philosophy & Positioning
 
 - **#89** — Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)
-- **#84 Phase 1** — Deft as teacher: contract hierarchy, adaptive teaching, and "state WHY"
-  - Add `! State WHY` rule to `strategies/interview.md` — when making an opinionated recommendation, state the principle (1 sentence)
-  - ~~Create `contracts/hierarchy.md`~~ — done (v0.10.0, t2.2.1)
-  - ~~Add adaptive teaching behavior to `main.md`~~ — done (v0.10.0, t2.2.2)
 
 ### Content & Doc Fixes
 
@@ -142,6 +136,9 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#167 -- PR merge hygiene: squash-merge issue-close verification -- PR template, deft-review-cycle Post-Merge Verification, AGENTS.md convention, meta/lessons.md root cause~~ -- 2026-04-06 (v0.12.1)
+- ~~#116 -- Installer now creates all 6 skill thin pointers (deft-review-cycle, deft-roadmap-refresh, deft-swarm were missing) -- consistent ./deft/ paths, 3 new path consistency tests~~ -- 2026-04-06 (v0.12.1)
+- ~~#84 Phase 1 -- Deft as teacher Phase 1 complete: contracts/hierarchy.md (v0.10.0), adaptive teaching main.md (v0.10.0), State WHY rule interview.md (v0.12.1)~~ -- 2026-04-06 (v0.12.1)
 - ~~#209 -- Swarm force-push anti-pattern scope fix + GIT_EDITOR Windows portability + 7 regression tests~~ -- 2026-04-06 (v0.12.0)
 - ~~#206 -- Swarm close-out orchestration rules for start_agent monitor workflow -- merge authority, rebase ownership, GIT_EDITOR, post-merge verification, push autonomy, MCP fallback~~ -- 2026-04-06 (v0.12.0)
 - ~~#199 -- deft-swarm mandatory analyze phase with user approval gate before launch~~ -- 2026-04-06 (v0.12.0)
@@ -271,7 +268,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | ~~#80~~ | ~~deft-setup project name inference no fallback~~ | completed — v0.10.1 |
 | #81 | Add BDD/acceptance-test-first strategy | 2 |
 | #82 | Replacement strategies need accept-or-scrap exit | 2 |
-| #84 | Deft as teacher: contract hierarchy, explain WHY, adaptive teaching mode | 2/5 |
+|| ~~#84~~ | ~~Deft as teacher Phase 1: contract hierarchy, adaptive teaching, State WHY~~ | completed -- v0.12.1 |
 | ~~#85~~ | ~~Installer instructions inaccurate/unclear~~ | closed — absorbed by #54 |
 | #95 | Compliance templates + readiness scanners (SOC 2, ISO 27001, HIPAA; sub-issues #96-#100) | 5 |
 | #86 | Artifact-branch binding and complete audit trail for SDD | 5 |
@@ -292,7 +289,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #112 | External instruction guide (DEFT Directive PDF) is premature relative to current state | 2 |
 | #114 | Document all global Warp rules used for deft directive development | 2 |
 | #115 | Strengthen spec validation gate and rendered artifact freshness | 3 |
-| #116 | All files must be installed consistently under `./deft/` | 1 |
+|| ~~#116~~ | ~~All files must be installed consistently under `./deft/`~~ | completed -- v0.12.1 |
 | ~~#123~~ | ~~Change lifecycle gate skipped on broad 'proceed' instruction~~ | completed — v0.10.1 |
 | ~~#118~~ | ~~CLI code quality sweep (version mismatch, bare except, undocumented flags, env var naming)~~ | completed — v0.10.1 |
 | ~~#124~~ | ~~Warp context window improvements (behavioral rule + handoff notes)~~ | completed |
@@ -315,7 +312,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #192 | Proactively add test coverage after review-fix commits before CI re-run | 1 |
 | #191 | Remove defensive vBRIEF reference-type workarounds — deftai/vBRIEF#2 resolved | 1 |
 | #184 | deft-review-cycle: add autonomous polling imperative after push | 1 |
-| #167 | PRs merged but issues not closed and roadmap not updated | 1 |
+|| ~~#167~~ | ~~PRs merged but issues not closed and roadmap not updated~~ | completed -- v0.12.1 |
 | ~~#171~~ | ~~No direct-to-master agent commits — ⊗ gate + PROJECT.md opt-in~~ | completed — v0.10.2 |
 | ~~#175~~ | ~~deft-review-cycle: no-push-while-reviewing + 60s poll cadence~~ | completed — v0.10.2 |
 | #151 | [Playtest Feedback] First-time non-technical user session report (umbrella) | 2 |
@@ -378,3 +375,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-06 — closed #189 on GitHub as superseded by #191 (vBRIEF defensive mitigations no longer needed now that deftai/vBRIEF#2 is resolved)*
 *Updated 2026-04-06 — roadmap refresh triage: added #182 to Phase 2 (deft-rwldl skill: iterative pre-PR quality loop)*
 *Updated 2026-04-06 — roadmap refresh: triaged #194 (Phase 2), #195 (Phase 2), #196 (Phase 2), #197 (Phase 2, absorbs #201), #198 (Phase 1), #199 (Phase 1), #200 (Phase 1); promoted #188 Phase 2→Phase 1; closed #201 (absorbed by #197); moved #166 to Completed; updated #147 title/body for expanded scope; added #202 (ASCII convention for machine-editable sections, Phase 2)*
+*Updated 2026-04-06 — v0.12.1 release: moved #116 (installer path consistency), #167 (PR merge hygiene), #84 Phase 1 (Deft as teacher Phase 1 complete) to Completed; added CONTRIBUTING.md (t2.3.1)*
