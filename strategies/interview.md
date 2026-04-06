@@ -152,6 +152,7 @@ flowchart LR
 - ~ Provide numbered answer options when appropriate
 - ! Include "other" option for custom/unknown responses
 - ! Indicate which option is RECOMMENDED
+- ! When making an opinionated recommendation, state the principle (1 sentence)
 - ! When done, append all questions asked and answers given to the working document
 
 ### Question Areas
