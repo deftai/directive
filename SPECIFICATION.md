@@ -307,7 +307,7 @@ Installer tests cover consistent path placement
 
 **Traces**: #116
 
-## t1.8.4: PR merge hygiene — issues not closed and roadmap not updated (#167)  `[pending]`
+## t1.8.4: PR merge hygiene — issues not closed and roadmap not updated (#167)  `[completed]`
 
 PRs merged but issues not closed and roadmap not updated. Root cause investigation needed (closing keywords, squash merge, ROADMAP convention). Update PR template and review cycle skill. Closes #167.
 

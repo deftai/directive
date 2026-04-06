@@ -172,3 +172,15 @@ Greptile reviews typically take 3–7 minutes. Calling `get_check_runs` in rapid
 **4. After pushing, agent MUST autonomously poll for review updates without stopping to ask the user**
 
 Agents dispatched with a review cycle task (especially cloud/swarm agents) stopped after pushing fix commits and asked the user "should I continue?" or "want me to check the review?" This breaks the autonomous review/fix loop and requires human intervention for every cycle iteration. The review/fix loop in `skills/deft-review-cycle/SKILL.md` is designed to run to the exit condition (no P0/P1 issues, confidence > 3) without human intervention. After pushing, the agent MUST poll for the Greptile review update, analyze findings, and continue fixing — treating the entire loop as a single autonomous operation. (#184)
+
+## PR Merge Hygiene (2026-04)
+
+**Source:** Issue #167 — PRs merged but issues not closed and roadmap not updated
+
+**1. Squash merge + closing keywords can silently fail to close issues — MUST verify after every squash merge**
+
+GitHub processes closing keywords (`Closes #N`, `Fixes #N`) from the PR body when a PR is merged. For regular merge commits, this works reliably. For **squash merges**, GitHub rewrites the commit into a single squash commit and may not always process the closing keywords from the original PR body — the auto-close can silently fail with no error or notification. The PR shows as merged, but the linked issues remain open.
+
+Root cause: GitHub's squash merge constructs a new commit message from the PR title and description. If the closing keyword appears only in the PR body (not the squash commit's final message), or if GitHub's keyword parser does not match the rewritten message format, the issue auto-close is skipped silently. This is a known GitHub behavior difference between regular merges and squash merges.
+
+**After every squash merge, MUST verify that referenced issues actually closed:** `gh issue view <N> --json state --jq .state`. If the issue is still open, close it manually with a comment referencing the merged PR: `gh issue close <N> --comment "Closed by #<PR> (squash merge — auto-close did not trigger)"`. (#167)

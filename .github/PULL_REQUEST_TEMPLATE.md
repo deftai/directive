@@ -4,7 +4,10 @@
 
 ## Related Issues
 
-<!-- e.g. Closes #42, Partially addresses #51 -->
+<!-- Use closing keywords so GitHub auto-closes issues on merge:
+     Closes #42, Fixes #51
+     Place "Closes #N" in this section AND in the PR title/squash commit subject
+     for maximum reliability. -->
 
 ## Checklist
 
@@ -15,4 +18,5 @@
 
 ## Post-Merge
 
+- [ ] **Verify issue auto-close**: After squash merge, confirm referenced issues actually closed — `gh issue view <N> --json state --jq .state`. Squash merges can silently fail to process closing keywords (#167). If still open, close manually: `gh issue close <N> --comment "Closed by #<PR> (squash merge — auto-close did not trigger)"`
 - [ ] Enable branch protection on `master` requiring CI status check (one-time setup, see #57)
