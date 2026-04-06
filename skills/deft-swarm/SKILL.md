@@ -66,8 +66,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ### Step 1: Identify Candidates
 
-- ! Read ROADMAP.md for open items, prioritizing Phase 1 before Phase 2
-- ! Read SPECIFICATION.md for acceptance criteria of candidate tasks
+- ! Use the candidate list and cross-reference produced in Phase 0 — Analyze as the starting point
+- ! Re-read ROADMAP.md and SPECIFICATION.md only if Phase 0 was skipped (user override) or context was lost
 - ! Cross-reference ROADMAP.md items against SPECIFICATION.md task status — if a roadmap item has a spec task marked `[completed]`, verify the work is actually done (check files) before assigning. ROADMAP.md may lag behind SPECIFICATION.md.
 - ! Exclude items that are blocked, have unresolved dependencies, or require design decisions
 
@@ -138,7 +138,7 @@ git worktree add <path> -b <branch-name> master
 
 ### Step 2b: Interactive Warp Tabs (start_agent unavailable, Warp detected)
 
-! When `start_agent` is not available but Warp is detected (via `WARP_*` environment variables), fall back to manual Warp tab launch silently — do not explain why `start_agent` is unavailable.
+! When `start_agent` is not available but Warp is detected (via `WARP_*` environment variables), fall back to manual Warp tab launch — briefly note that orchestrated launch is not available in this session, then proceed with the tab instructions below.
 
 ! **Warp tabs cannot be opened programmatically.** There is no API or CLI command to open a new Warp terminal tab from an agent or script.
 

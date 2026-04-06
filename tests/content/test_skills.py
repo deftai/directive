@@ -278,3 +278,105 @@ def test_deft_build_references_task_test_coverage() -> None:
     assert "task test:coverage" in text, (
         f"{rel_path}: must reference 'task test:coverage' — Taskfile is a hard dependency"
     )
+
+
+# ---------------------------------------------------------------------------
+# 12. deft-swarm skill — file existence and RFC2119 (#188, #199)
+# ---------------------------------------------------------------------------
+
+_SWARM_PATH = "skills/deft-swarm/SKILL.md"
+
+
+def test_deft_swarm_exists() -> None:
+    """deft-swarm SKILL.md must exist at its expected path."""
+    assert (_REPO_ROOT / _SWARM_PATH).is_file(), (
+        f"Skill file missing: {_SWARM_PATH}"
+    )
+
+
+def test_deft_swarm_rfc2119_legend() -> None:
+    """deft-swarm must contain the RFC2119 legend line."""
+    text = _read_skill(_SWARM_PATH)
+    assert RFC2119_LEGEND in text, (
+        f"{_SWARM_PATH}: missing RFC2119 legend '{RFC2119_LEGEND}'"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 13. deft-swarm Phase 0 — Analyze (mandatory analyze phase, #199, t1.9.4)
+# ---------------------------------------------------------------------------
+
+def test_deft_swarm_phase0_analyze_heading() -> None:
+    """deft-swarm must contain Phase 0 — Analyze heading."""
+    text = _read_skill(_SWARM_PATH)
+    assert "## Phase 0" in text and "Analyze" in text, (
+        f"{_SWARM_PATH}: missing Phase 0 — Analyze section (#199)"
+    )
+
+
+def test_deft_swarm_phase0_reads_roadmap_and_spec() -> None:
+    """Phase 0 must read ROADMAP.md and SPECIFICATION.md."""
+    text = _read_skill(_SWARM_PATH)
+    assert "ROADMAP.md" in text and "SPECIFICATION.md" in text, (
+        f"{_SWARM_PATH}: Phase 0 must read ROADMAP.md and SPECIFICATION.md"
+    )
+
+
+def test_deft_swarm_phase0_surfaces_blockers() -> None:
+    """Phase 0 must surface blockers."""
+    text = _read_skill(_SWARM_PATH)
+    assert "blocked" in text.lower() and "missing spec" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 0 must surface blockers and missing spec coverage"
+    )
+
+
+def test_deft_swarm_phase0_approval_gate() -> None:
+    """Phase 0 must require explicit user approval before Phase 1."""
+    text = _read_skill(_SWARM_PATH)
+    assert "yes" in text and "confirmed" in text and "approve" in text, (
+        f"{_SWARM_PATH}: Phase 0 must require explicit approval (yes/confirmed/approve)"
+    )
+
+
+def test_deft_swarm_phase0_antipattern() -> None:
+    """Anti-patterns must prohibit proceeding to Phase 1 without Phase 0."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Phase 1 (Select) without completing Phase 0" in text, (
+        f"{_SWARM_PATH}: must have anti-pattern against skipping Phase 0"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 14. deft-swarm Phase 3 — Runtime capability detection (#188, t1.9.3)
+# ---------------------------------------------------------------------------
+
+def test_deft_swarm_runtime_start_agent_detection() -> None:
+    """Phase 3 must probe for start_agent tool."""
+    text = _read_skill(_SWARM_PATH)
+    assert "start_agent" in text, (
+        f"{_SWARM_PATH}: Phase 3 must probe for start_agent tool (#188)"
+    )
+
+
+def test_deft_swarm_warp_env_detection() -> None:
+    """Phase 3 must detect Warp via WARP_* environment variables."""
+    text = _read_skill(_SWARM_PATH)
+    assert "WARP_*" in text or "WARP_TERMINAL_SESSION" in text, (
+        f"{_SWARM_PATH}: Phase 3 must detect Warp via WARP_* env vars (#188)"
+    )
+
+
+def test_deft_swarm_no_static_abc_antipattern() -> None:
+    """Anti-patterns must prohibit static A/B/C option presentation."""
+    text = _read_skill(_SWARM_PATH)
+    assert "static launch options" in text.lower() or "static launch options (A/B/C)" in text, (
+        f"{_SWARM_PATH}: must have anti-pattern against static A/B/C options (#188)"
+    )
+
+
+def test_deft_swarm_cloud_escape_hatch_only() -> None:
+    """Cloud launch (oz agent run-cloud) must be explicit user request only."""
+    text = _read_skill(_SWARM_PATH)
+    assert "explicit" in text.lower() and "user" in text.lower() and "run-cloud" in text, (
+        f"{_SWARM_PATH}: oz agent run-cloud must be explicit user-requested escape hatch only"
+    )
