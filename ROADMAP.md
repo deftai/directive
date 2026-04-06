@@ -1,4 +1,4 @@
-# Deft Directive — Roadmap
+﻿# Deft Directive — Roadmap
 
 Prioritized work items. **Principle: resolve open issues before new features.**
 
