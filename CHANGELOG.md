@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **State WHY rule for interview strategy** (#84, t2.2.3): Added `!` rule to `strategies/interview.md` Interview Rules requiring agents to state the underlying principle (1 sentence) when making an opinionated recommendation — part of "Deft as teacher" so users understand the contract hierarchy reasoning behind recommendations
 - **CONTRIBUTING.md contributor bootstrap guide** (#67, t2.3.1): Created `CONTRIBUTING.md` at repo root with full contributor onboarding — prerequisites (Go 1.22+, Python 3.11+, uv, task), dev environment setup, running tests (`task test`, `task check`), running CLI locally (`uv run python run`), building the Go installer (`go build ./cmd/deft-install/`); documents `task check` as the authoritative pre-commit gate and defines a passing `task check` as the definition of ready-to-commit
 
+### Fixed
+- **PR merge hygiene — squash-merge issue-close verification** (#167, t1.8.4): Root cause documented in `meta/lessons.md` — GitHub squash merges can silently fail to process closing keywords (`Closes #N`) from PR bodies, leaving referenced issues open with no error; added closing keyword guidance and post-merge verification checklist to `.github/PULL_REQUEST_TEMPLATE.md`; added Post-Merge Verification section to `skills/deft-review-cycle/SKILL.md` mirroring `deft-swarm` Phase 6 Step 2; added issue-close verification convention to `AGENTS.md` PR conventions; added anti-pattern for assuming squash merge auto-closed issues
+
 ## [0.12.0] - 2026-04-06
 
 ### Added

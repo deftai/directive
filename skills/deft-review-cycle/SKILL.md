@@ -169,6 +169,20 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 
 ~ When MCP is unavailable (`start_agent` agents, cloud agents, `oz agent run`), `gh` CLI is sufficient as the sole interface. The dual-source requirement (MCP + `gh`) in Step 1 applies only when both are available -- agents without MCP access should use `gh pr view --comments` and `gh api` as their primary and only review detection surface.
 
+## Post-Merge Verification
+
+! After a PR is squash-merged, verify that all referenced issues were actually closed. Squash merges can silently fail to process closing keywords (`Closes #N`, `Fixes #N`) from the PR body (#167).
+
+1. ! For each issue referenced with a closing keyword in the PR body, run:
+   ```
+   gh issue view <N> --json state --jq .state
+   ```
+2. ! If the issue state is not `CLOSED`, close it manually with a comment referencing the merged PR:
+   ```
+   gh issue close <N> --comment "Closed by #<PR> (squash merge — auto-close did not trigger)"
+   ```
+3. ~ This step mirrors `skills/deft-swarm/SKILL.md` Phase 6 Step 2 and applies to ALL PR merges, not just swarm runs.
+
 ## Anti-Patterns
 
 - ⊗ Push individual fix commits per finding
@@ -184,3 +198,4 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 - ⊗ Poll `get_check_runs` more frequently than once per 60 seconds — use a real delay between polls, not back-to-back calls
 - ⊗ Stop and ask the user whether to continue after pushing — the review/fix loop MUST run autonomously to the exit condition
 - ⊗ Push fix commits without scanning changed lines for untested code paths — always check test coverage before pushing
+- ⊗ Assume squash merge auto-closed referenced issues — always verify with `gh issue view` after merge (#167)

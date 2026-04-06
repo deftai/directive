@@ -322,7 +322,7 @@
       {
         "id": "t1.8.4",
         "title": "PR merge hygiene — issues not closed and roadmap not updated (#167)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Description": "PRs merged but issues not closed and roadmap not updated. Root cause investigation needed (closing keywords, squash merge, ROADMAP convention). Update PR template and review cycle skill. Closes #167.",
           "Acceptance": "Root cause identified and documented (closing keywords vs. squash merge behavior)\n.github/PULL_REQUEST_TEMPLATE.md updated with closing keyword guidance\nskills/deft-review-cycle/SKILL.md updated with post-merge verification step\nAGENTS.md or CONTRIBUTING.md documents ROADMAP update convention",
