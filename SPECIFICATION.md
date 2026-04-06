@@ -575,6 +575,18 @@ skills/deft-swarm/SKILL.md Anti-Patterns contains ⊗ entry: update ROADMAP.md d
 
 **Traces**: #170
 
+## t2.6.3: Add close-out orchestration rules for start_agent monitor workflow (#206)  [completed]
+
+The deft-swarm skill lacks orchestration-specific close-out rules for the start_agent monitor workflow. Add merge authority, rebase cascade ownership, GIT_EDITOR override, post-merge issue verification, MCP fallback, and push autonomy carve-out. Closes #206.
+
+- skills/deft-swarm/SKILL.md Phase 6 Step 1 contains ! rules for: monitor proposes merge order (user approves), monitor owns rebase cascade, GIT_EDITOR=true before non-interactive rebase
+- skills/deft-swarm/SKILL.md Phase 6 contains post-merge issue verification step
+- skills/deft-swarm/SKILL.md contains push autonomy carve-out for swarm agents
+- skills/deft-review-cycle/SKILL.md contains ~ MCP fallback note (gh-only when MCP unavailable)
+- tests/content/test_skills.py passes
+
+**Traces**: #206
+
 ## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
 
 GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: (1) Python: ruff check, mypy tests/ (the shim run.py cannot be typed directly - exclude run and run.py from mypy per pyproject.toml, type-check the test suite instead), pytest tests/ with coverage. (2) Go: go test ./cmd/deft-install/ + go build ./cmd/deft-install/ for each platform matrix (linux/amd64, darwin/arm64, windows/amd64). main_test.go already exists so go test is zero-cost. Use current action versions. Closes #57.

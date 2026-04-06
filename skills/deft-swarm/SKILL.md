@@ -225,6 +225,12 @@ All PRs meet ALL of:
 
 ### Step 1: Merge
 
+! **Merge authority:** Monitor proposes merge order and executes merges; user approves before the first merge. Do not merge without explicit user approval.
+
+! **Rebase cascade ownership:** Monitor owns rebase cascade sequencing. Swarm agents do not rebase -- by the time merges begin, swarm agents are idle or complete. The monitor fetches updated master, rebases each remaining branch, resolves conflicts, and force-pushes.
+
+! **Non-interactive rebase:** Monitor MUST set `GIT_EDITOR=true` (or equivalent no-op) before running `git rebase --continue` during merge cascade to prevent the default editor from blocking the agent.
+
 ! **Merge cascade warning:** Shared append-only files (CHANGELOG.md, SPECIFICATION.md) cause merge conflicts when PRs are merged sequentially — each merge changes the insertion point, conflicting remaining PRs. Each conflict requires rebase → push → wait for checks (~3 min). Plan for N-1 rebase cycles when merging N PRs.
 
 ~ To minimize cascades: rebase ALL remaining PRs onto latest master before starting any merges, then merge in rapid succession.
@@ -237,7 +243,8 @@ All PRs meet ALL of:
 ### Step 2: Close Issues
 
 - ! Close resolved issues with a comment referencing the PR
-- ~ Issues with "Closes #N" in PR body auto-close on merge
+- ~ Issues with "Closes #N" in PR body auto-close on squash merge
+- ! After each squash merge, verify issues actually closed: `gh issue view <N> --json state --jq .state`. If not closed, close manually with a comment referencing the merged PR. Squash merge + closing keywords can silently fail to close issues (#167).
 
 ### Step 3: Update Master
 
@@ -302,6 +309,10 @@ CONSTRAINTS:
 - ! CONSTRAINTS section MUST list files the agent must not touch (other agents' scope)
 - ! Review cycle step MUST reference `skills/deft-review-cycle/SKILL.md` explicitly
 - ⊗ Start the prompt with context ("You are working in...") — agents treat this as passive setup and may stop after reading
+
+## Push Autonomy
+
+! Swarm agents operating under this skill with a monitor agent may push, create PRs, and run review cycles autonomously after passing `task check`. The global "never push/commit without explicit user instruction" convention does not apply to swarm agents executing the full STEP 1-6 prompt workflow -- the skill's quality gates (`task check`, Greptile review cycle) replace the interactive confirmation gate.
 
 ## Anti-Patterns
 

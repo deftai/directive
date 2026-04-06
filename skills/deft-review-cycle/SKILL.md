@@ -167,6 +167,8 @@ If the exit condition is not met, go back to Step 2.
 
 Choose whichever minimizes steps and maximizes clarity for the given task.
 
+~ When MCP is unavailable (`start_agent` agents, cloud agents, `oz agent run`), `gh` CLI is sufficient as the sole interface. The dual-source requirement (MCP + `gh`) in Step 1 applies only when both are available -- agents without MCP access should use `gh pr view --comments` and `gh api` as their primary and only review detection surface.
+
 ## Anti-Patterns
 
 - ⊗ Push individual fix commits per finding
