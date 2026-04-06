@@ -145,7 +145,8 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
-- ~~#133 — Generated vBRIEF files use invalid reference types — upstream deftai/vBRIEF#2 resolved; defensive workarounds cleaned up by #191~~ — 2026-04-05 (closed)
+- ~~#189 — vBRIEF defensive reference-type mitigations — superseded by #191 (deftai/vBRIEF#2 resolved; mitigations no longer needed)~~ — 2026-04-06 (closed, superseded)
+- ~~#133 — Generated vBRIEF files use invalid reference types — upstream deftai/vBRIEF#2 resolved; cleanup tracked in #191~~ — 2026-04-05 (closed)
 - ~~#58 — Stale cross-references to legacy `core/user.md` and `core/project.md` paths~~ — 2026-04-06 (closed)
 - ~~#185 — Change gate UX: replace name-echo with yes/no confirmation — main.md, deft-build, deft-review-cycle, PR template all updated~~ — 2026-04-05 (v0.11.0)
 - ~~#179 — deft-swarm Option A limitations documented — Option A demoted, Option B elevated as recommended~~ — 2026-04-05 (v0.11.0)
