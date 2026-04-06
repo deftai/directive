@@ -362,7 +362,7 @@ Add Phase 0 — Analyze to skills/deft-swarm/SKILL.md before Phase 1 (Select). T
 - Phase 0 reads ROADMAP.md and SPECIFICATION.md
 - Phase 0 surfaces blockers: blocked spec tasks, missing spec coverage, dependency conflicts
 - Phase 0 presents analysis summary with candidate items, blockers, and missing spec tasks
-- Phase 0 requires explicit user approval (yes/confirmed) before proceeding
+- Phase 0 requires explicit user approval (yes/confirmed/approve) before proceeding
 - Anti-patterns section contains entry prohibiting proceeding to Phase 1 without Phase 0 completion
 - tests/content/test_skills.py passes
 
