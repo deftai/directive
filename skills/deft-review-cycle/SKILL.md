@@ -93,7 +93,7 @@ gh pr view <number> --comments
 
 ! After committing the fix batch but before pushing, scan the changed lines for untested code paths:
 
-1. ! Run `git --no-pager diff HEAD~1 --name-only` to identify files touched in the fix batch
+1. ! Run `git --no-pager diff HEAD~1 HEAD --name-only` to identify files touched in the fix batch
 2. ! For each changed file that has a corresponding test file, review whether the fix introduced or modified logic that lacks test coverage
 3. ! If untested code paths are found, write tests and amend them into the fix batch commit (or add as a second commit in the same push)
 4. ! Run `task check` again after adding tests to verify they pass

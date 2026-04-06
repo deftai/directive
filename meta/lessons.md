@@ -165,10 +165,10 @@ When a new commit is pushed while a polling loop is running, Greptile starts a f
 
 Every push re-triggers Greptile on the new head. If additional fixes or improvements are identified while waiting for a review, stage them locally but hold the push until the review of the current head is complete and analyzed. "Trivial" or "safe" commits are not exceptions — the rule applies unconditionally. Violating this resets Greptile's clock and can create a loop where the bot never finishes reviewing a stable state. (#175, incident: PR #173)
 
-**4. After pushing, agent MUST autonomously poll for review updates without stopping to ask the user**
-
-Agents dispatched with a review cycle task (especially cloud/swarm agents) stopped after pushing fix commits and asked the user "should I continue?" or "want me to check the review?" This breaks the autonomous review/fix loop and requires human intervention for every cycle iteration. The review/fix loop in `skills/deft-review-cycle/SKILL.md` is designed to run to the exit condition (no P0/P1 issues, confidence > 3) without human intervention. After pushing, the agent MUST poll for the Greptile review update, analyze findings, and continue fixing — treating the entire loop as a single autonomous operation. (#184)
-
 **3. Poll interval MUST include a genuine delay (≥60 seconds) between `get_check_runs` calls**
 
 Greptile reviews typically take 3–7 minutes. Calling `get_check_runs` in rapid back-to-back succession (seconds apart) adds no information and creates noise in the conversation. MUST use a real sleep between polls — `Start-Sleep -Seconds 60` (PowerShell) or equivalent. Do NOT report "polling again" as if time has passed when it has not. (#175, incident: PR #173 monitoring loop)
+
+**4. After pushing, agent MUST autonomously poll for review updates without stopping to ask the user**
+
+Agents dispatched with a review cycle task (especially cloud/swarm agents) stopped after pushing fix commits and asked the user "should I continue?" or "want me to check the review?" This breaks the autonomous review/fix loop and requires human intervention for every cycle iteration. The review/fix loop in `skills/deft-review-cycle/SKILL.md` is designed to run to the exit condition (no P0/P1 issues, confidence > 3) without human intervention. After pushing, the agent MUST poll for the Greptile review update, analyze findings, and continue fixing — treating the entire loop as a single autonomous operation. (#184)

@@ -293,6 +293,7 @@ After committing Greptile fixes, agents re-trigger CI without checking test cove
 
 - skills/deft-review-cycle/SKILL.md contains explicit step (between Step 3 fix commit and Step 4 push) to scan changed lines, identify untested code paths, and write tests
 - Step is positioned to eliminate one CI round-trip per fix cycle
+- skills/deft-review-cycle/SKILL.md Anti-Patterns contains ⊗ entry: push fix commits without scanning changed lines for untested code paths
 
 **Traces**: #192
 
