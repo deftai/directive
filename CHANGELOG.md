@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **State WHY rule for interview strategy** (#84, t2.2.3): Added `!` rule to `strategies/interview.md` Interview Rules requiring agents to state the underlying principle (1 sentence) when making an opinionated recommendation — part of "Deft as teacher" so users understand the contract hierarchy reasoning behind recommendations
+
 ## [0.12.0] - 2026-04-06
 
 ### Added

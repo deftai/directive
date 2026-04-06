@@ -447,7 +447,7 @@ Rules use RFC2119 symbols correctly
 
 **Traces**: FR-20
 
-## t2.2.3: Add State WHY rule to strategies/interview.md (FR-21)  `[pending]`
+## t2.2.3: Add State WHY rule to strategies/interview.md (FR-21)  `[completed]`
 
 Add ! rule to interview.md Interview Rules section: when making an opinionated recommendation, state the underlying principle in one sentence. Closes #84 Phase 1 (State WHY portion).
 
