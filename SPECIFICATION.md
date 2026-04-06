@@ -302,8 +302,8 @@ After committing Greptile fixes, agents re-trigger CI without checking test cove
 All deft files must be installed consistently under ./deft/ — placement is currently inconsistent across projects. Audit the installer and documentation to ensure consistent placement. Closes #116.
 
 - deft-install places all framework files under ./deft/ consistently
-No framework files installed outside ./deft/ (except AGENTS.md and .agents/ at project root)
-Installer tests cover consistent path placement
+- No framework files installed outside ./deft/ (except AGENTS.md and .agents/ at project root)
+- Installer tests cover consistent path placement
 
 **Traces**: #116
 

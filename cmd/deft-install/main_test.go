@@ -728,13 +728,17 @@ func TestInstallPathConsistency_DeftDirAlwaysSubfolder(t *testing.T) {
 	}
 
 	for _, pd := range projectDirs {
-		expected := filepath.Join(pd, "deft")
-		if got := filepath.Join(pd, "deft"); got != expected {
-			t.Errorf("DeftDir mismatch for %s: got %s, want %s", pd, got, expected)
+		result := &WizardResult{
+			ProjectDir: pd,
+			DeftDir:    filepath.Join(pd, "deft"),
 		}
-		// Verify deft dir is always a direct child named "deft".
-		if filepath.Base(expected) != "deft" {
-			t.Errorf("DeftDir base should be 'deft', got %s", filepath.Base(expected))
+		// Verify DeftDir is always the "deft" direct child of ProjectDir.
+		if result.DeftDir != filepath.Join(result.ProjectDir, "deft") {
+			t.Errorf("DeftDir mismatch for %s: got %s, want %s",
+				pd, result.DeftDir, filepath.Join(result.ProjectDir, "deft"))
+		}
+		if filepath.Base(result.DeftDir) != "deft" {
+			t.Errorf("DeftDir base should be 'deft', got %s", filepath.Base(result.DeftDir))
 		}
 	}
 }
