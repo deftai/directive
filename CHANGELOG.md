@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to the Deft framework will be documented in this file.
 
@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Roadmap Refresh (2026-04-06)**: Triaged 5 new issues and closed 1 as superseded — #192 (proactive test coverage after review-fix commits, Phase 1 Adoption Blockers), #191 (remove vBRIEF defensive workarounds, deftai/vBRIEF#2 resolved, Phase 1 Adoption Blockers), #189 (closed as superseded by #191), #184 (deft-review-cycle autonomous polling imperative after push, Phase 1 Adoption Blockers), #188 (deft-swarm runtime `start_agent` capability detection + Warp environment gate, Phase 2; reshaped from static Option D label to tool-presence-based detection), #182 (deft-rwldl skill: iterative pre-PR quality loop, Phase 2); cleaned up 2 stale entries (#133 closed 2026-04-05, #58 closed 2026-04-06); analysis comments posted on all issues
 
-## [0.11.0]
+## [0.11.0] - 2026-04-05
 
 ### Fixed
 - **Change gate UX — replace name-echo with yes/no confirmation** (#185, t1.9.1):
