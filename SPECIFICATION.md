@@ -598,7 +598,7 @@ Move dev dependencies from `[project.optional-dependencies]` to `[dependency-gro
 
 **Traces**: #217
 
-## t1.10.2: Add explicit release decision checkpoint to deft-swarm Phase 0 and Phase 6 (#218)  `[completed]`
+## t1.10.2: Add explicit release decision checkpoint to deft-swarm Phase 0 and Phase 5->6 gate (#218)  `[completed]`
 
 Add a tentative version bump suggestion to Phase 0 Step 3 analysis summary — agent surfaces current version and proposes next version (patch/minor/major) based on scope. Add explicit confirmation gate at Phase 5→6 transition — agent presents proposed version bump and release scope, requires user approval before merge cascade begins. Add anti-pattern prohibiting merge cascade without version bump proposal and user approval. Closes #218.
 

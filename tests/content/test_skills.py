@@ -427,7 +427,36 @@ def test_deft_swarm_push_autonomy() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 16. deft-review-cycle MCP fallback (#206, t2.6.3)
+# 17. deft-swarm Phase 5→6 gate — release decision checkpoint (#218, t1.10.2)
+# ---------------------------------------------------------------------------
+
+
+def test_deft_swarm_phase5_6_gate_heading() -> None:
+    """deft-swarm must contain Phase 5→6 gate section."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Phase 5" in text and "Gate" in text, (
+        f"{_SWARM_PATH}: missing Phase 5→6 gate section (#218)"
+    )
+
+
+def test_deft_swarm_phase5_6_version_bump_approval() -> None:
+    """Phase 5→6 gate must require explicit user approval."""
+    text = _read_skill(_SWARM_PATH)
+    assert "version bump" in text.lower() and "confirmed" in text, (
+        f"{_SWARM_PATH}: Phase 5→6 gate must require explicit approval (#218)"
+    )
+
+
+def test_deft_swarm_greptile_rebase_latency() -> None:
+    """Phase 6 must document Greptile re-review latency on force-push rebase."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Greptile re-review" in text and "2-5" in text, (
+        f"{_SWARM_PATH}: Phase 6 must document Greptile re-review latency (#207)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 18. deft-review-cycle MCP fallback (#206, t2.6.3)
 # ---------------------------------------------------------------------------
 
 _REVIEW_CYCLE_PATH = "skills/deft-review-cycle/SKILL.md"
