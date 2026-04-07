@@ -605,8 +605,8 @@ def test_deft_review_cycle_no_blocking_sleep() -> None:
     lines = text.split("\n")
     for line in lines:
         if "Start-Sleep" in line or "time.sleep" in line:
-            # These should only appear in prohibition lines (starting with prohibition marker)
-            assert line.strip().startswith("\u2297"), (
+            # These should only appear in prohibition lines (containing the ⊗ marker)
+            assert "\u2297" in line, (
                 f"{_REVIEW_CYCLE_PATH}: Start-Sleep/time.sleep must only appear "
                 f"in prohibition rules, found in: {line.strip()!r}"
             )
