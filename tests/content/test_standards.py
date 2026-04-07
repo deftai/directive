@@ -106,7 +106,7 @@ def _rfc2119_params() -> list:
                     )
                 )
             else:
-                params.append(rel)
+                params.append(rel)  # type: ignore[arg-type]
     return params
 
 
@@ -148,7 +148,7 @@ def _deprecated_path_params() -> list:
                 )
             )
         else:
-            params.append(rel)
+            params.append(rel)  # type: ignore[arg-type]
     return params
 
 
@@ -190,7 +190,7 @@ def _warping_params() -> list:
                 )
             )
         else:
-            params.append(rel)
+            params.append(rel)  # type: ignore[arg-type]
     return params
 
 

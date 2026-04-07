@@ -154,7 +154,7 @@ def _strategy_params() -> list:
                 )
             )
         else:
-            params.append(name)
+            params.append(name)  # type: ignore[arg-type]
     return params
 
 
