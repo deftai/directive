@@ -129,10 +129,11 @@ gh pr view <number> --comments
 ! When `start_agent` is not available, use discrete tool calls with a yield between checks:
 
 1. ! Use `run_shell_command` (wait mode) to run `gh pr view <number> --comments` and `gh pr checks <number>`
-2. ! After each check, yield control (end all tool calls, do not hold a shell open) -- resume on next system interaction
-3. ! Wait ~60 seconds between checks. Greptile reviews typically take 3-7 minutes; polling faster adds no value
+2. ! After each check, yield control (end all tool calls, do not hold a shell open) -- the agent runtime will re-invoke you after ~60 seconds or on the next system/user interaction, whichever comes first
+3. ! Target ~60 seconds between checks. Greptile reviews typically take 3-7 minutes; polling faster adds no value
 4. ! No blocking shell pane lock -- the conversation remains interactive between checks
-5. ! When the exit condition is met, proceed to Step 5
+5. ~ Approach 2 requires a periodic re-invocation trigger (timer, scheduler, or user nudge) -- if the runtime lacks an auto-trigger, each poll cycle may require a user interaction to resume; this is a known tradeoff vs. Approach 1's fully autonomous sub-agent
+6. ! When the exit condition is met, proceed to Step 5
 
 ⊗ Use blocking `Start-Sleep` shell loops, `time.sleep()` loops, or any approach that holds a shell pane open while waiting -- these lock the conversation and prevent user interaction.
 ⊗ Poll more frequently than once per 60 seconds -- use a real delay between checks, not back-to-back calls.
