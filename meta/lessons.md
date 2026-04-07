@@ -189,6 +189,26 @@ When a force-push contains no logic changes (pure rebase onto updated master), t
 
 The original merge cascade lesson (#3 in Parallel Agent Swarm) documented ~3 min CI per rebase cycle. The full cost is ~3 min CI + ~2-5 min Greptile re-review per rebase. For N PRs, plan for (N-1) × (~3 min CI + ~2-5 min Greptile) total additional wait time.
 
+## Mid-Task Instant-Fix Drift (2026-04)
+
+**Source:** Issues #159, #167, #184 — agents derailed active tasks to apply instant fixes for discovered issues
+
+**1. Discovered issues MUST be filed as GitHub issues, not fixed in-place mid-task**
+
+Agents repeatedly interrupted their current task to fix an unrelated issue they discovered along the way (e.g. a typo in another file, a missing test, a stale reference). This caused scope drift, broke the review cycle, and introduced unplanned changes into PRs scoped to specific issues. When a new issue is discovered during an active task, the agent MUST file a GitHub issue and continue the current task — do not apply an instant fix, even if it seems trivial.
+
+**2. Skill execution MUST stop at the skill's explicit instruction boundary**
+
+Agents continued executing past the final step of a skill into adjacent work — for example, after completing a review cycle, an agent started fixing unrelated issues it noticed during the review. A skill's final step is an exit condition. When the skill's steps are complete, the agent MUST stop and return to the calling context. Do not drift into adjacent work, even if it seems related. (#198)
+
+## Skills/ Scan Before Improvising (2026-04)
+
+**Source:** Issue #200 — agents improvised multi-step workflows that already existed as skills
+
+**1. MUST scan skills/ for existing coverage before designing a workflow from scratch**
+
+Agents were asked to run a review cycle and improvised a multi-step process from scratch, missing the existing `skills/deft-review-cycle/SKILL.md` that encodes lessons from dozens of prior review rounds. The skills/ directory contains versioned, tested workflows that encode hard-won operational lessons. Before designing any multi-step workflow, the agent MUST scan skills/ for an existing skill that covers the task. If a matching skill exists, use it — do not reinvent it. (#200)
+
 ## PR Merge Hygiene (2026-04)
 
 **Source:** Issue #167 — PRs merged but issues not closed and roadmap not updated

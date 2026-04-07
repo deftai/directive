@@ -550,6 +550,56 @@
         }
       },
       {
+        "id": "t2.6.3",
+        "title": "Add close-out orchestration rules for start_agent monitor workflow (#206)",
+        "status": "completed",
+        "narrative": {
+          "Description": "The deft-swarm skill lacks orchestration-specific close-out rules for the start_agent monitor workflow. Add merge authority, rebase cascade ownership, GIT_EDITOR override, post-merge issue verification, MCP fallback, and push autonomy carve-out. Closes #206.",
+          "Acceptance": "skills/deft-swarm/SKILL.md Phase 6 Step 1 contains ! rules for: monitor proposes merge order (user approves), monitor owns rebase cascade, GIT_EDITOR=true before non-interactive rebase\nskills/deft-swarm/SKILL.md Phase 6 contains post-merge issue verification step\nskills/deft-swarm/SKILL.md contains push autonomy carve-out for swarm agents\nskills/deft-review-cycle/SKILL.md contains ~ MCP fallback note (gh-only when MCP unavailable)\ntests/content/test_skills.py passes",
+          "Traces": "#206"
+        }
+      },
+      {
+        "id": "t1.10.4",
+        "title": "Add rules against mid-task instant-fix drift and skill-context bleed to main.md (#198)",
+        "status": "completed",
+        "narrative": {
+          "Description": "Agents fix discovered issues in-place during an unrelated task instead of filing an issue, and continue executing past a skill's explicit instruction boundary into adjacent work. Add \u2297 rules to main.md Decision Making section prohibiting both patterns, and add companion entry to meta/lessons.md. Closes #198.",
+          "Acceptance": "main.md Decision Making contains \u2297 rule: Fix a discovered issue in-place mid-task without filing a GitHub issue\nmain.md Decision Making contains \u2297 rule: Continue executing a skill past its explicit instruction boundary\nmain.md Decision Making contains ! rule: The end of a skill's final step is an exit condition\nmeta/lessons.md contains companion entry documenting these as learned patterns (xrefs #159, #167, #184)",
+          "Traces": "#198"
+        }
+      },
+      {
+        "id": "t1.10.5",
+        "title": "Add mandatory skills/ scan rule to AGENTS.md before improvising multi-step workflows (#200)",
+        "status": "completed",
+        "narrative": {
+          "Description": "Agents improvise multi-step workflows from scratch without checking whether a skill already covers the task. Add ! rule and \u2297 anti-pattern to AGENTS.md requiring a skills/ scan before designing workflows. Add companion meta/lessons.md entry. Closes #200.",
+          "Acceptance": "AGENTS.md contains ! rule: Before designing a multi-step workflow from scratch, scan skills/ for an existing skill\nAGENTS.md contains \u2297 anti-pattern: Improvise a multi-step workflow without first checking skills/\nmeta/lessons.md contains companion entry",
+          "Traces": "#200"
+        }
+      },
+      {
+        "id": "t2.6.4",
+        "title": "Add keyword-to-skill routing table in AGENTS.md and add 3 missing skills to README (#147)",
+        "status": "completed",
+        "narrative": {
+          "Description": "Skills are undiscoverable \u2014 agents don't know which skill to use for common keywords. Add a keyword\u2192skill routing table to AGENTS.md mapping trigger phrases to skill paths. Add deft-review-cycle, deft-roadmap-refresh, and deft-swarm entries to README.md Skills section. Closes #147.",
+          "Acceptance": "AGENTS.md contains keyword\u2192skill routing table near Commands section\nTable maps: review cycle \u2192 deft-review-cycle, swarm \u2192 deft-swarm, roadmap refresh \u2192 deft-roadmap-refresh, build \u2192 deft-build\nREADME.md Skills section lists deft-review-cycle, deft-roadmap-refresh, deft-swarm with brief descriptions",
+          "Traces": "#147"
+        }
+      },
+      {
+        "id": "t2.6.5",
+        "title": "Fix stale README content: add CONTRIBUTING.md, contracts/hierarchy.md, update directory tree and Skills section (#219)",
+        "status": "completed",
+        "narrative": {
+          "Description": "README.md directory tree is missing CONTRIBUTING.md, contracts/hierarchy.md, and 3 skills (deft-review-cycle, deft-roadmap-refresh, deft-swarm). Update directory tree and relevant sections. Closes #219.",
+          "Acceptance": "README.md directory tree includes CONTRIBUTING.md\nREADME.md directory tree includes contracts/hierarchy.md\nREADME.md skills/ subtree includes deft-review-cycle, deft-roadmap-refresh, deft-swarm\nREADME.md Contracts section references contracts/hierarchy.md\nNo broken internal links introduced",
+          "Traces": "#219"
+        }
+      },
+      {
         "id": "t3.1.1",
         "title": "Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)",
         "status": "pending",

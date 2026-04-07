@@ -22,6 +22,21 @@ Check what exists before doing anything else:
 
 When all config exists: read the guidelines, your USER.md preferences, and PROJECT.md, then continue with your task.
 
+## Before Improvising
+
+- ! Before designing a multi-step workflow from scratch, scan `skills/` for an existing skill that covers the task — skills are versioned, tested, and encode lessons from prior runs
+- ⊗ Improvise a multi-step workflow without first checking `skills/` for coverage
+
+## Skill Routing
+
+When user input matches a trigger keyword, read the corresponding skill:
+
+- "review cycle" / "check reviews" / "run review cycle" → `skills/deft-review-cycle/SKILL.md`
+- "swarm" / "parallel agents" / "run agents" → `skills/deft-swarm/SKILL.md`
+- "roadmap refresh" / "triage" / "refresh roadmap" → `skills/deft-roadmap-refresh/SKILL.md`
+- "build" / "implement" / "implement spec" → `skills/deft-build/SKILL.md`
+- "setup" / "bootstrap" / "onboard" → `skills/deft-setup/SKILL.md`
+
 ## Development Process (always follow)
 
 **Before code changes:**

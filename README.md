@@ -178,6 +178,7 @@ flowchart TD
 deft/
 ├── README.md              # This file
 ├── CHANGELOG.md           # Release history
+├── CONTRIBUTING.md        # Contributor bootstrap guide
 ├── LICENSE.md             # MIT License
 ├── PROJECT.md             # Project-level configuration
 ├── REFERENCES.md          # Lazy-loading reference system
@@ -206,7 +207,8 @@ deft/
 │   └── working-memory.md
 │
 ├── contracts/             # Interface contracts
-│   └── boundary-maps.md   # Produces/consumes between slices
+│   ├── boundary-maps.md   # Produces/consumes between slices
+│   └── hierarchy.md       # Dual-hierarchy framework (durability + generative axes)
 │
 ├── core/                  # Core framework files
 │   ├── glossary.md        # Terminology definitions
@@ -273,8 +275,11 @@ deft/
 │   └── github.md          # GitHub workflows
 │
 ├── skills/                # Agent skills (SKILL.md format)
-│   ├── deft-build/        # Build/setup skill
-│   └── deft-setup/        # Interactive setup skill
+│   ├── deft-build/        # Build/implement skill
+│   ├── deft-review-cycle/ # Greptile bot review cycle
+│   ├── deft-roadmap-refresh/ # Issue triage and roadmap refresh
+│   ├── deft-setup/        # Interactive setup skill
+│   └── deft-swarm/        # Parallel agent orchestration
 │
 ├── specs/                 # Per-feature specifications
 │   ├── testbed/           # QA testbed Phase 1 spec
@@ -388,6 +393,7 @@ Plus: delphi, visual-basic, vhdl, 6502-DASM
 **vbrief/schemas/** - JSON validation schemas
 
 ### 📜 Contracts
+**contracts/hierarchy.md** - Dual-hierarchy framework (durability axis + generative axis)  
 **contracts/boundary-maps.md** - Explicit produces/consumes declarations between slices
 
 ### 🚀 Deployments
@@ -395,8 +401,11 @@ Plus: delphi, visual-basic, vhdl, 6502-DASM
 agentuity, aws, azure, cloudflare, cloud-gov, fly-io, google, netlify, vercel
 
 ### 🤖 Skills
-**skills/deft-build/** - Build/setup skill  
-**skills/deft-setup/** - Interactive setup wizard skill
+**skills/deft-build/** - Build/implement skill  
+**skills/deft-review-cycle/** - Greptile bot reviewer response workflow (fetch findings, batch fix, exit on clean)  
+**skills/deft-roadmap-refresh/** - Issue triage and phased roadmap maintenance  
+**skills/deft-setup/** - Interactive setup wizard skill  
+**skills/deft-swarm/** - Parallel local agent orchestration (worktrees, prompts, monitoring, merge)
 
 ### 📝 Templates
 **templates/make-spec.md** - Specification generation  
