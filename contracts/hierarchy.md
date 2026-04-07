@@ -4,7 +4,7 @@ Two lenses for reasoning about what to invest in — durability (what survives) 
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [contracts/boundary-maps.md](./boundary-maps.md) | [coding/coding.md](../coding/coding.md) | [core/glossary.md](../core/glossary.md)
+**⚠️ See also**: [contracts/boundary-maps.md](./boundary-maps.md) | [coding/coding.md](../coding/coding.md) | [meta/philosophy.md](../meta/philosophy.md) | [core/glossary.md](../core/glossary.md)
 
 ---
 

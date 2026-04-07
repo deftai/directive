@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **meta/philosophy.md -- deterministic > probabilistic design principle** (#159, t2.7.7): Created `meta/philosophy.md` documenting the "prefer deterministic components for repeatable actions" design principle -- definition, rationale, examples (Taskfile tasks, spec_validate.py, CI workflows), and scope note deferring broad application to Phase 5; referenced from `contracts/hierarchy.md` See also banner
+- **strategies/bdd.md -- BDD/acceptance-test-first strategy** (#81, t2.7.8): Created `strategies/bdd.md` with RFC2119 legend and See also banner -- 6-step workflow (scenarios, failing tests, surface ambiguity, lock decisions, generate spec, chain into sizing gate), output artifacts (`specs/{feature}/acceptance-tests/` + `{feature}-bdd-context.md`), chaining gate integration as preparatory strategy, anti-patterns; added to `strategies/README.md`; added `test_bdd_strategy_exists` to `tests/content/test_structure.py`
+
 ## [0.13.0] - 2026-04-07
 
 ### Added

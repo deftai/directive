@@ -11,8 +11,9 @@ Development strategies define the workflow from idea to implementation.
 | [speckit.md](./speckit.md) | `/deft:run:speckit` | spec-generating | Large/complex projects | Principles → Specify → Plan → Tasks → Implement |
 | [map.md](./map.md) | `/deft:run:map` | preparatory | Existing codebases | Map → Chaining Gate |
 | [discuss.md](./discuss.md) | `/deft:run:discuss` | preparatory | Alignment before planning | Feynman technique → locked decisions → Chaining Gate |
-| [research.md](./research.md) | `/deft:run:research` | preparatory | Pre-implementation research | Research → Don’t Hand-Roll + Common Pitfalls → Chaining Gate |
+| [research.md](./research.md) | `/deft:run:research` | preparatory | Pre-implementation research | Research → Don't Hand-Roll + Common Pitfalls → Chaining Gate |
 | [roadmap.md](./roadmap.md) | `/deft:run:roadmap` | preparatory | Roadmap maintenance | Discover → Triage → Cleanup |
+| [bdd.md](./bdd.md) | `/deft:run:bdd` | preparatory | Acceptance-test-first development | Scenarios → Failing Tests → Lock Decisions → Spec → Chaining Gate |
 | rapid.md | `/deft:run:rapid` | spec-generating | Quick prototypes | Forced-Light path (future) |
 | enterprise.md | `/deft:run:enterprise` | spec-generating | Compliance-heavy | Forced-Full path (future) |
 
