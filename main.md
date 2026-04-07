@@ -51,6 +51,9 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ? For solo projects (single contributor): the `/deft:change` proposal is RECOMMENDED but not mandatory for changes fully covered by the quality gate (`task check`); it remains mandatory for cross-cutting, architectural, or high-risk changes regardless of team size
 - ! No implementation is complete until tests are written and `task check` passes — this gate applies unconditionally and a general 'proceed' instruction does not waive it
 - ⊗ Commit or push directly to the default branch (master/main) — always create a feature branch and open a PR, even for single-commit changes. The only exception is if the user **explicitly** instructs a direct commit for the current task, or if `PROJECT.md` contains `Allow direct commits to master: true` under `## Branching`.
+- ⊗ Fix a discovered issue in-place mid-task without filing a GitHub issue — always file the issue and continue the current task; do not derail the active workflow to apply an instant fix (#198)
+- ⊗ Continue executing a skill past its explicit instruction boundary — when a skill's steps are complete, stop and return to the calling context; do not drift into adjacent work (#198)
+- ! The end of a skill's final step is an exit condition — do not continue into adjacent work, even if it seems related or trivial
 
 **Adaptive Teaching:**
 - ~ When a recommendation is accepted without question, be concise
