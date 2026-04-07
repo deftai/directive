@@ -540,6 +540,16 @@
         }
       },
       {
+        "id": "t1.10.1",
+        "title": "Move dev deps to [dependency-groups] (PEP 735) (#217)",
+        "status": "completed",
+        "narrative": {
+          "Description": "Move dev dependencies from [project.optional-dependencies] to [dependency-groups] (PEP 735 style, supported by uv). Fixes silent test-suite skip in fresh worktrees where uv sync does not install optional deps by default. Closes #217.",
+          "Acceptance": "pyproject.toml uses [dependency-groups] instead of [project.optional-dependencies] for dev deps\nuv.lock regenerated\nlanguages/python.md template updated to show [dependency-groups] pattern\ntask check passes in a fresh worktree",
+          "Traces": "#217"
+        }
+      },
+      {
         "id": "t3.1.1",
         "title": "Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)",
         "status": "pending",

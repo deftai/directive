@@ -587,7 +587,7 @@ The deft-swarm skill lacks orchestration-specific close-out rules for the start_
 
 **Traces**: #206
 
-## t1.10.1: Move dev deps to [dependency-groups] (PEP 735) (#217)  `[pending]`
+## t1.10.1: Move dev deps to [dependency-groups] (PEP 735) (#217)  `[completed]`
 
 Move dev dependencies from `[project.optional-dependencies]` to `[dependency-groups]` (PEP 735 style, supported by uv). Fixes silent test-suite skip in fresh worktrees where `uv sync` does not install optional deps by default. Closes #217.
 
