@@ -48,7 +48,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - "roadmap refresh" / "triage" / "refresh roadmap" → `skills/deft-roadmap-refresh/SKILL.md`
 - "build" / "implement" / "implement spec" → `skills/deft-build/SKILL.md`
 - "setup" / "bootstrap" / "onboard" → `skills/deft-setup/SKILL.md`
-- "sync" / "good morning" / "update deft" / "sync frameworks" → `skills/deft-sync/SKILL.md`
+- "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" → `skills/deft-sync/SKILL.md`
 
 ## Development Process (always follow)
 
