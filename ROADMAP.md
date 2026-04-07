@@ -274,7 +274,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | ~~#80~~ | ~~deft-setup project name inference no fallback~~ | completed — v0.10.1 |
 | #81 | Add BDD/acceptance-test-first strategy | 2 |
 | #82 | Replacement strategies need accept-or-scrap exit | 2 |
-|| ~~#84~~ | ~~Deft as teacher Phase 1: contract hierarchy, adaptive teaching, State WHY~~ | completed -- v0.12.1 |
+| ~~#84~~ | ~~Deft as teacher Phase 1: contract hierarchy, adaptive teaching, State WHY~~ | completed -- v0.12.1 |
 | ~~#85~~ | ~~Installer instructions inaccurate/unclear~~ | closed — absorbed by #54 |
 | #95 | Compliance templates + readiness scanners (SOC 2, ISO 27001, HIPAA; sub-issues #96-#100) | 5 |
 | #86 | Artifact-branch binding and complete audit trail for SDD | 5 |
@@ -295,7 +295,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #112 | External instruction guide (DEFT Directive PDF) is premature relative to current state | 2 |
 | #114 | Document all global Warp rules used for deft directive development | 2 |
 | #115 | Strengthen spec validation gate and rendered artifact freshness | 3 |
-|| ~~#116~~ | ~~All files must be installed consistently under `./deft/`~~ | completed -- v0.12.1 |
+| ~~#116~~ | ~~All files must be installed consistently under `./deft/`~~ | completed -- v0.12.1 |
 | ~~#123~~ | ~~Change lifecycle gate skipped on broad 'proceed' instruction~~ | completed — v0.10.1 |
 | ~~#118~~ | ~~CLI code quality sweep (version mismatch, bare except, undocumented flags, env var naming)~~ | completed — v0.10.1 |
 | ~~#124~~ | ~~Warp context window improvements (behavioral rule + handoff notes)~~ | completed |
@@ -315,10 +315,10 @@ Larger feature work — only after issues are resolved and content is stable.
 | ~~#145~~ | ~~deft-review-cycle: Greptile issue comment not primary review signal (false wait loops)~~ | completed — v0.10.1 |
 | ~~#172~~ | ~~deft-swarm skill: oz agent run correction (Phase 3, lessons, SPECIFICATION.md)~~ | completed — v0.10.2 |
 | ~~#166~~ | ~~Greptile Review status check blocks merge~~ | closed |
-|| ~~#192~~ | ~~Proactively add test coverage after review-fix commits before CI re-run~~ | completed -- v0.12.0 |
-|| ~~#191~~ | ~~Remove defensive vBRIEF reference-type workarounds -- deftai/vBRIEF#2 resolved~~ | completed -- v0.12.0 |
-|| ~~#184~~ | ~~deft-review-cycle: add autonomous polling imperative after push~~ | completed -- v0.12.0 |
-|| ~~#167~~ | ~~PRs merged but issues not closed and roadmap not updated~~ | completed -- v0.12.1 |
+| ~~#192~~ | ~~Proactively add test coverage after review-fix commits before CI re-run~~ | completed -- v0.12.0 |
+| ~~#191~~ | ~~Remove defensive vBRIEF reference-type workarounds -- deftai/vBRIEF#2 resolved~~ | completed -- v0.12.0 |
+| ~~#184~~ | ~~deft-review-cycle: add autonomous polling imperative after push~~ | completed -- v0.12.0 |
+| ~~#167~~ | ~~PRs merged but issues not closed and roadmap not updated~~ | completed -- v0.12.1 |
 | ~~#171~~ | ~~No direct-to-master agent commits — ⊗ gate + PROJECT.md opt-in~~ | completed — v0.10.2 |
 | ~~#175~~ | ~~deft-review-cycle: no-push-while-reviewing + 60s poll cadence~~ | completed — v0.10.2 |
 | #151 | [Playtest Feedback] First-time non-technical user session report (umbrella) | 2 |
@@ -328,8 +328,8 @@ Larger feature work — only after issues are resolved and content is stable.
 | #174 | deft-roadmap-refresh skill: add review cycle step after PR push | 2 |
 | #146 | Add skills/deft-sync/SKILL.md — session-start framework sync skill | 2 |
 | #147 | Skills undiscoverable — no keyword routing in AGENTS.md, 3 skills missing from README | 2 |
-|| ~~#188~~ | ~~Update deft-swarm: runtime start_agent capability detection + Warp environment gate~~ | completed -- v0.12.0 |
-|| ~~#199~~ | ~~deft-swarm skill: add mandatory analyze phase with user approval gate before launch~~ | completed -- v0.12.0 |
+| ~~#188~~ | ~~Update deft-swarm: runtime start_agent capability detection + Warp environment gate~~ | completed -- v0.12.0 |
+| ~~#199~~ | ~~deft-swarm skill: add mandatory analyze phase with user approval gate before launch~~ | completed -- v0.12.0 |
 | #194 | User-facing best practices guide — Directive usage, Warp swarming, skill documentation | 2 |
 | #195 | Replace blocking Start-Sleep polling with multi-agent orchestration in review monitor | 2 |
 | #196 | deft-roadmap-refresh skill: clarify cleanup convention — remove from phase body, not strike through | 2 |
@@ -337,12 +337,12 @@ Larger feature work — only after issues are resolved and content is stable.
 | #198 | main.md: rules against instant-fix drift and skill-context bleed | 1 |
 | #200 | Agent must scan skills/ before improvising multi-step workflows | 1 |
 | ~~#201~~ | ~~scm/github.md: add --body-file convention~~ | closed — absorbed by #197 |
-|| #202 | Convention: prefer ASCII in machine-editable structured sections | 2 |
-|| #207 | Greptile re-review latency on force-push after rebase during swarm merge cascade | 2 |
-|| #212 | discussion: Process control belongs in Directive (DO NOT IMPLEMENT -- discussion only) | 5 |
-|| #218 | deft-swarm: add explicit release decision checkpoint to Phase 0 and Phase 6 | 1 |
-|| #219 | README.md stale: missing CONTRIBUTING.md, 3 skills, contracts/hierarchy.md, stale directory tree | 2 |
-|| #217 | pyproject.toml dev deps breaks task check in fresh worktrees (swarm adoption blocker) | 1 |
+| #202 | Convention: prefer ASCII in machine-editable structured sections | 2 |
+| #207 | Greptile re-review latency on force-push after rebase during swarm merge cascade | 2 |
+| #212 | discussion: Process control belongs in Directive (DO NOT IMPLEMENT -- discussion only) | 5 |
+| #218 | deft-swarm: add explicit release decision checkpoint to Phase 0 and Phase 6 | 1 |
+| #219 | README.md stale: missing CONTRIBUTING.md, 3 skills, contracts/hierarchy.md, stale directory tree | 2 |
+| #217 | pyproject.toml dev deps breaks task check in fresh worktrees (swarm adoption blocker) | 1 |
 | #182 | Add skills/deft-rwldl/SKILL.md — iterative pre-PR quality improvement loop | 2 |
 | ~~#170~~ | ~~Move ROADMAP.md updates from merge-time to release-time~~ | completed — v0.10.3 |
 
