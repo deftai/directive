@@ -110,7 +110,32 @@ gh pr view <number> --comments
 
 ⊗ Push any additional commits — including unrelated fixes, doc updates, or lessons — while waiting for the bot to finish reviewing the current head. Every push re-triggers Greptile and resets the review clock. If you discover additional work while waiting, stage it locally but do NOT push until the current review completes.
 
-~ Poll for completion no more than once every 60 seconds. Greptile reviews typically take 3–7 minutes; polling faster than once per minute adds no value and creates noise. Use `Start-Sleep -Seconds 60` (PowerShell) or `time.sleep(60)` (Python) between MCP `get_check_runs` calls. Do not report a delay that did not occur.
+### Review Monitoring
+
+! Select the monitoring approach based on runtime capability detection. Probe for `start_agent` in the available tool set (same pattern as deft-swarm Phase 3 capability detection) before choosing:
+
+**Approach 1 (preferred -- `start_agent` available):**
+
+! When `start_agent` is detected in the available tool set, spawn a sub-agent review monitor:
+
+1. ! Launch a sub-agent via `start_agent` with a prompt instructing it to poll for Greptile review completion
+2. ! The sub-agent polls `gh pr view <number> --repo <owner>/<repo> --comments` and `gh pr checks <number>` on a ~60-second cadence
+3. ! When the exit condition is met (Greptile review current matching HEAD commit SHA, confidence > 3, no P0/P1 issues remaining), the sub-agent sends a message to the parent agent via `send_message_to_agent`
+4. ! The main conversation pane stays fully interactive during monitoring -- the user can continue other work
+5. ! On receiving the sub-agent's completion message, the parent agent re-fetches findings and proceeds to Step 5
+
+**Approach 2 (fallback -- `start_agent` not available):**
+
+! When `start_agent` is not available, use discrete tool calls with a yield between checks:
+
+1. ! Use `run_shell_command` (wait mode) to run `gh pr view <number> --comments` and `gh pr checks <number>`
+2. ! After each check, yield control (end all tool calls, do not hold a shell open) -- resume on next system interaction
+3. ! Wait ~60 seconds between checks. Greptile reviews typically take 3-7 minutes; polling faster adds no value
+4. ! No blocking shell pane lock -- the conversation remains interactive between checks
+5. ! When the exit condition is met, proceed to Step 5
+
+⊗ Use blocking `Start-Sleep` shell loops, `time.sleep()` loops, or any approach that holds a shell pane open while waiting -- these lock the conversation and prevent user interaction.
+⊗ Poll more frequently than once per 60 seconds -- use a real delay between checks, not back-to-back calls.
 
 ! Greptile may advance its review by **editing an existing PR issue comment** rather than creating a new PR review object. Do NOT rely solely on `pulls/{number}/reviews` — that endpoint may remain stale at an older commit SHA even after Greptile has reviewed the latest commit.
 
@@ -195,7 +220,8 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 - ⊗ Proceed to Phase 2 while any Phase 1 prerequisite is unmet
 - ⊗ Rely solely on `pulls/{number}/reviews` to detect whether Greptile has reviewed the latest commit — Greptile may update via an edited issue comment instead of a new review object
 - ⊗ Push additional commits while Greptile is reviewing the current head — each push re-triggers Greptile and resets the review clock
-- ⊗ Poll `get_check_runs` more frequently than once per 60 seconds — use a real delay between polls, not back-to-back calls
-- ⊗ Stop and ask the user whether to continue after pushing — the review/fix loop MUST run autonomously to the exit condition
+- ⊗ Use blocking `Start-Sleep` shell loops or `time.sleep()` loops to poll for review updates -- these lock the conversation pane
+- ⊗ Poll more frequently than once per 60 seconds -- use a real delay between checks, not back-to-back calls
+- ⊗ Stop and ask the user whether to continue after pushing -- the review/fix loop MUST run autonomously to the exit condition
 - ⊗ Push fix commits without scanning changed lines for untested code paths — always check test coverage before pushing
 - ⊗ Assume squash merge auto-closed referenced issues — always verify with `gh issue view` after merge (#167)

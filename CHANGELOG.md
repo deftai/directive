@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **deft-roadmap-refresh: Phase 4 -- PR & Review Cycle** (#174, t2.7.2): Added Phase 4 after Phase 3 Cleanup -- asks user confirmation, runs pre-flight checks (CHANGELOG, task check, PR template) before pushing, commits/pushes/creates PR, then automatically sequences into `skills/deft-review-cycle/SKILL.md`
 - **deft-roadmap-refresh: explicit cleanup convention** (#196, t2.7.3): Replaced ambiguous Phase 3 cleanup instruction with explicit rules -- remove entries from phase body entirely (Completed section is sole record), strike through in Open Issues Index with 'completed -- YYYY-MM-DD', added anti-pattern against duplicate records
 
+### Changed
+- **deft-review-cycle tiered review monitoring** (#195, t2.7.4): Replaced blocking `Start-Sleep`/`time.sleep()` shell polling in `skills/deft-review-cycle/SKILL.md` Step 4 with tiered monitoring -- Approach 1 (preferred): spawn sub-agent via `start_agent` to poll autonomously while main conversation stays interactive; Approach 2 (fallback): discrete `run_shell_command` (wait mode) calls with yield between checks; capability detection reuses `start_agent` tool-presence pattern from #188; existing exit conditions preserved; added 7 tests covering tiered monitoring section, both approaches, capability detection, and blocking sleep prohibition
+
 ## [0.13.0] - 2026-04-07
 
 ### Added

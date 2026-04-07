@@ -567,3 +567,62 @@ def test_deft_roadmap_refresh_cleanup_antipattern() -> None:
     assert "duplicate record" in text.lower() and "single-record convention" in text.lower(), (
         f"{_ROADMAP_REFRESH_PATH}: must have anti-pattern against duplicate records (#196)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 22. deft-review-cycle tiered monitoring (#195, t2.7.4)
+# ---------------------------------------------------------------------------
+
+
+def test_deft_review_cycle_tiered_monitoring_heading() -> None:
+    """Review cycle skill must contain a Review Monitoring subsection."""
+    text = _read_skill(_REVIEW_CYCLE_PATH)
+    assert "### Review Monitoring" in text, (
+        f"{_REVIEW_CYCLE_PATH}: missing '### Review Monitoring' subsection (#195)"
+    )
+
+
+def test_deft_review_cycle_start_agent_approach() -> None:
+    """Review cycle must document start_agent sub-agent as preferred monitoring approach."""
+    text = _read_skill(_REVIEW_CYCLE_PATH)
+    assert "start_agent" in text and "sub-agent" in text.lower(), (
+        f"{_REVIEW_CYCLE_PATH}: must document start_agent sub-agent monitoring (#195)"
+    )
+
+
+def test_deft_review_cycle_fallback_approach() -> None:
+    """Review cycle must document tool-call polling fallback when start_agent unavailable."""
+    text = _read_skill(_REVIEW_CYCLE_PATH)
+    assert "run_shell_command" in text and "yield" in text.lower(), (
+        f"{_REVIEW_CYCLE_PATH}: must document run_shell_command + yield fallback (#195)"
+    )
+
+
+def test_deft_review_cycle_no_blocking_sleep() -> None:
+    """Review cycle must not recommend Start-Sleep or time.sleep for polling delays."""
+    text = _read_skill(_REVIEW_CYCLE_PATH)
+    # The text may mention Start-Sleep in a prohibition context only
+    lines = text.split("\n")
+    for line in lines:
+        if "Start-Sleep -Seconds 60" in line or "time.sleep(60)" in line:
+            # These should only appear in prohibition lines (starting with prohibition marker)
+            assert line.strip().startswith("\u2297"), (
+                f"{_REVIEW_CYCLE_PATH}: Start-Sleep/time.sleep must only appear "
+                f"in prohibition rules, found in: {line.strip()!r}"
+            )
+
+
+def test_deft_review_cycle_capability_detection() -> None:
+    """Review cycle must use capability detection to select monitoring approach."""
+    text = _read_skill(_REVIEW_CYCLE_PATH)
+    assert "capability detection" in text.lower() and "start_agent" in text, (
+        f"{_REVIEW_CYCLE_PATH}: must use capability detection to select approach (#195)"
+    )
+
+
+def test_deft_review_cycle_send_message() -> None:
+    """Start_agent approach must use send_message_to_agent for completion notification."""
+    text = _read_skill(_REVIEW_CYCLE_PATH)
+    assert "send_message_to_agent" in text, (
+        f"{_REVIEW_CYCLE_PATH}: start_agent approach must use send_message_to_agent (#195)"
+    )
