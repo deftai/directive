@@ -22,6 +22,18 @@ Check what exists before doing anything else:
 
 When all config exists: read the guidelines, your USER.md preferences, and PROJECT.md, then continue with your task.
 
+~ Run `skills/deft-sync/SKILL.md` to pull latest framework updates and validate project files.
+
+### Deft Alignment Confirmation
+
+! At the start of each interactive session, after loading AGENTS.md, confirm to the user that Deft Directive is active. The confirmation must be unambiguous -- for example: "Deft Directive active -- AGENTS.md loaded."
+
+! If the agent detects a context window shift or is asked "are you using Deft?", re-confirm alignment by stating that Deft Directive is active and AGENTS.md was loaded.
+
+⊗ Begin an interactive session without confirming Deft alignment to the user.
+
+Note: A true UI indicator (e.g. Warp status bar) is deferred to Phase 5. This is a behavioral rule only.
+
 ## Before Improvising
 
 - ! Before designing a multi-step workflow from scratch, scan `skills/` for an existing skill that covers the task — skills are versioned, tested, and encode lessons from prior runs
@@ -36,6 +48,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - "roadmap refresh" / "triage" / "refresh roadmap" → `skills/deft-roadmap-refresh/SKILL.md`
 - "build" / "implement" / "implement spec" → `skills/deft-build/SKILL.md`
 - "setup" / "bootstrap" / "onboard" → `skills/deft-setup/SKILL.md`
+- "sync" / "good morning" / "update deft" / "sync frameworks" → `skills/deft-sync/SKILL.md`
 
 ## Development Process (always follow)
 
