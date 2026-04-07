@@ -163,3 +163,14 @@ def test_strategy_file_exists(filename: str) -> None:
     """Every strategy listed in strategies/README.md must exist on disk."""
     target = _REPO_ROOT / "strategies" / filename
     assert target.exists(), f"Strategy file missing: strategies/{filename}"
+
+
+# ---------------------------------------------------------------------------
+# Explicit assertions for key strategy files
+# ---------------------------------------------------------------------------
+
+def test_bdd_strategy_exists() -> None:
+    """strategies/bdd.md must exist (t2.7.8, #81)."""
+    assert (_REPO_ROOT / "strategies" / "bdd.md").exists(), (
+        "strategies/bdd.md missing — required by t2.7.8"
+    )
