@@ -687,7 +687,7 @@ task test:coverage passes at >=85% threshold on the current test suite
 
 **Traces**: NFR-1, NFR-2, FR-27
 
-## t1.10.4: Add rules against mid-task instant-fix drift and skill-context bleed to main.md (#198)  `[pending]`
+## t1.10.4: Add rules against mid-task instant-fix drift and skill-context bleed to main.md (#198)  `[completed]`
 
 Agents fix discovered issues in-place during an unrelated task instead of filing an issue, and continue executing past a skill's explicit instruction boundary into adjacent work. Add ⊗ rules to main.md Decision Making section prohibiting both patterns, and add companion entry to meta/lessons.md. Closes #198.
 
@@ -698,7 +698,7 @@ Agents fix discovered issues in-place during an unrelated task instead of filing
 
 **Traces**: #198
 
-## t1.10.5: Add mandatory skills/ scan rule to AGENTS.md before improvising multi-step workflows (#200)  `[pending]`
+## t1.10.5: Add mandatory skills/ scan rule to AGENTS.md before improvising multi-step workflows (#200)  `[completed]`
 
 Agents improvise multi-step workflows from scratch without checking whether a skill already covers the task. Add ! rule and ⊗ anti-pattern to AGENTS.md requiring a skills/ scan before designing workflows. Add companion meta/lessons.md entry. Closes #200.
 
@@ -708,7 +708,7 @@ Agents improvise multi-step workflows from scratch without checking whether a sk
 
 **Traces**: #200
 
-## t2.6.4: Add keyword-to-skill routing table in AGENTS.md and add 3 missing skills to README (#147)  `[pending]`
+## t2.6.4: Add keyword-to-skill routing table in AGENTS.md and add 3 missing skills to README (#147)  `[completed]`
 
 Skills are undiscoverable — agents don't know which skill to use for common keywords. Add a keyword→skill routing table to AGENTS.md mapping trigger phrases to skill paths. Add deft-review-cycle, deft-roadmap-refresh, and deft-swarm entries to README.md Skills section. Closes #147.
 
@@ -718,7 +718,7 @@ Skills are undiscoverable — agents don't know which skill to use for common ke
 
 **Traces**: #147
 
-## t2.6.5: Fix stale README content: add CONTRIBUTING.md, contracts/hierarchy.md, update directory tree and Skills section (#219)  `[pending]`
+## t2.6.5: Fix stale README content: add CONTRIBUTING.md, contracts/hierarchy.md, update directory tree and Skills section (#219)  `[completed]`
 
 README.md directory tree is missing CONTRIBUTING.md, contracts/hierarchy.md, and 3 skills (deft-review-cycle, deft-roadmap-refresh, deft-swarm). Update directory tree and relevant sections. Closes #219.
 
