@@ -173,6 +173,22 @@ Greptile reviews typically take 3–7 minutes. Calling `get_check_runs` in rapid
 
 Agents dispatched with a review cycle task (especially cloud/swarm agents) stopped after pushing fix commits and asked the user "should I continue?" or "want me to check the review?" This breaks the autonomous review/fix loop and requires human intervention for every cycle iteration. The review/fix loop in `skills/deft-review-cycle/SKILL.md` is designed to run to the exit condition (no P0/P1 issues, confidence > 3) without human intervention. After pushing, the agent MUST poll for the Greptile review update, analyze findings, and continue fixing — treating the entire loop as a single autonomous operation. (#184)
 
+## Greptile Re-Review on Rebase Force-Push (2026-04)
+
+**Source:** Issue #207 — swarm merge cascade latency during PRs #154–#157
+
+**1. Force-pushing a rebased branch triggers a FULL Greptile re-review, not an incremental diff**
+
+During merge cascades, each remaining PR must be rebased onto updated master and force-pushed. Each force-push triggers Greptile to re-review the entire PR from scratch — not just the rebase diff — because Greptile treats force-push as a new commit history. Expected latency is ~2-5 minutes per PR. For a cascade of N PRs, this adds (N-1) × ~2-5 minutes of Greptile wait time on top of CI. MUST factor Greptile re-review latency into merge cascade planning.
+
+**2. Rebase-only force-pushes MAY be annotated with a PR comment for Greptile context**
+
+When a force-push contains no logic changes (pure rebase onto updated master), the monitor MAY post a brief PR comment noting "rebase-only, no logic changes" before force-pushing. This gives human reviewers (and potentially Greptile) context that the re-review is structural, not functional. This is advisory, not mandatory — Greptile will re-review regardless.
+
+**3. Merge cascade time estimate MUST include Greptile re-review latency**
+
+The original merge cascade lesson (#3 in Parallel Agent Swarm) documented ~3 min CI per rebase cycle. The full cost is ~3 min CI + ~2-5 min Greptile re-review per rebase. For N PRs, plan for (N-1) × (~3 min CI + ~2-5 min Greptile) total additional wait time.
+
 ## PR Merge Hygiene (2026-04)
 
 **Source:** Issue #167 — PRs merged but issues not closed and roadmap not updated

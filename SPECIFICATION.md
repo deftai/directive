@@ -598,6 +598,27 @@ Move dev dependencies from `[project.optional-dependencies]` to `[dependency-gro
 
 **Traces**: #217
 
+## t1.10.2: Add explicit release decision checkpoint to deft-swarm Phase 0 and Phase 6 (#218)  `[completed]`
+
+Add a tentative version bump suggestion to Phase 0 Step 3 analysis summary — agent surfaces current version and proposes next version (patch/minor/major) based on scope. Add explicit confirmation gate at Phase 5→6 transition — agent presents proposed version bump and release scope, requires user approval before merge cascade begins. Add anti-pattern prohibiting merge cascade without version bump proposal and user approval. Closes #218.
+
+- skills/deft-swarm/SKILL.md Phase 0 Step 3 includes tentative version bump suggestion (current version + proposed next version based on scope)
+- skills/deft-swarm/SKILL.md contains Phase 5→6 confirmation gate requiring user approval of version bump and release scope before merge cascade
+- skills/deft-swarm/SKILL.md Anti-Patterns contains ⊗ entry: begin merge cascade without presenting version bump proposal and receiving explicit user approval
+
+**Traces**: #218
+
+## t1.10.3: Document Greptile re-review latency on force-push after rebase in swarm merge cascade (#207)  `[completed]`
+
+Document in skills/deft-swarm/SKILL.md Phase 6 that force-pushing a rebased branch triggers a full Greptile re-review (not incremental), with expected latency of ~2-5 minutes per PR. Add guidance for rebase-only force-pushes (MAY note in PR comment to give Greptile context). Update merge cascade warning with time cost. Record finding in meta/lessons.md. Closes #207.
+
+- skills/deft-swarm/SKILL.md Phase 6 documents force-push rebase triggers full Greptile re-review with ~2-5 min latency
+- skills/deft-swarm/SKILL.md Phase 6 contains guidance for rebase-only force-push PR comments
+- skills/deft-swarm/SKILL.md merge cascade warning includes Greptile re-review time cost
+- meta/lessons.md contains Greptile rebase re-review latency lesson
+
+**Traces**: #207
+
 ## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
 
 GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: (1) Python: ruff check, mypy tests/ (the shim run.py cannot be typed directly - exclude run and run.py from mypy per pyproject.toml, type-check the test suite instead), pytest tests/ with coverage. (2) Go: go test ./cmd/deft-install/ + go build ./cmd/deft-install/ for each platform matrix (linux/amd64, darwin/arm64, windows/amd64). main_test.go already exists so go test is zero-cost. Use current action versions. Closes #57.

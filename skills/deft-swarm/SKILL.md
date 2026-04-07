@@ -53,6 +53,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - **Blockers found**: blocked tasks, unresolved dependencies, items requiring design decisions
 - **Missing spec tasks**: roadmap items that need spec task creation before work can begin
 - **Recommendations**: suggested items to include or exclude, with reasoning
+- **Tentative version bump**: current version (from CHANGELOG.md or latest git tag) and proposed next version (patch/minor/major) based on the scope and nature of candidate items — this is advisory and will be confirmed before merge cascade
 
 ### Step 4: Get User Approval
 
@@ -221,6 +222,19 @@ All PRs meet ALL of:
 - `task check` passed (or equivalent validation completed)
 - CHANGELOG entries present under `[Unreleased]`
 
+### Phase 5→6 Gate: Release Decision Checkpoint
+
+! Before proceeding to Phase 6 (Close), the monitor MUST present the proposed release scope and version bump to the user for confirmation.
+
+1. ! Present a summary containing:
+   - **PRs ready to merge**: list of PRs with titles, issue numbers, and current review status
+   - **Proposed version bump**: the tentative version from Phase 0 (patch/minor/major) with rationale — updated if scope changed during implementation
+   - **Release scope**: brief description of what this batch of changes represents
+2. ! Wait for explicit user approval (`yes`, `confirmed`, `approve`) before proceeding to Phase 6 merge cascade
+3. ! If the user requests changes (e.g. different version bump, defer a PR), adjust and re-present
+
+⊗ Begin merge cascade without presenting the version bump proposal and receiving explicit user approval.
+
 ## Phase 6 — Close
 
 ### Step 1: Merge
@@ -231,7 +245,11 @@ All PRs meet ALL of:
 
 ! **Non-interactive rebase:** Monitor MUST set `GIT_EDITOR=true` (Unix/WSL/Git Bash) or `$env:GIT_EDITOR="echo"` (Windows PowerShell) before running `git rebase --continue` during merge cascade to prevent the default editor from blocking the agent.
 
-! **Merge cascade warning:** Shared append-only files (CHANGELOG.md, SPECIFICATION.md) cause merge conflicts when PRs are merged sequentially — each merge changes the insertion point, conflicting remaining PRs. Each conflict requires rebase → push → wait for checks (~3 min). Plan for N-1 rebase cycles when merging N PRs.
+! **Merge cascade warning:** Shared append-only files (CHANGELOG.md, SPECIFICATION.md) cause merge conflicts when PRs are merged sequentially — each merge changes the insertion point, conflicting remaining PRs. Each conflict requires rebase → push → wait for checks (~3 min) + ~2-5 min Greptile re-review per rebase. Plan for N-1 rebase cycles × ~3 min CI + ~2-5 min Greptile re-review per rebase when merging N PRs.
+
+! **Greptile re-review on rebase force-push:** Force-pushing a rebased branch triggers a **full** Greptile re-review (not an incremental diff), even if the rebase introduced no logic changes. Expected latency is ~2-5 minutes per PR in the cascade. Factor this into merge sequencing.
+
+? **Rebase-only annotation:** If the force-push contains no logic changes (pure rebase onto updated master), the monitor MAY post a brief PR comment noting "rebase-only, no logic changes" to give Greptile context and help reviewers triage the re-review.
 
 ~ To minimize cascades: rebase ALL remaining PRs onto latest master before starting any merges, then merge in rapid succession.
 
@@ -330,3 +348,5 @@ CONSTRAINTS:
 - ⊗ Use `oz agent run-cloud` when the user expects local execution — `run-cloud` routes to remote VMs with no local context
 - ⊗ Proceed to Phase 1 (Select) without completing Phase 0 (Analyze) and receiving explicit user approval
 - ⊗ Update ROADMAP.md during swarm close — it is updated only at release time (CHANGELOG promotion commit), not by individual agents or during PR merges.
+- ⊗ Begin merge cascade without presenting the version bump proposal and receiving explicit user approval — the Phase 5→6 gate is mandatory
+- ⊗ Ignore Greptile re-review latency when planning merge cascade timing — each rebase force-push triggers a full re-review (~2-5 min), not an incremental diff
