@@ -9,10 +9,11 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
 
+- **#217** -- pyproject.toml dev deps in `[project.optional-dependencies]` breaks `task check` in fresh worktrees -- move dev deps to `[dependency-groups]` (PEP 735), update `languages/python.md` template, regenerate `uv.lock`; silently skips Python test suite in swarm worktrees (xrefs #209, #188)
+- **#218** -- deft-swarm: add explicit release decision checkpoint to Phase 0 and Phase 6 -- tentative version bump in Phase 0 Analyze, confirmation gate at Phase 5->6 transition before merge cascade (xrefs #199, #206)
+
 ### Cleanup
 
-- **#116** — All deft files must be installed consistently under `./deft/` — placement is inconsistent across projects
-- **#167** — PRs merged but issues not closed and roadmap not updated — root cause investigation needed (closing keywords, squash merge, ROADMAP convention); update PR template and review cycle skill (xrefs #114, #123, #166)
 - **#198** — main.md: add rules against mid-task instant-fix drift and skill-context bleed past instruction boundary — add `⊗` prohibitions (fix-in-place vs. file issue, continue skill past instruction scope) and `!` rule (instruction boundary = exit condition) to Decision Making section; companion `meta/lessons.md` entry (xrefs #159, #167, #184)
 - **#200** — Agent must scan `skills/` before improvising multi-step workflows — add `!` rule and `⊗` anti-pattern to AGENTS.md; safety net for #147 routing table gaps; companion `meta/lessons.md` entry (xrefs #147, #75, #198)
 
@@ -25,10 +26,6 @@ Quick doc/content fixes that don't require code changes.
 ### Philosophy & Positioning
 
 - **#89** — Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)
-- **#84 Phase 1** — Deft as teacher: contract hierarchy, adaptive teaching, and "state WHY"
-  - Add `! State WHY` rule to `strategies/interview.md` — when making an opinionated recommendation, state the principle (1 sentence)
-  - ~~Create `contracts/hierarchy.md`~~ — done (v0.10.0, t2.2.1)
-  - ~~Add adaptive teaching behavior to `main.md`~~ — done (v0.10.0, t2.2.2)
 
 ### Content & Doc Fixes
 
@@ -68,11 +65,13 @@ Quick doc/content fixes that don't require code changes.
 - **#136** — Warp doesn't load deft's AGENTS.md by default — document global rule workaround in README/installer output; real fix is Warp platform feature request (to be done with #114)
 - **#146** — Add `skills/deft-sync/SKILL.md` — session-start sync skill: submodule update, vBRIEF file validation, AGENTS.md freshness check, new-skills listing; design complete in issue body (related: #140 CLI counterpart, #75 auto-discovery)
 - **#147** — Skills undiscoverable — no keyword routing in AGENTS.md, 3 skills missing from README — add keyword→skill routing table to AGENTS.md, add `deft-review-cycle`/`deft-roadmap-refresh`/`deft-swarm` to README directory tree and Skills section (xrefs #114, #75, #136, #200)
-- **#182**
+- **#182** -- Add skills/deft-rwldl/SKILL.md -- iterative pre-PR quality improvement loop (read-write-lint-diff-loop); structured self-review before PR submission
 - **#194** — User-facing best practices guide (`docs/best-practices.md`) — Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
 - **#195** — Replace blocking Start-Sleep polling with multi-agent orchestration in review monitor — spawn `start_agent` sub-agent (preferred) or discrete tool-call polling (fallback) to keep conversation pane interactive during review cycle; depends on #188 for capability detection pattern (xrefs #184, #192)
 - **#202** — Convention: prefer ASCII in machine-editable structured sections (ROADMAP.md, CHANGELOG.md) — em-dashes, arrows, and emoji cause edit_files failures on Windows; add ~ guidance to use ASCII in phase body entries, index rows, changelog footer; pragmatic workaround for warpdotdev/warp#9022 (xrefs #197, #196)
 - **#196** — deft-roadmap-refresh skill: clarify cleanup convention — replace ambiguous "strike through or move" with explicit `!` remove-from-phase-body rule and `⊗` anti-pattern; Completed section is sole record for closed issues; bundle with #168/#174 (xrefs #167)
+- **#207** -- Greptile re-review latency on force-push after rebase during swarm merge cascade -- document expected time cost per PR count in swarm skill Phase 6; design decision on skip-re-review convention for rebase-only force-pushes (xrefs #206, #184, #195)
+- **#219** -- README.md stale: missing CONTRIBUTING.md, 3 skills, contracts/hierarchy.md, and stale directory tree -- factual corrections to directory tree, Skills section, Contracts section, Contributing section; coordinate with #147 (xrefs #147, #114, #89)
 
 ---
 
@@ -136,12 +135,16 @@ Larger feature work — only after issues are resolved and content is stable.
 - **#95** — Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks
 - **#140** — Automatically check for updates to cloned repos in a project — detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)
 - **#160** — Consider TypeScript instead of Python for `run` CLI — architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118)
+- **#212** -- discussion: Process control belongs in Directive -- universal process principles (review cycle, parallel work, batch-fix) as first-class Directive content; skills become tool-specific adapters; explicitly DO NOT IMPLEMENT until team decision reached (xrefs #89, #147, #194, #159)
 - LLM-assisted content validation
 - Self-upgrade to Deft Directive product (branding, public docs, distribution packaging)
 
 ---
 
 ## Completed
+- ~~#167 -- PR merge hygiene: squash-merge issue-close verification -- PR template, deft-review-cycle Post-Merge Verification, AGENTS.md convention, meta/lessons.md root cause~~ -- 2026-04-06 (v0.12.1)
+- ~~#116 -- Installer now creates all 6 skill thin pointers (deft-review-cycle, deft-roadmap-refresh, deft-swarm were missing) -- consistent ./deft/ paths, 3 new path consistency tests~~ -- 2026-04-06 (v0.12.1)
+- ~~#84 Phase 1 -- Deft as teacher Phase 1 complete: contracts/hierarchy.md (v0.10.0), adaptive teaching main.md (v0.10.0), State WHY rule interview.md (v0.12.1)~~ -- 2026-04-06 (v0.12.1)
 - ~~#209 -- Swarm force-push anti-pattern scope fix + GIT_EDITOR Windows portability + 7 regression tests~~ -- 2026-04-06 (v0.12.0)
 - ~~#206 -- Swarm close-out orchestration rules for start_agent monitor workflow -- merge authority, rebase ownership, GIT_EDITOR, post-merge verification, push autonomy, MCP fallback~~ -- 2026-04-06 (v0.12.0)
 - ~~#199 -- deft-swarm mandatory analyze phase with user approval gate before launch~~ -- 2026-04-06 (v0.12.0)
@@ -271,7 +274,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | ~~#80~~ | ~~deft-setup project name inference no fallback~~ | completed — v0.10.1 |
 | #81 | Add BDD/acceptance-test-first strategy | 2 |
 | #82 | Replacement strategies need accept-or-scrap exit | 2 |
-| #84 | Deft as teacher: contract hierarchy, explain WHY, adaptive teaching mode | 2/5 |
+| ~~#84~~ | ~~Deft as teacher Phase 1: contract hierarchy, adaptive teaching, State WHY~~ | completed -- v0.12.1 |
 | ~~#85~~ | ~~Installer instructions inaccurate/unclear~~ | closed — absorbed by #54 |
 | #95 | Compliance templates + readiness scanners (SOC 2, ISO 27001, HIPAA; sub-issues #96-#100) | 5 |
 | #86 | Artifact-branch binding and complete audit trail for SDD | 5 |
@@ -292,7 +295,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #112 | External instruction guide (DEFT Directive PDF) is premature relative to current state | 2 |
 | #114 | Document all global Warp rules used for deft directive development | 2 |
 | #115 | Strengthen spec validation gate and rendered artifact freshness | 3 |
-| #116 | All files must be installed consistently under `./deft/` | 1 |
+| ~~#116~~ | ~~All files must be installed consistently under `./deft/`~~ | completed -- v0.12.1 |
 | ~~#123~~ | ~~Change lifecycle gate skipped on broad 'proceed' instruction~~ | completed — v0.10.1 |
 | ~~#118~~ | ~~CLI code quality sweep (version mismatch, bare except, undocumented flags, env var naming)~~ | completed — v0.10.1 |
 | ~~#124~~ | ~~Warp context window improvements (behavioral rule + handoff notes)~~ | completed |
@@ -312,10 +315,10 @@ Larger feature work — only after issues are resolved and content is stable.
 | ~~#145~~ | ~~deft-review-cycle: Greptile issue comment not primary review signal (false wait loops)~~ | completed — v0.10.1 |
 | ~~#172~~ | ~~deft-swarm skill: oz agent run correction (Phase 3, lessons, SPECIFICATION.md)~~ | completed — v0.10.2 |
 | ~~#166~~ | ~~Greptile Review status check blocks merge~~ | closed |
-| #192 | Proactively add test coverage after review-fix commits before CI re-run | 1 |
-| #191 | Remove defensive vBRIEF reference-type workarounds — deftai/vBRIEF#2 resolved | 1 |
-| #184 | deft-review-cycle: add autonomous polling imperative after push | 1 |
-| #167 | PRs merged but issues not closed and roadmap not updated | 1 |
+| ~~#192~~ | ~~Proactively add test coverage after review-fix commits before CI re-run~~ | completed -- v0.12.0 |
+| ~~#191~~ | ~~Remove defensive vBRIEF reference-type workarounds -- deftai/vBRIEF#2 resolved~~ | completed -- v0.12.0 |
+| ~~#184~~ | ~~deft-review-cycle: add autonomous polling imperative after push~~ | completed -- v0.12.0 |
+| ~~#167~~ | ~~PRs merged but issues not closed and roadmap not updated~~ | completed -- v0.12.1 |
 | ~~#171~~ | ~~No direct-to-master agent commits — ⊗ gate + PROJECT.md opt-in~~ | completed — v0.10.2 |
 | ~~#175~~ | ~~deft-review-cycle: no-push-while-reviewing + 60s poll cadence~~ | completed — v0.10.2 |
 | #151 | [Playtest Feedback] First-time non-technical user session report (umbrella) | 2 |
@@ -325,8 +328,8 @@ Larger feature work — only after issues are resolved and content is stable.
 | #174 | deft-roadmap-refresh skill: add review cycle step after PR push | 2 |
 | #146 | Add skills/deft-sync/SKILL.md — session-start framework sync skill | 2 |
 | #147 | Skills undiscoverable — no keyword routing in AGENTS.md, 3 skills missing from README | 2 |
-| #188 | Update deft-swarm: runtime start_agent capability detection + Warp environment gate | 1 |
-| #199 | deft-swarm skill: add mandatory analyze phase with user approval gate before launch | 1 |
+| ~~#188~~ | ~~Update deft-swarm: runtime start_agent capability detection + Warp environment gate~~ | completed -- v0.12.0 |
+| ~~#199~~ | ~~deft-swarm skill: add mandatory analyze phase with user approval gate before launch~~ | completed -- v0.12.0 |
 | #194 | User-facing best practices guide — Directive usage, Warp swarming, skill documentation | 2 |
 | #195 | Replace blocking Start-Sleep polling with multi-agent orchestration in review monitor | 2 |
 | #196 | deft-roadmap-refresh skill: clarify cleanup convention — remove from phase body, not strike through | 2 |
@@ -335,6 +338,11 @@ Larger feature work — only after issues are resolved and content is stable.
 | #200 | Agent must scan skills/ before improvising multi-step workflows | 1 |
 | ~~#201~~ | ~~scm/github.md: add --body-file convention~~ | closed — absorbed by #197 |
 | #202 | Convention: prefer ASCII in machine-editable structured sections | 2 |
+| #207 | Greptile re-review latency on force-push after rebase during swarm merge cascade | 2 |
+| #212 | discussion: Process control belongs in Directive (DO NOT IMPLEMENT -- discussion only) | 5 |
+| #218 | deft-swarm: add explicit release decision checkpoint to Phase 0 and Phase 6 | 1 |
+| #219 | README.md stale: missing CONTRIBUTING.md, 3 skills, contracts/hierarchy.md, stale directory tree | 2 |
+| #217 | pyproject.toml dev deps breaks task check in fresh worktrees (swarm adoption blocker) | 1 |
 | #182 | Add skills/deft-rwldl/SKILL.md — iterative pre-PR quality improvement loop | 2 |
 | ~~#170~~ | ~~Move ROADMAP.md updates from merge-time to release-time~~ | completed — v0.10.3 |
 
@@ -378,3 +386,5 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-06 — closed #189 on GitHub as superseded by #191 (vBRIEF defensive mitigations no longer needed now that deftai/vBRIEF#2 is resolved)*
 *Updated 2026-04-06 — roadmap refresh triage: added #182 to Phase 2 (deft-rwldl skill: iterative pre-PR quality loop)*
 *Updated 2026-04-06 — roadmap refresh: triaged #194 (Phase 2), #195 (Phase 2), #196 (Phase 2), #197 (Phase 2, absorbs #201), #198 (Phase 1), #199 (Phase 1), #200 (Phase 1); promoted #188 Phase 2→Phase 1; closed #201 (absorbed by #197); moved #166 to Completed; updated #147 title/body for expanded scope; added #202 (ASCII convention for machine-editable sections, Phase 2)*
+*Updated 2026-04-06 -- v0.12.1 release: moved #116 (installer path consistency), #167 (PR merge hygiene), #84 Phase 1 (Deft as teacher Phase 1 complete) to Completed; added CONTRIBUTING.md (t2.3.1)*
+*Updated 2026-04-07 -- roadmap refresh triage: added #217 to Phase 1 Adoption Blockers (pyproject.toml dev deps breaks task check in fresh worktrees; swarm adoption blocker), #218 to Phase 1 Adoption Blockers (swarm release decision checkpoint), #207 to Phase 2 (Greptile re-review latency on swarm merge cascade), #219 to Phase 2 (README.md stale content), #212 to Phase 5 (process control in Directive -- discussion only); cleanup: struck through #184/#188/#191/#192/#199 in index (completed v0.12.0), removed duplicate bare #198, added #182 description*
