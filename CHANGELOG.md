@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **meta/philosophy.md -- deterministic > probabilistic design principle** (#159, t2.7.7): Created `meta/philosophy.md` documenting the "prefer deterministic components for repeatable actions" design principle -- definition, rationale, examples (Taskfile tasks, spec_validate.py, CI workflows), and scope note deferring broad application to Phase 5; referenced from `contracts/hierarchy.md` See also banner
 - **strategies/bdd.md -- BDD/acceptance-test-first strategy** (#81, t2.7.8): Created `strategies/bdd.md` with RFC2119 legend and See also banner -- 6-step workflow (scenarios, failing tests, surface ambiguity, lock decisions, generate spec, chain into sizing gate), output artifacts (`specs/{feature}/acceptance-tests/` + `{feature}-bdd-context.md`), chaining gate integration as preparatory strategy, anti-patterns; added to `strategies/README.md`; added `test_bdd_strategy_exists` to `tests/content/test_structure.py`
+- **deft-roadmap-refresh: analysis comment transparency** (#168, t2.7.1): Added `!` rule to Phase 2 Step 4 requiring agent to confirm to the user that an analysis comment was posted -- includes issue number and direct link to the comment
+- **deft-roadmap-refresh: Phase 4 -- PR & Review Cycle** (#174, t2.7.2): Added Phase 4 after Phase 3 Cleanup -- asks user confirmation, runs pre-flight checks (CHANGELOG, task check, PR template) before pushing, commits/pushes/creates PR, then automatically sequences into `skills/deft-review-cycle/SKILL.md`
+- **deft-roadmap-refresh: explicit cleanup convention** (#196, t2.7.3): Replaced ambiguous Phase 3 cleanup instruction with explicit rules -- remove entries from phase body entirely (Completed section is sole record), strike through in Open Issues Index with 'completed -- YYYY-MM-DD', added anti-pattern against duplicate records
 
 ## [0.13.0] - 2026-04-07
 

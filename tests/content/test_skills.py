@@ -468,3 +468,102 @@ def test_deft_review_cycle_mcp_fallback() -> None:
     assert "MCP is unavailable" in text and "gh" in text, (
         f"{_REVIEW_CYCLE_PATH}: must document MCP fallback for start_agent/cloud agents (#206)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 18. deft-roadmap-refresh skill -- existence and RFC2119
+# ---------------------------------------------------------------------------
+
+_ROADMAP_REFRESH_PATH = "skills/deft-roadmap-refresh/SKILL.md"
+
+
+def test_deft_roadmap_refresh_exists() -> None:
+    """deft-roadmap-refresh SKILL.md must exist."""
+    assert (_REPO_ROOT / _ROADMAP_REFRESH_PATH).is_file(), (
+        f"Skill file missing: {_ROADMAP_REFRESH_PATH}"
+    )
+
+
+def test_deft_roadmap_refresh_rfc2119_legend() -> None:
+    """deft-roadmap-refresh must contain the RFC2119 legend."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert RFC2119_LEGEND in text, (
+        f"{_ROADMAP_REFRESH_PATH}: missing RFC2119 legend"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 19. deft-roadmap-refresh Phase 2 Step 4 -- transparency rule (#168, t2.7.1)
+# ---------------------------------------------------------------------------
+
+def test_deft_roadmap_refresh_confirm_comment_posting() -> None:
+    """Phase 2 Step 4 must confirm to user that analysis comment was posted."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "confirm to the user" in text.lower() and "issue number" in text.lower(), (
+        f"{_ROADMAP_REFRESH_PATH}: Phase 2 Step 4 must confirm comment posting "
+        "with issue number and link (#168)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 20. deft-roadmap-refresh Phase 4 -- PR & Review Cycle (#174, t2.7.2)
+# ---------------------------------------------------------------------------
+
+def test_deft_roadmap_refresh_phase4_heading() -> None:
+    """deft-roadmap-refresh must contain Phase 4 -- PR & Review Cycle."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "Phase 4" in text and "PR & Review Cycle" in text, (
+        f"{_ROADMAP_REFRESH_PATH}: missing Phase 4 -- PR & Review Cycle (#174)"
+    )
+
+
+def test_deft_roadmap_refresh_phase4_user_confirmation() -> None:
+    """Phase 4 must ask user before committing."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "Ready to commit and create a PR?" in text, (
+        f"{_ROADMAP_REFRESH_PATH}: Phase 4 must ask user confirmation (#174)"
+    )
+
+
+def test_deft_roadmap_refresh_phase4_preflight() -> None:
+    """Phase 4 must run pre-flight checks before pushing."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "CHANGELOG.md" in text and "task check" in text, (
+        f"{_ROADMAP_REFRESH_PATH}: Phase 4 pre-flight must check CHANGELOG and task check (#174)"
+    )
+
+
+def test_deft_roadmap_refresh_phase4_review_cycle_handoff() -> None:
+    """Phase 4 must sequence into deft-review-cycle."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "skills/deft-review-cycle/SKILL.md" in text, (
+        f"{_ROADMAP_REFRESH_PATH}: Phase 4 must hand off to deft-review-cycle (#174)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 21. deft-roadmap-refresh Phase 3 -- cleanup rules (#196, t2.7.3)
+# ---------------------------------------------------------------------------
+
+def test_deft_roadmap_refresh_cleanup_remove_from_body() -> None:
+    """Phase 3 must remove entries from phase body, not strike through."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "Remove the entry from the phase section body entirely" in text, (
+        f"{_ROADMAP_REFRESH_PATH}: Phase 3 must remove entries from phase body (#196)"
+    )
+
+
+def test_deft_roadmap_refresh_cleanup_index_strike() -> None:
+    """Phase 3 must strike through in Open Issues Index with completed date."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "Open Issues Index" in text and "completed --" in text, (
+        f"{_ROADMAP_REFRESH_PATH}: Phase 3 must strike through in index with date (#196)"
+    )
+
+
+def test_deft_roadmap_refresh_cleanup_antipattern() -> None:
+    """Anti-patterns must prohibit duplicate record in phase body and Completed."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "duplicate record" in text.lower() and "single-record convention" in text.lower(), (
+        f"{_ROADMAP_REFRESH_PATH}: must have anti-pattern against duplicate records (#196)"
+    )
