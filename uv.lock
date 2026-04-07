@@ -169,7 +169,7 @@ name = "deft-directive"
 version = "0.5.0"
 source = { virtual = "." }
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "black" },
     { name = "mypy" },
@@ -180,15 +180,16 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "black", marker = "extra == 'dev'", specifier = ">=23" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.7" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.4" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1" },
-    { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.12" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1" },
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "black", specifier = ">=23" },
+    { name = "mypy", specifier = ">=1.7" },
+    { name = "pytest", specifier = ">=7.4" },
+    { name = "pytest-cov", specifier = ">=4.1" },
+    { name = "pytest-mock", specifier = ">=3.12" },
+    { name = "ruff", specifier = ">=0.1" },
 ]
-provides-extras = ["dev"]
 
 [[package]]
 name = "iniconfig"

@@ -587,6 +587,17 @@ The deft-swarm skill lacks orchestration-specific close-out rules for the start_
 
 **Traces**: #206
 
+## t1.10.1: Move dev deps to [dependency-groups] (PEP 735) (#217)  `[pending]`
+
+Move dev dependencies from `[project.optional-dependencies]` to `[dependency-groups]` (PEP 735 style, supported by uv). Fixes silent test-suite skip in fresh worktrees where `uv sync` does not install optional deps by default. Closes #217.
+
+- `pyproject.toml` uses `[dependency-groups]` instead of `[project.optional-dependencies]` for dev deps
+- `uv.lock` regenerated
+- `languages/python.md` template updated to show `[dependency-groups]` pattern
+- `task check` passes in a fresh worktree
+
+**Traces**: #217
+
 ## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
 
 GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: (1) Python: ruff check, mypy tests/ (the shim run.py cannot be typed directly - exclude run and run.py from mypy per pyproject.toml, type-check the test suite instead), pytest tests/ with coverage. (2) Go: go test ./cmd/deft-install/ + go build ./cmd/deft-install/ for each platform matrix (linux/amd64, darwin/arm64, windows/amd64). main_test.go already exists so go test is zero-cost. Use current action versions. Closes #57.

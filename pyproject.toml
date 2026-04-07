@@ -4,7 +4,7 @@ version = "0.5.0"
 description = "A layered framework for AI-assisted development with consistent standards and workflows"
 requires-python = ">=3.11"
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
