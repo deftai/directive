@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Roadmap Refresh (2026-04-07)**: Triaged 5 new issues -- #217 (pyproject.toml dev deps breaks task check in fresh worktrees, Phase 1 Adoption Blockers), #218 (deft-swarm release decision checkpoint, Phase 1 Adoption Blockers), #207 (Greptile re-review latency on swarm merge cascade, Phase 2), #219 (README.md stale content, Phase 2), #212 (process control in Directive discussion, Phase 5); cleanup: struck through #184/#188/#191/#192/#199 in index (completed v0.12.0), removed duplicate bare #198 entry, added #182 description; analysis comments posted on all 5 issues
+
 ## [0.12.1] - 2026-04-06
 
 ### Added
