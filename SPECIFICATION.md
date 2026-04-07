@@ -619,7 +619,7 @@ Issue is assigned to Phase 4 or Phase 5 milestone/label
 
 **Traces**: NFR-2
 
-## t2.6.6: Create scm/github.md with gh CLI rules, PR workflow conventions, and Windows/PS encoding guidance (#197, absorbs #201)  `[pending]`
+## t2.6.6: Create scm/github.md with gh CLI rules, PR workflow conventions, and Windows/PS encoding guidance (#197, absorbs #201)  `[completed]`
 
 Rewrite scm/github.md with standing gh CLI rules (--body-file for multi-line bodies, immediate post-create verification), PR workflow conventions (squash-merge default, single-purpose branches, branch lifecycle, closing keywords), Windows/PowerShell 5.x encoding guidance (UTF-8 without BOM, avoid emoji and special characters in machine-edited files), and post-merge issue verification. Closes #197, absorbs #201.
 
@@ -631,7 +631,7 @@ Rewrite scm/github.md with standing gh CLI rules (--body-file for multi-line bod
 
 **Traces**: #197, #201
 
-## t2.6.7: Document ASCII convention for machine-editable structured sections (#202)  `[pending]`
+## t2.6.7: Document ASCII convention for machine-editable structured sections (#202)  `[completed]`
 
 Add convention rules for ASCII punctuation in machine-editable structured sections (ROADMAP.md phase bodies, CHANGELOG.md entries, Open Issues Index rows). Prefer -- instead of em-dash, -> instead of arrow, avoid emoji in body text. Never use Unicode em-dashes, curly quotes, or non-ASCII arrows in these sections. Rationale: prevents edit_files tool failures on Windows (warpdotdev/warp#9022). Closes #202.
 
@@ -641,7 +641,7 @@ Add convention rules for ASCII punctuation in machine-editable structured sectio
 
 **Traces**: #202
 
-## t2.6.8: Create skills/deft-rwldl/SKILL.md -- iterative pre-PR quality improvement loop (#182)  `[pending]`
+## t2.6.8: Create skills/deft-rwldl/SKILL.md -- iterative pre-PR quality improvement loop (#182)  `[completed]`
 
 Create skills/deft-rwldl/SKILL.md with RFC2119 legend and frontmatter. Structured self-review loop agents run before submitting a PR: Read (re-read changed files), Write (fix issues), Lint (run task check), Diff (review full diff), Loop (restart if changes made). Exit when full cycle produces zero changes. Create .agents/skills/deft-rwldl/SKILL.md thin pointer. Closes #182.
 
