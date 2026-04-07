@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **scm/github.md rewrite -- gh CLI rules, PR conventions, Windows encoding guidance** (#197, absorbs #201, t2.6.6): Rewrote `scm/github.md` with standing `gh` CLI rules (`--body-file` for multi-line bodies, immediate post-create verification), PR workflow conventions (squash-merge default, single-purpose branches, branch lifecycle, closing keywords), Windows/PowerShell 5.x encoding guidance (UTF-8 without BOM, avoid piping through PS 5.x redirection), and post-merge issue verification section
+- **ASCII convention for machine-editable sections** (#202, t2.6.7): Added Windows/ASCII Conventions section to `scm/github.md` -- prefer `--` over em-dash, `->` over arrows, avoid emoji in body text for ROADMAP.md phase bodies, CHANGELOG.md entries, and Open Issues Index rows; `!` rule against Unicode em-dashes, curly quotes, and non-ASCII arrows in these sections; rationale references warpdotdev/warp#9022
+- **skills/deft-rwldl/SKILL.md -- iterative pre-PR quality loop** (#182, t2.6.8): Created `skills/deft-rwldl/SKILL.md` with RFC2119 legend and frontmatter -- structured self-review loop (Read-Write-Lint-Diff-Loop) agents run before pushing a branch for PR creation; 5 phases with exit condition (full cycle with zero changes); anti-patterns section; `.agents/skills/deft-rwldl/SKILL.md` thin pointer for auto-discovery
+
 ### Fixed
 - **pyproject.toml dev deps break task check in fresh worktrees** (#217, t1.10.1): Moved dev dependencies from `[project.optional-dependencies]` to `[dependency-groups]` (PEP 735); `uv sync` now installs dev deps by default in fresh worktrees without needing `--extra dev`; regenerated `uv.lock`; updated `languages/python.md` template to show `[dependency-groups]` pattern
 

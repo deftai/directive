@@ -2,76 +2,55 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md) | [git.md](../scm/git.md)
+**See also**: [main.md](../main.md) | [git.md](./git.md) | [changelog.md](./changelog.md)
 
 **Stack**: gh CLI 2.0+, GitHub Actions, Conventional Commits, issue/PR workflows
 
-## Standards
+## Standing gh CLI Rules
 
-**PRs**: ! use descriptive titles (Conventional Commits format); ~ link issues; ~ request reviews
-**Issues**: ~ include clear reproduction steps, expected vs actual behavior, environment details
-**Reviews**: ~ provide constructive feedback; ! use appropriate status (approve/request changes/comment)
-**Actions**: ~ provide fast feedback, fail fast, cache dependencies, use matrix testing
-**Releases**: ~ use [Semantic Versioning](../core/versioning.md); ! include CHANGELOG.md following [Keep a Changelog](./changelog.md) format
-**Changelog**: ! follow [Keep a Changelog](./changelog.md) format in CHANGELOG.md
+Rules that apply to every `gh` invocation, regardless of context.
 
-## PR Workflow
+- ! Use `--body-file` for PR and issue bodies longer than one line -- inline `--body` strings break on special characters, newlines, and shell escaping across platforms
+- ! Immediately verify after every create or edit operation:
+  - After `gh pr create`: run `gh pr view <number>` to confirm title, body, and labels rendered correctly
+  - After `gh issue create`: run `gh issue view <number>` to confirm body content
+  - After `gh pr edit`: re-fetch and verify the edited field
+- ~ Prefer `gh api` for structured/programmatic queries (filtering, bulk reads, JSON output) and `gh pr`/`gh issue` for quick ad-hoc commands
+- ⊗ Construct multi-line `--body` strings inline in shell commands -- always write to a temp file and use `--body-file`
 
-**Standards**:
+## PR Workflow Conventions
+
+### Merge Strategy
+
+- ! Use squash-merge as the default merge method: `gh pr merge --squash --delete-branch`
+- ~ Squash-merge keeps the mainline history linear and readable -- one commit per PR
+- ? Use merge commits only when preserving individual commit history is explicitly required (e.g., vendor imports)
+- ⊗ Use rebase-merge on PRs with multiple commits unless the author explicitly requests it
+
+### Branch Lifecycle
+
+- ! Create feature branches from `master` (or the project's default branch)
+- ! Each branch serves a single purpose -- one issue or one cohesive change
+- ! Include closing keywords in the PR body (`Closes #N`, `Fixes #N`) so GitHub auto-closes issues on merge
+- ! Delete the branch after merge (`--delete-branch` flag on `gh pr merge`)
+- ⊗ Reuse a branch for a second PR after the first has merged
+- ~ Name branches descriptively: `docs/add-github-guide`, `fix/bootstrap-loop`, `feat/swarm-phase0`
+
+### PR Standards
+
 - ! Use Conventional Commits format for PR titles
 - ~ Keep PRs small (< 400 lines changed ideal)
 - ! Ensure all CI checks pass before requesting review
-- ~ Link to related issues using `Closes #123`
-- ! Request specific reviewers
-- ~ Explain "why" not just "what" in description
-
-### PR Template (.github/pull_request_template.md)
-
-```markdown
-## Description
-
-Brief summary of the changes and their purpose.
-
-## Type of Change
-
-- [ ] feat: New feature
-- [ ] fix: Bug fix
-- [ ] docs: Documentation update
-- [ ] refactor: Code refactoring
-- [ ] test: Adding or updating tests
-- [ ] chore: Maintenance or tooling
-
-## Changes
-
-- List specific changes
-- Be concise but complete
-
-## Testing
-
-- [ ] Unit tests added/updated
-- [ ] Integration tests pass
-- [ ] Coverage ≥75%
-- [ ] Manual testing completed
-
-## Checklist
-
-- [ ] Code follows project style guidelines (MUST)
-- [ ] Self-reviewed code and comments (SHOULD)
-- [ ] Updated documentation (SHOULD)
-- [ ] No breaking changes (or documented) (MUST)
-- [ ] `task check` passes (MUST)
-
-## Related Issues
-
-Closes #issue_number
-```
+- ~ Link to related issues using closing keywords
+- ~ Explain "why" not just "what" in the PR description
+- ! Run `task check` before opening a PR
 
 ### Review Guidelines
 
 **Approval criteria (MUST be met)**:
 
 - Code follows language standards (python.md, go.md, cpp.md)
-- Tests pass with ≥75% coverage
+- Tests pass with required coverage threshold
 - Conventional Commits format
 - No security vulnerabilities
 - Documentation updated
@@ -82,8 +61,47 @@ Closes #issue_number
 - Be constructive and specific
 - Explain "why" not just "what"
 - Suggest alternatives when requesting changes
-- Praise good solutions
 - Focus on correctness, maintainability, performance (in that order)
+
+## Post-Merge Issue Verification
+
+! After a PR is squash-merged, verify that all referenced issues were actually closed. Squash merges can silently fail to process closing keywords (`Closes #N`, `Fixes #N`) from the PR body (#167).
+
+1. ! For each issue referenced with a closing keyword in the PR body, run:
+   ```
+   gh issue view <N> --json state --jq .state
+   ```
+2. ! If the issue state is not `CLOSED`, close it manually with a comment referencing the merged PR:
+   ```
+   gh issue close <N> --comment "Closed by #<PR> (squash merge -- auto-close did not trigger)"
+   ```
+3. ~ This applies to ALL PR merges, not just swarm runs. See also: `skills/deft-review-cycle/SKILL.md` Post-Merge Verification, `skills/deft-swarm/SKILL.md` Phase 6 Step 2.
+
+## Windows / PowerShell Encoding Guidance
+
+PowerShell 5.x (Windows default) uses UTF-16LE internally and may inject a BOM or transcode `gh` CLI output unexpectedly. These issues are silent -- files look correct in the editor but fail on `edit_files` or `git diff`.
+
+- ! Use UTF-8 without BOM for all `--body-file` content written from scripts or agents
+- ! On PowerShell 5.x, set encoding before writing temp files:
+  ```powershell
+  [System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))
+  ```
+- ~ Avoid piping `gh` output through PowerShell 5.x redirection (`>`, `Out-File`) -- these default to UTF-16LE; use `Set-Content -Encoding utf8` or .NET `WriteAllText` instead
+- ~ Prefer PowerShell 7+ (`pwsh`) which defaults to UTF-8 without BOM
+
+## Windows / ASCII Conventions for Machine-Editable Sections
+
+Agent `edit_files` operations can fail when structured file sections contain Unicode characters that do not round-trip cleanly through Windows toolchains (xref warpdotdev/warp#9022). The following rules apply to **machine-editable structured sections**: ROADMAP.md phase bodies, CHANGELOG.md entries, and Open Issues Index rows.
+
+- ~ In machine-editable structured sections, prefer ASCII punctuation:
+  - Use `--` instead of em-dash
+  - Use `->` instead of arrow characters
+  - Avoid emoji in body text (emoji in headings or decorative positions are acceptable)
+- ! Never use Unicode em-dashes, curly quotes, or non-ASCII arrow characters in CHANGELOG.md entries or ROADMAP.md index rows -- these cause `edit_files` search/replace mismatches when the tool's internal encoding differs from the file's byte representation
+- ~ Use straight quotes (`"`, `'`) rather than curly/smart quotes in all machine-edited files
+- ? Prose-only sections (README narrative, philosophy docs) may use Unicode freely since they are rarely machine-edited
+
+**Rationale**: The `edit_files` tool performs exact byte-string matching. When Windows agents write files through encoding layers that silently substitute characters (e.g., em-dash `\u2014` vs. `--`), subsequent search/replace operations fail because the stored bytes no longer match the search string. Sticking to ASCII in structured sections eliminates this class of failure.
 
 ## Issue Workflow
 
@@ -93,72 +111,13 @@ Closes #issue_number
 - ~ Apply appropriate labels and assign when taking ownership
 - ~ Link related issues and PRs
 
-### Issue Template (.github/ISSUE_TEMPLATE/bug_report.md)
-
-```markdown
----
-name: Bug Report
-about: Report a bug or unexpected behavior
-labels: bug
----
-
-## Description
-
-Clear and concise description of the bug.
-
-## Steps to Reproduce
-
-1. Step one
-2. Step two
-3. Observe error
-
-## Expected Behavior
-
-What should happen.
-
-## Actual Behavior
-
-What actually happens.
-
-## Environment
-
-- OS: [e.g., macOS 14.0, Ubuntu 22.04]
-- Version: [e.g., v1.2.3]
-- Language/Runtime: [e.g., Go 1.21, Python 3.11]
-
-## Logs/Screenshots
-
-Paste relevant logs or attach screenshots.
-
-## Additional Context
-
-Any other relevant information.
-```
-
 ### Issue Labels
 
-**Priority**:
+**Priority**: `priority:critical` (production down), `priority:high` (major broken), `priority:medium` (important, not blocking), `priority:low` (nice to have)
 
-- `priority:critical` - Production down, security issue
-- `priority:high` - Major functionality broken
-- `priority:medium` - Important but not blocking
-- `priority:low` - Nice to have
+**Type**: `bug`, `feat`, `docs`, `refactor`, `test`, `chore`
 
-**Type**:
-
-- `bug` - Something broken
-- `feat` - New feature request
-- `docs` - Documentation improvement
-- `refactor` - Code improvement
-- `test` - Testing related
-- `chore` - Maintenance
-
-**Status**:
-
-- `status:blocked` - Waiting on dependency
-- `status:in-progress` - Being worked on
-- `status:needs-info` - Needs more information
-- `status:wontfix` - Will not be addressed
+**Status**: `status:blocked`, `status:in-progress`, `status:needs-info`, `status:wontfix`
 
 ### Post-1.0.0 Issue Linking
 
@@ -195,48 +154,18 @@ Following a v1.0.0 release, commits:
 - ⊗ Allow force pushes
 - ⊗ Allow deletions
 
-## UCCPR Workflow
+## Release Workflow (UCCPR)
 
 **UCCPR** = Update Changelog, Commit, Push, Release
 
 Standard workflow for releasing new versions:
 
-```bash
-# 1. Update Changelog
-# Add new version section to CHANGELOG.md with date and changes
-vim CHANGELOG.md
-
-# 2. Update version in code
-# Update VERSION constant/variable in main script/package file
-vim run  # or package.json, setup.py, etc.
-
-# 3. Commit changes
-git add CHANGELOG.md run  # and any other version files
-git commit -m "chore: release v0.3.8"
-
-# 4. Push changes
-git push origin master
-
-# 5. Create and push tag
-git tag v0.3.8
-git push origin v0.3.8
-
-# 6. Create GitHub release
-gh release create v0.3.8 --title "Deft v0.3.8" --notes-file CHANGELOG.md
-
-# Or extract just this version from CHANGELOG:
-gh release create v0.3.8 --title "Deft v0.3.8" --notes "$(sed -n '/## \[0.3.8\]/,/## \[0.3.7\]/p' CHANGELOG.md | head -n -1)"
-```
-
-**One-liner UCCPR** (after updating CHANGELOG.md and version):
-```bash
-git add CHANGELOG.md run && \
-git commit -m "chore: release v0.3.8" && \
-git push && \
-git tag v0.3.8 && \
-git push origin v0.3.8 && \
-gh release create v0.3.8 --title "Deft v0.3.8" --notes-file CHANGELOG.md
-```
+1. Update `CHANGELOG.md` -- move `[Unreleased]` entries to new version section with date
+2. Update `VERSION` constant in main script/package file
+3. Commit: `git commit -m "chore: release v<X.Y.Z>"`
+4. Push to default branch
+5. Tag: `git tag v<X.Y.Z> && git push origin v<X.Y.Z>`
+6. Release: `gh release create v<X.Y.Z> --title "Deft v<X.Y.Z>" --notes-file release-notes.md`
 
 ## Compliance
 
@@ -244,7 +173,7 @@ gh release create v0.3.8 --title "Deft v0.3.8" --notes-file CHANGELOG.md
 - ! Maintain CHANGELOG.md following [Keep a Changelog](./changelog.md) format
 - ! Use [Semantic Versioning](../core/versioning.md) for releases
 - ! Include CHANGELOG.md content in release notes
-- ! Maintain ≥85% test coverage
+- ! Maintain test coverage at or above PROJECT.md threshold
 - ! Pass all CI checks before merge
 - ~ Request reviews from appropriate team members
 - ~ Link PRs to related issues

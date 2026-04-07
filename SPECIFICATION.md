@@ -619,6 +619,40 @@ Issue is assigned to Phase 4 or Phase 5 milestone/label
 
 **Traces**: NFR-2
 
+## t2.6.6: Create scm/github.md with gh CLI rules, PR workflow conventions, and Windows/PS encoding guidance (#197, absorbs #201)  `[pending]`
+
+Rewrite scm/github.md with standing gh CLI rules (--body-file for multi-line bodies, immediate post-create verification), PR workflow conventions (squash-merge default, single-purpose branches, branch lifecycle, closing keywords), Windows/PowerShell 5.x encoding guidance (UTF-8 without BOM, avoid emoji and special characters in machine-edited files), and post-merge issue verification. Closes #197, absorbs #201.
+
+- scm/github.md exists with RFC2119 legend
+- Contains ! rules for: --body-file for PR/issue bodies longer than one line, immediate verification after create/edit operations
+- Contains PR workflow conventions: squash-merge default, single-purpose branches, branch lifecycle, closing keywords
+- Contains Windows/PS 5.x encoding guidance: UTF-8 without BOM, avoid emoji/special chars in machine-edited files
+- Contains post-merge issue verification section
+
+**Traces**: #197, #201
+
+## t2.6.7: Document ASCII convention for machine-editable structured sections (#202)  `[pending]`
+
+Add convention rules for ASCII punctuation in machine-editable structured sections (ROADMAP.md phase bodies, CHANGELOG.md entries, Open Issues Index rows). Prefer -- instead of em-dash, -> instead of arrow, avoid emoji in body text. Never use Unicode em-dashes, curly quotes, or non-ASCII arrows in these sections. Rationale: prevents edit_files tool failures on Windows (warpdotdev/warp#9022). Closes #202.
+
+- scm/github.md or meta/conventions.md contains ~ rule: prefer ASCII punctuation in machine-editable structured sections
+- Contains ! rule: never use Unicode em-dashes, curly quotes, or non-ASCII arrows in CHANGELOG.md entries or ROADMAP.md index rows
+- Rationale references warpdotdev/warp#9022
+
+**Traces**: #202
+
+## t2.6.8: Create skills/deft-rwldl/SKILL.md -- iterative pre-PR quality improvement loop (#182)  `[pending]`
+
+Create skills/deft-rwldl/SKILL.md with RFC2119 legend and frontmatter. Structured self-review loop agents run before submitting a PR: Read (re-read changed files), Write (fix issues), Lint (run task check), Diff (review full diff), Loop (restart if changes made). Exit when full cycle produces zero changes. Create .agents/skills/deft-rwldl/SKILL.md thin pointer. Closes #182.
+
+- skills/deft-rwldl/SKILL.md exists with RFC2119 legend and frontmatter
+- Contains 5 loop phases: Read, Write, Lint, Diff, Loop
+- Exit condition: full cycle with zero changes
+- Anti-patterns section present
+- .agents/skills/deft-rwldl/SKILL.md thin pointer exists
+
+**Traces**: #182
+
 ## t3.1.3: Raise pyproject.toml coverage threshold to 85% and document run exclusion (NFR-1, NFR-2, FR-27)  `[pending]`
 
 **Depends on**: t3.1.1, t3.1.2
