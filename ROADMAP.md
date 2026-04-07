@@ -9,13 +9,9 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
 
-- **#217** -- pyproject.toml dev deps in `[project.optional-dependencies]` breaks `task check` in fresh worktrees -- move dev deps to `[dependency-groups]` (PEP 735), update `languages/python.md` template, regenerate `uv.lock`; silently skips Python test suite in swarm worktrees (xrefs #209, #188)
-- **#218** -- deft-swarm: add explicit release decision checkpoint to Phase 0 and Phase 6 -- tentative version bump in Phase 0 Analyze, confirmation gate at Phase 5->6 transition before merge cascade (xrefs #199, #206)
 
 ### Cleanup
 
-- **#198** — main.md: add rules against mid-task instant-fix drift and skill-context bleed past instruction boundary — add `⊗` prohibitions (fix-in-place vs. file issue, continue skill past instruction scope) and `!` rule (instruction boundary = exit condition) to Decision Making section; companion `meta/lessons.md` entry (xrefs #159, #167, #184)
-- **#200** — Agent must scan `skills/` before improvising multi-step workflows — add `!` rule and `⊗` anti-pattern to AGENTS.md; safety net for #147 routing table gaps; companion `meta/lessons.md` entry (xrefs #147, #75, #198)
 
 ---
 
@@ -58,20 +54,14 @@ Quick doc/content fixes that don't require code changes.
 - Port any remaining `SKILL.md` carry-forward content from master
   - Three commits on master updated SKILL.md (`a6f120a`, `cc442fc`, `2f2a89e`)
   - Largely superseded by `deft-setup`/`deft-build` skills; review for carry-forward content
-- **#197** — Create `scm/github.md` — standing `gh` CLI rules (`--body-file` as default, immediate verification), PR workflow conventions (squash-merge, single-purpose, branch lifecycle), and Windows/PS 5.x encoding guidance (UTF8 no BOM); absorbs #201; expanded from untracked ROADMAP item based on PR #193 incidents (xrefs #184, #196, #114)
 - ~~Write remaining CHANGELOG entries~~ — tracked by #71 (Phase 1)
 - **#112** — External “Deft Directive” PDF is premature — describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship
 - **#114** — Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`
 - **#136** — Warp doesn't load deft's AGENTS.md by default — document global rule workaround in README/installer output; real fix is Warp platform feature request (to be done with #114)
 - **#146** — Add `skills/deft-sync/SKILL.md` — session-start sync skill: submodule update, vBRIEF file validation, AGENTS.md freshness check, new-skills listing; design complete in issue body (related: #140 CLI counterpart, #75 auto-discovery)
-- **#147** — Skills undiscoverable — no keyword routing in AGENTS.md, 3 skills missing from README — add keyword→skill routing table to AGENTS.md, add `deft-review-cycle`/`deft-roadmap-refresh`/`deft-swarm` to README directory tree and Skills section (xrefs #114, #75, #136, #200)
-- **#182** -- Add skills/deft-rwldl/SKILL.md -- iterative pre-PR quality improvement loop (read-write-lint-diff-loop); structured self-review before PR submission
 - **#194** — User-facing best practices guide (`docs/best-practices.md`) — Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
 - **#195** — Replace blocking Start-Sleep polling with multi-agent orchestration in review monitor — spawn `start_agent` sub-agent (preferred) or discrete tool-call polling (fallback) to keep conversation pane interactive during review cycle; depends on #188 for capability detection pattern (xrefs #184, #192)
-- **#202** — Convention: prefer ASCII in machine-editable structured sections (ROADMAP.md, CHANGELOG.md) — em-dashes, arrows, and emoji cause edit_files failures on Windows; add ~ guidance to use ASCII in phase body entries, index rows, changelog footer; pragmatic workaround for warpdotdev/warp#9022 (xrefs #197, #196)
 - **#196** — deft-roadmap-refresh skill: clarify cleanup convention — replace ambiguous "strike through or move" with explicit `!` remove-from-phase-body rule and `⊗` anti-pattern; Completed section is sole record for closed issues; bundle with #168/#174 (xrefs #167)
-- **#207** -- Greptile re-review latency on force-push after rebase during swarm merge cascade -- document expected time cost per PR count in swarm skill Phase 6; design decision on skip-re-review convention for rebase-only force-pushes (xrefs #206, #184, #195)
-- **#219** -- README.md stale: missing CONTRIBUTING.md, 3 skills, contracts/hierarchy.md, and stale directory tree -- factual corrections to directory tree, Skills section, Contracts section, Contributing section; coordinate with #147 (xrefs #147, #114, #89)
 
 ---
 
@@ -142,6 +132,16 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#217 -- pyproject.toml dev deps breaks task check in fresh worktrees -- moved to [dependency-groups] (PEP 735), languages/python.md updated, uv.lock regenerated~~ -- 2026-04-07 (v0.13.0)
+- ~~#218 -- deft-swarm release decision checkpoint -- Phase 0 version bump proposal + Phase 5->6 confirmation gate before merge cascade~~ -- 2026-04-07 (v0.13.0)
+- ~~#207 -- Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance~~ -- 2026-04-07 (v0.13.0)
+- ~~#198 -- main.md instant-fix drift and skill-context bleed rules -- prohibited in Decision Making with companion meta/lessons.md entries~~ -- 2026-04-07 (v0.13.0)
+- ~~#200 -- Agent must scan skills/ before improvising multi-step workflows -- ! rule + ⊗ anti-pattern added to AGENTS.md~~ -- 2026-04-07 (v0.13.0)
+- ~~#147 -- Skills undiscoverable -- keyword->skill routing table added to AGENTS.md, 3 missing skills added to README~~ -- 2026-04-07 (v0.13.0)
+- ~~#219 -- README stale content -- CONTRIBUTING.md, contracts/hierarchy.md, 3 skills added to directory tree and Skills section~~ -- 2026-04-07 (v0.13.0)
+- ~~#197 -- scm/github.md -- gh CLI rules, PR conventions, Windows/PS 5.x encoding guidance (absorbs #201)~~ -- 2026-04-07 (v0.13.0)
+- ~~#202 -- ASCII convention for machine-editable sections -- Windows/ASCII rules documented in scm/github.md~~ -- 2026-04-07 (v0.13.0)
+- ~~#182 -- skills/deft-rwldl/SKILL.md -- iterative pre-PR quality improvement loop (Read-Write-Lint-Diff) with thin pointer~~ -- 2026-04-07 (v0.13.0)
 - ~~#167 -- PR merge hygiene: squash-merge issue-close verification -- PR template, deft-review-cycle Post-Merge Verification, AGENTS.md convention, meta/lessons.md root cause~~ -- 2026-04-06 (v0.12.1)
 - ~~#116 -- Installer now creates all 6 skill thin pointers (deft-review-cycle, deft-roadmap-refresh, deft-swarm were missing) -- consistent ./deft/ paths, 3 new path consistency tests~~ -- 2026-04-06 (v0.12.1)
 - ~~#84 Phase 1 -- Deft as teacher Phase 1 complete: contracts/hierarchy.md (v0.10.0), adaptive teaching main.md (v0.10.0), State WHY rule interview.md (v0.12.1)~~ -- 2026-04-06 (v0.12.1)
@@ -327,23 +327,23 @@ Larger feature work — only after issues are resolved and content is stable.
 | #168 | deft-roadmap-refresh skill: confirm analysis comment posting to user | 2 |
 | #174 | deft-roadmap-refresh skill: add review cycle step after PR push | 2 |
 | #146 | Add skills/deft-sync/SKILL.md — session-start framework sync skill | 2 |
-| #147 | Skills undiscoverable — no keyword routing in AGENTS.md, 3 skills missing from README | 2 |
+| ~~#147~~ | ~~Skills undiscoverable — no keyword routing in AGENTS.md, 3 skills missing from README~~ | completed -- v0.13.0 |
 | ~~#188~~ | ~~Update deft-swarm: runtime start_agent capability detection + Warp environment gate~~ | completed -- v0.12.0 |
 | ~~#199~~ | ~~deft-swarm skill: add mandatory analyze phase with user approval gate before launch~~ | completed -- v0.12.0 |
 | #194 | User-facing best practices guide — Directive usage, Warp swarming, skill documentation | 2 |
 | #195 | Replace blocking Start-Sleep polling with multi-agent orchestration in review monitor | 2 |
 | #196 | deft-roadmap-refresh skill: clarify cleanup convention — remove from phase body, not strike through | 2 |
-| #197 | Create scm/github.md — gh CLI rules, PR workflow conventions, Windows encoding guidance (absorbs #201) | 2 |
-| #198 | main.md: rules against instant-fix drift and skill-context bleed | 1 |
-| #200 | Agent must scan skills/ before improvising multi-step workflows | 1 |
+| ~~#197~~ | ~~Create scm/github.md -- gh CLI rules, PR workflow conventions, Windows encoding guidance (absorbs #201)~~ | completed -- v0.13.0 |
+| ~~#198~~ | ~~main.md: rules against instant-fix drift and skill-context bleed~~ | completed -- v0.13.0 |
+| ~~#200~~ | ~~Agent must scan skills/ before improvising multi-step workflows~~ | completed -- v0.13.0 |
 | ~~#201~~ | ~~scm/github.md: add --body-file convention~~ | closed — absorbed by #197 |
-| #202 | Convention: prefer ASCII in machine-editable structured sections | 2 |
-| #207 | Greptile re-review latency on force-push after rebase during swarm merge cascade | 2 |
+| ~~#202~~ | ~~Convention: prefer ASCII in machine-editable structured sections~~ | completed -- v0.13.0 |
+| ~~#207~~ | ~~Greptile re-review latency on force-push after rebase during swarm merge cascade~~ | completed -- v0.13.0 |
 | #212 | discussion: Process control belongs in Directive (DO NOT IMPLEMENT -- discussion only) | 5 |
-| #218 | deft-swarm: add explicit release decision checkpoint to Phase 0 and Phase 6 | 1 |
-| #219 | README.md stale: missing CONTRIBUTING.md, 3 skills, contracts/hierarchy.md, stale directory tree | 2 |
-| #217 | pyproject.toml dev deps breaks task check in fresh worktrees (swarm adoption blocker) | 1 |
-| #182 | Add skills/deft-rwldl/SKILL.md — iterative pre-PR quality improvement loop | 2 |
+| ~~#218~~ | ~~deft-swarm: add explicit release decision checkpoint to Phase 0 and Phase 6~~ | completed -- v0.13.0 |
+| ~~#219~~ | ~~README.md stale: missing CONTRIBUTING.md, 3 skills, contracts/hierarchy.md, stale directory tree~~ | completed -- v0.13.0 |
+| ~~#217~~ | ~~pyproject.toml dev deps breaks task check in fresh worktrees~~ | completed -- v0.13.0 |
+| ~~#182~~ | ~~Add skills/deft-rwldl/SKILL.md -- iterative pre-PR quality improvement loop~~ | completed -- v0.13.0 |
 | ~~#170~~ | ~~Move ROADMAP.md updates from merge-time to release-time~~ | completed — v0.10.3 |
 
 ---

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-04-07
+
 ### Added
 - **scm/github.md rewrite -- gh CLI rules, PR conventions, Windows encoding guidance** (#197, absorbs #201, t2.6.6): Rewrote `scm/github.md` with standing `gh` CLI rules (`--body-file` for multi-line bodies, immediate post-create verification), PR workflow conventions (squash-merge default, single-purpose branches, branch lifecycle, closing keywords), Windows/PowerShell 5.x encoding guidance (UTF-8 without BOM, avoid piping through PS 5.x redirection), and post-merge issue verification section
 - **ASCII convention for machine-editable sections** (#202, t2.6.7): Added Windows/ASCII Conventions section to `scm/github.md` -- prefer `--` over em-dash, `->` over arrows, avoid emoji in body text for ROADMAP.md phase bodies, CHANGELOG.md entries, and Open Issues Index rows; `!` rule against Unicode em-dashes, curly quotes, and non-ASCII arrows in these sections; rationale references warpdotdev/warp#9022
@@ -724,7 +726,8 @@ If you have custom scripts or references to deft files, update these paths:
 - Explore new interface guidelines if building CLIs, APIs, or UIs
 - Review enhanced language standards for Python, Go, TypeScript, and C++
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.12.1...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/deftai/directive/compare/v0.12.1...v0.13.0
 [0.12.1]: https://github.com/deftai/directive/compare/v0.12.0...v0.12.1
 [0.12.0]: https://github.com/deftai/directive/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/deftai/directive/compare/v0.10.3...v0.11.0
