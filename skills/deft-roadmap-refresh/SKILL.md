@@ -78,6 +78,7 @@ Present analysis to the user covering:
 ### Step 4: Apply (on user approval)
 
 - ! Post the analysis as a comment on the GitHub issue
+- ! After posting the analysis comment, confirm to the user that the comment was posted -- include the issue number and a direct link to the comment.
 - ! Add the issue to the correct phase section in ROADMAP.md
 - ! Add the issue to the Open Issues Index table
 - ! Update the changelog line at the bottom of ROADMAP.md
@@ -87,9 +88,12 @@ Present analysis to the user covering:
 
 After all new issues are triaged:
 
-- ! Strike through or move any stale entries (closed issues still in the index)
+- ! Remove the entry from the phase section body entirely -- do NOT leave a struck-through line in place. The Completed section is the sole record for closed issues.
+- ! In the Open Issues Index: strike through the row (keep for history), update Phase column to 'completed -- YYYY-MM-DD'.
 - ! Move closed issues to the Completed section if they aren't there already
 - ~ Verify the Open Issues Index matches the phase sections
+
+~ When cleanup is complete, proceed to Phase 4 -- PR & Review Cycle.
 
 ## Analysis Comment Template
 
@@ -124,3 +128,32 @@ When posting to a GitHub issue, use this structure:
 - ⊗ Skip the analysis comment on the GitHub issue
 - ⊗ Forget to update the Open Issues Index when adding to a phase
 - ⊗ Leave closed issues in the index without striking through
+- ⊗ Strike through an entry in the phase body AND add it to Completed -- this creates a duplicate record and breaks the single-record convention
+
+## Phase 4 — PR & Review Cycle
+
+After all triage and cleanup is complete:
+
+1. ! Ask the user: "Ready to commit and create a PR?"
+2. ! Wait for explicit user confirmation before proceeding.
+
+### Pre-Flight (before pushing)
+
+! Run all pre-flight checks BEFORE committing and pushing:
+
+1. ! Verify `CHANGELOG.md` has an `[Unreleased]` entry covering the roadmap refresh changes
+2. ! Run `task check` -- all checks must pass
+3. ! Verify `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfiable for this PR
+
+### Commit, Push, and Create PR
+
+1. ! Commit with a descriptive message: `docs(roadmap): refresh -- add #{n}, #{n}, ... to Phase {x}`
+2. ! Push the branch to origin
+3. ! Create a PR targeting `master` with a summary of triaged issues and cleanup performed
+
+### Review Cycle Handoff
+
+! After the PR is created, automatically sequence into `skills/deft-review-cycle/SKILL.md`.
+
+- ! Inform the user: "PR #{N} created -- starting review cycle."
+- ! Follow the full review cycle skill from Phase 1 (Deft Process Audit) onward.
