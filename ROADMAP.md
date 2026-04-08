@@ -26,9 +26,6 @@ Quick doc/content fixes that don't require code changes.
 ### Content & Doc Fixes
 
 - **#151** — [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) — umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)
-- **#159** — Deterministic > Probabilistic — design principle: prefer deterministic components for repeatable actions; document in `meta/philosophy.md` or `contracts/hierarchy.md`; ongoing application across CLI/skills/workflows is Phase 5 (xrefs #84, #160, #95, #86)
-- **#168** — deft-roadmap-refresh skill: add MUST rule to confirm analysis comment posting to user — transparency improvement (xref #147)
-- **#174** — deft-roadmap-refresh skill: add PR & review cycle phase — when triage is complete, prompt user for PR readiness; run pre-push pre-flight (CHANGELOG + `task check`) before pushing; after PR creation, automatically sequence into `skills/deft-review-cycle/SKILL.md` (review cycle Phase 1 audit must happen before push, not after) (xrefs #168, #147)
 - **#51** — Project should be fully bootstrapped with its own framework (partially done in PR #66)
 - Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml; reframe README per #89 resolution (#84 Phase 2, blocked on #89)
   - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping"
@@ -43,8 +40,6 @@ Quick doc/content fixes that don't require code changes.
 - Update `strategies/interview.md` to probe language/tool choices through the contract lens — when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)
 - Create `meta/philosophy.md` — full contract hierarchy narrative for agent reference and direct user reading (#84 Phase 2)
 - **#82** — Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)
-- **#81** — Add BDD/acceptance-test-first strategy (`strategies/bdd.md` — Given/When/Then scenarios drive requirements)
-- **#134** — Visual indicator that Deft is active — add behavioral rule for agent to confirm Deft alignment at session start and after context resets (true UI indicator deferred to Phase 5 / platform support)
 - **#103** — Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)
 - **#127** — Improved support for Deft in existing repositories — bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)
 - Add missing strategies:
@@ -58,17 +53,13 @@ Quick doc/content fixes that don't require code changes.
 - **#112** — External “Deft Directive” PDF is premature — describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship
 - **#114** — Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`
 - **#136** — Warp doesn't load deft's AGENTS.md by default — document global rule workaround in README/installer output; real fix is Warp platform feature request (to be done with #114)
-- **#146** — Add `skills/deft-sync/SKILL.md` — session-start sync skill: submodule update, vBRIEF file validation, AGENTS.md freshness check, new-skills listing; design complete in issue body (related: #140 CLI counterpart, #75 auto-discovery)
 - **#194** — User-facing best practices guide (`docs/best-practices.md`) — Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
-- **#195** — Replace blocking Start-Sleep polling with multi-agent orchestration in review monitor — spawn `start_agent` sub-agent (preferred) or discrete tool-call polling (fallback) to keep conversation pane interactive during review cycle; depends on #188 for capability detection pattern (xrefs #184, #192)
-- **#196** — deft-roadmap-refresh skill: clarify cleanup convention — replace ambiguous "strike through or move" with explicit `!` remove-from-phase-body rule and `⊗` anti-pattern; Completed section is sole record for closed issues; bundle with #168/#174 (xrefs #167)
 
 ---
 
 ## Phase 3 — Test Infrastructure & CI
 
 - **#74** — Automate release process (`task release`) and CI changelog enforcement
-- **#57** — Add GitHub Actions CI workflow for linting and tests on PRs and pushes (minimal Python CI landed in PR #130; Go matrix + coverage remain)
 - **#128** — CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)
 - **#115** — Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 — `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)
 - **#33** — When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)
@@ -132,6 +123,15 @@ Larger feature work — only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#57 -- GitHub Actions CI workflow -- Python (ruff, mypy, pytest+cov) + Go (test + 3-platform build); pyproject.toml fail_under raised to 85%~~ -- 2026-04-08 (v0.14.0)
+- ~~#81 -- BDD/acceptance-test-first strategy -- strategies/bdd.md with 6-step Given/When/Then workflow and chaining gate integration~~ -- 2026-04-08 (v0.14.0)
+- ~~#134 -- Deft alignment confirmation rule -- AGENTS.md behavioral rule: confirm Deft Directive active at session start and after context resets~~ -- 2026-04-08 (v0.14.0)
+- ~~#146 -- skills/deft-sync/SKILL.md -- session-start framework sync: pre-flight, submodule update, vBRIEF validation, AGENTS.md freshness, new skills listing~~ -- 2026-04-08 (v0.14.0)
+- ~~#159 -- meta/philosophy.md -- deterministic > probabilistic design principle: definition, rationale, examples, Phase 5 scope note~~ -- 2026-04-08 (v0.14.0)
+- ~~#168 -- deft-roadmap-refresh: ! rule confirming analysis comment post to user with issue number and link~~ -- 2026-04-08 (v0.14.0)
+- ~~#174 -- deft-roadmap-refresh: Phase 4 PR & Review Cycle -- user confirmation gate, pre-flight before push, auto-chains to deft-review-cycle~~ -- 2026-04-08 (v0.14.0)
+- ~~#195 -- deft-review-cycle: replace blocking polling with tiered start_agent monitoring -- Approach 1 (sub-agent + send_message), Approach 2 (tool-call + yield fallback)~~ -- 2026-04-08 (v0.14.0)
+- ~~#196 -- deft-roadmap-refresh: explicit cleanup convention -- remove from phase body, strike in index with date, anti-pattern against duplicates~~ -- 2026-04-08 (v0.14.0)
 - ~~#217 -- pyproject.toml dev deps breaks task check in fresh worktrees -- moved to [dependency-groups] (PEP 735), languages/python.md updated, uv.lock regenerated~~ -- 2026-04-07 (v0.13.0)
 - ~~#218 -- deft-swarm release decision checkpoint -- Phase 0 version bump proposal + Phase 5->6 confirmation gate before merge cascade~~ -- 2026-04-07 (v0.13.0)
 - ~~#207 -- Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance~~ -- 2026-04-07 (v0.13.0)
@@ -257,7 +257,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | ~~#54~~ | ~~AGENTS.md provides no actionable onboarding (absorbed #85)~~ | completed — PR #93 |
 | #55 | Register Deft commands as native agent slash commands (absorbs slash-command scope from #54) | 5 |
 | #56 | Reduce installation friction (shell one-liner, Homebrew) | 4 |
-| #57 | Add GitHub Actions CI workflow | 3 |
+| ~~#57~~ | ~~Add GitHub Actions CI workflow~~ | completed -- v0.14.0 |
 | #128 | CI vBRIEF schema sync check (depends on #57) | 3 |
 | #163 | Enforce USER.md gate in CLI path — parity with agentic (skills) path | 3 |
 | ~~#58~~ | ~~Stale cross-references to legacy paths~~ | closed 2026-04-06 |
@@ -272,7 +272,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #78 | Bootstrap: offer to update user preferences | 5 |
 | ~~#79~~ | ~~deft-setup inference bleeds into ./deft/ internals~~ | completed — v0.10.1 |
 | ~~#80~~ | ~~deft-setup project name inference no fallback~~ | completed — v0.10.1 |
-| #81 | Add BDD/acceptance-test-first strategy | 2 |
+| ~~#81~~ | ~~Add BDD/acceptance-test-first strategy~~ | completed -- v0.14.0 |
 | #82 | Replacement strategies need accept-or-scrap exit | 2 |
 | ~~#84~~ | ~~Deft as teacher Phase 1: contract hierarchy, adaptive teaching, State WHY~~ | completed -- v0.12.1 |
 | ~~#85~~ | ~~Installer instructions inaccurate/unclear~~ | closed — absorbed by #54 |
@@ -304,7 +304,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #127 | Improved support for Deft in existing repositories (brownfield bootstrap path; related #103, #53) | 2 |
 | ~~#131~~ | ~~Mac installer post-install text wording fix~~ | completed — v0.10.1 |
 | ~~#133~~ | ~~Generated vBRIEF files use invalid reference types~~ | closed 2026-04-05 |
-| #134 | Visual indicator that Deft is active (behavioral rule; true UI deferred Phase 5) | 2 |
+| ~~#134~~ | ~~Visual indicator that Deft is active (behavioral rule; true UI deferred Phase 5)~~ | completed -- v0.14.0 |
 | ~~#135~~ | ~~Greptile review rules SKILL.md in repo~~ | completed — PR #143 |
 | #136 | Warp doesn't auto-load AGENTS.md — document workaround (with #114) | 2 |
 | ~~#137~~ | ~~README: move startup instructions higher, clarify installer location~~ | completed — v0.10.1 |
@@ -322,17 +322,17 @@ Larger feature work — only after issues are resolved and content is stable.
 | ~~#171~~ | ~~No direct-to-master agent commits — ⊗ gate + PROJECT.md opt-in~~ | completed — v0.10.2 |
 | ~~#175~~ | ~~deft-review-cycle: no-push-while-reviewing + 60s poll cadence~~ | completed — v0.10.2 |
 | #151 | [Playtest Feedback] First-time non-technical user session report (umbrella) | 2 |
-| #159 | Deterministic > Probabilistic — design principle documentation | 2 |
+| ~~#159~~ | ~~Deterministic > Probabilistic -- design principle documentation~~ | completed -- v0.14.0 |
 | #160 | Consider TypeScript instead of Python for run CLI | 5 |
-| #168 | deft-roadmap-refresh skill: confirm analysis comment posting to user | 2 |
-| #174 | deft-roadmap-refresh skill: add review cycle step after PR push | 2 |
-| #146 | Add skills/deft-sync/SKILL.md — session-start framework sync skill | 2 |
+| ~~#168~~ | ~~deft-roadmap-refresh skill: confirm analysis comment posting to user~~ | completed -- v0.14.0 |
+| ~~#174~~ | ~~deft-roadmap-refresh skill: add review cycle step after PR push~~ | completed -- v0.14.0 |
+| ~~#146~~ | ~~Add skills/deft-sync/SKILL.md -- session-start framework sync skill~~ | completed -- v0.14.0 |
 | ~~#147~~ | ~~Skills undiscoverable — no keyword routing in AGENTS.md, 3 skills missing from README~~ | completed -- v0.13.0 |
 | ~~#188~~ | ~~Update deft-swarm: runtime start_agent capability detection + Warp environment gate~~ | completed -- v0.12.0 |
 | ~~#199~~ | ~~deft-swarm skill: add mandatory analyze phase with user approval gate before launch~~ | completed -- v0.12.0 |
 | #194 | User-facing best practices guide — Directive usage, Warp swarming, skill documentation | 2 |
-| #195 | Replace blocking Start-Sleep polling with multi-agent orchestration in review monitor | 2 |
-| #196 | deft-roadmap-refresh skill: clarify cleanup convention — remove from phase body, not strike through | 2 |
+| ~~#195~~ | ~~Replace blocking Start-Sleep polling with multi-agent orchestration in review monitor~~ | completed -- v0.14.0 |
+| ~~#196~~ | ~~deft-roadmap-refresh skill: clarify cleanup convention -- remove from phase body, not strike through~~ | completed -- v0.14.0 |
 | ~~#197~~ | ~~Create scm/github.md -- gh CLI rules, PR workflow conventions, Windows encoding guidance (absorbs #201)~~ | completed -- v0.13.0 |
 | ~~#198~~ | ~~main.md: rules against instant-fix drift and skill-context bleed~~ | completed -- v0.13.0 |
 | ~~#200~~ | ~~Agent must scan skills/ before improvising multi-step workflows~~ | completed -- v0.13.0 |
@@ -388,3 +388,4 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-06 — roadmap refresh: triaged #194 (Phase 2), #195 (Phase 2), #196 (Phase 2), #197 (Phase 2, absorbs #201), #198 (Phase 1), #199 (Phase 1), #200 (Phase 1); promoted #188 Phase 2→Phase 1; closed #201 (absorbed by #197); moved #166 to Completed; updated #147 title/body for expanded scope; added #202 (ASCII convention for machine-editable sections, Phase 2)*
 *Updated 2026-04-06 -- v0.12.1 release: moved #116 (installer path consistency), #167 (PR merge hygiene), #84 Phase 1 (Deft as teacher Phase 1 complete) to Completed; added CONTRIBUTING.md (t2.3.1)*
 *Updated 2026-04-07 -- roadmap refresh triage: added #217 to Phase 1 Adoption Blockers (pyproject.toml dev deps breaks task check in fresh worktrees; swarm adoption blocker), #218 to Phase 1 Adoption Blockers (swarm release decision checkpoint), #207 to Phase 2 (Greptile re-review latency on swarm merge cascade), #219 to Phase 2 (README.md stale content), #212 to Phase 5 (process control in Directive -- discussion only); cleanup: struck through #184/#188/#191/#192/#199 in index (completed v0.12.0), removed duplicate bare #198, added #182 description*
+*Updated 2026-04-08 -- v0.14.0 release: moved #57 (CI workflow), #81 (BDD strategy), #134 (alignment confirmation), #146 (deft-sync skill), #159 (philosophy.md), #168 (roadmap-refresh transparency), #174 (roadmap-refresh PR phase), #195 (review-cycle tiered polling), #196 (roadmap-refresh cleanup convention) to Completed; removed from phase bodies; struck through in Open Issues Index*
