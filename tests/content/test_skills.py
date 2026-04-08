@@ -459,6 +459,74 @@ def test_deft_swarm_greptile_rebase_latency() -> None:
 # 17. deft-review-cycle MCP fallback (#206, t2.6.3)
 # ---------------------------------------------------------------------------
 
+
+# ---------------------------------------------------------------------------
+# 18. deft-sync skill — existence, structure, and content (#146, t2.7.5)
+# ---------------------------------------------------------------------------
+
+_SYNC_PATH = "skills/deft-sync/SKILL.md"
+_SYNC_POINTER_PATH = ".agents/skills/deft-sync/SKILL.md"
+
+
+def test_deft_sync_exists() -> None:
+    """deft-sync SKILL.md must exist at its expected path."""
+    assert (_REPO_ROOT / _SYNC_PATH).is_file(), (
+        f"Skill file missing: {_SYNC_PATH}"
+    )
+
+
+def test_deft_sync_rfc2119_legend() -> None:
+    """deft-sync must contain the RFC2119 legend line."""
+    text = _read_skill(_SYNC_PATH)
+    assert RFC2119_LEGEND in text, (
+        f"{_SYNC_PATH}: missing RFC2119 legend '{RFC2119_LEGEND}'"
+    )
+
+
+def test_deft_sync_has_frontmatter() -> None:
+    """deft-sync must have YAML frontmatter with name and description."""
+    text = _read_skill(_SYNC_PATH)
+    assert text.startswith("---"), (
+        f"{_SYNC_PATH}: must start with YAML frontmatter '---'"
+    )
+    assert "name: deft-sync" in text, (
+        f"{_SYNC_PATH}: frontmatter must contain 'name: deft-sync'"
+    )
+
+
+def test_deft_sync_anti_patterns_section() -> None:
+    """deft-sync must have an Anti-Patterns section with required entries."""
+    text = _read_skill(_SYNC_PATH)
+    assert "## Anti-Patterns" in text, (
+        f"{_SYNC_PATH}: missing '## Anti-Patterns' section"
+    )
+    assert "\u2297" in text and "auto-commit" in text.lower(), (
+        f"{_SYNC_PATH}: Anti-Patterns must prohibit auto-committing submodule changes"
+    )
+
+
+def test_deft_sync_preflight_dirty_check() -> None:
+    """deft-sync must include pre-flight dirty check on deft/ submodule."""
+    text = _read_skill(_SYNC_PATH)
+    assert "git -C deft status --porcelain" in text, (
+        f"{_SYNC_PATH}: must include pre-flight dirty check command"
+    )
+
+
+def test_deft_sync_no_upstream_vbrief_fetch() -> None:
+    """deft-sync must NOT include upstream vBRIEF schema fetch (#128)."""
+    text = _read_skill(_SYNC_PATH)
+    assert "\u2297" in text and "#128" in text, (
+        f"{_SYNC_PATH}: must explicitly prohibit upstream vBRIEF schema fetch (CI concern per #128)"
+    )
+
+
+def test_deft_sync_pointer_exists() -> None:
+    """.agents thin pointer for deft-sync must exist."""
+    assert (_REPO_ROOT / _SYNC_POINTER_PATH).is_file(), (
+        f"Thin pointer missing: {_SYNC_POINTER_PATH}"
+    )
+
 _REVIEW_CYCLE_PATH = "skills/deft-review-cycle/SKILL.md"
 
 

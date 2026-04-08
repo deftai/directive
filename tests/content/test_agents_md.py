@@ -65,3 +65,33 @@ def test_agents_md_pre_implementation_anti_pattern() -> None:
     assert "\u2297" in text and "editing files before" in text.lower(), (
         "AGENTS.md: must contain \u2297 anti-pattern for editing before spec/branch check (#186)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 3. Deft alignment confirmation at session start (#134, t2.7.6)
+# ---------------------------------------------------------------------------
+
+def test_agents_md_deft_alignment_confirmation_rule() -> None:
+    """AGENTS.md must require Deft alignment confirmation at session start (#134)."""
+    text = _read_agents_md()
+    assert "deft directive active" in text.lower(), (
+        "AGENTS.md: must contain a rule requiring Deft alignment confirmation "
+        "at session start (e.g. 'Deft Directive active') (#134)"
+    )
+
+
+def test_agents_md_deft_alignment_context_reset_recovery() -> None:
+    """Alignment rule must cover context reset recovery (#134)."""
+    text = _read_agents_md()
+    assert "context window" in text.lower() or "re-confirm" in text.lower(), (
+        "AGENTS.md: alignment confirmation rule must cover context reset recovery (#134)"
+    )
+
+
+def test_agents_md_deft_alignment_anti_pattern() -> None:
+    """AGENTS.md must contain anti-pattern for missing alignment confirmation (#134)."""
+    text = _read_agents_md()
+    assert "\u2297" in text and "confirming deft alignment" in text.lower(), (
+        "AGENTS.md: must contain \u2297 anti-pattern for starting session without "
+        "confirming Deft alignment (#134)"
+    )
