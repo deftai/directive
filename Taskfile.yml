@@ -33,7 +33,7 @@ tasks:
       - uv run pytest tests/
 
   test:coverage:
-    desc: Run tests with coverage (fails if < 75%)
+    desc: Run tests with coverage (fails if < 85%)
     cmds:
       - uv run pytest tests/ --cov --cov-report=html
 

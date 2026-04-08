@@ -26,12 +26,12 @@ omit = [
     "tests/*",
     ".venv/*",
     "*/site-packages/*",
-    "run",
-    "run.py",
+    "run",      # terminal-only CLI -- excluded pending refactor (#228)
+    "run.py",   # importlib shim for run -- excluded pending refactor (#228)
 ]
 
 [tool.coverage.report]
-fail_under = 75
+fail_under = 85
 exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.:",
@@ -70,3 +70,8 @@ exclude = [
     "^run$",
     "^\\.venv/",
 ]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+warn_return_any = false

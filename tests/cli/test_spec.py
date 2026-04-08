@@ -355,3 +355,133 @@ def test_render_main_approved_returns_0(render_mod, monkeypatch, tmp_path) -> No
     result = render_mod.main()
     assert result == 0
     assert out_file.exists()
+
+
+def test_render_main_default_output_path(render_mod, monkeypatch, tmp_path) -> None:
+    """main() must derive output path from spec_file grandparent when no out_file given."""
+    vbrief_dir = tmp_path / "vbrief"
+    vbrief_dir.mkdir()
+    spec_file = vbrief_dir / "specification.vbrief.json"
+    _write_json(spec_file, _MINIMAL_APPROVED)
+    monkeypatch.setattr(sys, "argv", ["spec_render.py", str(spec_file)])
+    result = render_mod.main()
+    assert result == 0
+    assert (tmp_path / "SPECIFICATION.md").exists()
+
+
+# ---------------------------------------------------------------------------
+# spec_validate — schema edge cases
+# ---------------------------------------------------------------------------
+
+
+def test_validate_missing_vbriefinfo(validate_mod, tmp_path) -> None:
+    """validate_spec must fail when vBRIEFInfo is missing."""
+    spec_file = tmp_path / "spec.json"
+    _write_json(spec_file, {"plan": {"title": "T", "status": "approved", "items": []}})
+    ok, msg = validate_mod.validate_spec(str(spec_file))
+    assert ok is False
+    assert "vBRIEFInfo" in msg
+
+
+def test_validate_missing_plan(validate_mod, tmp_path) -> None:
+    """validate_spec must fail when plan is missing."""
+    spec_file = tmp_path / "spec.json"
+    _write_json(spec_file, {"vBRIEFInfo": {"version": "0.5"}})
+    ok, msg = validate_mod.validate_spec(str(spec_file))
+    assert ok is False
+    assert "plan" in msg
+
+
+def test_validate_plan_missing_required_fields(validate_mod, tmp_path) -> None:
+    """validate_spec must fail when plan is missing title/status/items."""
+    spec_file = tmp_path / "spec.json"
+    _write_json(spec_file, {"vBRIEFInfo": {"version": "0.5"}, "plan": {}})
+    ok, msg = validate_mod.validate_spec(str(spec_file))
+    assert ok is False
+    assert "title" in msg
+
+
+def test_validate_legacy_flat_format(validate_mod, tmp_path) -> None:
+    """validate_spec must detect legacy flat-format keys."""
+    spec_file = tmp_path / "spec.json"
+    _write_json(spec_file, {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {"title": "T", "status": "approved", "items": []},
+        "tasks": [],
+    })
+    ok, msg = validate_mod.validate_spec(str(spec_file))
+    assert ok is False
+    assert "legacy" in msg
+
+
+def test_validate_plan_items_not_array(validate_mod, tmp_path) -> None:
+    """validate_spec must fail when plan.items is not an array."""
+    spec_file = tmp_path / "spec.json"
+    _write_json(spec_file, {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {"title": "T", "status": "approved", "items": "bad"},
+    })
+    ok, msg = validate_mod.validate_spec(str(spec_file))
+    assert ok is False
+    assert "array" in msg
+
+
+def test_validate_plan_item_missing_title(validate_mod, tmp_path) -> None:
+    """validate_spec must fail when a plan item is missing title."""
+    spec_file = tmp_path / "spec.json"
+    _write_json(spec_file, {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {
+            "title": "T", "status": "approved",
+            "items": [{"id": "x", "status": "pending"}],
+        },
+    })
+    ok, msg = validate_mod.validate_spec(str(spec_file))
+    assert ok is False
+    assert "title" in msg
+
+
+# ---------------------------------------------------------------------------
+# spec_render — edge cases
+# ---------------------------------------------------------------------------
+
+
+def test_render_item_with_metadata_dependencies(render_mod, tmp_path) -> None:
+    """render_spec must render dependencies from item.metadata.dependencies."""
+    spec = {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {
+            "title": "Deps Test", "status": "approved",
+            "items": [{
+                "id": "T1", "title": "Task", "status": "pending",
+                "metadata": {"dependencies": ["T0"]},
+            }],
+        },
+    }
+    spec_file = tmp_path / "spec.json"
+    out_file = tmp_path / "SPECIFICATION.md"
+    _write_json(spec_file, spec)
+    render_mod.render_spec(str(spec_file), str(out_file))
+    content = out_file.read_text(encoding="utf-8")
+    assert "**Depends on**: T0" in content
+
+
+def test_render_item_with_traces(render_mod, tmp_path) -> None:
+    """render_spec must render Traces from item narrative."""
+    spec = {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {
+            "title": "Traces Test", "status": "approved",
+            "items": [{
+                "id": "T1", "title": "Task", "status": "pending",
+                "narrative": {"Traces": "FR-1, FR-2"},
+            }],
+        },
+    }
+    spec_file = tmp_path / "spec.json"
+    out_file = tmp_path / "SPECIFICATION.md"
+    _write_json(spec_file, spec)
+    render_mod.render_spec(str(spec_file), str(out_file))
+    content = out_file.read_text(encoding="utf-8")
+    assert "**Traces**: FR-1, FR-2" in content
+

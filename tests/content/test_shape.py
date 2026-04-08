@@ -75,7 +75,7 @@ def _params(dirname: str, check: str) -> list:
                 )
             )
         else:
-            params.append(rel)
+            params.append(rel)  # type: ignore[arg-type]
     return params
 
 

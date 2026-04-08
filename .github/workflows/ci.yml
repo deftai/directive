@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  check:
-    name: Lint + Test (Python)
+  python:
+    name: Python (lint + type-check + test)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,12 +23,44 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: uv sync
 
-      - name: Install Task
-        uses: arduino/setup-task@v2
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Mypy type-check (tests/)
+        run: uv run mypy tests/
+
+      - name: Pytest with coverage
+        run: uv run pytest tests/ --cov --cov-report=term-missing
+
+  go:
+    name: Go (test + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
         with:
-          version: 3.x
+          go-version-file: go.mod
 
-      - name: Run all checks (lint + type-check + tests)
-        run: task check
+      - name: Run tests
+        run: go test ./cmd/deft-install/
+
+      - name: Build linux/amd64
+        env:
+          GOOS: linux
+          GOARCH: amd64
+        run: go build -o /dev/null ./cmd/deft-install/
+
+      - name: Build darwin/arm64
+        env:
+          GOOS: darwin
+          GOARCH: arm64
+        run: go build -o /dev/null ./cmd/deft-install/
+
+      - name: Build windows/amd64
+        env:
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -o /dev/null ./cmd/deft-install/
