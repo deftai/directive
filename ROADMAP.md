@@ -18,6 +18,7 @@ Fix reported bugs and UX problems blocking adoption.
 - **#239** -- fix(workflow): add mandatory pre-commit file review step to catch encoding, duplication, and structural issues before PR (deft-roadmap-refresh Phase 4 pre-flight + deft-build checklist)
 - **#240** -- fix(docs): document multi-line PS string literal Warp terminal block splitting -- always use temp file; add rule to scm/github.md + meta/lessons.md entry
 - **#241** -- fix(docs): add blocker carve-out to main.md instant-fix drift rule -- blocking discoveries are in-scope with mandatory issue filing (addresses ambiguity in #198)
+- **#243** -- fix(workflow): add skill completion gate to prevent missing chaining instructions at skill exit (AGENTS.md rule + deft-roadmap-refresh EXIT block + routing table chaining annotations)
 
 ---
 
@@ -367,6 +368,7 @@ Larger feature work — only after issues are resolved and content is stable.
 | #239 | fix(workflow): mandatory pre-commit file review step -- encoding, duplication, structural checks before PR | 1 |
 | #240 | fix(docs): multi-line PS string literal Warp block splitting -- use temp file rule + lessons.md | 1 |
 | #241 | fix(docs): main.md instant-fix drift rule -- add blocker carve-out with mandatory issue filing | 1 |
+| #243 | fix(workflow): skill completion gate -- prevent missing chaining instructions at skill exit | 1 |
 
 ---
 
@@ -410,5 +412,5 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-06 — roadmap refresh: triaged #194 (Phase 2), #195 (Phase 2), #196 (Phase 2), #197 (Phase 2, absorbs #201), #198 (Phase 1), #199 (Phase 1), #200 (Phase 1); promoted #188 Phase 2→Phase 1; closed #201 (absorbed by #197); moved #166 to Completed; updated #147 title/body for expanded scope; added #202 (ASCII convention for machine-editable sections, Phase 2)*
 *Updated 2026-04-06 -- v0.12.1 release: moved #116 (installer path consistency), #167 (PR merge hygiene), #84 Phase 1 (Deft as teacher Phase 1 complete) to Completed; added CONTRIBUTING.md (t2.3.1)*
 *Updated 2026-04-07 -- roadmap refresh triage: added #217 to Phase 1 Adoption Blockers (pyproject.toml dev deps breaks task check in fresh worktrees; swarm adoption blocker), #218 to Phase 1 Adoption Blockers (swarm release decision checkpoint), #207 to Phase 2 (Greptile re-review latency on swarm merge cascade), #219 to Phase 2 (README.md stale content), #212 to Phase 5 (process control in Directive -- discussion only); cleanup: struck through #184/#188/#191/#192/#199 in index (completed v0.12.0), removed duplicate bare #198, added #182 description*
-*Updated 2026-04-09 -- roadmap refresh triage: added #221, #226, #234 to Phase 2; #235 to Phase 3; #233 to Phase 5 (More Determinism); filed #235 as split-off from #233; filed #236/#237/#238/#239 to Phase 1 (#236: Get-Content -Raw footgun; #237: ROADMAP.md em-dash migration; #238: roadmap-refresh batch changelog; #239: mandatory pre-commit file review; #240: multi-line PS string Warp block splitting; #241: main.md blocker carve-out for instant-fix rule); analysis comments posted*
+*Updated 2026-04-09 -- roadmap refresh triage: added #221, #226, #234 to Phase 2; #235 to Phase 3; #233 to Phase 5 (More Determinism); filed #235 as split-off from #233; filed #236/#237/#238/#239 to Phase 1 (#236: Get-Content -Raw footgun; #237: ROADMAP.md em-dash migration; #238: roadmap-refresh batch changelog; #239: mandatory pre-commit file review; #240: multi-line PS string Warp block splitting; #241: main.md blocker carve-out for instant-fix rule; #243: skill completion gate for chaining instructions); analysis comments posted*
 *Updated 2026-04-08 -- v0.14.0 release: moved #57 (CI workflow), #81 (BDD strategy), #134 (alignment confirmation), #146 (deft-sync skill), #159 (philosophy.md), #168 (roadmap-refresh transparency), #174 (roadmap-refresh PR phase), #195 (review-cycle tiered polling), #196 (roadmap-refresh cleanup convention) to Completed; removed from phase bodies; struck through in Open Issues Index*
