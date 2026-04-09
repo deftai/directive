@@ -789,8 +789,6 @@ def test_deft_review_cycle_unchecked_p1_antipattern() -> None:
 # ---------------------------------------------------------------------------
 # 27. Semantic contradiction check in deft-build and deft-pre-pr (#251, t1.12.3)
 # ---------------------------------------------------------------------------
-# 26. Semantic contradiction check in deft-build and deft-pre-pr (#251, t1.12.3)
-# ---------------------------------------------------------------------------
 
 _PRE_PR_PATH = "skills/deft-pre-pr/SKILL.md"
 
