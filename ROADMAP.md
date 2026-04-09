@@ -12,13 +12,9 @@ Fix reported bugs and UX problems blocking adoption.
 
 ### Cleanup
 
-- **#236** -- fix(docs): document Get-Content -Raw UTF-8 footgun and BOM-safe round-trip pattern for PS 5.1 -- add ! rules to scm/github.md PS 5.1 section; prevents silent em-dash mojibake and BOM injection when agents read/write files on Windows
-- **#237** -- chore(docs): migrate ROADMAP.md existing em-dashes to ASCII `--` to enable `edit_files` on Windows (one-time migration; unblocks all future ROADMAP.md edits without PowerShell fallback)
-- **#238** -- fix(skill): deft-roadmap-refresh should write one batch changelog line at end of full triage session, not one per issue; add anti-pattern to skill
-- **#239** -- fix(workflow): add mandatory pre-commit file review step to catch encoding, duplication, and structural issues before PR (deft-roadmap-refresh Phase 4 pre-flight + deft-build checklist)
-- **#240** -- fix(docs): document multi-line PS string literal Warp terminal block splitting -- always use temp file; add rule to scm/github.md + meta/lessons.md entry
-- **#241** -- fix(docs): add blocker carve-out to main.md instant-fix drift rule -- blocking discoveries are in-scope with mandatory issue filing (addresses ambiguity in #198)
-- **#243** -- fix(workflow): add skill completion gate to prevent missing chaining instructions at skill exit (AGENTS.md rule + deft-roadmap-refresh EXIT block + routing table chaining annotations)
+- **#249** -- fix(skill): deft-swarm Phase 6 missing autonomous Greptile re-review monitoring during rebase cascade (add tiered monitoring step after each force-push; reference deft-review-cycle tiered approach)
+- **#250** -- fix(skill): deft-review-cycle -- strengthen batch-fix enforcement; add anti-pattern against per-finding fix commits (root cause of #247 multi-round review cycles)
+- **#251** -- fix(skill): deft-build + deft-rwldl -- add semantic contradiction check when adding ! or ⊗ rules (search same file for conflicting ~ rules referencing same term before committing)
 
 ---
 
@@ -135,6 +131,13 @@ Larger feature work -- only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#236 -- fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip rules for PS 5.1 -- scm/github.md PS 5.1 section updated with ! rules~~ -- 2026-04-09 (v0.14.1)
+- ~~#237 -- chore(docs): migrate ROADMAP.md em-dashes to ASCII -- (317 replacements) -- enables edit_files on Windows without PowerShell fallback~~ -- 2026-04-09 (v0.14.1)
+- ~~#238 -- fix(skill): deft-roadmap-refresh batch changelog convention -- one batch entry at session end, anti-pattern added~~ -- 2026-04-09 (v0.14.1)
+- ~~#239 -- fix(workflow): mandatory pre-commit file review step -- added to deft-roadmap-refresh Phase 4 pre-flight and deft-build checklist~~ -- 2026-04-09 (v0.14.1)
+- ~~#240 -- fix(docs): Warp terminal multi-line PS string temp-file rule -- scm/github.md + meta/lessons.md~~ -- 2026-04-09 (v0.14.1)
+- ~~#241 -- fix(docs): main.md blocker carve-out for instant-fix drift rule -- hard blockers in-scope with mandatory issue filing~~ -- 2026-04-09 (v0.14.1)
+- ~~#243 -- fix(workflow): skill completion gate -- AGENTS.md rule + deft-roadmap-refresh EXIT block + routing table chaining annotations~~ -- 2026-04-09 (v0.14.1)
 - ~~#57 -- GitHub Actions CI workflow -- Python (ruff, mypy, pytest+cov) + Go (test + 3-platform build); pyproject.toml fail_under raised to 85%~~ -- 2026-04-08 (v0.14.0)
 - ~~#81 -- BDD/acceptance-test-first strategy -- strategies/bdd.md with 6-step Given/When/Then workflow and chaining gate integration~~ -- 2026-04-08 (v0.14.0)
 - ~~#134 -- Deft alignment confirmation rule -- AGENTS.md behavioral rule: confirm Deft Directive active at session start and after context resets~~ -- 2026-04-08 (v0.14.0)
@@ -362,13 +365,16 @@ Larger feature work -- only after issues are resolved and content is stable.
 | #233 | More Determinism: full deterministic task initiative (Phase 0, tasks/ restructure, doctor, etc.) | 5 |
 | #234 | docs: README should document where user artifacts are stored in a consumer project | 2 |
 | #235 | feat(tasks): toolchain:check + changelog:check as task check deps (split from #233) | 3 |
-| #236 | fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip pattern for PS 5.1 | 1 |
-| #237 | chore(docs): migrate ROADMAP.md existing em-dashes to ASCII -- to enable edit_files on Windows | 1 |
-| #238 | fix(skill): deft-roadmap-refresh batch changelog line at session end, not per-issue | 1 |
-| #239 | fix(workflow): mandatory pre-commit file review step -- encoding, duplication, structural checks before PR | 1 |
-| #240 | fix(docs): multi-line PS string literal Warp block splitting -- use temp file rule + lessons.md | 1 |
-| #241 | fix(docs): main.md instant-fix drift rule -- add blocker carve-out with mandatory issue filing | 1 |
-| #243 | fix(workflow): skill completion gate -- prevent missing chaining instructions at skill exit | 1 |
+| ~~#236~~ | ~~fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip pattern for PS 5.1~~ | completed -- v0.14.1 |
+| ~~#237~~ | ~~chore(docs): migrate ROADMAP.md existing em-dashes to ASCII -- to enable edit_files on Windows~~ | completed -- v0.14.1 |
+| ~~#238~~ | ~~fix(skill): deft-roadmap-refresh batch changelog line at session end, not per-issue~~ | completed -- v0.14.1 |
+| ~~#239~~ | ~~fix(workflow): mandatory pre-commit file review step -- encoding, duplication, structural checks before PR~~ | completed -- v0.14.1 |
+| ~~#240~~ | ~~fix(docs): multi-line PS string literal Warp block splitting -- use temp file rule + lessons.md~~ | completed -- v0.14.1 |
+| ~~#241~~ | ~~fix(docs): main.md instant-fix drift rule -- add blocker carve-out with mandatory issue filing~~ | completed -- v0.14.1 |
+| ~~#243~~ | ~~fix(workflow): skill completion gate -- prevent missing chaining instructions at skill exit~~ | completed -- v0.14.1 |
+| #249 | deft-swarm Phase 6: missing autonomous Greptile re-review monitoring in rebase cascade | 1 |
+| #250 | deft-review-cycle: strengthen batch-fix enforcement -- anti-pattern against per-finding commits | 1 |
+| #251 | deft-build + deft-rwldl: semantic contradiction check when adding ! or ⊗ rules | 1 |
 
 ---
 
@@ -414,3 +420,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-07 -- roadmap refresh triage: added #217 to Phase 1 Adoption Blockers (pyproject.toml dev deps breaks task check in fresh worktrees; swarm adoption blocker), #218 to Phase 1 Adoption Blockers (swarm release decision checkpoint), #207 to Phase 2 (Greptile re-review latency on swarm merge cascade), #219 to Phase 2 (README.md stale content), #212 to Phase 5 (process control in Directive -- discussion only); cleanup: struck through #184/#188/#191/#192/#199 in index (completed v0.12.0), removed duplicate bare #198, added #182 description*
 *Updated 2026-04-08 -- v0.14.0 release: moved #57 (CI workflow), #81 (BDD strategy), #134 (alignment confirmation), #146 (deft-sync skill), #159 (philosophy.md), #168 (roadmap-refresh transparency), #174 (roadmap-refresh PR phase), #195 (review-cycle tiered polling), #196 (roadmap-refresh cleanup convention) to Completed; removed from phase bodies; struck through in Open Issues Index*
 *Updated 2026-04-09 -- roadmap refresh triage: added #221, #226, #234 to Phase 2; #235 to Phase 3; #233 to Phase 5 (More Determinism); filed #235 as split-off from #233; filed #236/#237/#238/#239 to Phase 1 (#236: Get-Content -Raw footgun; #237: ROADMAP.md em-dash migration; #238: roadmap-refresh batch changelog; #239: mandatory pre-commit file review; #240: multi-line PS string Warp block splitting; #241: main.md blocker carve-out for instant-fix rule; #243: skill completion gate for chaining instructions); analysis comments posted*
+*Updated 2026-04-09 -- v0.14.1 release: moved #236, #237, #238, #239, #240, #241, #243 (Phase 1 Cleanup) to Completed; filed #249 (swarm Phase 6 rebase monitoring gap), #250 (review-cycle batch-fix enforcement), #251 (deft-build semantic contradiction check) to Phase 1 Cleanup from swarm lessons learned*

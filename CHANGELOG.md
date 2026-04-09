@@ -7,14 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-04-09
+
 ### Fixed
 - **ROADMAP.md em-dash migration for Windows compatibility** (#237, t1.11.6): Replaced all 317 Unicode em-dash characters (U+2014) with ASCII `--` in ROADMAP.md phase bodies, Completed section, Open Issues Index rows, and changelog notes -- enables `edit_files` tool on Windows without PowerShell fallback (warpdotdev/warp#9022)
 - **Blocker carve-out for main.md instant-fix drift rule** (#241, t1.11.7): Added carve-out to `main.md` Decision Making instant-fix `⊗` rule -- hard blockers (current task literally cannot complete without the fix) are now permitted in-scope with mandatory GitHub issue filing; non-blocking nice-to-fix, quality improvements, and adjacent issues remain prohibited
 
 ### Added
 - **Skill completion gates and pre-commit file review** (#238, #239, #243; t1.11.3, t1.11.4, t1.11.5): Added batch CHANGELOG convention to `skills/deft-roadmap-refresh/SKILL.md` -- one entry at session end, not per-issue; added mandatory pre-commit file review step (encoding, duplication, structural checks) to roadmap-refresh Phase 4 pre-flight and `skills/deft-build/SKILL.md`; added Skill Completion Gate rule to `AGENTS.md` requiring explicit exit confirmation and chaining instructions; added EXIT block to roadmap-refresh Phase 4; added chaining annotations to AGENTS.md Skill Routing table (swarm chains to review-cycle, roadmap-refresh chains to review-cycle)
-
-### Added
 - **PS 5.1 Get-Content -Raw footgun and BOM-safe round-trip rules** (#236, t1.11.1): Added two `!` rules to `scm/github.md` PS 5.1 section -- use `Get-Content -Raw` to read files as a single string (avoids line-by-line BOM injection and Unicode mangling), and use `[System.IO.File]::WriteAllText` with the BOM-free UTF8 constructor for safe writes (PS 5.1 `Set-Content` and `Out-File` both inject a BOM even with `-Encoding UTF8`; `Out-File -Encoding utf8NoBOM` requires PS 7+); rationale paragraph documenting PS 5.1's UTF-16LE/UTF-8-with-BOM defaults
 - **Warp terminal multi-line PS string temp-file rule** (#240, t1.11.2): Added `!` rule to `scm/github.md` new Warp Terminal Multi-Line String Handling subsection -- never paste multi-line PS here-strings into Warp agent input (Warp splits across command blocks); always write to a temp file first; corresponding lesson entry in `meta/lessons.md` documenting root cause and fix
 
