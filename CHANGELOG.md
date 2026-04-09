@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Strengthen batch-fix enforcement in deft-review-cycle** (#250, t1.12.2): Added `!` pre-commit gate to Phase 2 Step 3 requiring agents to re-read the FULL current Greptile review and confirm all P0/P1 issues are addressed in staged changes before committing -- prevents per-finding fix commits that cause N re-review cycles instead of 1; added 2 new `⊗` anti-patterns: push a fix commit addressing fewer findings than the review surfaces, push after fixing a P1 without checking for additional P0/P1 findings
+- **Autonomous Greptile re-review monitoring in swarm merge cascade** (#249, t1.12.1): Added `!` rule to `skills/deft-swarm/SKILL.md` Phase 6 Step 1 requiring the monitor to autonomously wait for Greptile re-review completion after each `--force-with-lease` push during rebase cascade -- references `skills/deft-review-cycle/SKILL.md` Step 4 tiered monitoring approach (start_agent sub-agent preferred, discrete tool-call polling fallback); added gate prohibiting proceeding to next merge until review is current (SHA match) and exit condition met (confidence > 3, no P0/P1); added corresponding anti-pattern
 
 ### Changed
 - **Roadmap Refresh (2026-04-09)**: Triaged 2 new issues -- #228 (bring run CLI into test coverage measurement, Phase 3 -- confirm #160 before implementing), #248 (roadmap refresh does not surface spec task coverage, Phase 2 -- strengthen swarm Phase 0 skeleton spec tasks); no stale entries; analysis comments posted on both issues
