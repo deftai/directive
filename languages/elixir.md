@@ -1,8 +1,8 @@
 # Elixir Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: Elixir 1.16+ / OTP 26+; Build: Mix; Testing: ExUnit; Lint: Credo; Format: `mix format`; Docs: ExDoc; Types: Dialyxir
 
@@ -26,7 +26,7 @@ See [testing.md](../coding/testing.md).
 - ~ Use property-based testing via `StreamData`
 
 ### Coverage
-- ! â‰¥80% coverage (measured via `mix test --cover` or excoveralls)
+- ! ≥80% coverage (measured via `mix test --cover` or excoveralls)
 - ! Count lib/**
 - ! Exclude generated code, migrations, Phoenix boilerplate
 
@@ -34,7 +34,7 @@ See [testing.md](../coding/testing.md).
 - ! Run `mix format` on all code (project `.formatter.exs` checked in)
 - ! Use Credo for static analysis (`mix credo --strict`)
 - ! 2-space indentation
-- ! Line length â‰¤98 characters (Elixir formatter default)
+- ! Line length ≤98 characters (Elixir formatter default)
 - ! Follow [Elixir Style Guide](https://github.com/christopheradams/elixir_style_guide)
 
 ### Naming Conventions
@@ -44,39 +44,39 @@ See [testing.md](../coding/testing.md).
 - ! Predicate functions end with `?`: `valid?`, `empty?`, `admin?`
 - ! Dangerous/raising functions end with `!`: `fetch!`, `decode!`
 - ! `SCREAMING_SNAKE_CASE` for module attributes used as constants (convention, not enforced)
-- âŠ— Atoms with spaces or special characters unless protocol requires it
+- ⊗ Atoms with spaces or special characters unless protocol requires it
 
 ### Pattern Matching
 - ! Use pattern matching for control flow (function heads, `case`, `with`)
 - ! Prefer multi-clause functions over `if`/`cond` for type/shape dispatch
 - ! Use `with` for chaining fallible operations with clear pattern matching
 - ! Destructure in function arguments when possible
-- âŠ— Nested `case` statements >2 levels deep â€” refactor into functions
-- â‰‰ `if`/`else` when pattern matching is clearer
+- ⊗ Nested `case` statements >2 levels deep — refactor into functions
+- ≉ `if`/`else` when pattern matching is clearer
 
 ### Data & Immutability
-- ! All data is immutable â€” embrace transformation pipelines
+- ! All data is immutable — embrace transformation pipelines
 - ! Use structs (`%MyStruct{}`) for domain entities with enforced keys
 - ! Use `@enforce_keys` for required struct fields
 - ! Use maps for unstructured/dynamic data; keyword lists for options
 - ~ Use Ecto embedded schemas for validated data structures
-- âŠ— Atoms from user input (`String.to_atom/1`) â€” atom table is not garbage collected
+- ⊗ Atoms from user input (`String.to_atom/1`) — atom table is not garbage collected
 
 ### Pipe Operator
-- ! Use `|>` for data transformation chains (â‰¥2 steps)
+- ! Use `|>` for data transformation chains (≥2 steps)
 - ! First argument flows through the pipe; design functions pipe-friendly
 - ! One transformation per line in pipe chains
-- â‰‰ Pipe chains >10 steps â€” extract named intermediate functions
-- â‰‰ Pipes with anonymous functions â€” extract to named functions
+- ≉ Pipe chains >10 steps — extract named intermediate functions
+- ≉ Pipes with anonymous functions — extract to named functions
 
 ### OTP & Concurrency
 - ! Use OTP behaviours: `GenServer`, `Supervisor`, `Agent`, `Task`
 - ! Supervision trees for all long-running processes
 - ! Use `Task.async` / `Task.await` for concurrent one-off work
 - ! Trap exits explicitly when needed; document why
-- ! Design processes for "let it crash" â€” supervisors restart
-- âŠ— Spawning bare processes without supervision in production
-- âŠ— Shared mutable state outside of OTP processes
+- ! Design processes for "let it crash" — supervisors restart
+- ⊗ Spawning bare processes without supervision in production
+- ⊗ Shared mutable state outside of OTP processes
 - ~ Use `Registry` for dynamic process naming
 - ~ Use `GenStage` / `Broadway` for back-pressure and data pipelines
 
@@ -85,8 +85,8 @@ See [testing.md](../coding/testing.md).
 - ! Use `!` function variants that raise for unexpected/unrecoverable errors
 - ! Use `with` for composing multiple `{:ok, _}` / `{:error, _}` chains
 - ! Let processes crash on unexpected errors; supervisors handle recovery
-- âŠ— Catching broad exceptions (`rescue Exception`) in normal flow
-- âŠ— Returning bare `:error` without a reason
+- ⊗ Catching broad exceptions (`rescue Exception`) in normal flow
+- ⊗ Returning bare `:error` without a reason
 
 ### Behaviours & Protocols
 - ! Define `@callback` specs in behaviour modules
@@ -106,13 +106,13 @@ See [testing.md](../coding/testing.md).
 - ! Validate all inputs via Ecto changesets
 - ! Use parameterized queries (Ecto handles this by default)
 - ~ Use LiveView for real-time UI; channels for custom WebSocket protocols
-- âŠ— Business logic in controllers â€” delegate to context modules
+- ⊗ Business logic in controllers — delegate to context modules
 
 ### Security
-- âŠ— Hardcode secrets or credentials in source
+- ⊗ Hardcode secrets or credentials in source
 - ! Use `Application.get_env` or `System.get_env` for secrets (runtime config)
 - ! Validate all external inputs
-- âŠ— `String.to_atom/1` on user input (denial-of-service vector)
+- ⊗ `String.to_atom/1` on user input (denial-of-service vector)
 - ~ Use `Plug.CSRFProtection` for web applications
 
 ### Telemetry
@@ -188,21 +188,21 @@ end
 
 ## Anti-Patterns
 
-Items marked âŠ— in Standards above are not repeated here.
+Items marked ⊗ in Standards above are not repeated here.
 
-- â‰‰ **`if`/`else` over pattern matching**: Use multi-clause functions or `case`
-- â‰‰ **Nested `case` >2 deep**: Refactor into named functions
-- â‰‰ **Anonymous functions in pipes**: Extract to named functions
-- â‰‰ **Long `with` chains (>5 clauses)**: Break into smaller functions
+- ≉ **`if`/`else` over pattern matching**: Use multi-clause functions or `case`
+- ≉ **Nested `case` >2 deep**: Refactor into named functions
+- ≉ **Anonymous functions in pipes**: Extract to named functions
+- ≉ **Long `with` chains (>5 clauses)**: Break into smaller functions
 
 ## Compliance Checklist
 
 - ! `@doc`, `@moduledoc`, `@spec` on all public API
 - ! See [testing.md](../coding/testing.md) for testing requirements
-- ! ExUnit + doctests; â‰¥80% coverage
+- ! ExUnit + doctests; ≥80% coverage
 - ! `mix format` + Credo (strict) + Dialyxir enforced
 - ! Pattern matching and pipes for control flow; OTP for concurrency
 - ! `{:ok, _}` / `{:error, reason}` tuples; `!` variants for raising
 - ! Supervision trees for all production processes
-- âŠ— Bare `spawn`, `String.to_atom/1` on input, broad `rescue`, logic in controllers
+- ⊗ Bare `spawn`, `String.to_atom/1` on input, broad `rescue`, logic in controllers
 - ! Run `task check` before commit

@@ -1,8 +1,8 @@
 # Zig Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: Zig (0.13+ / latest stable); Build: zig build; Testing: built-in `test`; Format: `zig fmt`; Docs: autodoc
 
@@ -24,14 +24,14 @@ See [testing.md](../coding/testing.md).
 - ~ Place integration tests in `test/` directory
 
 ### Coverage
-- ! â‰¥75% coverage (measured via zig build -Drelease-safe with kcov or similar)
+- ! ≥75% coverage (measured via zig build -Drelease-safe with kcov or similar)
 - ! Count src/**
 - ! Exclude build.zig, generated code
 
 ### Style
 - ! Run `zig fmt` on all code before commit
 - ! 4-space indentation
-- ! Line length â‰¤100 characters
+- ! Line length ≤100 characters
 - ! One statement per line
 - ~ Follow [Zig Style Guide](https://ziglang.org/documentation/master/#style-guide)
 
@@ -41,15 +41,15 @@ See [testing.md](../coding/testing.md).
 - ! `SCREAMING_SNAKE_CASE` for compile-time constants and `comptime` values
 - ! `snake_case` for file names and module names
 - ! Prefix unused variables with `_`
-- âŠ— Abbreviations unless universally understood
+- ⊗ Abbreviations unless universally understood
 
 ### Memory Management
 - ! Use allocator-passing pattern: accept `std.mem.Allocator` as parameter
 - ! Pair every allocation with a deallocation (`defer allocator.free(...)`)
 - ! Use `defer` / `errdefer` for deterministic cleanup
 - ! Use `ArenaAllocator` for batch allocations with shared lifetime
-- âŠ— Global allocators or hidden allocation
-- âŠ— Ignoring allocation failures (`catch unreachable` without justification)
+- ⊗ Global allocators or hidden allocation
+- ⊗ Ignoring allocation failures (`catch unreachable` without justification)
 - ~ Use `GeneralPurposeAllocator` in tests to detect leaks
 
 ### Error Handling
@@ -57,8 +57,8 @@ See [testing.md](../coding/testing.md).
 - ! Propagate errors with `try` (equivalent to Rust's `?`)
 - ! Define specific error sets per function
 - ! Use `errdefer` to clean up on error paths
-- âŠ— `catch unreachable` without a safety comment explaining why
-- âŠ— Discarding errors silently (`_ = fallibleFn()`)
+- ⊗ `catch unreachable` without a safety comment explaining why
+- ⊗ Discarding errors silently (`_ = fallibleFn()`)
 - ~ Use error traces in debug builds for diagnostics
 - ~ Return `error.OutOfMemory` from allocator failures, not panics
 
@@ -67,14 +67,14 @@ See [testing.md](../coding/testing.md).
 - ! Prefer `comptime` generics over runtime polymorphism
 - ! Keep `comptime` functions pure and side-effect free
 - ~ Use `@compileError` for clear compile-time constraint violations
-- â‰‰ Overuse of `comptime` that obscures readability
+- ≉ Overuse of `comptime` that obscures readability
 
 ### Safety & Undefined Behavior
 - ! Enable safety checks in debug/test builds (`-Drelease-safe` for testing)
 - ! Validate all external inputs (buffer sizes, indices, pointers)
-- âŠ— `@ptrCast` or `@intFromPtr` without safety justification comment
-- âŠ— Accessing `undefined` memory
-- âŠ— Index out of bounds (use slices with bounds checking)
+- ⊗ `@ptrCast` or `@intFromPtr` without safety justification comment
+- ⊗ Accessing `undefined` memory
+- ⊗ Index out of bounds (use slices with bounds checking)
 - ~ Use `std.debug.assert` for invariants in debug builds
 
 ### Interop (C ABI)
@@ -82,7 +82,7 @@ See [testing.md](../coding/testing.md).
 - ! Validate all pointers received from C code
 - ! Use `[*c]` pointer types for C arrays; convert to slices immediately
 - ~ Wrap C libraries in safe Zig abstractions
-- âŠ— Exposing raw C pointers in public Zig API
+- ⊗ Exposing raw C pointers in public Zig API
 
 ### Dependencies
 - ! Declare dependencies in `build.zig.zon`
@@ -95,10 +95,10 @@ See [testing.md](../coding/testing.md).
 - ! Use SIMD via `@Vector` for data-parallel operations where profiling justifies
 - ~ Use `std.ArrayList` over manual buffer management
 - ~ Profile before optimizing; use `std.time.Timer` or external profilers
-- â‰‰ Premature optimization over clarity
+- ≉ Premature optimization over clarity
 
 ### Security
-- âŠ— Hardcode secrets or credentials in source
+- ⊗ Hardcode secrets or credentials in source
 - ! Zero sensitive memory after use (`std.crypto.utils.secureZero`)
 - ! Validate all buffer lengths before operations
 - ~ Use `std.crypto` for cryptographic operations (not custom implementations)
@@ -177,20 +177,20 @@ pub fn BoundedArray(comptime T: type, comptime cap: usize) type {
 
 ## Anti-Patterns
 
-Items marked âŠ— in Standards above are not repeated here.
+Items marked ⊗ in Standards above are not repeated here.
 
-- â‰‰ **Manual pointer arithmetic**: Use slices
-- â‰‰ **Overusing `anytype`**: Use specific types for better errors
-- â‰‰ **Large functions**: Decompose into focused, testable units
-- â‰‰ **`@ptrCast` chains**: Wrap C interop in safe abstractions
+- ≉ **Manual pointer arithmetic**: Use slices
+- ≉ **Overusing `anytype`**: Use specific types for better errors
+- ≉ **Large functions**: Decompose into focused, testable units
+- ≉ **`@ptrCast` chains**: Wrap C interop in safe abstractions
 
 ## Compliance Checklist
 
 - ! Doc comments on all public declarations
 - ! See [testing.md](../coding/testing.md) for testing requirements
-- ! Unit tests with leak detection; â‰¥75% coverage
+- ! Unit tests with leak detection; ≥75% coverage
 - ! `zig fmt` enforced; follows Zig style guide
 - ! Allocator-passing pattern; `defer`/`errdefer` for all resources
 - ! Error unions for fallible functions; specific error sets
-- âŠ— Global allocators, `catch unreachable` without comment, ignored errors
+- ⊗ Global allocators, `catch unreachable` without comment, ignored errors
 - ! Run `task check` before commit

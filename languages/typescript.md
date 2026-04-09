@@ -1,8 +1,8 @@
 # TypeScript Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
 
 **Stack**: TypeScript 5.0+, Vitest/Jest; Web: React 18+/Next.js; CLI: commander; Build: Vite/tsup
 
@@ -18,7 +18,7 @@ See [testing.md](../coding/testing.md).
 - Files: `*.spec.ts` or `*.test.ts`
 
 ### Coverage
-- ! â‰¥85% coverage
+- ! ≥85% coverage
 - ! Count src/\*
 - ! Exclude entry points, scripts, generated code
 
@@ -28,7 +28,7 @@ See [testing.md](../coding/testing.md).
 
 ### Types
 - ! Use strict mode
-- âŠ— Use `any`
+- ⊗ Use `any`
 - ~ Prefer `unknown` for type-safe unknowns
 
 ### Telemetry
@@ -111,6 +111,6 @@ Key settings: `@typescript-eslint/parser`, extends `recommended` + `recommended-
 ## Compliance Checklist
 
 - ! Include TSDoc comments for all exported APIs
-- ! Use strict TypeScript; âŠ— use `any`
+- ! Use strict TypeScript; ⊗ use `any`
 - ! See [testing.md](../coding/testing.md) for testing requirements
 - ! Run `task check` before commit

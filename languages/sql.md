@@ -1,8 +1,8 @@
 # SQL Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: ANSI SQL (dialect-agnostic defaults); Adapts to: PostgreSQL, MySQL/MariaDB, SQL Server, SQLite, Oracle; Migrations: Flyway / Liquibase / framework-native; Lint: sqlfluff
 
@@ -28,7 +28,7 @@ See [testing.md](../coding/testing.md).
 - ! One clause per line for readability (`SELECT`, `FROM`, `WHERE`, `JOIN` each on own line)
 - ! Indent continuation lines (subqueries, `AND`/`OR`, `CASE` branches)
 - ! Use sqlfluff (or equivalent) for automated linting
-- ! Line length â‰¤120 characters
+- ! Line length ≤120 characters
 - ~ Align `ON` clauses vertically when multiple joins are present
 
 ### Naming Conventions
@@ -39,24 +39,24 @@ See [testing.md](../coding/testing.md).
 - ! Name primary keys `id` or `{table}_id`; foreign keys `{referenced_table}_id`
 - ! Name indexes: `ix_{table}_{column(s)}`
 - ! Name constraints: `pk_{table}`, `fk_{table}_{ref_table}`, `uq_{table}_{column}`, `ck_{table}_{rule}`
-- âŠ— Reserved words as identifiers (even if quoted)
-- âŠ— Abbreviations in names unless universally understood (`id`, `url`, `ip`)
+- ⊗ Reserved words as identifiers (even if quoted)
+- ⊗ Abbreviations in names unless universally understood (`id`, `url`, `ip`)
 
 ### Queries
-- ! Use explicit column lists â€” âŠ— `SELECT *` in application code or views
-- ! Use explicit `JOIN` syntax â€” âŠ— implicit joins (comma-separated `FROM`)
+- ! Use explicit column lists — ⊗ `SELECT *` in application code or views
+- ! Use explicit `JOIN` syntax — ⊗ implicit joins (comma-separated `FROM`)
 - ! Qualify column names with table aliases in multi-table queries
 - ! Use short, meaningful aliases: `u` for `user`, `o` for `order`
 - ! Use `COALESCE()` over vendor-specific null functions (`NVL`, `IFNULL`) where portable
 - ~ Use CTEs (`WITH`) for complex queries instead of deeply nested subqueries
 - ~ Use `EXISTS` over `IN` for correlated subqueries (better optimizer hints)
-- â‰‰ `SELECT DISTINCT` to mask duplicate-producing joins â€” fix the join instead
-- â‰‰ `ORDER BY` column position (`ORDER BY 1, 2`) â€” use column names
+- ≉ `SELECT DISTINCT` to mask duplicate-producing joins — fix the join instead
+- ≉ `ORDER BY` column position (`ORDER BY 1, 2`) — use column names
 
 ### Parameterization & Security
 - ! Use parameterized queries / prepared statements for all dynamic values
-- âŠ— String concatenation for query building (SQL injection vector)
-- âŠ— Interpolating user input directly into SQL
+- ⊗ String concatenation for query building (SQL injection vector)
+- ⊗ Interpolating user input directly into SQL
 - ! Validate and sanitize inputs at the application layer before query execution
 - ! Apply least-privilege: application accounts get only required permissions
 - ~ Use row-level security (RLS) where supported for multi-tenant data
@@ -70,8 +70,8 @@ See [testing.md](../coding/testing.md).
 - ~ Normalize to 3NF minimum; denormalize deliberately with documentation
 - ~ Add `created_at` and `updated_at` timestamps to mutable tables
 - ~ Use `UUID` or `BIGINT` for primary keys (prefer `UUID` for distributed systems)
-- â‰‰ Store JSON blobs where relational columns would serve better
-- âŠ— Use `FLOAT`/`DOUBLE` for monetary values â€” use `DECIMAL`/`NUMERIC`
+- ≉ Store JSON blobs where relational columns would serve better
+- ⊗ Use `FLOAT`/`DOUBLE` for monetary values — use `DECIMAL`/`NUMERIC`
 
 ### Indexing
 - ! Index all foreign key columns
@@ -79,8 +79,8 @@ See [testing.md](../coding/testing.md).
 - ! Review and document index strategy per table
 - ~ Use composite indexes that match query patterns (leftmost prefix rule)
 - ~ Use partial/filtered indexes for frequently queried subsets
-- â‰‰ Over-index: each index adds write overhead â€” justify with query patterns
-- âŠ— Index every column "just in case"
+- ≉ Over-index: each index adds write overhead — justify with query patterns
+- ⊗ Index every column "just in case"
 
 ### Migrations
 - ! Use versioned, sequential migration files (not ad-hoc DDL)
@@ -88,31 +88,31 @@ See [testing.md](../coding/testing.md).
 - ! Test migrations against a copy of production schema before deploying
 - ! Use transactions for DDL where supported (PostgreSQL)
 - ~ Use idempotent migrations (`IF NOT EXISTS`, `IF EXISTS`) for resilience
-- âŠ— Modify or delete previously applied migration files
+- ⊗ Modify or delete previously applied migration files
 
 ### Transactions & Concurrency
 - ! Use explicit transactions for multi-statement operations
 - ! Keep transactions as short as possible
 - ! Choose appropriate isolation level for the use case
 - ~ Use `SELECT ... FOR UPDATE` when reading rows that will be updated
-- âŠ— Long-running transactions that hold locks across user interactions
-- âŠ— Implicit autocommit for multi-step business operations
+- ⊗ Long-running transactions that hold locks across user interactions
+- ⊗ Implicit autocommit for multi-step business operations
 
 ### Performance
 - ! Use `EXPLAIN` / `EXPLAIN ANALYZE` to validate query plans for critical queries
-- ! Avoid N+1 query patterns â€” use joins or batch queries
+- ! Avoid N+1 query patterns — use joins or batch queries
 - ! Paginate large result sets (`LIMIT`/`OFFSET` or keyset pagination)
 - ~ Prefer keyset pagination (`WHERE id > ?`) over `OFFSET` for large tables
 - ~ Use materialized views or caching for expensive, infrequently-changing aggregations
-- â‰‰ Functions on indexed columns in `WHERE` clauses (defeats index usage)
-- âŠ— Cartesian joins (missing `ON` / `WHERE` clause)
-- âŠ— Unbounded `SELECT` without `LIMIT` on large tables in application code
+- ≉ Functions on indexed columns in `WHERE` clauses (defeats index usage)
+- ⊗ Cartesian joins (missing `ON` / `WHERE` clause)
+- ⊗ Unbounded `SELECT` without `LIMIT` on large tables in application code
 
 ### Stored Procedures & Functions
 - ~ Keep business logic in the application layer; use procedures for data-intensive ops
 - ! Document parameters, return types, and side effects
 - ! Handle errors explicitly (`RAISE` / `SIGNAL` / `THROW`)
-- âŠ— Deeply nested stored procedure call chains (hard to debug and test)
+- ⊗ Deeply nested stored procedure call chains (hard to debug and test)
 
 ### Telemetry
 - ~ Log slow queries (configure slow query log threshold)
@@ -198,11 +198,11 @@ LIMIT 25;
 
 ## Anti-Patterns
 
-Items marked âŠ— in Standards above are not repeated here.
+Items marked ⊗ in Standards above are not repeated here.
 
-- â‰‰ **`HAVING` without `GROUP BY`**: Use `WHERE` for row-level filters
-- â‰‰ **Nested subqueries >2 levels deep**: Refactor with CTEs
-- â‰‰ **`NOT IN` with nullable columns**: Use `NOT EXISTS` instead (NULL semantics)
+- ≉ **`HAVING` without `GROUP BY`**: Use `WHERE` for row-level filters
+- ≉ **Nested subqueries >2 levels deep**: Refactor with CTEs
+- ≉ **`NOT IN` with nullable columns**: Use `NOT EXISTS` instead (NULL semantics)
 
 ## Compliance Checklist
 
@@ -212,5 +212,5 @@ Items marked âŠ— in Standards above are not repeated here.
 - ! Versioned migrations; tested up and down
 - ! `EXPLAIN ANALYZE` reviewed for high-traffic queries
 - ! sqlfluff lint passes; keywords uppercase, identifiers lowercase `snake_case`
-- âŠ— `SELECT *`, implicit joins, string concatenation in queries, `FLOAT` for money
+- ⊗ `SELECT *`, implicit joins, string concatenation in queries, `FLOAT` for money
 - ! Run `task db:lint` before commit

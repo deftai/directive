@@ -1,8 +1,8 @@
 # Java Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
 
 **Stack**: Java 21+ (LTS), Maven/Gradle; Web: Spring Boot 3+; Testing: JUnit 5 + Mockito + AssertJ; Analysis: Checkstyle, SpotBugs, Error Prone
 
@@ -19,11 +19,11 @@ See [testing.md](../coding/testing.md).
 
 - ! Use JUnit 5 (`@Test`, `@ParameterizedTest`, `@Nested`)
 - ! Use Mockito for mocking; AssertJ for fluent assertions
-- â‰‰ Use JUnit 4 for new code (maintain existing suites only)
+- ≉ Use JUnit 4 for new code (maintain existing suites only)
 - Files: `*Test.java` or `*Tests.java` in `src/test/java`
 
 ### Coverage
-- ! â‰¥85% coverage
+- ! ≥85% coverage
 - ! Count src/main/\*
 - ! Exclude entry points, generated code, framework config
 
@@ -41,7 +41,7 @@ See [testing.md](../coding/testing.md).
 - ! Package names all lowercase: `com.example.myapp.service`
 - ! Test classes named `{ClassName}Test`: `UserServiceTest`
 - ~ Interfaces without `I` prefix; use nouns/adjectives: `Repository`, `Serializable`
-- âŠ— Hungarian notation or type prefixes
+- ⊗ Hungarian notation or type prefixes
 
 ### Modern Language Features (Java 21+)
 - ! Use `record` for immutable data carriers (DTOs, value objects)
@@ -50,67 +50,67 @@ See [testing.md](../coding/testing.md).
 - ! Use text blocks (`"""`) for multi-line strings (SQL, JSON, etc.)
 - ~ Use `var` for local variables when type is obvious from context
 - ~ Use virtual threads (`Executors.newVirtualThreadPerTaskExecutor()`) for I/O-bound concurrency
-- â‰‰ Use `var` when it obscures the type or reduces readability
+- ≉ Use `var` when it obscures the type or reduces readability
 
 ### Types & Null Safety
-- ! Use `Optional<T>` for return types that may be absent; âŠ— return `null` from public methods
+- ! Use `Optional<T>` for return types that may be absent; ⊗ return `null` from public methods
 - ! Use `@Nullable`/`@NonNull` annotations (JSpecify or JSR 305) on API boundaries
-- âŠ— Use raw generic types (`List` instead of `List<String>`)
-- âŠ— Use `Object` where a specific type or generic is appropriate
+- ⊗ Use raw generic types (`List` instead of `List<String>`)
+- ⊗ Use `Object` where a specific type or generic is appropriate
 - ~ Prefer immutable collections (`List.of()`, `Map.of()`, `Set.of()`, `Collections.unmodifiable*`)
-- ~ Use `enum` for fixed sets of constants; âŠ— string/int constants for enumerable values
+- ~ Use `enum` for fixed sets of constants; ⊗ string/int constants for enumerable values
 
 ### Records & Sealed Types
 - ! Use `record` instead of manual POJO/DTO boilerplate
 - ! Use `sealed` for closed hierarchies (event types, result types, AST nodes)
 - ~ Use compact constructors in records for validation
-- âŠ— Add mutable state to records (they are immutable by design)
+- ⊗ Add mutable state to records (they are immutable by design)
 
 ### Resource Management
 - ! Use try-with-resources for all `AutoCloseable` resources
-- âŠ— Manually call `.close()` in a `finally` block (use try-with-resources instead)
+- ⊗ Manually call `.close()` in a `finally` block (use try-with-resources instead)
 - ! Close streams, connections, readers/writers on all code paths
 - ~ Use `Cleaner` or `PhantomReference` for native resource cleanup (not `finalize()`)
-- âŠ— Override `finalize()` â€” deprecated and removed in Java 18+
+- ⊗ Override `finalize()` — deprecated and removed in Java 18+
 
 ### Error Handling
 - ! Use checked exceptions for recoverable errors; unchecked for programming bugs
 - ! Catch the most specific exception type, not `Exception` or `Throwable`
 - ! Include context in exception messages (what failed, relevant IDs/values)
-- âŠ— Swallow exceptions (empty catch blocks)
-- âŠ— Use exceptions for flow control
+- ⊗ Swallow exceptions (empty catch blocks)
+- ⊗ Use exceptions for flow control
 - ~ Create domain-specific exception hierarchies extending `RuntimeException`
 - ~ Use `Optional` instead of throwing for "not found" scenarios in query methods
 - ~ Log exceptions at the boundary where they are handled, not where they are caught and rethrown
 
 ### Collections & Streams
 - ! Prefer `List.of()`, `Map.of()`, `Set.of()` for immutable collections
-- ! Use Streams for transformation pipelines; âŠ— for simple iterations with side effects
+- ! Use Streams for transformation pipelines; ⊗ for simple iterations with side effects
 - ~ Prefer `Stream.toList()` (Java 16+) over `Collectors.toList()` for unmodifiable results
-- â‰‰ Modify collections during iteration; use `Iterator.remove()` or build a new collection
-- âŠ— Use `Vector`, `Hashtable`, `Stack` â€” use `ArrayList`, `HashMap`, `ArrayDeque` instead
+- ≉ Modify collections during iteration; use `Iterator.remove()` or build a new collection
+- ⊗ Use `Vector`, `Hashtable`, `Stack` — use `ArrayList`, `HashMap`, `ArrayDeque` instead
 
 ### Concurrency
 - ! Use virtual threads (Java 21+) for I/O-bound workloads
 - ! Use `ReentrantLock` over `synchronized` when using virtual threads (avoids carrier thread pinning)
-- ! Use `ExecutorService` with try-with-resources; âŠ— create raw `Thread` instances
+- ! Use `ExecutorService` with try-with-resources; ⊗ create raw `Thread` instances
 - ~ Use `CompletableFuture` for async composition when virtual threads are not appropriate
 - ~ Use `ConcurrentHashMap`, `CopyOnWriteArrayList` for concurrent data structures
-- âŠ— Use `Thread.stop()`, `Thread.suspend()`, `Thread.resume()` â€” all deprecated/removed
-- â‰‰ Use `ThreadLocal` heavily with virtual threads (high memory overhead at scale)
+- ⊗ Use `Thread.stop()`, `Thread.suspend()`, `Thread.resume()` — all deprecated/removed
+- ≉ Use `ThreadLocal` heavily with virtual threads (high memory overhead at scale)
 
 ### Dependency Injection
-- ! Use constructor injection; âŠ— field injection (untestable, hides dependencies)
-- ! Keep constructors focused â€” inject interfaces, not implementations
+- ! Use constructor injection; ⊗ field injection (untestable, hides dependencies)
+- ! Keep constructors focused — inject interfaces, not implementations
 - ~ Use `@Qualifier` or custom annotations to disambiguate beans
-- â‰‰ Use `@Autowired` on fields; prefer `final` fields with constructor injection
+- ≉ Use `@Autowired` on fields; prefer `final` fields with constructor injection
 
 ### Database
-- ! Use parameterized queries / prepared statements; âŠ— string concatenation for SQL
+- ! Use parameterized queries / prepared statements; ⊗ string concatenation for SQL
 - ! Use connection pooling (HikariCP)
-- ~ Use Spring Data JPA or jOOQ; â‰‰ raw JDBC for application code
+- ~ Use Spring Data JPA or jOOQ; ≉ raw JDBC for application code
 - ~ Wrap multi-step operations in explicit `@Transactional` boundaries
-- âŠ— Use `Statement` with user-supplied input (SQL injection risk)
+- ⊗ Use `Statement` with user-supplied input (SQL injection risk)
 
 ### Telemetry
 - See [telemetry.md](../tools/telemetry.md)
@@ -120,7 +120,7 @@ See [testing.md](../coding/testing.md).
 - ? OpenTelemetry Java for distributed tracing
 
 ### Safety
-- âŠ— Hardcode secrets, keys, or credentials in source
+- ⊗ Hardcode secrets, keys, or credentials in source
 - ! Validate all external input (user, file, network)
 - ! Use `SecurityManager`-independent security practices (removed in Java 24)
 - ~ Keep dependencies up to date; scan with OWASP Dependency-Check or Snyk
@@ -242,11 +242,11 @@ tasks.jacocoTestCoverageVerification {
 
 ## Anti-Patterns
 
-Items marked âŠ— in Standards above are not repeated here.
+Items marked ⊗ in Standards above are not repeated here.
 
-- â‰‰ **Checked exceptions for everything**: Reserve for truly recoverable conditions
-- â‰‰ **God classes**: Keep <500 lines; extract service/strategy/helper
-- â‰‰ **`Collectors.toList()`**: Prefer `Stream.toList()` (Java 16+)
+- ≉ **Checked exceptions for everything**: Reserve for truly recoverable conditions
+- ≉ **God classes**: Keep <500 lines; extract service/strategy/helper
+- ≉ **`Collectors.toList()`**: Prefer `Stream.toList()` (Java 16+)
 
 ## Compliance Checklist
 
@@ -255,7 +255,7 @@ Items marked âŠ— in Standards above are not repeated here.
 - ! Use JUnit 5 + AssertJ + Mockito
 - ! Use records for data carriers; sealed types for closed hierarchies
 - ! Use virtual threads for I/O-bound concurrency (Java 21+)
-- ! Try-with-resources for all `AutoCloseable`; âŠ— manual `.close()`
-- âŠ— Return `null` from public methods; raw types; field injection
-- âŠ— `synchronized` with virtual threads
+- ! Try-with-resources for all `AutoCloseable`; ⊗ manual `.close()`
+- ⊗ Return `null` from public methods; raw types; field injection
+- ⊗ `synchronized` with virtual threads
 - ! Run `task check` before commit

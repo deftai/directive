@@ -1,8 +1,8 @@
 # Go Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
 
 ## Standards
 
@@ -17,7 +17,7 @@ See [testing.md](../coding/testing.md).
 - Files: `*_test.go`, functions: `TestFuncName(t *testing.T)`
 
 ### Coverage
-- ! â‰¥85% coverage
+- ! ≥85% coverage
 - ! Count internal/\* + pkg/\*
 - ! Exclude entry points, utilities, generated code
 
@@ -31,7 +31,7 @@ See [testing.md](../coding/testing.md).
 
 See [commands.md](./commands.md).
 
-## ðŸ”§ Patterns
+## 🔧 Patterns
 
 **Table-Driven Tests**:
 

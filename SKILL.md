@@ -54,8 +54,8 @@ immediately — ask what to build and features as the first question.
 - ! `./PROJECT.md` — the user's project config (project root)
 - ! `./SPECIFICATION.md` or `./specs/*/SPECIFICATION.md` — the user's project spec
 - ⊗ Count ANY file inside `./deft/` as a project-level artifact — those are
-  framework-internal (e.g. `deft/PROJECT.md`, `deft/specs/`, `deft/templates/`,
-  `deft/PROJECT.md` are all part of the framework, NOT the user's project)
+  framework-internal (e.g. `deft/PROJECT.md`, `deft/specs/`, `deft/templates/`
+  are all part of the framework, NOT the user's project)
 
 - ⊗ Present a summary of the config and ask what the user wants to do
 - ⊗ Ask "what would you like to do" or "what are we building" — start the interview directly

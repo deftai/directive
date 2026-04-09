@@ -1,8 +1,8 @@
 # R Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: R 4.3+, tidyverse; Packages: devtools/usethis; Testing: testthat 3; Docs: roxygen2; Lint: lintr; Style: styler
 
@@ -22,7 +22,7 @@ See [testing.md](../coding/testing.md).
 - ~ Use snapshot tests (`expect_snapshot()`) for complex output
 
 ### Coverage
-- ! â‰¥85% coverage (measured via covr)
+- ! ≥85% coverage (measured via covr)
 - ! Count R/\*
 - ! Exclude entry points, generated files, vignettes
 
@@ -31,29 +31,29 @@ See [testing.md](../coding/testing.md).
 - ! Use lintr for static analysis (project `.lintr` config checked in)
 - ! Use styler for auto-formatting
 - ! 2-space indentation, no tabs
-- ! Line length â‰¤80 characters
+- ! Line length ≤80 characters
 
 ### Naming Conventions
 - ! `snake_case` for functions, variables, and file names: `read_data()`, `user_count`
 - ! `PascalCase` for R6/S4 class names: `DataProcessor`, `ModelConfig`
 - ! `UPPER_SNAKE_CASE` for true constants
 - ! Prefix internal/non-exported functions with `.`: `.validate_input()`
-- âŠ— Dots in function names for new code (`read.csv` style): use `snake_case`
-- âŠ— Single-letter variable names except in math/formula contexts (`x`, `y`, `n`)
+- ⊗ Dots in function names for new code (`read.csv` style): use `snake_case`
+- ⊗ Single-letter variable names except in math/formula contexts (`x`, `y`, `n`)
 
 ### Types & Data
 - ! Use tibbles (`tibble`/`data.frame`) over lists for tabular data
 - ! Use explicit types: `integer(1)`, `character(0)`, `logical(1)` for scalars
 - ~ Use `rlang::check_required()` / `rlang::abort()` for argument validation
 - ~ Use named lists or S3/R6 classes for structured non-tabular data
-- âŠ— Use `T`/`F` â€” always spell out `TRUE`/`FALSE`
-- âŠ— Rely on partial argument matching
+- ⊗ Use `T`/`F` — always spell out `TRUE`/`FALSE`
+- ⊗ Rely on partial argument matching
 
 ### Functions
-- ! Pure functions preferred: same inputs â†’ same outputs, no side effects
+- ! Pure functions preferred: same inputs → same outputs, no side effects
 - ! One function per purpose; keep under 50 lines where practical
 - ! Use `...` (dots) deliberately; document what they pass to
-- âŠ— Modify global state from inside functions (`<<-`, `assign()` to `.GlobalEnv`)
+- ⊗ Modify global state from inside functions (`<<-`, `assign()` to `.GlobalEnv`)
 - ~ Use `invisible()` for functions called for side effects that return invisibly
 - ~ Use `tryCatch()` / `withCallingHandlers()` for error handling
 
@@ -61,31 +61,31 @@ See [testing.md](../coding/testing.md).
 - ! Minimize dependencies; use `Imports` not `Depends` in DESCRIPTION
 - ! Pin major versions in `renv.lock` for reproducibility
 - ! Use `renv` for project-level dependency isolation
-- âŠ— Use `library()` inside package code â€” use `::` or `@importFrom`
+- ⊗ Use `library()` inside package code — use `::` or `@importFrom`
 - ~ Use `Suggests` for test/vignette-only dependencies
 
 ### Vectorization & Performance
 - ! Prefer vectorized operations over explicit loops
 - ~ Use `purrr::map()` family for functional iteration
 - ~ Use `data.table` or `dplyr` for data manipulation (not base `for` loops on data frames)
-- â‰‰ Use `apply()` family when `purrr` or vectorized alternatives exist
-- â‰‰ Grow vectors in a loop (`c(vec, new_elem)`) â€” pre-allocate instead
+- ≉ Use `apply()` family when `purrr` or vectorized alternatives exist
+- ≉ Grow vectors in a loop (`c(vec, new_elem)`) — pre-allocate instead
 
 ### Pipelines
 - ! Use native pipe `|>` (R 4.1+) or `%>%` from magrittr
 - ! Keep pipe chains readable (one operation per line)
-- â‰‰ Pipe chains longer than 10 steps â€” extract into named intermediate variables or functions
+- ≉ Pipe chains longer than 10 steps — extract into named intermediate variables or functions
 - ~ Use `.data` and `.env` pronouns in tidy evaluation for clarity
 
 ### Reproducibility
 - ! Use `renv` for project dependency snapshots
 - ! Set `set.seed()` before any stochastic operation; document seed in reports
-- ! Use relative paths; âŠ— absolute paths or `setwd()`
+- ! Use relative paths; ⊗ absolute paths or `setwd()`
 - ~ Use `here::here()` for project-relative paths
 - ~ Use Quarto or R Markdown for reproducible reports
 
 ### Security
-- âŠ— Hardcode secrets or credentials in source
+- ⊗ Hardcode secrets or credentials in source
 - ! Validate/sanitize all external inputs (file paths, user data, API responses)
 - ~ Use `.Renviron` for secrets; load via `Sys.getenv()`
 
@@ -145,19 +145,19 @@ read_config <- function(path) {
 
 ## Anti-Patterns
 
-Items marked âŠ— in Standards above are not repeated here.
+Items marked ⊗ in Standards above are not repeated here.
 
-- â‰‰ **Dot-separated names** (`my.function`): Use `snake_case`
-- â‰‰ **`sapply()`**: Use `vapply()` or `purrr::map_*()`
-- â‰‰ **Pipe chains >10 steps**: Extract named intermediates
+- ≉ **Dot-separated names** (`my.function`): Use `snake_case`
+- ≉ **`sapply()`**: Use `vapply()` or `purrr::map_*()`
+- ≉ **Pipe chains >10 steps**: Extract named intermediates
 
 ## Compliance Checklist
 
 - ! roxygen2 docs on all exported functions
 - ! See [testing.md](../coding/testing.md) for testing requirements
-- ! testthat 3 for unit tests; â‰¥85% coverage via covr
+- ! testthat 3 for unit tests; ≥85% coverage via covr
 - ! lintr + styler configured and enforced
 - ! Tidyverse style; `snake_case` naming; `TRUE`/`FALSE` spelled out
 - ! `renv` for dependency reproducibility
-- âŠ— `T`/`F`, `<<-`, `setwd()`, `library()` in packages, absolute paths
+- ⊗ `T`/`F`, `<<-`, `setwd()`, `library()` in packages, absolute paths
 - ! Run `task check` before commit

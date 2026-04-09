@@ -1,8 +1,8 @@
 # Dart Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: Dart 3.x+; Framework: Flutter (mobile/web) or standalone; Testing: `package:test` / `flutter_test`; Lint: `analysis_options.yaml` + custom_lint; Format: `dart format`; Docs: dartdoc
 
@@ -25,7 +25,7 @@ See [testing.md](../coding/testing.md).
 - ~ Use golden tests for UI regression testing (Flutter)
 
 ### Coverage
-- ! â‰¥80% coverage (measured via `dart test --coverage` or `flutter test --coverage`)
+- ! ≥80% coverage (measured via `dart test --coverage` or `flutter test --coverage`)
 - ! Count lib/**
 - ! Exclude generated files (`*.g.dart`, `*.freezed.dart`), entry points
 
@@ -34,7 +34,7 @@ See [testing.md](../coding/testing.md).
 - ! Use `analysis_options.yaml` with recommended lints enabled
 - ! Use `dart format` (or `flutter format`) for all code
 - ! 2-space indentation
-- ! Line length â‰¤80 characters
+- ! Line length ≤80 characters
 - ! Enable `strict-casts`, `strict-inference`, `strict-raw-types` in analysis options
 
 ### Naming Conventions
@@ -44,21 +44,21 @@ See [testing.md](../coding/testing.md).
 - ! `SCREAMING_SNAKE_CASE` for compile-time constants only when following Flutter convention
 - ! Prefix private members with `_`: `_internalState`
 - ! Prefix boolean variables/getters with `is`, `has`, `can`: `isLoading`, `hasError`
-- âŠ— Hungarian notation or type prefixes
+- ⊗ Hungarian notation or type prefixes
 
 ### Null Safety
 - ! Use sound null safety (Dart 3.x enforces this)
 - ! Use `?` for nullable types only when null is a valid state
 - ! Use `late` only when initialization is guaranteed before access
 - ! Prefer `??` (if-null) and `?.` (null-aware) over null checks
-- âŠ— Force-unwrap (`!`) without prior null check or assertion
-- â‰‰ `late` as a workaround for poor initialization design
+- ⊗ Force-unwrap (`!`) without prior null check or assertion
+- ≉ `late` as a workaround for poor initialization design
 
 ### Immutability
 - ! Use `final` for variables that are assigned once
 - ! Use `const` for compile-time constants and constructors
 - ! Prefer immutable data classes (use `freezed` or manual `copyWith`)
-- â‰‰ Mutable state where `final` + rebuild pattern suffices (esp. Flutter)
+- ≉ Mutable state where `final` + rebuild pattern suffices (esp. Flutter)
 
 ### Classes & Types
 - ! Use `sealed class` (Dart 3) for exhaustive type hierarchies
@@ -66,14 +66,14 @@ See [testing.md](../coding/testing.md).
 - ! Use extension types for zero-cost wrappers
 - ! Use mixins for shared behavior across unrelated classes
 - ~ Use `typedef` for complex function signatures
-- âŠ— Deep inheritance hierarchies (>3 levels) â€” prefer composition
+- ⊗ Deep inheritance hierarchies (>3 levels) — prefer composition
 
 ### Async & Concurrency
 - ! Use `async`/`await` for asynchronous operations
 - ! Always handle errors from Futures (`try`/`catch` or `.catchError`)
 - ! Use `Stream` for reactive data flows; `StreamController` for custom streams
 - ! Close `StreamController` and cancel `StreamSubscription` to avoid leaks
-- âŠ— Fire-and-forget Futures without error handling
+- ⊗ Fire-and-forget Futures without error handling
 - ~ Use `Isolate` for CPU-intensive work (keeps UI responsive in Flutter)
 - ~ Use `compute()` helper for simple isolate tasks in Flutter
 
@@ -82,7 +82,7 @@ See [testing.md](../coding/testing.md).
 - ~ Options: Riverpod, Bloc/Cubit, Provider, signals
 - ! Separate business logic from UI (no business logic in `build()`)
 - ! Dispose controllers, streams, and subscriptions in `dispose()`
-- âŠ— Calling `setState` from outside the widget or after disposal
+- ⊗ Calling `setState` from outside the widget or after disposal
 
 ### Dependencies
 - ! Pin dependency versions in `pubspec.yaml` (use `^` for semver ranges)
@@ -97,7 +97,7 @@ See [testing.md](../coding/testing.md).
 - ! Exclude generated files from lint and coverage
 
 ### Security
-- âŠ— Hardcode secrets or credentials in source (esp. Flutter â€” compiled but extractable)
+- ⊗ Hardcode secrets or credentials in source (esp. Flutter — compiled but extractable)
 - ! Validate all external inputs (user data, API responses, deep links)
 - ~ Use `flutter_secure_storage` for sensitive data on device
 - ~ Use certificate pinning for critical API connections
@@ -164,20 +164,20 @@ extension type Email(String value) { bool get isValid => value.contains('@'); }
 
 ## Anti-Patterns
 
-Items marked âŠ— in Standards above are not repeated here.
+Items marked ⊗ in Standards above are not repeated here.
 
-- â‰‰ **`late` as lazy init workaround**: Design proper initialization
-- â‰‰ **Deep inheritance (>3 levels)**: Prefer composition/mixins
-- â‰‰ **`dynamic` type**: Use specific types; `Object?` if truly unknown
-- â‰‰ **`print()` for logging**: Use `package:logging`
+- ≉ **`late` as lazy init workaround**: Design proper initialization
+- ≉ **Deep inheritance (>3 levels)**: Prefer composition/mixins
+- ≉ **`dynamic` type**: Use specific types; `Object?` if truly unknown
+- ≉ **`print()` for logging**: Use `package:logging`
 
 ## Compliance Checklist
 
 - ! dartdoc on all public API
 - ! See [testing.md](../coding/testing.md) for testing requirements
-- ! Unit + widget tests; â‰¥80% coverage
+- ! Unit + widget tests; ≥80% coverage
 - ! `dart format` + `dart analyze` with strict options enforced
 - ! Effective Dart conventions; sound null safety; `final`/`const` by default
 - ! Sealed classes for exhaustive hierarchies; pattern matching
-- âŠ— `!` without check, fire-and-forget Futures, `dynamic`, business logic in `build()`
+- ⊗ `!` without check, fire-and-forget Futures, `dynamic`, business logic in `build()`
 - ! Run `task check` before commit

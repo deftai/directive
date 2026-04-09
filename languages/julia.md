@@ -1,8 +1,8 @@
 # Julia Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: Julia 1.10+; Packages: Pkg.jl; Testing: `Test` stdlib + Aqua.jl; Docs: Documenter.jl; Format: JuliaFormatter.jl; Lint: JET.jl / Aqua.jl
 
@@ -25,14 +25,14 @@ See [testing.md](../coding/testing.md).
 - ~ Use `@test_logs` for testing logging output
 
 ### Coverage
-- ! â‰¥80% coverage (measured via Coverage.jl or Codecov integration)
+- ! ≥80% coverage (measured via Coverage.jl or Codecov integration)
 - ! Count src/**
 - ! Exclude scripts, notebooks, generated code
 
 ### Style
 - ! Use JuliaFormatter.jl with project `.JuliaFormatter.toml` checked in
 - ! 4-space indentation
-- ! Line length â‰¤92 characters (Julia convention)
+- ! Line length ≤92 characters (Julia convention)
 - ! Follow [Julia Style Guide](https://docs.julialang.org/en/v1/manual/style-guide/)
 - ~ Use `BlueStyle` or `SciMLStyle` formatting preset
 
@@ -43,7 +43,7 @@ See [testing.md](../coding/testing.md).
 - ! Mutating functions end with `!`: `sort!`, `push!`, `normalize!`
 - ! Predicate functions start with `is`/`has`: `isvalid`, `haskey`
 - ! Type parameters: single uppercase letters or short descriptive: `T`, `S`, `ElType`
-- âŠ— Prefixing types with `Abstract` â€” use `Abstract` as a prefix for abstract types only
+- ⊗ Prefixing types with `Abstract` — use `Abstract` as a prefix for abstract types only
 
 ### Type System
 - ! Use abstract types to define interfaces and hierarchies
@@ -51,14 +51,14 @@ See [testing.md](../coding/testing.md).
 - ! Annotate function arguments with types for public API (dispatch + documentation)
 - ! Use `Union{T, Nothing}` instead of sentinel values for optional data
 - ~ Use `Val{x}` for compile-time dispatch on values
-- â‰‰ Over-constraining argument types â€” accept the broadest useful type
-- â‰‰ Type annotations on local variables (let inference work)
+- ≉ Over-constraining argument types — accept the broadest useful type
+- ≉ Type annotations on local variables (let inference work)
 
 ### Multiple Dispatch
 - ! Design functions around multiple dispatch: define methods for different type combinations
 - ! Keep method signatures specific; avoid `::Any` arguments in exported functions
 - ! Use dispatch instead of `if typeof(x) == ...` branches
-- âŠ— Type piracy (adding methods to types you don't own for functions you don't own)
+- ⊗ Type piracy (adding methods to types you don't own for functions you don't own)
 - ~ Use trait-based dispatch patterns for interface polymorphism
 
 ### Performance
@@ -68,8 +68,8 @@ See [testing.md](../coding/testing.md).
 - ! Use `@views` for array slicing to avoid copies
 - ~ Use `@inbounds` only after bounds-checking correctness is verified
 - ~ Profile with `@time`, `@allocated`, `BenchmarkTools.@btime`
-- â‰‰ Abstract-typed containers (`Vector{Any}`) in performance-critical code
-- âŠ— Type-unstable code in inner loops
+- ≉ Abstract-typed containers (`Vector{Any}`) in performance-critical code
+- ⊗ Type-unstable code in inner loops
 
 ### Modules & Packages
 - ! One module per package; module name matches package name
@@ -77,13 +77,13 @@ See [testing.md](../coding/testing.md).
 - ! Use `Pkg.jl` for dependency management; `Project.toml` + `Manifest.toml`
 - ! Specify compat bounds in `Project.toml` for all dependencies
 - ~ Use submodules for large packages
-- âŠ— `using PackageName` in package code â€” use `import` or qualified access
+- ⊗ `using PackageName` in package code — use `import` or qualified access
 
 ### Error Handling
 - ! Use exceptions (`throw`, `error`) for exceptional conditions
 - ! Define custom exception types inheriting from `Exception`
 - ! Use `try`/`catch`/`finally` with specific exception types
-- âŠ— Catching `Exception` broadly without rethrowing
+- ⊗ Catching `Exception` broadly without rethrowing
 - ~ Use return values (`nothing`, `Union{T, Nothing}`) for expected missing data
 
 ### Reproducibility
@@ -93,7 +93,7 @@ See [testing.md](../coding/testing.md).
 - ~ Use DrWatson.jl for scientific project management
 
 ### Security
-- âŠ— Hardcode secrets or credentials in source
+- ⊗ Hardcode secrets or credentials in source
 - ! Validate all external inputs (file paths, user data, network)
 - ~ Use environment variables for secrets (`ENV["API_KEY"]`)
 
@@ -113,7 +113,7 @@ See [commands.md](./commands.md).
 struct Circle radius::Float64 end
 struct Rectangle width::Float64; height::Float64 end
 
-area(c::Circle) = Ï€ * c.radius^2
+area(c::Circle) = π * c.radius^2
 area(r::Rectangle) = r.width * r.height
 ```
 
@@ -121,7 +121,7 @@ area(r::Rectangle) = r.width * r.height
 ```julia
 using Test
 @testset "area" begin
-    @test area(Circle(1.0)) â‰ˆ Ï€
+    @test area(Circle(1.0)) ≈ π
     @test area(Rectangle(3.0, 4.0)) == 12.0
     @inferred area(Circle(1.0))  # type stability
 end
@@ -155,21 +155,21 @@ end
 
 ## Anti-Patterns
 
-Items marked âŠ— in Standards above are not repeated here.
+Items marked ⊗ in Standards above are not repeated here.
 
-- â‰‰ **Over-constrained argument types**: Accept broadest useful type
-- â‰‰ **`eval`/`@eval` at runtime**: Prefer compile-time metaprogramming
-- â‰‰ **Non-`const` globals**: Forces runtime type checks
-- â‰‰ **Array slicing without `@views`**: Creates unnecessary copies
+- ≉ **Over-constrained argument types**: Accept broadest useful type
+- ≉ **`eval`/`@eval` at runtime**: Prefer compile-time metaprogramming
+- ≉ **Non-`const` globals**: Forces runtime type checks
+- ≉ **Array slicing without `@views`**: Creates unnecessary copies
 
 ## Compliance Checklist
 
 - ! Docstrings on all exported functions/types with examples
 - ! See [testing.md](../coding/testing.md) for testing requirements
-- ! `Test` stdlib + Aqua.jl; â‰¥80% coverage
+- ! `Test` stdlib + Aqua.jl; ≥80% coverage
 - ! JuliaFormatter + JET.jl enforced
 - ! Julia style guide; `snake_case` functions; `!` suffix for mutating
 - ! Type-stable code; verified with `@code_warntype`
 - ! Compat bounds in `Project.toml` for all dependencies
-- âŠ— Type piracy, type-unstable loops, `Vector{Any}`, `using` in packages
+- ⊗ Type piracy, type-unstable loops, `Vector{Any}`, `using` in packages
 - ! Run `task check` before commit

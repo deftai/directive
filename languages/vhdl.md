@@ -1,8 +1,8 @@
 # VHDL Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 ## Standards
 
@@ -12,7 +12,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, 
 - ! All sequential logic uses the same clock edge (rising_edge preferred)
 - ! Use clock enables instead of gated clocks for different timing domains
 - ! Generate all enables inside a process of a clock edge
-- âŠ— Divide clocks internally; use PLL/MMCM for clock generation
+- ⊗ Divide clocks internally; use PLL/MMCM for clock generation
 - ~ Use dedicated clock resources (BUFG, BUFR) for clock distribution
 - ~ When CDC is unavoidable, use dual-flop synchronizers or async FIFOs
 
@@ -20,14 +20,14 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, 
 
 - ! Use synchronous reset for all registers
 - ~ Active-high reset naming: `rst`; active-low: `rst_n`
-- âŠ— Mix synchronous and asynchronous resets in the same design
+- ⊗ Mix synchronous and asynchronous resets in the same design
 - ? Initialize flip-flops at declaration for FPGAs (avoids reset logic)
 
 ### Packages & Libraries
 
 - ! Use `ieee.std_logic_1164` for logic types
 - ! Use `ieee.numeric_std` for arithmetic (never `std_logic_arith`/`std_logic_unsigned`)
-- âŠ— Use non-IEEE packages for synthesizable code
+- ⊗ Use non-IEEE packages for synthesizable code
 
 ### Signal Naming
 
@@ -42,8 +42,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, 
 - ! Separate behavioral RTL from structural code (different architectures)
 - ~ Use two-process coding style: one combinational, one sequential
 - ! Every process has a descriptive label and header comment
-- âŠ— Create latches; all if/case branches must assign all signals
-- âŠ— Create combinational feedback loops
+- ⊗ Create latches; all if/case branches must assign all signals
+- ⊗ Create combinational feedback loops
 - ~ Use variables sparingly in synthesizable code; prefer signals
 - ! Variables in functions are acceptable
 
@@ -51,13 +51,13 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, 
 
 - ! Use `std_logic` for single-bit ports, `std_logic_vector` for buses
 - ~ Declare vector ranges consistently (`downto` for data, `to` for arrays)
-- â‰‰ Use `inout` mode except at top-level I/O pads
+- ≉ Use `inout` mode except at top-level I/O pads
 - ! Use `open` explicitly for unconnected output ports
 
 ### Instantiation
 
 - ! Use named port maps (not positional) for all instantiations
-- ? Use positional generic maps only if â‰¤2 generics
+- ? Use positional generic maps only if ≤2 generics
 - ~ Use direct entity instantiation over component declarations
 
 ### State Machines
@@ -70,7 +70,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, 
 ### Operators & Expressions
 
 - ~ Avoid VHDL-93 rotate/shift operators; use slices & concatenation
-- âŠ— Multiply Signed/Unsigned directly by Integer (use type conversion)
+- ⊗ Multiply Signed/Unsigned directly by Integer (use type conversion)
 - ~ Use parentheses to clarify operator precedence
 
 ### Documentation
@@ -90,8 +90,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, 
 
 ### Synthesis & Implementation
 
-- âŠ— Use internal tristates; tristate only at I/O pads
-- âŠ— Rely on initial values in ASIC flows (use reset)
+- ⊗ Use internal tristates; tristate only at I/O pads
+- ⊗ Rely on initial values in ASIC flows (use reset)
 - ~ Place timing-critical logic in dedicated DSP/BRAM resources
 - ~ Use synthesis attributes (`keep`, `async_reg`) when needed
 
@@ -106,7 +106,7 @@ task quality            # All quality checks
 task check              # Pre-commit (lint + sim)
 ```
 
-## ðŸ”§ Patterns
+## 🔧 Patterns
 
 **Two-Process FSM**:
 

@@ -1,8 +1,8 @@
 # Kotlin Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: Kotlin 2.0+; Build: Gradle (Kotlin DSL); Testing: JUnit 5 + kotest; Lint: detekt; Format: ktfmt/ktlint; Docs: KDoc
 
@@ -24,7 +24,7 @@ See [testing.md](../coding/testing.md).
 - ~ Use kotest property-based testing for algorithmic code
 
 ### Coverage
-- ! â‰¥80% coverage (measured via JaCoCo or Kover)
+- ! ≥80% coverage (measured via JaCoCo or Kover)
 - ! Count src/main/kotlin/**
 - ! Exclude entry points, generated code, DI configuration
 
@@ -33,23 +33,23 @@ See [testing.md](../coding/testing.md).
 - ! Use detekt for static analysis (project `detekt.yml` checked in)
 - ! Use ktfmt or ktlint for formatting
 - ! 4-space indentation, no tabs
-- ! Line length â‰¤120 characters
+- ! Line length ≤120 characters
 
 ### Naming Conventions
 - ! `camelCase` for functions, properties, local variables, parameters
 - ! `PascalCase` for classes, interfaces, objects, type aliases, enums
 - ! `SCREAMING_SNAKE_CASE` for `const val` and compile-time constants
 - ! `camelCase` for enum values (Kotlin convention) or `SCREAMING_SNAKE_CASE` if Java-interop heavy
-- ! Prefix backing properties with `_`: `private val _items` â†’ `val items`
-- âŠ— Hungarian notation or type prefixes (`strName`, `iCount`)
+- ! Prefix backing properties with `_`: `private val _items` → `val items`
+- ⊗ Hungarian notation or type prefixes (`strName`, `iCount`)
 
 ### Null Safety
 - ! Use Kotlin's type system: `T` for non-null, `T?` for nullable
 - ! Prefer safe calls (`?.`) and Elvis (`?:`) over `!!`
-- âŠ— `!!` (non-null assertion) in production code without precondition check
+- ⊗ `!!` (non-null assertion) in production code without precondition check
 - ! Use `requireNotNull()` / `checkNotNull()` with descriptive messages
 - ~ Use `let`/`also`/`run` scoping functions for null-safe chaining
-- â‰‰ Platform types (`T!`) leaking into public API â€” annotate explicitly
+- ≉ Platform types (`T!`) leaking into public API — annotate explicitly
 
 ### Idiomatic Kotlin
 - ! Use data classes for value objects (immutable DTOs)
@@ -58,16 +58,16 @@ See [testing.md](../coding/testing.md).
 - ! Use extension functions to add behavior without inheritance
 - ! Use `val` (immutable) by default; `var` only when mutation is required
 - ! Use scope functions (`let`, `apply`, `with`, `run`, `also`) appropriately
-- âŠ— Java-style getters/setters â€” use Kotlin properties
-- â‰‰ `companion object` as a dumping ground â€” extract to top-level or utility
+- ⊗ Java-style getters/setters — use Kotlin properties
+- ≉ `companion object` as a dumping ground — extract to top-level or utility
 
 ### Coroutines & Concurrency
 - ! Use structured concurrency: `coroutineScope`, `supervisorScope`
 - ! Never launch unstructured coroutines (`GlobalScope.launch`)
 - ! Use `Dispatchers.IO` for I/O, `Dispatchers.Default` for CPU
 - ! Use `Flow` for reactive streams; `StateFlow`/`SharedFlow` for state
-- âŠ— `GlobalScope` â€” always use a structured scope
-- âŠ— `runBlocking` in production code (except at top-level entry points)
+- ⊗ `GlobalScope` — always use a structured scope
+- ⊗ `runBlocking` in production code (except at top-level entry points)
 - ~ Use `withContext` for dispatcher switching inside a coroutine
 - ~ Cancel coroutines cooperatively; check `isActive` in long computations
 
@@ -75,8 +75,8 @@ See [testing.md](../coding/testing.md).
 - ! Use exceptions for exceptional conditions; `Result` or sealed classes for expected failures
 - ! Define custom exception hierarchies for domain errors
 - ! Always catch specific exceptions, not `Exception` or `Throwable`
-- âŠ— Catching `Throwable` (swallows `CancellationException`, `OutOfMemoryError`)
-- âŠ— Empty catch blocks
+- ⊗ Catching `Throwable` (swallows `CancellationException`, `OutOfMemoryError`)
+- ⊗ Empty catch blocks
 - ~ Use `runCatching` for functional error handling where appropriate
 
 ### Dependencies
@@ -84,7 +84,7 @@ See [testing.md](../coding/testing.md).
 - ! Pin dependency versions via version catalogs (`libs.versions.toml`)
 - ! Minimize transitive dependencies; use `implementation` not `api` by default
 - ~ Use `dependencyUpdates` plugin for version management
-- âŠ— `compile` (deprecated) â€” use `implementation` or `api`
+- ⊗ `compile` (deprecated) — use `implementation` or `api`
 
 ### Interop (Java)
 - ! Annotate public API with `@JvmStatic`, `@JvmOverloads`, `@JvmField` where Java callers exist
@@ -92,7 +92,7 @@ See [testing.md](../coding/testing.md).
 - ~ Keep Java interop surface minimal in Kotlin-first projects
 
 ### Security
-- âŠ— Hardcode secrets or credentials in source
+- ⊗ Hardcode secrets or credentials in source
 - ! Validate all external inputs
 - ~ Use sealed classes for security-sensitive state machines (auth, permissions)
 
@@ -158,20 +158,20 @@ fun <T> List<T>.secondOrNull(): T? = if (size >= 2) this[1] else null
 
 ## Anti-Patterns
 
-Items marked âŠ— in Standards above are not repeated here.
+Items marked ⊗ in Standards above are not repeated here.
 
-- â‰‰ **`var` by default**: Use `val`; mutate only when necessary
-- â‰‰ **`companion object` as dumping ground**: Use top-level functions
-- â‰‰ **`if-else` for sealed dispatch**: Use exhaustive `when`
-- â‰‰ **String templates in logging**: Use parameterized logging
+- ≉ **`var` by default**: Use `val`; mutate only when necessary
+- ≉ **`companion object` as dumping ground**: Use top-level functions
+- ≉ **`if-else` for sealed dispatch**: Use exhaustive `when`
+- ≉ **String templates in logging**: Use parameterized logging
 
 ## Compliance Checklist
 
 - ! KDoc on all public API
 - ! See [testing.md](../coding/testing.md) for testing requirements
-- ! JUnit 5 or kotest; â‰¥80% coverage via Kover/JaCoCo
+- ! JUnit 5 or kotest; ≥80% coverage via Kover/JaCoCo
 - ! detekt + ktfmt/ktlint configured and enforced
 - ! Kotlin coding conventions; null safety via type system
 - ! Structured concurrency; no `GlobalScope`
-- âŠ— `!!`, `GlobalScope`, catching `Throwable`, empty catches, `var` by default
+- ⊗ `!!`, `GlobalScope`, catching `Throwable`, empty catches, `var` by default
 - ! Run `task check` before commit

@@ -1,8 +1,8 @@
 # JavaScript Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
 
 **Stack**: ES2022+, Node 20+; Build: Vite/esbuild; Testing: Vitest/Jest; Lint: ESLint + Prettier; Web: React/Next.js
 
@@ -22,7 +22,7 @@ See [testing.md](../coding/testing.md).
 - Files: `*.spec.js` or `*.test.js`
 
 ### Coverage
-- ! â‰¥85% coverage
+- ! ≥85% coverage
 - ! Count src/\*
 - ! Exclude entry points, scripts, generated code, config files
 
@@ -32,37 +32,37 @@ See [testing.md](../coding/testing.md).
 - ~ Prefer ESM (`import`/`export`) over CommonJS (`require`/`module.exports`)
 
 ### Types & Safety
-- ! Use `===` / `!==`; âŠ— `==` / `!=` (type coercion bugs)
-- ! Use `const` by default; `let` when reassignment needed; âŠ— `var`
+- ! Use `===` / `!==`; ⊗ `==` / `!=` (type coercion bugs)
+- ! Use `const` by default; `let` when reassignment needed; ⊗ `var`
 - ! Use template literals over string concatenation
 - ~ Use optional chaining (`?.`) and nullish coalescing (`??`)
-- âŠ— Rely on implicit type coercion for logic (truthiness traps)
+- ⊗ Rely on implicit type coercion for logic (truthiness traps)
 - ~ Use JSDoc + `// @ts-check` for type-checked JavaScript when TS is not available
 
 ### Error Handling
 - ! Use `try..catch` for async operations; always handle promise rejections
 - ! Throw `Error` instances (or subclasses), not strings or plain objects
-- âŠ— Swallow errors (empty catch blocks)
+- ⊗ Swallow errors (empty catch blocks)
 - ~ Create domain-specific error classes extending `Error`
-- ~ Use `.catch()` or `try..catch` with `await`; âŠ— unhandled promise rejections
+- ~ Use `.catch()` or `try..catch` with `await`; ⊗ unhandled promise rejections
 
 ### Async
 - ! Use `async`/`await` over raw Promises/callbacks for readability
 - ! Handle all promise rejections
-- âŠ— Mix callbacks and promises in the same API
-- âŠ— Use `new Promise()` when `async`/`await` suffices (promise constructor anti-pattern)
+- ⊗ Mix callbacks and promises in the same API
+- ⊗ Use `new Promise()` when `async`/`await` suffices (promise constructor anti-pattern)
 - ~ Use `AbortController` / `AbortSignal` for cancellable operations
 - ~ Use `Promise.allSettled()` when partial failures are acceptable
 
 ### Modules & Imports
 - ! One module per file; name file after the primary export
 - ! Use named exports for most cases; default exports for React components / main entry
-- âŠ— Circular imports
-- ~ Use barrel files (`index.js`) sparingly â€” only for public API surfaces
+- ⊗ Circular imports
+- ~ Use barrel files (`index.js`) sparingly — only for public API surfaces
 
 ### Security
-- âŠ— Use `eval()`, `Function()`, or `innerHTML` with untrusted data
-- âŠ— Hardcode secrets in source
+- ⊗ Use `eval()`, `Function()`, or `innerHTML` with untrusted data
+- ⊗ Hardcode secrets in source
 - ! Sanitize/validate all external input
 - ~ Use Content Security Policy (CSP) headers in web applications
 
@@ -127,11 +127,11 @@ const activeEmails = users.filter(u => u.active).map(u => u.email);
 
 ## Anti-Patterns
 
-Items marked âŠ— in Standards above are not repeated here.
+Items marked ⊗ in Standards above are not repeated here.
 
-- â‰‰ **`for...in` on arrays**: Use `for...of` or array methods
-- â‰‰ **Barrel re-exports everywhere**: Hurts tree-shaking
-- â‰‰ **God modules**: Keep files <300 lines
+- ≉ **`for...in` on arrays**: Use `for...of` or array methods
+- ≉ **Barrel re-exports everywhere**: Hurts tree-shaking
+- ≉ **God modules**: Keep files <300 lines
 
 ## Compliance Checklist
 
@@ -140,5 +140,5 @@ Items marked âŠ— in Standards above are not repeated here.
 - ! ESLint + Prettier configured and enforced
 - ! `const`/`let` only; `===`/`!==` only
 - ! All promises handled; `async`/`await` for I/O
-- âŠ— `var`, `eval()`, loose equality, unhandled rejections
+- ⊗ `var`, `eval()`, loose equality, unhandled rejections
 - ! Run `task check` before commit
