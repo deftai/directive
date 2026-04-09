@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.14.0] - 2026-04-08
+### Changed
+- **Roadmap Refresh (2026-04-09)**: Triaged 6 issues -- #221 (deft-roadmap-refresh explicit row format template, Phase 2), #226 (deft-rwldl rename + auto-suggestion triggers, Phase 2), #233 (More Determinism full initiative, Phase 5), #234 (README artifacts section, Phase 2); filed #235 as Phase 3 split-off from #233 (toolchain:check + changelog:check); filed #236/#237/#238 to Phase 1 (#236: Get-Content -Raw UTF-8 footgun + BOM-safe round-trip for PS 5.1; #237: ROADMAP.md em-dash migration to unblock edit_files; #238: roadmap-refresh batch changelog line fix); analysis comments posted
+
+## [0.14.0]
 
 ### Added
 - **meta/philosophy.md -- deterministic > probabilistic design principle** (#159, t2.7.7): Created `meta/philosophy.md` documenting the "prefer deterministic components for repeatable actions" design principle -- definition, rationale, examples (Taskfile tasks, spec_validate.py, CI workflows), and scope note deferring broad application to Phase 5; referenced from `contracts/hierarchy.md` See also banner

@@ -12,6 +12,12 @@ Fix reported bugs and UX problems blocking adoption.
 
 ### Cleanup
 
+- **#236** -- fix(docs): document Get-Content -Raw UTF-8 footgun and BOM-safe round-trip pattern for PS 5.1 -- add ! rules to scm/github.md PS 5.1 section; prevents silent em-dash mojibake and BOM injection when agents read/write files on Windows
+- **#237** -- chore(docs): migrate ROADMAP.md existing em-dashes to ASCII `--` to enable `edit_files` on Windows (one-time migration; unblocks all future ROADMAP.md edits without PowerShell fallback)
+- **#238** -- fix(skill): deft-roadmap-refresh should write one batch changelog line at end of full triage session, not one per issue; add anti-pattern to skill
+- **#239** -- fix(workflow): add mandatory pre-commit file review step to catch encoding, duplication, and structural issues before PR (deft-roadmap-refresh Phase 4 pre-flight + deft-build checklist)
+- **#240** -- fix(docs): document multi-line PS string literal Warp terminal block splitting -- always use temp file; add rule to scm/github.md + meta/lessons.md entry
+- **#241** -- fix(docs): add blocker carve-out to main.md instant-fix drift rule -- blocking discoveries are in-scope with mandatory issue filing (addresses ambiguity in #198)
 
 ---
 
@@ -54,6 +60,9 @@ Quick doc/content fixes that don't require code changes.
 - **#114** — Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`
 - **#136** — Warp doesn't load deft's AGENTS.md by default — document global rule workaround in README/installer output; real fix is Warp platform feature request (to be done with #114)
 - **#194** — User-facing best practices guide (`docs/best-practices.md`) — Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
+- **#221** — deft-roadmap-refresh skill: add explicit row format template (`| #NNN | title | Phase |`) and anti-pattern to Phase 2 Step 4 to prevent recurring double-pipe `||` index entries
+- **#226** — refactor: rename `deft-rwldl` skill to remove acronym collision with Wiggum quality loop; add auto-suggestion trigger to AGENTS.md Development Process section
+- **#234** -- docs: README should document where user artifacts are stored in a consumer project (`./vbrief/`, `SPECIFICATION.md`, `PROJECT.md`, `USER.md`, `./deft/`)
 
 ---
 
@@ -68,6 +77,7 @@ Quick doc/content fixes that don't require code changes.
 - **#163** — Enforce USER.md gate in CLI path — parity with agentic (skills) path
   - `cmd_spec` and `cmd_project` should check for USER.md at entry; if absent, warn and redirect to `run bootstrap`
   - Skills path already done (deft-build); this covers the CLI fallback path only
+- **#235** -- feat(tasks): add task toolchain:check and task changelog:check as task check deps (split from #233; no dependency on tasks/ restructure)
 - Code signing for installer binaries (Windows Authenticode, macOS Developer ID + notarisation)
 - Low-end LLM compatibility testing
   - Validate installer and agent process (deft-setup, deft-build) on small/quantised models (e.g. Qwen3-9B)
@@ -117,6 +127,7 @@ Larger feature work — only after issues are resolved and content is stable.
 - **#140** — Automatically check for updates to cloned repos in a project — detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)
 - **#160** — Consider TypeScript instead of Python for `run` CLI — architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118)
 - **#212** -- discussion: Process control belongs in Directive -- universal process principles (review cycle, parallel work, batch-fix) as first-class Directive content; skills become tool-specific adapters; explicitly DO NOT IMPLEMENT until team decision reached (xrefs #89, #147, #194, #159)
+- **#233** -- More Determinism: full initiative -- Phase 0 spec scaffolding (generated per-phase task gates), tasks/ directory restructure (monolithic Taskfile -> modular includes), task doctor, and remaining deterministic enforcement tasks (verify:stubs, build:verify, change:init, change:archive, validate:links, commit:lint); implementation layer for meta/philosophy.md #159; early-win subset split to #235 (Phase 3)
 - LLM-assisted content validation
 - Self-upgrade to Deft Directive product (branding, public docs, distribution packaging)
 
@@ -345,6 +356,17 @@ Larger feature work — only after issues are resolved and content is stable.
 | ~~#217~~ | ~~pyproject.toml dev deps breaks task check in fresh worktrees~~ | completed -- v0.13.0 |
 | ~~#182~~ | ~~Add skills/deft-rwldl/SKILL.md -- iterative pre-PR quality improvement loop~~ | completed -- v0.13.0 |
 | ~~#170~~ | ~~Move ROADMAP.md updates from merge-time to release-time~~ | completed — v0.10.3 |
+| #221 | deft-roadmap-refresh skill: explicit table row format to prevent double-pipe index entries | 2 |
+| #226 | refactor: rename deft-rwldl skill to remove acronym collision and add auto-suggestion triggers | 2 |
+| #233 | More Determinism: full deterministic task initiative (Phase 0, tasks/ restructure, doctor, etc.) | 5 |
+| #234 | docs: README should document where user artifacts are stored in a consumer project | 2 |
+| #235 | feat(tasks): toolchain:check + changelog:check as task check deps (split from #233) | 3 |
+| #236 | fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip pattern for PS 5.1 | 1 |
+| #237 | chore(docs): migrate ROADMAP.md existing em-dashes to ASCII -- to enable edit_files on Windows | 1 |
+| #238 | fix(skill): deft-roadmap-refresh batch changelog line at session end, not per-issue | 1 |
+| #239 | fix(workflow): mandatory pre-commit file review step -- encoding, duplication, structural checks before PR | 1 |
+| #240 | fix(docs): multi-line PS string literal Warp block splitting -- use temp file rule + lessons.md | 1 |
+| #241 | fix(docs): main.md instant-fix drift rule -- add blocker carve-out with mandatory issue filing | 1 |
 
 ---
 
@@ -388,4 +410,5 @@ Larger feature work — only after issues are resolved and content is stable.
 *Updated 2026-04-06 — roadmap refresh: triaged #194 (Phase 2), #195 (Phase 2), #196 (Phase 2), #197 (Phase 2, absorbs #201), #198 (Phase 1), #199 (Phase 1), #200 (Phase 1); promoted #188 Phase 2→Phase 1; closed #201 (absorbed by #197); moved #166 to Completed; updated #147 title/body for expanded scope; added #202 (ASCII convention for machine-editable sections, Phase 2)*
 *Updated 2026-04-06 -- v0.12.1 release: moved #116 (installer path consistency), #167 (PR merge hygiene), #84 Phase 1 (Deft as teacher Phase 1 complete) to Completed; added CONTRIBUTING.md (t2.3.1)*
 *Updated 2026-04-07 -- roadmap refresh triage: added #217 to Phase 1 Adoption Blockers (pyproject.toml dev deps breaks task check in fresh worktrees; swarm adoption blocker), #218 to Phase 1 Adoption Blockers (swarm release decision checkpoint), #207 to Phase 2 (Greptile re-review latency on swarm merge cascade), #219 to Phase 2 (README.md stale content), #212 to Phase 5 (process control in Directive -- discussion only); cleanup: struck through #184/#188/#191/#192/#199 in index (completed v0.12.0), removed duplicate bare #198, added #182 description*
+*Updated 2026-04-09 -- roadmap refresh triage: added #221, #226, #234 to Phase 2; #235 to Phase 3; #233 to Phase 5 (More Determinism); filed #235 as split-off from #233; filed #236/#237/#238/#239 to Phase 1 (#236: Get-Content -Raw footgun; #237: ROADMAP.md em-dash migration; #238: roadmap-refresh batch changelog; #239: mandatory pre-commit file review; #240: multi-line PS string Warp block splitting; #241: main.md blocker carve-out for instant-fix rule); analysis comments posted*
 *Updated 2026-04-08 -- v0.14.0 release: moved #57 (CI workflow), #81 (BDD strategy), #134 (alignment confirmation), #146 (deft-sync skill), #159 (philosophy.md), #168 (roadmap-refresh transparency), #174 (roadmap-refresh PR phase), #195 (review-cycle tiered polling), #196 (roadmap-refresh cleanup convention) to Completed; removed from phase bodies; struck through in Open Issues Index*
