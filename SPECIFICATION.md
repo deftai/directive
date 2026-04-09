@@ -366,7 +366,18 @@ Add Phase 0 — Analyze to skills/deft-swarm/SKILL.md before Phase 1 (Select). T
 - Anti-patterns section contains entry prohibiting proceeding to Phase 1 without Phase 0 completion
 - tests/content/test_skills.py passes
 
-**Traces**: #199
+**Traces**: #241
+
+## t1.12.2: Strengthen batch-fix enforcement in deft-review-cycle (#250)  `[completed]`
+
+Agents push one fix commit per Greptile finding instead of batching all findings into a single commit, causing N re-review cycles instead of 1. Add explicit pre-commit gate to Phase 2 Step 3 requiring full review re-read before committing. Add anti-patterns against per-finding fix commits. Closes #250.
+
+- skills/deft-review-cycle/SKILL.md Phase 2 Step 3 contains ! pre-commit gate requiring full Greptile review re-read before committing fixes
+- Anti-Patterns section contains ⊗ entry: push a fix commit that addresses fewer findings than the current review surfaces
+- Anti-Patterns section contains ⊗ entry: push after fixing a P1 without checking for additional P0 or P1 findings in the same review
+- tests/content/test_skills.py passes
+
+**Traces**: #250
 
 ## t2.1.1: Update all stale core/user.md and core/project.md references to canonical paths (FR-13)  `[pending]`
 

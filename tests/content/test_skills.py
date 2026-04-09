@@ -754,3 +754,33 @@ def test_deft_roadmap_refresh_exit_chaining_instructions() -> None:
     assert "exiting skill" in text.lower() and "chaining instructions" in text.lower(), (
         f"{_ROADMAP_REFRESH_PATH}: EXIT block must provide chaining instructions (#243, t1.11.5)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 26. deft-review-cycle batch-fix enforcement (#250, t1.12.2)
+# ---------------------------------------------------------------------------
+
+
+def test_deft_review_cycle_precommit_gate() -> None:
+    """Phase 2 Step 3 must require full review re-read before committing."""
+    text = _read_skill(_REVIEW_CYCLE_PATH)
+    assert "re-read the full current greptile review" in text.lower(), (
+        f"{_REVIEW_CYCLE_PATH}: Step 3 must have pre-commit gate requiring "
+        "full review re-read (#250, t1.12.2)"
+    )
+
+
+def test_deft_review_cycle_partial_fix_antipattern() -> None:
+    """Anti-patterns must prohibit fix commits addressing fewer findings than review surfaces."""
+    text = _read_skill(_REVIEW_CYCLE_PATH)
+    assert "fewer findings than the current greptile review surfaces" in text.lower(), (
+        f"{_REVIEW_CYCLE_PATH}: must have anti-pattern against partial fix commits (#250, t1.12.2)"
+    )
+
+
+def test_deft_review_cycle_unchecked_p1_antipattern() -> None:
+    """Anti-patterns must prohibit pushing after fixing P1 without checking for more findings."""
+    text = _read_skill(_REVIEW_CYCLE_PATH)
+    assert "push after fixing a p1 without first checking" in text.lower(), (
+        f"{_REVIEW_CYCLE_PATH}: must have anti-pattern against unchecked P1 fix (#250, t1.12.2)"
+    )
