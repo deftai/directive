@@ -9,6 +9,8 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
 
+- **#256** -- `--body-file` temp file writes to worktree + `rm` denylist collision: agents blocked on `rm pr-body.md` approval during swarm run; fix: write to OS temp directory, no explicit `rm` needed (t1.13.2)
+- **#261 + #263** -- Swarm monitor Phase 5 skip + crash recovery: monitor bypassed Phase 5->6 gate under context pressure and merged untested code into master; separate crash at message ~158 left merge cascade in ambiguous state; both root-caused to long-context conversation corruption (t1.13.1, bundles both issues)
 
 ### Cleanup
 
@@ -46,7 +48,8 @@ Quick doc/content fixes that don't require code changes.
 - ~~Write remaining CHANGELOG entries~~ -- tracked by #71 (Phase 1)
 - **#112** -- External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship
 - **#114** -- Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`
-- **#136** -- Warp doesn't load deft's AGENTS.md by default -- document global rule workaround in README/installer output; real fix is Warp platform feature request (to be done with #114)
+- **#258** -- Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)
+- **#136** -- Warp doesn't load deft's AGENTS.md by default
 - **#194** -- User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
 
 ---
@@ -374,6 +377,10 @@ Larger feature work -- only after issues are resolved and content is stable.
 | ~~#251~~ | ~~deft-build + deft-rwldl: semantic contradiction check when adding ! or ⊗ rules~~ | completed -- v0.14.2 |
 | #228 | Bring run CLI into test coverage measurement (confirm #160 before implementing) | 3 |
 | ~~#248~~ | ~~roadmap-refresh + swarm Phase 0 spec task scaffolding~~ | completed -- v0.15.0 |
+| #258 | docs(warp): inventory Warp Drive global rules used for deft directive development | 2 |
+| #256 | fix(docs): use system temp directory for --body-file to avoid rm denylist collision | 1 |
+| #261 | bug(swarm): monitor skips Phase 5 and slam-merges untested code into main | 1 |
+| #263 | chore(swarm): monitor crash during multi-PR merge -- add checkpoint/recovery resilience | 1 |
 
 ---
 
@@ -423,3 +430,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-09 -- roadmap refresh triage: added #228 (run CLI test coverage, Phase 3 -- confirm #160 before implementing), #248 (spec task coverage gap in roadmap refresh, Phase 2 -- strengthen swarm Phase 0); analysis comments posted*
 *Updated 2026-04-09 -- v0.14.2 release: moved #249 (swarm rebase monitoring), #250 (batch-fix enforcement), #251 (semantic contradiction check) to Completed; Phase 1 Cleanup now empty*
 *Updated 2026-04-09 -- v0.15.0 release: moved #51 (stale refs purge + strategy stubs + getting-started), #221 (row format template), #226 (deft-rwldl rename), #234 (README artifacts), #248 (spec task scaffolding) to Completed; struck through in Open Issues Index; removed from Phase 2 body*
+*Updated 2026-04-09 -- roadmap refresh triage: added #261 + #263 (Phase 1, t1.13.1), #256 (Phase 1, t1.13.2), #258 (Phase 2, t2.9.1); analysis comments posted on all 4 issues*
