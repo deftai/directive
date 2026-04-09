@@ -34,6 +34,12 @@ When all config exists: read the guidelines, your USER.md preferences, and PROJE
 
 Note: A true UI indicator (e.g. Warp status bar) is deferred to Phase 5. This is a behavioral rule only.
 
+## Skill Completion Gate
+
+! When a skill's final step is complete, explicitly confirm skill exit and provide chaining instructions if applicable. The confirmation must be unambiguous -- for example: "{skill-name} complete -- exiting skill." followed by what the user/agent should do next (e.g. wait for PR review, return to monitor, chain into another skill).
+
+⊗ Exit a skill silently without confirming completion or providing next-step instructions.
+
 ## Before Improvising
 
 - ! Before designing a multi-step workflow from scratch, scan `skills/` for an existing skill that covers the task — skills are versioned, tested, and encode lessons from prior runs
@@ -44,8 +50,8 @@ Note: A true UI indicator (e.g. Warp status bar) is deferred to Phase 5. This is
 When user input matches a trigger keyword, read the corresponding skill:
 
 - "review cycle" / "check reviews" / "run review cycle" → `skills/deft-review-cycle/SKILL.md`
-- "swarm" / "parallel agents" / "run agents" → `skills/deft-swarm/SKILL.md`
-- "roadmap refresh" / "triage" / "refresh roadmap" → `skills/deft-roadmap-refresh/SKILL.md`
+- "swarm" / "parallel agents" / "run agents" → `skills/deft-swarm/SKILL.md` — chains to `deft-review-cycle` at Phase 5
+- "roadmap refresh" / "triage" / "refresh roadmap" → `skills/deft-roadmap-refresh/SKILL.md` — chains to `deft-review-cycle` at exit
 - "build" / "implement" / "implement spec" → `skills/deft-build/SKILL.md`
 - "setup" / "bootstrap" / "onboard" → `skills/deft-setup/SKILL.md`
 - "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" → `skills/deft-sync/SKILL.md`

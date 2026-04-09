@@ -854,7 +854,7 @@ Warp terminal splits multi-line PowerShell string literals (here-strings) across
 
 **Traces**: #240
 
-## t1.11.3: deft-roadmap-refresh: write one batch changelog line at end of full triage session (#238)  `[pending]`
+## t1.11.3: deft-roadmap-refresh: write one batch changelog line at end of full triage session (#238)  `[completed]`
 
 deft-roadmap-refresh currently adds one CHANGELOG.md entry per issue triaged, producing verbose noise. Change to one batch entry at the end of the full triage session summarizing all issues triaged. Add anti-pattern. Closes #238.
 
@@ -864,7 +864,7 @@ deft-roadmap-refresh currently adds one CHANGELOG.md entry per issue triaged, pr
 
 **Traces**: #238
 
-## t1.11.4: Add mandatory pre-commit file review step to deft-roadmap-refresh and deft-build (#239)  `[pending]`
+## t1.11.4: Add mandatory pre-commit file review step to deft-roadmap-refresh and deft-build (#239)  `[completed]`
 
 **Depends on**: t1.11.3
 
@@ -876,7 +876,7 @@ Add a mandatory pre-commit file review step to deft-roadmap-refresh Phase 4 pre-
 
 **Traces**: #239
 
-## t1.11.5: Add skill completion gate to prevent missing chaining instructions at skill exit (#243)  `[pending]`
+## t1.11.5: Add skill completion gate to prevent missing chaining instructions at skill exit (#243)  `[completed]`
 
 Skills sometimes exit without stating they are done or providing chaining instructions, leaving the agent in an undefined state. Add ! rule to AGENTS.md requiring explicit skill exit confirmation and chaining. Add EXIT block to deft-roadmap-refresh. Add chaining annotations to AGENTS.md Skill Routing table entries. Closes #243.
 
