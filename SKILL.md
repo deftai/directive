@@ -54,8 +54,8 @@ immediately — ask what to build and features as the first question.
 - ! `./PROJECT.md` — the user's project config (project root)
 - ! `./SPECIFICATION.md` or `./specs/*/SPECIFICATION.md` — the user's project spec
 - ⊗ Count ANY file inside `./deft/` as a project-level artifact — those are
-  framework-internal (e.g. `deft/PROJECT.md`, `deft/specs/`, `deft/templates/`,
-  `deft/core/project.md` are all part of the framework, NOT the user's project)
+  framework-internal (e.g. `deft/PROJECT.md`, `deft/specs/`, `deft/templates/`
+  are all part of the framework, NOT the user's project)
 
 - ⊗ Present a summary of the config and ask what the user wants to do
 - ⊗ Ask "what would you like to do" or "what are we building" — start the interview directly
@@ -90,8 +90,8 @@ specification.md   ← LOWEST precedence (requirements)
 **DO NOT** read all deft files at once. Read only what you need:
 
 1. **Always start with**: `./deft/main.md` (general guidelines)
-2. **Check for**: `./deft/core/user.md` (personal overrides - highest precedence)
-3. **Check for**: `./deft/core/project.md` (project-specific rules)
+2. **Check for**: `~/.config/deft/USER.md` (personal overrides - highest precedence)
+3. **Check for**: `./PROJECT.md` (project-specific rules)
 4. **Then read language-specific** only if working with that language:
    - `./deft/languages/python.md`
    - `./deft/languages/go.md`
@@ -159,10 +159,10 @@ deft/run spec       # Sizing gate → Light (INTERVIEW.md) or Full (PRD.md) → 
 ```
 
 **Work with existing deft project**:
-1. **First time?** If `./deft/core/user.md` doesn't exist, run `deft/run bootstrap`
+1. **First time?** If `~/.config/deft/USER.md` doesn't exist, run `deft/run bootstrap`
 2. Read `./deft/main.md` (general guidelines)
-3. Read `./deft/core/user.md` (personal preferences - highest precedence)
-4. Read `./deft/core/project.md` (project rules)
+3. Read `~/.config/deft/USER.md` (personal preferences - highest precedence)
+4. Read `./PROJECT.md` (project rules)
 5. Run `task --list` to see available tasks
 
 See `./deft/main.md` for complete workflow details.

@@ -4,7 +4,7 @@ Foundational guidelines for AI agent behavior in the Deft framework.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ Rule Precedence**: USER.md has two sections: `Personal` (always wins — name, custom rules) and `Defaults` (fallback — strategy, coverage, languages; PROJECT.md overrides these). (Override path via `DEFT_USER_PATH` env var; legacy fallback: `core/user.md`)
+**⚠️ Rule Precedence**: USER.md has two sections: `Personal` (always wins — name, custom rules) and `Defaults` (fallback — strategy, coverage, languages; PROJECT.md overrides these). (Override path via `DEFT_USER_PATH` env var; )
 
 **📋 Lazy Loading**: See [REFERENCES.md](./REFERENCES.md) for guidance on when to load which files.
 
@@ -20,7 +20,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - [main.md](../main.md) - General AI behavior (this document)
 - [coding/coding.md](./coding/coding.md) - Software development guidelines
 - `~/.config/deft/USER.md` - Personal preferences (highest precedence)
-- `./PROJECT.md` - Project-specific overrides (legacy: `core/project.md`)
+- `./PROJECT.md` - Project-specific overrides 
 
 **Coding-Specific:**
 - Languages: [languages/cpp.md](./languages/cpp.md), [languages/go.md](./languages/go.md), [languages/python.md](./languages/python.md), [languages/typescript.md](./languages/typescript.md)
@@ -131,7 +131,7 @@ See [commands.md](./commands.md) for full workflow details.
 ## Context Awareness
 
 **Project Context:**
-- ! Check [project.md](../core/project.md) for project-specific rules
+- ! Check [PROJECT.md](./PROJECT.md) for project-specific rules
 - ! Follow project-specific patterns and conventions
 - ~ Note which rules/patterns are being applied
 

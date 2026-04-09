@@ -2,7 +2,7 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: Julia 1.10+; Packages: Pkg.jl; Testing: `Test` stdlib + Aqua.jl; Docs: Documenter.jl; Format: JuliaFormatter.jl; Lint: JET.jl / Aqua.jl
 

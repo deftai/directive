@@ -11,7 +11,7 @@
 **`~/.config/deft/USER.md`** - User preferences
 - Load: Always (highest precedence, overrides everything)
 - Check for custom rules and preferences
-- Override path via `DEFT_USER_PATH` env var; legacy fallback: `core/user.md`
+- Override path via `DEFT_USER_PATH` env var
 
 **[core/glossary.md](./core/glossary.md)** - Term definitions
 - Load: When encountering unfamiliar terms (release, feature, demo sentence, context rot, etc.)
@@ -31,7 +31,7 @@
    - [languages/typescript.md](./languages/typescript.md) - When writing TypeScript/JavaScript
    - [languages/cpp.md](./languages/cpp.md) - When writing C++
 
-3. **[core/project.md](./core/project.md)** - Project-specific rules
+3. **[PROJECT.md](./PROJECT.md)** - Project-specific rules
    - Load: When unsure about project standards
    - Contains: project tech stack, coverage requirements, telemetry config
 

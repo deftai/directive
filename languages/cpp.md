@@ -2,7 +2,7 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md) | [telemetry.md](../tools/telemetry.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
 
 **Stack**: C++20/23, CMake 3.25+, Catch2/GoogleTest, GSL (Guidelines Support Library); CLI: CLI11; TUI: FTXUI; Async: Asio/libcoro
 

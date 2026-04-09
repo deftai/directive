@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Strategy stubs: rapid.md and enterprise.md** (#51, t2.8.5): Created `strategies/rapid.md` (quick prototyping workflow -- SPECIFICATION-only output, minimal gates, forced-Light path) and `strategies/enterprise.md` (compliance-heavy workflow -- PRD -> ADR -> SPECIFICATION with explicit approval gates); both have RFC2119 legend, See also banner, and full workflow structure; updated `strategies/README.md` to remove "(future)" annotations and add links; added `test_rapid_strategy_exists` and `test_enterprise_strategy_exists` to `tests/content/test_structure.py`; flipped xfail entries in `known_failures.json`
+- **docs/getting-started.md stub** (#112, t2.8.6): Created `docs/getting-started.md` with title, purpose statement, deferred-content note, and placeholder section outline (Prerequisites, Installation, First Project, Using Strategies, Agent Configuration); added `test_getting_started_exists` to `tests/content/test_structure.py`; posted confirmation comment on GitHub issue #112
+
 ### Fixed
 - **Roadmap-refresh explicit row format template** (#221, t2.8.1): Added explicit `| #NNN | title | Phase |` row format template to `skills/deft-roadmap-refresh/SKILL.md` Phase 2 Step 4 for Open Issues Index rows; added 2 anti-patterns: creating rows without the template format, and double-pipe `||` entries from omitting a column value
 - **Spec task scaffolding in roadmap-refresh and swarm Phase 0** (#248, t2.8.2): Added skeleton spec task creation step to `skills/deft-roadmap-refresh/SKILL.md` Phase 2 Step 4 -- for each newly triaged issue, create a skeleton entry in SPECIFICATION.md if none exists; added "Spec coverage" transparency note to Phase 2 Step 2 analysis output; added `!` rule to `skills/deft-swarm/SKILL.md` Phase 0 Step 2 requiring skeleton spec tasks for candidates missing spec coverage before proceeding
+- **Purge stale core/user.md and core/project.md references** (#51, t2.1.1): Updated all non-history .md files referencing legacy `core/user.md` and `core/project.md` paths to canonical locations (`~/.config/deft/USER.md` and `./PROJECT.md`); affected files include 22 language standards files, 2 platform files, `scm/git.md`, `coding/coding.md`, `meta/code-field.md`, `meta/morals.md`, `main.md`, `REFERENCES.md`, `SKILL.md`, `ROADMAP.md`, `PRD.md`, `.planning/codebase/CONCERNS.md`; flipped 3 deprecated-path xfail entries in `known_failures.json`
 
 ## [0.14.2] - 2026-04-09
 

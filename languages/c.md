@@ -2,7 +2,7 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md) | [telemetry.md](../tools/telemetry.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
 
 **Stack**: C17/C23, CMake 3.25+, clang/GCC; Testing: Unity/cmocka; Analysis: clang-tidy, cppcheck, AddressSanitizer
 

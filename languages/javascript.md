@@ -2,7 +2,7 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md) | [telemetry.md](../tools/telemetry.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
 
 **Stack**: ES2022+, Node 20+; Build: Vite/esbuild; Testing: Vitest/Jest; Lint: ESLint + Prettier; Web: React/Next.js
 

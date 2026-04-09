@@ -2,7 +2,7 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: R 4.3+, tidyverse; Packages: devtools/usethis; Testing: testthat 3; Docs: roxygen2; Lint: lintr; Style: styler
 

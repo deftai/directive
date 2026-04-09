@@ -379,7 +379,7 @@ Agents push one fix commit per Greptile finding instead of batching all findings
 
 **Traces**: #250
 
-## t2.1.1: Update all stale core/user.md and core/project.md references to canonical paths (FR-13)  `[pending]`
+## t2.1.1: Update all stale core/user.md and core/project.md references to canonical paths (FR-13)  `[completed]`
 
 Find all .md references to core/user.md and core/project.md legacy paths.
 

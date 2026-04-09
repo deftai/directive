@@ -2,7 +2,7 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: Dart 3.x+; Framework: Flutter (mobile/web) or standalone; Testing: `package:test` / `flutter_test`; Lint: `analysis_options.yaml` + custom_lint; Format: `dart format`; Docs: dartdoc
 

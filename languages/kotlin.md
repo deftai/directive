@@ -2,7 +2,7 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: Kotlin 2.0+; Build: Gradle (Kotlin DSL); Testing: JUnit 5 + kotest; Lint: detekt; Format: ktfmt/ktlint; Docs: KDoc
 

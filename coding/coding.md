@@ -6,7 +6,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 **⚠️ See also** (load only when needed):
 - [../main.md](../main.md) - General AI behavior and agent persona
-- [project.md](../core/project.md) - For project-specific overrides
+- [PROJECT.md](../PROJECT.md) - For project-specific overrides
 - [../tools/telemetry.md](../tools/telemetry.md) - When implementing logging/tracing/metrics
 
 ## Code Organization
@@ -137,7 +137,7 @@ See [../scm/git.md](../scm/git.md) for:
 
 ## Project Context
 
-- ! Check [project.md](../core/project.md) for project-specific overrides
+- ! Check [PROJECT.md](../PROJECT.md) for project-specific overrides
 - ~ Inspect project config (package.json, pyproject.toml, etc.) for available scripts
 - ! Follow project-specific testing, coverage, and quality requirements
 

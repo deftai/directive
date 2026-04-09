@@ -77,12 +77,12 @@ Deft Directive is a Markdown framework for AI agents to use when generating soft
 
 ### Phase 2 — Content Fixes
 
-- **FR-13**: All references to `core/user.md` and `core/project.md` legacy paths MUST be updated to their canonical locations (`~/.config/deft/USER.md`, `./PROJECT.md`). *(#58)*
+- **FR-13**: All references to legacy `USER.md` and `PROJECT.md` paths MUST resolve to their canonical locations (`~/.config/deft/USER.md`, `./PROJECT.md`). *(#58)*
 - **FR-14**: `history/changes/` directory MUST exist with a `README.md` documenting the change lifecycle structure. *(#59)*
 - **FR-15**: `strategies/yolo.md` MUST reference `interview.md` for shared phases (sizing gate, chaining gate, acceptance gate) rather than duplicating them. *(#23)*
 - **FR-16**: `strategies/speckit.md` MUST include a `**⚠️ See also**` cross-reference banner. *(#24)*
 - **FR-17**: `commands.md` vBRIEF example MUST use status vocabulary consistent with `vbrief/vbrief.md`. *(#25)*
-- **FR-18**: `core/project.md` MUST NOT contain private project configuration (Voxio Bot content); replace with a generic template or remove.
+- **FR-18**: `PROJECT.md` (legacy location) MUST NOT contain private project configuration (Voxio Bot content); replace with a generic template or remove.
 - **FR-19**: `contracts/hierarchy.md` MUST be created documenting the dual-hierarchy framework (durability axis: Standards > APIs > Specs > Code; generative axis: Spec → Contracts → Code). *(#84 Phase 1)*
 - **FR-20**: `main.md` MUST include adaptive teaching behavior: concise when recommendations are accepted without question; explanatory when recommendations are questioned or overridden. *(#84 Phase 1)*
 - **FR-21**: `strategies/interview.md` MUST include a `! State WHY` rule — when making an opinionated recommendation, state the principle in one sentence. *(#84 Phase 1)*

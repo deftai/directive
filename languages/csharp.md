@@ -2,7 +2,7 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md) | [telemetry.md](../tools/telemetry.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
 
 **Stack**: C# 12+/.NET 8+ (LTS), SDK-style projects; Web: ASP.NET Core/Minimal APIs; Testing: xUnit + NSubstitute + FluentAssertions; Analysis: Roslyn Analyzers, StyleCop.Analyzers
 

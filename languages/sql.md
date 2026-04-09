@@ -2,7 +2,7 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: ANSI SQL (dialect-agnostic defaults); Adapts to: PostgreSQL, MySQL/MariaDB, SQL Server, SQLite, Oracle; Migrations: Flyway / Liquibase / framework-native; Lint: sqlfluff
 

@@ -4,7 +4,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 **⚠️ See also** (load only when needed):
 - [../main.md](../main.md) - General AI guidelines
-- [../core/project.md](../core/project.md) - For project-specific overrides
+- [../PROJECT.md](../PROJECT.md) - For project-specific overrides
 - [../coding/testing.md](../coding/testing.md) - When writing tests
 
 **Stack**: Python 3.11+, pytest; Web: Flask/FastAPI; CLI: typer[all]; TUI: textual[dev]
