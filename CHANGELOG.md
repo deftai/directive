@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.2] - 2026-04-09
+
 ### Fixed
 - **Strengthen batch-fix enforcement in deft-review-cycle** (#250, t1.12.2): Added `!` pre-commit gate to Phase 2 Step 3 requiring agents to re-read the FULL current Greptile review and confirm all P0/P1 issues are addressed in staged changes before committing -- prevents per-finding fix commits that cause N re-review cycles instead of 1; added 2 new `⊗` anti-patterns: push a fix commit addressing fewer findings than the review surfaces, push after fixing a P1 without checking for additional P0/P1 findings
 - **Autonomous Greptile re-review monitoring in swarm merge cascade** (#249, t1.12.1): Added `!` rule to `skills/deft-swarm/SKILL.md` Phase 6 Step 1 requiring the monitor to autonomously wait for Greptile re-review completion after each `--force-with-lease` push during rebase cascade -- references `skills/deft-review-cycle/SKILL.md` Step 4 tiered monitoring approach (start_agent sub-agent preferred, discrete tool-call polling fallback); added gate prohibiting proceeding to next merge until review is current (SHA match) and exit condition met (confidence > 3, no P0/P1); added corresponding anti-pattern
+
 ### Added
 - **Semantic contradiction check for !/⊗ rules** (#251, t1.12.3): Added 2 `!` rules to `skills/deft-build/SKILL.md` pre-commit checklist and `skills/deft-rwldl/SKILL.md` Read phase -- when adding a `!` or `⊗` rule, search the same file for conflicting `~`/`≉` rules referencing the same term; when strengthening a rule, verify no weaker-strength duplicate remains; added `⊗` anti-pattern to both skills prohibiting adding a prohibition without scanning for softer-strength conflicts
 

@@ -12,10 +12,6 @@ Fix reported bugs and UX problems blocking adoption.
 
 ### Cleanup
 
-- **#249** -- fix(skill): deft-swarm Phase 6 missing autonomous Greptile re-review monitoring during rebase cascade (add tiered monitoring step after each force-push; reference deft-review-cycle tiered approach)
-- **#250** -- fix(skill): deft-review-cycle -- strengthen batch-fix enforcement; add anti-pattern against per-finding fix commits (root cause of #247 multi-round review cycles)
-- **#251** -- fix(skill): deft-build + deft-rwldl -- add semantic contradiction check when adding ! or ⊗ rules (search same file for conflicting ~ rules referencing same term before committing)
-
 ---
 
 ## Phase 2 -- Documentation & Content Fixes
@@ -133,6 +129,9 @@ Larger feature work -- only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#249 -- fix(skill): deft-swarm Phase 6 autonomous Greptile re-review monitoring in rebase cascade -- tiered monitoring step after each force-push~~ -- 2026-04-09 (v0.14.2)
+- ~~#250 -- fix(skill): deft-review-cycle batch-fix enforcement -- ! pre-commit gate + 2 anti-patterns against per-finding commits~~ -- 2026-04-09 (v0.14.2)
+- ~~#251 -- fix(skill): deft-build + deft-rwldl semantic contradiction check -- ! rules + ⊗ anti-pattern for conflicting rule strengths~~ -- 2026-04-09 (v0.14.2)
 - ~~#236 -- fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip rules for PS 5.1 -- scm/github.md PS 5.1 section updated with ! rules~~ -- 2026-04-09 (v0.14.1)
 - ~~#237 -- chore(docs): migrate ROADMAP.md em-dashes to ASCII -- (317 replacements) -- enables edit_files on Windows without PowerShell fallback~~ -- 2026-04-09 (v0.14.1)
 - ~~#238 -- fix(skill): deft-roadmap-refresh batch changelog convention -- one batch entry at session end, anti-pattern added~~ -- 2026-04-09 (v0.14.1)
@@ -374,9 +373,9 @@ Larger feature work -- only after issues are resolved and content is stable.
 | ~~#240~~ | ~~fix(docs): multi-line PS string literal Warp block splitting -- use temp file rule + lessons.md~~ | completed -- v0.14.1 |
 | ~~#241~~ | ~~fix(docs): main.md instant-fix drift rule -- add blocker carve-out with mandatory issue filing~~ | completed -- v0.14.1 |
 | ~~#243~~ | ~~fix(workflow): skill completion gate -- prevent missing chaining instructions at skill exit~~ | completed -- v0.14.1 |
-| #249 | deft-swarm Phase 6: missing autonomous Greptile re-review monitoring in rebase cascade | 1 |
-| #250 | deft-review-cycle: strengthen batch-fix enforcement -- anti-pattern against per-finding commits | 1 |
-| #251 | deft-build + deft-rwldl: semantic contradiction check when adding ! or ⊗ rules | 1 |
+| ~~#249~~ | ~~deft-swarm Phase 6: missing autonomous Greptile re-review monitoring in rebase cascade~~ | completed -- v0.14.2 |
+| ~~#250~~ | ~~deft-review-cycle: strengthen batch-fix enforcement -- anti-pattern against per-finding commits~~ | completed -- v0.14.2 |
+| ~~#251~~ | ~~deft-build + deft-rwldl: semantic contradiction check when adding ! or ⊗ rules~~ | completed -- v0.14.2 |
 | #228 | Bring run CLI into test coverage measurement (confirm #160 before implementing) | 3 |
 | #248 | Roadmap refresh does not create or surface spec task coverage for triaged issues | 2 |
 
@@ -426,3 +425,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-09 -- roadmap refresh triage: added #221, #226, #234 to Phase 2; #235 to Phase 3; #233 to Phase 5 (More Determinism); filed #235 as split-off from #233; filed #236/#237/#238/#239 to Phase 1 (#236: Get-Content -Raw footgun; #237: ROADMAP.md em-dash migration; #238: roadmap-refresh batch changelog; #239: mandatory pre-commit file review; #240: multi-line PS string Warp block splitting; #241: main.md blocker carve-out for instant-fix rule; #243: skill completion gate for chaining instructions); analysis comments posted*
 *Updated 2026-04-09 -- v0.14.1 release: moved #236, #237, #238, #239, #240, #241, #243 (Phase 1 Cleanup) to Completed; filed #249 (swarm Phase 6 rebase monitoring gap), #250 (review-cycle batch-fix enforcement), #251 (deft-build semantic contradiction check) to Phase 1 Cleanup from swarm lessons learned*
 *Updated 2026-04-09 -- roadmap refresh triage: added #228 (run CLI test coverage, Phase 3 -- confirm #160 before implementing), #248 (spec task coverage gap in roadmap refresh, Phase 2 -- strengthen swarm Phase 0); analysis comments posted*
+*Updated 2026-04-09 -- v0.14.2 release: moved #249 (swarm rebase monitoring), #250 (batch-fix enforcement), #251 (semantic contradiction check) to Completed; Phase 1 Cleanup now empty*
