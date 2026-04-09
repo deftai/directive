@@ -86,7 +86,7 @@ PowerShell 5.x (Windows default) uses UTF-16LE internally and may inject a BOM o
   ```powershell
   [System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))
   ```
-- ~ Avoid piping `gh` output through PowerShell 5.x redirection (`>`, `Out-File`) -- these default to UTF-16LE; use `Set-Content -Encoding utf8` or .NET `WriteAllText` instead
+- ~ Avoid piping `gh` output through PowerShell 5.x redirection (`>`, `Out-File`) -- these default to UTF-16LE; use .NET `WriteAllText` with the BOM-free constructor instead (see rule below)
 - ~ Prefer PowerShell 7+ (`pwsh`) which defaults to UTF-8 without BOM
 - ! Use `Get-Content -Raw` to read a file as a single string -- reading without `-Raw` processes line-by-line and can inject BOM characters or silently mangle Unicode characters (em-dashes, curly quotes) when the file is re-written
 - ! For BOM-safe file writes after agent reads, use `[System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))` -- never use `Set-Content` (even with `-Encoding UTF8`) or `Out-File` in PS 5.1, as both inject a BOM regardless of the `-Encoding` flag (`Out-File -Encoding utf8NoBOM` requires PS 7+ and is unavailable in PS 5.1)
