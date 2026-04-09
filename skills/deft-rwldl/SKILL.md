@@ -31,6 +31,8 @@ Each iteration proceeds through all five phases in order. Do NOT skip phases or 
 
 - ! Read every changed file in full -- do not skim or skip sections
 - ! Compare each file against its spec task acceptance criteria in `SPECIFICATION.md`
+- ! When adding a `!` or `⊗` rule that prohibits a specific command, pattern, or behavior, search the same file for any `~`, `≉`, or prose that recommends or permits the same command/pattern -- resolve all contradictions in the same commit before pushing
+- ! When strengthening a rule (e.g. upgrading `~` to `!`), grep for the term in the full file and verify no weaker-strength duplicate remains
 - ~ Note any inconsistencies, missing RFC2119 markers, stale cross-references, or incomplete sections
 - ~ Check that CHANGELOG.md entries match the actual changes made
 
@@ -89,3 +91,4 @@ After exiting:
 - ⊗ Skip the Read phase and jump directly to Lint -- Read catches semantic issues (missing content, wrong RFC2119 markers, incomplete acceptance criteria) that linters do not check
 - ⊗ Make out-of-scope fixes during Write -- this introduces scope creep that Diff will flag, forcing another iteration
 - ⊗ Ignore the iteration count -- more than 3 iterations usually indicates oscillating fixes or an unclear spec task
+- ⊗ Add a prohibition (`!` or `⊗`) without scanning the same file for conflicting softer-strength rules (`~`, `≉`) that reference the same term

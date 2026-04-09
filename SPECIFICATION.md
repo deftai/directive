@@ -929,3 +929,14 @@ During Phase 6 merge cascade, after each --force-with-lease push of a rebased br
 - CHANGELOG entry under [Unreleased]
 
 **Traces**: #249
+## t1.12.3: Add semantic contradiction check for !/⊗ rules to deft-build and deft-rwldl (#251)  `[completed]`
+
+When an agent adds a new ! (MUST) or ⊗ (MUST NOT) rule, it does not check whether existing ~ (SHOULD) or ≉ (SHOULD NOT) rules in the same file recommend the exact thing now being prohibited. This creates silent contradictions that Greptile catches post-PR. Add contradiction-check rules to both skills. Closes #251.
+
+- skills/deft-build/SKILL.md pre-commit checklist contains 2 new ! rules for contradiction checking (semantic contradictions + strength duplicates)
+- skills/deft-rwldl/SKILL.md Read phase contains 2 new ! rules for contradiction checking (semantic contradictions + strength duplicates)
+- Both skills' Anti-Patterns contain ⊗ entry for adding prohibition without scanning for conflicts
+- CHANGELOG entry under [Unreleased]
+- tests/content/test_skills.py passes
+
+**Traces**: #251
