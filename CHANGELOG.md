@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Roadmap Refresh (2026-04-09)**: Triaged 4 new issues -- #256 (Phase 1 Adoption Blockers: `--body-file` temp file writes to worktree + `rm` denylist collision; fix: use OS temp dir, t1.13.2), #258 (Phase 2: Warp Drive global rules inventory for CONTRIBUTING.md, spinoff of #114, blocked on #89, t2.9.1), #261 + #263 (bundled, Phase 1 Adoption Blockers: swarm monitor bypassed Phase 5->6 gate under context pressure and merged untested code into master; separate crash at message ~158 left merge cascade in ambiguous state; both root-caused to long-context conversation corruption, t1.13.1); no stale entries; analysis comments posted on all 4 issues
+- **Roadmap Refresh (2026-04-09, session 2)**: Triaged 5 new issues -- #266 (Phase 2: move installer asset links to top of README, t2.10.1), #268 (Phase 2: wrap install commands in fenced code blocks for copy button, t2.10.2), #270 (Phase 3: validate USER.md against current schema + artifact format versioning with `deft_version` field, t3.2.1); held #269 pending Warp team response (auto-approve silently skips interview questions -- investigating Mac-vs-Windows platform difference); closed #271 as duplicate of #269 (same root cause, deft-side sentry/guard mitigation tracked in #269); no stale entries; analysis comments posted on all triaged issues
 
 ## [0.15.0]
 

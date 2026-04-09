@@ -685,6 +685,17 @@ Create skills/deft-rwldl/SKILL.md with RFC2119 legend and frontmatter. Structure
 
 **Traces**: #182
 
+## t3.2.1: Validate USER.md against current schema + artifact format versioning (#270)  `[pending]`
+
+Add a `deft_version` field to all Deft-generated artifact templates (USER.md, PROJECT.md, etc.). When deft-setup or CLI bootstrap finds an existing USER.md, validate it against the current expected field set using the version field. If fields are missing, query the user for missing fields only (do not re-run full interview). Targeted subset of #78.
+
+- All Deft-generated artifact templates include a `deft_version` field
+- deft-setup skill detects stale USER.md via missing or outdated version field
+- Missing fields are queried individually without re-running full interview
+- Updated USER.md includes current version field after migration
+
+**Traces**: #270
+
 ## t3.1.3: Raise pyproject.toml coverage threshold to 85% and document run exclusion (NFR-1, NFR-2, FR-27)  `[pending]`
 
 **Depends on**: t3.1.1, t3.1.2
@@ -1003,6 +1014,22 @@ New users have no quick reference for where user-generated artifacts live in a c
 - Section is positioned near other project structure documentation
 
 **Traces**: #234
+
+## t2.10.1: Move installer asset links to top of README near install instructions (#266)  `[pending]`
+
+Move or duplicate installer download links (GitHub Releases / platform binaries) to the top of README.md adjacent to the Getting Started / install instructions section, reducing friction for new users.
+
+- README.md installer asset links are prominently placed near install instructions at the top
+
+**Traces**: #266
+
+## t2.10.2: Wrap install commands in fenced code blocks for GitHub copy button (#268)  `[pending]`
+
+Wrap all install/run commands in README.md Getting Started section in fenced code blocks with appropriate language tags so GitHub renders a copy button. Bundle with #266.
+
+- All install commands in README.md Getting Started section use fenced code blocks with language tags
+
+**Traces**: #268
 
 ## t2.9.1: Inventory Warp Drive global rules and document in CONTRIBUTING.md (#258)  `[pending]`
 

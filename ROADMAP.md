@@ -51,6 +51,8 @@ Quick doc/content fixes that don't require code changes.
 - **#258** -- Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)
 - **#136** -- Warp doesn't load deft's AGENTS.md by default
 - **#194** -- User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
+- **#266** -- Move installer asset links to top of README near install instructions -- follow-up to #137; complements #56 (t2.10.1)
+- **#268** -- Wrap install commands in fenced code blocks so GitHub renders copy button -- bundle with #266 (t2.10.2)
 
 ---
 
@@ -67,6 +69,7 @@ Quick doc/content fixes that don't require code changes.
   - Skills path already done (deft-build); this covers the CLI fallback path only
 - **#235** -- feat(tasks): add task toolchain:check and task changelog:check as task check deps (split from #233; no dependency on tasks/ restructure)
 - **#228** -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)
+- **#270** -- Validate USER.md against current schema + add artifact format versioning -- query user for missing fields if stale; add `deft_version` field to all generated artifacts (USER.md, PROJECT.md, etc.) as migration detection foundation; targeted subset of #78 (t3.2.1)
 - Code signing for installer binaries
 - Low-end LLM compatibility testing
   - Validate installer and agent process (deft-setup, deft-build) on small/quantised models (e.g. Qwen3-9B)
@@ -378,9 +381,12 @@ Larger feature work -- only after issues are resolved and content is stable.
 | #228 | Bring run CLI into test coverage measurement (confirm #160 before implementing) | 3 |
 | ~~#248~~ | ~~roadmap-refresh + swarm Phase 0 spec task scaffolding~~ | completed -- v0.15.0 |
 | #258 | docs(warp): inventory Warp Drive global rules used for deft directive development | 2 |
+| #266 | docs(readme): move installer asset links to top near install instructions | 2 |
+| #268 | docs(readme): wrap install commands in fenced code blocks for copy button | 2 |
 | #256 | fix(docs): use system temp directory for --body-file to avoid rm denylist collision | 1 |
 | #261 | bug(swarm): monitor skips Phase 5 and slam-merges untested code into main | 1 |
 | #263 | chore(swarm): monitor crash during multi-PR merge -- add checkpoint/recovery resilience | 1 |
+| #270 | feat(setup): validate USER.md against current schema + artifact format versioning | 3 |
 
 ---
 
@@ -431,3 +437,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-09 -- v0.14.2 release: moved #249 (swarm rebase monitoring), #250 (batch-fix enforcement), #251 (semantic contradiction check) to Completed; Phase 1 Cleanup now empty*
 *Updated 2026-04-09 -- v0.15.0 release: moved #51 (stale refs purge + strategy stubs + getting-started), #221 (row format template), #226 (deft-rwldl rename), #234 (README artifacts), #248 (spec task scaffolding) to Completed; struck through in Open Issues Index; removed from Phase 2 body*
 *Updated 2026-04-09 -- roadmap refresh triage: added #261 + #263 (Phase 1, t1.13.1), #256 (Phase 1, t1.13.2), #258 (Phase 2, t2.9.1); analysis comments posted on all 4 issues*
+*Updated 2026-04-09 -- roadmap refresh triage: added #266 (Phase 2, t2.10.1), #268 (Phase 2, t2.10.2), #270 (Phase 3, t3.2.1); analysis comments posted*
