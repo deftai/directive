@@ -964,3 +964,26 @@ Roadmap refresh triages issues into the roadmap but does not create or surface s
 - tests/content/test_skills.py passes
 
 **Traces**: #248
+
+## t2.8.3: Rename deft-rwldl skill to deft-pre-pr for clarity (#226)  `[completed]`
+
+The acronym "RWLDL" is opaque and collides with the RWLDL tool pattern name. Rename skills/deft-rwldl/ to skills/deft-pre-pr/ across all surfaces: skill directory, frontmatter, .agents/skills/ thin pointer, AGENTS.md Skill Routing table, tests/content/test_skills.py, and README.md directory tree + Skills listing. Add auto-suggestion to AGENTS.md Development Process section. Add keyword routing entry for "pre-pr" / "quality loop" / "rwldl" / "self-review". Closes #226.
+
+- skills/deft-pre-pr/SKILL.md exists (renamed from skills/deft-rwldl/SKILL.md)
+- .agents/skills/deft-pre-pr/SKILL.md thin pointer exists (old deft-rwldl pointer removed)
+- AGENTS.md Skill Routing table maps "pre-pr" / "quality loop" / "rwldl" / "self-review" to skills/deft-pre-pr/SKILL.md
+- AGENTS.md Development Process section contains auto-suggestion for deft-pre-pr
+- README.md directory tree and Skills listing reference deft-pre-pr (not deft-rwldl)
+- tests/content/test_skills.py updated and passes
+
+**Traces**: #226
+
+## t2.8.4: Add "Your Artifacts" section to README.md documenting user-generated artifact locations (#234)  `[completed]`
+
+New users have no quick reference for where user-generated artifacts live in a consumer project. Add a concise bulleted section to README.md listing: ./vbrief/, SPECIFICATION.md, PROJECT.md, USER.md, and ./deft/. Closes #234.
+
+- README.md contains "Your Artifacts" section with bulleted list of artifact locations
+- Lists: ./vbrief/, SPECIFICATION.md, PROJECT.md, USER.md, ./deft/
+- Section is positioned near other project structure documentation
+
+**Traces**: #234
