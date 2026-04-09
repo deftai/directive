@@ -941,6 +941,22 @@ When an agent adds a new ! (MUST) or ⊗ (MUST NOT) rule, it does not check whet
 
 **Traces**: #251
 
+## t1.13.1: Harden deft-swarm Phase 5->6 gate and add crash recovery (#261, #263)  `[pending]`
+
+Strengthen the Phase 5->6 confirmation gate against context-pressure bypass and add checkpoint/crash recovery guidance to skills/deft-swarm/SKILL.md.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #261, #263
+
+## t1.13.2: Update --body-file convention to use system temp directory (#256)  `[pending]`
+
+Update `scm/github.md` to instruct agents to write `--body-file` temp files to the OS temp directory instead of the worktree, eliminating the `rm` denylist collision that blocks autonomous swarm agents.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #256
+
 ## t2.8.1: Add explicit row format template to deft-roadmap-refresh skill (#221)  `[completed]`
 
 Add an explicit `| #NNN | title | Phase |` row format template to skills/deft-roadmap-refresh/SKILL.md at the step that creates or updates Open Issues Index rows. Add 2 anti-patterns: one against creating index rows without using the template format, one against double-pipe `||` entries from omitting a column value. Closes #221.
@@ -987,22 +1003,6 @@ New users have no quick reference for where user-generated artifacts live in a c
 - Section is positioned near other project structure documentation
 
 **Traces**: #234
-
-## t1.13.1: Harden deft-swarm Phase 5->6 gate and add crash recovery (#261, #263)  `[pending]`
-
-Strengthen the Phase 5->6 confirmation gate against context-pressure bypass and add checkpoint/crash recovery guidance to skills/deft-swarm/SKILL.md.
-
-- <first acceptance criterion placeholder>
-
-**Traces**: #261, #263
-
-## t1.13.2: Update --body-file convention to use system temp directory (#256)  `[pending]`
-
-Update `scm/github.md` to instruct agents to write `--body-file` temp files to the OS temp directory instead of the worktree, eliminating the `rm` denylist collision that blocks autonomous swarm agents.
-
-- <first acceptance criterion placeholder>
-
-**Traces**: #256
 
 ## t2.9.1: Inventory Warp Drive global rules and document in CONTRIBUTING.md (#258)  `[pending]`
 

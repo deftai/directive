@@ -430,6 +430,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-09 -- roadmap refresh triage: added #228 (run CLI test coverage, Phase 3 -- confirm #160 before implementing), #248 (spec task coverage gap in roadmap refresh, Phase 2 -- strengthen swarm Phase 0); analysis comments posted*
 *Updated 2026-04-09 -- v0.14.2 release: moved #249 (swarm rebase monitoring), #250 (batch-fix enforcement), #251 (semantic contradiction check) to Completed; Phase 1 Cleanup now empty*
 *Updated 2026-04-09 -- v0.15.0 release: moved #51 (stale refs purge + strategy stubs + getting-started), #221 (row format template), #226 (deft-rwldl rename), #234 (README artifacts), #248 (spec task scaffolding) to Completed; struck through in Open Issues Index; removed from Phase 2 body*
-*Updated 2026-04-09 -- roadmap refresh triage: added #261 + #263 (bundled, Phase 1 Adoption Blockers -- swarm monitor Phase 5 skip hardening + crash recovery, t1.13.1); analysis comments posted*
-*Updated 2026-04-09 -- roadmap refresh triage: added #256 (Phase 1 Adoption Blockers -- --body-file system temp dir fix, t1.13.2); analysis comment posted*
-*Updated 2026-04-09 -- roadmap refresh triage: added #258 (Phase 2 -- Warp Drive global rules inventory, spinoff of #114, blocked on #89, t2.9.1); analysis comment posted*
+*Updated 2026-04-09 -- roadmap refresh triage: added #261 + #263 (Phase 1, t1.13.1), #256 (Phase 1, t1.13.2), #258 (Phase 2, t2.9.1); analysis comments posted on all 4 issues*
