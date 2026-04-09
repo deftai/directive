@@ -60,10 +60,11 @@ Quick doc/content fixes that don't require code changes.
 - **#221** -- deft-roadmap-refresh skill: add explicit row format template (`| #NNN | title | Phase |`) and anti-pattern to Phase 2 Step 4 to prevent recurring double-pipe `||` index entries
 - **#226** -- refactor: rename `deft-rwldl` skill to remove acronym collision with Wiggum quality loop; add auto-suggestion trigger to AGENTS.md Development Process section
 - **#234** -- docs: README should document where user artifacts are stored in a consumer project (`./vbrief/`, `SPECIFICATION.md`, `PROJECT.md`, `USER.md`, `./deft/`)
+- **#248** -- Roadmap refresh does not create or surface spec task coverage for triaged issues -- strengthen swarm Phase 0 to create skeleton spec tasks, add transparency note to roadmap-refresh analysis (xrefs #233)
 
 ---
 
-## Phase 3 -- Test Infrastructure & CI
+## Phase 3
 
 - **#74** -- Automate release process (`task release`) and CI changelog enforcement
 - **#128** -- CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)
@@ -75,7 +76,8 @@ Quick doc/content fixes that don't require code changes.
   - `cmd_spec` and `cmd_project` should check for USER.md at entry; if absent, warn and redirect to `run bootstrap`
   - Skills path already done (deft-build); this covers the CLI fallback path only
 - **#235** -- feat(tasks): add task toolchain:check and task changelog:check as task check deps (split from #233; no dependency on tasks/ restructure)
-- Code signing for installer binaries (Windows Authenticode, macOS Developer ID + notarisation)
+- **#228** -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)
+- Code signing for installer binaries
 - Low-end LLM compatibility testing
   - Validate installer and agent process (deft-setup, deft-build) on small/quantised models (e.g. Qwen3-9B)
   - Ensure strategies, interview flow, and spec generation still produce good results
@@ -375,6 +377,8 @@ Larger feature work -- only after issues are resolved and content is stable.
 | #249 | deft-swarm Phase 6: missing autonomous Greptile re-review monitoring in rebase cascade | 1 |
 | #250 | deft-review-cycle: strengthen batch-fix enforcement -- anti-pattern against per-finding commits | 1 |
 | #251 | deft-build + deft-rwldl: semantic contradiction check when adding ! or ⊗ rules | 1 |
+| #228 | Bring run CLI into test coverage measurement (confirm #160 before implementing) | 3 |
+| #248 | Roadmap refresh does not create or surface spec task coverage for triaged issues | 2 |
 
 ---
 
@@ -421,3 +425,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-08 -- v0.14.0 release: moved #57 (CI workflow), #81 (BDD strategy), #134 (alignment confirmation), #146 (deft-sync skill), #159 (philosophy.md), #168 (roadmap-refresh transparency), #174 (roadmap-refresh PR phase), #195 (review-cycle tiered polling), #196 (roadmap-refresh cleanup convention) to Completed; removed from phase bodies; struck through in Open Issues Index*
 *Updated 2026-04-09 -- roadmap refresh triage: added #221, #226, #234 to Phase 2; #235 to Phase 3; #233 to Phase 5 (More Determinism); filed #235 as split-off from #233; filed #236/#237/#238/#239 to Phase 1 (#236: Get-Content -Raw footgun; #237: ROADMAP.md em-dash migration; #238: roadmap-refresh batch changelog; #239: mandatory pre-commit file review; #240: multi-line PS string Warp block splitting; #241: main.md blocker carve-out for instant-fix rule; #243: skill completion gate for chaining instructions); analysis comments posted*
 *Updated 2026-04-09 -- v0.14.1 release: moved #236, #237, #238, #239, #240, #241, #243 (Phase 1 Cleanup) to Completed; filed #249 (swarm Phase 6 rebase monitoring gap), #250 (review-cycle batch-fix enforcement), #251 (deft-build semantic contradiction check) to Phase 1 Cleanup from swarm lessons learned*
+*Updated 2026-04-09 -- roadmap refresh triage: added #228 (run CLI test coverage, Phase 3 -- confirm #160 before implementing), #248 (spec task coverage gap in roadmap refresh, Phase 2 -- strengthen swarm Phase 0); analysis comments posted*
