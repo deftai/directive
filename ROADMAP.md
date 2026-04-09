@@ -25,7 +25,6 @@ Quick doc/content fixes that don't require code changes.
 ### Content & Doc Fixes
 
 - **#151** -- [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)
-- **#51** -- Project should be fully bootstrapped with its own framework (partially done in PR #66)
 - Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml; reframe README per #89 resolution (#84 Phase 2, blocked on #89)
   - `README.md` still says "Warping Process", "What is Warping?", "Contributing to Warping"
   - Reframe from "coding standards framework" → resolved tagline from #89
@@ -41,10 +40,6 @@ Quick doc/content fixes that don't require code changes.
 - **#82** -- Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)
 - **#103** -- Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)
 - **#127** -- Improved support for Deft in existing repositories -- bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)
-- Add missing strategies:
-  - `strategies/rapid.md` -- Quick prototypes, SPECIFICATION only workflow
-  - `strategies/enterprise.md` -- Compliance-heavy, PRD → ADR → SPECIFICATION workflow
-  - Both listed in `strategies/README.md` as "(future)" with no backing file
 - Port any remaining `SKILL.md` carry-forward content from master
   - Three commits on master updated SKILL.md (`a6f120a`, `cc442fc`, `2f2a89e`)
   - Largely superseded by `deft-setup`/`deft-build` skills; review for carry-forward content
@@ -53,10 +48,6 @@ Quick doc/content fixes that don't require code changes.
 - **#114** -- Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`
 - **#136** -- Warp doesn't load deft's AGENTS.md by default -- document global rule workaround in README/installer output; real fix is Warp platform feature request (to be done with #114)
 - **#194** -- User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
-- **#221** -- deft-roadmap-refresh skill: add explicit row format template (`| #NNN | title | Phase |`) and anti-pattern to Phase 2 Step 4 to prevent recurring double-pipe `||` index entries
-- **#226** -- refactor: rename `deft-rwldl` skill to remove acronym collision with Wiggum quality loop; add auto-suggestion trigger to AGENTS.md Development Process section
-- **#234** -- docs: README should document where user artifacts are stored in a consumer project (`./vbrief/`, `SPECIFICATION.md`, `PROJECT.md`, `USER.md`, `./deft/`)
-- **#248** -- Roadmap refresh does not create or surface spec task coverage for triaged issues -- strengthen swarm Phase 0 to create skeleton spec tasks, add transparency note to roadmap-refresh analysis (xrefs #233)
 
 ---
 
@@ -129,6 +120,11 @@ Larger feature work -- only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#51 -- Project bootstrap: purge stale legacy path references across 42 files; add strategy stubs (rapid.md, enterprise.md); add docs/getting-started.md stub~~ -- 2026-04-09 (v0.15.0)
+- ~~#221 -- fix(skill): deft-roadmap-refresh explicit row format template + double-pipe anti-pattern~~ -- 2026-04-09 (v0.15.0)
+- ~~#226 -- refactor(skills): rename deft-rwldl to deft-pre-pr + AGENTS.md auto-suggestion + keyword routing~~ -- 2026-04-09 (v0.15.0)
+- ~~#234 -- docs(readme): add "Your Artifacts" section documenting user-generated artifact locations~~ -- 2026-04-09 (v0.15.0)
+- ~~#248 -- fix(skill): roadmap-refresh + swarm Phase 0 spec task scaffolding and transparency note~~ -- 2026-04-09 (v0.15.0)
 - ~~#249 -- fix(skill): deft-swarm Phase 6 autonomous Greptile re-review monitoring in rebase cascade -- tiered monitoring step after each force-push~~ -- 2026-04-09 (v0.14.2)
 - ~~#250 -- fix(skill): deft-review-cycle batch-fix enforcement -- ! pre-commit gate + 2 anti-patterns against per-finding commits~~ -- 2026-04-09 (v0.14.2)
 - ~~#251 -- fix(skill): deft-build + deft-rwldl semantic contradiction check -- ! rules + ⊗ anti-pattern for conflicting rule strengths~~ -- 2026-04-09 (v0.14.2)
@@ -264,7 +260,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 | #46 | Provide way to update meta MD files | 5 |
 | ~~#49~~ | ~~All CLI commands should display version~~ | completed -- v0.10.1 |
 | ~~#50~~ | ~~Strategies still have redundant old names~~ | completed -- v0.10.0 |
-| #51 | Project should be bootstrapped with own framework (partially done -- see PR #66; #67 now complete) | 2 |
+| ~~#51~~ | ~~Project bootstrap: stale refs purge, strategy stubs, getting-started stub~~ | completed -- v0.15.0 |
 | #52 | Install into .deft/ hidden directory | 5 |
 | #53 | deft-install should bootstrap current directory | 4 |
 | ~~#91~~ | ~~run bootstrap goes in a loop~~ | completed |
@@ -361,10 +357,10 @@ Larger feature work -- only after issues are resolved and content is stable.
 | ~~#217~~ | ~~pyproject.toml dev deps breaks task check in fresh worktrees~~ | completed -- v0.13.0 |
 | ~~#182~~ | ~~Add skills/deft-rwldl/SKILL.md -- iterative pre-PR quality improvement loop~~ | completed -- v0.13.0 |
 | ~~#170~~ | ~~Move ROADMAP.md updates from merge-time to release-time~~ | completed -- v0.10.3 |
-| #221 | deft-roadmap-refresh skill: explicit table row format to prevent double-pipe index entries | 2 |
-| #226 | refactor: rename deft-rwldl skill to remove acronym collision and add auto-suggestion triggers | 2 |
+| ~~#221~~ | ~~deft-roadmap-refresh: explicit row format template + double-pipe anti-pattern~~ | completed -- v0.15.0 |
+| ~~#226~~ | ~~refactor: rename deft-rwldl to deft-pre-pr + auto-suggestion + keyword routing~~ | completed -- v0.15.0 |
 | #233 | More Determinism: full deterministic task initiative (Phase 0, tasks/ restructure, doctor, etc.) | 5 |
-| #234 | docs: README should document where user artifacts are stored in a consumer project | 2 |
+| ~~#234~~ | ~~docs: README Your Artifacts section~~ | completed -- v0.15.0 |
 | #235 | feat(tasks): toolchain:check + changelog:check as task check deps (split from #233) | 3 |
 | ~~#236~~ | ~~fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip pattern for PS 5.1~~ | completed -- v0.14.1 |
 | ~~#237~~ | ~~chore(docs): migrate ROADMAP.md existing em-dashes to ASCII -- to enable edit_files on Windows~~ | completed -- v0.14.1 |
@@ -377,7 +373,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 | ~~#250~~ | ~~deft-review-cycle: strengthen batch-fix enforcement -- anti-pattern against per-finding commits~~ | completed -- v0.14.2 |
 | ~~#251~~ | ~~deft-build + deft-rwldl: semantic contradiction check when adding ! or ⊗ rules~~ | completed -- v0.14.2 |
 | #228 | Bring run CLI into test coverage measurement (confirm #160 before implementing) | 3 |
-| #248 | Roadmap refresh does not create or surface spec task coverage for triaged issues | 2 |
+| ~~#248~~ | ~~roadmap-refresh + swarm Phase 0 spec task scaffolding~~ | completed -- v0.15.0 |
 
 ---
 
@@ -426,3 +422,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-09 -- v0.14.1 release: moved #236, #237, #238, #239, #240, #241, #243 (Phase 1 Cleanup) to Completed; filed #249 (swarm Phase 6 rebase monitoring gap), #250 (review-cycle batch-fix enforcement), #251 (deft-build semantic contradiction check) to Phase 1 Cleanup from swarm lessons learned*
 *Updated 2026-04-09 -- roadmap refresh triage: added #228 (run CLI test coverage, Phase 3 -- confirm #160 before implementing), #248 (spec task coverage gap in roadmap refresh, Phase 2 -- strengthen swarm Phase 0); analysis comments posted*
 *Updated 2026-04-09 -- v0.14.2 release: moved #249 (swarm rebase monitoring), #250 (batch-fix enforcement), #251 (semantic contradiction check) to Completed; Phase 1 Cleanup now empty*
+*Updated 2026-04-09 -- v0.15.0 release: moved #51 (stale refs purge + strategy stubs + getting-started), #221 (row format template), #226 (deft-rwldl rename), #234 (README artifacts), #248 (spec task scaffolding) to Completed; struck through in Open Issues Index; removed from Phase 2 body*
