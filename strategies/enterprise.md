@@ -83,7 +83,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 - ! Full quality gates: `task check`, ≥85% coverage, conventional commits
 - ! Each PR must reference the spec task(s) it implements
-- ~ Use `/deft:change` for all changes (mandatory in enterprise, not optional)
+- ! Use `/deft:change` for all changes (mandatory in enterprise -- not optional like in other strategies)
 
 ---
 

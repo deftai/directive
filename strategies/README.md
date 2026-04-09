@@ -15,7 +15,7 @@ Development strategies define the workflow from idea to implementation.
 | [roadmap.md](./roadmap.md) | `/deft:run:roadmap` | preparatory | Roadmap maintenance | Discover → Triage → Cleanup |
 | [bdd.md](./bdd.md) | `/deft:run:bdd` | preparatory | Acceptance-test-first development | Scenarios → Failing Tests → Lock Decisions → Spec → Chaining Gate |
 | [rapid.md](./rapid.md) | `/deft:run:rapid` | spec-generating | Quick prototypes | Forced-Light path |
-|| [enterprise.md](./enterprise.md) | `/deft:run:enterprise` | spec-generating | Compliance-heavy | Forced-Full path |
+| [enterprise.md](./enterprise.md) | `/deft:run:enterprise` | spec-generating | Compliance-heavy | Forced-Full path |
 
 ## Strategy Types
 
