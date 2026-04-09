@@ -831,3 +831,78 @@ Create strategies/bdd.md: a Behaviour-Driven Development strategy where failing 
 - tests/content/test_structure.py updated to assert strategies/bdd.md exists
 
 **Traces**: #81
+
+## t1.11.1: Document Get-Content -Raw UTF-8 footgun and BOM-safe round-trip pattern for PS 5.1 (#236)  `[pending]`
+
+PowerShell 5.1's Get-Content (without -Raw) reads files line-by-line and can inject BOM characters or silently mangle em-dashes when agents read then re-write files. Add ! rules to scm/github.md PS 5.1 section covering Get-Content -Raw for safe reads and BOM-safe round-trip write pattern. Closes #236.
+
+- scm/github.md PS 5.1 section contains ! rule: use Get-Content -Raw to read files as a single string, avoiding line-by-line BOM injection
+- scm/github.md PS 5.1 section contains ! rule for BOM-safe write pattern (e.g. [System.IO.File]::WriteAllText or Out-File -Encoding utf8NoBOM) when writing files read by agents
+- tests/content/test_standards.py passes
+
+**Traces**: #236
+
+## t1.11.2: Document multi-line PS string literal Warp terminal block splitting -- always use temp file (#240)  `[pending]`
+
+**Depends on**: t1.11.1
+
+Warp terminal splits multi-line PowerShell string literals (here-strings) across input blocks, causing syntax errors or silent truncation. Add ! rule to scm/github.md and a meta/lessons.md entry: always write multi-line PS content to a temp file first, never paste multi-line here-strings directly into the Warp agent input. Closes #240.
+
+- scm/github.md contains ! rule: always use a temp file for multi-line PS string content -- never paste multi-line here-strings directly into Warp terminal input
+- meta/lessons.md contains corresponding lesson entry documenting the root cause and fix
+- tests/content/test_standards.py passes
+
+**Traces**: #240
+
+## t1.11.3: deft-roadmap-refresh: write one batch changelog line at end of full triage session (#238)  `[pending]`
+
+deft-roadmap-refresh currently adds one CHANGELOG.md entry per issue triaged, producing verbose noise. Change to one batch entry at the end of the full triage session summarizing all issues triaged. Add anti-pattern. Closes #238.
+
+- skills/deft-roadmap-refresh/SKILL.md contains ! rule: write one batch CHANGELOG.md entry at the end of the full triage session, not one per issue triaged
+- skills/deft-roadmap-refresh/SKILL.md Anti-Patterns contains ⊗ rule: add a CHANGELOG entry per individual issue during triage
+- tests/content/test_skills.py passes
+
+**Traces**: #238
+
+## t1.11.4: Add mandatory pre-commit file review step to deft-roadmap-refresh and deft-build (#239)  `[pending]`
+
+**Depends on**: t1.11.3
+
+Add a mandatory pre-commit file review step to deft-roadmap-refresh Phase 4 pre-flight and to deft-build pre-commit checklist. The step requires the agent to re-read all modified files before committing, checking for encoding errors, unintended duplication, and structural issues. Closes #239.
+
+- skills/deft-roadmap-refresh/SKILL.md Phase 4 pre-flight contains mandatory file review step: re-read all modified files before committing, check for encoding errors, duplication, and structural issues
+- skills/deft-build/SKILL.md pre-commit checklist contains equivalent mandatory file review step
+- tests/content/test_skills.py passes
+
+**Traces**: #239
+
+## t1.11.5: Add skill completion gate to prevent missing chaining instructions at skill exit (#243)  `[pending]`
+
+Skills sometimes exit without stating they are done or providing chaining instructions, leaving the agent in an undefined state. Add ! rule to AGENTS.md requiring explicit skill exit confirmation and chaining. Add EXIT block to deft-roadmap-refresh. Add chaining annotations to AGENTS.md Skill Routing table entries. Closes #243.
+
+- AGENTS.md contains ! rule: when a skill's final step is complete, explicitly confirm skill exit and provide chaining instructions if applicable
+- skills/deft-roadmap-refresh/SKILL.md contains explicit EXIT block at the end of Phase 4 with chaining instructions
+- AGENTS.md Skill Routing table entries include chaining annotations where applicable
+- tests/content/test_skills.py passes
+
+**Traces**: #243
+
+## t1.11.6: Migrate ROADMAP.md em-dashes to ASCII -- to enable edit_files on Windows (#237)  `[completed]`
+
+ROADMAP.md phase bodies and Open Issues Index rows contain Unicode em-dashes that cause edit_files tool failures on Windows (warpdotdev/warp#9022). Perform one-time migration: replace all em-dashes in ROADMAP.md with ASCII -- (double hyphen). This unblocks all future ROADMAP.md edits without requiring PowerShell fallbacks. Closes #237.
+
+- ROADMAP.md contains no Unicode em-dash characters in phase body lines or Open Issues Index rows
+- All former em-dashes replaced with ASCII -- (double hyphen)
+- ROADMAP.md is structurally valid after migration (no broken entries)
+
+**Traces**: #237
+
+## t1.11.7: Add blocker carve-out to main.md instant-fix drift rule (#241)  `[pending]`
+
+The main.md instant-fix drift rule (⊗: fix a discovered issue in-place mid-task) is too broad -- it inadvertently prohibits fixing genuine blockers discovered mid-task. Add a carve-out: blocking discoveries are in-scope with mandatory issue filing. Non-blocking discoveries remain prohibited (must file issue, do not fix in-place). Addresses ambiguity surfaced in #198 post-implementation. Closes #241.
+
+- main.md Decision Making instant-fix drift ⊗ rule includes carve-out: if a discovered issue is a hard blocker to completing the current task, fixing it in-scope is permitted with mandatory GitHub issue filing
+- Carve-out explicitly scoped to blocking discoveries only -- non-blocking nice-to-fix issues remain prohibited
+- tests/content/test_standards.py passes
+
+**Traces**: #241
