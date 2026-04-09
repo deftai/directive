@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **Roadmap Refresh (2026-04-09)**: Triaged 6 issues -- #221 (deft-roadmap-refresh explicit row format template, Phase 2), #226 (deft-rwldl rename + auto-suggestion triggers, Phase 2), #233 (More Determinism full initiative, Phase 5), #234 (README artifacts section, Phase 2); filed #235 as Phase 3 split-off from #233 (toolchain:check + changelog:check); filed #236/#237/#238/#239/#240/#241 to Phase 1 (#236: Get-Content -Raw UTF-8 footgun; #237: ROADMAP.md em-dash migration; #238: roadmap-refresh batch changelog; #239: mandatory pre-commit file review; #240: multi-line PS string Warp block splitting; #241: main.md blocker carve-out for instant-fix rule); analysis comments posted
+- **Roadmap Refresh (2026-04-09)**: Triaged 5 issues -- #221 (deft-roadmap-refresh explicit row format template, Phase 2), #226 (deft-rwldl rename + auto-suggestion triggers, Phase 2), #233 (More Determinism full initiative, Phase 5), #234 (README artifacts section, Phase 2); filed #235 as Phase 3 split-off from #233 (toolchain:check + changelog:check); filed #236/#237/#238/#239/#240/#241 to Phase 1 (#236: Get-Content -Raw UTF-8 footgun; #237: ROADMAP.md em-dash migration; #238: roadmap-refresh batch changelog; #239: mandatory pre-commit file review; #240: multi-line PS string Warp block splitting; #241: main.md blocker carve-out for instant-fix rule; #243: skill completion gate for chaining instructions); analysis comments posted
 
 ## [0.14.0] - 2026-04-08
 
