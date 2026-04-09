@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.15.0] - 2026-04-09
+### Changed
+- **Roadmap Refresh (2026-04-09)**: Triaged 4 new issues -- #256 (Phase 1 Adoption Blockers: `--body-file` temp file writes to worktree + `rm` denylist collision; fix: use OS temp dir, t1.13.2), #258 (Phase 2: Warp Drive global rules inventory for CONTRIBUTING.md, spinoff of #114, blocked on #89, t2.9.1), #261 + #263 (bundled, Phase 1 Adoption Blockers: swarm monitor bypassed Phase 5->6 gate under context pressure and merged untested code into master; separate crash at message ~158 left merge cascade in ambiguous state; both root-caused to long-context conversation corruption, t1.13.1); no stale entries; analysis comments posted on all 4 issues
+
+## [0.15.0]
 
 ### Changed
 - **Rename deft-rwldl skill to deft-pre-pr** (#226, t2.8.3): Renamed `skills/deft-rwldl/` to `skills/deft-pre-pr/` for clarity -- the acronym "RWLDL" was opaque and collided with the RWLDL tool pattern; updated frontmatter, `.agents/skills/` thin pointer, AGENTS.md Skill Routing table, and `tests/content/test_skills.py`; added auto-suggestion to AGENTS.md Development Process section

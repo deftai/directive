@@ -987,3 +987,27 @@ New users have no quick reference for where user-generated artifacts live in a c
 - Section is positioned near other project structure documentation
 
 **Traces**: #234
+
+## t1.13.1: Harden deft-swarm Phase 5->6 gate and add crash recovery (#261, #263)  `[pending]`
+
+Strengthen the Phase 5->6 confirmation gate against context-pressure bypass and add checkpoint/crash recovery guidance to skills/deft-swarm/SKILL.md.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #261, #263
+
+## t1.13.2: Update --body-file convention to use system temp directory (#256)  `[pending]`
+
+Update `scm/github.md` to instruct agents to write `--body-file` temp files to the OS temp directory instead of the worktree, eliminating the `rm` denylist collision that blocks autonomous swarm agents.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #256
+
+## t2.9.1: Inventory Warp Drive global rules and document in CONTRIBUTING.md (#258)  `[pending]`
+
+Inventory all Warp Drive global rules used for deft directive development and document them in CONTRIBUTING.md under a Warp-specific section with rationale for each rule. Blocked on #89 (positioning) and #114 (project-scope rule migration).
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #258
