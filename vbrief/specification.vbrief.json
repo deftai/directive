@@ -641,7 +641,7 @@
         "status": "completed",
         "narrative": {
           "Description": "PowerShell 5.1's Get-Content (without -Raw) reads files line-by-line and can inject BOM characters or silently mangle em-dashes when agents read then re-write files. Add ! rules to scm/github.md PS 5.1 section covering Get-Content -Raw for safe reads and BOM-safe round-trip write pattern. Closes #236.",
-          "Acceptance": "scm/github.md PS 5.1 section contains ! rule: use Get-Content -Raw to read files as a single string, avoiding line-by-line BOM injection\nscm/github.md PS 5.1 section contains ! rule for BOM-safe write pattern (e.g. [System.IO.File]::WriteAllText or Out-File -Encoding utf8NoBOM) when writing files read by agents\ntests/content/test_standards.py passes",
+          "Acceptance": "scm/github.md PS 5.1 section contains ! rule: use Get-Content -Raw to read files as a single string, avoiding line-by-line BOM injection\nscm/github.md PS 5.1 section contains ! rule for BOM-safe write pattern ([System.IO.File]::WriteAllText with UTF8Encoding BOM-free constructor) when writing files read by agents\ntests/content/test_standards.py passes",
           "Traces": "#236"
         }
       },
