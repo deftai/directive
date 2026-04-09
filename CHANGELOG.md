@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Roadmap-refresh explicit row format template** (#221, t2.8.1): Added explicit `| #NNN | title | Phase |` row format template to `skills/deft-roadmap-refresh/SKILL.md` Phase 2 Step 4 for Open Issues Index rows; added 2 anti-patterns: creating rows without the template format, and double-pipe `||` entries from omitting a column value
+- **Spec task scaffolding in roadmap-refresh and swarm Phase 0** (#248, t2.8.2): Added skeleton spec task creation step to `skills/deft-roadmap-refresh/SKILL.md` Phase 2 Step 4 -- for each newly triaged issue, create a skeleton entry in SPECIFICATION.md if none exists; added "Spec coverage" transparency note to Phase 2 Step 2 analysis output; added `!` rule to `skills/deft-swarm/SKILL.md` Phase 0 Step 2 requiring skeleton spec tasks for candidates missing spec coverage before proceeding
+
 ## [0.14.2] - 2026-04-09
 
 ### Fixed

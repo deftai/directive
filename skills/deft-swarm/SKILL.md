@@ -42,6 +42,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 - ! Identify blocked spec tasks (status `[blocked]`) and their blocking reasons
 - ! Identify roadmap items with no corresponding spec task (missing spec coverage)
+- ! For each candidate item missing spec coverage: create a skeleton spec task in SPECIFICATION.md before proceeding to Phase 1. Use the format defined in `skills/deft-roadmap-refresh/SKILL.md` Phase 2 Step 4. Swarm agents cannot implement work that has no spec task -- the skeleton ensures every assigned task has a traceable spec entry.
 - ! Identify dependency conflicts between candidate items (e.g. task A depends on task B, but B is assigned to a different agent or is incomplete)
 - ! Flag any candidate items whose prerequisites are unmet
 

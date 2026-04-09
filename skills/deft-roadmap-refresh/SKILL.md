@@ -68,6 +68,7 @@ Present analysis to the user covering:
 - **Relationship to existing issues** — overlaps, dependencies, can-be-bundled-with
 - **Scope** — small/medium/large, what's involved
 - **Suggested phase** — which roadmap phase and why
+- **Spec coverage** — whether a SPECIFICATION.md task already exists for this issue (cite task ID if yes, note "no spec task -- will create skeleton on approval" if no)
 - **Your take** — brief recommendation
 
 ### Step 3: Wait for User Decision
@@ -80,7 +81,22 @@ Present analysis to the user covering:
 - ! Post the analysis as a comment on the GitHub issue
 - ! After posting the analysis comment, confirm to the user that the comment was posted -- include the issue number and a direct link to the comment.
 - ! Add the issue to the correct phase section in ROADMAP.md
-- ! Add the issue to the Open Issues Index table
+- ! Add the issue to the Open Issues Index table using the exact row format:
+  ```
+  | #NNN | title | Phase |
+  ```
+  Every column MUST have a value -- do NOT leave a column empty between pipes.
+- ! **Spec task scaffolding**: If no spec task exists in SPECIFICATION.md for this issue, create a skeleton entry:
+  ```
+  ## tX.Y.Z: <short title> (#NNN)  `[pending]`
+
+  <one-line description of what the task covers>
+
+  - <first acceptance criterion placeholder>
+
+  **Traces**: #NNN
+  ```
+  Use the next available task ID in the current phase sequence. The skeleton is a placeholder -- full acceptance criteria are written at implementation time.
 - ! Update the changelog line at the bottom of ROADMAP.md
 - ~ If the user approves commit+push: commit with a descriptive message and push
 
@@ -135,6 +151,8 @@ When posting to a GitHub issue, use this structure:
 - ⊗ Leave closed issues in the index without striking through
 - ⊗ Strike through an entry in the phase body AND add it to Completed -- this creates a duplicate record and breaks the single-record convention
 - ⊗ Add a CHANGELOG entry per individual issue during triage -- write one batch entry at the end of the full session
+- ⊗ Create Open Issues Index rows without using the `| #NNN | title | Phase |` template format -- freeform or inconsistent rows break downstream tooling and cleanup scripts
+- ⊗ Leave empty columns between pipes (e.g. `|| title | Phase |` or `| #NNN || Phase |`) -- every column must have a value; a double-pipe `||` entry means a column was omitted
 
 ## Phase 4 — PR & Review Cycle
 

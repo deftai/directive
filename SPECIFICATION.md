@@ -940,3 +940,27 @@ When an agent adds a new ! (MUST) or ⊗ (MUST NOT) rule, it does not check whet
 - tests/content/test_skills.py passes
 
 **Traces**: #251
+
+## t2.8.1: Add explicit row format template to deft-roadmap-refresh skill (#221)  `[completed]`
+
+Add an explicit `| #NNN | title | Phase |` row format template to skills/deft-roadmap-refresh/SKILL.md at the step that creates or updates Open Issues Index rows. Add 2 anti-patterns: one against creating index rows without using the template format, one against double-pipe `||` entries from omitting a column value. Closes #221.
+
+- skills/deft-roadmap-refresh/SKILL.md Phase 2 Step 4 contains explicit row format template: `| #NNN | title | Phase |`
+- Template includes ! rule: every column MUST have a value
+- Anti-Patterns section contains ⊗ entry: create Open Issues Index rows without using the template format
+- Anti-Patterns section contains ⊗ entry: leave empty columns between pipes (double-pipe `||`)
+- tests/content/test_skills.py passes
+
+**Traces**: #221
+
+## t2.8.2: Strengthen spec task scaffolding in roadmap-refresh and swarm Phase 0 (#248)  `[completed]`
+
+Roadmap refresh triages issues into the roadmap but does not create or surface spec task coverage. Add an explicit step to skills/deft-roadmap-refresh/SKILL.md: for each newly triaged issue, create a skeleton spec task in SPECIFICATION.md if one does not exist. Add a transparency note to the roadmap-refresh analysis output showing which issues lack spec coverage. Add a reminder to skills/deft-swarm/SKILL.md Phase 0 Step 2 to check and create skeleton spec tasks for roadmap candidates that are missing spec coverage before proceeding. Closes #248.
+
+- skills/deft-roadmap-refresh/SKILL.md Phase 2 Step 4 contains ! step for skeleton spec task creation when no spec task exists
+- Skeleton format includes task ID, title, issue reference, pending status, traces, and acceptance criterion placeholder
+- skills/deft-roadmap-refresh/SKILL.md Phase 2 Step 2 analysis includes "Spec coverage" transparency note (existing task ID or "no spec task" callout)
+- skills/deft-swarm/SKILL.md Phase 0 Step 2 contains ! rule to create skeleton spec tasks for candidates missing spec coverage before proceeding to Phase 1
+- tests/content/test_skills.py passes
+
+**Traces**: #248
