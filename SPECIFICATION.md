@@ -897,7 +897,7 @@ ROADMAP.md phase bodies and Open Issues Index rows contain Unicode em-dashes tha
 
 **Traces**: #237
 
-## t1.11.7: Add blocker carve-out to main.md instant-fix drift rule (#241)  `[pending]`
+## t1.11.7: Add blocker carve-out to main.md instant-fix drift rule (#241)  `[completed]`
 
 The main.md instant-fix drift rule (⊗: fix a discovered issue in-place mid-task) is too broad -- it inadvertently prohibits fixing genuine blockers discovered mid-task. Add a carve-out: blocking discoveries are in-scope with mandatory issue filing. Non-blocking discoveries remain prohibited (must file issue, do not fix in-place). Addresses ambiguity surfaced in #198 post-implementation. Closes #241.
 

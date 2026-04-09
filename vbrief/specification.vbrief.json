@@ -708,7 +708,7 @@
       {
         "id": "t1.11.7",
         "title": "Add blocker carve-out to main.md instant-fix drift rule (#241)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Description": "The main.md instant-fix drift rule (\u2297: fix a discovered issue in-place mid-task) is too broad -- it inadvertently prohibits fixing genuine blockers discovered mid-task. Add a carve-out: blocking discoveries are in-scope with mandatory issue filing. Non-blocking discoveries remain prohibited (must file issue, do not fix in-place). Addresses ambiguity surfaced in #198 post-implementation. Closes #241.",
           "Acceptance": "main.md Decision Making instant-fix drift \u2297 rule includes carve-out: if a discovered issue is a hard blocker to completing the current task, fixing it in-scope is permitted with mandatory GitHub issue filing\nCarve-out explicitly scoped to blocking discoveries only -- non-blocking nice-to-fix issues remain prohibited\ntests/content/test_standards.py passes",
