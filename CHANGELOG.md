@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Roadmap Refresh (2026-04-09)**: Triaged 2 new issues -- #228 (bring run CLI into test coverage measurement, Phase 3 -- confirm #160 before implementing), #248 (roadmap refresh does not surface spec task coverage, Phase 2 -- strengthen swarm Phase 0 skeleton spec tasks); no stale entries; analysis comments posted on both issues
+
 ## [0.14.1] - 2026-04-09
 
 ### Fixed
