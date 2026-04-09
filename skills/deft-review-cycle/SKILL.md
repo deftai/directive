@@ -84,6 +84,7 @@ gh pr view <number> --comments
 
 - ! For any fix that touches a value, term, or field appearing in multiple files: grep for it across the full PR file set and update every occurrence in the same commit
 - ! Validate structured data files locally before committing (e.g. `python3 -m json.tool` for JSON, YAML lint for YAML) — do not rely on the bot to catch syntax errors
+- ! Before committing any Greptile fix, re-read the FULL current Greptile review and confirm all P0/P1 issues are addressed in the staged changes — this is the pre-commit gate that prevents per-finding fix commits
 - ! Run `task check` before committing
 - ~ Commit message: `fix: address Greptile review findings (batch)`
 
@@ -225,4 +226,6 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 - ⊗ Poll more frequently than once per 60 seconds -- use a real delay between checks, not back-to-back calls
 - ⊗ Stop and ask the user whether to continue after pushing -- the review/fix loop MUST run autonomously to the exit condition
 - ⊗ Push fix commits without scanning changed lines for untested code paths — always check test coverage before pushing
+- ⊗ Push a fix commit that addresses fewer findings than the current Greptile review surfaces — if Greptile flags 3 issues, all 3 must be fixed in one commit before pushing
+- ⊗ Push after fixing a P1 without first checking whether the same Greptile review contains additional P0 or P1 findings
 - ⊗ Assume squash merge auto-closed referenced issues — always verify with `gh issue view` after merge (#167)
