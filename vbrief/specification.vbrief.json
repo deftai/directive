@@ -663,7 +663,7 @@
       {
         "id": "t1.11.3",
         "title": "deft-roadmap-refresh: write one batch changelog line at end of full triage session (#238)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Description": "deft-roadmap-refresh currently adds one CHANGELOG.md entry per issue triaged, producing verbose noise. Change to one batch entry at the end of the full triage session summarizing all issues triaged. Add anti-pattern. Closes #238.",
           "Acceptance": "skills/deft-roadmap-refresh/SKILL.md contains ! rule: write one batch CHANGELOG.md entry at the end of the full triage session, not one per issue triaged\nskills/deft-roadmap-refresh/SKILL.md Anti-Patterns contains \u2297 rule: add a CHANGELOG entry per individual issue during triage\ntests/content/test_skills.py passes",
@@ -673,7 +673,7 @@
       {
         "id": "t1.11.4",
         "title": "Add mandatory pre-commit file review step to deft-roadmap-refresh and deft-build (#239)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Description": "Add a mandatory pre-commit file review step to deft-roadmap-refresh Phase 4 pre-flight and to deft-build pre-commit checklist. The step requires the agent to re-read all modified files before committing, checking for encoding errors, unintended duplication, and structural issues. Closes #239.",
           "Acceptance": "skills/deft-roadmap-refresh/SKILL.md Phase 4 pre-flight contains mandatory file review step: re-read all modified files before committing, check for encoding errors, duplication, and structural issues\nskills/deft-build/SKILL.md pre-commit checklist contains equivalent mandatory file review step\ntests/content/test_skills.py passes",
@@ -688,7 +688,7 @@
       {
         "id": "t1.11.5",
         "title": "Add skill completion gate to prevent missing chaining instructions at skill exit (#243)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Description": "Skills sometimes exit without stating they are done or providing chaining instructions, leaving the agent in an undefined state. Add ! rule to AGENTS.md requiring explicit skill exit confirmation and chaining. Add EXIT block to deft-roadmap-refresh. Add chaining annotations to AGENTS.md Skill Routing table entries. Closes #243.",
           "Acceptance": "AGENTS.md contains ! rule: when a skill's final step is complete, explicitly confirm skill exit and provide chaining instructions if applicable\nskills/deft-roadmap-refresh/SKILL.md contains explicit EXIT block at the end of Phase 4 with chaining instructions\nAGENTS.md Skill Routing table entries include chaining annotations where applicable\ntests/content/test_skills.py passes",

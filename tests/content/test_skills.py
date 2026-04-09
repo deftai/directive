@@ -694,3 +694,63 @@ def test_deft_review_cycle_send_message() -> None:
     assert "send_message_to_agent" in text, (
         f"{_REVIEW_CYCLE_PATH}: start_agent approach must use send_message_to_agent (#195)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 23. deft-roadmap-refresh batch CHANGELOG rule (#238, t1.11.3)
+# ---------------------------------------------------------------------------
+
+def test_deft_roadmap_refresh_batch_changelog_rule() -> None:
+    """Roadmap refresh must require one batch CHANGELOG entry at session end."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "batch" in text.lower() and "end of the full triage session" in text.lower(), (
+        f"{_ROADMAP_REFRESH_PATH}: missing batch CHANGELOG rule (#238, t1.11.3)"
+    )
+
+
+def test_deft_roadmap_refresh_batch_changelog_antipattern() -> None:
+    """Anti-patterns must prohibit per-issue CHANGELOG entries."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "changelog entry per individual issue" in text.lower(), (
+        f"{_ROADMAP_REFRESH_PATH}: missing per-issue CHANGELOG anti-pattern (#238, t1.11.3)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 24. deft-roadmap-refresh + deft-build pre-commit file review (#239, t1.11.4)
+# ---------------------------------------------------------------------------
+
+def test_deft_roadmap_refresh_precommit_file_review() -> None:
+    """Phase 4 pre-flight must include mandatory file review step."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "encoding errors" in text.lower() and "unintended duplication" in text.lower(), (
+        f"{_ROADMAP_REFRESH_PATH}: missing mandatory pre-commit file review (#239, t1.11.4)"
+    )
+
+
+def test_deft_build_precommit_file_review() -> None:
+    """deft-build must include mandatory pre-commit file review step."""
+    text = _read_skill("skills/deft-build/SKILL.md")
+    assert "encoding errors" in text.lower() and "unintended duplication" in text.lower(), (
+        "skills/deft-build/SKILL.md: missing pre-commit file review step (#239, t1.11.4)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 25. deft-roadmap-refresh EXIT block (#243, t1.11.5)
+# ---------------------------------------------------------------------------
+
+def test_deft_roadmap_refresh_exit_block() -> None:
+    """Roadmap refresh must have an EXIT block at end of Phase 4."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "### EXIT" in text, (
+        f"{_ROADMAP_REFRESH_PATH}: missing EXIT block (#243, t1.11.5)"
+    )
+
+
+def test_deft_roadmap_refresh_exit_chaining_instructions() -> None:
+    """EXIT block must provide chaining instructions."""
+    text = _read_skill(_ROADMAP_REFRESH_PATH)
+    assert "exiting skill" in text.lower() and "chaining instructions" in text.lower(), (
+        f"{_ROADMAP_REFRESH_PATH}: EXIT block must provide chaining instructions (#243, t1.11.5)"
+    )

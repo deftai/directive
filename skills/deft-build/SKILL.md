@@ -132,6 +132,16 @@ Read full files when you need detail:
 
 See `deft/coding/coding.md` and `deft/coding/testing.md` for full rules.
 
+## Pre-Commit File Review
+
+! Before every commit, re-read ALL modified files and explicitly check for:
+
+1. ! **Encoding errors** -- em-dashes corrupted to replacement characters, BOM artifacts, mojibake from round-trip read/write
+2. ! **Unintended duplication** -- accidental double entries in CHANGELOG.md, SPECIFICATION.md, or structured data files
+3. ! **Structural issues** -- malformed CHANGELOG entries, broken table rows, mismatched index entries, invalid JSON/YAML
+
+⊗ Commit without re-reading all modified files first.
+
 ## Commit Strategy
 
 - ~ Commit after each meaningful unit of work (per subphase or task)

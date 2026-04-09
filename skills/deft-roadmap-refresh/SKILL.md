@@ -121,6 +121,11 @@ When posting to a GitHub issue, use this structure:
 - ! Include bullet-point body summarizing what changed
 - ⊗ Auto-push without explicit user instruction
 
+## CHANGELOG Convention
+
+- ! Write ONE batch `CHANGELOG.md` entry at the END of the full triage session -- not one entry per issue triaged. The batch entry summarizes all issues triaged, filed, and cleaned up during the session.
+- ⊗ Add a CHANGELOG entry after each individual issue is triaged -- wait until the full session is complete and write a single summary entry.
+
 ## Anti-Patterns
 
 - ⊗ Triage multiple issues without stopping for user review
@@ -129,6 +134,7 @@ When posting to a GitHub issue, use this structure:
 - ⊗ Forget to update the Open Issues Index when adding to a phase
 - ⊗ Leave closed issues in the index without striking through
 - ⊗ Strike through an entry in the phase body AND add it to Completed -- this creates a duplicate record and breaks the single-record convention
+- ⊗ Add a CHANGELOG entry per individual issue during triage -- write one batch entry at the end of the full session
 
 ## Phase 4 — PR & Review Cycle
 
@@ -144,6 +150,10 @@ After all triage and cleanup is complete:
 1. ! Verify `CHANGELOG.md` has an `[Unreleased]` entry covering the roadmap refresh changes
 2. ! Run `task check` -- all checks must pass
 3. ! Verify `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfiable for this PR
+4. ! **Mandatory file review**: Re-read ALL modified files before committing. Explicitly check for:
+   - Encoding errors (em-dashes corrupted to replacement characters, BOM artifacts)
+   - Unintended duplication (accidental double entries in ROADMAP.md, CHANGELOG.md, or index tables)
+   - Structural issues (malformed CHANGELOG entries, broken ROADMAP rows, mismatched index entries)
 
 ### Commit, Push, and Create PR
 
@@ -157,3 +167,14 @@ After all triage and cleanup is complete:
 
 - ! Inform the user: "PR #{N} created -- starting review cycle."
 - ! Follow the full review cycle skill from Phase 1 (Deft Process Audit) onward.
+
+### EXIT
+
+! When the review cycle completes (exit condition met) or the PR is ready for human review:
+
+1. ! Explicitly confirm skill exit: "deft-roadmap-refresh complete -- exiting skill."
+2. ! Provide chaining instructions to the user/agent:
+   - If review cycle is complete and PR is approved: "PR #{N} is ready for human merge review."
+   - If review cycle is still in progress: "Review cycle handed off to deft-review-cycle. Monitor PR #{N} for Greptile findings."
+   - If returning to a monitor agent: "Returning control to monitor agent -- roadmap refresh PR #{N} created and review cycle initiated."
+3. ! Do NOT continue into adjacent work after this point -- the skill boundary is an exit condition.

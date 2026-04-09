@@ -95,3 +95,23 @@ def test_agents_md_deft_alignment_anti_pattern() -> None:
         "AGENTS.md: must contain \u2297 anti-pattern for starting session without "
         "confirming Deft alignment (#134)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 4. Skill Completion Gate (#243, t1.11.5)
+# ---------------------------------------------------------------------------
+
+def test_agents_md_skill_completion_gate_rule() -> None:
+    """AGENTS.md must require explicit skill exit confirmation (#243, t1.11.5)."""
+    text = _read_agents_md()
+    assert "skill completion gate" in text.lower(), (
+        "AGENTS.md: must contain Skill Completion Gate rule (#243, t1.11.5)"
+    )
+
+
+def test_agents_md_skill_completion_gate_chaining() -> None:
+    """AGENTS.md Skill Routing must include chaining annotations (#243, t1.11.5)."""
+    text = _read_agents_md()
+    assert "chains to" in text.lower(), (
+        "AGENTS.md: Skill Routing table must include chaining annotations (#243, t1.11.5)"
+    )
