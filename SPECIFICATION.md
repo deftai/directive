@@ -917,3 +917,15 @@ The main.md instant-fix drift rule (⊗: fix a discovered issue in-place mid-tas
 - tests/content/test_standards.py passes
 
 **Traces**: #241
+
+## t1.12.1: Add autonomous Greptile re-review monitoring to deft-swarm Phase 6 rebase cascade (#249)  `[completed]`
+
+During Phase 6 merge cascade, after each --force-with-lease push of a rebased branch, the monitor stalls waiting for human input to check the Greptile re-review. Add a ! rule to skills/deft-swarm/SKILL.md Phase 6 Step 1 requiring the monitor to autonomously wait for Greptile re-review using the tiered approach from skills/deft-review-cycle/SKILL.md Step 4. Do NOT proceed to the next merge until the Greptile review for the rebased branch is current (SHA match) and exit condition is met (confidence > 3, no P0/P1). Closes #249.
+
+- skills/deft-swarm/SKILL.md Phase 6 Step 1 contains ! rule for autonomous re-review monitoring after force-push
+- Rule references skills/deft-review-cycle/SKILL.md Step 4 tiered monitoring approach (pointer, not duplication)
+- ! gate: do NOT proceed to next merge until Greptile review is current (SHA match) and exit condition met
+- Anti-patterns section contains entry prohibiting proceeding to next merge without re-review confirmation
+- CHANGELOG entry under [Unreleased]
+
+**Traces**: #249
