@@ -787,12 +787,12 @@ def test_deft_review_cycle_unchecked_p1_antipattern() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 27. Semantic contradiction check in deft-build and deft-rwldl (#251, t1.12.3)
+# 27. Semantic contradiction check in deft-build and deft-pre-pr (#251, t1.12.3)
 # ---------------------------------------------------------------------------
-# 26. Semantic contradiction check in deft-build and deft-rwldl (#251, t1.12.3)
+# 26. Semantic contradiction check in deft-build and deft-pre-pr (#251, t1.12.3)
 # ---------------------------------------------------------------------------
 
-_RWLDL_PATH = "skills/deft-rwldl/SKILL.md"
+_PRE_PR_PATH = "skills/deft-pre-pr/SKILL.md"
 
 
 def test_deft_build_semantic_contradiction_rule() -> None:
@@ -819,26 +819,26 @@ def test_deft_build_contradiction_antipattern() -> None:
     )
 
 
-def test_deft_rwldl_semantic_contradiction_rule() -> None:
-    """deft-rwldl Read phase must require contradiction scan for !/\u2297 rules."""
-    text = _read_skill(_RWLDL_PATH)
+def test_deft_pre_pr_semantic_contradiction_rule() -> None:
+    """deft-pre-pr Read phase must require contradiction scan for !/\u2297 rules."""
+    text = _read_skill(_PRE_PR_PATH)
     lower = text.lower()
     assert "prohibits a specific command" in lower and "resolve all contradictions" in lower, (
-        f"{_RWLDL_PATH}: missing semantic contradiction check rule (#251, t1.12.3)"
+        f"{_PRE_PR_PATH}: missing semantic contradiction check rule (#251, t1.12.3)"
     )
 
 
-def test_deft_rwldl_strength_duplicate_rule() -> None:
-    """deft-rwldl Read phase must require strength-duplicate check."""
-    text = _read_skill(_RWLDL_PATH)
+def test_deft_pre_pr_strength_duplicate_rule() -> None:
+    """deft-pre-pr Read phase must require strength-duplicate check."""
+    text = _read_skill(_PRE_PR_PATH)
     assert "strengthening a rule" in text.lower() and "weaker-strength duplicate" in text.lower(), (
-        f"{_RWLDL_PATH}: missing strength-duplicate check rule (#251, t1.12.3)"
+        f"{_PRE_PR_PATH}: missing strength-duplicate check rule (#251, t1.12.3)"
     )
 
 
-def test_deft_rwldl_contradiction_antipattern() -> None:
-    """deft-rwldl anti-patterns must prohibit adding prohibition without scanning for conflicts."""
-    text = _read_skill(_RWLDL_PATH)
+def test_deft_pre_pr_contradiction_antipattern() -> None:
+    """deft-pre-pr anti-patterns must prohibit adding prohibition without scanning for conflicts."""
+    text = _read_skill(_PRE_PR_PATH)
     assert "prohibition" in text.lower() and "softer-strength" in text.lower(), (
-        f"{_RWLDL_PATH}: missing contradiction anti-pattern (#251, t1.12.3)"
+        f"{_PRE_PR_PATH}: missing contradiction anti-pattern (#251, t1.12.3)"
     )

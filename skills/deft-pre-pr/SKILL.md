@@ -1,18 +1,20 @@
 ---
-name: deft-rwldl
+name: deft-pre-pr
 description: >
   Iterative pre-PR quality improvement loop. Use before pushing a branch
   for PR creation -- after completing implementation but before task check.
   Cycles through Read-Write-Lint-Diff until a full pass produces zero changes.
 ---
 
-# Deft RWLDL -- Read, Write, Lint, Diff, Loop
+# Deft Pre-PR -- Read, Write, Lint, Diff, Loop
 
 Structured self-review loop agents run before submitting a PR. Catches inconsistencies, missing enforcement markers, incomplete acceptance criteria, scope creep, and unintended changes before they reach the reviewer.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 **See also**: [deft-review-cycle](../deft-review-cycle/SKILL.md) | [deft-build](../deft-build/SKILL.md) | [RWLDL tool](../../tools/RWLDL.md)
+
+> **Formerly `deft-rwldl`** -- renamed to clearly communicate the skill's purpose (iterative pre-PR quality loop).
 
 ## When to Use
 

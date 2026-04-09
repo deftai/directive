@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Rename deft-rwldl skill to deft-pre-pr** (#226, t2.8.3): Renamed `skills/deft-rwldl/` to `skills/deft-pre-pr/` for clarity -- the acronym "RWLDL" was opaque and collided with the RWLDL tool pattern; updated frontmatter, `.agents/skills/` thin pointer, AGENTS.md Skill Routing table, and `tests/content/test_skills.py`; added auto-suggestion to AGENTS.md Development Process section
+
 ### Added
 - **Strategy stubs: rapid.md and enterprise.md** (#51, t2.8.5): Created `strategies/rapid.md` (quick prototyping workflow -- SPECIFICATION-only output, minimal gates, forced-Light path) and `strategies/enterprise.md` (compliance-heavy workflow -- PRD -> ADR -> SPECIFICATION with explicit approval gates); both have RFC2119 legend, See also banner, and full workflow structure; updated `strategies/README.md` to remove "(future)" annotations and add links; added `test_rapid_strategy_exists` and `test_enterprise_strategy_exists` to `tests/content/test_structure.py`; flipped xfail entries in `known_failures.json`
 - **docs/getting-started.md stub** (#112, t2.8.6): Created `docs/getting-started.md` with title, purpose statement, deferred-content note, and placeholder section outline (Prerequisites, Installation, First Project, Using Strategies, Agent Configuration); added `test_getting_started_exists` to `tests/content/test_structure.py`; posted confirmation comment on GitHub issue #112
+- **README.md "Your Artifacts" section** (#234, t2.8.4): Added concise bulleted list documenting where user-generated artifacts live in a consumer project -- `./vbrief/`, `SPECIFICATION.md`, `PROJECT.md`, `USER.md`, and `./deft/`
+- **deft-pre-pr in README.md and AGENTS.md**: Added skill to README.md directory tree and Skills listing; added keyword routing entry ("pre-pr" / "quality loop" / "rwldl" / "self-review") to AGENTS.md Skill Routing table
 
 ### Fixed
 - **Roadmap-refresh explicit row format template** (#221, t2.8.1): Added explicit `| #NNN | title | Phase |` row format template to `skills/deft-roadmap-refresh/SKILL.md` Phase 2 Step 4 for Open Issues Index rows; added 2 anti-patterns: creating rows without the template format, and double-pipe `||` entries from omitting a column value

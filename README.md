@@ -276,6 +276,7 @@ deft/
 │
 ├── skills/                # Agent skills (SKILL.md format)
 │   ├── deft-build/        # Build/implement skill
+│   ├── deft-pre-pr/       # Iterative pre-PR quality loop (RWLDL)
 │   ├── deft-review-cycle/ # Greptile bot review cycle
 │   ├── deft-roadmap-refresh/ # Issue triage and roadmap refresh
 │   ├── deft-setup/        # Interactive setup skill
@@ -332,7 +333,7 @@ deft/
 **SKILL.md** - Entry point for AI agent skill loading  
 **coding/coding.md** - Software development standards  
 **coding/testing.md** - Testing standards  
-**core/project.md** - Project-specific template  
+**PROJECT.md** - Project-specific configuration (project root)  
 **USER.md** - Your personal preferences (highest precedence) — `~/.config/deft/USER.md` (Unix/macOS) or `%APPDATA%\deft\USER.md` (Windows)
 
 ### 🐍 Languages
@@ -402,6 +403,7 @@ agentuity, aws, azure, cloudflare, cloud-gov, fly-io, google, netlify, vercel
 
 ### 🤖 Skills
 **skills/deft-build/** - Build/implement skill  
+**skills/deft-pre-pr/** - Iterative pre-PR quality loop (Read-Write-Lint-Diff-Loop) -- run before pushing a branch for PR creation  
 **skills/deft-review-cycle/** - Greptile bot reviewer response workflow (fetch findings, batch fix, exit on clean)  
 **skills/deft-roadmap-refresh/** - Issue triage and phased roadmap maintenance  
 **skills/deft-setup/** - Interactive setup wizard skill  
@@ -807,6 +809,16 @@ Manual runs skip the release job automatically (guarded by `if: startsWith(githu
 5. Each release includes: `install-windows-amd64.exe`, `install-windows-arm64.exe`, `install-macos-universal`, `install-linux-amd64`, `install-linux-arm64`
 
 > **Note:** Binaries are not yet code-signed. macOS users may need to bypass Gatekeeper (see [Getting Started](#-getting-started)). Windows users may see a SmartScreen warning. Code signing is planned for a future release.
+
+## 📦 Your Artifacts
+
+When you use Deft in a consumer project, these are the key locations for user-generated artifacts:
+
+- **`./vbrief/`** -- vBRIEF plan and spec JSON files (`plan.vbrief.json`, `specification.vbrief.json`, etc.)
+- **`SPECIFICATION.md`** -- rendered specification (generated from `vbrief/specification.vbrief.json`)
+- **`PROJECT.md`** -- project-level configuration and overrides (project root)
+- **`USER.md`** -- personal preferences (`~/.config/deft/USER.md` on Unix/macOS, `%APPDATA%\deft\USER.md` on Windows)
+- **`./deft/`** -- installed framework files (cloned or installed by the installer)
 
 ## 🎓 Philosophy
 
