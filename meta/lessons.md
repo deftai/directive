@@ -231,6 +231,6 @@ When a multi-line PowerShell string literal (here-string `@" ... "@`) is pasted 
 
 **Root cause:** Warp's terminal input box treats newlines as command separators. A multi-line here-string that spans N lines becomes N separate commands, none of which is syntactically valid on its own.
 
-**Fix:** Always write multi-line PS content to a temp file first (`Set-Content $tmpFile $content` or `[System.IO.File]::WriteAllText($tmpFile, $content, [System.Text.Encoding]::UTF8)`), then reference the temp file path in subsequent commands. This avoids the input splitting entirely. (#240)
+**Fix:** Always write multi-line PS content to a temp file first (`[System.IO.File]::WriteAllText($tmpFile, $content, [System.Text.UTF8Encoding]::new($false))`), then reference the temp file path in subsequent commands. This avoids the input splitting entirely. (#240)
 
 **Cross-reference:** `scm/github.md` — Warp Terminal Multi-Line String Handling subsection.
