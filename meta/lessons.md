@@ -220,3 +220,17 @@ GitHub processes closing keywords (`Closes #N`, `Fixes #N`) from the PR body whe
 Root cause: GitHub's squash merge constructs a new commit message from the PR title and description. If the closing keyword appears only in the PR body (not the squash commit's final message), or if GitHub's keyword parser does not match the rewritten message format, the issue auto-close is skipped silently. This is a known GitHub behavior difference between regular merges and squash merges.
 
 **After every squash merge, MUST verify that referenced issues actually closed:** `gh issue view <N> --json state --jq .state`. If the issue is still open, close it manually with a comment referencing the merged PR: `gh issue close <N> --comment "Closed by #<PR> (squash merge — auto-close did not trigger)"`. (#167)
+
+## Warp Terminal Multi-Line PowerShell String Splitting (2026-04)
+
+**Source:** Issue #240 -- multi-line PS here-strings pasted into Warp agent input caused syntax errors
+
+**1. Warp splits multi-line PowerShell here-strings across separate command blocks -- MUST use temp files**
+
+When a multi-line PowerShell string literal (here-string `@" ... "@`) is pasted or entered directly into the Warp agent terminal input box, Warp's input handling splits the content across separate command blocks at line boundaries. Each block is sent as a separate command, causing immediate syntax errors (the opening `@"` is sent without its closing `"@`) or silent truncation of the string content.
+
+**Root cause:** Warp's terminal input box treats newlines as command separators. A multi-line here-string that spans N lines becomes N separate commands, none of which is syntactically valid on its own.
+
+**Fix:** Always write multi-line PS content to a temp file first (`[System.IO.File]::WriteAllText($tmpFile, $content, [System.Text.UTF8Encoding]::new($false))`), then reference the temp file path in subsequent commands. This avoids the input splitting entirely. (#240)
+
+**Cross-reference:** `scm/github.md` — Warp Terminal Multi-Line String Handling subsection.

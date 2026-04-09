@@ -832,17 +832,17 @@ Create strategies/bdd.md: a Behaviour-Driven Development strategy where failing 
 
 **Traces**: #81
 
-## t1.11.1: Document Get-Content -Raw UTF-8 footgun and BOM-safe round-trip pattern for PS 5.1 (#236)  `[pending]`
+## t1.11.1: Document Get-Content -Raw UTF-8 footgun and BOM-safe round-trip pattern for PS 5.1 (#236)  `[completed]`
 
 PowerShell 5.1's Get-Content (without -Raw) reads files line-by-line and can inject BOM characters or silently mangle em-dashes when agents read then re-write files. Add ! rules to scm/github.md PS 5.1 section covering Get-Content -Raw for safe reads and BOM-safe round-trip write pattern. Closes #236.
 
 - scm/github.md PS 5.1 section contains ! rule: use Get-Content -Raw to read files as a single string, avoiding line-by-line BOM injection
-- scm/github.md PS 5.1 section contains ! rule for BOM-safe write pattern (e.g. [System.IO.File]::WriteAllText or Out-File -Encoding utf8NoBOM) when writing files read by agents
+- scm/github.md PS 5.1 section contains ! rule for BOM-safe write pattern ([System.IO.File]::WriteAllText with UTF8Encoding BOM-free constructor) when writing files read by agents
 - tests/content/test_standards.py passes
 
 **Traces**: #236
 
-## t1.11.2: Document multi-line PS string literal Warp terminal block splitting -- always use temp file (#240)  `[pending]`
+## t1.11.2: Document multi-line PS string literal Warp terminal block splitting -- always use temp file (#240)  `[completed]`
 
 **Depends on**: t1.11.1
 
