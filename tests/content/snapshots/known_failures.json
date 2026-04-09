@@ -13,16 +13,16 @@
       "id": "missing-strategy-rapid",
       "check": "test_structure.strategy_files_exist",
       "file": "strategies/rapid.md",
-      "reason": "File referenced in strategies/README.md as '(future)' but does not exist on disk. See todo.md Phase 2: 'Add missing strategies'.",
-      "xfail": true,
+      "reason": "File now exists (t2.8.5). Previously listed as future.",
+      "xfail": false,
       "fix_in": "Phase 2 (v0.6.0)"
     },
     {
       "id": "missing-strategy-enterprise",
       "check": "test_structure.strategy_files_exist",
       "file": "strategies/enterprise.md",
-      "reason": "File referenced in strategies/README.md as '(future)' but does not exist on disk. See todo.md Phase 2: 'Add missing strategies'.",
-      "xfail": true,
+      "reason": "File now exists (t2.8.5). Previously listed as future.",
+      "xfail": false,
       "fix_in": "Phase 2 (v0.6.0)"
     },
     {
@@ -120,8 +120,8 @@
       "id": "contracts-strategy-index-rapid-link",
       "check": "test_contracts.strategy_index_links_resolve",
       "file": "strategies/rapid.md",
-      "reason": "strategies/rapid.md is linked in a code example in strategies/README.md but the file does not yet exist.",
-      "xfail": true,
+      "reason": "File now exists (t2.8.5). Previously listed as future.",
+      "xfail": false,
       "fix_in": "Phase 2 (v0.6.0)"
     },
     {
@@ -218,24 +218,24 @@
       "id": "deprecated-path-main-md",
       "check": "test_standards.no_deprecated_user_path",
       "file": "main.md",
-      "reason": "Still references core/user.md (deprecated path). Should be updated to ~/.config/deft/USER.md.",
-      "xfail": true,
+      "reason": "Fixed (t2.1.1). Legacy core/user.md reference removed.",
+      "xfail": false,
       "fix_in": "Phase 2 (v0.6.0)"
     },
     {
       "id": "deprecated-path-references-md",
       "check": "test_standards.no_deprecated_user_path",
       "file": "REFERENCES.md",
-      "reason": "Still references core/user.md (deprecated path). Should be updated to ~/.config/deft/USER.md.",
-      "xfail": true,
+      "reason": "Fixed (t2.1.1). Legacy core/user.md reference removed.",
+      "xfail": false,
       "fix_in": "Phase 2 (v0.6.0)"
     },
     {
       "id": "deprecated-path-skill-md",
       "check": "test_standards.no_deprecated_user_path",
       "file": "SKILL.md",
-      "reason": "Still references core/user.md (deprecated path). Should be updated to ~/.config/deft/USER.md.",
-      "xfail": true,
+      "reason": "Fixed (t2.1.1). Legacy core/user.md references updated.",
+      "xfail": false,
       "fix_in": "Phase 2 (v0.6.0)"
     },
     {
@@ -340,8 +340,8 @@
       "id": "deprecated-path-roadmap",
       "check": "test_standards.no_deprecated_user_path",
       "file": "ROADMAP.md",
-      "reason": "Roadmap references the deprecated path in task descriptions. Pre-existing.",
-      "xfail": true,
+      "reason": "Fixed (t2.1.1). Legacy core/user.md and core/project.md references purged.",
+      "xfail": false,
       "fix_in": "Phase 2 (t2.1.1)"
     },
     {

@@ -1,8 +1,8 @@
 # Markdown Best Practices
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md)
+**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: CommonMark/GFM; Diagrams: Mermaid; Linting: markdownlint; Render targets: GitHub, GitLab, Obsidian, static site generators
 
@@ -15,19 +15,19 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Use active voice for instructions: "Run the script" not "The script should be run"
 - ~ Keep sentences under 25 words; break complex ideas into multiple sentences
 - ~ Use second person ("you") for instructions; avoid first person in technical docs
-- ≉ Wall-of-text paragraphs >5 sentences — break with subheadings, lists, or diagrams
-- ⊗ Ambiguous pronouns ("it", "this", "that") without clear antecedent
+- â‰‰ Wall-of-text paragraphs >5 sentences â€” break with subheadings, lists, or diagrams
+- âŠ— Ambiguous pronouns ("it", "this", "that") without clear antecedent
 
 ### Content Organization
 - ! Place a summary or purpose statement within the first 3 lines after the title
-- ! Use headings as scannable signposts — reader should understand structure from headings alone
+- ! Use headings as scannable signposts â€” reader should understand structure from headings alone
 - ! Group related content under descriptive subheadings
 - ! Place prerequisites and setup instructions before usage/workflow sections
-- ⊗ Include mermaid charts in document line counts
+- âŠ— Include mermaid charts in document line counts
 - ~ Include a table of contents for documents >300 lines
 - ~ Use admonitions/callouts (`> **Note:**`, `> **Warning:**`) for important asides
-- ≉ Documents >700 lines — split into multiple linked files
-- ⊗ Burying critical information (breaking changes, security) deep in a document
+- â‰‰ Documents >700 lines â€” split into multiple linked files
+- âŠ— Burying critical information (breaking changes, security) deep in a document
 
 ### Links & References
 - ! Use descriptive link text that makes sense out of context
@@ -35,16 +35,16 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Verify links are valid before commit (dead link checker in CI)
 - ~ Use reference-style links when the same URL appears 3+ times
 - ~ Link to specific headings when referencing a section: `[Setup](./guide.md#setup)`
-- ⊗ Bare URLs in prose — always wrap in descriptive link text
-- ⊗ "Click here" or "this link" as link text
+- âŠ— Bare URLs in prose â€” always wrap in descriptive link text
+- âŠ— "Click here" or "this link" as link text
 
 ### Lists & Structure
 - ! Use unordered lists for items without meaningful order
 - ! Use ordered lists only when sequence matters (steps, rankings)
 - ! Keep list items parallel in grammar and structure
 - ~ Limit nesting to 2 levels; deeper nesting signals need for restructuring
-- ≉ Lists >15 items without grouping — break into categorized sublists
-- ≉ Mixing list styles (bullets and numbers) at the same level
+- â‰‰ Lists >15 items without grouping â€” break into categorized sublists
+- â‰‰ Mixing list styles (bullets and numbers) at the same level
 
 ### Style Preferences
 - ~ Prefer `_italic_` over `*italic*` (clearer visual distinction from `**bold**`)
@@ -57,15 +57,15 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Ensure all code examples compile/run (test in CI where possible)
 - ~ Use inline code for identifiers, file names, commands, and values
 - ~ Add comments in code blocks only when the code isn't self-explanatory
-- ⊗ Screenshots of code — always use text-based code blocks (searchable, accessible, copyable)
+- âŠ— Screenshots of code â€” always use text-based code blocks (searchable, accessible, copyable)
 
 ### Tables
-- ! Use tables only for genuinely tabular data (rows × columns)
+- ! Use tables only for genuinely tabular data (rows Ã— columns)
 - ! Include a header row with descriptive column names
 - ~ Align columns in source for readability
 - ~ Keep tables under 7 columns; consider alternative formats for wider data
-- ≉ Tables for layout or formatting purposes
-- ≉ Tables with cells containing multi-paragraph content — use definition lists or sections
+- â‰‰ Tables for layout or formatting purposes
+- â‰‰ Tables with cells containing multi-paragraph content â€” use definition lists or sections
 
 ### Images & Media
 - ! Include descriptive alt text on every image (accessibility)
@@ -73,12 +73,12 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Store images in a dedicated directory (`images/`, `assets/`, `diagrams/`)
 - ~ Include a caption or description below complex images
 - ~ Optimize raster images for file size before committing
-- ⊗ Images as the sole carrier of critical information — always include text equivalent
-- ⊗ Screenshots of terminal output — use text-based code blocks
+- âŠ— Images as the sole carrier of critical information â€” always include text equivalent
+- âŠ— Screenshots of terminal output â€” use text-based code blocks
 
 ## Mermaid Diagrams
 
-- ⊗ Use mermaid in anywhere inside deft/ *.md files
+- âŠ— Use mermaid in anywhere inside deft/ *.md files
 - ~ Use Mermaid liberally whenever a visual would clarify relationships, flows, or architecture
 - See [mermaid.md](./mermaid.md) for all Mermaid standards, theme config, and diagram examples
 
@@ -86,9 +86,9 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 - ! Date or version-stamp documents that have a shelf life (ADRs, runbooks, release notes)
 - ! Review and update docs when the related code changes
-- ! Mark deprecated content clearly: `> **⚠️ Deprecated**: ...`
+- ! Mark deprecated content clearly: `> **âš ï¸ Deprecated**: ...`
 - ~ Use `CHANGELOG.md` for project-level change tracking
-- ⊗ Stale documentation — better to delete than to mislead
+- âŠ— Stale documentation â€” better to delete than to mislead
 
 ## README Standards
 
@@ -96,7 +96,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ~ Include: badges (CI, coverage, version), architecture overview, contributing guide link
 - ~ Keep README under 300 lines; link to detailed docs for depth
 - ! List all required environment variables / config without exposing secrets
-- ⊗ Duplicating detailed docs in README — link instead
+- âŠ— Duplicating detailed docs in README â€” link instead
 
 ## ADR (Architecture Decision Records)
 
@@ -143,9 +143,9 @@ Key non-defaults: MD033/MD036 disabled (allow inline HTML, emphasis-as-heading);
 
 ## Anti-Patterns
 
-- ⊗ **Stale docs**: Delete or update — stale docs are worse than no docs
-- ≉ **Documents >700 lines**: Split into focused, linked files
-- ≉ **Deeply nested lists (>2 levels)**: Restructure into sections or subheadings
+- âŠ— **Stale docs**: Delete or update â€” stale docs are worse than no docs
+- â‰‰ **Documents >700 lines**: Split into focused, linked files
+- â‰‰ **Deeply nested lists (>2 levels)**: Restructure into sections or subheadings
 
 ## Compliance Checklist
 
@@ -154,5 +154,5 @@ Key non-defaults: MD033/MD036 disabled (allow inline HTML, emphasis-as-heading);
 - ! Fenced code blocks with language identifiers; examples that compile
 - ! Mermaid: see [mermaid.md](./mermaid.md)
 - ! Documents <700 lines; README <500 lines
-- ⊗ Screenshots of code, "click here" links, stale docs
+- âŠ— Screenshots of code, "click here" links, stale docs
 - ! Run `task lint` before commit

@@ -2,7 +2,7 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md) | [csharp.md](../languages/csharp.md)
+**⚠️ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [csharp.md](../languages/csharp.md)
 
 **Stack**: Unity 6+, C# (see [csharp.md](../languages/csharp.md) for general C# rules); Rendering: URP (default) or HDRP; Testing: Unity Test Framework (NUnit); Asset Management: Addressables
 

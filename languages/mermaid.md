@@ -1,8 +1,8 @@
 # Mermaid Diagram Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [markdown.md](./markdown.md) | [main.md](../main.md)
+**âš ï¸ See also**: [markdown.md](./markdown.md) | [main.md](../main.md)
 
 ## Standards
 
@@ -17,9 +17,9 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ~ Validate Mermaid rendering fixes with a closed-loop workflow: minimal gist, Playwright render, screenshot inspection
 - ~ Use a minimal reproducer gist before patching large documents
 - ~ Treat renderer quirks as diagram-type-specific; `sequenceDiagram` workarounds SHOULD NOT be generalized to other Mermaid diagram types without testing
-- ≉ Create diagrams with more than 20 nodes in one block; split into focused diagrams
-- ⊗ Rely solely on color to convey meaning (use labels and shapes too)
-- ⊗ Ship low-contrast diagrams (for example, missing init theme or light-on-light text)
+- â‰‰ Create diagrams with more than 20 nodes in one block; split into focused diagrams
+- âŠ— Rely solely on color to convey meaning (use labels and shapes too)
+- âŠ— Ship low-contrast diagrams (for example, missing init theme or light-on-light text)
 
 ## Color Palette
 

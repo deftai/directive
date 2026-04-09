@@ -1,8 +1,8 @@
 # Rust Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md)
+**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md)
 
 **Stack**: Rust (latest stable); Build: Cargo; Testing: built-in `#[test]` + proptest; Lint: clippy; Format: rustfmt; Docs: rustdoc
 
@@ -13,7 +13,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Include `# Examples` section with runnable doc-tests for public API
 - ! Module-level docs (`//!`) explaining purpose and usage
 - ~ Use `# Errors`, `# Panics`, `# Safety` sections where applicable
-- ⊗ `#[allow(missing_docs)]` on public items without justification
+- âŠ— `#[allow(missing_docs)]` on public items without justification
 
 ### Testing
 See [testing.md](../coding/testing.md).
@@ -25,7 +25,7 @@ See [testing.md](../coding/testing.md).
 - ~ Use doc-tests as living examples (they run during `cargo test`)
 
 ### Coverage
-- ! ≥80% coverage (measured via cargo-tarpaulin or llvm-cov)
+- ! â‰¥80% coverage (measured via cargo-tarpaulin or llvm-cov)
 - ! Count src/**
 - ! Exclude main.rs entry points, generated code, build scripts
 
@@ -34,7 +34,7 @@ See [testing.md](../coding/testing.md).
 - ! Run clippy with `#![deny(clippy::all)]` at crate level
 - ! `#![deny(clippy::pedantic)]` for library crates
 - ! 4-space indentation (rustfmt default)
-- ! Line length ≤100 characters
+- ! Line length â‰¤100 characters
 - ~ Use `#![warn(clippy::nursery)]` for additional catches
 
 ### Naming Conventions
@@ -43,7 +43,7 @@ See [testing.md](../coding/testing.md).
 - ! `SCREAMING_SNAKE_CASE` for constants and statics
 - ! Prefix lifetime parameters with `'`: `'a`, `'input`
 - ! Trait names: prefer adjective/verb forms: `Display`, `Iterator`, `Send`
-- ⊗ Hungarian notation or type prefixes
+- âŠ— Hungarian notation or type prefixes
 - ~ Getter methods: use field name directly (`fn name(&self)` not `fn get_name`)
 
 ### Ownership & Borrowing
@@ -51,24 +51,24 @@ See [testing.md](../coding/testing.md).
 - ! Use `Clone` only when ownership transfer is truly needed
 - ! Prefer `&str` over `String` in function parameters
 - ! Prefer `&[T]` over `Vec<T>` in function parameters
-- ⊗ `.unwrap()` or `.expect()` in library code — return `Result` or `Option`
+- âŠ— `.unwrap()` or `.expect()` in library code â€” return `Result` or `Option`
 - ~ Use `Cow<'_, str>` when a function may or may not need to allocate
-- ≉ Excessive `.clone()` to appease the borrow checker — redesign ownership
+- â‰‰ Excessive `.clone()` to appease the borrow checker â€” redesign ownership
 
 ### Error Handling
 - ! Use `Result<T, E>` for recoverable errors; define custom error types
 - ! Use `thiserror` for library error types; `anyhow` for application error types
 - ! Implement `std::error::Error` for all custom error types
 - ! Use `?` operator for error propagation
-- ⊗ `.unwrap()` in production code (except after infallible checks with comments)
-- ⊗ `panic!()` for expected error conditions
+- âŠ— `.unwrap()` in production code (except after infallible checks with comments)
+- âŠ— `panic!()` for expected error conditions
 - ~ Use `#[must_use]` on functions returning `Result` or important values
 
 ### Concurrency
 - ! Use `Send` + `Sync` bounds correctly; understand their implications
 - ! Prefer channels (`mpsc`, `crossbeam`) over shared mutable state
 - ! Use `Arc<Mutex<T>>` or `Arc<RwLock<T>>` when shared state is necessary
-- ⊗ `unsafe` to circumvent Send/Sync bounds
+- âŠ— `unsafe` to circumvent Send/Sync bounds
 - ~ Use `tokio` or `async-std` for async I/O; avoid mixing runtimes
 - ~ Prefer `RwLock` over `Mutex` for read-heavy workloads
 
@@ -76,7 +76,7 @@ See [testing.md](../coding/testing.md).
 - ! Minimize `unsafe` blocks; isolate behind safe abstractions
 - ! Document `# Safety` section explaining invariants for every `unsafe fn`
 - ! Document `// SAFETY:` comment on every `unsafe` block explaining why it's sound
-- ⊗ `unsafe` without clear justification and safety proof
+- âŠ— `unsafe` without clear justification and safety proof
 - ~ Use `#![forbid(unsafe_code)]` for crates that don't need it
 
 ### Dependencies
@@ -84,23 +84,23 @@ See [testing.md](../coding/testing.md).
 - ! Audit dependencies with `cargo-audit`
 - ! Minimize dependency count; prefer `std` library functionality
 - ~ Use `cargo-deny` to enforce license and duplicate dependency policies
-- ≉ `*` version specifiers in `Cargo.toml`
+- â‰‰ `*` version specifiers in `Cargo.toml`
 
 ### Performance
 - ! Use iterators and zero-cost abstractions over manual loops where idiomatic
 - ! Prefer stack allocation; use `Box<T>` only when heap is necessary
 - ~ Use `#[inline]` sparingly and only with benchmarks to justify
 - ~ Profile with `criterion` for benchmarks; `perf` or `flamegraph` for profiling
-- ≉ Premature optimization over readability
+- â‰‰ Premature optimization over readability
 
 ### Macros
 - ~ Prefer functions and generics over macros when possible
 - ! Document all `macro_rules!` with examples
 - ! Keep macro complexity minimal; extract logic into functions
-- ⊗ Macros that generate non-obvious control flow
+- âŠ— Macros that generate non-obvious control flow
 
 ### Security
-- ⊗ Hardcode secrets or credentials in source
+- âŠ— Hardcode secrets or credentials in source
 - ! Validate all external inputs (file paths, network data, user input)
 - ! Use `secrecy` crate for sensitive values (keys, tokens)
 - ~ Use `zeroize` for clearing secrets from memory
@@ -180,21 +180,21 @@ pub async fn get_user(db: &Pool, user_id: i64) -> Result<User, AppError> {
 
 ## Anti-Patterns
 
-Items marked ⊗ in Standards above are not repeated here.
+Items marked âŠ— in Standards above are not repeated here.
 
-- ≉ **`Arc<Mutex<T>>` as first resort**: Consider channels/message passing
-- ≉ **Stringly-typed errors**: Use `thiserror`
-- ≉ **God-struct with many `Option` fields**: Use builder pattern or state types
-- ≉ **`Box<dyn Error>` in libraries**: Define specific error enums
+- â‰‰ **`Arc<Mutex<T>>` as first resort**: Consider channels/message passing
+- â‰‰ **Stringly-typed errors**: Use `thiserror`
+- â‰‰ **God-struct with many `Option` fields**: Use builder pattern or state types
+- â‰‰ **`Box<dyn Error>` in libraries**: Define specific error enums
 
 ## Compliance Checklist
 
 - ! rustdoc on all public items with examples
 - ! See [testing.md](../coding/testing.md) for testing requirements
-- ! Unit + integration tests; ≥80% coverage
+- ! Unit + integration tests; â‰¥80% coverage
 - ! rustfmt + clippy (pedantic for libs) enforced
 - ! Custom error types via thiserror/anyhow; no `.unwrap()` in production
 - ! `unsafe` minimized, documented, and justified
 - ! `Cargo.lock` committed (binaries); `cargo-audit` clean
-- ⊗ `.unwrap()`, `panic!()`, unguarded `unsafe`, excessive `.clone()`
+- âŠ— `.unwrap()`, `panic!()`, unguarded `unsafe`, excessive `.clone()`
 - ! Run `task check` before commit

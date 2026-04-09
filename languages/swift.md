@@ -1,8 +1,8 @@
 # Swift Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md) | [telemetry.md](../tools/telemetry.md)
+**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
 
 **Stack**: Swift 5.9+/6.0+, SwiftPM; iOS: SwiftUI/UIKit; CLI: ArgumentParser; Testing: Swift Testing/XCTest
 
@@ -21,7 +21,7 @@ See [testing.md](../coding/testing.md).
 - Files: `*Tests.swift` or `*_Tests.swift`
 
 ### Coverage
-- ! ≥85% coverage
+- ! â‰¥85% coverage
 - ! Count Sources/\*
 - ! Exclude entry points, generated code, previews
 
@@ -33,7 +33,7 @@ See [testing.md](../coding/testing.md).
 ### Types
 - ! Prefer `let` over `var` when value won't change
 - ! Use strong typing (enums, type aliases, protocols)
-- ⊗ Force unwrap (`!`) unless absolutely necessary
+- âŠ— Force unwrap (`!`) unless absolutely necessary
 - ~ Use `guard let`/`if let` for optional unwrapping
 - ~ Prefer `Result` or throwing functions for error handling
 
@@ -42,7 +42,7 @@ See [testing.md](../coding/testing.md).
 - ! Use `actor` for shared mutable state
 - ! Use `@MainActor` for UI-related code
 - ~ Use `Sendable` to mark thread-safe types
-- ⊗ Use `@unchecked Sendable` without careful consideration
+- âŠ— Use `@unchecked Sendable` without careful consideration
 - ~ Enable strict concurrency checking (`SWIFT_STRICT_CONCURRENCY=complete`)
 
 ### Telemetry
@@ -132,5 +132,5 @@ Key settings: `swift-tools-version: 5.9`, platforms `.iOS(.v17)/.macOS(.v14)`, e
 - ! See [testing.md](../coding/testing.md) for testing requirements
 - ! Use SwiftLint and SwiftFormat
 - ! Use Swift Concurrency (`async`/`await`, `actor`) for async code
-- ⊗ Force unwrap optionals without justification
+- âŠ— Force unwrap optionals without justification
 - ! Run `task check` before commit

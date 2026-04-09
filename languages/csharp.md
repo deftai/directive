@@ -1,8 +1,8 @@
 # C# Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md) | [telemetry.md](../tools/telemetry.md)
+**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
 
 **Stack**: C# 12+/.NET 8+ (LTS), SDK-style projects; Web: ASP.NET Core/Minimal APIs; Testing: xUnit + NSubstitute + FluentAssertions; Analysis: Roslyn Analyzers, StyleCop.Analyzers
 
@@ -19,11 +19,11 @@ See [testing.md](../coding/testing.md).
 
 - ! Use xUnit (`[Fact]`, `[Theory]`, `[InlineData]`)
 - ! Use NSubstitute or Moq for mocking; FluentAssertions for readable assertions
-- ≉ Use MSTest or NUnit for new code (maintain existing suites only)
+- â‰‰ Use MSTest or NUnit for new code (maintain existing suites only)
 - Files: `*Tests.cs` in a parallel `*.Tests` project
 
 ### Coverage
-- ! ≥85% coverage
+- ! â‰¥85% coverage
 - ! Count src/\*
 - ! Exclude entry points, generated code, migrations, program bootstrapping
 
@@ -41,7 +41,7 @@ See [testing.md](../coding/testing.md).
 - ! `IPascalCase` for interfaces: `IRepository`, `ILogger`
 - ! `UPPER_SNAKE_CASE` only for interop constants; otherwise `PascalCase` for const
 - ! Async methods suffixed with `Async`: `GetUserAsync()`, `SaveAsync()`
-- ⊗ Hungarian notation or type prefixes (`strName`, `intCount`)
+- âŠ— Hungarian notation or type prefixes (`strName`, `intCount`)
 
 ### Modern Language Features (C# 12+)
 - ! Use records for immutable data carriers: `record UserDto(long Id, string Name);`
@@ -52,64 +52,64 @@ See [testing.md](../coding/testing.md).
 - ! Use raw string literals (`"""`) for multi-line strings
 - ~ Use `file`-scoped types for implementation-only helpers
 - ~ Use collection expressions (`[1, 2, 3]`) where supported (C# 12+)
-- ≉ Use verbose constructors + field assignments when primary constructors suffice
+- â‰‰ Use verbose constructors + field assignments when primary constructors suffice
 
 ### Nullable Reference Types
 - ! Enable `<Nullable>enable</Nullable>` in all projects
 - ! Annotate API boundaries with `?` for nullable; treat non-nullable as contract
 - ! Handle `null` at system boundaries (deserialization, DB, external APIs)
-- ⊗ Use `null!` (null-forgiving operator) except as last resort with documented reason
-- ⊗ Return `null` from methods typed as non-nullable
+- âŠ— Use `null!` (null-forgiving operator) except as last resort with documented reason
+- âŠ— Return `null` from methods typed as non-nullable
 
 ### Resource Management
 - ! Use `using` declarations or `using` blocks for all `IDisposable` resources
 - ! Implement `IAsyncDisposable` for types holding async resources
 - ! Use `await using` for async disposal
-- ⊗ Call `.Dispose()` manually in a `finally` block (use `using` instead)
-- ⊗ Implement finalizers unless wrapping unmanaged resources directly
+- âŠ— Call `.Dispose()` manually in a `finally` block (use `using` instead)
+- âŠ— Implement finalizers unless wrapping unmanaged resources directly
 
 ### Error Handling
 - ! Throw specific exception types: `ArgumentNullException`, `InvalidOperationException`, etc.
 - ! Use `ArgumentNullException.ThrowIfNull()` (C# 10+) for guard clauses
 - ! Include context in exception messages (what failed, relevant IDs)
-- ⊗ Catch `Exception` or `SystemException` broadly — catch the most specific type
-- ⊗ Swallow exceptions (empty catch blocks)
-- ⊗ Use exceptions for flow control
+- âŠ— Catch `Exception` or `SystemException` broadly â€” catch the most specific type
+- âŠ— Swallow exceptions (empty catch blocks)
+- âŠ— Use exceptions for flow control
 - ~ Use Result/OneOf patterns for expected failures in domain logic
 - ~ Log at the handling boundary, not at every catch-and-rethrow
 
 ### Async/Await
 - ! Use `async`/`await` for all I/O-bound operations
-- ! Return `Task`/`ValueTask` — never `async void` (except event handlers)
+- ! Return `Task`/`ValueTask` â€” never `async void` (except event handlers)
 - ! Use `CancellationToken` in all async public APIs
 - ! Pass `CancellationToken` through the entire call chain
-- ⊗ Use `.Result` or `.Wait()` on tasks (deadlock risk)
-- ⊗ Use `Task.Run()` to wrap sync-over-async (hides problems)
+- âŠ— Use `.Result` or `.Wait()` on tasks (deadlock risk)
+- âŠ— Use `Task.Run()` to wrap sync-over-async (hides problems)
 - ~ Use `ValueTask` for hot-path methods that often complete synchronously
 - ~ Use `ConfigureAwait(false)` in library code (not in app/UI code)
 
 ### Dependency Injection
-- ! Use constructor injection; ⊗ service locator pattern (`IServiceProvider.GetService`)
+- ! Use constructor injection; âŠ— service locator pattern (`IServiceProvider.GetService`)
 - ! Register services with appropriate lifetimes: `Singleton`, `Scoped`, `Transient`
 - ! Inject interfaces, not implementations
-- ⊗ Inject `IServiceProvider` into business logic classes
+- âŠ— Inject `IServiceProvider` into business logic classes
 - ~ Use `IOptions<T>` / `IOptionsSnapshot<T>` for configuration binding
-- ≉ Use `static` helper classes for behavior that should be injected
+- â‰‰ Use `static` helper classes for behavior that should be injected
 
 ### Collections & LINQ
 - ! Prefer immutable collections for shared/public data: `IReadOnlyList<T>`, `IReadOnlyDictionary<K,V>`
-- ! Use LINQ for declarative transforms; ⊗ for side-effectful iterations
+- ! Use LINQ for declarative transforms; âŠ— for side-effectful iterations
 - ~ Materialize queries early to avoid multiple enumeration (`.ToList()`, `.ToArray()`)
 - ~ Use `Span<T>` / `ReadOnlySpan<T>` for performance-critical slicing
-- ⊗ Return `IEnumerable<T>` backed by a deferred query from public APIs without documentation
+- âŠ— Return `IEnumerable<T>` backed by a deferred query from public APIs without documentation
 
 ### Database (EF Core)
 - ! Use parameterized queries (EF Core does this automatically)
 - ! Use `AsNoTracking()` for read-only queries
 - ! Use explicit transactions for multi-step writes
-- ~ Use repository pattern or query objects; ≉ scatter `DbContext` calls across controllers
+- ~ Use repository pattern or query objects; â‰‰ scatter `DbContext` calls across controllers
 - ~ Use migrations for schema evolution
-- ⊗ Use raw SQL with string interpolation (SQL injection risk — use `FromSqlInterpolated`)
+- âŠ— Use raw SQL with string interpolation (SQL injection risk â€” use `FromSqlInterpolated`)
 
 ### Telemetry
 - See [telemetry.md](../tools/telemetry.md)
@@ -119,7 +119,7 @@ See [testing.md](../coding/testing.md).
 - ? OpenTelemetry .NET for distributed tracing
 
 ### Safety
-- ⊗ Hardcode secrets, keys, or credentials in source
+- âŠ— Hardcode secrets, keys, or credentials in source
 - ! Use User Secrets (dev), environment variables, or Azure Key Vault (prod)
 - ! Validate all external input (model binding validation, FluentValidation)
 - ~ Scan dependencies with `dotnet list package --vulnerable` or Snyk/OWASP
@@ -220,13 +220,13 @@ app.Run();
 
 ## Anti-Patterns
 
-Items marked ⊗ in Standards above are not repeated here.
+Items marked âŠ— in Standards above are not repeated here.
 
-- ≉ **Verbose constructors**: Use primary constructors (C# 12) or records
-- ≉ **Manual null guards**: Use `ArgumentNullException.ThrowIfNull()`
-- ≉ **`IEnumerable<T>` as public return**: Materialize or use `IReadOnlyList<T>`
-- ≉ **God classes**: Keep <500 lines; extract services/handlers
-- ≉ **`static` utility classes**: Inject via DI for testability
+- â‰‰ **Verbose constructors**: Use primary constructors (C# 12) or records
+- â‰‰ **Manual null guards**: Use `ArgumentNullException.ThrowIfNull()`
+- â‰‰ **`IEnumerable<T>` as public return**: Materialize or use `IReadOnlyList<T>`
+- â‰‰ **God classes**: Keep <500 lines; extract services/handlers
+- â‰‰ **`static` utility classes**: Inject via DI for testability
 
 ## Compliance Checklist
 
@@ -237,5 +237,5 @@ Items marked ⊗ in Standards above are not repeated here.
 - ! Records for data carriers; primary constructors for simple DI
 - ! `async`/`await` with `CancellationToken` for all I/O
 - ! `using` declarations for all `IDisposable`/`IAsyncDisposable`
-- ⊗ `async void`, `.Result`/`.Wait()`, service locator, null-forgiving `null!`
+- âŠ— `async void`, `.Result`/`.Wait()`, service locator, null-forgiving `null!`
 - ! Run `task check` before commit

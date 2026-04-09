@@ -33,7 +33,7 @@ Quick doc/content fixes that don't require code changes.
   - `warping.sh` still present -- remove or deprecate (replaced by `run` in v0.5.0)
   - Verify: `test_standards.py` xfail for Warping references should flip to passing
 - Clean leaked personal files:
-  - ~~`core/project.md` -- Voxio Bot private project config~~ -- done (v0.10.0, t2.1.6: replaced with generic template + legacy redirect)
+  - ~~Voxio Bot private project config~~ -- done (v0.10.0, t2.1.6: replaced with generic template + legacy redirect)
   - `PROJECT.md` (repo root) -- leftover from bootstrap test run; remove or replace
   - Verify: `test_standards.py` xfail for Voxio Bot content should flip to passing
 - Update `strategies/interview.md` to probe language/tool choices through the contract lens -- when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)
@@ -171,7 +171,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 - ~~#166 -- Greptile Review status check blocks merge -- .greptile/config.json added with triggerOnUpdates, deft-review-cycle pre-flight check~~ -- 2026-04-06 (closed)
 - ~~#189 -- vBRIEF defensive reference-type mitigations -- superseded by #191 (deftai/vBRIEF#2 resolved; mitigations no longer needed)~~ -- 2026-04-06 (closed, superseded)
 - ~~#133 -- Generated vBRIEF files use invalid reference types -- upstream deftai/vBRIEF#2 resolved; cleanup tracked in #191~~ -- 2026-04-05 (closed)
-- ~~#58 -- Stale cross-references to legacy `core/user.md` and `core/project.md` paths~~ -- 2026-04-06 (closed)
+- ~~#58 -- Stale cross-references to legacy paths~~ -- 2026-04-06 (closed)
 - ~~#185 -- Change gate UX: replace name-echo with yes/no confirmation -- main.md, deft-build, deft-review-cycle, PR template all updated~~ -- 2026-04-05 (v0.11.0)
 - ~~#179 -- deft-swarm Option A limitations documented -- Option A demoted, Option B elevated as recommended~~ -- 2026-04-05 (v0.11.0)
 - ~~#186 -- AGENTS.md pre-implementation gate enforcement -- ! markers added to Before code changes checklist~~ -- 2026-04-05 (v0.11.0)
@@ -221,7 +221,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 - ~~#69 -- Remove stale beta branch and update docs~~ -- 2026-03-17 (trunk-based workflow, beta branch deleted)
 - ~~#34 -- Zero-prerequisite installer~~ -- 2026-03-17 (merged via PR #42, released as v0.5.0)
 - ~~#10 -- AGENTS.md setup improvement in docs~~ -- 2026-03-17 (PR #66: added manual-clone wiring note in Getting Started)
-- ~~#51 -- Project bootstrap (partial)~~ -- 2026-03-17 (PR #66: AGENTS.md added, old/ removed, core/project.md cleaned; remaining work in #67)
+- ~~#51 -- Project bootstrap (partial)~~ -- 2026-03-17 (PR #66: AGENTS.md added, old/ removed, project config cleaned; remaining work in #67)
 - ~~#60 -- pressEnterToExit() Windows-only~~ -- 2026-03-17 (PR #66: runtime.GOOS guard)
 - ~~#62 -- beta branch 50+ unmerged commits~~ -- 2026-03-17 (already merged via PR #42)
 - ~~#47 -- PROJECT.md defaults + input validation~~ -- 2026-03-17 (PR #66: all items addressed)

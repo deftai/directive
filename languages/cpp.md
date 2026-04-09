@@ -1,8 +1,8 @@
 # C++ Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [main.md](../main.md) | [project.md](../core/project.md) | [telemetry.md](../tools/telemetry.md)
+**âš ï¸ See also**: [main.md](../main.md) | [PROJECT.md](../PROJECT.md) | [telemetry.md](../tools/telemetry.md)
 
 **Stack**: C++20/23, CMake 3.25+, Catch2/GoogleTest, GSL (Guidelines Support Library); CLI: CLI11; TUI: FTXUI; Async: Asio/libcoro
 
@@ -18,7 +18,7 @@ See [testing.md](../coding/testing.md).
 - Files: `test_*.cpp` or `*_test.cpp`
 
 ### Coverage
-- ! ≥85% coverage
+- ! â‰¥85% coverage
 - ! Count src/\*
 - ! Exclude main, examples, generated code
 
@@ -39,7 +39,7 @@ See [testing.md](../coding/testing.md).
 ### Safety
 - ! Avoid buffer overflows
 - ~ Use GSL (`gsl::span`, `gsl::not_null`, `gsl::owner`)
-- ⊗ Use raw arrays or naked pointers for ownership
+- âŠ— Use raw arrays or naked pointers for ownership
 
 ### Interfaces
 - ! Design clear, minimal interfaces
@@ -57,13 +57,13 @@ See [commands.md](./commands.md).
 - **GoogleMock**: `MOCK_METHOD(RetType, MethodName, (Args...), (override));` + `EXPECT_CALL(...)`
 
 ### Core Patterns
-- **RAII**: ! Use smart pointers (`std::unique_ptr`, `std::shared_ptr`); ⊗ raw `new`/`delete`
+- **RAII**: ! Use smart pointers (`std::unique_ptr`, `std::shared_ptr`); âŠ— raw `new`/`delete`
 - **Error Handling**: ~ Use `std::expected<T,E>` for expected errors (file not found, parse failure); ~ exceptions with RAII for bugs/resource exhaustion
-- **Containers**: ! Use `std::vector`, `std::array`, `std::span`; ⊗ C arrays
+- **Containers**: ! Use `std::vector`, `std::array`, `std::span`; âŠ— C arrays
 - **String Views**: ~ Use `std::string_view` for read-only params
 - **Bounds Safety**: ! Use `.at()` for checked access or range-based loops; ~ use `gsl::span` for array views
 - **Const Correctness**: ! Mark methods `const` when they don't modify state; ~ use `const&` for input params
-- **Namespaces**: ! Organize code in namespaces; ⊗ `using namespace` in headers
+- **Namespaces**: ! Organize code in namespaces; âŠ— `using namespace` in headers
 - **Modern Loops**: ~ Use `for (const auto& item : container)` instead of manual indexing
 - **Initialization**: ~ Use brace-init `{}` over `()` to avoid narrowing/most-vexing-parse
 - **Templates**: ~ Use concepts (C++20) to constrain template parameters
@@ -110,5 +110,5 @@ See [commands.md](./commands.md).
 - ! Follow C++ Core Guidelines for interfaces, resource management, and safety
 - ~ Use GSL types (`gsl::span`, `gsl::not_null`) for bounds/null safety
 - ! Distinguish expected errors (`std::expected`) from exceptional errors (exceptions)
-- ⊗ Use raw arrays, naked `new`/`delete`, or unchecked array access
+- âŠ— Use raw arrays, naked `new`/`delete`, or unchecked array access
 - ! Run `task check` before commit

@@ -174,3 +174,24 @@ def test_bdd_strategy_exists() -> None:
     assert (_REPO_ROOT / "strategies" / "bdd.md").exists(), (
         "strategies/bdd.md missing — required by t2.7.8"
     )
+
+
+def test_rapid_strategy_exists() -> None:
+    """strategies/rapid.md must exist (t2.8.5, roadmap)."""
+    assert (_REPO_ROOT / "strategies" / "rapid.md").exists(), (
+        "strategies/rapid.md missing — required by t2.8.5"
+    )
+
+
+def test_enterprise_strategy_exists() -> None:
+    """strategies/enterprise.md must exist (t2.8.5, roadmap)."""
+    assert (_REPO_ROOT / "strategies" / "enterprise.md").exists(), (
+        "strategies/enterprise.md missing — required by t2.8.5"
+    )
+
+
+def test_getting_started_exists() -> None:
+    """docs/getting-started.md must exist (t2.8.6, #112)."""
+    assert (_REPO_ROOT / "docs" / "getting-started.md").exists(), (
+        "docs/getting-started.md missing — required by t2.8.6"
+    )

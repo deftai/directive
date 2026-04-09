@@ -1,10 +1,10 @@
 # Python Standards
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+Legend (from RFC2119): !=MUST, ~=SHOULD, â‰‰=SHOULD NOT, âŠ—=MUST NOT, ?=MAY.
 
-**⚠️ See also** (load only when needed):
+**âš ï¸ See also** (load only when needed):
 - [../main.md](../main.md) - General AI guidelines
-- [../core/project.md](../core/project.md) - For project-specific overrides
+- [../PROJECT.md](../PROJECT.md) - For project-specific overrides
 - [../coding/testing.md](../coding/testing.md) - When writing tests
 
 **Stack**: Python 3.11+, pytest; Web: Flask/FastAPI; CLI: typer[all]; TUI: textual[dev]
@@ -21,7 +21,7 @@ See [../coding/testing.md](../coding/testing.md) for universal requirements.
 - Files: `test_*.py` or `*_test.py`
 
 ### Coverage
-- ! ≥85% coverage
+- ! â‰¥85% coverage
 - ! Count src/\*
 - ! Exclude entry points, scripts, generated code
 
@@ -34,10 +34,10 @@ See [../coding/testing.md](../coding/testing.md) for universal requirements.
 
 ### Data Validation
 - ~ Use Pydantic BaseModel for data crossing module/API boundaries
-- ⊗ Raw dicts/lists for shared, persisted, or returned data
+- âŠ— Raw dicts/lists for shared, persisted, or returned data
 - ~ Use `strict=True`, `extra='forbid'` for data models
 - ~ Use `frozen=True` for immutable shared data
-- ~ Layered validation: type constraints → field validators → model validators
+- ~ Layered validation: type constraints â†’ field validators â†’ model validators
 - ! Swarm/parallel work: strict + frozen mandatory
 
 ## Commands
@@ -110,7 +110,7 @@ def process_order(order: Order) -> ProcessedOrder:
 [project]
 requires-python=">=3.11"
 dependencies=["flask>=3.0.0"]  # or fastapi/typer[all]/textual[dev]
-[dependency-groups]  # PEP 735 — uv syncs these by default
+[dependency-groups]  # PEP 735 â€” uv syncs these by default
 dev=["pytest>=7.4","pytest-cov>=4.1","pytest-mock>=3.12","hypothesis>=6.0","black>=23","isort>=5.12","ruff>=0.1","mypy>=1.7","pydantic>=2.0"]
 [project.optional-dependencies]
 prod=["pydantic>=2.0","logfire>=0.1"]  # ~ Observability for production

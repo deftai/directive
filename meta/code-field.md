@@ -6,7 +6,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 **⚠️ See also** (load only when needed):
 - [../main.md](../main.md) - General AI behavior and agent persona
-- [project.md](../core/project.md) - For project-specific overrides
+- [PROJECT.md](../PROJECT.md) - For project-specific overrides
 
 # Background
 

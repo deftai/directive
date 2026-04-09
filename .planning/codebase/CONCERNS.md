@@ -29,7 +29,7 @@
 
 ## Legacy Paths
 
-- `core/user.md` and `core/project.md` are legacy locations — both still referenced in `main.md` and `SKILL.md` as fallback paths. Code in `run` also has `_legacy_user_path()` and `_legacy_project_path()` helpers.
+- `USER.md` and `PROJECT.md` are legacy locations — both still referenced in `main.md` and `SKILL.md` as fallback paths. Code in `run` also has `_legacy_user_path()` and `_legacy_project_path()` helpers.
 - These add complexity to path resolution; could be removed in a future breaking version.
 
 ## Missing Test Coverage Areas
