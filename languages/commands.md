@@ -1,5 +1,7 @@
 # Standard Task Commands
 
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+
 All language standards files use the task commands below. Language-specific files list only deviations or additions.
 
 ## Default Commands

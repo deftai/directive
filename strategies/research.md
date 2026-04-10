@@ -88,9 +88,16 @@ so the user can run additional preparatory strategies or proceed to spec generat
 
 ---
 
+## Workflow
+
+1. **Scope** -- Identify the domain and feature boundaries for research
+2. **Survey** -- Check existing project dependencies, official docs, and known pitfalls
+3. **Document** -- Produce `{feature}-research.md` with Don't Hand-Roll and Common Pitfalls sections
+4. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
+
 ## Anti-Patterns
 
-- ⊗ Building custom solutions for solved problems (JWT parsing, email sending, PDF generation)
+- ⊗ Building custom solutions for solved problems
 - ⊗ Skipping research for unfamiliar domains ("how hard can auth be?")
 - ⊗ Research that produces a reading list instead of actionable guidance
 - ⊗ Research that doesn't flow into planning (written and never referenced)

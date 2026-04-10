@@ -1,8 +1,8 @@
 # Working Memory & Scratchpads
 
-Patterns for externalizing intermediate state to files.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**Legend:** `!` = MUST · `~` = SHOULD · `≉` = SHOULD NOT · `⊗` = MUST NOT · `?` = MAY
+Patterns for externalizing intermediate state to files.
 
 ---
 

@@ -103,11 +103,11 @@ include the test suite.
 **Task 2.1.2** — Run baseline capture and commit `baseline.json`
 - Execute capture script against current beta state
 - Manually annotate known-bad entries in a `known_failures.json` alongside baseline
-  (e.g. "Warping" references, Voxio Bot content in core/project.md) so tests can
+  (e.g. deprecated name references, leaked project config in core/project.md) so tests can
   skip or xfail these without blocking
 - Dependencies: Task 2.1.1
 - Acceptance: `baseline.json` committed; `known_failures.json` documents at minimum:
-  README.md Warping references, core/project.md Voxio Bot content
+  README.md deprecated name references, core/project.md leaked config content
 
 ---
 
@@ -135,10 +135,10 @@ include the test suite.
 - RFC2119 check: every `.md` file in `languages/`, `interfaces/`, `tools/`, `strategies/`,
   `context/`, `verification/`, `resilience/` must contain the Legend line
   `!=MUST, ~=SHOULD` (or equivalent symbol set)
-- Deprecated path check: no `.md` file should contain the string `core/user.md`
-  (should be `~/.config/deft/USER.md`); xfail known exceptions
-- Deprecated name check: files outside `old/` should not contain `warping` (case-insensitive);
-  flag README.md as xfail known failure
+- Deprecated path check: no `.md` file should contain the legacy `core/` user config path
+  (canonical path is `~/.config/deft/USER.md`); xfail known exceptions
+- Deprecated name check: files outside `old/` should not contain the pre-rename project name
+  (case-insensitive); flag README.md as xfail known failure
 - Dependencies: Subphase 2.1
 - Acceptance: all non-xfail assertions pass; xfail list matches `known_failures.json`
 
@@ -254,7 +254,7 @@ include the test suite.
 - Add `task fmt` — runs `uv run ruff format . && uv run black .`
 - Add `task lint` — runs `uv run ruff check . && uv run mypy run`
 - Update `task check` deps to include `lint` and `test`
-- Fix `PROJECT_NAME` var from `warping` to `deft` and `VERSION` to current
+- Fix `PROJECT_NAME` var from legacy name to `deft` and `VERSION` to current
 - Dependencies: Phase 2 + Phase 3
 - Acceptance: `task test` runs full suite; `task check` includes test run;
   `task test:coverage` fails if coverage drops below 75%
@@ -278,8 +278,8 @@ include the test suite.
   - CLI commands: `spec`, `install`, `reset`, `update` test coverage
   - Error/edge case testing for core CLI commands
   - GitHub Issues migration from todo.md
-  - Phase 2: Deft Directive v0.6.0 upgrade (rename "Warping"→"Deft Directive",
-    add `strategies/rapid.md` + `strategies/enterprise.md`, remove `warping.sh`,
+  - Phase 2: Deft Directive v0.6.0 upgrade (complete project rename,
+    add `strategies/rapid.md` + `strategies/enterprise.md`, remove legacy scripts,
     clean leaked `core/project.md`, port `SKILL.md` from master, write CHANGELOG)
 - Dependencies: Phase 4
 - Acceptance: `todo.md` exists at repo root with all items listed

@@ -1,8 +1,8 @@
 # Tool Design for AI Consumption
 
-Principles for designing tools that agents can use effectively.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**Legend:** `!` = MUST · `~` = SHOULD · `≉` = SHOULD NOT · `⊗` = MUST NOT · `?` = MAY
+Principles for designing tools that agents can use effectively.
 
 ---
 

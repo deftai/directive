@@ -1,8 +1,8 @@
 # Few-Shot & Behavioral Examples
 
-Guidance on using examples to shape agent behavior.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**Legend:** `!` = MUST · `~` = SHOULD · `≉` = SHOULD NOT · `⊗` = MUST NOT · `?` = MAY
+Guidance on using examples to shape agent behavior.
 
 ---
 

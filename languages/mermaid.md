@@ -59,6 +59,16 @@ For `stateDiagram-v2`, add these keys to the existing `themeVariables` map
   'compositeBackground': '#a0a0a0'
 ```
 
+## Commands
+
+See [commands.md](./commands.md).
+
+## Patterns
+
+- ~ Use the standard init directive (above) as a copy-paste starting point for every diagram
+- ~ Keep diagrams focused: one concept per diagram, split complex flows into linked sub-diagrams
+- ~ Validate rendering changes with a minimal gist before patching large documents
+
 ## Diagram Examples
 
 ### Flowchart

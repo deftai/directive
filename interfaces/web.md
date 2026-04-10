@@ -5,6 +5,13 @@ Opinionated constraints for building better interfaces with agents.
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 Tags: R+TW=React+Tailwind; htmx+BS=htmx+Bootstrap; CSS=plain CSS; JS=vanilla JS.
 
+## Framework Selection
+
+- ! Choose the stack that fits the project's complexity and team expertise
+- ~ React + Tailwind for SPAs and complex interactive UIs
+- ~ htmx + Bootstrap for server-rendered pages with progressive enhancement
+- ~ Vanilla JS + CSS for simple pages or when frameworks are overkill
+
 ## Stack
 
 - ! Start from platform defaults (spacing/radius/shadows) before custom. (R+TW: Tailwind defaults; htmx+BS: Bootstrap utilities before custom CSS)

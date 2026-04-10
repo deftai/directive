@@ -5,7 +5,7 @@ Opinionated patterns for command-line interfaces with AI agents.
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 Tags: Py=Python; TS=TypeScript; Node=Node.js
 
-## Framework
+## Framework Selection
 
 **Python:**
 - ! Use Typer (except: existing Click+plugins, simple argparse scripts)

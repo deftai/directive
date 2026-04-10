@@ -1,8 +1,8 @@
 # Context Engineering
 
-Strategies for managing the finite attention budget of AI agents.
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**Legend:** `!` = MUST · `~` = SHOULD · `≉` = SHOULD NOT · `⊗` = MUST NOT · `?` = MAY
+Strategies for managing the finite attention budget of AI agents.
 
 > Source: Anthropic, ["Effective Context Engineering for AI Agents"](https://www.anthropic.com/research/building-effective-agents)
 

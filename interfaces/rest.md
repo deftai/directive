@@ -4,6 +4,10 @@ Resource-based, stateless, standard HTTP methods, JSON by default.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
+## Core Architecture
+
+REST APIs are resource-based, stateless, and use standard HTTP methods with JSON as the default format. Design resources as nouns, use HTTP verbs for operations, and maintain strict statelessness with token-based authentication.
+
 ## URIs
 
 - ! Use nouns, ⊗ use verbs (`/products` not `/getProducts`)

@@ -147,6 +147,16 @@ Key non-defaults: MD033/MD036 disabled (allow inline HTML, emphasis-as-heading);
 - ≉ **Documents >700 lines**: Split into focused, linked files
 - ≉ **Deeply nested lists (>2 levels)**: Restructure into sections or subheadings
 
+## Commands
+
+See [commands.md](./commands.md).
+
+## Patterns
+
+- ~ Use templates for recurring document types (ADRs, runbooks, RFCs)
+- ~ Automate link checking in CI with markdownlint or dedicated link checkers
+- ~ Use reference-style links for frequently-cited URLs
+
 ## Compliance Checklist
 
 - ! Descriptive headings; summary in first 3 lines; scannable structure

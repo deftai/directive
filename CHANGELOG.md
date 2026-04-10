@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Resolve 5 untracked xfail gaps in known_failures.json** (#295, t1.24.1): Flipped 20 xfail entries to passing across 5 gap categories -- (1) flipped 3 stale xfails for root PROJECT.md and core/project.md (already cleaned in prior PRs); (2) created tools/taskfile-migration.md stub to resolve broken See also link from tools/taskfile.md; (3) standardized RFC2119 legend format in 5 context/*.md files and added legend to languages/commands.md; (4) added missing shape sections to 8 files (## Commands to languages/6502-DASM.md, languages/markdown.md, languages/mermaid.md; ## Workflow to strategies/discuss.md, strategies/research.md; ## Framework Selection or ## Core Architecture to interfaces/cli.md, interfaces/rest.md, interfaces/web.md); (5) rephrased deprecated path and legacy name references in specs/testbed/SPECIFICATION.md to avoid triggering content tests
+
 ### Changed
 - **Roadmap Refresh (2026-04-10)**: Triaged 6 new issues -- #288 (Phase 1 Cleanup: deft-swarm Phase 6 read-back verification after rebase conflict resolution, t1.21.1), #292 (Phase 1 Cleanup: auto-generate Slack release announcement after swarm release, t1.22.1), #293 (Phase 3: unit tests for v0.17.0 deterministic task scripts, t3.3.4), #294 (Phase 1 Cleanup: strengthen test-with-code rule across AGENTS.md/main.md/deft-swarm/deft-build, t1.23.1), #295 (Phase 1 Cleanup: resolve 5 untracked xfail gaps in known_failures.json, t1.24.1), #296 (Phase 2: skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill, t2.11.1); no stale entries; analysis comments posted on all 6 issues
 

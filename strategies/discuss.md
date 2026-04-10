@@ -95,9 +95,17 @@ run additional preparatory strategies or proceed to spec generation.
 
 ---
 
+## Workflow
+
+1. **Open** -- Start with the user's goal statement; restate it in your own words
+2. **Explore** -- Follow energy, challenge vagueness, ask domain-sensitive questions
+3. **Lock** -- Record each decision in `{scope}-context.md` with what/why/alternatives
+4. **Verify** -- Explain the full picture back to the user (Feynman check)
+5. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
+
 ## Anti-Patterns
 
-- ⊗ Skipping discuss and immediately writing code ("build me auth" → 30 silent decisions)
+- ⊗ Skipping discuss and immediately writing code
 - ⊗ Asking generic checklist questions instead of following energy
 - ⊗ Accepting "make it nice" / "standard approach" / "whatever works" without pushback
 - ⊗ Scope creep — capturing out-of-scope ideas inline instead of deferring
