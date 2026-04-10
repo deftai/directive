@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-04-10
+
 ### Added
 - **skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill** (#296, t2.11.1): Created `skills/deft-interview/SKILL.md` with RFC2119 legend and YAML frontmatter encoding a deterministic interview loop any skill can invoke -- 7 rules: one-question-per-turn, numbered options with stated default (`[default: N]`), explicit other/IDK escape option, depth gate, default-acceptance, confirmation gate, and structured handoff contract (answers map); created `.agents/skills/deft-interview/SKILL.md` thin pointer; added AGENTS.md Skill Routing entry; updated deft-setup Phase 1 and Phase 2 to reference deft-interview; added 12 tests
 - **deft-swarm Phase 6 Slack release announcement** (#292, t1.22.1): Added Step 6 to `skills/deft-swarm/SKILL.md` Phase 6 -- generates standard Slack announcement block with version, release title, summary, key changes, swarm agent count, duration, PR numbers, and GitHub release URL

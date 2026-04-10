@@ -13,10 +13,7 @@ Fix reported bugs and UX problems blocking adoption.
 
 ### Cleanup
 
-- **#288** -- deft-swarm Phase 6: require read-back verification after rebase conflict resolution (mirrors t1.11.4 mandatory file review; rebase conflict path currently lacks this gate)
-- **#292** -- deft-swarm Phase 6: auto-generate Slack release announcement after GitHub release is tagged (used every release; reduces ad-hoc manual work)
-- **#294** -- Strengthen test-with-code rule: new source files MUST have corresponding tests in same PR -- 4-surface update (AGENTS.md, main.md, deft-swarm prompt, deft-build checklist); future deterministic gate deferred to #233 Phase 5
-- **#295** -- Resolve 5 untracked xfail gaps in known_failures.json: leaked PROJECT.md, broken taskfile-migration.md link, 6 files missing RFC2119 legend, 8 files missing shape sections, stale t2.1.1 xfail to flip
+(all resolved -- v0.18.0)
 
 ---
 
@@ -55,7 +52,6 @@ Quick doc/content fixes that don't require code changes.
 - **#258** -- Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)
 - **#136** -- Warp doesn't load deft's AGENTS.md by default
 - **#194** -- User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
-- **#296** -- Create skills/deft-interview/SKILL.md -- deterministic structured Q&A skill: one-question-per-turn, numbered options with stated defaults, depth gate, confirmation gate before artifact generation; generalizes the interview loop from deft-setup
 
 ---
 
@@ -410,12 +406,12 @@ Larger feature work -- only after issues are resolved and content is stable.
 | ~~#281~~ | ~~fix(test): WinError 448 -- pytest-current symlink cleanup fails on Windows 11 24H2+~~ | completed -- 2026-04-10 (v0.16.0) |
 | ~~#282~~ | ~~fix(skill): deft-review-cycle -- MCP capability detection + task check pre-existing failure carve-out~~ | completed -- 2026-04-10 (v0.16.0) |
 | ~~#283~~ | ~~fix(agents): add ! rule to AGENTS.md for BOM-safe PowerShell file writes~~ | completed -- 2026-04-10 (v0.16.0) |
-| #288 | fix(skill): deft-swarm Phase 6 -- read-back verification after rebase conflict resolution | 1 |
-| #292 | feat(swarm): auto-generate Slack release announcement after swarm release | 1 |
+| ~~#288~~ | ~~fix(skill): deft-swarm Phase 6 -- read-back verification after rebase conflict resolution~~ | completed -- v0.18.0 |
+| ~~#292~~ | ~~feat(swarm): auto-generate Slack release announcement after swarm release~~ | completed -- v0.18.0 |
 | #293 | test: add unit tests for v0.17.0 deterministic task scripts | 3 |
-| #294 | fix(enforcement): strengthen test-with-code rule -- new source files must include tests | 1 |
-| #295 | chore: resolve 5 untracked xfail gaps in known_failures.json | 1 |
-| #296 | Create skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill | 2 |
+| ~~#294~~ | ~~fix(enforcement): strengthen test-with-code rule -- new source files must include tests~~ | completed -- v0.18.0 |
+| ~~#295~~ | ~~chore: resolve 5 untracked xfail gaps in known_failures.json~~ | completed -- v0.18.0 |
+| ~~#296~~ | ~~Create skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill~~ | completed -- v0.18.0 |
 
 ---
 
@@ -482,3 +478,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-10 -- roadmap refresh triage: added #294 (Phase 1 Cleanup, t1.23.1): strengthen test-with-code rule across AGENTS.md, main.md, deft-swarm, deft-build; analysis comment posted*
 *Updated 2026-04-10 -- roadmap refresh triage: added #295 (Phase 1 Cleanup, t1.24.1): resolve 5 untracked xfail gaps in known_failures.json; analysis comment posted*
 *Updated 2026-04-10 -- roadmap refresh triage: added #296 (Phase 2, t2.11.1): skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill; analysis comment posted*
+*Updated 2026-04-10 -- v0.18.0 release: moved #288, #292, #294, #295 (Phase 1 Cleanup), #296 (Phase 2) to Completed; struck through in Open Issues Index; Phase 1 Cleanup now empty*
