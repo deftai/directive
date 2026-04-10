@@ -17,6 +17,36 @@ from typing import Any
 
 import pytest
 
+# --- WinError 448 mitigation (#281) ---
+# Windows 11 24H2+ security policy treats directory symlinks as untrusted mount
+# points. Pytest creates *current symlinks for tmp_path directories; cleanup
+# fails with WinError 448 when iterating directories that contain them.
+# tmp_path_retention_count = 0 (pyproject.toml) prevents old-session retention;
+# this patch suppresses the OSError during session-finish and atexit cleanup.
+if sys.platform == "win32":
+
+    def _make_safe(fn):  # type: ignore[no-untyped-def]  # noqa: ANN001
+        """Wrap a pytest cleanup function to swallow OSError (WinError 448)."""
+
+        def _safe_wrapper(*args, **kwargs):  # type: ignore[no-untyped-def]
+            try:
+                return fn(*args, **kwargs)
+            except OSError:
+                pass
+
+        return _safe_wrapper
+
+    # Patch both the definition module (_pytest.pathlib) and the call-site module
+    # (_pytest.tmpdir) so already-bound references also pick up the wrapper.
+    import _pytest.pathlib as _pathlib_mod  # type: ignore[import-untyped]
+    import _pytest.tmpdir as _tmpdir_mod  # type: ignore[import-untyped]
+
+    for _fn_name in ("cleanup_dead_symlinks", "cleanup_numbered_dir"):
+        for _mod in (_pathlib_mod, _tmpdir_mod):
+            _orig = getattr(_mod, _fn_name, None)
+            if _orig is not None:
+                setattr(_mod, _fn_name, _make_safe(_orig))
+
 
 @pytest.fixture(scope="session")
 def deft_root() -> Path:

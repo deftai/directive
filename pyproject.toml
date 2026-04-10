@@ -16,6 +16,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+tmp_path_retention_count = 0  # Prevent WinError 448: pytest-current symlink cleanup fails on Windows 11 24H2+ (#281)
 # --cov is intentionally absent here. Use `task test:coverage` for coverage runs.
 # Adding --cov to addopts causes false failures when running content tests in
 # isolation (no Python source is exercised, so coverage reports 0%).

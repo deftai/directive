@@ -91,6 +91,10 @@ When user input matches a trigger keyword, read the corresponding skill:
 - run bootstrap              — CLI setup (terminal users)
 - run spec                   — CLI spec generation
 
+## PowerShell
+
+! When writing files using PowerShell, MUST use `New-Object System.Text.UTF8Encoding $false` -- never `[System.Text.Encoding]::UTF8` (writes BOM). See `scm/github.md` PS 5.1 section.
+
 Note: paths here are root-relative — this repo IS the deft directory.
 Install-generated AGENTS.md uses deft/-prefixed paths.
 
