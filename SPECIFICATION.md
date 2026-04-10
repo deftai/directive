@@ -952,7 +952,7 @@ When an agent adds a new ! (MUST) or ⊗ (MUST NOT) rule, it does not check whet
 
 **Traces**: #251
 
-## t1.13.1: Harden deft-swarm Phase 5->6 gate and add crash recovery (#261, #263)  `[pending]`
+## t1.13.1: Harden deft-swarm Phase 5->6 gate and add crash recovery (#261, #263)  `[completed]`
 
 Strengthen the Phase 5->6 confirmation gate against context-pressure bypass and add checkpoint/crash recovery guidance to skills/deft-swarm/SKILL.md.
 
