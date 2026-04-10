@@ -1,4 +1,4 @@
- Changelog
+# Changelog
 
 All notable changes to the Deft framework will be documented in this file.
 
