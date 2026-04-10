@@ -1,0 +1,38 @@
+version: '3'
+
+tasks:
+  changelog:check:
+    desc: Verify CHANGELOG.md has an [Unreleased] section with at least one entry
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - cmd: >-
+          uv run python -c
+          "import sys, pathlib, re;
+          p = pathlib.Path('CHANGELOG.md');
+          (not p.exists()) and (print('FAIL: CHANGELOG.md not found'), sys.exit(1));
+          text = p.read_text('utf-8');
+          m = re.search(r'## \[Unreleased\][ \t]*\n(.*?)(?=\n## \[|$)', text, re.DOTALL);
+          (m is None) and (print('FAIL: No [Unreleased] section found in CHANGELOG.md'), sys.exit(1));
+          body = m.group(1);
+          entries = [l for l in body.splitlines() if l.strip().startswith('- ')];
+          (len(entries) == 0) and (print('FAIL: [Unreleased] section has no entries (no lines starting with \"- \")'), sys.exit(1));
+          print(f'OK: CHANGELOG.md [Unreleased] section has {len(entries)} entries')"
+
+  change:init:
+    desc: Create a new change proposal directory structure in history/changes/<name>/
+    cmds:
+      - cmd: >-
+          uv run python -c
+          "import sys, pathlib, json;
+          name = '{{.CLI_ARGS}}'.strip();
+          (not name) and (print('FAIL: Usage: task change:init -- <name>'), sys.exit(1));
+          base = pathlib.Path('history/changes') / name;
+          base.exists() and (print(f'FAIL: {base} already exists'), sys.exit(1));
+          (base / 'specs').mkdir(parents=True, exist_ok=True);
+          (base / 'proposal.md').write_text('# ' + name + chr(10) + chr(10) + '## Problem' + chr(10) + chr(10) + 'What is wrong or missing.' + chr(10) + chr(10) + '## Change' + chr(10) + chr(10) + 'What this proposal does about it.' + chr(10) + chr(10) + '## Scope' + chr(10) + chr(10) + '**In scope:**' + chr(10) + '- ' + chr(10) + chr(10) + '**Out of scope:**' + chr(10) + '- ' + chr(10) + chr(10) + '## Impact' + chr(10) + chr(10) + 'What existing code/specs are affected.' + chr(10) + chr(10) + '## Risks' + chr(10) + chr(10) + 'What could go wrong.' + chr(10), encoding='utf-8');
+          (base / 'design.md').write_text('# ' + name + ' -- Design' + chr(10) + chr(10) + '## Approach' + chr(10) + chr(10) + 'How to implement the change.' + chr(10) + chr(10) + '## Alternatives' + chr(10) + chr(10) + 'What else was considered and why not.' + chr(10) + chr(10) + '## Dependencies' + chr(10) + chr(10) + 'What must exist before this works.' + chr(10), encoding='utf-8');
+          vbrief = {'vBRIEFInfo': {'version': '0.5'}, 'plan': {'title': name, 'status': 'draft', 'items': [], 'edges': []}};
+          (base / 'tasks.vbrief.json').write_text(json.dumps(vbrief, indent=2) + chr(10), encoding='utf-8');
+          print(f'OK: Created change proposal at {base}/');
+          [print(f'  - {f}') for f in ['proposal.md', 'design.md', 'tasks.vbrief.json', 'specs/']]"

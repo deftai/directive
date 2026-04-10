@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Toolchain verification task** (#233, #235, t3.3.2): Created `tasks/toolchain.yml` with `toolchain:check` task and `scripts/toolchain-check.py` -- verifies go, uv, task, git, gh are installed; wired as dep of enhanced `check` task
 - **Code verification tasks** (#235, t3.3.2): Created `tasks/verify.yml` with `verify:stubs` (scans .py/.go/.sh for TODO/FIXME/HACK/stub patterns via `scripts/verify-stubs.py`) and `verify:links` (checks .md internal link targets via `scripts/validate-links.py`, warning mode for pre-existing broken links, `--strict` flag or `LINK_CHECK_STRICT=1` for strict mode); both wired as deps of enhanced `check` task
 - **Spec tasks t3.3.1 and t3.3.2** added to `SPECIFICATION.md` for Taskfile restructure and verification tasks
+- **changelog:check, change:init, and commit:lint tasks** (#233, #235, t3.3.3): Created `tasks/change.yml` with `changelog:check` (verifies CHANGELOG.md [Unreleased] section has at least one entry, exits non-zero if missing) and `change:init` (scaffolds `history/changes/<name>/` with proposal.md, design.md, tasks.vbrief.json, and specs/ subdirectory per commands.md templates). Created `tasks/commit.yml` with `commit:lint` (validates HEAD commit message against conventional commit format -- type(scope): description; accepted types: feat, fix, docs, chore, refactor, test, style, perf, ci, build; exits non-zero on violation). Both task files are standalone with `version: '3'` for independent testability.
 
 ## [0.16.0] - 2026-04-10
 

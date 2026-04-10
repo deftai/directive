@@ -1146,5 +1146,15 @@ Create tasks/toolchain.yml with toolchain:check (reads PROJECT.md for declared t
 - validate:links checks .md internal link targets exist
 - Enhanced check includes toolchain:check, verify:stubs, validate:links as deps
 - task check passes
+## t3.3.3: Add changelog:check, change:init, and commit:lint tasks (#233, #235)  `[pending]`
+
+Create tasks/change.yml with changelog:check (verify CHANGELOG.md has an [Unreleased] section with at least one entry since the last release tag; exit non-zero if missing) and change:init (takes a name via CLI_ARGS, creates history/changes/<name>/ directory with proposal.md, design.md, tasks.vbrief.json, and specs/ subdirectory using deterministic templates per commands.md). Create tasks/commit.yml with commit:lint (validate HEAD commit message against conventional commit format -- type(scope): description; accepted types: feat, fix, docs, chore, refactor, test, style, perf, ci, build; exit non-zero on violation).
+
+- tasks/change.yml exists with changelog:check and change:init tasks
+- tasks/commit.yml exists with commit:lint task
+- changelog:check verifies [Unreleased] section has entries
+- change:init creates correct directory structure per commands.md
+- commit:lint validates conventional commit format
+- All tasks exit non-zero on failure
 
 **Traces**: #233, #235
