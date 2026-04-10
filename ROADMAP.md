@@ -18,6 +18,7 @@ Fix reported bugs and UX problems blocking adoption.
 ### Cleanup
 
 - **#274** -- Add semantic accuracy check to mandatory pre-commit file review: extend the 4-check pre-commit review to verify counts and claims in CHANGELOG entries and ROADMAP changelog lines match actual data (t1.15.1)
+- **#281** -- WinError 448: pytest-current symlink cleanup fails on Windows 11 24H2+; fix: add tmp_path_retention_count = 0 to pyproject.toml [tool.pytest.ini_options] (t1.18.1)
 
 ---
 
@@ -396,6 +397,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 | #272 | deft-setup: agent conflates framework directory with project root during bootstrap | 1 |
 | #274 | fix(workflow): add semantic accuracy check to mandatory pre-commit file review | 1 |
 | #279 | fix(skill): deft-review-cycle Approach 2 idle stoppage -- yield ends turn, polling loop broken for swarm agents | 1 |
+| #281 | fix(test): WinError 448 -- pytest-current symlink cleanup fails on Windows 11 24H2+ | 1 |
 
 ---
 
@@ -451,3 +453,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-10 -- roadmap refresh triage: added #274 (Phase 1 Cleanup, t1.15.1); analysis comment posted*
 *Updated 2026-04-10 -- roadmap refresh triage: added #272 (Phase 1 Adoption Blocker, t1.16.1); analysis comment posted*
 *Updated 2026-04-10 -- roadmap refresh triage: added #269 (Phase 1 Adoption Blocker, t1.17.1); analysis comment posted*
+*Updated 2026-04-10 -- filed and triaged #281 (Phase 1 Cleanup, t1.18.1): WinError 448 pytest-current symlink cleanup on Windows 11 24H2+*

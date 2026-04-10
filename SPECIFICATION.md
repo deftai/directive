@@ -1,4 +1,4 @@
-# Deft Directive — Phases 1–3 SPECIFICATION
+﻿# Deft Directive — Phases 1–3 SPECIFICATION
 
 Deft Directive is a Markdown framework for AI agents to use when generating software. It defines layered behavioral rules, workflow strategies, and quality gates across four components: (1) the Markdown framework (primary product — .md files consumed by agents at runtime), (2) the Python CLI (`run` — terminal setup and spec generation), (3) the Go installer (`cmd/deft-install/` — standalone binary for end-user install), and (4) the test suite (`tests/` — CLI and content validation). This specification covers Phase 1 (bug fixes and adoption blockers), Phase 2 (content fixes), and Phase 3 (CI). Phases 4–5 are deferred; see PRD.md and #67 for scope boundaries. References: PRD.md, .planning/codebase/ARCHITECTURE.md, docs/research/deft-directive-research.md.
 
@@ -852,8 +852,9 @@ Create strategies/bdd.md: a Behaviour-Driven Development strategy where failing 
 - strategies/README.md lists bdd.md (removes 'future' annotation if present)
 - tests/content/test_structure.py updated to assert strategies/bdd.md exists
 
-**Traces**: #81
+**Traces**: #281
 
+## t2.8.1:
 ## t1.11.1: Document Get-Content -Raw UTF-8 footgun and BOM-safe round-trip pattern for PS 5.1 (#236)  `[completed]`
 
 PowerShell 5.1's Get-Content (without -Raw) reads files line-by-line and can inject BOM characters or silently mangle em-dashes when agents read then re-write files. Add ! rules to scm/github.md PS 5.1 section covering Get-Content -Raw for safe reads and BOM-safe round-trip write pattern. Closes #236.
@@ -1022,7 +1023,14 @@ Warp auto-approve silently self-answers the deft-setup interview, producing garb
 
 **Traces**: #269
 
-## t2.8.1: Add explicit row format template
+## t1.18.1: Fix WinError 448 -- pytest-current symlink cleanup fails on Windows 11 24H2+ (#281)  `[pending]`
+
+pytest creates a pytest-current symlink in the temp directory tree; Windows 11 24H2+ security policy flags it as an untrusted mount point and raises WinError 448 during cleanup, causing task check to fail locally even when all tests pass. Fix: add tmp_path_retention_count = 0 to [tool.pytest.ini_options] in pyproject.toml.
+
+- pyproject.toml [tool.pytest.ini_options] contains tmp_path_retention_count = 0
+
+**Traces**: #281
+## t2.8.1: Add explicit row format template to deft-roadmap-refresh skill (#221)  `[completed]`
 
 Add an explicit `| #NNN | title | Phase |` row format template to skills/deft-roadmap-refresh/SKILL.md at the step that creates or updates Open Issues Index rows. Add 2 anti-patterns: one against creating index rows without using the template format, one against double-pipe `||` entries from omitting a column value. Closes #221.
 
