@@ -56,6 +56,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - "setup" / "bootstrap" / "onboard" → `skills/deft-setup/SKILL.md`
 - "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" → `skills/deft-sync/SKILL.md`
 - "pre-pr" / "quality loop" / "rwldl" / "self-review" → `skills/deft-pre-pr/SKILL.md`
+- "interview" / "ask questions" / "structured interview" → `skills/deft-interview/SKILL.md`
 
 ## Development Process (always follow)
 
@@ -68,6 +69,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 
 **Before committing:**
 - Run `task check` (validate + lint + test) — this is the pre-commit gate
+- ! New source files (`scripts/`, `src/`, `cmd/`, `*.py`, `*.go`) MUST include corresponding test files in the same PR -- running existing tests alone is not sufficient for new code; forward coverage requires new tests that exercise the new code paths
 - Add CHANGELOG.md entry under `[Unreleased]`
 - Verify .github/PULL_REQUEST_TEMPLATE.md checklist items are satisfied
 

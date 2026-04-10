@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill** (#296, t2.11.1): Created `skills/deft-interview/SKILL.md` with RFC2119 legend and YAML frontmatter encoding a deterministic interview loop any skill can invoke -- 7 rules: one-question-per-turn, numbered options with stated default (`[default: N]`), explicit other/IDK escape option, depth gate, default-acceptance, confirmation gate, and structured handoff contract (answers map); created `.agents/skills/deft-interview/SKILL.md` thin pointer; added AGENTS.md Skill Routing entry; updated deft-setup Phase 1 and Phase 2 to reference deft-interview; added 12 tests
+- **deft-swarm Phase 6 Slack release announcement** (#292, t1.22.1): Added Step 6 to `skills/deft-swarm/SKILL.md` Phase 6 -- generates standard Slack announcement block with version, release title, summary, key changes, swarm agent count, duration, PR numbers, and GitHub release URL
+
 ### Fixed
+- **deft-swarm Phase 6 read-back verification after rebase conflict resolution** (#288, t1.21.1): Added `!` rule to Phase 6 Step 1 requiring re-read and structural integrity verification after resolving rebase conflicts and before `git add`; added `!` rule preferring `edit_files` over shell regex for CHANGELOG.md/SPECIFICATION.md; added 2 anti-patterns
+- **Strengthen test-with-code rule across 4 surfaces** (#294, t1.23.1): Added `!` rule to AGENTS.md Before committing requiring new source files to include test files; updated main.md testing gate to distinguish regression vs forward coverage; added constraint to deft-swarm Prompt Template; added forward test coverage check to deft-build pre-commit checklist
 - **Resolve 5 untracked xfail gaps in known_failures.json** (#295, t1.24.1): Flipped 20 xfail entries to passing across 5 gap categories -- (1) flipped 3 stale xfails for root PROJECT.md and core/project.md (already cleaned in prior PRs); (2) created tools/taskfile-migration.md stub to resolve broken See also link from tools/taskfile.md; (3) standardized RFC2119 legend format in 5 context/*.md files and added legend to languages/commands.md; (4) added missing shape sections to 8 files (## Commands to languages/6502-DASM.md, languages/markdown.md, languages/mermaid.md; ## Workflow to strategies/discuss.md, strategies/research.md; ## Framework Selection or ## Core Architecture to interfaces/cli.md, interfaces/rest.md, interfaces/web.md); (5) rephrased deprecated path and legacy name references in specs/testbed/SPECIFICATION.md to avoid triggering content tests
 
 ### Changed

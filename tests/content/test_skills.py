@@ -960,3 +960,111 @@ def test_deft_setup_deft_version_must_rule() -> None:
     assert "\u2297" in text and "without including the `deft_version` field" in text, (
         f"{_SETUP_PATH}: must have \u2297 anti-pattern against omitting deft_version (#270, t3.2.1)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 30. deft-interview skill -- existence, structure, and content (#296, t2.11.1)
+# ---------------------------------------------------------------------------
+
+_INTERVIEW_PATH = "skills/deft-interview/SKILL.md"
+_INTERVIEW_POINTER_PATH = ".agents/skills/deft-interview/SKILL.md"
+
+
+def test_deft_interview_exists() -> None:
+    """deft-interview SKILL.md must exist at its expected path."""
+    assert (_REPO_ROOT / _INTERVIEW_PATH).is_file(), (
+        f"Skill file missing: {_INTERVIEW_PATH}"
+    )
+
+
+def test_deft_interview_rfc2119_legend() -> None:
+    """deft-interview must contain the RFC2119 legend line."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert RFC2119_LEGEND in text, (
+        f"{_INTERVIEW_PATH}: missing RFC2119 legend '{RFC2119_LEGEND}'"
+    )
+
+
+def test_deft_interview_has_frontmatter() -> None:
+    """deft-interview must have YAML frontmatter with name and description."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert text.startswith("---"), (
+        f"{_INTERVIEW_PATH}: must start with YAML frontmatter '---'"
+    )
+    assert "name: deft-interview" in text, (
+        f"{_INTERVIEW_PATH}: frontmatter must contain 'name: deft-interview'"
+    )
+
+
+def test_deft_interview_one_question_per_turn() -> None:
+    """deft-interview must enforce one-question-per-turn rule."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert "ONE focused question per step" in text, (
+        f"{_INTERVIEW_PATH}: must contain one-question-per-turn rule (#296)"
+    )
+
+
+def test_deft_interview_numbered_options_with_default() -> None:
+    """deft-interview must require numbered options with stated default."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert "[default:" in text and "numbered answer options" in text.lower(), (
+        f"{_INTERVIEW_PATH}: must require numbered options with stated default (#296)"
+    )
+
+
+def test_deft_interview_other_escape() -> None:
+    """deft-interview must require an other/IDK escape option."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert "Other / I don't know" in text, (
+        f"{_INTERVIEW_PATH}: must require other/IDK escape option (#296)"
+    )
+
+
+def test_deft_interview_depth_gate() -> None:
+    """deft-interview must include a depth gate rule."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert "no material ambiguity remains" in text.lower(), (
+        f"{_INTERVIEW_PATH}: must include depth gate rule (#296)"
+    )
+
+
+def test_deft_interview_default_acceptance() -> None:
+    """deft-interview must define default acceptance responses."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert "bare enter" in text.lower() and "default" in text.lower(), (
+        f"{_INTERVIEW_PATH}: must define default acceptance responses (#296)"
+    )
+
+
+def test_deft_interview_confirmation_gate() -> None:
+    """deft-interview must require confirmation gate with all captured answers."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert "confirmation gate" in text.lower() and "yes / no" in text.lower(), (
+        f"{_INTERVIEW_PATH}: must require confirmation gate (#296)"
+    )
+
+
+def test_deft_interview_structured_handoff() -> None:
+    """deft-interview must define structured handoff contract with answers map."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert "answers map" in text.lower() and "calling skill" in text.lower(), (
+        f"{_INTERVIEW_PATH}: must define structured handoff contract (#296)"
+    )
+
+
+def test_deft_interview_anti_patterns() -> None:
+    """deft-interview must have anti-patterns section."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert "## Anti-Patterns" in text, (
+        f"{_INTERVIEW_PATH}: missing '## Anti-Patterns' section (#296)"
+    )
+    assert "multiple questions" in text.lower() and "confirmation gate" in text.lower(), (
+        f"{_INTERVIEW_PATH}: anti-patterns must cover multi-question and confirmation gate (#296)"
+    )
+
+
+def test_deft_interview_pointer_exists() -> None:
+    """.agents thin pointer for deft-interview must exist."""
+    assert (_REPO_ROOT / _INTERVIEW_POINTER_PATH).is_file(), (
+        f"Thin pointer missing: {_INTERVIEW_POINTER_PATH}"
+    )

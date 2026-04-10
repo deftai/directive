@@ -104,6 +104,8 @@ Expected USER.md fields: **Name**, **Custom Rules**, **Default Strategy**, and o
 
 ### Interview Rules
 
+! This phase follows the deterministic interview loop defined in `skills/deft-interview/SKILL.md`. The core rules (one question per turn, numbered options with stated default, explicit "other" escape, depth gate, default acceptance, confirmation gate, structured handoff) apply here. Key points repeated for emphasis:
+
 ! **Each message you send MUST contain exactly ONE question.** This is the most
 important rule in this file. After the user answers, send the NEXT question in
 a new message. Repeat until all questions for their track are answered.
@@ -249,7 +251,7 @@ Wait for answer. Then follow the corresponding track in the Question Sequence be
 ### Interview Rules (same as Phase 1)
 
 ! **Each message MUST contain exactly ONE question.** The Phase 1 interview rules
-apply here too. Do not combine questions.
+apply here too. Do not combine questions. See `skills/deft-interview/SKILL.md` for the canonical deterministic interview loop.
 
 ### Question Sequence
 

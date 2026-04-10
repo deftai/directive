@@ -275,6 +275,13 @@ All PRs meet ALL of:
 
 ! **Rebase cascade ownership:** Monitor owns rebase cascade sequencing. Swarm agents do not rebase -- by the time merges begin, swarm agents are idle or complete. The monitor fetches updated master, rebases each remaining branch, resolves conflicts, and force-pushes.
 
+! **Read-back verification after conflict resolution:** After resolving any rebase conflict and BEFORE running `git add`, re-read the resolved file and verify structural integrity:
+- ! No conflict markers remain (`<<<<<<<`, `=======`, `>>>>>>>`)
+- ! No collapsed or missing lines (compare line count to pre-rebase version if feasible)
+- ! No encoding artifacts (BOM injection, mojibake, replacement characters)
+- ! For `CHANGELOG.md` and `SPECIFICATION.md` conflicts: prefer `edit_files` over shell regex (`sed`, `Select-String -replace`) for resolution -- edit_files preserves encoding and provides exact match verification, while regex substitutions risk silent line collapse or encoding corruption
+- ⊗ Run `git add` on a conflict-resolved file without first re-reading it and verifying structural integrity
+
 ! **Non-interactive rebase:** Monitor MUST set `GIT_EDITOR=true` (Unix/WSL/Git Bash) or `$env:GIT_EDITOR="echo"` (Windows PowerShell) before running `git rebase --continue` during merge cascade to prevent the default editor from blocking the agent.
 
 ! **Merge cascade warning:** Shared append-only files (CHANGELOG.md, SPECIFICATION.md) cause merge conflicts when PRs are merged sequentially — each merge changes the insertion point, conflicting remaining PRs. Each conflict requires rebase → push → wait for checks (~3 min) + ~2-5 min Greptile re-review per rebase. Plan for N-1 rebase cycles × ~3 min CI + ~2-5 min Greptile re-review per rebase when merging N PRs.
@@ -316,6 +323,34 @@ All PRs meet ALL of:
 ~ ROADMAP.md is updated during the CHANGELOG promotion commit (the release commit), not during swarm close. Batch-move all issues resolved in this release from their roadmap phase to the Completed section at that time.
 
 ⊗ Update ROADMAP.md during swarm close — leave it for the release commit.
+
+### Step 6: Generate Slack Release Announcement
+
+! After creating the GitHub release (or after the final merge if no formal release is created), generate a standard Slack announcement block and present it to the user for copy-paste into the team channel.
+
+! The announcement block MUST include all of the following fields:
+
+```
+:rocket: *{Project Name} {version}* -- {release title}
+
+*Summary*: {one-sentence description of the release scope}
+
+*Key Changes*:
+- {bullet per significant change, 3-5 items max}
+
+*Stats*: {N} agents | ~{duration} elapsed | {N} PRs merged
+*PRs*: {#PR1, #PR2, ...}
+*Release*: {GitHub release URL}
+```
+
+- ! Populate version from the CHANGELOG promotion commit or git tag
+- ! Populate release title from the CHANGELOG section heading or GitHub release title
+- ! Key changes summarized from CHANGELOG `[Unreleased]` entries (not raw commit messages)
+- ! Agent count and approximate duration from the swarm session (Phase 3 launch to Phase 6 close)
+- ! PR numbers from the merged PRs in this swarm run
+- ! GitHub release URL from the `gh release create` output (or `gh release view --json url` if already created)
+- ~ Present the block as a code-fenced snippet the user can copy directly
+- ? If no formal GitHub release was created (e.g. user deferred), still generate the announcement with a placeholder URL and note that the release is pending
 
 ## Crash Recovery
 
@@ -387,6 +422,7 @@ Greptile review cycle on the PR. Do NOT merge — leave for human review.
 
 CONSTRAINTS:
 - Do not touch [list files other agents are working on]
+- New source files (scripts/, src/, cmd/, *.py, *.go) must have corresponding test files in the same PR
 - Use conventional commits: type(scope): description
 - Run task check before every commit
 - Never force-push
@@ -426,3 +462,5 @@ CONSTRAINTS:
 - ⊗ Proceed to the next merge in the rebase cascade before confirming the Greptile re-review is current (SHA match) and exit condition is met (confidence > 3, no P0/P1) on the rebased branch -- see `skills/deft-review-cycle/SKILL.md` Step 4 for the monitoring approach
 - ⊗ Spawn a replacement sub-agent without confirming the original is unresponsive via a lifecycle event (idle/blocked) — original Warp tabs can resume after apparent failure, and two concurrent agents on the same worktree will corrupt the tool_use/tool_result call chain (#261, #263)
 - ⊗ Skip Phase 5 or the Phase 5→6 confirmation gate under time pressure or due to long context — the gate is mandatory regardless of conversation length, elapsed time, or context-window pressure
+- ⊗ Run `git add` on a conflict-resolved file without re-reading and verifying structural integrity (no conflict markers, no collapsed lines, no encoding artifacts) -- see Phase 6 Step 1 read-back verification rule (#288)
+- ⊗ Use shell regex (`sed`, `Select-String -replace`) to resolve `CHANGELOG.md` or `SPECIFICATION.md` rebase conflicts -- prefer `edit_files` for encoding safety and exact match verification (#288)

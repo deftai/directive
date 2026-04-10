@@ -1055,7 +1055,10 @@ Agents on Windows writing files via PowerShell reach for [System.Text.Encoding]:
 
 Add ! rule to skills/deft-swarm/SKILL.md Phase 6 Step 1: after resolving any rebase conflict and before running git add, re-read the resolved file and verify structural integrity (no conflict markers, no collapsed lines, no encoding artifacts). Prefer edit_files over shell regex for CHANGELOG.md and SPECIFICATION.md conflict resolution. Mirrors mandatory pre-commit file review from t1.11.4, targeted at the rebase conflict resolution path. Closes #288.
 
-- <first acceptance criterion placeholder>
+- skills/deft-swarm/SKILL.md Phase 6 Step 1 contains ! rule for read-back verification after conflict resolution: re-read file, check no conflict markers, no collapsed lines, no encoding artifacts
+- skills/deft-swarm/SKILL.md Phase 6 Step 1 contains ! rule preferring edit_files over shell regex for CHANGELOG.md and SPECIFICATION.md conflict resolution
+- skills/deft-swarm/SKILL.md Anti-Patterns contains entry prohibiting git add without read-back verification
+- tests/content/test_skills.py passes
 
 **Traces**: #288
 
@@ -1063,7 +1066,10 @@ Add ! rule to skills/deft-swarm/SKILL.md Phase 6 Step 1: after resolving any reb
 
 Add a step to skills/deft-swarm/SKILL.md Phase 6 (after creating the GitHub release) that generates a standard Slack announcement block and presents it to the user. Include version, release title, summary, key changes, swarm agent count, approximate duration, PR numbers, and GitHub release URL. Closes #292.
 
-- <first acceptance criterion placeholder>
+- skills/deft-swarm/SKILL.md Phase 6 contains Step 6: Generate Slack Release Announcement after GitHub release
+- Announcement template includes: version, release title, summary, key changes, agent count, duration, PR numbers, GitHub release URL
+- Step uses ! rules for all required fields
+- tests/content/test_skills.py passes
 
 **Traces**: #292
 
@@ -1071,7 +1077,11 @@ Add a step to skills/deft-swarm/SKILL.md Phase 6 (after creating the GitHub rele
 
 Strengthen the testing enforcement gate across 4 surfaces: (1) AGENTS.md Before committing: ! rule -- new source files (scripts/, src/, cmd/, *.py, *.go) MUST include corresponding test files in the same PR; running existing tests is not sufficient. (2) main.md Decision Making: update t1.6.1 testing gate to distinguish regression (existing tests pass) from forward coverage (new code has new tests). (3) deft-swarm SKILL.md prompt template CONSTRAINTS: new source files must have corresponding tests. (4) deft-build SKILL.md pre-commit checklist: for each new source file in this PR, verify a corresponding test file exists. Future deterministic gate (task verify:test-coverage) deferred to #233 Phase 5. Closes #294.
 
-- <first acceptance criterion placeholder>
+- AGENTS.md Before committing section contains ! rule: new source files MUST include corresponding test files in the same PR
+- main.md Decision Making testing gate distinguishes regression coverage (existing tests pass) from forward coverage (new code has new tests)
+- skills/deft-swarm/SKILL.md Prompt Template CONSTRAINTS contains new source files must have corresponding tests
+- skills/deft-build/SKILL.md pre-commit checklist contains forward test coverage check
+- tests/content/test_skills.py passes
 
 **Traces**: #294
 
@@ -1087,7 +1097,13 @@ Fix all 5 untracked xfail gaps in a single cleanup PR: (1) remove or replace lea
 
 Create skills/deft-interview/SKILL.md with RFC2119 legend and frontmatter encoding a deterministic interview loop any skill can invoke: one-question-per-turn rule, numbered options with stated default (e.g. [default: 3]), explicit other/IDK escape option, depth gate (! keep asking until no material ambiguity remains), default-acceptance rule (bare enter/yes/default accepts stated default), confirmation gate (display all captured answers and require yes/no before proceeding), and structured handoff contract (answers map for calling skill). Create .agents/skills/deft-interview/SKILL.md thin pointer. Update AGENTS.md Skill Routing table with trigger keywords (interview, ask questions, structured interview). Update deft-setup SKILL.md Phase 1 and Phase 2 to reference deft-interview for Q&A loops. Add tests/content/test_skills.py coverage. Anti-patterns: asking multiple questions at once, proceeding without confirmation gate, omitting defaults, omitting other escape. Closes #296.
 
-- <first acceptance criterion placeholder>
+- skills/deft-interview/SKILL.md exists with RFC2119 legend and YAML frontmatter
+- Contains 7 rules: one-question-per-turn, numbered options with stated default, other/IDK escape, depth gate, default acceptance, confirmation gate, structured handoff contract
+- Anti-patterns section covers: multiple questions, missing confirmation gate, missing defaults, missing escape option
+- .agents/skills/deft-interview/SKILL.md thin pointer exists
+- AGENTS.md Skill Routing table contains interview / ask questions / structured interview entry
+- skills/deft-setup/SKILL.md Phase 1 and Phase 2 reference deft-interview
+- tests/content/test_skills.py covers new skill with 12 tests
 
 **Traces**: #296
 
