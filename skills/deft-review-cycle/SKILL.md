@@ -63,9 +63,13 @@ gh pr view <number> --comments
 
 ! Use `do_not_summarize_output: true` — summarizers silently drop the "Comments Outside Diff" section from large bot comments.
 
-! Also use MCP `get_review_comments` to catch Comments Outside Diff.
+! **MCP capability probe** (mirrors deft-swarm Phase 3 pattern): Before attempting MCP `get_review_comments`, probe whether MCP GitHub tools are available in the current session. Detection: attempt a lightweight MCP call (e.g. list available tools or a no-op query) -- if it succeeds, MCP is available; if it errors or the tool is not in the available set, MCP is unavailable.
+
+- **MCP available**: ! Use MCP `get_review_comments` as the second source to catch Comments Outside Diff.
+- **MCP unavailable** (e.g. `start_agent` agents, cloud agents, `oz agent run`): ! Use `gh api repos/<owner>/<repo>/pulls/<number>/comments` as the explicit fallback for the second review source. Document in the commit message or PR comment why MCP was skipped (e.g. "MCP unavailable in this session -- used gh api fallback for review comments").
 
 ⊗ Report "all comments resolved" without verifying both sources.
+⊗ Skip the second review source without probing for MCP capability and documenting the fallback used.
 
 ### Step 2: Analyze ALL findings before changing anything
 
@@ -86,6 +90,7 @@ gh pr view <number> --comments
 - ! Validate structured data files locally before committing (e.g. `python3 -m json.tool` for JSON, YAML lint for YAML) — do not rely on the bot to catch syntax errors
 - ! Before committing any Greptile fix, re-read the FULL current Greptile review and confirm all P0/P1 issues are addressed in the staged changes — this is the pre-commit gate that prevents per-finding fix commits
 - ! Run `task check` before committing
+- ? **Pre-existing failure carve-out**: If `task check` fails due to a pre-existing issue unrelated to the PR's changes, a partial test suite run is acceptable ONLY if BOTH conditions are met: (a) the `task check` failure is pre-existing with an open GitHub issue number tracking it, AND (b) the PR description explicitly notes the failure and includes the issue reference (e.g. "task check: test_foo fails due to #NNN (pre-existing)"). Without both conditions, the full `task check` pass remains mandatory.
 - ~ Commit message: `fix: address Greptile review findings (batch)`
 
 ⊗ Push individual fix commits per finding — always batch.
@@ -115,6 +120,8 @@ gh pr view <number> --comments
 
 ! Select the monitoring approach based on runtime capability detection. Probe for `start_agent` in the available tool set (same pattern as deft-swarm Phase 3 capability detection) before choosing:
 
+! Swarm agents launched via `start_agent` SHOULD prefer Approach 1 (spawn their own review-monitor sub-agent) when `start_agent` is available. Approach 2's yield-between-polls mechanism is not self-sustaining for swarm agents (see Approach 2 warning below).
+
 **Approach 1 (preferred -- `start_agent` available):**
 
 ! When `start_agent` is detected in the available tool set, spawn a sub-agent review monitor:
@@ -135,6 +142,8 @@ gh pr view <number> --comments
 4. ! No blocking shell pane lock -- the conversation remains interactive between checks
 5. ~ Approach 2 requires a periodic re-invocation trigger (timer, scheduler, or user nudge) -- if the runtime lacks an auto-trigger, each poll cycle may require a user interaction to resume; this is a known tradeoff vs. Approach 1's fully autonomous sub-agent
 6. ! When the exit condition is met, proceed to Step 5
+
+⚠️ **Swarm agent limitation**: Approach 2 is NOT autonomous for swarm agents. Yielding (ending all tool calls) terminates the agent's turn with no self-wake mechanism -- the agent will not resume unless the monitor detects the idle lifecycle event and re-triggers it. For swarm agents, the polling loop silently stops after the first yield unless external orchestration re-invokes the agent. The monitor (or parent agent) must detect the idle state and send a message or re-trigger the agent to continue polling.
 
 ⊗ Use blocking `Start-Sleep` shell loops, `time.sleep()` loops, or any approach that holds a shell pane open while waiting -- these lock the conversation and prevent user interaction.
 ⊗ Poll more frequently than once per 60 seconds -- use a real delay between checks, not back-to-back calls.
@@ -229,3 +238,6 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 - ⊗ Push a fix commit that addresses fewer findings than the current Greptile review surfaces — if Greptile flags 3 issues, all 3 must be fixed in one commit before pushing
 - ⊗ Push after fixing a P1 without first checking whether the same Greptile review contains additional P0 or P1 findings
 - ⊗ Assume squash merge auto-closed referenced issues — always verify with `gh issue view` after merge (#167)
+- ⊗ Assume Approach 2 (yield-between-polls) produces a self-sustaining polling loop -- yielding ends the agent's turn with no self-wake; swarm agents will silently stop polling
+- ⊗ Skip the second review source (MCP or `gh api` fallback) without probing for MCP capability and documenting the fallback used
+- ⊗ Run a partial test suite instead of `task check` without documenting the pre-existing failure reason and open issue number in the PR body
