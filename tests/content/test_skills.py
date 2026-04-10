@@ -1068,3 +1068,45 @@ def test_deft_interview_pointer_exists() -> None:
     assert (_REPO_ROOT / _INTERVIEW_POINTER_PATH).is_file(), (
         f"Thin pointer missing: {_INTERVIEW_POINTER_PATH}"
     )
+
+
+# ---------------------------------------------------------------------------
+# 31. deft-swarm Phase 6 read-back verification (#288, t1.21.1)
+# ---------------------------------------------------------------------------
+
+
+def test_deft_swarm_phase6_readback_verification() -> None:
+    """Phase 6 must require re-reading conflict-resolved files before git add."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Read-back verification" in text and "conflict markers" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 6 must contain read-back verification rule (#288)"
+    )
+
+
+def test_deft_swarm_phase6_prefer_edit_files_for_conflicts() -> None:
+    """Phase 6 must prefer edit_files over shell regex for conflict resolution."""
+    text = _read_skill(_SWARM_PATH)
+    assert "edit_files" in text and "CHANGELOG.md" in text and "SPECIFICATION.md" in text, (
+        f"{_SWARM_PATH}: Phase 6 must prefer edit_files for conflict resolution (#288)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 32. deft-swarm Phase 6 Slack announcement (#292, t1.22.1)
+# ---------------------------------------------------------------------------
+
+
+def test_deft_swarm_phase6_slack_announcement_step() -> None:
+    """Phase 6 Step 6 must generate a Slack release announcement block."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Slack" in text and "announcement" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 6 must include Slack announcement step (#292)"
+    )
+
+
+def test_deft_swarm_phase6_slack_required_fields() -> None:
+    """Slack announcement must include version, key changes, PR numbers, and release URL."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Key Changes" in text and "PRs*:" in text and "Release*:" in text, (
+        f"{_SWARM_PATH}: Slack announcement must include required fields (#292)"
+    )
