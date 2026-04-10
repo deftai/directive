@@ -1030,8 +1030,9 @@ pytest creates a pytest-current symlink in the temp directory tree; Windows 11 2
 
 - pyproject.toml [tool.pytest.ini_options] contains tmp_path_retention_count = 0
 
-**Traces**: #281
+**Traces**: #282
 
+## t1.20.1:
 ## t1.19.1: Add MCP capability detection and task check pre-existing failure carve-out to deft-review-cycle (#282)  `[pending]`
 
 Two gaps in deft-review-cycle/SKILL.md: (1) Phase 2 Step 1 has no capability detection for MCP -- when MCP is unavailable the agent can silently skip the second review source with no rule violation; (2) Step 3 has no carve-out for pre-existing task check failures unrelated to the PR, causing agents to rationalize partial test runs without documentation requirements.
@@ -1082,8 +1083,7 @@ Fix all 5 untracked xfail gaps in a single cleanup PR: (1) remove or replace lea
 
 **Traces**: #295
 
-## t2.11.1:
-## t2.11.1: Create skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill (#296)  `[pending]`
+## t2.11.1: Create skills/deft-interview/SKILL.md
 
 Create skills/deft-interview/SKILL.md with RFC2119 legend and frontmatter encoding a deterministic interview loop any skill can invoke: one-question-per-turn rule, numbered options with stated default (e.g. [default: 3]), explicit other/IDK escape option, depth gate (! keep asking until no material ambiguity remains), default-acceptance rule (bare enter/yes/default accepts stated default), confirmation gate (display all captured answers and require yes/no before proceeding), and structured handoff contract (answers map for calling skill). Create .agents/skills/deft-interview/SKILL.md thin pointer. Update AGENTS.md Skill Routing table with trigger keywords (interview, ask questions, structured interview). Update deft-setup SKILL.md Phase 1 and Phase 2 to reference deft-interview for Q&A loops. Add tests/content/test_skills.py coverage. Anti-patterns: asking multiple questions at once, proceeding without confirmation gate, omitting defaults, omitting other escape. Closes #296.
 
