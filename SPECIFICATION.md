@@ -1030,9 +1030,8 @@ pytest creates a pytest-current symlink in the temp directory tree; Windows 11 2
 
 - pyproject.toml [tool.pytest.ini_options] contains tmp_path_retention_count = 0
 
-**Traces**: #282
+**Traces**: #281
 
-## t1.20.1:
 ## t1.19.1: Add MCP capability detection and task check pre-existing failure carve-out to deft-review-cycle (#282)  `[pending]`
 
 Two gaps in deft-review-cycle/SKILL.md: (1) Phase 2 Step 1 has no capability detection for MCP -- when MCP is unavailable the agent can silently skip the second review source with no rule violation; (2) Step 3 has no carve-out for pre-existing task check failures unrelated to the PR, causing agents to rationalize partial test runs without documentation requirements.
@@ -1043,6 +1042,7 @@ Two gaps in deft-review-cycle/SKILL.md: (1) Phase 2 Step 1 has no capability det
 - skills/deft-review-cycle/SKILL.md Anti-Patterns contains entry: run partial test suite instead of task check without documenting pre-existing failure reason and issue number in PR body
 
 **Traces**: #282
+
 ## t1.20.1: Add ! rule to AGENTS.md for BOM-safe PowerShell file writes (#283)  `[pending]`
 
 Agents on Windows writing files via PowerShell reach for [System.Text.Encoding]::UTF8 (writes a BOM) instead of the BOM-free constructor documented in scm/github.md. The rule exists in a reference document but is absent from AGENTS.md -- the always-loaded behavioral document. Add a ! rule to AGENTS.md making BOM-safe writes a hard gate at the decision point.
@@ -1083,7 +1083,7 @@ Fix all 5 untracked xfail gaps in a single cleanup PR: (1) remove or replace lea
 
 **Traces**: #295
 
-## t2.11.1: Create skills/deft-interview/SKILL.md
+## t2.11.1: Create skills/deft-interview/SKILL.md (#296)  `[pending]`
 
 Create skills/deft-interview/SKILL.md with RFC2119 legend and frontmatter encoding a deterministic interview loop any skill can invoke: one-question-per-turn rule, numbered options with stated default (e.g. [default: 3]), explicit other/IDK escape option, depth gate (! keep asking until no material ambiguity remains), default-acceptance rule (bare enter/yes/default accepts stated default), confirmation gate (display all captured answers and require yes/no before proceeding), and structured handoff contract (answers map for calling skill). Create .agents/skills/deft-interview/SKILL.md thin pointer. Update AGENTS.md Skill Routing table with trigger keywords (interview, ask questions, structured interview). Update deft-setup SKILL.md Phase 1 and Phase 2 to reference deft-interview for Q&A loops. Add tests/content/test_skills.py coverage. Anti-patterns: asking multiple questions at once, proceeding without confirmation gate, omitting defaults, omitting other escape. Closes #296.
 
@@ -1187,7 +1187,7 @@ Create tasks/toolchain.yml with toolchain:check (reads PROJECT.md for declared t
 - Enhanced check includes toolchain:check, verify:stubs, validate:links as deps
 - task check passes
 
-## t3.3.3:
+## t3.3.3: Add changelog:check, change:init, and commit:lint tasks (#233, #235)  `[pending]`
 
 Create tasks/change.yml with changelog:check (verify CHANGELOG.md has an [Unreleased] section with at least one entry since the last release tag; exit non-zero if missing) and change:init (takes a name via CLI_ARGS, creates history/changes/<name>/ directory with proposal.md, design.md, tasks.vbrief.json, and specs/ subdirectory using deterministic templates per commands.md). Create tasks/commit.yml with commit:lint (validate HEAD commit message against conventional commit format -- type(scope): description; accepted types: feat, fix, docs, chore, refactor, test, style, perf, ci, build; exit non-zero on violation).
 
