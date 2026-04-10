@@ -13,7 +13,10 @@ Fix reported bugs and UX problems blocking adoption.
 
 ### Cleanup
 
-(all resolved -- v0.16.0)
+- **#288** -- deft-swarm Phase 6: require read-back verification after rebase conflict resolution (mirrors t1.11.4 mandatory file review; rebase conflict path currently lacks this gate)
+- **#292** -- deft-swarm Phase 6: auto-generate Slack release announcement after GitHub release is tagged (used every release; reduces ad-hoc manual work)
+- **#294** -- Strengthen test-with-code rule: new source files MUST have corresponding tests in same PR -- 4-surface update (AGENTS.md, main.md, deft-swarm prompt, deft-build checklist); future deterministic gate deferred to #233 Phase 5
+- **#295** -- Resolve 5 untracked xfail gaps in known_failures.json: leaked PROJECT.md, broken taskfile-migration.md link, 6 files missing RFC2119 legend, 8 files missing shape sections, stale t2.1.1 xfail to flip
 
 ---
 
@@ -52,6 +55,7 @@ Quick doc/content fixes that don't require code changes.
 - **#258** -- Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)
 - **#136** -- Warp doesn't load deft's AGENTS.md by default
 - **#194** -- User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
+- **#296** -- Create skills/deft-interview/SKILL.md -- deterministic structured Q&A skill: one-question-per-turn, numbered options with stated defaults, depth gate, confirmation gate before artifact generation; generalizes the interview loop from deft-setup
 
 ---
 
@@ -67,6 +71,7 @@ Quick doc/content fixes that don't require code changes.
   - `cmd_spec` and `cmd_project` should check for USER.md at entry; if absent, warn and redirect to `run bootstrap`
   - Skills path already done (deft-build); this covers the CLI fallback path only
 - **#228** -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)
+- **#293** -- Add unit tests for v0.17.0 deterministic task scripts (toolchain-check.py, verify-stubs.py, validate-links.py, change:init, commit:lint) -- ~20-25 subprocess-based test cases in tests/cli/test_task_scripts.py
 - Code signing for installer binaries
 - Low-end LLM compatibility testing
   - Validate installer and agent process (deft-setup, deft-build) on small/quantised models (e.g. Qwen3-9B)
@@ -405,6 +410,12 @@ Larger feature work -- only after issues are resolved and content is stable.
 | ~~#281~~ | ~~fix(test): WinError 448 -- pytest-current symlink cleanup fails on Windows 11 24H2+~~ | completed -- 2026-04-10 (v0.16.0) |
 | ~~#282~~ | ~~fix(skill): deft-review-cycle -- MCP capability detection + task check pre-existing failure carve-out~~ | completed -- 2026-04-10 (v0.16.0) |
 | ~~#283~~ | ~~fix(agents): add ! rule to AGENTS.md for BOM-safe PowerShell file writes~~ | completed -- 2026-04-10 (v0.16.0) |
+| #288 | fix(skill): deft-swarm Phase 6 -- read-back verification after rebase conflict resolution | 1 |
+| #292 | feat(swarm): auto-generate Slack release announcement after swarm release | 1 |
+| #293 | test: add unit tests for v0.17.0 deterministic task scripts | 3 |
+| #294 | fix(enforcement): strengthen test-with-code rule -- new source files must include tests | 1 |
+| #295 | chore: resolve 5 untracked xfail gaps in known_failures.json | 1 |
+| #296 | Create skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill | 2 |
 
 ---
 
@@ -465,3 +476,9 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-10 -- filed and triaged #283 (Phase 1 Cleanup, t1.20.1): AGENTS.md ! rule for BOM-safe PowerShell file writes*
 *Updated 2026-04-10 -- v0.16.0 release: moved #256, #261, #263, #269, #272, #279 (Phase 1 Adoption Blockers), #274, #281, #282, #283 (Phase 1 Cleanup), #266, #268 (Phase 2), #270 (Phase 3) to Completed; struck through in Open Issues Index; Phase 1 Adoption Blockers and Cleanup sections now empty*
 *Updated 2026-04-10 -- v0.17.0 release: #235 closed (toolchain:check + changelog:check as check deps); #233 partial progress (tasks/ restructure + 7 new deterministic tasks); removed #235 from Phase 3 body; updated #233 in Phase 5; struck through #235 in Open Issues Index*
+*Updated 2026-04-10 -- roadmap refresh triage: added #288 (Phase 1 Cleanup, t1.21.1): deft-swarm Phase 6 read-back verification after rebase conflict resolution; analysis comment posted*
+*Updated 2026-04-10 -- roadmap refresh triage: added #292 (Phase 1 Cleanup, t1.22.1): deft-swarm Phase 6 auto-generate Slack release announcement; analysis comment posted*
+*Updated 2026-04-10 -- roadmap refresh triage: added #293 (Phase 3, t3.3.4): unit tests for v0.17.0 deterministic task scripts; analysis comment posted*
+*Updated 2026-04-10 -- roadmap refresh triage: added #294 (Phase 1 Cleanup, t1.23.1): strengthen test-with-code rule across AGENTS.md, main.md, deft-swarm, deft-build; analysis comment posted*
+*Updated 2026-04-10 -- roadmap refresh triage: added #295 (Phase 1 Cleanup, t1.24.1): resolve 5 untracked xfail gaps in known_failures.json; analysis comment posted*
+*Updated 2026-04-10 -- roadmap refresh triage: added #296 (Phase 2, t2.11.1): skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill; analysis comment posted*
