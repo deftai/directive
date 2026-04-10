@@ -17,7 +17,7 @@ tasks:
           (not ok) and (print('FAIL: Commit message does not match conventional commit format'),
           print(f'  Got:      {subject}'),
           print(f'  Expected: type(scope): description'),
-          print(f'  Types:    feat, fix, docs, chore, refactor, test, style, perf, ci, build'),
+          print(f'  Types:    feat, fix, docs, chore, refactor, test, style, perf, ci, build, revert'),
           sys.exit(1));
           print(f'OK: Commit message is valid conventional commit');
           print(f'  Subject: {subject}')"
