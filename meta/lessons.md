@@ -234,3 +234,23 @@ When a multi-line PowerShell string literal (here-string `@" ... "@`) is pasted 
 **Fix:** Always write multi-line PS content to a temp file first (`[System.IO.File]::WriteAllText($tmpFile, $content, [System.Text.UTF8Encoding]::new($false))`), then reference the temp file path in subsequent commands. This avoids the input splitting entirely. (#240)
 
 **Cross-reference:** `scm/github.md` — Warp Terminal Multi-Line String Handling subsection.
+
+## Duplicate-Tab Failure Mode (2026-04)
+
+**Source:** Issues #261, #263 -- swarm monitor spawned replacement agents while originals were still alive
+
+**1. Original Warp agent tabs MUST be assumed alive until confirmed unresponsive via lifecycle events**
+
+During a swarm run, the monitor agent observed apparent stalls in sub-agent tabs (no recent commits, no messages) and spawned replacement agents on the same worktrees. The original tabs had not actually crashed -- they resumed shortly after, creating two concurrent agents executing on the same branch. Both agents issued `tool_use` calls and received interleaved `tool_result` responses, causing each agent to act on stale or incorrect state. The `tool_use`/`tool_result` corruption seen in #261 (Phase 5 gate bypass, untested code merged to master) and #263 (monitor crash at message ~158) traces directly to this duplicate-agent root cause.
+
+**Before spawning a replacement agent, MUST verify the original is truly unresponsive by checking for an idle/blocked lifecycle event (no active tool calls, no pending shell commands, no recent output in the original tab). MUST NOT spawn a replacement based solely on message timing or absence of recent commits. If an agent appears stalled, go to its original tab and tell it to resume rather than spawning a new agent.** (#261, #263)
+
+## Crash Recovery Pattern (2026-04)
+
+**Source:** Issue #263 -- monitor crash at message ~158 left merge cascade in ambiguous state
+
+**1. Phase 6 merge cascade is safe to recover when steps are idempotent and state is checked before acting**
+
+The monitor agent crashed mid-cascade (likely due to conversation corruption from accumulated context -- ~158 messages of tool_use/tool_result pairs). On recovery, the new session could not determine which PRs had been merged, which were rebased, and which still needed action. The fix is twofold: (1) make every Phase 6 action idempotent (check state before acting -- already merged? already rebased? already closed?) so re-running any step is safe, and (2) record progress checkpoints at each milestone so a recovery session can reconstruct state via `gh pr list --state all` and `gh pr view <number>`.
+
+**The crash risk is proportional to monitor conversation length. MUST offload rebase, review-watch, and merge sub-tasks to ephemeral sub-agents (per the tiered approach in deft-review-cycle/SKILL.md) to keep the monitor conversation shallow. Target <100 tool-call round-trips in any single monitor conversation before considering a fresh session handoff.** (#263)

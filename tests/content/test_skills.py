@@ -840,3 +840,67 @@ def test_deft_pre_pr_contradiction_antipattern() -> None:
     assert "prohibition" in text.lower() and "softer-strength" in text.lower(), (
         f"{_PRE_PR_PATH}: missing contradiction anti-pattern (#251, t1.12.3)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 28. deft-swarm Phase 5->6 gate hardening + crash recovery (#261, #263, t1.13.1)
+# ---------------------------------------------------------------------------
+
+
+def test_deft_swarm_phase5_6_context_pressure_callout() -> None:
+    """Phase 5->6 gate must contain explicit context-pressure bypass prohibition."""
+    text = _read_skill(_SWARM_PATH)
+    assert "context-pressure bypass prohibition" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 5->6 gate missing context-pressure callout (#261, t1.13.1)"
+    )
+
+
+def test_deft_swarm_takeover_prespawn_verification() -> None:
+    """Takeover Triggers must require pre-spawn verification via lifecycle events."""
+    text = _read_skill(_SWARM_PATH)
+    assert "pre-spawn verification" in text.lower() and "lifecycle event" in text.lower(), (
+        f"{_SWARM_PATH}: Takeover Triggers missing pre-spawn verification rule (#261, t1.13.1)"
+    )
+
+
+def test_deft_swarm_duplicate_tab_failure_mode() -> None:
+    """deft-swarm must document the duplicate-tab failure mode."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Duplicate-Tab Failure Mode" in text and "tool_use" in text and "tool_result" in text, (
+        f"{_SWARM_PATH}: missing Duplicate-Tab Failure Mode documentation (#261, t1.13.1)"
+    )
+
+
+def test_deft_swarm_context_length_warning() -> None:
+    """Phase 4 must contain context-length warning about long monitoring sessions."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Context-Length Warning" in text and "conversation corruption" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 4 missing context-length warning (#263, t1.13.1)"
+    )
+
+
+def test_deft_swarm_crash_recovery_section() -> None:
+    """deft-swarm must contain a Crash Recovery section with recovery steps."""
+    text = _read_skill(_SWARM_PATH)
+    assert "## Crash Recovery" in text and "gh pr list" in text and "gh pr view" in text, (
+        f"{_SWARM_PATH}: missing Crash Recovery section (#263, t1.13.1)"
+    )
+
+
+def test_deft_swarm_antipattern_no_spawn_without_lifecycle() -> None:
+    """Anti-patterns must prohibit spawning replacement without lifecycle confirmation."""
+    text = _read_skill(_SWARM_PATH)
+    assert "spawn a replacement sub-agent without confirming" in text.lower(), (
+        f"{_SWARM_PATH}: missing anti-pattern against spawning "
+        "without lifecycle check (#261, t1.13.1)"
+    )
+
+
+def test_deft_swarm_antipattern_no_skip_phase5_gate() -> None:
+    """Anti-patterns must prohibit skipping Phase 5 gate under pressure."""
+    text = _read_skill(_SWARM_PATH)
+    lower = text.lower()
+    assert "skip phase 5" in lower and "time pressure" in lower and "long context" in lower, (
+        f"{_SWARM_PATH}: missing anti-pattern against skipping "
+        "Phase 5 gate under pressure (#261, t1.13.1)"
+    )

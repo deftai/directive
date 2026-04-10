@@ -956,7 +956,20 @@ When an agent adds a new ! (MUST) or ⊗ (MUST NOT) rule, it does not check whet
 
 Strengthen the Phase 5->6 confirmation gate against context-pressure bypass and add checkpoint/crash recovery guidance to skills/deft-swarm/SKILL.md.
 
-- <first acceptance criterion placeholder>
+- skills/deft-swarm/SKILL.md Phase 5->6 gate contains explicit context-pressure callout: even under long-context or time pressure, the gate MUST NOT be bypassed
+- Phase 5->6 gate requires monitor to emit a structured merge-readiness checklist before any gh pr merge call: for each PR confirm Greptile score > 3, no P0/P1, task check passed, CHANGELOG present, and user approval confirmed
+- skills/deft-swarm/SKILL.md Phase 4 Monitor Takeover Triggers contains ! rule: before spawning a replacement agent, verify the original is truly unresponsive by waiting for an idle/blocked lifecycle event; do not spawn a replacement based solely on message timing or absence of recent commits
+- skills/deft-swarm/SKILL.md Phase 6 Step 1 contains ! rule: before acting on any PR (merge, force-push, status check), query the specific sub-agent responsible for that PR for live status; do not infer status from a different agent or from message timing
+- skills/deft-swarm/SKILL.md documents the duplicate-tab failure mode: original tabs may resume after apparent failure; spawning a new agent creates two concurrent agents on the same worktree, corrupting tool_use/tool_result chains
+- skills/deft-swarm/SKILL.md recovery guidance: keep original agent tabs open until PR is merged; if an agent appears stalled, go to its original tab and tell it to resume rather than spawning a new agent
+- skills/deft-swarm/SKILL.md Phase 6 contains checkpoint guidance: at each major milestone (PR merged, rebase done, review passed) record progress so a new session can reconstruct state via gh pr list and gh pr view
+- skills/deft-swarm/SKILL.md contains a Crash Recovery section with idempotent recovery steps: on fresh session, inspect gh pr list and gh pr view to reconstruct where the cascade was; verify what is merged, what is rebased, what needs action
+- skills/deft-swarm/SKILL.md Phase 6 merge steps note idempotent pre-check pattern: before each action verify current PR/branch state (already merged? already rebased?) so recovery re-runs are safe
+- skills/deft-swarm/SKILL.md Phase 4 Monitor contains context-length warning: long monitoring sessions accumulate large conversation history and are susceptible to conversation corruption; offload rebase/review/merge sub-tasks to ephemeral sub-agents (per deft-review-cycle tiered approach) to keep monitor context shallow
+- Anti-Patterns section contains (MUST NOT) entry: spawn a replacement sub-agent without confirming the original is unresponsive via lifecycle events
+- Anti-Patterns section contains (MUST NOT) entry: skip Phase 5 or the Phase 5->6 gate under time pressure or due to long context
+- meta/lessons.md contains companion entries for the duplicate-tab failure mode and crash-recovery pattern
+- tests/content/test_skills.py passes
 
 **Traces**: #261, #263
 
