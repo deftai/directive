@@ -24,26 +24,44 @@ Deft is a SKILL.md that makes AI coding significantly more effective by providin
 
 Download the installer for your platform from [GitHub Releases](https://github.com/deftai/directive/releases), run it, and follow the prompts.
 
+> **⬇️ Quick Download** -- direct binaries from the [latest GitHub Release](https://github.com/deftai/directive/releases/latest):
+> - **Windows:** [`install-windows-amd64.exe`](https://github.com/deftai/directive/releases/latest/download/install-windows-amd64.exe) | [`install-windows-arm64.exe`](https://github.com/deftai/directive/releases/latest/download/install-windows-arm64.exe) (Surface / Copilot+ PCs)
+> - **macOS:** [`install-macos-universal`](https://github.com/deftai/directive/releases/latest/download/install-macos-universal) (Intel + Apple Silicon)
+> - **Linux:** [`install-linux-amd64`](https://github.com/deftai/directive/releases/latest/download/install-linux-amd64) | [`install-linux-arm64`](https://github.com/deftai/directive/releases/latest/download/install-linux-arm64) (Raspberry Pi / ARM)
+
 ### 1. Install Deft
 
 **Windows:**
 - Download `install-windows-amd64.exe` (or `install-windows-arm64.exe` for Surface / Copilot+ PCs)
-- Run the downloaded file — Windows SmartScreen may warn about an unrecognised publisher; click "More info" → "Run anyway" (code signing is planned for a future release)
+- Run the downloaded file -- Windows SmartScreen may warn about an unrecognised publisher; click "More info" then "Run anyway" (code signing is planned for a future release)
 
 **macOS:**
-- Download `install-macos-universal` — works on all Macs (Intel and Apple Silicon)
-- Make it executable and run: `chmod +x install-macos-universal && ./install-macos-universal`
-- If macOS Gatekeeper blocks the file: right-click → Open, or run `xattr -d com.apple.quarantine install-macos-universal` first (code signing is planned for a future release)
+- Download `install-macos-universal` -- works on all Macs (Intel and Apple Silicon)
+- Make it executable and run:
+  ```bash
+  chmod +x install-macos-universal && ./install-macos-universal
+  ```
+- If macOS Gatekeeper blocks the file: right-click then Open, or remove the quarantine attribute first (code signing is planned for a future release):
+  ```bash
+  xattr -d com.apple.quarantine install-macos-universal
+  ```
 
 **Linux:**
 - Download `install-linux-amd64` (or `install-linux-arm64` for Raspberry Pi / ARM cloud)
-- Make it executable and run: `chmod +x install-linux-amd64 && ./install-linux-amd64`
+- Make it executable and run:
+  ```bash
+  chmod +x install-linux-amd64 && ./install-linux-amd64
+  ```
 
 The installer guides you through choosing a project directory, installs git if needed, clones deft, wires it into `AGENTS.md`, and creates your user config directory.
 
 **Manual clone (no installer):** If you clone deft directly via `git clone`, create an `AGENTS.md` in your project root using the full bootstrap template (see `agentsMDEntry` in `cmd/deft-install/setup.go` for the exact content with `deft/`-prefixed paths and first-session phase detection), then tell your agent `read AGENTS.md and follow it` to start the setup.
 
-**Building from source (developers only):** requires Go 1.22+ — `go run ./cmd/deft-install/`
+**Building from source (developers only):** requires Go 1.22+
+
+```bash
+go run ./cmd/deft-install/
+```
 
 **Manual clone (CLI users):** if you already have git and prefer to skip the installer, clone deft directly into your project:
 
