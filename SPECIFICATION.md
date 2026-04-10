@@ -1033,7 +1033,7 @@ New users have no quick reference for where user-generated artifacts live in a c
 
 **Traces**: #234
 
-## t2.10.1: Move installer asset links to top of README near install instructions (#266)  `[pending]`
+## t2.10.1: Move installer asset links to top of README near install instructions (#266)  `[completed]`
 
 Move or duplicate installer download links (GitHub Releases / platform binaries) to the top of README.md adjacent to the Getting Started / install instructions section, reducing friction for new users.
 
@@ -1041,7 +1041,7 @@ Move or duplicate installer download links (GitHub Releases / platform binaries)
 
 **Traces**: #266
 
-## t2.10.2: Wrap install commands in fenced code blocks for GitHub copy button (#268)  `[pending]`
+## t2.10.2: Wrap install commands in fenced code blocks for GitHub copy button (#268)  `[completed]`
 
 Wrap all install/run commands in README.md Getting Started section in fenced code blocks with appropriate language tags so GitHub renders a copy button. Bundle with #266.
 
