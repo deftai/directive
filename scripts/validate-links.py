@@ -1,5 +1,6 @@
 """Validate internal links in markdown files."""
 
+import os
 import re
 import sys
 from pathlib import Path
@@ -44,15 +45,16 @@ def main() -> int:
         except Exception:
             pass
 
+    strict = os.environ.get("LINK_CHECK_STRICT", "") == "1" or "--strict" in sys.argv
+
     if broken:
-        print(f"Found {len(broken)} broken internal link(s) (warnings):")
+        mode = "errors" if strict else "warnings"
+        print(f"Found {len(broken)} broken internal link(s) ({mode}):")
         for fp, ln, target in broken[:50]:
             print(f"  {fp}:{ln} -> {target}")
         if len(broken) > 50:
             print(f"  ... and {len(broken) - 50} more")
-        # Exit 0 (warning mode) -- pre-existing broken links should not block check.
-        # A follow-up issue can fix these and switch to exit 1 for strict mode.
-        return 0
+        return 1 if strict else 0
 
     print("All internal markdown links valid")
     return 0
