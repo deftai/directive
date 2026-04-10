@@ -172,6 +172,7 @@ After all triage and cleanup is complete:
    - Encoding errors (em-dashes corrupted to replacement characters, BOM artifacts)
    - Unintended duplication (accidental double entries in ROADMAP.md, CHANGELOG.md, or index tables)
    - Structural issues (malformed CHANGELOG entries, broken ROADMAP rows, mismatched index entries)
+   - Semantic accuracy (verify that counts, claims, and summaries in CHANGELOG entries and ROADMAP changelog lines match the actual data in the commit -- e.g. "triaged 4 issues" must match the number of issues actually triaged, issue numbers cited must match the issues actually added)
 
 ### Commit, Push, and Create PR
 
