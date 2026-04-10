@@ -685,7 +685,7 @@ Create skills/deft-rwldl/SKILL.md with RFC2119 legend and frontmatter. Structure
 
 **Traces**: #182
 
-## t3.2.1: Validate USER.md against current schema + artifact format versioning (#270)  `[pending]`
+## t3.2.1: Validate USER.md against current schema + artifact format versioning (#270)  `[completed]`
 
 Add a `deft_version` field to all Deft-generated artifact templates (USER.md, PROJECT.md, etc.). When deft-setup or CLI bootstrap finds an existing USER.md, validate it against the current expected field set using the version field. If fields are missing, query the user for missing fields only (do not re-run full interview). Targeted subset of #78.
 

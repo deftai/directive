@@ -88,6 +88,20 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 - ~ Skip if USER.md exists at the platform-appropriate path (see Platform Detection) and user doesn't want to overwrite
 - ⊗ Scan filesystem beyond checking that one path
 
+### USER.md Freshness Detection
+
+! When an existing USER.md is found (returning user), check its `deft_version` field before skipping Phase 1:
+
+1. ! If `deft_version` is **missing**: the USER.md predates versioning -- treat as stale
+2. ! If `deft_version` is present but **differs from the current framework version** (0.15.0): check whether any expected fields are missing from the USER.md
+3. ! If fields are missing: query the user for each missing field individually -- do NOT re-run the full Phase 1 interview
+4. ! After updating any missing fields, write the current `deft_version` (0.15.0) to USER.md
+5. ~ If `deft_version` matches the current version and all expected fields are present: no action needed (USER.md is fresh)
+
+Expected USER.md fields: **Name**, **Custom Rules**, **Default Strategy**, and optionally **Coverage** and **Experimental Rules**.
+
+⊗ Re-run the full Phase 1 interview when only individual fields are missing from a stale USER.md -- query missing fields individually instead.
+
 ### Interview Rules
 
 ! **Each message you send MUST contain exactly ONE question.** This is the most
@@ -150,6 +164,8 @@ Resolve using Platform Detection above. Write to the platform-appropriate path
 # User Preferences
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+
+**deft_version**: 0.15.0
 
 ## Personal (always wins)
 
@@ -284,6 +300,8 @@ apply here too. Do not combine questions.
 # {Project Name} Project Guidelines
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+
+**deft_version**: 0.15.0
 
 Only specify items here that **override or extend** the deft defaults.
 
@@ -491,6 +509,8 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ## Anti-Patterns
 
+- ! When deft-setup generates or updates USER.md or PROJECT.md, the `deft_version` field MUST be set to the current framework version
+- ⊗ Generate a USER.md or PROJECT.md without including the `deft_version` field
 - ⊗ Explore codebase before Phase 1 questions
 - ⊗ Read framework files before first question
 - ⊗ Batch multiple questions into one message — ask one at a time, interview style

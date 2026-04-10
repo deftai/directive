@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **deft-setup USER.md/PROJECT.md versioning** (#270, t3.2.1): Added `deft_version` field to USER.md and PROJECT.md templates in `skills/deft-setup/SKILL.md`; added USER.md Freshness Detection subsection -- detects stale USER.md via missing or outdated `deft_version`, queries missing fields individually without re-running full interview, writes current version after migration; added `!` rule requiring `deft_version` on every generate/update and anti-pattern against omitting it; added 4 tests to `tests/content/test_skills.py`
 
 ### Fixed
 - **--body-file convention updated to OS temp directory** (#256, t1.13.2): Updated `scm/github.md` `--body-file` rules to write temp files to the OS temp directory (`$env:TEMP`/`GetTempFileName` on PowerShell, `mktemp`/`$TMPDIR` on Unix) instead of the worktree -- eliminates the `rm` denylist collision that blocks autonomous swarm agents in Warp; added PowerShell and Unix examples; noted no explicit `rm` needed (OS handles cleanup); added `⊗` anti-pattern against writing temp files in the worktree; updated `skills/deft-swarm/SKILL.md` Prompt Template Step 5 with OS temp dir note; added `test_body_file_os_temp_dir_guidance` to `tests/content/test_standards.py`

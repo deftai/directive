@@ -904,3 +904,59 @@ def test_deft_swarm_antipattern_no_skip_phase5_gate() -> None:
         f"{_SWARM_PATH}: missing anti-pattern against skipping "
         "Phase 5 gate under pressure (#261, t1.13.1)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 29. deft-setup USER.md/PROJECT.md deft_version field (#270, t3.2.1)
+# ---------------------------------------------------------------------------
+
+_SETUP_PATH = "skills/deft-setup/SKILL.md"
+
+
+def test_deft_setup_user_md_template_has_deft_version() -> None:
+    """USER.md template in deft-setup must contain a deft_version field."""
+    text = _read_skill(_SETUP_PATH)
+    # The template is inside a ```markdown code block in Phase 1
+    assert "**deft_version**:" in text, (
+        f"{_SETUP_PATH}: USER.md template must include a deft_version field (#270, t3.2.1)"
+    )
+
+
+def test_deft_setup_project_md_template_has_deft_version() -> None:
+    """PROJECT.md template in deft-setup must contain a deft_version field."""
+    text = _read_skill(_SETUP_PATH)
+    # Both USER.md and PROJECT.md templates should have deft_version;
+    # verify at least two occurrences (one per template)
+    count = text.count("**deft_version**:")
+    assert count >= 2, (
+        f"{_SETUP_PATH}: both USER.md and PROJECT.md templates must include "
+        f"deft_version field -- found {count} occurrence(s), expected >= 2 (#270, t3.2.1)"
+    )
+
+
+def test_deft_setup_stale_user_md_detection() -> None:
+    """deft-setup must contain stale USER.md detection via deft_version field."""
+    text = _read_skill(_SETUP_PATH)
+    lower = text.lower()
+    assert "freshness detection" in lower, (
+        f"{_SETUP_PATH}: must contain USER.md Freshness Detection section (#270, t3.2.1)"
+    )
+    assert "predates versioning" in lower and "treat as stale" in lower, (
+        f"{_SETUP_PATH}: must detect missing deft_version as stale (#270, t3.2.1)"
+    )
+    assert "query missing fields individually" in lower, (
+        f"{_SETUP_PATH}: must query missing fields individually, "
+        "not re-run full interview (#270, t3.2.1)"
+    )
+
+
+def test_deft_setup_deft_version_must_rule() -> None:
+    """deft-setup must have a ! rule requiring deft_version on generate/update."""
+    text = _read_skill(_SETUP_PATH)
+    assert "deft_version` field MUST be set" in text, (
+        f"{_SETUP_PATH}: must have ! rule requiring deft_version field "
+        "when generating or updating USER.md/PROJECT.md (#270, t3.2.1)"
+    )
+    assert "\u2297" in text and "without including the `deft_version` field" in text, (
+        f"{_SETUP_PATH}: must have \u2297 anti-pattern against omitting deft_version (#270, t3.2.1)"
+    )
