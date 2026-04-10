@@ -24,7 +24,7 @@ Rules that apply to every `gh` invocation, regardless of context.
     echo "$content" > "$bodyFile"
     gh pr create --title "feat: example" --body-file "$bodyFile"
     ```
-  - No explicit `rm` is needed after `gh pr create` -- the OS handles temp file cleanup automatically. This is the key advantage: it eliminates the `rm` step that collides with the Warp autonomous agent `rm` denylist.
+  - No explicit `rm` is needed after `gh pr create` -- the file lives outside the worktree, which is the key advantage: it eliminates the `rm` step that collides with the Warp autonomous agent `rm` denylist. (OS temp directories are eventually cleaned by the OS on Unix/macOS; on Windows they persist until manually purged, but agent cleanup is not required.)
 - ! Immediately verify after every create or edit operation:
   - After `gh pr create`: run `gh pr view <number>` to confirm title, body, and labels rendered correctly
   - After `gh issue create`: run `gh issue view <number>` to confirm body content

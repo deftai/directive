@@ -973,7 +973,7 @@ Strengthen the Phase 5->6 confirmation gate against context-pressure bypass and 
 
 **Traces**: #261, #263
 
-## t1.13.2: Update --body-file convention to use system temp directory (#256)  `[pending]`
+## t1.13.2: Update --body-file convention to use system temp directory (#256)  `[completed]`
 
 Update `scm/github.md` to instruct agents to write `--body-file` temp files to the OS temp directory instead of the worktree, eliminating the `rm` denylist collision that blocks autonomous swarm agents.
 
