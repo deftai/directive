@@ -11,12 +11,27 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 Rules that apply to every `gh` invocation, regardless of context.
 
 - ! Use `--body-file` for PR and issue bodies longer than one line -- inline `--body` strings break on special characters, newlines, and shell escaping across platforms
+- ! Write `--body-file` temp files to the OS temp directory, not the worktree -- writing temp files inside the worktree triggers `rm` denylist collisions that block autonomous swarm agents in Warp (the agent cannot delete files via `rm` in autonomous mode)
+  - **PowerShell:**
+    ```powershell
+    $bodyFile = [System.IO.Path]::GetTempFileName()
+    [System.IO.File]::WriteAllText($bodyFile, $content, [System.Text.UTF8Encoding]::new($false))
+    gh pr create --title "feat: example" --body-file $bodyFile
+    ```
+  - **Unix (bash/zsh):**
+    ```bash
+    bodyFile=$(mktemp)
+    echo "$content" > "$bodyFile"
+    gh pr create --title "feat: example" --body-file "$bodyFile"
+    ```
+  - No explicit `rm` is needed after `gh pr create` -- the OS handles temp file cleanup automatically. This is the key advantage: it eliminates the `rm` step that collides with the Warp autonomous agent `rm` denylist.
 - ! Immediately verify after every create or edit operation:
   - After `gh pr create`: run `gh pr view <number>` to confirm title, body, and labels rendered correctly
   - After `gh issue create`: run `gh issue view <number>` to confirm body content
   - After `gh pr edit`: re-fetch and verify the edited field
 - ~ Prefer `gh api` for structured/programmatic queries (filtering, bulk reads, JSON output) and `gh pr`/`gh issue` for quick ad-hoc commands
 - ⊗ Construct multi-line `--body` strings inline in shell commands -- always write to a temp file and use `--body-file`
+- ⊗ Write `--body-file` temp files inside the worktree or repository directory -- always use the OS temp directory (`$env:TEMP` on PowerShell, `$TMPDIR` or `/tmp` on Unix)
 
 ## PR Workflow Conventions
 

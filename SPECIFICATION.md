@@ -977,7 +977,12 @@ Strengthen the Phase 5->6 confirmation gate against context-pressure bypass and 
 
 Update `scm/github.md` to instruct agents to write `--body-file` temp files to the OS temp directory instead of the worktree, eliminating the `rm` denylist collision that blocks autonomous swarm agents.
 
-- <first acceptance criterion placeholder>
+- scm/github.md --body-file convention updated: write temp files to OS temp directory, not the worktree
+- scm/github.md includes PowerShell example using [System.IO.Path]::GetTempFileName() or Join-Path $env:TEMP "pr-body.md"
+- scm/github.md includes Unix example using mktemp or $TMPDIR
+- scm/github.md notes no explicit rm needed -- OS handles cleanup, eliminates rm denylist collision in Warp autonomous agents
+- skills/deft-swarm/SKILL.md Prompt Template Step 5 references OS temp directory pattern for --body-file
+- tests/content/test_standards.py covers OS temp dir guidance presence in scm/github.md
 
 **Traces**: #256
 

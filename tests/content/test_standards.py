@@ -202,3 +202,21 @@ def test_no_warping_references(rel_path: str) -> None:
         f"{rel_path}: contains deprecated name 'warping' "
         "(project was renamed to Deft — update all references)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 4. OS temp directory guidance for --body-file in scm/github.md
+# ---------------------------------------------------------------------------
+
+
+def test_body_file_os_temp_dir_guidance() -> None:
+    """scm/github.md must contain OS temp directory guidance for --body-file."""
+    text = (_REPO_ROOT / "scm/github.md").read_text(encoding="utf-8", errors="replace")
+    assert "GetTempFileName" in text, (
+        "scm/github.md: missing PowerShell OS temp dir pattern "
+        "(expected GetTempFileName for --body-file guidance)"
+    )
+    assert "mktemp" in text, (
+        "scm/github.md: missing Unix OS temp dir pattern "
+        "(expected mktemp for --body-file guidance)"
+    )

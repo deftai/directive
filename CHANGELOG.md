@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **--body-file convention updated to OS temp directory** (#256, t1.13.2): Updated `scm/github.md` `--body-file` rules to write temp files to the OS temp directory (`$env:TEMP`/`GetTempFileName` on PowerShell, `mktemp`/`$TMPDIR` on Unix) instead of the worktree -- eliminates the `rm` denylist collision that blocks autonomous swarm agents in Warp; added PowerShell and Unix examples; noted no explicit `rm` needed (OS handles cleanup); added `⊗` anti-pattern against writing temp files in the worktree; updated `skills/deft-swarm/SKILL.md` Prompt Template Step 5 with OS temp dir note; added `test_body_file_os_temp_dir_guidance` to `tests/content/test_standards.py`
 - **Deft-swarm Phase 5->6 gate hardening + crash recovery** (#261, #263, t1.13.1): Strengthened Phase 5->6 gate with explicit context-pressure bypass prohibition and structured merge-readiness checklist; added pre-spawn verification gate in Takeover Triggers (wait for lifecycle idle/blocked event before replacing agent); added per-PR sub-agent identity check in Phase 6; documented duplicate-tab failure mode (root cause of tool_use/tool_result corruption); added context-length warning for long monitoring sessions; added Crash Recovery section with idempotent pre-checks and gh-based state reconstruction; added 2 new anti-patterns; added companion meta/lessons.md entries; added 7 test_skills.py coverage tests
 
 ### Changed
