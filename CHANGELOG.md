@@ -7,15 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **deft-review-cycle Approach 2 idle-stoppage warning** (#279, t1.14.1): Added warning to Approach 2 section documenting that yield-between-polls is NOT autonomous for swarm agents -- yielding ends the agent's turn with no self-wake mechanism; added `!` rule directing swarm agents to prefer Approach 1 when `start_agent` is available; added anti-pattern against assuming Approach 2 produces a self-sustaining polling loop
-- **deft-review-cycle MCP capability detection + task check carve-out** (#282, t1.19.1): Added MCP capability probe to Phase 2 Step 1 mirroring deft-swarm Phase 3 pattern -- if MCP unavailable, use `gh api` as explicit fallback with documentation requirement; added `?` pre-existing failure carve-out to Step 3 allowing partial `task check` only when failure is pre-existing with open issue number AND PR description notes the failure; added 3 new anti-patterns (assume Approach 2 self-sustaining, skip second review source without capability probe, run partial test suite without documenting pre-existing failure)
+## [0.16.0] - 2026-04-10
 
 ### Added
 - **deft-setup USER.md/PROJECT.md versioning** (#270, t3.2.1): Added `deft_version` field to USER.md and PROJECT.md templates in `skills/deft-setup/SKILL.md`; added USER.md Freshness Detection subsection -- detects stale USER.md via missing or outdated `deft_version`, queries missing fields individually without re-running full interview, writes current version after migration; added `!` rule requiring `deft_version` on every generate/update and anti-pattern against omitting it; added 4 tests to `tests/content/test_skills.py`
 - **deft-setup post-interview confirmation gate and Warp auto-approve warning** (#269, t1.17.1, absorbs #271): Added Post-Interview Confirmation Gate section to `skills/deft-setup/SKILL.md` -- after completing all interview questions for any phase, agent must display a summary of all captured values and require explicit yes/no confirmation before writing USER.md, PROJECT.md, or any other artifacts; includes auto-fill filler detection warning; added Warp Auto-Approve Warning section documenting that Warp AI autonomy must be set to "Always ask" in AI -> Profile Settings before running deft-setup; added 2 anti-patterns against writing without confirmation and treating broad "proceed" as file-write confirmation
 
 ### Fixed
+- **deft-review-cycle Approach 2 idle-stoppage warning** (#279, t1.14.1): Added warning to Approach 2 section documenting that yield-between-polls is NOT autonomous for swarm agents -- yielding ends the agent's turn with no self-wake mechanism; added `!` rule directing swarm agents to prefer Approach 1 when `start_agent` is available; added anti-pattern against assuming Approach 2 produces a self-sustaining polling loop
+- **deft-review-cycle MCP capability detection + task check carve-out** (#282, t1.19.1): Added MCP capability probe to Phase 2 Step 1 mirroring deft-swarm Phase 3 pattern -- if MCP unavailable, use `gh api` as explicit fallback with documentation requirement; added pre-existing failure carve-out to Step 3 allowing partial `task check` only when failure is pre-existing with open issue number AND PR description notes the failure; added 2 new anti-patterns (skip second review source without capability probe, run partial test suite without documenting pre-existing failure)
 - **deft-setup path resolution anchored to pwd at skill entry** (#272, t1.16.1): Added `!` Path Resolution Anchor rule to `skills/deft-setup/SKILL.md` Phase 2 -- all paths must be resolved relative to the user's working directory (pwd) at skill entry, never relative to the skill file, AGENTS.md, or any framework directory; prevents silent false-positive bootstrap detection when deft is cloned into a project subdirectory; added corresponding anti-pattern
 - **Semantic accuracy check in mandatory pre-commit file review** (#274, t1.15.1): Added semantic accuracy check as a fourth check category to `skills/deft-roadmap-refresh/SKILL.md` Phase 4 pre-flight mandatory file review and `skills/deft-build/SKILL.md` pre-commit checklist -- verify that counts, claims, and summaries in CHANGELOG entries and ROADMAP changelog lines match the actual data in the commit
 - **WinError 448 pytest-current symlink cleanup on Windows 11 24H2+** (#281, t1.18.1): Added `tmp_path_retention_count = 0` to `[tool.pytest.ini_options]` in `pyproject.toml` to prevent old-session temp dir retention; added module-level monkeypatch in `tests/conftest.py` wrapping `cleanup_dead_symlinks` and `cleanup_numbered_dir` in `_pytest.pathlib` and `_pytest.tmpdir` to suppress `OSError` during session-finish and atexit cleanup -- pytest creates `*current` directory symlinks that Windows 11 24H2+ flags as untrusted mount points (WinError 448)
@@ -808,7 +808,8 @@ If you have custom scripts or references to deft files, update these paths:
 - Explore new interface guidelines if building CLIs, APIs, or UIs
 - Review enhanced language standards for Python, Go, TypeScript, and C++
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/deftai/directive/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/deftai/directive/compare/v0.14.2...v0.15.0
 [0.14.2]: https://github.com/deftai/directive/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/deftai/directive/compare/v0.14.0...v0.14.1

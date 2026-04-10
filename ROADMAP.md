@@ -9,18 +9,11 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
 
-- **#256** -- `--body-file` temp file writes to worktree + `rm` denylist collision: agents blocked on `rm pr-body.md` approval during swarm run; fix: write to OS temp directory, no explicit `rm` needed (t1.13.2)
-- **#261 + #263** -- Swarm monitor Phase 5 skip + crash recovery: monitor bypassed Phase 5->6 gate under context pressure and merged untested code into master; separate crash at message ~158 left merge cascade in ambiguous state; both root-caused to long-context conversation corruption (t1.13.1, bundles both issues)
-- **#279** -- deft-review-cycle Approach 2 idle stoppage: yield ends turn in Warp's execution model, breaking the polling loop for swarm agents; fix: warn that Approach 2 requires monitor re-trigger, add ! rule preferring Approach 1 for swarm agents when start_agent is available, add anti-pattern (t1.14.1)
-- **#272** -- deft-setup agent conflates framework directory with project root: agent reads ./PROJECT.md relative to the framework clone instead of pwd, silently skips bootstrap; fix: add ! rule anchoring all paths to pwd at skill entry (t1.16.1)
-- **#269** -- Warp auto-approve silently self-answers deft-setup interview, producing garbage USER.md/PROJECT.md with no error; fix: post-interview confirmation gate (display all captured values, require yes/no before writing files) + document "Always ask" Warp setting; absorbs #271 (t1.17.1)
+(all resolved -- v0.16.0)
 
 ### Cleanup
 
-- **#274** -- Add semantic accuracy check to mandatory pre-commit file review: extend the 4-check pre-commit review to verify counts and claims in CHANGELOG entries and ROADMAP changelog lines match actual data (t1.15.1)
-- **#281** -- WinError 448: pytest-current symlink cleanup fails on Windows 11 24H2+; fix: add tmp_path_retention_count = 0 to pyproject.toml [tool.pytest.ini_options] (t1.18.1)
-- **#282** -- deft-review-cycle skill gaps: no MCP capability detection in Step 1 (silent fallback to gh-only with no rule violation) + no task check pre-existing failure carve-out in Step 3 (t1.19.1)
-- **#283** -- AGENTS.md missing ! rule for BOM-safe PowerShell file writes: agents use [System.Text.Encoding]::UTF8 shorthand (writes BOM) instead of BOM-free constructor; fix: add ! rule to AGENTS.md (t1.20.1)
+(all resolved -- v0.16.0)
 
 ---
 
@@ -59,8 +52,6 @@ Quick doc/content fixes that don't require code changes.
 - **#258** -- Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)
 - **#136** -- Warp doesn't load deft's AGENTS.md by default
 - **#194** -- User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
-- **#266** -- Move installer asset links to top of README near install instructions -- follow-up to #137; complements #56 (t2.10.1)
-- **#268** -- Wrap install commands in fenced code blocks so GitHub renders copy button -- bundle with #266 (t2.10.2)
 
 ---
 
@@ -77,7 +68,6 @@ Quick doc/content fixes that don't require code changes.
   - Skills path already done (deft-build); this covers the CLI fallback path only
 - **#235** -- feat(tasks): add task toolchain:check and task changelog:check as task check deps (split from #233; no dependency on tasks/ restructure)
 - **#228** -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)
-- **#270** -- Validate USER.md against current schema + add artifact format versioning -- query user for missing fields if stale; add `deft_version` field to all generated artifacts (USER.md, PROJECT.md, etc.) as migration detection foundation; targeted subset of #78 (t3.2.1)
 - Code signing for installer binaries
 - Low-end LLM compatibility testing
   - Validate installer and agent process (deft-setup, deft-build) on small/quantised models (e.g. Qwen3-9B)
@@ -134,6 +124,18 @@ Larger feature work -- only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#256 -- fix(docs): use OS temp directory for --body-file to avoid rm denylist collision~~ -- 2026-04-10 (v0.16.0)
+- ~~#261 + #263 -- fix(skill): deft-swarm Phase 5->6 gate hardening + crash recovery -- context-pressure bypass prohibition + structured merge-readiness checklist~~ -- 2026-04-10 (v0.16.0)
+- ~~#279 -- fix(skill): deft-review-cycle Approach 2 idle-stoppage warning + prefer Approach 1 rule for swarm agents~~ -- 2026-04-10 (v0.16.0)
+- ~~#272 -- fix(skill): deft-setup pwd path anchor -- ! rule anchoring all paths to pwd at skill entry~~ -- 2026-04-10 (v0.16.0)
+- ~~#269 -- fix(skill): deft-setup post-interview confirmation gate + Warp auto-approve warning; absorbs #271~~ -- 2026-04-10 (v0.16.0)
+- ~~#274 -- fix(workflow): semantic accuracy check in mandatory pre-commit file review~~ -- 2026-04-10 (v0.16.0)
+- ~~#281 -- fix(test): WinError 448 pytest-current symlink cleanup -- tmp_path_retention_count + conftest.py monkeypatch~~ -- 2026-04-10 (v0.16.0)
+- ~~#282 -- fix(skill): deft-review-cycle MCP capability detection + task check pre-existing failure carve-out~~ -- 2026-04-10 (v0.16.0)
+- ~~#283 -- fix(agents): AGENTS.md ! rule for BOM-safe PowerShell file writes~~ -- 2026-04-10 (v0.16.0)
+- ~~#266 -- docs(readme): move installer asset links to top near install instructions~~ -- 2026-04-10 (v0.16.0)
+- ~~#268 -- docs(readme): wrap install commands in fenced code blocks for GitHub copy button~~ -- 2026-04-10 (v0.16.0)
+- ~~#270 -- feat(setup): validate USER.md against current schema + artifact format versioning (deft_version field)~~ -- 2026-04-10 (v0.16.0)
 - ~~#51 -- Project bootstrap: purge stale legacy path references across 42 files; add strategy stubs (rapid.md, enterprise.md); add docs/getting-started.md stub~~ -- 2026-04-09 (v0.15.0)
 - ~~#221 -- fix(skill): deft-roadmap-refresh explicit row format template + double-pipe anti-pattern~~ -- 2026-04-09 (v0.15.0)
 - ~~#226 -- refactor(skills): rename deft-rwldl to deft-pre-pr + AGENTS.md auto-suggestion + keyword routing~~ -- 2026-04-09 (v0.15.0)
@@ -389,19 +391,19 @@ Larger feature work -- only after issues are resolved and content is stable.
 | #228 | Bring run CLI into test coverage measurement (confirm #160 before implementing) | 3 |
 | ~~#248~~ | ~~roadmap-refresh + swarm Phase 0 spec task scaffolding~~ | completed -- v0.15.0 |
 | #258 | docs(warp): inventory Warp Drive global rules used for deft directive development | 2 |
-| #266 | docs(readme): move installer asset links to top near install instructions | 2 |
-| #268 | docs(readme): wrap install commands in fenced code blocks for copy button | 2 |
-| #256 | fix(docs): use system temp directory for --body-file to avoid rm denylist collision | 1 |
-| #261 | bug(swarm): monitor skips Phase 5 and slam-merges untested code into main | 1 |
-| #263 | chore(swarm): monitor crash during multi-PR merge -- add checkpoint/recovery resilience | 1 |
-| #270 | feat(setup): validate USER.md against current schema + artifact format versioning | 3 |
-| #269 | Questions skipped due to auto-approve - new user problem | 1 |
-| #272 | deft-setup: agent conflates framework directory with project root during bootstrap | 1 |
-| #274 | fix(workflow): add semantic accuracy check to mandatory pre-commit file review | 1 |
-| #279 | fix(skill): deft-review-cycle Approach 2 idle stoppage -- yield ends turn, polling loop broken for swarm agents | 1 |
-| #281 | fix(test): WinError 448 -- pytest-current symlink cleanup fails on Windows 11 24H2+ | 1 |
-| #282 | fix(skill): deft-review-cycle -- MCP capability detection + task check pre-existing failure carve-out | 1 |
-| #283 | fix(agents): add ! rule to AGENTS.md for BOM-safe PowerShell file writes | 1 |
+| ~~#256~~ | ~~fix(docs): use OS temp directory for --body-file to avoid rm denylist collision~~ | completed -- 2026-04-10 (v0.16.0) |
+| ~~#261~~ | ~~bug(swarm): monitor skips Phase 5 and slam-merges untested code into main~~ | completed -- 2026-04-10 (v0.16.0) |
+| ~~#263~~ | ~~chore(swarm): monitor crash during multi-PR merge -- add checkpoint/recovery resilience~~ | completed -- 2026-04-10 (v0.16.0) |
+| ~~#266~~ | ~~docs(readme): move installer asset links to top near install instructions~~ | completed -- 2026-04-10 (v0.16.0) |
+| ~~#268~~ | ~~docs(readme): wrap install commands in fenced code blocks for copy button~~ | completed -- 2026-04-10 (v0.16.0) |
+| ~~#269~~ | ~~deft-setup: Warp auto-approve silently self-answers interview -- post-interview confirmation gate~~ | completed -- 2026-04-10 (v0.16.0) |
+| ~~#270~~ | ~~feat(setup): validate USER.md against current schema + artifact format versioning~~ | completed -- 2026-04-10 (v0.16.0) |
+| ~~#272~~ | ~~deft-setup: agent conflates framework directory with project root during bootstrap~~ | completed -- 2026-04-10 (v0.16.0) |
+| ~~#274~~ | ~~fix(workflow): add semantic accuracy check to mandatory pre-commit file review~~ | completed -- 2026-04-10 (v0.16.0) |
+| ~~#279~~ | ~~fix(skill): deft-review-cycle Approach 2 idle stoppage -- yield ends turn, polling loop broken for swarm agents~~ | completed -- 2026-04-10 (v0.16.0) |
+| ~~#281~~ | ~~fix(test): WinError 448 -- pytest-current symlink cleanup fails on Windows 11 24H2+~~ | completed -- 2026-04-10 (v0.16.0) |
+| ~~#282~~ | ~~fix(skill): deft-review-cycle -- MCP capability detection + task check pre-existing failure carve-out~~ | completed -- 2026-04-10 (v0.16.0) |
+| ~~#283~~ | ~~fix(agents): add ! rule to AGENTS.md for BOM-safe PowerShell file writes~~ | completed -- 2026-04-10 (v0.16.0) |
 
 ---
 
@@ -460,3 +462,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-10 -- filed and triaged #281 (Phase 1 Cleanup, t1.18.1): WinError 448 pytest-current symlink cleanup on Windows 11 24H2+*
 *Updated 2026-04-10 -- filed and triaged #282 (Phase 1 Cleanup, t1.19.1): deft-review-cycle MCP capability detection + task check carve-out*
 *Updated 2026-04-10 -- filed and triaged #283 (Phase 1 Cleanup, t1.20.1): AGENTS.md ! rule for BOM-safe PowerShell file writes*
+*Updated 2026-04-10 -- v0.16.0 release: moved #256, #261, #263, #269, #272, #279 (Phase 1 Adoption Blockers), #274, #281, #282, #283 (Phase 1 Cleanup), #266, #268 (Phase 2), #270 (Phase 3) to Completed; struck through in Open Issues Index; Phase 1 Adoption Blockers and Cleanup sections now empty*
