@@ -225,7 +225,7 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 - ⊗ Start fixing before analyzing ALL findings
 - ⊗ Rely on the bot to catch syntax errors in structured data files
 - ⊗ Re-trigger a bot review before the previous one has updated
-- ⊗ Report "all comments resolved" without checking both MCP and `gh pr view`
+- ⊗ Report "all comments resolved" without checking both `gh pr view --comments` and a second source (`get_review_comments` via MCP, or `gh api` fallback when MCP is unavailable)
 - ⊗ Use `add_issue_comment` for formal review submission
 - ⊗ Commit or push Phase 1 audit fixes independently — always batch with Phase 2 fixes
 - ⊗ Proceed to Phase 2 while any Phase 1 prerequisite is unmet
