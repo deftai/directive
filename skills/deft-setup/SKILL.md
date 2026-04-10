@@ -210,6 +210,8 @@ for project-scoped settings (strategy, coverage).
 
 **Goal:** Project-specific configuration — tech stack, type, quality standards.
 
+! **Path Resolution Anchor**: Resolve ALL paths relative to the user's working directory (pwd) at skill entry -- never relative to the skill file location, AGENTS.md location, or any framework directory (e.g. `./deft/`). When deft is cloned as a subdirectory, the skill file lives inside the clone but all project artifacts (`PROJECT.md`, build files, etc.) must be resolved from the user's pwd.
+
 - ~ Skip if `./PROJECT.md` exists at the **project root** (or `$DEFT_PROJECT_PATH` if set) and user doesn't want to replace
 - ⊗ Count `./deft/PROJECT.md` or `./deft/core/project.md` as the user's project config — those are framework-internal
 
@@ -507,6 +509,23 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ~ If platform supports skill invocation, invoke `/deft-build`
 - ⊗ Leave user with a dead end — always offer the next step
 
+## Warp Auto-Approve Warning
+
+! **Recommended Warp setting**: Before running deft-setup, ensure Warp's AI autonomy is set to **"Always ask"** in **AI -> Profile Settings**. When set to a higher autonomy level (e.g. "Auto-run"), Warp may silently self-answer interview questions without user input, producing garbage USER.md/PROJECT.md with no error or warning. The post-interview confirmation gate (below) is the last line of defense, but prevention is better than detection.
+
+## Post-Interview Confirmation Gate
+
+! After completing ALL interview questions for any phase (Phase 1, Phase 2, or Phase 3), but BEFORE writing any files:
+
+1. ! Display a **summary of all captured values** in a clearly formatted list -- include every field that will be written to the output file (e.g. name, strategy, coverage, languages, project type, custom rules, etc.)
+2. ! Ask the user for explicit confirmation: "These are the values I captured. Write files? (yes/no)"
+3. ! Accept only explicit affirmative responses (`yes`, `confirmed`, `approve`) -- reject vague responses (`proceed`, `do it`, `go ahead`) the same way `/deft:change` does
+4. ! If the user says `no`: re-display the values and ask which ones to correct, then re-confirm before writing
+5. ! If any value appears to be auto-generated filler (e.g. repeated default text, placeholder strings, or values that echo the question prompt), warn the user explicitly: "Some values look like they may have been auto-filled rather than provided by you. Please review carefully."
+
+⊗ Write USER.md, PROJECT.md, SPECIFICATION.md, or any other deft-setup artifact without first displaying captured values and receiving explicit user confirmation.
+⊗ Treat a broad "proceed" or "continue" as confirmation to write files -- the user must explicitly confirm the displayed values.
+
 ## Anti-Patterns
 
 - ! When deft-setup generates or updates USER.md or PROJECT.md, the `deft_version` field MUST be set to the current framework version
@@ -519,3 +538,4 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Skip phases without asking
 - ⊗ Generate files without confirming content
 - ⊗ Present choices as plain text when structured tools exist
+- ⊗ Resolve paths relative to the skill file, AGENTS.md, or framework directory instead of the user's pwd at skill entry
