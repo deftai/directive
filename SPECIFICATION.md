@@ -1010,6 +1010,7 @@ Extend the mandatory pre-commit file review step in deft-roadmap-refresh and def
 When directive is cloned into a project subdirectory, deft-setup reads ./PROJECT.md relative to the framework clone instead of the user's pwd, silently concluding bootstrap is complete. Add a ! rule to skills/deft-setup/SKILL.md Phase 2 explicitly anchoring all path resolution to pwd at skill entry.
 
 - skills/deft-setup/SKILL.md Phase 2 contains ! rule: resolve all paths relative to pwd at skill entry -- never relative to the skill file, AGENTS.md, or any framework directory
+- tests/content/test_skills.py: test coverage deferred -- constraint prohibits modifying test file in this PR; existing tests pass
 
 **Traces**: #272
 
@@ -1019,6 +1020,7 @@ Warp auto-approve silently self-answers the deft-setup interview, producing garb
 
 - skills/deft-setup/SKILL.md contains post-interview confirmation gate: after completing the interview, display a summary of all captured values and require explicit yes/no confirmation before writing USER.md, PROJECT.md, or any other artifacts
 - skills/deft-setup/SKILL.md documents the Warp "Always ask" setting (AI -> Profile Settings) as the recommended configuration for running deft-setup
+- tests/content/test_skills.py: test coverage deferred -- constraint prohibits modifying test file in this PR; existing tests pass
 
 **Traces**: #269
 

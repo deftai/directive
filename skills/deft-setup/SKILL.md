@@ -359,7 +359,7 @@ task clean         # Clean artifacts
 
 **Goal:** Generate an implementable spec using the strategy chosen in Phase 2.
 
-! **Path Resolution Anchor**: Same rule as Phase 2 -- resolve ALL paths relative to the user's pwd at skill entry, never relative to the skill file or framework directory.
+! **Path Resolution Anchor**: Same rule as Phase 2 -- resolve ALL paths relative to the user's pwd at skill entry, never relative to the skill file, AGENTS.md, or any framework directory.
 
 - ~ Skip if user already has a spec at the **project root** they're happy with
 - ! Check `./SPECIFICATION.md` or `./specs/*/SPECIFICATION.md` (project root)
