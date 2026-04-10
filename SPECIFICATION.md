@@ -852,9 +852,8 @@ Create strategies/bdd.md: a Behaviour-Driven Development strategy where failing 
 - strategies/README.md lists bdd.md (removes 'future' annotation if present)
 - tests/content/test_structure.py updated to assert strategies/bdd.md exists
 
-**Traces**: #281
+**Traces**: #81
 
-## t2.8.1:
 ## t1.11.1: Document Get-Content -Raw UTF-8 footgun and BOM-safe round-trip pattern for PS 5.1 (#236)  `[completed]`
 
 PowerShell 5.1's Get-Content (without -Raw) reads files line-by-line and can inject BOM characters or silently mangle em-dashes when agents read then re-write files. Add ! rules to scm/github.md PS 5.1 section covering Get-Content -Raw for safe reads and BOM-safe round-trip write pattern. Closes #236.
@@ -1030,8 +1029,19 @@ pytest creates a pytest-current symlink in the temp directory tree; Windows 11 2
 - pyproject.toml [tool.pytest.ini_options] contains tmp_path_retention_count = 0
 
 **Traces**: #281
-## t2.8.1: Add explicit row format template to deft-roadmap-refresh skill (#221)  `[completed]`
 
+## t1.19.1: Add MCP capability detection and task check pre-existing failure carve-out to deft-review-cycle (#282)  `[pending]`
+
+Two gaps in deft-review-cycle/SKILL.md: (1) Phase 2 Step 1 has no capability detection for MCP -- when MCP is unavailable the agent can silently skip the second review source with no rule violation; (2) Step 3 has no carve-out for pre-existing task check failures unrelated to the PR, causing agents to rationalize partial test runs without documentation requirements.
+
+- skills/deft-review-cycle/SKILL.md Phase 2 Step 1 contains MCP capability probe mirroring deft-swarm Phase 3 pattern: if MCP unavailable, use gh api as explicit fallback and document why
+- skills/deft-review-cycle/SKILL.md Phase 2 Step 1 Anti-Patterns contains entry: skip the second review source without probing for capability and documenting fallback
+- skills/deft-review-cycle/SKILL.md Phase 2 Step 3 contains carve-out: partial test suite acceptable only if (a) task check failure is pre-existing with open issue number AND (b) PR description explicitly notes the failure and issue reference
+- skills/deft-review-cycle/SKILL.md Anti-Patterns contains entry: run partial test suite instead of task check without documenting pre-existing failure reason and issue number in PR body
+
+**Traces**: #282
+
+## t2.8.1: Add explicit row format template to deft-roadmap-refresh skill (#221)  `[completed]`
 Add an explicit `| #NNN | title | Phase |` row format template to skills/deft-roadmap-refresh/SKILL.md at the step that creates or updates Open Issues Index rows. Add 2 anti-patterns: one against creating index rows without using the template format, one against double-pipe `||` entries from omitting a column value. Closes #221.
 
 - skills/deft-roadmap-refresh/SKILL.md Phase 2 Step 4 contains explicit row format template: `| #NNN | title | Phase |`
