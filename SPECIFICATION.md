@@ -1,4 +1,4 @@
-﻿# Deft Directive — Phases 1–3 SPECIFICATION
+# Deft Directive — Phases 1–3 SPECIFICATION
 
 Deft Directive is a Markdown framework for AI agents to use when generating software. It defines layered behavioral rules, workflow strategies, and quality gates across four components: (1) the Markdown framework (primary product — .md files consumed by agents at runtime), (2) the Python CLI (`run` — terminal setup and spec generation), (3) the Go installer (`cmd/deft-install/` — standalone binary for end-user install), and (4) the test suite (`tests/` — CLI and content validation). This specification covers Phase 1 (bug fixes and adoption blockers), Phase 2 (content fixes), and Phase 3 (CI). Phases 4–5 are deferred; see PRD.md and #67 for scope boundaries. References: PRD.md, .planning/codebase/ARCHITECTURE.md, docs/research/deft-directive-research.md.
 
@@ -1040,6 +1040,14 @@ Two gaps in deft-review-cycle/SKILL.md: (1) Phase 2 Step 1 has no capability det
 - skills/deft-review-cycle/SKILL.md Anti-Patterns contains entry: run partial test suite instead of task check without documenting pre-existing failure reason and issue number in PR body
 
 **Traces**: #282
+
+## t1.20.1: Add ! rule to AGENTS.md for BOM-safe PowerShell file writes (#283)  `[pending]`
+
+Agents on Windows writing files via PowerShell reach for [System.Text.Encoding]::UTF8 (writes a BOM) instead of the BOM-free constructor documented in scm/github.md. The rule exists in a reference document but is absent from AGENTS.md -- the always-loaded behavioral document. Add a ! rule to AGENTS.md making BOM-safe writes a hard gate at the decision point.
+
+- AGENTS.md contains ! rule: when writing files using PowerShell, MUST use New-Object System.Text.UTF8Encoding $false -- never [System.Text.Encoding]::UTF8 (writes BOM); see scm/github.md PS 5.1 section
+
+**Traces**: #283
 
 ## t2.8.1: Add explicit row format template to deft-roadmap-refresh skill (#221)  `[completed]`
 Add an explicit `| #NNN | title | Phase |` row format template to skills/deft-roadmap-refresh/SKILL.md at the step that creates or updates Open Issues Index rows. Add 2 anti-patterns: one against creating index rows without using the template format, one against double-pipe `||` entries from omitting a column value. Closes #221.

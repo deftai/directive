@@ -20,6 +20,7 @@ Fix reported bugs and UX problems blocking adoption.
 - **#274** -- Add semantic accuracy check to mandatory pre-commit file review: extend the 4-check pre-commit review to verify counts and claims in CHANGELOG entries and ROADMAP changelog lines match actual data (t1.15.1)
 - **#281** -- WinError 448: pytest-current symlink cleanup fails on Windows 11 24H2+; fix: add tmp_path_retention_count = 0 to pyproject.toml [tool.pytest.ini_options] (t1.18.1)
 - **#282** -- deft-review-cycle skill gaps: no MCP capability detection in Step 1 (silent fallback to gh-only with no rule violation) + no task check pre-existing failure carve-out in Step 3 (t1.19.1)
+- **#283** -- AGENTS.md missing ! rule for BOM-safe PowerShell file writes: agents use [System.Text.Encoding]::UTF8 shorthand (writes BOM) instead of BOM-free constructor; fix: add ! rule to AGENTS.md (t1.20.1)
 
 ---
 
@@ -400,6 +401,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 | #279 | fix(skill): deft-review-cycle Approach 2 idle stoppage -- yield ends turn, polling loop broken for swarm agents | 1 |
 | #281 | fix(test): WinError 448 -- pytest-current symlink cleanup fails on Windows 11 24H2+ | 1 |
 | #282 | fix(skill): deft-review-cycle -- MCP capability detection + task check pre-existing failure carve-out | 1 |
+| #283 | fix(agents): add ! rule to AGENTS.md for BOM-safe PowerShell file writes | 1 |
 
 ---
 
@@ -457,3 +459,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-10 -- roadmap refresh triage: added #269 (Phase 1 Adoption Blocker, t1.17.1); analysis comment posted*
 *Updated 2026-04-10 -- filed and triaged #281 (Phase 1 Cleanup, t1.18.1): WinError 448 pytest-current symlink cleanup on Windows 11 24H2+*
 *Updated 2026-04-10 -- filed and triaged #282 (Phase 1 Cleanup, t1.19.1): deft-review-cycle MCP capability detection + task check carve-out*
+*Updated 2026-04-10 -- filed and triaged #283 (Phase 1 Cleanup, t1.20.1): AGENTS.md ! rule for BOM-safe PowerShell file writes*
