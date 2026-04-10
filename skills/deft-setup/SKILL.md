@@ -95,7 +95,7 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 1. ! If `deft_version` is **missing**: the USER.md predates versioning -- treat as stale
 2. ! If `deft_version` is present but **differs from the current framework version** (0.15.0): check whether any expected fields are missing from the USER.md
 3. ! If fields are missing: query the user for each missing field individually -- do NOT re-run the full Phase 1 interview
-4. ! After updating any missing fields, write the current `deft_version` (0.15.0) to USER.md
+4. ! After completing any field queries (even if none were needed), write the current `deft_version` (0.15.0) to USER.md
 5. ~ If `deft_version` matches the current version and all expected fields are present: no action needed (USER.md is fresh)
 
 Expected USER.md fields: **Name**, **Custom Rules**, **Default Strategy**, and optionally **Coverage** and **Experimental Rules**.
