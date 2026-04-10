@@ -11,8 +11,13 @@ Fix reported bugs and UX problems blocking adoption.
 
 - **#256** -- `--body-file` temp file writes to worktree + `rm` denylist collision: agents blocked on `rm pr-body.md` approval during swarm run; fix: write to OS temp directory, no explicit `rm` needed (t1.13.2)
 - **#261 + #263** -- Swarm monitor Phase 5 skip + crash recovery: monitor bypassed Phase 5->6 gate under context pressure and merged untested code into master; separate crash at message ~158 left merge cascade in ambiguous state; both root-caused to long-context conversation corruption (t1.13.1, bundles both issues)
+- **#279** -- deft-review-cycle Approach 2 idle stoppage: yield ends turn in Warp's execution model, breaking the polling loop for swarm agents; fix: warn that Approach 2 requires monitor re-trigger, add ! rule preferring Approach 1 for swarm agents when start_agent is available, add anti-pattern (t1.14.1)
+- **#272** -- deft-setup agent conflates framework directory with project root: agent reads ./PROJECT.md relative to the framework clone instead of pwd, silently skips bootstrap; fix: add ! rule anchoring all paths to pwd at skill entry (t1.16.1)
+- **#269** -- Warp auto-approve silently self-answers deft-setup interview, producing garbage USER.md/PROJECT.md with no error; fix: post-interview confirmation gate (display all captured values, require yes/no before writing files) + document "Always ask" Warp setting; absorbs #271 (t1.17.1)
 
 ### Cleanup
+
+- **#274** -- Add semantic accuracy check to mandatory pre-commit file review: extend the 4-check pre-commit review to verify counts and claims in CHANGELOG entries and ROADMAP changelog lines match actual data (t1.15.1)
 
 ---
 
@@ -387,10 +392,14 @@ Larger feature work -- only after issues are resolved and content is stable.
 | #261 | bug(swarm): monitor skips Phase 5 and slam-merges untested code into main | 1 |
 | #263 | chore(swarm): monitor crash during multi-PR merge -- add checkpoint/recovery resilience | 1 |
 | #270 | feat(setup): validate USER.md against current schema + artifact format versioning | 3 |
+| #269 | Questions skipped due to auto-approve - new user problem | 1 |
+| #272 | deft-setup: agent conflates framework directory with project root during bootstrap | 1 |
+| #274 | fix(workflow): add semantic accuracy check to mandatory pre-commit file review | 1 |
+| #279 | fix(skill): deft-review-cycle Approach 2 idle stoppage -- yield ends turn, polling loop broken for swarm agents | 1 |
 
 ---
 
-*Created 2026-03-13 -- consolidates todo.md and GitHub Issues into a single roadmap*
+*Created 2026-03-13
 *Updated 2026-03-17 -- added issues #44-#65, moved #8/#44/#47 to Completed*
 *Updated 2026-03-19 -- added #84 (Deft as teacher: contract hierarchy, Phase 2 Philosophy & Positioning sub-section, Phase 5 teach strategy); moved #45 to Completed (v0.7.0)*
 *Updated 2026-03-20 -- added #89 (naming/positioning); moved #39 to Completed; full refresh: added #68/#72/#75-#82/#85/#86; promoted user-reported bugs to Phase 1; resolved #44 (all items done); cleaned stale entries from index; #84 Phase 2 README reframe blocked on #89 resolution*
@@ -438,3 +447,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-09 -- v0.15.0 release: moved #51 (stale refs purge + strategy stubs + getting-started), #221 (row format template), #226 (deft-rwldl rename), #234 (README artifacts), #248 (spec task scaffolding) to Completed; struck through in Open Issues Index; removed from Phase 2 body*
 *Updated 2026-04-09 -- roadmap refresh triage: added #261 + #263 (Phase 1, t1.13.1), #256 (Phase 1, t1.13.2), #258 (Phase 2, t2.9.1); analysis comments posted on all 4 issues*
 *Updated 2026-04-09 -- roadmap refresh triage: added #266 (Phase 2, t2.10.1), #268 (Phase 2, t2.10.2), #270 (Phase 3, t3.2.1); analysis comments posted*
+*Updated 2026-04-10 -- roadmap refresh triage: added #279 (Phase 1 Adoption Blocker, t1.14.1); analysis comment posted*
+*Updated 2026-04-10 -- roadmap refresh triage: added #274 (Phase 1 Cleanup, t1.15.1); analysis comment posted*
+*Updated 2026-04-10 -- roadmap refresh triage: added #272 (Phase 1 Adoption Blocker, t1.16.1); analysis comment posted*
+*Updated 2026-04-10 -- roadmap refresh triage: added #269 (Phase 1 Adoption Blocker, t1.17.1); analysis comment posted*

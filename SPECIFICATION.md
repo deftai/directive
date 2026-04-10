@@ -986,7 +986,43 @@ Update `scm/github.md` to instruct agents to write `--body-file` temp files to t
 
 **Traces**: #256
 
-## t2.8.1: Add explicit row format template to deft-roadmap-refresh skill (#221)  `[completed]`
+## t1.14.1: Clarify Approach 2 idle-stoppage limitation in deft-review-cycle (#279)  `[pending]`
+
+Approach 2 (yield-between-polls) silently breaks for swarm agents because yielding ends the agent's turn with no self-wake mechanism. Add guidance clarifying the limitation, a ! rule directing swarm agents to prefer Approach 1, and an anti-pattern against assuming Approach 2 is self-sustaining.
+
+- skills/deft-review-cycle/SKILL.md Approach 2 section contains warning that Approach 2 requires the monitor to detect idle lifecycle events and re-trigger -- it is NOT autonomous for swarm agents
+- skills/deft-review-cycle/SKILL.md contains ! rule: swarm agents launched via start_agent SHOULD prefer Approach 1 (spawn their own review-monitor sub-agent) when start_agent is available
+- Anti-Patterns section contains entry: assume Approach 2 produces a self-sustaining polling loop
+
+**Traces**: #279
+
+## t1.15.1: Add semantic accuracy check to mandatory pre-commit file review (#274)  `[pending]`
+
+Extend the mandatory pre-commit file review step in deft-roadmap-refresh and deft-build with a fourth check category: verify that counts, claims, and summaries in CHANGELOG entries and ROADMAP changelog lines match the actual data in the commit.
+
+- skills/deft-roadmap-refresh/SKILL.md Phase 4 pre-flight mandatory file review step contains semantic accuracy check: verify counts and claims in CHANGELOG entries and ROADMAP changelog lines match actual data
+- skills/deft-build/SKILL.md pre-commit checklist contains equivalent semantic accuracy check
+
+**Traces**: #274
+
+## t1.16.1: Anchor deft-setup path resolution to pwd at skill entry (#272)  `[pending]`
+
+When directive is cloned into a project subdirectory, deft-setup reads ./PROJECT.md relative to the framework clone instead of the user's pwd, silently concluding bootstrap is complete. Add a ! rule to skills/deft-setup/SKILL.md Phase 2 explicitly anchoring all path resolution to pwd at skill entry.
+
+- skills/deft-setup/SKILL.md Phase 2 contains ! rule: resolve all paths relative to pwd at skill entry -- never relative to the skill file, AGENTS.md, or any framework directory
+
+**Traces**: #272
+
+## t1.17.1: Add post-interview confirmation gate to deft-setup and document Warp auto-approve setting (#269)  `[pending]`
+
+Warp auto-approve silently self-answers the deft-setup interview, producing garbage USER.md/PROJECT.md with no error or warning. Add a post-interview confirmation gate to deft-setup/SKILL.md that displays all captured values and requires explicit yes/no before writing files. Also document the Warp "Always ask" setting. Absorbs #271.
+
+- skills/deft-setup/SKILL.md contains post-interview confirmation gate: after completing the interview, display a summary of all captured values and require explicit yes/no confirmation before writing USER.md, PROJECT.md, or any other artifacts
+- skills/deft-setup/SKILL.md documents the Warp "Always ask" setting (AI -> Profile Settings) as the recommended configuration for running deft-setup
+
+**Traces**: #269
+
+## t2.8.1: Add explicit row format template
 
 Add an explicit `| #NNN | title | Phase |` row format template to skills/deft-roadmap-refresh/SKILL.md at the step that creates or updates Open Issues Index rows. Add 2 anti-patterns: one against creating index rows without using the template format, one against double-pipe `||` entries from omitting a column value. Closes #221.
 
