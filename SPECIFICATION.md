@@ -1043,6 +1043,38 @@ Two gaps in deft-review-cycle/SKILL.md: (1) Phase 2 Step 1 has no capability det
 
 **Traces**: #282
 
+## t1.24.1: Resolve 5 untracked xfail gaps in known_failures.json (#295)  `[pending]`
+
+Fix all 5 untracked xfail gaps in a single cleanup PR: (1) remove or replace leaked PROJECT.md at repo root with generic template; (2) create tools/taskfile-migration.md or remove broken See also link; (3) add RFC2119 legend to 6 files (context/context.md, context/examples.md, context/long-horizon.md, context/tool-design.md, context/working-memory.md, languages/commands.md); (4) add missing shape sections to 8 files (languages/6502-DASM.md, languages/markdown.md, languages/mermaid.md, strategies/discuss.md, strategies/research.md, interfaces/cli.md, interfaces/rest.md, interfaces/web.md); (5) investigate deprecated-path-testbed-spec xfail and either flip to false or fix the missed file. Closes #295.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #295
+
+## t1.23.1: Strengthen test-with-code rule -- new source files must include tests (#294)  `[pending]`
+
+Strengthen the testing enforcement gate across 4 surfaces: (1) AGENTS.md Before committing: ! rule -- new source files (scripts/, src/, cmd/, *.py, *.go) MUST include corresponding test files in the same PR; running existing tests is not sufficient. (2) main.md Decision Making: update t1.6.1 testing gate to distinguish regression (existing tests pass) from forward coverage (new code has new tests). (3) deft-swarm SKILL.md prompt template CONSTRAINTS: new source files must have corresponding tests. (4) deft-build SKILL.md pre-commit checklist: for each new source file in this PR, verify a corresponding test file exists. Future deterministic gate (task verify:test-coverage) deferred to #233 Phase 5. Closes #294.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #294
+
+## t1.22.1: deft-swarm Phase 6 -- auto-generate Slack release announcement after swarm release (#292)  `[pending]`
+
+Add a step to skills/deft-swarm/SKILL.md Phase 6 (after creating the GitHub release) that generates a standard Slack announcement block and presents it to the user. Include version, release title, summary, key changes, swarm agent count, approximate duration, PR numbers, and GitHub release URL. Closes #292.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #292
+
+## t1.21.1: deft-swarm Phase 6 -- require read-back verification after rebase conflict resolution (#288)  `[pending]`
+
+Add ! rule to skills/deft-swarm/SKILL.md Phase 6 Step 1: after resolving any rebase conflict and before running git add, re-read the resolved file and verify structural integrity (no conflict markers, no collapsed lines, no encoding artifacts). Prefer edit_files over shell regex for CHANGELOG.md and SPECIFICATION.md conflict resolution. Mirrors mandatory pre-commit file review from t1.11.4, targeted at the rebase conflict resolution path. Closes #288.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #288
+
 ## t1.20.1: Add ! rule to AGENTS.md for BOM-safe PowerShell file writes (#283)  `[pending]`
 
 Agents on Windows writing files via PowerShell reach for [System.Text.Encoding]::UTF8 (writes a BOM) instead of the BOM-free constructor documented in scm/github.md. The rule exists in a reference document but is absent from AGENTS.md -- the always-loaded behavioral document. Add a ! rule to AGENTS.md making BOM-safe writes a hard gate at the decision point.
@@ -1050,6 +1082,14 @@ Agents on Windows writing files via PowerShell reach for [System.Text.Encoding]:
 - AGENTS.md contains ! rule: when writing files using PowerShell, MUST use New-Object System.Text.UTF8Encoding $false -- never [System.Text.Encoding]::UTF8 (writes BOM); see scm/github.md PS 5.1 section
 
 **Traces**: #283
+
+## t2.11.1: Create skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill (#296)  `[pending]`
+
+Create skills/deft-interview/SKILL.md with RFC2119 legend and frontmatter encoding a deterministic interview loop any skill can invoke: one-question-per-turn rule, numbered options with stated default (e.g. [default: 3]), explicit other/IDK escape option, depth gate (! keep asking until no material ambiguity remains), default-acceptance rule (bare enter/yes/default accepts stated default), confirmation gate (display all captured answers and require yes/no before proceeding), and structured handoff contract (answers map for calling skill). Create .agents/skills/deft-interview/SKILL.md thin pointer. Update AGENTS.md Skill Routing table with trigger keywords (interview, ask questions, structured interview). Update deft-setup SKILL.md Phase 1 and Phase 2 to reference deft-interview for Q&A loops. Add tests/content/test_skills.py coverage. Anti-patterns: asking multiple questions at once, proceeding without confirmation gate, omitting defaults, omitting other escape. Closes #296.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #296
 
 ## t2.8.1: Add explicit row format template to deft-roadmap-refresh skill (#221)  `[completed]`
 Add an explicit `| #NNN | title | Phase |` row format template to skills/deft-roadmap-refresh/SKILL.md at the step that creates or updates Open Issues Index rows. Add 2 anti-patterns: one against creating index rows without using the template format, one against double-pipe `||` entries from omitting a column value. Closes #221.
@@ -1146,6 +1186,14 @@ Create tasks/toolchain.yml with toolchain:check (reads PROJECT.md for declared t
 - validate:links checks .md internal link targets exist
 - Enhanced check includes toolchain:check, verify:stubs, validate:links as deps
 - task check passes
+## t3.3.4: Add unit tests for v0.17.0 deterministic task scripts (#293)  `[pending]`
+
+Add tests/cli/test_task_scripts.py with subprocess-based unit tests for all scripts added in v0.17.0: toolchain-check.py (missing tool, non-zero exit, timeout, happy path), verify-stubs.py (patterns detected, clean, excluded dirs, encoding), validate-links.py (broken link, all valid, external URL skip, archive exclusion, strict mode), change:init (correct structure, path traversal rejection, empty name, duplicate), commit:lint (valid passes, missing type fails, breaking change supported). Closes #293.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #293
+
 ## t3.3.3: Add changelog:check, change:init, and commit:lint tasks (#233, #235)  `[pending]`
 
 Create tasks/change.yml with changelog:check (verify CHANGELOG.md has an [Unreleased] section with at least one entry since the last release tag; exit non-zero if missing) and change:init (takes a name via CLI_ARGS, creates history/changes/<name>/ directory with proposal.md, design.md, tasks.vbrief.json, and specs/ subdirectory using deterministic templates per commands.md). Create tasks/commit.yml with commit:lint (validate HEAD commit message against conventional commit format -- type(scope): description; accepted types: feat, fix, docs, chore, refactor, test, style, perf, ci, build; exit non-zero on violation).

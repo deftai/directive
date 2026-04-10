@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.17.0] - 2026-04-10
+### Changed
+- **Roadmap Refresh (2026-04-10)**: Triaged 6 new issues -- #288 (Phase 1 Cleanup: deft-swarm Phase 6 read-back verification after rebase conflict resolution, t1.21.1), #292 (Phase 1 Cleanup: auto-generate Slack release announcement after swarm release, t1.22.1), #293 (Phase 3: unit tests for v0.17.0 deterministic task scripts, t3.3.4), #294 (Phase 1 Cleanup: strengthen test-with-code rule across AGENTS.md/main.md/deft-swarm/deft-build, t1.23.1), #295 (Phase 1 Cleanup: resolve 5 untracked xfail gaps in known_failures.json, t1.24.1), #296 (Phase 2: skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill, t2.11.1); no stale entries; analysis comments posted on all 6 issues
+
+## [0.17.0]
 
 ### Added
 - **Taskfile modular restructure** (#233, t3.3.1): Restructured monolithic `Taskfile.yml` into modular includes under `tasks/` -- created `tasks/core.yml` (validate, fmt, lint, test, test:coverage, build, clean, stats), `tasks/spec.yml` (validate, render, pipeline), `tasks/install.yml` (install, uninstall), `tasks/deployments.yml` (moved from `taskfiles/`); root `Taskfile.yml` is now version + vars + includes + default task + backward-compatible aliases; fixed stale VERSION var (0.14.0 -> 0.17.0); deleted `taskfiles/` directory
