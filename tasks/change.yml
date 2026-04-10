@@ -24,9 +24,10 @@ tasks:
     cmds:
       - cmd: >-
           uv run python -c
-          "import sys, pathlib, json;
+          "import sys, pathlib, json, re;
           name = '{{.CLI_ARGS}}'.strip();
           (not name) and (print('FAIL: Usage: task change:init -- <name>'), sys.exit(1));
+          (not re.match(r'^[\w][\w-]*$', name)) and (print('FAIL: Name must contain only alphanumeric characters, underscores, and hyphens'), sys.exit(1));
           base = pathlib.Path('history/changes') / name;
           base.exists() and (print(f'FAIL: {base} already exists'), sys.exit(1));
           (base / 'specs').mkdir(parents=True, exist_ok=True);

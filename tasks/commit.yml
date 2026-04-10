@@ -11,8 +11,8 @@ tasks:
           (result.returncode != 0) and (print('FAIL: Could not read HEAD commit message'), sys.exit(1));
           msg = result.stdout.strip();
           subject = msg.splitlines()[0] if msg else '';
-          types = 'feat|fix|docs|chore|refactor|test|style|perf|ci|build';
-          pattern = r'^(' + types + r')(\(.+\))?: .+';
+          types = 'feat|fix|docs|chore|refactor|test|style|perf|ci|build|revert';
+          pattern = r'^(' + types + r')(\(.+\))?!?: .+';
           ok = re.match(pattern, subject);
           (not ok) and (print('FAIL: Commit message does not match conventional commit format'),
           print(f'  Got:      {subject}'),
