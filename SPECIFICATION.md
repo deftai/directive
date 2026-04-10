@@ -1120,3 +1120,31 @@ Inventory all Warp Drive global rules used for deft directive development and do
 - <first acceptance criterion placeholder>
 
 **Traces**: #258
+
+## t3.3.1: Restructure Taskfile.yml into modular tasks/ directory (#233)  `[pending]`
+
+Restructure the monolithic Taskfile.yml into a minimal root with includes pointing to modular task files under tasks/. Move existing tasks into tasks/core.yml (validate, fmt, lint, test, test:coverage, check, build, clean, stats), tasks/spec.yml (spec:validate, spec:render, new spec:pipeline), tasks/install.yml (install, uninstall), tasks/deployments.yml (moved from taskfiles/). Fix stale VERSION var (currently 0.14.0, should be 0.17.0). Root Taskfile.yml becomes version + vars + includes + default task only.
+
+- Taskfile.yml is minimal root with includes only
+- tasks/core.yml contains all existing build/test/lint tasks
+- tasks/spec.yml contains spec:validate, spec:render, spec:pipeline
+- tasks/install.yml contains install, uninstall
+- tasks/deployments.yml moved from taskfiles/
+- VERSION var updated to 0.17.0
+- task check passes after restructure
+
+**Traces**: #233
+
+## t3.3.2: Add toolchain:check, verify:stubs, validate:links, and enhanced check deps (#233, #235)  `[pending]`
+
+Create tasks/toolchain.yml with toolchain:check (reads PROJECT.md for declared tech stack, verifies each tool is installed -- go version, uv --version, task --version, git --version, gh --version -- exits non-zero on failure). Create tasks/verify.yml with verify:stubs (rg-based or findstr/Select-String scan for TODO, FIXME, HACK, "return null", bare "pass" in .py/.go/.sh source files, excluding tests/, vendor/, .git/, backup/, history/, node_modules/) and validate:links (scan all .md files for internal links [text](path), verify target file exists, exclude history/archive/ and external URLs). Wire toolchain:check, verify:stubs, and validate:links as deps of enhanced check in tasks/core.yml.
+
+- tasks/toolchain.yml exists with toolchain:check task
+- tasks/verify.yml exists with verify:stubs and validate:links tasks
+- toolchain:check verifies go, uv, task, git, gh
+- verify:stubs scans source files for stub patterns, exits non-zero if found
+- validate:links checks .md internal link targets exist
+- Enhanced check includes toolchain:check, verify:stubs, validate:links as deps
+- task check passes
+
+**Traces**: #233, #235

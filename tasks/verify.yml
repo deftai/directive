@@ -1,0 +1,12 @@
+version: '3'
+
+tasks:
+  stubs:
+    desc: Scan source files for stub patterns (TODO, FIXME, HACK, return null, bare pass)
+    cmds:
+      - uv run python scripts/verify-stubs.py
+
+  links:
+    desc: Validate internal links in markdown files
+    cmds:
+      - uv run python scripts/validate-links.py

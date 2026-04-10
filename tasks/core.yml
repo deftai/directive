@@ -1,0 +1,77 @@
+version: '3'
+
+tasks:
+  validate:
+    desc: Validate all markdown files
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - cmd: >-
+          uv run python -c "from pathlib import Path;
+          files=[f for f in sorted(Path('.').rglob('*.md')) if '.git' not in f.parts and 'backup' not in f.parts];
+          [print(f'\u2713 {f}') for f in files];
+          print(f'\u2713 All {len(files)} markdown files validated')"
+
+  test:
+    desc: Run test suite
+    cmds:
+      - uv run pytest tests/
+
+  test:coverage:
+    desc: Run tests with coverage (fails if < 85%)
+    cmds:
+      - uv run pytest tests/ --cov --cov-report=html
+
+  fmt:
+    desc: Format Python code
+    cmds:
+      - uv run ruff format .
+      - uv run black .
+
+  lint:
+    desc: Lint and type-check Python code
+    cmds:
+      - uv run ruff check .
+      - uv run mypy run.py
+
+
+  build:
+    desc: Package framework for distribution
+    cmds:
+      - cmd: mkdir -p dist
+        platforms: [linux, darwin]
+      - cmd: powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path dist | Out-Null"
+        platforms: [windows]
+      - cmd: tar -czf dist/deft-{{.VERSION}}.tar.gz --exclude=backup --exclude=dist --exclude=.git --exclude=node_modules .
+        platforms: [linux, darwin]
+      - cmd: powershell -NoProfile -Command "Compress-Archive -Path . -DestinationPath dist\deft-{{.VERSION}}.zip -Force"
+        platforms: [windows]
+      - cmd: echo "Created dist/deft-{{.VERSION}}.tar.gz"
+        platforms: [linux, darwin]
+      - cmd: echo "Created dist/deft-{{.VERSION}}.zip"
+        platforms: [windows]
+
+  clean:
+    desc: Clean generated artifacts
+    cmds:
+      - cmd: rm -rf dist/
+        platforms: [linux, darwin]
+      - cmd: powershell -NoProfile -Command "if (Test-Path dist) { Remove-Item -Recurse -Force dist }"
+        platforms: [windows]
+      - echo "Cleaned artifacts"
+
+  stats:
+    desc: Show framework statistics
+    cmds:
+      - cmd: >-
+          uv run python -c "from pathlib import Path;
+          v='{{.VERSION}}';
+          sep='='*42;
+          dirs=[('Core files','core'),('Languages','languages'),('Interfaces','interfaces'),('Tools','tools'),('Templates','templates')];
+          counts=[(n,len(list(Path(d).glob('*.md')))) for n,d in dirs];
+          total=len([f for f in Path('.').rglob('*.md') if '.git' not in str(f) and 'backup' not in str(f)]);
+          print(f'Deft Framework v{v} Statistics:');
+          print(sep);
+          [print(f'{n}: {c}') for n,c in counts];
+          print(f'Total files: {total}');
+          print(sep)"

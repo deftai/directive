@@ -1,13 +1,34 @@
 version: '3'
 
-includes:
-  deployments:
-    taskfile: ./taskfiles/deployments.yml
-    optional: true
-
 vars:
   PROJECT_NAME: deft
-  VERSION: 0.14.0
+  VERSION: 0.17.0
+
+includes:
+  core:
+    taskfile: ./tasks/core.yml
+    optional: true
+  spec:
+    taskfile: ./tasks/spec.yml
+    optional: true
+  install:
+    taskfile: ./tasks/install.yml
+    optional: true
+  deployments:
+    taskfile: ./tasks/deployments.yml
+    optional: true
+  toolchain:
+    taskfile: ./tasks/toolchain.yml
+    optional: true
+  verify:
+    taskfile: ./tasks/verify.yml
+    optional: true
+  change:
+    taskfile: ./tasks/change.yml
+    optional: true
+  commit:
+    taskfile: ./tasks/commit.yml
+    optional: true
 
 tasks:
   default:
@@ -16,112 +37,55 @@ tasks:
       - task --list
     silent: true
 
-  validate:
-    desc: Validate all markdown files
-    env:
-      PYTHONUTF8: "1"
-    cmds:
-      - cmd: >-
-          uv run python -c "from pathlib import Path;
-          files=[f for f in sorted(Path('.').rglob('*.md')) if '.git' not in f.parts and 'backup' not in f.parts];
-          [print(f'\u2713 {f}') for f in files];
-          print(f'\u2713 All {len(files)} markdown files validated')"
-
-  test:
-    desc: Run test suite
-    cmds:
-      - uv run pytest tests/
-
-  test:coverage:
-    desc: Run tests with coverage (fails if < 85%)
-    cmds:
-      - uv run pytest tests/ --cov --cov-report=html
-
-  fmt:
-    desc: Format Python code
-    cmds:
-      - uv run ruff format .
-      - uv run black .
-
-  lint:
-    desc: Lint and type-check Python code
-    cmds:
-      - uv run ruff check .
-      - uv run mypy run.py
-
+  # Backward-compatible aliases -- project convention is `task check`, `task test`, etc.
   check:
     desc: Run all pre-commit checks
     deps:
-      - validate
-      - lint
-      - test
+      - core:validate
+      - core:lint
+      - core:test
+      - toolchain:check
+      - verify:stubs
+      - verify:links
     cmds:
-      - echo "✓ All checks passed"
-
+      - echo "All checks passed"
+  test:
+    desc: Run test suite (alias for core:test)
+    cmds:
+      - task: core:test
+  test:coverage:
+    desc: Run tests with coverage (alias for core:test:coverage)
+    cmds:
+      - task: core:test:coverage
+  lint:
+    desc: Lint and type-check Python code (alias for core:lint)
+    cmds:
+      - task: core:lint
+  fmt:
+    desc: Format Python code (alias for core:fmt)
+    cmds:
+      - task: core:fmt
   build:
-    desc: Package framework for distribution
+    desc: Package framework for distribution (alias for core:build)
     cmds:
-      - cmd: mkdir -p dist
-        platforms: [linux, darwin]
-      - cmd: powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path dist | Out-Null"
-        platforms: [windows]
-      - cmd: tar -czf dist/deft-{{.VERSION}}.tar.gz --exclude=backup --exclude=dist --exclude=.git --exclude=node_modules .
-        platforms: [linux, darwin]
-      - cmd: powershell -NoProfile -Command "Compress-Archive -Path . -DestinationPath dist\deft-{{.VERSION}}.zip -Force"
-        platforms: [windows]
-      - cmd: echo "✓ Created dist/deft-{{.VERSION}}.tar.gz"
-        platforms: [linux, darwin]
-      - cmd: echo "✓ Created dist/deft-{{.VERSION}}.zip"
-        platforms: [windows]
-
+      - task: core:build
   clean:
-    desc: Clean generated artifacts
+    desc: Clean generated artifacts (alias for core:clean)
     cmds:
-      - cmd: rm -rf dist/
-        platforms: [linux, darwin]
-      - cmd: powershell -NoProfile -Command "if (Test-Path dist) { Remove-Item -Recurse -Force dist }"
-        platforms: [windows]
-      - echo "✓ Cleaned artifacts"
-
+      - task: core:clean
+  validate:
+    desc: Validate all markdown files (alias for core:validate)
+    cmds:
+      - task: core:validate
   install:
-    desc: Install deft (dev convenience — end users should use the compiled binary from GitHub Releases)
+    desc: Install deft (alias for install:install)
     cmds:
-      - go run ./cmd/deft-install/
-
+      - task: install:install
   uninstall:
-    desc: Remove deft entry from AGENTS.md
+    desc: Remove deft entry from AGENTS.md (alias for install:uninstall)
     cmds:
-      - cmd: >-
-          uv run python -c "from pathlib import Path;
-          f=Path('AGENTS.md');
-          t=f.read_text('utf-8') if f.exists() else '';
-          lines=t.splitlines(keepends=True);
-          out=''.join(l for l in lines if not l.startswith('See deft/main.md') and not l.startswith('Skills: deft/skills/'));
-          f.write_text(out,'utf-8') if f.exists() else None;
-          print('Removed deft entry from AGENTS.md' if out!=t else 'No deft entry found in AGENTS.md')"
-
-  spec:validate:
-    desc: Validate that vbrief/specification.vbrief.json exists and is well-formed JSON
-    cmds:
-      - uv run python scripts/spec_validate.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"
-
-  spec:render:
-    desc: Render vbrief/specification.vbrief.json to SPECIFICATION.md
-    cmds:
-      - uv run python scripts/spec_render.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" "{{.USER_WORKING_DIR}}/SPECIFICATION.md"
-
+      - task: install:uninstall
   stats:
-    desc: Show framework statistics
+    desc: Show framework statistics (alias for core:stats)
     cmds:
-      - cmd: >-
-          uv run python -c "from pathlib import Path;
-          v='{{.VERSION}}';
-          sep='━'*42;
-          dirs=[('Core files','core'),('Languages','languages'),('Interfaces','interfaces'),('Tools','tools'),('Templates','templates')];
-          counts=[(n,len(list(Path(d).glob('*.md')))) for n,d in dirs];
-          total=len([f for f in Path('.').rglob('*.md') if '.git' not in str(f) and 'backup' not in str(f)]);
-          print(f'Deft Framework v{v} Statistics:');
-          print(sep);
-          [print(f'{n}: {c}') for n,c in counts];
-          print(f'Total files: {total}');
-          print(sep)"
+      - task: core:stats

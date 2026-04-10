@@ -1,0 +1,62 @@
+"""Validate internal links in markdown files."""
+
+import re
+import sys
+from pathlib import Path
+
+EXCLUDE_DIRS = {
+    ".git", "backup", "node_modules", ".venv", "__pycache__", "dist",
+    ".planning", "specs",  # planning docs and test fixtures
+}
+LINK_RE = re.compile(r"\[([^\]]*)\]\(([^)]+)\)")
+
+# Skip template variables, reference markers, and example-only links
+SKIP_PATTERNS = re.compile(r"[{}@]|^\[|^\./relative-|^path$")
+
+
+def main() -> int:
+    broken = []
+
+    for md in sorted(Path(".").rglob("*.md")):
+        if any(p in md.parts for p in EXCLUDE_DIRS):
+            continue
+        # Skip history/archive/ files
+        if "history" in md.parts and "archive" in md.parts:
+            continue
+        try:
+            text = md.read_text("utf-8", errors="replace")
+            for i, line in enumerate(text.splitlines(), 1):
+                for m in LINK_RE.finditer(line):
+                    target = m.group(2)
+                    # Skip external URLs, anchors, and mailto
+                    if target.startswith(("http://", "https://", "mailto:", "#")):
+                        continue
+                    # Skip template variables and example links
+                    if SKIP_PATTERNS.search(target):
+                        continue
+                    # Strip anchor and query params
+                    clean = target.split("#")[0].split("?")[0]
+                    if not clean:
+                        continue
+                    resolved = (md.parent / clean).resolve()
+                    if not resolved.exists():
+                        broken.append((str(md), i, target))
+        except Exception:
+            pass
+
+    if broken:
+        print(f"Found {len(broken)} broken internal link(s) (warnings):")
+        for fp, ln, target in broken[:50]:
+            print(f"  {fp}:{ln} -> {target}")
+        if len(broken) > 50:
+            print(f"  ... and {len(broken) - 50} more")
+        # Exit 0 (warning mode) -- pre-existing broken links should not block check.
+        # A follow-up issue can fix these and switch to exit 1 for strict mode.
+        return 0
+
+    print("All internal markdown links valid")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

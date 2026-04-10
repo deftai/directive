@@ -1,0 +1,18 @@
+version: '3'
+
+tasks:
+  validate:
+    desc: Validate that vbrief/specification.vbrief.json exists and is well-formed JSON
+    cmds:
+      - uv run python scripts/spec_validate.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"
+
+  render:
+    desc: Render vbrief/specification.vbrief.json to SPECIFICATION.md
+    cmds:
+      - uv run python scripts/spec_render.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" "{{.USER_WORKING_DIR}}/SPECIFICATION.md"
+
+  pipeline:
+    desc: Run full spec pipeline (validate then render)
+    cmds:
+      - task: validate
+      - task: render

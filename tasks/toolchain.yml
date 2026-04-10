@@ -1,0 +1,7 @@
+version: '3'
+
+tasks:
+  check:
+    desc: Verify required toolchain is installed (go, uv, task, git, gh)
+    cmds:
+      - uv run python scripts/toolchain-check.py

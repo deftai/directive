@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Taskfile modular restructure** (#233, t3.3.1): Restructured monolithic `Taskfile.yml` into modular includes under `tasks/` -- created `tasks/core.yml` (validate, fmt, lint, test, test:coverage, build, clean, stats), `tasks/spec.yml` (validate, render, pipeline), `tasks/install.yml` (install, uninstall), `tasks/deployments.yml` (moved from `taskfiles/`); root `Taskfile.yml` is now version + vars + includes + default task + backward-compatible aliases; fixed stale VERSION var (0.14.0 -> 0.17.0); deleted `taskfiles/` directory
+- **Toolchain verification task** (#233, #235, t3.3.2): Created `tasks/toolchain.yml` with `toolchain:check` task and `scripts/toolchain-check.py` -- verifies go, uv, task, git, gh are installed; wired as dep of enhanced `check` task
+- **Code verification tasks** (#235, t3.3.2): Created `tasks/verify.yml` with `verify:stubs` (scans .py/.go/.sh for TODO/FIXME/HACK/stub patterns via `scripts/verify-stubs.py`) and `validate:links` (checks .md internal link targets via `scripts/validate-links.py`, warning mode for pre-existing broken links); both wired as deps of enhanced `check` task
+- **Spec tasks t3.3.1 and t3.3.2** added to `SPECIFICATION.md` for Taskfile restructure and verification tasks
+
 ## [0.16.0] - 2026-04-10
 
 ### Added

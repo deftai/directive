@@ -1,0 +1,19 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install deft (dev convenience -- end users should use the compiled binary from GitHub Releases)
+    cmds:
+      - go run ./cmd/deft-install/
+
+  uninstall:
+    desc: Remove deft entry from AGENTS.md
+    cmds:
+      - cmd: >-
+          uv run python -c "from pathlib import Path;
+          f=Path('AGENTS.md');
+          t=f.read_text('utf-8') if f.exists() else '';
+          lines=t.splitlines(keepends=True);
+          out=''.join(l for l in lines if not l.startswith('See deft/main.md') and not l.startswith('Skills: deft/skills/'));
+          f.write_text(out,'utf-8') if f.exists() else None;
+          print('Removed deft entry from AGENTS.md' if out!=t else 'No deft entry found in AGENTS.md')"
