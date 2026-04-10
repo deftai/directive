@@ -359,6 +359,8 @@ task clean         # Clean artifacts
 
 **Goal:** Generate an implementable spec using the strategy chosen in Phase 2.
 
+! **Path Resolution Anchor**: Same rule as Phase 2 -- resolve ALL paths relative to the user's pwd at skill entry, never relative to the skill file or framework directory.
+
 - ~ Skip if user already has a spec at the **project root** they're happy with
 - ! Check `./SPECIFICATION.md` or `./specs/*/SPECIFICATION.md` (project root)
 - ⊗ Count ANY file inside `./deft/` as the project's spec — those are framework-internal
@@ -525,6 +527,8 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ⊗ Write USER.md, PROJECT.md, SPECIFICATION.md, or any other deft-setup artifact without first displaying captured values and receiving explicit user confirmation.
 ⊗ Treat a broad "proceed" or "continue" as confirmation to write files -- the user must explicitly confirm the displayed values.
+
+? **Yolo strategy carve-out**: When the user's chosen strategy is `yolo` (auto-pilot), the confirmation gate still applies but the agent (Johnbot) may self-confirm on the user's behalf by displaying the summary and immediately proceeding -- the user has already opted into auto-pilot by selecting yolo. The summary must still be displayed so the user can interrupt if values look wrong.
 
 ## Anti-Patterns
 
