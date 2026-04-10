@@ -379,6 +379,8 @@ STEP 4 — Commit: Add CHANGELOG.md entries under [Unreleased].
 Commit with message: [type]([scope]): [description] — with bullet-point body.
 
 STEP 5 — Push and PR: Push branch to origin. Create PR targeting master using gh CLI.
+Note: --body-file must use a temp file in the OS temp directory ($env:TEMP on PowerShell,
+$TMPDIR or /tmp on Unix) -- do NOT write temp files in the worktree. See scm/github.md.
 
 STEP 6 — Review cycle: Follow skills/deft-review-cycle/SKILL.md to run the
 Greptile review cycle on the PR. Do NOT merge — leave for human review.
