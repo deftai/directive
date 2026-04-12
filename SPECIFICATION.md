@@ -1216,11 +1216,17 @@ Create tasks/change.yml with changelog:check (verify CHANGELOG.md has an [Unrele
 
 **Traces**: #233, #235
 
-## t3.3.4: Add unit tests for v0.17.0 deterministic task scripts (#293)  `[pending]`
+## t3.3.4: Add unit tests for v0.17.0 deterministic task scripts (#293)  `[completed]`
 
 Add tests/cli/test_task_scripts.py with subprocess-based unit tests for all scripts added in v0.17.0: toolchain-check.py (missing tool, non-zero exit, timeout, happy path), verify-stubs.py (patterns detected, clean, excluded dirs, encoding), validate-links.py (broken link, all valid, external URL skip, archive exclusion, strict mode), change:init (correct structure, path traversal rejection, empty name, duplicate), commit:lint (valid passes, missing type fails, breaking change supported). Closes #293.
 
-- <first acceptance criterion placeholder>
+- tests/cli/test_task_scripts.py exists with 25 subprocess-based test cases
+- TestToolchainCheck: happy path (exit 0), missing tool (exit 1), reports NOT FOUND, timeout parameter present
+- TestVerifyStubs: clean (exit 0), TODO/FIXME/HACK/bare-pass detected (exit 1), excluded dirs skipped, encoding edge case handled
+- TestValidateLinks: valid links (exit 0), broken strict (exit 1), broken warning (exit 0), external URL skipped, archive excluded, --strict argv
+- TestChangeInit: correct structure (proposal.md, design.md, tasks.vbrief.json, specs/), path traversal rejected, empty name rejected, duplicate rejected
+- TestCommitLint: valid conventional commit passes, missing type fails, breaking change (!) accepted, all 11 types accepted
+- Coverage remains >=85% after adding the new test file
 
 **Traces**: #293
 
