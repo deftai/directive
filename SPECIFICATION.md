@@ -630,7 +630,7 @@ Document in skills/deft-swarm/SKILL.md Phase 6 that force-pushing a rebased bran
 
 **Traces**: #207
 
-## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[pending]`
+## t3.1.1: Write .github/workflows/ci.yml — lint + test on PRs and master pushes (FR-25, FR-26)  `[completed]`
 
 GitHub Actions CI workflow triggering on pull_request and push to master. Jobs: (1) Python: ruff check, mypy tests/ (the shim run.py cannot be typed directly - exclude run and run.py from mypy per pyproject.toml, type-check the test suite instead), pytest tests/ with coverage. (2) Go: go test ./cmd/deft-install/ + go build ./cmd/deft-install/ for each platform matrix (linux/amd64, darwin/arm64, windows/amd64). main_test.go already exists so go test is zero-cost. Use current action versions. Closes #57.
 
@@ -642,7 +642,7 @@ CI passes on a clean branch
 
 **Traces**: FR-25, FR-26, NFR-3
 
-## t3.1.2: Open GitHub issue for run CLI coverage tracking (NFR-2)  `[pending]`
+## t3.1.2: Open GitHub issue for run CLI coverage tracking (NFR-2)  `[completed]`
 
 Open a new GitHub issue titled 'Bring run CLI into test coverage measurement' in the Phase 4/5 backlog. Reference the exclusion in pyproject.toml. Include the rationale: run is terminal-only, excluded for now, refactor needed before coverage is meaningful.
 
@@ -696,7 +696,7 @@ Add a `deft_version` field to all Deft-generated artifact templates (USER.md, PR
 
 **Traces**: #270
 
-## t3.1.3: Raise pyproject.toml coverage threshold to 85% and document run exclusion (NFR-1, NFR-2, FR-27)  `[pending]`
+## t3.1.3: Raise pyproject.toml coverage threshold to 85% and document run exclusion (NFR-1, NFR-2, FR-27)  `[completed]`
 
 **Depends on**: t3.1.1, t3.1.2
 
@@ -752,7 +752,7 @@ README.md directory tree is missing CONTRIBUTING.md, contracts/hierarchy.md, and
 
 **Traces**: #219
 
-## t2.7.1: deft-roadmap-refresh: add MUST rule to confirm analysis comment posting to user (#168)  `[pending]`
+## t2.7.1: deft-roadmap-refresh: add MUST rule to confirm analysis comment posting to user (#168)  `[completed]`
 
 Add ! rule to skills/deft-roadmap-refresh/SKILL.md Phase 2 Step 4 (Apply): after posting the analysis comment on a GitHub issue, the agent MUST confirm to the user that the comment was posted (including issue number and a link). Ensures transparency -- the user always knows when their GitHub issues are being commented on. Closes #168.
 
@@ -762,7 +762,7 @@ Add ! rule to skills/deft-roadmap-refresh/SKILL.md Phase 2 Step 4 (Apply): after
 
 **Traces**: #168
 
-## t2.7.2: deft-roadmap-refresh: add Phase 4 -- PR & review cycle (#174)  `[pending]`
+## t2.7.2: deft-roadmap-refresh: add Phase 4 -- PR & review cycle (#174)  `[completed]`
 
 **Depends on**: t2.7.1
 
@@ -777,7 +777,7 @@ Add Phase 4 -- PR & Review Cycle to skills/deft-roadmap-refresh/SKILL.md. When t
 
 **Traces**: #174
 
-## t2.7.3: deft-roadmap-refresh: explicit cleanup convention -- remove from phase body, not strike through (#196)  `[pending]`
+## t2.7.3: deft-roadmap-refresh: explicit cleanup convention -- remove from phase body, not strike through (#196)  `[completed]`
 
 Replace the ambiguous Phase 3 cleanup instruction ('Strike through or move any stale entries') with explicit rules. ! Remove the entry from the phase section body entirely -- do NOT leave a struck-through line in place. The Completed section is the sole record for closed issues. ! In the Open Issues Index, strike through the row (keep for history) and update Phase column to 'completed -- YYYY-MM-DD'. Add anti-pattern: striking through in the phase body AND adding to Completed creates a duplicate and breaks the single-record convention. Closes #196.
 
@@ -789,7 +789,7 @@ Replace the ambiguous Phase 3 cleanup instruction ('Strike through or move any s
 
 **Traces**: #196
 
-## t2.7.4: deft-review-cycle: replace blocking polling with start_agent orchestration (#195)  `[pending]`
+## t2.7.4: deft-review-cycle: replace blocking polling with start_agent orchestration (#195)  `[completed]`
 
 Replace the blocking shell polling loop in the review monitor with a tiered approach. Approach 1 (preferred, start_agent available): spawn a sub-agent review monitor that polls gh pr view/checks on a cadence and sends a message to the parent agent when the exit condition is met -- main conversation pane stays interactive. Approach 2 (fallback): use discrete run_shell_command (wait mode) calls with a yield (no tool calls) between checks -- no shell pane lock. Capability detection reuses the start_agent tool-presence pattern from #188. Existing exit conditions preserved. Closes #195.
 
@@ -803,7 +803,7 @@ Replace the blocking shell polling loop in the review monitor with a tiered appr
 
 **Traces**: #195
 
-## t2.7.5: Add skills/deft-sync/SKILL.md -- session-start framework sync skill (#146)  `[pending]`
+## t2.7.5: Add skills/deft-sync/SKILL.md -- session-start framework sync skill (#146)  `[completed]`
 
 Create skills/deft-sync/SKILL.md with RFC2119 legend and frontmatter. Triggered by 'good morning', 'update deft', 'update vbrief', or 'sync frameworks'. Phases: (1) pre-flight dirty check on deft/ submodule and record current version; (2) submodule update (git submodule update --remote --merge deft); (3) project sync: validate ./vbrief/*.vbrief.json against vendored schema, check AGENTS.md freshness against deft template, list new skills; (4) summary with commit prompt. Do NOT include separate vBRIEF schema fetch from upstream (CI concern per #128). Create .agents/skills/deft-sync/SKILL.md thin pointer. Update AGENTS.md Returning Sessions section and Skill Routing table. Closes #146.
 
@@ -819,7 +819,7 @@ Create skills/deft-sync/SKILL.md with RFC2119 legend and frontmatter. Triggered 
 
 **Traces**: #146
 
-## t2.7.6: Add behavioral rule for Deft alignment confirmation at session start (#134)  `[pending]`
+## t2.7.6: Add behavioral rule for Deft alignment confirmation at session start (#134)  `[completed]`
 
 Add a behavioral rule to AGENTS.md requiring the agent to confirm Deft Directive is active at session start and after context resets. Confirmation should be unambiguous (e.g. agent states 'Deft Directive active' or equivalent at start of each session after loading AGENTS.md). Covers context reset recovery. True UI indicators deferred to Phase 5. Closes #134.
 
@@ -830,7 +830,7 @@ Add a behavioral rule to AGENTS.md requiring the agent to confirm Deft Directive
 
 **Traces**: #134
 
-## t2.7.7: Document deterministic > probabilistic design principle (#159)  `[pending]`
+## t2.7.7: Document deterministic > probabilistic design principle (#159)  `[completed]`
 
 Create meta/philosophy.md documenting the 'prefer deterministic components for repeatable actions' design principle. The principle extends Directive's use of Taskfile tasks for repeatable work to any domain where a deterministic component (fixed command, schema validator, CI check) replaces a probabilistic one (LLM inference). Content: definition, rationale, examples (Taskfile tasks, spec_validate.py, CI checks as deterministic components), and scope note (ongoing application across CLI/skills/workflows is Phase 5 -- do not implement now). Reference from contracts/hierarchy.md or main.md. Closes #159.
 
@@ -842,7 +842,7 @@ Create meta/philosophy.md documenting the 'prefer deterministic components for r
 
 **Traces**: #159
 
-## t2.7.8: Add BDD/acceptance-test-first strategy -- strategies/bdd.md (#81)  `[pending]`
+## t2.7.8: Add BDD/acceptance-test-first strategy -- strategies/bdd.md (#81)  `[completed]`
 
 Create strategies/bdd.md: a Behaviour-Driven Development strategy where failing acceptance tests drive requirements. Triggered when features are better expressed as examples than written requirements. Workflow: (1) identify user scenarios (Given/When/Then), (2) write failing acceptance tests, (3) let failures surface missing decisions and ambiguity, (4) lock decisions (feeds context.md like discuss strategy), (5) generate spec from test+decision artifacts, (6) chain into interview sizing gate. Output: specs/{feature}/acceptance-tests/ + {feature}-bdd-context.md. Include standard See also banner. Update strategies/README.md. Closes #81.
 
@@ -986,7 +986,7 @@ Update `scm/github.md` to instruct agents to write `--body-file` temp files to t
 
 **Traces**: #256
 
-## t1.14.1: Clarify Approach 2 idle-stoppage limitation in deft-review-cycle (#279)  `[pending]`
+## t1.14.1: Clarify Approach 2 idle-stoppage limitation in deft-review-cycle (#279)  `[completed]`
 
 Approach 2 (yield-between-polls) silently breaks for swarm agents because yielding ends the agent's turn with no self-wake mechanism. Add guidance clarifying the limitation, a ! rule directing swarm agents to prefer Approach 1, and an anti-pattern against assuming Approach 2 is self-sustaining.
 
@@ -996,7 +996,7 @@ Approach 2 (yield-between-polls) silently breaks for swarm agents because yieldi
 
 **Traces**: #279
 
-## t1.15.1: Add semantic accuracy check to mandatory pre-commit file review (#274)  `[pending]`
+## t1.15.1: Add semantic accuracy check to mandatory pre-commit file review (#274)  `[completed]`
 
 Extend the mandatory pre-commit file review step in deft-roadmap-refresh and deft-build with a fourth check category: verify that counts, claims, and summaries in CHANGELOG entries and ROADMAP changelog lines match the actual data in the commit.
 
@@ -1024,7 +1024,7 @@ Warp auto-approve silently self-answers the deft-setup interview, producing garb
 
 **Traces**: #269
 
-## t1.18.1: Fix WinError 448 -- pytest-current symlink cleanup fails on Windows 11 24H2+ (#281)  `[pending]`
+## t1.18.1: Fix WinError 448 -- pytest-current symlink cleanup fails on Windows 11 24H2+ (#281)  `[completed]`
 
 pytest creates a pytest-current symlink in the temp directory tree; Windows 11 24H2+ security policy flags it as an untrusted mount point and raises WinError 448 during cleanup, causing task check to fail locally even when all tests pass. Fix: add tmp_path_retention_count = 0 to [tool.pytest.ini_options] in pyproject.toml.
 
@@ -1032,7 +1032,7 @@ pytest creates a pytest-current symlink in the temp directory tree; Windows 11 2
 
 **Traces**: #281
 
-## t1.19.1: Add MCP capability detection and task check pre-existing failure carve-out to deft-review-cycle (#282)  `[pending]`
+## t1.19.1: Add MCP capability detection and task check pre-existing failure carve-out to deft-review-cycle (#282)  `[completed]`
 
 Two gaps in deft-review-cycle/SKILL.md: (1) Phase 2 Step 1 has no capability detection for MCP -- when MCP is unavailable the agent can silently skip the second review source with no rule violation; (2) Step 3 has no carve-out for pre-existing task check failures unrelated to the PR, causing agents to rationalize partial test runs without documentation requirements.
 
@@ -1043,7 +1043,7 @@ Two gaps in deft-review-cycle/SKILL.md: (1) Phase 2 Step 1 has no capability det
 
 **Traces**: #282
 
-## t1.20.1: Add ! rule to AGENTS.md for BOM-safe PowerShell file writes (#283)  `[pending]`
+## t1.20.1: Add ! rule to AGENTS.md for BOM-safe PowerShell file writes (#283)  `[completed]`
 
 Agents on Windows writing files via PowerShell reach for [System.Text.Encoding]::UTF8 (writes a BOM) instead of the BOM-free constructor documented in scm/github.md. The rule exists in a reference document but is absent from AGENTS.md -- the always-loaded behavioral document. Add a ! rule to AGENTS.md making BOM-safe writes a hard gate at the decision point.
 
@@ -1051,7 +1051,7 @@ Agents on Windows writing files via PowerShell reach for [System.Text.Encoding]:
 
 **Traces**: #283
 
-## t1.21.1: deft-swarm Phase 6 -- require read-back verification after rebase conflict resolution (#288)  `[pending]`
+## t1.21.1: deft-swarm Phase 6 -- require read-back verification after rebase conflict resolution (#288)  `[completed]`
 
 Add ! rule to skills/deft-swarm/SKILL.md Phase 6 Step 1: after resolving any rebase conflict and before running git add, re-read the resolved file and verify structural integrity (no conflict markers, no collapsed lines, no encoding artifacts). Prefer edit_files over shell regex for CHANGELOG.md and SPECIFICATION.md conflict resolution. Mirrors mandatory pre-commit file review from t1.11.4, targeted at the rebase conflict resolution path. Closes #288.
 
@@ -1062,7 +1062,7 @@ Add ! rule to skills/deft-swarm/SKILL.md Phase 6 Step 1: after resolving any reb
 
 **Traces**: #288
 
-## t1.22.1: deft-swarm Phase 6 -- auto-generate Slack release announcement after swarm release (#292)  `[pending]`
+## t1.22.1: deft-swarm Phase 6 -- auto-generate Slack release announcement after swarm release (#292)  `[completed]`
 
 Add a step to skills/deft-swarm/SKILL.md Phase 6 (after creating the GitHub release) that generates a standard Slack announcement block and presents it to the user. Include version, release title, summary, key changes, swarm agent count, approximate duration, PR numbers, and GitHub release URL. Closes #292.
 
@@ -1073,7 +1073,7 @@ Add a step to skills/deft-swarm/SKILL.md Phase 6 (after creating the GitHub rele
 
 **Traces**: #292
 
-## t1.23.1: Strengthen test-with-code rule -- new source files must include tests (#294)  `[pending]`
+## t1.23.1: Strengthen test-with-code rule -- new source files must include tests (#294)  `[completed]`
 
 Strengthen the testing enforcement gate across 4 surfaces: (1) AGENTS.md Before committing: ! rule -- new source files (scripts/, src/, cmd/, *.py, *.go) MUST include corresponding test files in the same PR; running existing tests is not sufficient. (2) main.md Decision Making: update t1.6.1 testing gate to distinguish regression (existing tests pass) from forward coverage (new code has new tests). (3) deft-swarm SKILL.md prompt template CONSTRAINTS: new source files must have corresponding tests. (4) deft-build SKILL.md pre-commit checklist: for each new source file in this PR, verify a corresponding test file exists. Future deterministic gate (task verify:test-coverage) deferred to #233 Phase 5. Closes #294.
 
@@ -1085,7 +1085,7 @@ Strengthen the testing enforcement gate across 4 surfaces: (1) AGENTS.md Before 
 
 **Traces**: #294
 
-## t1.24.1: Resolve 5 untracked xfail gaps in known_failures.json (#295)  `[pending]`
+## t1.24.1: Resolve 5 untracked xfail gaps in known_failures.json (#295)  `[completed]`
 
 Fix all 5 untracked xfail gaps in a single cleanup PR: (1) remove or replace leaked PROJECT.md at repo root with generic template; (2) create tools/taskfile-migration.md or remove broken See also link; (3) add RFC2119 legend to 6 files (context/context.md, context/examples.md, context/long-horizon.md, context/tool-design.md, context/working-memory.md, languages/commands.md); (4) add missing shape sections to 8 files (languages/6502-DASM.md, languages/markdown.md, languages/mermaid.md, strategies/discuss.md, strategies/research.md, interfaces/cli.md, interfaces/rest.md, interfaces/web.md); (5) investigate deprecated-path-testbed-spec xfail and either flip to false or fix the missed file. Closes #295.
 
@@ -1093,7 +1093,7 @@ Fix all 5 untracked xfail gaps in a single cleanup PR: (1) remove or replace lea
 
 **Traces**: #295
 
-## t2.11.1: Create skills/deft-interview/SKILL.md (#296)  `[pending]`
+## t2.11.1: Create skills/deft-interview/SKILL.md (#296)  `[completed]`
 
 Create skills/deft-interview/SKILL.md with RFC2119 legend and frontmatter encoding a deterministic interview loop any skill can invoke: one-question-per-turn rule, numbered options with stated default (e.g. [default: 3]), explicit other/IDK escape option, depth gate (! keep asking until no material ambiguity remains), default-acceptance rule (bare enter/yes/default accepts stated default), confirmation gate (display all captured answers and require yes/no before proceeding), and structured handoff contract (answers map for calling skill). Create .agents/skills/deft-interview/SKILL.md thin pointer. Update AGENTS.md Skill Routing table with trigger keywords (interview, ask questions, structured interview). Update deft-setup SKILL.md Phase 1 and Phase 2 to reference deft-interview for Q&A loops. Add tests/content/test_skills.py coverage. Anti-patterns: asking multiple questions at once, proceeding without confirmation gate, omitting defaults, omitting other escape. Closes #296.
 
@@ -1177,7 +1177,7 @@ Inventory all Warp Drive global rules used for deft directive development and do
 
 **Traces**: #258
 
-## t3.3.1: Restructure Taskfile.yml into modular tasks/ directory (#233)  `[pending]`
+## t3.3.1: Restructure Taskfile.yml into modular tasks/ directory (#233)  `[completed]`
 
 Restructure the monolithic Taskfile.yml into a minimal root with includes pointing to modular task files under tasks/. Move existing tasks into tasks/core.yml (validate, fmt, lint, test, test:coverage, check, build, clean, stats), tasks/spec.yml (spec:validate, spec:render, new spec:pipeline), tasks/install.yml (install, uninstall), tasks/deployments.yml (moved from taskfiles/). Fix stale VERSION var (currently 0.14.0, should be 0.17.0). Root Taskfile.yml becomes version + vars + includes + default task only.
 
@@ -1191,7 +1191,7 @@ Restructure the monolithic Taskfile.yml into a minimal root with includes pointi
 
 **Traces**: #233
 
-## t3.3.2: Add toolchain:check, verify:stubs, validate:links, and enhanced check deps (#233, #235)  `[pending]`
+## t3.3.2: Add toolchain:check, verify:stubs, validate:links, and enhanced check deps (#233, #235)  `[completed]`
 
 Create tasks/toolchain.yml with toolchain:check (reads PROJECT.md for declared tech stack, verifies each tool is installed -- go version, uv --version, task --version, git --version, gh --version -- exits non-zero on failure). Create tasks/verify.yml with verify:stubs (rg-based or findstr/Select-String scan for TODO, FIXME, HACK, "return null", bare "pass" in .py/.go/.sh source files, excluding tests/, vendor/, .git/, backup/, history/, node_modules/) and validate:links (scan all .md files for internal links [text](path), verify target file exists, exclude history/archive/ and external URLs). Wire toolchain:check, verify:stubs, and validate:links as deps of enhanced check in tasks/core.yml.
 
@@ -1203,7 +1203,7 @@ Create tasks/toolchain.yml with toolchain:check (reads PROJECT.md for declared t
 - Enhanced check includes toolchain:check, verify:stubs, validate:links as deps
 - task check passes
 
-## t3.3.3: Add changelog:check, change:init, and commit:lint tasks (#233, #235)  `[pending]`
+## t3.3.3: Add changelog:check, change:init, and commit:lint tasks (#233, #235)  `[completed]`
 
 Create tasks/change.yml with changelog:check (verify CHANGELOG.md has an [Unreleased] section with at least one entry since the last release tag; exit non-zero if missing) and change:init (takes a name via CLI_ARGS, creates history/changes/<name>/ directory with proposal.md, design.md, tasks.vbrief.json, and specs/ subdirectory using deterministic templates per commands.md). Create tasks/commit.yml with commit:lint (validate HEAD commit message against conventional commit format -- type(scope): description; accepted types: feat, fix, docs, chore, refactor, test, style, perf, ci, build; exit non-zero on violation).
 
@@ -1224,10 +1224,12 @@ Add tests/cli/test_task_scripts.py with subprocess-based unit tests for all scri
 
 **Traces**: #293
 
-## t1.25.1: Flip 5 stale [pending] spec task statuses to [completed] in SPECIFICATION.md (#298)  `[pending]`
+## t1.25.1: Flip all stale [pending] spec task statuses to [completed] in SPECIFICATION.md (#298)  `[completed]`
 
-SPECIFICATION.md has 5 spec tasks showing `[pending]` status that were completed and shipped in v0.16.0. Flip t1.14.1, t1.15.1, t1.18.1, t1.19.1, and t1.20.1 from `[pending]` to `[completed]` to sync SPECIFICATION.md with ROADMAP.md and CHANGELOG.md.
+SPECIFICATION.md had 24 spec tasks showing `[pending]` status that were completed and shipped in prior releases but never synced. Full audit against CHANGELOG.md and ROADMAP.md identified stale statuses from v0.14.0, v0.16.0, v0.17.0, and v0.18.0. Flipped all 24 in one pass.
 
-- <first acceptance criterion placeholder>
+- All 24 stale `[pending]` task statuses flipped to `[completed]`: t3.1.1, t3.1.2, t3.1.3, t2.7.1, t2.7.2, t2.7.3, t2.7.4, t2.7.5, t2.7.6, t2.7.7, t2.7.8, t1.14.1, t1.15.1, t1.18.1, t1.19.1, t1.20.1, t1.21.1, t1.22.1, t1.23.1, t1.24.1, t2.11.1, t3.3.1, t3.3.2, t3.3.3
+- No remaining `[pending]` tasks in SPECIFICATION.md that have shipped per CHANGELOG.md or ROADMAP.md Completed section
+- Task body content unchanged -- only heading status markers edited
 
 **Traces**: #298

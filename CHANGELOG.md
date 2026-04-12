@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Spec status sync -- flip 24 stale `[pending]` task statuses to `[completed]`** (#298, t1.25.1): Full audit of SPECIFICATION.md against CHANGELOG.md and ROADMAP.md identified 24 tasks showing `[pending]` that shipped in v0.14.0 (t3.1.1, t3.1.2, t3.1.3, t2.7.1--t2.7.8), v0.16.0 (t1.14.1, t1.15.1, t1.18.1, t1.19.1, t1.20.1), v0.17.0 (t3.3.1, t3.3.2, t3.3.3), and v0.18.0 (t1.21.1, t1.22.1, t1.23.1, t1.24.1, t2.11.1); flipped all 24 in one pass; no task body content changed
+
 ### Changed
 - **Roadmap Refresh (2026-04-12)**: Triaged 1 new issue -- #298 (Phase 1 Cleanup: flip 5 stale `[pending]` spec task statuses to `[completed]` in SPECIFICATION.md -- t1.14.1, t1.15.1, t1.18.1, t1.19.1, t1.20.1 -- shipped v0.16.0 but SPECIFICATION.md not synced, t1.25.1); no stale entries; analysis comment posted on #298
 
