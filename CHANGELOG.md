@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Roadmap Refresh (2026-04-12)**: Triaged 1 new issue -- #298 (Phase 1 Cleanup: flip 5 stale `[pending]` spec task statuses to `[completed]` in SPECIFICATION.md -- t1.14.1, t1.15.1, t1.18.1, t1.19.1, t1.20.1 -- shipped v0.16.0 but SPECIFICATION.md not synced, t1.25.1); no stale entries; analysis comment posted on #298
 
-## [0.18.0]
+## [0.18.0] - 2026-04-10
 
 ### Added
 - **skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill** (#296, t2.11.1): Created `skills/deft-interview/SKILL.md` with RFC2119 legend and YAML frontmatter encoding a deterministic interview loop any skill can invoke -- 7 rules: one-question-per-turn, numbered options with stated default (`[default: N]`), explicit other/IDK escape option, depth gate, default-acceptance, confirmation gate, and structured handoff contract (answers map); created `.agents/skills/deft-interview/SKILL.md` thin pointer; added AGENTS.md Skill Routing entry; updated deft-setup Phase 1 and Phase 2 to reference deft-interview; added 12 tests

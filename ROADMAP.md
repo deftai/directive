@@ -411,8 +411,8 @@ Larger feature work -- only after issues are resolved and content is stable.
 | #293 | test: add unit tests for v0.17.0 deterministic task scripts | 3 |
 | ~~#294~~ | ~~fix(enforcement): strengthen test-with-code rule -- new source files must include tests~~ | completed -- v0.18.0 |
 | ~~#295~~ | ~~chore: resolve 5 untracked xfail gaps in known_failures.json~~ | completed -- v0.18.0 |
-|| ~~#296~~ | ~~Create skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill~~ | completed -- v0.18.0 |
-|| #298 | chore(spec): flip 5 stale [pending] statuses to [completed] in SPECIFICATION.md | 1 |
+| ~~#296~~ | ~~Create skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill~~ | completed -- v0.18.0 |
+| #298 | chore(spec): flip 5 stale [pending] statuses to [completed] in SPECIFICATION.md | 1 |
 
 ---
 
