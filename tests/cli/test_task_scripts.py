@@ -26,6 +26,11 @@ requires_task = pytest.mark.skipif(
     not _has_task, reason="go-task CLI not available"
 )
 
+_has_all_tools = all(shutil.which(t) for t in ("go", "uv", "task", "git", "gh"))
+requires_all_tools = pytest.mark.skipif(
+    not _has_all_tools, reason="full toolchain (go, uv, task, git, gh) not available"
+)
+
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -47,21 +52,6 @@ def run_script(
     )
 
 
-def run_task(
-    task_name: str, args: str = "", cwd: Path | None = None
-) -> subprocess.CompletedProcess:
-    """Run a Taskfile task and return the CompletedProcess."""
-    cmd = ["task", task_name]
-    if args:
-        cmd += ["--", args]
-    return subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        cwd=str(cwd or REPO_ROOT),
-        timeout=30,
-    )
-
 
 # ===========================================================================
 # toolchain-check.py
@@ -70,7 +60,7 @@ def run_task(
 class TestToolchainCheck:
     """Tests for scripts/toolchain-check.py."""
 
-    @requires_task
+    @requires_all_tools
     def test_happy_path_all_tools_present(self):
         """All required tools (go, uv, task, git, gh) are available in dev env."""
         result = run_script("toolchain-check.py")
@@ -197,7 +187,8 @@ class TestValidateLinks:
         (tmp_path / "README.md").write_text(
             "See [missing](nonexistent.md) here.\n", encoding="utf-8"
         )
-        result = run_script("validate-links.py", cwd=tmp_path)
+        # Explicitly clear LINK_CHECK_STRICT to avoid inheriting it from the runner env
+        result = run_script("validate-links.py", cwd=tmp_path, env={"LINK_CHECK_STRICT": ""})
         assert result.returncode == 0
         assert "warnings" in result.stdout.lower()
 
