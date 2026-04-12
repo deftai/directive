@@ -95,9 +95,8 @@ class TestToolchainCheck:
         result = run_script("toolchain-check.py", env=env)
         assert "NOT FOUND" in result.stdout
 
-    def test_timeout_handling(self, monkeypatch):
-        """Script uses a timeout for subprocess calls (verified structurally)."""
-        # Read the script source and verify timeout parameter is set
+    def test_timeout_parameter_present_in_source(self):
+        """Script source contains a timeout= parameter for subprocess calls."""
         script = REPO_ROOT / "scripts" / "toolchain-check.py"
         source = script.read_text("utf-8")
         assert "timeout=" in source
@@ -353,20 +352,20 @@ class TestCommitLint:
 
     def _setup_repo(self, tmp_path: Path, message: str) -> None:
         """Create a git repo with one commit using the given message."""
-        subprocess.run(["git", "init"], cwd=str(tmp_path), capture_output=True)
+        subprocess.run(["git", "init"], cwd=str(tmp_path), capture_output=True, check=True)
         subprocess.run(
             ["git", "config", "user.email", "test@test.com"],
-            cwd=str(tmp_path), capture_output=True,
+            cwd=str(tmp_path), capture_output=True, check=True,
         )
         subprocess.run(
             ["git", "config", "user.name", "Test"],
-            cwd=str(tmp_path), capture_output=True,
+            cwd=str(tmp_path), capture_output=True, check=True,
         )
         (tmp_path / "f.txt").write_text("x", encoding="utf-8")
-        subprocess.run(["git", "add", "."], cwd=str(tmp_path), capture_output=True)
+        subprocess.run(["git", "add", "."], cwd=str(tmp_path), capture_output=True, check=True)
         subprocess.run(
             ["git", "commit", "-m", message],
-            cwd=str(tmp_path), capture_output=True,
+            cwd=str(tmp_path), capture_output=True, check=True,
         )
 
     def _run_commit_lint(self, tmp_path: Path) -> subprocess.CompletedProcess:

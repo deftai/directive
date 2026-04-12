@@ -1216,7 +1216,7 @@ Create tasks/change.yml with changelog:check (verify CHANGELOG.md has an [Unrele
 
 **Traces**: #233, #235
 
-## t3.3.4: Add unit tests for v0.17.0 deterministic task scripts (#293)  `[pending]`
+## t3.3.4: Add unit tests for v0.17.0 deterministic task scripts (#293)  `[completed]`
 
 Add tests/cli/test_task_scripts.py with subprocess-based unit tests for all scripts added in v0.17.0: toolchain-check.py (missing tool, non-zero exit, timeout, happy path), verify-stubs.py (patterns detected, clean, excluded dirs, encoding), validate-links.py (broken link, all valid, external URL skip, archive exclusion, strict mode), change:init (correct structure, path traversal rejection, empty name, duplicate), commit:lint (valid passes, missing type fails, breaking change supported). Closes #293.
 
