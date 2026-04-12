@@ -1223,3 +1223,11 @@ Add tests/cli/test_task_scripts.py with subprocess-based unit tests for all scri
 - <first acceptance criterion placeholder>
 
 **Traces**: #293
+
+## t1.25.1: Flip 5 stale [pending] spec task statuses to [completed] in SPECIFICATION.md (#298)  `[pending]`
+
+SPECIFICATION.md has 5 spec tasks showing `[pending]` status that were completed and shipped in v0.16.0. Flip t1.14.1, t1.15.1, t1.18.1, t1.19.1, and t1.20.1 from `[pending]` to `[completed]` to sync SPECIFICATION.md with ROADMAP.md and CHANGELOG.md.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #298

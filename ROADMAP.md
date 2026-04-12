@@ -13,7 +13,7 @@ Fix reported bugs and UX problems blocking adoption.
 
 ### Cleanup
 
-(all resolved -- v0.18.0)
+- **#298** -- Flip 5 stale `[pending]` task statuses to `[completed]` in SPECIFICATION.md (t1.14.1, t1.15.1, t1.18.1, t1.19.1, t1.20.1)
 
 ---
 
@@ -411,7 +411,8 @@ Larger feature work -- only after issues are resolved and content is stable.
 | #293 | test: add unit tests for v0.17.0 deterministic task scripts | 3 |
 | ~~#294~~ | ~~fix(enforcement): strengthen test-with-code rule -- new source files must include tests~~ | completed -- v0.18.0 |
 | ~~#295~~ | ~~chore: resolve 5 untracked xfail gaps in known_failures.json~~ | completed -- v0.18.0 |
-| ~~#296~~ | ~~Create skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill~~ | completed -- v0.18.0 |
+|| ~~#296~~ | ~~Create skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill~~ | completed -- v0.18.0 |
+|| #298 | chore(spec): flip 5 stale [pending] statuses to [completed] in SPECIFICATION.md | 1 |
 
 ---
 
@@ -479,3 +480,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-10 -- roadmap refresh triage: added #295 (Phase 1 Cleanup, t1.24.1): resolve 5 untracked xfail gaps in known_failures.json; analysis comment posted*
 *Updated 2026-04-10 -- roadmap refresh triage: added #296 (Phase 2, t2.11.1): skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill; analysis comment posted*
 *Updated 2026-04-10 -- v0.18.0 release: moved #288, #292, #294, #295 (Phase 1 Cleanup), #296 (Phase 2) to Completed; struck through in Open Issues Index; Phase 1 Cleanup now empty*
+*Updated 2026-04-12 -- roadmap refresh triage: added #298 (Phase 1 Cleanup, t1.25.1): flip 5 stale [pending] spec task statuses to [completed] in SPECIFICATION.md (t1.14.1, t1.15.1, t1.18.1, t1.19.1, t1.20.1); analysis comment posted*
