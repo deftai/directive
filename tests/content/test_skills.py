@@ -29,6 +29,8 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SKILL_PATHS = [
     "skills/deft-setup/SKILL.md",
     "skills/deft-directive-build/SKILL.md",
+    "skills/deft-directive-setup/SKILL.md",
+    "skills/deft-build/SKILL.md",: rename deft-setup+interview to deft-directive-* and rewrite for vBRIEF model (#314, #319))
 ]
 
 RFC2119_LEGEND = "!=MUST, ~=SHOULD"
@@ -147,12 +149,12 @@ def test_deft_directive_build_user_md_gate_redirects_to_deft_setup() -> None:
 # ---------------------------------------------------------------------------
 
 def test_deft_setup_has_no_user_md_gate() -> None:
-    """deft-setup must not have a USER.md Gate section (that belongs in deft-build)."""
-    rel_path = "skills/deft-setup/SKILL.md"
+    """deft-directive-setup must not have a USER.md Gate section (that belongs in deft-build)."""
+    rel_path = "skills/deft-directive-setup/SKILL.md"
     text = _read_skill(rel_path)
     assert USER_MD_GATE_HEADING not in text, (
         f"{rel_path}: should not contain '{USER_MD_GATE_HEADING}' — "
-        "deft-setup creates USER.md, it doesn't gate on it"
+        "deft-directive-setup creates USER.md, it doesn't gate on it"
     )
 
 
@@ -162,18 +164,18 @@ def test_deft_setup_has_no_user_md_gate() -> None:
 
 def test_phase2_inference_no_deft_build_files() -> None:
     """Phase 2 Inference must forbid scanning ./deft/ for build files."""
-    text = _read_skill("skills/deft-setup/SKILL.md")
+    text = _read_skill("skills/deft-directive-setup/SKILL.md")
     assert "\u2297" in text and "./deft/" in text and "build files" in text.lower(), (
-        "skills/deft-setup/SKILL.md: Phase 2 Inference must contain a \u2297 rule "
+        "skills/deft-directive-setup/SKILL.md: Phase 2 Inference must contain a \u2297 rule "
         "forbidding scanning ./deft/ for build files"
     )
 
 
 def test_phase2_inference_no_deft_git() -> None:
     """Phase 2 Inference must forbid running git inside ./deft/."""
-    text = _read_skill("skills/deft-setup/SKILL.md")
+    text = _read_skill("skills/deft-directive-setup/SKILL.md")
     assert "git" in text.lower() and "./deft/" in text and "framework repo" in text.lower(), (
-        "skills/deft-setup/SKILL.md: Phase 2 Inference must contain a \u2297 rule "
+        "skills/deft-directive-setup/SKILL.md: Phase 2 Inference must contain a \u2297 rule "
         "forbidding git commands inside ./deft/"
     )
 
@@ -184,9 +186,9 @@ def test_phase2_inference_no_deft_git() -> None:
 
 def test_phase2_inference_directory_name_fallback() -> None:
     """Phase 2 Inference must fall back to directory name when no build files found."""
-    text = _read_skill("skills/deft-setup/SKILL.md")
+    text = _read_skill("skills/deft-directive-setup/SKILL.md")
     assert "directory name" in text.lower() and "no build files" in text.lower(), (
-        "skills/deft-setup/SKILL.md: Phase 2 Inference must contain a fallback rule "
+        "skills/deft-directive-setup/SKILL.md: Phase 2 Inference must contain a fallback rule "
         "using the current directory name when no build files are found"
     )
 
@@ -197,20 +199,20 @@ def test_phase2_inference_directory_name_fallback() -> None:
 
 def test_user_md_template_no_primary_languages() -> None:
     """USER.md template must not contain a Primary Languages field."""
-    text = _read_skill("skills/deft-setup/SKILL.md")
+    text = _read_skill("skills/deft-directive-setup/SKILL.md")
     # The template is between ```markdown and ``` — check the whole file
     assert "**Primary Languages**" not in text, (
-        "skills/deft-setup/SKILL.md: USER.md template still contains "
+        "skills/deft-directive-setup/SKILL.md: USER.md template still contains "
         "**Primary Languages** — language is a project-level concern (#107)"
     )
 
 
 def test_phase1_track1_no_language_step() -> None:
     """Phase 1 Track 1 must not ask about preferred languages."""
-    text = _read_skill("skills/deft-setup/SKILL.md")
+    text = _read_skill("skills/deft-directive-setup/SKILL.md")
     # Track 1 should not have "Ask preferred languages" in its steps
     assert "Ask preferred languages" not in text, (
-        "skills/deft-setup/SKILL.md: Phase 1 Track 1 still asks about "
+        "skills/deft-directive-setup/SKILL.md: Phase 1 Track 1 still asks about "
         "preferred languages — removed per #107"
     )
 
@@ -221,39 +223,39 @@ def test_phase1_track1_no_language_step() -> None:
 
 def test_phase2_track1_has_deployment_platform() -> None:
     """Phase 2 Track 1 must ask about deployment platform before language."""
-    text = _read_skill("skills/deft-setup/SKILL.md")
+    text = _read_skill("skills/deft-directive-setup/SKILL.md")
     assert "deployment platform" in text.lower(), (
-        "skills/deft-setup/SKILL.md: Phase 2 Track 1 must ask about "
+        "skills/deft-directive-setup/SKILL.md: Phase 2 Track 1 must ask about "
         "deployment platform (#108)"
     )
 
 
 def test_phase2_track1_platform_before_language() -> None:
     """Deployment platform question must appear before language question in Track 1."""
-    text = _read_skill("skills/deft-setup/SKILL.md")
+    text = _read_skill("skills/deft-directive-setup/SKILL.md")
     platform_pos = text.lower().find("deployment platform")
     # Find the language step that follows platform (Step 4 in Track 1)
     language_pos = text.lower().find("ask languages", platform_pos)
     assert platform_pos != -1 and language_pos != -1 and platform_pos < language_pos, (
-        "skills/deft-setup/SKILL.md: deployment platform must appear before "
+        "skills/deft-directive-setup/SKILL.md: deployment platform must appear before "
         "language question in Phase 2 Track 1"
     )
 
 
 def test_phase2_track1_progressive_other_disclosure() -> None:
     """Phase 2 Track 1 language step must include progressive Other disclosure."""
-    text = _read_skill("skills/deft-setup/SKILL.md")
+    text = _read_skill("skills/deft-directive-setup/SKILL.md")
     assert "Tier 2" in text and "Tier 3" in text, (
-        "skills/deft-setup/SKILL.md: Phase 2 Track 1 language step must include "
+        "skills/deft-directive-setup/SKILL.md: Phase 2 Track 1 language step must include "
         "progressive Other disclosure (Tier 2, Tier 3)"
     )
 
 
 def test_phase2_track1_missing_standards_warning() -> None:
     """Phase 2 Track 1 must warn when entered language has no standards file."""
-    text = _read_skill("skills/deft-setup/SKILL.md")
+    text = _read_skill("skills/deft-directive-setup/SKILL.md")
     assert "standards file" in text.lower() and "general defaults" in text.lower(), (
-        "skills/deft-setup/SKILL.md: Phase 2 Track 1 must warn when entered "
+        "skills/deft-directive-setup/SKILL.md: Phase 2 Track 1 must warn when entered "
         "language has no deft standards file"
     )
 
@@ -1070,7 +1072,7 @@ def test_deft_directive_swarm_antipattern_no_skip_phase5_gate() -> None:
 # 29. deft-setup USER.md/PROJECT.md deft_version field (#270, t3.2.1)
 # ---------------------------------------------------------------------------
 
-_SETUP_PATH = "skills/deft-setup/SKILL.md"
+_SETUP_PATH = "skills/deft-directive-setup/SKILL.md"
 
 
 def test_deft_setup_user_md_template_has_deft_version() -> None:
@@ -1082,15 +1084,16 @@ def test_deft_setup_user_md_template_has_deft_version() -> None:
     )
 
 
-def test_deft_setup_project_md_template_has_deft_version() -> None:
-    """PROJECT.md template in deft-setup must contain a deft_version field."""
+def test_deft_setup_project_definition_template_has_deft_version() -> None:
+    """PROJECT-DEFINITION.vbrief.json template in deft-directive-setup must contain DeftVersion."""
     text = _read_skill(_SETUP_PATH)
-    # Both USER.md and PROJECT.md templates should have deft_version;
-    # verify at least two occurrences (one per template)
-    count = text.count("**deft_version**:")
-    assert count >= 2, (
-        f"{_SETUP_PATH}: both USER.md and PROJECT.md templates must include "
-        f"deft_version field -- found {count} occurrence(s), expected >= 2 (#270, t3.2.1)"
+    # USER.md template has **deft_version**: and PROJECT-DEFINITION template has "DeftVersion"
+    assert "**deft_version**:" in text, (
+        f"{_SETUP_PATH}: USER.md template must include deft_version field (#270, t3.2.1)"
+    )
+    assert '"DeftVersion"' in text, (
+        f"{_SETUP_PATH}: PROJECT-DEFINITION.vbrief.json template must include "
+        f"DeftVersion narrative key (#270, t3.2.1)"
     )
 
 
@@ -1126,8 +1129,8 @@ def test_deft_setup_deft_version_must_rule() -> None:
 # 30. deft-interview skill -- existence, structure, and content (#296, t2.11.1)
 # ---------------------------------------------------------------------------
 
-_INTERVIEW_PATH = "skills/deft-interview/SKILL.md"
-_INTERVIEW_POINTER_PATH = ".agents/skills/deft-interview/SKILL.md"
+_INTERVIEW_PATH = "skills/deft-directive-interview/SKILL.md"
+_INTERVIEW_POINTER_PATH = ".agents/skills/deft-directive-interview/SKILL.md"
 
 
 def test_deft_interview_exists() -> None:
@@ -1146,13 +1149,13 @@ def test_deft_interview_rfc2119_legend() -> None:
 
 
 def test_deft_interview_has_frontmatter() -> None:
-    """deft-interview must have YAML frontmatter with name and description."""
+    """deft-directive-interview must have YAML frontmatter with name and description."""
     text = _read_skill(_INTERVIEW_PATH)
     assert text.startswith("---"), (
         f"{_INTERVIEW_PATH}: must start with YAML frontmatter '---'"
     )
-    assert "name: deft-interview" in text, (
-        f"{_INTERVIEW_PATH}: frontmatter must contain 'name: deft-interview'"
+    assert "name: deft-directive-interview" in text, (
+        f"{_INTERVIEW_PATH}: frontmatter must contain 'name: deft-directive-interview'"
     )
 
 
@@ -1235,23 +1238,22 @@ def test_deft_interview_pointer_exists() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_deft_setup_phase1_references_deft_interview() -> None:
-    """deft-setup Phase 1 Interview Rules must reference deft-interview SKILL.md."""
+def test_deft_setup_phase1_references_deft_directive_interview() -> None:
+    """deft-directive-setup Phase 1 Interview Rules must reference deft-directive-interview."""
     text = _read_skill(_SETUP_PATH)
-    # Phase 1 Interview Rules section should reference deft-interview
     phase1_start = text.find("## Phase 1")
     phase2_start = text.find("## Phase 2")
     assert phase1_start != -1 and phase2_start != -1, (
         f"{_SETUP_PATH}: must contain Phase 1 and Phase 2 sections"
     )
     phase1_text = text[phase1_start:phase2_start]
-    assert "deft-interview" in phase1_text, (
-        f"{_SETUP_PATH}: Phase 1 must reference deft-interview for interview rules (#304)"
+    assert "deft-directive-interview" in phase1_text, (
+        f"{_SETUP_PATH}: Phase 1 must reference deft-directive-interview (#304)"
     )
 
 
-def test_deft_setup_phase2_references_deft_interview() -> None:
-    """deft-setup Phase 2 Interview Rules must reference deft-interview SKILL.md."""
+def test_deft_setup_phase2_references_deft_directive_interview() -> None:
+    """deft-directive-setup Phase 2 Interview Rules must reference deft-directive-interview."""
     text = _read_skill(_SETUP_PATH)
     phase2_start = text.find("## Phase 2")
     phase3_start = text.find("## Phase 3")
@@ -1259,8 +1261,8 @@ def test_deft_setup_phase2_references_deft_interview() -> None:
         f"{_SETUP_PATH}: must contain Phase 2 and Phase 3 sections"
     )
     phase2_text = text[phase2_start:phase3_start]
-    assert "deft-interview" in phase2_text, (
-        f"{_SETUP_PATH}: Phase 2 must reference deft-interview for interview rules (#304)"
+    assert "deft-directive-interview" in phase2_text, (
+        f"{_SETUP_PATH}: Phase 2 must reference deft-directive-interview (#304)"
     )
 
 
@@ -1351,4 +1353,107 @@ def test_deft_directive_swarm_no_hardcoded_allocation_antipattern() -> None:
     text = _read_skill(_SWARM_PATH)
     assert "hardcode a 1:1" in text.lower() or "hardcoded 1:1" in text.lower(), (
         f"{_SWARM_PATH}: must have anti-pattern against hardcoded 1:1 allocation (#317)"
+# 34. deft-directive-setup vBRIEF model assertions (#314)
+# ---------------------------------------------------------------------------
+
+
+def test_deft_directive_setup_phase2_outputs_project_definition_vbrief() -> None:
+    """Phase 2 must output PROJECT-DEFINITION.vbrief.json, not PROJECT.md."""
+    text = _read_skill(_SETUP_PATH)
+    assert "PROJECT-DEFINITION.vbrief.json" in text, (
+        f"{_SETUP_PATH}: Phase 2 must output PROJECT-DEFINITION.vbrief.json (#314)"
+    )
+
+
+def test_deft_directive_setup_phase3_onboarding_question() -> None:
+    """Phase 3 must include onboarding question about adding scope vs starting new."""
+    text = _read_skill(_SETUP_PATH)
+    assert "adding a scope" in text.lower() and "starting a new" in text.lower(), (
+        f"{_SETUP_PATH}: Phase 3 must include onboarding question (#314)"
+    )
+
+
+def test_deft_directive_setup_full_path_rich_narratives() -> None:
+    """Full path must write rich narratives to specification.vbrief.json."""
+    text = _read_skill(_SETUP_PATH)
+    assert "ProblemStatement" in text and "Goals" in text and "UserStories" in text, (
+        f"{_SETUP_PATH}: Full path must include rich narrative keys (#314)"
+    )
+    assert "SuccessMetrics" in text and "Requirements" in text, (
+        f"{_SETUP_PATH}: Full path must include SuccessMetrics and Requirements (#314)"
+    )
+
+
+def test_deft_directive_setup_light_path_scope_vbriefs() -> None:
+    """Light path must create scope vBRIEFs in vbrief/proposed/."""
+    text = _read_skill(_SETUP_PATH)
+    assert "vbrief/proposed/" in text, (
+        f"{_SETUP_PATH}: Light path must create scope vBRIEFs in vbrief/proposed/ (#314)"
+    )
+
+
+def test_deft_directive_setup_no_authoritative_prd() -> None:
+    """deft-directive-setup must not generate authoritative PRD.md."""
+    text = _read_skill(_SETUP_PATH)
+    assert "authoritative PRD.md" in text, (
+        f"{_SETUP_PATH}: must prohibit authoritative PRD.md generation (#314)"
+    )
+
+
+def test_deft_directive_setup_handoff_to_directive_build() -> None:
+    """Handoff must reference deft-directive-build, not deft-build."""
+    text = _read_skill(_SETUP_PATH)
+    assert "deft-directive-build" in text, (
+        f"{_SETUP_PATH}: handoff must reference deft-directive-build (#314)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 35. deft-directive-interview vBRIEF model assertions (#319)
+# ---------------------------------------------------------------------------
+
+
+def test_deft_directive_interview_full_path_narrative_keys() -> None:
+    """Full path must define rich narrative keys for specification.vbrief.json."""
+    text = _read_skill(_INTERVIEW_PATH)
+    for key in ["ProblemStatement", "Goals", "UserStories", "Requirements",
+                "SuccessMetrics", "Architecture", "Overview"]:
+        assert key in text, (
+            f"{_INTERVIEW_PATH}: Full path must include '{key}' narrative key (#319)"
+        )
+
+
+def test_deft_directive_interview_light_path_slim_narratives() -> None:
+    """Light path must define slim narratives (Overview + Architecture)."""
+    text = _read_skill(_INTERVIEW_PATH)
+    light_section = text[text.find("### Light Path"):]
+    assert "Overview" in light_section and "Architecture" in light_section, (
+        f"{_INTERVIEW_PATH}: Light path must include Overview + Architecture (#319)"
+    )
+
+
+def test_deft_directive_interview_prd_render_reference() -> None:
+    """deft-directive-interview must reference task prd:render for optional export."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert "task prd:render" in text, (
+        f"{_INTERVIEW_PATH}: must reference task prd:render (#319)"
+    )
+
+
+def test_deft_directive_interview_no_authoritative_prd() -> None:
+    """deft-directive-interview must prohibit authoritative PRD.md generation."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert "authoritative PRD.md" in text, (
+        f"{_INTERVIEW_PATH}: must prohibit authoritative PRD.md (#319)"
+    )
+    assert "never authoritative" in text.lower(), (
+        f"{_INTERVIEW_PATH}: must state PRD.md is never authoritative (#319)"
+    )
+
+
+def test_deft_directive_interview_output_targets_section() -> None:
+    """deft-directive-interview must have Output Targets section."""
+    text = _read_skill(_INTERVIEW_PATH)
+    assert "## Output Targets" in text, (
+        f"{_INTERVIEW_PATH}: must have Output Targets section (#319)": rename deft-setup+interview to deft-directive-* and rewrite for vBRIEF model (#314, #319))
     )

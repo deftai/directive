@@ -44,6 +44,9 @@ includes:
   vbrief:
     taskfile: ./tasks/vbrief.yml
     optional: true
+  prd:
+    taskfile: ./tasks/prd.yml
+    optional: true
 
 tasks:
   default:

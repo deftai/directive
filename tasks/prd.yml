@@ -1,0 +1,15 @@
+version: '3'
+
+tasks:
+  render:
+    desc: Export plan.narratives from specification.vbrief.json to a read-only PRD.md
+    summary: |
+      Reads specification.vbrief.json and extracts plan.narratives into a
+      human-readable PRD.md for stakeholder export. PRD.md is never
+      authoritative -- the vBRIEF is the source of truth.
+    cmds:
+      - python3 scripts/prd_render.py {{.CLI_ARGS}}
+    sources:
+      - vbrief/specification.vbrief.json
+    generates:
+      - PRD.md
