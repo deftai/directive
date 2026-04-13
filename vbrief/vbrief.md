@@ -17,6 +17,8 @@ All vBRIEF files live in `./vbrief/` within the project workspace. Files are org
 ```
 vbrief/
   PROJECT-DEFINITION.vbrief.json   <- project identity gestalt
+  specification.vbrief.json        <- project spec source of truth
+  specification-{name}.vbrief.json <- add-on specs
   plan.vbrief.json                 <- session-level tactical plan (singular)
   continue.vbrief.json             <- interruption checkpoint (singular, ephemeral)
   playbook-{name}.vbrief.json      <- reusable operational patterns
@@ -27,7 +29,7 @@ vbrief/
   cancelled/                        <- rejected/abandoned (cancelled), restorable
 ```
 
-### Singular Files
+### Root-Level Files
 
 | File | Purpose | Lifecycle |
 |------|---------|----------|
@@ -82,6 +84,7 @@ Reference types (extensible by convention): `github-issue`, `jira-ticket`, `user
 
 Larger initiatives use **epic vBRIEFs** linking to child **story vBRIEFs**. Linking is bidirectional:
 
+- ! All `url` and `planRef` path values in scope vBRIEF JSON are **relative to the `vbrief/` directory** — not relative to the containing file's location
 - ! Epic `references` array MUST list child story file paths (type: `x-vbrief/plan`)
 - ! Story vBRIEFs MUST carry `planRef` back to their parent epic
 - ~ The decision to create an epic vs. a standalone story is made collaboratively between user and agent
@@ -134,7 +137,6 @@ When a scope grows too large, the parent vBRIEF becomes an epic and children are
 6. Origin provenance stays on the parent epic; children inherit via epic relationship
 
 - ! Scope splitting is agent-driven using existing tools — no dedicated split command
-- ! Origin provenance stays on the parent; children inherit via epic relationship
 - ~ Uses existing `scope:*` commands for lifecycle transitions after splitting
 
 ### General Rules
