@@ -90,7 +90,7 @@ Rules that apply to every `gh` invocation, regardless of context.
    ```
    gh issue close <N> --comment "Closed by #<PR> (squash merge -- auto-close did not trigger)"
    ```
-3. ~ This applies to ALL PR merges, not just swarm runs. See also: `skills/deft-review-cycle/SKILL.md` Post-Merge Verification, `skills/deft-swarm/SKILL.md` Phase 6 Step 2.
+3. ~ This applies to ALL PR merges, not just swarm runs. See also: `skills/deft-directive-review-cycle/SKILL.md` Post-Merge Verification, `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 2.
 
 ## Windows / PowerShell Encoding Guidance
 

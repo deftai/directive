@@ -249,7 +249,7 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
    ```
    gh issue close <N> --comment "Closed by #<PR> (squash merge — auto-close did not trigger)"
    ```
-3. ~ This step mirrors `skills/deft-swarm/SKILL.md` Phase 6 Step 2 and applies to ALL PR merges, not just swarm runs.
+3. ~ This step mirrors `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 2 and applies to ALL PR merges, not just swarm runs.
 
 ## Anti-Patterns
 
