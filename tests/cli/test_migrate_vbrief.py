@@ -25,6 +25,7 @@ from migrate_vbrief import (  # noqa: E402, I001
     _create_scope_vbrief,
     _is_user_customized,
     _parse_roadmap_items,
+    _resolve_repo_url,
     _slugify,
     migrate,
 )
@@ -181,6 +182,21 @@ class TestParseRoadmapItems:
         assert items == []
 
 
+class TestResolveRepoUrl:
+    """Tests for _resolve_repo_url."""
+
+    def test_returns_empty_for_none(self):
+        assert _resolve_repo_url(None) == ""
+
+    def test_returns_empty_for_no_repo_info(self):
+        spec = {"vBRIEFInfo": {"version": "0.5"}, "plan": {}}
+        assert _resolve_repo_url(spec) == ""
+
+    def test_extracts_from_repository_field(self):
+        spec = {"vBRIEFInfo": {"version": "0.5", "repository": "myorg/myrepo"}, "plan": {}}
+        assert _resolve_repo_url(spec) == "https://github.com/myorg/myrepo"
+
+
 class TestBuildProjectDefinition:
     """Tests for _build_project_definition."""
 
@@ -232,7 +248,13 @@ class TestCreateScopeVbrief:
         refs = result["plan"]["references"]
         assert len(refs) == 1
         assert refs[0]["type"] == "github-issue"
-        assert "123" in refs[0]["url"]
+        assert refs[0]["id"] == "#123"
+
+    def test_origin_provenance_with_repo_url(self):
+        item = {"number": "123", "title": "Bug fix", "phase": "Phase 2"}
+        result = _create_scope_vbrief(item, repo_url="https://github.com/owner/repo")
+        refs = result["plan"]["references"]
+        assert refs[0]["url"] == "https://github.com/owner/repo/issues/123"
 
 
 # ===========================================================================

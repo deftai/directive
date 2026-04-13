@@ -103,10 +103,33 @@ def _parse_roadmap_items(roadmap_path: Path) -> list[dict]:
     return items
 
 
+def _resolve_repo_url(spec_vbrief: dict | None) -> str:
+    """Resolve the GitHub repository URL from spec_vbrief or git remote.
+
+    Falls back to a generic issue: prefix if no repository can be determined.
+    """
+    # Try spec_vbrief metadata first
+    if spec_vbrief:
+        repo = spec_vbrief.get("vBRIEFInfo", {}).get("repository", "")
+        if repo:
+            return f"https://github.com/{repo}"
+        # Check references for a GitHub URL pattern
+        refs = spec_vbrief.get("plan", {}).get("references", [])
+        for ref in refs:
+            uri = ref.get("uri", "")
+            if "github.com" in uri:
+                # Extract owner/repo from URL
+                parts = uri.split("github.com/")[-1].split("/")
+                if len(parts) >= 2:
+                    return f"https://github.com/{parts[0]}/{parts[1]}"
+    return ""
+
+
 def _build_project_definition(
     spec_vbrief: dict | None,
     project_content: str | None,
     scope_items: list[dict],
+    repo_url: str = "",
 ) -> dict:
     """Build PROJECT-DEFINITION.vbrief.json from existing sources.
 
@@ -140,11 +163,13 @@ def _build_project_definition(
         # Origin provenance per D11
         number = scope.get("number")
         if number:
-            item["references"] = [{
+            ref: dict = {
                 "type": "github-issue",
-                "url": f"https://github.com/deftai/directive/issues/{number}",
                 "id": f"#{number}",
-            }]
+            }
+            if repo_url:
+                ref["url"] = f"{repo_url}/issues/{number}"
+            item["references"] = [ref]
         items.append(item)
 
     return {
@@ -161,7 +186,7 @@ def _build_project_definition(
     }
 
 
-def _create_scope_vbrief(item: dict) -> dict:
+def _create_scope_vbrief(item: dict, repo_url: str = "") -> dict:
     """Create an individual scope vBRIEF from a roadmap item.
 
     Per RFC #309 D7: filename uses creation date + descriptive slug.
@@ -189,11 +214,13 @@ def _create_scope_vbrief(item: dict) -> dict:
 
     # Origin provenance per D11
     if number:
-        vbrief["plan"]["references"] = [{
+        ref: dict = {
             "type": "github-issue",
-            "url": f"https://github.com/deftai/directive/issues/{number}",
             "id": f"#{number}",
-        }]
+        }
+        if repo_url:
+            ref["url"] = f"{repo_url}/issues/{number}"
+        vbrief["plan"]["references"] = [ref]
 
     return vbrief
 
@@ -272,12 +299,17 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
     else:
         actions.append("SKIP  ROADMAP.md not found or no items parsed")
 
+    # Resolve repository URL for provenance references
+    repo_url = _resolve_repo_url(spec_vbrief)
+
     # ---- Step 3: Generate PROJECT-DEFINITION.vbrief.json ----
     proj_def_path = vbrief_dir / "PROJECT-DEFINITION.vbrief.json"
     if proj_def_path.exists():
         actions.append("SKIP  PROJECT-DEFINITION.vbrief.json already exists (idempotent)")
     else:
-        proj_def = _build_project_definition(spec_vbrief, project_content, roadmap_items)
+        proj_def = _build_project_definition(
+            spec_vbrief, project_content, roadmap_items, repo_url=repo_url
+        )
         proj_def_path.write_text(
             json.dumps(proj_def, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
@@ -303,7 +335,7 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
             )
             continue
 
-        scope_vbrief = _create_scope_vbrief(item)
+        scope_vbrief = _create_scope_vbrief(item, repo_url=repo_url)
         target_path.write_text(
             json.dumps(scope_vbrief, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
@@ -317,12 +349,19 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
         else:
             # Check for user customization
             if spec_md_content and _is_user_customized(spec_md_content, _SPEC_AUTO_MARKERS):
-                warnings.append(
-                    "WARNING: SPECIFICATION.md appears user-customized. "
-                    "Original content preserved in PROJECT-DEFINITION.vbrief.json narratives."
+                preserved = _fold_custom_content(
+                    proj_def_path, "SpecificationContent", spec_md_content or ""
                 )
-                # Fold custom content into project definition
-                _fold_custom_content(proj_def_path, "SpecificationContent", spec_md_content or "")
+                if preserved:
+                    warnings.append(
+                        "WARNING: SPECIFICATION.md appears user-customized. "
+                        "Original content preserved in PROJECT-DEFINITION.vbrief.json narratives."
+                    )
+                else:
+                    warnings.append(
+                        "WARNING: SPECIFICATION.md appears user-customized but could not be "
+                        "folded into PROJECT-DEFINITION. Back up the file before proceeding."
+                    )
 
             redirect = _deprecation_redirect(
                 "SPECIFICATION.md",
@@ -338,11 +377,19 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
         else:
             # Check for user customization
             if project_content and _is_user_customized(project_content, _PROJECT_AUTO_MARKERS):
-                warnings.append(
-                    "WARNING: PROJECT.md appears user-customized. "
-                    "Original content preserved in PROJECT-DEFINITION.vbrief.json narratives."
+                preserved = _fold_custom_content(
+                    proj_def_path, "ProjectConfig", project_content or ""
                 )
-                _fold_custom_content(proj_def_path, "ProjectConfig", project_content or "")
+                if preserved:
+                    warnings.append(
+                        "WARNING: PROJECT.md appears user-customized. "
+                        "Original content preserved in PROJECT-DEFINITION.vbrief.json narratives."
+                    )
+                else:
+                    warnings.append(
+                        "WARNING: PROJECT.md appears user-customized but could not be "
+                        "folded into PROJECT-DEFINITION. Back up the file before proceeding."
+                    )
 
             redirect = _deprecation_redirect(
                 "PROJECT.md",
@@ -377,10 +424,13 @@ def _find_existing_scope_vbrief(vbrief_dir: Path, issue_number: str) -> Path | N
     return None
 
 
-def _fold_custom_content(proj_def_path: Path, key: str, content: str) -> None:
-    """Fold custom content into PROJECT-DEFINITION.vbrief.json narratives."""
+def _fold_custom_content(proj_def_path: Path, key: str, content: str) -> bool:
+    """Fold custom content into PROJECT-DEFINITION.vbrief.json narratives.
+
+    Returns True if content was successfully preserved, False otherwise.
+    """
     if not proj_def_path.exists():
-        return
+        return False
     try:
         data = json.loads(proj_def_path.read_text(encoding="utf-8"))
         data.setdefault("plan", {}).setdefault("narratives", {})[key] = content
@@ -388,8 +438,9 @@ def _fold_custom_content(proj_def_path: Path, key: str, content: str) -> None:
             json.dumps(data, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
+        return True
     except (json.JSONDecodeError, AttributeError):
-        pass
+        return False
 
 
 def main() -> int:
