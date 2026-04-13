@@ -59,6 +59,12 @@ ORIGIN_TYPES = frozenset({
     "github-issue", "jira-ticket", "user-request",
 })
 
+# Story S (#334): deprecation redirect sentinel
+DEPRECATED_REDIRECT_SENTINEL = "<!-- deft:deprecated-redirect -->"
+
+# Files that should contain the redirect sentinel after migration
+DEPRECATED_FILES = ("SPECIFICATION.md", "PROJECT.md")
+
 
 # ---------------------------------------------------------------------------
 # Schema validation (reuses spec_validate.py logic, extended)
@@ -501,6 +507,44 @@ def validate_origin_provenance(
 
 
 # ---------------------------------------------------------------------------
+# Story S (#334): Post-migration placeholder integrity
+# ---------------------------------------------------------------------------
+
+def validate_deprecated_placeholders(
+    vbrief_dir: Path,
+) -> list[str]:
+    """Check that SPECIFICATION.md and PROJECT.md contain the deprecation
+    redirect sentinel if they exist.
+
+    After migration, these files are replaced with redirect stubs containing
+    ``<!-- deft:deprecated-redirect -->``.  If a user or agent replaces the
+    redirect with real content, flag it as a warning.
+
+    Returns a list of warning strings.
+    """
+    warnings: list[str] = []
+    project_root = vbrief_dir.parent
+
+    for filename in DEPRECATED_FILES:
+        filepath = project_root / filename
+        if not filepath.is_file():
+            continue
+        try:
+            content = filepath.read_text(encoding="utf-8")
+        except OSError:
+            continue
+
+        if DEPRECATED_REDIRECT_SENTINEL not in content:
+            warnings.append(
+                f"{filename} contains non-redirect content -- "
+                "this file is deprecated; use scope vBRIEFs "
+                "in vbrief/ instead"
+            )
+
+    return warnings
+
+
+# ---------------------------------------------------------------------------
 # Main orchestrator
 # ---------------------------------------------------------------------------
 
@@ -587,6 +631,9 @@ def validate_all(
                 all_vbriefs, vbrief_dir, resolved_to_original
             )
         )
+
+    # Post-migration placeholder integrity (Story S #334)
+    warnings.extend(validate_deprecated_placeholders(vbrief_dir))
 
     return errors, warnings, len(scope_files)
 

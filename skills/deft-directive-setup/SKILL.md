@@ -19,6 +19,46 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - User asks to create USER.md, PROJECT-DEFINITION.vbrief.json, or a specification
 - User clones a deft-enabled repo for the first time with no config
 
+## Pre-Cutover Detection Guard
+
+! Before proceeding with any setup phase, detect whether the project uses the pre-v0.20 document model and redirect to migration if so.
+
+### Detection Criteria
+
+A project is **pre-cutover** if ANY of the following are true:
+
+1. `SPECIFICATION.md` exists and does NOT contain the `<!-- deft:deprecated-redirect -->` sentinel (real content, not a deprecation redirect)
+2. `PROJECT.md` exists and does NOT contain the `<!-- deft:deprecated-redirect -->` sentinel (real content, not a deprecation redirect)
+3. `vbrief/specification.vbrief.json` exists but the lifecycle folders (`vbrief/proposed/`, `vbrief/pending/`, `vbrief/active/`, `vbrief/completed/`, `vbrief/cancelled/`) do NOT exist
+
+### Action on Detection
+
+! If pre-cutover state is detected, **stop immediately** and display an actionable message:
+
+> "This project uses the pre-v0.20 document model. Run `task migrate:vbrief` to upgrade to the vBRIEF-centric model."
+
+! Include specific details about what was detected:
+
+- Missing lifecycle folders: "Run `task migrate:vbrief` to create the lifecycle folder structure"
+- `SPECIFICATION.md` with real content: "SPECIFICATION.md contains non-redirect content -- this file is deprecated; use scope vBRIEFs in `vbrief/` instead"
+- `PROJECT.md` with real content: "PROJECT.md contains non-redirect content -- this file is deprecated; use `PROJECT-DEFINITION.vbrief.json` instead"
+- Missing `PROJECT-DEFINITION.vbrief.json`: "Run `task project:render` to generate the project definition"
+
+⊗ Proceed with setup phases when pre-cutover artifacts are detected -- always redirect to migration first.
+⊗ Silently ignore pre-cutover artifacts -- the user must be informed with an actionable command to fix the state.
+
+### Greenfield Projects (No Migration Needed)
+
+! For new projects (no existing `SPECIFICATION.md`, `PROJECT.md`, or `vbrief/specification.vbrief.json`), the guard passes silently and setup proceeds normally.
+
+! Greenfield setup creates the full vBRIEF-centric structure from scratch:
+
+1. `./vbrief/` directory with all 5 lifecycle subdirectories: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`
+2. `./vbrief/PROJECT-DEFINITION.vbrief.json` generated from Phase 2 interview results
+3. First scope vBRIEF created in `proposed/` or `pending/` depending on Phase 3 interview outcome
+
+~ This is already handled by Phase 2 Output Path (creates `./vbrief/` and lifecycle subfolders) and Phase 3 Output (creates scope vBRIEFs in lifecycle folders). The guard ensures migrating projects are redirected before reaching these phases.
+
 ## Platform Detection
 
 ! Before resolving any config paths, detect the host OS from your environment context:

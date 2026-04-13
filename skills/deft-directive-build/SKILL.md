@@ -30,6 +30,35 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 - ! If `$DEFT_USER_PATH` is set, it takes precedence on any platform
 
+## Pre-Cutover Detection Guard
+
+! Before proceeding with any build step, detect whether the project uses the pre-v0.20 document model and redirect to migration if so.
+
+### Detection Criteria
+
+A project is **pre-cutover** if ANY of the following are true:
+
+1. `SPECIFICATION.md` exists and does NOT contain the `<!-- deft:deprecated-redirect -->` sentinel (real content, not a deprecation redirect)
+2. `PROJECT.md` exists and does NOT contain the `<!-- deft:deprecated-redirect -->` sentinel (real content, not a deprecation redirect)
+3. `vbrief/specification.vbrief.json` exists but the lifecycle folders (`vbrief/proposed/`, `vbrief/pending/`, `vbrief/active/`, `vbrief/completed/`, `vbrief/cancelled/`) do NOT exist
+
+### Action on Detection
+
+! If pre-cutover state is detected, **stop immediately** and display an actionable message:
+
+> "This project uses the pre-v0.20 document model. Run `task migrate:vbrief` to upgrade to the vBRIEF-centric model."
+
+! Include specific details about what was detected:
+
+- Missing lifecycle folders: "Run `task migrate:vbrief` to create the lifecycle folder structure"
+- `SPECIFICATION.md` with real content: "SPECIFICATION.md contains non-redirect content -- this file is deprecated; use scope vBRIEFs in `vbrief/` instead"
+- `PROJECT.md` with real content: "PROJECT.md contains non-redirect content -- this file is deprecated; use `PROJECT-DEFINITION.vbrief.json` instead"
+- Missing `PROJECT-DEFINITION.vbrief.json`: "Run `task project:render` to generate the project definition"
+- Scope vBRIEF in wrong folder: "Status is '{status}' but file is in {folder}/ -- run `task scope:activate <file>` to fix"
+
+⊗ Proceed with build when pre-cutover artifacts are detected -- always redirect to migration first.
+⊗ Silently ignore pre-cutover artifacts -- the user must be informed with an actionable command to fix the state.
+
 ## USER.md Gate
 
 ! Before proceeding, verify USER.md exists at the platform-appropriate path
