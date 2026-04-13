@@ -12,6 +12,7 @@ Verifies:
 Author: Scott Adams (msadams) — 2026-03-12
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -1482,8 +1483,12 @@ def test_no_bare_deft_skill_directories() -> None:
 
 
 def test_agents_md_routing_all_deft_directive_paths() -> None:
-    """All AGENTS.md routing keywords must map to deft-directive-* skill paths."""
-    import re
+    """All AGENTS.md routing keywords must map to deft-directive-* skill paths.
+
+    Note: intentionally duplicates test_agents_md_routing_uses_directive_prefix
+    in test_vbrief_model.py -- this copy lives in the skill-focused test file
+    for skill rename verification context.
+    """
     text = _read_skill("AGENTS.md")
     pattern = re.compile(
         r"\u2192\s+`(skills/[^`]+)`",

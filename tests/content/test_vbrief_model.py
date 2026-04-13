@@ -90,6 +90,22 @@ def _routing_entries() -> list[tuple[str, str]]:
     return results
 
 
+# Cache collection-time calls to avoid re-parsing files during pytest parametrize
+_ROUTING_ENTRIES = _routing_entries()
+
+
+def _content_files() -> list[Path]:
+    """Collect non-deprecated content files that should not reference
+    SPECIFICATION.md or PROJECT.md as first-class output targets."""
+    files: list[Path] = []
+    for glob in _CONTENT_GLOBS:
+        files.extend(_REPO_ROOT.glob(glob))
+    return sorted(files)
+
+
+_CONTENT_FILES = _content_files()
+
+
 # ===========================================================================
 # 1. CONTENT TESTS — Repo Structure Validation
 # ===========================================================================
@@ -140,8 +156,8 @@ def test_agents_md_routing_entries_exist() -> None:
 
 @pytest.mark.parametrize(
     "line,skill_path",
-    _routing_entries(),
-    ids=[p for _, p in _routing_entries()],
+    _ROUTING_ENTRIES,
+    ids=[p for _, p in _ROUTING_ENTRIES],
 )
 def test_agents_md_routing_path_exists(line: str, skill_path: str) -> None:
     """Each AGENTS.md routing entry must point to an existing file."""
@@ -154,8 +170,8 @@ def test_agents_md_routing_path_exists(line: str, skill_path: str) -> None:
 
 @pytest.mark.parametrize(
     "line,skill_path",
-    _routing_entries(),
-    ids=[p for _, p in _routing_entries()],
+    _ROUTING_ENTRIES,
+    ids=[p for _, p in _ROUTING_ENTRIES],
 )
 def test_agents_md_routing_uses_directive_prefix(line: str, skill_path: str) -> None:
     """All AGENTS.md routing paths must use the deft-directive-* prefix."""
@@ -169,15 +185,6 @@ def test_agents_md_routing_uses_directive_prefix(line: str, skill_path: str) -> 
 # 1c. No stale SPECIFICATION.md or PROJECT.md as first-class output targets
 #     in non-deprecated skill/framework content files
 # ---------------------------------------------------------------------------
-
-def _content_files() -> list[Path]:
-    """Collect non-deprecated content files that should not reference
-    SPECIFICATION.md or PROJECT.md as first-class output targets."""
-    files: list[Path] = []
-    for glob in _CONTENT_GLOBS:
-        files.extend(_REPO_ROOT.glob(glob))
-    return sorted(files)
-
 
 def _is_stale_output_reference(line: str) -> bool:
     """Check if a line references SPECIFICATION.md or PROJECT.md as an output target.
@@ -203,8 +210,8 @@ def _is_stale_output_reference(line: str) -> bool:
 
 @pytest.mark.parametrize(
     "content_file",
-    _content_files(),
-    ids=[str(f.relative_to(_REPO_ROOT)) for f in _content_files()],
+    _CONTENT_FILES,
+    ids=[str(f.relative_to(_REPO_ROOT)) for f in _CONTENT_FILES],
 )
 def test_no_stale_output_target_references(content_file: Path) -> None:
     """Non-deprecated content files must not reference SPECIFICATION.md or
@@ -389,19 +396,25 @@ def test_origin_provenance_example_in_vbrief_md() -> None:
 
 
 def test_origin_provenance_valid_reference_structure() -> None:
-    """Validate that a well-formed origin reference has the expected keys."""
-    # This tests the expected structure per RFC D11
-    reference = {
-        "type": "github-issue",
-        "url": "https://github.com/deftai/directive/issues/123",
-        "id": "#123",
-    }
-    assert "type" in reference
-    assert "url" in reference
-    assert "id" in reference
-    assert reference["type"] == "github-issue"
-    assert reference["url"].startswith("https://")
-    assert reference["id"].startswith("#")
+    """Validate that a JSON example in vbrief.md contains a well-formed references array."""
+    text = _read_text(_VBRIEF_MD)
+    # Find JSON code blocks that are complete objects and contain "references"
+    for match in re.finditer(r'```json\n(\{.*?\})\n```', text, re.DOTALL):
+        try:
+            data = json.loads(match.group(1))
+        except json.JSONDecodeError:
+            continue
+        # Navigate to references — may be at top level or nested in plan
+        refs = data.get("references", [])
+        if not refs:
+            plan = data.get("plan", {})
+            refs = plan.get("references", []) if isinstance(plan, dict) else []
+        if refs:
+            ref = refs[0]
+            assert "type" in ref, "reference must have 'type' key"
+            assert "url" in ref, "reference must have 'url' key"
+            return
+    pytest.fail("No JSON code block with a valid 'references' array found in vbrief.md")
 
 
 def test_origin_provenance_reference_types_documented() -> None:
