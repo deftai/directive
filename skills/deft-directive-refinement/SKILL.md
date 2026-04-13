@@ -232,7 +232,7 @@ After all refinement work is complete:
 
 ### Review Cycle Handoff
 
-! After the PR is created, automatically sequence into `skills/deft-directive-review-cycle/SKILL.md`.
+! After the PR is created, automatically sequence into `skills/deft-review-cycle/SKILL.md`.
 
 - ! Inform the user: "PR #{N} created -- starting review cycle."
 - ! Follow the full review cycle skill from Phase 1 (Deft Process Audit) onward.
@@ -244,7 +244,7 @@ After all refinement work is complete:
 1. ! Explicitly confirm skill exit: "deft-directive-refinement complete -- exiting skill."
 2. ! Provide chaining instructions to the user/agent:
    - If review cycle is complete and PR is approved: "PR #{N} is ready for human merge review."
-   - If review cycle is still in progress: "Review cycle handed off to deft-directive-review-cycle. Monitor PR #{N} for Greptile findings."
+   - If review cycle is still in progress: "Review cycle handed off to deft-review-cycle. Monitor PR #{N} for Greptile findings."
    - If returning to a monitor agent: "Returning control to monitor agent -- refinement PR #{N} created and review cycle initiated."
 3. ! Do NOT continue into adjacent work after this point -- the skill boundary is an exit condition.
 

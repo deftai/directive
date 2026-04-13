@@ -632,7 +632,7 @@ def test_deft_review_cycle_mcp_fallback() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 18. deft-directive-refinement skill -- existence and RFC2119
+# 21. deft-directive-refinement skill -- existence and RFC2119
 #     (#316, vBRIEF cutover rename + rewrite from deft-roadmap-refresh)
 # ---------------------------------------------------------------------------
 
@@ -656,7 +656,7 @@ def test_deft_directive_refinement_rfc2119_legend() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 19. deft-directive-refinement -- frontmatter and session model (#316)
+# 22. deft-directive-refinement -- frontmatter and session model (#316)
 # ---------------------------------------------------------------------------
 
 def test_deft_directive_refinement_has_frontmatter() -> None:
@@ -679,7 +679,7 @@ def test_deft_directive_refinement_session_model() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 20. deft-directive-refinement phases (#316)
+# 23. deft-directive-refinement phases (#316)
 # ---------------------------------------------------------------------------
 
 def test_deft_directive_refinement_ingest_phase() -> None:
@@ -773,8 +773,8 @@ def test_deft_directive_refinement_pr_review_cycle() -> None:
 def test_deft_directive_refinement_review_cycle_handoff() -> None:
     """deft-directive-refinement must hand off to deft-directive-review-cycle."""
     text = _read_skill(_REFINEMENT_PATH)
-    assert "skills/deft-directive-review-cycle/SKILL.md" in text, (
-        f"{_REFINEMENT_PATH}: must hand off to deft-directive-review-cycle"
+    assert "skills/deft-review-cycle/SKILL.md" in text, (
+        f"{_REFINEMENT_PATH}: must hand off to deft-review-cycle"
     )
 
 
