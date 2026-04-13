@@ -41,12 +41,15 @@ gh api repos/<owner>/<repo>/commits/<sha>/check-runs --jq '.check_runs[] | selec
 
 ! Before touching code, verify ALL prerequisites are satisfied. Fix any gaps first:
 
-1. ! `SPECIFICATION.md` has task coverage for all changes in the PR
-2. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes
-3. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥75%)
-4. ! `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfied in the PR description
-5. ! If the PR touches 3+ files: verify a `/deft:change` proposal exists in `history/changes/` for this branch and was explicitly confirmed by the user (affirmative response, not a broad 'proceed'), or document N/A with reason in the PR checklist
-6. ! Verify the PR is on a feature branch — work MUST NOT have been committed directly to the default branch (master/main)
+1. ! Verify `skills/deft-pre-pr/SKILL.md` was run before PR creation -- the PR branch should have passed at least one full RWLDL cycle. If not, run it now before proceeding.
+2. ! `SPECIFICATION.md` has task coverage for all changes in the PR
+3. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes
+4. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥75%)
+5. ! `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfied in the PR description
+6. ! If the PR touches 3+ files: verify a `/deft:change` proposal exists in `history/changes/` for this branch and was explicitly confirmed by the user (affirmative response, not a broad 'proceed'), or document N/A with reason in the PR checklist
+7. ! Verify the PR is on a feature branch — work MUST NOT have been committed directly to the default branch (master/main)
+
+~ **PR scope gate:** If the PR spans 3+ unrelated surfaces (e.g. a skill, a tool doc, and a strategy — with no shared issue or spec task linking them), warn the user that broad PRs increase review churn and Greptile noise. Recommend splitting into focused PRs unless all changes trace to the same spec task or issue bundle.
 
 ! Phase 1 audit gaps must be resolved before merging — but hold the fixes (do NOT commit or push them independently). Proceed to Phase 2 analysis to gather bot findings, then batch all Phase 1 + Phase 2 fixes into a single commit.
 ⊗ Commit or push Phase 1 audit fixes independently before gathering Phase 2 findings.
@@ -62,6 +65,14 @@ gh pr view <number> --comments
 ```
 
 ! Use `do_not_summarize_output: true` — summarizers silently drop the "Comments Outside Diff" section from large bot comments.
+
+~ **Oversized output fallback (Windows/PowerShell):** If `do_not_summarize_output: true` produces output too large to process, extract the relevant section with:
+
+```
+gh pr view <number> --comments | Select-String "Outside Diff" -Context 50
+```
+
+This extracts the "Comments Outside Diff" section with 50 lines of surrounding context, avoiding the need to process the full output.
 
 ! **MCP capability probe** (mirrors deft-swarm Phase 3 pattern): Before attempting MCP `get_review_comments`, probe whether MCP GitHub tools are available in the current session. Detection: attempt a lightweight MCP call (e.g. list available tools or a no-op query) -- if it succeeds, MCP is available; if it errors or the tool is not in the available set, MCP is unavailable.
 
@@ -118,7 +129,13 @@ gh pr view <number> --comments
 
 ### Review Monitoring
 
-! Select the monitoring approach based on runtime capability detection. Probe for `start_agent` in the available tool set (same pattern as deft-swarm Phase 3 capability detection) before choosing:
+! Select the monitoring approach based on runtime capability detection. Probe the environment to distinguish three tiers:
+
+- **Tier 1 -- `start_agent` available** → Approach 1 (spawn sub-agent monitor)
+- **Tier 2 -- no `start_agent`, but scheduler/timer/auto-reinvocation available** → Approach 2 (yield-between-polls)
+- **Tier 3 -- interactive session, no `start_agent`, no timer/scheduler** → Approach 3 (blocking sleep loop as last resort)
+
+! Detection: probe for `start_agent` in the available tool set (same pattern as deft-swarm Phase 3). If absent, check whether the runtime supports auto-reinvocation after yield (timer, scheduler, or CI trigger). If neither is available and the session is interactive, fall through to Approach 3.
 
 ! Swarm agents launched via `start_agent` SHOULD prefer Approach 1 (spawn their own review-monitor sub-agent) when `start_agent` is available. Approach 2's yield-between-polls mechanism is not self-sustaining for swarm agents (see Approach 2 warning below).
 
@@ -127,7 +144,7 @@ gh pr view <number> --comments
 ! When `start_agent` is detected in the available tool set, spawn a sub-agent review monitor:
 
 1. ! Launch a sub-agent via `start_agent` with a prompt instructing it to poll for Greptile review completion
-2. ! The sub-agent polls `gh pr view <number> --repo <owner>/<repo> --comments` and `gh pr checks <number>` on a ~60-second cadence
+2. ! The sub-agent polls `gh pr view <number> --repo <owner>/<repo> --comments` and `gh pr checks <number>` using adaptive cadence: ~20-30 seconds for the first check after push, ~60 seconds for the second check, ~90 seconds thereafter (Greptile reviews typically land in 3-7 minutes; front-loading the first check catches fast reviews without wasting cycles on long waits)
 3. ! When the exit condition is met (Greptile review current matching HEAD commit SHA, confidence > 3, no P0/P1 issues remaining), the sub-agent sends a message to the parent agent via `send_message_to_agent`
 4. ! The main conversation pane stays fully interactive during monitoring -- the user can continue other work
 5. ! On receiving the sub-agent's completion message, the parent agent re-fetches findings and proceeds to Step 5
@@ -138,15 +155,31 @@ gh pr view <number> --comments
 
 1. ! Use `run_shell_command` (wait mode) to run `gh pr view <number> --comments` and `gh pr checks <number>`
 2. ! After each check, yield control (end all tool calls, do not hold a shell open) -- the agent runtime will re-invoke you after ~60 seconds or on the next system/user interaction, whichever comes first
-3. ! Target ~60 seconds between checks. Greptile reviews typically take 3-7 minutes; polling faster adds no value
+3. ! Use adaptive cadence: ~20-30 seconds for the first poll after push, ~60 seconds for the second, ~90 seconds thereafter. Greptile reviews typically take 3-7 minutes; front-loading the first check catches fast reviews
 4. ! No blocking shell pane lock -- the conversation remains interactive between checks
 5. ~ Approach 2 requires a periodic re-invocation trigger (timer, scheduler, or user nudge) -- if the runtime lacks an auto-trigger, each poll cycle may require a user interaction to resume; this is a known tradeoff vs. Approach 1's fully autonomous sub-agent
 6. ! When the exit condition is met, proceed to Step 5
 
 ⚠️ **Swarm agent limitation**: Approach 2 is NOT autonomous for swarm agents. Yielding (ending all tool calls) terminates the agent's turn with no self-wake mechanism -- the agent will not resume unless the monitor detects the idle lifecycle event and re-triggers it. For swarm agents, the polling loop silently stops after the first yield unless external orchestration re-invokes the agent. The monitor (or parent agent) must detect the idle state and send a message or re-trigger the agent to continue polling.
 
-⊗ Use blocking `Start-Sleep` shell loops, `time.sleep()` loops, or any approach that holds a shell pane open while waiting -- these lock the conversation and prevent user interaction.
-⊗ Poll more frequently than once per 60 seconds -- use a real delay between checks, not back-to-back calls.
+⊗ Use blocking `Start-Sleep` shell loops or `time.sleep()` loops EXCEPT as Approach 3 (see below) -- these lock the conversation and prevent user interaction.
+⊗ Poll more frequently than every 20 seconds -- use a real delay between checks, not back-to-back calls. Adaptive cadence (20-30s / 60s / 90s) replaces the fixed 60s minimum.
+
+**Approach 3 (last resort -- interactive session, no `start_agent`, no timer/scheduler):**
+
+! Approach 3 is a blocking sleep-poll loop used ONLY when both Approach 1 and Approach 2 are unavailable (interactive session with no `start_agent` and no auto-reinvocation mechanism). Uses PowerShell `sleep` / Unix `sleep` commands between polls.
+
+! **User warning gate:** Before activating Approach 3, the agent MUST warn the user that the conversation pane will be locked during polling and ask for explicit confirmation. Example: "No sub-agent or auto-reinvocation available. I will poll in a blocking loop (~20-30s / 60s / 90s cadence). The conversation will be locked during polling. Proceed? (yes/no)"
+
+⊗ Activate Approach 3 without first warning the user that it will lock the conversation pane.
+
+1. ! After receiving user confirmation, use a blocking shell loop with adaptive cadence:
+   - First check: wait ~25 seconds (e.g. `sleep 25`), then poll
+   - Second check: wait ~60 seconds, then poll
+   - Subsequent checks: wait ~90 seconds, then poll
+2. ! Poll using `gh pr view <number> --comments` and `gh pr checks <number>` in the same shell session
+3. ! When the exit condition is met (Greptile review current, confidence > 3, no P0/P1), exit the loop and proceed to Step 5
+4. ! If the user interrupts (Ctrl+C or equivalent), exit gracefully and report current review status
 
 ! Greptile may advance its review by **editing an existing PR issue comment** rather than creating a new PR review object. Do NOT rely solely on `pulls/{number}/reviews` — that endpoint may remain stale at an older commit SHA even after Greptile has reviewed the latest commit.
 
@@ -231,8 +264,8 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 - ⊗ Proceed to Phase 2 while any Phase 1 prerequisite is unmet
 - ⊗ Rely solely on `pulls/{number}/reviews` to detect whether Greptile has reviewed the latest commit — Greptile may update via an edited issue comment instead of a new review object
 - ⊗ Push additional commits while Greptile is reviewing the current head — each push re-triggers Greptile and resets the review clock
-- ⊗ Use blocking `Start-Sleep` shell loops or `time.sleep()` loops to poll for review updates -- these lock the conversation pane
-- ⊗ Poll more frequently than once per 60 seconds -- use a real delay between checks, not back-to-back calls
+- ⊗ Use blocking `Start-Sleep` shell loops or `time.sleep()` loops to poll for review updates when Approach 1 or 2 is available -- Approach 3 (blocking loop) is permitted only as a last resort with user warning
+- ⊗ Poll more frequently than every 20 seconds -- use a real delay between checks, not back-to-back calls; adaptive cadence (20-30s / 60s / 90s) replaces the fixed 60s minimum
 - ⊗ Stop and ask the user whether to continue after pushing -- the review/fix loop MUST run autonomously to the exit condition
 - ⊗ Push fix commits without scanning changed lines for untested code paths — always check test coverage before pushing
 - ⊗ Push a fix commit that addresses fewer findings than the current Greptile review surfaces — if Greptile flags 3 issues, all 3 must be fixed in one commit before pushing
@@ -241,3 +274,5 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 - ⊗ Assume Approach 2 (yield-between-polls) produces a self-sustaining polling loop -- yielding ends the agent's turn with no self-wake; swarm agents will silently stop polling
 - ⊗ Skip the second review source (MCP or `gh api` fallback) without probing for MCP capability and documenting the fallback used
 - ⊗ Run a partial test suite instead of `task check` without documenting the pre-existing failure reason and open issue number in the PR body
+- ⊗ Create a PR without running `skills/deft-pre-pr/SKILL.md` first -- the pre-PR quality loop catches issues before they reach the reviewer
+- ⊗ Activate Approach 3 (blocking `Start-Sleep` loop) without first warning the user that it will lock the conversation pane and receiving confirmation

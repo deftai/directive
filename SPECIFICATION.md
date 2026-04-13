@@ -1238,19 +1238,40 @@ Big-bang cutover to the vBRIEF-centric document model. RFC #309 defines 18 desig
 
 **Traces**: #309, #310, #311, #312, #313, #314, #315, #316, #317, #318, #319, #320, #321, #322, #323, #324
 
-## t1.31.1: deft-review-cycle Approach 3 -- interactive blocking fallback when start_agent unavailable (#307)  `[pending]`
+## t1.31.1: deft-review-cycle Approach 3 -- interactive blocking fallback when start_agent unavailable (#307)  `[completed]`
 
 Approach 2 (yield-between-polls) silently stalls in interactive sessions with no start_agent and no scheduler. Add a third detection tier: Approach 3 uses a blocking Start-Sleep loop as a last resort, gated by a ! rule requiring the user be warned before activation. Update capability detection to distinguish three states: start_agent available (Approach 1), no start_agent but timer available (Approach 2), no start_agent + no timer + interactive (Approach 3).
 
-- <first acceptance criterion placeholder>
+- skills/deft-review-cycle/SKILL.md Review Monitoring section contains 3-tier capability detection: Tier 1 (start_agent -> Approach 1), Tier 2 (no start_agent + scheduler/timer -> Approach 2), Tier 3 (interactive + no start_agent + no timer -> Approach 3)
+- skills/deft-review-cycle/SKILL.md contains Approach 3 section with blocking Start-Sleep loop using adaptive cadence (25s / 60s / 90s)
+- Approach 3 contains ! user warning gate: agent MUST warn user that conversation will be locked before activating
+- Anti-Patterns section contains entry: activate Approach 3 without warning user
+- Anti-Patterns section updates blocking loop prohibition to exclude Approach 3 as permitted last resort
 
 **Traces**: #307
 
-## t1.30.1: Greptile review cycle optimization -- 5-change bundle (#305)  `[pending]`
+## t1.32.1: Add Select-String fallback for oversized gh pr view output in deft-review-cycle (#328)  `[completed]`
+
+When `do_not_summarize_output: true` produces output too large to process in deft-review-cycle Phase 2 Step 1, agents have no documented fallback. Add a Select-String fallback command to extract the "Comments Outside Diff" section with surrounding context. Note Windows/PowerShell context.
+
+- skills/deft-review-cycle/SKILL.md Phase 2 Step 1 contains ~ fallback guidance for oversized output: `gh pr view <number> --comments | Select-String "Outside Diff" -Context 50`
+- Fallback is positioned after the `do_not_summarize_output: true` rule
+- Guidance notes Windows/PowerShell context (Select-String is PowerShell-native)
+
+**Traces**: #328
+
+## t1.30.1: Greptile review cycle optimization -- 5-change bundle (#305)  `[completed]`
 
 Fix all 5 active review cycle bottlenecks in one PR: (1) mandate deft-pre-pr before PR creation -- AGENTS.md ! rule + deft-review-cycle Phase 1 verification gate; (2) PR scope gate warning in deft-review-cycle Phase 1 for PRs spanning 3+ unrelated surfaces; (3) adaptive poll cadence -- 20-30s first check, 60s second, 90s thereafter; (4) parallel rebase + review monitoring in deft-swarm Phase 6 via start_agent sub-agents; (5) .greptile/rules.md starter template in tools/greptile.md elevated to SHOULD.
 
-- <first acceptance criterion placeholder>
+- AGENTS.md Development Process section contains ! rule: Before opening a PR, run skills/deft-pre-pr/SKILL.md (upgraded from ~)
+- skills/deft-review-cycle/SKILL.md Phase 1 contains verification gate: verify deft-pre-pr was run before PR creation
+- skills/deft-review-cycle/SKILL.md Phase 1 contains ~ PR scope gate warning for PRs spanning 3+ unrelated surfaces
+- skills/deft-review-cycle/SKILL.md Approach 1 and Approach 2 use adaptive poll cadence: ~20-30s first check, ~60s second, ~90s thereafter (replaces fixed 60s)
+- skills/deft-swarm/SKILL.md Phase 6 Step 1 contains ~ guidance for parallel rebase + review monitoring via start_agent sub-agents
+- tools/greptile.md .greptile/rules.md elevated from ? to ~ (SHOULD) with starter template
+- Anti-Patterns section contains entry: create PR without running deft-pre-pr first
+- Anti-Patterns section updated: poll frequency minimum changed from 60s to 20s with adaptive cadence
 
 **Traces**: #305
 
@@ -1286,11 +1307,13 @@ The Invocation Contract section of skills/deft-interview/SKILL.md requires calle
 
 **Traces**: #302
 
-## t1.26.1: Tighten deft-interview routing keyword -- fix collision with spec-creation intent (#301)  `[pending]`
+## t1.26.1: Tighten deft-interview routing keyword -- fix collision with spec-creation intent (#301)  `[completed]`
 
 The bare ``interview`` keyword in AGENTS.md Skill Routing routes to deft-interview (generic Q&A loop), but users starting a spec session also say ``interview`` and expect strategies/interview.md. Tighten the trigger phrases to remove ambiguity.
 
-- <first acceptance criterion placeholder>
+- AGENTS.md Skill Routing table entry changed from ``"interview" / "ask questions" / "structured interview"`` to ``"interview loop" / "q&a loop" / "run interview loop"``
+- Route still points to skills/deft-interview/SKILL.md
+- Bare ``interview`` keyword no longer collides with strategies/interview.md spec-creation intent
 
 **Traces**: #301
 

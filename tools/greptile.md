@@ -49,8 +49,34 @@ Dashboard settings cover most needs. Per-repo `.greptile/` folders are only need
 ### When to use `.greptile/`
 
 - ? `config.json` — override org defaults for a specific repo (e.g. different strictness for a high-risk service)
-- ? `rules.md` — repo-specific review rules in prose (additive with org rules)
+- ~ `rules.md` — repo-specific review rules in prose (additive with org rules). SHOULD be present in every repo to give Greptile project-specific context.
 - ? `files.json` — point Greptile at repo-specific context docs (architecture docs, API specs, schemas)
+
+### Starter `.greptile/rules.md` Template
+
+~ Every repo using Greptile SHOULD include a `.greptile/rules.md` with at least the following sections. Adapt the content to your project.
+
+```markdown
+# Review Rules
+
+## Project Context
+- This project uses [brief tech stack description].
+- Primary language(s): [languages].
+
+## Conventions
+- Commit messages follow Conventional Commits: type(scope): description.
+- All files use UTF-8 without BOM.
+- RFC2119 enforcement markers (!, ~, ⊗) are used for rules.
+
+## Review Focus
+- Flag any TODO/FIXME/HACK comments in new code.
+- Verify error handling is present (no silent failures).
+- Check that new public APIs have documentation.
+
+## Ignore
+- Do not flag style issues in generated files.
+- Do not flag line length in markdown files.
+```
 
 ### Configuration hierarchy (highest → lowest precedence)
 

@@ -56,7 +56,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - "setup" / "bootstrap" / "onboard" → `skills/deft-setup/SKILL.md`
 - "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" → `skills/deft-sync/SKILL.md`
 - "pre-pr" / "quality loop" / "rwldl" / "self-review" → `skills/deft-pre-pr/SKILL.md`
-- "interview" / "ask questions" / "structured interview" → `skills/deft-interview/SKILL.md`
+- "interview loop" / "q&a loop" / "run interview loop" → `skills/deft-interview/SKILL.md`
 
 ## Development Process (always follow)
 
@@ -65,7 +65,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - ! If no spec task exists for the work, add one before implementing
 - ⊗ Begin editing files before checking spec coverage and creating a feature branch — even if the user says "yes" or "proceed"
 
-~ Before opening a PR, run `skills/deft-pre-pr/SKILL.md` for an iterative quality loop.
+! Before opening a PR, run `skills/deft-pre-pr/SKILL.md` for an iterative quality loop.
 
 **Before committing:**
 - Run `task check` (validate + lint + test) — this is the pre-commit gate
