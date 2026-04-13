@@ -27,10 +27,8 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 # ---------------------------------------------------------------------------
 
 SKILL_PATHS = [
-    "skills/deft-setup/SKILL.md",
     "skills/deft-directive-build/SKILL.md",
     "skills/deft-directive-setup/SKILL.md",
-    "skills/deft-build/SKILL.md",: rename deft-setup+interview to deft-directive-* and rewrite for vBRIEF model (#314, #319))
 ]
 
 RFC2119_LEGEND = "!=MUST, ~=SHOULD"
@@ -1455,5 +1453,5 @@ def test_deft_directive_interview_output_targets_section() -> None:
     """deft-directive-interview must have Output Targets section."""
     text = _read_skill(_INTERVIEW_PATH)
     assert "## Output Targets" in text, (
-        f"{_INTERVIEW_PATH}: must have Output Targets section (#319)": rename deft-setup+interview to deft-directive-* and rewrite for vBRIEF model (#314, #319))
+        f"{_INTERVIEW_PATH}: must have Output Targets section (#319)"
     )
