@@ -110,10 +110,10 @@ The AI SHOULD propose a size based on these signals; the user confirms or overri
 - Team/agent count (solo → Light, multi-agent/swarm → Full)
 - Integration complexity (standalone → Light, external APIs/auth/DB → Full)
 
-### PROJECT.md Override
+### PROJECT-DEFINITION.vbrief.json Override
 
-`PROJECT.md` ? declare `**Process**: Light` or `**Process**: Full` to skip the
-gate entirely. If the field is absent or empty, the AI MUST ask.
+`PROJECT-DEFINITION.vbrief.json` narratives ? declare `"Process": "Light"` or `"Process": "Full"` to skip the
+gate entirely. `PROJECT.md` (deprecated) may also carry this field. If the field is absent or empty, the AI MUST ask.
 
 ## Workflow Overview
 

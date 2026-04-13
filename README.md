@@ -169,7 +169,7 @@ flowchart TD
     subgraph precedence ["Rule Precedence (top = highest)"]
         direction TB
         U["👤 USER.md<br/><i>Personal preferences</i>"]
-        P["📁 PROJECT.md<br/><i>Project-specific rules</i>"]
+        P["📁 PROJECT-DEFINITION.vbrief.json<br/><i>Project identity + rules</i>"]
         L["🐍 python.md / go.md / etc.<br/><i>Language standards</i>"]
         T["🔧 taskfile.md<br/><i>Tool guidelines</i>"]
         M["🤖 main.md<br/><i>General AI behavior</i>"]
