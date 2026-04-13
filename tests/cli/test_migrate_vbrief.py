@@ -324,6 +324,34 @@ class TestMigrateRoadmapConversion:
             assert len(refs) >= 1
             assert refs[0]["type"] == "github-issue"
 
+    def test_filename_includes_issue_number(self, tmp_path):
+        """Filenames include issue number to prevent slug collisions."""
+        project = _make_project(tmp_path, roadmap_md=SAMPLE_ROADMAP_MD)
+        migrate(project)
+
+        pending_dir = project / "vbrief" / "pending"
+        filenames = [f.name for f in pending_dir.glob("*.vbrief.json")]
+        # Each filename should contain the issue number
+        assert any("100" in fn for fn in filenames)
+        assert any("101" in fn for fn in filenames)
+        assert any("200" in fn for fn in filenames)
+
+    def test_slug_collision_produces_separate_files(self, tmp_path):
+        """Two items with identical titles but different issue numbers create separate files."""
+        collision_roadmap = (
+            "# Roadmap\n\n"
+            "## Phase 1 -- Foundation\n\n"
+            "- **#100** -- Add widget support\n"
+            "- **#101** -- Add widget support\n"
+        )
+        project = _make_project(tmp_path, roadmap_md=collision_roadmap)
+        ok, actions = migrate(project)
+        assert ok
+
+        pending_dir = project / "vbrief" / "pending"
+        vbrief_files = list(pending_dir.glob("*.vbrief.json"))
+        assert len(vbrief_files) == 2  # Both items should get separate files
+
     def test_idempotent_roadmap_conversion(self, tmp_path):
         project = _make_project(tmp_path, roadmap_md=SAMPLE_ROADMAP_MD)
         migrate(project)

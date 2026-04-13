@@ -288,7 +288,7 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
     for item in roadmap_items:
         number = item.get("number", "unknown")
         slug = _slugify(item.get("title", "untitled"))
-        filename = f"{_TODAY}-{slug}.vbrief.json"
+        filename = f"{_TODAY}-{number}-{slug}.vbrief.json"
         target_path = vbrief_dir / "pending" / filename
 
         if target_path.exists():
@@ -383,8 +383,7 @@ def _fold_custom_content(proj_def_path: Path, key: str, content: str) -> None:
         return
     try:
         data = json.loads(proj_def_path.read_text(encoding="utf-8"))
-        narratives = data.get("plan", {}).get("narratives", {})
-        narratives[key] = content
+        data.setdefault("plan", {}).setdefault("narratives", {})[key] = content
         proj_def_path.write_text(
             json.dumps(data, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
