@@ -362,7 +362,10 @@ def validate_epic_story_links(
                 if isinstance(parent_refs, list):
                     child_uris = set()
                     for pref in parent_refs:
-                        if isinstance(pref, dict):
+                        if (
+                            isinstance(pref, dict)
+                            and pref.get("type") == "x-vbrief/plan"
+                        ):
                             child_uris.add(pref.get("uri", ""))
                     if not _path_in_refs(
                         filepath, child_uris, vbrief_dir
@@ -383,7 +386,11 @@ def validate_epic_story_links(
 
 
 def _collect_plan_refs(plan: dict) -> list[str]:
-    """Collect all planRef values from plan root and items."""
+    """Collect all planRef values from plan root and top-level items.
+
+    Note: subItems are intentionally not scanned -- planRef is only valid
+    at the plan root and top-level item levels per vBRIEF convention.
+    """
     refs: list[str] = []
     root_ref = plan.get("planRef")
     if isinstance(root_ref, str) and root_ref:
