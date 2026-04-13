@@ -38,6 +38,9 @@ includes:
   project:
     taskfile: ./tasks/project.yml
     optional: true
+  migrate:
+    taskfile: ./tasks/migrate.yml
+    optional: true
 
 tasks:
   default:
