@@ -39,6 +39,7 @@ Refinement is a **conversational loop**, not a batch job. The user directs the f
 - "Check origins" / "reconcile" -> Phase 3 (Reconcile)
 - "Accept these" / "reject that" / "promote" / "demote" -> Phase 4 (Promote/Demote)
 - "Reprioritize" / "reorder pending" -> Phase 5 (Prioritize)
+- "Close out" / "scope is done" / "completion" -> Phase 6 (Completion Lifecycle)
 - "Done" / "exit" -> Exit
 
 The agent may suggest the next phase, but the user decides. Phases can be entered in any order and repeated.

@@ -784,7 +784,10 @@ def test_deft_directive_refinement_exit_block() -> None:
     assert "### EXIT" in text, (
         f"{_REFINEMENT_PATH}: missing EXIT block"
     )
-    assert "exiting skill" in text.lower() and "chaining instructions" in text.lower(), (
+    assert "exiting skill" in text.lower(), (
+        f"{_REFINEMENT_PATH}: EXIT block must contain 'exiting skill' confirmation"
+    )
+    assert "chaining instructions" in text.lower(), (
         f"{_REFINEMENT_PATH}: EXIT block must provide chaining instructions"
     )
 
