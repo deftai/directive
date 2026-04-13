@@ -57,6 +57,7 @@ Individual units of work (features, bugs, initiatives) live as scope vBRIEFs in 
 - ! `plan.status` inside each scope vBRIEF is the **source of truth** — not the folder location
 - ! Folder location is a convenience view for humans; metadata is authoritative
 - ! Agents MUST move files to the matching lifecycle folder when status changes
+- ! When moving a file, agents MUST update all `planRef` and `references[].url` values in other scope vBRIEFs that point to the moved file
 - ~ When folder/status drift is detected, trust the status field and correct the folder
 - ⊗ Move files between folders without updating `plan.status`
 
@@ -133,8 +134,9 @@ When a scope grows too large, the parent vBRIEF becomes an epic and children are
 2. Parent vBRIEF promoted to epic
 3. Child story vBRIEFs created with `planRef` back to parent
 4. Parent epic's `references` updated to list all child paths
-5. Acceptance criteria redistributed by agent with user approval
-6. Origin provenance stays on the parent epic; children inherit via epic relationship
+5. Update `plan.vbrief.json` (and `continue.vbrief.json` if present) `planRef` to reference child scope vBRIEFs
+6. Acceptance criteria redistributed by agent with user approval
+7. Origin provenance stays on the parent epic; children inherit via epic relationship
 
 - ! Scope splitting is agent-driven using existing tools — no dedicated split command
 - ~ Uses existing `scope:*` commands for lifecycle transitions after splitting
@@ -310,8 +312,31 @@ The source-of-truth for project intent. Created via the interview process in
 The synthesized project identity — what this project IS right now. Uses the existing vBRIEF v0.5 schema:
 
 - `narratives` holds project identity: overview, tech stack, architecture, risks/unknowns, configuration
-- `items` acts as a registry of active scopes, each referencing its individual scope vBRIEF file
+- `items` acts as a registry of active scopes, each referencing its individual scope vBRIEF file via `references`
 - `plan.status` represents overall project state (e.g. `running`, `draft`)
+
+```json
+{
+  "plan": {
+    "title": "My Project",
+    "status": "running",
+    "narratives": {
+      "Overview": "A CLI tool for ...",
+      "TechStack": "Go 1.22, Python 3.11",
+      "Risks": "No known blockers"
+    },
+    "items": [
+      {
+        "title": "Add OAuth flow",
+        "status": "running",
+        "references": [
+          { "type": "x-vbrief/plan", "url": "./active/2026-04-12-add-oauth-flow.vbrief.json" }
+        ]
+      }
+    ]
+  }
+}
+```
 
 **Regeneration**: Deterministic tooling updates the items registry from folder contents; agent-assisted layer reviews and proposes narrative updates with user approval.
 
