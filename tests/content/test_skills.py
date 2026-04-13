@@ -281,21 +281,21 @@ def test_deft_build_references_task_test_coverage() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 12. deft-swarm skill — file existence and RFC2119 (#188, #199)
+# 12. deft-directive-swarm skill — file existence and RFC2119 (#188, #199, #317)
 # ---------------------------------------------------------------------------
 
-_SWARM_PATH = "skills/deft-swarm/SKILL.md"
+_SWARM_PATH = "skills/deft-directive-swarm/SKILL.md"
 
 
-def test_deft_swarm_exists() -> None:
-    """deft-swarm SKILL.md must exist at its expected path."""
+def test_deft_directive_swarm_exists() -> None:
+    """deft-directive-swarm SKILL.md must exist at its expected path."""
     assert (_REPO_ROOT / _SWARM_PATH).is_file(), (
         f"Skill file missing: {_SWARM_PATH}"
     )
 
 
-def test_deft_swarm_rfc2119_legend() -> None:
-    """deft-swarm must contain the RFC2119 legend line."""
+def test_deft_directive_swarm_rfc2119_legend() -> None:
+    """deft-directive-swarm must contain the RFC2119 legend line."""
     text = _read_skill(_SWARM_PATH)
     assert RFC2119_LEGEND in text, (
         f"{_SWARM_PATH}: missing RFC2119 legend '{RFC2119_LEGEND}'"
@@ -303,34 +303,34 @@ def test_deft_swarm_rfc2119_legend() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 13. deft-swarm Phase 0 — Analyze (mandatory analyze phase, #199, t1.9.4)
+# 13. deft-directive-swarm Phase 0 — Allocate (vBRIEF allocation, #199, #317)
 # ---------------------------------------------------------------------------
 
-def test_deft_swarm_phase0_analyze_heading() -> None:
-    """deft-swarm must contain Phase 0 — Analyze heading."""
+def test_deft_directive_swarm_phase0_allocate_heading() -> None:
+    """deft-directive-swarm must contain Phase 0 — Allocate heading."""
     text = _read_skill(_SWARM_PATH)
-    assert "## Phase 0" in text and "Analyze" in text, (
-        f"{_SWARM_PATH}: missing Phase 0 — Analyze section (#199)"
+    assert "## Phase 0" in text and "Allocate" in text, (
+        f"{_SWARM_PATH}: missing Phase 0 -- Allocate section (#317)"
     )
 
 
-def test_deft_swarm_phase0_reads_roadmap_and_spec() -> None:
-    """Phase 0 must read ROADMAP.md and SPECIFICATION.md."""
+def test_deft_directive_swarm_phase0_scans_vbrief_active() -> None:
+    """Phase 0 must scan vbrief/active/ for story-level vBRIEFs."""
     text = _read_skill(_SWARM_PATH)
-    assert "ROADMAP.md" in text and "SPECIFICATION.md" in text, (
-        f"{_SWARM_PATH}: Phase 0 must read ROADMAP.md and SPECIFICATION.md"
+    assert "vbrief/active/" in text and "vbrief.json" in text, (
+        f"{_SWARM_PATH}: Phase 0 must scan vbrief/active/ for vBRIEFs (#317)"
     )
 
 
-def test_deft_swarm_phase0_surfaces_blockers() -> None:
+def test_deft_directive_swarm_phase0_surfaces_blockers() -> None:
     """Phase 0 must surface blockers."""
     text = _read_skill(_SWARM_PATH)
-    assert "blocked" in text.lower() and "missing spec" in text.lower(), (
-        f"{_SWARM_PATH}: Phase 0 must surface blockers and missing spec coverage"
+    assert "blocked" in text.lower() and "incomplete" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 0 must surface blockers and incomplete vBRIEFs"
     )
 
 
-def test_deft_swarm_phase0_approval_gate() -> None:
+def test_deft_directive_swarm_phase0_approval_gate() -> None:
     """Phase 0 must require explicit user approval before Phase 1."""
     text = _read_skill(_SWARM_PATH)
     assert "yes" in text and "confirmed" in text and "approve" in text, (
@@ -338,7 +338,7 @@ def test_deft_swarm_phase0_approval_gate() -> None:
     )
 
 
-def test_deft_swarm_phase0_antipattern() -> None:
+def test_deft_directive_swarm_phase0_antipattern() -> None:
     """Anti-patterns must prohibit proceeding to Phase 1 without Phase 0."""
     text = _read_skill(_SWARM_PATH)
     assert "Phase 1 (Select) without completing Phase 0" in text, (
@@ -346,11 +346,25 @@ def test_deft_swarm_phase0_antipattern() -> None:
     )
 
 
+def test_deft_directive_swarm_flexible_allocation() -> None:
+    """Phase 0 must support flexible multi-vBRIEF allocation per agent (#317)."""
+    text = _read_skill(_SWARM_PATH)
+    assert "no fixed per-agent limit" in text.lower() or "no hardcoded 1:1 rule" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 0 must support flexible allocation (no fixed 1:1) (#317)"
+    )
+    assert "small/independent stories" in text.lower() and "batched" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 0 must allow batching small stories (#317)"
+    )
+    assert "large/complex stories" in text.lower() and "dedicated" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 0 must allow dedicated agents for large stories (#317)"
+    )
+
+
 # ---------------------------------------------------------------------------
-# 14. deft-swarm Phase 3 — Runtime capability detection (#188, t1.9.3)
+# 14. deft-directive-swarm Phase 3 — Runtime capability detection (#188, t1.9.3)
 # ---------------------------------------------------------------------------
 
-def test_deft_swarm_runtime_start_agent_detection() -> None:
+def test_deft_directive_swarm_runtime_start_agent_detection() -> None:
     """Phase 3 must probe for start_agent tool."""
     text = _read_skill(_SWARM_PATH)
     assert "start_agent" in text, (
@@ -358,7 +372,7 @@ def test_deft_swarm_runtime_start_agent_detection() -> None:
     )
 
 
-def test_deft_swarm_warp_env_detection() -> None:
+def test_deft_directive_swarm_warp_env_detection() -> None:
     """Phase 3 must detect Warp via WARP_* environment variables."""
     text = _read_skill(_SWARM_PATH)
     assert "WARP_*" in text or "WARP_TERMINAL_SESSION" in text, (
@@ -366,7 +380,7 @@ def test_deft_swarm_warp_env_detection() -> None:
     )
 
 
-def test_deft_swarm_no_static_abc_antipattern() -> None:
+def test_deft_directive_swarm_no_static_abc_antipattern() -> None:
     """Anti-patterns must prohibit static A/B/C option presentation."""
     text = _read_skill(_SWARM_PATH)
     assert "static launch options" in text.lower() or "static launch options (A/B/C)" in text, (
@@ -374,7 +388,7 @@ def test_deft_swarm_no_static_abc_antipattern() -> None:
     )
 
 
-def test_deft_swarm_cloud_escape_hatch_only() -> None:
+def test_deft_directive_swarm_cloud_escape_hatch_only() -> None:
     """Cloud launch (oz agent run-cloud) must be explicit user request only."""
     text = _read_skill(_SWARM_PATH)
     assert "explicit" in text.lower() and "user" in text.lower() and "run-cloud" in text, (
@@ -383,10 +397,10 @@ def test_deft_swarm_cloud_escape_hatch_only() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 15. deft-swarm Phase 6 — Close-out orchestration rules (#206, t2.6.3)
+# 15. deft-directive-swarm Phase 6 — Close-out orchestration rules (#206, t2.6.3)
 # ---------------------------------------------------------------------------
 
-def test_deft_swarm_phase6_merge_authority() -> None:
+def test_deft_directive_swarm_phase6_merge_authority() -> None:
     """Phase 6 must contain merge authority rule."""
     text = _read_skill(_SWARM_PATH)
     assert "Merge authority" in text and "user approves" in text, (
@@ -394,7 +408,7 @@ def test_deft_swarm_phase6_merge_authority() -> None:
     )
 
 
-def test_deft_swarm_phase6_rebase_ownership() -> None:
+def test_deft_directive_swarm_phase6_rebase_ownership() -> None:
     """Phase 6 must assign rebase cascade ownership to monitor."""
     text = _read_skill(_SWARM_PATH)
     assert "Rebase cascade ownership" in text and "Monitor owns" in text, (
@@ -402,7 +416,7 @@ def test_deft_swarm_phase6_rebase_ownership() -> None:
     )
 
 
-def test_deft_swarm_phase6_git_editor() -> None:
+def test_deft_directive_swarm_phase6_git_editor() -> None:
     """Phase 6 must document GIT_EDITOR override for non-interactive rebase."""
     text = _read_skill(_SWARM_PATH)
     assert "GIT_EDITOR" in text, (
@@ -410,7 +424,7 @@ def test_deft_swarm_phase6_git_editor() -> None:
     )
 
 
-def test_deft_swarm_phase6_post_merge_verification() -> None:
+def test_deft_directive_swarm_phase6_post_merge_verification() -> None:
     """Phase 6 must verify issues closed after squash merge."""
     text = _read_skill(_SWARM_PATH)
     assert "verify issues actually closed" in text, (
@@ -418,7 +432,7 @@ def test_deft_swarm_phase6_post_merge_verification() -> None:
     )
 
 
-def test_deft_swarm_push_autonomy() -> None:
+def test_deft_directive_swarm_push_autonomy() -> None:
     """Swarm skill must contain push autonomy carve-out."""
     text = _read_skill(_SWARM_PATH)
     assert "Push Autonomy" in text and "task check" in text.lower(), (
@@ -427,19 +441,19 @@ def test_deft_swarm_push_autonomy() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 16. deft-swarm Phase 5→6 gate — release decision checkpoint (#218, t1.10.2)
+# 16. deft-directive-swarm Phase 5→6 gate — release decision checkpoint (#218, t1.10.2)
 # ---------------------------------------------------------------------------
 
 
-def test_deft_swarm_phase5_6_gate_heading() -> None:
-    """deft-swarm must contain Phase 5→6 gate section."""
+def test_deft_directive_swarm_phase5_6_gate_heading() -> None:
+    """deft-directive-swarm must contain Phase 5→6 gate section."""
     text = _read_skill(_SWARM_PATH)
     assert "Phase 5\u21926 Gate" in text, (
         f"{_SWARM_PATH}: missing Phase 5\u21926 gate section (#218)"
     )
 
 
-def test_deft_swarm_phase5_6_version_bump_approval() -> None:
+def test_deft_directive_swarm_phase5_6_version_bump_approval() -> None:
     """Phase 5→6 gate must require explicit user approval."""
     text = _read_skill(_SWARM_PATH)
     assert "version bump" in text.lower() and "confirmed" in text, (
@@ -447,7 +461,7 @@ def test_deft_swarm_phase5_6_version_bump_approval() -> None:
     )
 
 
-def test_deft_swarm_greptile_rebase_latency() -> None:
+def test_deft_directive_swarm_greptile_rebase_latency() -> None:
     """Phase 6 must document Greptile re-review latency on force-push rebase."""
     text = _read_skill(_SWARM_PATH)
     assert "Greptile re-review" in text and "2-5" in text, (
@@ -843,11 +857,11 @@ def test_deft_pre_pr_contradiction_antipattern() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 28. deft-swarm Phase 5->6 gate hardening + crash recovery (#261, #263, t1.13.1)
+# 28. deft-directive-swarm Phase 5->6 gate hardening + crash recovery (#261, #263, t1.13.1)
 # ---------------------------------------------------------------------------
 
 
-def test_deft_swarm_phase5_6_context_pressure_callout() -> None:
+def test_deft_directive_swarm_phase5_6_context_pressure_callout() -> None:
     """Phase 5->6 gate must contain explicit context-pressure bypass prohibition."""
     text = _read_skill(_SWARM_PATH)
     assert "context-pressure bypass prohibition" in text.lower(), (
@@ -855,7 +869,7 @@ def test_deft_swarm_phase5_6_context_pressure_callout() -> None:
     )
 
 
-def test_deft_swarm_takeover_prespawn_verification() -> None:
+def test_deft_directive_swarm_takeover_prespawn_verification() -> None:
     """Takeover Triggers must require pre-spawn verification via lifecycle events."""
     text = _read_skill(_SWARM_PATH)
     assert "pre-spawn verification" in text.lower() and "lifecycle event" in text.lower(), (
@@ -863,15 +877,15 @@ def test_deft_swarm_takeover_prespawn_verification() -> None:
     )
 
 
-def test_deft_swarm_duplicate_tab_failure_mode() -> None:
-    """deft-swarm must document the duplicate-tab failure mode."""
+def test_deft_directive_swarm_duplicate_tab_failure_mode() -> None:
+    """deft-directive-swarm must document the duplicate-tab failure mode."""
     text = _read_skill(_SWARM_PATH)
     assert "Duplicate-Tab Failure Mode" in text and "tool_use" in text and "tool_result" in text, (
         f"{_SWARM_PATH}: missing Duplicate-Tab Failure Mode documentation (#261, t1.13.1)"
     )
 
 
-def test_deft_swarm_context_length_warning() -> None:
+def test_deft_directive_swarm_context_length_warning() -> None:
     """Phase 4 must contain context-length warning about long monitoring sessions."""
     text = _read_skill(_SWARM_PATH)
     assert "Context-Length Warning" in text and "conversation corruption" in text.lower(), (
@@ -879,15 +893,15 @@ def test_deft_swarm_context_length_warning() -> None:
     )
 
 
-def test_deft_swarm_crash_recovery_section() -> None:
-    """deft-swarm must contain a Crash Recovery section with recovery steps."""
+def test_deft_directive_swarm_crash_recovery_section() -> None:
+    """deft-directive-swarm must contain a Crash Recovery section with recovery steps."""
     text = _read_skill(_SWARM_PATH)
     assert "## Crash Recovery" in text and "gh pr list" in text and "gh pr view" in text, (
         f"{_SWARM_PATH}: missing Crash Recovery section (#263, t1.13.1)"
     )
 
 
-def test_deft_swarm_antipattern_no_spawn_without_lifecycle() -> None:
+def test_deft_directive_swarm_antipattern_no_spawn_without_lifecycle() -> None:
     """Anti-patterns must prohibit spawning replacement without lifecycle confirmation."""
     text = _read_skill(_SWARM_PATH)
     assert "spawn a replacement sub-agent without confirming" in text.lower(), (
@@ -896,7 +910,7 @@ def test_deft_swarm_antipattern_no_spawn_without_lifecycle() -> None:
     )
 
 
-def test_deft_swarm_antipattern_no_skip_phase5_gate() -> None:
+def test_deft_directive_swarm_antipattern_no_skip_phase5_gate() -> None:
     """Anti-patterns must prohibit skipping Phase 5 gate under pressure."""
     text = _read_skill(_SWARM_PATH)
     lower = text.lower()
@@ -1105,11 +1119,11 @@ def test_deft_setup_phase2_references_deft_interview() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 32. deft-swarm Phase 6 read-back verification (#288, t1.21.1)
+# 32. deft-directive-swarm Phase 6 read-back verification (#288, t1.21.1)
 # ---------------------------------------------------------------------------
 
 
-def test_deft_swarm_phase6_readback_verification() -> None:
+def test_deft_directive_swarm_phase6_readback_verification() -> None:
     """Phase 6 must require re-reading conflict-resolved files before git add."""
     text = _read_skill(_SWARM_PATH)
     assert "Read-back verification" in text and "conflict markers" in text.lower(), (
@@ -1117,30 +1131,78 @@ def test_deft_swarm_phase6_readback_verification() -> None:
     )
 
 
-def test_deft_swarm_phase6_prefer_edit_files_for_conflicts() -> None:
+def test_deft_directive_swarm_phase6_prefer_edit_files_for_conflicts() -> None:
     """Phase 6 must prefer edit_files over shell regex for conflict resolution."""
     text = _read_skill(_SWARM_PATH)
-    assert "edit_files" in text and "CHANGELOG.md" in text and "SPECIFICATION.md" in text, (
+    assert "edit_files" in text and "CHANGELOG.md" in text, (
         f"{_SWARM_PATH}: Phase 6 must prefer edit_files for conflict resolution (#288)"
     )
 
 
 # ---------------------------------------------------------------------------
-# 33. deft-swarm Phase 6 Slack announcement (#292, t1.22.1)
+# 33. deft-directive-swarm Phase 6 Slack announcement (#292, t1.22.1)
 # ---------------------------------------------------------------------------
 
 
-def test_deft_swarm_phase6_slack_announcement_step() -> None:
-    """Phase 6 Step 6 must generate a Slack release announcement block."""
+def test_deft_directive_swarm_phase6_slack_announcement_step() -> None:
+    """Phase 6 Step 5 must generate a Slack release announcement block."""
     text = _read_skill(_SWARM_PATH)
     assert "Slack" in text and "announcement" in text.lower(), (
         f"{_SWARM_PATH}: Phase 6 must include Slack announcement step (#292)"
     )
 
 
-def test_deft_swarm_phase6_slack_required_fields() -> None:
+def test_deft_directive_swarm_phase6_slack_required_fields() -> None:
     """Slack announcement must include version, key changes, PR numbers, and release URL."""
     text = _read_skill(_SWARM_PATH)
     assert "Key Changes" in text and "PRs*:" in text and "Release*:" in text, (
         f"{_SWARM_PATH}: Slack announcement must include required fields (#292)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 34. deft-directive-swarm Phase 5 vBRIEF completion lifecycle (#317)
+# ---------------------------------------------------------------------------
+
+
+def test_deft_directive_swarm_phase5_vbrief_completion() -> None:
+    """Phase 5 must move completed vBRIEFs from active/ to completed/."""
+    text = _read_skill(_SWARM_PATH)
+    assert "scope:complete" in text and "vbrief/completed/" in text, (
+        f"{_SWARM_PATH}: Phase 5 must move vBRIEFs to completed/ via scope:complete (#317)"
+    )
+
+
+def test_deft_directive_swarm_phase5_origin_update() -> None:
+    """Phase 5 must update origin references on completion."""
+    text = _read_skill(_SWARM_PATH)
+    assert "references" in text.lower() and "close the issue" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 5 must update origins on completion (#317)"
+    )
+
+
+def test_deft_directive_swarm_no_old_name_references() -> None:
+    """deft-directive-swarm must not reference the old deft-swarm name."""
+    text = _read_skill(_SWARM_PATH)
+    # Check that 'deft-swarm' does not appear without the 'directive-' prefix
+    import re
+    old_refs = re.findall(r'(?<!directive-)deft-swarm', text)
+    assert len(old_refs) == 0, (
+        f"{_SWARM_PATH}: found {len(old_refs)} reference(s) to old 'deft-swarm' name (#317)"
+    )
+
+
+def test_deft_directive_swarm_frontmatter_name() -> None:
+    """SKILL.md frontmatter must have name: deft-directive-swarm."""
+    text = _read_skill(_SWARM_PATH)
+    assert "name: deft-directive-swarm" in text, (
+        f"{_SWARM_PATH}: frontmatter must contain 'name: deft-directive-swarm' (#317)"
+    )
+
+
+def test_deft_directive_swarm_no_hardcoded_allocation_antipattern() -> None:
+    """Anti-patterns must prohibit hardcoded 1:1 vBRIEF-per-agent allocation."""
+    text = _read_skill(_SWARM_PATH)
+    assert "hardcode a 1:1" in text.lower() or "hardcoded 1:1" in text.lower(), (
+        f"{_SWARM_PATH}: must have anti-pattern against hardcoded 1:1 allocation (#317)"
     )

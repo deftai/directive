@@ -1,15 +1,15 @@
 ---
-name: deft-swarm
+name: deft-directive-swarm
 description: >
   Parallel local agent orchestration. Use when running multiple agents
-  on roadmap items simultaneously — to select non-overlapping tasks, set up
-  isolated worktrees, launch agents with proven prompts, monitor progress,
-  handle stalled review cycles, and close out PRs cleanly.
+  on story-level vBRIEFs simultaneously — to scan active/ for allocatable
+  work, set up isolated worktrees, launch agents with proven prompts,
+  monitor progress, handle stalled review cycles, and close out PRs cleanly.
 ---
 
-# Deft Swarm
+# Deft Directive Swarm
 
-Structured workflow for a monitor agent to orchestrate N parallel local agents working on roadmap items.
+Structured workflow for a monitor agent to orchestrate N parallel local agents working on story-level vBRIEFs from `vbrief/active/`.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
@@ -17,79 +17,86 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## When to Use
 
-- User says "run agents", "parallel agents", "swarm", or "launch N agents on roadmap items"
-- Multiple independent roadmap items need to be worked on simultaneously
-- A batch of Phase 1/Phase 2 items are ready and have no mutual dependencies
+- User says "run agents", "parallel agents", "swarm", or "launch N agents on stories"
+- Multiple independent story-level vBRIEFs in `vbrief/active/` need to be worked on simultaneously
+- A batch of stories are ready and have no mutual dependencies
 
 ## Prerequisites
 
-- ! ROADMAP.md and SPECIFICATION.md exist with actionable items
+- ! `vbrief/active/` contains one or more story-level vBRIEFs with status `running`
 - ! GitHub CLI (`gh`) is authenticated
 - ! `git` supports worktrees (`git worktree` available)
 - ~ `oz` CLI available (for `oz agent run-cloud` cloud launch — see Phase 3 Step 2c)
 
-## Phase 0 — Analyze
+## Phase 0 — Allocate
 
-! Before selecting tasks, analyze the roadmap and specification state to surface blockers and missing coverage.
+! Before assigning work to agents, scan the active vBRIEFs and plan allocation.
 
 ### Step 1: Read Project State
 
-- ! Read ROADMAP.md for open items, priorities, and phase assignments
-- ! Read SPECIFICATION.md for task coverage, statuses, and dependency chains
-- ! Cross-reference: every candidate roadmap item should have a corresponding spec task
+- ! Scan `vbrief/active/` for all story-level vBRIEFs (files matching `*.vbrief.json`)
+- ! Read each vBRIEF's `plan.title`, `plan.status`, `plan.items`, `references`, and `planRef` (for epic linkage)
+- ! Read `vbrief/PROJECT-DEFINITION.vbrief.json` for project-wide context (narratives, scope registry)
+- ! Cross-reference: every candidate vBRIEF should have acceptance criteria in its `plan.items`
 
 ### Step 2: Surface Blockers
 
-- ! Identify blocked spec tasks (status `[blocked]`) and their blocking reasons
-- ! Identify roadmap items with no corresponding spec task (missing spec coverage)
-- ! For each candidate item missing spec coverage: create a skeleton spec task in SPECIFICATION.md before proceeding to Phase 1. Use the format defined in `skills/deft-roadmap-refresh/SKILL.md` Phase 2 Step 4. Swarm agents cannot implement work that has no spec task -- the skeleton ensures every assigned task has a traceable spec entry.
-- ! Identify dependency conflicts between candidate items (e.g. task A depends on task B, but B is assigned to a different agent or is incomplete)
-- ! Flag any candidate items whose prerequisites are unmet
+- ! Identify blocked vBRIEFs (status `blocked`) and their blocking reasons (check `narrative` fields)
+- ! Identify vBRIEFs with incomplete acceptance criteria (no `plan.items` or empty items array)
+- ! Identify dependency conflicts between candidate vBRIEFs (e.g. story A depends on story B via `planRef` or `edges`, but B is assigned to a different agent or is incomplete)
+- ! Flag any candidate vBRIEFs whose prerequisites are unmet
 
-### Step 3: Present Analysis
+### Step 3: Plan Allocation
+
+! The monitor allocates one or more vBRIEFs to each agent based on scope, complexity, and dependencies. There is no fixed per-agent limit.
+
+- ! **Small/independent stories** can be batched to a single agent — group related or low-complexity vBRIEFs together
+- ! **Large/complex stories** get dedicated agents — a story with broad file scope or high acceptance criteria count should not share an agent
+- ! **Dependency-aware grouping** — vBRIEFs that share `planRef` to the same epic or have `edges` between them should be assigned to the same agent when possible, OR sequenced with clear ordering
+- ! The monitor decides allocation dynamically — no hardcoded 1:1 rule
+
+### Step 4: Present Analysis
 
 ! Present a summary to the user containing:
 
-- **Candidate items**: roadmap items eligible for assignment (with spec task IDs and statuses)
-- **Blockers found**: blocked tasks, unresolved dependencies, items requiring design decisions
-- **Missing spec tasks**: roadmap items that need spec task creation before work can begin
-- **Recommendations**: suggested items to include or exclude, with reasoning
+- **Candidate vBRIEFs**: story-level vBRIEFs eligible for assignment (with titles, statuses, and origin references)
+- **Blockers found**: blocked vBRIEFs, unresolved dependencies, items requiring design decisions
+- **Incomplete vBRIEFs**: stories with missing or empty acceptance criteria
+- **Allocation plan**: which agent gets which vBRIEF(s), with reasoning for batching decisions
 - **Tentative version bump**: current version (from CHANGELOG.md or latest git tag) and proposed next version (patch/minor/major) based on the scope and nature of candidate items — this is advisory and will be confirmed before merge cascade
 
-### Step 4: Get User Approval
+### Step 5: Get User Approval
 
 - ! Wait for explicit user approval (`yes`, `confirmed`, `approve`) before proceeding to Phase 1 (Select)
-- ! If the user requests changes to the candidate list, re-analyze and re-present
-- ⊗ Proceed to Phase 1 (Select) without completing the analyze phase and receiving explicit user approval
+- ! If the user requests changes to the allocation plan, re-analyze and re-present
+- ⊗ Proceed to Phase 1 (Select) without completing the allocate phase and receiving explicit user approval
 
 ## Phase 1 — Select
 
-! Pick N items from ROADMAP.md and assign to agents. Each agent gets a coherent set of related work.
+! Finalize assignments from the allocation plan. Each agent gets a coherent set of related work.
 
-### Step 1: Identify Candidates
+### Step 1: Confirm Candidates
 
-- ! Use the candidate list and cross-reference produced in Phase 0 — Analyze as the starting point
-- ! Re-read ROADMAP.md and SPECIFICATION.md only if Phase 0 was skipped (user override) or context was lost
-- ! Cross-reference ROADMAP.md items against SPECIFICATION.md task status — if a roadmap item has a spec task marked `[completed]`, verify the work is actually done (check files) before assigning. ROADMAP.md may lag behind SPECIFICATION.md.
-- ! Exclude items that are blocked, have unresolved dependencies, or require design decisions
+- ! Use the allocation plan and vBRIEF analysis from Phase 0 as the starting point
+- ! Re-read `vbrief/active/` only if Phase 0 was skipped (user override) or context was lost
+- ! For each candidate vBRIEF, verify its `plan.status` is `running` (not `blocked` or `completed`)
+- ! Exclude vBRIEFs that are blocked, have unresolved dependencies, or require design decisions
 
 ### Step 2: File-Overlap Audit
 
-! Before assigning tasks to agents, list every file each task is expected to touch.
+! Before assigning tasks to agents, list every file each vBRIEF's acceptance criteria are expected to touch.
 
 - ! Verify ZERO file overlap between agents — no two agents may modify the same file
-- ! Check **transitive** file touches, not just primary scope — trace each task's acceptance criteria to specific files. A task may require changes to files outside its obvious scope (e.g., an enforcement task adding an anti-pattern to a skill file owned by another agent).
-- ! Shared files (CHANGELOG.md, SPECIFICATION.md) are exceptions — each agent adds entries but does not edit existing content
+- ! Check **transitive** file touches, not just primary scope — trace each vBRIEF's acceptance criteria to specific files. A task may require changes to files outside its obvious scope (e.g., an enforcement task adding an anti-pattern to a skill file owned by another agent).
+- ! Shared files (CHANGELOG.md) are exceptions — each agent adds entries but does not edit existing content
 - ! If overlap exists, reassign tasks until overlap is eliminated
-
-⊗ Include ROADMAP.md as a shared exception — ROADMAP.md is updated only at release time by the monitor/release manager, not by swarm agents.
 
 ⊗ Proceed to Phase 2 while any file overlap exists between agents (excluding shared append-only files).
 ⊗ Assume a task only touches files in its primary scope — always check acceptance criteria for cross-file requirements.
 
 ### Step 3: Present Assignment
 
-- ! Show the user: agent number, branch name, assigned tasks (with issue numbers), and files each agent will touch
+- ! Show the user: agent number, branch name, assigned vBRIEF(s) (with origin issue numbers), and files each agent will touch
 - ~ Wait for user approval unless the user explicitly said to proceed autonomously
 
 ## Phase 2 — Setup
@@ -185,7 +192,7 @@ Agents execute on remote VMs without local MCP servers, codebase indexing, or Wa
 
 Track each agent through these stages:
 
-1. **Reading** — agent is loading AGENTS.md, SPECIFICATION.md, project files (no file changes yet)
+1. **Reading** — agent is loading AGENTS.md, vBRIEF files, project files (no file changes yet)
 2. **Implementing** — working tree shows modified files
 3. **Validating** — agent running `task check`
 4. **Committed** — new commit(s) in `git log`
@@ -219,11 +226,11 @@ When taking over: read the agent's current state (git log, diff, PR comments), c
 
 ! Long monitoring sessions accumulate large conversation history (hundreds of tool_use/tool_result pairs) and are susceptible to conversation corruption — the tool_use/tool_result mismatch observed in #263 occurred at approximately message 158 in a single monitor conversation. To mitigate:
 
-- ! Offload rebase, review-watch, and merge sub-tasks to ephemeral sub-agents using the tiered approach from `skills/deft-review-cycle/SKILL.md` (spawn via `start_agent` when available, discrete tool calls with yield otherwise) — this keeps the monitor conversation shallow
+- ! Offload rebase, review-watch, and merge sub-tasks to ephemeral sub-agents using the tiered approach from `skills/deft-directive-review-cycle/SKILL.md` (spawn via `start_agent` when available, discrete tool calls with yield otherwise) — this keeps the monitor conversation shallow
 - ~ Target <100 tool-call round-trips in any single monitor conversation before considering a fresh session handoff
 - ! If the monitor detects degraded output (repeated errors, inconsistent state references, tool call failures), stop and hand off to a fresh session with a state summary rather than continuing in a corrupted context
 
-## Phase 5 — Review
+## Phase 5 — Review & Complete
 
 ### Verify Review Cycle Completion
 
@@ -232,13 +239,24 @@ For each agent's PR:
 1. ! Check that Greptile has reviewed the latest commit (compare "Last reviewed commit" SHA to branch HEAD)
 2. ! Verify Greptile confidence score > 3
 3. ! Verify no P0 or P1 issues remain (P2 are non-blocking style suggestions)
-4. ! If the agent did not complete its review cycle, the monitor runs it per `skills/deft-review-cycle/SKILL.md`
+4. ! If the agent did not complete its review cycle, the monitor runs it per `skills/deft-directive-review-cycle/SKILL.md`
+
+### Complete vBRIEFs
+
+For each story vBRIEF that an agent's PR fully resolves:
+
+1. ! Move the vBRIEF from `vbrief/active/` to `vbrief/completed/` via `task scope:complete <file>`
+2. ! Verify `plan.status` is set to `completed` (the scope command handles this)
+3. ! Read the vBRIEF's `references` array and update each origin:
+   - For `github-issue` references: close the issue with a comment referencing the merged PR (e.g. `gh issue close <N> --comment "Completed in #<PR>"`)
+   - For other reference types: document the completion as appropriate
+4. ! If the vBRIEF has a `planRef` to a parent epic, check whether all sibling stories are now completed — if so, the epic may also be completable
 
 ### Exit Condition
 
 All PRs meet ALL of:
 - Greptile confidence > 3
-- No P0 or P1 issues remain (P2 issues are non-blocking style suggestions and do not gate merge)
+- No P0 or P1 issues remain (P2 issues are non-blocking style suggestions)
 - `task check` passed (or equivalent validation completed)
 - CHANGELOG entries present under `[Unreleased]`
 
@@ -279,16 +297,16 @@ All PRs meet ALL of:
 - ! No conflict markers remain (`<<<<<<<`, `=======`, `>>>>>>>`)
 - ! No collapsed or missing lines (compare line count to pre-rebase version if feasible)
 - ! No encoding artifacts (BOM injection, mojibake, replacement characters)
-- ! For `CHANGELOG.md` and `SPECIFICATION.md` conflicts: prefer `edit_files` over shell regex (`sed`, `Select-String -replace`) for resolution -- edit_files preserves encoding and provides exact match verification, while regex substitutions risk silent line collapse or encoding corruption
+- ! For `CHANGELOG.md` conflicts: prefer `edit_files` over shell regex (`sed`, `Select-String -replace`) for resolution -- edit_files preserves encoding and provides exact match verification, while regex substitutions risk silent line collapse or encoding corruption
 - ⊗ Run `git add` on a conflict-resolved file without first re-reading it and verifying structural integrity
 
 ! **Non-interactive rebase:** Monitor MUST set `GIT_EDITOR=true` (Unix/WSL/Git Bash) or `$env:GIT_EDITOR="echo"` (Windows PowerShell) before running `git rebase --continue` during merge cascade to prevent the default editor from blocking the agent.
 
-! **Merge cascade warning:** Shared append-only files (CHANGELOG.md, SPECIFICATION.md) cause merge conflicts when PRs are merged sequentially — each merge changes the insertion point, conflicting remaining PRs. Each conflict requires rebase → push → wait for checks (~3 min) + ~2-5 min Greptile re-review per rebase. Plan for N-1 rebase cycles × ~3 min CI + ~2-5 min Greptile re-review per rebase when merging N PRs.
+! **Merge cascade warning:** Shared append-only files (CHANGELOG.md) cause merge conflicts when PRs are merged sequentially — each merge changes the insertion point, conflicting remaining PRs. Each conflict requires rebase → push → wait for checks (~3 min) + ~2-5 min Greptile re-review per rebase. Plan for N-1 rebase cycles × ~3 min CI + ~2-5 min Greptile re-review per rebase when merging N PRs.
 
 ! **Greptile re-review on rebase force-push:** Force-pushing a rebased branch triggers a **full** Greptile re-review (not an incremental diff), even if the rebase introduced no logic changes. Expected latency is ~2-5 minutes per PR in the cascade. Factor this into merge sequencing.
 
-! **Autonomous re-review monitoring after force-push:** After each `--force-with-lease` push of a rebased branch in the cascade, the monitor MUST autonomously wait for the Greptile re-review to complete before proceeding to the next merge. Use the tiered monitoring approach defined in `skills/deft-review-cycle/SKILL.md` Step 4 Review Monitoring (Approach 1: spawn sub-agent via `start_agent` to poll and report back; Approach 2 fallback: discrete `run_shell_command` wait-mode calls with yield between polls, adaptive cadence -- see deft-review-cycle SKILL.md). Do NOT duplicate the full monitoring logic here -- follow the canonical skill.
+! **Autonomous re-review monitoring after force-push:** After each `--force-with-lease` push of a rebased branch in the cascade, the monitor MUST autonomously wait for the Greptile re-review to complete before proceeding to the next merge. Use the tiered monitoring approach defined in `skills/deft-directive-review-cycle/SKILL.md` Step 4 Review Monitoring (Approach 1: spawn sub-agent via `start_agent` to poll and report back; Approach 2 fallback: discrete `run_shell_command` wait-mode calls with yield between polls, adaptive cadence -- see deft-directive-review-cycle SKILL.md). Do NOT duplicate the full monitoring logic here -- follow the canonical skill.
 
 ! **Gate:** Do NOT proceed to the next merge in the cascade until the Greptile review for the rebased branch is current (pushed SHA matches "Last reviewed commit" SHA) AND the exit condition is met (confidence > 3, no P0/P1 issues remaining). A stale or in-progress review is not sufficient.
 
@@ -320,13 +338,7 @@ All PRs meet ALL of:
 - ~ Delete launch scripts if still present
 - ? If worktree removal fails (locked files from open terminals), note for manual cleanup
 
-### Step 5: Update ROADMAP.md (release time only)
-
-~ ROADMAP.md is updated during the CHANGELOG promotion commit (the release commit), not during swarm close. Batch-move all issues resolved in this release from their roadmap phase to the Completed section at that time.
-
-⊗ Update ROADMAP.md during swarm close — leave it for the release commit.
-
-### Step 6: Generate Slack Release Announcement
+### Step 5: Generate Slack Release Announcement
 
 ! After creating the GitHub release (or after the final merge if no formal release is created), generate a standard Slack announcement block and present it to the user for copy-paste into the team channel.
 
@@ -399,14 +411,14 @@ This is a git worktree. Do NOT just read files and stop — you must implement a
 run task check, commit, push, create a PR, and run the review cycle.
 DO NOT STOP until all steps are complete.
 
-STEP 1 — Read directives: Read AGENTS.md, PROJECT.md, SPECIFICATION.md, main.md.
-Read skills/deft-review-cycle/SKILL.md.
+STEP 1 — Read directives: Read AGENTS.md, vbrief/vbrief.md, and the assigned vBRIEF(s) from vbrief/active/.
+Read skills/deft-directive-review-cycle/SKILL.md.
 
-STEP 2 — Implement these N tasks (see SPECIFICATION.md for full acceptance criteria):
+STEP 2 — Implement these N tasks (see assigned vBRIEF(s) for full acceptance criteria):
 
-Task A ([spec-task-id], issue #[N]): [one-paragraph description with specific acceptance criteria]
+Task A (vBRIEF: [filename], issue #[N]): [one-paragraph description with specific acceptance criteria]
 
-Task B ([spec-task-id], issue #[N]): [one-paragraph description with specific acceptance criteria]
+Task B (vBRIEF: [filename], issue #[N]): [one-paragraph description with specific acceptance criteria]
 
 [...repeat for each task...]
 
@@ -419,7 +431,7 @@ STEP 5 — Push and PR: Push branch to origin. Create PR targeting master using 
 Note: --body-file must use a temp file in the OS temp directory ($env:TEMP on PowerShell,
 $TMPDIR or /tmp on Unix) -- do NOT write temp files in the worktree. See scm/github.md.
 
-STEP 6 — Review cycle: Follow skills/deft-review-cycle/SKILL.md to run the
+STEP 6 — Review cycle: Follow skills/deft-directive-review-cycle/SKILL.md to run the
 Greptile review cycle on the PR. Do NOT merge — leave for human review.
 
 CONSTRAINTS:
@@ -434,9 +446,9 @@ CONSTRAINTS:
 
 - ! First line MUST start with `TASK:` followed by an imperative statement
 - ! Include `DO NOT STOP until all steps are complete` in the preamble
-- ! Each task MUST include its spec task ID and issue number
+- ! Each task MUST include its vBRIEF filename and origin issue number
 - ! CONSTRAINTS section MUST list files the agent must not touch (other agents' scope)
-- ! Review cycle step MUST reference `skills/deft-review-cycle/SKILL.md` explicitly
+- ! Review cycle step MUST reference `skills/deft-directive-review-cycle/SKILL.md` explicitly
 - ⊗ Start the prompt with context ("You are working in...") — agents treat this as passive setup and may stop after reading
 
 ## Push Autonomy
@@ -450,19 +462,20 @@ CONSTRAINTS:
 - ⊗ Assign overlapping files to multiple agents
 - ⊗ Merge PRs before Greptile exit condition is met (score > 3, no P0/P1)
 - ⊗ Assume agents will complete the full workflow — always verify review cycle completion
-- ⊗ Launch agents without checking SPECIFICATION.md for task coverage first
+- ⊗ Launch agents without checking vBRIEF acceptance criteria first
 - ⊗ Skip the file-overlap audit in Phase 1
 - ⊗ Use `git reset --hard` or force-push in any worktree (swarm agents only -- monitor may `--force-with-lease` after rebase cascade per Phase 6 Step 1)
 - ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime — always probe for `start_agent` and Warp environment variables before choosing a launch path
 - ⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate on `WARP_*` environment variables or `start_agent` tool presence
 - ⊗ Default to `oz agent run-cloud` — cloud is an explicit user-requested escape hatch, not a default path
 - ⊗ Use `oz agent run-cloud` when the user expects local execution — `run-cloud` routes to remote VMs with no local context
-- ⊗ Proceed to Phase 1 (Select) without completing Phase 0 (Analyze) and receiving explicit user approval
-- ⊗ Update ROADMAP.md during swarm close — it is updated only at release time (CHANGELOG promotion commit), not by individual agents or during PR merges.
+- ⊗ Proceed to Phase 1 (Select) without completing Phase 0 (Allocate) and receiving explicit user approval
 - ⊗ Begin merge cascade without presenting the version bump proposal and receiving explicit user approval — the Phase 5→6 gate is mandatory
 - ⊗ Ignore Greptile re-review latency when planning merge cascade timing -- each rebase force-push triggers a full re-review (~2-5 min), not an incremental diff
-- ⊗ Proceed to the next merge in the rebase cascade before confirming the Greptile re-review is current (SHA match) and exit condition is met (confidence > 3, no P0/P1) on the rebased branch -- see `skills/deft-review-cycle/SKILL.md` Step 4 for the monitoring approach
+- ⊗ Proceed to the next merge in the rebase cascade before confirming the Greptile re-review is current (SHA match) and exit condition is met (confidence > 3, no P0/P1) on the rebased branch -- see `skills/deft-directive-review-cycle/SKILL.md` Step 4 for the monitoring approach
 - ⊗ Spawn a replacement sub-agent without confirming the original is unresponsive via a lifecycle event (idle/blocked) — original Warp tabs can resume after apparent failure, and two concurrent agents on the same worktree will corrupt the tool_use/tool_result call chain (#261, #263)
 - ⊗ Skip Phase 5 or the Phase 5→6 confirmation gate under time pressure or due to long context — the gate is mandatory regardless of conversation length, elapsed time, or context-window pressure
 - ⊗ Run `git add` on a conflict-resolved file without re-reading and verifying structural integrity (no conflict markers, no collapsed lines, no encoding artifacts) -- see Phase 6 Step 1 read-back verification rule (#288)
-- ⊗ Use shell regex (`sed`, `Select-String -replace`) to resolve `CHANGELOG.md` or `SPECIFICATION.md` rebase conflicts -- prefer `edit_files` for encoding safety and exact match verification (#288)
+- ⊗ Use shell regex (`sed`, `Select-String -replace`) to resolve `CHANGELOG.md` rebase conflicts -- prefer `edit_files` for encoding safety and exact match verification (#288)
+- ⊗ Hardcode a 1:1 vBRIEF-per-agent allocation rule — the monitor decides allocation dynamically based on scope, complexity, and dependencies
+- ⊗ Complete a story without moving its vBRIEF from `active/` to `completed/` and updating its origin references
