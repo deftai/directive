@@ -25,19 +25,22 @@ Big-bang cutover to the vBRIEF-centric document model. Individual scope vBRIEFs 
 
 - **#310** -- Story A: Update vbrief.md with new vBRIEF-centric document model (lifecycle folders, PROJECT-DEFINITION type, epic-story linking, filename convention, scope splitting pattern)
 - **#311** -- Story B: Roadmap generation tool (`task roadmap:render`) + auto-generated banner + drift detection in `task check`
-- **#312** -- Story C: Migration script (`task migrate:vbrief`) -- converts SPECIFICATION.md + PROJECT.md + ROADMAP.md to new structure
+- **#312** -- Story C: Migration script (`task migrate:vbrief`) -- converts SPECIFICATION.md + PROJECT.md + ROADMAP.md to new structure; deprecation redirects for SPECIFICATION.md/PROJECT.md; .agents/skills/ directory restructuring
 - **#323** -- Story N: PROJECT-DEFINITION regeneration tool (`task project:render`) -- deterministic items registry + staleness flagging
 - **#324** -- Story O: Scope lifecycle task commands (`task scope:promote/activate/complete/cancel/restore/block/unblock`)
+- **#333** -- Story R: Validation tooling for vBRIEF-centric model (scope validator, PROJECT-DEFINITION validator, folder/status consistency, epic-story links, task check integration)
 
 ### Tier 2 -- Framework docs (depends on Story A)
 
 - **#313** -- Story D: Core doc updates (main.md, AGENTS.md) for vBRIEF-centric model
+- **#331** -- Story P: Ancillary doc updates (REFERENCES.md, README.md, CONTRIBUTING.md, commands.md, strategies/, templates/, context/)
 
 ### Tier 3 -- Skills (depends on Stories A + D; parallelizable via swarm)
 
 - **#314** -- Story E: deft-directive-setup (rename + rewrite for vBRIEF model)
-- **#315** -- Story F: deft-directive-build, review-cycle, pre-pr (rename + update + installer thin pointers)
-- **#316** -- Story G: deft-directive-refinement (rename + rewrite from roadmap-refresh -- conversational ingest/promote/reprioritize session)
+- **#315** -- Story F: deft-directive-build, review-cycle, pre-pr (rename + update; installer scope moved to Story Q)
+- **#332** -- Story Q: Go installer rewrite for `deft-directive-*` namespace (9 thin pointers, agentsMDEntry, allSkillNames)
+- **#316** -- Story G: deft-directive-refinement (rename + rewrite from roadmap-refresh -- conversational ingest/promote/reprioritize session; note: also depends on Stories B + O for scope command API shape)
 - **#317** -- Story H: deft-directive-swarm (rename + flexible vBRIEF-based allocation)
 - **#318** -- Story I: deft-directive-sync (rename + validate new structure + origin freshness)
 - **#319** -- Story J: deft-directive-interview (namespace rename)
@@ -46,10 +49,12 @@ Big-bang cutover to the vBRIEF-centric document model. Individual scope vBRIEFs 
 
 - **#320** -- Story K: CLI updates (cmd_spec, cmd_project) for vBRIEF model
 - **#321** -- Story L: Test coverage for vBRIEF-centric document model
+- **#334** -- Story S: Pre-cutover detection and backward compatibility guard (old-model detection, error messages, greenfield path, placeholder integrity)
 
 ### Tier 5 -- Post-cutover
 
 - **#322** -- Story M: Post-cutover GitHub issue reconciliation
+- **#335** -- Story T: Release and version boundary items (v0.20.0 bump, CHANGELOG, CI workflows, PR template)
 
 ---
 
@@ -472,6 +477,11 @@ Larger feature work -- only after issues are resolved and content is stable.
 | #322 | Story M: Post-cutover GitHub issue reconciliation | 2 |
 | #323 | Story N: PROJECT-DEFINITION regeneration tool (task project:render) | 2 |
 | #324 | Story O: Scope lifecycle task commands (task scope:*) | 2 |
+| #331 | Story P: Ancillary doc updates for vBRIEF-centric model | 2 |
+| #332 | Story Q: Go installer rewrite for deft-directive-* namespace | 2 |
+| #333 | Story R: Validation tooling for vBRIEF-centric model | 2 |
+| #334 | Story S: Pre-cutover detection and backward compatibility guard | 2 |
+| #335 | Story T: Release and version boundary items (v0.20.0) | 2 |
 | ~~#305~~ | ~~perf(review-cycle): Greptile review cycle bottlenecks -- 5-change optimization bundle~~ | completed -- v0.19.0 |
 | ~~#307~~ | ~~fix(skill): deft-review-cycle Approach 2 capability detection gap -- no start_agent + no sleep fallback~~ | completed -- v0.19.0 |
 | ~~#298~~ | ~~chore(spec): flip 5 stale [pending] statuses to [completed] in SPECIFICATION.md~~ | completed -- 2026-04-13 |
