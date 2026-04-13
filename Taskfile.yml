@@ -32,6 +32,9 @@ includes:
   scope:
     taskfile: ./tasks/scope.yml
     optional: true
+  roadmap:
+    taskfile: ./tasks/roadmap.yml
+    optional: true
 
 tasks:
   default:
