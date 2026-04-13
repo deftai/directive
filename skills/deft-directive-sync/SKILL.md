@@ -37,7 +37,7 @@ A project is **pre-cutover** if ANY of the following are true:
 
 ### Action on Detection
 
-! If pre-cutover state is detected, **stop** and display an actionable message:
+! If pre-cutover state is detected, display the actionable migration message, then **skip Phases 1-6** and proceed directly to Phase 7 with the Document Model line set to "pre-v0.20 (legacy)":
 
 > "This project uses the pre-v0.20 document model. Run `task migrate:vbrief` to upgrade to the vBRIEF-centric model."
 
@@ -210,8 +210,9 @@ After structure validation, sync framework-level assets.
 4. **vBRIEF validation results**: pass/fail per file, with details on any failures
 5. **Lifecycle consistency**: all consistent / N mismatches found (with details)
 6. **Origin freshness**: N stale / N externally-closed / N current (with details)
-7. **AGENTS.md status**: current / has upstream changes / needs review
-8. **New skills**: list any newly added skills with descriptions
+7. **Document Model**: pre-v0.20 (legacy) / v0.20+ (vBRIEF-centric) OK / v0.20+ with warnings (see Pre-Cutover Detection Guard)
+8. **AGENTS.md status**: current / has upstream changes / needs review
+9. **New skills**: list any newly added skills with descriptions
 
 ! Ask the user: "Shall I commit the submodule update?" -- do NOT auto-commit.
 
