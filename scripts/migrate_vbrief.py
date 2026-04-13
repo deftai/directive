@@ -358,10 +358,11 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
                         "Original content preserved in PROJECT-DEFINITION.vbrief.json narratives."
                     )
                 else:
-                    warnings.append(
-                        "WARNING: SPECIFICATION.md appears user-customized but could not be "
-                        "folded into PROJECT-DEFINITION. Back up the file before proceeding."
-                    )
+                    return False, [
+                        "ERROR: SPECIFICATION.md appears user-customized but content could not "
+                        "be preserved in PROJECT-DEFINITION.vbrief.json. Fix the project "
+                        "definition file structure and re-run to prevent data loss."
+                    ]
 
             redirect = _deprecation_redirect(
                 "SPECIFICATION.md",
@@ -375,21 +376,14 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
         if project_content and DEPRECATION_SENTINEL in project_content:
             actions.append("SKIP  PROJECT.md already has deprecation redirect")
         else:
-            # Check for user customization
+            # Check for user customization -- note: PROJECT.md content is already
+            # captured in narratives["ProjectConfig"] by _build_project_definition (step 3),
+            # so the fold here is a safety net only.
             if project_content and _is_user_customized(project_content, _PROJECT_AUTO_MARKERS):
-                preserved = _fold_custom_content(
-                    proj_def_path, "ProjectConfig", project_content or ""
+                warnings.append(
+                    "WARNING: PROJECT.md appears user-customized. "
+                    "Original content preserved in PROJECT-DEFINITION.vbrief.json narratives."
                 )
-                if preserved:
-                    warnings.append(
-                        "WARNING: PROJECT.md appears user-customized. "
-                        "Original content preserved in PROJECT-DEFINITION.vbrief.json narratives."
-                    )
-                else:
-                    warnings.append(
-                        "WARNING: PROJECT.md appears user-customized but could not be "
-                        "folded into PROJECT-DEFINITION. Back up the file before proceeding."
-                    )
 
             redirect = _deprecation_redirect(
                 "PROJECT.md",

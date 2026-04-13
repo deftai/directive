@@ -196,6 +196,20 @@ class TestResolveRepoUrl:
         spec = {"vBRIEFInfo": {"version": "0.5", "repository": "myorg/myrepo"}, "plan": {}}
         assert _resolve_repo_url(spec) == "https://github.com/myorg/myrepo"
 
+    def test_extracts_from_plan_references(self):
+        spec = {
+            "vBRIEFInfo": {"version": "0.5"},
+            "plan": {
+                "references": [
+                    {
+                        "uri": "https://github.com/org/repo/blob/main/README.md",
+                        "type": "x-vbrief/plan",
+                    }
+                ]
+            },
+        }
+        assert _resolve_repo_url(spec) == "https://github.com/org/repo"
+
 
 class TestBuildProjectDefinition:
     """Tests for _build_project_definition."""
@@ -461,6 +475,96 @@ class TestMigrateSpecVbriefPreservation:
         migrate(project)
         after = (project / "vbrief" / "specification.vbrief.json").read_text(encoding="utf-8")
         assert json.loads(after) == SAMPLE_SPEC_VBRIEF
+
+
+class TestMigrateFoldFailureAbort:
+    """Tests that migration aborts when custom content can't be preserved."""
+
+    def test_aborts_on_custom_spec_fold_failure(self, tmp_path):
+        """When SPEC is customized but PROJECT-DEFINITION has invalid structure, abort."""
+        custom_spec = "# My Custom Spec\nEntirely custom with no markers.\n"
+        project = _make_project(tmp_path, spec_md=custom_spec)
+        # Write a malformed PROJECT-DEFINITION that will cause fold to fail
+        pd_path = project / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
+        pd_path.write_text("not valid json", encoding="utf-8")
+        ok, messages = migrate(project)
+        assert not ok
+        assert any("ERROR" in m for m in messages)
+        # Original SPECIFICATION.md should NOT have been overwritten
+        content = (project / "SPECIFICATION.md").read_text(encoding="utf-8")
+        assert "My Custom Spec" in content
+
+    def test_custom_spec_preserves_in_narratives(self, tmp_path):
+        """When SPEC is customized and fold succeeds, content is preserved."""
+        custom_spec = "# My Custom Spec\nEntirely custom with no markers.\n"
+        project = _make_project(tmp_path, spec_md=custom_spec)
+        ok, actions = migrate(project)
+        assert ok
+        assert any("WARNING: SPECIFICATION.md appears user-customized" in a for a in actions)
+        pd_path = project / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
+        data = json.loads(pd_path.read_text(encoding="utf-8"))
+        assert "SpecificationContent" in data["plan"]["narratives"]
+
+
+class TestMigrateExistingScopeSkip:
+    """Tests for skipping items that already have scope vBRIEFs."""
+
+    def test_skips_item_with_existing_scope_vbrief(self, tmp_path):
+        """If an item already has a vBRIEF in a lifecycle folder, skip it."""
+        roadmap = "# Roadmap\n\n## Phase 1\n\n- **#42** -- Existing feature\n"
+        project = _make_project(tmp_path, roadmap_md=roadmap)
+        # Pre-create a scope vBRIEF referencing #42
+        pending_dir = project / "vbrief" / "pending"
+        pending_dir.mkdir(parents=True, exist_ok=True)
+        existing = {
+            "vBRIEFInfo": {"version": "0.5"},
+            "plan": {
+                "title": "Old",
+                "status": "pending",
+                "references": [{"type": "github-issue", "id": "#42"}],
+            },
+        }
+        (pending_dir / "old-scope.vbrief.json").write_text(
+            json.dumps(existing), encoding="utf-8"
+        )
+        ok, actions = migrate(project)
+        assert ok
+        assert any("SKIP  #42 already has scope vBRIEF" in a for a in actions)
+
+
+class TestMigrateRepoUrlIntegration:
+    """Tests that repo_url propagates into generated scope vBRIEFs."""
+
+    def test_scope_vbrief_gets_url_from_spec(self, tmp_path):
+        """When spec has repository field, scope vBRIEFs get full URLs."""
+        spec_with_repo = {
+            "vBRIEFInfo": {"version": "0.5", "repository": "myorg/myproject"},
+            "plan": {"title": "Test", "status": "approved", "narratives": {}, "items": []},
+        }
+        roadmap = "# Roadmap\n\n## Phase 1\n\n- **#99** -- Test feature\n"
+        project = _make_project(tmp_path, spec_vbrief=spec_with_repo, roadmap_md=roadmap)
+        ok, actions = migrate(project)
+        assert ok
+        pending = project / "vbrief" / "pending"
+        for f in pending.glob("*.vbrief.json"):
+            data = json.loads(f.read_text(encoding="utf-8"))
+            refs = data["plan"].get("references", [])
+            if refs:
+                assert "myorg/myproject" in refs[0].get("url", "")
+
+    def test_scope_vbrief_no_url_without_repo(self, tmp_path):
+        """Without repository info, references have id but no url."""
+        roadmap = "# Roadmap\n\n## Phase 1\n\n- **#99** -- Test feature\n"
+        project = _make_project(tmp_path, roadmap_md=roadmap)
+        ok, actions = migrate(project)
+        assert ok
+        pending = project / "vbrief" / "pending"
+        for f in pending.glob("*.vbrief.json"):
+            data = json.loads(f.read_text(encoding="utf-8"))
+            refs = data["plan"].get("references", [])
+            if refs:
+                assert "url" not in refs[0]
+                assert refs[0]["id"] == "#99"
 
 
 class TestMigrateInvalidInput:
