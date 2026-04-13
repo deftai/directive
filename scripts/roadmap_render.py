@@ -127,8 +127,12 @@ def _topo_sort_items(items: list[dict], dep_map: dict[str, list[str]]) -> list[d
         if not deps:
             depths[item_id] = 0
             return 0
-        max_dep = max(_depth(d, visited) for d in deps if d in id_to_item)
-        result = max_dep + 1 if deps else 0
+        in_scope_deps = [d for d in deps if d in id_to_item]
+        if not in_scope_deps:
+            depths[item_id] = 0
+            return 0
+        max_dep = max(_depth(d, visited) for d in in_scope_deps)
+        result = max_dep + 1
         depths[item_id] = result
         return result
 
@@ -178,12 +182,15 @@ def render_roadmap(pending_dir: str, out_path: str) -> tuple[bool, str]:
     """Render ROADMAP.md from vBRIEF files in pending_dir.
 
     Returns:
-        (True, rendered_content) on success.
+        (True, message) on success.
         (False, error_message) on failure.
     """
-    content = generate_roadmap_content(Path(pending_dir))
-    Path(out_path).write_text(content, encoding="utf-8")
-    return True, f"✓ Rendered ROADMAP.md to {out_path}"
+    try:
+        content = generate_roadmap_content(Path(pending_dir))
+        Path(out_path).write_text(content, encoding="utf-8")
+        return True, f"✓ Rendered ROADMAP.md to {out_path}"
+    except OSError as exc:
+        return False, f"✗ Failed to write {out_path}: {exc}"
 
 
 def generate_roadmap_content(pending_dir: Path) -> str:
@@ -292,8 +299,9 @@ def check_drift(pending_dir: str, roadmap_path: str) -> tuple[bool, str]:
 
 def main() -> int:
     """CLI entry point."""
-    pending_dir = sys.argv[1] if len(sys.argv) >= 2 else str(Path.cwd() / "vbrief" / "pending")
-    out_path = sys.argv[2] if len(sys.argv) >= 3 else str(Path.cwd() / "ROADMAP.md")
+    positional = [a for a in sys.argv[1:] if not a.startswith("--")]
+    pending_dir = positional[0] if len(positional) >= 1 else str(Path.cwd() / "vbrief" / "pending")
+    out_path = positional[1] if len(positional) >= 2 else str(Path.cwd() / "ROADMAP.md")
 
     # Check for --check flag
     if "--check" in sys.argv:

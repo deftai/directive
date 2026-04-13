@@ -507,3 +507,74 @@ def test_vbrief_without_plan_key(roadmap_mod, tmp_path) -> None:
     content = roadmap_mod.generate_roadmap_content(pending)
     # Should not crash, should still have banner
     assert "AUTO-GENERATED" in content
+
+
+# ---------------------------------------------------------------------------
+# Cross-scope edges (P1 fix: max() on empty sequence)
+# ---------------------------------------------------------------------------
+
+
+def test_cross_scope_edges_no_crash(roadmap_mod, tmp_path) -> None:
+    """Edges referencing items outside current scope must not crash."""
+    vbrief = {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {
+            "title": "Cross-scope Test",
+            "status": "pending",
+            "edges": [
+                {"source": "external-item", "target": "task-a"},
+            ],
+            "items": [
+                {
+                    "id": "phase-1",
+                    "title": "Phase 1",
+                    "status": "pending",
+                    "subItems": [
+                        {"id": "task-a", "title": "Task A", "status": "pending"},
+                    ],
+                }
+            ],
+        },
+    }
+    pending = tmp_path / "pending"
+    _write_vbrief(pending / "2026-04-01-cross.vbrief.json", vbrief)
+    # Must not raise ValueError from max() on empty sequence
+    content = roadmap_mod.generate_roadmap_content(pending)
+    assert "Task A" in content
+
+
+# ---------------------------------------------------------------------------
+# render_roadmap error handling (P2 fix: OSError caught)
+# ---------------------------------------------------------------------------
+
+
+def test_render_to_invalid_path_returns_false(roadmap_mod, tmp_path) -> None:
+    """render_roadmap() to an invalid path must return (False, error)."""
+    pending = tmp_path / "pending"
+    pending.mkdir()
+    # Use a path that cannot be written (directory doesn't exist)
+    out = str(tmp_path / "nonexistent" / "subdir" / "ROADMAP.md")
+    ok, msg = roadmap_mod.render_roadmap(str(pending), out)
+    assert ok is False
+    assert "Failed" in msg
+
+
+# ---------------------------------------------------------------------------
+# --check flag position (P2 fix: flags before positionals)
+# ---------------------------------------------------------------------------
+
+
+def test_main_check_flag_before_positionals(
+    roadmap_mod, monkeypatch, tmp_path
+) -> None:
+    """main() must work when --check appears before positional args."""
+    pending = tmp_path / "pending"
+    _write_vbrief(pending / "2026-04-01-test.vbrief.json", _MINIMAL_VBRIEF)
+    out = tmp_path / "ROADMAP.md"
+    roadmap_mod.render_roadmap(str(pending), str(out))
+    monkeypatch.setattr(
+        sys, "argv",
+        ["roadmap_render.py", "--check", str(pending), str(out)],
+    )
+    result = roadmap_mod.main()
+    assert result == 0
