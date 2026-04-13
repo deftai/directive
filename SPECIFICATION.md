@@ -1254,27 +1254,35 @@ Fix all 5 active review cycle bottlenecks in one PR: (1) mandate deft-pre-pr bef
 
 **Traces**: #305
 
-## t1.29.1: Add regression test for deft-setup Phase 1/2 referencing deft-interview (#304)  `[pending]`
+## t1.29.1: Add regression test for deft-setup Phase 1/2 referencing deft-interview (#304)  `[completed]`
 
 No test in tests/content/test_skills.py verifies that skills/deft-setup/SKILL.md Phase 1 and Phase 2 actually reference deft-interview. Add 1-2 assertions covering both phases.
 
-- <first acceptance criterion placeholder>
+- tests/content/test_skills.py contains `test_deft_setup_phase1_references_deft_interview` asserting Phase 1 section references deft-interview
+- tests/content/test_skills.py contains `test_deft_setup_phase2_references_deft_interview` asserting Phase 2 section references deft-interview
+- Both tests pass
 
 **Traces**: #304
 
-## t1.28.1: Fix deft-interview Rule 5 vs Rule 6 inconsistency -- 'ok' at confirmation gate (#303)  `[pending]`
+## t1.28.1: Fix deft-interview Rule 5 vs Rule 6 inconsistency -- 'ok' at confirmation gate (#303)  `[completed]`
 
 Rule 5 (default-acceptance) lists ``ok`` as a valid response but Rule 6's confirmation gate acceptance list omits it, creating inconsistent UX. Either add ``ok`` to Rule 6's affirmative list or add a clarifying note that the confirmation gate is intentionally stricter.
 
-- <first acceptance criterion placeholder>
+- skills/deft-interview/SKILL.md Rule 6 contains clarifying note explaining the confirmation gate is intentionally stricter than Rule 5
+- Note explains the asymmetry: Rule 5 accepts casual `ok` for individual defaults (low-cost, correctable at gate), Rule 6 requires explicit affirmative for entire artifact (high-cost, guards against auto-fill)
+- Rule 5 acceptance list unchanged (`yes`, `y`, `ok`, `default`, `keep`)
+- Rule 6 acceptance list unchanged (`yes`, `confirmed`, `approve`)
 
 **Traces**: #303
 
-## t1.27.1: Clarify deft-interview invocation contract -- embedded vs delegation usage modes (#302)  `[pending]`
+## t1.27.1: Clarify deft-interview invocation contract -- embedded vs delegation usage modes (#302)  `[completed]`
 
 The Invocation Contract section of skills/deft-interview/SKILL.md requires callers to supply a formal contract object, but deft-setup currently embeds the rules inline without one. Add a clarifying note distinguishing embedded mode (calling skill quotes/references rules inline -- no contract object needed) from delegation mode (explicit sub-skill invocation with a contract object).
 
-- <first acceptance criterion placeholder>
+- skills/deft-interview/SKILL.md Invocation Contract section restructured into two subsections: Embedded Mode and Delegation Mode
+- Embedded Mode documents that calling skills reference rules inline without a formal contract object (current deft-setup approach)
+- Delegation Mode documents explicit sub-skill invocation with formal contract object (required fields, question definitions, optional fields)
+- Formal contract requirements (MUST provide) scoped to Delegation Mode only
 
 **Traces**: #302
 

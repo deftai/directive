@@ -1071,6 +1071,40 @@ def test_deft_interview_pointer_exists() -> None:
 
 
 # ---------------------------------------------------------------------------
+# 30b. deft-setup Phase 1/2 must reference deft-interview (#304, t1.29.1)
+# ---------------------------------------------------------------------------
+
+
+def test_deft_setup_phase1_references_deft_interview() -> None:
+    """deft-setup Phase 1 Interview Rules must reference deft-interview SKILL.md."""
+    text = _read_skill(_SETUP_PATH)
+    # Phase 1 Interview Rules section should reference deft-interview
+    phase1_start = text.find("## Phase 1")
+    phase2_start = text.find("## Phase 2")
+    assert phase1_start != -1 and phase2_start != -1, (
+        f"{_SETUP_PATH}: must contain Phase 1 and Phase 2 sections"
+    )
+    phase1_text = text[phase1_start:phase2_start]
+    assert "deft-interview" in phase1_text, (
+        f"{_SETUP_PATH}: Phase 1 must reference deft-interview for interview rules (#304)"
+    )
+
+
+def test_deft_setup_phase2_references_deft_interview() -> None:
+    """deft-setup Phase 2 Interview Rules must reference deft-interview SKILL.md."""
+    text = _read_skill(_SETUP_PATH)
+    phase2_start = text.find("## Phase 2")
+    phase3_start = text.find("## Phase 3")
+    assert phase2_start != -1 and phase3_start != -1, (
+        f"{_SETUP_PATH}: must contain Phase 2 and Phase 3 sections"
+    )
+    phase2_text = text[phase2_start:phase3_start]
+    assert "deft-interview" in phase2_text, (
+        f"{_SETUP_PATH}: Phase 2 must reference deft-interview for interview rules (#304)"
+    )
+
+
+# ---------------------------------------------------------------------------
 # 31. deft-swarm Phase 6 read-back verification (#288, t1.21.1)
 # ---------------------------------------------------------------------------
 

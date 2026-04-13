@@ -93,6 +93,7 @@ Confirm these values? (yes / no)
 ```
 
 - ! Accept only explicit affirmative responses (`yes`, `confirmed`, `approve`) -- reject vague responses (`proceed`, `do it`, `go ahead`)
+- ~ Note: The confirmation gate is intentionally stricter than Rule 5 (default-acceptance). Rule 5 accepts casual responses like `ok` for individual question defaults because the cost of a wrong default is low (one field, correctable at the confirmation gate). The confirmation gate guards the entire artifact -- accepting `ok` here risks generating artifacts from auto-filled or misunderstood values. This asymmetry is by design.
 - ! If the user says `no`: ask which values to correct, re-ask those specific questions only (do not restart the full interview), then re-display the updated summary and re-confirm
 - ! If any value appears to be auto-generated filler (repeated default text, placeholder strings, or values that echo the question prompt), warn the user explicitly before confirming
 - ⊗ Proceed to artifact generation without displaying the summary and receiving explicit confirmation
@@ -118,7 +119,15 @@ The answers map format:
 
 ## Invocation Contract
 
-When a calling skill invokes deft-interview, it MUST provide:
+deft-interview supports two usage modes:
+
+### Embedded Mode
+
+The calling skill references deft-interview rules inline (e.g. "this phase follows the deterministic interview loop defined in `skills/deft-interview/SKILL.md`") and applies the rules directly within its own question sequence. No formal contract object is needed -- the calling skill embeds the question definitions and field requirements in its own SKILL.md. This is the current approach used by `skills/deft-setup/SKILL.md` Phase 1 and Phase 2.
+
+### Delegation Mode
+
+The calling skill explicitly invokes deft-interview as a sub-skill and passes a formal contract object. When using delegation mode, the calling skill MUST provide:
 
 1. **Required fields**: list of field names that must be captured (the depth gate uses this to determine completeness)
 2. **Question definitions**: for each field, the question text, numbered options (if applicable), and default value

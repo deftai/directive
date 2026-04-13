@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **deft-interview invocation contract clarification** (#302, t1.27.1): Added embedded mode vs delegation mode distinction to Invocation Contract section of `skills/deft-interview/SKILL.md` -- embedded mode (calling skill references rules inline, no contract object needed, used by deft-setup) vs delegation mode (explicit sub-skill invocation with formal contract object)
+- **deft-interview Rule 5 vs Rule 6 ok inconsistency** (#303, t1.28.1): Added clarifying note to Rule 6 confirmation gate explaining intentional strictness asymmetry -- Rule 5 accepts casual `ok` for individual defaults (low cost, correctable), Rule 6 requires explicit `yes`/`confirmed`/`approve` for entire artifact (high cost, guards against auto-fill)
+
 ### Added
+- **Regression tests for deft-setup Phase 1/2 deft-interview references** (#304, t1.29.1): Added `test_deft_setup_phase1_references_deft_interview` and `test_deft_setup_phase2_references_deft_interview` to `tests/content/test_skills.py` verifying both phases reference deft-interview
 - **Subprocess-based unit tests for v0.17.0 task scripts** (#293, t3.3.4): Created `tests/cli/test_task_scripts.py` with 25 subprocess-based tests covering `scripts/toolchain-check.py` (happy path, missing tool, NOT FOUND reporting, timeout parameter), `scripts/verify-stubs.py` (clean source, TODO/FIXME/HACK/bare-pass detection, excluded dirs, encoding edge case), `scripts/validate-links.py` (valid links, broken strict/warning modes, external URL skip, archive exclusion, --strict argv), `change:init` task (directory structure, path traversal rejection, empty name, duplicate handling), and `commit:lint` task (valid conventional commit, missing type, breaking change, all 11 types); filled t3.3.4 acceptance criteria in SPECIFICATION.md; coverage remains at 87.58% (>=85%)
 
 ### Fixed
