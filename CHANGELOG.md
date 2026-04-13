@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-04-13
+
+### Breaking Changes
+- **SPECIFICATION.md and PROJECT.md replaced with deprecation redirects** -- both files now contain `<!-- deft:deprecated-redirect -->` sentinels pointing users to `vbrief/PROJECT-DEFINITION.vbrief.json` and scope vBRIEFs; original content migrated by `task migrate:vbrief`
+- **All skills renamed from `deft-*` to `deft-directive-*`** -- `deft-build` -> `deft-directive-build`, `deft-interview` -> `deft-directive-interview`, `deft-pre-pr` -> `deft-directive-pre-pr`, `deft-review-cycle` -> `deft-directive-review-cycle`, `deft-roadmap-refresh` -> `deft-directive-refinement` (rename + rewrite), `deft-setup` -> `deft-directive-setup`, `deft-swarm` -> `deft-directive-swarm`, `deft-sync` -> `deft-directive-sync`
+- **`vbrief/` directory restructured with lifecycle folders** -- `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/` replace flat file layout; status-to-folder mapping enforced by `task scope:*` commands
+- **New task commands** -- `scope:promote`, `scope:activate`, `scope:complete`, `scope:cancel`, `scope:restore`, `scope:block`, `scope:unblock`, `roadmap:render`, `roadmap:check`, `project:render`, `migrate:vbrief`, `vbrief:validate`
+- **PROJECT-DEFINITION.vbrief.json replaces PROJECT.md + specification.vbrief.json** -- single project identity gestalt using vBRIEF v0.5 schema with `narratives` for project identity and `items` array as scope registry
+- **Migration path**: Run `task migrate:vbrief` to upgrade existing projects -- automated conversion of SPECIFICATION.md + PROJECT.md + ROADMAP.md into vBRIEF lifecycle folder structure
+
 ### Added
 - **feat(vbrief): add pre-cutover detection and backward compatibility guard** (#334, Part of #309): Added Pre-Cutover Detection Guard section to 3 skills (deft-directive-setup, deft-directive-build, deft-directive-sync) -- detects old-model artifacts (SPECIFICATION.md/PROJECT.md without `<!-- deft:deprecated-redirect -->` sentinel, vbrief/ without lifecycle folders) and redirects to `task migrate:vbrief` with actionable messages; added model state reporting to deft-directive-sync Phase 7 summary (pre-v0.20 legacy / v0.20+ OK / v0.20+ with warnings); added post-migration placeholder integrity check to `scripts/vbrief_validate.py` -- warns when SPECIFICATION.md or PROJECT.md exist but lack the deprecation redirect sentinel; added greenfield path verification documenting lifecycle folder creation in deft-directive-setup; all error messages include specific fix commands (`task migrate:vbrief`, `task project:render`, `task scope:activate`); 39 tests in `tests/cli/test_precutover_guard.py` covering placeholder integrity, skill guard content, actionable messages, anti-patterns, model state reporting, and greenfield path documentation
 

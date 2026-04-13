@@ -13,48 +13,8 @@ Phase 1 is now empty -- all adoption blockers and cleanup items resolved as of v
 
 ## Phase 2 -- vBRIEF Architecture Cutover
 
-Big-bang cutover to the vBRIEF-centric document model. Individual scope vBRIEFs in a lifecycle folder structure replace SPECIFICATION.md and PROJECT.md. ROADMAP.md becomes a generated artifact. All skills renamed from `deft-*` to `deft-directive-*`. No coexistence period -- clean version boundary cut.
-
-**Prerequisite:** Phase 1 complete. See RFC #309 for all 18 design decisions.
-
-### RFC
-
-- **#309** -- RFC: vBRIEF-centric document model for Deft Directive (D1-D18; authoritative source for all stories below)
-
-### Tier 1 -- Foundation (parallelizable)
-
-- **#310** -- Story A: Update vbrief.md with new vBRIEF-centric document model (lifecycle folders, PROJECT-DEFINITION type, epic-story linking, filename convention, scope splitting pattern)
-- **#311** -- Story B: Roadmap generation tool (`task roadmap:render`) + auto-generated banner + drift detection in `task check`
-- **#312** -- Story C: Migration script (`task migrate:vbrief`) -- converts SPECIFICATION.md + PROJECT.md + ROADMAP.md to new structure; deprecation redirects for SPECIFICATION.md/PROJECT.md; .agents/skills/ directory restructuring
-- **#323** -- Story N: PROJECT-DEFINITION regeneration tool (`task project:render`) -- deterministic items registry + staleness flagging
-- **#324** -- Story O: Scope lifecycle task commands (`task scope:promote/activate/complete/cancel/restore/block/unblock`)
-- **#333** -- Story R: Validation tooling for vBRIEF-centric model (scope validator, PROJECT-DEFINITION validator, folder/status consistency, epic-story links, task check integration)
-
-### Tier 2 -- Framework docs (depends on Story A)
-
-- **#313** -- Story D: Core doc updates (main.md, AGENTS.md) for vBRIEF-centric model
-- **#331** -- Story P: Ancillary doc updates (REFERENCES.md, README.md, CONTRIBUTING.md, commands.md, strategies/, templates/, context/)
-
-### Tier 3 -- Skills (depends on Stories A + D; parallelizable via swarm)
-
-- **#314** -- Story E: deft-directive-setup (rename + rewrite for vBRIEF model)
-- **#315** -- Story F: deft-directive-build, review-cycle, pre-pr (rename + update; installer scope moved to Story Q)
-- **#332** -- Story Q: Go installer rewrite for `deft-directive-*` namespace (9 thin pointers, agentsMDEntry, allSkillNames)
-- **#316** -- Story G: deft-directive-refinement (rename + rewrite from roadmap-refresh -- conversational ingest/promote/reprioritize session; note: also depends on Stories B + O for scope command API shape)
-- **#317** -- Story H: deft-directive-swarm (rename + flexible vBRIEF-based allocation)
-- **#318** -- Story I: deft-directive-sync (rename + validate new structure + origin freshness)
-- **#319** -- Story J: deft-directive-interview (namespace rename)
-
-### Tier 4 -- CLI and tests (depends on all above)
-
-- **#320** -- Story K: CLI updates (cmd_spec, cmd_project) for vBRIEF model
-- **#321** -- Story L: Test coverage for vBRIEF-centric document model
-- **#334** -- Story S: Pre-cutover detection and backward compatibility guard (old-model detection, error messages, greenfield path, placeholder integrity)
-
-### Tier 5 -- Post-cutover
-
-- **#322** -- Story M: Post-cutover GitHub issue reconciliation
-- **#335** -- Story T: Release and version boundary items (v0.20.0 bump, CHANGELOG, CI workflows, PR template)
+Big-bang cutover to the vBRIEF-centric document model. All stories completed and released in v0.20.0.
+Phase 2 is now complete -- all 21 stories (#309-#335) shipped. See RFC #309 for the 18 design decisions.
 
 ---
 
@@ -164,6 +124,27 @@ Larger feature work -- only after issues are resolved and content is stable.
 ---
 
 ## Completed
+- ~~#309 -- RFC: vBRIEF-centric document model for Deft Directive (D1-D18; 18 design decisions + 21 implementation stories)~~ -- 2026-04-13 (v0.20.0)
+- ~~#310 -- Story A: Update vbrief.md with new vBRIEF-centric document model (lifecycle folders, PROJECT-DEFINITION type, epic-story linking, filename convention, scope splitting)~~ -- 2026-04-13 (v0.20.0)
+- ~~#311 -- Story B: Roadmap generation tool (task roadmap:render) + auto-generated banner + drift detection~~ -- 2026-04-13 (v0.20.0)
+- ~~#312 -- Story C: Migration script (task migrate:vbrief) -- SPECIFICATION.md/PROJECT.md deprecation redirects, lifecycle folder creation~~ -- 2026-04-13 (v0.20.0)
+- ~~#313 -- Story D: Core doc updates (main.md, AGENTS.md) for vBRIEF-centric model~~ -- 2026-04-13 (v0.20.0)
+- ~~#314 -- Story E: deft-directive-setup (rename + rewrite for vBRIEF model)~~ -- 2026-04-13 (v0.20.0)
+- ~~#315 -- Story F: deft-directive-build, review-cycle, pre-pr (rename + update)~~ -- 2026-04-13 (v0.20.0)
+- ~~#316 -- Story G: deft-directive-refinement (rename + rewrite from roadmap-refresh)~~ -- 2026-04-13 (v0.20.0)
+- ~~#317 -- Story H: deft-directive-swarm (rename + flexible vBRIEF-based allocation)~~ -- 2026-04-13 (v0.20.0)
+- ~~#318 -- Story I: deft-directive-sync (rename + validate new structure + origin freshness)~~ -- 2026-04-13 (v0.20.0)
+- ~~#319 -- Story J: deft-directive-interview (namespace rename)~~ -- 2026-04-13 (v0.20.0)
+- ~~#320 -- Story K: CLI updates (cmd_spec, cmd_project) for vBRIEF model~~ -- 2026-04-13 (v0.20.0)
+- ~~#321 -- Story L: Test coverage for vBRIEF-centric document model~~ -- 2026-04-13 (v0.20.0)
+- ~~#322 -- Story M: Post-cutover GitHub issue reconciliation~~ -- 2026-04-13 (v0.20.0)
+- ~~#323 -- Story N: PROJECT-DEFINITION regeneration tool (task project:render)~~ -- 2026-04-13 (v0.20.0)
+- ~~#324 -- Story O: Scope lifecycle task commands (task scope:*)~~ -- 2026-04-13 (v0.20.0)
+- ~~#331 -- Story P: Ancillary doc updates for vBRIEF-centric model~~ -- 2026-04-13 (v0.20.0)
+- ~~#332 -- Story Q: Go installer rewrite for deft-directive-* namespace~~ -- 2026-04-13 (v0.20.0)
+- ~~#333 -- Story R: Validation tooling for vBRIEF-centric model~~ -- 2026-04-13 (v0.20.0)
+- ~~#334 -- Story S: Pre-cutover detection and backward compatibility guard~~ -- 2026-04-13 (v0.20.0)
+- ~~#335 -- Story T: Release and version boundary items (v0.20.0)~~ -- 2026-04-13 (v0.20.0)
 - ~~#305 -- perf(review-cycle): Greptile review cycle bottlenecks -- 5-change optimization bundle (mandate deft-pre-pr, PR scope gate, adaptive poll cadence, parallel swarm cascade monitoring, .greptile/rules.md template)~~ -- 2026-04-13 (v0.19.0)
 - ~~#307 -- fix(skill): deft-review-cycle Approach 2 capability detection gap -- add Approach 3 interactive blocking fallback with user warning~~ -- 2026-04-13 (v0.19.0)
 - ~~#328 -- docs(deft-review-cycle): add Select-String fallback for oversized gh pr view output~~ -- 2026-04-13 (v0.19.0)
@@ -461,27 +442,27 @@ Larger feature work -- only after issues are resolved and content is stable.
 | ~~#294~~ | ~~fix(enforcement): strengthen test-with-code rule -- new source files must include tests~~ | completed -- v0.18.0 |
 | ~~#295~~ | ~~chore: resolve 5 untracked xfail gaps in known_failures.json~~ | completed -- v0.18.0 |
 | ~~#296~~ | ~~Create skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill~~ | completed -- v0.18.0 |
-| #309 | RFC: vBRIEF-centric document model for Deft Directive | 2 |
-| #310 | Story A: Update vbrief.md with new vBRIEF-centric document model | 2 |
-| #311 | Story B: Roadmap generation tool (task roadmap:render) + drift detection | 2 |
-| #312 | Story C: Migration script (task migrate:vbrief) | 2 |
-| #313 | Story D: Core doc updates (main.md, AGENTS.md) for vBRIEF-centric model | 2 |
-| #314 | Story E: deft-directive-setup (rename + rewrite) | 2 |
-| #315 | Story F: deft-directive-build, review-cycle, pre-pr (rename + update) | 2 |
-| #316 | Story G: deft-directive-refinement (rename + rewrite from roadmap-refresh) | 2 |
-| #317 | Story H: deft-directive-swarm (rename + flexible allocation) | 2 |
-| #318 | Story I: deft-directive-sync (rename + validate new structure) | 2 |
-| #319 | Story J: deft-directive-interview (namespace rename) | 2 |
-| #320 | Story K: CLI updates (cmd_spec, cmd_project) for vBRIEF model | 2 |
-| #321 | Story L: Test coverage for vBRIEF-centric document model | 2 |
-| #322 | Story M: Post-cutover GitHub issue reconciliation | 2 |
-| #323 | Story N: PROJECT-DEFINITION regeneration tool (task project:render) | 2 |
-| #324 | Story O: Scope lifecycle task commands (task scope:*) | 2 |
-| #331 | Story P: Ancillary doc updates for vBRIEF-centric model | 2 |
-| #332 | Story Q: Go installer rewrite for deft-directive-* namespace | 2 |
-| #333 | Story R: Validation tooling for vBRIEF-centric model | 2 |
-| #334 | Story S: Pre-cutover detection and backward compatibility guard | 2 |
-| #335 | Story T: Release and version boundary items (v0.20.0) | 2 |
+| ~~#309~~ | ~~RFC: vBRIEF-centric document model for Deft Directive~~ | completed -- v0.20.0 |
+| ~~#310~~ | ~~Story A: Update vbrief.md with new vBRIEF-centric document model~~ | completed -- v0.20.0 |
+| ~~#311~~ | ~~Story B: Roadmap generation tool (task roadmap:render) + drift detection~~ | completed -- v0.20.0 |
+| ~~#312~~ | ~~Story C: Migration script (task migrate:vbrief)~~ | completed -- v0.20.0 |
+| ~~#313~~ | ~~Story D: Core doc updates (main.md, AGENTS.md) for vBRIEF-centric model~~ | completed -- v0.20.0 |
+| ~~#314~~ | ~~Story E: deft-directive-setup (rename + rewrite)~~ | completed -- v0.20.0 |
+| ~~#315~~ | ~~Story F: deft-directive-build, review-cycle, pre-pr (rename + update)~~ | completed -- v0.20.0 |
+| ~~#316~~ | ~~Story G: deft-directive-refinement (rename + rewrite from roadmap-refresh)~~ | completed -- v0.20.0 |
+| ~~#317~~ | ~~Story H: deft-directive-swarm (rename + flexible allocation)~~ | completed -- v0.20.0 |
+| ~~#318~~ | ~~Story I: deft-directive-sync (rename + validate new structure)~~ | completed -- v0.20.0 |
+| ~~#319~~ | ~~Story J: deft-directive-interview (namespace rename)~~ | completed -- v0.20.0 |
+| ~~#320~~ | ~~Story K: CLI updates (cmd_spec, cmd_project) for vBRIEF model~~ | completed -- v0.20.0 |
+| ~~#321~~ | ~~Story L: Test coverage for vBRIEF-centric document model~~ | completed -- v0.20.0 |
+| ~~#322~~ | ~~Story M: Post-cutover GitHub issue reconciliation~~ | completed -- v0.20.0 |
+| ~~#323~~ | ~~Story N: PROJECT-DEFINITION regeneration tool (task project:render)~~ | completed -- v0.20.0 |
+| ~~#324~~ | ~~Story O: Scope lifecycle task commands (task scope:*)~~ | completed -- v0.20.0 |
+| ~~#331~~ | ~~Story P: Ancillary doc updates for vBRIEF-centric model~~ | completed -- v0.20.0 |
+| ~~#332~~ | ~~Story Q: Go installer rewrite for deft-directive-* namespace~~ | completed -- v0.20.0 |
+| ~~#333~~ | ~~Story R: Validation tooling for vBRIEF-centric model~~ | completed -- v0.20.0 |
+| ~~#334~~ | ~~Story S: Pre-cutover detection and backward compatibility guard~~ | completed -- v0.20.0 |
+| ~~#335~~ | ~~Story T: Release and version boundary items (v0.20.0)~~ | completed -- v0.20.0 |
 | ~~#305~~ | ~~perf(review-cycle): Greptile review cycle bottlenecks -- 5-change optimization bundle~~ | completed -- v0.19.0 |
 | ~~#307~~ | ~~fix(skill): deft-review-cycle Approach 2 capability detection gap -- no start_agent + no sleep fallback~~ | completed -- v0.19.0 |
 | ~~#298~~ | ~~chore(spec): flip 5 stale [pending] statuses to [completed] in SPECIFICATION.md~~ | completed -- 2026-04-13 |
@@ -567,3 +548,4 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-13 -- roadmap refresh: restructured phases -- inserted Phase 2 (vBRIEF Architecture Cutover, RFC #309 + stories #310-#324); shifted Documentation & Content Fixes to Phase 3, CI/Testing to Phase 4, Distribution to Phase 5, Features to Phase 6; closed #308 (absorbed by #309); analysis comment posted on #309*
 *Updated 2026-04-13 -- roadmap refresh cleanup: moved #293 (closed) and #298 (closed) to Completed; removed from phase bodies; struck through in Open Issues Index*
 *Updated 2026-04-13 -- v0.19.0 release: moved #305, #307, #328, #301, #302, #303, #304 to Completed; emptied Phase 1 body; added #328 to Open Issues Index; struck through all 7 + #328 in index; Phase 1 now empty*
+*Updated 2026-04-13 -- v0.20.0 release: moved all 21 Phase 2 stories (#309-#335) to Completed; cleared Phase 2 body; struck through all Phase 2 entries in Open Issues Index; Phase 2 vBRIEF Architecture Cutover complete*
