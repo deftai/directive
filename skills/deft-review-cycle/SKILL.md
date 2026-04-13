@@ -73,7 +73,7 @@ gh pr view <number> --comments
 
 Both commands extract the "Comments Outside Diff" section with surrounding context, avoiding the need to process the full output.
 
-! **MCP capability probe** (mirrors deft-swarm Phase 3 pattern): Before attempting MCP `get_review_comments`, probe whether MCP GitHub tools are available in the current session. Detection: attempt a lightweight MCP call (e.g. list available tools or a no-op query) -- if it succeeds, MCP is available; if it errors or the tool is not in the available set, MCP is unavailable.
+! **MCP capability probe** (mirrors deft-directive-swarm Phase 3 pattern): Before attempting MCP `get_review_comments`, probe whether MCP GitHub tools are available in the current session. Detection: attempt a lightweight MCP call (e.g. list available tools or a no-op query) -- if it succeeds, MCP is available; if it errors or the tool is not in the available set, MCP is unavailable.
 
 - **MCP available**: ! Use MCP `get_review_comments` as the second source to catch Comments Outside Diff.
 - **MCP unavailable** (e.g. `start_agent` agents, cloud agents, `oz agent run`): ! Use `gh api repos/<owner>/<repo>/pulls/<number>/comments` as the explicit fallback for the second review source. Document in the commit message or PR comment why MCP was skipped (e.g. "MCP unavailable in this session -- used gh api fallback for review comments").
@@ -134,7 +134,7 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 - **Tier 2 -- no `start_agent`, but scheduler/timer/auto-reinvocation available** → Approach 2 (yield-between-polls)
 - **Tier 3 -- interactive session, no `start_agent`, no timer/scheduler** → Approach 3 (blocking sleep loop as last resort)
 
-! Detection: probe for `start_agent` in the available tool set (same pattern as deft-swarm Phase 3). If absent, check whether the runtime supports auto-reinvocation after yield (timer, scheduler, or CI trigger). If neither is available and the session is interactive, fall through to Approach 3.
+! Detection: probe for `start_agent` in the available tool set (same pattern as deft-directive-swarm Phase 3). If absent, check whether the runtime supports auto-reinvocation after yield (timer, scheduler, or CI trigger). If neither is available and the session is interactive, fall through to Approach 3.
 
 ! Swarm agents launched via `start_agent` SHOULD prefer Approach 1 (spawn their own review-monitor sub-agent) when `start_agent` is available. Approach 2's yield-between-polls mechanism is not self-sustaining for swarm agents (see Approach 2 warning below).
 
@@ -249,7 +249,7 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
    ```
    gh issue close <N> --comment "Closed by #<PR> (squash merge — auto-close did not trigger)"
    ```
-3. ~ This step mirrors `skills/deft-swarm/SKILL.md` Phase 6 Step 2 and applies to ALL PR merges, not just swarm runs.
+3. ~ This step mirrors `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 2 and applies to ALL PR merges, not just swarm runs.
 
 ## Anti-Patterns
 
