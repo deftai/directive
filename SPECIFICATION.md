@@ -1230,6 +1230,62 @@ Add tests/cli/test_task_scripts.py with subprocess-based unit tests for all scri
 
 **Traces**: #293
 
+## t2.12.1: vBRIEF-centric document model -- RFC + stories A-O (#309, #310-#324)  `[pending]`
+
+Big-bang cutover to the vBRIEF-centric document model. RFC #309 defines 18 design decisions. Implementation in 5 tiers: Tier 1 foundation (vbrief.md update, roadmap:render + drift detection, migration script, project:render, scope lifecycle tasks); Tier 2 core doc updates (main.md, AGENTS.md); Tier 3 skill renames and rewrites (deft-directive-setup/build/review-cycle/pre-pr/refinement/swarm/sync/interview); Tier 4 CLI and test coverage; Tier 5 post-cutover reconciliation. All skills renamed from deft-* to deft-directive-*. SPECIFICATION.md and PROJECT.md replaced by PROJECT-DEFINITION.vbrief.json. ROADMAP.md becomes generated artifact.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #309, #310, #311, #312, #313, #314, #315, #316, #317, #318, #319, #320, #321, #322, #323, #324
+
+## t1.31.1: deft-review-cycle Approach 3 -- interactive blocking fallback when start_agent unavailable (#307)  `[pending]`
+
+Approach 2 (yield-between-polls) silently stalls in interactive sessions with no start_agent and no scheduler. Add a third detection tier: Approach 3 uses a blocking Start-Sleep loop as a last resort, gated by a ! rule requiring the user be warned before activation. Update capability detection to distinguish three states: start_agent available (Approach 1), no start_agent but timer available (Approach 2), no start_agent + no timer + interactive (Approach 3).
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #307
+
+## t1.30.1: Greptile review cycle optimization -- 5-change bundle (#305)  `[pending]`
+
+Fix all 5 active review cycle bottlenecks in one PR: (1) mandate deft-pre-pr before PR creation -- AGENTS.md ! rule + deft-review-cycle Phase 1 verification gate; (2) PR scope gate warning in deft-review-cycle Phase 1 for PRs spanning 3+ unrelated surfaces; (3) adaptive poll cadence -- 20-30s first check, 60s second, 90s thereafter; (4) parallel rebase + review monitoring in deft-swarm Phase 6 via start_agent sub-agents; (5) .greptile/rules.md starter template in tools/greptile.md elevated to SHOULD.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #305
+
+## t1.29.1: Add regression test for deft-setup Phase 1/2 referencing deft-interview (#304)  `[pending]`
+
+No test in tests/content/test_skills.py verifies that skills/deft-setup/SKILL.md Phase 1 and Phase 2 actually reference deft-interview. Add 1-2 assertions covering both phases.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #304
+
+## t1.28.1: Fix deft-interview Rule 5 vs Rule 6 inconsistency -- 'ok' at confirmation gate (#303)  `[pending]`
+
+Rule 5 (default-acceptance) lists ``ok`` as a valid response but Rule 6's confirmation gate acceptance list omits it, creating inconsistent UX. Either add ``ok`` to Rule 6's affirmative list or add a clarifying note that the confirmation gate is intentionally stricter.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #303
+
+## t1.27.1: Clarify deft-interview invocation contract -- embedded vs delegation usage modes (#302)  `[pending]`
+
+The Invocation Contract section of skills/deft-interview/SKILL.md requires callers to supply a formal contract object, but deft-setup currently embeds the rules inline without one. Add a clarifying note distinguishing embedded mode (calling skill quotes/references rules inline -- no contract object needed) from delegation mode (explicit sub-skill invocation with a contract object).
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #302
+
+## t1.26.1: Tighten deft-interview routing keyword -- fix collision with spec-creation intent (#301)  `[pending]`
+
+The bare ``interview`` keyword in AGENTS.md Skill Routing routes to deft-interview (generic Q&A loop), but users starting a spec session also say ``interview`` and expect strategies/interview.md. Tighten the trigger phrases to remove ambiguity.
+
+- <first acceptance criterion placeholder>
+
+**Traces**: #301
+
 ## t1.25.1: Flip all stale [pending] spec task statuses to [completed] in SPECIFICATION.md (#298)  `[completed]`
 
 SPECIFICATION.md had 24 spec tasks showing `[pending]` status that were completed and shipped in prior releases but never synced. Full audit against CHANGELOG.md and ROADMAP.md identified stale statuses from v0.14.0, v0.16.0, v0.17.0, and v0.18.0. Flipped all 24 in one pass.
