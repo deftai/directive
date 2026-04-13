@@ -1,0 +1,7 @@
+version: '3'
+
+tasks:
+  vbrief:
+    desc: Migrate existing project files to vBRIEF-centric folder structure (RFC #309)
+    cmds:
+      - uv run python scripts/migrate_vbrief.py "{{.USER_WORKING_DIR}}"
