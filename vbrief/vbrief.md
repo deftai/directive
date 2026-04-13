@@ -57,7 +57,7 @@ Individual units of work (features, bugs, initiatives) live as scope vBRIEFs in 
 - ! `plan.status` inside each scope vBRIEF is the **source of truth** — not the folder location
 - ! Folder location is a convenience view for humans; metadata is authoritative
 - ! Agents MUST move files to the matching lifecycle folder when status changes
-- ! When moving a file, agents MUST update all `planRef` and `references[].url` values in other scope vBRIEFs that point to the moved file
+- ! When moving a file, agents MUST update all `planRef` and `references[].url` values in other scope vBRIEFs and in `PROJECT-DEFINITION.vbrief.json` that point to the moved file
 - ~ When folder/status drift is detected, trust the status field and correct the folder
 - ⊗ Move files between folders without updating `plan.status`
 
