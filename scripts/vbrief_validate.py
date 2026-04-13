@@ -237,6 +237,7 @@ def validate_project_definition(
 ) -> list[str]:
     """Validate PROJECT-DEFINITION.vbrief.json specific requirements."""
     errors: list[str] = []
+    resolved_root = vbrief_dir.resolve()
 
     # Check narratives contains expected keys
     plan = data.get("plan", {})
@@ -266,6 +267,12 @@ def validate_project_definition(
                 if uri and uri.startswith("file://"):
                     ref_path = uri.replace("file://", "")
                     full_path = (vbrief_dir / ref_path).resolve()
+                    if not str(full_path).startswith(str(resolved_root)):
+                        errors.append(
+                            f"{filepath}: items[{i}] references "
+                            f"'{ref_path}' outside vbrief directory (D3)"
+                        )
+                        continue
                     if not full_path.exists():
                         errors.append(
                             f"{filepath}: items[{i}] references "
@@ -274,6 +281,12 @@ def validate_project_definition(
                 elif uri and not uri.startswith(("http://", "https://", "#")):
                     # Treat as relative path
                     full_path = (vbrief_dir / uri).resolve()
+                    if not str(full_path).startswith(str(resolved_root)):
+                        errors.append(
+                            f"{filepath}: items[{i}] references "
+                            f"'{uri}' outside vbrief directory (D3)"
+                        )
+                        continue
                     if not full_path.exists():
                         errors.append(
                             f"{filepath}: items[{i}] references "
@@ -288,13 +301,21 @@ def validate_project_definition(
 # ---------------------------------------------------------------------------
 
 def validate_epic_story_links(
-    all_vbriefs: dict[Path, dict], vbrief_dir: Path
+    all_vbriefs: dict[Path, dict],
+    vbrief_dir: Path,
+    resolved_to_original: dict[Path, Path] | None = None,
 ) -> list[str]:
     """Validate bidirectional references between epic and story vBRIEFs."""
     errors: list[str] = []
+    path_map = resolved_to_original or {}
+
+    def _display(p: Path) -> str:
+        """Return original path for display if available."""
+        return str(path_map.get(p, p))
 
     for filepath, data in all_vbriefs.items():
         plan = data.get("plan", {})
+        fp_display = _display(filepath)
 
         # Check forward references (epic -> children)
         refs = plan.get("references", [])
@@ -312,20 +333,19 @@ def validate_epic_story_links(
                     continue
                 if child_path not in all_vbriefs:
                     if child_path.exists():
-                        continue  # file exists but wasn't loaded (edge case)
+                        continue  # file exists but wasn't loaded
                     errors.append(
-                        f"{filepath}: references child '{uri}' "
+                        f"{fp_display}: references child '{uri}' "
                         "which does not exist (D4)"
                     )
                     continue
                 # Verify child has planRef back
                 child_data = all_vbriefs[child_path]
                 child_plan = child_data.get("plan", {})
-                # Check planRef at plan level or in items
                 if not _has_plan_ref_to(child_plan, filepath, vbrief_dir):
                     errors.append(
-                        f"{child_path}: missing planRef back to parent "
-                        f"'{filepath.name}' (D4)"
+                        f"{_display(child_path)}: missing planRef back "
+                        f"to parent '{filepath.name}' (D4)"
                     )
 
         # Check backward references (story -> parent via planRef)
@@ -341,16 +361,19 @@ def validate_epic_story_links(
                     for pref in parent_refs:
                         if isinstance(pref, dict):
                             child_uris.add(pref.get("uri", ""))
-                    if not _path_in_refs(filepath, child_uris, vbrief_dir):
+                    if not _path_in_refs(
+                        filepath, child_uris, vbrief_dir
+                    ):
                         errors.append(
-                            f"{filepath}: has planRef to "
-                            f"'{parent_path.name}' but parent does not "
-                            f"list this file in references (D4)"
+                            f"{fp_display}: has planRef to "
+                            f"'{parent_path.name}' but parent "
+                            "does not list this file in "
+                            "references (D4)"
                         )
             elif parent_path and not parent_path.exists():
                 errors.append(
-                    f"{filepath}: planRef references '{plan_ref}' "
-                    "which does not exist (D4)"
+                    f"{fp_display}: planRef references "
+                    f"'{plan_ref}' which does not exist (D4)"
                 )
 
     return errors
@@ -434,8 +457,11 @@ def validate_origin_provenance(
             if ref_type in ORIGIN_TYPES:
                 has_origin = True
                 break
-            # Also accept any type that looks like an origin
-            if any(origin in ref_type for origin in ORIGIN_TYPES):
+            # Also accept extended origin types (e.g. github-issue-v2)
+            if any(
+                ref_type.startswith((f"{origin}-", f"{origin}/"))
+                for origin in ORIGIN_TYPES
+            ):
                 has_origin = True
                 break
 
@@ -474,11 +500,15 @@ def discover_vbriefs(vbrief_dir: Path) -> list[Path]:
     return files
 
 
-def validate_all(vbrief_dir: Path) -> tuple[list[str], list[str]]:
-    """Run all validators. Returns (errors, warnings)."""
+def validate_all(
+    vbrief_dir: Path,
+) -> tuple[list[str], list[str], int]:
+    """Run all validators. Returns (errors, warnings, scope_count)."""
     errors: list[str] = []
     warnings: list[str] = []
     all_vbriefs: dict[Path, dict] = {}
+    # Map resolved -> original path for consistent error messages
+    resolved_to_original: dict[Path, Path] = {}
 
     # Discover scope vBRIEFs in lifecycle folders
     scope_files = discover_vbriefs(vbrief_dir)
@@ -493,7 +523,9 @@ def validate_all(vbrief_dir: Path) -> tuple[list[str], list[str]]:
         if data is None:
             continue
 
-        all_vbriefs[filepath.resolve()] = data
+        resolved = filepath.resolve()
+        all_vbriefs[resolved] = data
+        resolved_to_original[resolved] = filepath
 
         # Schema validation
         errors.extend(validate_vbrief_schema(data, str(filepath)))
@@ -514,7 +546,9 @@ def validate_all(vbrief_dir: Path) -> tuple[list[str], list[str]]:
         if load_err:
             errors.append(load_err)
         elif data is not None:
-            all_vbriefs[project_def.resolve()] = data
+            resolved_pd = project_def.resolve()
+            all_vbriefs[resolved_pd] = data
+            resolved_to_original[resolved_pd] = project_def
             errors.extend(validate_vbrief_schema(data, str(project_def)))
             errors.extend(
                 validate_project_definition(project_def, data, vbrief_dir)
@@ -522,9 +556,13 @@ def validate_all(vbrief_dir: Path) -> tuple[list[str], list[str]]:
 
     # Epic-story bidirectional link validation (D4)
     if all_vbriefs:
-        errors.extend(validate_epic_story_links(all_vbriefs, vbrief_dir))
+        errors.extend(
+            validate_epic_story_links(
+                all_vbriefs, vbrief_dir, resolved_to_original
+            )
+        )
 
-    return errors, warnings
+    return errors, warnings, len(scope_files)
 
 
 def main() -> int:
@@ -551,7 +589,7 @@ def main() -> int:
         print(f"OK: No vbrief directory at {vbrief_dir} -- skipping validation")
         return 0
 
-    errors, warnings = validate_all(vbrief_dir)
+    errors, warnings, scope_count = validate_all(vbrief_dir)
 
     # Print warnings
     for w in warnings:
@@ -564,8 +602,6 @@ def main() -> int:
     if errors:
         print(f"\nFAIL: {len(errors)} error(s) found")
         return 1
-
-    scope_count = len(discover_vbriefs(vbrief_dir))
     project_def = vbrief_dir / "PROJECT-DEFINITION.vbrief.json"
     parts = []
     if scope_count:
