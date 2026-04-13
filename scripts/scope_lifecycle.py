@@ -30,7 +30,7 @@ RFC #309 decision D16. Story #324.
 
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -101,10 +101,10 @@ def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
 
     # Validate source folder
     if current_folder not in allowed_sources:
+        allowed_str = ", ".join(f"{s}/" for s in allowed_sources)
         return False, (
             f"Invalid transition: '{action}' requires file in "
-            f"{'/'.join(allowed_sources + ('',))[:-1] if len(allowed_sources) > 1 else allowed_sources[0] + '/'}. "
-            f"File is in {current_folder}/."
+            f"{allowed_str}. File is in {current_folder}/."
         )
 
     # Load and validate JSON
@@ -137,7 +137,7 @@ def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
 
     # Update status and timestamp
     plan["status"] = target_status
-    plan["updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    plan["updated"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Write updated JSON
     updated_json = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
@@ -195,9 +195,8 @@ def main() -> int:
     if ok:
         print(message)
         return 0
-    else:
-        print(f"Error: {message}", file=sys.stderr)
-        return 1
+    print(f"Error: {message}", file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":

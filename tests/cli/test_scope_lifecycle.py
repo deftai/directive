@@ -9,7 +9,6 @@ Story #324. RFC #309 decision D16.
 """
 
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -20,9 +19,8 @@ REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
 
 # Import the module under test directly for unit tests
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
-from scope_lifecycle import (  # noqa: E402
+from scope_lifecycle import (  # noqa: E402, I001
     LIFECYCLE_FOLDERS,
-    TRANSITIONS,
     detect_lifecycle_folder,
     run_transition,
 )
