@@ -558,6 +558,44 @@ class TestEpicStoryLinks:
         assert "does not exist" in result.stdout
         assert "D4" in result.stdout
 
+    def test_non_plan_ref_type_does_not_trigger_d4(self, tmp_path):
+        """Non-plan reference types (dependency, context) do not trigger D4.
+
+        A vBRIEF with a x-vbrief/dependency reference to another vBRIEF
+        should not cause a 'missing planRef' error — D4 only applies to
+        x-vbrief/plan references.
+        """
+        vbrief_dir = tmp_path / "vbrief"
+        make_lifecycle_dirs(vbrief_dir)
+
+        source_path = "active/2026-04-13-feature-a.vbrief.json"
+        dep_path = "active/2026-04-13-feature-b.vbrief.json"
+
+        # Feature A has a dependency reference to Feature B
+        write_vbrief(
+            vbrief_dir / source_path,
+            minimal_vbrief(
+                title="Feature A",
+                status="running",
+                references=[
+                    {
+                        "uri": dep_path,
+                        "type": "x-vbrief/dependency",
+                    }
+                ],
+            ),
+        )
+        # Feature B exists but has NO planRef back (and shouldn't)
+        write_vbrief(
+            vbrief_dir / dep_path,
+            minimal_vbrief(title="Feature B", status="running"),
+        )
+
+        result = run_validator(vbrief_dir)
+        assert result.returncode == 0
+        assert "planRef" not in result.stdout
+        assert "D4" not in result.stdout
+
     def test_story_planref_parent_not_listing_child(self, tmp_path):
         """Story has planRef to parent, but parent doesn't list child -- error (D4)."""
         vbrief_dir = tmp_path / "vbrief"

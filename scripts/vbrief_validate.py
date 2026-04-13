@@ -327,6 +327,9 @@ def validate_epic_story_links(
                 ref_type = ref.get("type", "")
                 if not uri or not ref_type:
                     continue
+                # D4 only applies to child plan references
+                if ref_type != "x-vbrief/plan":
+                    continue
                 # Resolve the child path
                 child_path = _resolve_ref_path(uri, vbrief_dir)
                 if child_path is None:
