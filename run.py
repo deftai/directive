@@ -59,6 +59,7 @@ from deft_run import (
     print_warn,
     print_error,
     VERSION,
+    _slugify,
 )
 
 __all__ = [
@@ -84,4 +85,5 @@ __all__ = [
     "print_warn",
     "print_error",
     "VERSION",
+    "_slugify",
 ]

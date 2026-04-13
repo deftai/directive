@@ -123,19 +123,21 @@ def get_default_paths() -> dict:
     
     Environment variables override built-in defaults:
         DEFT_USER_PATH          default: ~/.config/deft/USER.md
-        DEFT_PROJECT_PATH       default: ./PROJECT.md
+        DEFT_PROJECT_PATH       default: ./vbrief/PROJECT-DEFINITION.vbrief.json
         DEFT_PRD_PATH           default: ./PRD.md
         DEFT_SPECIFICATION_PATH default: ./SPECIFICATION.md
         DEFT_INTERVIEW_PATH     default: ./INTERVIEW.md (Light sizing path only; not in returned dict)
+        DEFT_VBRIEF_PROPOSED    default: ./vbrief/proposed/
     
     Returns:
-        dict with keys 'user', 'project', 'prd', 'specification'
+        dict with keys 'user', 'project', 'prd', 'specification', 'vbrief_proposed'
     """
     return {
         'user': os.environ.get('DEFT_USER_PATH', '~/.config/deft/USER.md'),
-        'project': os.environ.get('DEFT_PROJECT_PATH', './PROJECT.md'),
+        'project': os.environ.get('DEFT_PROJECT_PATH', './vbrief/PROJECT-DEFINITION.vbrief.json'),
         'prd': os.environ.get('DEFT_PRD_PATH', './PRD.md'),
         'specification': os.environ.get('DEFT_SPECIFICATION_PATH', './SPECIFICATION.md'),
+        'vbrief_proposed': os.environ.get('DEFT_VBRIEF_PROPOSED', './vbrief/proposed/'),
     }
 
 # ── Resume / atomic-write helpers (issue #8) ─────────────────────────
@@ -318,8 +320,8 @@ def usage():
 
 [bold cyan]Commands:[/bold cyan]
   [green]bootstrap[/green]       Set up your user preferences (user.md)
-  [green]project[/green]         Create/update project configuration (project.md)
-  [green]spec[/green]            Generate project specification via interview (--force to overwrite)
+  [green]project[/green]         Create/update project configuration (PROJECT-DEFINITION.vbrief.json)
+  [green]spec[/green]            Generate scope vBRIEF in vbrief/proposed/ (--force to overwrite)
   [green]install[/green]         Install deft framework in a project directory
   [green]reset[/green]           Reset configuration files to default state
   [green]validate[/green]        Validate deft configuration files
@@ -331,7 +333,7 @@ def usage():
   run                        # Launch TUI wizard (if textual installed)
   run bootstrap              # First-time setup
   run project                # Configure current project
-  run spec                   # Generate SPECIFICATION.md
+  run spec                   # Generate scope vBRIEF
   run install ~/my-project   # Install deft in a project
   run reset                  # Reset config files (interactive)
   run reset --all            # Reset all config files (no prompts)
@@ -350,8 +352,8 @@ For more information: [link]https://github.com/deftai/directive[/link]
 
 Commands:
   bootstrap       Set up your user preferences (user.md)
-  project         Create/update project configuration (project.md)
-  spec            Generate project specification via interview (--force to overwrite)
+  project         Create/update project configuration (PROJECT-DEFINITION.vbrief.json)
+  spec            Generate scope vBRIEF in vbrief/proposed/ (--force to overwrite)
   install         Install deft framework in a project directory
   reset           Reset configuration files to default state
   validate        Validate deft configuration files
@@ -363,7 +365,7 @@ Examples:
   run                        # Launch TUI wizard (if textual installed)
   run bootstrap              # First-time setup
   run project                # Configure current project
-  run spec                   # Generate SPECIFICATION.md
+  run spec                   # Generate scope vBRIEF
   run install ~/my-project   # Install deft in a project
   run reset                  # Reset config files (interactive)
   run reset --all            # Reset all config files (no prompts)
@@ -808,16 +810,16 @@ for project-scoped settings (strategy, coverage, languages).
         return 0
 
 def cmd_project(args: List[str]):
-    """Project command - configure project.md"""
+    """Project command - configure PROJECT-DEFINITION.vbrief.json"""
     print_header(f"Deft CLI v{VERSION} - Project Configuration")
     print()
-    info("This command creates project.md, which defines YOUR project's specifics:")
-    info("  • Tech stack and programming language")
+    info("This command creates PROJECT-DEFINITION.vbrief.json, which defines YOUR project:")
+    info("  • Tech stack and programming language (narratives)")
     info("  • Project type (CLI, API, Web App, Library, etc.)")
     info("  • Quality standards (test coverage thresholds)")
     info("  • Workflow commands (task check, task test, etc.)")
     print()
-    info("This file tells AI assistants how to build and maintain YOUR project.")
+    info("This vBRIEF file tells AI assistants how to build and maintain YOUR project.")
     info("It works alongside the general Deft guidelines in ./deft/")
     print()
     
@@ -850,7 +852,7 @@ def cmd_project(args: List[str]):
     if 'output_path' not in progress:
         print_section("Output Location")
     project_path_str = _resume_or_ask(progress, prog_file, 'output_path', 'Output',
-                                       read_input, "Where to write PROJECT.md", defaults['project'])
+                                       read_input, "Where to write PROJECT-DEFINITION.vbrief.json", defaults['project'])
     project_file = resolve_path(project_path_str)
     
     # Gather project information
@@ -1152,74 +1154,52 @@ def cmd_project(args: List[str]):
     lang_links = " | ".join([f"[../languages/{s}.md](../languages/{s}.md)" for s, _ in selected_langs])
     lang_names = ", ".join([d for _, d in selected_langs])
     
-    # Build coverage override line (only if non-default)
-    coverage_line = f"\n- **Coverage**: ! ≥{proj_coverage}% (overrides default 85%)" if proj_coverage != "85" else ""
-    
-    # Build branching section (only emitted for trunk-based)
-    branching_section = (
-        "\n## Branching\n\nAllow direct commits to master: true\n"
-        if allow_direct_commits else ""
-    )
+    # Build vBRIEF PROJECT-DEFINITION structure
+    # Narratives hold project identity per RFC D3
+    narratives = {
+        "Overview": f"{project_name} -- {project_types_str} using {lang_names}",
+        "TechStack": f"{project_types_str} using {lang_names}" + (f" - {tech_stack}" if tech_stack else ""),
+        "Languages": lang_names,
+        "Strategy": f"{strategy_display} (strategies/{strategy_stem}.md)",
+        "Coverage": f">={proj_coverage}%",
+    }
+    if allow_direct_commits:
+        narratives["Branching"] = "Allow direct commits to master: true"
 
-    # Build strategy line (omit link when no strategy files exist)
-    if available_strats:
-        strategy_use_line = f"Use [{strategy_display}](../strategies/{strategy_stem}.md) for this project."
-    else:
-        strategy_use_line = f"Use {strategy_display} for this project."
-    
-    project_content = f"""# {project_name} Project Guidelines
+    project_definition = {
+        "vBRIEFInfo": {
+            "version": "0.5",
+            "description": f"PROJECT-DEFINITION for {project_name}. Generated by run v{VERSION}.",
+            "updated": today,
+        },
+        "plan": {
+            "title": f"{project_name} Project Definition",
+            "status": "running",
+            "narratives": narratives,
+            "items": [],
+            "metadata": {
+                "generator": f"run v{VERSION}",
+                "generatedAt": today,
+            },
+        },
+    }
 
-Only specify items here that **override or extend** the deft defaults.
-See `deft/main.md`, `deft/coding/coding.md`, and language-specific files for base standards.
-
-**⚠️ See also**: [../main.md](../main.md) | {lang_links}
-
-## Project Configuration
-
-**Tech Stack**: {project_types_str} using {lang_names}{tech_stack_str}
-
-## Strategy
-
-{strategy_use_line}
-
-**Process**:
-
-## Overrides
-{coverage_line}
-
-## Secrets
-
-<!-- List project-specific secrets needed -->
-
-## Principles
-
-<!-- Non-negotiable rules unique to THIS project (3-5 items) -->
-
-## Project-Specific Rules
-
-(Add your custom rules here)
-{branching_section}
-
----
-
-**Generated by**: run v{VERSION}
-**Date**: {today}
-"""
-    
-    _atomic_write(project_file, project_content)
+    project_content = json.dumps(project_definition, indent=2, ensure_ascii=False)
+    _atomic_write(project_file, project_content + "\n")
     _clear_progress(prog_file)
     
-    success(f"Created project.md at {project_file}")
+    success(f"Created PROJECT-DEFINITION.vbrief.json at {project_file}")
     print()
-    info("project.md defines your project's tech stack, workflow, and quality standards.")
+    info("PROJECT-DEFINITION.vbrief.json defines your project's identity, tech stack, and quality standards.")
+    info("Scope vBRIEFs in vbrief/proposed/ reference this file as the project gestalt.")
     print()
     
     # Prompt to run spec generation
     print()
     print_section("Next Steps")
-    info("Generate a detailed specification via AI interview")
-    info("The 'spec' command creates PRD.md with your project requirements,")
-    info("which an AI assistant will use to interview you and generate SPECIFICATION.md.")
+    info("Generate a scope vBRIEF via AI interview")
+    info("The 'spec' command creates a scope vBRIEF in vbrief/proposed/")
+    info("for your AI assistant to work from.")
     print()
     if read_yn("Would you like to run 'run spec' now?", default=True):
         print()
@@ -1300,7 +1280,7 @@ def _read_user_defaults(defaults: dict) -> dict:
 
 
 def _read_project_process(defaults: dict) -> Optional[str]:
-    """Read **Process**: value from PROJECT.md if present.
+    """Read Process value from PROJECT-DEFINITION.vbrief.json or legacy PROJECT.md.
     
     Returns 'Light', 'Full', or None.
     """
@@ -1311,6 +1291,14 @@ def _read_project_process(defaults: dict) -> Optional[str]:
         return None
     try:
         content = project_file.read_text(encoding='utf-8')
+        # Try vBRIEF JSON format first
+        if project_file.name.endswith('.vbrief.json'):
+            data = json.loads(content)
+            process_val = data.get('plan', {}).get('narratives', {}).get('Process', '')
+            if process_val.lower() in ('light', 'full'):
+                return process_val.capitalize()
+            return None
+        # Legacy PROJECT.md format
         for line in content.split('\n'):
             stripped = line.strip()
             if stripped.startswith('**Process**:'):
@@ -1322,9 +1310,12 @@ def _read_project_process(defaults: dict) -> Optional[str]:
     return None
 
 def _read_project_strategy(defaults: dict) -> Optional[str]:
-    """Read strategy file stem from PROJECT.md.
+    """Read strategy file stem from PROJECT-DEFINITION.vbrief.json or legacy PROJECT.md.
     
-    Parses the ## Strategy section for a link like:
+    For vBRIEF format, reads plan.narratives.Strategy which contains:
+        "Interview (strategies/interview.md)"
+    
+    For legacy PROJECT.md, parses the ## Strategy section for a link like:
         Use [Name](path/strategies/stem.md) for this project.
     
     Returns strategy stem (e.g. 'interview', 'discuss') or None.
@@ -1336,6 +1327,18 @@ def _read_project_strategy(defaults: dict) -> Optional[str]:
         return None
     try:
         content = project_file.read_text(encoding='utf-8')
+        # Try vBRIEF JSON format first
+        if project_file.name.endswith('.vbrief.json'):
+            data = json.loads(content)
+            strategy_val = data.get('plan', {}).get('narratives', {}).get('Strategy', '')
+            if 'strategies/' in strategy_val and '.md' in strategy_val:
+                start = strategy_val.index('strategies/') + len('strategies/')
+                rest = strategy_val[start:]
+                stem = rest[:rest.index('.md')]
+                if stem:
+                    return stem
+            return None
+        # Legacy PROJECT.md format
         for line in content.split('\n'):
             stripped = line.strip()
             if stripped.startswith('Use [') and 'strategies/' in stripped:
@@ -1349,16 +1352,28 @@ def _read_project_strategy(defaults: dict) -> Optional[str]:
         pass
     return None
 
+def _slugify(text: str) -> str:
+    """Convert text to a URL-friendly slug for vBRIEF filenames.
+    
+    Strips non-alphanumeric characters, lowercases, and joins with hyphens.
+    """
+    import re
+    text = text.lower().strip()
+    text = re.sub(r'[^a-z0-9\s_-]', '', text)
+    text = re.sub(r'[\s_]+', '-', text)
+    text = re.sub(r'-+', '-', text)
+    return text.strip('-')[:60]  # Cap slug length
+
 def cmd_spec(args: List[str]):
-    """Spec command - generate specification via interview"""
-    print_header(f"Deft CLI v{VERSION} - Specification Generator")
+    """Spec command - generate scope vBRIEF via interview"""
+    print_header(f"Deft CLI v{VERSION} - Scope vBRIEF Generator")
     print()
     
     defaults = get_default_paths()
     strategy = _read_project_strategy(defaults) or 'interview'
     
     # Resume support (issue #8)
-    prog_file = _progress_path(resolve_path(defaults['prd']))
+    prog_file = _progress_path(resolve_path(defaults['vbrief_proposed']))
     progress = {}
     if prog_file.exists():
         saved = _load_progress(prog_file)
@@ -1373,24 +1388,24 @@ def cmd_spec(args: List[str]):
             else:
                 _clear_progress(prog_file)
     
-    info("This command creates a specification instruction file for your AI assistant.")
+    info("This command creates a scope vBRIEF in vbrief/proposed/ for your AI assistant.")
     if strategy != 'interview':
-        info(f"Strategy: {strategy} (from PROJECT.md)")
+        info(f"Strategy: {strategy} (from PROJECT-DEFINITION.vbrief.json)")
         info(f"Your AI will follow strategies/{strategy}.md, which chains into")
-        info("the sizing gate for specification generation:")
+        info("the sizing gate for scope generation:")
     else:
         info("It follows strategies/interview.md with a sizing gate:")
-    info("  • Light: → SPECIFICATION (embedded requirements)")
-    info("  • Full:  → PRD (approval gate) → SPECIFICATION")
+    info("  \u2022 Light: \u2192 scope vBRIEF in vbrief/proposed/ (embedded requirements)")
+    info("  \u2022 Full:  \u2192 scope vBRIEF with rich narratives (approval gate)")
     print()
     info("After creating the file, you'll:")
     info("  1. Give it to your AI assistant")
     info(f"  2. The AI reads strategies/{strategy}.md and follows its workflow")
-    info("  3. The AI generates SPECIFICATION.md with full implementation plan")
-    info("  4. The AI can then implement the spec")
+    info("  3. The AI refines the scope vBRIEF with implementation details")
+    info("  4. The AI can then implement the scope")
     print()
     
-    # Try to read project name from project.md (check new default, then legacy path)
+    # Try to read project name from PROJECT-DEFINITION.vbrief.json (check new default, then legacy)
     project_default = resolve_path(defaults['project'])
     project_legacy = _legacy_project_path()
     project_file = project_default if project_default.exists() else project_legacy
@@ -1399,15 +1414,24 @@ def cmd_spec(args: List[str]):
         if project_file.exists():
             try:
                 content = project_file.read_text(encoding='utf-8')
-                for line in content.split('\n'):
-                    if line.startswith('# ') and 'Project Guidelines' in line:
-                        spec_name = line.replace('# ', '').replace(' Project Guidelines', '').strip()
-                        break
-            except (OSError, UnicodeDecodeError):
+                if project_file.name.endswith('.vbrief.json'):
+                    data = json.loads(content)
+                    title = data.get('plan', {}).get('title', '')
+                    if title and 'Project Definition' in title:
+                        spec_name = title.replace(' Project Definition', '').strip()
+                    elif title:
+                        spec_name = title
+                else:
+                    # Legacy PROJECT.md format
+                    for line in content.split('\n'):
+                        if line.startswith('# ') and 'Project Guidelines' in line:
+                            spec_name = line.replace('# ', '').replace(' Project Guidelines', '').strip()
+                            break
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                 pass
         
         if spec_name:
-            info(f"Project name from project.md: {spec_name}")
+            info(f"Project name from PROJECT-DEFINITION: {spec_name}")
             if not read_yn("Use this name?", default=True):
                 spec_name = read_input("Project name")
         else:
@@ -1439,17 +1463,17 @@ def cmd_spec(args: List[str]):
     # Sizing gate
     if 'sizing' not in progress:
         print()
-        print_section("Project Complexity")
+        print_section("Scope Complexity")
         
         process_override = _read_project_process(defaults)
         if process_override:
-            info(f"PROJECT.md declares **Process**: {process_override} — using that.")
+            info(f"PROJECT-DEFINITION declares Process: {process_override} -- using that.")
             sizing = process_override
         else:
             recommended = "Light" if len(features) <= 5 else "Full"
             info(f"Based on {len(features)} feature(s), recommended: {recommended}")
-            info("  1. Light — Interview → SPECIFICATION (embedded requirements, no PRD)")
-            info("  2. Full  — Interview → PRD (approval gate) → SPECIFICATION")
+            info("  1. Light -- scope vBRIEF with embedded requirements")
+            info("  2. Full  -- scope vBRIEF with rich narratives (approval gate)")
             sizing_choice = read_input("Selection", "1" if recommended == "Light" else "2")
             sizing = "Light" if sizing_choice.strip() == "1" else "Full"
         progress['sizing'] = sizing
@@ -1458,21 +1482,12 @@ def cmd_spec(args: List[str]):
         sizing = progress['sizing']
         info(f"  [resumed] Path: {sizing}")
     
-    # Determine output file
-    if sizing == "Light":
-        output_default = os.environ.get('DEFT_INTERVIEW_PATH', './INTERVIEW.md')
-    else:
-        output_default = defaults['prd']  # ./PRD.md
-    
-    if 'output_path' not in progress:
-        print()
-        print_section("Output Locations")
-    output_path_str = _resume_or_ask(progress, prog_file, 'output_path', 'Output',
-                                      read_input, f"Where to write {'INTERVIEW.md' if sizing == 'Light' else 'PRD.md'}", output_default)
-    output_file = resolve_path(output_path_str)
-    spec_path_str = _resume_or_ask(progress, prog_file, 'spec_path', 'Spec output',
-                                    read_input, "Where should SPECIFICATION.md be generated", defaults['specification'])
-    spec_file = resolve_path(spec_path_str)
+    # Determine output location -- always vbrief/proposed/
+    proposed_dir = resolve_path(defaults['vbrief_proposed'])
+    today = datetime.now().strftime("%Y-%m-%d")
+    slug = _slugify(spec_name)
+    output_filename = f"{today}-{slug}.vbrief.json"
+    output_file = proposed_dir / output_filename
     
     if not progress.get('_write_ready'):
         if output_file.exists() and "--force" not in args:
@@ -1481,114 +1496,59 @@ def cmd_spec(args: List[str]):
     progress['_write_ready'] = True
     _save_progress(prog_file, progress)
     
-    # Build feature list
-    feature_list = '\n'.join([f"{i+1}. {f}" for i, f in enumerate(features)])
-    
-    # Read the make-spec template
-    script_dir = get_script_dir()
-    template_file = script_dir / "templates" / "make-spec.md"
-    
-    if not template_file.exists():
-        error(f"Template file not found: {template_file}")
-        return 1
-    
-    template_content = template_file.read_text(encoding='utf-8')
-    
-    # Replace placeholders
-    template_content = template_content.replace("[project name]", spec_name)
-    template_content = template_content.replace(f"I want to build [project name]", f"I want to build {spec_name}")
-    
-    # Replace SPECIFICATION.md path in template if user chose a custom location
-    template_content = template_content.replace(
-        "Generate as SPECIFICATION.md",
-        f"Generate as {spec_file}"
-    )
-    
-    # Generate output file
-    today = datetime.now().strftime("%Y-%m-%d")
-    
-    # Build strategy-specific AI instructions
-    if strategy in ('interview', 'default'):
-        if sizing == "Light":
-            strategy_instructions = (
-                "! Read `deft/strategies/interview.md` and follow the **Light path**.\n"
-                "! Conduct a structured interview, then generate SPECIFICATION.md with\n"
-                "embedded Requirements section (FR-1, NFR-1). No separate PRD needed."
-            )
-        else:
-            strategy_instructions = (
-                "! Read `deft/strategies/interview.md` and follow the **Full path**.\n"
-                "! Conduct a structured interview, generate this PRD with structured\n"
-                "requirements (Problem Statement, Goals, User Stories, FR/NFR, Success Metrics),\n"
-                "then get user approval before generating SPECIFICATION.md."
-            )
-    else:
-        path_note = "embedded requirements, no separate PRD" if sizing == "Light" else "PRD approval gate before SPECIFICATION"
-        strategy_instructions = (
-            f"! Read `deft/strategies/{strategy}.md` and follow its complete workflow.\n"
-            f"! When the strategy chains into the sizing gate, use the **{sizing} path** ({path_note})."
-        )
-    
-    if sizing == "Light":
-        output_content = f"""# Interview: {spec_name}
+    # Build scope vBRIEF structure
+    items = []
+    for i, feature in enumerate(features, 1):
+        items.append({
+            "id": f"F{i}",
+            "title": feature,
+            "status": "proposed",
+        })
 
-**Generated**: {today}
-**Status**: Ready for AI Interview
-**Strategy**: {strategy}
-**Path**: Light (Interview → SPECIFICATION)
-**Specification Output**: {spec_file}
+    # Build strategy-specific narratives
+    narratives = {
+        "Overview": spec_desc,
+        "Strategy": f"{strategy} ({sizing} path)",
+    }
+    if sizing == "Full":
+        narratives["ProblemStatement"] = ""
+        narratives["Goals"] = ""
+        narratives["UserStories"] = ""
+        narratives["Requirements"] = ""
+        narratives["SuccessMetrics"] = ""
 
-## Initial Input
+    scope_vbrief = {
+        "vBRIEFInfo": {
+            "version": "0.5",
+            "description": f"Scope vBRIEF for {spec_name}. Generated by run v{VERSION}.",
+            "updated": today,
+        },
+        "plan": {
+            "title": spec_name,
+            "status": "proposed",
+            "narratives": narratives,
+            "items": items,
+            "metadata": {
+                "generator": f"run v{VERSION}",
+                "generatedAt": today,
+                "strategy": strategy,
+                "sizing": sizing,
+            },
+        },
+    }
 
-**Project Description**: {spec_desc}
-
-**I want to build {spec_name} that has the following features:**
-{feature_list}
----
-
-## Instructions for AI
-
-{strategy_instructions}
-
-{template_content}
-"""
-    else:
-        output_content = f"""# Product Requirements Document: {spec_name}
-
-**Generated**: {today}
-**Status**: Ready for AI Interview
-**Strategy**: {strategy}
-**Path**: Full (Interview → PRD → SPECIFICATION)
-**Specification Output**: {spec_file}
-
-## Initial Input
-
-**Project Description**: {spec_desc}
-
-**I want to build {spec_name} that has the following features:**
-{feature_list}
----
-
-## Instructions for AI
-
-{strategy_instructions}
-
-{template_content}
-"""
-    
-    _atomic_write(output_file, output_content)
+    output_content = json.dumps(scope_vbrief, indent=2, ensure_ascii=False)
+    _atomic_write(output_file, output_content + "\n")
     _clear_progress(prog_file)
     
-    output_name = 'INTERVIEW.md' if sizing == 'Light' else 'PRD.md'
-    success(f"Created {output_name} at {output_file}")
+    success(f"Created scope vBRIEF at {output_file}")
     info(f"Path: {sizing}")
     info("Next steps:")
     info(f"  1. Open your AI assistant (Claude, Warp.dev, etc.)")
-    info(f"  2. Ask your AI to read and run {output_file}")
-    info(f"  3. The AI will read strategies/{strategy}.md and follow its workflow")
-    info(f"  4. AI will generate the final specification at {spec_file}")
-    info(f"  5. You can review the specification if you want")
-    info(f"  6. Ask your AI to implement {spec_file}")
+    info(f"  2. Ask your AI to read {output_file}")
+    info(f"  3. The AI reads strategies/{strategy}.md and follows its workflow")
+    info("  4. The AI refines the scope vBRIEF with implementation details")
+    info("  5. Promote the vBRIEF through lifecycle folders as work progresses")
     return 0
 
 def cmd_install(args: List[str]):
@@ -3046,8 +3006,8 @@ Usage: run <command> [options]
 
 Commands:
   bootstrap       Set up your user preferences (user.md)
-  project         Create/update project configuration (project.md)
-  spec            Generate project specification (interactive interview)
+  project         Create/update project configuration (PROJECT-DEFINITION.vbrief.json)
+  spec            Generate scope vBRIEF in vbrief/proposed/ (interactive interview)
   install         Install deft framework in a project directory
   reset           Reset configuration files to default state
   validate        Validate deft configuration files
@@ -3058,7 +3018,7 @@ Commands:
 Examples:
   run bootstrap              # First-time setup
   run project                # Configure current project
-  run spec                   # Generate SPECIFICATION.md
+  run spec                   # Generate scope vBRIEF
   run install ~/my-project   # Install deft in a project
 
 For more information: https://github.com/deftai/directive

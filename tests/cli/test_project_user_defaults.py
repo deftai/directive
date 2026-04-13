@@ -82,21 +82,21 @@ def test_project_uses_user_defaults_fewer_prompts(
     run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
 ):
     """cmd_project skips language/coverage/strategy questions when USER.md
-    provides defaults — needs fewer mock responses than the 8-response
+    provides defaults -- needs fewer mock responses than the 8-response
     baseline.
 
     With USER.md present, cmd_project pre-fills from USER.md and the user
     can press Enter to accept each default. Prompt count is the same, but
     the user doesn't have to re-type answers:
-      1. Where to write PROJECT.md      (read_input)
-      2. Project name                    (read_input)
-      3. Project type                    (read_input)
-      4. Languages — Enter to keep       (read_input, "" = accept)
-      5. Coverage — Enter to keep        (read_input, "" = accept)
-      6. Tech stack details              (read_input)
-      7. Strategy — Enter to keep        (read_input, "" = accept)
-      8. Branching preference              (read_input, "1" = branch-based)
-      9. Run 'run spec' now?            (read_yn)
+      1. Where to write PROJECT-DEFINITION  (read_input)
+      2. Project name                        (read_input)
+      3. Project type                        (read_input)
+      4. Languages -- Enter to keep          (read_input, "" = accept)
+      5. Coverage -- Enter to keep           (read_input, "" = accept)
+      6. Tech stack details                  (read_input)
+      7. Strategy -- Enter to keep           (read_input, "" = accept)
+      8. Branching preference                (read_input, "1" = branch-based)
+      9. Run 'run spec' now?                (read_yn)
     """
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
     (isolated_env / "deft").mkdir(exist_ok=True)
@@ -106,7 +106,7 @@ def test_project_uses_user_defaults_fewer_prompts(
     _write_user_md(user_path, lang="Python", strategy_stem="interview",
                    strategy_display="Interview", coverage="85")
 
-    project_path = isolated_env / "PROJECT.md"
+    project_path = isolated_env / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
     mock_user_input([
         str(project_path),   # 1  output path
         "TestProject",        # 2  project name
@@ -121,10 +121,12 @@ def test_project_uses_user_defaults_fewer_prompts(
 
     result = run_command("cmd_project", [])
 
-    assert project_path.exists(), "PROJECT.md not created"
-    content = project_path.read_text(encoding="utf-8")
-    assert "Python" in content, "Language from USER.md should appear in PROJECT.md"
-    assert "Interview" in content, "Strategy from USER.md should appear in PROJECT.md"
+    assert project_path.exists(), "PROJECT-DEFINITION.vbrief.json not created"
+    import json
+    data = json.loads(project_path.read_text(encoding="utf-8"))
+    narratives = data["plan"]["narratives"]
+    assert "Python" in narratives.get("Languages", ""), "Language from USER.md should appear"
+    assert "Interview" in narratives.get("Strategy", ""), "Strategy from USER.md should appear"
     assert result.return_code in (0, None)
 
 
@@ -137,8 +139,8 @@ def test_project_still_works_without_user_md(
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
     (isolated_env / "deft").mkdir(exist_ok=True)
 
-    # No USER.md written — should fall back to asking all questions
-    project_path = isolated_env / "PROJECT.md"
+    # No USER.md written -- should fall back to asking all questions
+    project_path = isolated_env / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
     mock_user_input([
         str(project_path),   # 1  output path
         "TestProject",        # 2  project name
@@ -153,5 +155,5 @@ def test_project_still_works_without_user_md(
 
     result = run_command("cmd_project", [])
 
-    assert project_path.exists(), "PROJECT.md not created"
+    assert project_path.exists(), "PROJECT-DEFINITION.vbrief.json not created"
     assert result.return_code in (0, None)
