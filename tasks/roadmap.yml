@@ -1,0 +1,12 @@
+version: '3'
+
+tasks:
+  render:
+    desc: Render ROADMAP.md from vbrief/pending/ vBRIEFs
+    cmds:
+      - uv run python scripts/roadmap_render.py "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md"
+
+  check:
+    desc: Verify ROADMAP.md matches what roadmap:render would produce
+    cmds:
+      - uv run python scripts/roadmap_render.py "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md" --check
