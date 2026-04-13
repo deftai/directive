@@ -9,15 +9,61 @@ Prioritized work items. **Principle: resolve open issues before new features.**
 Fix reported bugs and UX problems blocking adoption.
 ### Adoption Blockers (user-reported, highest priority)
 
-(all resolved -- v0.16.0)
+- **#305** -- Greptile review cycle bottlenecks: mandate deft-pre-pr, PR scope gate, adaptive poll cadence, parallel swarm cascade monitoring, `.greptile/rules.md` template (all 5 changes in one PR)
+- **#307** -- deft-review-cycle Approach 2 silent failure in interactive sessions -- no start_agent + no scheduler = agent claims to yield but never re-polls; add Approach 3 blocking fallback with user warning
 
 ### Cleanup
-
-- **#298** -- Flip 5 stale `[pending]` task statuses to `[completed]` in SPECIFICATION.md (t1.14.1, t1.15.1, t1.18.1, t1.19.1, t1.20.1)
+- **#301**
+- **#301** -- Tighten deft-interview routing keyword -- bare `interview` collides with spec-creation intent; replace with `interview loop` / `q&a loop` / `run interview loop`
+- **#302** -- Clarify deft-interview invocation contract: distinguish embedded mode (inline rules, no contract object) from delegation mode (formal sub-skill invocation)
+- **#303** -- Fix deft-interview Rule 5 vs Rule 6 inconsistency: `ok` accepted for default-acceptance but silently rejected at confirmation gate
+- **#304** -- Add regression test for deft-setup Phase 1/2 referencing deft-interview (coverage gap from PR #299)
 
 ---
 
-## Phase 2 -- Documentation & Content Fixes
+## Phase 2 -- vBRIEF Architecture Cutover
+
+Big-bang cutover to the vBRIEF-centric document model. Individual scope vBRIEFs in a lifecycle folder structure replace SPECIFICATION.md and PROJECT.md. ROADMAP.md becomes a generated artifact. All skills renamed from `deft-*` to `deft-directive-*`. No coexistence period -- clean version boundary cut.
+
+**Prerequisite:** Phase 1 complete. See RFC #309 for all 18 design decisions.
+
+### RFC
+
+- **#309** -- RFC: vBRIEF-centric document model for Deft Directive (D1-D18; authoritative source for all stories below)
+
+### Tier 1 -- Foundation (parallelizable)
+
+- **#310** -- Story A: Update vbrief.md with new vBRIEF-centric document model (lifecycle folders, PROJECT-DEFINITION type, epic-story linking, filename convention, scope splitting pattern)
+- **#311** -- Story B: Roadmap generation tool (`task roadmap:render`) + auto-generated banner + drift detection in `task check`
+- **#312** -- Story C: Migration script (`task migrate:vbrief`) -- converts SPECIFICATION.md + PROJECT.md + ROADMAP.md to new structure
+- **#323** -- Story N: PROJECT-DEFINITION regeneration tool (`task project:render`) -- deterministic items registry + staleness flagging
+- **#324** -- Story O: Scope lifecycle task commands (`task scope:promote/activate/complete/cancel/restore/block/unblock`)
+
+### Tier 2 -- Framework docs (depends on Story A)
+
+- **#313** -- Story D: Core doc updates (main.md, AGENTS.md) for vBRIEF-centric model
+
+### Tier 3 -- Skills (depends on Stories A + D; parallelizable via swarm)
+
+- **#314** -- Story E: deft-directive-setup (rename + rewrite for vBRIEF model)
+- **#315** -- Story F: deft-directive-build, review-cycle, pre-pr (rename + update + installer thin pointers)
+- **#316** -- Story G: deft-directive-refinement (rename + rewrite from roadmap-refresh -- conversational ingest/promote/reprioritize session)
+- **#317** -- Story H: deft-directive-swarm (rename + flexible vBRIEF-based allocation)
+- **#318** -- Story I: deft-directive-sync (rename + validate new structure + origin freshness)
+- **#319** -- Story J: deft-directive-interview (namespace rename)
+
+### Tier 4 -- CLI and tests (depends on all above)
+
+- **#320** -- Story K: CLI updates (cmd_spec, cmd_project) for vBRIEF model
+- **#321** -- Story L: Test coverage for vBRIEF-centric document model
+
+### Tier 5 -- Post-cutover
+
+- **#322** -- Story M: Post-cutover GitHub issue reconciliation
+
+---
+
+## Phase 3 -- Documentation & Content Fixes
 
 Quick doc/content fixes that don't require code changes.
 
@@ -55,9 +101,9 @@ Quick doc/content fixes that don't require code changes.
 
 ---
 
-## Phase 3
+## Phase 4
 
-- **#74** -- Automate release process (`task release`) and CI changelog enforcement
+- **#74** -- Automate release process
 - **#128** -- CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)
 - **#115** -- Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)
 - **#33** -- When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)
@@ -67,8 +113,7 @@ Quick doc/content fixes that don't require code changes.
   - `cmd_spec` and `cmd_project` should check for USER.md at entry; if absent, warn and redirect to `run bootstrap`
   - Skills path already done (deft-build); this covers the CLI fallback path only
 - **#228** -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)
-- **#293** -- Add unit tests for v0.17.0 deterministic task scripts (toolchain-check.py, verify-stubs.py, validate-links.py, change:init, commit:lint) -- ~20-25 subprocess-based test cases in tests/cli/test_task_scripts.py
-- Code signing for installer binaries
+- Code signing
 - Low-end LLM compatibility testing
   - Validate installer and agent process (deft-setup, deft-build) on small/quantised models (e.g. Qwen3-9B)
   - Ensure strategies, interview flow, and spec generation still produce good results
@@ -79,7 +124,7 @@ Quick doc/content fixes that don't require code changes.
 
 ---
 
-## Phase 4 -- Package Distribution & Install UX
+## Phase 5 -- Package Distribution & Install UX
 
 Publish deft as NPM + PIP CLI packages for developer-audience install.
 Complements the Go installer (which targets novice/bare-machine users).
@@ -89,7 +134,7 @@ Complements the Go installer (which targets novice/bare-machine users).
 - **#75** -- Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)
 - **#11** -- NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)
 
-**Prerequisites:** Phase 2 complete (clean content), issue #4 resolved (project-local layout)
+**Prerequisites:** Phase 3 complete (clean content), issue #4 resolved (project-local layout)
 
 Scope: `deft install`, `deft bootstrap`, `deft update`, `deft doctor` commands,
 GitHub Actions publish workflows (tag → npm publish + twine upload),
@@ -97,7 +142,7 @@ README updated with NPM + PIP install paths alongside Go binary.
 
 ---
 
-## Phase 5 -- CLI Overhaul & New Features
+## Phase 6 -- CLI Overhaul & New Features
 
 Larger feature work -- only after issues are resolved and content is stable.
 
@@ -124,7 +169,9 @@ Larger feature work -- only after issues are resolved and content is stable.
 ---
 
 ## Completed
-- ~~#235 -- feat(tasks): toolchain:check + changelog:check as task check deps (split from #233) -- fully resolved by tasks/ restructure~~ -- 2026-04-10 (v0.17.0)
+- ~~#293 -- test(cli): add subprocess-based unit tests for v0.17.0 task scripts -- 25 test cases in tests/cli/test_task_scripts.py~~ -- 2026-04-13
+- ~~#298 -- chore(spec): flip all 24 stale [pending] task statuses to [completed] in SPECIFICATION.md~~ -- 2026-04-13
+- ~~#235 -- feat(tasks): toolchain:check + changelog:check as task check deps
 - ~~#233 (partial) -- More Determinism: tasks/ restructure, toolchain:check, verify:stubs, validate:links, spec:pipeline, changelog:check, change:init, commit:lint, enhanced check -- remaining items (Phase 0 generation, build:verify, change:archive, doctor) still open~~ -- 2026-04-10 (v0.17.0)
 - ~~#256 -- fix(docs): use OS temp directory for --body-file to avoid rm denylist collision~~ -- 2026-04-10 (v0.16.0)
 - ~~#261 + #263 -- fix(skill): deft-swarm Phase 5->6 gate hardening + crash recovery -- context-pressure bypass prohibition + structured merge-readiness checklist~~ -- 2026-04-10 (v0.16.0)
@@ -267,80 +314,80 @@ Larger feature work -- only after issues are resolved and content is stable.
 
 | Issue | Title | Phase |
 |-------|-------|-------|
-| #9 | Issue tracking system integration | 5 |
-| #11 | NPM + PIP CLI distribution | 4 |
-| #12 | Deft Bootstrap CLI with TUI | 5 |
+| #9 | Issue tracking system integration | 6 |
+| #11 | NPM + PIP CLI distribution | 5 |
+| #12 | Deft Bootstrap CLI with TUI | 6 |
 | ~~#23~~ | ~~yolo.md duplicates interview.md~~ | completed -- v0.10.0 |
 | ~~#24~~ | ~~speckit.md missing See also banner~~ | completed -- v0.10.0 |
 | ~~#25~~ | ~~commands.md vBRIEF example diverges~~ | completed -- v0.10.0 |
 | ~~#31~~ | ~~Merge default.md into interview.md~~ | completed -- v0.10.0 |
-| #33 | Docker smoke/e2e tests | 3 |
-| #46 | Provide way to update meta MD files | 5 |
+| #33 | Docker smoke/e2e tests | 4 |
+| #46 | Provide way to update meta MD files | 6 |
 | ~~#49~~ | ~~All CLI commands should display version~~ | completed -- v0.10.1 |
 | ~~#50~~ | ~~Strategies still have redundant old names~~ | completed -- v0.10.0 |
 | ~~#51~~ | ~~Project bootstrap: stale refs purge, strategy stubs, getting-started stub~~ | completed -- v0.15.0 |
-| #52 | Install into .deft/ hidden directory | 5 |
-| #53 | deft-install should bootstrap current directory | 4 |
+| #52 | Install into .deft/ hidden directory | 6 |
+| #53 | deft-install should bootstrap current directory | 5 |
 | ~~#91~~ | ~~run bootstrap goes in a loop~~ | completed |
 | ~~#92~~ | ~~Strategy selection infinite loop when strategies/ empty~~ | completed |
 | ~~#94~~ | ~~Agent auto-alignment on startup: thin skill pointer + change lifecycle rule~~ | completed -- PR #109 |
 | ~~#54~~ | ~~AGENTS.md provides no actionable onboarding (absorbed #85)~~ | completed -- PR #93 |
-| #55 | Register Deft commands as native agent slash commands (absorbs slash-command scope from #54) | 5 |
-| #56 | Reduce installation friction (shell one-liner, Homebrew) | 4 |
+| #55 | Register Deft commands as native agent slash commands (absorbs slash-command scope from #54) | 6 |
+| #56 | Reduce installation friction (shell one-liner, Homebrew) | 5 |
 | ~~#57~~ | ~~Add GitHub Actions CI workflow~~ | completed -- v0.14.0 |
-| #128 | CI vBRIEF schema sync check (depends on #57) | 3 |
-| #163 | Enforce USER.md gate in CLI path -- parity with agentic (skills) path | 3 |
+| #128 | CI vBRIEF schema sync check (depends on #57) | 4 |
+| #163 | Enforce USER.md gate in CLI path -- parity with agentic (skills) path | 4 |
 | ~~#58~~ | ~~Stale cross-references to legacy paths~~ | closed 2026-04-06 |
 | ~~#59~~ | ~~history/changes/ directory missing~~ | completed -- v0.10.0 |
 | ~~#67~~ | ~~Write SPECIFICATION.md and proper PROJECT.md for deft~~ | completed |
 | ~~#68~~ | ~~Warp not always enforcing Deft testing protocols~~ | completed -- v0.10.1 |
 | ~~#72~~ | ~~vBRIEF files still invalid on master~~ | completed -- PR #130 |
-| #74 | Automate release process and CI changelog enforcement | 3 |
-| #75 | Skill auto-discovery for deft skills | 4 |
-| #76 | Obsidian Vault generation as structured agent memory | 5 |
-| #77 | Allow users to change technical rating per project | 5 |
-| #78 | Bootstrap: offer to update user preferences | 5 |
+| #74 | Automate release process and CI changelog enforcement | 4 |
+| #75 | Skill auto-discovery for deft skills | 5 |
+| #76 | Obsidian Vault generation as structured agent memory | 6 |
+| #77 | Allow users to change technical rating per project | 6 |
+| #78 | Bootstrap: offer to update user preferences | 6 |
 | ~~#79~~ | ~~deft-setup inference bleeds into ./deft/ internals~~ | completed -- v0.10.1 |
 | ~~#80~~ | ~~deft-setup project name inference no fallback~~ | completed -- v0.10.1 |
 | ~~#81~~ | ~~Add BDD/acceptance-test-first strategy~~ | completed -- v0.14.0 |
-| #82 | Replacement strategies need accept-or-scrap exit | 2 |
+| #82 | Replacement strategies need accept-or-scrap exit | 3 |
 | ~~#84~~ | ~~Deft as teacher Phase 1: contract hierarchy, adaptive teaching, State WHY~~ | completed -- v0.12.1 |
 | ~~#85~~ | ~~Installer instructions inaccurate/unclear~~ | closed -- absorbed by #54 |
-| #95 | Compliance templates + readiness scanners (SOC 2, ISO 27001, HIPAA; sub-issues #96-#100) | 5 |
-| #86 | Artifact-branch binding and complete audit trail for SDD | 5 |
-| #89 | Deft identity and positioning: resolve naming before README reframe | 2 |
+| #95 | Compliance templates + readiness scanners (SOC 2, ISO 27001, HIPAA; sub-issues #96-#100) | 6 |
+| #86 | Artifact-branch binding and complete audit trail for SDD | 6 |
+| #89 | Deft identity and positioning: resolve naming before README reframe | 3 |
 | ~~#101~~ | ~~Should manual clone path exist?~~ | closed -- absorbed by #56 |
 | ~~#102~~ | ~~Codify Mermaid gist-rendering best practices~~ | completed -- v0.10.3 |
-| #103 | Standalone brownfield/map analysis without requiring interview | 2 |
+| #103 | Standalone brownfield/map analysis without requiring interview | 3 |
 | ~~#104~~ | ~~Holzmann Power of 10 rules (`coding/holzmann.md`)~~ | completed -- PR #158 |
 | ~~#105~~ | ~~Build output validation directive for custom build scripts~~ | completed -- PR #121 |
 | ~~#106~~ | ~~Toolchain/environment validation gate before implementation~~ | completed -- PR #122 |
 | ~~#107~~ | ~~Remove language defaults from USER.md~~ | completed -- v0.10.1 |
 | ~~#108~~ | ~~Ask deployment platform before language~~ | completed -- v0.10.1 |
-| #96 | [Compliance] Config schema + compliance-aware constitution templates | 5 |
-| #97 | [Compliance] Framework control mapping registry | 5 |
-| #98 | [Compliance] Readiness scanner -- control design scoring | 5 |
-| #99 | [Compliance] Readiness scanner -- operating effectiveness + evidence gap analysis | 5 |
-| #100 | [Compliance] Evidence collection automation hooks | 5 |
-| #112 | External instruction guide (DEFT Directive PDF) is premature relative to current state | 2 |
-| #114 | Document all global Warp rules used for deft directive development | 2 |
-| #115 | Strengthen spec validation gate and rendered artifact freshness | 3 |
+| #96 | [Compliance] Config schema + compliance-aware constitution templates | 6 |
+| #97 | [Compliance] Framework control mapping registry | 6 |
+| #98 | [Compliance] Readiness scanner -- control design scoring | 6 |
+| #99 | [Compliance] Readiness scanner -- operating effectiveness + evidence gap analysis | 6 |
+| #100 | [Compliance] Evidence collection automation hooks | 6 |
+| #112 | External instruction guide (DEFT Directive PDF) is premature relative to current state | 3 |
+| #114 | Document all global Warp rules used for deft directive development | 3 |
+| #115 | Strengthen spec validation gate and rendered artifact freshness | 4 |
 | ~~#116~~ | ~~All files must be installed consistently under `./deft/`~~ | completed -- v0.12.1 |
 | ~~#123~~ | ~~Change lifecycle gate skipped on broad 'proceed' instruction~~ | completed -- v0.10.1 |
 | ~~#118~~ | ~~CLI code quality sweep (version mismatch, bare except, undocumented flags, env var naming)~~ | completed -- v0.10.1 |
 | ~~#124~~ | ~~Warp context window improvements (behavioral rule + handoff notes)~~ | completed |
 | ~~#126~~ | ~~specification.vbrief.json does not conform to vbrief schema/spec~~ | completed -- v0.10.3 |
 | ~~#144~~ | ~~Directive giving invalid vBRIEF files & wrong key names (address with #126)~~ | completed -- v0.10.3 |
-| #127 | Improved support for Deft in existing repositories (brownfield bootstrap path; related #103, #53) | 2 |
+| #127 | Improved support for Deft in existing repositories (brownfield bootstrap path; related #103, #53) | 3 |
 | ~~#131~~ | ~~Mac installer post-install text wording fix~~ | completed -- v0.10.1 |
 | ~~#133~~ | ~~Generated vBRIEF files use invalid reference types~~ | closed 2026-04-05 |
 | ~~#134~~ | ~~Visual indicator that Deft is active (behavioral rule; true UI deferred Phase 5)~~ | completed -- v0.14.0 |
 | ~~#135~~ | ~~Greptile review rules SKILL.md in repo~~ | completed -- PR #143 |
-| #136 | Warp doesn't auto-load AGENTS.md -- document workaround (with #114) | 2 |
+| #136 | Warp doesn't auto-load AGENTS.md -- document workaround (with #114) | 3 |
 | ~~#137~~ | ~~README: move startup instructions higher, clarify installer location~~ | completed -- v0.10.1 |
 | ~~#138~~ | ~~Branching requirement too prescriptive for solo projects~~ | completed -- v0.10.1 |
 | ~~#139~~ | ~~Agent skips vbrief source step, writes SPECIFICATION.md directly~~ | completed -- v0.10.1 |
-| #140 | Automatically check for updates to cloned repos in a project (deft doctor/update) | 5 |
+| #140 | Automatically check for updates to cloned repos in a project (deft doctor/update) | 6 |
 | ~~#142~~ | ~~AGENTS.md onboarding gate blocks headless/cloud agents~~ | completed -- v0.10.1 |
 | ~~#145~~ | ~~deft-review-cycle: Greptile issue comment not primary review signal (false wait loops)~~ | completed -- v0.10.1 |
 | ~~#172~~ | ~~deft-swarm skill: oz agent run correction (Phase 3, lessons, SPECIFICATION.md)~~ | completed -- v0.10.2 |
@@ -351,16 +398,16 @@ Larger feature work -- only after issues are resolved and content is stable.
 | ~~#167~~ | ~~PRs merged but issues not closed and roadmap not updated~~ | completed -- v0.12.1 |
 | ~~#171~~ | ~~No direct-to-master agent commits -- ⊗ gate + PROJECT.md opt-in~~ | completed -- v0.10.2 |
 | ~~#175~~ | ~~deft-review-cycle: no-push-while-reviewing + 60s poll cadence~~ | completed -- v0.10.2 |
-| #151 | [Playtest Feedback] First-time non-technical user session report (umbrella) | 2 |
+| #151 | [Playtest Feedback] First-time non-technical user session report (umbrella) | 3 |
 | ~~#159~~ | ~~Deterministic > Probabilistic -- design principle documentation~~ | completed -- v0.14.0 |
-| #160 | Consider TypeScript instead of Python for run CLI | 5 |
+| #160 | Consider TypeScript instead of Python for run CLI | 6 |
 | ~~#168~~ | ~~deft-roadmap-refresh skill: confirm analysis comment posting to user~~ | completed -- v0.14.0 |
 | ~~#174~~ | ~~deft-roadmap-refresh skill: add review cycle step after PR push~~ | completed -- v0.14.0 |
 | ~~#146~~ | ~~Add skills/deft-sync/SKILL.md -- session-start framework sync skill~~ | completed -- v0.14.0 |
 | ~~#147~~ | ~~Skills undiscoverable -- no keyword routing in AGENTS.md, 3 skills missing from README~~ | completed -- v0.13.0 |
 | ~~#188~~ | ~~Update deft-swarm: runtime start_agent capability detection + Warp environment gate~~ | completed -- v0.12.0 |
 | ~~#199~~ | ~~deft-swarm skill: add mandatory analyze phase with user approval gate before launch~~ | completed -- v0.12.0 |
-| #194 | User-facing best practices guide -- Directive usage, Warp swarming, skill documentation | 2 |
+| #194 | User-facing best practices guide -- Directive usage, Warp swarming, skill documentation | 3 |
 | ~~#195~~ | ~~Replace blocking Start-Sleep polling with multi-agent orchestration in review monitor~~ | completed -- v0.14.0 |
 | ~~#196~~ | ~~deft-roadmap-refresh skill: clarify cleanup convention -- remove from phase body, not strike through~~ | completed -- v0.14.0 |
 | ~~#197~~ | ~~Create scm/github.md -- gh CLI rules, PR workflow conventions, Windows encoding guidance (absorbs #201)~~ | completed -- v0.13.0 |
@@ -369,7 +416,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 | ~~#201~~ | ~~scm/github.md: add --body-file convention~~ | closed -- absorbed by #197 |
 | ~~#202~~ | ~~Convention: prefer ASCII in machine-editable structured sections~~ | completed -- v0.13.0 |
 | ~~#207~~ | ~~Greptile re-review latency on force-push after rebase during swarm merge cascade~~ | completed -- v0.13.0 |
-| #212 | discussion: Process control belongs in Directive (DO NOT IMPLEMENT -- discussion only) | 5 |
+| #212 | discussion: Process control belongs in Directive (DO NOT IMPLEMENT -- discussion only) | 6 |
 | ~~#218~~ | ~~deft-swarm: add explicit release decision checkpoint to Phase 0 and Phase 6~~ | completed -- v0.13.0 |
 | ~~#219~~ | ~~README.md stale: missing CONTRIBUTING.md, 3 skills, contracts/hierarchy.md, stale directory tree~~ | completed -- v0.13.0 |
 | ~~#217~~ | ~~pyproject.toml dev deps breaks task check in fresh worktrees~~ | completed -- v0.13.0 |
@@ -377,7 +424,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 | ~~#170~~ | ~~Move ROADMAP.md updates from merge-time to release-time~~ | completed -- v0.10.3 |
 | ~~#221~~ | ~~deft-roadmap-refresh: explicit row format template + double-pipe anti-pattern~~ | completed -- v0.15.0 |
 | ~~#226~~ | ~~refactor: rename deft-rwldl to deft-pre-pr + auto-suggestion + keyword routing~~ | completed -- v0.15.0 |
-| #233 | More Determinism: full deterministic task initiative (Phase 0, tasks/ restructure, doctor, etc.) | 5 |
+| #233 | More Determinism: full deterministic task initiative (Phase 0, tasks/ restructure, doctor, etc.) | 6 |
 | ~~#234~~ | ~~docs: README Your Artifacts section~~ | completed -- v0.15.0 |
 | ~~#235~~ | ~~feat(tasks): toolchain:check + changelog:check as task check deps (split from #233)~~ | completed -- v0.17.0 |
 | ~~#236~~ | ~~fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip pattern for PS 5.1~~ | completed -- v0.14.1 |
@@ -390,9 +437,9 @@ Larger feature work -- only after issues are resolved and content is stable.
 | ~~#249~~ | ~~deft-swarm Phase 6: missing autonomous Greptile re-review monitoring in rebase cascade~~ | completed -- v0.14.2 |
 | ~~#250~~ | ~~deft-review-cycle: strengthen batch-fix enforcement -- anti-pattern against per-finding commits~~ | completed -- v0.14.2 |
 | ~~#251~~ | ~~deft-build + deft-rwldl: semantic contradiction check when adding ! or ⊗ rules~~ | completed -- v0.14.2 |
-| #228 | Bring run CLI into test coverage measurement (confirm #160 before implementing) | 3 |
+| #228 | Bring run CLI into test coverage measurement (confirm #160 before implementing) | 4 |
 | ~~#248~~ | ~~roadmap-refresh + swarm Phase 0 spec task scaffolding~~ | completed -- v0.15.0 |
-| #258 | docs(warp): inventory Warp Drive global rules used for deft directive development | 2 |
+| #258 | docs(warp): inventory Warp Drive global rules used for deft directive development | 3 |
 | ~~#256~~ | ~~fix(docs): use OS temp directory for --body-file to avoid rm denylist collision~~ | completed -- 2026-04-10 (v0.16.0) |
 | ~~#261~~ | ~~bug(swarm): monitor skips Phase 5 and slam-merges untested code into main~~ | completed -- 2026-04-10 (v0.16.0) |
 | ~~#263~~ | ~~chore(swarm): monitor crash during multi-PR merge -- add checkpoint/recovery resilience~~ | completed -- 2026-04-10 (v0.16.0) |
@@ -408,11 +455,33 @@ Larger feature work -- only after issues are resolved and content is stable.
 | ~~#283~~ | ~~fix(agents): add ! rule to AGENTS.md for BOM-safe PowerShell file writes~~ | completed -- 2026-04-10 (v0.16.0) |
 | ~~#288~~ | ~~fix(skill): deft-swarm Phase 6 -- read-back verification after rebase conflict resolution~~ | completed -- v0.18.0 |
 | ~~#292~~ | ~~feat(swarm): auto-generate Slack release announcement after swarm release~~ | completed -- v0.18.0 |
-| #293 | test: add unit tests for v0.17.0 deterministic task scripts | 3 |
+| ~~#293~~ | ~~test: add unit tests for v0.17.0 deterministic task scripts~~ | completed -- 2026-04-13 |
 | ~~#294~~ | ~~fix(enforcement): strengthen test-with-code rule -- new source files must include tests~~ | completed -- v0.18.0 |
 | ~~#295~~ | ~~chore: resolve 5 untracked xfail gaps in known_failures.json~~ | completed -- v0.18.0 |
 | ~~#296~~ | ~~Create skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill~~ | completed -- v0.18.0 |
-| #298 | chore(spec): flip 5 stale [pending] statuses to [completed] in SPECIFICATION.md | 1 |
+| #309 | RFC: vBRIEF-centric document model for Deft Directive | 2 |
+| #310 | Story A: Update vbrief.md with new vBRIEF-centric document model | 2 |
+| #311 | Story B: Roadmap generation tool (task roadmap:render) + drift detection | 2 |
+| #312 | Story C: Migration script (task migrate:vbrief) | 2 |
+| #313 | Story D: Core doc updates (main.md, AGENTS.md) for vBRIEF-centric model | 2 |
+| #314 | Story E: deft-directive-setup (rename + rewrite) | 2 |
+| #315 | Story F: deft-directive-build, review-cycle, pre-pr (rename + update) | 2 |
+| #316 | Story G: deft-directive-refinement (rename + rewrite from roadmap-refresh) | 2 |
+| #317 | Story H: deft-directive-swarm (rename + flexible allocation) | 2 |
+| #318 | Story I: deft-directive-sync (rename + validate new structure) | 2 |
+| #319 | Story J: deft-directive-interview (namespace rename) | 2 |
+| #320 | Story K: CLI updates (cmd_spec, cmd_project) for vBRIEF model | 2 |
+| #321 | Story L: Test coverage for vBRIEF-centric document model | 2 |
+| #322 | Story M: Post-cutover GitHub issue reconciliation | 2 |
+| #323 | Story N: PROJECT-DEFINITION regeneration tool (task project:render) | 2 |
+| #324 | Story O: Scope lifecycle task commands (task scope:*) | 2 |
+| #305 | perf(review-cycle): Greptile review cycle bottlenecks -- 5-change optimization bundle | 1 |
+| #307 | fix(skill): deft-review-cycle Approach 2 capability detection gap -- no start_agent + no sleep fallback | 1 |
+| ~~#298~~ | ~~chore(spec): flip 5 stale [pending] statuses to [completed] in SPECIFICATION.md~~ | completed -- 2026-04-13 |
+| #301 | fix(agents): tighten deft-interview routing keyword | 1 |
+| #302 | fix(skill): deft-interview invocation contract -- clarify embedded vs delegation usage modes | 1 |
+| #303 | fix(skill): deft-interview Rule 5 vs Rule 6 inconsistency -- 'ok' accepted for default but not confirmation gate | 1 |
+| #304 | test(skill): add regression test for deft-setup Phase 1/2 referencing deft-interview | 1 |
 
 ---
 
@@ -481,3 +550,11 @@ Larger feature work -- only after issues are resolved and content is stable.
 *Updated 2026-04-10 -- roadmap refresh triage: added #296 (Phase 2, t2.11.1): skills/deft-interview/SKILL.md -- deterministic structured Q&A interview skill; analysis comment posted*
 *Updated 2026-04-10 -- v0.18.0 release: moved #288, #292, #294, #295 (Phase 1 Cleanup), #296 (Phase 2) to Completed; struck through in Open Issues Index; Phase 1 Cleanup now empty*
 *Updated 2026-04-12 -- roadmap refresh triage: added #298 (Phase 1 Cleanup, t1.25.1): flip 5 stale [pending] spec task statuses to [completed] in SPECIFICATION.md (t1.14.1, t1.15.1, t1.18.1, t1.19.1, t1.20.1); analysis comment posted*
+*Updated 2026-04-13 -- roadmap refresh triage: added #301 (Phase 1 Cleanup, t1.26.1): tighten deft-interview routing keyword collision; analysis comment posted*
+*Updated 2026-04-13 -- roadmap refresh triage: added #302 (Phase 1 Cleanup, t1.27.1): clarify deft-interview invocation contract embedded vs delegation modes; analysis comment posted*
+*Updated 2026-04-13 -- roadmap refresh triage: added #303 (Phase 1 Cleanup, t1.28.1): fix deft-interview Rule 5 vs Rule 6 inconsistency -- ok accepted for default but not confirmation gate; analysis comment posted*
+*Updated 2026-04-13 -- roadmap refresh triage: added #304 (Phase 1 Cleanup, t1.29.1): add regression test for deft-setup Phase 1/2 referencing deft-interview; analysis comment posted*
+*Updated 2026-04-13 -- roadmap refresh triage: added #305 (Phase 1 Adoption Blockers, t1.30.1): Greptile review cycle bottlenecks -- 5-change optimization bundle; analysis comment posted*
+*Updated 2026-04-13 -- roadmap refresh triage: added #307 (Phase 1 Adoption Blockers, t1.31.1): deft-review-cycle Approach 2 silent failure -- add Approach 3 interactive blocking fallback; analysis comment posted*
+*Updated 2026-04-13 -- roadmap refresh: restructured phases -- inserted Phase 2 (vBRIEF Architecture Cutover, RFC #309 + stories #310-#324); shifted Documentation & Content Fixes to Phase 3, CI/Testing to Phase 4, Distribution to Phase 5, Features to Phase 6; closed #308 (absorbed by #309); analysis comment posted on #309*
+*Updated 2026-04-13 -- roadmap refresh cleanup: moved #293 (closed) and #298 (closed) to Completed; removed from phase bodies; struck through in Open Issues Index*
