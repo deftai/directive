@@ -2,7 +2,7 @@
 
 The standard Deft workflow: structured interview → SPECIFICATION. This is the
 canonical source of truth for the interview process. All entry points (CLI via
-`run spec`, agent via `deft-setup` Phase 3, and `templates/make-spec.md`) MUST
+`run spec`, agent via `deft-directive-setup` Phase 3, and `templates/make-spec.md`) MUST
 follow this strategy.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
@@ -429,5 +429,5 @@ Use the interview strategy to plan [project].
 After completion:
 
 ```
-implement SPECIFICATION.md
+implement the scope vBRIEFs in ./vbrief/active/
 ```

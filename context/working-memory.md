@@ -48,13 +48,15 @@ Patterns for externalizing intermediate state to files.
 - ≉ Leaving stale scratchpads in the workspace after task completion
 - ? Keep a scratchpad across sessions only if the task spans multiple sessions (see [long-horizon.md](./long-horizon.md))
 
-## vBRIEF Plan and Spec Files Are NOT Scratch
+## vBRIEF Plan, Spec, and Scope Files Are NOT Scratch
 
 The cleanup rule above applies to **ad-hoc scratchpads**, not to vBRIEF files:
 
-- ⊗ Delete `./vbrief/plan.vbrief.json` as a "scratch file" — it is the durable work plan
-- ⊗ Delete `./vbrief/specification.vbrief.json` — it is the source-of-truth spec
+- ⊗ Delete `./vbrief/plan.vbrief.json` as a "scratch file" — it is the session-level tactical plan (the *how right now*); when scope vBRIEFs exist, it carries a `planRef` to the scope vBRIEF(s) being implemented
+- ⊗ Delete `./vbrief/specification.vbrief.json` — it is the project-wide source-of-truth spec
+- ⊗ Delete scope vBRIEFs in lifecycle folders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) — these are durable scope records
+- ⊗ Delete `./vbrief/PROJECT-DEFINITION.vbrief.json` — it is the project identity gestalt
 - ⊗ Delete `./vbrief/playbook-*.vbrief.json` — playbooks are permanent operational knowledge
-- ! Only `./vbrief/continue.vbrief.json` is ephemeral — it is consumed on resume
+- ! Only `./vbrief/continue.vbrief.json` is ephemeral — it is consumed on resume; when scope vBRIEFs exist, it carries a `planRef` to the scope vBRIEF(s) the agent was working on
 
-**See [vbrief/vbrief.md](../vbrief/vbrief.md) for the full taxonomy of durable vs ephemeral vBRIEF files.**
+**See [vbrief/vbrief.md](../vbrief/vbrief.md) for the full taxonomy of durable vs ephemeral vBRIEF files, lifecycle folders, and scope vBRIEF conventions.**

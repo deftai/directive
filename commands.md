@@ -168,14 +168,14 @@ Archive a completed change.
 
 ### Spec Delta Merge
 
-If the change included spec deltas (`specs/`), merge them into the project's main spec before archiving. See [context/spec-deltas.md](./context/spec-deltas.md) § After Archiving.
+If the change included spec deltas (`specs/`), merge them into the relevant scope vBRIEF(s) before archiving. See [context/spec-deltas.md](./context/spec-deltas.md) § After Archiving.
 
 - ! Read each spec delta in the change's `specs/` directory
-- ! Apply "New Requirements" to the corresponding section in `SPECIFICATION.md` (or its vBRIEF source)
-- ! Apply "Modified Requirements" — replace the **was** with the **now** in the main spec
-- ! Verify the main spec is internally consistent after merge
-- ~ Use `task spec:render` to regenerate `SPECIFICATION.md` from the vBRIEF source if applicable
-- ⊗ Leave spec deltas unmerged — the main spec drifts from reality
+- ! Apply "New Requirements" to the corresponding scope vBRIEF in `./vbrief/` (or `specification.vbrief.json` for project-wide changes)
+- ! Apply "Modified Requirements" — replace the **was** with the **now** in the scope vBRIEF
+- ! Verify the scope vBRIEF is internally consistent after merge
+- ~ Use `task spec:render` to regenerate rendered output from the vBRIEF source if applicable
+- ⊗ Leave spec deltas unmerged — the scope vBRIEF drifts from reality
 
 ### CHANGELOG Entry
 

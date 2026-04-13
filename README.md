@@ -198,7 +198,7 @@ deft/
 ├── CHANGELOG.md           # Release history
 ├── CONTRIBUTING.md        # Contributor bootstrap guide
 ├── LICENSE.md             # MIT License
-├── PROJECT.md             # Project-level configuration
+├── PROJECT.md             # Project-level configuration (deprecated -- see PROJECT-DEFINITION.vbrief.json)
 ├── REFERENCES.md          # Lazy-loading reference system
 ├── ROADMAP.md             # Development timeline
 ├── SKILL.md               # Entry point for AI agents
@@ -293,12 +293,14 @@ deft/
 │   └── github.md          # GitHub workflows
 │
 ├── skills/                # Agent skills (SKILL.md format)
-│   ├── deft-build/        # Build/implement skill
-│   ├── deft-pre-pr/       # Iterative pre-PR quality loop (RWLDL)
-│   ├── deft-review-cycle/ # Greptile bot review cycle
-│   ├── deft-roadmap-refresh/ # Issue triage and roadmap refresh
-│   ├── deft-setup/        # Interactive setup skill
-│   └── deft-swarm/        # Parallel agent orchestration
+│   ├── deft-directive-build/        # Build/implement skill
+│   ├── deft-directive-interview/    # Deterministic structured Q&A interview
+│   ├── deft-directive-pre-pr/       # Iterative pre-PR quality loop (RWLDL)
+│   ├── deft-directive-refinement/   # Conversational backlog refinement
+│   ├── deft-directive-review-cycle/ # Greptile bot review cycle
+│   ├── deft-directive-setup/        # Interactive setup skill
+│   ├── deft-directive-swarm/        # Parallel agent orchestration
+│   └── deft-directive-sync/         # Session-start framework sync
 │
 ├── specs/                 # Per-feature specifications
 │   ├── testbed/           # QA testbed Phase 1 spec
@@ -334,8 +336,14 @@ deft/
 │   ├── taskfile.md        # Task automation
 │   └── telemetry.md       # Observability
 │
-├── vbrief/                # vBRIEF session format
-│   ├── vbrief.md          # Specification
+├── vbrief/                # vBRIEF document model
+│   ├── vbrief.md          # Canonical vBRIEF usage reference
+│   ├── PROJECT-DEFINITION.vbrief.json  # Project identity gestalt
+│   ├── proposed/           # Scope vBRIEFs: ideas, not committed to
+│   ├── pending/            # Scope vBRIEFs: accepted backlog
+│   ├── active/             # Scope vBRIEFs: in progress
+│   ├── completed/          # Scope vBRIEFs: done
+│   ├── cancelled/          # Scope vBRIEFs: rejected/abandoned
 │   └── schemas/           # JSON schemas
 │
 └── verification/          # Agent work verification
@@ -351,8 +359,8 @@ deft/
 **SKILL.md** - Entry point for AI agent skill loading  
 **coding/coding.md** - Software development standards  
 **coding/testing.md** - Testing standards  
-**PROJECT.md** - Project-specific configuration (project root)  
-**USER.md** - Your personal preferences (highest precedence) — `~/.config/deft/USER.md` (Unix/macOS) or `%APPDATA%\deft\USER.md` (Windows)
+**vbrief/PROJECT-DEFINITION.vbrief.json** - Project identity gestalt (replaces PROJECT.md)  
+**USER.md** - Your personal preferences (highest precedence) -- `~/.config/deft/USER.md` (Unix/macOS) or `%APPDATA%\deft\USER.md` (Windows)
 
 ### 🐍 Languages
 **languages/** contains standards for 20+ languages including:  
@@ -408,8 +416,10 @@ Plus: delphi, visual-basic, vhdl, 6502-DASM
 **resilience/context-pruning.md** - Fresh context per task, eliminating context rot
 
 ### 📋 vBRIEF
-**vbrief/vbrief.md** - Session format specification  
-**vbrief/schemas/** - JSON validation schemas
+**vbrief/vbrief.md** - Canonical vBRIEF usage reference (file taxonomy, lifecycle folders, scope vBRIEFs)  
+**vbrief/schemas/** - JSON validation schemas  
+**vbrief/PROJECT-DEFINITION.vbrief.json** - Project identity gestalt  
+**vbrief/{proposed,pending,active,completed,cancelled}/** - Scope vBRIEF lifecycle folders
 
 ### 📜 Contracts
 **contracts/hierarchy.md** - Dual-hierarchy framework (durability axis + generative axis)  
@@ -420,12 +430,14 @@ Plus: delphi, visual-basic, vhdl, 6502-DASM
 agentuity, aws, azure, cloudflare, cloud-gov, fly-io, google, netlify, vercel
 
 ### 🤖 Skills
-**skills/deft-build/** - Build/implement skill  
-**skills/deft-pre-pr/** - Iterative pre-PR quality loop (Read-Write-Lint-Diff-Loop) -- run before pushing a branch for PR creation  
-**skills/deft-review-cycle/** - Greptile bot reviewer response workflow (fetch findings, batch fix, exit on clean)  
-**skills/deft-roadmap-refresh/** - Issue triage and phased roadmap maintenance  
-**skills/deft-setup/** - Interactive setup wizard skill  
-**skills/deft-swarm/** - Parallel local agent orchestration (worktrees, prompts, monitoring, merge)
+**skills/deft-directive-build/** - Build/implement skill  
+**skills/deft-directive-interview/** - Deterministic structured Q&A interview skill  
+**skills/deft-directive-pre-pr/** - Iterative pre-PR quality loop (Read-Write-Lint-Diff-Loop) -- run before pushing a branch for PR creation  
+**skills/deft-directive-refinement/** - Conversational backlog refinement (ingest, evaluate, promote/demote, prioritize)  
+**skills/deft-directive-review-cycle/** - Greptile bot reviewer response workflow (fetch findings, batch fix, exit on clean)  
+**skills/deft-directive-setup/** - Interactive setup wizard skill  
+**skills/deft-directive-swarm/** - Parallel local agent orchestration (worktrees, prompts, monitoring, merge)  
+**skills/deft-directive-sync/** - Session-start framework sync (submodule update, project validation)
 
 ### 📝 Templates
 **templates/make-spec.md** - Specification generation  
@@ -832,9 +844,12 @@ Manual runs skip the release job automatically (guarded by `if: startsWith(githu
 
 When you use Deft in a consumer project, these are the key locations for user-generated artifacts:
 
-- **`./vbrief/`** -- vBRIEF plan and spec JSON files (`plan.vbrief.json`, `specification.vbrief.json`, etc.)
-- **`SPECIFICATION.md`** -- rendered specification (generated from `vbrief/specification.vbrief.json`)
-- **`PROJECT.md`** -- project-level configuration and overrides (project root)
+- **`./vbrief/`** -- vBRIEF document root
+  - `PROJECT-DEFINITION.vbrief.json` -- project identity gestalt (replaces PROJECT.md)
+  - `plan.vbrief.json` -- session-level tactical plan; carries `planRef` to scope vBRIEFs
+  - `continue.vbrief.json` -- interruption checkpoint (ephemeral)
+  - `specification.vbrief.json` -- project spec source of truth
+  - `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/` -- scope vBRIEF lifecycle folders (individual units of work as `YYYY-MM-DD-slug.vbrief.json`)
 - **`USER.md`** -- personal preferences (`~/.config/deft/USER.md` on Unix/macOS, `%APPDATA%\deft\USER.md` on Windows)
 - **`./deft/`** -- installed framework files (cloned or installed by the installer)
 

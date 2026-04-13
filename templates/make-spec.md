@@ -22,7 +22,7 @@ N. [feature]
 ! Before starting the interview, determine project complexity per
 [strategies/interview.md](../strategies/interview.md#sizing-gate).
 
-- ! Check `PROJECT.md` for `**Process**: Light` or `**Process**: Full` — if declared, use that path
+- ! Check `PROJECT-DEFINITION.vbrief.json` narratives or `PROJECT.md` (deprecated) for `Light` or `Full` process — if declared, use that path
 - ! If not declared, propose a size and **wait for the user to confirm** before proceeding
 - ⊗ Combine the sizing proposal with the first interview question
 
@@ -98,11 +98,11 @@ Any remaining decisions deferred to implementation.
 
 ### Specification Flow (both paths)
 
-1. ! Write `./vbrief/specification.vbrief.json` with `status: draft`
+1. ! Write scope vBRIEF(s) to `./vbrief/proposed/` with `status: draft` using `YYYY-MM-DD-descriptive-slug.vbrief.json` naming
 2. ! Summarize what was decided and ask the user to review
-3. ! On user approval, update `status` to `approved` in the vbrief file
-4. ! Run `task spec:render` (or generate `SPECIFICATION.md` directly if task unavailable)
-5. ? For add-on specs: write `./vbrief/specification-{name}.vbrief.json` → `SPECIFICATION-{name}.md`
+3. ! On user approval, update `status` to `approved` and move to `./vbrief/pending/` (or use `task scope:promote`)
+4. ! Update `./vbrief/PROJECT-DEFINITION.vbrief.json` items registry to include the new scope vBRIEF(s)
+5. ? For project-wide spec: write `./vbrief/specification.vbrief.json` and run `task spec:render` to generate `SPECIFICATION.md`
 
 ! The vBRIEF file MUST use this exact top-level structure:
 
@@ -159,7 +159,7 @@ Any remaining decisions deferred to implementation.
 
 ## Afterwards
 
-- ! Let user know to type "implement SPECIFICATION.md" to start implementation
+- ! Let user know to type "implement the scope vBRIEFs in `./vbrief/pending/`" to start implementation
 
 **SPECIFICATION Structure (Light path — embedded Requirements):**
 

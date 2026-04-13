@@ -321,9 +321,9 @@ project/
 
 ## Invoking This Strategy
 
-Set in project.md:
-```markdown
-**Strategy**: [strategies/speckit.md](./deft/strategies/speckit.md)
+Set in PROJECT-DEFINITION.vbrief.json narratives:
+```json
+"Strategy": "strategies/speckit.md"
 ```
 
 Or explicitly:

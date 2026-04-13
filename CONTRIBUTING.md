@@ -81,8 +81,8 @@ Available CLI commands:
 
 ```bash
 uv run python run bootstrap    # Set up user preferences
-uv run python run project      # Configure project settings
-uv run python run spec         # Generate specification via AI interview
+uv run python run project      # Configure project settings (writes PROJECT-DEFINITION.vbrief.json)
+uv run python run spec         # Generate specification via AI interview (produces scope vBRIEFs)
 uv run python run validate     # Check deft configuration
 uv run python run doctor       # Check system dependencies
 ```

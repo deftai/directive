@@ -102,9 +102,9 @@ so the user can run additional preparatory strategies or proceed to spec generat
 /deft:run:map
 ```
 
-Or set in PROJECT.md:
-```markdown
-**Strategy**: [strategies/map.md](./deft/strategies/map.md)
+Or set in PROJECT-DEFINITION.vbrief.json narratives:
+```json
+"Strategy": "strategies/map.md"
 ```
 
 Or explicitly:

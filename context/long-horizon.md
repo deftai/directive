@@ -12,6 +12,7 @@ Patterns for tasks that span multiple sessions or phases.
 - ~ Write checkpoints to `./vbrief/plan.vbrief.json` in the workspace
 - ~ Use vBRIEF status lifecycle: `pending` → `running` → `completed` / `blocked` / `cancelled`
 - ~ Include a `plan` object with a `title` summarizing the overall objective, `status`, and an `items` array
+- ! When scope vBRIEFs exist, `plan.vbrief.json` MUST carry a `planRef` to the scope vBRIEF(s) being implemented — this enables the resuming agent to load the durable scope record from `./vbrief/active/`
 - ? Add a `narrative` to tasks that need explanation for a future session or agent
 
 ## Task Dependencies (DAG Edges)
@@ -36,8 +37,10 @@ When tasks have dependencies, express them as vBRIEF edges:
 
 ## Progress Tracking
 
-- ~ Maintain `./vbrief/plan.vbrief.json` for multi-phase work
+- ~ Maintain `./vbrief/plan.vbrief.json` for multi-phase work — this is the session-level tactical plan (the *how right now*)
 - ~ Update task statuses as work progresses
 - ! Mark tasks `blocked` with a narrative explaining the blocker
 - ~ On task completion, review for learnings worth persisting to [meta/lessons.md](../meta/lessons.md)
+- ! On scope completion, use `task scope:complete` to move the scope vBRIEF from `active/` to `completed/` and update the origin (close the GitHub issue, etc.)
 - ⊗ Use a separate `progress.vbrief.json` — progress tracking lives in `plan.vbrief.json`
+- ⊗ Use scope vBRIEFs as session scratchpads — use `plan.vbrief.json` for tactical session work

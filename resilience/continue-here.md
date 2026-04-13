@@ -32,6 +32,7 @@ Persist to `./vbrief/continue.vbrief.json` in vBRIEF format:
 - ! **Decisions** — choices made during this session (vBRIEF narratives)
 - ~ **Hazards** — what was tricky, what to watch out for (narrative)
 - ! **Resume point** — the exact first thing to do when resuming (narrative on the next `pending` item)
+- ! **Scope vBRIEF reference** — when scope vBRIEFs exist, MUST include `planRef` to the scope vBRIEF(s) the agent was working on (enables the resuming agent to load the durable scope record)
 
 ## Resume Protocol
 
@@ -46,7 +47,8 @@ Persist to `./vbrief/continue.vbrief.json` in vBRIEF format:
 
 - ! Continue checkpoints are **ephemeral** — consumed on resume, not permanent records
 - ~ Durable learnings from the session → persist to [meta/lessons.md](../meta/lessons.md)
-- ~ Durable state → persist to the task's vBRIEF plan file
+- ~ Durable state → persist to the task's vBRIEF plan file or scope vBRIEF(s) in lifecycle folders
+- ! Scope vBRIEFs (`./vbrief/{proposed,pending,active,completed,cancelled}/`) are **durable** — they persist across sessions and are shared between agents; do not conflate them with ephemeral continue checkpoints
 - ⊗ Accumulate stale continue checkpoints — clean up after resume
 
 ---
