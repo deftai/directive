@@ -475,41 +475,42 @@ def test_deft_directive_swarm_greptile_rebase_latency() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 18. deft-sync skill — existence, structure, and content (#146, t2.7.5)
+# 18. deft-directive-sync skill -- existence, structure, and content
+#     (#146, t2.7.5; #318, vBRIEF cutover rename + rewrite)
 # ---------------------------------------------------------------------------
 
-_SYNC_PATH = "skills/deft-sync/SKILL.md"
-_SYNC_POINTER_PATH = ".agents/skills/deft-sync/SKILL.md"
+_SYNC_PATH = "skills/deft-directive-sync/SKILL.md"
+_SYNC_POINTER_PATH = ".agents/skills/deft-directive-sync/SKILL.md"
 
 
-def test_deft_sync_exists() -> None:
-    """deft-sync SKILL.md must exist at its expected path."""
+def test_deft_directive_sync_exists() -> None:
+    """deft-directive-sync SKILL.md must exist at its expected path."""
     assert (_REPO_ROOT / _SYNC_PATH).is_file(), (
         f"Skill file missing: {_SYNC_PATH}"
     )
 
 
-def test_deft_sync_rfc2119_legend() -> None:
-    """deft-sync must contain the RFC2119 legend line."""
+def test_deft_directive_sync_rfc2119_legend() -> None:
+    """deft-directive-sync must contain the RFC2119 legend line."""
     text = _read_skill(_SYNC_PATH)
     assert RFC2119_LEGEND in text, (
         f"{_SYNC_PATH}: missing RFC2119 legend '{RFC2119_LEGEND}'"
     )
 
 
-def test_deft_sync_has_frontmatter() -> None:
-    """deft-sync must have YAML frontmatter with name and description."""
+def test_deft_directive_sync_has_frontmatter() -> None:
+    """deft-directive-sync must have YAML frontmatter with name field."""
     text = _read_skill(_SYNC_PATH)
     assert text.startswith("---"), (
         f"{_SYNC_PATH}: must start with YAML frontmatter '---'"
     )
-    assert "name: deft-sync" in text, (
-        f"{_SYNC_PATH}: frontmatter must contain 'name: deft-sync'"
+    assert "name: deft-directive-sync" in text, (
+        f"{_SYNC_PATH}: frontmatter must contain 'name: deft-directive-sync'"
     )
 
 
-def test_deft_sync_anti_patterns_section() -> None:
-    """deft-sync must have an Anti-Patterns section with required entries."""
+def test_deft_directive_sync_anti_patterns_section() -> None:
+    """deft-directive-sync must have an Anti-Patterns section with required entries."""
     text = _read_skill(_SYNC_PATH)
     assert "## Anti-Patterns" in text, (
         f"{_SYNC_PATH}: missing '## Anti-Patterns' section"
@@ -519,29 +520,107 @@ def test_deft_sync_anti_patterns_section() -> None:
     )
 
 
-def test_deft_sync_preflight_dirty_check() -> None:
-    """deft-sync must include pre-flight dirty check on deft/ submodule."""
+def test_deft_directive_sync_preflight_dirty_check() -> None:
+    """deft-directive-sync must include pre-flight dirty check on deft/ submodule."""
     text = _read_skill(_SYNC_PATH)
     assert "git -C deft status --porcelain" in text, (
         f"{_SYNC_PATH}: must include pre-flight dirty check command"
     )
 
 
-def test_deft_sync_no_upstream_vbrief_fetch() -> None:
-    """deft-sync must NOT include upstream vBRIEF schema fetch (#128)."""
+def test_deft_directive_sync_no_upstream_vbrief_fetch() -> None:
+    """deft-directive-sync must NOT include upstream vBRIEF schema fetch (#128)."""
     text = _read_skill(_SYNC_PATH)
     assert "\u2297" in text and "#128" in text, (
         f"{_SYNC_PATH}: must explicitly prohibit upstream vBRIEF schema fetch (CI concern per #128)"
     )
 
 
-def test_deft_sync_pointer_exists() -> None:
-    """.agents thin pointer for deft-sync must exist."""
+def test_deft_directive_sync_pointer_exists() -> None:
+    """.agents thin pointer for deft-directive-sync must exist."""
     assert (_REPO_ROOT / _SYNC_POINTER_PATH).is_file(), (
         f"Thin pointer missing: {_SYNC_POINTER_PATH}"
     )
 
 _REVIEW_CYCLE_PATH = "skills/deft-directive-review-cycle/SKILL.md"
+
+def test_deft_directive_sync_lifecycle_folder_validation() -> None:
+    """deft-directive-sync must validate lifecycle folder structure."""
+    text = _read_skill(_SYNC_PATH)
+    assert "proposed/" in text and "pending/" in text and "active/" in text, (
+        f"{_SYNC_PATH}: must validate lifecycle folders (proposed/, pending/, active/)"
+    )
+    assert "completed/" in text and "cancelled/" in text, (
+        f"{_SYNC_PATH}: must validate lifecycle folders (completed/, cancelled/)"
+    )
+
+
+def test_deft_directive_sync_project_definition_validation() -> None:
+    """deft-directive-sync must validate PROJECT-DEFINITION.vbrief.json."""
+    text = _read_skill(_SYNC_PATH)
+    assert "PROJECT-DEFINITION.vbrief.json" in text, (
+        f"{_SYNC_PATH}: must validate PROJECT-DEFINITION.vbrief.json"
+    )
+    assert "vBRIEFInfo" in text and '"0.5"' in text, (
+        f"{_SYNC_PATH}: must validate vBRIEF v0.5 schema conformance"
+    )
+
+
+def test_deft_directive_sync_project_definition_freshness() -> None:
+    """deft-directive-sync must check PROJECT-DEFINITION freshness."""
+    text = _read_skill(_SYNC_PATH)
+    assert "freshness check" in text.lower() and "stale" in text.lower(), (
+        f"{_SYNC_PATH}: must include PROJECT-DEFINITION freshness check"
+    )
+
+
+def test_deft_directive_sync_lifecycle_consistency() -> None:
+    """deft-directive-sync must check status/folder consistency."""
+    text = _read_skill(_SYNC_PATH)
+    assert "Lifecycle Consistency" in text, (
+        f"{_SYNC_PATH}: must have Lifecycle Consistency section"
+    )
+    assert "MISMATCH" in text and "plan.status" in text, (
+        f"{_SYNC_PATH}: must report status/folder mismatches"
+    )
+
+
+def test_deft_directive_sync_origin_freshness() -> None:
+    """deft-directive-sync must check origin freshness (RFC D12)."""
+    text = _read_skill(_SYNC_PATH)
+    assert "Origin Freshness" in text and "D12" in text, (
+        f"{_SYNC_PATH}: must have Origin Freshness section referencing RFC D12"
+    )
+    assert "updatedAt" in text and "github-issue" in text, (
+        f"{_SYNC_PATH}: must compare issue updatedAt against vBRIEF timestamp"
+    )
+
+
+def test_deft_directive_sync_origin_freshness_report_only() -> None:
+    """Origin freshness must report only -- never auto-update."""
+    text = _read_skill(_SYNC_PATH)
+    assert "report only" in text.lower() and "never auto-update" in text.lower(), (
+        f"{_SYNC_PATH}: origin freshness must report only, never auto-update"
+    )
+
+
+def test_deft_directive_sync_externally_closed_origins() -> None:
+    """deft-directive-sync must flag externally-closed origins."""
+    text = _read_skill(_SYNC_PATH)
+    assert "externally closed" in text.lower() and "CLOSED" in text, (
+        f"{_SYNC_PATH}: must flag externally-closed origins"
+    )
+
+
+def test_deft_directive_sync_no_old_name_references() -> None:
+    """deft-directive-sync must not reference old deft-sync name in paths."""
+    text = _read_skill(_SYNC_PATH)
+    # Check that old skill path pattern doesn't appear
+    assert "skills/deft-sync/" not in text, (
+        f"{_SYNC_PATH}: must not reference old 'skills/deft-sync/' path"
+    )
+
+_REVIEW_CYCLE_PATH = "skills/deft-review-cycle/SKILL.md"
 
 
 def test_deft_review_cycle_mcp_fallback() -> None:
@@ -553,101 +632,202 @@ def test_deft_review_cycle_mcp_fallback() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 18. deft-roadmap-refresh skill -- existence and RFC2119
+# 18. deft-directive-refinement skill -- existence and RFC2119
+#     (#316, vBRIEF cutover rename + rewrite from deft-roadmap-refresh)
 # ---------------------------------------------------------------------------
 
-_ROADMAP_REFRESH_PATH = "skills/deft-roadmap-refresh/SKILL.md"
+_REFINEMENT_PATH = "skills/deft-directive-refinement/SKILL.md"
+_REFINEMENT_POINTER_PATH = ".agents/skills/deft-directive-refinement/SKILL.md"
 
 
-def test_deft_roadmap_refresh_exists() -> None:
-    """deft-roadmap-refresh SKILL.md must exist."""
-    assert (_REPO_ROOT / _ROADMAP_REFRESH_PATH).is_file(), (
-        f"Skill file missing: {_ROADMAP_REFRESH_PATH}"
+def test_deft_directive_refinement_exists() -> None:
+    """deft-directive-refinement SKILL.md must exist."""
+    assert (_REPO_ROOT / _REFINEMENT_PATH).is_file(), (
+        f"Skill file missing: {_REFINEMENT_PATH}"
     )
 
 
-def test_deft_roadmap_refresh_rfc2119_legend() -> None:
-    """deft-roadmap-refresh must contain the RFC2119 legend."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
+def test_deft_directive_refinement_rfc2119_legend() -> None:
+    """deft-directive-refinement must contain the RFC2119 legend."""
+    text = _read_skill(_REFINEMENT_PATH)
     assert RFC2119_LEGEND in text, (
-        f"{_ROADMAP_REFRESH_PATH}: missing RFC2119 legend"
+        f"{_REFINEMENT_PATH}: missing RFC2119 legend"
     )
 
 
 # ---------------------------------------------------------------------------
-# 19. deft-roadmap-refresh Phase 2 Step 4 -- transparency rule (#168, t2.7.1)
+# 19. deft-directive-refinement -- frontmatter and session model (#316)
 # ---------------------------------------------------------------------------
 
-def test_deft_roadmap_refresh_confirm_comment_posting() -> None:
-    """Phase 2 Step 4 must confirm to user that analysis comment was posted."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
-    assert "confirm to the user" in text.lower() and "issue number" in text.lower(), (
-        f"{_ROADMAP_REFRESH_PATH}: Phase 2 Step 4 must confirm comment posting "
-        "with issue number and link (#168)"
+def test_deft_directive_refinement_has_frontmatter() -> None:
+    """deft-directive-refinement must have correct frontmatter name."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert text.startswith("---"), (
+        f"{_REFINEMENT_PATH}: must start with YAML frontmatter '---'"
+    )
+    assert "name: deft-directive-refinement" in text, (
+        f"{_REFINEMENT_PATH}: frontmatter must contain 'name: deft-directive-refinement'"
+    )
+
+
+def test_deft_directive_refinement_session_model() -> None:
+    """deft-directive-refinement must describe a conversational session model."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "conversational loop" in text.lower() and "batch job" in text.lower(), (
+        f"{_REFINEMENT_PATH}: must describe conversational (not batch) session model (#316)"
     )
 
 
 # ---------------------------------------------------------------------------
-# 20. deft-roadmap-refresh Phase 4 -- PR & Review Cycle (#174, t2.7.2)
+# 20. deft-directive-refinement phases (#316)
 # ---------------------------------------------------------------------------
 
-def test_deft_roadmap_refresh_phase4_heading() -> None:
-    """deft-roadmap-refresh must contain Phase 4 -- PR & Review Cycle."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
-    assert "Phase 4" in text and "PR & Review Cycle" in text, (
-        f"{_ROADMAP_REFRESH_PATH}: missing Phase 4 -- PR & Review Cycle (#174)"
+def test_deft_directive_refinement_ingest_phase() -> None:
+    """deft-directive-refinement must have an Ingest phase with deduplication."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "## Phase 1 -- Ingest" in text, (
+        f"{_REFINEMENT_PATH}: must have Phase 1 -- Ingest (#316)"
+    )
+    assert "Deduplicate" in text and "references" in text, (
+        f"{_REFINEMENT_PATH}: Ingest must deduplicate via references (#316)"
     )
 
 
-def test_deft_roadmap_refresh_phase4_user_confirmation() -> None:
-    """Phase 4 must ask user before committing."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
+def test_deft_directive_refinement_ingest_origin_provenance() -> None:
+    """Ingest must create vBRIEFs with origin provenance."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "github-issue" in text and "YYYY-MM-DD" in text, (
+        f"{_REFINEMENT_PATH}: Ingest must create proposed/ vBRIEFs with origin provenance (#316)"
+    )
+
+
+def test_deft_directive_refinement_evaluate_phase() -> None:
+    """deft-directive-refinement must have an Evaluate phase with user review."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "## Phase 2 -- Evaluate" in text, (
+        f"{_REFINEMENT_PATH}: must have Phase 2 -- Evaluate (#316)"
+    )
+    assert "Interactive Review" in text, (
+        f"{_REFINEMENT_PATH}: Evaluate must include interactive user review (#316)"
+    )
+
+
+def test_deft_directive_refinement_reconcile_phase() -> None:
+    """deft-directive-refinement must have a Reconcile phase (RFC D12)."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "## Phase 3 -- Reconcile" in text and "D12" in text, (
+        f"{_REFINEMENT_PATH}: must have Phase 3 -- Reconcile referencing RFC D12 (#316)"
+    )
+    assert "never auto-update" in text.lower(), (
+        f"{_REFINEMENT_PATH}: Reconcile must never auto-update vBRIEFs (#316)"
+    )
+
+
+def test_deft_directive_refinement_promote_demote_phase() -> None:
+    """deft-directive-refinement must use deterministic task commands for lifecycle."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "## Phase 4 -- Promote/Demote" in text, (
+        f"{_REFINEMENT_PATH}: must have Phase 4 -- Promote/Demote (#316)"
+    )
+    assert "task scope:promote" in text and "task scope:activate" in text, (
+        f"{_REFINEMENT_PATH}: must use deterministic task commands (#316)"
+    )
+
+
+def test_deft_directive_refinement_prioritize_phase() -> None:
+    """deft-directive-refinement must have a Prioritize phase with roadmap render."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "## Phase 5 -- Prioritize" in text, (
+        f"{_REFINEMENT_PATH}: must have Phase 5 -- Prioritize (#316)"
+    )
+    assert "task roadmap:render" in text, (
+        f"{_REFINEMENT_PATH}: Prioritize must call task roadmap:render (#316)"
+    )
+
+
+def test_deft_directive_refinement_completion_lifecycle() -> None:
+    """deft-directive-refinement must have a completion lifecycle phase."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "Completion Lifecycle" in text, (
+        f"{_REFINEMENT_PATH}: must have Completion Lifecycle section (#316)"
+    )
+    assert "gh issue close" in text, (
+        f"{_REFINEMENT_PATH}: completion must update origins (close issues) (#316)"
+    )
+
+
+def test_deft_directive_refinement_pr_review_cycle() -> None:
+    """deft-directive-refinement must have PR & Review Cycle section."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "## PR & Review Cycle" in text, (
+        f"{_REFINEMENT_PATH}: must have PR & Review Cycle section"
+    )
     assert "Ready to commit and create a PR?" in text, (
-        f"{_ROADMAP_REFRESH_PATH}: Phase 4 must ask user confirmation (#174)"
+        f"{_REFINEMENT_PATH}: must ask user confirmation before PR"
+    )
+    assert "task check" in text, (
+        f"{_REFINEMENT_PATH}: PR pre-flight must run task check"
     )
 
 
-def test_deft_roadmap_refresh_phase4_preflight() -> None:
-    """Phase 4 must run pre-flight checks before pushing."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
-    assert "CHANGELOG.md" in text and "task check" in text, (
-        f"{_ROADMAP_REFRESH_PATH}: Phase 4 pre-flight must check CHANGELOG and task check (#174)"
+def test_deft_directive_refinement_review_cycle_handoff() -> None:
+    """deft-directive-refinement must hand off to deft-directive-review-cycle."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "skills/deft-directive-review-cycle/SKILL.md" in text, (
+        f"{_REFINEMENT_PATH}: must hand off to deft-directive-review-cycle"
     )
 
 
-def test_deft_roadmap_refresh_phase4_review_cycle_handoff() -> None:
-    """Phase 4 must sequence into deft-review-cycle."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
-    assert "skills/deft-review-cycle/SKILL.md" in text, (
-        f"{_ROADMAP_REFRESH_PATH}: Phase 4 must hand off to deft-review-cycle (#174)"
+def test_deft_directive_refinement_exit_block() -> None:
+    """deft-directive-refinement must have an EXIT block."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "### EXIT" in text, (
+        f"{_REFINEMENT_PATH}: missing EXIT block"
+    )
+    assert "exiting skill" in text.lower() and "chaining instructions" in text.lower(), (
+        f"{_REFINEMENT_PATH}: EXIT block must provide chaining instructions"
     )
 
 
-# ---------------------------------------------------------------------------
-# 21. deft-roadmap-refresh Phase 3 -- cleanup rules (#196, t2.7.3)
-# ---------------------------------------------------------------------------
-
-def test_deft_roadmap_refresh_cleanup_remove_from_body() -> None:
-    """Phase 3 must remove entries from phase body, not strike through."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
-    assert "Remove the entry from the phase section body entirely" in text, (
-        f"{_ROADMAP_REFRESH_PATH}: Phase 3 must remove entries from phase body (#196)"
+def test_deft_directive_refinement_batch_changelog_rule() -> None:
+    """deft-directive-refinement must require one batch CHANGELOG entry."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "batch" in text.lower() and "end of the full refinement session" in text.lower(), (
+        f"{_REFINEMENT_PATH}: must require batch CHANGELOG entry"
     )
 
 
-def test_deft_roadmap_refresh_cleanup_index_strike() -> None:
-    """Phase 3 must strike through in Open Issues Index with completed date."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
-    assert "Open Issues Index" in text and "completed --" in text, (
-        f"{_ROADMAP_REFRESH_PATH}: Phase 3 must strike through in index with date (#196)"
+def test_deft_directive_refinement_precommit_file_review() -> None:
+    """PR pre-flight must include mandatory file review."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "encoding errors" in text.lower() and "unintended duplication" in text.lower(), (
+        f"{_REFINEMENT_PATH}: must include mandatory pre-commit file review"
     )
 
 
-def test_deft_roadmap_refresh_cleanup_antipattern() -> None:
-    """Anti-patterns must prohibit duplicate record in phase body and Completed."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
-    assert "duplicate record" in text.lower() and "single-record convention" in text.lower(), (
-        f"{_ROADMAP_REFRESH_PATH}: must have anti-pattern against duplicate records (#196)"
+def test_deft_directive_refinement_anti_patterns() -> None:
+    """deft-directive-refinement must have comprehensive anti-patterns."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "## Anti-Patterns" in text, (
+        f"{_REFINEMENT_PATH}: missing Anti-Patterns section"
+    )
+    assert "auto-push" in text.lower() and "deduplicat" in text.lower(), (
+        f"{_REFINEMENT_PATH}: anti-patterns must cover auto-push and deduplication"
+    )
+
+
+def test_deft_directive_refinement_pointer_exists() -> None:
+    """.agents thin pointer for deft-directive-refinement must exist."""
+    assert (_REPO_ROOT / _REFINEMENT_POINTER_PATH).is_file(), (
+        f"Thin pointer missing: {_REFINEMENT_POINTER_PATH}"
+    )
+
+
+def test_deft_directive_refinement_no_old_name_references() -> None:
+    """deft-directive-refinement must not reference old deft-roadmap-refresh name."""
+    text = _read_skill(_REFINEMENT_PATH)
+    assert "deft-roadmap-refresh" not in text, (
+        f"{_REFINEMENT_PATH}: must not reference old 'deft-roadmap-refresh' name"
     )
 
 
@@ -711,35 +891,10 @@ def test_deft_review_cycle_send_message() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 23. deft-roadmap-refresh batch CHANGELOG rule (#238, t1.11.3)
+# 23-25: deft-directive-refinement consolidated tests
+#        (replaces old deft-roadmap-refresh sections 23-25)
+#        Tests covered inline in sections 19-20 above.
 # ---------------------------------------------------------------------------
-
-def test_deft_roadmap_refresh_batch_changelog_rule() -> None:
-    """Roadmap refresh must require one batch CHANGELOG entry at session end."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
-    assert "batch" in text.lower() and "end of the full triage session" in text.lower(), (
-        f"{_ROADMAP_REFRESH_PATH}: missing batch CHANGELOG rule (#238, t1.11.3)"
-    )
-
-
-def test_deft_roadmap_refresh_batch_changelog_antipattern() -> None:
-    """Anti-patterns must prohibit per-issue CHANGELOG entries."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
-    assert "changelog entry per individual issue" in text.lower(), (
-        f"{_ROADMAP_REFRESH_PATH}: missing per-issue CHANGELOG anti-pattern (#238, t1.11.3)"
-    )
-
-
-# ---------------------------------------------------------------------------
-# 24. deft-roadmap-refresh + deft-build pre-commit file review (#239, t1.11.4)
-# ---------------------------------------------------------------------------
-
-def test_deft_roadmap_refresh_precommit_file_review() -> None:
-    """Phase 4 pre-flight must include mandatory file review step."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
-    assert "encoding errors" in text.lower() and "unintended duplication" in text.lower(), (
-        f"{_ROADMAP_REFRESH_PATH}: missing mandatory pre-commit file review (#239, t1.11.4)"
-    )
 
 
 def test_deft_directive_build_precommit_file_review() -> None:
@@ -747,26 +902,6 @@ def test_deft_directive_build_precommit_file_review() -> None:
     text = _read_skill("skills/deft-directive-build/SKILL.md")
     assert "encoding errors" in text.lower() and "unintended duplication" in text.lower(), (
         "skills/deft-directive-build/SKILL.md: missing pre-commit file review step (#239, t1.11.4)"
-    )
-
-
-# ---------------------------------------------------------------------------
-# 25. deft-roadmap-refresh EXIT block (#243, t1.11.5)
-# ---------------------------------------------------------------------------
-
-def test_deft_roadmap_refresh_exit_block() -> None:
-    """Roadmap refresh must have an EXIT block at end of Phase 4."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
-    assert "### EXIT" in text, (
-        f"{_ROADMAP_REFRESH_PATH}: missing EXIT block (#243, t1.11.5)"
-    )
-
-
-def test_deft_roadmap_refresh_exit_chaining_instructions() -> None:
-    """EXIT block must provide chaining instructions."""
-    text = _read_skill(_ROADMAP_REFRESH_PATH)
-    assert "exiting skill" in text.lower() and "chaining instructions" in text.lower(), (
-        f"{_ROADMAP_REFRESH_PATH}: EXIT block must provide chaining instructions (#243, t1.11.5)"
     )
 
 
