@@ -10,19 +10,16 @@ Full guidelines: main.md
 Check what exists before doing anything else:
 
 **USER.md missing** (~/.config/deft/USER.md or %APPDATA%\deft\USER.md):
-→ Read skills/deft-setup/SKILL.md and start Phase 1 (user preferences)
+→ Read skills/deft-directive-setup/SKILL.md and start Phase 1 (user preferences)
 
-**USER.md exists, PROJECT.md missing** (repo root):
-→ Read skills/deft-setup/SKILL.md and start Phase 2 (project configuration)
-
-**USER.md and PROJECT.md exist, SPECIFICATION.md missing** (repo root):
-→ Read skills/deft-setup/SKILL.md and start Phase 3 (specification interview)
+**USER.md exists, PROJECT-DEFINITION.vbrief.json missing** (./vbrief/):
+→ Read skills/deft-directive-setup/SKILL.md and start Phase 2 (project definition)
 
 ## Returning Sessions
 
-When all config exists: read the guidelines, your USER.md preferences, and PROJECT.md, then continue with your task.
+When all config exists: read the guidelines, your USER.md preferences, and PROJECT-DEFINITION.vbrief.json, then continue with your task.
 
-~ Run `skills/deft-sync/SKILL.md` to pull latest framework updates and validate project files.
+~ Run `skills/deft-directive-sync/SKILL.md` to pull latest framework updates and validate project files.
 
 ### Deft Alignment Confirmation
 
@@ -49,23 +46,23 @@ Note: A true UI indicator (e.g. Warp status bar) is deferred to Phase 5. This is
 
 When user input matches a trigger keyword, read the corresponding skill:
 
-- "review cycle" / "check reviews" / "run review cycle" → `skills/deft-review-cycle/SKILL.md`
-- "swarm" / "parallel agents" / "run agents" → `skills/deft-swarm/SKILL.md` — chains to `deft-review-cycle` at Phase 5
-- "roadmap refresh" / "triage" / "refresh roadmap" → `skills/deft-roadmap-refresh/SKILL.md` — chains to `deft-review-cycle` at exit
-- "build" / "implement" / "implement spec" → `skills/deft-build/SKILL.md`
-- "setup" / "bootstrap" / "onboard" → `skills/deft-setup/SKILL.md`
-- "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" → `skills/deft-sync/SKILL.md`
-- "pre-pr" / "quality loop" / "rwldl" / "self-review" → `skills/deft-pre-pr/SKILL.md`
-- "interview loop" / "q&a loop" / "run interview loop" → `skills/deft-interview/SKILL.md`
+- "review cycle" / "check reviews" / "run review cycle" → `skills/deft-directive-review-cycle/SKILL.md`
+- "swarm" / "parallel agents" / "run agents" → `skills/deft-directive-swarm/SKILL.md` — chains to `deft-directive-review-cycle` at Phase 5
+- "refinement" / "reprioritize" / "refine" → `skills/deft-directive-refinement/SKILL.md` — chains to `deft-directive-review-cycle` at exit
+- "build" / "implement" / "implement spec" → `skills/deft-directive-build/SKILL.md`
+- "setup" / "bootstrap" / "onboard" → `skills/deft-directive-setup/SKILL.md`
+- "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" → `skills/deft-directive-sync/SKILL.md`
+- "pre-pr" / "quality loop" / "rwldl" / "self-review" → `skills/deft-directive-pre-pr/SKILL.md`
+- "interview loop" / "q&a loop" / "run interview loop" → `skills/deft-directive-interview/SKILL.md`
 
 ## Development Process (always follow)
 
 **Before code changes:**
-- ! Read SPECIFICATION.md for existing task coverage of the issue being fixed
-- ! If no spec task exists for the work, add one before implementing
-- ⊗ Begin editing files before checking spec coverage and creating a feature branch — even if the user says "yes" or "proceed"
+- ! Check `./vbrief/` lifecycle folders for existing scope vBRIEF coverage of the issue being fixed
+- ! If no scope vBRIEF exists for the work, create one in `./vbrief/proposed/` before implementing
+- ⊗ Begin editing files before checking scope vBRIEF coverage and creating a feature branch — even if the user says "yes" or "proceed"
 
-! Before opening a PR, run `skills/deft-pre-pr/SKILL.md` for an iterative quality loop.
+! Before opening a PR, run `skills/deft-directive-pre-pr/SKILL.md` for an iterative quality loop.
 
 **Before committing:**
 - Run `task check` (validate + lint + test) — this is the pre-commit gate
@@ -74,12 +71,12 @@ When user input matches a trigger keyword, read the corresponding skill:
 - Verify .github/PULL_REQUEST_TEMPLATE.md checklist items are satisfied
 
 **Branching:**
-- ! Always work on a feature branch — never commit directly to master/main unless the user explicitly instructs it or `PROJECT.md` contains `Allow direct commits to master: true`
+- ! Always work on a feature branch — never commit directly to master/main unless the user explicitly instructs it or `PROJECT-DEFINITION.vbrief.json` narratives contain `Allow direct commits to master: true`
 
 **PR conventions:**
 - ROADMAP.md updates happen at release time — batch-move merged issues to Completed during the CHANGELOG promotion commit
 - Commit messages: `feat/fix/docs/chore` prefix, concise subject, bullet-point body
-- When running a review cycle on a PR, follow `skills/deft-review-cycle/SKILL.md`
+- When running a review cycle on a PR, follow `skills/deft-directive-review-cycle/SKILL.md`
 - ! After squash merge, verify issues actually closed: `gh issue view <N> --json state --jq .state`. Squash merges can silently fail to process closing keywords (`Closes #N`). If still open, close manually with a comment referencing the merged PR (#167)
 
 ## Commands

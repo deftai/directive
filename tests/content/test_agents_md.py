@@ -54,7 +54,7 @@ def test_agents_md_headless_bypass_mentions_cloud_agent() -> None:
 def test_agents_md_before_code_changes_must_markers() -> None:
     """'Before code changes' items must carry ! (MUST) markers (#186, t1.9.2)."""
     text = _read_agents_md()
-    assert "! Read SPECIFICATION.md" in text, (
+    assert "! Check `./vbrief/` lifecycle folders" in text, (
         "AGENTS.md: 'Before code changes' items must carry ! (MUST) markers (#186)"
     )
 
