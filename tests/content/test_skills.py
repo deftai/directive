@@ -1351,6 +1351,10 @@ def test_deft_directive_swarm_no_hardcoded_allocation_antipattern() -> None:
     text = _read_skill(_SWARM_PATH)
     assert "hardcode a 1:1" in text.lower() or "hardcoded 1:1" in text.lower(), (
         f"{_SWARM_PATH}: must have anti-pattern against hardcoded 1:1 allocation (#317)"
+    )
+
+
+# ---------------------------------------------------------------------------
 # 34. deft-directive-setup vBRIEF model assertions (#314)
 # ---------------------------------------------------------------------------
 
