@@ -352,8 +352,8 @@ def validate_epic_story_links(
                     )
 
         # Check backward references (story -> parent via planRef)
-        plan_ref = plan.get("planRef")
-        if plan_ref:
+        # Scan both plan-level and item-level planRef values
+        for plan_ref in _collect_plan_refs(plan):
             parent_path = _resolve_ref_path(plan_ref, vbrief_dir)
             if parent_path and parent_path in all_vbriefs:
                 parent_data = all_vbriefs[parent_path]
@@ -380,6 +380,20 @@ def validate_epic_story_links(
                 )
 
     return errors
+
+
+def _collect_plan_refs(plan: dict) -> list[str]:
+    """Collect all planRef values from plan root and items."""
+    refs: list[str] = []
+    root_ref = plan.get("planRef")
+    if isinstance(root_ref, str) and root_ref:
+        refs.append(root_ref)
+    for item in plan.get("items", []):
+        if isinstance(item, dict):
+            item_ref = item.get("planRef")
+            if isinstance(item_ref, str) and item_ref:
+                refs.append(item_ref)
+    return refs
 
 
 def _resolve_ref_path(uri: str, vbrief_dir: Path) -> Path | None:

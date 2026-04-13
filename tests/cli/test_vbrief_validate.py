@@ -678,6 +678,26 @@ class TestOriginProvenance:
         assert result.returncode == 0
         assert "D11" not in result.stdout
 
+    def test_extended_origin_type_no_warning(self, tmp_path):
+        """Extended origin type (e.g. github-issue-v2) suppresses D11."""
+        vbrief_dir = tmp_path / "vbrief"
+        make_lifecycle_dirs(vbrief_dir)
+        write_vbrief(
+            vbrief_dir / "pending" / "2026-04-13-ext-origin.vbrief.json",
+            minimal_vbrief(
+                status="pending",
+                references=[
+                    {
+                        "uri": "https://github.com/org/repo/issues/1",
+                        "type": "github-issue-v2",
+                    }
+                ],
+            ),
+        )
+        result = run_validator(vbrief_dir)
+        assert result.returncode == 0
+        assert "D11" not in result.stdout
+
     def test_proposed_without_origin_no_warning(self, tmp_path):
         """Scope vBRIEF in proposed/ without origin does NOT warn.
 
