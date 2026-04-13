@@ -93,6 +93,7 @@ Larger initiatives use **epic vBRIEFs** linking to child **story vBRIEFs**. Link
 **Epic → Stories** (via `references`):
 ```json
 {
+  "vBRIEFInfo": { "version": "0.5" },
   "plan": {
     "title": "Auth system overhaul",
     "status": "running",
@@ -107,6 +108,7 @@ Larger initiatives use **epic vBRIEFs** linking to child **story vBRIEFs**. Link
 **Story → Epic** (via `planRef`):
 ```json
 {
+  "vBRIEFInfo": { "version": "0.5" },
   "plan": {
     "title": "Implement OAuth flow",
     "status": "running",
@@ -312,11 +314,12 @@ The source-of-truth for project intent. Created via the interview process in
 The synthesized project identity — what this project IS right now. Uses the existing vBRIEF v0.5 schema:
 
 - `narratives` holds project identity: overview, tech stack, architecture, risks/unknowns, configuration
-- `items` acts as a registry of active scopes, each referencing its individual scope vBRIEF file via `references`
+- `items` acts as a registry of project scopes across all lifecycle folders, each referencing its individual scope vBRIEF file via `references`
 - `plan.status` represents overall project state (e.g. `running`, `draft`)
 
 ```json
 {
+  "vBRIEFInfo": { "version": "0.5" },
   "plan": {
     "title": "My Project",
     "status": "running",
