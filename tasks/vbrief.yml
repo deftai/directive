@@ -1,0 +1,9 @@
+version: '3'
+
+tasks:
+  validate:
+    desc: Validate vBRIEF lifecycle folder structure and cross-file consistency
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python scripts/vbrief_validate.py --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief"

@@ -41,6 +41,9 @@ includes:
   migrate:
     taskfile: ./tasks/migrate.yml
     optional: true
+  vbrief:
+    taskfile: ./tasks/vbrief.yml
+    optional: true
 
 tasks:
   default:
@@ -59,6 +62,7 @@ tasks:
       - toolchain:check
       - verify:stubs
       - verify:links
+      - vbrief:validate
     cmds:
       - echo "All checks passed"
   test:
