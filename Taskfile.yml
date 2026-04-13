@@ -35,6 +35,9 @@ includes:
   roadmap:
     taskfile: ./tasks/roadmap.yml
     optional: true
+  project:
+    taskfile: ./tasks/project.yml
+    optional: true
 
 tasks:
   default:
