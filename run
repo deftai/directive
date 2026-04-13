@@ -10,6 +10,7 @@ Optional: rich (for enhanced output and better UX)
 import sys
 import os
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -126,7 +127,6 @@ def get_default_paths() -> dict:
         DEFT_PROJECT_PATH       default: ./vbrief/PROJECT-DEFINITION.vbrief.json
         DEFT_PRD_PATH           default: ./PRD.md
         DEFT_SPECIFICATION_PATH default: ./SPECIFICATION.md
-        DEFT_INTERVIEW_PATH     default: ./INTERVIEW.md (Light sizing path only; not in returned dict)
         DEFT_VBRIEF_PROPOSED    default: ./vbrief/proposed/
     
     Returns:
@@ -1357,12 +1357,11 @@ def _slugify(text: str) -> str:
     
     Strips non-alphanumeric characters, lowercases, and joins with hyphens.
     """
-    import re
     text = text.lower().strip()
     text = re.sub(r'[^a-z0-9\s_-]', '', text)
     text = re.sub(r'[\s_]+', '-', text)
     text = re.sub(r'-+', '-', text)
-    return text.strip('-')[:60]  # Cap slug length
+    return text[:60].strip('-')  # Cap slug length, remove any trailing hyphen
 
 def cmd_spec(args: List[str]):
     """Spec command - generate scope vBRIEF via interview"""
