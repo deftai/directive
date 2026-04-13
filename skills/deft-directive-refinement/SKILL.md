@@ -232,7 +232,7 @@ After all refinement work is complete:
 
 ### Review Cycle Handoff
 
-! After the PR is created, automatically sequence into `skills/deft-review-cycle/SKILL.md`.
+! After the PR is created, automatically sequence into `skills/deft-directive-review-cycle/SKILL.md`.
 
 - ! Inform the user: "PR #{N} created -- starting review cycle."
 - ! Follow the full review cycle skill from Phase 1 (Deft Process Audit) onward.

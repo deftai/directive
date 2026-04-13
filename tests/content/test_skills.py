@@ -620,7 +620,6 @@ def test_deft_directive_sync_no_old_name_references() -> None:
         f"{_SYNC_PATH}: must not reference old 'skills/deft-sync/' path"
     )
 
-_REVIEW_CYCLE_PATH = "skills/deft-review-cycle/SKILL.md"
 
 
 def test_deft_review_cycle_mcp_fallback() -> None:
@@ -773,7 +772,7 @@ def test_deft_directive_refinement_pr_review_cycle() -> None:
 def test_deft_directive_refinement_review_cycle_handoff() -> None:
     """deft-directive-refinement must hand off to deft-directive-review-cycle."""
     text = _read_skill(_REFINEMENT_PATH)
-    assert "skills/deft-review-cycle/SKILL.md" in text, (
+    assert "skills/deft-directive-review-cycle/SKILL.md" in text, (
         f"{_REFINEMENT_PATH}: must hand off to deft-review-cycle"
     )
 
