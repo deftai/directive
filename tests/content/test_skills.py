@@ -1173,11 +1173,11 @@ def test_deft_directive_swarm_phase5_vbrief_completion() -> None:
     )
 
 
-def test_deft_directive_swarm_phase5_origin_update() -> None:
-    """Phase 5 must update origin references on completion."""
+def test_deft_directive_swarm_phase6_origin_update() -> None:
+    """Phase 6 must update origin references on completion (post-merge)."""
     text = _read_skill(_SWARM_PATH)
-    assert "references" in text.lower() and "close the issue" in text.lower(), (
-        f"{_SWARM_PATH}: Phase 5 must update origins on completion (#317)"
+    assert "references" in text.lower() and "update each origin" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 6 must update origins on completion (#317)"
     )
 
 

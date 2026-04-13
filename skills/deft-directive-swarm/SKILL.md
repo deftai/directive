@@ -247,10 +247,9 @@ For each story vBRIEF that an agent's PR fully resolves:
 
 1. ! Move the vBRIEF from `vbrief/active/` to `vbrief/completed/` via `task scope:complete <file>`
 2. ! Verify `plan.status` is set to `completed` (the scope command handles this)
-3. ! Read the vBRIEF's `references` array and update each origin:
-   - For `github-issue` references: close the issue with a comment referencing the merged PR (e.g. `gh issue close <N> --comment "Completed in #<PR>"`)
-   - For other reference types: document the completion as appropriate
-4. ! If the vBRIEF has a `planRef` to a parent epic, check whether all sibling stories are now completed — if so, the epic may also be completable
+3. ! If the vBRIEF has a `planRef` to a parent epic, check whether all sibling stories are now completed — if so, the epic may also be completable
+
+⚠️ Origin/issue closure happens in Phase 6 Step 2 (after merge), not here — closing issues before merge creates premature state if the merge cascade fails.
 
 ### Exit Condition
 
@@ -321,11 +320,14 @@ All PRs meet ALL of:
 - ! Use descriptive squash subject: `type(scope): description (#issues)`
 - ! After each merge, rebase remaining PRs onto updated master before merging the next
 
-### Step 2: Close Issues
+### Step 2: Close Issues and Update Origins
 
 - ! Close resolved issues with a comment referencing the PR
 - ~ Issues with "Closes #N" in PR body auto-close on squash merge
 - ! After each squash merge, verify issues actually closed: `gh issue view <N> --json state --jq .state`. If not closed, close manually with a comment referencing the merged PR. Squash merge + closing keywords can silently fail to close issues (#167).
+- ! For each completed vBRIEF: read its `references` array and update each origin:
+  - For `github-issue` references: verify the issue is closed (auto-close from PR body or Phase 6 Step 2 above); if not, close with `gh issue close <N> --comment "Completed in #<PR>"`
+  - For other reference types: document the completion as appropriate
 
 ### Step 3: Update Master
 
