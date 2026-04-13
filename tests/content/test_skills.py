@@ -1071,7 +1071,7 @@ def test_deft_interview_pointer_exists() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 30b. deft-setup Phase 1/2 must reference deft-interview (#304, t1.29.1)
+# 31. deft-setup Phase 1/2 must reference deft-interview (#304, t1.29.1)
 # ---------------------------------------------------------------------------
 
 
@@ -1105,7 +1105,7 @@ def test_deft_setup_phase2_references_deft_interview() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 31. deft-swarm Phase 6 read-back verification (#288, t1.21.1)
+# 32. deft-swarm Phase 6 read-back verification (#288, t1.21.1)
 # ---------------------------------------------------------------------------
 
 
@@ -1126,7 +1126,7 @@ def test_deft_swarm_phase6_prefer_edit_files_for_conflicts() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 32. deft-swarm Phase 6 Slack announcement (#292, t1.22.1)
+# 33. deft-swarm Phase 6 Slack announcement (#292, t1.22.1)
 # ---------------------------------------------------------------------------
 
 
