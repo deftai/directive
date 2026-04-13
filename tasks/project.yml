@@ -6,4 +6,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/project_render.py "{{.USER_WORKING_DIR}}/vbrief"
+      - uv run python scripts/project_render.py "{{.ROOT_DIR}}/vbrief"

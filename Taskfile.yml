@@ -98,7 +98,3 @@ tasks:
     desc: Show framework statistics (alias for core:stats)
     cmds:
       - task: core:stats
-  project:render:
-    desc: Regenerate PROJECT-DEFINITION.vbrief.json (alias for project:render)
-    cmds:
-      - task: project:render

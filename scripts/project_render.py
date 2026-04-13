@@ -146,7 +146,7 @@ def flag_stale_narratives(
             continue
         for item in completed_items:
             title_lower = item.get("title", "").lower()
-            title_words = set(title_lower.split())
+            title_words = set(re.split(r"\W+", title_lower))
             overlap = key_words & title_words
             if overlap:
                 flags.append(
