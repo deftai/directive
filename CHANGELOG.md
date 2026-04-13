@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **vBRIEF-centric document model in vbrief.md** (#310, Part of #309): Rewrote File Taxonomy section with lifecycle folder structure (proposed/, pending/, active/, completed/, cancelled/), status-to-folder mapping, PROJECT-DEFINITION.vbrief.json type, scope vBRIEF filename convention (YYYY-MM-DD-descriptive-slug.vbrief.json), status-driven moves (plan.status as source of truth), origin provenance requirement, bidirectional epic-story linking, plan.vbrief.json and continue.vbrief.json coexistence with scope vBRIEFs (planRef), scope splitting pattern; added PROJECT-DEFINITION.vbrief.json section; updated plan.vbrief.json and continue.vbrief.json sections with scope vBRIEF references; added 4 new anti-patterns
+
 ## [0.19.0] - 2026-04-13
 
 ### Added
