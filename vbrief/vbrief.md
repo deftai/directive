@@ -119,10 +119,10 @@ Larger initiatives use **epic vBRIEFs** linking to child **story vBRIEFs**. Link
 Scope vBRIEFs are durable scope records (the *what*); `plan.vbrief.json` remains the ephemeral session-level tactical plan (the *how right now*); `continue.vbrief.json` remains the interruption checkpoint. Both gain a parent reference to scope vBRIEFs via `planRef`.
 
 - **Scope vBRIEF** — acceptance criteria, scope definition, origin provenance. Durable across sessions. Shared between agents.
-- **plan.vbrief.json** — granular implementation steps for this session. Ephemeral. Agent-private.
+- **plan.vbrief.json** — granular implementation steps for this session. Session-durable. Agent-private.
 - **continue.vbrief.json** — interruption checkpoint. References scope vBRIEF(s) being worked on.
 
-- ! plan.vbrief.json and continue.vbrief.json MUST carry a `planRef` to the scope vBRIEF(s) they relate to
+- ! When scope vBRIEFs exist, plan.vbrief.json and continue.vbrief.json MUST carry a `planRef` to the scope vBRIEF(s) they relate to
 - ⊗ Use scope vBRIEFs as session scratchpads — that is what plan.vbrief.json is for
 
 ### Scope Splitting
