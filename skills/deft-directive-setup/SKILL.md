@@ -1,12 +1,13 @@
 ---
-name: deft-setup
+name: deft-directive-setup
 description: >
-  Set up a new project with Deft framework standards. Use when the user wants
-  to bootstrap user preferences, configure a project, or generate a project
-  specification. Walks through setup conversationally — no separate CLI needed.
+  Set up a new project with Deft Directive framework standards. Use when the
+  user wants to bootstrap user preferences, configure a project, or generate a
+  project specification. Walks through setup conversationally — no separate CLI
+  needed.
 ---
 
-# Deft Setup
+# Deft Directive Setup
 
 Agent-driven alternative to `deft/run bootstrap && deft/run project && deft/run spec`.
 
@@ -15,7 +16,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ## When to Use
 
 - User says "set up deft", "configure deft", or "bootstrap my project"
-- User asks to create USER.md, PROJECT.md, or SPECIFICATION.md
+- User asks to create USER.md, PROJECT-DEFINITION.vbrief.json, or a specification
 - User clones a deft-enabled repo for the first time with no config
 
 ## Platform Detection
@@ -29,7 +30,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 - ! If `$DEFT_USER_PATH` is set, it takes precedence on any platform
 - ! Create parent directories as needed when writing USER.md
-- ~ `$DEFT_PROJECT_PATH` overrides the default project config path (`./PROJECT.md`) if set
+- ~ `$DEFT_PROJECT_PATH` overrides the default project config path (`./vbrief/PROJECT-DEFINITION.vbrief.json`) if set
 
 ## Agent Behavior
 
@@ -83,7 +84,7 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 
 **Goal:** Personal preferences file with two sections:
 - **Personal** — always wins over everything (name, custom rules)
-- **Defaults** — fallback values that PROJECT.md can override (strategy, coverage)
+- **Defaults** — fallback values that PROJECT-DEFINITION.vbrief.json can override (strategy, coverage)
 
 - ~ Skip if USER.md exists at the platform-appropriate path (see Platform Detection) and user doesn't want to overwrite
 - ⊗ Scan filesystem beyond checking that one path
@@ -93,9 +94,9 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 ! When an existing USER.md is found (returning user), check its `deft_version` field before skipping Phase 1:
 
 1. ! If `deft_version` is **missing**: the USER.md predates versioning -- treat as stale
-2. ! If `deft_version` is present but **differs from the current framework version** (0.15.0): check whether any expected fields are missing from the USER.md
+2. ! If `deft_version` is present but **differs from the current framework version** (0.19.0): check whether any expected fields are missing from the USER.md
 3. ! If fields are missing: query the user for each missing field individually -- do NOT re-run the full Phase 1 interview
-4. ! After completing any field queries (even if none were needed), write the current `deft_version` (0.15.0) to USER.md
+4. ! After completing any field queries (even if none were needed), write the current `deft_version` (0.19.0) to USER.md
 5. ~ If `deft_version` matches the current version and all expected fields are present: no action needed (USER.md is fresh)
 
 Expected USER.md fields: **Name**, **Custom Rules**, **Default Strategy**, and optionally **Coverage** and **Experimental Rules**.
@@ -104,7 +105,7 @@ Expected USER.md fields: **Name**, **Custom Rules**, **Default Strategy**, and o
 
 ### Interview Rules
 
-! This phase follows the deterministic interview loop defined in `skills/deft-interview/SKILL.md`. The core rules (one question per turn, numbered options with stated default, explicit "other" escape, depth gate, default acceptance, confirmation gate, structured handoff) apply here. Key points repeated for emphasis:
+! This phase follows the deterministic interview loop defined in `skills/deft-directive-interview/SKILL.md`. The core rules (one question per turn, numbered options with stated default, explicit "other" escape, depth gate, default acceptance, confirmation gate, structured handoff) apply here. Key points repeated for emphasis:
 
 ! **Each message you send MUST contain exactly ONE question.** This is the most
 important rule in this file. After the user answers, send the NEXT question in
@@ -152,7 +153,7 @@ Wait for answer. Then follow the track below.
 
 **Track 3 (non-technical) — 2 steps:**
 - Step 1: Ask their name
-- Step 2: Ask what they're building (brief description — used for PROJECT.md later)
+- Step 2: Ask what they're building (brief description — used for PROJECT-DEFINITION.vbrief.json later)
 - Set defaults: strategy = "interview", coverage = 85%, all meta-guidelines included
 
 ### Output Path
@@ -167,12 +168,12 @@ Resolve using Platform Detection above. Write to the platform-appropriate path
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**deft_version**: 0.15.0
+**deft_version**: 0.19.0
 
 ## Personal (always wins)
 
 Settings in this section have HIGHEST precedence — override all other deft rules,
-including PROJECT.md.
+including PROJECT-DEFINITION.vbrief.json.
 
 **Name**: Address the user as: **{name}**
 
@@ -181,7 +182,7 @@ including PROJECT.md.
 
 ## Defaults (fallback)
 
-Settings in this section are fallback defaults. PROJECT.md overrides these
+Settings in this section are fallback defaults. PROJECT-DEFINITION.vbrief.json overrides these
 for project-scoped settings (strategy, coverage).
 
 **Default Strategy**: [{strategy name}](../strategies/{strategy-file}.md)
@@ -208,14 +209,14 @@ for project-scoped settings (strategy, coverage).
 
 ---
 
-## Phase 2 — Project Configuration (PROJECT.md)
+## Phase 2 — Project Configuration (PROJECT-DEFINITION.vbrief.json)
 
-**Goal:** Project-specific configuration — tech stack, type, quality standards.
+**Goal:** Project-specific configuration — tech stack, type, quality standards — written as a vBRIEF file at `./vbrief/PROJECT-DEFINITION.vbrief.json`.
 
-! **Path Resolution Anchor**: Resolve ALL paths relative to the user's working directory (pwd) at skill entry -- never relative to the skill file location, AGENTS.md location, or any framework directory (e.g. `./deft/`). When deft is cloned as a subdirectory, the skill file lives inside the clone but all project artifacts (`PROJECT.md`, build files, etc.) must be resolved from the user's pwd.
+! **Path Resolution Anchor**: Resolve ALL paths relative to the user's working directory (pwd) at skill entry -- never relative to the skill file location, AGENTS.md location, or any framework directory (e.g. `./deft/`). When deft is cloned as a subdirectory, the skill file lives inside the clone but all project artifacts (`./vbrief/PROJECT-DEFINITION.vbrief.json`, build files, etc.) must be resolved from the user's pwd.
 
-- ~ Skip if `./PROJECT.md` exists at the **project root** (or `$DEFT_PROJECT_PATH` if set) and user doesn't want to replace
-- ⊗ Count `./deft/PROJECT.md` or `./deft/core/project.md` as the user's project config — those are framework-internal
+- ~ Skip if `./vbrief/PROJECT-DEFINITION.vbrief.json` exists (or `$DEFT_PROJECT_PATH` if set) and user doesn't want to replace
+- ⊗ Count `./deft/PROJECT-DEFINITION.vbrief.json` or `./deft/core/project.md` as the user's project config — those are framework-internal
 
 ### Inference
 
@@ -251,7 +252,7 @@ Wait for answer. Then follow the corresponding track in the Question Sequence be
 ### Interview Rules (same as Phase 1)
 
 ! **Each message MUST contain exactly ONE question.** The Phase 1 interview rules
-apply here too. Do not combine questions. See `skills/deft-interview/SKILL.md` for the canonical deterministic interview loop.
+apply here too. Do not combine questions. See `skills/deft-directive-interview/SKILL.md` for the canonical deterministic interview loop.
 
 ### Question Sequence
 
@@ -281,7 +282,7 @@ apply here too. Do not combine questions. See `skills/deft-interview/SKILL.md` f
   > for teams; trunk-based is common for solo projects."
   > 1. Branch-based ★ (recommended — default)
   > 2. Trunk-based (direct commits to master)
-  If trunk-based: add `Allow direct commits to master: true` under `## Branching` in PROJECT.md
+  If trunk-based: add `Allow direct commits to master: true` to the PROJECT-DEFINITION narratives
 
 **Track 2 (middle ground) — 4 steps:**
 - Step 1: Ask project name (infer from build files or directory name, confirm)
@@ -296,60 +297,39 @@ apply here too. Do not combine questions. See `skills/deft-interview/SKILL.md` f
 
 ### Output Path
 
-`./PROJECT.md` (or `$DEFT_PROJECT_PATH` if set).
+`./vbrief/PROJECT-DEFINITION.vbrief.json` (or `$DEFT_PROJECT_PATH` if set). Create `./vbrief/` directory and lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) if they don't exist.
 
 ### Template
 
-```markdown
-# {Project Name} Project Guidelines
+! The output MUST conform to the vBRIEF v0.5 schema (`vbrief/schemas/vbrief-core.schema.json`):
 
-Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
-
-**deft_version**: 0.15.0
-
-Only specify items here that **override or extend** the deft defaults.
-
-**Reference**: `deft/main.md` | {language links}
-
-## Project Configuration
-
-**Tech Stack**: {project type} using {languages}{tech stack details}
-
-## Strategy
-
-Use [{strategy name}](deft/strategies/{strategy-file}.md) for this project.
-
-## Workflow
-
-```bash
-task check         # Pre-commit gate
-task test:coverage # Coverage target
-task build         # Build project
-task clean         # Clean artifacts
+```json
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "author": "agent:deft-directive-setup",
+    "description": "Project identity gestalt",
+    "created": "{ISO-8601 timestamp}"
+  },
+  "plan": {
+    "title": "{Project Name}",
+    "status": "running",
+    "narratives": {
+      "Overview": "{Brief project description}",
+      "TechStack": "{project type} using {languages} — {tech stack details}",
+      "Strategy": "Use {strategy name} for this project",
+      "Quality": "Run task check before every commit. Achieve >= {coverage}% coverage overall + per-module. Store secrets in secrets/ dir.",
+      "ProjectRules": "{Any rules the user specified, or 'No project-specific rules defined.'}",
+      "Branching": "{If trunk-based: 'Allow direct commits to master: true', else omit or 'Branch-based workflow (default)'}",
+      "DeftVersion": "0.19.0"
+    },
+    "items": []
+  }
+}
 ```
 
-## Standards
-
-**Quality:**
-- ! Run `task check` before every commit
-- ! Achieve ≥{coverage}% coverage overall + per-module
-- ! Store secrets in `secrets/` dir
-- ~ Provide `.example` templates for secrets
-
-## Project-Specific Rules
-
-{Any rules the user specified, or "(Add your custom rules here)"}
-
-## Branching
-
-{If trunk-based chosen: "Allow direct commits to master: true"
- If branch-based (default): omit this section entirely}
-
----
-
-**Generated by**: deft-setup skill
-**Date**: {YYYY-MM-DD}
-```
+- ! All `narratives` values MUST be plain strings — never objects or arrays
+- ! `items` starts empty — populated as scope vBRIEFs are created in lifecycle folders
 
 ### Then
 
@@ -357,36 +337,48 @@ task clean         # Clean artifacts
 
 ---
 
-## Phase 3 — Specification (SPECIFICATION.md)
+## Phase 3 — Specification
 
-**Goal:** Generate an implementable spec using the strategy chosen in Phase 2.
+**Goal:** Generate an implementable spec using the strategy chosen in Phase 2, producing vBRIEF artifacts.
 
 ! **Path Resolution Anchor**: Same rule as Phase 2 -- resolve ALL paths relative to the user's pwd at skill entry, never relative to the skill file, AGENTS.md, or any framework directory.
 
-- ~ Skip if user already has a spec at the **project root** they're happy with
-- ! Check `./SPECIFICATION.md` or `./specs/*/SPECIFICATION.md` (project root)
+- ~ Skip if user already has scope vBRIEFs in `./vbrief/` they're happy with
+- ! Check `./vbrief/specification.vbrief.json` or `./vbrief/proposed/` for existing scope vBRIEFs
 - ⊗ Count ANY file inside `./deft/` as the project's spec — those are framework-internal
   (e.g. `deft/PROJECT.md`, `deft/specs/`, `deft/templates/`, `deft/core/project.md`
   are all part of the framework, NOT the user's project)
+
+### Onboarding Question
+
+! Before proceeding with the strategy gate, ask the onboarding question:
+
+> "Are you adding a scope to this project or starting a new specification?"
+> 1. Adding scope to existing project [default if `./vbrief/specification.vbrief.json` exists or scope vBRIEFs found in lifecycle folders]
+> 2. Starting a new project specification [default if no specification or scope vBRIEFs exist]
+
+- ! Default based on repo state: if specification.vbrief.json exists or any lifecycle folder has scope vBRIEFs, default to "Adding scope"; otherwise default to "Starting new"
+- ! If adding scope: skip the full interview, create a new scope vBRIEF in `./vbrief/proposed/` with the user's description, then exit
+- ! If starting new: proceed to the Strategy Gate below
 
 ### ⚠️ MANDATORY: Strategy Gate — Do This First
 
 ! **STOP.** You MUST determine the correct strategy before doing anything else.
 
-1. ! Open `PROJECT.md` (the file written in Phase 2)
-2. ! Find the `## Strategy` section
-3. ! Read the strategy link: `Use [Name](deft/strategies/file.md)` → extract the strategy name
+1. ! Open `./vbrief/PROJECT-DEFINITION.vbrief.json` (the file written in Phase 2)
+2. ! Find the `narratives.Strategy` value
+3. ! Extract the strategy name from the narrative
 
 **Dispatch:**
 
 - **interview** (or default) → Continue to the Sizing Gate below ✅
 - **anything else** (discuss, yolo, speckit, research, brownfield, map, etc.) →
   1. ! Read `deft/strategies/{strategy-name}.md` **right now, in this same turn**
-  2. ! Begin the strategy’s workflow immediately — ask its first question
+  2. ! Begin the strategy's workflow immediately — ask its first question
   3. ! **STOP reading this section** — do NOT use the interview process below
 
-- ⊗ Default to interview without reading PROJECT.md
-- ⊗ Continue reading below when PROJECT.md specifies a non-interview strategy
+- ⊗ Default to interview without reading PROJECT-DEFINITION.vbrief.json
+- ⊗ Continue reading below when PROJECT-DEFINITION.vbrief.json specifies a non-interview strategy
 - ⊗ Assume interview because the sections below describe the interview process
 - ⊗ Fabricate justification for using interview when the user chose a different strategy
 - ⊗ Announce the strategy choice and then stop — you must immediately read the file and start
@@ -400,14 +392,14 @@ task clean         # Clean artifacts
 ! After hearing what the user wants to build and their feature list, determine
 project complexity per [strategies/interview.md](../../strategies/interview.md#sizing-gate).
 
-- ! Check `PROJECT.md` for `**Process**: Light` or `**Process**: Full` — if declared, use that path
+- ! Check `PROJECT-DEFINITION.vbrief.json` narratives for `Light` or `Full` — if declared, use that path
 - ! If not declared, propose a size and **ask the user to confirm in a dedicated message**
 - ! **Wait for the user's response** before asking any interview questions
 - ⊗ Combine the sizing proposal with the first interview question
 - ⊗ Proceed to interview questions before the user has confirmed the path
 
-**Light** (small/medium): Interview → SPECIFICATION with embedded Requirements.
-**Full** (large/complex): Interview → PRD.md (user approval) → SPECIFICATION with traceability.
+**Light** (small/medium): Interview → `specification.vbrief.json` with slim narratives (Overview + Architecture) → scope vBRIEFs in `vbrief/proposed/`.
+**Full** (large/complex): Interview → rich narratives in `specification.vbrief.json` (user approval) → scope vBRIEFs with traceability.
 
 ### Interview Process (interview strategy)
 
@@ -439,83 +431,58 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ### Output — Light Path
 
-1. ! Write `./vbrief/specification.vbrief.json` with `status: draft`
-2. ! Summarize decisions, ask user to review
-3. ! On approval, update `status` to `approved`
-4. ! Generate `./SPECIFICATION.md` (run `task spec:render` if available, else directly)
-- ! SPECIFICATION.md MUST include an embedded Requirements section (FR-1, NFR-1)
-- ! Each task SHOULD reference which FR/NFR it implements via `(traces: FR-N)`
+1. ! Write `./vbrief/specification.vbrief.json` with `status: draft` and slim narratives:
+   - `Overview`: Brief project summary
+   - `Architecture`: System design description
+2. ! Create scope vBRIEFs in `./vbrief/proposed/` for each identified work item
+   - Each scope vBRIEF follows the `YYYY-MM-DD-descriptive-slug.vbrief.json` filename convention
+   - Each MUST include embedded Requirements (FR-N, NFR-N) in its `narrative`
+   - Each task SHOULD reference which FR/NFR it implements via `narrative.Traces`
+3. ! Summarize decisions, ask user to review the vBRIEF narratives
+4. ! On approval, update `specification.vbrief.json` status to `approved`
 - ⊗ Create a separate PRD.md on the Light path
+- ⊗ Generate an authoritative PRD.md — if needed, users run `task prd:render`
 
-! The vBRIEF file MUST conform to `vbrief/schemas/vbrief-core.schema.json`:
+! The vBRIEF files MUST conform to `vbrief/schemas/vbrief-core.schema.json`:
 
 - ! All `narratives` and `narrative` values MUST be plain strings — never objects or arrays
 - ! Nested children within a PlanItem MUST use `subItems` (not `items`)
 - ⊗ Use `items` inside a PlanItem — only `plan.items` is valid; within items use `subItems`
 
-```json
-{
-  "vBRIEFInfo": { "version": "0.5" },
-  "plan": {
-    "title": "Project Name SPECIFICATION",
-    "status": "draft",
-    "narratives": {
-      "Overview": "Brief project summary as a plain string.",
-      "Architecture": "System design description as a plain string."
-    },
-    "items": [
-      {
-        "id": "phase-1",
-        "title": "Phase 1: Foundation",
-        "status": "pending",
-        "subItems": [
-          {
-            "id": "1.1",
-            "title": "Subphase 1.1: Setup",
-            "status": "pending",
-            "subItems": [
-              {
-                "id": "1.1.1",
-                "title": "Task description",
-                "status": "pending",
-                "narrative": { "Acceptance": "...", "Traces": "FR-1" }
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
 ### Output — Full Path
 
-1. ! Generate `PRD.md` with structured requirements (Problem Statement, Goals, User Stories, FR/NFR, Success Metrics)
-2. ! Ask user to review and approve PRD before proceeding
-3. ! Write `./vbrief/specification.vbrief.json` with `status: draft` (same vBRIEF v0.5 structure as Light Path above)
-4. ! Summarize decisions, ask user to review
-5. ! On approval, update `status` to `approved`
-6. ! Generate `./SPECIFICATION.md` (run `task spec:render` if available, else directly)
-- ! SPECIFICATION.md MUST trace tasks back to PRD requirement IDs (FR-1, NFR-1)
+1. ! Write rich narratives to `./vbrief/specification.vbrief.json` `plan.narratives` with these keys:
+   - `ProblemStatement`: What problem this project solves
+   - `Goals`: High-level project goals
+   - `UserStories`: User stories in standard format
+   - `Requirements`: Structured requirements (FR-N: ..., NFR-N: ...)
+   - `SuccessMetrics`: Measurable success criteria
+   - `Architecture`: System design and technical architecture
+   - `Overview`: Brief project summary
+2. ! Set `status: draft` on the specification
+3. ! Ask user to review and approve the vBRIEF narratives — reviewing the narratives IS the approval step (replaces PRD.md review)
+4. ! On approval, update `status` to `approved`
+5. ! Create scope vBRIEFs in `./vbrief/proposed/` with traceability to requirement IDs from the narratives
+- ! Scope vBRIEFs MUST trace tasks back to requirement IDs (FR-1, NFR-1) from the `Requirements` narrative
+- ⊗ Generate an authoritative PRD.md — if needed, users run `task prd:render`
 
 **Spec Structure (both paths):**
-- ! Overview, Requirements (Light) or link to PRD (Full), Architecture
-- ! Implementation Plan: Phases → Subphases → Tasks
-- ! Explicit dependency mapping between phases
-- ~ Tasks designed for parallel work by multiple agents
-- ! Testing Strategy and Deployment
+- ! Overview, Architecture
+- ! Implementation Plan: scope vBRIEFs in `vbrief/proposed/` with phases and dependencies
+- ! Explicit dependency mapping between scopes (via vBRIEF `edges` or `references`)
+- ~ Scopes designed for parallel work by multiple agents
+- ! Testing Strategy and Deployment captured in narratives
 - ⊗ Write code — specification only
 
-### Handoff to deft-build
+### Handoff to deft-directive-build
 
 - ! Offer to start building: "Your spec is ready. Want me to start building it now?"
-- ~ If platform supports skill invocation, invoke `/deft-build`
+- ~ If platform supports skill invocation, invoke `skills/deft-directive-build/SKILL.md`
 - ⊗ Leave user with a dead end — always offer the next step
 
 ## Warp Auto-Approve Warning
 
-! **Recommended Warp setting**: Before running deft-setup, ensure Warp's AI autonomy is set to **"Always ask"** in **AI -> Profile Settings**. When set to a higher autonomy level (e.g. "Auto-run"), Warp may silently self-answer interview questions without user input, producing garbage USER.md/PROJECT.md with no error or warning. The post-interview confirmation gate (below) is the last line of defense, but prevention is better than detection.
+! **Recommended Warp setting**: Before running deft-directive-setup, ensure Warp's AI autonomy is set to **"Always ask"** in **AI -> Profile Settings**. When set to a higher autonomy level (e.g. "Auto-run"), Warp may silently self-answer interview questions without user input, producing garbage USER.md/PROJECT-DEFINITION.vbrief.json with no error or warning. The post-interview confirmation gate (below) is the last line of defense, but prevention is better than detection.
 
 ## Post-Interview Confirmation Gate
 
@@ -527,15 +494,15 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 4. ! If the user says `no`: re-display the values and ask which ones to correct, then re-confirm before writing
 5. ! If any value appears to be auto-generated filler (e.g. repeated default text, placeholder strings, or values that echo the question prompt), warn the user explicitly: "Some values look like they may have been auto-filled rather than provided by you. Please review carefully."
 
-⊗ Write USER.md, PROJECT.md, SPECIFICATION.md, or any other deft-setup artifact without first displaying captured values and receiving explicit user confirmation.
+⊗ Write USER.md, PROJECT-DEFINITION.vbrief.json, specification.vbrief.json, or any other deft-directive-setup artifact without first displaying captured values and receiving explicit user confirmation.
 ⊗ Treat a broad "proceed" or "continue" as confirmation to write files -- the user must explicitly confirm the displayed values.
 
 ? **Yolo strategy carve-out**: When the user's chosen strategy is `yolo` (auto-pilot), the confirmation gate still applies but the agent (Johnbot) may self-confirm on the user's behalf by displaying the summary and immediately proceeding -- the user has already opted into auto-pilot by selecting yolo. The summary must still be displayed so the user can interrupt if values look wrong.
 
 ## Anti-Patterns
 
-- ! When deft-setup generates or updates USER.md or PROJECT.md, the `deft_version` field MUST be set to the current framework version
-- ⊗ Generate a USER.md or PROJECT.md without including the `deft_version` field
+- ! When deft-directive-setup generates or updates USER.md or PROJECT-DEFINITION.vbrief.json, the `deft_version` field MUST be set to the current framework version
+- ⊗ Generate a USER.md or PROJECT-DEFINITION.vbrief.json without including the `deft_version` field
 - ⊗ Explore codebase before Phase 1 questions
 - ⊗ Read framework files before first question
 - ⊗ Batch multiple questions into one message — ask one at a time, interview style
@@ -545,3 +512,4 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Generate files without confirming content
 - ⊗ Present choices as plain text when structured tools exist
 - ⊗ Resolve paths relative to the skill file, AGENTS.md, or framework directory instead of the user's pwd at skill entry
+- ⊗ Generate an authoritative PRD.md — PRD.md is a read-only export via `task prd:render`, never a source of truth

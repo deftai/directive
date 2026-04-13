@@ -1,13 +1,13 @@
 ---
-name: deft-interview
+name: deft-directive-interview
 description: >
   Deterministic structured Q&A interview loop. Use when any skill needs to
   gather structured input from the user through a series of focused questions
   with numbered options, stated defaults, and a confirmation gate before
-  artifact generation.
+  artifact generation. Interview output targets vBRIEF narratives — not PRD.md.
 ---
 
-# Deft Interview
+# Deft Directive Interview
 
 Deterministic interview loop that any skill can invoke to gather structured user input.
 
@@ -15,8 +15,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## When to Use
 
-- Another skill needs to gather structured input from the user (e.g. deft-setup Phase 1/Phase 2)
-- User says "interview", "ask questions", or "structured interview"
+- Another skill needs to gather structured input from the user (e.g. deft-directive-setup Phase 1/Phase 2)
+- User says "interview loop", "q&a loop", or "run interview loop"
 - A workflow requires a series of focused questions with explicit defaults and confirmation before proceeding
 
 ## Interview Loop
@@ -112,22 +112,60 @@ The answers map format:
 }
 ```
 
-- ! The calling skill defines the expected keys in its invocation of deft-interview
+- ! The calling skill defines the expected keys in its invocation of deft-directive-interview
 - ! The answers map MUST contain a value for every required key defined by the calling skill
 - ! Optional keys may be omitted if the user did not provide input and no default was applicable
 - ~ The calling skill is responsible for validating the answers map against its own schema and requesting re-interview for any missing or invalid fields
 
+## Output Targets
+
+Interview output writes to vBRIEF narratives — never to PRD.md directly.
+
+### Full Path Output
+
+! On the Full path, the interview populates `specification.vbrief.json` `plan.narratives` with rich keys:
+
+- `ProblemStatement`: What problem this project solves
+- `Goals`: High-level project goals
+- `UserStories`: User stories in standard format
+- `Requirements`: Structured requirements (FR-N: functional, NFR-N: non-functional)
+- `SuccessMetrics`: Measurable success criteria
+- `Architecture`: System design and technical architecture
+- `Overview`: Brief project summary
+
+! All narrative values MUST be plain strings — never objects or arrays.
+
+! The human approval gate reviews the vBRIEF draft narratives directly — reviewing the narratives IS the approval step. PRD.md is not generated.
+
+### Light Path Output
+
+! On the Light path, the interview populates slim narratives:
+
+- `Overview`: Brief project summary
+- `Architecture`: System design description
+
+! Scope vBRIEFs are then created in `vbrief/proposed/` for each identified work item.
+
+### PRD.md Export (optional, never authoritative)
+
+PRD.md is no longer generated as part of the interview workflow on either path. If stakeholders require a traditional PRD document:
+
+- ? Run `task prd:render` to export `plan.narratives` from `specification.vbrief.json` to a read-only `PRD.md`
+- ! PRD.md is never authoritative — the vBRIEF `specification.vbrief.json` is the source of truth
+- ⊗ Generate an authoritative PRD.md during the interview process
+- ⊗ Treat PRD.md as a source of truth — it is a generated export artifact
+
 ## Invocation Contract
 
-deft-interview supports two usage modes:
+deft-directive-interview supports two usage modes:
 
 ### Embedded Mode
 
-The calling skill references deft-interview rules inline (e.g. "this phase follows the deterministic interview loop defined in `skills/deft-interview/SKILL.md`") and applies the rules directly within its own question sequence. No formal contract object is needed -- the calling skill embeds the question definitions and field requirements in its own SKILL.md. This is the current approach used by `skills/deft-setup/SKILL.md` Phase 1 and Phase 2.
+The calling skill references deft-directive-interview rules inline (e.g. "this phase follows the deterministic interview loop defined in `skills/deft-directive-interview/SKILL.md`") and applies the rules directly within its own question sequence. No formal contract object is needed -- the calling skill embeds the question definitions and field requirements in its own SKILL.md. This is the current approach used by `skills/deft-directive-setup/SKILL.md` Phase 1 and Phase 2.
 
 ### Delegation Mode
 
-The calling skill explicitly invokes deft-interview as a sub-skill and passes a formal contract object. When using delegation mode, the calling skill MUST provide:
+The calling skill explicitly invokes deft-directive-interview as a sub-skill and passes a formal contract object. When using delegation mode, the calling skill MUST provide:
 
 1. **Required fields**: list of field names that must be captured (the depth gate uses this to determine completeness)
 2. **Question definitions**: for each field, the question text, numbered options (if applicable), and default value
@@ -147,3 +185,5 @@ The calling skill MAY provide:
 - ⊗ Skip the depth gate and generate artifacts with known ambiguity remaining
 - ⊗ Exit the interview without producing a structured answers map for the calling skill
 - ⊗ Combine interview questions with artifact generation in the same message
+- ⊗ Generate an authoritative PRD.md — interview output targets vBRIEF narratives only
+- ⊗ Treat PRD.md as a source of truth — it is a read-only export via `task prd:render`
