@@ -135,6 +135,14 @@ def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
                 f"but {file_path.name} has status='{current_status}'."
             )
 
+    # Idempotent: same-folder move with matching status is a no-op
+    # (e.g. cancel on a file already in cancelled/)
+    if target_folder is not None and target_folder == current_folder:
+        return True, (
+            f"No-op: {file_path.name} is already in {current_folder}/ "
+            f"(status: {current_status})"
+        )
+
     # Update status and timestamp
     plan["status"] = target_status
     plan["updated"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -149,25 +157,24 @@ def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
         dest_dir = vbrief_root / target_folder
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest_path = dest_dir / file_path.name
-        file_path.rename(dest_path)
-        action_label = action.capitalize()
-        if action == "activate":
-            action_label = "Activated"
-        elif action == "promote":
-            action_label = "Promoted"
-        elif action == "complete":
-            action_label = "Completed"
-        elif action == "cancel":
-            action_label = "Cancelled"
-        elif action == "restore":
-            action_label = "Restored"
+        # Path.replace() is portable; Path.rename() raises FileExistsError on Windows
+        file_path.replace(dest_path)
+        _move_labels = {
+            "promote": "Promoted",
+            "activate": "Activated",
+            "complete": "Completed",
+            "cancel": "Cancelled",
+            "restore": "Restored",
+        }
+        action_label = _move_labels.get(action, action.capitalize())
         return True, (
             f"{action_label} {file_path.name}: "
             f"{current_folder}/ -> {target_folder}/ (status: {target_status})"
         )
 
     # File stays in place (block/unblock)
-    action_label = "Blocked" if action == "block" else "Unblocked"
+    _stay_labels = {"block": "Blocked", "unblock": "Unblocked"}
+    action_label = _stay_labels.get(action, action.capitalize())
     return True, (
         f"{action_label} {file_path.name}: "
         f"stays in {current_folder}/ (status: {target_status})"

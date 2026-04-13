@@ -176,13 +176,13 @@ class TestCancel:
             assert dest.exists()
             assert read_vbrief(dest)["plan"]["status"] == "cancelled"
 
-    def test_cancel_already_cancelled_stays_in_place(self, tmp_path):
-        """Cancel from cancelled/ is a valid transition (idempotent-ish)."""
+    def test_cancel_already_cancelled_is_noop(self, tmp_path):
+        """Cancel from cancelled/ is idempotent — no-op, no timestamp mutation."""
         f = make_vbrief(tmp_path, "cancelled", "cancelled")
         ok, msg = run_transition("cancel", f)
         assert ok
-        # File should still be in cancelled/ (target == current)
-        assert f.exists() or (tmp_path / "vbrief" / "cancelled" / f.name).exists()
+        assert "No-op" in msg
+        assert f.exists()
 
 
 # ---------------------------------------------------------------------------
