@@ -1,0 +1,9 @@
+version: '3'
+
+tasks:
+  render:
+    desc: Regenerate PROJECT-DEFINITION.vbrief.json items registry from lifecycle folders
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python scripts/project_render.py "{{.USER_WORKING_DIR}}/vbrief"
