@@ -267,7 +267,7 @@ def validate_project_definition(
                 if uri and uri.startswith("file://"):
                     ref_path = uri.replace("file://", "")
                     full_path = (vbrief_dir / ref_path).resolve()
-                    if not str(full_path).startswith(str(resolved_root)):
+                    if not full_path.is_relative_to(resolved_root):
                         errors.append(
                             f"{filepath}: items[{i}] references "
                             f"'{ref_path}' outside vbrief directory (D3)"
@@ -281,7 +281,7 @@ def validate_project_definition(
                 elif uri and not uri.startswith(("http://", "https://", "#")):
                     # Treat as relative path
                     full_path = (vbrief_dir / uri).resolve()
-                    if not str(full_path).startswith(str(resolved_root)):
+                    if not full_path.is_relative_to(resolved_root):
                         errors.append(
                             f"{filepath}: items[{i}] references "
                             f"'{uri}' outside vbrief directory (D3)"
@@ -381,6 +381,8 @@ def validate_epic_story_links(
 
 def _resolve_ref_path(uri: str, vbrief_dir: Path) -> Path | None:
     """Resolve a reference URI to a filesystem path."""
+    if not isinstance(uri, str):
+        return None
     if uri.startswith("file://"):
         rel = uri.replace("file://", "")
         return (vbrief_dir / rel).resolve()
