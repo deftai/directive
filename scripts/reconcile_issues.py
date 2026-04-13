@@ -130,10 +130,14 @@ def scan_vbrief_dir(vbrief_dir: Path) -> dict[int, list[str]]:
 # ---------------------------------------------------------------------------
 
 
-def fetch_open_issues(repo: str) -> list[dict]:
+ISSUE_FETCH_LIMIT = 200
+
+
+def fetch_open_issues(repo: str) -> list[dict] | None:
     """Fetch open issues from GitHub using gh CLI.
 
     Returns a list of dicts with keys: number, title, labels, url.
+    Returns None on error (gh not found, timeout, API failure, parse error).
     """
     try:
         result = subprocess.run(
@@ -141,7 +145,7 @@ def fetch_open_issues(repo: str) -> list[dict]:
                 "gh", "issue", "list",
                 "--repo", repo,
                 "--state", "open",
-                "--limit", "200",
+                "--limit", str(ISSUE_FETCH_LIMIT),
                 "--json", "number,title,labels,url",
             ],
             capture_output=True,
@@ -150,21 +154,29 @@ def fetch_open_issues(repo: str) -> list[dict]:
         )
     except FileNotFoundError:
         print("Error: gh CLI not found. Install GitHub CLI.", file=sys.stderr)
-        return []
+        return None
     except subprocess.TimeoutExpired:
         print("Error: gh CLI timed out.", file=sys.stderr)
-        return []
+        return None
 
     if result.returncode != 0:
         print(f"Error: gh CLI failed: {result.stderr.strip()}", file=sys.stderr)
-        return []
+        return None
 
     try:
         issues: list[dict] = json.loads(result.stdout)
-        return issues
     except json.JSONDecodeError:
         print("Error: failed to parse gh CLI output.", file=sys.stderr)
-        return []
+        return None
+
+    if len(issues) >= ISSUE_FETCH_LIMIT:
+        print(
+            f"Warning: fetched {len(issues)} issues (limit {ISSUE_FETCH_LIMIT}). "
+            "Report may be incomplete.",
+            file=sys.stderr,
+        )
+
+    return issues
 
 
 # ---------------------------------------------------------------------------
