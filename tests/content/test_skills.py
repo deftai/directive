@@ -12,6 +12,7 @@ Verifies:
 Author: Scott Adams (msadams) — 2026-03-12
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -1458,4 +1459,47 @@ def test_deft_directive_interview_output_targets_section() -> None:
     text = _read_skill(_INTERVIEW_PATH)
     assert "## Output Targets" in text, (
         f"{_INTERVIEW_PATH}: must have Output Targets section (#319)"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 36. Skill rename verification — no bare deft-* directories remain (#321)
+# ---------------------------------------------------------------------------
+
+
+def test_no_bare_deft_skill_directories() -> None:
+    """No skills/ subdirectory should use the old deft-* name (without directive-)."""
+    skills_dir = _REPO_ROOT / "skills"
+    bare_deft = [
+        d.name for d in skills_dir.iterdir()
+        if d.is_dir()
+        and d.name.startswith("deft-")
+        and not d.name.startswith("deft-directive-")
+    ]
+    assert not bare_deft, (
+        f"skills/ contains old-style deft-* directories (should be deft-directive-*): "
+        f"{sorted(bare_deft)}"
+    )
+
+
+def test_agents_md_routing_all_deft_directive_paths() -> None:
+    """All AGENTS.md routing keywords must map to deft-directive-* skill paths.
+
+    Note: intentionally duplicates test_agents_md_routing_uses_directive_prefix
+    in test_vbrief_model.py -- this copy lives in the skill-focused test file
+    for skill rename verification context.
+    """
+    text = _read_skill("AGENTS.md")
+    pattern = re.compile(
+        r"\u2192\s+`(skills/[^`]+)`",
+    )
+    paths = pattern.findall(text)
+    assert paths, "No routing paths found in AGENTS.md Skill Routing section"
+    non_directive = [
+        p for p in paths
+        if "deft-directive-" not in p
+    ]
+    assert not non_directive, (
+        f"AGENTS.md routing paths use old naming (should be deft-directive-*): "
+        f"{non_directive}"
     )
