@@ -2,13 +2,13 @@
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [deft-review-cycle skill](../skills/deft-review-cycle/SKILL.md) | [Greptile docs](https://greptile.com/docs)
+**⚠️ See also**: [deft-directive-review-cycle skill](../skills/deft-directive-review-cycle/SKILL.md) | [Greptile docs](https://greptile.com/docs)
 
 **Scope:** Configuring the Greptile AI code review bot for use with deft projects.
 
 ## Overview
 
-Greptile reviews pull requests with full codebase context. When used with deft, it integrates with the `deft-review-cycle` skill to enable automated review/fix loops.
+Greptile reviews pull requests with full codebase context. When used with deft, it integrates with the `deft-directive-review-cycle` skill to enable automated review/fix loops.
 
 ## Recommended Dashboard Settings (org-wide)
 
@@ -122,7 +122,7 @@ The check run name is `"Greptile Review"` — this must match the context name i
 
 ### Review-cycle loop never exits
 
-1. Check the `deft-review-cycle` skill's Pre-Flight Check section
+1. Check the `deft-directive-review-cycle` skill's Pre-Flight Check section
 2. Verify `triggerOnUpdates` is enabled — without it, Greptile never produces a follow-up review
 3. Verify the confidence score section is enabled in dashboard settings — the exit condition requires confidence >3
 

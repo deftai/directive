@@ -1,13 +1,13 @@
 ---
-name: deft-review-cycle
+name: deft-directive-review-cycle
 description: >
   Greptile bot reviewer response workflow. Use when running a review cycle
-  on a PR — to audit process prerequisites, fetch bot findings, fix all
+  on a PR -- to audit process prerequisites, fetch bot findings, fix all
   issues in a single batch commit, and exit cleanly when no P0 or P1 issues
   remain.
 ---
 
-# Deft Review Cycle
+# Deft Directive Review Cycle
 
 Structured workflow for responding to bot reviewer (Greptile) findings on a PR.
 
@@ -41,15 +41,15 @@ gh api repos/<owner>/<repo>/commits/<sha>/check-runs --jq '.check_runs[] | selec
 
 ! Before touching code, verify ALL prerequisites are satisfied. Fix any gaps first:
 
-1. ! Verify `skills/deft-pre-pr/SKILL.md` was run before PR creation -- the PR branch should have passed at least one full RWLDL cycle. If not, run it now before proceeding.
-2. ! `SPECIFICATION.md` has task coverage for all changes in the PR
+1. ! Verify `skills/deft-directive-pre-pr/SKILL.md` was run before PR creation -- the PR branch should have passed at least one full RWLDL cycle. If not, run it now before proceeding.
+2. ! `PROJECT-DEFINITION.vbrief.json` and `vbrief/` lifecycle folders have scope vBRIEF coverage for all changes in the PR
 3. ! `CHANGELOG.md` has entries under `[Unreleased]` for the PR's changes
 4. ! `task check` passes fully (fmt + lint + typecheck + tests + coverage ≥75%)
 5. ! `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfied in the PR description
 6. ! If the PR touches 3+ files: verify a `/deft:change` proposal exists in `history/changes/` for this branch and was explicitly confirmed by the user (affirmative response, not a broad 'proceed'), or document N/A with reason in the PR checklist
-7. ! Verify the PR is on a feature branch — work MUST NOT have been committed directly to the default branch (master/main)
+7. ! Verify the PR is on a feature branch -- work MUST NOT have been committed directly to the default branch (master/main)
 
-~ **PR scope gate:** If the PR spans 3+ unrelated surfaces (e.g. a skill, a tool doc, and a strategy — with no shared issue or spec task linking them), warn the user that broad PRs increase review churn and Greptile noise. Recommend splitting into focused PRs unless all changes trace to the same spec task or issue bundle.
+~ **PR scope gate:** If the PR spans 3+ unrelated surfaces (e.g. a skill, a tool doc, and a strategy -- with no shared issue or scope vBRIEF linking them), warn the user that broad PRs increase review churn and Greptile noise. Recommend splitting into focused PRs unless all changes trace to the same scope vBRIEF or issue bundle.
 
 ! Phase 1 audit gaps must be resolved before merging — but hold the fixes (do NOT commit or push them independently). Proceed to Phase 2 analysis to gather bot findings, then batch all Phase 1 + Phase 2 fixes into a single commit.
 ⊗ Commit or push Phase 1 audit fixes independently before gathering Phase 2 findings.
@@ -273,5 +273,5 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 - ⊗ Assume Approach 2 (yield-between-polls) produces a self-sustaining polling loop -- yielding ends the agent's turn with no self-wake; swarm agents will silently stop polling
 - ⊗ Skip the second review source (MCP or `gh api` fallback) without probing for MCP capability and documenting the fallback used
 - ⊗ Run a partial test suite instead of `task check` without documenting the pre-existing failure reason and open issue number in the PR body
-- ⊗ Create a PR without running `skills/deft-pre-pr/SKILL.md` first -- the pre-PR quality loop catches issues before they reach the reviewer
+- ⊗ Create a PR without running `skills/deft-directive-pre-pr/SKILL.md` first -- the pre-PR quality loop catches issues before they reach the reviewer
 - ⊗ Activate Approach 3 (blocking `Start-Sleep` loop) without first warning the user that it will lock the conversation pane and receiving confirmation

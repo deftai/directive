@@ -1,18 +1,18 @@
 ---
-name: deft-pre-pr
+name: deft-directive-pre-pr
 description: >
   Iterative pre-PR quality improvement loop. Use before pushing a branch
   for PR creation -- after completing implementation but before task check.
   Cycles through Read-Write-Lint-Diff until a full pass produces zero changes.
 ---
 
-# Deft Pre-PR -- Read, Write, Lint, Diff, Loop
+# Deft Directive Pre-PR -- Read, Write, Lint, Diff, Loop
 
 Structured self-review loop agents run before submitting a PR. Catches inconsistencies, missing enforcement markers, incomplete acceptance criteria, scope creep, and unintended changes before they reach the reviewer.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**See also**: [deft-review-cycle](../deft-review-cycle/SKILL.md) | [deft-build](../deft-build/SKILL.md) | [RWLDL tool](../../tools/RWLDL.md)
+**See also**: [deft-directive-review-cycle](../deft-directive-review-cycle/SKILL.md) | [deft-directive-build](../deft-directive-build/SKILL.md) | [RWLDL tool](../../tools/RWLDL.md)
 
 > **Formerly `deft-rwldl`** -- renamed to clearly communicate the skill's purpose (iterative pre-PR quality loop).
 
@@ -32,7 +32,7 @@ Each iteration proceeds through all five phases in order. Do NOT skip phases or 
 ! Re-read each changed file end-to-end (`git diff master --name-only` to get the list).
 
 - ! Read every changed file in full -- do not skim or skip sections
-- ! Compare each file against its spec task acceptance criteria in `SPECIFICATION.md`
+- ! Compare each file against its scope vBRIEF acceptance criteria in `vbrief/active/`
 - ! When adding a `!` or `⊗` rule that prohibits a specific command, pattern, or behavior, search the same file for any `~`, `≉`, or prose that recommends or permits the same command/pattern -- resolve all contradictions in the same commit before pushing
 - ! When strengthening a rule (e.g. upgrading `~` to `!`), grep for the term in the full file and verify no weaker-strength duplicate remains
 - ~ Note any inconsistencies, missing RFC2119 markers, stale cross-references, or incomplete sections

@@ -375,7 +375,23 @@
       "reason": "Retired todo doc with historical warping references. Intentionally preserved.",
       "xfail": false,
       "exempt": true,
-      "fix_in": "N/A — historical record"
+      "fix_in": "N/A \u2014 historical record"
+    },
+    {
+      "id": "see-also-swarm-review-cycle-link",
+      "check": "test_contracts.see_also_links_resolve",
+      "composite_key": "skills/deft-swarm/SKILL.md::../deft-review-cycle/SKILL.md",
+      "reason": "deft-swarm still references old deft-review-cycle path. Fixed by Story H (#317) when deft-swarm is renamed to deft-directive-swarm.",
+      "xfail": true,
+      "fix_in": "Story H (#317)"
+    },
+    {
+      "id": "roadmap-refresh-review-cycle-stale-ref",
+      "check": "test_skills.test_deft_roadmap_refresh_phase4_review_cycle_handoff",
+      "file": "skills/deft-roadmap-refresh/SKILL.md",
+      "reason": "deft-roadmap-refresh Phase 4 still references old skills/deft-review-cycle/SKILL.md path. Fixed by Story G (#316) when deft-roadmap-refresh is renamed to deft-directive-refinement. Constraint: Story F (#315) cannot modify deft-roadmap-refresh.",
+      "xfail": false,
+      "fix_in": "Story G (#316)"
     }
   ]
 }

@@ -1,23 +1,23 @@
 ---
-name: deft-build
+name: deft-directive-build
 description: >
-  Build a project from a SPECIFICATION.md following Deft framework standards.
-  Use after deft-setup has generated the spec, or when the user has a
-  SPECIFICATION.md ready to implement. Handles scaffolding, implementation,
-  testing, and quality checks phase by phase.
+  Build a project from scope vBRIEFs following Deft Directive framework standards.
+  Use after deft-directive-setup has generated the project definition, or when the
+  user has story vBRIEFs in vbrief/active/ ready to implement. Handles scaffolding,
+  implementation, testing, and quality checks phase by phase.
 ---
 
-# Deft Build
+# Deft Directive Build
 
-Implements a project from its SPECIFICATION.md following deft standards.
+Implements a project from its scope vBRIEFs following Deft Directive standards.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## When to Use
 
-- After `/deft-setup` completes and generates SPECIFICATION.md
+- After `deft-directive-setup` completes and generates `PROJECT-DEFINITION.vbrief.json`
 - User says "build this", "implement the spec", or "start building"
-- Resuming a partially-built project that has a spec
+- Resuming a partially-built project that has story vBRIEFs in `vbrief/active/`
 
 ## Platform Detection
 
@@ -35,37 +35,37 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ! Before proceeding, verify USER.md exists at the platform-appropriate path
 (resolved via Platform Detection above, or `$DEFT_USER_PATH` if set).
 
-- ! If USER.md is not found: inform the user and redirect to `deft-setup`
-  Phase 1 before continuing — do not proceed without user preferences
+- ! If USER.md is not found: inform the user and redirect to `deft-directive-setup`
+  Phase 1 before continuing -- do not proceed without user preferences
 - ! Once USER.md exists, continue with File Reading below
 
 ## File Reading
 
 - ! Read in order, lazy load:
-  1. `./SPECIFICATION.md` — what to build (required)
-  2. `./PROJECT.md` — project config, tech stack, strategy
-  3. USER.md at the platform-appropriate path (see Platform Detection) — Personal section is highest precedence; Defaults are fallback
-  4. `deft/main.md` — framework guidelines
-  5. `deft/coding/coding.md` — coding standards
-  6. `deft/coding/testing.md` — testing requirements
-  7. `deft/coding/toolchain.md` — toolchain validation rules
-  8. `deft/languages/{language}.md` — only for languages this project uses
+  1. `./vbrief/active/` -- scope vBRIEFs for work items to build (required)
+  2. `./vbrief/PROJECT-DEFINITION.vbrief.json` -- project identity, tech stack, architecture
+  3. USER.md at the platform-appropriate path (see Platform Detection) -- Personal section is highest precedence; Defaults are fallback
+  4. `deft/main.md` -- framework guidelines
+  5. `deft/coding/coding.md` -- coding standards
+  6. `deft/coding/testing.md` -- testing requirements
+  7. `deft/coding/toolchain.md` -- toolchain validation rules
+  8. `deft/languages/{language}.md` -- only for languages this project uses
 - ⊗ Read all language/interface/tool files upfront
 
 ## Rule Precedence
 
 ```
-USER.md Personal  ← HIGHEST (name, custom rules — always wins)
-PROJECT.md        ← Project-specific (strategy, coverage, languages, tech stack)
-USER.md Defaults   ← Fallback defaults (used when PROJECT.md doesn't specify)
-{language}.md      ← Language standards
-coding.md          ← General coding
-main.md            ← Framework defaults
-SPECIFICATION.md   ← LOWEST
+USER.md Personal                  <- HIGHEST (name, custom rules -- always wins)
+PROJECT-DEFINITION.vbrief.json   <- Project-specific (tech stack, architecture, config)
+USER.md Defaults                  <- Fallback defaults (used when PROJECT-DEFINITION doesn't specify)
+{language}.md                     <- Language standards
+coding.md                         <- General coding
+main.md                           <- Framework defaults
+Scope vBRIEFs                     <- LOWEST
 ```
 
 - ! USER.md Personal section always wins over any other file
-- ! For project-scoped settings, PROJECT.md overrides USER.md Defaults
+- ! For project-scoped settings, PROJECT-DEFINITION.vbrief.json overrides USER.md Defaults
 
 ## Change Lifecycle Gate
 
@@ -79,13 +79,13 @@ SPECIFICATION.md   ← LOWEST
 
 ## Build Process
 
-### Step 1: Understand the Spec
+### Step 1: Understand the Scope
 
-- ! Read SPECIFICATION.md
-- ! Identify phases, dependencies, starting point
+- ! Read story vBRIEFs from `vbrief/active/` and `PROJECT-DEFINITION.vbrief.json`
+- ! Identify phases, dependencies, starting point from scope vBRIEF acceptance criteria
 - ! Present brief summary to user:
 
-> "Here's what I see: Phase 1: {name} ({N} tasks), Phase 2: {name} (depends on Phase 1). I'll start with Phase 1. Ready?"
+> "Here's what I see: {N} story vBRIEFs in active/. I'll start with {name}. Ready?"
 
 ### Step 2: Verify Toolchain
 
@@ -112,7 +112,7 @@ After EVERY phase:
 
 ```bash
 task check          # Format, lint, type check, test, coverage
-task test:coverage  # ≥85% or PROJECT.md override
+task test:coverage  # >=85% or PROJECT-DEFINITION.vbrief.json override
 ```
 
 - ! Phase is NOT done until `task check` passes
@@ -137,7 +137,7 @@ See `deft/coding/coding.md` and `deft/coding/testing.md` for full rules.
 ! Before every commit, re-read ALL modified files and explicitly check for:
 
 1. ! **Encoding errors** -- em-dashes corrupted to replacement characters, BOM artifacts, mojibake from round-trip read/write
-2. ! **Unintended duplication** -- accidental double entries in CHANGELOG.md, SPECIFICATION.md, or structured data files
+2. ! **Unintended duplication** -- accidental double entries in CHANGELOG.md, scope vBRIEF files, or structured data files
 3. ! **Structural issues** -- malformed CHANGELOG entries, broken table rows, mismatched index entries, invalid JSON/YAML
 4. ! **Semantic accuracy** -- verify that counts, claims, and summaries in CHANGELOG entries and ROADMAP changelog lines match the actual data in the commit (e.g. "triaged 4 issues" must match the number actually triaged, issue numbers cited must match the issues actually added)
 5. ! **Semantic contradictions** -- when adding a `!` or `⊗` rule that prohibits a specific command, pattern, or behavior, search the same file for any `~`, `≉`, or prose that recommends or permits the same command/pattern -- resolve all contradictions in the same commit before pushing
@@ -163,8 +163,8 @@ feat(phase-2): add REST API endpoints with integration tests
 - ! Tests fail → fix them; ⊗ skip or weaken assertions
 - ! Coverage drops → write more tests; ⊗ exclude files
 - ! Lint/type errors → fix them; ≉ add ignore comments without documented reason
-- ! Spec ambiguous → ask user; ⊗ guess
-- ! Spec needs changes → propose, get approval, update SPECIFICATION.md first
+- ! Scope vBRIEF ambiguous -> ask user; ⊗ guess
+- ! Scope needs changes -> propose, get approval, update the scope vBRIEF first
 
 ## Completion
 
@@ -176,14 +176,13 @@ feat(phase-2): add REST API endpoints with integration tests
 
 - ⊗ Skip tests or write them after implementation
 - ⊗ Ignore `task check` failures
-- ⊗ Implement things not in spec without asking
+- ⊗ Implement things not in scope vBRIEF without asking
 - ⊗ Read every deft file upfront
 - ⊗ Move to next phase before current passes checks
 - ⊗ Make commits without running `task check`
-- ⊗ Proceed without USER.md — always run the USER.md Gate first
-- ⊗ Proceed with implementation when the build or test toolchain is unavailable — always run the Toolchain Gate (Step 2) first
-- ⊗ Proceed to next task or phase without tests passing — testing is a hard gate, not a cleanup step
-- ⊗ Skip the Change Lifecycle Gate because the user said "proceed" — broad approval does not satisfy the confirmation gate
-- ⊗ Write `SPECIFICATION.md` directly — always create `specification.vbrief.json` first and render from it
-- ⊗ Commit or push directly to the default branch -- always create a feature branch first. Exception: user explicitly instructs a direct commit, or `PROJECT.md` contains `Allow direct commits to master: true` under `## Branching`
+- ⊗ Proceed without USER.md -- always run the USER.md Gate first
+- ⊗ Proceed with implementation when the build or test toolchain is unavailable -- always run the Toolchain Gate (Step 2) first
+- ⊗ Proceed to next task or phase without tests passing -- testing is a hard gate, not a cleanup step
+- ⊗ Skip the Change Lifecycle Gate because the user said "proceed" -- broad approval does not satisfy the confirmation gate
+- ⊗ Commit or push directly to the default branch -- always create a feature branch first. Exception: user explicitly instructs a direct commit, or `PROJECT-DEFINITION.vbrief.json` narratives contain `Allow direct commits to master: true`
 - ⊗ Add a prohibition (`!` or `⊗`) without scanning the same file for conflicting softer-strength rules (`~`, `≉`) that reference the same term

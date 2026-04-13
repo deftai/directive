@@ -28,7 +28,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 SKILL_PATHS = [
     "skills/deft-setup/SKILL.md",
-    "skills/deft-build/SKILL.md",
+    "skills/deft-directive-build/SKILL.md",
 ]
 
 RFC2119_LEGEND = "!=MUST, ~=SHOULD"
@@ -122,22 +122,22 @@ def test_skill_platform_detection_env_override(rel_path: str) -> None:
 # 5. USER.md Gate present in deft-build
 # ---------------------------------------------------------------------------
 
-def test_deft_build_user_md_gate() -> None:
-    """deft-build must contain a USER.md Gate section."""
-    rel_path = "skills/deft-build/SKILL.md"
+def test_deft_directive_build_user_md_gate() -> None:
+    """deft-directive-build must contain a USER.md Gate section."""
+    rel_path = "skills/deft-directive-build/SKILL.md"
     text = _read_skill(rel_path)
     assert USER_MD_GATE_HEADING in text, (
-        f"{rel_path}: missing '{USER_MD_GATE_HEADING}' section — "
-        "deft-build must redirect to deft-setup if USER.md is not found"
+        f"{rel_path}: missing '{USER_MD_GATE_HEADING}' section -- "
+        "deft-directive-build must redirect to deft-directive-setup if USER.md is not found"
     )
 
 
-def test_deft_build_user_md_gate_redirects_to_deft_setup() -> None:
-    """deft-build USER.md Gate must reference deft-setup as the redirect target."""
-    rel_path = "skills/deft-build/SKILL.md"
+def test_deft_directive_build_user_md_gate_redirects_to_deft_setup() -> None:
+    """deft-directive-build USER.md Gate must reference deft-directive-setup."""
+    rel_path = "skills/deft-directive-build/SKILL.md"
     text = _read_skill(rel_path)
-    assert "deft-setup" in text, (
-        f"{rel_path}: USER.md Gate must reference deft-setup as the "
+    assert "deft-directive-setup" in text, (
+        f"{rel_path}: USER.md Gate must reference deft-directive-setup as the "
         "redirect target when USER.md is not found"
     )
 
@@ -262,21 +262,21 @@ def test_phase2_track1_missing_standards_warning() -> None:
 # 11. task check and task test:coverage referenced in deft-build
 # ---------------------------------------------------------------------------
 
-def test_deft_build_references_task_check() -> None:
-    """deft-build must reference 'task check' as a quality gate."""
-    rel_path = "skills/deft-build/SKILL.md"
+def test_deft_directive_build_references_task_check() -> None:
+    """deft-directive-build must reference 'task check' as a quality gate."""
+    rel_path = "skills/deft-directive-build/SKILL.md"
     text = _read_skill(rel_path)
     assert "task check" in text, (
-        f"{rel_path}: must reference 'task check' — Taskfile is a hard dependency"
+        f"{rel_path}: must reference 'task check' -- Taskfile is a hard dependency"
     )
 
 
-def test_deft_build_references_task_test_coverage() -> None:
-    """deft-build must reference 'task test:coverage'."""
-    rel_path = "skills/deft-build/SKILL.md"
+def test_deft_directive_build_references_task_test_coverage() -> None:
+    """deft-directive-build must reference 'task test:coverage'."""
+    rel_path = "skills/deft-directive-build/SKILL.md"
     text = _read_skill(rel_path)
     assert "task test:coverage" in text, (
-        f"{rel_path}: must reference 'task test:coverage' — Taskfile is a hard dependency"
+        f"{rel_path}: must reference 'task test:coverage' -- Taskfile is a hard dependency"
     )
 
 
@@ -541,7 +541,7 @@ def test_deft_sync_pointer_exists() -> None:
         f"Thin pointer missing: {_SYNC_POINTER_PATH}"
     )
 
-_REVIEW_CYCLE_PATH = "skills/deft-review-cycle/SKILL.md"
+_REVIEW_CYCLE_PATH = "skills/deft-directive-review-cycle/SKILL.md"
 
 
 def test_deft_review_cycle_mcp_fallback() -> None:
@@ -742,11 +742,11 @@ def test_deft_roadmap_refresh_precommit_file_review() -> None:
     )
 
 
-def test_deft_build_precommit_file_review() -> None:
-    """deft-build must include mandatory pre-commit file review step."""
-    text = _read_skill("skills/deft-build/SKILL.md")
+def test_deft_directive_build_precommit_file_review() -> None:
+    """deft-directive-build must include mandatory pre-commit file review step."""
+    text = _read_skill("skills/deft-directive-build/SKILL.md")
     assert "encoding errors" in text.lower() and "unintended duplication" in text.lower(), (
-        "skills/deft-build/SKILL.md: missing pre-commit file review step (#239, t1.11.4)"
+        "skills/deft-directive-build/SKILL.md: missing pre-commit file review step (#239, t1.11.4)"
     )
 
 
@@ -804,30 +804,39 @@ def test_deft_review_cycle_unchecked_p1_antipattern() -> None:
 # 27. Semantic contradiction check in deft-build and deft-pre-pr (#251, t1.12.3)
 # ---------------------------------------------------------------------------
 
-_PRE_PR_PATH = "skills/deft-pre-pr/SKILL.md"
+_PRE_PR_PATH = "skills/deft-directive-pre-pr/SKILL.md"
 
 
-def test_deft_build_semantic_contradiction_rule() -> None:
-    """deft-build pre-commit checklist must require contradiction scan for !/\u2297 rules."""
-    text = _read_skill("skills/deft-build/SKILL.md")
+def test_deft_directive_build_semantic_contradiction_rule() -> None:
+    """deft-directive-build must require contradiction scan for !/\u2297 rules."""
+    text = _read_skill("skills/deft-directive-build/SKILL.md")
     assert "semantic contradictions" in text.lower(), (
-        "skills/deft-build/SKILL.md: missing semantic contradiction check rule (#251, t1.12.3)"
+        "skills/deft-directive-build/SKILL.md: "
+        "missing semantic contradiction check rule (#251, t1.12.3)"
     )
 
 
-def test_deft_build_strength_duplicate_rule() -> None:
-    """deft-build pre-commit checklist must require strength-duplicate check."""
-    text = _read_skill("skills/deft-build/SKILL.md")
-    assert "strength duplicates" in text.lower() and "weaker-strength duplicate" in text.lower(), (
-        "skills/deft-build/SKILL.md: missing strength-duplicate check rule (#251, t1.12.3)"
+def test_deft_directive_build_strength_duplicate_rule() -> None:
+    """deft-directive-build must require strength-duplicate check."""
+    text = _read_skill("skills/deft-directive-build/SKILL.md")
+    assert (
+        "strength duplicates" in text.lower()
+        and "weaker-strength duplicate" in text.lower()
+    ), (
+        "skills/deft-directive-build/SKILL.md: "
+        "missing strength-duplicate check (#251, t1.12.3)"
     )
 
 
-def test_deft_build_contradiction_antipattern() -> None:
-    """deft-build anti-patterns must prohibit adding prohibition without scanning for conflicts."""
-    text = _read_skill("skills/deft-build/SKILL.md")
-    assert "prohibition" in text.lower() and "softer-strength" in text.lower(), (
-        "skills/deft-build/SKILL.md: missing contradiction anti-pattern (#251, t1.12.3)"
+def test_deft_directive_build_contradiction_antipattern() -> None:
+    """deft-directive-build must prohibit adding prohibition without scanning."""
+    text = _read_skill("skills/deft-directive-build/SKILL.md")
+    assert (
+        "prohibition" in text.lower()
+        and "softer-strength" in text.lower()
+    ), (
+        "skills/deft-directive-build/SKILL.md: "
+        "missing contradiction anti-pattern (#251, t1.12.3)"
     )
 
 
