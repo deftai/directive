@@ -66,13 +66,12 @@ gh pr view <number> --comments
 
 ! Use `do_not_summarize_output: true` — summarizers silently drop the "Comments Outside Diff" section from large bot comments.
 
-~ **Oversized output fallback (Windows/PowerShell):** If `do_not_summarize_output: true` produces output too large to process, extract the relevant section with:
+~ **Oversized output fallback:** If `do_not_summarize_output: true` produces output too large to process, extract the relevant section with:
 
-```
-gh pr view <number> --comments | Select-String "Outside Diff" -Context 50
-```
+- **PowerShell (Windows):** `gh pr view <number> --comments | Select-String "Outside Diff" -Context 50`
+- **Unix/macOS:** `gh pr view <number> --comments | grep -A 50 "Outside Diff"`
 
-This extracts the "Comments Outside Diff" section with 50 lines of surrounding context, avoiding the need to process the full output.
+Both commands extract the "Comments Outside Diff" section with surrounding context, avoiding the need to process the full output.
 
 ! **MCP capability probe** (mirrors deft-swarm Phase 3 pattern): Before attempting MCP `get_review_comments`, probe whether MCP GitHub tools are available in the current session. Detection: attempt a lightweight MCP call (e.g. list available tools or a no-op query) -- if it succeeds, MCP is available; if it errors or the tool is not in the available set, MCP is unavailable.
 
@@ -155,7 +154,7 @@ This extracts the "Comments Outside Diff" section with 50 lines of surrounding c
 
 1. ! Use `run_shell_command` (wait mode) to run `gh pr view <number> --comments` and `gh pr checks <number>`
 2. ! After each check, yield control (end all tool calls, do not hold a shell open) -- the agent runtime will re-invoke you after ~60 seconds or on the next system/user interaction, whichever comes first
-3. ! Use adaptive cadence: ~20-30 seconds for the first poll after push, ~60 seconds for the second, ~90 seconds thereafter. Greptile reviews typically take 3-7 minutes; front-loading the first check catches fast reviews
+3. ! Target adaptive cadence where the runtime permits: ~20-30 seconds for the first poll, ~60 seconds for the second, ~90 seconds thereafter. Note: in pure yield mode the re-invocation interval is runtime-controlled (~60s typical), so the 20-30s first check is achievable only if the runtime or a user nudge triggers sooner. The full 20-30s/60s/90s cadence is achievable in Approach 1 (sub-agent sleep) and Approach 3 (blocking sleep)
 4. ! No blocking shell pane lock -- the conversation remains interactive between checks
 5. ~ Approach 2 requires a periodic re-invocation trigger (timer, scheduler, or user nudge) -- if the runtime lacks an auto-trigger, each poll cycle may require a user interaction to resume; this is a known tradeoff vs. Approach 1's fully autonomous sub-agent
 6. ! When the exit condition is met, proceed to Step 5
