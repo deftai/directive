@@ -1,0 +1,383 @@
+#!/usr/bin/env python3
+"""
+reconcile_issues.py -- Reconcile GitHub issues against vBRIEF references.
+
+Usage:
+    uv run python scripts/reconcile_issues.py [options]
+
+Options:
+    --vbrief-dir DIR       Path to vbrief/ directory
+    --repo OWNER/REPO      GitHub repo
+    --format json|markdown Output format
+
+Reads all vBRIEF files in the lifecycle folders (proposed/, pending/, active/,
+completed/, cancelled/) and extracts github-issue references from the
+``references`` arrays. Fetches open GitHub issues from the repo using ``gh api``.
+Produces a structured report with three sections:
+
+    (a) Open issues with matching vBRIEF provenance (linked)
+    (b) Open issues with NO matching vBRIEF (unlinked)
+    (c) vBRIEFs with NO matching open issue (potentially resolved)
+
+Exit codes:
+    0 -- report generated successfully
+    1 -- error (missing dependencies, API failure, etc.)
+    2 -- usage error
+
+Story #322, RFC #309.
+"""
+
+import json
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
+
+ISSUE_URL_PATTERN = re.compile(
+    r"https://github\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+)/issues/(?P<number>\d+)"
+)
+ISSUE_ID_PATTERN = re.compile(r"^#(?P<number>\d+)$")
+
+
+# ---------------------------------------------------------------------------
+# vBRIEF scanning
+# ---------------------------------------------------------------------------
+
+
+def extract_references_from_vbrief(data: dict) -> list[dict]:
+    """Extract all references from a vBRIEF data structure.
+
+    Walks plan.references and each item's references recursively.
+    """
+    refs: list[dict] = []
+    plan = data.get("plan", {})
+
+    # Top-level plan references
+    for ref in plan.get("references", []):
+        if isinstance(ref, dict):
+            refs.append(ref)
+
+    # Item-level references (and nested subItems)
+    def _walk_items(items: list) -> None:
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            for ref in item.get("references", []):
+                if isinstance(ref, dict):
+                    refs.append(ref)
+            _walk_items(item.get("subItems", []))
+            _walk_items(item.get("items", []))
+
+    _walk_items(plan.get("items", []))
+    return refs
+
+
+def parse_issue_number(ref: dict) -> int | None:
+    """Extract a GitHub issue number from a vBRIEF reference dict.
+
+    Supports both ``url`` (full GitHub URL) and ``id`` (#NNN) fields.
+    """
+    url = ref.get("url", "")
+    m = ISSUE_URL_PATTERN.search(url)
+    if m:
+        return int(m.group("number"))
+
+    ref_id = ref.get("id", "")
+    m = ISSUE_ID_PATTERN.match(ref_id)
+    if m:
+        return int(m.group("number"))
+    return None
+
+
+def scan_vbrief_dir(vbrief_dir: Path) -> dict[int, list[str]]:
+    """Scan all lifecycle folders for vBRIEF files and extract issue references.
+
+    Returns:
+        Mapping of issue_number -> list of vBRIEF file paths (relative to vbrief_dir).
+    """
+    issue_to_vbriefs: dict[int, list[str]] = {}
+
+    for folder in LIFECYCLE_FOLDERS:
+        folder_path = vbrief_dir / folder
+        if not folder_path.is_dir():
+            continue
+        for vbrief_file in sorted(folder_path.glob("*.vbrief.json")):
+            try:
+                data = json.loads(vbrief_file.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                continue
+
+            refs = extract_references_from_vbrief(data)
+            rel_path = f"{folder}/{vbrief_file.name}"
+            for ref in refs:
+                if ref.get("type") != "github-issue":
+                    continue
+                num = parse_issue_number(ref)
+                if num is not None:
+                    issue_to_vbriefs.setdefault(num, []).append(rel_path)
+
+    return issue_to_vbriefs
+
+
+# ---------------------------------------------------------------------------
+# GitHub issue fetching
+# ---------------------------------------------------------------------------
+
+
+def fetch_open_issues(repo: str) -> list[dict]:
+    """Fetch open issues from GitHub using gh CLI.
+
+    Returns a list of dicts with keys: number, title, labels, url.
+    """
+    try:
+        result = subprocess.run(
+            [
+                "gh", "issue", "list",
+                "--repo", repo,
+                "--state", "open",
+                "--limit", "200",
+                "--json", "number,title,labels,url",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except FileNotFoundError:
+        print("Error: gh CLI not found. Install GitHub CLI.", file=sys.stderr)
+        return []
+    except subprocess.TimeoutExpired:
+        print("Error: gh CLI timed out.", file=sys.stderr)
+        return []
+
+    if result.returncode != 0:
+        print(f"Error: gh CLI failed: {result.stderr.strip()}", file=sys.stderr)
+        return []
+
+    try:
+        issues: list[dict] = json.loads(result.stdout)
+        return issues
+    except json.JSONDecodeError:
+        print("Error: failed to parse gh CLI output.", file=sys.stderr)
+        return []
+
+
+# ---------------------------------------------------------------------------
+# Reconciliation
+# ---------------------------------------------------------------------------
+
+
+def reconcile(
+    issue_to_vbriefs: dict[int, list[str]],
+    open_issues: list[dict],
+) -> dict:
+    """Produce a reconciliation report.
+
+    Returns a dict with three sections:
+        linked: open issues with matching vBRIEF provenance
+        unlinked: open issues with no matching vBRIEF
+        no_open_issue: vBRIEF references with no matching open issue
+    """
+    open_issue_numbers = {i["number"] for i in open_issues}
+
+    linked = []
+    unlinked = []
+    no_open_issue = []
+
+    # Classify open issues
+    for issue in sorted(open_issues, key=lambda i: i["number"]):
+        num = issue["number"]
+        if num in issue_to_vbriefs:
+            linked.append({
+                "issue_number": num,
+                "title": issue.get("title", ""),
+                "url": issue.get("url", ""),
+                "vbrief_files": issue_to_vbriefs[num],
+            })
+        else:
+            unlinked.append({
+                "issue_number": num,
+                "title": issue.get("title", ""),
+                "url": issue.get("url", ""),
+            })
+
+    # vBRIEF references with no open issue
+    for num, vbrief_files in sorted(issue_to_vbriefs.items()):
+        if num not in open_issue_numbers:
+            no_open_issue.append({
+                "issue_number": num,
+                "vbrief_files": vbrief_files,
+                "note": "Issue is closed or does not exist",
+            })
+
+    return {
+        "linked": linked,
+        "unlinked": unlinked,
+        "no_open_issue": no_open_issue,
+        "summary": {
+            "total_open_issues": len(open_issues),
+            "linked_count": len(linked),
+            "unlinked_count": len(unlinked),
+            "vbriefs_no_open_issue_count": len(no_open_issue),
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Output formatting
+# ---------------------------------------------------------------------------
+
+
+def format_json(report: dict) -> str:
+    """Format report as JSON."""
+    return json.dumps(report, indent=2, ensure_ascii=False)
+
+
+def format_markdown(report: dict) -> str:
+    """Format report as Markdown."""
+    lines: list[str] = []
+    summary = report["summary"]
+
+    lines.append("# Issue Reconciliation Report")
+    lines.append("")
+    lines.append(f"- **Open issues**: {summary['total_open_issues']}")
+    lines.append(f"- **Linked** (vBRIEF provenance): {summary['linked_count']}")
+    lines.append(f"- **Unlinked** (no vBRIEF): {summary['unlinked_count']}")
+    lines.append(
+        f"- **vBRIEFs without open issue**: {summary['vbriefs_no_open_issue_count']}"
+    )
+    lines.append("")
+
+    # Section A: Linked
+    lines.append("## (a) Open issues with matching vBRIEF provenance")
+    lines.append("")
+    if report["linked"]:
+        for entry in report["linked"]:
+            files = ", ".join(f"`{f}`" for f in entry["vbrief_files"])
+            lines.append(f"- #{entry['issue_number']} {entry['title']} -- {files}")
+    else:
+        lines.append("None.")
+    lines.append("")
+
+    # Section B: Unlinked
+    lines.append("## (b) Open issues with NO matching vBRIEF (unlinked)")
+    lines.append("")
+    if report["unlinked"]:
+        for entry in report["unlinked"]:
+            lines.append(f"- #{entry['issue_number']} {entry['title']}")
+    else:
+        lines.append("None.")
+    lines.append("")
+
+    # Section C: No open issue
+    lines.append("## (c) vBRIEFs with NO matching open issue (potentially resolved)")
+    lines.append("")
+    if report["no_open_issue"]:
+        for entry in report["no_open_issue"]:
+            files = ", ".join(f"`{f}`" for f in entry["vbrief_files"])
+            lines.append(
+                f"- #{entry['issue_number']} -- {files} ({entry['note']})"
+            )
+    else:
+        lines.append("None.")
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# CLI entry point
+# ---------------------------------------------------------------------------
+
+
+def main() -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Reconcile GitHub issues against vBRIEF references."
+    )
+    parser.add_argument(
+        "--vbrief-dir",
+        default="./vbrief",
+        help="Path to vbrief/ directory (default: ./vbrief)",
+    )
+    parser.add_argument(
+        "--repo",
+        default=None,
+        help="GitHub repo in OWNER/REPO format (default: auto-detect from git remote)",
+    )
+    parser.add_argument(
+        "--format",
+        choices=["json", "markdown"],
+        default="markdown",
+        help="Output format (default: markdown)",
+    )
+
+    args = parser.parse_args()
+    vbrief_dir = Path(args.vbrief_dir).resolve()
+
+    if not vbrief_dir.is_dir():
+        print(f"Error: vbrief directory not found: {vbrief_dir}", file=sys.stderr)
+        return 1
+
+    # Auto-detect repo from git remote if not specified
+    repo = args.repo
+    if repo is None:
+        repo = detect_repo()
+        if repo is None:
+            print(
+                "Error: could not detect repo. Use --repo OWNER/REPO.",
+                file=sys.stderr,
+            )
+            return 1
+
+    # Scan vBRIEFs
+    issue_to_vbriefs = scan_vbrief_dir(vbrief_dir)
+
+    # Fetch open issues
+    open_issues = fetch_open_issues(repo)
+    if open_issues is None:
+        return 1
+
+    # Reconcile
+    report = reconcile(issue_to_vbriefs, open_issues)
+
+    # Output
+    if args.format == "json":
+        print(format_json(report))
+    else:
+        print(format_markdown(report))
+
+    return 0
+
+
+def detect_repo() -> str | None:
+    """Auto-detect OWNER/REPO from git remote origin."""
+    try:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+
+    if result.returncode != 0:
+        return None
+
+    url = result.stdout.strip()
+    # Handle SSH: git@github.com:owner/repo.git
+    m = re.search(r"github\.com[:/]([^/]+)/([^/.]+)", url)
+    if m:
+        return f"{m.group(1)}/{m.group(2)}"
+    return None
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

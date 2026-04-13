@@ -47,6 +47,9 @@ includes:
   prd:
     taskfile: ./tasks/prd.yml
     optional: true
+  reconcile:
+    taskfile: ./tasks/reconcile.yml
+    optional: true
 
 tasks:
   default:

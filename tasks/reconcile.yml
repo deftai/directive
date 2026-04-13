@@ -1,0 +1,9 @@
+version: '3'
+
+tasks:
+  issues:
+    desc: "Reconcile GitHub issues against vBRIEF references -- report linked, unlinked, and resolved"
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python scripts/reconcile_issues.py --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" {{.CLI_ARGS}}
