@@ -1,0 +1,37 @@
+version: '3'
+
+tasks:
+  promote:
+    desc: "Promote a vBRIEF scope: proposed/ -> pending/ (status: pending)"
+    cmds:
+      - uv run python scripts/scope_lifecycle.py promote "{{.CLI_ARGS}}"
+
+  activate:
+    desc: "Activate a vBRIEF scope: pending/ -> active/ (status: running)"
+    cmds:
+      - uv run python scripts/scope_lifecycle.py activate "{{.CLI_ARGS}}"
+
+  complete:
+    desc: "Complete a vBRIEF scope: active/ -> completed/ (status: completed)"
+    cmds:
+      - uv run python scripts/scope_lifecycle.py complete "{{.CLI_ARGS}}"
+
+  cancel:
+    desc: "Cancel a vBRIEF scope: any folder -> cancelled/ (status: cancelled)"
+    cmds:
+      - uv run python scripts/scope_lifecycle.py cancel "{{.CLI_ARGS}}"
+
+  restore:
+    desc: "Restore a cancelled vBRIEF scope: cancelled/ -> proposed/ (status: proposed)"
+    cmds:
+      - uv run python scripts/scope_lifecycle.py restore "{{.CLI_ARGS}}"
+
+  block:
+    desc: "Block a vBRIEF scope: stays in active/ (status: blocked)"
+    cmds:
+      - uv run python scripts/scope_lifecycle.py block "{{.CLI_ARGS}}"
+
+  unblock:
+    desc: "Unblock a vBRIEF scope: stays in active/ (status: running)"
+    cmds:
+      - uv run python scripts/scope_lifecycle.py unblock "{{.CLI_ARGS}}"

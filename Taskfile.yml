@@ -29,6 +29,9 @@ includes:
   commit:
     taskfile: ./tasks/commit.yml
     optional: true
+  scope:
+    taskfile: ./tasks/scope.yml
+    optional: true
 
 tasks:
   default:
