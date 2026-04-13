@@ -33,6 +33,8 @@ Check what exists before doing anything else:
 
 When all config exists: read the guidelines, your USER.md preferences, and PROJECT-DEFINITION.vbrief.json, then continue with your task.
 
+~ Run deft/skills/deft-directive-sync/SKILL.md to pull latest framework updates and validate project files.
+
 ## Commands
 
 - /deft:change <name>        — Propose a scoped change
@@ -70,10 +72,10 @@ Read and follow: deft/skills/deft-directive-setup/SKILL.md
 	agentsSkillDeftDirectiveBuild = `---
 name: deft-directive-build
 description: >-
-  Build a project from a SPECIFICATION.md following Deft framework standards.
-  Use after deft-directive-setup has generated the spec, or when the user has a
-  SPECIFICATION.md ready to implement. Handles scaffolding, implementation,
-  testing, and quality checks phase by phase.
+  Build a project from scope vBRIEFs following Deft framework standards.
+  Use after deft-directive-setup has generated the project definition, or when
+  the user has scope vBRIEFs ready to implement. Handles scaffolding,
+  implementation, testing, and quality checks phase by phase.
 ---
 
 Read and follow: deft/skills/deft-directive-build/SKILL.md
@@ -365,6 +367,6 @@ func PrintNextSteps(w *Wizard, result *WizardResult, configDir string, skillsCre
 	w.printf("  1. Open your AI coding assistant in %s%c\n", result.ProjectDir, os.PathSeparator)
 	w.printf("  2. Deft skill auto-discovery is partially implemented — if your agent doesn't\n")
 	w.printf("     start setup automatically, tell it: \"Use AGENTS.md\"\n")
-	w.printf("  3. On first session, the agent will guide you through creating USER.md and PROJECT.md\n")
+	w.printf("  3. On first session, the agent will guide you through creating USER.md and PROJECT-DEFINITION.vbrief.json\n")
 	w.printf("\n")
 }

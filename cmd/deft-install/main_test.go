@@ -775,7 +775,7 @@ func TestPrintNextSteps(t *testing.T) {
 		"AGENTS.md",
 		"User config",
 		"Use AGENTS.md",
-		"USER.md and PROJECT.md",
+		"USER.md and PROJECT-DEFINITION.vbrief.json",
 		"created",
 	} {
 		if !strings.Contains(out, want) {
