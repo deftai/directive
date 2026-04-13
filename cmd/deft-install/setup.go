@@ -24,17 +24,14 @@ Deft is installed in deft/. Full guidelines: deft/main.md
 Check what exists before doing anything else:
 
 **USER.md missing** (~/.config/deft/USER.md or %APPDATA%\deft\USER.md):
-→ Read deft/skills/deft-setup/SKILL.md and start Phase 1 (user preferences)
+→ Read deft/skills/deft-directive-setup/SKILL.md and start Phase 1 (user preferences)
 
-**USER.md exists, PROJECT.md missing** (project root):
-→ Read deft/skills/deft-setup/SKILL.md and start Phase 2 (project configuration)
-
-**USER.md and PROJECT.md exist, SPECIFICATION.md missing** (project root):
-→ Read deft/skills/deft-setup/SKILL.md and start Phase 3 (specification interview)
+**USER.md exists, PROJECT-DEFINITION.vbrief.json missing** (./vbrief/):
+→ Read deft/skills/deft-directive-setup/SKILL.md and start Phase 2 (project definition)
 
 ## Returning Sessions
 
-When all config exists: read the guidelines, your USER.md preferences, and PROJECT.md, then continue with your task.
+When all config exists: read the guidelines, your USER.md preferences, and PROJECT-DEFINITION.vbrief.json, then continue with your task.
 
 ## Commands
 
@@ -58,55 +55,55 @@ description: Apply deft framework standards for AI-assisted development. Use whe
 
 Read and follow: deft/SKILL.md
 `
-	// agentsSkillDeftSetup is the thin pointer content for .agents/skills/deft-setup/SKILL.md.
-	agentsSkillDeftSetup = `---
-name: deft-setup
+	// agentsSkillDeftDirectiveSetup is the thin pointer for .agents/skills/deft-directive-setup/SKILL.md.
+	agentsSkillDeftDirectiveSetup = `---
+name: deft-directive-setup
 description: >-
   Set up a new project with Deft framework standards. Use when the user wants
   to bootstrap user preferences, configure a project, or generate a project
   specification. Walks through setup conversationally — no separate CLI needed.
 ---
 
-Read and follow: deft/skills/deft-setup/SKILL.md
+Read and follow: deft/skills/deft-directive-setup/SKILL.md
 `
-	// agentsSkillDeftBuild is the thin pointer content for .agents/skills/deft-build/SKILL.md.
-	agentsSkillDeftBuild = `---
-name: deft-build
+	// agentsSkillDeftDirectiveBuild is the thin pointer for .agents/skills/deft-directive-build/SKILL.md.
+	agentsSkillDeftDirectiveBuild = `---
+name: deft-directive-build
 description: >-
   Build a project from a SPECIFICATION.md following Deft framework standards.
-  Use after deft-setup has generated the spec, or when the user has a
+  Use after deft-directive-setup has generated the spec, or when the user has a
   SPECIFICATION.md ready to implement. Handles scaffolding, implementation,
   testing, and quality checks phase by phase.
 ---
 
-Read and follow: deft/skills/deft-build/SKILL.md
+Read and follow: deft/skills/deft-directive-build/SKILL.md
 `
-	// agentsSkillDeftReviewCycle is the thin pointer content for .agents/skills/deft-review-cycle/SKILL.md.
-	agentsSkillDeftReviewCycle = `---
-name: deft-review-cycle
+	// agentsSkillDeftDirectiveReviewCycle is the thin pointer for .agents/skills/deft-directive-review-cycle/SKILL.md.
+	agentsSkillDeftDirectiveReviewCycle = `---
+name: deft-directive-review-cycle
 description: >-
   Greptile bot reviewer response workflow. Use when running a review cycle
   on a PR — to audit process prerequisites, fetch bot findings, fix all
-  issues in a single batch commit, and exit cleanly when no P1/P2 issues
+  issues in a single batch commit, and exit cleanly when no P0/P1 issues
   remain. Enables cloud agents to run autonomous PR review cycles.
 ---
 
-Read and follow: deft/skills/deft-review-cycle/SKILL.md
+Read and follow: deft/skills/deft-directive-review-cycle/SKILL.md
 `
-	// agentsSkillDeftRoadmapRefresh is the thin pointer content for .agents/skills/deft-roadmap-refresh/SKILL.md.
-	agentsSkillDeftRoadmapRefresh = `---
-name: deft-roadmap-refresh
+	// agentsSkillDeftDirectiveRefinement is the thin pointer for .agents/skills/deft-directive-refinement/SKILL.md.
+	agentsSkillDeftDirectiveRefinement = `---
+name: deft-directive-refinement
 description: >-
-  Structured roadmap refresh workflow. Compares open GitHub issues against
-  ROADMAP.md, triages new issues one-at-a-time with human review, and updates
+  Structured refinement workflow. Compares open GitHub issues against
+  the roadmap, triages new issues one-at-a-time with human review, and updates
   the roadmap with phase placement, analysis comments, and index entries.
 ---
 
-Read and follow: deft/skills/deft-roadmap-refresh/SKILL.md
+Read and follow: deft/skills/deft-directive-refinement/SKILL.md
 `
-	// agentsSkillDeftSwarm is the thin pointer content for .agents/skills/deft-swarm/SKILL.md.
-	agentsSkillDeftSwarm = `---
-name: deft-swarm
+	// agentsSkillDeftDirectiveSwarm is the thin pointer for .agents/skills/deft-directive-swarm/SKILL.md.
+	agentsSkillDeftDirectiveSwarm = `---
+name: deft-directive-swarm
 description: >-
   Parallel local agent orchestration. Use when running multiple agents
   on roadmap items simultaneously — to select non-overlapping tasks, set up
@@ -114,7 +111,40 @@ description: >-
   handle stalled review cycles, and close out PRs cleanly.
 ---
 
-Read and follow: deft/skills/deft-swarm/SKILL.md
+Read and follow: deft/skills/deft-directive-swarm/SKILL.md
+`
+	// agentsSkillDeftDirectiveInterview is the thin pointer for .agents/skills/deft-directive-interview/SKILL.md.
+	agentsSkillDeftDirectiveInterview = `---
+name: deft-directive-interview
+description: >-
+  Deterministic structured Q&A interview skill. Use when a skill or workflow
+  needs to collect structured answers from the user — one question per turn,
+  numbered options, default acceptance, and a confirmation gate.
+---
+
+Read and follow: deft/skills/deft-directive-interview/SKILL.md
+`
+	// agentsSkillDeftDirectivePrePr is the thin pointer for .agents/skills/deft-directive-pre-pr/SKILL.md.
+	agentsSkillDeftDirectivePrePr = `---
+name: deft-directive-pre-pr
+description: >-
+  Iterative pre-PR quality loop (Read-Write-Lint-Diff-Loop). Use before
+  pushing a branch for PR creation — structured self-review that agents run
+  to catch issues before they reach the bot reviewer.
+---
+
+Read and follow: deft/skills/deft-directive-pre-pr/SKILL.md
+`
+	// agentsSkillDeftDirectiveSync is the thin pointer for .agents/skills/deft-directive-sync/SKILL.md.
+	agentsSkillDeftDirectiveSync = `---
+name: deft-directive-sync
+description: >-
+  Session-start framework sync skill. Use at the beginning of a session to
+  pull latest framework updates, validate project files, and confirm alignment
+  before starting work.
+---
+
+Read and follow: deft/skills/deft-directive-sync/SKILL.md
 `
 )
 
@@ -224,8 +254,9 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 func WriteAgentsSkills(w *Wizard, projectDir string) (bool, error) {
 	// All skills that the installer creates thin pointers for.
 	allSkillNames := []string{
-		"deft", "deft-setup", "deft-build",
-		"deft-review-cycle", "deft-roadmap-refresh", "deft-swarm",
+		"deft", "deft-directive-setup", "deft-directive-build",
+		"deft-directive-review-cycle", "deft-directive-refinement", "deft-directive-swarm",
+		"deft-directive-interview", "deft-directive-pre-pr", "deft-directive-sync",
 	}
 
 	// Check all skill files before deciding to skip.
@@ -250,11 +281,14 @@ func WriteAgentsSkills(w *Wizard, projectDir string) (bool, error) {
 		content string
 	}{
 		{"deft", agentsSkillDeft},
-		{"deft-setup", agentsSkillDeftSetup},
-		{"deft-build", agentsSkillDeftBuild},
-		{"deft-review-cycle", agentsSkillDeftReviewCycle},
-		{"deft-roadmap-refresh", agentsSkillDeftRoadmapRefresh},
-		{"deft-swarm", agentsSkillDeftSwarm},
+		{"deft-directive-setup", agentsSkillDeftDirectiveSetup},
+		{"deft-directive-build", agentsSkillDeftDirectiveBuild},
+		{"deft-directive-review-cycle", agentsSkillDeftDirectiveReviewCycle},
+		{"deft-directive-refinement", agentsSkillDeftDirectiveRefinement},
+		{"deft-directive-swarm", agentsSkillDeftDirectiveSwarm},
+		{"deft-directive-interview", agentsSkillDeftDirectiveInterview},
+		{"deft-directive-pre-pr", agentsSkillDeftDirectivePrePr},
+		{"deft-directive-sync", agentsSkillDeftDirectiveSync},
 	}
 
 	for _, skill := range skills {
