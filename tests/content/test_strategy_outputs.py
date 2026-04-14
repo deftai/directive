@@ -56,6 +56,14 @@ class TestRapidVbriefOutput:
             "not SPECIFICATION.md"
         )
 
+    def test_step1_does_not_direct_write_to_specification_md(self) -> None:
+        """Step 1 must not instruct agents to write directly to SPECIFICATION.md."""
+        step1_section = self._text.split("### Step 1:")[1].split("### Step 2:")[0]
+        assert "Record the goal at the top of the SPECIFICATION.md" not in step1_section, (
+            "rapid.md Step 1 must not instruct agents to write to SPECIFICATION.md directly -- "
+            "this contradicts the Step 3 rule against hand-authoring SPECIFICATION.md"
+        )
+
 
 # ---------------------------------------------------------------------------
 # bdd.md — issue #365

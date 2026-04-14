@@ -28,7 +28,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! Describe the prototype goal in one sentence: what are you trying to learn or prove?
 
-- ! Record the goal at the top of the SPECIFICATION.md
+- ! Record the goal in `vbrief/specification.vbrief.json` (e.g. as the plan title or a brief narrative)
 - ~ Include a time-box if applicable (e.g. "4-hour spike")
 - ⊗ Skip this step -- even throwaway work needs a clear objective
 
