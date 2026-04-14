@@ -13,7 +13,7 @@ Structured workflow for a monitor agent to orchestrate N parallel local agents w
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [swarm.md](../../swarm/swarm.md) | [deft-review-cycle](../deft-directive-review-cycle/SKILL.md)
+**⚠️ See also**: [swarm.md](../../swarm/swarm.md) | [deft-directive-review-cycle](../deft-directive-review-cycle/SKILL.md)
 
 ## When to Use
 
@@ -42,13 +42,13 @@ Ask the user: **"Are work items already in `vbrief/active/` as vBRIEFs, or shoul
 - **Option B — GitHub issue numbers**: The user provides a list of issue numbers. For each issue:
   1. ! Fetch issue data: `gh issue view <N> --json title,body,labels,number`
   2. ! Generate a minimal vBRIEF in `vbrief/active/` following the `YYYY-MM-DD-descriptive-slug.vbrief.json` naming convention
-  3. ! The generated vBRIEF must conform to `vbrief/schemas/vbrief-core.schema.json` (vBRIEFInfo with version `"0.5"`, plan with title/status/narrative/items):
+  3. ! The generated vBRIEF must conform to `vbrief/schemas/vbrief-core.schema.json` (vBRIEFInfo with version `"0.5"`, plan with title/status/narratives/items):
      - `vBRIEFInfo.version`: `"0.5"`
      - `plan.title`: issue title
      - `plan.status`: `"running"`
-     - `plan.narrative`: issue body content
+     - `plan.narratives`: object with `{ "Overview": "<issue body content>" }`
      - `plan.items`: empty array (to be enriched)
-     - `references`: array containing `{ "type": "github-issue", "id": "<N>" }`
+     - `plan.references`: array containing `{ "type": "github-issue", "id": "#<N>" }`
   4. ! Proceed to Step 1 as normal after all vBRIEFs are generated
 
 ! Auto-generated vBRIEFs are minimal scaffolds -- the monitor or user should review and enrich acceptance criteria before proceeding to Phase 1.
@@ -248,7 +248,7 @@ When taking over: read the agent's current state (git log, diff, PR comments), c
 
 ! Long monitoring sessions accumulate large conversation history (hundreds of tool_use/tool_result pairs) and are susceptible to conversation corruption — the tool_use/tool_result mismatch observed in #263 occurred at approximately message 158 in a single monitor conversation. To mitigate:
 
-- ! Offload rebase, review-watch, and merge sub-tasks to ephemeral sub-agents using the tiered approach from `skills/deft-review-cycle/SKILL.md` (spawn via `start_agent` when available, discrete tool calls with yield otherwise) — this keeps the monitor conversation shallow
+- ! Offload rebase, review-watch, and merge sub-tasks to ephemeral sub-agents using the tiered approach from `skills/deft-directive-review-cycle/SKILL.md` (spawn via `start_agent` when available, discrete tool calls with yield otherwise) — this keeps the monitor conversation shallow
 - ~ Target <100 tool-call round-trips in any single monitor conversation before considering a fresh session handoff
 - ! If the monitor detects degraded output (repeated errors, inconsistent state references, tool call failures), stop and hand off to a fresh session with a state summary rather than continuing in a corrupted context
 
@@ -261,7 +261,7 @@ For each agent's PR:
 1. ! Check that Greptile has reviewed the latest commit (compare "Last reviewed commit" SHA to branch HEAD)
 2. ! Verify Greptile confidence score > 3
 3. ! Verify no P0 or P1 issues remain (P2 are non-blocking style suggestions)
-4. ! If the agent did not complete its review cycle, the monitor runs it per `skills/deft-review-cycle/SKILL.md`
+4. ! If the agent did not complete its review cycle, the monitor runs it per `skills/deft-directive-review-cycle/SKILL.md`
 
 ### Complete vBRIEFs
 
@@ -327,7 +327,7 @@ All PRs meet ALL of:
 
 ! **Greptile re-review on rebase force-push:** Force-pushing a rebased branch triggers a **full** Greptile re-review (not an incremental diff), even if the rebase introduced no logic changes. Expected latency is ~2-5 minutes per PR in the cascade. Factor this into merge sequencing.
 
-! **Autonomous re-review monitoring after force-push:** After each `--force-with-lease` push of a rebased branch in the cascade, the monitor MUST autonomously wait for the Greptile re-review to complete before proceeding to the next merge. Use the tiered monitoring approach defined in `skills/deft-review-cycle/SKILL.md` Step 4 Review Monitoring (Approach 1: spawn sub-agent via `start_agent` to poll and report back; Approach 2 fallback: discrete `run_shell_command` wait-mode calls with yield between polls, adaptive cadence -- see deft-review-cycle SKILL.md). Do NOT duplicate the full monitoring logic here -- follow the canonical skill.
+! **Autonomous re-review monitoring after force-push:** After each `--force-with-lease` push of a rebased branch in the cascade, the monitor MUST autonomously wait for the Greptile re-review to complete before proceeding to the next merge. Use the tiered monitoring approach defined in `skills/deft-directive-review-cycle/SKILL.md` Step 4 Review Monitoring (Approach 1: spawn sub-agent via `start_agent` to poll and report back; Approach 2 fallback: discrete `run_shell_command` wait-mode calls with yield between polls, adaptive cadence -- see deft-directive-review-cycle SKILL.md). Do NOT duplicate the full monitoring logic here -- follow the canonical skill.
 
 ! **Gate:** Do NOT proceed to the next merge in the cascade until the Greptile review for the rebased branch is current (pushed SHA matches "Last reviewed commit" SHA) AND the exit condition is met (confidence > 3, no P0/P1 issues remaining). A stale or in-progress review is not sufficient.
 
@@ -436,7 +436,7 @@ run task check, commit, push, create a PR, and run the review cycle.
 DO NOT STOP until all steps are complete.
 
 STEP 1 — Read directives: Read AGENTS.md, vbrief/vbrief.md, and the assigned vBRIEF(s) from vbrief/active/.
-Read skills/deft-review-cycle/SKILL.md.
+Read skills/deft-directive-review-cycle/SKILL.md.
 
 STEP 2 — Implement these N tasks (see assigned vBRIEF(s) for full acceptance criteria):
 
@@ -455,7 +455,7 @@ STEP 5 — Push and PR: Push branch to origin. Create PR targeting <configured-b
 Note: --body-file must use a temp file in the OS temp directory ($env:TEMP on PowerShell,
 $TMPDIR or /tmp on Unix) -- do NOT write temp files in the worktree. See scm/github.md.
 
-STEP 6 — Review cycle: Follow skills/deft-review-cycle/SKILL.md to run the
+STEP 6 — Review cycle: Follow skills/deft-directive-review-cycle/SKILL.md to run the
 Greptile review cycle on the PR. Do NOT merge — leave for human review.
 
 CONSTRAINTS:
@@ -472,7 +472,7 @@ CONSTRAINTS:
 - ! Include `DO NOT STOP until all steps are complete` in the preamble
 - ! Each task MUST include its vBRIEF filename and origin issue number
 - ! CONSTRAINTS section MUST list files the agent must not touch (other agents' scope)
-- ! Review cycle step MUST reference `skills/deft-review-cycle/SKILL.md` explicitly
+- ! Review cycle step MUST reference `skills/deft-directive-review-cycle/SKILL.md` explicitly
 - ⊗ Start the prompt with context ("You are working in...") — agents treat this as passive setup and may stop after reading
 
 ## Push Autonomy
@@ -496,7 +496,7 @@ CONSTRAINTS:
 - ⊗ Proceed to Phase 1 (Select) without completing Phase 0 (Allocate) and receiving explicit user approval
 - ⊗ Begin merge cascade without presenting the version bump proposal and receiving explicit user approval — the Phase 5→6 gate is mandatory
 - ⊗ Ignore Greptile re-review latency when planning merge cascade timing -- each rebase force-push triggers a full re-review (~2-5 min), not an incremental diff
-- ⊗ Proceed to the next merge in the rebase cascade before confirming the Greptile re-review is current (SHA match) and exit condition is met (confidence > 3, no P0/P1) on the rebased branch -- see `skills/deft-review-cycle/SKILL.md` Step 4 for the monitoring approach
+- ⊗ Proceed to the next merge in the rebase cascade before confirming the Greptile re-review is current (SHA match) and exit condition is met (confidence > 3, no P0/P1) on the rebased branch -- see `skills/deft-directive-review-cycle/SKILL.md` Step 4 for the monitoring approach
 - ⊗ Spawn a replacement sub-agent without confirming the original is unresponsive via a lifecycle event (idle/blocked) — original Warp tabs can resume after apparent failure, and two concurrent agents on the same worktree will corrupt the tool_use/tool_result call chain (#261, #263)
 - ⊗ Skip Phase 5 or the Phase 5→6 confirmation gate under time pressure or due to long context — the gate is mandatory regardless of conversation length, elapsed time, or context-window pressure
 - ⊗ Run `git add` on a conflict-resolved file without re-reading and verifying structural integrity (no conflict markers, no collapsed lines, no encoding artifacts) -- see Phase 6 Step 1 read-back verification rule (#288)
