@@ -12,16 +12,16 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ~ Projects requiring formal specification review
 - ~ When parallel agent development is planned
 - ~ Enterprise environments with compliance requirements
-- ? Skip Phase 1 if project.md Principles already defined
+- ? Skip Phase 1 if PROJECT-DEFINITION.vbrief.json Principles narrative already defined
 
 ## Workflow Overview
 
 ```mermaid
 flowchart LR
     subgraph speckit ["SpecKit Strategy"]
-        P["📜 Principles<br/><i>project.md</i>"]
-        S["📝 Specify<br/><i>WHAT/WHY</i>"]
-        PL["🏗️ Plan<br/><i>HOW</i>"]
+        P["📜 Principles<br/><i>PROJECT-DEFINITION.vbrief.json</i>"]
+        S["📝 Specify<br/><i>WHAT/WHY → specification.vbrief.json</i>"]
+        PL["🏗️ Plan<br/><i>HOW → specification.vbrief.json</i>"]
         T["✅ Tasks<br/><i>Executable list</i>"]
         I["🔨 Implement<br/><i>Execute</i>"]
     end
@@ -44,18 +44,20 @@ flowchart LR
 
 **Goal:** Establish immutable project principles before any specification.
 
-**Output:** `project.md` with populated Principles section
+**Output:** `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json`
 
 ### Process
 
 - ! Define 3-5 non-negotiable principles
 - ! Include at least one anti-principle (⊗)
+- ! Write principles as the `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json`
 - ~ Interview stakeholders about architectural constraints
 - ⊗ Proceed without defined principles
+- ⊗ Create a standalone `project.md` -- principles belong in PROJECT-DEFINITION.vbrief.json
 
 ### Transition Criteria
 
-- ! Principles section in project.md is complete
+- ! `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json` is complete
 - ! All stakeholders have reviewed principles
 - ~ No `[NEEDS CLARIFICATION]` markers remain
 
@@ -65,44 +67,16 @@ flowchart LR
 
 **Goal:** Document WHAT to build and WHY, without implementation details.
 
-**Output:** `specs/[feature]/spec.md`
+**Output:** WHAT/WHY narratives in `vbrief/specification.vbrief.json`
 
-### Specification Structure
+Write the following narrative keys to `vbrief/specification.vbrief.json` `plan.narratives`:
 
-```markdown
-# Feature Specification: [Name]
-
-**Feature Branch**: `###-feature-name`
-**Status**: Draft | Review | Approved
-
-## User Scenarios (mandatory)
-
-### User Story 1 - [Title] (Priority: P1)
-[Journey description]
-
-**Why this priority**: [Value explanation]
-**Independent Test**: [How to test in isolation]
-
-**Acceptance Scenarios**:
-1. **Given** [state], **When** [action], **Then** [outcome]
-
-### Edge Cases
-- What happens when [boundary]?
-- How does system handle [error]?
-
-## Requirements (mandatory)
-
-### Functional Requirements
-- **FR-001**: System MUST [capability]
-- **FR-002**: System MUST [capability] [NEEDS CLARIFICATION: detail?]
-
-### Non-Functional Requirements
-- **NFR-001**: Performance — [requirement]
-- **NFR-002**: Security — [requirement]
-
-## Success Criteria (mandatory)
-- **SC-001**: [Measurable outcome]
-```
+- `ProblemStatement` -- what problem this solves
+- `Goals` -- desired outcomes
+- `UserStories` -- user scenarios with priorities (P1, P2, P3) and acceptance scenarios (Given/When/Then)
+- `Requirements` -- numbered functional (FR-001) and non-functional (NFR-001) requirements
+- `SuccessMetrics` -- measurable success criteria (SC-001)
+- `EdgeCases` -- boundary conditions and error handling
 
 ### Guidelines
 
@@ -111,14 +85,15 @@ flowchart LR
 - ! Number all requirements (FR-001, NFR-001) for traceability
 - ! Prioritize user stories (P1, P2, P3)
 - ⊗ Include HOW to implement (no tech stack, APIs, code)
-- ⊗ Guess when uncertain — mark it instead
+- ⊗ Guess when uncertain -- mark it instead
+- ⊗ Create `specs/` directories or standalone `spec.md` files -- all content goes in `vbrief/specification.vbrief.json`
 
 ### Transition Criteria
 
-- ! No `[NEEDS CLARIFICATION]` markers remain
+- ! No `[NEEDS CLARIFICATION]` markers remain in narratives
 - ! All user stories have acceptance scenarios
 - ! Requirements are testable and unambiguous
-- ! Stakeholders have approved specification
+- ! Stakeholders have approved specification narratives
 
 ---
 
@@ -126,70 +101,29 @@ flowchart LR
 
 **Goal:** Document HOW to build it with technical decisions.
 
-**Input:** Approved `spec.md`
+**Input:** Approved WHAT/WHY narratives in `vbrief/specification.vbrief.json`
 
-**Output:** `specs/[feature]/plan.md` + supporting documents
+**Output:** HOW narratives enriching `vbrief/specification.vbrief.json`
 
-### Plan Structure
+Add the following narrative keys to `vbrief/specification.vbrief.json` `plan.narratives`:
 
-```markdown
-# Implementation Plan: [Feature]
-
-**Spec**: [link to spec.md]
-**Status**: Draft | Review | Approved
-
-## Pre-Implementation Gates
-
-### Simplicity Gate
-- [ ] Using ≤3 packages/projects?
-- [ ] No future-proofing without justification?
-
-### Test-First Gate
-- [ ] Contract tests defined?
-- [ ] Acceptance tests mapped to user stories?
-
-## Architecture
-
-### Components
-[High-level system design]
-
-### Data Model
-[Key entities and relationships]
-
-### API Contracts
-[Endpoints, events, interfaces]
-
-## Implementation Phases
-
-### Phase 1: Foundation
-- Dependencies: none
-- Deliverables: [list]
-
-### Phase 2: Core (depends on: Phase 1)
-- Dependencies: Phase 1 complete
-- Deliverables: [list]
-
-## Technology Decisions
-
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Language | [X] | [Why] |
-| Framework | [X] | [Why] |
-```
-
-### Supporting Documents
-
-- ? `specs/[feature]/data-model.md` — detailed schemas
-- ? `specs/[feature]/contracts/` — API specifications
-- ? `specs/[feature]/research.md` — technology research
+- `Architecture` -- high-level system design (components, data model, API contracts)
+- `TechDecisions` -- technology choices with rationale
+- `ImplementationPhases` -- phased delivery plan with dependencies
+- `PreImplementationGates` -- simplicity gate, test-first gate
 
 ### Guidelines
 
-- ! Reference spec requirements (FR-001, etc.)
+- ! Reference spec requirements (FR-001, etc.) from Phase 2 narratives
 - ! Document rationale for every technology choice
 - ! Pass all pre-implementation gates before proceeding
-- ~ Keep plan.md high-level; extract details to supporting docs
 - ⊗ Write implementation code
+- ⊗ Create `specs/` directories or standalone `plan.md` files -- all content goes in `vbrief/specification.vbrief.json`
+
+### Post-Phase 3: Render for Review
+
+- ! Run `task spec:render` to produce `SPECIFICATION.md` as a read-only rendered export
+- ! `SPECIFICATION.md` is for human review only -- `vbrief/specification.vbrief.json` remains the source of truth
 
 ### Transition Criteria
 
@@ -296,9 +230,10 @@ Write tasks to `./vbrief/plan.vbrief.json` using vBRIEF v0.5 format:
 
 | Phase | Artifact | Purpose |
 |-------|----------|---------|
-| 1. Principles | project.md | Governing rules |
-| 2. Specify | spec.md | WHAT/WHY |
-| 3. Plan | plan.md + docs | HOW |
+| 1. Principles | `vbrief/PROJECT-DEFINITION.vbrief.json` | Governing rules (Principles narrative) |
+| 2. Specify | `vbrief/specification.vbrief.json` | WHAT/WHY narratives |
+| 3. Plan | `vbrief/specification.vbrief.json` | HOW narratives (enriches Phase 2) |
+| 3b. Render | `SPECIFICATION.md` (rendered via `task spec:render`) | Read-only human review export |
 | 4. Tasks | `./vbrief/plan.vbrief.json` | Live task tracker |
 | 5. Implement | Code + tests | Working software |
 
@@ -306,17 +241,12 @@ Write tasks to `./vbrief/plan.vbrief.json` using vBRIEF v0.5 format:
 
 ```
 project/
-├── project.md              # Principles + config
 ├── vbrief/
-│   └── plan.vbrief.json    # Phase 4: live task tracker
-├── specs/
-│   └── 001-feature-name/
-│       ├── spec.md         # Phase 2
-│       ├── plan.md         # Phase 3
-│       ├── data-model.md   # Phase 3 supporting
-│       ├── research.md     # Phase 3 supporting
-│       └── contracts/      # Phase 3 supporting
-└── src/                    # Phase 5
+│   ├── PROJECT-DEFINITION.vbrief.json  # Phase 1: Principles narrative
+│   ├── specification.vbrief.json       # Phase 2+3: WHAT/WHY + HOW narratives
+│   └── plan.vbrief.json                # Phase 4: live task tracker
+├── SPECIFICATION.md                    # Rendered export (task spec:render)
+└── src/                                # Phase 5
 ```
 
 ## Invoking This Strategy

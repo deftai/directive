@@ -28,15 +28,16 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ### Stage 1: PRD (Forced-Full Path)
 
-! Run the Full interview path from [interview.md](./interview.md) unconditionally -- produce a PRD.
+! Run the Full interview path from [interview.md](./interview.md) unconditionally -- write PRD narratives to `vbrief/specification.vbrief.json`.
 
 - ! Use the Full path regardless of project size -- enterprise always requires a PRD
-- ! PRD must include: problem statement, goals, non-goals, user stories, functional requirements, non-functional requirements, success metrics
-- ! Record the PRD approver(s) in the document header
+- ! Write PRD content as narratives in `vbrief/specification.vbrief.json` `plan.narratives`: `ProblemStatement`, `Goals`, `NonGoals`, `UserStories`, `Requirements` (functional + non-functional), `SuccessMetrics`
+- ! Record the PRD approver(s) in the `Approvers` narrative
+- ! Run `task prd:render` to produce `PRD.md` as a read-only rendered export for stakeholder review
 
 ### Gate 1: PRD Approval
 
-! The PRD requires explicit written approval before proceeding.
+! The rendered `PRD.md` requires explicit written approval before proceeding.
 
 - ! Approval must come from the designated approver(s) -- not the author
 - ! Record approval: approver name, date, and any conditions
@@ -61,17 +62,19 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Record approval alongside the ADR (status field: Proposed → Accepted)
 - ⊗ Begin specification with Proposed ADRs -- all must be Accepted
 
-### Stage 3: Generate SPECIFICATION.md
+### Stage 3: Generate Specification
 
-! Derive SPECIFICATION.md from the approved PRD and accepted ADRs.
+! Enrich `vbrief/specification.vbrief.json` with architecture and plan narratives derived from the approved PRD narratives and accepted ADRs.
 
+- ! Add HOW narratives to `vbrief/specification.vbrief.json` `plan.narratives`: `Architecture`, `TechDecisions`, `ImplementationPhases`, `TraceabilityMatrix`
 - ! Every spec task must trace to a PRD requirement and, where applicable, an ADR
-- ! Use the Light or Full path from [interview.md](./interview.md) for SPECIFICATION generation
+- ! Use the Light or Full path from [interview.md](./interview.md) for specification generation
 - ! Include traceability matrix: spec task → PRD requirement → ADR (where applicable)
+- ! Run `task spec:render` to produce `SPECIFICATION.md` as a read-only rendered export for stakeholder review
 
 ### Gate 3: Specification Approval
 
-! The SPECIFICATION.md requires explicit approval before implementation begins.
+! The rendered `SPECIFICATION.md` requires explicit approval before implementation begins.
 
 - ! Approval scope: completeness (all PRD requirements covered), feasibility, traceability
 - ! Record approval in the spec header or via a signed-off PR review
@@ -89,10 +92,11 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Output Artifacts
 
-- `PRD.md` -- approved product requirements document
+- `vbrief/specification.vbrief.json` -- source of truth for PRD and specification narratives
+- `PRD.md` -- rendered export via `task prd:render` (read-only stakeholder review artifact)
 - `docs/adr/adr-NNN-*.md` -- accepted Architecture Decision Records
-- `SPECIFICATION.md` -- approved specification with traceability matrix
-- Traceability matrix (inline in spec or as a separate `docs/traceability.md`)
+- `SPECIFICATION.md` -- rendered export via `task spec:render` (read-only stakeholder review artifact)
+- Traceability matrix (inline in spec narratives or as a separate `docs/traceability.md`)
 
 ---
 
