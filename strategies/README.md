@@ -25,6 +25,9 @@ Every strategy has a **Type** that determines its behavior in the
 - **`preparatory`** — Produces artifacts that inform spec generation (research docs,
   context files, mapping docs). On completion, returns to the chaining gate so the user
   can run additional strategies or proceed to spec generation. Can be run multiple times.
+  Preparatory strategies can also be invoked **standalone** via `/deft:run:<name>` —
+  when invoked outside an interview context, they present their own next-step options
+  instead of returning to the chaining gate.
 - **`spec-generating`** — Produces a SPECIFICATION.md (or equivalent). Selecting one at
   the chaining gate switches the pipeline to that strategy’s spec flow.
 
