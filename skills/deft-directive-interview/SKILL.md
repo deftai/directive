@@ -40,6 +40,7 @@ Which deployment platform?
 2. Web / Cloud [default: 2]
 3. Embedded / low-resource
 4. Other / I don't know
+0. Pause -- discuss this question with the agent
 ```
 
 - ! The default MUST be stated inline with the option (e.g. `[default: 2]`), not in a separate line or footnote
@@ -69,9 +70,10 @@ Which deployment platform?
 ! When a question has a stated default, the user may accept it with any of the following responses:
 - Bare enter / empty response
 - "yes", "y", "ok", "default", "keep"
-- The default option number (e.g. "2")
 
-! Do NOT re-ask the question when the user accepts the default. Record the default value and proceed to the next question.
+! When the user types the default option number (e.g. "2"), this is treated as a numeric selection — Rule 8 applies (echo selection, wait for confirmation). It is NOT treated as a bare acceptance like "yes" or Enter.
+
+! Do NOT re-ask the question when the user accepts the default via a non-numeric response. Record the default value and proceed to the next question.
 
 - ⊗ Re-ask a question because the user's acceptance was "too brief" -- any of the listed responses is a valid acceptance
 - ⊗ Interpret an empty response as a refusal or skip

@@ -135,7 +135,7 @@ Implement the active change's tasks.
 - ! Follow task ordering from `blocks` edges
 - ! Update task statuses as work progresses
 - ! Follow TDD: write tests before implementation
-- ~ Reference `design.md` for architectural decisions
+- ~ Reference `proposal.vbrief.json` `Approach` narrative for architectural decisions
 - ~ Reference `specs/` for requirement details
 
 ### Active Change Detection
