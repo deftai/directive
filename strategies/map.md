@@ -138,6 +138,15 @@ What would you like to do next?
 - ~ Recommend option 1 (interview) when the user's goal is to build or extend
 - ~ Recommend option 4 (done) when the user's goal is exploration or onboarding
 
+**Handoff rule for chained strategies:** When invoking discuss or research from
+standalone map, the chaining gate does not exist. On completion of the invoked
+strategy, the agent MUST return to this standalone next-step menu instead of
+looking for `interview.md`'s chaining gate.
+
+- ! Tell the invoked strategy that the return target is the standalone map menu
+- ! After the invoked strategy completes and registers its artifacts, re-present
+  the standalone next-step options above (with updated run counts)
+
 ---
 
 ## Invoking This Strategy
