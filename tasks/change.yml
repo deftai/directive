@@ -31,9 +31,9 @@ tasks:
           base = pathlib.Path('history/changes') / name;
           base.exists() and (print(f'FAIL: {base} already exists'), sys.exit(1));
           (base / 'specs').mkdir(parents=True, exist_ok=True);
-          (base / 'proposal.md').write_text('# ' + name + chr(10) + chr(10) + '## Problem' + chr(10) + chr(10) + 'What is wrong or missing.' + chr(10) + chr(10) + '## Change' + chr(10) + chr(10) + 'What this proposal does about it.' + chr(10) + chr(10) + '## Scope' + chr(10) + chr(10) + '**In scope:**' + chr(10) + '- ' + chr(10) + chr(10) + '**Out of scope:**' + chr(10) + '- ' + chr(10) + chr(10) + '## Impact' + chr(10) + chr(10) + 'What existing code/specs are affected.' + chr(10) + chr(10) + '## Risks' + chr(10) + chr(10) + 'What could go wrong.' + chr(10), encoding='utf-8');
-          (base / 'design.md').write_text('# ' + name + ' -- Design' + chr(10) + chr(10) + '## Approach' + chr(10) + chr(10) + 'How to implement the change.' + chr(10) + chr(10) + '## Alternatives' + chr(10) + chr(10) + 'What else was considered and why not.' + chr(10) + chr(10) + '## Dependencies' + chr(10) + chr(10) + 'What must exist before this works.' + chr(10), encoding='utf-8');
-          vbrief = {'vBRIEFInfo': {'version': '0.5'}, 'plan': {'title': name, 'status': 'draft', 'items': [], 'edges': []}};
-          (base / 'tasks.vbrief.json').write_text(json.dumps(vbrief, indent=2) + chr(10), encoding='utf-8');
+          proposal = {'vBRIEFInfo': {'version': '0.5'}, 'plan': {'title': name, 'status': 'draft', 'narratives': {'Problem': 'What is wrong or missing.', 'Change': 'What this proposal does about it.', 'Scope': 'In scope: ...  Out of scope: ...', 'Impact': 'What existing code/specs are affected.', 'Risks': 'What could go wrong.', 'Approach': 'How to implement the change.', 'Alternatives': 'What else was considered and why not.', 'Dependencies': 'What must exist before this works.'}}};
+          (base / 'proposal.vbrief.json').write_text(json.dumps(proposal, indent=2) + chr(10), encoding='utf-8');
+          tasks = {'vBRIEFInfo': {'version': '0.5'}, 'plan': {'title': name, 'status': 'draft', 'items': [], 'edges': []}};
+          (base / 'tasks.vbrief.json').write_text(json.dumps(tasks, indent=2) + chr(10), encoding='utf-8');
           print(f'OK: Created change proposal at {base}/');
-          [print(f'  - {f}') for f in ['proposal.md', 'design.md', 'tasks.vbrief.json', 'specs/']]"
+          [print(f'  - {f}') for f in ['proposal.vbrief.json', 'tasks.vbrief.json', 'specs/']]"

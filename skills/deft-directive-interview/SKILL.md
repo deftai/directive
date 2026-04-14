@@ -119,11 +119,11 @@ The answers map format:
 
 ## Output Targets
 
-Interview output writes to vBRIEF narratives — never to PRD.md directly.
+Interview output writes to `specification.vbrief.json` `plan.narratives` — the vBRIEF draft is the sole authoritative output. PRD.md is never generated.
 
 ### Full Path Output
 
-! On the Full path, the interview populates `specification.vbrief.json` `plan.narratives` with rich keys:
+! On the Full path, the interview populates `specification.vbrief.json` `plan.narratives` with `status: draft` and rich keys:
 
 - `ProblemStatement`: What problem this project solves
 - `Goals`: High-level project goals
@@ -135,23 +135,23 @@ Interview output writes to vBRIEF narratives — never to PRD.md directly.
 
 ! All narrative values MUST be plain strings — never objects or arrays.
 
-! The human approval gate reviews the vBRIEF draft narratives directly — reviewing the narratives IS the approval step. PRD.md is not generated.
+! The human approval gate reviews the vBRIEF draft narratives directly — reviewing the narratives IS the approval step. On approval, update `status` to `approved` and generate downstream scope vBRIEFs.
 
 ### Light Path Output
 
-! On the Light path, the interview populates slim narratives:
+! On the Light path, the interview populates `specification.vbrief.json` with `status: draft` and slim narratives:
 
 - `Overview`: Brief project summary
 - `Architecture`: System design description
 
-! Scope vBRIEFs are then created in `vbrief/proposed/` for each identified work item.
+! On approval, update `status` to `approved`. Scope vBRIEFs are then created in `vbrief/proposed/` for each identified work item.
 
-### PRD.md Export (optional, never authoritative)
+### PRD.md (deprecated — never authoritative)
 
-PRD.md is no longer generated as part of the interview workflow on either path. If stakeholders require a traditional PRD document:
+PRD.md is not generated as part of the interview workflow on either path. The `specification.vbrief.json` vBRIEF draft is the sole source of truth.
 
-- ? Run `task prd:render` to export `plan.narratives` from `specification.vbrief.json` to a read-only `PRD.md`
-- ! PRD.md is never authoritative — the vBRIEF `specification.vbrief.json` is the source of truth
+- ? If stakeholders require a traditional PRD document, run `task prd:render` to export a read-only `PRD.md` from `plan.narratives`
+- ! PRD.md is never authoritative — `specification.vbrief.json` is the source of truth
 - ⊗ Generate an authoritative PRD.md during the interview process
 - ⊗ Treat PRD.md as a source of truth — it is a generated export artifact
 
@@ -175,15 +175,61 @@ The calling skill MAY provide:
 - **Context preamble**: a brief description of why these questions are being asked (shown to the user before the first question)
 - **Validation rules**: constraints on acceptable values for specific fields
 
+### Rule 8: Deterministic Selection Confirmation
+
+! After the user enters a number to select an option, the agent MUST echo the selected option text and wait for explicit confirmation before advancing to the next question.
+
+Example:
+```
+Which deployment platform?
+1. Cross-platform (Linux / macOS / Windows)
+2. Web / Cloud [default: 2]
+3. Embedded / low-resource
+4. Other / I don't know
+0. Pause -- discuss this question with the agent
+
+> User: 1
+
+You selected: **Cross-platform (Linux / macOS / Windows)**
+Confirm? (Enter to confirm, or type a different number)
+```
+
+- ! Show the selected option text after each number entry -- the user must see what was selected
+- ! Wait for Enter / confirmation before advancing -- do not auto-advance on number press
+- ! If the user types a different number instead of confirming, switch to that option and re-confirm
+- ⊗ Auto-advance to the next question immediately after the user presses a number key
+
+### Rule 9: Backward Navigation
+
+! The agent MUST support backward navigation during the interview. At any question, the user may type `back`, `prev`, or `b` to return to the previous question and change their answer.
+
+- ! When the user navigates back, re-display the previous question with the previously selected answer shown
+- ! The user may change the answer or confirm the existing one
+- ~ The agent should inform the user of backward navigation availability at the start of the interview (e.g. "Type 'back' at any question to revisit the previous answer")
+- ⊗ Refuse to let the user revisit previous answers during the interview
+
+### Rule 10: Freeform Conversation Escape (Option 0)
+
+! Every deterministic question MUST include an option `0` that pauses the structured flow and opens a freeform conversation with the agent.
+
+- ! Option 0 text: `0. Pause -- discuss this question with the agent`
+- ! When the user selects 0, the agent enters a freeform conversation mode where the user can ask clarifying questions, request more context about the options, or explain nuance
+- ! The agent MUST explicitly resume the deterministic flow when the conversation is resolved: re-display the same question and wait for a numbered answer
+- ⊗ Continue the deterministic flow while in freeform conversation mode
+- ⊗ Omit option 0 from any deterministic question
+
 ## Anti-Patterns
 
 - ⊗ Ask multiple questions in a single message -- one question per turn, always
 - ⊗ Proceed to artifact generation without the confirmation gate -- all captured answers must be displayed and explicitly confirmed
 - ⊗ Omit the default marker from any question -- every question must have a `[default: N]` option
 - ⊗ Omit the "Other / I don't know" escape from any question -- every question must have an escape option
+- ⊗ Omit option 0 (freeform conversation escape) from any deterministic question
 - ⊗ Re-ask a question after the user accepted the default -- move on immediately
 - ⊗ Skip the depth gate and generate artifacts with known ambiguity remaining
 - ⊗ Exit the interview without producing a structured answers map for the calling skill
 - ⊗ Combine interview questions with artifact generation in the same message
-- ⊗ Generate an authoritative PRD.md — interview output targets vBRIEF narratives only
+- ⊗ Generate an authoritative PRD.md — interview output targets `specification.vbrief.json` narratives only
 - ⊗ Treat PRD.md as a source of truth — it is a read-only export via `task prd:render`
+- ⊗ Auto-advance to the next question on number press without echoing the selection and waiting for confirmation
+- ⊗ Refuse backward navigation during the interview -- the user must be able to revisit previous answers

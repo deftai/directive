@@ -379,7 +379,7 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
 ## Phase 3 — Specification
 
-**Goal:** Generate an implementable spec using the strategy chosen in Phase 2, producing vBRIEF artifacts.
+**Goal:** Generate an implementable spec using the strategy chosen in Phase 2, producing a `specification.vbrief.json` draft for human approval before downstream generation.
 
 ! **Path Resolution Anchor**: Same rule as Phase 2 -- resolve ALL paths relative to the user's pwd at skill entry, never relative to the skill file, AGENTS.md, or any framework directory.
 
@@ -491,7 +491,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ### Output — Full Path
 
-1. ! Write rich narratives to `./vbrief/specification.vbrief.json` `plan.narratives` with these keys:
+1. ! Write rich narratives to `./vbrief/specification.vbrief.json` `plan.narratives` with `status: draft` and these keys:
    - `ProblemStatement`: What problem this project solves
    - `Goals`: High-level project goals
    - `UserStories`: User stories in standard format
@@ -499,10 +499,9 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
    - `SuccessMetrics`: Measurable success criteria
    - `Architecture`: System design and technical architecture
    - `Overview`: Brief project summary
-2. ! Set `status: draft` on the specification
-3. ! Ask user to review and approve the vBRIEF narratives — reviewing the narratives IS the approval step (replaces PRD.md review)
-4. ! On approval, update `status` to `approved`
-5. ! Create scope vBRIEFs in `./vbrief/proposed/` with traceability to requirement IDs from the narratives
+2. ! **Human approval gate**: Present the vBRIEF draft narratives to the user for review — reviewing the `specification.vbrief.json` narratives IS the approval step (replaces the former PRD.md review). The user may request changes before approving.
+3. ! On approval, update `status` to `approved` and proceed to downstream generation
+4. ! Create scope vBRIEFs in `./vbrief/proposed/` with traceability to requirement IDs from the narratives
 - ! Scope vBRIEFs MUST trace tasks back to requirement IDs (FR-1, NFR-1) from the `Requirements` narrative
 - ⊗ Generate an authoritative PRD.md — if needed, users run `task prd:render`
 

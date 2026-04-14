@@ -100,7 +100,7 @@ Scope vBRIEFs                     <- LOWEST
 
 ! Before any implementation that touches 3+ files, verify that a `/deft:change <name>` proposal exists and has been confirmed by the user:
 
-- ! Check `history/changes/` for an active change proposal matching this work
+- ! Check `history/changes/` for an active `proposal.vbrief.json` matching this work
 - ! If no proposal exists: propose `/deft:change <name>` and present the change name for explicit confirmation (e.g. "Confirm? yes/no")
 - ! The user must reply with an affirmative (`yes`, `confirmed`, `approve`) — a general 'proceed', 'do it', or 'go ahead' does NOT satisfy this gate
 - ? For solo projects: this gate is RECOMMENDED but not mandatory for changes fully covered by `task check`; it remains mandatory for cross-cutting, architectural, or high-risk changes

@@ -239,7 +239,7 @@ class TestChangeInit:
     """Tests for tasks/change.yml change:init task."""
 
     def test_correct_directory_structure(self, tmp_path):
-        """change:init creates proposal.md, design.md, tasks.vbrief.json, specs/."""
+        """change:init creates proposal.vbrief.json, tasks.vbrief.json, specs/."""
         # Set up minimal Taskfile that includes change.yml
         taskfile = (
             "version: '3'\n"
@@ -260,12 +260,18 @@ class TestChangeInit:
         assert result.returncode == 0, f"Unexpected failure: {result.stderr}"
         base = tmp_path / "history" / "changes" / "test-feature"
         assert base.is_dir()
-        assert (base / "proposal.md").is_file()
-        assert (base / "design.md").is_file()
+        assert (base / "proposal.vbrief.json").is_file()
         assert (base / "tasks.vbrief.json").is_file()
         assert (base / "specs").is_dir()
 
-        # Verify vBRIEF structure
+        # Verify proposal vBRIEF structure
+        proposal = json.loads((base / "proposal.vbrief.json").read_text("utf-8"))
+        assert proposal["vBRIEFInfo"]["version"] == "0.5"
+        assert proposal["plan"]["title"] == "test-feature"
+        assert "Problem" in proposal["plan"]["narratives"]
+        assert "Approach" in proposal["plan"]["narratives"]
+
+        # Verify tasks vBRIEF structure
         vbrief = json.loads((base / "tasks.vbrief.json").read_text("utf-8"))
         assert vbrief["vBRIEFInfo"]["version"] == "0.5"
         assert vbrief["plan"]["title"] == "test-feature"
