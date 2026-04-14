@@ -13,7 +13,7 @@ Structured workflow for a monitor agent to orchestrate N parallel local agents w
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [swarm.md](../../swarm/swarm.md) | [deft-review-cycle](../deft-review-cycle/SKILL.md)
+**⚠️ See also**: [swarm.md](../../swarm/swarm.md) | [deft-review-cycle](../deft-directive-review-cycle/SKILL.md)
 
 ## When to Use
 
@@ -32,12 +32,34 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! Before assigning work to agents, scan the active vBRIEFs and plan allocation.
 
+### Step 0: Work-Item Source
+
+! Determine where work items come from before proceeding to allocation.
+
+Ask the user: **"Are work items already in `vbrief/active/` as vBRIEFs, or should I generate them from GitHub issue numbers?"**
+
+- **Option A — Existing vBRIEFs**: Proceed directly to Step 1.
+- **Option B — GitHub issue numbers**: The user provides a list of issue numbers. For each issue:
+  1. ! Fetch issue data: `gh issue view <N> --json title,body,labels,number`
+  2. ! Generate a minimal vBRIEF in `vbrief/active/` following the `YYYY-MM-DD-descriptive-slug.vbrief.json` naming convention
+  3. ! The generated vBRIEF must conform to `vbrief/schemas/vbrief-core.schema.json` (vBRIEFInfo with version `"0.5"`, plan with title/status/narrative/items):
+     - `vBRIEFInfo.version`: `"0.5"`
+     - `plan.title`: issue title
+     - `plan.status`: `"running"`
+     - `plan.narrative`: issue body content
+     - `plan.items`: empty array (to be enriched)
+     - `references`: array containing `{ "type": "github-issue", "id": "<N>" }`
+  4. ! Proceed to Step 1 as normal after all vBRIEFs are generated
+
+! Auto-generated vBRIEFs are minimal scaffolds -- the monitor or user should review and enrich acceptance criteria before proceeding to Phase 1.
+
 ### Step 1: Read Project State
 
 - ! Scan `vbrief/active/` for all story-level vBRIEFs (files matching `*.vbrief.json`)
 - ! Read each vBRIEF's `plan.title`, `plan.status`, `plan.items`, `references`, and `planRef` (for epic linkage)
 - ! Read `vbrief/PROJECT-DEFINITION.vbrief.json` for project-wide context (narratives, scope registry)
 - ! Cross-reference: every candidate vBRIEF should have acceptance criteria in its `plan.items`
+- ! Determine the base branch: ask the user which branch to target for worktree creation, PR targets, and rebase cascade (default: `master`). Record this as the **configured base branch** for all subsequent phases.
 
 ### Step 2: Surface Blockers
 
@@ -106,12 +128,12 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 For each agent, create an isolated git worktree:
 
 ```
-git worktree add <path> -b <branch-name> master
+git worktree add <path> -b <branch-name> <configured-base-branch>
 ```
 
 - ! One worktree per agent (e.g. `E:\Repos\deft-agent1`, `E:\Repos\deft-agent2`)
 - ! Branch naming: `agent<N>/<type>/<issue-numbers>-<short-description>` (e.g. `agent1/cleanup/31-50-23-strategy-consolidation`) — the agent number prefix aids traceability since GitHub PR numbers won't match agent numbers
-- ! All worktrees branch from the same base (typically `master`)
+- ! All worktrees branch from the same base (the configured base branch from Phase 0)
 
 ### Step 2: Generate Prompt Files
 
@@ -290,7 +312,7 @@ All PRs meet ALL of:
 
 ! **Merge authority:** Monitor proposes merge order and executes merges; user approves before the first merge. Do not merge without explicit user approval.
 
-! **Rebase cascade ownership:** Monitor owns rebase cascade sequencing. Swarm agents do not rebase -- by the time merges begin, swarm agents are idle or complete. The monitor fetches updated master, rebases each remaining branch, resolves conflicts, and force-pushes.
+! **Rebase cascade ownership:** Monitor owns rebase cascade sequencing. Swarm agents do not rebase -- by the time merges begin, swarm agents are idle or complete. The monitor fetches the updated configured base branch, rebases each remaining branch, resolves conflicts, and force-pushes.
 
 ! **Read-back verification after conflict resolution:** After resolving any rebase conflict and BEFORE running `git add`, re-read the resolved file and verify structural integrity:
 - ! No conflict markers remain (`<<<<<<<`, `=======`, `>>>>>>>`)
@@ -318,7 +340,7 @@ All PRs meet ALL of:
 - ! Undraft PRs: `gh pr ready <number> --repo <owner/repo>`
 - ! Squash merge: `gh pr merge <number> --squash --delete-branch --admin` (if branch protection requires)
 - ! Use descriptive squash subject: `type(scope): description (#issues)`
-- ! After each merge, rebase remaining PRs onto updated master before merging the next
+- ! After each merge, rebase remaining PRs onto the updated configured base branch before merging the next
 
 ### Step 2: Close Issues and Update Origins
 
@@ -331,7 +353,7 @@ All PRs meet ALL of:
 
 ### Step 3: Update Master
 
-- ! Pull merged changes: `git pull origin master`
+- ! Pull merged changes: `git pull origin <configured-base-branch>`
 
 ### Step 4: Clean Up
 
@@ -391,7 +413,7 @@ When a monitor session crashes or a new session must take over an in-progress sw
    - Is this PR already merged? (state = MERGED) → skip, move to issue verification
    - Is this PR still open? → check if it needs rebase, re-review, or merge
    - Is this PR closed without merge? → investigate (was it superseded?)
-3. ! For open PRs, check rebase status: `git --no-pager log --oneline <branch> ^origin/master -5` — if empty, the branch is already up-to-date with master
+3. ! For open PRs, check rebase status: `git --no-pager log --oneline <branch> ^origin/<configured-base-branch> -5` — if empty, the branch is already up-to-date with the configured base branch
 4. ! For open PRs, check review status: `gh pr checks <number>` and `gh pr view <number> --comments` to verify Greptile review state
 5. ! Resume the cascade from the first incomplete step — the idempotent pre-check pattern (see Step 1 above) ensures re-running any step on an already-completed PR is safe
 
@@ -399,7 +421,7 @@ When a monitor session crashes or a new session must take over an in-progress sw
 
 ! Every Phase 6 action MUST be safe to re-run:
 - Merging an already-merged PR → `gh pr merge` will report "already merged" and exit cleanly
-- Rebasing a branch already on latest master → rebase is a no-op
+- Rebasing a branch already on latest configured base branch → rebase is a no-op
 - Closing an already-closed issue → `gh issue close` will report "already closed"
 - Force-pushing a branch that hasn't changed → push reports "Everything up-to-date"
 
@@ -429,7 +451,7 @@ STEP 3 — Validate: Run task check. Fix any failures.
 STEP 4 — Commit: Add CHANGELOG.md entries under [Unreleased].
 Commit with message: [type]([scope]): [description] — with bullet-point body.
 
-STEP 5 — Push and PR: Push branch to origin. Create PR targeting master using gh CLI.
+STEP 5 — Push and PR: Push branch to origin. Create PR targeting <configured-base-branch> using gh CLI.
 Note: --body-file must use a temp file in the OS temp directory ($env:TEMP on PowerShell,
 $TMPDIR or /tmp on Unix) -- do NOT write temp files in the worktree. See scm/github.md.
 
@@ -481,3 +503,4 @@ CONSTRAINTS:
 - ⊗ Use shell regex (`sed`, `Select-String -replace`) to resolve `CHANGELOG.md` rebase conflicts -- prefer `edit_files` for encoding safety and exact match verification (#288)
 - ⊗ Hardcode a 1:1 vBRIEF-per-agent allocation rule — the monitor decides allocation dynamically based on scope, complexity, and dependencies
 - ⊗ Complete a story without moving its vBRIEF from `active/` to `completed/` and updating its origin references
+- ⊗ Hardcode `master` as the base branch -- always use the configured base branch from Phase 0

@@ -1503,3 +1503,60 @@ def test_agents_md_routing_all_deft_directive_paths() -> None:
         f"AGENTS.md routing paths use old naming (should be deft-directive-*): "
         f"{non_directive}"
     )
+
+
+# ---------------------------------------------------------------------------
+# 37. deft-directive-swarm configurable base branch and auto-generate vBRIEFs (#373)
+# ---------------------------------------------------------------------------
+
+
+def test_deft_directive_swarm_see_also_link_correct() -> None:
+    """See also link must reference deft-directive-review-cycle, not deft-review-cycle."""
+    text = _read_skill(_SWARM_PATH)
+    assert "../deft-directive-review-cycle/SKILL.md" in text, (
+        f"{_SWARM_PATH}: See also link must reference ../deft-directive-review-cycle/SKILL.md"
+    )
+    assert "../deft-review-cycle/SKILL.md" not in text, (
+        f"{_SWARM_PATH}: See also link still references old ../deft-review-cycle/SKILL.md path"
+    )
+
+
+def test_deft_directive_swarm_configurable_base_branch_phase0() -> None:
+    """Phase 0 must mention configurable base branch."""
+    text = _read_skill(_SWARM_PATH)
+    assert "base branch" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 0 must mention configurable base branch (#373)"
+    )
+    assert "configured base branch" in text.lower(), (
+        f"{_SWARM_PATH}: must use 'configured base branch' terminology (#373)"
+    )
+
+
+def test_deft_directive_swarm_worktree_no_hardcoded_master() -> None:
+    """Phase 2 worktree creation must not hardcode master in the git worktree add example."""
+    text = _read_skill(_SWARM_PATH)
+    # Find the worktree add command line
+    for line in text.split("\n"):
+        if "git worktree add" in line and "-b" in line:
+            assert "master" not in line, (
+                f"{_SWARM_PATH}: Phase 2 worktree command must not hardcode 'master' (#373)"
+            )
+
+
+def test_deft_directive_swarm_auto_generate_vbriefs_from_issues() -> None:
+    """Phase 0 must support auto-generating vBRIEFs from GitHub issue numbers."""
+    text = _read_skill(_SWARM_PATH)
+    assert "gh issue view" in text, (
+        f"{_SWARM_PATH}: Phase 0 must support generating vBRIEFs via gh issue view (#373)"
+    )
+    assert "issue numbers" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 0 must mention issue numbers as input source (#373)"
+    )
+
+
+def test_deft_directive_swarm_antipattern_no_hardcoded_master() -> None:
+    """Anti-patterns must prohibit hardcoding master as the base branch."""
+    text = _read_skill(_SWARM_PATH)
+    assert "hardcode `master` as the base branch" in text.lower(), (
+        f"{_SWARM_PATH}: must have anti-pattern against hardcoding master (#373)"
+    )

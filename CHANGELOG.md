@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(swarm): configurable base branch and auto-generate vBRIEFs from GitHub issues** (#373): Added configurable base branch support to deft-directive-swarm -- Phase 0 Step 1 asks user which branch to target (default: master), Phase 2 worktree creation uses configured base branch instead of hardcoded master, Phase 6 rebase cascade and git pull reference configured base branch, Prompt Template and Crash Recovery updated accordingly; added anti-pattern against hardcoding master. Added auto-generate vBRIEFs from GitHub issues as Phase 0 Step 0 alternative work-item source -- accepts issue numbers, fetches via `gh issue view`, generates minimal vBRIEF scaffolds in `vbrief/active/` conforming to vBRIEF v0.5 schema with `github-issue` reference provenance. Fixed broken See also link from `../deft-review-cycle/SKILL.md` to `../deft-directive-review-cycle/SKILL.md`. Added 5 tests for new features.
+
 ## [0.20.0] - 2026-04-13
 
 ### Breaking Changes
