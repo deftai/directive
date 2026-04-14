@@ -28,7 +28,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Each scenario covers one behaviour -- avoid multi-assertion scenarios
 - ~ Capture happy path, edge cases, and error cases as separate scenarios
 - ~ Use concrete values, not placeholders (e.g. "Given a user with 3 items in cart" not "Given a user with items")
-- ! Store scenarios in `specs/{feature}/acceptance-tests/`
+- ! Store scenarios in the project's standard test directory (e.g. `tests/`), not in `specs/`
 
 ### Step 2: Write Failing Acceptance Tests
 
@@ -36,7 +36,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 - ! Tests MUST fail when first written -- a passing test before implementation means the test is wrong or the feature already exists
 - ~ Use the project's test framework (pytest, go test, jest, etc.)
-- ! Place test files in `specs/{feature}/acceptance-tests/`
+- ! Place test files in the project's standard test directory (e.g. `tests/`)
 - ⊗ Write implementation code at this step
 
 ### Step 3: Run Tests -- Surface Ambiguity
@@ -49,19 +49,22 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ### Step 4: Lock Decisions
 
-! Resolve all ambiguities surfaced by Step 3. Record decisions in `{feature}-bdd-context.md`.
+! Resolve all ambiguities surfaced by Step 3. Record decisions in `vbrief/proposed/{feature}-bdd.vbrief.json`.
 
-- ! Each decision includes: **what** was decided, **why**, and **alternatives considered**
+- ! Write a scope vBRIEF with two narratives:
+  - `Scenarios` -- Given/When/Then scenario descriptions from Step 1
+  - `LockedDecisions` -- each decision includes: **what** was decided, **why**, and **alternatives considered**
 - ! Decisions are **locked** -- downstream tasks inherit them, do not re-debate
-- ! Format follows the same structure as `{scope}-context.md` from [strategies/discuss.md](./discuss.md)
+- ! Format follows the same vBRIEF narrative structure as [strategies/discuss.md](./discuss.md)
 - ⊗ Leave ambiguities unresolved -- every question surfaced in Step 3 must have a locked answer
+- ⊗ Write decisions to a hand-authored markdown file -- use vBRIEF narratives for token-efficient agent consumption
 
 ### Step 5: Generate Spec
 
 ! Derive SPECIFICATION.md tasks from the now-stable test scenarios and locked decisions.
 
 - ! Each scenario maps to one or more spec tasks with traceability (`traces: scenario-N`)
-- ! Locked decisions from `{feature}-bdd-context.md` flow into the spec as constraints
+- ! Locked decisions from `vbrief/proposed/{feature}-bdd.vbrief.json` `LockedDecisions` narrative flow into the spec as constraints
 - ~ Use the Light or Full path from [strategies/interview.md](./interview.md) based on project size
 
 ### Step 6: Chain into Interview Sizing Gate
@@ -72,14 +75,14 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
   - Update `completedStrategies`: increment `runCount` for `"bdd"`, append artifact paths
   - Append all new artifact paths to the flat `artifacts` array
 - ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
-- ! The locked decisions from `{feature}-bdd-context.md` and the acceptance tests MUST flow into subsequent strategies and spec generation
+- ! The locked decisions from `vbrief/proposed/{feature}-bdd.vbrief.json` and the acceptance tests MUST flow into subsequent strategies and spec generation
 
 ---
 
 ## Output Artifacts
 
-- `specs/{feature}/acceptance-tests/` -- executable test files derived from Given/When/Then scenarios
-- `{feature}-bdd-context.md` -- locked decisions surfaced by test failures (same format as discuss strategy's context.md)
+- Executable test files in the project's standard test directory -- derived from Given/When/Then scenarios
+- `vbrief/proposed/{feature}-bdd.vbrief.json` -- scope vBRIEF with `Scenarios` and `LockedDecisions` narratives
 
 ---
 
@@ -96,7 +99,7 @@ BDD is a **preparatory** strategy. It can be combined with other preparatory str
 - ⊗ Writing implementation before acceptance tests -- tests must come first
 - ⊗ Writing acceptance tests that pass immediately -- a passing test before implementation indicates a wrong test or pre-existing feature
 - ⊗ Leaving ambiguities unresolved after Step 3 -- every surfaced question must be locked in Step 4
-- ⊗ Skipping the context.md file -- decisions that exist only in conversation history will be lost
+- ⊗ Skipping the vBRIEF file -- decisions that exist only in conversation history will be lost
 - ⊗ Writing scenarios with vague placeholders instead of concrete values
 - ⊗ Combining multiple behaviours into a single scenario -- one scenario, one behaviour
 - ⊗ Ending after BDD without chaining into specification generation
