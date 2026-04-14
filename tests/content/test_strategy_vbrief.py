@@ -73,6 +73,20 @@ class TestSpeckitVbriefOutputs:
             "produce SPECIFICATION.md as a rendered export"
         )
 
+    def test_speckit_no_standalone_plan_md_input(self) -> None:
+        """Phase 4 input must not reference plan.md (#362)."""
+        assert "Approved `plan.md`" not in self._text, (
+            "strategies/speckit.md Phase 4 must not reference plan.md as input -- "
+            "use vbrief/specification.vbrief.json HOW narratives instead"
+        )
+
+    def test_speckit_no_project_md_principles_reference(self) -> None:
+        """Phase 5 must not reference project.md for Principles (#361)."""
+        assert "project.md Principles" not in self._text, (
+            "strategies/speckit.md Phase 5 must reference Principles narrative in "
+            "PROJECT-DEFINITION.vbrief.json, not project.md"
+        )
+
 
 # ---------------------------------------------------------------------------
 # enterprise.md -- vBRIEF-centric outputs (#364)

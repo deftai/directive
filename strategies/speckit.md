@@ -137,7 +137,7 @@ Add the following narrative keys to `vbrief/specification.vbrief.json` `plan.nar
 
 **Goal:** Generate an executable task list from the plan.
 
-**Input:** Approved `plan.md` + supporting documents
+**Input:** Approved HOW narratives in `vbrief/specification.vbrief.json`
 
 **Output:** `./vbrief/plan.vbrief.json` — the live task tracker for this feature
 
@@ -219,7 +219,7 @@ Write tasks to `./vbrief/plan.vbrief.json` using vBRIEF v0.5 format:
 
 ### Guidelines
 
-- ! Follow project.md Principles throughout
+- ! Follow the `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json` throughout
 - ! Update `./vbrief/plan.vbrief.json` task statuses as work progresses
 - ⊗ Implement without failing tests first
 - ⊗ Skip refactoring phase
