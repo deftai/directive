@@ -62,14 +62,15 @@ Adapt question focus to what's being built:
 
 ## Output
 
-- ! Produce a `{scope}-context.md` file with structured decisions and reasoning
+- ! Produce a `vbrief/proposed/{scope}-context.vbrief.json` scope vBRIEF with a `LockedDecisions` narrative containing structured decisions and reasoning
 - ! Each decision includes: **what** was decided, **why**, and **alternatives considered**
-- ! This file is injected into all downstream work: planning, execution, verification
-- ~ Persist decisions as vBRIEF narratives on the relevant plan items
+- ! This vBRIEF is injected into all downstream work: planning, execution, verification
+- ! Persist decisions as vBRIEF narratives on the relevant plan items
+- ⊗ Write decisions to a hand-authored markdown context file -- use vBRIEF narratives for token-efficient agent consumption
 
 ## Decision Locking
 
-- ! Decisions in context.md are **locked** — downstream tasks inherit them, don't re-debate
+- ! Decisions in the vBRIEF `LockedDecisions` narrative are **locked** -- downstream tasks inherit them, don't re-debate
 - ! If a locked decision needs revisiting, explicitly flag it as unlocked with justification
 - ⊗ Silently making a different choice because the agent forgot what was decided
 - ⊗ Re-debating a settled decision without explicit user approval
@@ -78,18 +79,18 @@ Adapt question focus to what's being built:
 
 ## Then: Chaining Gate
 
-After alignment is complete and decisions are locked in `{scope}-context.md`,
+After alignment is complete and decisions are locked in `vbrief/proposed/{scope}-context.vbrief.json`,
 return to the [chaining gate](./interview.md#chaining-gate) so the user can
 run additional preparatory strategies or proceed to spec generation.
 
 - ! On completion, register artifacts in `./vbrief/plan.vbrief.json`:
   - Update `completedStrategies`: increment `runCount` for `"discuss"`,
-    append artifact path (`{scope}-context.md`)
+    append artifact path (`vbrief/proposed/{scope}-context.vbrief.json`)
   - Append the path to the flat `artifacts` array
 - ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
-  (the discuss phase replaces the interview's question-gathering — decisions are
+  (the discuss phase replaces the interview's question-gathering -- decisions are
   already made, so the interview will be short or skipped entirely)
-- ! The locked decisions from `{scope}-context.md` MUST flow into subsequent
+- ! The locked decisions from `vbrief/proposed/{scope}-context.vbrief.json` MUST flow into subsequent
   strategies and spec generation
 - ⊗ End the session after discuss without returning to the chaining gate
 
@@ -99,7 +100,7 @@ run additional preparatory strategies or proceed to spec generation.
 
 1. **Open** -- Start with the user's goal statement; restate it in your own words
 2. **Explore** -- Follow energy, challenge vagueness, ask domain-sensitive questions
-3. **Lock** -- Record each decision in `{scope}-context.md` with what/why/alternatives
+3. **Lock** -- Record each decision in `vbrief/proposed/{scope}-context.vbrief.json` `LockedDecisions` narrative with what/why/alternatives
 4. **Verify** -- Explain the full picture back to the user (Feynman check)
 5. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
 
@@ -109,5 +110,5 @@ run additional preparatory strategies or proceed to spec generation.
 - ⊗ Asking generic checklist questions instead of following energy
 - ⊗ Accepting "make it nice" / "standard approach" / "whatever works" without pushback
 - ⊗ Scope creep — capturing out-of-scope ideas inline instead of deferring
-- ⊗ Decisions that exist only in conversation history (they must be in context.md)
+- ⊗ Decisions that exist only in conversation history (they must be in the vBRIEF `LockedDecisions` narrative)
 - ⊗ Ending after discuss without chaining into specification generation
