@@ -79,7 +79,16 @@
       "id": "shape-strategy-brownfield-redirect-exempt",
       "check": "test_shape.strategy_file_shape",
       "file": "strategies/brownfield.md",
-      "reason": "Legacy redirect file — brownfield strategy has been renamed to map. File kept only for backward compatibility.",
+      "reason": "Legacy redirect file -- brownfield strategy has been renamed to map. File kept only for backward compatibility.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "shape-strategy-roadmap-redirect-exempt",
+      "check": "test_shape.strategy_file_shape",
+      "file": "strategies/roadmap.md",
+      "reason": "Superseded redirect file -- roadmap strategy replaced by deft-directive-refinement skill and task roadmap:render (#369).",
       "xfail": false,
       "exempt": true,
       "fix_in": "N/A"
@@ -209,7 +218,16 @@
       "id": "rfc2119-exempt-strategies-brownfield",
       "check": "test_standards.rfc2119_legend_present",
       "file": "strategies/brownfield.md",
-      "reason": "Legacy redirect file — brownfield strategy renamed to map. No RFC2119 content.",
+      "reason": "Legacy redirect file -- brownfield strategy renamed to map. No RFC2119 content.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "rfc2119-exempt-strategies-roadmap",
+      "check": "test_standards.rfc2119_legend_present",
+      "file": "strategies/roadmap.md",
+      "reason": "Superseded redirect file -- roadmap strategy replaced by deft-directive-refinement skill (#369). No RFC2119 content.",
       "xfail": false,
       "exempt": true,
       "fix_in": "N/A"

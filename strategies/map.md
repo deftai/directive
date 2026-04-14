@@ -28,30 +28,30 @@ Mapping produces artifacts that feed into planning so the agent **follows existi
 
 ## Mapping Artifacts
 
-Produce these in `.planning/codebase/` (or `docs/codebase/`):
+Produce a single `vbrief/proposed/{project}-codebase-map.vbrief.json` with four narratives:
 
-### STACK.md — Technology inventory
+### `Stack` narrative -- Technology inventory
 
 - ! Languages, versions, runtimes
 - ! Frameworks and key dependencies
 - ! Build tools and package managers
 - ~ Environment configuration approach
 
-### ARCHITECTURE.md — System design
+### `Architecture` narrative -- System design
 
 - ! Layers/components and their responsibilities
 - ! Data flow between components
 - ! Entry points (API routes, CLI, server start)
 - ~ Error handling strategy
 
-### CONVENTIONS.md — How code is written here
+### `Conventions` narrative -- How code is written here
 
 - ! Naming conventions (files, functions, variables)
 - ! Import patterns and module organization
 - ! Testing patterns (framework, file naming, assertion style)
 - ! **Be prescriptive**: "Use camelCase for functions" not "some functions use camelCase"
 
-### CONCERNS.md — Technical debt and risks
+### `Concerns` narrative -- Technical debt and risks
 
 - ~ TODO/FIXME/HACK inventory with file paths
 - ~ Large files (>500 lines) that may need splitting
@@ -71,9 +71,9 @@ Produce these in `.planning/codebase/` (or `docs/codebase/`):
 
 ## How Artifacts Feed Downstream
 
-- ! **Planning** loads relevant mapping docs based on feature type
-- ! **Execution** references CONVENTIONS.md to match existing patterns
-- ! **Verification** uses CONCERNS.md to avoid introducing more debt
+- ! **Planning** loads relevant mapping narratives based on feature type
+- ! **Execution** references `Conventions` narrative to match existing patterns
+- ! **Verification** uses `Concerns` narrative to avoid introducing more debt
 
 ---
 
@@ -84,14 +84,13 @@ so the user can run additional preparatory strategies or proceed to spec generat
 
 - ! On completion, register artifacts in `./vbrief/plan.vbrief.json`:
   - Update `completedStrategies`: increment `runCount` for `"map"`,
-    append artifact paths (`.planning/codebase/STACK.md`, `ARCHITECTURE.md`,
-    `CONVENTIONS.md`, `CONCERNS.md`)
-  - Append all new paths to the flat `artifacts` array
+    append artifact path (`vbrief/proposed/{project}-codebase-map.vbrief.json`)
+  - Append the path to the flat `artifacts` array
 - ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
-- ! The mapping artifacts MUST inform subsequent strategies and spec generation:
-  - CONVENTIONS.md → implementation constraints
-  - ARCHITECTURE.md → where new code fits
-  - CONCERNS.md → things to avoid or fix
+- ! The mapping narratives MUST inform subsequent strategies and spec generation:
+  - `Conventions` -> implementation constraints
+  - `Architecture` -> where new code fits
+  - `Concerns` -> things to avoid or fix
 - ⊗ End the session after mapping without returning to the chaining gate
 
 ---

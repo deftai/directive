@@ -18,26 +18,32 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Output
 
-Produce `{feature}-research.md` with two mandatory sections:
+Produce `vbrief/proposed/{feature}-research.vbrief.json` with two mandatory narratives:
 
-### Don't Hand-Roll
+### `DontHandRoll` narrative
 
 Problems that look simple but have existing, battle-tested solutions.
 
 - ! For each problem area, specify: **problem**, **recommended library/tool**, **why not hand-roll**
-- ! Check the project's existing dependencies first — don't add a library when one is already available
+- ! Check the project's existing dependencies first -- don't add a library when one is already available
 - ~ Consult official docs for the recommended library (use Context7 or equivalent)
 
-**Example:**
+**Example narrative content:**
 ```
-| Problem | Use This | Don't Hand-Roll Because |
-|---------|----------|------------------------|
-| JWT validation | jose | Edge cases in token expiry, key rotation, algorithm confusion |
-| Email templates | react-email | HTML email rendering is notoriously broken across clients |
-| Rate limiting | express-rate-limit | IP spoofing, distributed state, Redis integration |
+Problem: JWT validation
+Use: jose
+Rationale: Edge cases in token expiry, key rotation, algorithm confusion
+
+Problem: Email templates
+Use: react-email
+Rationale: HTML email rendering is notoriously broken across clients
+
+Problem: Rate limiting
+Use: express-rate-limit
+Rationale: IP spoofing, distributed state, Redis integration
 ```
 
-### Common Pitfalls
+### `CommonPitfalls` narrative
 
 What goes wrong in this domain, why, and how to avoid it.
 
@@ -45,13 +51,13 @@ What goes wrong in this domain, why, and how to avoid it.
 - ~ Informed by library docs, codebase patterns, and known failure modes
 - ~ Prioritize pitfalls that agents specifically tend to hit (stubs, missing error handling, hardcoded values)
 
-**Example:**
+**Example narrative content:**
 ```
-**Pitfall: Storing plain-text passwords**
-- What: User passwords saved without hashing
-- Why: Agent implements the happy path and forgets security
-- Avoid: Use bcrypt/argon2, never store raw passwords
-- Warning signs: No crypto import in auth module, password field stored as-is
+Pitfall: Storing plain-text passwords
+What: User passwords saved without hashing
+Why: Agent implements the happy path and forgets security
+Avoid: Use bcrypt/argon2, never store raw passwords
+Warning signs: No crypto import in auth module, password field stored as-is
 ```
 
 ---
@@ -67,7 +73,7 @@ What goes wrong in this domain, why, and how to avoid it.
 - ! Research the **current feature only** — not the entire project
 - ! Time-box research — if it takes longer than the feature, scope is wrong
 - ⊗ Research as a reason to delay execution indefinitely
-- ~ Persist research in `docs/research/` or alongside feature planning artifacts
+- ~ Research persists as a vBRIEF in `vbrief/proposed/`
 
 ---
 
@@ -78,7 +84,7 @@ so the user can run additional preparatory strategies or proceed to spec generat
 
 - ! On completion, register artifacts in `./vbrief/plan.vbrief.json`:
   - Update `completedStrategies`: increment `runCount` for `"research"`,
-    append artifact path (`{feature}-research.md`)
+    append artifact path (`vbrief/proposed/{feature}-research.vbrief.json`)
   - Append the path to the flat `artifacts` array
 - ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
 - ! The research findings MUST inform subsequent strategies and spec generation:
@@ -92,7 +98,7 @@ so the user can run additional preparatory strategies or proceed to spec generat
 
 1. **Scope** -- Identify the domain and feature boundaries for research
 2. **Survey** -- Check existing project dependencies, official docs, and known pitfalls
-3. **Document** -- Produce `{feature}-research.md` with Don't Hand-Roll and Common Pitfalls sections
+3. **Document** -- Produce `vbrief/proposed/{feature}-research.vbrief.json` with `DontHandRoll` and `CommonPitfalls` narratives
 4. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
 
 ## Anti-Patterns
