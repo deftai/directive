@@ -55,7 +55,7 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 
 The installer guides you through choosing a project directory, installs git if needed, clones deft, wires it into `AGENTS.md`, and creates your user config directory.
 
-**Manual clone (no installer):** If you clone deft directly via `git clone`, create an `AGENTS.md` in your project root using the full bootstrap template (see `agentsMDEntry` in `cmd/deft-install/setup.go` for the exact content with `deft/`-prefixed paths and first-session phase detection), then tell your agent `read AGENTS.md and follow it` to start the setup.
+**Manual clone (no installer):** If you clone deft directly via `git clone`, create an `AGENTS.md` in your project root using the built-in task (`cd deft && task agents:init`) or by copying [`templates/agents-entry.md`](templates/agents-entry.md) manually, then tell your agent `read AGENTS.md and follow it` to start the setup.
 
 **Building from source (developers only):** requires Go 1.22+
 
@@ -166,7 +166,7 @@ Deft provides deterministic `task` commands for rendering, migrating, and valida
 | `task vbrief:validate` | Validate vBRIEF schema, filenames, folder/status consistency | Pre-commit (runs as part of `task check`) |
 | `task agents:init` | Write canonical AGENTS.md to project root (idempotent) | After manual `git clone` without installer |
 
-See [commands.md](./commands.md) for the full change lifecycle, and the [Rendering & Migration](#rendering--migration) section there for detailed usage.
+See [commands.md](./commands.md) for the full change lifecycle and the [Command Lifecycle: `run` vs `task`](./commands.md#command-lifecycle-run-vs-task) section there for detailed usage.
 
 ### Command Lifecycle: `run` vs `task`
 
