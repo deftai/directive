@@ -422,19 +422,19 @@ class TestCommitLint:
 
 
 # ===========================================================================
-# AGENTS-OPEN-ME-FIRST.md bootstrap file (#358)
+# QUICK-START.md bootstrap file (#358)
 # ===========================================================================
 
 
 class TestAgentsBootstrap:
-    """Tests for AGENTS-OPEN-ME-FIRST.md trampoline and templates/agents-entry.md (#358)."""
+    """Tests for QUICK-START.md trampoline and templates/agents-entry.md (#358)."""
 
-    TRAMPOLINE_PATH = REPO_ROOT / "AGENTS-OPEN-ME-FIRST.md"
+    TRAMPOLINE_PATH = REPO_ROOT / "QUICK-START.md"
     TEMPLATE_PATH = REPO_ROOT / "templates" / "agents-entry.md"
     SENTINEL = "deft/main.md"
 
     def test_trampoline_exists_at_repo_root(self):
-        """AGENTS-OPEN-ME-FIRST.md must exist at the repository root."""
+        """QUICK-START.md must exist at the repository root."""
         assert self.TRAMPOLINE_PATH.is_file()
 
     def test_trampoline_is_agent_instructions(self):
@@ -480,7 +480,7 @@ class TestAgentsBootstrap:
         """
         template = self.TEMPLATE_PATH.read_text(encoding="utf-8")
         setup_go = (REPO_ROOT / "cmd" / "deft-install" / "setup.go").read_text(encoding="utf-8")
-        # Extract agentsMDEntry constant — content between backticks after 'agentsMDEntry = `'
+        # Extract agentsMDEntry constant â€” content between backticks after 'agentsMDEntry = `'
         start = setup_go.index('agentsMDEntry = `') + len('agentsMDEntry = `')
         end = setup_go.index('`', start)
         go_content = setup_go[start:end]
@@ -490,6 +490,6 @@ class TestAgentsBootstrap:
         )
 
     def test_readme_calls_out_trampoline(self):
-        """README.md must reference AGENTS-OPEN-ME-FIRST.md near the top."""
+        """README.md must reference QUICK-START.md near the top."""
         readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
-        assert "AGENTS-OPEN-ME-FIRST.md" in readme
+        assert "QUICK-START.md" in readme
