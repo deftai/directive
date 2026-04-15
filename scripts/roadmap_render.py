@@ -405,11 +405,17 @@ def check_drift(pending_dir: str, roadmap_path: str) -> tuple[bool, str]:
 
     if not roadmap.exists():
         # If no ROADMAP.md exists and we'd generate empty content, that's OK
-        if not Path(pending_dir).is_dir() or not list(
-            Path(pending_dir).glob("*.vbrief.json")
-        ):
-            return True, "✓ No ROADMAP.md needed (no pending vBRIEFs)"
-        return False, "✗ ROADMAP.md does not exist but pending vBRIEFs found"
+        pending_p = Path(pending_dir)
+        inferred_completed = pending_p.parent / "completed"
+        has_pending = pending_p.is_dir() and list(
+            pending_p.glob("*.vbrief.json")
+        )
+        has_completed = inferred_completed.is_dir() and list(
+            inferred_completed.glob("*.vbrief.json")
+        )
+        if not has_pending and not has_completed:
+            return True, "✓ No ROADMAP.md needed (no pending or completed vBRIEFs)"
+        return False, "✗ ROADMAP.md does not exist but vBRIEFs found"
 
     actual = roadmap.read_text(encoding="utf-8")
     if actual == expected:

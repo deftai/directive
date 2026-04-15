@@ -710,3 +710,16 @@ def test_scope_items_render_issue_refs(roadmap_mod, tmp_path) -> None:
     content = roadmap_mod.generate_roadmap_content(pending, completed_dir=completed)
     assert "**#100**" in content
     assert "Add widget support" in content
+
+
+def test_drift_check_completed_only_detects_drift(roadmap_mod, tmp_path) -> None:
+    """check_drift must detect drift when completed/ has items but ROADMAP.md missing."""
+    vbrief_dir = tmp_path / "vbrief"
+    pending = vbrief_dir / "pending"
+    pending.mkdir(parents=True)
+    completed = vbrief_dir / "completed"
+    _write_vbrief(completed / "2026-04-15-50-done.vbrief.json", _COMPLETED_VBRIEF)
+    out = tmp_path / "ROADMAP.md"
+    ok, msg = roadmap_mod.check_drift(str(pending), str(out))
+    assert ok is False
+    assert "vBRIEFs found" in msg
