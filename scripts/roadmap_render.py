@@ -311,10 +311,15 @@ def generate_roadmap_content(
             has_tiers = any(t for t in tier_groups if t)
 
             if has_tiers:
+                # Render named tiers first, then untiered items
+                untiered = tier_groups.pop("", [])
                 for tier_name, tier_vbs in tier_groups.items():
-                    if tier_name:
-                        lines.append(f"### {tier_name}\n")
+                    lines.append(f"### {tier_name}\n")
                     for vb in tier_vbs:
+                        lines.extend(_render_scope_item(vb))
+                    lines.append("")
+                if untiered:
+                    for vb in untiered:
                         lines.extend(_render_scope_item(vb))
                     lines.append("")
             else:

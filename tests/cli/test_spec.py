@@ -14,10 +14,12 @@ Covers spec_validate:
 Covers spec_render:
   - render_spec: file missing → False (delegates to validate)
   - render_spec: invalid JSON → False (delegates to validate)
-  - render_spec: valid JSON, status != 'approved' → False
-  - render_spec: valid JSON, status == 'approved' → True, writes SPECIFICATION.md
+  - render_spec: valid JSON, status not in renderable set → False
+  - render_spec: valid JSON, renderable status → True, writes SPECIFICATION.md
   - render_spec: renders title, overview, tasks correctly
   - render_spec: tasks with list fields rendered as bullet points
+  - render_spec: completed/running status accepted (#384)
+  - render_spec: pending status rejected (#384)
   - main(): no args → exit code 2
   - main(): not-approved file → exit code 1
   - main(): approved file → exit code 0, output file created

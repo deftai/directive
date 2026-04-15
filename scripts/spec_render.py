@@ -10,7 +10,7 @@ Usage:
 
 Exit codes:
     0 — rendered successfully
-    1 — validation failed or status not 'approved'
+    1 — validation failed or status not in ('approved', 'running', 'completed')
     2 — usage error (no argument provided)
 
 Implementation: IMPLEMENTATION.md Phase 5.2
@@ -51,7 +51,8 @@ def render_spec(spec_path: str, out_path: str) -> tuple[bool, str]:
             False,
             f"⚠ specification.vbrief.json status is '{status}' "
             f"(expected one of {renderable_statuses})\n"
-            "  Have the user review and set status to 'approved' before rendering.",
+            "  Have the user review and set status to one of the"
+            " renderable statuses before rendering.",
         )
 
     lines: list[str] = []
