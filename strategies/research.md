@@ -18,6 +18,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Output
 
+! Before writing output artifacts, follow the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light).
+
 Produce `vbrief/proposed/{feature}-research.vbrief.json` with two mandatory narratives:
 
 ### `DontHandRoll` narrative

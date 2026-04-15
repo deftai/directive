@@ -46,6 +46,8 @@ flowchart LR
 
 **Output:** `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json`
 
+! Before writing output artifacts, follow the [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full).
+
 ### Process
 
 - ! Define 3-5 non-negotiable principles
@@ -69,7 +71,9 @@ flowchart LR
 
 **Output:** WHAT/WHY narratives in `vbrief/specification.vbrief.json`
 
-Write the following narrative keys to `vbrief/specification.vbrief.json` `plan.narratives`:
+! Before writing output artifacts, follow the [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full).
+
+Write the following narrative keys
 
 - `ProblemStatement` -- what problem this solves
 - `Goals` -- desired outcomes

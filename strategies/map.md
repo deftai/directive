@@ -28,6 +28,8 @@ Mapping produces artifacts that feed into planning so the agent **follows existi
 
 ## Mapping Artifacts
 
+! Before writing output artifacts, follow the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light).
+
 Produce a single `vbrief/proposed/{project}-codebase-map.vbrief.json` with four narratives:
 
 ### `Stack` narrative -- Technology inventory
