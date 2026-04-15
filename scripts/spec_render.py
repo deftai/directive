@@ -45,10 +45,12 @@ def render_spec(spec_path: str, out_path: str) -> tuple[bool, str]:
     plan = spec.get("plan", {})
     status = plan.get("status", "") if isinstance(plan, dict) else spec.get("status", "")
 
-    if status != "approved":
+    renderable_statuses = ("approved", "running", "completed")
+    if status not in renderable_statuses:
         return (
             False,
-            f"⚠ specification.vbrief.json status is '{status}' (expected 'approved')\n"
+            f"⚠ specification.vbrief.json status is '{status}' "
+            f"(expected one of {renderable_statuses})\n"
             "  Have the user review and set status to 'approved' before rendering.",
         )
 

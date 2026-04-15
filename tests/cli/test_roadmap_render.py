@@ -578,3 +578,135 @@ def test_main_check_flag_before_positionals(
     )
     result = roadmap_mod.main()
     assert result == 0
+
+
+# ---------------------------------------------------------------------------
+# Phase grouping from flat scope vBRIEFs (#383)
+# ---------------------------------------------------------------------------
+
+_SCOPE_VBRIEF_PHASE1 = {
+    "vBRIEFInfo": {"version": "0.5"},
+    "plan": {
+        "title": "Add widget support",
+        "status": "pending",
+        "narratives": {
+            "Description": "Add widget support",
+            "Phase": "Phase 1 -- Foundation",
+            "PhaseDescription": "Fix reported bugs blocking adoption.",
+        },
+        "references": [{"type": "github-issue", "id": "#100"}],
+        "items": [],
+    },
+}
+
+_SCOPE_VBRIEF_PHASE2 = {
+    "vBRIEFInfo": {"version": "0.5"},
+    "plan": {
+        "title": "Dashboard redesign",
+        "status": "pending",
+        "narratives": {
+            "Description": "Dashboard redesign",
+            "Phase": "Phase 2 -- Features",
+        },
+        "references": [{"type": "github-issue", "id": "#200"}],
+        "items": [],
+    },
+}
+
+_SCOPE_VBRIEF_TIERED = {
+    "vBRIEFInfo": {"version": "0.5"},
+    "plan": {
+        "title": "Core refactor",
+        "status": "pending",
+        "narratives": {
+            "Description": "Core refactor",
+            "Phase": "Phase 1 -- Foundation",
+            "Tier": "Tier 1 -- Core",
+        },
+        "items": [],
+    },
+}
+
+_COMPLETED_VBRIEF = {
+    "vBRIEFInfo": {"version": "0.5"},
+    "plan": {
+        "title": "Initial setup",
+        "status": "completed",
+        "narratives": {
+            "Description": "Initial setup",
+            "Phase": "Completed",
+        },
+        "references": [{"type": "github-issue", "id": "#50"}],
+        "items": [],
+    },
+}
+
+
+def test_phase_grouping_from_scope_vbriefs(roadmap_mod, tmp_path) -> None:
+    """Scope vBRIEFs must be grouped by Phase narrative key (#383)."""
+    pending = tmp_path / "pending"
+    completed = tmp_path / "completed"
+    completed.mkdir(parents=True)
+    _write_vbrief(pending / "2026-04-15-100-widget.vbrief.json", _SCOPE_VBRIEF_PHASE1)
+    _write_vbrief(pending / "2026-04-15-200-dashboard.vbrief.json", _SCOPE_VBRIEF_PHASE2)
+    content = roadmap_mod.generate_roadmap_content(pending, completed_dir=completed)
+    assert "## Phase 1 -- Foundation" in content
+    assert "## Phase 2 -- Features" in content
+    # Phase 1 items should appear before Phase 2
+    p1_pos = content.index("Phase 1")
+    p2_pos = content.index("Phase 2")
+    assert p1_pos < p2_pos
+
+
+def test_phase_description_rendered(roadmap_mod, tmp_path) -> None:
+    """Phase descriptions from PhaseDescription narrative must render (#383)."""
+    pending = tmp_path / "pending"
+    completed = tmp_path / "completed"
+    completed.mkdir(parents=True)
+    _write_vbrief(pending / "2026-04-15-100-widget.vbrief.json", _SCOPE_VBRIEF_PHASE1)
+    content = roadmap_mod.generate_roadmap_content(pending, completed_dir=completed)
+    assert "Fix reported bugs blocking adoption." in content
+
+
+def test_completed_section_rendered(roadmap_mod, tmp_path) -> None:
+    """Completed vBRIEFs must appear in a Completed section (#383)."""
+    pending = tmp_path / "pending"
+    pending.mkdir(parents=True)
+    completed = tmp_path / "completed"
+    _write_vbrief(completed / "2026-04-15-50-initial-setup.vbrief.json", _COMPLETED_VBRIEF)
+    content = roadmap_mod.generate_roadmap_content(pending, completed_dir=completed)
+    assert "## Completed" in content
+    assert "Initial setup" in content
+    assert "#50" in content
+
+
+def test_tier_subgrouping_rendered(roadmap_mod, tmp_path) -> None:
+    """Tier subgroupings within phases must render as ### headings (#383)."""
+    pending = tmp_path / "pending"
+    completed = tmp_path / "completed"
+    completed.mkdir(parents=True)
+    _write_vbrief(pending / "2026-04-15-100-widget.vbrief.json", _SCOPE_VBRIEF_PHASE1)
+    _write_vbrief(pending / "2026-04-15-101-refactor.vbrief.json", _SCOPE_VBRIEF_TIERED)
+    content = roadmap_mod.generate_roadmap_content(pending, completed_dir=completed)
+    assert "### Tier 1 -- Core" in content
+
+
+def test_no_completed_section_when_empty(roadmap_mod, tmp_path) -> None:
+    """No Completed section when completed/ is empty (#383)."""
+    pending = tmp_path / "pending"
+    completed = tmp_path / "completed"
+    completed.mkdir(parents=True)
+    _write_vbrief(pending / "2026-04-15-100-widget.vbrief.json", _SCOPE_VBRIEF_PHASE1)
+    content = roadmap_mod.generate_roadmap_content(pending, completed_dir=completed)
+    assert "## Completed" not in content
+
+
+def test_scope_items_render_issue_refs(roadmap_mod, tmp_path) -> None:
+    """Scope vBRIEF items must show issue refs in the rendered list (#383)."""
+    pending = tmp_path / "pending"
+    completed = tmp_path / "completed"
+    completed.mkdir(parents=True)
+    _write_vbrief(pending / "2026-04-15-100-widget.vbrief.json", _SCOPE_VBRIEF_PHASE1)
+    content = roadmap_mod.generate_roadmap_content(pending, completed_dir=completed)
+    assert "**#100**" in content
+    assert "Add widget support" in content

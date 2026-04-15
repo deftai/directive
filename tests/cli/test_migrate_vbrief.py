@@ -23,6 +23,7 @@ from migrate_vbrief import (  # noqa: E402, I001
     LIFECYCLE_FOLDERS,
     _build_project_definition,
     _create_scope_vbrief,
+    _extract_tech_stack,
     _is_user_customized,
     _parse_roadmap_items,
     _resolve_repo_url,
@@ -158,28 +159,147 @@ class TestParseRoadmapItems:
     def test_parses_items_correctly(self, tmp_path):
         roadmap = tmp_path / "ROADMAP.md"
         roadmap.write_text(SAMPLE_ROADMAP_MD, encoding="utf-8")
-        items = _parse_roadmap_items(roadmap)
+        items, phase_descs, completed = _parse_roadmap_items(roadmap)
         assert len(items) == 3
         assert items[0]["number"] == "100"
         assert items[0]["title"] == "Add widget support"
         assert "Phase 1" in items[0]["phase"]
 
-    def test_skips_completed_section(self, tmp_path):
+    def test_skips_completed_from_active_items(self, tmp_path):
         roadmap = tmp_path / "ROADMAP.md"
         roadmap.write_text(SAMPLE_ROADMAP_MD, encoding="utf-8")
-        items = _parse_roadmap_items(roadmap)
+        items, _, _ = _parse_roadmap_items(roadmap)
         numbers = [i["number"] for i in items]
         assert "50" not in numbers
 
+    def test_parses_completed_items(self, tmp_path):
+        roadmap = tmp_path / "ROADMAP.md"
+        roadmap.write_text(SAMPLE_ROADMAP_MD, encoding="utf-8")
+        _, _, completed = _parse_roadmap_items(roadmap)
+        assert len(completed) >= 1
+        assert completed[0]["title"] == "Initial setup"
+
     def test_missing_file_returns_empty(self, tmp_path):
-        items = _parse_roadmap_items(tmp_path / "nonexistent.md")
+        items, phase_descs, completed = _parse_roadmap_items(tmp_path / "nonexistent.md")
         assert items == []
+        assert phase_descs == {}
+        assert completed == []
 
     def test_empty_file(self, tmp_path):
         roadmap = tmp_path / "ROADMAP.md"
         roadmap.write_text("", encoding="utf-8")
-        items = _parse_roadmap_items(roadmap)
+        items, _, _ = _parse_roadmap_items(roadmap)
         assert items == []
+
+    def test_task_based_format(self, tmp_path):
+        """Parser must handle - `X.Y.Z` Title format (#381)."""
+        roadmap = tmp_path / "ROADMAP.md"
+        roadmap.write_text(
+            "# Roadmap\n\n## Phase 1\n\n"
+            "- `1.1.1` TypeScript scaffold\n"
+            "- `1.1.2` Setup CI pipeline\n",
+            encoding="utf-8",
+        )
+        items, _, _ = _parse_roadmap_items(roadmap)
+        assert len(items) == 2
+        assert items[0]["title"] == "TypeScript scaffold"
+        assert items[0]["task_id"] == "1.1.1"
+        assert items[0]["number"] == ""
+
+    def test_bold_task_based_format(self, tmp_path):
+        """Parser must handle - **`X.Y.Z`** Title format (#381)."""
+        roadmap = tmp_path / "ROADMAP.md"
+        roadmap.write_text(
+            "# Roadmap\n\n## Phase 1\n\n"
+            "- **`2.3.1`** Database migration\n",
+            encoding="utf-8",
+        )
+        items, _, _ = _parse_roadmap_items(roadmap)
+        assert len(items) == 1
+        assert items[0]["title"] == "Database migration"
+        assert items[0]["task_id"] == "2.3.1"
+
+    def test_generic_fallback_format(self, tmp_path):
+        """Parser must handle plain - Title items (#381)."""
+        roadmap = tmp_path / "ROADMAP.md"
+        roadmap.write_text(
+            "# Roadmap\n\n## Phase 3\n\n"
+            "- Code signing\n"
+            "- Low-end LLM compatibility testing\n",
+            encoding="utf-8",
+        )
+        items, _, _ = _parse_roadmap_items(roadmap)
+        assert len(items) == 2
+        assert items[0]["title"] == "Code signing"
+        assert items[0]["number"] == ""
+        assert "synthetic_id" in items[0]
+
+    def test_phase_descriptions_captured(self, tmp_path):
+        """Parser must capture phase description text (#383)."""
+        roadmap = tmp_path / "ROADMAP.md"
+        roadmap.write_text(
+            "# Roadmap\n\n"
+            "## Phase 1 -- Foundation\n\n"
+            "Fix reported bugs blocking adoption.\n\n"
+            "- **#100** -- Bug fix\n",
+            encoding="utf-8",
+        )
+        _, phase_descs, _ = _parse_roadmap_items(roadmap)
+        assert "Phase 1 -- Foundation" in phase_descs
+        assert "Fix reported bugs" in phase_descs["Phase 1 -- Foundation"]
+
+    def test_tier_subheadings_captured(self, tmp_path):
+        """Parser must capture tier subheadings (#383)."""
+        roadmap = tmp_path / "ROADMAP.md"
+        roadmap.write_text(
+            "# Roadmap\n\n## Phase 2\n\n"
+            "### Tier 1 -- Core\n\n"
+            "- **#200** -- Core feature\n",
+            encoding="utf-8",
+        )
+        items, _, _ = _parse_roadmap_items(roadmap)
+        assert len(items) == 1
+        assert items[0]["tier"] == "Tier 1 -- Core"
+
+    def test_mixed_formats(self, tmp_path):
+        """Parser must handle all formats in a single roadmap (#381)."""
+        roadmap = tmp_path / "ROADMAP.md"
+        roadmap.write_text(
+            "# Roadmap\n\n## Phase 1\n\n"
+            "- **#100** -- Issue-based item\n"
+            "- `1.1.1` Task-based item\n"
+            "- Plain text item\n\n"
+            "## Completed\n\n"
+            "- ~~#50 -- Done item~~\n",
+            encoding="utf-8",
+        )
+        items, _, completed = _parse_roadmap_items(roadmap)
+        assert len(items) == 3
+        assert len(completed) == 1
+
+
+class TestExtractTechStack:
+    """Tests for _extract_tech_stack (#382)."""
+
+    def test_extracts_bold_label_format(self):
+        content = "# Project\n\n**Tech Stack**: Python 3.11, Flask\n"
+        assert _extract_tech_stack(content) == "Python 3.11, Flask"
+
+    def test_extracts_section_format(self):
+        content = "# Project\n\n## Tech Stack\n\nGo 1.22, Python 3.11\n\n## Other\n"
+        assert "Go 1.22" in _extract_tech_stack(content)
+
+    def test_extracts_plain_label_format(self):
+        content = "Some text\nTech Stack: Rust, TypeScript\nMore text\n"
+        assert _extract_tech_stack(content) == "Rust, TypeScript"
+
+    def test_returns_empty_when_not_found(self):
+        content = "# Project\n\nJust some content with no tech stack.\n"
+        assert _extract_tech_stack(content) == ""
+
+    def test_case_insensitive(self):
+        content = "**tech stack**: Node.js\n"
+        assert _extract_tech_stack(content) == "Node.js"
 
 
 class TestResolveRepoUrl:
@@ -223,6 +343,12 @@ class TestBuildProjectDefinition:
     def test_includes_project_content(self):
         result = _build_project_definition(None, "My project config", [])
         assert result["plan"]["narratives"]["ProjectConfig"] == "My project config"
+
+    def test_extracts_tech_stack_narrative(self):
+        """PROJECT-DEFINITION must include 'tech stack' narrative from PROJECT.md (#382)."""
+        content = "# Project\n\n**Tech Stack**: Python 3.11, Flask\n"
+        result = _build_project_definition(None, content, [])
+        assert result["plan"]["narratives"]["tech stack"] == "Python 3.11, Flask"
 
     def test_includes_scope_items_with_provenance(self):
         items = [{"number": "42", "title": "Test item", "phase": "Phase 1"}]
@@ -269,6 +395,24 @@ class TestCreateScopeVbrief:
         result = _create_scope_vbrief(item, repo_url="https://github.com/owner/repo")
         refs = result["plan"]["references"]
         assert refs[0]["url"] == "https://github.com/owner/repo/issues/123"
+
+    def test_tier_narrative_included(self):
+        """Scope vBRIEF must include Tier narrative when tier is set (#383)."""
+        item = {"number": "99", "title": "Feature", "phase": "Phase 2", "tier": "Tier 1"}
+        result = _create_scope_vbrief(item)
+        assert result["plan"]["narratives"]["Tier"] == "Tier 1"
+
+    def test_phase_description_narrative_included(self):
+        """Scope vBRIEF must include PhaseDescription when provided (#383)."""
+        item = {"number": "99", "title": "Feature", "phase": "Phase 1"}
+        result = _create_scope_vbrief(item, phase_description="Fix blocking bugs.")
+        assert result["plan"]["narratives"]["PhaseDescription"] == "Fix blocking bugs."
+
+    def test_completed_status_parameter(self):
+        """Scope vBRIEF must use the status parameter (#383)."""
+        item = {"number": "50", "title": "Done", "phase": "Completed"}
+        result = _create_scope_vbrief(item, status="completed")
+        assert result["plan"]["status"] == "completed"
 
 
 # ===========================================================================
@@ -395,6 +539,68 @@ class TestMigrateRoadmapConversion:
         assert ok
         create_count = sum(1 for a in actions if a.startswith("CREATE pending/"))
         assert create_count == 0
+
+
+class TestMigrateCompletedItems:
+    """Tests for completed item migration to completed/ (#383)."""
+
+    def test_completed_items_created_in_completed_folder(self, tmp_path):
+        project = _make_project(tmp_path, roadmap_md=SAMPLE_ROADMAP_MD)
+        ok, actions = migrate(project)
+        assert ok
+        completed_dir = project / "vbrief" / "completed"
+        vbrief_files = list(completed_dir.glob("*.vbrief.json"))
+        assert len(vbrief_files) >= 1
+
+    def test_completed_vbrief_has_completed_status(self, tmp_path):
+        project = _make_project(tmp_path, roadmap_md=SAMPLE_ROADMAP_MD)
+        migrate(project)
+        completed_dir = project / "vbrief" / "completed"
+        for fpath in completed_dir.glob("*.vbrief.json"):
+            data = json.loads(fpath.read_text(encoding="utf-8"))
+            assert data["plan"]["status"] == "completed"
+
+    def test_non_issue_items_migrated(self, tmp_path):
+        """Plain text items must create scope vBRIEFs (#381, #383)."""
+        roadmap = (
+            "# Roadmap\n\n## Phase 3\n\n"
+            "- Code signing\n"
+            "- Upgrade GitHub Actions to Node.js 24\n"
+        )
+        project = _make_project(tmp_path, roadmap_md=roadmap)
+        ok, actions = migrate(project)
+        assert ok
+        pending_dir = project / "vbrief" / "pending"
+        vbrief_files = list(pending_dir.glob("*.vbrief.json"))
+        assert len(vbrief_files) == 2
+
+    def test_task_based_items_migrated(self, tmp_path):
+        """Task-based items must create scope vBRIEFs (#381)."""
+        roadmap = (
+            "# Roadmap\n\n## Phase 1\n\n"
+            "- `1.1.1` TypeScript scaffold\n"
+        )
+        project = _make_project(tmp_path, roadmap_md=roadmap)
+        ok, actions = migrate(project)
+        assert ok
+        pending_dir = project / "vbrief" / "pending"
+        vbrief_files = list(pending_dir.glob("*.vbrief.json"))
+        assert len(vbrief_files) == 1
+        data = json.loads(vbrief_files[0].read_text(encoding="utf-8"))
+        assert data["plan"]["title"] == "TypeScript scaffold"
+
+
+class TestMigrateTechStackExtraction:
+    """Tests for tech stack extraction during migration (#382)."""
+
+    def test_project_definition_includes_tech_stack(self, tmp_path):
+        project = _make_project(tmp_path, project_md=SAMPLE_PROJECT_MD)
+        ok, actions = migrate(project)
+        assert ok
+        pd_path = project / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
+        data = json.loads(pd_path.read_text(encoding="utf-8"))
+        assert "tech stack" in data["plan"]["narratives"]
+        assert "Python" in data["plan"]["narratives"]["tech stack"]
 
 
 class TestMigrateDeprecationRedirects:

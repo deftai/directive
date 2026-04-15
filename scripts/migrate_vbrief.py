@@ -64,43 +64,144 @@ def _slugify(text: str) -> str:
     return slug[:60].strip("-")
 
 
-def _parse_roadmap_items(roadmap_path: Path) -> list[dict]:
+def _parse_roadmap_items(roadmap_path: Path) -> tuple[list[dict], dict[str, str], list[dict]]:
     """Parse ROADMAP.md and extract items as structured data.
 
-    Returns a list of dicts with keys: number, title, phase, description.
+    Returns a tuple of:
+      - active items: list of dicts with keys: number, title, phase, tier.
+      - phase_descriptions: dict mapping phase heading -> description text.
+      - completed items: list of dicts with keys: number, title (from Completed section).
     """
     if not roadmap_path.exists():
-        return []
+        return [], {}, []
 
     content = roadmap_path.read_text(encoding="utf-8")
     items: list[dict] = []
+    completed_items: list[dict] = []
+    phase_descriptions: dict[str, str] = {}
     current_phase = ""
+    current_tier = ""
+    in_completed = False
+    # Accumulate description lines between heading and first list item
+    desc_lines: list[str] = []
+    capturing_desc = False
+    _synthetic_counter = 0
 
     for line in content.splitlines():
-        # Detect phase headings
+        # Detect phase headings (## Level)
         phase_match = re.match(r"^##\s+(.+)", line)
         if phase_match:
+            # Save previous phase description
+            if current_phase and desc_lines:
+                phase_descriptions[current_phase] = "\n".join(desc_lines).strip()
+            desc_lines = []
+
             current_phase = phase_match.group(1).strip()
-            # Skip Completed section
+            current_tier = ""
             if "completed" in current_phase.lower():
-                current_phase = ""
+                in_completed = True
+                capturing_desc = False
+            else:
+                in_completed = False
+                capturing_desc = True
             continue
+
+        # Detect tier subheadings (### Level)
+        tier_match = re.match(r"^###\s+(.+)", line)
+        if tier_match:
+            if current_phase and desc_lines and capturing_desc:
+                phase_descriptions[current_phase] = "\n".join(desc_lines).strip()
+                desc_lines = []
+                capturing_desc = False
+            current_tier = tier_match.group(1).strip()
+            continue
+
+        # Accumulate phase description text (non-empty, non-list lines)
+        if capturing_desc and not in_completed:
+            stripped = line.strip()
+            if stripped and not stripped.startswith("-"):
+                desc_lines.append(stripped)
+                continue
+            if stripped.startswith("-"):
+                # First list item ends description capture
+                if desc_lines:
+                    phase_descriptions[current_phase] = "\n".join(desc_lines).strip()
+                    desc_lines = []
+                capturing_desc = False
+                # Fall through to item parsing below
+            else:
+                # Empty line during desc capture
+                if desc_lines:
+                    desc_lines.append("")
+                continue
 
         if not current_phase:
             continue
 
-        # Match roadmap items: - **#NNN** -- Title
+        # --- Completed section items ---
+        if in_completed:
+            # Match: - ~~#NNN -- Title~~ or - ~~Title~~
+            comp_match = re.match(r"^-\s+~~(?:#?(\d+)\s*--?\s*)?(.+?)~~", line)
+            if comp_match:
+                comp_number = comp_match.group(1) or ""
+                comp_title = comp_match.group(2).strip()
+                completed_items.append({
+                    "number": comp_number,
+                    "title": comp_title,
+                    "phase": current_phase,
+                })
+            continue
+
+        # --- Active section items ---
+        # Match GitHub issue format: - **#NNN** -- Title
         item_match = re.match(r"^-\s+\*\*#(\d+)\*\*\s+--\s+(.+)", line)
         if item_match:
-            number = item_match.group(1)
-            title = item_match.group(2).strip()
             items.append({
-                "number": number,
+                "number": item_match.group(1),
+                "title": item_match.group(2).strip(),
+                "phase": current_phase,
+                "tier": current_tier,
+            })
+            continue
+
+        # Match task-based format: - **`X.Y.Z`** Title  or  - `X.Y.Z` Title
+        task_match = re.match(
+            r"^-\s+(?:\*\*)?`([^`]+)`(?:\*\*)?\s+(.+)", line
+        )
+        if task_match:
+            task_id = task_match.group(1).strip()
+            title = task_match.group(2).strip()
+            items.append({
+                "number": "",
                 "title": title,
                 "phase": current_phase,
+                "tier": current_tier,
+                "task_id": task_id,
             })
+            continue
 
-    return items
+        # Generic fallback: - Title (any list item under a ## heading)
+        generic_match = re.match(r"^-\s+(.+)", line)
+        if generic_match:
+            title = generic_match.group(1).strip()
+            # Skip items that look like sub-bullets or empty
+            if not title:
+                continue
+            _synthetic_counter += 1
+            items.append({
+                "number": "",
+                "title": title,
+                "phase": current_phase,
+                "tier": current_tier,
+                "synthetic_id": f"roadmap-{_synthetic_counter}",
+            })
+            continue
+
+    # Save final phase description
+    if current_phase and desc_lines and not in_completed:
+        phase_descriptions[current_phase] = "\n".join(desc_lines).strip()
+
+    return items, phase_descriptions, completed_items
 
 
 def _resolve_repo_url(spec_vbrief: dict | None) -> str:
@@ -122,6 +223,43 @@ def _resolve_repo_url(spec_vbrief: dict | None) -> str:
                 parts = uri.split("github.com/")[-1].split("/")
                 if len(parts) >= 2:
                     return f"https://github.com/{parts[0]}/{parts[1]}"
+    return ""
+
+
+def _extract_tech_stack(project_content: str) -> str:
+    """Extract tech stack information from PROJECT.md content.
+
+    Looks for common patterns:
+      - **Tech Stack**: value
+      - ## Tech Stack\n content
+      - Tech Stack: value
+    Returns extracted tech stack string, or empty string if not found.
+    """
+    # Pattern 1: **Tech Stack**: value (bold label on a single line)
+    match = re.search(
+        r"\*\*Tech\s+Stack\*\*\s*:\s*(.+)", project_content, re.IGNORECASE
+    )
+    if match:
+        return match.group(1).strip()
+
+    # Pattern 2: ## Tech Stack section (grab lines until next ## or EOF)
+    section_match = re.search(
+        r"##\s+Tech\s+Stack\s*\n(.*?)(?=\n##\s|\Z)",
+        project_content,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if section_match:
+        section = section_match.group(1).strip()
+        if section:
+            return section
+
+    # Pattern 3: plain Tech Stack: value
+    plain_match = re.search(
+        r"Tech\s+Stack\s*:\s*(.+)", project_content, re.IGNORECASE
+    )
+    if plain_match:
+        return plain_match.group(1).strip()
+
     return ""
 
 
@@ -152,16 +290,22 @@ def _build_project_definition(
     # Extract from PROJECT.md
     if project_content:
         narratives["ProjectConfig"] = project_content
+        # Extract tech stack into its own narrative key (D3 requirement)
+        tech_stack = _extract_tech_stack(project_content)
+        if tech_stack:
+            narratives["tech stack"] = tech_stack
 
     items: list[dict] = []
     for scope in scope_items:
+        number = scope.get("number", "")
+        fallback_id = scope.get("synthetic_id", scope.get("task_id", "unknown"))
+        scope_id = f"scope-{number}" if number else f"scope-{fallback_id}"
         item: dict = {
-            "id": f"scope-{scope.get('number', 'unknown')}",
+            "id": scope_id,
             "title": scope.get("title", "Untitled"),
             "status": "pending",
         }
         # Origin provenance per D11
-        number = scope.get("number")
         if number:
             ref: dict = {
                 "type": "github-issue",
@@ -186,7 +330,12 @@ def _build_project_definition(
     }
 
 
-def _create_scope_vbrief(item: dict, repo_url: str = "") -> dict:
+def _create_scope_vbrief(
+    item: dict,
+    repo_url: str = "",
+    status: str = "pending",
+    phase_description: str = "",
+) -> dict:
     """Create an individual scope vBRIEF from a roadmap item.
 
     Per RFC #309 D7: filename uses creation date + descriptive slug.
@@ -195,19 +344,27 @@ def _create_scope_vbrief(item: dict, repo_url: str = "") -> dict:
     number = item.get("number", "")
     title = item.get("title", "Untitled")
     phase = item.get("phase", "")
+    tier = item.get("tier", "")
+
+    desc_label = f"#{number}: {title}" if number else title
+    narratives: dict[str, str] = {
+        "Description": title,
+        "Phase": phase,
+    }
+    if tier:
+        narratives["Tier"] = tier
+    if phase_description:
+        narratives["PhaseDescription"] = phase_description
 
     vbrief: dict = {
         "vBRIEFInfo": {
             "version": "0.5",
-            "description": f"Scope vBRIEF for #{number}: {title}",
+            "description": f"Scope vBRIEF for {desc_label}",
         },
         "plan": {
             "title": title,
-            "status": "pending",
-            "narratives": {
-                "Description": title,
-                "Phase": phase,
-            },
+            "status": status,
+            "narratives": narratives,
             "items": [],
         },
     }
@@ -293,9 +450,13 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
         actions.append("READ  PROJECT.md")
 
     roadmap_path = project_root / "ROADMAP.md"
-    roadmap_items = _parse_roadmap_items(roadmap_path)
-    if roadmap_items:
-        actions.append(f"READ  ROADMAP.md ({len(roadmap_items)} items parsed)")
+    roadmap_items, phase_descriptions, completed_items = _parse_roadmap_items(roadmap_path)
+    total_items = len(roadmap_items) + len(completed_items)
+    if total_items:
+        actions.append(
+            f"READ  ROADMAP.md ({len(roadmap_items)} active, "
+            f"{len(completed_items)} completed items parsed)"
+        )
     else:
         actions.append("SKIP  ROADMAP.md not found or no items parsed")
 
@@ -307,8 +468,9 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
     if proj_def_path.exists():
         actions.append("SKIP  PROJECT-DEFINITION.vbrief.json already exists (idempotent)")
     else:
+        all_items = roadmap_items + completed_items
         proj_def = _build_project_definition(
-            spec_vbrief, project_content, roadmap_items, repo_url=repo_url
+            spec_vbrief, project_content, all_items, repo_url=repo_url
         )
         proj_def_path.write_text(
             json.dumps(proj_def, indent=2, ensure_ascii=False) + "\n",
@@ -318,29 +480,58 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
 
     # ---- Step 4: Convert roadmap items to pending/ vBRIEFs ----
     for item in roadmap_items:
-        number = item.get("number", "unknown")
+        number = item.get("number", "")
         slug = _slugify(item.get("title", "untitled"))
-        filename = f"{_TODAY}-{number}-{slug}.vbrief.json"
+        # Build filename: use issue number, task_id, or synthetic_id
+        item_id = number or item.get("task_id", "") or item.get("synthetic_id", "")
+        id_part = item_id.replace(".", "-") if item_id else slug[:20]
+        filename = f"{_TODAY}-{id_part}-{slug}.vbrief.json"
         target_path = vbrief_dir / "pending" / filename
+        phase_desc = phase_descriptions.get(item.get("phase", ""), "")
 
         if target_path.exists():
             actions.append(f"SKIP  pending/{filename} already exists (idempotent)")
             continue
 
         # Check if any existing file references this issue number
-        existing = _find_existing_scope_vbrief(vbrief_dir, number)
-        if existing:
-            actions.append(
-                f"SKIP  #{number} already has scope vBRIEF: {existing.relative_to(vbrief_dir)}"
-            )
-            continue
+        if number:
+            existing = _find_existing_scope_vbrief(vbrief_dir, number)
+            if existing:
+                actions.append(
+                    f"SKIP  #{number} already has scope vBRIEF: "
+                    f"{existing.relative_to(vbrief_dir)}"
+                )
+                continue
 
-        scope_vbrief = _create_scope_vbrief(item, repo_url=repo_url)
+        scope_vbrief = _create_scope_vbrief(
+            item, repo_url=repo_url, phase_description=phase_desc
+        )
         target_path.write_text(
             json.dumps(scope_vbrief, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
-        actions.append(f"CREATE pending/{filename} (#{number})")
+        label = f"#{number}" if number else item.get("task_id", slug)
+        actions.append(f"CREATE pending/{filename} ({label})")
+
+    # ---- Step 4b: Convert completed items to completed/ vBRIEFs ----
+    for item in completed_items:
+        number = item.get("number", "")
+        slug = _slugify(item.get("title", "untitled"))
+        id_part = number if number else slug[:20]
+        filename = f"{_TODAY}-{id_part}-{slug}.vbrief.json"
+        target_path = vbrief_dir / "completed" / filename
+
+        if target_path.exists():
+            actions.append(f"SKIP  completed/{filename} already exists (idempotent)")
+            continue
+
+        scope_vbrief = _create_scope_vbrief(item, repo_url=repo_url, status="completed")
+        target_path.write_text(
+            json.dumps(scope_vbrief, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        label = f"#{number}" if number else slug
+        actions.append(f"CREATE completed/{filename} ({label})")
 
     # ---- Step 5: Deprecation redirects ----
     if spec_md_path.exists():

@@ -32,11 +32,11 @@ BANNER = (
 )
 
 
-def _load_vbriefs(pending_dir: Path) -> list[dict]:
-    """Load and return all .vbrief.json files from pending_dir, sorted by name."""
-    if not pending_dir.is_dir():
+def _load_vbriefs(folder: Path) -> list[dict]:
+    """Load and return all .vbrief.json files from a folder, sorted by name."""
+    if not folder.is_dir():
         return []
-    files = sorted(pending_dir.glob("*.vbrief.json"))
+    files = sorted(folder.glob("*.vbrief.json"))
     vbriefs = []
     for f in files:
         try:
@@ -178,97 +178,212 @@ def _render_item(item: dict, dep_map: dict[str, list[str]], indent: int = 0) -> 
     return lines
 
 
-def render_roadmap(pending_dir: str, out_path: str) -> tuple[bool, str]:
-    """Render ROADMAP.md from vBRIEF files in pending_dir.
+def render_roadmap(
+    pending_dir: str,
+    out_path: str,
+    completed_dir: str | None = None,
+) -> tuple[bool, str]:
+    """Render ROADMAP.md from vBRIEF files in pending_dir and completed_dir.
 
     Returns:
         (True, message) on success.
         (False, error_message) on failure.
     """
     try:
-        content = generate_roadmap_content(Path(pending_dir))
+        cd = Path(completed_dir) if completed_dir else None
+        content = generate_roadmap_content(Path(pending_dir), completed_dir=cd)
         Path(out_path).write_text(content, encoding="utf-8")
         return True, f"✓ Rendered ROADMAP.md to {out_path}"
     except OSError as exc:
         return False, f"✗ Failed to write {out_path}: {exc}"
 
 
-def generate_roadmap_content(pending_dir: Path) -> str:
-    """Generate the ROADMAP.md content string from pending/ vBRIEFs.
+def _group_by_phase(
+    vbriefs: list[dict],
+) -> tuple[dict[str, list[dict]], dict[str, str]]:
+    """Group flat scope vBRIEFs by their Phase narrative key.
+
+    Returns:
+      - phase_groups: ordered dict of phase -> list of vBRIEFs
+      - phase_descriptions: dict of phase -> PhaseDescription narrative
+    """
+    phase_groups: dict[str, list[dict]] = {}
+    phase_descriptions: dict[str, str] = {}
+
+    for vb in vbriefs:
+        plan = vb.get("plan", {})
+        if not isinstance(plan, dict):
+            continue
+        narratives = plan.get("narratives", {})
+        if not isinstance(narratives, dict):
+            narratives = {}
+        phase = narratives.get("Phase", "")
+        if not phase:
+            phase = "Ungrouped"
+        phase_groups.setdefault(phase, []).append(vb)
+        # Capture phase description from the first vBRIEF that has one
+        if phase not in phase_descriptions:
+            pd = narratives.get("PhaseDescription", "")
+            if pd:
+                phase_descriptions[phase] = pd
+
+    return phase_groups, phase_descriptions
+
+
+def _group_by_tier(vbriefs: list[dict]) -> dict[str, list[dict]]:
+    """Group vBRIEFs by their Tier narrative key within a phase."""
+    tier_groups: dict[str, list[dict]] = {}
+    for vb in vbriefs:
+        plan = vb.get("plan", {})
+        if not isinstance(plan, dict):
+            continue
+        narratives = plan.get("narratives", {})
+        tier = narratives.get("Tier", "") if isinstance(narratives, dict) else ""
+        tier_groups.setdefault(tier, []).append(vb)
+    return tier_groups
+
+
+def _render_scope_item(vbrief_data: dict) -> list[str]:
+    """Render a single scope vBRIEF as a markdown list item."""
+    plan = vbrief_data.get("plan", {})
+    if not isinstance(plan, dict):
+        return []
+    title = plan.get("title", "Untitled")
+    status = plan.get("status", "")
+    references = plan.get("references", [])
+    if not isinstance(references, list):
+        references = []
+    issue_refs = _extract_issue_refs(references)
+
+    parts = []
+    if issue_refs:
+        parts.append(f"**{issue_refs[0]}**")
+    parts.append(title)
+    if status and status != "pending":
+        parts.append(f"`[{status}]`")
+
+    return ["- " + " -- ".join(parts)]
+
+
+def generate_roadmap_content(
+    pending_dir: Path,
+    completed_dir: Path | None = None,
+) -> str:
+    """Generate the ROADMAP.md content string from pending/ and completed/ vBRIEFs.
 
     This is the pure function used by both render and drift check.
+    Groups scope vBRIEFs by Phase narrative key, renders phase headings
+    with descriptions, includes tier subgroupings, and appends a Completed
+    section from completed/ folder.
     """
     vbriefs = _load_vbriefs(pending_dir)
 
+    # Infer completed_dir from pending_dir if not provided
+    if completed_dir is None:
+        completed_dir = pending_dir.parent / "completed"
+    completed_vbriefs = _load_vbriefs(completed_dir)
+
     lines: list[str] = [BANNER, "# Roadmap\n"]
 
-    if not vbriefs:
+    if not vbriefs and not completed_vbriefs:
         lines.append("No pending work items.\n")
         return "\n".join(lines) + "\n"
 
-    # Collect all phases across all vBRIEFs, grouped by source file
-    for vbrief in vbriefs:
-        plan = vbrief.get("plan", {})
-        if not isinstance(plan, dict):
-            continue
+    # Check if any vBRIEFs use the flat scope model (Phase narrative key)
+    has_phase_narratives = any(
+        isinstance(vb.get("plan", {}).get("narratives", {}), dict)
+        and vb.get("plan", {}).get("narratives", {}).get("Phase")
+        for vb in vbriefs
+    )
 
-        plan_title = plan.get("title", "Untitled")
-        references = plan.get("references", [])
-        if not isinstance(references, list):
-            references = []
-        issue_refs = _extract_issue_refs(references)
+    if has_phase_narratives:
+        # --- Flat scope vBRIEFs grouped by Phase narrative ---
+        phase_groups, phase_descs = _group_by_phase(vbriefs)
 
-        # Title line with issue references
-        title_parts = [f"## {plan_title}"]
-        if issue_refs:
-            title_parts.append(f"({', '.join(issue_refs)})")
-        lines.append(" ".join(title_parts) + "\n")
+        for phase_name, phase_vbriefs in phase_groups.items():
+            lines.append(f"## {phase_name}\n")
+            desc = phase_descs.get(phase_name, "")
+            if desc:
+                lines.append(f"{desc}\n")
 
-        # Plan-level narratives (overview)
-        narratives = plan.get("narratives", {})
-        if isinstance(narratives, dict):
-            overview = narratives.get("Overview", "")
-            if overview:
-                lines.append(f"{overview}\n")
+            # Group by tier within phase
+            tier_groups = _group_by_tier(phase_vbriefs)
+            has_tiers = any(t for t in tier_groups if t)
 
-        # Build edge map for dependency ordering
-        dep_map = _build_edge_map(vbrief)
-
-        # Extract and render phases (top-level items)
-        phases = _extract_phases(vbrief)
-        sorted_phases = _topo_sort_items(phases, dep_map)
-
-        for phase in sorted_phases:
-            phase_id = phase.get("id", "")
-            phase_title = phase.get("title", "Untitled Phase")
-            phase_status = phase.get("status", "")
-
-            # Phase heading
-            heading_parts = []
-            if phase_id:
-                heading_parts.append(f"### {phase_id}: {phase_title}")
+            if has_tiers:
+                for tier_name, tier_vbs in tier_groups.items():
+                    if tier_name:
+                        lines.append(f"### {tier_name}\n")
+                    for vb in tier_vbs:
+                        lines.extend(_render_scope_item(vb))
+                    lines.append("")
             else:
-                heading_parts.append(f"### {phase_title}")
-            if phase_status:
-                heading_parts[0] += f" `[{phase_status}]`"
-            lines.append(heading_parts[0] + "\n")
-
-            # Phase narrative
-            narrative = phase.get("narrative", {})
-            if isinstance(narrative, dict):
-                for key, val in narrative.items():
-                    if key not in ("Traces", "Acceptance"):
-                        lines.append(f"{val}\n")
-
-            # Render sub-items within phase
-            sub_items = phase.get("subItems", [])
-            if sub_items:
-                sorted_subs = _topo_sort_items(sub_items, dep_map)
-                for item in sorted_subs:
-                    lines.extend(_render_item(item, dep_map))
+                for vb in phase_vbriefs:
+                    lines.extend(_render_scope_item(vb))
                 lines.append("")
+    else:
+        # --- Hierarchical vBRIEFs (original behavior) ---
+        for vbrief in vbriefs:
+            plan = vbrief.get("plan", {})
+            if not isinstance(plan, dict):
+                continue
 
-        lines.append("---\n")
+            plan_title = plan.get("title", "Untitled")
+            references = plan.get("references", [])
+            if not isinstance(references, list):
+                references = []
+            issue_refs = _extract_issue_refs(references)
+
+            title_parts = [f"## {plan_title}"]
+            if issue_refs:
+                title_parts.append(f"({', '.join(issue_refs)})")
+            lines.append(" ".join(title_parts) + "\n")
+
+            narratives = plan.get("narratives", {})
+            if isinstance(narratives, dict):
+                overview = narratives.get("Overview", "")
+                if overview:
+                    lines.append(f"{overview}\n")
+
+            dep_map = _build_edge_map(vbrief)
+            phases = _extract_phases(vbrief)
+            sorted_phases = _topo_sort_items(phases, dep_map)
+
+            for phase in sorted_phases:
+                phase_id = phase.get("id", "")
+                phase_title = phase.get("title", "Untitled Phase")
+                phase_status = phase.get("status", "")
+
+                heading_parts = []
+                if phase_id:
+                    heading_parts.append(f"### {phase_id}: {phase_title}")
+                else:
+                    heading_parts.append(f"### {phase_title}")
+                if phase_status:
+                    heading_parts[0] += f" `[{phase_status}]`"
+                lines.append(heading_parts[0] + "\n")
+
+                narrative = phase.get("narrative", {})
+                if isinstance(narrative, dict):
+                    for key, val in narrative.items():
+                        if key not in ("Traces", "Acceptance"):
+                            lines.append(f"{val}\n")
+
+                sub_items = phase.get("subItems", [])
+                if sub_items:
+                    sorted_subs = _topo_sort_items(sub_items, dep_map)
+                    for item in sorted_subs:
+                        lines.extend(_render_item(item, dep_map))
+                    lines.append("")
+
+            lines.append("---\n")
+
+    # --- Completed section ---
+    if completed_vbriefs:
+        lines.append("## Completed\n")
+        for vb in completed_vbriefs:
+            lines.extend(_render_scope_item(vb))
+        lines.append("")
 
     return "\n".join(lines) + "\n"
 
