@@ -8,6 +8,21 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
+## Quick Reference: Task Commands
+
+Key `task` commands for working with vBRIEF files:
+
+- `task spec:render` — Regenerate `SPECIFICATION.md` from `specification.vbrief.json`
+- `task roadmap:render` — Regenerate `ROADMAP.md` from `vbrief/pending/` scope vBRIEFs
+- `task project:render` — Refresh `PROJECT-DEFINITION.vbrief.json` items registry from lifecycle folders
+- `task migrate:vbrief` — Migrate existing project to vBRIEF lifecycle folder structure (one-time)
+- `task vbrief:validate` — Validate schema, filenames, folder/status consistency (part of `task check`)
+- `task scope:promote|activate|complete|cancel|restore|block|unblock <file>` — Lifecycle transitions
+
+For interactive creation workflows, use `run` commands (`deft/run bootstrap`, `deft/run spec`). See [commands.md](../commands.md) for the full command lifecycle.
+
+---
+
 ## File Taxonomy
 
 All vBRIEF files live in `./vbrief/` within the project workspace. Files are organized into **singular operational files** at the vbrief root and **scope vBRIEFs** in lifecycle folders.
@@ -74,6 +89,8 @@ Individual units of work (features, bugs, initiatives) live as scope vBRIEFs in 
 - ~ On scope completion, update the origin (close the issue, post a comment linking to the PR)
 
 Reference types (extensible by convention): `github-issue`, `jira-ticket`, `user-request`
+
+**Platform note:** The migration script (`task migrate:vbrief`) defaults origin provenance to `github-issue` type. Non-GitHub users should manually adjust `references[].type` in generated vBRIEFs after migration. See [README.md — Platform Requirements](../README.md#%EF%B8%8F-platform-requirements).
 
 ```json
 "references": [

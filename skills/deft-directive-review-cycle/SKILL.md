@@ -13,6 +13,10 @@ Structured workflow for responding to bot reviewer (Greptile) findings on a PR.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
+## Platform Requirements
+
+! This skill requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** to be installed and authenticated. PR comment fetching, check-run queries, and review submission all depend on `gh`.
+
 ## When to Use
 
 - User says "review cycle", "check reviews", or "run review cycle" on a PR

@@ -204,6 +204,52 @@ The entire change folder moves as-is. The archive is a historical record — nev
 
 ---
 
+---
+
+## Command Lifecycle: `run` vs `task`
+
+Deft uses two complementary command surfaces that together cover the full document lifecycle:
+
+### `run` commands — Interactive creation
+
+`run` commands handle conversational, agent-friendly creation workflows:
+
+- `deft/run bootstrap` — Interactive setup for USER.md and PROJECT-DEFINITION.vbrief.json
+- `deft/run spec` — AI-assisted specification interview (produces scope vBRIEFs)
+- `deft/run validate` — Check deft configuration
+- `deft/run doctor` — Check system dependencies
+- `deft/run reset` — Reset config files
+
+These are the entry points for humans and agents starting new work.
+
+### `task` commands — Scripted rendering, migration, and validation
+
+`task` commands handle deterministic, CI-friendly operations:
+
+- `task spec:render` — Regenerate `SPECIFICATION.md` from `specification.vbrief.json`
+- `task spec:pipeline` — Full spec validation and rendering pipeline
+- `task roadmap:render` — Regenerate `ROADMAP.md` from `vbrief/pending/` scope vBRIEFs
+- `task roadmap:check` — Detect drift between ROADMAP.md and pending/ contents
+- `task project:render` — Regenerate `PROJECT-DEFINITION.vbrief.json` items registry from lifecycle folders
+- `task migrate:vbrief` — One-time migration from pre-v0.20 model to vBRIEF lifecycle folders
+- `task vbrief:validate` — Validate vBRIEF schema, filenames, folder/status consistency (runs as part of `task check`)
+- `task agents:init` — Write canonical AGENTS.md to project root (idempotent)
+
+These transform vBRIEF source files into readable artifacts or enforce structural rules.
+
+### Why the split?
+
+The split is intentional: `run` commands are conversational and agent-friendly (they prompt for input, adapt to context); `task` commands are deterministic and scriptable (same input always produces the same output). For the full document lifecycle:
+
+1. **Create** with `run` — bootstrap, interview, generate spec
+2. **Render** with `task` — produce markdown artifacts from vBRIEF sources
+3. **Validate** with `task` — enforce schema, naming, and consistency rules
+4. **Migrate** with `task` — one-time structural upgrades
+
+See also: [README.md — Document Generation & vBRIEF Tooling](./README.md#-document-generation--vbrief-tooling) | [vbrief/vbrief.md](./vbrief/vbrief.md)
+
+---
+
 ## Anti-Patterns
 
 - ⊗ Creating a change without a proposal (jumping straight to code)

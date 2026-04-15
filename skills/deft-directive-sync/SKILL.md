@@ -17,6 +17,10 @@ Session-start framework sync -- pull latest deft submodule updates, validate vBR
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
+## Platform Requirements
+
+! This skill requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** to be installed and authenticated. Origin freshness checks (Phase 5) fetch issue data via `gh issue view`.
+
 ## When to Use
 
 - User says "good morning", "update deft", "update vbrief", or "sync frameworks"

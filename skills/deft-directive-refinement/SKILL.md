@@ -17,12 +17,16 @@ Conversational refinement session -- ingest, evaluate, reconcile, and prioritize
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
+## Platform Requirements
+
+! This skill requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** to be installed and authenticated. Issue ingestion, origin freshness checks, and completion lifecycle all depend on `gh`.
+
 ## When to Use
 
 - User says "refinement", "reprioritize", or "refine"
 - New issues have accumulated since the last refinement session
 - Periodic maintenance pass (e.g. weekly or after a batch of user feedback)
-- User wants to review and reorganize the backlog
+- User wants to review and organize the backlog
 
 ## Prerequisites
 

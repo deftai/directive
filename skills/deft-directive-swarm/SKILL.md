@@ -15,6 +15,10 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 **⚠️ See also**: [swarm.md](../../swarm/swarm.md) | [deft-directive-review-cycle](../deft-directive-review-cycle/SKILL.md)
 
+## Platform Requirements
+
+! This skill requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** to be installed and authenticated. Issue fetching, PR creation, and post-merge verification all depend on `gh`.
+
 ## When to Use
 
 - User says "run agents", "parallel agents", "swarm", or "launch N agents on stories"
