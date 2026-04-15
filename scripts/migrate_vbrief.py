@@ -45,6 +45,27 @@ _PROJECT_AUTO_MARKERS = (
 # Date for migration-created vBRIEF filenames (D7: creation date)
 _TODAY = datetime.now(UTC).strftime("%Y-%m-%d")
 
+# Mapping of markdown heading text (lowercased) to canonical narrative key names.
+# Covers both CamelCase keys (from prd_render.py output) and space-separated
+# forms (from hand-written PRDs/specs).  Keys must match prd_render.py.
+_HEADING_TO_NARRATIVE_KEY: dict[str, str] = {
+    "overview": "Overview",
+    "problemstatement": "ProblemStatement",
+    "problem statement": "ProblemStatement",
+    "goals": "Goals",
+    "userstories": "UserStories",
+    "user stories": "UserStories",
+    "requirements": "Requirements",
+    "successmetrics": "SuccessMetrics",
+    "success metrics": "SuccessMetrics",
+    "architecture": "Architecture",
+    "nonfunctionalrequirements": "NonFunctionalRequirements",
+    "non-functional requirements": "NonFunctionalRequirements",
+    "non functional requirements": "NonFunctionalRequirements",
+    "openquestions": "OpenQuestions",
+    "open questions": "OpenQuestions",
+}
+
 
 def _is_user_customized(content: str, auto_markers: tuple[str, ...]) -> bool:
     """Check if file content has been customized beyond auto-generated content.
@@ -62,6 +83,35 @@ def _slugify(text: str) -> str:
     slug = re.sub(r"[\s_]+", "-", slug)
     slug = re.sub(r"-+", "-", slug)
     return slug[:60].strip("-")
+
+
+def _parse_prd_narratives(content: str) -> dict[str, str]:
+    """Parse structured ## sections from PRD/SPECIFICATION markdown into narrative keys.
+
+    Recognizes known PRD headings (both CamelCase and space-separated forms)
+    and maps them to canonical narrative key names matching prd_render.py
+    NARRATIVE_KEY_ORDER.
+
+    Returns a dict of narrative_key -> section_body for recognized sections.
+    """
+    narratives: dict[str, str] = {}
+    parts = re.split(r"^##\s+", content, flags=re.MULTILINE)
+
+    for part in parts[1:]:  # skip preamble before first ##
+        heading, _, body = part.partition("\n")
+        heading = heading.strip()
+        # Strip trailing auto-generated footer (--- followed by italicized note)
+        body = re.sub(r"\n---\s*\n\*[^*]+\*\s*$", "", body)
+        body = body.strip()
+
+        if not body:
+            continue
+
+        key = _HEADING_TO_NARRATIVE_KEY.get(heading.lower())
+        if key:
+            narratives[key] = body
+
+    return narratives
 
 
 def _parse_roadmap_items(roadmap_path: Path) -> tuple[list[dict], dict[str, str], list[dict]]:
@@ -462,6 +512,51 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
 
     # Resolve repository URL for provenance references
     repo_url = _resolve_repo_url(spec_vbrief)
+
+    # ---- Step 2b: Ingest PRD/SPECIFICATION structured narratives (#397) ----
+    prd_path = project_root / "PRD.md"
+    ingested_narratives: dict[str, str] = {}
+
+    if prd_path.exists():
+        prd_content = prd_path.read_text(encoding="utf-8")
+        actions.append("READ  PRD.md")
+        ingested_narratives.update(_parse_prd_narratives(prd_content))
+
+    if spec_md_content and DEPRECATION_SENTINEL not in spec_md_content:
+        spec_parsed = _parse_prd_narratives(spec_md_content)
+        # SPECIFICATION.md sections take priority over PRD.md for overlaps
+        ingested_narratives.update(spec_parsed)
+
+    if ingested_narratives:
+        # Ensure spec_vbrief structure exists
+        if spec_vbrief is None:
+            spec_vbrief = {
+                "vBRIEFInfo": {"version": "0.5", "description": "Specification"},
+                "plan": {
+                    "title": "Specification",
+                    "status": "approved",
+                    "narratives": {},
+                    "items": [],
+                },
+            }
+
+        existing = spec_vbrief.setdefault("plan", {}).setdefault("narratives", {})
+        ingested_keys: list[str] = []
+        for key, value in ingested_narratives.items():
+            if key not in existing:
+                existing[key] = value
+                ingested_keys.append(key)
+
+        if ingested_keys:
+            spec_vbrief_path.parent.mkdir(parents=True, exist_ok=True)
+            spec_vbrief_path.write_text(
+                json.dumps(spec_vbrief, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            actions.append(
+                f"INGEST narratives into specification.vbrief.json: "
+                f"{', '.join(sorted(ingested_keys))}"
+            )
 
     # ---- Step 3: Generate PROJECT-DEFINITION.vbrief.json ----
     proj_def_path = vbrief_dir / "PROJECT-DEFINITION.vbrief.json"

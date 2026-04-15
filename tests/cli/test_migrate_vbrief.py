@@ -25,6 +25,7 @@ from migrate_vbrief import (  # noqa: E402, I001
     _create_scope_vbrief,
     _extract_tech_stack,
     _is_user_customized,
+    _parse_prd_narratives,
     _parse_roadmap_items,
     _resolve_repo_url,
     _slugify,
@@ -38,14 +39,7 @@ from migrate_vbrief import (  # noqa: E402, I001
 
 
 def _make_project(tmp_path: Path, **kwargs) -> Path:
-    """Create a minimal Deft project structure for testing.
-
-    kwargs:
-        spec_vbrief: dict | None -- content for vbrief/specification.vbrief.json
-        spec_md: str | None -- content for SPECIFICATION.md
-        project_md: str | None -- content for PROJECT.md
-        roadmap_md: str | None -- content for ROADMAP.md
-    """
+    """Create a minimal Deft project structure for testing."""
     vbrief_dir = tmp_path / "vbrief"
     vbrief_dir.mkdir(exist_ok=True)
 
@@ -62,6 +56,9 @@ def _make_project(tmp_path: Path, **kwargs) -> Path:
 
     if "roadmap_md" in kwargs and kwargs["roadmap_md"] is not None:
         (tmp_path / "ROADMAP.md").write_text(kwargs["roadmap_md"], encoding="utf-8")
+
+    if "prd_md" in kwargs and kwargs["prd_md"] is not None:
+        (tmp_path / "PRD.md").write_text(kwargs["prd_md"], encoding="utf-8")
 
     return tmp_path
 
@@ -329,6 +326,56 @@ class TestResolveRepoUrl:
             },
         }
         assert _resolve_repo_url(spec) == "https://github.com/org/repo"
+
+
+class TestParsePrdNarratives:
+    """Tests for _parse_prd_narratives (#397)."""
+
+    def test_parses_space_separated_headings(self):
+        content = (
+            "# Title\n\n## Problem Statement\n\nA problem.\n\n"
+            "## Goals\n\nSome goals.\n"
+        )
+        result = _parse_prd_narratives(content)
+        assert result == {"ProblemStatement": "A problem.", "Goals": "Some goals."}
+
+    def test_parses_camelcase_headings(self):
+        content = "## ProblemStatement\n\nA problem.\n\n## UserStories\n\nStories.\n"
+        result = _parse_prd_narratives(content)
+        assert result["ProblemStatement"] == "A problem."
+        assert result["UserStories"] == "Stories."
+
+    def test_ignores_unknown_headings(self):
+        content = "## Unknown Section\n\nContent.\n\n## Goals\n\nGoals.\n"
+        result = _parse_prd_narratives(content)
+        assert len(result) == 1
+        assert result["Goals"] == "Goals."
+
+    def test_skips_empty_sections(self):
+        content = "## Goals\n\n\n## Requirements\n\nReqs.\n"
+        result = _parse_prd_narratives(content)
+        assert "Goals" not in result
+        assert result["Requirements"] == "Reqs."
+
+    def test_strips_auto_generated_footer(self):
+        content = (
+            "## Overview\n\nOverview text.\n\n"
+            "---\n*This document is auto-generated.*\n"
+        )
+        result = _parse_prd_narratives(content)
+        assert result["Overview"] == "Overview text."
+
+    def test_returns_empty_for_no_sections(self):
+        assert _parse_prd_narratives("Just a paragraph.") == {}
+
+    def test_nfr_and_open_questions(self):
+        content = (
+            "## Non-Functional Requirements\n\nNFRs here.\n\n"
+            "## Open Questions\n\nQuestions here.\n"
+        )
+        result = _parse_prd_narratives(content)
+        assert result["NonFunctionalRequirements"] == "NFRs here."
+        assert result["OpenQuestions"] == "Questions here."
 
 
 class TestBuildProjectDefinition:
@@ -703,6 +750,101 @@ class TestMigrateSpecVbriefPreservation:
         migrate(project)
         after = (project / "vbrief" / "specification.vbrief.json").read_text(encoding="utf-8")
         assert json.loads(after) == SAMPLE_SPEC_VBRIEF
+
+
+class TestMigratePrdNarrativeIngestion:
+    """Tests for PRD/SPECIFICATION narrative ingestion into spec narratives (#397)."""
+
+    def test_ingests_prd_narratives(self, tmp_path):
+        """PRD.md structured sections ingested into specification.vbrief.json."""
+        prd = (
+            "# PRD\n\n## Problem Statement\n\nCannot reset passwords.\n\n"
+            "## Goals\n\n- Password reset via email\n\n"
+            "## User Stories\n\nAs a user I want to reset my password.\n\n"
+            "## Requirements\n\nMust support OAuth 2.0.\n\n"
+            "## Success Metrics\n\n99% success rate.\n"
+        )
+        project = _make_project(tmp_path, spec_vbrief=SAMPLE_SPEC_VBRIEF, prd_md=prd)
+        ok, actions = migrate(project)
+        assert ok
+        data = json.loads(
+            (project / "vbrief" / "specification.vbrief.json").read_text(encoding="utf-8")
+        )
+        n = data["plan"]["narratives"]
+        assert n["ProblemStatement"] == "Cannot reset passwords."
+        assert "Goals" in n
+        assert "UserStories" in n
+        assert "Requirements" in n
+        assert "SuccessMetrics" in n
+        # Existing keys preserved
+        assert n["Overview"] == "A test project for migration."
+        assert n["Architecture"] == "Simple architecture."
+
+    def test_no_regression_without_prd(self, tmp_path):
+        """Migration without PRD.md works exactly as before."""
+        project = _make_project(tmp_path, spec_vbrief=SAMPLE_SPEC_VBRIEF)
+        ok, actions = migrate(project)
+        assert ok
+        assert not any("INGEST" in a for a in actions)
+
+    def test_logs_ingested_keys(self, tmp_path):
+        """Migration logs which narrative keys were ingested."""
+        prd = "# PRD\n\n## Problem Statement\n\nA problem.\n\n## Goals\n\nGoals.\n"
+        project = _make_project(tmp_path, spec_vbrief=SAMPLE_SPEC_VBRIEF, prd_md=prd)
+        ok, actions = migrate(project)
+        assert ok
+        ingest = [a for a in actions if "INGEST" in a]
+        assert len(ingest) == 1
+        assert "Goals" in ingest[0]
+        assert "ProblemStatement" in ingest[0]
+
+    def test_does_not_overwrite_existing_keys(self, tmp_path):
+        """Existing vbrief narrative keys not overwritten by PRD content."""
+        prd = "# PRD\n\n## Overview\n\nNew overview.\n\n## Goals\n\nGoals.\n"
+        project = _make_project(tmp_path, spec_vbrief=SAMPLE_SPEC_VBRIEF, prd_md=prd)
+        ok, actions = migrate(project)
+        assert ok
+        data = json.loads(
+            (project / "vbrief" / "specification.vbrief.json").read_text(encoding="utf-8")
+        )
+        # Overview preserved from original vbrief, not overwritten
+        assert data["plan"]["narratives"]["Overview"] == "A test project for migration."
+        assert "Goals" in data["plan"]["narratives"]
+
+    def test_ingests_specification_md_sections(self, tmp_path):
+        """SPECIFICATION.md structured sections are ingested."""
+        spec_md = (
+            "# Spec\n\n## Requirements\n\n10k requests/sec.\n\n"
+            "## Non-Functional Requirements\n\nSOC2 compliance.\n"
+        )
+        project = _make_project(tmp_path, spec_vbrief=SAMPLE_SPEC_VBRIEF, spec_md=spec_md)
+        ok, actions = migrate(project)
+        assert ok
+        data = json.loads(
+            (project / "vbrief" / "specification.vbrief.json").read_text(encoding="utf-8")
+        )
+        assert "Requirements" in data["plan"]["narratives"]
+        assert "NonFunctionalRequirements" in data["plan"]["narratives"]
+
+    def test_creates_spec_vbrief_when_missing(self, tmp_path):
+        """Creates specification.vbrief.json from PRD narratives when absent."""
+        prd = "# PRD\n\n## Problem Statement\n\nThe problem.\n\n## Goals\n\nGoals.\n"
+        project = _make_project(tmp_path, prd_md=prd)
+        ok, actions = migrate(project)
+        assert ok
+        spec_path = project / "vbrief" / "specification.vbrief.json"
+        assert spec_path.exists()
+        data = json.loads(spec_path.read_text(encoding="utf-8"))
+        assert "ProblemStatement" in data["plan"]["narratives"]
+        assert "Goals" in data["plan"]["narratives"]
+
+    def test_skips_deprecated_specification_md(self, tmp_path):
+        """SPECIFICATION.md with deprecation sentinel is not parsed."""
+        spec_md = f"{DEPRECATION_SENTINEL}\n# DEPRECATED\n\n## Goals\n\nGoals.\n"
+        project = _make_project(tmp_path, spec_vbrief=SAMPLE_SPEC_VBRIEF, spec_md=spec_md)
+        ok, actions = migrate(project)
+        assert ok
+        assert not any("INGEST" in a for a in actions)
 
 
 class TestMigrateFoldFailureAbort:
