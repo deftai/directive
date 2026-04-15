@@ -134,9 +134,9 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 ! When an existing USER.md is found (returning user), check its `deft_version` field before skipping Phase 1:
 
 1. ! If `deft_version` is **missing**: the USER.md predates versioning -- treat as stale
-2. ! If `deft_version` is present but **differs from the current framework version** (0.19.0): check whether any expected fields are missing from the USER.md
+2. ! If `deft_version` is present but **differs from the current framework version** (0.20.0): check whether any expected fields are missing from the USER.md
 3. ! If fields are missing: query the user for each missing field individually -- do NOT re-run the full Phase 1 interview
-4. ! After completing any field queries (even if none were needed), write the current `deft_version` (0.19.0) to USER.md
+4. ! After completing any field queries (even if none were needed), write the current `deft_version` (0.20.0) to USER.md
 5. ~ If `deft_version` matches the current version and all expected fields are present: no action needed (USER.md is fresh)
 
 Expected USER.md fields: **Name**, **Custom Rules**, **Default Strategy**, and optionally **Coverage** and **Experimental Rules**.
@@ -208,7 +208,7 @@ Resolve using Platform Detection above. Write to the platform-appropriate path
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**deft_version**: 0.19.0
+**deft_version**: 0.20.0
 
 ## Personal (always wins)
 
@@ -361,7 +361,7 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
       "Quality": "Run task check before every commit. Achieve >= {coverage}% coverage overall + per-module. Store secrets in secrets/ dir.",
       "ProjectRules": "{Any rules the user specified, or 'No project-specific rules defined.'}",
       "Branching": "{If trunk-based: 'Allow direct commits to master: true', else omit or 'Branch-based workflow (default)'}",
-      "DeftVersion": "0.19.0"
+      "DeftVersion": "0.20.0"
     },
     "items": []
   }

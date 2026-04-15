@@ -42,6 +42,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ### Step 3: Generate specification.vbrief.json (Forced-Light Path)
 
+! Before writing output artifacts, follow the [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full).
+
 ! Write a slim `vbrief/specification.vbrief.json` -- no PRD, no approval gate.
 
 - ! Use the Light path from [interview.md](./interview.md) unconditionally

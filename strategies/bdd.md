@@ -49,6 +49,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ### Step 4: Lock Decisions
 
+! Before writing output artifacts, follow the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light).
+
 ! Resolve all ambiguities surfaced by Step 3. Record decisions in `vbrief/proposed/{feature}-bdd.vbrief.json`.
 
 - ! Write a scope vBRIEF with two narratives:

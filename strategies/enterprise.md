@@ -28,6 +28,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ### Stage 1: PRD (Forced-Full Path)
 
+! Before writing output artifacts, follow the [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full).
+
 ! Run the Full interview path from [interview.md](./interview.md) unconditionally -- write PRD narratives to `vbrief/specification.vbrief.json`.
 
 - ! Use the Full path regardless of project size -- enterprise always requires a PRD
@@ -63,6 +65,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ⊗ Begin specification with Proposed ADRs -- all must be Accepted
 
 ### Stage 3: Generate Specification
+
+! Before writing output artifacts, follow the [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full).
 
 ! Enrich `vbrief/specification.vbrief.json` with architecture and plan narratives derived from the approved PRD narratives and accepted ADRs.
 

@@ -62,7 +62,9 @@ Adapt question focus to what's being built:
 
 ## Output
 
-- ! Produce a `vbrief/proposed/{scope}-context.vbrief.json` scope vBRIEF with a `LockedDecisions` narrative containing structured decisions and reasoning
+! Before writing output artifacts, follow the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light).
+
+- ! Produce a `vbrief/proposed/{scope}-context.vbrief.json` scope vBRIEF with a `LockedDecisions` narrative
 - ! Each decision includes: **what** was decided, **why**, and **alternatives considered**
 - ! This vBRIEF is injected into all downstream work: planning, execution, verification
 - ! Persist decisions as vBRIEF narratives on the relevant plan items
