@@ -18,7 +18,7 @@ Deft is a SKILL.md that makes AI coding significantly more effective by providin
 
 **📍 Roadmap:** See [ROADMAP.md](./ROADMAP.md) for the development timeline, open issues, and planned work.
 
-> **📢 Cloned manually?** Copy [`AGENTS-OPEN-ME-FIRST.md`](AGENTS-OPEN-ME-FIRST.md) to your project root as `AGENTS.md`, then tell your agent `read AGENTS.md and follow it`.
+> **📢 Cloned manually?** Tell your agent: "Read `deft/AGENTS-OPEN-ME-FIRST.md` and follow it." It creates your project's AGENTS.md and starts the setup flow automatically.
 
 > **⬇️ Get Deft:** Download the installer for your platform from [GitHub Releases](https://github.com/deftai/directive/releases), run it, and follow the prompts. See [Getting Started](#-getting-started) below.
 
@@ -57,7 +57,7 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 
 The installer guides you through choosing a project directory, installs git if needed, clones deft, wires it into `AGENTS.md`, and creates your user config directory.
 
-**Manual clone (no installer):** If you clone deft directly via `git clone`, copy [`AGENTS-OPEN-ME-FIRST.md`](AGENTS-OPEN-ME-FIRST.md) to your project root as `AGENTS.md`, then tell your agent `read AGENTS.md and follow it` to start the setup.
+**Manual clone (no installer):** If you clone deft directly via `git clone`, tell your agent: "Read `deft/AGENTS-OPEN-ME-FIRST.md` and follow it." It creates your project's AGENTS.md and starts the setup flow automatically.
 
 **Building from source (developers only):** requires Go 1.22+
 

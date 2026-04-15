@@ -426,33 +426,70 @@ class TestCommitLint:
 # ===========================================================================
 
 
-class TestAgentsBootstrapFile:
-    """Tests for AGENTS-OPEN-ME-FIRST.md root bootstrap file (#358)."""
+class TestAgentsBootstrap:
+    """Tests for AGENTS-OPEN-ME-FIRST.md trampoline and templates/agents-entry.md (#358)."""
 
-    BOOTSTRAP_PATH = REPO_ROOT / "AGENTS-OPEN-ME-FIRST.md"
+    TRAMPOLINE_PATH = REPO_ROOT / "AGENTS-OPEN-ME-FIRST.md"
+    TEMPLATE_PATH = REPO_ROOT / "templates" / "agents-entry.md"
     SENTINEL = "deft/main.md"
 
-    def test_file_exists_at_repo_root(self):
+    def test_trampoline_exists_at_repo_root(self):
         """AGENTS-OPEN-ME-FIRST.md must exist at the repository root."""
-        assert self.BOOTSTRAP_PATH.is_file()
+        assert self.TRAMPOLINE_PATH.is_file()
 
-    def test_contains_sentinel(self):
-        """File must contain the deft/main.md sentinel."""
-        content = self.BOOTSTRAP_PATH.read_text(encoding="utf-8")
+    def test_trampoline_is_agent_instructions(self):
+        """Trampoline must contain step-by-step agent instructions, not AGENTS.md content."""
+        content = self.TRAMPOLINE_PATH.read_text(encoding="utf-8")
+        assert "Step 1" in content
+        assert "Step 2" in content
+        assert "Step 3" in content
+        assert "templates/agents-entry.md" in content
+
+    def test_trampoline_has_contributor_guard(self):
+        """Trampoline must ask whether user is a consumer or contributor."""
+        content = self.TRAMPOLINE_PATH.read_text(encoding="utf-8")
+        assert "working on deft itself" in content
+
+    def test_trampoline_references_sentinel(self):
+        """Trampoline must use deft/main.md sentinel for idempotency check."""
+        content = self.TRAMPOLINE_PATH.read_text(encoding="utf-8")
         assert self.SENTINEL in content
 
-    def test_references_deft_directive_setup(self):
-        """File must reference the v0.20 skill name, not the old deft-setup."""
-        content = self.BOOTSTRAP_PATH.read_text(encoding="utf-8")
-        assert "deft-directive-setup" in content
-        assert "deft-setup/SKILL.md" not in content
+    def test_template_exists(self):
+        """templates/agents-entry.md must exist as the single source of truth."""
+        assert self.TEMPLATE_PATH.is_file()
 
-    def test_references_project_definition_vbrief(self):
-        """File must reference PROJECT-DEFINITION.vbrief.json, not PROJECT.md."""
-        content = self.BOOTSTRAP_PATH.read_text(encoding="utf-8")
+    def test_template_contains_sentinel(self):
+        """Template must contain the deft/main.md sentinel."""
+        content = self.TEMPLATE_PATH.read_text(encoding="utf-8")
+        assert self.SENTINEL in content
+
+    def test_template_references_v020_artifacts(self):
+        """Template must reference v0.20 skill names and artifacts."""
+        content = self.TEMPLATE_PATH.read_text(encoding="utf-8")
+        assert "deft-directive-setup" in content
         assert "PROJECT-DEFINITION.vbrief.json" in content
 
-    def test_readme_calls_out_bootstrap_file(self):
+    def test_template_matches_go_installer_constant(self):
+        """templates/agents-entry.md must match agentsMDEntry in setup.go.
+
+        If this test fails, the template and Go installer have drifted.
+        To repair: copy the content of templates/agents-entry.md into the
+        agentsMDEntry constant in cmd/deft-install/setup.go (or vice versa),
+        then re-run task check.
+        """
+        template = self.TEMPLATE_PATH.read_text(encoding="utf-8")
+        setup_go = (REPO_ROOT / "cmd" / "deft-install" / "setup.go").read_text(encoding="utf-8")
+        # Extract agentsMDEntry constant — content between backticks after 'agentsMDEntry = `'
+        start = setup_go.index('agentsMDEntry = `') + len('agentsMDEntry = `')
+        end = setup_go.index('`', start)
+        go_content = setup_go[start:end]
+        assert template.strip() == go_content.strip(), (
+            "templates/agents-entry.md and cmd/deft-install/setup.go agentsMDEntry have drifted.\n"
+            "To repair: sync the content between the two files and re-run task check."
+        )
+
+    def test_readme_calls_out_trampoline(self):
         """README.md must reference AGENTS-OPEN-ME-FIRST.md near the top."""
         readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
         assert "AGENTS-OPEN-ME-FIRST.md" in readme
