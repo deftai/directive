@@ -12,13 +12,12 @@ tasks:
       - |
         python3 -c "
         import os, sys
-        deft_dir = os.path.dirname(os.path.dirname(os.path.abspath('{{.TASKFILE_DIR}}')))
-        # When invoked via 'task agents:init', TASKFILE_DIR is tasks/
-        # We need to go up to deft/ then up to the project root
-        deft_root = os.path.dirname(os.path.abspath('.'))
-        project_root = os.path.dirname(deft_root) if os.path.basename(deft_root) == 'deft' else os.getcwd()
+        # TASKFILE_DIR is the tasks/ directory; one level up is deft/, two levels up is the project root
+        tasks_dir = os.path.abspath('{{.TASKFILE_DIR}}')
+        deft_root = os.path.dirname(tasks_dir)
+        project_root = os.path.dirname(deft_root)
         agents_path = os.path.join(project_root, 'AGENTS.md')
-        template_path = os.path.join(os.path.dirname(os.path.abspath('.')), 'templates', 'agents-entry.md')
+        template_path = os.path.join(deft_root, 'templates', 'agents-entry.md')
         sentinel = 'deft/main.md'
         if os.path.exists(agents_path):
             with open(agents_path, 'r', encoding='utf-8') as f:
