@@ -787,3 +787,137 @@ class TestEdgeCases:
             )
         result = run_validator(vbrief_dir)
         assert result.returncode == 0
+
+
+# ===========================================================================
+# #398: Render staleness detection
+# ===========================================================================
+
+def _spec_vbrief(
+    *,
+    title: str = "Test Spec",
+    status: str = "approved",
+    narratives: dict | None = None,
+    items: list | None = None,
+) -> dict:
+    """Build a specification.vbrief.json document."""
+    plan: dict = {
+        "title": title,
+        "status": status,
+        "items": items if items is not None else [
+            {"id": "T1", "title": "Feature Alpha", "status": "running"},
+        ],
+    }
+    if narratives is not None:
+        plan["narratives"] = narratives
+    return {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": plan,
+    }
+
+
+class TestRenderStaleness:
+    """Tests for PRD.md / SPECIFICATION.md staleness detection (#398)."""
+
+    def test_prd_stale_warns(self, tmp_path):
+        """PRD.md with outdated content triggers a staleness warning."""
+        vbrief_dir = tmp_path / "vbrief"
+        vbrief_dir.mkdir()
+        write_vbrief(
+            vbrief_dir / "specification.vbrief.json",
+            _spec_vbrief(narratives={"Overview": "Brand new overview text"}),
+        )
+        prd = tmp_path / "PRD.md"
+        prd.write_text(
+            "# Old PRD\n\nThis content does not match the source.",
+            encoding="utf-8",
+        )
+        result = run_validator(vbrief_dir)
+        assert result.returncode == 0
+        assert "PRD.md may be stale" in result.stdout
+        assert "task prd:render" in result.stdout
+
+    def test_spec_stale_warns(self, tmp_path):
+        """SPECIFICATION.md with missing item title triggers staleness warning."""
+        vbrief_dir = tmp_path / "vbrief"
+        vbrief_dir.mkdir()
+        write_vbrief(
+            vbrief_dir / "specification.vbrief.json",
+            _spec_vbrief(
+                items=[
+                    {"id": "T1", "title": "Brand New Feature", "status": "running"},
+                ],
+            ),
+        )
+        spec_md = tmp_path / "SPECIFICATION.md"
+        spec_md.write_text(
+            "# Old Spec\n\n## T1: Old Feature Title  [running]\n",
+            encoding="utf-8",
+        )
+        result = run_validator(vbrief_dir)
+        assert result.returncode == 0
+        assert "SPECIFICATION.md may be stale" in result.stdout
+        assert "task spec:render" in result.stdout
+
+    def test_no_warning_when_files_absent(self, tmp_path):
+        """No staleness warning when PRD.md and SPECIFICATION.md don't exist."""
+        vbrief_dir = tmp_path / "vbrief"
+        vbrief_dir.mkdir()
+        write_vbrief(
+            vbrief_dir / "specification.vbrief.json",
+            _spec_vbrief(narratives={"Overview": "Some overview"}),
+        )
+        result = run_validator(vbrief_dir)
+        assert result.returncode == 0
+        assert "stale" not in result.stdout.lower()
+
+    def test_no_warning_when_current(self, tmp_path):
+        """No staleness warning when rendered files reflect current source."""
+        vbrief_dir = tmp_path / "vbrief"
+        vbrief_dir.mkdir()
+        write_vbrief(
+            vbrief_dir / "specification.vbrief.json",
+            _spec_vbrief(
+                title="My Project",
+                narratives={"Overview": "Current overview"},
+                items=[
+                    {"id": "T1", "title": "Feature Alpha", "status": "running"},
+                ],
+            ),
+        )
+        prd = tmp_path / "PRD.md"
+        prd.write_text(
+            "# My Project -- PRD\n\n## Overview\n\nCurrent overview\n",
+            encoding="utf-8",
+        )
+        spec_md = tmp_path / "SPECIFICATION.md"
+        spec_md.write_text(
+            "# My Project\n\nCurrent overview\n\n"
+            "## T1: Feature Alpha  [running]\n",
+            encoding="utf-8",
+        )
+        result = run_validator(vbrief_dir)
+        assert result.returncode == 0
+        assert "stale" not in result.stdout.lower()
+
+    def test_no_warning_when_deprecation_redirect(self, tmp_path):
+        """SPECIFICATION.md with deprecation redirect sentinel is not checked."""
+        vbrief_dir = tmp_path / "vbrief"
+        vbrief_dir.mkdir()
+        write_vbrief(
+            vbrief_dir / "specification.vbrief.json",
+            _spec_vbrief(
+                items=[
+                    {"id": "T1", "title": "Brand New Feature", "status": "running"},
+                ],
+            ),
+        )
+        spec_md = tmp_path / "SPECIFICATION.md"
+        spec_md.write_text(
+            "<!-- deft:deprecated-redirect -->\n"
+            "This file is deprecated. See vbrief/ instead.\n",
+            encoding="utf-8",
+        )
+        result = run_validator(vbrief_dir)
+        assert result.returncode == 0
+        assert "SPECIFICATION.md may be stale" not in result.stdout

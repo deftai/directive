@@ -507,6 +507,135 @@ def validate_origin_provenance(
 
 
 # ---------------------------------------------------------------------------
+# #398: Render staleness detection (PRD.md / SPECIFICATION.md)
+# ---------------------------------------------------------------------------
+
+def check_render_staleness(vbrief_dir: Path) -> list[str]:
+    """Warn if PRD.md or SPECIFICATION.md are stale relative to specification.vbrief.json.
+
+    Compares source narratives/items from specification.vbrief.json against
+    the rendered export files.  Returns warning strings for stale files.
+    Skips silently if export files don't exist (#398).
+    """
+    warnings: list[str] = []
+    project_root = vbrief_dir.parent
+    spec_path = vbrief_dir / "specification.vbrief.json"
+
+    if not spec_path.is_file():
+        return warnings
+
+    try:
+        with open(spec_path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (json.JSONDecodeError, OSError):
+        return warnings
+
+    plan = data.get("plan", {})
+    if not isinstance(plan, dict):
+        return warnings
+
+    narratives = plan.get("narratives", {})
+    items = plan.get("items", [])
+    title = plan.get("title", "")
+
+    # --- PRD.md ---
+    prd_path = project_root / "PRD.md"
+    if prd_path.is_file():
+        warnings.extend(_check_prd_staleness(prd_path, narratives, title))
+
+    # --- SPECIFICATION.md ---
+    # Note: validate_deprecated_placeholders (called earlier in validate_all)
+    # may also warn about SPECIFICATION.md if it lacks the deprecation redirect
+    # sentinel.  The staleness check here is complementary -- it fires for
+    # rendered exports that have drifted, while the deprecated check fires for
+    # files missing the redirect sentinel.  Both can appear in the same run
+    # during transitional states (e.g. a user ran `task spec:render` after
+    # migration); this is intentional -- the deprecated warning takes priority
+    # for the user's attention.
+    spec_md_path = project_root / "SPECIFICATION.md"
+    if spec_md_path.is_file():
+        warnings.extend(
+            _check_spec_staleness(spec_md_path, narratives, items, title)
+        )
+
+    return warnings
+
+
+def _check_prd_staleness(
+    prd_path: Path, narratives: dict, title: str,
+) -> list[str]:
+    """Return a warning if PRD.md does not reflect current source narratives."""
+    try:
+        content = prd_path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+
+    if not isinstance(narratives, dict) or not narratives:
+        return []
+
+    for value in narratives.values():
+        if isinstance(value, str) and value.strip() and value.strip() not in content:
+            return [
+                "PRD.md may be stale relative to "
+                "vbrief/specification.vbrief.json -- "
+                "run `task prd:render` to refresh"
+            ]
+
+    if title and title not in content:
+        return [
+            "PRD.md may be stale relative to "
+            "vbrief/specification.vbrief.json -- "
+            "run `task prd:render` to refresh"
+        ]
+
+    return []
+
+
+def _check_spec_staleness(
+    spec_md_path: Path,
+    narratives: dict,
+    items: list,
+    title: str,
+) -> list[str]:
+    """Return a warning if SPECIFICATION.md does not reflect current source."""
+    try:
+        content = spec_md_path.read_text(encoding="utf-8")
+    except OSError:
+        return []
+
+    # Skip deprecation redirects
+    if DEPRECATED_REDIRECT_SENTINEL in content:
+        return []
+
+    msg = (
+        "SPECIFICATION.md may be stale relative to "
+        "vbrief/specification.vbrief.json -- "
+        "run `task spec:render` to refresh"
+    )
+
+    # Check item titles
+    if isinstance(items, list):
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            item_title = item.get("title", "")
+            if isinstance(item_title, str) and item_title and item_title not in content:
+                return [msg]
+
+    # Check all narrative values (mirrors _check_prd_staleness)
+    if isinstance(narratives, dict):
+        for value in narratives.values():
+            if isinstance(value, str) and value.strip() and value.strip() not in content:
+                return [msg]
+
+    # Check title
+    if title and title not in content:
+        return [msg]
+
+    return []
+
+
+# ---------------------------------------------------------------------------
 # Story S (#334): Post-migration placeholder integrity
 # ---------------------------------------------------------------------------
 
@@ -634,6 +763,9 @@ def validate_all(
 
     # Post-migration placeholder integrity (Story S #334)
     warnings.extend(validate_deprecated_placeholders(vbrief_dir))
+
+    # Render staleness check (#398)
+    warnings.extend(check_render_staleness(vbrief_dir))
 
     return errors, warnings, len(scope_files)
 
