@@ -484,7 +484,7 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
         slug = _slugify(item.get("title", "untitled"))
         # Build filename: use issue number, task_id, or synthetic_id
         item_id = number or item.get("task_id", "") or item.get("synthetic_id", "")
-        id_part = item_id.replace(".", "-") if item_id else slug[:20]
+        id_part = _slugify(item_id.replace(".", "-")) if item_id else slug[:20]
         filename = f"{_TODAY}-{id_part}-{slug}.vbrief.json"
         target_path = vbrief_dir / "pending" / filename
         phase_desc = phase_descriptions.get(item.get("phase", ""), "")
@@ -517,7 +517,7 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
     for item in completed_items:
         number = item.get("number", "")
         slug = _slugify(item.get("title", "untitled"))
-        id_part = number if number else slug[:20]
+        id_part = _slugify(number) if number else slug[:20]
         filename = f"{_TODAY}-{id_part}-{slug}.vbrief.json"
         target_path = vbrief_dir / "completed" / filename
 
