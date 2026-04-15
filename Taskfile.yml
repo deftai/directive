@@ -50,6 +50,9 @@ includes:
   reconcile:
     taskfile: ./tasks/reconcile.yml
     optional: true
+  agents:
+    taskfile: ./tasks/agents.yml
+    optional: true
 
 tasks:
   default:
