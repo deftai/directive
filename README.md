@@ -18,6 +18,8 @@ Deft is a SKILL.md that makes AI coding significantly more effective by providin
 
 **📍 Roadmap:** See [ROADMAP.md](./ROADMAP.md) for the development timeline, open issues, and planned work.
 
+> **📢 Cloned manually?** Copy [`AGENTS-OPEN-ME-FIRST.md`](AGENTS-OPEN-ME-FIRST.md) to your project root as `AGENTS.md`, then tell your agent `read AGENTS.md and follow it`.
+
 > **⬇️ Get Deft:** Download the installer for your platform from [GitHub Releases](https://github.com/deftai/directive/releases), run it, and follow the prompts. See [Getting Started](#-getting-started) below.
 
 ## 🚀 Getting Started
@@ -55,30 +57,13 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 
 The installer guides you through choosing a project directory, installs git if needed, clones deft, wires it into `AGENTS.md`, and creates your user config directory.
 
-**Manual clone (no installer):** If you clone deft directly via `git clone`, create an `AGENTS.md` in your project root using the built-in task (`cd deft && task agents:init`) or by copying [`templates/agents-entry.md`](templates/agents-entry.md) manually, then tell your agent `read AGENTS.md and follow it` to start the setup.
+**Manual clone (no installer):** If you clone deft directly via `git clone`, copy [`AGENTS-OPEN-ME-FIRST.md`](AGENTS-OPEN-ME-FIRST.md) to your project root as `AGENTS.md`, then tell your agent `read AGENTS.md and follow it` to start the setup.
 
 **Building from source (developers only):** requires Go 1.22+
 
 ```bash
 go run ./cmd/deft-install/
 ```
-
-**Manual clone (CLI users):** if you already have git and prefer to skip the installer, clone deft directly into your project:
-
-```bash
-cd your-project
-git clone https://github.com/deftai/directive.git deft
-```
-
-Then generate `AGENTS.md` using the built-in task:
-
-```bash
-cd deft && task agents:init
-```
-
-This writes the canonical AGENTS.md to your project root (idempotent — skips if the `deft/main.md` sentinel is already present). The content matches what the Go installer generates. Alternatively, copy [`templates/agents-entry.md`](templates/agents-entry.md) manually.
-
-Then tell your agent `read AGENTS.md and follow it` to kick off the setup.
 
 ### 2. Set Up Your Preferences
 
@@ -164,7 +149,6 @@ Deft provides deterministic `task` commands for rendering, migrating, and valida
 | `task project:render` | Regenerate `PROJECT-DEFINITION.vbrief.json` items registry | After scope lifecycle changes |
 | `task migrate:vbrief` | Migrate existing projects to vBRIEF lifecycle folder structure | One-time cutover from pre-v0.20 model |
 | `task vbrief:validate` | Validate vBRIEF schema, filenames, folder/status consistency | Pre-commit (runs as part of `task check`) |
-| `task agents:init` | Write canonical AGENTS.md to project root (idempotent) | After manual `git clone` without installer |
 
 See [commands.md](./commands.md) for the full change lifecycle and the [Command Lifecycle: `run` vs `task`](./commands.md#command-lifecycle-run-vs-task) section there for detailed usage.
 

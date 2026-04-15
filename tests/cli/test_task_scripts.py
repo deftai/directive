@@ -422,77 +422,37 @@ class TestCommitLint:
 
 
 # ===========================================================================
-# agents:init -- template and logic tests (#358)
+# AGENTS-OPEN-ME-FIRST.md bootstrap file (#358)
 # ===========================================================================
 
 
-class TestAgentsInit:
-    """Tests for templates/agents-entry.md and tasks/agents.yml logic (#358)."""
+class TestAgentsBootstrapFile:
+    """Tests for AGENTS-OPEN-ME-FIRST.md root bootstrap file (#358)."""
 
-    TEMPLATE_PATH = REPO_ROOT / "templates" / "agents-entry.md"
+    BOOTSTRAP_PATH = REPO_ROOT / "AGENTS-OPEN-ME-FIRST.md"
     SENTINEL = "deft/main.md"
 
-    def test_template_file_exists(self):
-        """templates/agents-entry.md must exist."""
-        assert self.TEMPLATE_PATH.is_file()
+    def test_file_exists_at_repo_root(self):
+        """AGENTS-OPEN-ME-FIRST.md must exist at the repository root."""
+        assert self.BOOTSTRAP_PATH.is_file()
 
-    def test_template_contains_sentinel(self):
-        """Template must contain the deft/main.md sentinel for idempotency."""
-        content = self.TEMPLATE_PATH.read_text(encoding="utf-8")
+    def test_contains_sentinel(self):
+        """File must contain the deft/main.md sentinel."""
+        content = self.BOOTSTRAP_PATH.read_text(encoding="utf-8")
         assert self.SENTINEL in content
 
-    def test_template_references_deft_directive_setup(self):
-        """Template must reference the v0.20 skill name, not the old deft-setup."""
-        content = self.TEMPLATE_PATH.read_text(encoding="utf-8")
+    def test_references_deft_directive_setup(self):
+        """File must reference the v0.20 skill name, not the old deft-setup."""
+        content = self.BOOTSTRAP_PATH.read_text(encoding="utf-8")
         assert "deft-directive-setup" in content
         assert "deft-setup/SKILL.md" not in content
 
-    def test_template_references_project_definition_vbrief(self):
-        """Template must reference PROJECT-DEFINITION.vbrief.json, not PROJECT.md."""
-        content = self.TEMPLATE_PATH.read_text(encoding="utf-8")
+    def test_references_project_definition_vbrief(self):
+        """File must reference PROJECT-DEFINITION.vbrief.json, not PROJECT.md."""
+        content = self.BOOTSTRAP_PATH.read_text(encoding="utf-8")
         assert "PROJECT-DEFINITION.vbrief.json" in content
 
-    def test_creates_agents_md_when_missing(self, tmp_path):
-        """When AGENTS.md doesn't exist, create it from template."""
-        template = self.TEMPLATE_PATH.read_text(encoding="utf-8")
-        agents_path = tmp_path / "AGENTS.md"
-        # Simulate the core logic from agents.yml
-        assert not agents_path.exists()
-        agents_path.write_text(template, encoding="utf-8")
-        assert agents_path.exists()
-        assert self.SENTINEL in agents_path.read_text(encoding="utf-8")
-
-    def test_skips_when_sentinel_present(self, tmp_path):
-        """When AGENTS.md already contains sentinel, no modification."""
-        agents_path = tmp_path / "AGENTS.md"
-        original = f"# Existing\nSee {self.SENTINEL} for details.\n"
-        agents_path.write_text(original, encoding="utf-8")
-        # Simulate idempotency check
-        content = agents_path.read_text(encoding="utf-8")
-        assert self.SENTINEL in content  # should skip
-        # Content unchanged
-        assert agents_path.read_text(encoding="utf-8") == original
-
-    def test_appends_when_sentinel_missing(self, tmp_path):
-        """When AGENTS.md exists but lacks sentinel, append template."""
-        agents_path = tmp_path / "AGENTS.md"
-        existing = "# My Project\n\nSome existing content.\n"
-        agents_path.write_text(existing, encoding="utf-8")
-        template = self.TEMPLATE_PATH.read_text(encoding="utf-8")
-        # Simulate append logic
-        content = agents_path.read_text(encoding="utf-8")
-        assert self.SENTINEL not in content
-        with open(agents_path, "a", encoding="utf-8") as f:
-            f.write("\n\n" + template)
-        result = agents_path.read_text(encoding="utf-8")
-        assert existing in result  # original preserved
-        assert self.SENTINEL in result  # template appended
-
-    def test_taskfile_agents_yml_exists(self):
-        """tasks/agents.yml must exist."""
-        assert (REPO_ROOT / "tasks" / "agents.yml").is_file()
-
-    def test_taskfile_includes_agents(self):
-        """Root Taskfile.yml must include agents task."""
-        taskfile = (REPO_ROOT / "Taskfile.yml").read_text(encoding="utf-8")
-        assert "agents" in taskfile
+    def test_readme_calls_out_bootstrap_file(self):
+        """README.md must reference AGENTS-OPEN-ME-FIRST.md near the top."""
+        readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+        assert "AGENTS-OPEN-ME-FIRST.md" in readme
