@@ -25,7 +25,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Loop Phases
 
-Each iteration proceeds through all five phases in order. Do NOT skip phases or reorder them.
+Each iteration proceeds through all phases in order. Do NOT skip phases or reorder them.
 
 ### Phase 1 -- Read
 
@@ -53,8 +53,16 @@ Each iteration proceeds through all five phases in order. Do NOT skip phases or 
 ! Run `task check` and fix any failures.
 
 - ! Run `task check` (fmt + lint + typecheck + tests + coverage)
-- ! Fix all failures before proceeding to Phase 4
+- ! Fix all failures before proceeding to Phase 3b
 - ~ If a lint fix requires changing a file, that counts as a change for the Loop phase
+
+### Phase 3b -- Auto-Render Exports
+
+! If `vbrief/specification.vbrief.json` exists, refresh rendered exports before the diff check:
+
+- ! Run `task prd:render` if `PRD.md` already exists in the project root
+- ! Run `task spec:render` if `SPECIFICATION.md` already exists and does not contain `<!-- deft:deprecated-redirect -->`
+- ⊗ Create export files that don't already exist -- only refresh existing ones
 
 ### Phase 4 -- Diff
 
@@ -75,6 +83,7 @@ git --no-pager diff master
 ! Decide whether to restart or exit.
 
 - ! If ANY fixes were made in Phase 2 (Write) or Phase 3 (Lint): restart from Phase 1 (Read)
+- ~ Phase 3b auto-renders are intentional output refreshes; they do NOT trigger a loop restart
 - ! If a full Read-Write-Lint-Diff cycle produced zero changes: exit the loop
 - ~ Track iteration count -- if you exceed 3 iterations, pause and assess whether you are oscillating between competing fixes
 
