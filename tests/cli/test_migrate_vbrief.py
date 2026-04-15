@@ -37,7 +37,6 @@ from migrate_vbrief import (  # noqa: E402, I001
 # helpers
 # ---------------------------------------------------------------------------
 
-
 def _make_project(tmp_path: Path, **kwargs) -> Path:
     """Create a minimal Deft project structure for testing."""
     vbrief_dir = tmp_path / "vbrief"
@@ -109,11 +108,9 @@ CUSTOM_PROJECT_MD = (
     "I wrote this by hand.\n"
 )
 
-
 # ===========================================================================
 # Unit tests for helper functions
 # ===========================================================================
-
 
 class TestSlugify:
     """Tests for _slugify."""
@@ -361,6 +358,14 @@ class TestParsePrdNarratives:
         content = (
             "## Overview\n\nOverview text.\n\n"
             "---\n*This document is auto-generated.*\n"
+        )
+        result = _parse_prd_narratives(content)
+        assert result["Overview"] == "Overview text."
+
+    def test_strips_bold_auto_generated_footer(self):
+        content = (
+            "## Overview\n\nOverview text.\n\n"
+            "---\n**This document is auto-generated.**\n"
         )
         result = _parse_prd_narratives(content)
         assert result["Overview"] == "Overview text."

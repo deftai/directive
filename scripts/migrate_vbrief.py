@@ -101,7 +101,7 @@ def _parse_prd_narratives(content: str) -> dict[str, str]:
         heading, _, body = part.partition("\n")
         heading = heading.strip()
         # Strip trailing auto-generated footer (--- followed by italicized note)
-        body = re.sub(r"\n---\s*\n\*[^*]+\*\s*$", "", body)
+        body = re.sub(r"\n---\s*\n\*{1,2}[^*]+\*{1,2}\s*$", "", body)
         body = body.strip()
 
         if not body:
