@@ -589,6 +589,28 @@ class TestMigrateCompletedItems:
         data = json.loads(vbrief_files[0].read_text(encoding="utf-8"))
         assert data["plan"]["title"] == "TypeScript scaffold"
 
+    def test_path_invalid_chars_in_task_id_slugified(self, tmp_path):
+        """Task IDs with path-invalid chars must be slugified in filenames.
+
+        Regression test: items like `task update-index -- --repo <id>` caused
+        OSError on Windows because <> and spaces passed through to filenames.
+        """
+        roadmap = (
+            "# Roadmap\n\n## Phase 2\n\n"
+            "- `task update-index -- --repo <id>` Builds index for a repo\n"
+        )
+        project = _make_project(tmp_path, roadmap_md=roadmap)
+        ok, actions = migrate(project)
+        assert ok
+        pending_dir = project / "vbrief" / "pending"
+        vbrief_files = list(pending_dir.glob("*.vbrief.json"))
+        assert len(vbrief_files) == 1
+        # Filename must not contain path-invalid characters
+        filename = vbrief_files[0].name
+        assert "<" not in filename
+        assert ">" not in filename
+        assert " " not in filename
+
 
 class TestMigrateTechStackExtraction:
     """Tests for tech stack extraction during migration (#382)."""
