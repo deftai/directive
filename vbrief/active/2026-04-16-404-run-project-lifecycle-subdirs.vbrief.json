@@ -1,0 +1,48 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "description": "Scaffold vbrief/ lifecycle subdirectories during `run project` so the CLI path matches the skill-driven greenfield path.",
+    "created": "2026-04-16T00:00:00Z",
+    "updated": "2026-04-16T00:00:00Z"
+  },
+  "plan": {
+    "id": "fix-404-run-project-lifecycle-subdirs",
+    "title": "fix(cli): run project should create vbrief lifecycle subdirectories",
+    "status": "running",
+    "narratives": {
+      "Problem": "`run project` creates vbrief/PROJECT-DEFINITION.vbrief.json but does not scaffold the 5 lifecycle subdirectories (proposed/, pending/, active/, completed/, cancelled/). skills/deft-directive-setup/SKILL.md creates them correctly; the CLI cmd_project() only creates vbrief/ implicitly via _atomic_write.",
+      "Action": "After _atomic_write in cmd_project(), iterate LIFECYCLE_FOLDERS and mkdir each with parents=True, exist_ok=True. Add tests verifying the 5 folders exist after `run project`. Surface LIFECYCLE_FOLDERS as a module-level constant kept in sync with scripts/vbrief_validate.py.",
+      "Test": "tests/cli/test_upgrade_gate.py::TestProjectLifecycleSubdirs - asserts all 5 subfolders exist after cmd_project and that the constant matches the validator ordering.",
+      "Outcome": "After `run project`, `task vbrief:validate` and `task scope:*` work immediately without manual folder creation."
+    },
+    "items": [
+      {
+        "id": "404-1",
+        "title": "Introduce LIFECYCLE_FOLDERS constant in run",
+        "status": "running"
+      },
+      {
+        "id": "404-2",
+        "title": "Scaffold 5 lifecycle subdirs after _atomic_write in cmd_project",
+        "status": "running"
+      },
+      {
+        "id": "404-3",
+        "title": "Add TestProjectLifecycleSubdirs tests (subdir presence + constant alignment)",
+        "status": "running"
+      }
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/404",
+        "id": "#404"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/402",
+        "id": "#402"
+      }
+    ]
+  }
+}
