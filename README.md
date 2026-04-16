@@ -67,17 +67,17 @@ go run ./cmd/deft-install/
 
 ### 2. Set Up Your Preferences
 
-Deft offers two setup paths that produce the same output (USER.md + PROJECT.md) but adapt to different users:
+Deft offers two setup paths that produce the same output (`USER.md` + `vbrief/PROJECT-DEFINITION.vbrief.json`) but adapt to different users:
 
-**Agent-driven** (recommended for most users) â€” Tell your agent `read AGENTS.md and follow it` to start the Deft setup flow. The agent will ask how technical you are and adapt accordingly:
+**Agent-driven** (recommended for most users) — Tell your agent `read AGENTS.md and follow it` to start the Deft setup flow. The agent will ask how technical you are and adapt accordingly:
 - *Technical*: asks about languages, strategy, coverage, meta rules, and custom rules
 - *Some opinions*: asks name, languages, and custom rules; defaults the rest
 - *Just pick defaults*: asks what you're building, infers everything else
 
-**CLI** (for technical users) â€” If you're running commands in a terminal, you're technical. The CLI treats you as a power user and asks all configuration questions directly â€” no skill-level gate.
+**CLI** (for technical users) — If you're running commands in a terminal, you're technical. The CLI treats you as a power user and asks all configuration questions directly — no skill-level gate.
 
 ```bash
-deft/run bootstrap       # Interactive setup for user.md and project.md
+deft/run bootstrap       # Interactive setup for USER.md and PROJECT-DEFINITION.vbrief.json
 ```
 
 **User config location:**
@@ -85,13 +85,15 @@ deft/run bootstrap       # Interactive setup for user.md and project.md
 - Windows: `%APPDATA%\deft\USER.md`
 - Override: set `DEFT_USER_PATH` environment variable
 
-### 3. Generate Specification
+### 3. Generate a Scope vBRIEF
 
-`deft/run bootstrap` will guide you through creating a `SPECIFICATION.md`, or create one anytime:
+`deft/run bootstrap` can chain into the scope-vBRIEF interview, or create one anytime:
 
 ```bash
-deft/run spec            # AI-assisted specification interview
+deft/run spec            # AI-assisted interview -> vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json
 ```
+
+The interview writes a **scope vBRIEF** to `vbrief/proposed/` as `YYYY-MM-DD-<slug>.vbrief.json`. `vbrief/*.vbrief.json` files are the source of truth; `.md` files (`PRD.md`, `SPECIFICATION.md`, `ROADMAP.md`) are rendered views generated on demand via `task *:render`. Direct edits to the rendered `.md` files are overwritten on the next render -- edit the underlying `.vbrief.json` instead.
 
 Other commands:
 
@@ -99,15 +101,20 @@ Other commands:
 deft/run reset           # Reset config files
 deft/run validate        # Check deft configuration
 deft/run doctor          # Check system dependencies
+deft/run upgrade         # Record the current framework version after updating deft
 ```
 
 ### 4. Build With AI
 
-Ask your AI to build the product/project from `SPECIFICATION.md` and away you go:
+Ask your AI to build the product/project from your scope vBRIEFs and away you go:
 
 ```
-Read SPECIFICATION.md and implement the project following deft/main.md standards.
+Read vbrief/PROJECT-DEFINITION.vbrief.json and the scope vBRIEFs in
+vbrief/active/ (or vbrief/pending/ if none are active yet) and implement
+the project following deft/main.md standards.
 ```
+
+> **Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) for the migration path (`task migrate:vbrief`) and what to expect.
 
 ## ðŸŽ¸ From Vibe to Virtuoso
 
@@ -195,7 +202,7 @@ flowchart TD
         L["ðŸ python.md / go.md / etc.<br/><i>Language standards</i>"]
         T["ðŸ”§ taskfile.md<br/><i>Tool guidelines</i>"]
         M["ðŸ¤– main.md<br/><i>General AI behavior</i>"]
-        S["ðŸ“‹ specification.md<br/><i>Project requirements</i>"]
+        S["📋 vbrief/specification.vbrief.json<br/><i>Project requirements</i>"]
     end
 
     U --> P
@@ -271,6 +278,7 @@ deft/
 â”‚
 â”œâ”€â”€ docs/                  # Documentation & articles
 â”‚   â”œâ”€â”€ ai-coding-trust-paradox.md
+â”‚   â”œâ”€â”€ BROWNFIELD.md       # Adding Deft to an existing project (brownfield adoption)
 â”‚   â””â”€â”€ claude-code-integration.md
 â”‚
 â”œâ”€â”€ history/               # Plan archives and change logs
@@ -478,11 +486,11 @@ agentuity, aws, azure, cloudflare, cloud-gov, fly-io, google, netlify, vercel
 Rules cascade with precedence:
 
 1. **USER.md** (highest) - your personal overrides (`~/.config/deft/USER.md` on Unix/macOS, `%APPDATA%\deft\USER.md` on Windows)
-2. **project.md** - project-specific rules
+2. **vbrief/PROJECT-DEFINITION.vbrief.json** - project-specific rules and identity gestalt
 3. **Language files** (python.md, go.md) - language standards
 4. **Tool files** (taskfile.md) - tool guidelines
 5. **main.md** - general AI behavior
-6. **specification.md** (lowest) - requirements
+6. **vbrief/specification.vbrief.json + scope vBRIEFs** (lowest) - requirements (rendered to SPECIFICATION.md via `task spec:render`)
 
 ### Continuous Improvement
 
@@ -601,10 +609,10 @@ Before writing any code, deft uses an AI-assisted specification process:
 ```mermaid
 flowchart LR
     subgraph sdd ["Spec-Driven Development"]
-        I["ðŸ’¡ Idea<br/><i>Initial concept</i>"]
-        Q["â“ Interview<br/><i>AI asks questions</i>"]
-        S["ðŸ“‹ SPECIFICATION.md<br/><i>Complete plan</i>"]
-        D["ðŸ‘¥ Development<br/><i>Parallel agents</i>"]
+        I["💡 Idea<br/><i>Initial concept</i>"]
+        Q["❓ Interview<br/><i>AI asks questions</i>"]
+        S["📋 vbrief/specification.vbrief.json<br/><i>Complete plan (source of truth)</i>"]
+        D["👥 Development<br/><i>Parallel agents</i>"]
     end
 
     I -->|"make-spec.md"| Q
@@ -637,11 +645,13 @@ flowchart LR
 
    Each question includes numbered options and an "other" choice for custom responses.
 
-3. **Generate SPECIFICATION.md**: Once ambiguity is minimized, the AI produces a comprehensive spec with:
+3. **Generate a scope vBRIEF** (and optionally `vbrief/specification.vbrief.json` via the Full path): Once ambiguity is minimized, the AI produces a comprehensive vBRIEF with:
    - Clear phases, subphases, and tasks
    - Dependency mappings (what blocks what)
    - Parallel work opportunities
-   - No codeâ€”just the complete plan
+   - No code—just the complete plan
+
+   `.md` exports (`SPECIFICATION.md`, `PRD.md`) are generated views via `task spec:render` / `task prd:render`; the `.vbrief.json` files remain authoritative.
 
 4. **Multi-Agent Development**: The spec enables multiple AI coding agents to work in parallel on independent tasks
 
@@ -678,13 +688,13 @@ flowchart TB
         NP1["AI reads main.md"] --> NP2["AI reads python.md"]
         NP2 --> NP3["AI reads taskfile.md"]
         NP3 --> NP4["Setup: pytest, ruff, black, mypy"]
-        NP4 --> NP5["Configure: â‰¥85% coverage"]
-        NP5 --> NP6["You customize: project.md"]
+        NP4 --> NP5["Configure: ≥85% coverage"]
+        NP5 --> NP6["You customize: vbrief/PROJECT-DEFINITION.vbrief.json"]
     end
     
-    subgraph ExistingGo ["ðŸ“‚ Existing Go Project"]
+    subgraph ExistingGo ["📂 Existing Go Project"]
         direction TB
-        EG1["AI reads user.md"] --> EG2["AI reads project.md"]
+        EG1["AI reads USER.md"] --> EG2["AI reads vbrief/PROJECT-DEFINITION.vbrief.json"]
         EG2 --> EG3["AI reads go.md"]
         EG3 --> EG4["AI runs task check"]
         EG4 --> EG5["AI makes changes"]
@@ -719,7 +729,7 @@ sequenceDiagram
 1. AI reads: `main.md` â†’ `python.md` â†’ `taskfile.md`
 2. AI sets up: pytest, ruff, black, mypy, Taskfile
 3. AI configures: â‰¥85% coverage, PEP standards
-4. You customize: `project.md` with project specifics
+4. You customize: `vbrief/PROJECT-DEFINITION.vbrief.json` with project specifics
 
 ### Working on an Existing Go Project
 
@@ -730,7 +740,7 @@ sequenceDiagram
     participant Code
 
     AI->>Files: Read USER.md (your overrides)
-    AI->>Files: Read PROJECT.md
+    AI->>Files: Read vbrief/PROJECT-DEFINITION.vbrief.json
     AI->>Files: Read go.md
     AI->>Files: Read main.md
     AI->>Code: Run task check
@@ -738,7 +748,7 @@ sequenceDiagram
     Note over AI,Code: Respects your USER.md preferences
 ```
 
-1. AI reads: `USER.md` â†’ `PROJECT.md` â†’ `go.md` â†’ `main.md`
+1. AI reads: `USER.md` → `vbrief/PROJECT-DEFINITION.vbrief.json` → `go.md` → `main.md`
 2. AI follows: go.dev/doc/comment, Testify patterns
 3. AI runs: `task check` before suggesting changes
 4. AI respects: your USER.md overrides

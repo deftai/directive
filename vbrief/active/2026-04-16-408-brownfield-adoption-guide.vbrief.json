@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "description": "Add a standalone brownfield adoption guide (docs/BROWNFIELD.md) for existing projects adding Deft.",
+    "created": "2026-04-16T00:00:00Z",
+    "updated": "2026-04-16T00:00:00Z"
+  },
+  "plan": {
+    "id": "fix-408-brownfield-adoption-guide",
+    "title": "docs(readme): missing brownfield adoption guide for existing projects",
+    "status": "running",
+    "narratives": {
+      "Problem": "Deft has no guidance for users adding it to an existing project. The greenfield path is covered, but brownfield users (existing codebase, existing SPECIFICATION.md/PROJECT.md, pre-v0.20 layouts) have no documentation for installation options, the `task migrate:vbrief` flow, how .md files become rendered artifacts, what the pre-cutover detection guard does on first setup, and how to preserve existing spec content via the #397 ingestion path.",
+      "Action": "Create a standalone docs/BROWNFIELD.md guide with sections: (1) Install options (submodule / installer / direct clone); (2) task migrate:vbrief flow (idempotent, what it parses, what it creates, what it replaces); (3) What changes after migration -- .vbrief.json as source of truth, .md as rendered views, deprecation sentinels; (4) Pre-cutover detection guard explanation (criteria, action) + CLI path (#410 gate); (5) Post-migration checklist (task vbrief:validate, task check, renders, commit); (6) Troubleshooting for common failure modes; (7) Related reading. Per charter: standalone file, no separate README section; referenced from QUICK-START.md Step 2 Case C and Step 3 note. A brief 'Brownfield adoption' pointer from README Step 4 gives users a reachable entry point without duplicating content. Do not link to UPGRADING.md yet (branch 4) -- mention by name only.",
+      "Constraint": "Charter directive: 'standalone docs/BROWNFIELD.md, referenced from QUICK-START.md and UPGRADING.md. No separate README section.' README pointer is a one-line blockquote under Step 4, not a section.",
+      "Test": "tests/content/test_readme_brownfield.py::TestBrownfieldGuide -- 9 assertions covering file existence, install options, migrate:vbrief mention + idempotency, source-of-truth/rendered-view semantics, pre-cutover detection guard + sentinel, post-migration task check, #397 ingestion, QUICK-START cross-reference, RFC2119 legend.",
+      "Outcome": "Brownfield users have a single-page authoritative guide to add Deft to an existing project, avoiding the footguns of direct .md edits and mid-migration state drift."
+    },
+    "items": [
+      {"id": "408-1", "title": "docs/BROWNFIELD.md with 7 sections (install, migrate, semantics, guard, checklist, troubleshoot, related)", "status": "running"},
+      {"id": "408-2", "title": "Link from QUICK-START.md Step 2 Case C and Step 3 note", "status": "running"},
+      {"id": "408-3", "title": "One-line brownfield pointer from README Step 4 (no full section)", "status": "running"},
+      {"id": "408-4", "title": "Content tests asserting required sections and cross-references", "status": "running"}
+    ],
+    "references": [
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/408", "id": "#408"},
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/402", "id": "#402"}
+    ]
+  }
+}
