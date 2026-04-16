@@ -99,7 +99,9 @@ class TestSkeletonCreation:
         data = read_project_def(vbrief_dir)
         narratives = data["plan"]["narratives"]
 
-        for key in ("Overview", "TechStack", "Architecture", "RisksAndUnknowns", "Configuration"):
+        # "tech stack" (lowercase, space-separated) is required so
+        # `task project:render` skeletons pass `task vbrief:validate` (#405).
+        for key in ("Overview", "tech stack", "Architecture", "RisksAndUnknowns", "Configuration"):
             assert key in narratives
             assert narratives[key] == ""
 

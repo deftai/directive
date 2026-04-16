@@ -43,9 +43,13 @@ from pathlib import Path
 
 LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
 
+# Keys intentionally match scripts/vbrief_validate.py PROJECT_DEF_EXPECTED_NARRATIVES
+# after case-folding: "overview" and "tech stack" are required by D3 (#405).
+# Keep the "tech stack" key exactly as-is (lowercase, space-separated) so
+# `task project:render` skeletons pass `task vbrief:validate` immediately.
 SKELETON_NARRATIVES = {
     "Overview": "",
-    "TechStack": "",
+    "tech stack": "",
     "Architecture": "",
     "RisksAndUnknowns": "",
     "Configuration": "",
