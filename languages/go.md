@@ -54,6 +54,20 @@ for _, tt := range tests {
 
 **Interface**: Define consumer-side, mock with function fields
 
+## Hygiene
+
+**Types:**
+- ⊗ `any` (empty interface) where a concrete type or typed interface is knowable; use generics or explicit interfaces
+- ⊗ Ignore errors with `_` — every error MUST be checked or explicitly propagated with a reason
+
+**Dead code:**
+- ~ Run `staticcheck` (detects unused code, unreachable branches) and `deadcode` (golang.org/x/tools/cmd/deadcode) before releases
+- ⊗ Unexported functions that are never called outside their own file
+
+**Circular dependencies:**
+- The Go compiler rejects import cycles — treat them as build failures, not warnings
+- ! Resolve by extracting shared types to a lower-level package; do not re-order imports
+
 ## Compliance Checklist
 
 - ! Follow go.dev/doc/comment for all exported symbols

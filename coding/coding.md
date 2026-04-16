@@ -42,6 +42,14 @@ See [../scm/git.md](../scm/git.md) for:
 - ! One responsibility per file/module
 - ~ Files <300 lines ideal; files <500 lines recommended; ! files <1000 lines maximum
 - ! Explicit scope in task descriptions
+- ~ DRY: extract shared abstractions when logic is duplicated across 2+ call sites
+- ⊗ Copy-paste logic with minor variations — parameterise instead
+
+**Dependency Direction:**
+- ⊗ Circular imports between modules/packages
+- ~ Layered architecture: high-level modules depend on low-level ones, never the reverse
+- ! Use dependency inversion (interfaces/protocols) to break coupling across layers
+- See [hygiene.md](hygiene.md) for detection tools (madge, pydeps, Go compiler)
 
 **Contract-First:**
 - ! Define interfaces/types/protocols before implementation
@@ -58,6 +66,10 @@ See [../scm/git.md](../scm/git.md) for:
 - ! Document possible exceptions/error codes for all public functions
 - ! Validate all inputs at API boundaries
 - ⊗ Trust caller without validation
+- ⊗ Empty catch/except/recover blocks that swallow errors silently
+- ⊗ Returning neutral/zero values (None, {}, [], 0, false) to mask errors — propagate explicitly
+- ⊗ Log-and-continue: catching an error and proceeding as if it didn't happen, unless provably non-fatal and documented
+- See [hygiene.md](hygiene.md) for full error-hiding anti-pattern catalogue
 
 **Readability:**
 - ! Follow language idioms strictly
@@ -76,6 +88,9 @@ See [../scm/git.md](../scm/git.md) for:
 **Testing:**
 - ! Implementation is INCOMPLETE until tests written AND `task test:coverage` passes
 - See [../coding/testing.md](../coding/testing.md) for universal requirements
+
+**Codebase Hygiene:**
+- See [hygiene.md](hygiene.md) for: dead code removal, circular dependency detection, error hiding patterns, legacy/deprecated code cleanup
 
 **Telemetry:**
 - See [../tools/telemetry.md](../tools/telemetry.md) for recommendations
@@ -152,3 +167,8 @@ See [../scm/git.md](../scm/git.md) for:
 - ⊗ Implementing code without tests
 - ⊗ Claiming "done" before running test:coverage
 - ⊗ Ignoring coverage drops
+- ⊗ Weak types (`any`, `interface{}`, untyped `object`) where concrete types are knowable
+- ⊗ Dead code: unused functions, unreachable branches, stale feature flags, commented-out blocks
+- ⊗ Error hiding: empty catch blocks, silent fallbacks, swallowed exceptions
+- ⊗ Circular imports between modules
+- ⊗ Duplicate logic across 2+ call sites without shared abstraction

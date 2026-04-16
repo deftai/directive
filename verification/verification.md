@@ -60,6 +60,16 @@ Connections between artifacts that must be present.
   - Functions under ~8 lines that return hardcoded/empty values
 - ⊗ Accept stubs as completed work
 
+## Legacy and Deprecated Code Detection
+
+- ~ When reviewing or modifying any file, scan for legacy indicators and file a hygiene task if found:
+  - Comments: `LEGACY`, `COMPAT`, `OLD_`, `# old way`, `// deprecated`, `TODO: remove`
+  - Commented-out code blocks (more than 1 line)
+  - Feature flag branches where the flag is hardcoded to always-on or always-off
+  - Parallel implementations: old and new approach coexisting without a documented migration path
+- ⊗ Leave legacy markers in place after a migration is complete; remove them in the same commit as the migration
+- ~ See [coding/hygiene.md](../coding/hygiene.md) for the full legacy removal protocol
+
 ---
 
 ## Verification Ladder (4 Tiers)
