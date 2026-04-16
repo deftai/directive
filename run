@@ -19,6 +19,16 @@ from typing import List, Optional
 
 VERSION = "0.20.0"
 
+# vBRIEF lifecycle folders per RFC #309 D13.  Kept in sync with
+# scripts/project_render.py and scripts/vbrief_validate.py so the CLI path
+# (#404) scaffolds the same structure skill-driven setup produces.
+LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
+
+# Sentinel embedded in deprecated SPECIFICATION.md/PROJECT.md redirect stubs.
+# Used by the upgrade gate (#410) to distinguish migrated projects from
+# pre-v0.20 layouts with real content in those files.
+DEPRECATED_REDIRECT_SENTINEL = "<!-- deft:deprecated-redirect -->"
+
 # Try to import rich for enhanced experience
 try:
     from rich.console import Console
@@ -326,6 +336,7 @@ def usage():
   [green]reset[/green]           Reset configuration files to default state
   [green]validate[/green]        Validate deft configuration files
   [green]update[/green]          Update deft framework to latest version
+  [green]upgrade[/green]         Acknowledge framework upgrade; write .deft-version marker
   [green]doctor[/green]          Check system dependencies and configuration
   [green]help[/green]            Show this help message
 
@@ -358,6 +369,7 @@ Commands:
   reset           Reset configuration files to default state
   validate        Validate deft configuration files
   update          Update deft framework to latest version
+  upgrade         Acknowledge framework upgrade; write .deft-version marker
   doctor          Check system dependencies and configuration
   help            Show this help message
 
@@ -487,6 +499,174 @@ def ask_confirm(prompt_text: str, default: bool = False) -> bool:
 # Legacy aliases
 read_input = ask_input
 read_yn = ask_confirm
+
+# --- Upgrade gate (#410) ---------------------------------------------------
+#
+# `deft/run` is the one deterministic entry point directive controls that runs
+# in the consumer project's working directory.  After a framework update, we
+# compare a `.deft-version` marker to VERSION and warn on drift.  Non-fatal by
+# design: interactive sessions get a prompt ("continue anyway? [y/N]"),
+# non-interactive sessions warn once and continue so CI/cloud runs are not
+# blocked.  See issue #410 for scope boundaries (CLI users only; the
+# agent-interpreted path is gated by the sync/setup skills).
+
+def _version_marker_paths(project_root: Path) -> List[Path]:
+    """Return candidate `.deft-version` paths, preferred location first."""
+    return [project_root / "vbrief" / ".deft-version", project_root / ".deft-version"]
+
+
+def _read_version_marker(project_root: Path) -> Optional[str]:
+    """Return the recorded framework version, or None if no marker exists.
+
+    Iterates candidate paths in preference order; an OSError on the preferred
+    path (e.g. unreadable due to permissions) falls through to the fallback
+    so version-drift detection is not silently suppressed (#410).
+    """
+    for candidate in _version_marker_paths(project_root):
+        if candidate.is_file():
+            try:
+                return candidate.read_text(encoding="utf-8").strip()
+            except OSError:
+                continue
+    return None
+
+
+def _write_version_marker(vbrief_root: Path) -> None:
+    """Write VERSION into `vbrief/.deft-version` (best-effort, never raises)."""
+    try:
+        vbrief_root.mkdir(parents=True, exist_ok=True)
+        (vbrief_root / ".deft-version").write_text(VERSION + "\n", encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _detect_pre_cutover_legacy(project_root: Path) -> List[str]:
+    """Return legacy artifact filenames missing the deprecation redirect sentinel."""
+    legacy: List[str] = []
+    for fname in ("SPECIFICATION.md", "PROJECT.md"):
+        candidate = project_root / fname
+        if not candidate.is_file():
+            continue
+        try:
+            content = candidate.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if DEPRECATED_REDIRECT_SENTINEL not in content:
+            legacy.append(fname)
+    return legacy
+
+
+def _running_inside_deft_repo(project_root: Path) -> bool:
+    """Heuristic: True when `run` is invoked from inside the deft repo itself.
+
+    Consumer projects embed deft as `./deft/`; the deft source repo has
+    `main.md` at its root and no `./deft/` subdirectory.  Skipping the gate
+    here avoids nagging deft maintainers on every `run` invocation.
+    """
+    return (project_root / "main.md").is_file() and not (project_root / "deft").is_dir()
+
+
+# Commands for which the gate is silent -- they never touch project state.
+_UPGRADE_GATE_SKIP_COMMANDS = frozenset({
+    "help", "--help", "-h", "-help",
+    "version", "--version", "-v",
+    "upgrade",  # the upgrade command itself must run so users can resolve the gate
+})
+
+
+def _check_upgrade_gate(command: str) -> bool:
+    """Warn (and prompt when interactive) on framework/project version drift.
+
+    Returns True if the caller should proceed, False only when the user
+    explicitly declines in an interactive session.  Never fatal otherwise --
+    in non-interactive environments (CI, cloud agents) we warn and continue.
+    """
+    if command in _UPGRADE_GATE_SKIP_COMMANDS:
+        return True
+
+    project_root = Path.cwd()
+    if _running_inside_deft_repo(project_root):
+        return True
+
+    recorded = _read_version_marker(project_root)
+    vbrief_dir = project_root / "vbrief"
+
+    if recorded is not None:
+        if recorded == VERSION:
+            return True
+        warn(
+            f"Deft has been updated from {recorded} to {VERSION}. "
+            "Run `deft/run upgrade` or `task migrate:vbrief` to update your project files."
+        )
+    else:
+        legacy = _detect_pre_cutover_legacy(project_root)
+        if not legacy:
+            # No marker, no legacy artifacts -- either a fully-migrated project
+            # whose marker was never written, or not a deft-managed project.
+            # Either way there is nothing actionable to gate on.
+            return True
+        # Legacy artifacts present (with or without vbrief/) -- this covers
+        # both the canonical v0.19 consumer layout (no vbrief/ yet) and a
+        # partially-migrated project that still has legacy copies.
+        warn(
+            "Pre-v0.20 document model detected ("
+            + ", ".join(legacy)
+            + "). Run `task migrate:vbrief` to upgrade."
+        )
+
+    # Non-interactive: warn and continue, never fatal.
+    if not sys.stdin.isatty():
+        return True
+
+    try:
+        if read_yn("Continue anyway?", default=False):
+            return True
+    except (EOFError, KeyboardInterrupt):
+        return True
+
+    warn("Exiting -- upgrade your project and re-run.")
+    return False
+
+
+def cmd_upgrade(args: List[str]):
+    """Acknowledge the framework upgrade and write the `.deft-version` marker.
+
+    This command only records the framework version so the upgrade gate stops
+    warning.  It delegates the heavy lifting (SPECIFICATION.md / PROJECT.md
+    migration, lifecycle folder creation) to `task migrate:vbrief`.
+    """
+    print_header(f"Deft CLI v{VERSION} - Upgrade")
+    print()
+    project_root = Path.cwd()
+    recorded = _read_version_marker(project_root)
+    if recorded == VERSION:
+        success(f"Project already at {VERSION}. Nothing to do.")
+        return 0
+
+    legacy = _detect_pre_cutover_legacy(project_root)
+    if legacy:
+        warn(
+            "Pre-v0.20 document model detected ("
+            + ", ".join(legacy)
+            + "). Run `task migrate:vbrief` first -- it migrates legacy "
+            "artifacts and creates the lifecycle folder structure. This "
+            "command only records the framework version."
+        )
+
+    vbrief_dir = project_root / "vbrief"
+    target_dir = vbrief_dir if vbrief_dir.is_dir() else project_root
+    _write_version_marker(target_dir)
+
+    if recorded is None:
+        success(f"Recorded framework version {VERSION} in .deft-version.")
+    else:
+        success(f"Updated .deft-version from {recorded} to {VERSION}.")
+    info(
+        "If legacy SPECIFICATION.md or PROJECT.md content remains, run "
+        "`task migrate:vbrief` to complete the upgrade."
+    )
+    return 0
+
 
 def cmd_bootstrap(args: List[str]):
     """Bootstrap command - set up user.md"""
@@ -1186,6 +1366,18 @@ def cmd_project(args: List[str]):
 
     project_content = json.dumps(project_definition, indent=2, ensure_ascii=False)
     _atomic_write(project_file, project_content + "\n")
+
+    # Scaffold vBRIEF lifecycle subdirectories (#404).
+    # The skill-driven greenfield path creates these; the CLI path must match
+    # so `task vbrief:validate` and `task scope:*` work immediately after
+    # `run project`.
+    vbrief_root = project_file.parent
+    for _lifecycle_folder in LIFECYCLE_FOLDERS:
+        (vbrief_root / _lifecycle_folder).mkdir(parents=True, exist_ok=True)
+
+    # Record framework version marker for the upgrade gate (#410).
+    _write_version_marker(vbrief_root)
+
     _clear_progress(prog_file)
     
     success(f"Created PROJECT-DEFINITION.vbrief.json at {project_file}")
@@ -3166,7 +3358,14 @@ def main():
     interactive_commands = ['bootstrap', 'project', 'spec', 'install']
     if command in interactive_commands and check_prompt_toolkit():
         return 0  # Exit after showing install instructions
-    
+
+    # Version / upgrade gate (#410): runs before any subcommand so CLI users
+    # see the warning on the first explicit interaction with directive after a
+    # framework update.  Interactive decline returns a non-zero exit code so
+    # CI wrappers can distinguish "ran successfully" from "user declined".
+    if not _check_upgrade_gate(command):
+        return 1
+
     args = sys.argv[2:]
     
     commands = {
@@ -3178,6 +3377,7 @@ def main():
         'validate': cmd_validate,
         'doctor': cmd_doctor,
         'update': cmd_update,
+        'upgrade': cmd_upgrade,
         'help': lambda _: usage(),
         '--help': lambda _: usage(),
         'version': lambda _: print(f"Deft CLI v{VERSION}"),
