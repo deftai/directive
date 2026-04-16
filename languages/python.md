@@ -136,6 +136,21 @@ warn_unused_configs=true
 disallow_untyped_defs=true
 ```
 
+## Hygiene
+
+**Types:**
+- ⊗ `# type: ignore` without an inline comment explaining exactly why it is safe
+- ⊗ `Any` as a function return type where the concrete type is knowable
+- ⊗ Bare `object` or untyped containers (`list`, `dict` with no generics) on public APIs
+
+**Error handling:**
+- ⊗ Bare `except:` or `except Exception: pass` — catch the specific exception; log or re-raise
+- ⊗ Returning `None` or a neutral default to mask an exception — let it propagate
+
+**Dead code:**
+- ~ Run `vulture` to detect unused functions, classes, and variables
+- ~ Add `vulture . --min-confidence 80` as a `task hygiene` target
+
 ## Compliance Checklist
 
 - ! Follow PEP 257 (docstrings) and PEP 484 (type hints)
