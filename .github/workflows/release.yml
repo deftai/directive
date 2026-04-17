@@ -86,7 +86,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - artifact: blacksmith-4vcpu-windows-2025
+          - artifact: install-windows-amd64.exe
             runner: windows-latest
             expected_os: windows
             expected_arch: amd64
