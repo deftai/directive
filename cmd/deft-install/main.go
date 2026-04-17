@@ -12,6 +12,27 @@ import (
 //	go build -ldflags "-X main.version=v1.0.0" ./cmd/deft-install/
 var version = "1.0.0"
 
+// defaultBranch is set at build time via ldflags to pair the installer
+// binary with the framework ref it was built from. Empty means "origin
+// default branch" (usually master). Typical values:
+//
+//	-X main.defaultBranch=v0.20.0            (tagged release)
+//	-X main.defaultBranch=v0.20.0-rc.1       (pre-release)
+//	-X main.defaultBranch=phase2/vbrief-cutover  (dispatch/branch build)
+//
+// User-provided --branch / /branch flag takes precedence.
+var defaultBranch = ""
+
+// resolveBranch returns the effective branch to use for clone/update.
+// A user-provided --branch value takes precedence over the build-time
+// defaultBranch. An empty result means "origin default branch".
+func resolveBranch(flagValue, defaultValue string) string {
+	if flagValue != "" {
+		return flagValue
+	}
+	return defaultValue
+}
+
 func printUsage() {
 	fmt.Fprintf(os.Stderr, `deft-install %s — Deft project installer
 
@@ -79,7 +100,11 @@ func main() {
 		return
 	}
 
-	code := install(*debug, *branch)
+	// If the user did not explicitly pass --branch, fall back to the
+	// build-time default (if any).
+	effectiveBranch := resolveBranch(*branch, defaultBranch)
+
+	code := install(*debug, effectiveBranch)
 	if runtime.GOOS == "windows" {
 		pressEnterToExit()
 	}
@@ -92,6 +117,7 @@ func main() {
 func install(debug bool, branch string) int {
 	if debug {
 		fmt.Printf("[debug] OS=%s ARCH=%s\n", runtime.GOOS, runtime.GOARCH)
+		fmt.Printf("[debug] defaultBranch=%s branch=%s\n", defaultBranch, branch)
 	}
 
 	w := NewWizard(os.Stdin, os.Stdout, debug)

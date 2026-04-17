@@ -48,7 +48,7 @@ jobs:
           CGO_ENABLED: "0"
         run: >
           go build
-          -ldflags "-X main.version=${{ github.ref_name }}"
+          -ldflags "-X main.version=${{ github.ref_name }} -X main.defaultBranch=${{ github.ref_name }}"
           -o ${{ matrix.artifact }}
           ./cmd/deft-install/
       - uses: actions/upload-artifact@v4
@@ -124,6 +124,12 @@ jobs:
           echo "" | ./${{ matrix.artifact }} --debug > debug_output.txt 2>&1 || true
           grep -q "OS=${{ matrix.expected_os }}" debug_output.txt
           grep -q "ARCH=${{ matrix.expected_arch }}" debug_output.txt
+      - name: Verify defaultBranch embedded at build time
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          echo "" | ./${{ matrix.artifact }} --debug > dbranch_output.txt 2>&1 || true
+          grep -q "defaultBranch=${{ github.ref_name }}" dbranch_output.txt
       - name: Verify wizard starts
         shell: bash
         run: |

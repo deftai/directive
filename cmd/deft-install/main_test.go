@@ -13,6 +13,34 @@ import (
 )
 
 // ---------------------------------------------------------------------------
+// resolveBranch — build-time default vs user flag precedence (#424)
+// ---------------------------------------------------------------------------
+
+func TestResolveBranch(t *testing.T) {
+	tests := []struct {
+		name         string
+		flagValue    string
+		defaultValue string
+		want         string
+	}{
+		{"both empty falls through to origin default", "", "", ""},
+		{"defaultBranch used when flag empty", "", "v0.20.0-rc.1", "v0.20.0-rc.1"},
+		{"flag takes precedence over default", "beta", "v0.20.0-rc.1", "beta"},
+		{"flag wins even with empty default", "beta", "", "beta"},
+		{"branch-style default (phase2 dispatch build)", "", "phase2/vbrief-cutover", "phase2/vbrief-cutover"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := resolveBranch(tc.flagValue, tc.defaultValue)
+			if got != tc.want {
+				t.Errorf("resolveBranch(%q, %q) = %q, want %q",
+					tc.flagValue, tc.defaultValue, got, tc.want)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Phase 1 — smoke test
 // ---------------------------------------------------------------------------
 
