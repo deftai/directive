@@ -67,7 +67,7 @@ See [../scm/git.md](../scm/git.md) for:
 - ! Validate all inputs at API boundaries
 - ⊗ Trust caller without validation
 - ⊗ Empty catch/except/recover blocks that swallow errors silently
-- ⊗ Returning neutral/zero values (None, {}, [], 0, false) to mask errors — propagate explicitly
+- ⊗ Returning neutral/zero values (None, {}, [], 0, false, "") to mask errors — propagate explicitly
 - ⊗ Log-and-continue: catching an error and proceeding as if it didn't happen, unless provably non-fatal and documented
 - See [hygiene.md](hygiene.md) for full error-hiding anti-pattern catalogue
 

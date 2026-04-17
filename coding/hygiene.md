@@ -37,7 +37,7 @@ Circular imports create tight coupling, prevent modular testing, and indicate ar
 - ~ Enforce layered architecture: high-level modules depend on low-level ones, never the reverse
 - ! Use dependency inversion (interfaces/protocols) to break necessary coupling across layers
 - ~ Use language-specific tools to detect cycles:
-  - Python: `pydeps`, `importlab`, or `ruff` (detects some patterns)
+  - Python: `pydeps` or `importlab` for full cycle detection
   - Go: the compiler rejects import cycles — trust the error; fix by extracting shared packages
   - TypeScript/JS: `madge` — visualises and detects circular dependencies
 - ~ For large codebases, add `madge --circular` (or equivalent) as a CI check
