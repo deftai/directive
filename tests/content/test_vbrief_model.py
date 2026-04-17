@@ -115,30 +115,58 @@ _CONTENT_FILES = _content_files()
 # 1a. skills/ directory contains only deft-directive-* subdirectories
 # ---------------------------------------------------------------------------
 
+# v0.19 -> v0.20 bridge: these bare `deft-*` directories contain a one-paragraph
+# deprecation redirect SKILL.md that points stale v0.19 AGENTS.md references at
+# deft/QUICK-START.md. They are NOT real skills; they exist for one release
+# cycle so consumer projects with old AGENTS.md paths keep working until
+# QUICK-START can refresh them. See issue #411 and
+# `tests/content/test_deprecated_skill_redirects.py` for stub content checks.
+_DEPRECATED_SKILL_REDIRECT_STUBS = frozenset({
+    "deft-build",
+    "deft-interview",
+    "deft-pre-pr",
+    "deft-review-cycle",
+    "deft-roadmap-refresh",
+    "deft-setup",
+    "deft-swarm",
+    "deft-sync",
+})
+
+
 def test_skills_dir_only_deft_directive_prefixed() -> None:
-    """Every subdirectory under skills/ must use the deft-directive-* prefix."""
+    """Every subdirectory under skills/ must use the deft-directive-* prefix.
+
+    Exception: the 8 bare `deft-*` deprecated-redirect stubs (#411 v0.19 -> v0.20
+    bridge) are allowed by name. Their content is enforced by
+    `tests/content/test_deprecated_skill_redirects.py`.
+    """
     subdirs = _skill_subdirs()
     assert subdirs, "skills/ directory is empty or missing"
     non_conforming = [
         d for d in subdirs
         if not d.startswith("deft-directive-")
+        and d not in _DEPRECATED_SKILL_REDIRECT_STUBS
     ]
     assert not non_conforming, (
         f"skills/ contains subdirectories without 'deft-directive-' prefix: "
-        f"{sorted(non_conforming)}"
+        f"{sorted(non_conforming)} "
+        f"(allowed redirect stubs: {sorted(_DEPRECATED_SKILL_REDIRECT_STUBS)})"
     )
 
 
 def test_skills_dir_has_no_bare_deft_prefix() -> None:
-    """No skills/ subdirectory should use the old deft-* naming (without directive-)."""
+    """No skills/ subdirectory should use the old deft-* naming, except the 8
+    bare deft-* deprecated-redirect stubs (#411 v0.19 -> v0.20 bridge)."""
     subdirs = _skill_subdirs()
     bare_deft = [
         d for d in subdirs
-        if d.startswith("deft-") and not d.startswith("deft-directive-")
+        if d.startswith("deft-")
+        and not d.startswith("deft-directive-")
+        and d not in _DEPRECATED_SKILL_REDIRECT_STUBS
     ]
     assert not bare_deft, (
-        f"skills/ contains old-style deft-* directories (should be deft-directive-*): "
-        f"{sorted(bare_deft)}"
+        f"skills/ contains unexpected deft-* directories (neither 'deft-directive-*' "
+        f"nor known redirect stubs): {sorted(bare_deft)}"
     )
 
 

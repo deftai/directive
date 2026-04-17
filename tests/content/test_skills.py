@@ -1466,18 +1466,38 @@ def test_deft_directive_interview_output_targets_section() -> None:
 # ---------------------------------------------------------------------------
 
 
+# v0.19 -> v0.20 bridge stubs (#411). See test_deprecated_skill_redirects.py
+# for stub content enforcement; this test only whitelists the directory names.
+_DEPRECATED_SKILL_REDIRECT_STUBS = frozenset({
+    "deft-build",
+    "deft-interview",
+    "deft-pre-pr",
+    "deft-review-cycle",
+    "deft-roadmap-refresh",
+    "deft-setup",
+    "deft-swarm",
+    "deft-sync",
+})
+
+
 def test_no_bare_deft_skill_directories() -> None:
-    """No skills/ subdirectory should use the old deft-* name (without directive-)."""
+    """No unexpected skills/ subdirectory should use the old deft-* name.
+
+    The 8 v0.19 -> v0.20 deprecated-redirect stubs (#411) are permitted by
+    name but must contain the deprecation redirect sentinel -- that is
+    enforced separately in tests/content/test_deprecated_skill_redirects.py.
+    """
     skills_dir = _REPO_ROOT / "skills"
     bare_deft = [
         d.name for d in skills_dir.iterdir()
         if d.is_dir()
         and d.name.startswith("deft-")
         and not d.name.startswith("deft-directive-")
+        and d.name not in _DEPRECATED_SKILL_REDIRECT_STUBS
     ]
     assert not bare_deft, (
-        f"skills/ contains old-style deft-* directories (should be deft-directive-*): "
-        f"{sorted(bare_deft)}"
+        f"skills/ contains unexpected deft-* directories (should be deft-directive-* "
+        f"or a known v0.19 redirect stub): {sorted(bare_deft)}"
     )
 
 

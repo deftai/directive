@@ -2,6 +2,8 @@
 
 Deft is installed in deft/. Full guidelines: deft/main.md
 
+! If any deft/skills/ path referenced in this file cannot be read (missing file, stale path from a previous framework version, or a deprecation redirect stub), read deft/QUICK-START.md instead and follow it. QUICK-START refreshes this section idempotently for the current framework version.
+
 ## First Session
 
 Check what exists before doing anything else:

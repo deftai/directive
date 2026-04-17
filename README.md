@@ -20,7 +20,10 @@ Deft is a SKILL.md that makes AI coding significantly more effective by providin
 
 > **ðŸ“¢ Cloned manually?** Tell your agent: "Read `deft/QUICK-START.md` and follow it." It creates your project's AGENTS.md and starts the setup flow automatically.
 
-> **â¬‡ï¸ Get Deft:** Download the installer for your platform from [GitHub Releases](https://github.com/deftai/directive/releases), run it, and follow the prompts. See [Getting Started](#-getting-started) below.
+> **ðŸ”„ Upgrading from a previous version?** Read [UPGRADING.md](./UPGRADING.md) before proceeding.  
+> **Agents:** ! Read [UPGRADING.md](./UPGRADING.md) on the first session after a framework update.
+
+> **â¬‡ï¸ Get Deft:** Download the installer for your platform from [GitHub Releases](https://github.com/deftai/directive/releases), run it, and follow the prompts. See [Getting Started](#-getting-started) below.
 
 ## ðŸš€ Getting Started
 
