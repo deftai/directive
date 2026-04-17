@@ -314,17 +314,139 @@ def _extract_tech_stack(project_content: str) -> str:
     return ""
 
 
+def _first_prose_paragraph(content: str) -> str:
+    """Return the first non-empty prose paragraph from markdown content.
+
+    Skips fenced code blocks, blank lines, markdown heading lines, and list
+    items; returns the first plain paragraph it finds.  Falls back to the
+    first H1 (`# Title`) heading text if no prose paragraph exists.  Returns
+    the empty string if nothing usable is found.
+    """
+    if not content:
+        return ""
+    first_h1 = ""
+    in_code_block = False
+    paragraph_lines: list[str] = []
+
+    def _flush() -> str:
+        if paragraph_lines:
+            return " ".join(paragraph_lines).strip()
+        return ""
+
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_code_block = not in_code_block
+            continue
+        if in_code_block:
+            continue
+        # First H1 title (# Title). Ignore H2/H3 etc.
+        if re.match(r"^#\s+", stripped) and not first_h1:
+            first_h1 = re.sub(r"^#\s+", "", stripped).strip()
+            continue
+        # Skip other headings -- also flush any accumulated paragraph first
+        if stripped.startswith("#"):
+            para = _flush()
+            if para:
+                return para
+            paragraph_lines.clear()
+            continue
+        # List items (unordered and ordered), blockquotes, and tables are not
+        # prose paragraphs for Overview purposes.  Ordered list detection uses
+        # the standard markdown pattern "N.\s" at the line start.
+        if stripped.startswith(("-", "*", ">", "|")) or re.match(r"^\d+\.\s", stripped):
+            para = _flush()
+            if para:
+                return para
+            paragraph_lines.clear()
+            continue
+        # Empty line ends paragraph
+        if not stripped:
+            para = _flush()
+            if para:
+                return para
+            paragraph_lines.clear()
+            continue
+        paragraph_lines.append(stripped)
+
+    # Final paragraph at EOF
+    para = _flush()
+    if para:
+        return para
+    # Fallback to H1 title text
+    return first_h1
+
+
+def _derive_overview_narrative(
+    spec_vbrief: dict | None,
+    spec_md_content: str | None,
+    project_content: str | None,
+    scope_item_count: int,
+) -> str:
+    """Derive an Overview narrative for PROJECT-DEFINITION.vbrief.json (#417).
+
+    D3 requires the `Overview` narrative key (after case-folding) to be
+    present on `vbrief/PROJECT-DEFINITION.vbrief.json`.  Resolution order:
+
+    1. `spec_vbrief.plan.narratives['Overview']` if present and non-empty.
+    2. First prose paragraph / H1 title of `SPECIFICATION.md` (pre-sentinel).
+    3. First prose paragraph / H1 title of `PROJECT.md` (pre-sentinel).
+    4. Synthesized placeholder naming the scope count, telling the user how
+       to fill it in.  Always non-empty so `vbrief:validate` passes D3.
+    """
+    # 1. spec_vbrief narratives (set by step 2b PRD/SPEC ingestion, or by the
+    # caller if there was a pre-existing specification.vbrief.json).
+    if spec_vbrief:
+        narratives = spec_vbrief.get("plan", {}).get("narratives", {})
+        if isinstance(narratives, dict):
+            ov = narratives.get("Overview")
+            if isinstance(ov, str) and ov.strip():
+                return ov.strip()
+
+    # 2. SPECIFICATION.md prose / title -- but only if not already a sentinel
+    # stub (would happen on re-run after migration).
+    if spec_md_content and DEPRECATION_SENTINEL not in spec_md_content:
+        derived = _first_prose_paragraph(spec_md_content)
+        if derived:
+            return derived
+
+    # 3. PROJECT.md prose / title -- same sentinel guard.
+    if project_content and DEPRECATION_SENTINEL not in project_content:
+        derived = _first_prose_paragraph(project_content)
+        if derived:
+            return derived
+
+    # 4. Synthesized fallback.  Always non-empty so the D3 validator passes.
+    if scope_item_count > 0:
+        return (
+            f"Project overview was not auto-derived during migration. "
+            f"{scope_item_count} scope item(s) were created in vbrief/pending/. "
+            f"Update vbrief/PROJECT-DEFINITION.vbrief.json narratives['Overview'] "
+            f"manually to describe your project."
+        )
+    return (
+        "Project overview was not auto-derived during migration. "
+        "Update vbrief/PROJECT-DEFINITION.vbrief.json narratives['Overview'] "
+        "manually to describe your project."
+    )
+
+
 def _build_project_definition(
     spec_vbrief: dict | None,
     project_content: str | None,
     scope_items: list[dict],
     repo_url: str = "",
+    spec_md_content: str | None = None,
 ) -> dict:
     """Build PROJECT-DEFINITION.vbrief.json from existing sources.
 
     Per RFC #309 D3:
     - narratives holds project identity (overview, tech stack, architecture, risks, config)
     - items acts as a scope registry referencing individual vBRIEF files
+
+    ``spec_md_content`` is the raw SPECIFICATION.md text (pre-sentinel) for
+    Overview-narrative derivation on canonical v0.19 consumer projects that
+    have no pre-existing ``specification.vbrief.json`` (#417).
     """
     narratives: dict[str, str] = {}
 
@@ -345,6 +467,29 @@ def _build_project_definition(
         tech_stack = _extract_tech_stack(project_content)
         if tech_stack:
             narratives["tech stack"] = tech_stack
+
+    # Ensure Overview narrative is present AND non-empty so the generated
+    # PROJECT-DEFINITION passes `scripts/vbrief_validate.py::
+    # validate_project_definition` D3 out of the box (#417).  Case-insensitive
+    # check because D3 lowers() keys before comparing to
+    # PROJECT_DEF_EXPECTED_NARRATIVES = {"overview", "tech stack"}.  The
+    # value-awareness matters because a pre-existing specification.vbrief.json
+    # may carry an empty / whitespace-only `Overview` -- without this check,
+    # that blank value would round-trip into PROJECT-DEFINITION unchanged
+    # (D3 only asserts key presence, so we surface a useful narrative instead).
+    overview_key = next(
+        (k for k in narratives if k.lower() == "overview"), None
+    )
+    overview_value = narratives.get(overview_key, "") if overview_key else ""
+    if not isinstance(overview_value, str) or not overview_value.strip():
+        derived = _derive_overview_narrative(
+            spec_vbrief, spec_md_content, project_content, len(scope_items)
+        )
+        if derived:
+            # Keep the existing key spelling (e.g. "overview" vs "Overview")
+            # if one is present so we do not create a second key that differs
+            # only in case.  Default to CamelCase "Overview" for new entries.
+            narratives[overview_key or "Overview"] = derived
 
     items: list[dict] = []
     for scope in scope_items:
@@ -566,7 +711,11 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
     else:
         all_items = roadmap_items + completed_items
         proj_def = _build_project_definition(
-            spec_vbrief, project_content, all_items, repo_url=repo_url
+            spec_vbrief,
+            project_content,
+            all_items,
+            repo_url=repo_url,
+            spec_md_content=spec_md_content,
         )
         proj_def_path.write_text(
             json.dumps(proj_def, indent=2, ensure_ascii=False) + "\n",
