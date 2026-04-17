@@ -23,7 +23,9 @@ from migrate_vbrief import (  # noqa: E402, I001
     LIFECYCLE_FOLDERS,
     _build_project_definition,
     _create_scope_vbrief,
+    _derive_overview_narrative,
     _extract_tech_stack,
+    _first_prose_paragraph,
     _is_user_customized,
     _parse_prd_narratives,
     _parse_roadmap_items,
@@ -417,9 +419,17 @@ class TestBuildProjectDefinition:
         assert result["plan"]["title"] == "PROJECT-DEFINITION"
         assert result["plan"]["status"] == "running"
 
-    def test_no_sources_produces_empty_narratives(self):
+    def test_no_sources_produces_synthesized_overview(self):
+        """Post-#417: even with no spec / project / items, the generated
+        PROJECT-DEFINITION gets a synthesized Overview so it passes D3."""
         result = _build_project_definition(None, None, [])
-        assert result["plan"]["narratives"] == {}
+        narratives = result["plan"]["narratives"]
+        # Only Overview is synthesized; other narrative keys remain absent
+        # until a spec_vbrief / project_content source populates them.
+        assert set(narratives.keys()) == {"Overview"}, (
+            f"Expected only synthesized Overview, got {sorted(narratives)}"
+        )
+        assert "was not auto-derived" in narratives["Overview"]
         assert result["plan"]["items"] == []
 
 
@@ -675,6 +685,249 @@ class TestMigrateTechStackExtraction:
         data = json.loads(pd_path.read_text(encoding="utf-8"))
         assert "tech stack" in data["plan"]["narratives"]
         assert "Python" in data["plan"]["narratives"]["tech stack"]
+
+
+# ===========================================================================
+# #417 -- Overview narrative derivation (D3 compliance on v0.19 fixtures)
+# ===========================================================================
+
+
+_V019_SPEC_MD = (
+    "# Widget API SPECIFICATION\n\n"
+    "## Problem Statement\n\n"
+    "Users need a widget API for managing widget lifecycle.\n\n"
+    "## Goals\n\n"
+    "- CRUD widgets\n"
+    "- List by owner\n\n"
+    "## Requirements\n\n"
+    "- FR-1: POST /widgets creates a widget\n"
+)
+
+_V019_PROJECT_MD = (
+    "# Project Guidelines\n\n"
+    "## Project Configuration\n\n"
+    "- Language: Python 3.11\n"
+    "- **Tech Stack**: Python 3.11, FastAPI, SQLite\n"
+    "- Coverage: >=75%\n"
+)
+
+
+class TestFirstProseParagraph:
+    """Tests for the `_first_prose_paragraph` helper (#417)."""
+
+    def test_returns_first_paragraph_after_heading(self):
+        content = (
+            "# Title\n\n"
+            "## Section\n\n"
+            "This is the first prose paragraph.\n"
+            "Still the first paragraph.\n\n"
+            "Second paragraph.\n"
+        )
+        assert _first_prose_paragraph(content) == (
+            "This is the first prose paragraph. Still the first paragraph."
+        )
+
+    def test_falls_back_to_h1_when_only_headings_and_lists(self):
+        content = (
+            "# Widget API SPECIFICATION\n\n"
+            "## Goals\n\n"
+            "- CRUD widgets\n"
+            "- List by owner\n"
+        )
+        assert _first_prose_paragraph(content) == "Widget API SPECIFICATION"
+
+    def test_skips_fenced_code_blocks(self):
+        content = (
+            "# Title\n\n"
+            "```\n"
+            "code line ignored\n"
+            "```\n\n"
+            "Real prose paragraph.\n"
+        )
+        assert _first_prose_paragraph(content) == "Real prose paragraph."
+
+    def test_empty_content_returns_empty(self):
+        assert _first_prose_paragraph("") == ""
+
+    def test_only_lists_returns_empty_when_no_h1(self):
+        content = "- item one\n- item two\n"
+        assert _first_prose_paragraph(content) == ""
+
+
+class TestDeriveOverviewNarrative:
+    """Tests for `_derive_overview_narrative` (#417)."""
+
+    def test_prefers_spec_vbrief_overview(self):
+        spec = {
+            "plan": {"narratives": {"Overview": "Declared overview from spec vBRIEF."}}
+        }
+        result = _derive_overview_narrative(spec, "IGNORED SPEC MD", "IGNORED PROJECT", 3)
+        assert result == "Declared overview from spec vBRIEF."
+
+    def test_derives_from_spec_md_when_spec_vbrief_missing_overview(self):
+        result = _derive_overview_narrative(None, _V019_SPEC_MD, None, 0)
+        # First prose paragraph under "## Problem Statement" heading.
+        assert result == "Users need a widget API for managing widget lifecycle."
+
+    def test_falls_back_to_project_md_when_no_spec(self):
+        result = _derive_overview_narrative(None, None, "# Widget\n\nA widget service.\n", 0)
+        assert result == "A widget service."
+
+    def test_synthesized_fallback_when_no_sources(self):
+        result = _derive_overview_narrative(None, None, None, 5)
+        assert "was not auto-derived during migration" in result
+        assert "5 scope item(s)" in result
+
+    def test_ignores_deprecation_stub_input(self):
+        """A migrated SPECIFICATION.md carrying the sentinel must NOT be mined."""
+        sentinel_stub = (
+            f"{DEPRECATION_SENTINEL}\n"
+            "# SPECIFICATION.md -- DEPRECATED\n\n"
+            "See vbrief/.\n"
+        )
+        result = _derive_overview_narrative(None, sentinel_stub, None, 2)
+        # Falls through to the synthesized fallback rather than grabbing
+        # "See vbrief/." from the redirect stub.
+        assert "was not auto-derived during migration" in result
+
+    def test_empty_spec_vbrief_overview_is_skipped(self):
+        """A spec_vbrief whose Overview is an empty string must not short-circuit."""
+        spec = {"plan": {"narratives": {"Overview": "   "}}}
+        result = _derive_overview_narrative(spec, _V019_SPEC_MD, None, 0)
+        assert "widget api" in result.lower()
+
+    def test_build_project_definition_replaces_blank_overview_from_spec_vbrief(
+        self, tmp_path
+    ):
+        """End-to-end: a pre-existing specification.vbrief.json carrying a
+        whitespace-only Overview must be replaced by the derived value so the
+        generated PROJECT-DEFINITION has a useful narrative and passes D3.
+
+        This covers the integrated path (the _build_project_definition guard
+        must be value-aware, not just key-aware) -- unlike the helper-only
+        test above which exercises _derive_overview_narrative in isolation.
+        """
+        blank_spec = {
+            "vBRIEFInfo": {"version": "0.5", "description": "Spec"},
+            "plan": {
+                "title": "Spec",
+                "status": "approved",
+                "narratives": {"Overview": "   "},
+                "items": [],
+            },
+        }
+        result = _build_project_definition(
+            spec_vbrief=blank_spec,
+            project_content=None,
+            scope_items=[],
+            spec_md_content=_V019_SPEC_MD,
+        )
+        narratives = result["plan"]["narratives"]
+        # The blank Overview must be replaced, not preserved.
+        overview = next(
+            narratives[k] for k in narratives if k.lower() == "overview"
+        )
+        assert overview.strip(), "blank Overview must be replaced, not kept"
+        assert "widget api" in overview.lower()
+
+
+class TestMigrateOverviewNarrative:
+    """Regression test for #417 -- PROJECT-DEFINITION must include Overview narrative."""
+
+    def test_v019_fixture_project_definition_has_overview(self, tmp_path):
+        """Canonical v0.19 consumer fixture (no spec_vbrief, no Overview section)
+        must still produce PROJECT-DEFINITION.vbrief.json with an Overview key.
+        """
+        project = _make_project(
+            tmp_path,
+            spec_md=_V019_SPEC_MD,
+            project_md=_V019_PROJECT_MD,
+        )
+        ok, actions = migrate(project)
+        assert ok, f"migrate failed: {actions}"
+
+        pd_path = project / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
+        assert pd_path.is_file()
+        data = json.loads(pd_path.read_text(encoding="utf-8"))
+        narratives = data["plan"]["narratives"]
+        # Case-insensitive match to align with D3 validator behavior.
+        assert any(k.lower() == "overview" for k in narratives), (
+            f"PROJECT-DEFINITION narratives missing Overview (#417). Keys: {sorted(narratives)}"
+        )
+
+    def test_overview_derived_from_spec_md_prose(self, tmp_path):
+        """When SPECIFICATION.md has a prose paragraph, it becomes the Overview."""
+        project = _make_project(tmp_path, spec_md=_V019_SPEC_MD, project_md=_V019_PROJECT_MD)
+        migrate(project)
+        data = json.loads(
+            (project / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(encoding="utf-8")
+        )
+        # The v0.19 fixture's first prose paragraph (after "## Problem Statement").
+        assert data["plan"]["narratives"]["Overview"] == (
+            "Users need a widget API for managing widget lifecycle."
+        )
+
+    def test_overview_is_synthesized_when_no_markdown_sources(self, tmp_path):
+        """No SPECIFICATION.md, no PROJECT.md, no spec_vbrief -> synthesized Overview."""
+        project = _make_project(tmp_path)
+        ok, _ = migrate(project)
+        assert ok
+
+        pd_path = project / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
+        data = json.loads(pd_path.read_text(encoding="utf-8"))
+        ov = data["plan"]["narratives"].get("Overview", "")
+        assert ov
+        assert "was not auto-derived during migration" in ov
+
+    def test_migrated_project_definition_passes_d3_validator(self, tmp_path):
+        """End-to-end: after migration on a v0.19 fixture, PROJECT-DEFINITION
+        satisfies scripts/vbrief_validate.py D3 (`overview` + `tech stack`).
+
+        Asserts BOTH the specific D3 narrative-key checks (overview / tech
+        stack) AND validator exit code 0.  The D3 key assertions make the
+        #417 regression intent explicit; the exit-code assertion acts as a
+        canary -- if the validator adds a new error rule that fires on this
+        fixture the test surfaces it immediately.  ROADMAP.md items without
+        origin provenance emit D11 warnings (not errors), so they do not
+        affect the exit code.
+        """
+        project = _make_project(
+            tmp_path,
+            spec_md=_V019_SPEC_MD,
+            project_md=_V019_PROJECT_MD,
+            roadmap_md=SAMPLE_ROADMAP_MD,
+        )
+        ok, _ = migrate(project)
+        assert ok
+
+        validate_script = REPO_ROOT / "scripts" / "vbrief_validate.py"
+        result = subprocess.run(
+            [sys.executable, str(validate_script), "--vbrief-dir", "vbrief"],
+            cwd=str(project),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=60,
+        )
+        # D3 errors about 'overview' or 'tech stack' must not fire -- this is
+        # the specific regression #417 guards against.
+        assert "missing expected key 'overview'" not in result.stdout, (
+            f"D3 Overview check failed on migrated project (#417 regression).\n"
+            f"stdout: {result.stdout}"
+        )
+        assert "missing expected key 'tech stack'" not in result.stdout, (
+            f"D3 tech stack check failed on migrated project.\nstdout: {result.stdout}"
+        )
+        # Exit code is 0 today because the D3 errors above are the only ones
+        # that would fire on this fixture. A non-zero code signals either a
+        # regression in the #417 fix or a new validator rule that this test
+        # does not yet cover -- either warrants investigation.
+        assert result.returncode == 0, (
+            f"vbrief_validate.py returned non-zero on post-migration fixture "
+            f"(rc={result.returncode}). This may indicate a #417 regression or "
+            f"a new validator rule that should be explicitly covered here.\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
 
 
 class TestMigrateDeprecationRedirects:
