@@ -58,11 +58,14 @@ for _, tt := range tests {
 
 **Types:**
 - ⊗ `any` (empty interface) where a concrete type or typed interface is knowable; use generics or explicit interfaces
+
+**Error handling:**
 - ⊗ Ignore errors with `_` — every error MUST be checked or explicitly propagated with a reason
+- ⊗ Empty `recover` blocks that swallow panics silently
 
 **Dead code:**
 - ~ Run `staticcheck` (detects unused code, unreachable branches) and `deadcode` (golang.org/x/tools/cmd/deadcode) before releases
-- ⊗ Unexported functions that are never called outside their own file
+- ⊗ Unexported functions that are never called anywhere in the package
 
 **Circular dependencies:**
 - The Go compiler rejects import cycles — treat them as build failures, not warnings

@@ -110,9 +110,9 @@ def process_order(order: Order) -> ProcessedOrder:
 [project]
 requires-python=">=3.11"
 dependencies=["flask>=3.0.0"]  # or fastapi/typer[all]/textual[dev]
-[dependency-groups]  # PEP 735 — uv syncs these by default
+[dependency-groups]  # PEP 735 — uv syncs these automatically without extra flags
 dev=["pytest>=7.4","pytest-cov>=4.1","pytest-mock>=3.12","hypothesis>=6.0","black>=23","isort>=5.12","ruff>=0.1","mypy>=1.7","pydantic>=2.0"]
-[project.optional-dependencies]
+[project.optional-dependencies]  # pip/hatch compat — requires: uv sync --extra dev / pip install -e ".[dev]"
 prod=["pydantic>=2.0","logfire>=0.1"]  # ~ Observability for production
 [tool.pytest.ini_options]
 testpaths=["tests"]
