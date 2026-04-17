@@ -670,6 +670,26 @@ def test_deft_directive_refinement_has_frontmatter() -> None:
     )
 
 
+def test_deft_directive_refinement_legacy_trigger_aliases() -> None:
+    """deft-directive-refinement must advertise legacy v0.19 trigger aliases (#421).
+
+    v0.19 users invoked this skill via "roadmap refresh" / "refresh roadmap" /
+    "triage". After the vBRIEF cutover rename (#316), the skill must still be
+    discoverable under those phrases so legacy routing paths keep working.
+    """
+    text = _read_skill(_REFINEMENT_PATH)
+    for alias in ("roadmap refresh", "refresh roadmap", "triage"):
+        assert alias in text, (
+            f"{_REFINEMENT_PATH}: must advertise legacy trigger alias {alias!r} "
+            "in frontmatter and/or When-to-Use (#421)"
+        )
+    # Original triggers must still be present (non-regression).
+    for trigger in ("refinement", "reprioritize", "refine"):
+        assert trigger in text, (
+            f"{_REFINEMENT_PATH}: original trigger {trigger!r} must still be listed"
+        )
+
+
 def test_deft_directive_refinement_session_model() -> None:
     """deft-directive-refinement must describe a conversational session model."""
     text = _read_skill(_REFINEMENT_PATH)

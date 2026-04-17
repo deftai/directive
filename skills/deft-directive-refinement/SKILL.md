@@ -9,6 +9,9 @@ triggers:
   - refinement
   - reprioritize
   - refine
+  - roadmap refresh
+  - refresh roadmap
+  - triage
 ---
 
 # Deft Directive Refinement
@@ -23,7 +26,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## When to Use
 
-- User says "refinement", "reprioritize", or "refine"
+- User says "refinement", "reprioritize", "refine", "roadmap refresh", "refresh roadmap", or "triage" (legacy v0.19 terms -- deft-directive-refinement is the current skill name)
 - New issues have accumulated since the last refinement session
 - Periodic maintenance pass (e.g. weekly or after a batch of user feedback)
 - User wants to review and organize the backlog

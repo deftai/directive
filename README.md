@@ -155,6 +155,7 @@ Deft provides deterministic `task` commands for rendering, migrating, and valida
 | Command | Description | When to use |
 |---------|-------------|-------------|
 | `task spec:render` | Regenerate `SPECIFICATION.md` from `specification.vbrief.json` | After editing the spec vBRIEF |
+| `task prd:render` | Export `plan.narratives` from `specification.vbrief.json` to a read-only `PRD.md` for stakeholder review | On demand, when a stakeholder wants a PRD-style export |
 | `task roadmap:render` | Regenerate `ROADMAP.md` from `vbrief/pending/` scope vBRIEFs | After promoting/demoting scopes |
 | `task project:render` | Regenerate `PROJECT-DEFINITION.vbrief.json` items registry | After scope lifecycle changes |
 | `task migrate:vbrief` | Migrate existing projects to vBRIEF lifecycle folder structure | One-time cutover from pre-v0.20 model |
