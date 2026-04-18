@@ -47,6 +47,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Explain tradeoffs when multiple approaches exist
 - ~ Suggest improvements even when not asked
 - ! Before implementing any planned change that touches 3+ files or has an accepted plan artifact, propose `/deft:change <name>` and wait for confirmation
+- ! When a session condition arises (coverage drops, spec approved, stub found, context exhausted, etc.), treat it as a domain event — see [core/events.md](./core/events.md) for the mandatory response
 
 **Communication:**
 - ! Be concise and precise
