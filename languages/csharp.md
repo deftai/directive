@@ -228,6 +228,24 @@ Items marked ⊗ in Standards above are not repeated here.
 - ≉ **God classes**: Keep <500 lines; extract services/handlers
 - ≉ **`static` utility classes**: Inject via DI for testability
 
+## Hygiene
+
+**Types:**
+- ⊗ `object` as parameter or return type where a concrete or generic type is knowable
+- ⊗ `dynamic` outside genuine late-binding scenarios (COM interop, DLR, legacy)
+- ⊗ `null!` (null-forgiving operator) to suppress nullable warnings without a documented invariant
+- ⊗ `#pragma warning disable` without an inline comment explaining why it is safe
+
+**Error handling:**
+- ⊗ Empty `catch {}` or `catch (Exception) { }` — handle or re-throw
+- ⊗ `catch (Exception e) { }` that swallows without logging — use structured logging and propagate
+- ⊗ Returning `null` or a default value from a public method to mask an exception
+
+**Dead code:**
+- ~ Roslyn IDE analyzers report unused private members; treat `IDE0051` as a warning-as-error in CI
+- ~ Run `dotnet-unused` for projects with large public APIs to detect unreferenced symbols
+- ⊗ `#pragma warning disable IDE0051` to hide dead code from analysis instead of deleting it
+
 ## Compliance Checklist
 
 - ! XML doc comments on all public APIs
