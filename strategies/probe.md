@@ -65,6 +65,10 @@ Walk the decision tree depth-first. For each unresolved branch:
 
 ## Output
 
+`{scope}` is the project name from `PROJECT.md`, or the feature/component name if
+probing a sub-scope. Use the same value consistently throughout the session.
+Examples: `my-app-probe.md`, `auth-probe.md`.
+
 - ! Produce `{scope}-probe.md` with three sections:
   - **Locked decisions** — what was resolved and why
   - **Surfaced risks** — concerns raised, even if not fully resolved

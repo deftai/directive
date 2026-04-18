@@ -80,12 +80,13 @@ Ready to generate the specification. Before we proceed, would you like to:
 2. Run a research phase — investigate the domain, find libraries, identify pitfalls
 3. Run a discuss phase — lock key decisions using Feynman technique
 4. Run a map/brownfield phase — analyze existing codebase conventions
+5. Run a probe phase — stress-test the plan, resolve every decision branch adversarially
 
 --- Switch strategy ---
-5. Switch to yolo — auto-pilot picks all answers
-6. Switch to speckit — formal five-phase spec process
+6. Switch to yolo — auto-pilot picks all answers
+7. Switch to speckit — formal five-phase spec process
 
-7. Other (specify)
+8. Other (specify)
 ```
 
 ---

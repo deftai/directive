@@ -336,7 +336,7 @@ task clean         # Clean artifacts
 **Dispatch:**
 
 - **interview** (or default) → Continue to the Sizing Gate below ✅
-- **anything else** (discuss, yolo, speckit, research, brownfield, map, etc.) →
+- **anything else** (discuss, yolo, speckit, research, brownfield, map, probe, etc.) →
   1. ! Read `deft/strategies/{strategy-name}.md` **right now, in this same turn**
   2. ! Begin the strategy’s workflow immediately — ask its first question
   3. ! **STOP reading this section** — do NOT use the interview process below
