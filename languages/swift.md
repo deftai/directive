@@ -125,6 +125,23 @@ Key settings: `swift-tools-version: 5.9`, platforms `.iOS(.v17)/.macOS(.v14)`, e
 - `--wrapcollections before-first`, `--wraparguments before-first`
 - Enabled: `isEmpty`, `redundantSelf`, `sortImports`, `trailingCommas`
 
+## Hygiene
+
+**Types:**
+- ⊗ Force unwrap `!` without a documented invariant proving non-nil — already in Standards; treat as hygiene blocker in review
+- ⊗ `any Protocol` (existential) where a concrete type or `some Protocol` (opaque) is knowable (SE-0335)
+- ~ Prefer `some` (opaque return type) over `any` when the concrete type is fixed at the call site
+
+**Error handling:**
+- ⊗ `try?` that silently discards errors in non-trivial paths — use `do { try } catch` and handle
+- ⊗ `try!` outside tests without a compile-time guarantee of non-throwing
+- ⊗ Empty `catch {}` blocks
+
+**Dead code:**
+- ~ Run `periphery scan` (`Periphery`) to detect unused declarations, types, and protocols
+- ~ SwiftLint `unused_declaration` opt-in rule catches file-local dead code
+- ⊗ `// swiftlint:disable unused_declaration` to suppress rather than remove dead code
+
 ## Compliance Checklist
 
 - ! Follow Swift API Design Guidelines for all public APIs

@@ -159,6 +159,14 @@ Load as needed:
 | Language hygiene — Python | `languages/python.md` (Hygiene section) |
 | Language hygiene — Go | `languages/go.md` (Hygiene section) |
 | Language hygiene — TypeScript | `languages/typescript.md` (Hygiene section) |
+| Language hygiene — JavaScript | `languages/javascript.md` (Hygiene section) |
+| Language hygiene — Rust | `languages/rust.md` (Hygiene section) |
+| Language hygiene — C++ | `languages/cpp.md` (Hygiene section) |
+| Language hygiene — C# | `languages/csharp.md` (Hygiene section) |
+| Language hygiene — Java | `languages/java.md` (Hygiene section) |
+| Language hygiene — Kotlin | `languages/kotlin.md` (Hygiene section) |
+| Language hygiene — Swift | `languages/swift.md` (Hygiene section) |
+| Language hygiene — C | `languages/c.md` (Hygiene section) |
 
 ---
 

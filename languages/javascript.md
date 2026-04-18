@@ -133,6 +133,25 @@ Items marked ⊗ in Standards above are not repeated here.
 - ≉ **Barrel re-exports everywhere**: Hurts tree-shaking
 - ≉ **God modules**: Keep files <300 lines
 
+## Hygiene
+
+**Types:**
+- ~ Use JSDoc `@type` annotations or `// @ts-check` to surface weak types without migrating to TypeScript
+- ⊗ Untyped `.json()` parse results passed directly to callers without shape validation
+
+**Error handling:**
+- ⊗ Empty `catch` blocks — handle the specific error or re-throw
+- ⊗ Unhandled promise rejections — every `Promise` must be `.catch()`-ed or returned
+- ⊗ `catch (e) { console.log(e) }` without re-throw — log-and-continue hides failures from callers
+
+**Dead code:**
+- ~ Run `knip` to detect unused exports, files, and dependencies
+- ~ Add `knip` as a `task hygiene` target
+
+**Circular dependencies:**
+- ~ Run `madge --circular src/` to detect cycles
+- ⊗ Circular imports — restructure or extract shared code to a lower-level module
+
 ## Compliance Checklist
 
 - ! JSDoc on all exported APIs

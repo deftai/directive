@@ -165,6 +165,22 @@ Items marked ⊗ in Standards above are not repeated here.
 - ≉ **`if-else` for sealed dispatch**: Use exhaustive `when`
 - ≉ **String templates in logging**: Use parameterized logging
 
+## Hygiene
+
+**Types:**
+- ⊗ `Any` as parameter or return type where a concrete type or bounded generic is knowable
+- ⊗ `!!` (non-null assertion) outside tests without a documented invariant proving non-null at that point
+- ~ Use sealed classes/interfaces over `Any`-typed discriminated unions
+
+**Error handling:**
+- ⊗ Empty `catch` blocks or catching `Throwable` — already in Standards; treat as a hygiene blocker in review
+- ⊗ `runCatching { }.getOrNull()` to silently discard failures — inspect the `Failure` case
+
+**Dead code:**
+- ~ detekt rules `UnusedPrivateMember` and `UnusedImports` detect dead code; enable in CI
+- ~ Run `gradle dependencies` to audit unused or duplicate dependencies
+- ⊗ `@Suppress("unused")` to hide dead code from detekt instead of deleting it
+
 ## Compliance Checklist
 
 - ! KDoc on all public API

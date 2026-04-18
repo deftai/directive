@@ -248,6 +248,23 @@ Items marked ⊗ in Standards above are not repeated here.
 - ≉ **God classes**: Keep <500 lines; extract service/strategy/helper
 - ≉ **`Collectors.toList()`**: Prefer `Stream.toList()` (Java 16+)
 
+## Hygiene
+
+**Types:**
+- ⊗ Raw types (`List`, `Map`, `Optional`) without type parameters — always parameterize
+- ⊗ `Object` as parameter or return type where a concrete type or bounded wildcard is knowable
+- ⊗ `@SuppressWarnings("unchecked")` without an inline comment proving the cast is safe
+
+**Error handling:**
+- ⊗ Empty `catch (Exception e) {}` — handle, log with context, or re-throw as a typed exception
+- ⊗ `e.printStackTrace()` as the sole handler — use structured logging and propagate or wrap
+- ⊗ Returning `null` from public methods to signal failure — use `Optional<T>` or throw
+
+**Dead code:**
+- ~ SpotBugs (in build config) detects `DLS_DEAD_LOCAL_STORE` and unreachable code
+- ~ PMD rules `UnusedPrivateMethod` and `UnusedPrivateField` catch dead private symbols
+- ~ Run `gradle dependencies --configuration runtimeClasspath` to audit unused dependencies
+
 ## Compliance Checklist
 
 - ! Javadoc on all public APIs
