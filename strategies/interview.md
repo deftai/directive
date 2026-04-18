@@ -48,6 +48,7 @@ Present two groups sourced from the `Type` column in
 - Research — investigate the domain, find libraries, identify pitfalls
 - Discuss — lock key decisions using Feynman technique
 - Map/Brownfield — analyze existing codebase conventions
+- Probe — stress-test the plan, resolve every decision branch adversarially
 
 **Switch spec-generating strategy** (type: `spec-generating` — replaces current pipeline):
 - Yolo — auto-pilot, Johnbot picks all answers

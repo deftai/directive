@@ -73,7 +73,8 @@ Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
 3. **map** — Analyze existing codebase conventions before adding features
 4. **discuss** — Front-load decisions and alignment before planning
 5. **research** — Investigate the domain before planning
-6. **speckit** — Five-phase spec-driven workflow for large/complex projects
+6. **probe** — Stress-test a plan adversarially, resolve every decision branch
+7. **speckit** — Five-phase spec-driven workflow for large/complex projects
 
 > 💡 Strategies can be chained — after one completes, you'll be asked if you want to run another.
 

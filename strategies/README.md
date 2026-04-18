@@ -12,7 +12,8 @@ Development strategies define the workflow from idea to implementation.
 | [map.md](./map.md) | `/deft:run:map` | preparatory | Existing codebases | Map → Chaining Gate |
 | [brownfield.md](./brownfield.md) | `/deft:run:brownfield` | preparatory | Existing codebases | Map → Chaining Gate |
 | [discuss.md](./discuss.md) | `/deft:run:discuss` | preparatory | Alignment before planning | Feynman technique → locked decisions → Chaining Gate |
-| [research.md](./research.md) | `/deft:run:research` | preparatory | Pre-implementation research | Research → Don’t Hand-Roll + Common Pitfalls → Chaining Gate |
+| [research.md](./research.md) | `/deft:run:research` | preparatory | Pre-implementation research | Research → Don't Hand-Roll + Common Pitfalls → Chaining Gate |
+| [probe.md](./probe.md) | `/deft:run:probe` | preparatory | Stress-test a plan or design | Relentless interrogation → locked decisions + surfaced risks → Chaining Gate |
 | rapid.md | `/deft:run:rapid` | spec-generating | Quick prototypes | Forced-Light path (future) |
 | enterprise.md | `/deft:run:enterprise` | spec-generating | Compliance-heavy | Forced-Full path (future) |
 
