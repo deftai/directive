@@ -1,6 +1,10 @@
 # Glossary
 
-Terms used across the Deft framework. Includes mappings from external systems.
+The authoritative vocabulary for the Deft framework.
+
+! When a term used in any directive file is not locally defined, load this file to resolve it.
+! When introducing a new term in any directive file, define it here first.
+⊗ Define the same term differently in two files — one definition, one source of truth.
 
 ---
 
@@ -53,6 +57,36 @@ These concepts originate from [GSD](https://github.com/gsd-build/get-shit-done) 
 **Spec delta** — A scoped document capturing how a change modifies existing requirements. Shows new requirements and was/now diffs for modified ones. Linked to the baseline spec via vBRIEF `references` with `type: "x-vbrief/plan"`. Lives in `history/changes/<name>/specs/`. See [context/spec-deltas.md](../context/spec-deltas.md). Invoked as part of `/deft:change`.
 
 **Verify command** — A concrete, runnable command specified per task that confirms the task's work is correct (e.g., `pytest tests/test_auth.py`, `curl localhost:8080/health`). Required by plan checking dimension 2 (completeness). Tasks without a verify command fail the plan check.
+
+---
+
+## Framework Design Terms
+
+Terms describing how directive itself is structured and governed.
+
+**Bounded context** (framework sense) — A file or directory in directive that owns a specific rule domain. Other files reference it; they do not restate its rules. Prevents rule drift through duplication. Examples: `coding/hygiene.md` owns hygiene rules; `coding/testing.md` owns universal testing standards.
+
+**Rule ownership** — The principle that each concept in directive has exactly one owning file. When multiple files need to reference the concept, they link to the owner rather than duplicating the rule. The ownership map lives in [REFERENCES.md](../REFERENCES.md).
+
+**Domain event** — A named occurrence in an agent session that triggers specific, mandatory behaviour. The canonical list is in [core/events.md](./events.md). When an event fires, its response is not optional.
+
+**Ubiquitous language** — The shared, precisely defined vocabulary used consistently across all directive files and by all agents. This glossary is the source of truth. Synonyms and informal restatements of defined terms are not permitted.
+
+---
+
+## Hygiene Terms
+
+Terms used in [coding/hygiene.md](../coding/hygiene.md).
+
+**Hygiene** — The ongoing practice of keeping a codebase clean beyond what individual changes introduce: removing dead code, eliminating circular dependencies, surfacing hidden errors, and removing legacy/deprecated code paths. Distinct from per-change quality gates, which only govern new code.
+
+**Dead code** — Code that is defined but never executed: unused functions, unreachable branches, stale feature flags, and commented-out blocks. Distinct from deprecated code, which may still execute on a legacy path.
+
+**Error hiding** — Any pattern that prevents an error from being observed by the caller or operator: empty catch blocks, silent fallbacks, returning neutral/zero values to mask failures, or log-and-continue without surfacing the error upstream.
+
+**Legacy code** — A code path, implementation, or feature flag that has been superseded but not removed. Identified by markers such as `LEGACY`, `COMPAT`, `OLD_`, `TODO: remove`, or the presence of two parallel implementations without a migration path.
+
+**Circular dependency** — An import cycle where module A depends on module B which depends (directly or transitively) on module A. Indicates architectural coupling that prevents modular testing and signals a layering violation.
 
 ---
 
