@@ -465,8 +465,11 @@ Plus: delphi, visual-basic, vhdl, 6502-DASM
 **deployments/** - Deployment guides for 9 platforms:  
 agentuity, aws, azure, cloudflare, cloud-gov, fly-io, google, netlify, vercel
 
+### 📖 Glossary
+**glossary.md** - Canonical v0.20 vocabulary (Scope vBRIEF, lifecycle folder, canonical narrative keys, rendered export, source of truth, ...) -- one page under 150 lines.
+
 ### 🤖 Skills
-**skills/deft-directive-build/** - Build/implement skill  
+**skills/deft-directive-build/** - Build/implement skill
 **skills/deft-directive-interview/** - Deterministic structured Q&A interview skill  
 **skills/deft-directive-pre-pr/** - Iterative pre-PR quality loop (Read-Write-Lint-Diff-Loop) -- run before pushing a branch for PR creation  
 **skills/deft-directive-refinement/** - Conversational backlog refinement (ingest, evaluate, promote/demote, prioritize)  

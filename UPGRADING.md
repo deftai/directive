@@ -47,6 +47,7 @@ After you update `deft/` to v0.20.0, `vbrief/*.vbrief.json` files are the source
 - [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) — detailed brownfield adoption / migration walkthrough.
 - [QUICK-START.md](./QUICK-START.md) — agent-facing bootstrap + upgrade detection.
 - [vbrief/vbrief.md](./vbrief/vbrief.md) — canonical vBRIEF file taxonomy.
+- [glossary.md](./glossary.md) — canonical v0.20 vocabulary (Scope vBRIEF, lifecycle folder, canonical narrative keys, rendered export, source of truth, ...).
 - [CHANGELOG.md](./CHANGELOG.md) — full v0.20.0 change list.
 
 ---
