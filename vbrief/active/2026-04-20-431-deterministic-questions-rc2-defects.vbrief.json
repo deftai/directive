@@ -1,0 +1,63 @@
+{
+    "vBRIEFInfo":  {
+                       "version":  "0.5",
+                       "description":  "Restore the three #359 behaviors in the deterministic-question flow driven by skills/deft-directive-interview/SKILL.md.",
+                       "created":  "2026-04-20T00:00:00Z",
+                       "updated":  "2026-04-20T00:00:00Z"
+                   },
+    "plan":  {
+                 "id":  "ga-431-deterministic-questions-rc2-defects",
+                 "title":  "Deterministic questions (RC2): confirm step, back nav, escape hatch distinct from Other",
+                 "status":  "running",
+                 "narratives":  {
+                                    "Problem":  "RC2 testing off phase2/vbrief-cutover (HEAD 032ac87) shows all three #359 behaviors broken: (1) number keys instant-accept without a confirm-before-advance step; (2) no back-navigation affordance between deterministic questions; (3) the escape hatch Other.. is visually indistinguishable from Other and is not in slot 0.",
+                                    "Action":  "Edit skills/deft-directive-interview/SKILL.md (and the mirrored .agents/skills/deft-directive-interview/SKILL.md) to: (1) insert a confirm-after-number-press step where the agent echoes the selected option and waits for Enter before advancing; (2) add a back-navigation affordance (e.g. b or left-arrow) with a visible hint in the prompt footer; (3) rename the escape hatch to Discuss with agent (or similar) and move it to slot 0 with a distinct label; (4) add a persistent one-line legend under each question (Enter confirm / b back / 0 discuss).",
+                                    "Test":  "Update tests/content/test_skills.py or add new deterministic-question content tests asserting presence of confirm step, back-nav key, and slot-0 discuss option in the interview SKILL.md. If RC fixture walkthroughs exist, update the expected transcripts.",
+                                    "Outcome":  "A fresh RC install run off cutover branch demonstrates all three #359 behaviors: a number keypress shows the selection and awaits Enter; b returns to the previous question; slot 0 opens freeform conversation, visually distinct from Other."
+                                },
+                 "items":  [
+                               {
+                                   "status":  "running",
+                                   "title":  "Insert confirm-after-number-press step in deft-directive-interview/SKILL.md",
+                                   "id":  "431-1"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Add back-navigation affordance (b key / left-arrow) with visible footer hint",
+                                   "id":  "431-2"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Rename escape hatch to Discuss with agent and move to slot 0",
+                                   "id":  "431-3"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Add persistent one-line legend under each deterministic question",
+                                   "id":  "431-4"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Mirror updates into .agents/skills/deft-directive-interview/SKILL.md",
+                                   "id":  "431-5"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Update tests/content/test_skills.py assertions for confirm / back / slot-0 / legend",
+                                   "id":  "431-6"
+                               }
+                           ],
+                 "references":  [
+                                    {
+                                        "type":  "github-issue",
+                                        "url":  "https://github.com/deftai/directive/issues/431",
+                                        "id":  "#431"
+                                    },
+                                    {
+                                        "type":  "github-issue",
+                                        "url":  "https://github.com/deftai/directive/issues/403",
+                                        "id":  "#403"
+                                    }
+                                ]
+             }
+}

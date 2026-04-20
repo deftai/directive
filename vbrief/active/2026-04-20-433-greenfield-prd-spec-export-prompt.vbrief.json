@@ -1,0 +1,58 @@
+{
+    "vBRIEFInfo":  {
+                       "version":  "0.5",
+                       "description":  "Inform users about human-readable exports during greenfield speckit runs via Artifacts Summary + end-of-Phase-3 prompt + optional task check nudge.",
+                       "created":  "2026-04-20T00:00:00Z",
+                       "updated":  "2026-04-20T00:00:00Z"
+                   },
+    "plan":  {
+                 "id":  "ga-433-greenfield-prd-spec-export-prompt",
+                 "title":  "Greenfield projects can complete speckit with no PRD/SPECIFICATION export and no prompt",
+                 "status":  "running",
+                 "narratives":  {
+                                    "Problem":  "Greenfield speckit runs end with PROJECT-DEFINITION / specification / plan vBRIEFs populated but no PRD.md or SPECIFICATION.md and nothing tells the user those exports exist. task check skip-if-absent design (#398) makes the gap invisible. deft-directive-pre-pr auto-renders at PR time but solo users who never open a PR miss it.",
+                                    "Action":  "Add 3c. Render PRD step to speckit.md Artifacts Summary alongside the existing 3b. Render SPECIFICATION. Add an end-of-Phase-3 prompt in deft-directive-setup/SKILL.md: \"Generate SPECIFICATION.md and/or PRD.md now? (recommended for stakeholder review)\". Optionally add a one-line info nudge in task check when specification.vbrief.json exists but neither export does.",
+                                    "Test":  "tests/content assertion that speckit.md Artifacts Summary has a 3c entry for PRD. Behavior test for setup skill emitting the prompt after spec approval. If the task check nudge is implemented, add a fixture test for its presence/absence condition.",
+                                    "Outcome":  "Greenfield users are always informed about exports before the workflow completes. The exports are one keystroke away, not hidden behind a PR-prep hook."
+                                },
+                 "items":  [
+                               {
+                                   "status":  "running",
+                                   "title":  "Add 3c. Render PRD to speckit.md Artifacts Summary",
+                                   "id":  "433-1"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Add end-of-Phase-3 export prompt in deft-directive-setup/SKILL.md",
+                                   "id":  "433-2"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "(Optional) Add task check info-line nudge for missing exports",
+                                   "id":  "433-3"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Content tests for Artifacts Summary and setup-skill prompt presence",
+                                   "id":  "433-4"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "(If nudge implemented) fixture test for task check output",
+                                   "id":  "433-5"
+                               }
+                           ],
+                 "references":  [
+                                    {
+                                        "type":  "github-issue",
+                                        "url":  "https://github.com/deftai/directive/issues/433",
+                                        "id":  "#433"
+                                    },
+                                    {
+                                        "type":  "github-issue",
+                                        "url":  "https://github.com/deftai/directive/issues/403",
+                                        "id":  "#403"
+                                    }
+                                ]
+             }
+}

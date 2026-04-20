@@ -1,0 +1,58 @@
+{
+    "vBRIEFInfo":  {
+                       "version":  "0.5",
+                       "description":  "Gate speckit Phase 3 -\u003e Phase 4 transition on SPECIFICATION.md existence and hash match. Also restructure Post-Phase 3 section as a numbered transition gate.",
+                       "created":  "2026-04-20T00:00:00Z",
+                       "updated":  "2026-04-20T00:00:00Z"
+                   },
+    "plan":  {
+                 "id":  "ga-432-speckit-phase3-spec-render-enforcement",
+                 "title":  "speckit Phase 3 -\u003e Phase 4 advances without enforcing ! task spec:render",
+                 "status":  "running",
+                 "narratives":  {
+                                    "Problem":  "speckit.md Phase 3 declares ! Run task spec:render but nothing in the workflow contract enforces it. Yolo-mode agents advance to Phase 4 with specification.vbrief.json + plan.vbrief.json written and no SPECIFICATION.md anywhere. Defeats Phase 3 review intent.",
+                                    "Action":  "Add a !-level Phase 3 Transition Criterion to deft/strategies/speckit.md requiring SPECIFICATION.md to exist and its hash to match the current specification.vbrief.json narratives. Restructure Post-Phase 3: Render for Review from prose into a numbered transition gate mirroring Phase 2 approval gate. Optionally have deft-directive-setup/SKILL.md call task spec:render itself at the boundary.",
+                                    "Test":  "Add a content test in tests/content/ asserting speckit.md Phase 3 contains the transition criterion. If the setup skill enforces the render, add a fixture test for a greenfield yolo walkthrough that refuses to enter Phase 4 without SPECIFICATION.md.",
+                                    "Outcome":  "Greenfield speckit + yolo produces SPECIFICATION.md before Phase 4 entry, 100 percent reproducible. Phase 3 stated review intent is actually enforced."
+                                },
+                 "items":  [
+                               {
+                                   "status":  "running",
+                                   "title":  "Add Phase 3 Transition Criterion (SPECIFICATION.md exists + hash matches) to speckit.md",
+                                   "id":  "432-1"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Restructure Post-Phase 3 Render for Review as a numbered transition gate",
+                                   "id":  "432-2"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "(Optional) Have deft-directive-setup/SKILL.md invoke task spec:render at Phase 3-\u003e4 boundary",
+                                   "id":  "432-3"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Add content test asserting transition criterion presence in speckit.md",
+                                   "id":  "432-4"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Add regression test for greenfield+yolo refuses Phase 4 without SPECIFICATION.md",
+                                   "id":  "432-5"
+                               }
+                           ],
+                 "references":  [
+                                    {
+                                        "type":  "github-issue",
+                                        "url":  "https://github.com/deftai/directive/issues/432",
+                                        "id":  "#432"
+                                    },
+                                    {
+                                        "type":  "github-issue",
+                                        "url":  "https://github.com/deftai/directive/issues/403",
+                                        "id":  "#403"
+                                    }
+                                ]
+             }
+}

@@ -1,0 +1,63 @@
+{
+    "vBRIEFInfo":  {
+                       "version":  "0.5",
+                       "description":  "Extend spec_render.py to walk lifecycle folders and render scope vBRIEFs under an Implementation Plan section.",
+                       "created":  "2026-04-20T00:00:00Z",
+                       "updated":  "2026-04-20T00:00:00Z"
+                   },
+    "plan":  {
+                 "id":  "ga-435-spec-render-lifecycle-aggregator",
+                 "title":  "spec rendering does not aggregate scope vBRIEFs from lifecycle folders (v0.20 model)",
+                 "status":  "running",
+                 "narratives":  {
+                                    "Problem":  "task spec:render reads only the single specification.vbrief.json file. In v0.20 the project spec is the union of that file plus scope vBRIEFs in vbrief/pending/, active/, completed/. Today SPECIFICATION.md shows only intent; scopes are invisible to readers.",
+                                    "Action":  "Add --include-scopes flag (default on) to scripts/spec_render.py. Walk vbrief/pending/ and vbrief/active/, and optionally vbrief/completed/ with status pins, emitting an Implementation Plan section grouped by lifecycle bucket. Each scope renders as filename stem + title + summary narrative, with acceptance items listed. Use the #458 bilingual edge reader for cross-scope topo-sort ordering.",
+                                    "Test":  "tests/cli/test_spec_render.py: fixture with pending + active + completed scope vBRIEFs asserts rendered output contains Implementation Plan heading and each bucket sub-heading with entries. Assert --include-scopes=off falls back to pre-aggregator behavior.",
+                                    "Outcome":  "SPECIFICATION.md is complete for any v0.20+ project -- intent narratives plus every lifecycle-folder scope. The staleness/auto-render hooks (#398) finally produce meaningful output for v0.20 users."
+                                },
+                 "items":  [
+                               {
+                                   "status":  "running",
+                                   "title":  "Add --include-scopes flag (default on) to spec_render.py",
+                                   "id":  "435-1"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Walk vbrief/pending/, active/, completed/ and load scope vBRIEFs",
+                                   "id":  "435-2"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Emit Implementation Plan section grouped by lifecycle bucket",
+                                   "id":  "435-3"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Use #458 bilingual edge reader for cross-scope topo-sort",
+                                   "id":  "435-4"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Add aggregator fixture + assertion test",
+                                   "id":  "435-5"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Add --include-scopes=off fallback regression test",
+                                   "id":  "435-6"
+                               }
+                           ],
+                 "references":  [
+                                    {
+                                        "type":  "github-issue",
+                                        "url":  "https://github.com/deftai/directive/issues/435",
+                                        "id":  "#435"
+                                    },
+                                    {
+                                        "type":  "github-issue",
+                                        "url":  "https://github.com/deftai/directive/issues/403",
+                                        "id":  "#403"
+                                    }
+                                ]
+             }
+}

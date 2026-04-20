@@ -1,0 +1,58 @@
+{
+    "vBRIEFInfo":  {
+                       "version":  "0.5",
+                       "description":  "Mirror prd_render.py in spec_render.py so speckit narratives render in SPECIFICATION.md instead of being silently dropped.",
+                       "created":  "2026-04-20T00:00:00Z",
+                       "updated":  "2026-04-20T00:00:00Z"
+                   },
+    "plan":  {
+                 "id":  "ga-434-spec-render-narrative-ordered",
+                 "title":  "spec_render.py is item-centric and silently drops all speckit narratives",
+                 "status":  "running",
+                 "narratives":  {
+                                    "Problem":  "scripts/spec_render.py consumes only the Overview narrative plus plan.items, so any speckit-shaped spec (ProblemStatement, Goals, UserStories, Requirements, SuccessMetrics, EdgeCases, Architecture, TechDecisions, ImplementationPhases, PreImplementationGates) renders as a 44-byte H1-only file. prd_render.py was updated to the narrative-centric model; spec_render.py was not.",
+                                    "Action":  "Introduce SPECIFICATION_NARRATIVE_KEY_ORDER covering the interview/light and speckit key sets. Render present narratives in declared order, then remaining narrative keys alphabetically (matching prd_render behavior), then plan.items for hybrid/legacy specs. Keep Overview first. Verify behavior is flag-free for default speckit shape.",
+                                    "Test":  "Add tests/cli/test_spec_render.py (or extend existing) with a speckit-shaped fixture asserting the rendered SPECIFICATION.md contains ## ProblemStatement, ## Goals, ## Requirements headings and non-empty body content. Add a legacy interview-shaped fixture asserting Overview + items still render.",
+                                    "Outcome":  "task spec:render produces a multi-section SPECIFICATION.md for any speckit spec. 44-byte failure mode is eliminated. task check stays green."
+                                },
+                 "items":  [
+                               {
+                                   "status":  "running",
+                                   "title":  "Define SPECIFICATION_NARRATIVE_KEY_ORDER in scripts/spec_render.py",
+                                   "id":  "434-1"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Render narratives in declared order, then remaining alphabetically, then items",
+                                   "id":  "434-2"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Add speckit-shaped fixture + assertion test in tests/cli/test_spec_render.py",
+                                   "id":  "434-3"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Add legacy interview-shaped fixture regression test",
+                                   "id":  "434-4"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Run task check and confirm green",
+                                   "id":  "434-5"
+                               }
+                           ],
+                 "references":  [
+                                    {
+                                        "type":  "github-issue",
+                                        "url":  "https://github.com/deftai/directive/issues/434",
+                                        "id":  "#434"
+                                    },
+                                    {
+                                        "type":  "github-issue",
+                                        "url":  "https://github.com/deftai/directive/issues/403",
+                                        "id":  "#403"
+                                    }
+                                ]
+             }
+}

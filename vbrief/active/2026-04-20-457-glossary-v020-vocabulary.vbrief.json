@@ -1,0 +1,63 @@
+{
+    "vBRIEFInfo":  {
+                       "version":  "0.5",
+                       "description":  "Single canonical vocabulary surface for v0.20 terms, 13 required entries, cross-refs from vbrief.md/README/UPGRADING, content test, strict scope cap.",
+                       "created":  "2026-04-20T00:00:00Z",
+                       "updated":  "2026-04-20T00:00:00Z"
+                   },
+    "plan":  {
+                 "id":  "ga-457-glossary-v020-vocabulary",
+                 "title":  "v0.20.0 GA blocker: add deft/glossary.md with v0.20 canonical vocabulary",
+                 "status":  "running",
+                 "narratives":  {
+                                    "Problem":  "v0.20 introduces new vocabulary (Scope vBRIEF, lifecycle folder, plan-level narrative, filename stem, cross-scope dependency, Exit Commands, origin provenance, canonical narrative key, preparatory strategy, spec-generating strategy, rendered export, source of truth) defined inline or ambiguously across docs. Drift risk is real; post-GA issue filers use inconsistent terms.",
+                                    "Action":  "Create deft/glossary.md with RFC2119 legend and exactly 13 required entries (plus optional chaining gate / acceptance gate). Each entry: bold term, 1-2 sentence definition, cross-link to authoritative doc/section. Add cross-reference to deft/glossary.md from vbrief/vbrief.md, README.md Skills section, and UPGRADING.md v0.20 section. File length must stay under 150 lines. Alphabetical ordering allowed but not required.",
+                                    "Test":  "tests/content/test_glossary.py asserts file exists, contains all 13 required term labels exactly, and total line count under 150. verify:links passes with new cross-refs.",
+                                    "Outcome":  "Single canonical vocabulary reference exists. Touched docs point at it. Terminology drift risk eliminated at the source."
+                                },
+                 "items":  [
+                               {
+                                   "status":  "running",
+                                   "title":  "Create deft/glossary.md with RFC2119 legend + 13 required terms",
+                                   "id":  "457-1"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Add cross-ref from vbrief/vbrief.md",
+                                   "id":  "457-2"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Add one-line pointer in README.md Skills/Contracts/Docs section",
+                                   "id":  "457-3"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Reference deft/glossary.md in UPGRADING.md v0.20 section",
+                                   "id":  "457-4"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Add tests/content/test_glossary.py (exists + terms + length)",
+                                   "id":  "457-5"
+                               },
+                               {
+                                   "status":  "running",
+                                   "title":  "Run verify:links and confirm no broken internal links",
+                                   "id":  "457-6"
+                               }
+                           ],
+                 "references":  [
+                                    {
+                                        "type":  "github-issue",
+                                        "url":  "https://github.com/deftai/directive/issues/457",
+                                        "id":  "#457"
+                                    },
+                                    {
+                                        "type":  "github-issue",
+                                        "url":  "https://github.com/deftai/directive/issues/403",
+                                        "id":  "#403"
+                                    }
+                                ]
+             }
+}
