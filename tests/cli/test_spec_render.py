@@ -212,3 +212,260 @@ def test_legacy_interview_shape_renders_overview_and_items(render_mod, tmp_path)
     # Acceptance rendered as bullets (pre-existing behavior preserved)
     assert "- A" in content
     assert "- B" in content
+
+
+# ---------------------------------------------------------------------------
+# #435 -- lifecycle-scope aggregator
+# ---------------------------------------------------------------------------
+
+
+def _scope(title: str, status: str, narratives: dict, items: list | None = None,
+           plan_id: str | None = None, edges: list | None = None) -> dict:
+    plan = {
+        "title": title,
+        "status": status,
+        "narratives": narratives,
+        "items": items or [],
+    }
+    if plan_id is not None:
+        plan["id"] = plan_id
+    if edges is not None:
+        plan["edges"] = edges
+    return {"vBRIEFInfo": {"version": "0.5"}, "plan": plan}
+
+
+def test_aggregator_emits_implementation_plan_section(render_mod, tmp_path) -> None:
+    """--include-scopes (default on) emits Implementation Plan with lifecycle buckets (#435)."""
+    vbrief_dir = tmp_path / "vbrief"
+    # Base spec
+    spec_path = _write_spec(
+        vbrief_dir,
+        {"Overview": "Aggregator test spec."},
+        title="Aggregator Spec",
+    )
+    # Pending scope
+    _write_scope(
+        vbrief_dir / "pending",
+        "2026-04-18-pending-one.vbrief.json",
+        _scope(
+            "Pending scope one",
+            "pending",
+            {"Overview": "First pending scope summary."},
+            items=[
+                {"id": "p1-a", "title": "Pending item A", "status": "pending"},
+                {"id": "p1-b", "title": "Pending item B", "status": "pending"},
+            ],
+        ),
+    )
+    # Active scope
+    _write_scope(
+        vbrief_dir / "active",
+        "2026-04-19-active-one.vbrief.json",
+        _scope(
+            "Active scope one",
+            "running",
+            {"Overview": "Currently running scope summary."},
+            items=[
+                {"id": "a1-a", "title": "Active item A", "status": "running"},
+            ],
+        ),
+    )
+    # Completed scope (status pinned)
+    _write_scope(
+        vbrief_dir / "completed",
+        "2026-04-10-completed-one.vbrief.json",
+        _scope(
+            "Completed scope one",
+            "completed",
+            {"Overview": "Already completed scope summary."},
+            items=[
+                {"id": "c1-a", "title": "Completed item A", "status": "completed"},
+            ],
+        ),
+    )
+    # Completed folder file with wrong status -- must be filtered out.
+    _write_scope(
+        vbrief_dir / "completed",
+        "2026-04-10-misfiled-pending.vbrief.json",
+        _scope(
+            "Misfiled pending (should be skipped)",
+            "pending",
+            {"Overview": "This scope has status pending in completed/ and must be filtered."},
+        ),
+    )
+
+    out = tmp_path / "SPECIFICATION.md"
+    ok, _ = render_mod.render_spec(str(spec_path), str(out))
+    assert ok
+    content = out.read_text(encoding="utf-8")
+
+    # Section heading
+    assert "## Implementation Plan" in content
+    # Lifecycle bucket sub-headings
+    assert "### Pending" in content
+    assert "### Active" in content
+    assert "### Completed" in content
+    # Each scope renders filename stem + title
+    assert "### 2026-04-18-pending-one: Pending scope one" in content
+    assert "### 2026-04-19-active-one: Active scope one" in content
+    assert "### 2026-04-10-completed-one: Completed scope one" in content
+    # Summary narrative rendered
+    assert "First pending scope summary." in content
+    assert "Currently running scope summary." in content
+    assert "Already completed scope summary." in content
+    # Acceptance items listed
+    assert "**Acceptance**" in content
+    assert "- Pending item A" in content
+    assert "- Pending item B" in content
+    assert "- Active item A" in content
+    assert "- Completed item A" in content
+    # Status pin: misfiled pending scope must NOT appear under Completed
+    assert "Misfiled pending" not in content
+    # Section order: Pending before Active before Completed
+    pending_pos = content.index("### Pending")
+    active_pos = content.index("### Active")
+    completed_pos = content.index("### Completed")
+    assert pending_pos < active_pos < completed_pos
+
+
+def test_include_scopes_off_suppresses_aggregator(render_mod, tmp_path) -> None:
+    """--include-scopes=off skips the aggregator and preserves pre-#435 output (#435 regression)."""
+    vbrief_dir = tmp_path / "vbrief"
+    spec_path = _write_spec(
+        vbrief_dir,
+        {"Overview": "Fallback regression spec."},
+        title="Fallback Spec",
+    )
+    # Populate lifecycle folders -- aggregator would otherwise emit these.
+    _write_scope(
+        vbrief_dir / "pending",
+        "2026-04-18-pending-one.vbrief.json",
+        _scope(
+            "Should be hidden",
+            "pending",
+            {"Overview": "This scope should NOT render when --include-scopes=off."},
+        ),
+    )
+
+    out = tmp_path / "SPECIFICATION.md"
+    ok, _ = render_mod.render_spec(str(spec_path), str(out), include_scopes=False)
+    assert ok
+    content = out.read_text(encoding="utf-8")
+
+    # Base narrative still present
+    assert "# Fallback Spec" in content
+    assert "## Overview" in content
+    assert "Fallback regression spec." in content
+    # Aggregator section must be absent
+    assert "## Implementation Plan" not in content
+    assert "### Pending" not in content
+    assert "Should be hidden" not in content
+
+
+def test_include_scopes_cli_flag_off(render_mod, monkeypatch, tmp_path) -> None:
+    """CLI ``--include-scopes=off`` suppresses the aggregator via main() (#435)."""
+    vbrief_dir = tmp_path / "vbrief"
+    spec_path = _write_spec(
+        vbrief_dir,
+        {"Overview": "CLI off test."},
+        title="CLI Off Spec",
+    )
+    _write_scope(
+        vbrief_dir / "pending",
+        "2026-04-18-cli.vbrief.json",
+        _scope("CLI pending", "pending", {"Overview": "Should not appear when off."}),
+    )
+    out = tmp_path / "SPECIFICATION.md"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["spec_render.py", str(spec_path), str(out), "--include-scopes=off"],
+    )
+    assert render_mod.main() == 0
+    content = out.read_text(encoding="utf-8")
+    assert "## Implementation Plan" not in content
+    assert "CLI pending" not in content
+
+
+def test_include_scopes_cli_flag_default_on(render_mod, monkeypatch, tmp_path) -> None:
+    """CLI default (no flag) includes the aggregator (#435)."""
+    vbrief_dir = tmp_path / "vbrief"
+    spec_path = _write_spec(
+        vbrief_dir,
+        {"Overview": "Default on test."},
+        title="Default On Spec",
+    )
+    _write_scope(
+        vbrief_dir / "active",
+        "2026-04-18-default.vbrief.json",
+        _scope("Default active", "running", {"Overview": "Should appear by default."}),
+    )
+    out = tmp_path / "SPECIFICATION.md"
+    monkeypatch.setattr(sys, "argv", ["spec_render.py", str(spec_path), str(out)])
+    assert render_mod.main() == 0
+    content = out.read_text(encoding="utf-8")
+    assert "## Implementation Plan" in content
+    assert "### Active" in content
+    assert "Default active" in content
+
+
+def test_aggregator_bilingual_edges_order_scopes(render_mod, tmp_path) -> None:
+    """Cross-scope {from,to} and {source,target} edges both drive topo-sort order (#435/#458)."""
+    vbrief_dir = tmp_path / "vbrief"
+    spec_path = _write_spec(
+        vbrief_dir, {"Overview": "Edge ordering."}, title="Edge Order Spec"
+    )
+    # Scope alpha is written first alphabetically but depends on gamma via from/to,
+    # so gamma must render before alpha. beta depends on alpha via source/target.
+    _write_scope(
+        vbrief_dir / "pending",
+        "2026-04-18-alpha.vbrief.json",
+        _scope(
+            "Alpha",
+            "pending",
+            {"Overview": "Depends on gamma."},
+            plan_id="alpha",
+            edges=[{"from": "gamma", "to": "alpha", "type": "blocks"}],
+        ),
+    )
+    _write_scope(
+        vbrief_dir / "pending",
+        "2026-04-18-beta.vbrief.json",
+        _scope(
+            "Beta",
+            "pending",
+            {"Overview": "Depends on alpha via legacy keys."},
+            plan_id="beta",
+            edges=[{"source": "alpha", "target": "beta"}],
+        ),
+    )
+    _write_scope(
+        vbrief_dir / "pending",
+        "2026-04-18-gamma.vbrief.json",
+        _scope("Gamma", "pending", {"Overview": "Root scope with no deps."}, plan_id="gamma"),
+    )
+
+    out = tmp_path / "SPECIFICATION.md"
+    render_mod.render_spec(str(spec_path), str(out))
+    content = out.read_text(encoding="utf-8")
+    gamma_pos = content.index("Gamma")
+    alpha_pos = content.index("Alpha")
+    beta_pos = content.index("Beta")
+    assert gamma_pos < alpha_pos < beta_pos, (
+        "cross-scope bilingual edges must order dependencies before dependents"
+    )
+
+
+def test_aggregator_graceful_when_no_lifecycle_folders(render_mod, tmp_path) -> None:
+    """Missing lifecycle folders must not prevent rendering (#435 edge case)."""
+    vbrief_dir = tmp_path / "vbrief"
+    spec_path = _write_spec(
+        vbrief_dir, {"Overview": "No folders."}, title="No Folders Spec"
+    )
+    out = tmp_path / "SPECIFICATION.md"
+    ok, _ = render_mod.render_spec(str(spec_path), str(out))
+    assert ok
+    content = out.read_text(encoding="utf-8")
+    assert "# No Folders Spec" in content
+    # Aggregator silently skips when no scopes exist
+    assert "## Implementation Plan" not in content
