@@ -518,6 +518,25 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ! Testing Strategy and Deployment captured in narratives
 - ⊗ Write code — specification only
 
+### End-of-Phase-3 Export Prompt and Render Gate
+
+! After the human approval gate on `specification.vbrief.json` narratives but BEFORE handing off to `deft-directive-build` (or advancing speckit Phase 3 → Phase 4), ask the user whether to generate human-readable exports. This replaces the invisible skip-if-absent behavior of `task check` (#398) and closes the greenfield gap (#433). This is also the Phase 3 → Phase 4 transition gate required by [strategies/speckit.md Post-Phase 3 Transition Gate](../../strategies/speckit.md#post-phase-3-transition-gate-render-for-review) (#432).
+
+1. ! Prompt: "Your `specification.vbrief.json` is approved. Generate `SPECIFICATION.md` and/or `PRD.md` now? (recommended for stakeholder review)"
+   1. Yes — render both
+   2. `SPECIFICATION.md` only
+   3. `PRD.md` only
+   4. Skip — I’ll render later with `task spec:render` / `task prd:render`
+2. ! Run the selected render command(s):
+   - `task spec:render` → writes `SPECIFICATION.md`
+   - `task prd:render` → writes `PRD.md`
+3. ! If the user picked a speckit-strategy project: `task spec:render` is **mandatory** at this boundary — invoke it even if the user declined the prompt, because speckit Phase 3 → Phase 4 is gated on `SPECIFICATION.md` existing and matching the current vBRIEF hash.
+4. ! Confirm to the user which files were written and remind them that direct edits to `SPECIFICATION.md` / `PRD.md` are overwritten on the next render — edit `specification.vbrief.json` instead.
+5. ~ If the user skipped rendering and is NOT on a speckit strategy, no-op and continue.
+
+⊗ Advance a speckit project to Phase 4 without running `task spec:render` at this gate — `SPECIFICATION.md` is required for the Phase 3 transition criterion.
+⊗ Silently skip the prompt — greenfield users who never open a PR will miss the exports without it.
+
 ### Handoff to deft-directive-build
 
 - ! Offer to start building: "Your spec is ready. Want me to start building it now?"

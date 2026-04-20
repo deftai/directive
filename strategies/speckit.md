@@ -124,16 +124,22 @@ Add the following narrative keys to `vbrief/specification.vbrief.json` `plan.nar
 - ⊗ Write implementation code
 - ⊗ Create `specs/` directories or standalone `plan.md` files -- all content goes in `vbrief/specification.vbrief.json`
 
-### Post-Phase 3: Render for Review
+### Post-Phase 3 Transition Gate: Render for Review
 
-- ! Run `task spec:render` to produce `SPECIFICATION.md` as a read-only rendered export
-- ! `SPECIFICATION.md` is for human review only -- `vbrief/specification.vbrief.json` remains the source of truth
+! Phase 3 -> Phase 4 is gated on an explicit render-and-review step, mirroring the Phase 2 approval gate. Complete the steps below **in order** before advancing. [skills/deft-directive-setup/SKILL.md](../skills/deft-directive-setup/SKILL.md) is required to invoke `task spec:render` at this boundary when running speckit interactively; the gate fails silently otherwise (yolo-mode agents used to skip it -- that is what this gate exists to prevent).
+
+1. ! Run `task spec:render` to (re-)produce `SPECIFICATION.md` from `vbrief/specification.vbrief.json`.
+2. ! Confirm `SPECIFICATION.md` exists at the project root.
+3. ! Confirm the hash of `SPECIFICATION.md` matches the hash of the rendered output of `vbrief/specification.vbrief.json` narratives -- re-run `task spec:render` if the file is out of date. This is the Phase 3 **hash-match transition criterion**.
+4. ! `SPECIFICATION.md` is a read-only rendered export for human review. `vbrief/specification.vbrief.json` remains the source of truth -- direct edits to `SPECIFICATION.md` are overwritten by the next render.
+5. ! Human reviewer approves the rendered spec (or requests changes). On approval, proceed to Phase 4.
 
 ### Transition Criteria
 
 - ! All gates pass (or exceptions documented)
 - ! Every spec requirement maps to a plan element
 - ! Architecture reviewed and approved
+- ! **Phase 3 -> Phase 4 transition criterion:** `SPECIFICATION.md` exists AND its hash matches the rendered output of the current `vbrief/specification.vbrief.json` narratives (run `task spec:render` to refresh; agents MUST NOT advance to Phase 4 without this).
 
 ---
 
