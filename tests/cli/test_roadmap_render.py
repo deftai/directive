@@ -99,15 +99,76 @@ _VBRIEF_WITH_REFS = {
     },
 }
 
+# Primary fixture -- schema-canonical {from, to} convention (see #458).
 _VBRIEF_WITH_EDGES = {
     "vBRIEFInfo": {"version": "0.5"},
     "plan": {
         "title": "Dependency Test",
         "status": "pending",
         "edges": [
+            {"from": "task-a", "to": "task-b", "type": "blocks"},
+            {"from": "task-a", "to": "task-c", "type": "blocks"},
+            {"from": "task-b", "to": "task-d", "type": "blocks"},
+        ],
+        "items": [
+            {
+                "id": "phase-1",
+                "title": "Phase 1",
+                "status": "pending",
+                "subItems": [
+                    {"id": "task-d", "title": "Task D", "status": "pending"},
+                    {"id": "task-c", "title": "Task C", "status": "pending"},
+                    {"id": "task-a", "title": "Task A", "status": "pending"},
+                    {"id": "task-b", "title": "Task B", "status": "pending"},
+                ],
+            }
+        ],
+    },
+}
+
+# Legacy regression fixture -- pre-schema {source, target} convention.
+_VBRIEF_WITH_LEGACY_EDGES = {
+    "vBRIEFInfo": {"version": "0.5"},
+    "plan": {
+        "title": "Legacy Dependency Test",
+        "status": "pending",
+        "edges": [
             {"source": "task-a", "target": "task-b"},
             {"source": "task-a", "target": "task-c"},
             {"source": "task-b", "target": "task-d"},
+        ],
+        "items": [
+            {
+                "id": "phase-1",
+                "title": "Phase 1",
+                "status": "pending",
+                "subItems": [
+                    {"id": "task-d", "title": "Task D", "status": "pending"},
+                    {"id": "task-c", "title": "Task C", "status": "pending"},
+                    {"id": "task-a", "title": "Task A", "status": "pending"},
+                    {"id": "task-b", "title": "Task B", "status": "pending"},
+                ],
+            }
+        ],
+    },
+}
+
+# Mixed convention -- both {from,to} and {source,target} edges in a single plan.
+_VBRIEF_WITH_MIXED_EDGES = {
+    "vBRIEFInfo": {"version": "0.5"},
+    "plan": {
+        "title": "Mixed Dependency Test",
+        "status": "pending",
+        "edges": [
+            {"from": "task-a", "to": "task-b", "type": "blocks"},
+            {"source": "task-b", "target": "task-d"},
+            # Edge that specifies both -- canonical from/to must win.
+            {
+                "from": "task-a",
+                "to": "task-c",
+                "source": "ignored-source",
+                "target": "ignored-target",
+            },
         ],
         "items": [
             {
@@ -258,6 +319,68 @@ def test_dependency_annotation(roadmap_mod, tmp_path) -> None:
     pending = tmp_path / "pending"
     _write_vbrief(pending / "2026-04-01-deps.vbrief.json", _VBRIEF_WITH_EDGES)
     content = roadmap_mod.generate_roadmap_content(pending)
+    assert "(depends on: task-a)" in content
+
+
+# ---------------------------------------------------------------------------
+# Bilingual edge reader (#458) -- {from, to} vs {source, target}
+# ---------------------------------------------------------------------------
+
+
+def test_edge_map_from_to_keys(roadmap_mod) -> None:
+    """Canonical {from, to} edges must populate the dep map (#458)."""
+    dep_map = roadmap_mod._build_edge_map(_VBRIEF_WITH_EDGES)
+    assert dep_map == {
+        "task-b": ["task-a"],
+        "task-c": ["task-a"],
+        "task-d": ["task-b"],
+    }
+
+
+def test_edge_map_source_target_keys(roadmap_mod) -> None:
+    """Legacy {source, target} edges must still populate the dep map (#458 regression)."""
+    dep_map = roadmap_mod._build_edge_map(_VBRIEF_WITH_LEGACY_EDGES)
+    assert dep_map == {
+        "task-b": ["task-a"],
+        "task-c": ["task-a"],
+        "task-d": ["task-b"],
+    }
+
+
+def test_edge_map_mixed_keys_within_single_plan(roadmap_mod) -> None:
+    """Mixed {from,to} and {source,target} edges must both be read; from/to wins (#458)."""
+    dep_map = roadmap_mod._build_edge_map(_VBRIEF_WITH_MIXED_EDGES)
+    # task-b depends on task-a (from/to)
+    # task-d depends on task-b (legacy source/target)
+    # task-c depends on task-a (from/to wins over ignored source/target)
+    assert dep_map == {
+        "task-b": ["task-a"],
+        "task-d": ["task-b"],
+        "task-c": ["task-a"],
+    }
+    # Explicitly confirm ignored-source did NOT leak into dependencies
+    assert "ignored-target" not in dep_map
+    assert all(
+        "ignored-source" not in deps for deps in dep_map.values()
+    ), "from/to must win over source/target when both are present"
+
+
+def test_legacy_edges_produce_dependency_ordering(roadmap_mod, tmp_path) -> None:
+    """Legacy {source, target} edges must still drive topological ordering (#458)."""
+    pending = tmp_path / "pending"
+    _write_vbrief(pending / "2026-04-01-legacy-deps.vbrief.json", _VBRIEF_WITH_LEGACY_EDGES)
+    content = roadmap_mod.generate_roadmap_content(pending)
+    lines = content.split("\n")
+    item_lines = [ln for ln in lines if ln.strip().startswith("- **task-")]
+    ids: list[str] = []
+    for ln in item_lines:
+        for tid in ("task-a", "task-b", "task-c", "task-d"):
+            if f"**{tid}**" in ln:
+                ids.append(tid)
+                break
+    assert ids.index("task-a") < ids.index("task-b")
+    assert ids.index("task-a") < ids.index("task-c")
+    assert ids.index("task-b") < ids.index("task-d")
     assert "(depends on: task-a)" in content
 
 
