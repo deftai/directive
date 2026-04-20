@@ -139,6 +139,14 @@ class TestSlugify:
     def test_empty_string(self):
         assert _slugify("") == ""
 
+    def test_underscores_fold_to_hyphens(self):
+        """Regression test for Greptile P1: the docstring claims underscores
+        collapse to hyphens, but earlier revisions stripped them before the
+        replacement pass. Guards against reintroducing the bug."""
+        assert _slugify("task_id_foo") == "task-id-foo"
+        assert _slugify("foo___bar") == "foo-bar"
+        assert _slugify("mixed  spaces_and_underscores") == "mixed-spaces-and-underscores"
+
 
 class TestIsUserCustomized:
     """Tests for _is_user_customized."""

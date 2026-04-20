@@ -37,7 +37,9 @@ def slugify(text: str) -> str:
     - Trim to 60 characters maximum and strip leading/trailing hyphens
     """
     slug = text.lower().strip()
-    slug = re.sub(r"[^a-z0-9\s-]", "", slug)
+    # Preserve underscores through the strip pass so the next line can fold
+    # them into hyphens (matches the documented contract).
+    slug = re.sub(r"[^a-z0-9\s_-]", "", slug)
     slug = re.sub(r"[\s_]+", "-", slug)
     slug = re.sub(r"-+", "-", slug)
     return slug[:60].strip("-")

@@ -63,8 +63,10 @@ _STATUS_MAP: dict[str, tuple[str, str]] = {
 # --- Helpers ----------------------------------------------------------------
 
 
-def _build_issue_vbrief(issue: dict, status: str, repo_url: str) -> dict:
-    """Build a scope vBRIEF dict from a GitHub issue dict.
+def _build_issue_vbrief(
+    issue: dict, status: str, repo_url: str
+) -> tuple[dict, str]:
+    """Build a scope vBRIEF dict (and the target lifecycle folder) from a GitHub issue dict.
 
     ``issue`` is the JSON payload returned by ``gh api repos/.../issues/N`` or
     one element of the ``gh issue list --json number,title,labels,url`` array.
@@ -221,7 +223,9 @@ def ingest_bulk(
 
     refs = scan_vbrief_dir(vbrief_dir)
 
-    summary: dict[str, list[str]] = {"created": [], "duplicate": [], "dryrun": []}
+    # Values are list[str] for the three bucket keys and int for "total",
+    # hence the union annotation.
+    summary: dict[str, list[str] | int] = {"created": [], "duplicate": [], "dryrun": []}
     for issue in issues:
         result, path, _msg = ingest_one(
             issue,
