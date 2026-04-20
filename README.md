@@ -20,8 +20,6 @@ Deft is a SKILL.md that makes AI coding significantly more effective by providin
 
 > **📢 Cloned manually?** Tell your agent: "Read `deft/QUICK-START.md` and follow it." It creates your project's AGENTS.md and starts the setup flow automatically.
 
-> **⚠️ v0.20.0 release-candidate testers:** Run the RC installer and `task migrate:vbrief` against a **fork or copy** of your existing project, *not* the real one. We are still refining the migration based on RC feedback and may need to re-test as we iterate. Preserve your real project until `v0.20.0` final ships — you can safely apply migration there once the RC window closes.
-
 > **🔄 Upgrading from a previous version?** Read [UPGRADING.md](./UPGRADING.md) before proceeding.  
 > **Agents:** ! Read [UPGRADING.md](./UPGRADING.md) on the first session after a framework update.
 

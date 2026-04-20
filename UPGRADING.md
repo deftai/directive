@@ -28,6 +28,10 @@ After you update `deft/` to v0.20.0, `vbrief/*.vbrief.json` files are the source
 5. **Start a new agent session.** Your current session still holds stale rules from the previous `AGENTS.md`. Close the tab / session and open a new one; the agent will read the refreshed `AGENTS.md` and v0.20 skills on its own.
 6. **Verify.** Run `task check` -- the full pre-commit pipeline (fmt + lint + typecheck + tests + vbrief validation + link check) must be green. If `task vbrief:validate` warns about `SPECIFICATION.md` or `PROJECT.md`, the deprecation redirect stubs were not written correctly; re-run `task migrate:vbrief` or patch the stubs to include the `<!-- deft:deprecated-redirect -->` line on the first line.
 
+### Upgrade safety
+
+~ When running `task migrate:vbrief` against a non-trivial project for the first time, test it on a fork or a clean working copy before applying it to your primary checkout. The migration is designed to be idempotent and preserves existing narratives, but real-world repos vary -- exercising the migration once against a disposable copy lets you review the redirect stubs, lifecycle folder contents, and `task check` output before accepting the changes.
+
 ### What to expect
 
 - Your `SPECIFICATION.md`, `PROJECT.md`, and `ROADMAP.md` are replaced with short redirect stubs containing `<!-- deft:deprecated-redirect -->` on the first line. Existing content is migrated into `vbrief/specification.vbrief.json` narratives + `vbrief/pending/` scope vBRIEFs + `vbrief/PROJECT-DEFINITION.vbrief.json` narratives.
