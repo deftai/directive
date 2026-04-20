@@ -137,82 +137,93 @@ Add the following narrative keys to `vbrief/specification.vbrief.json` `plan.nar
 
 ---
 
-## Phase 4: Tasks
+## Phase 4: Tasks (Scope vBRIEF Emission)
 
-**Goal:** Generate an executable task list from the plan.
+**Goal:** Emit one scope vBRIEF per implementation phase so downstream tooling (`task roadmap:render`, `task project:render`, swarm allocation) can operate against the lifecycle model described in [vbrief/vbrief.md](../vbrief/vbrief.md).
 
-**Input:** Approved HOW narratives in `vbrief/specification.vbrief.json`
+**Input:** Approved HOW narratives in `vbrief/specification.vbrief.json` (`ImplementationPhases` narrative describes IP-1..IP-N).
 
-**Output:** `./vbrief/plan.vbrief.json` — the live task tracker for this feature
+**Output:** N scope vBRIEFs in `./vbrief/pending/`, one per implementation phase, using the filename convention `YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json` (NNN = 3-digit zero-padded, 001..N). See [vbrief/vbrief.md — speckit Phase 4 scope vBRIEFs](../vbrief/vbrief.md#speckit-phase-4-scope-vbriefs) for the canonical convention.
 
-### Task Structure
+### Scope vBRIEF Shape
 
-Write tasks to `./vbrief/plan.vbrief.json` using vBRIEF v0.5 format:
+For each implementation phase IP-N, write a scope vBRIEF with:
+
+- ! `plan.title` — phase title (e.g. "IP-3: Implement data layer")
+- ! `plan.status` — `pending`
+- ! `plan.narratives.Description` — short human summary of the phase
+- ! `plan.narratives.Acceptance` — acceptance criteria copied from the spec
+- ! `plan.narratives.Traces` — FR/NFR/IP IDs the phase covers (e.g. `FR-001, FR-003, NFR-002, IP-3`)
+- ! `plan.references` — link back to the parent `vbrief/specification.vbrief.json` (`type: x-vbrief/plan`)
+- ! `plan.metadata.dependencies` — array of IP IDs this phase depends on / is blocked by (plan-level; mirrors the `edges[].blocks` structure used in earlier drafts)
 
 ```json
 {
   "vBRIEFInfo": { "version": "0.5" },
   "plan": {
-    "title": "[Feature name]",
-    "status": "running",
-    "items": [
-      {
-        "id": "t1.1",
-        "title": "Initialize project structure",
-        "status": "pending",
-        "narrative": { "Acceptance": "[criteria from spec]" }
-      },
-      {
-        "id": "t2.1",
-        "title": "Define API contracts",
-        "status": "pending"
-      },
-      {
-        "id": "t3.1",
-        "title": "Implement data layer",
-        "status": "pending"
-      }
+    "title": "IP-3: Implement data layer",
+    "status": "pending",
+    "narratives": {
+      "Description": "Stand up the data layer described in specification.vbrief.json Architecture.",
+      "Acceptance": "Repository interfaces defined; CRUD round-trips pass integration tests.",
+      "Traces": "FR-001, FR-003, NFR-002, IP-3"
+    },
+    "metadata": {
+      "dependencies": ["ip-1", "ip-2"]
+    },
+    "references": [
+      { "type": "x-vbrief/plan", "url": "../specification.vbrief.json" }
     ],
-    "edges": [
-      { "from": "t2.1", "to": "t3.3", "type": "blocks" },
-      { "from": "t3.1", "to": "t3.2", "type": "blocks" }
-    ]
+    "items": []
   }
 }
 ```
 
-**Parallelism:** Tasks with no `blocks` edges incoming are parallelizable. Use `blocks` edges instead of the old `[P]`/`[S]`/`[B]` markers.
+### plan.vbrief.json — Session Tracker Only
+
+- ! `plan.vbrief.json` reverts to its canonical session-todo role defined in [vbrief/vbrief.md — plan.vbrief.json](../vbrief/vbrief.md#planvbriefjson). It is the agent-private tactical plan for the current session, not the project-wide IP list.
+- ! While working on a specific scope vBRIEF, `plan.vbrief.json` MUST carry a `planRef` to that scope vBRIEF in `vbrief/pending/` or `vbrief/active/`.
+- ⊗ Emit the project-wide Phase 4 task list to `plan.vbrief.json` — write per-IP scope vBRIEFs to `vbrief/pending/` instead.
+
+### Migrating Legacy speckit Projects
+
+- ~ Projects that already emitted a speckit-shaped `plan.vbrief.json` (project-wide IP list) can convert to the new model with:
+  ```
+  python scripts/migrate_vbrief.py --speckit-plan vbrief/plan.vbrief.json
+  ```
+  The translator emits one scope vBRIEF per IP into `vbrief/pending/` (3-digit padded filenames, bilingual `edges` reader so both `from/to` and legacy `source/target` translate correctly) and writes the remaining session-level scaffold back to `plan.vbrief.json`.
 
 ### Guidelines
 
-- ! Derive tasks from plan phases and deliverables
-- ! Use vBRIEF `blocks` edges to express dependencies (replaces `[P]`/`[S]`/`[B]` markers)
-- ! Put acceptance criteria in the task `narrative` field
-- ~ Size tasks for 1-4 hours of work
-- ~ Assign `agent` field for swarm mode
-- ⊗ Create tasks not traceable to plan
+- ! Derive one scope vBRIEF per implementation phase from `ImplementationPhases`
+- ! Populate `Description`, `Acceptance`, and `Traces` narratives per [vbrief/vbrief.md — canonical narrative keys](../vbrief/vbrief.md#scope-vbrief-narrative-keys)
+- ! Use `plan.metadata.dependencies` (plan-level) rather than item-level `blocks` edges for cross-scope dependencies
+- ~ Size each phase for 1-4 hours of work so the swarm allocator can distribute cleanly
+- ⊗ Create phases not traceable to a spec requirement
 
 ### Transition Criteria
 
-- ! All plan deliverables have corresponding tasks in `./vbrief/plan.vbrief.json`
-- ! Dependencies form a valid DAG (no cycles in `blocks` edges)
-- ! All tasks have `narrative` with acceptance criteria
+- ! Every implementation phase from `ImplementationPhases` has a matching scope vBRIEF in `./vbrief/pending/`
+- ! Each scope vBRIEF has `Description`, `Acceptance`, and `Traces` narratives
+- ! Each scope vBRIEF carries a `references` entry linking back to `vbrief/specification.vbrief.json`
+- ! Cross-scope dependencies in `plan.metadata.dependencies` form a valid DAG (no cycles)
 
 ---
 
 ## Phase 5: Implement
 
-**Goal:** Execute tasks following test-first discipline.
+**Goal:** Execute scope vBRIEFs following test-first discipline.
 
-**Input:** `./vbrief/plan.vbrief.json` with all tasks at `pending` status
+**Input:** Scope vBRIEFs in `./vbrief/pending/` (promote to `./vbrief/active/` via `task scope:activate` when work begins). `./vbrief/plan.vbrief.json` holds the current session's tactical todo list and carries a `planRef` to the active scope.
 
 ### Process
 
 - ! Write tests BEFORE implementation (Red)
 - ! Implement minimal code to pass tests (Green)
 - ! Refactor while keeping tests green (Refactor)
-- ! Update task status in `./vbrief/plan.vbrief.json` as work progresses (`pending` → `running` → `completed`)
-- ~ Work on tasks with no incoming `blocks` edges in parallel when possible
+- ! Update scope vBRIEF `plan.status` and folder via `task scope:*` commands as work progresses (`pending` → `running` → `completed`)
+- ! Update `./vbrief/plan.vbrief.json` session todos as tactical steps progress (session-scoped; do NOT put the project-wide IP list here)
+- ~ Work on scope vBRIEFs whose `plan.metadata.dependencies` are already completed in parallel when possible
 
 ### File Creation Order
 
@@ -224,9 +235,10 @@ Write tasks to `./vbrief/plan.vbrief.json` using vBRIEF v0.5 format:
 ### Guidelines
 
 - ! Follow the `Principles` narrative in `vbrief/PROJECT-DEFINITION.vbrief.json` throughout
-- ! Update `./vbrief/plan.vbrief.json` task statuses as work progresses
+- ! Move scope vBRIEFs through lifecycle folders using `task scope:activate|complete|cancel|block|unblock`
 - ⊗ Implement without failing tests first
 - ⊗ Skip refactoring phase
+- ⊗ Write the project-wide IP list to `plan.vbrief.json` — use `vbrief/pending/` scope vBRIEFs as the durable task tracker
 
 ---
 
@@ -237,8 +249,10 @@ Write tasks to `./vbrief/plan.vbrief.json` using vBRIEF v0.5 format:
 | 1. Principles | `vbrief/PROJECT-DEFINITION.vbrief.json` | Governing rules (Principles narrative) |
 | 2. Specify | `vbrief/specification.vbrief.json` | WHAT/WHY narratives |
 | 3. Plan | `vbrief/specification.vbrief.json` | HOW narratives (enriches Phase 2) |
-| 3b. Render | `SPECIFICATION.md` (rendered via `task spec:render`) | Read-only human review export |
-| 4. Tasks | `./vbrief/plan.vbrief.json` | Live task tracker |
+| 3b. Render SPECIFICATION | `SPECIFICATION.md` (rendered via `task spec:render`) | Read-only human review export |
+| 3c. Render PRD | `PRD.md` (rendered via `task prd:render`) | Optional stakeholder-review export |
+| 4. Tasks | `./vbrief/pending/YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json` (one per IP) | Scope vBRIEFs drive roadmap/project render + swarm |
+| 4b. Session todos | `./vbrief/plan.vbrief.json` | Session-level tactical plan (carries `planRef` to active scope) |
 | 5. Implement | Code + tests | Working software |
 
 ## Directory Structure
@@ -248,8 +262,11 @@ project/
 ├── vbrief/
 │   ├── PROJECT-DEFINITION.vbrief.json  # Phase 1: Principles narrative
 │   ├── specification.vbrief.json       # Phase 2+3: WHAT/WHY + HOW narratives
-│   └── plan.vbrief.json                # Phase 4: live task tracker
+│   ├── plan.vbrief.json                # Phase 4b: session todos (planRef to active scope)
+│   └── pending/                        # Phase 4: IP-level scope vBRIEFs
+│       └── YYYY-MM-DD-ip001-….vbrief.json
 ├── SPECIFICATION.md                    # Rendered export (task spec:render)
+├── PRD.md                              # Optional rendered export (task prd:render)
 └── src/                                # Phase 5
 ```
 

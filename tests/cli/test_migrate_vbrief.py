@@ -23,7 +23,10 @@ from migrate_vbrief import (  # noqa: E402, I001
     LIFECYCLE_FOLDERS,
     _build_project_definition,
     _create_scope_vbrief,
+    _create_speckit_scope_vbrief,
+    _dependencies_for_item,
     _derive_overview_narrative,
+    _edge_nodes,
     _extract_tech_stack,
     _first_prose_paragraph,
     _is_user_customized,
@@ -31,7 +34,10 @@ from migrate_vbrief import (  # noqa: E402, I001
     _parse_roadmap_items,
     _resolve_repo_url,
     _slugify,
+    _speckit_ip_index,
+    _speckit_ip_slug,
     migrate,
+    migrate_speckit_plan,
 )
 
 
@@ -1250,3 +1256,286 @@ class TestMigrateSubprocessExecution:
             timeout=30,
         )
         assert result.returncode == 1
+
+
+# ===========================================================================
+# #436 -- speckit Phase 4 plan -> scope vBRIEF translator
+# ===========================================================================
+
+
+def _write_speckit_plan(
+    plan_path: Path,
+    items: list[dict],
+    edges: list[dict] | None = None,
+) -> None:
+    """Write a speckit-shaped plan.vbrief.json fixture."""
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    data = {
+        "vBRIEFInfo": {"version": "0.5", "description": "speckit plan fixture"},
+        "plan": {
+            "title": "speckit IPs",
+            "status": "running",
+            "items": items,
+            "edges": edges or [],
+        },
+    }
+    plan_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+class TestEdgeNodes:
+    """Bilingual edge reader: prefer from/to, fall back to source/target."""
+
+    def test_canonical_from_to(self):
+        assert _edge_nodes({"from": "a", "to": "b"}) == ("a", "b")
+
+    def test_legacy_source_target(self):
+        assert _edge_nodes({"source": "x", "target": "y"}) == ("x", "y")
+
+    def test_from_to_wins_over_source_target(self):
+        edge = {"from": "a", "to": "b", "source": "x", "target": "y"}
+        assert _edge_nodes(edge) == ("a", "b")
+
+    def test_missing_edge(self):
+        assert _edge_nodes({}) == ("", "")
+
+    def test_non_dict_edge(self):
+        assert _edge_nodes(None) == ("", "")
+
+
+class TestDependenciesForItem:
+    def test_blocks_edges_yield_dependencies(self):
+        edges = [
+            {"from": "ip-1", "to": "ip-3", "type": "blocks"},
+            {"from": "ip-2", "to": "ip-3", "type": "blocks"},
+        ]
+        assert _dependencies_for_item("ip-3", edges) == ["ip-1", "ip-2"]
+
+    def test_legacy_edges_yield_dependencies(self):
+        edges = [{"source": "ip-1", "target": "ip-2", "type": "blocks"}]
+        assert _dependencies_for_item("ip-2", edges) == ["ip-1"]
+
+    def test_non_blocks_edges_ignored(self):
+        edges = [{"from": "a", "to": "b", "type": "relates"}]
+        assert _dependencies_for_item("b", edges) == []
+
+    def test_no_edges(self):
+        assert _dependencies_for_item("ip-1", []) == []
+
+
+class TestSpeckitIpIndexAndSlug:
+    def test_index_from_item_id_tail(self):
+        assert _speckit_ip_index({"id": "ip-7", "title": "IP-9: x"}, 99) == 7
+
+    def test_index_from_title_fallback(self):
+        assert _speckit_ip_index({"id": "", "title": "IP-9: Something"}, 99) == 9
+
+    def test_index_fallback_position(self):
+        assert _speckit_ip_index({"id": "", "title": "Untitled"}, 4) == 4
+
+    def test_slug_strips_ip_prefix(self):
+        assert _speckit_ip_slug("IP-3: Implement data layer", "ip-3") == "implement-data-layer"
+
+    def test_slug_falls_back_to_item_id(self):
+        assert _speckit_ip_slug("", "ip-7") == "ip-7"
+
+
+class TestCreateSpeckitScopeVbrief:
+    def test_populates_canonical_narratives(self):
+        item = {
+            "id": "ip-3",
+            "title": "IP-3: Implement data layer",
+            "narrative": {
+                "Description": "Stand up repositories.",
+                "Acceptance": "CRUD round-trips pass.",
+                "Traces": "FR-1, FR-3, IP-3",
+            },
+        }
+        result = _create_speckit_scope_vbrief(
+            item,
+            ip_index=3,
+            dependencies=["ip-1", "ip-2"],
+            spec_ref="../specification.vbrief.json",
+        )
+        narratives = result["plan"]["narratives"]
+        assert narratives["Description"] == "Stand up repositories."
+        assert narratives["Acceptance"] == "CRUD round-trips pass."
+        assert narratives["Traces"] == "FR-1, FR-3, IP-3"
+
+    def test_dependencies_written_at_plan_level(self):
+        item = {"id": "ip-3", "title": "IP-3: X"}
+        result = _create_speckit_scope_vbrief(
+            item, ip_index=3, dependencies=["ip-1"], spec_ref="../specification.vbrief.json"
+        )
+        assert result["plan"]["metadata"]["dependencies"] == ["ip-1"]
+
+    def test_reference_links_back_to_spec(self):
+        item = {"id": "ip-1", "title": "IP-1: Bootstrap"}
+        result = _create_speckit_scope_vbrief(
+            item, ip_index=1, dependencies=[], spec_ref="../specification.vbrief.json"
+        )
+        refs = result["plan"]["references"]
+        assert any(
+            r.get("type") == "x-vbrief/plan"
+            and r.get("url") == "../specification.vbrief.json"
+            for r in refs
+        )
+
+    def test_status_is_pending(self):
+        item = {"id": "ip-1", "title": "IP-1: Bootstrap"}
+        result = _create_speckit_scope_vbrief(
+            item, ip_index=1, dependencies=[], spec_ref="../specification.vbrief.json"
+        )
+        assert result["plan"]["status"] == "pending"
+
+    def test_synthesizes_acceptance_when_missing(self):
+        item = {"id": "ip-5", "title": "IP-5: Ship"}
+        result = _create_speckit_scope_vbrief(
+            item, ip_index=5, dependencies=[], spec_ref="../specification.vbrief.json"
+        )
+        assert "IP-5" in result["plan"]["narratives"]["Acceptance"]
+
+
+class TestMigrateSpeckitPlan:
+    """End-to-end: migrate_speckit_plan emits N scope vBRIEFs in pending/ (#436)."""
+
+    def test_emits_one_scope_vbrief_per_ip(self, tmp_path):
+        plan_path = tmp_path / "vbrief" / "plan.vbrief.json"
+        _write_speckit_plan(
+            plan_path,
+            items=[
+                {"id": "ip-1", "title": "IP-1: Scaffold", "status": "pending"},
+                {"id": "ip-2", "title": "IP-2: Data layer", "status": "pending"},
+                {"id": "ip-3", "title": "IP-3: API", "status": "pending"},
+            ],
+            edges=[
+                {"from": "ip-1", "to": "ip-2", "type": "blocks"},
+                {"from": "ip-2", "to": "ip-3", "type": "blocks"},
+            ],
+        )
+        ok, actions = migrate_speckit_plan(plan_path)
+        assert ok, actions
+        pending = list((tmp_path / "vbrief" / "pending").glob("*.vbrief.json"))
+        assert len(pending) == 3
+
+    def test_filenames_use_3_digit_ip_padding(self, tmp_path):
+        plan_path = tmp_path / "vbrief" / "plan.vbrief.json"
+        _write_speckit_plan(
+            plan_path,
+            items=[
+                {"id": "ip-7", "title": "IP-7: Ship"},
+                {"id": "ip-12", "title": "IP-12: Observability"},
+            ],
+        )
+        ok, actions = migrate_speckit_plan(plan_path)
+        assert ok, actions
+        names = {f.name for f in (tmp_path / "vbrief" / "pending").glob("*.vbrief.json")}
+        assert any("-ip007-" in n for n in names)
+        assert any("-ip012-" in n for n in names)
+
+    def test_emits_dependencies_from_blocks_edges(self, tmp_path):
+        plan_path = tmp_path / "vbrief" / "plan.vbrief.json"
+        _write_speckit_plan(
+            plan_path,
+            items=[
+                {"id": "ip-1", "title": "IP-1: A"},
+                {"id": "ip-2", "title": "IP-2: B"},
+            ],
+            edges=[{"from": "ip-1", "to": "ip-2", "type": "blocks"}],
+        )
+        ok, _ = migrate_speckit_plan(plan_path)
+        assert ok
+        # find the IP-2 scope and check its dependencies metadata
+        pending = tmp_path / "vbrief" / "pending"
+        target = next(f for f in pending.glob("*.vbrief.json") if "-ip002-" in f.name)
+        data = json.loads(target.read_text(encoding="utf-8"))
+        assert data["plan"]["metadata"]["dependencies"] == ["ip-1"]
+
+    def test_legacy_edges_translate_correctly(self, tmp_path):
+        """Legacy `source/target` edges translate via the bilingual reader."""
+        plan_path = tmp_path / "vbrief" / "plan.vbrief.json"
+        _write_speckit_plan(
+            plan_path,
+            items=[
+                {"id": "ip-1", "title": "IP-1: A"},
+                {"id": "ip-2", "title": "IP-2: B"},
+            ],
+            edges=[{"source": "ip-1", "target": "ip-2", "type": "blocks"}],
+        )
+        ok, _ = migrate_speckit_plan(plan_path)
+        assert ok
+        pending = tmp_path / "vbrief" / "pending"
+        target = next(f for f in pending.glob("*.vbrief.json") if "-ip002-" in f.name)
+        data = json.loads(target.read_text(encoding="utf-8"))
+        assert data["plan"]["metadata"]["dependencies"] == ["ip-1"]
+
+    def test_scope_vbrief_has_narratives_and_spec_ref(self, tmp_path):
+        plan_path = tmp_path / "vbrief" / "plan.vbrief.json"
+        _write_speckit_plan(
+            plan_path,
+            items=[{
+                "id": "ip-1",
+                "title": "IP-1: Scaffold",
+                "narrative": {
+                    "Description": "Repo scaffolding.",
+                    "Acceptance": "Build passes.",
+                    "Traces": "FR-1, IP-1",
+                },
+            }],
+        )
+        ok, _ = migrate_speckit_plan(plan_path)
+        assert ok
+        pending = tmp_path / "vbrief" / "pending"
+        target = next(pending.glob("*.vbrief.json"))
+        data = json.loads(target.read_text(encoding="utf-8"))
+        assert data["plan"]["narratives"]["Description"] == "Repo scaffolding."
+        assert data["plan"]["narratives"]["Acceptance"] == "Build passes."
+        assert data["plan"]["narratives"]["Traces"] == "FR-1, IP-1"
+        refs = data["plan"]["references"]
+        assert refs[0]["type"] == "x-vbrief/plan"
+        assert "specification.vbrief.json" in refs[0]["url"]
+
+    def test_plan_rewritten_to_session_scaffold(self, tmp_path):
+        plan_path = tmp_path / "vbrief" / "plan.vbrief.json"
+        _write_speckit_plan(
+            plan_path,
+            items=[{"id": "ip-1", "title": "IP-1: A"}],
+        )
+        ok, _ = migrate_speckit_plan(plan_path)
+        assert ok
+        data = json.loads(plan_path.read_text(encoding="utf-8"))
+        assert data["plan"]["items"] == []
+        assert data["plan"]["status"] == "running"
+
+    def test_missing_items_errors(self, tmp_path):
+        plan_path = tmp_path / "vbrief" / "plan.vbrief.json"
+        _write_speckit_plan(plan_path, items=[])
+        ok, messages = migrate_speckit_plan(plan_path)
+        assert not ok
+        assert any("no items" in m.lower() for m in messages)
+
+    def test_missing_file_errors(self, tmp_path):
+        ok, messages = migrate_speckit_plan(tmp_path / "no-such-plan.vbrief.json")
+        assert not ok
+        assert any("not found" in m.lower() for m in messages)
+
+    def test_subprocess_speckit_plan_flag(self, tmp_path):
+        """CLI: `migrate_vbrief.py --speckit-plan <path>` runs the translator."""
+        plan_path = tmp_path / "vbrief" / "plan.vbrief.json"
+        _write_speckit_plan(
+            plan_path,
+            items=[{"id": "ip-1", "title": "IP-1: Scaffold"}],
+        )
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "migrate_vbrief.py"),
+                "--speckit-plan",
+                str(plan_path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        pending = list((tmp_path / "vbrief" / "pending").glob("*.vbrief.json"))
+        assert len(pending) == 1
