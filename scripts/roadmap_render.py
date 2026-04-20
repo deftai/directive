@@ -77,12 +77,29 @@ def _extract_phases(vbrief: dict) -> list[dict]:
     return plan.get("items", [])
 
 
+def _read_edge_endpoints(edge: dict) -> tuple[str, str]:
+    """Read an edge's from/to endpoints, supporting both schema conventions.
+
+    Prefers schema-canonical ``from``/``to`` keys. Falls back to legacy
+    ``source``/``target`` keys when the canonical keys are absent. If both
+    forms are present on the same edge, ``from``/``to`` wins. See #458 for
+    rationale -- silent-empty dep maps occur when schema-compliant inputs
+    meet code that only reads one convention.
+    """
+    if not isinstance(edge, dict):
+        return "", ""
+    frm = edge.get("from") or edge.get("source", "") or ""
+    to = edge.get("to") or edge.get("target", "") or ""
+    return frm, to
+
+
 def _build_edge_map(vbrief: dict) -> dict[str, list[str]]:
     """Build a dependency map from plan.edges.
 
     Returns dict mapping item id -> list of ids it depends on.
-    Edges are directional: {source, target} means target depends on source,
-    or equivalently source must complete before target.
+    Edges are directional: ``{from, to}`` means ``to`` depends on ``from``,
+    or equivalently ``from`` must complete before ``to``. Legacy
+    ``{source, target}`` edges are read with the same semantics (see #458).
     """
     plan = vbrief.get("plan", {})
     if not isinstance(plan, dict):
@@ -92,10 +109,9 @@ def _build_edge_map(vbrief: dict) -> dict[str, list[str]]:
         return {}
     dep_map: dict[str, list[str]] = {}
     for edge in edges:
-        source = edge.get("source", "")
-        target = edge.get("target", "")
-        if source and target:
-            dep_map.setdefault(target, []).append(source)
+        frm, to = _read_edge_endpoints(edge)
+        if frm and to:
+            dep_map.setdefault(to, []).append(frm)
     return dep_map
 
 
