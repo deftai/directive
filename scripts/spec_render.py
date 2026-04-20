@@ -24,6 +24,26 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from spec_validate import validate_spec  # noqa: E402
 
+# Declared narrative ordering for SPECIFICATION.md. Covers both the
+# interview/light key set (Overview, ProblemStatement, Goals, UserStories,
+# Requirements, SuccessMetrics, Architecture) and the speckit Phase 2/3 key
+# set (EdgeCases, TechDecisions, ImplementationPhases, PreImplementationGates).
+# Narratives present on the spec render in this declared order; any other
+# narrative keys render after these, sorted alphabetically. See #434.
+SPECIFICATION_NARRATIVE_KEY_ORDER = [
+    "Overview",
+    "ProblemStatement",
+    "Goals",
+    "UserStories",
+    "Requirements",
+    "SuccessMetrics",
+    "EdgeCases",
+    "Architecture",
+    "TechDecisions",
+    "ImplementationPhases",
+    "PreImplementationGates",
+]
+
 
 def render_spec(spec_path: str, out_path: str) -> tuple[bool, str]:
     """
@@ -63,16 +83,34 @@ def render_spec(spec_path: str, out_path: str) -> tuple[bool, str]:
         title = plan or spec.get("title", "Specification")
     lines.append(f"# {title}\n")
 
-    # Extract overview from narratives (v0.5) or top-level (legacy)
+    # Render narratives in declared order, then remaining keys alphabetically.
+    # Mirrors prd_render.py behavior -- speckit-shaped specs (ProblemStatement,
+    # Goals, Requirements, etc.) must not be silently dropped (#434).
     if isinstance(plan, dict):
         narratives = plan.get("narratives", {})
-        overview = narratives.get("Overview", "")
+        if not isinstance(narratives, dict):
+            narratives = {}
     else:
-        overview = spec.get("overview") or spec.get("description") or ""
-    if overview:
-        lines.append(f"{overview}\n")
+        # Legacy flat-format specs may carry overview/description at top level.
+        legacy_overview = spec.get("overview") or spec.get("description") or ""
+        narratives = {"Overview": legacy_overview} if legacy_overview else {}
 
-    # Extract items from plan.items (v0.5) or spec.tasks (legacy)
+    rendered_keys: set[str] = set()
+    for key in SPECIFICATION_NARRATIVE_KEY_ORDER:
+        if key in narratives and narratives[key]:
+            lines.append(f"## {key}\n")
+            lines.append(f"{narratives[key]}\n")
+            rendered_keys.add(key)
+
+    for key in sorted(narratives.keys()):
+        if key in rendered_keys or not narratives.get(key):
+            continue
+        lines.append(f"## {key}\n")
+        lines.append(f"{narratives[key]}\n")
+
+    # Extract items from plan.items (v0.5) or spec.tasks (legacy). Items render
+    # after narratives so hybrid/legacy specs (items + narratives) still produce
+    # complete output.
     items = plan.get("items", []) if isinstance(plan, dict) else spec.get("tasks", [])
     for item in items:
         item_id = item.get("id", "")
