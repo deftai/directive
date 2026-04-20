@@ -36,15 +36,21 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 Example:
 ```
 Which deployment platform?
-1. Cross-platform (Linux / macOS / Windows)
-2. Web / Cloud [default: 2]
-3. Embedded / low-resource
-4. Other / I don't know
-0. Pause -- discuss this question with the agent
+
+  0. Discuss with agent (pause interview to talk it through)
+  ─────────────────────────────────────────────────────────
+  1. Cross-platform (Linux / macOS / Windows)
+  2. Web / Cloud [default: 2]
+  3. Embedded / low-resource
+  4. Other / I don't know
+
+Enter confirm / b back / 0 discuss
 ```
 
 - ! The default MUST be stated inline with the option (e.g. `[default: 2]`), not in a separate line or footnote
 - ! If no option is objectively better, pick the most common choice and mark it as default
+- ! Option `0. Discuss with agent` MUST appear in slot 0 at the top of the options block, visually separated from the numbered answer options (e.g. by a horizontal rule or blank line) so it is not confused with `Other / I don't know`
+- ! A persistent one-line legend MUST appear directly under the options block on every question (see Rule 11)
 - ~ Use structured question tools (AskQuestion, question picker, multi-choice UI) when available
 
 ### Rule 3: Explicit "Other / I Don't Know" Escape
@@ -54,7 +60,9 @@ Which deployment platform?
 - "I don't know" -- when the user may lack context to answer
 - "Other / I don't know" -- combined form (preferred)
 
+- ! The `Other / I don't know` escape is SEPARATE from the slot-0 `Discuss with agent` option (Rule 10). The two options MUST both be present and MUST NOT be merged into a single entry
 - ⊗ Present a question with no escape option -- the user must always have a way out
+- ⊗ Use the `Other / I don't know` entry as the discuss/freeform escape -- slot 0 `Discuss with agent` is the discuss escape (Rule 10)
 - ~ When the user selects the escape option, follow up with a brief open-ended prompt to capture their input or acknowledge the gap
 
 ### Rule 4: Depth Gate
@@ -179,46 +187,75 @@ The calling skill MAY provide:
 
 ### Rule 8: Deterministic Selection Confirmation
 
-! After the user enters a number to select an option, the agent MUST echo the selected option text and wait for explicit confirmation before advancing to the next question.
+! After the user enters a number to select an option, the agent MUST echo the selected option text and wait for explicit confirmation before advancing to the next question. The confirm-after-number-press step is MANDATORY -- number entry alone MUST NOT advance the interview.
 
 Example:
 ```
 Which deployment platform?
-1. Cross-platform (Linux / macOS / Windows)
-2. Web / Cloud [default: 2]
-3. Embedded / low-resource
-4. Other / I don't know
-0. Pause -- discuss this question with the agent
+
+  0. Discuss with agent (pause interview to talk it through)
+  ────────────────────────────────────────────────────────
+  1. Cross-platform (Linux / macOS / Windows)
+  2. Web / Cloud [default: 2]
+  3. Embedded / low-resource
+  4. Other / I don't know
+
+Enter confirm / b back / 0 discuss
 
 > User: 1
 
-You selected: **Cross-platform (Linux / macOS / Windows)**
-Confirm? (Enter to confirm, or type a different number)
+You selected: **1. Cross-platform (Linux / macOS / Windows)**
+Press Enter to confirm, type a different number to change, or `b` to go back.
 ```
 
-- ! Show the selected option text after each number entry -- the user must see what was selected
-- ! Wait for Enter / confirmation before advancing -- do not auto-advance on number press
-- ! If the user types a different number instead of confirming, switch to that option and re-confirm
+- ! Show the selected option text (with its number) after each number entry -- the user must see what was selected
+- ! Wait for Enter / explicit confirmation before advancing -- do NOT auto-advance on number press, under any circumstances
+- ! If the user types a different number instead of confirming, switch to that option and re-confirm (echo the new selection and wait for Enter again)
+- ! Accept `b`, `back`, or `prev` at the confirm prompt as a shortcut to back-navigation (Rule 9) without first requiring confirmation of the selection
 - ⊗ Auto-advance to the next question immediately after the user presses a number key
+- ⊗ Skip the echo step -- even when the selection "seems obvious" the agent MUST display the selected option text back to the user before advancing
 
 ### Rule 9: Backward Navigation
 
-! The agent MUST support backward navigation during the interview. At any question, the user may type `back`, `prev`, or `b` to return to the previous question and change their answer.
+! The agent MUST support backward navigation during the interview. At any question (including at the confirm-after-number prompt from Rule 8), the user may type `back`, `prev`, or `b` to return to the previous question and change their answer.
 
 - ! When the user navigates back, re-display the previous question with the previously selected answer shown
 - ! The user may change the answer or confirm the existing one
-- ~ The agent should inform the user of backward navigation availability at the start of the interview (e.g. "Type 'back' at any question to revisit the previous answer")
+- ! The back-navigation affordance MUST be visible on every question via the persistent one-line legend (Rule 11) -- not only announced once at the start of the interview
+- ~ The agent SHOULD additionally inform the user of backward navigation availability at the start of the interview (e.g. "Type 'b' / 'back' at any question to revisit the previous answer")
 - ⊗ Refuse to let the user revisit previous answers during the interview
+- ⊗ Hide the back-navigation affordance -- the legend under each question MUST name the `b` key explicitly
 
-### Rule 10: Freeform Conversation Escape (Option 0)
+### Rule 10: Freeform Conversation Escape (Slot 0 -- Discuss with agent)
 
-! Every deterministic question MUST include an option `0` that pauses the structured flow and opens a freeform conversation with the agent.
+! Every deterministic question MUST include an option `0` that pauses the structured flow and opens a freeform conversation with the agent. Option 0 is the self-describing **Discuss with agent** escape hatch and is DISTINCT from `Other / I don't know` (Rule 3).
 
-- ! Option 0 text: `0. Pause -- discuss this question with the agent`
+- ! Option 0 label: `0. Discuss with agent` (a short self-describing clarifier such as `(pause interview to talk it through)` MAY follow on the same line)
+- ! Option 0 MUST render in slot 0 at the top of the options block, visually separated from the numbered answer options (e.g. by a horizontal rule or blank line) so it is not confused with slot `Other / I don't know`
+- ! The slot-0 label MUST be self-describing -- do NOT use generic labels like `Other..`, `Escape`, or `Pause` without the `Discuss with agent` phrasing
 - ! When the user selects 0, the agent enters a freeform conversation mode where the user can ask clarifying questions, request more context about the options, or explain nuance
-- ! The agent MUST explicitly resume the deterministic flow when the conversation is resolved: re-display the same question and wait for a numbered answer
+- ! The agent MUST explicitly resume the deterministic flow when the conversation is resolved: re-display the same question (with the full options block and legend) and wait for a numbered answer
 - ⊗ Continue the deterministic flow while in freeform conversation mode
 - ⊗ Omit option 0 from any deterministic question
+- ⊗ Place option 0 at the bottom of the options block or inline with numbered answers -- slot 0 MUST be first, visually separated
+- ⊗ Merge slot-0 `Discuss with agent` with `Other / I don't know` -- they are distinct affordances
+
+### Rule 11: Persistent Legend Under Each Question
+
+! Every deterministic question MUST render a persistent one-line legend directly under the options block. The legend names the three always-available key affordances and is shown on every question (not only at the start of the interview).
+
+Canonical legend text:
+
+```
+Enter confirm / b back / 0 discuss
+```
+
+- ! The legend MUST be present under EVERY deterministic question, including re-displayed questions after back-navigation (Rule 9) or freeform resume (Rule 10)
+- ! The legend MUST name all three affordances: `Enter` (confirm selection -- Rule 8), `b` (back -- Rule 9), `0` (discuss -- Rule 10)
+- ~ The legend SHOULD appear as a single line directly below the options block, separated by a blank line
+- ? Additional hints (e.g. `c cancel`) MAY be appended with `/` separators, but the three canonical affordances MUST always be present
+- ⊗ Omit the legend from any deterministic question -- every question MUST carry it
+- ⊗ Replace the canonical affordance labels with non-self-describing abbreviations (e.g. `↵`, `←`) without also spelling them out
 
 ## Anti-Patterns
 
@@ -235,3 +272,6 @@ Confirm? (Enter to confirm, or type a different number)
 - ⊗ Treat PRD.md as a source of truth — it is a read-only export via `task prd:render`
 - ⊗ Auto-advance to the next question on number press without echoing the selection and waiting for confirmation
 - ⊗ Refuse backward navigation during the interview -- the user must be able to revisit previous answers
+- ⊗ Render a deterministic question without the persistent `Enter confirm / b back / 0 discuss` legend directly below the options block
+- ⊗ Use `Pause`, `Escape`, `Other..`, or any non-self-describing label for slot 0 -- the label MUST be `Discuss with agent` (Rule 10)
+- ⊗ Place slot-0 `Discuss with agent` at the bottom of the options block or merge it with `Other / I don't know` -- slot 0 MUST be first and visually distinct (Rule 10)
