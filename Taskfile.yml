@@ -50,6 +50,9 @@ includes:
   reconcile:
     taskfile: ./tasks/reconcile.yml
     optional: true
+  issue:
+    taskfile: ./tasks/issue.yml
+    optional: true
 
 tasks:
   default:

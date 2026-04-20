@@ -16,6 +16,7 @@ Key `task` commands for working with vBRIEF files:
 - `task roadmap:render` — Regenerate `ROADMAP.md` from `vbrief/pending/` scope vBRIEFs
 - `task project:render` — Refresh `PROJECT-DEFINITION.vbrief.json` items registry from lifecycle folders
 - `task migrate:vbrief` — Migrate existing project to vBRIEF lifecycle folder structure (one-time)
+- `task issue:ingest -- <N>` / `task issue:ingest -- --all [--label L] [--status S] [--dry-run]` — Ingest GitHub issues as scope vBRIEFs in `vbrief/proposed/` (deduplicates via existing references)
 - `task vbrief:validate` — Validate schema, filenames, folder/status consistency (part of `task check`)
 - `task scope:promote|activate|complete|cancel|restore|block|unblock <file>` — Lifecycle transitions
 

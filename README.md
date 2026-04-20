@@ -159,9 +159,26 @@ Deft provides deterministic `task` commands for rendering, migrating, and valida
 | `task roadmap:render` | Regenerate `ROADMAP.md` from `vbrief/pending/` scope vBRIEFs | After promoting/demoting scopes |
 | `task project:render` | Regenerate `PROJECT-DEFINITION.vbrief.json` items registry | After scope lifecycle changes |
 | `task migrate:vbrief` | Migrate existing projects to vBRIEF lifecycle folder structure | One-time cutover from pre-v0.20 model |
+| `task issue:ingest -- <N>` | Ingest a single GitHub issue as a scope vBRIEF in `vbrief/proposed/` (deduplicates via existing references) | After filing a new issue you plan to work on |
+| `task issue:ingest -- --all [--label L] [--status S] [--dry-run]` | Bulk-ingest all open issues into scope vBRIEFs | Post-refactor / post-release cleanup, or when reducing the `reconcile` unlinked backlog |
 | `task vbrief:validate` | Validate vBRIEF schema, filenames, folder/status consistency | Pre-commit (runs as part of `task check`) |
 
 See [commands.md](./commands.md) for the full change lifecycle and the [Command Lifecycle: `run` vs `task`](./commands.md#command-lifecycle-run-vs-task) section there for detailed usage.
+
+### Ingesting GitHub issues
+
+Post-v0.20, new GitHub issues become scope vBRIEFs via `task issue:ingest`:
+
+```bash
+# Single issue -- writes vbrief/proposed/YYYY-MM-DD-<N>-<slug>.vbrief.json
+task issue:ingest -- 123
+
+# Bulk ingest all open issues carrying the `bug` label, dry-run first
+task issue:ingest -- --all --label bug --dry-run
+task issue:ingest -- --all --label bug
+```
+
+The script deduplicates against existing `references[type=github-issue]` entries in `vbrief/`, writes to the lifecycle folder selected by `--status proposed|pending|active` (default: `proposed`), and exits with `1` if the issue already has a scope vBRIEF. Use `--dry-run` in bulk mode to preview without writing files.
 
 ### Command Lifecycle: `run` vs `task`
 

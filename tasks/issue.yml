@@ -1,0 +1,9 @@
+version: '3'
+
+tasks:
+  ingest:
+    desc: "Ingest GitHub issues as scope vBRIEFs (single <N> or --all [--label L] [--status S] [--dry-run])"
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python scripts/issue_ingest.py --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" {{.CLI_ARGS}}

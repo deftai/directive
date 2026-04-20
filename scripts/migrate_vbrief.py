@@ -26,6 +26,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
+# Ensure the ``scripts/`` directory is on sys.path so sibling module
+# ``_vbrief_build`` is importable whether this file is run as __main__ or
+# imported from a test harness that appends the ``scripts/`` path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _vbrief_build import create_scope_vbrief as _create_scope_vbrief_shared  # noqa: E402
+from _vbrief_build import slugify as _slugify_shared  # noqa: E402
+
 # Lifecycle folders per RFC #309 D13
 LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
 
@@ -77,13 +85,9 @@ def _is_user_customized(content: str, auto_markers: tuple[str, ...]) -> bool:
     return not any(marker in content for marker in auto_markers)
 
 
-def _slugify(text: str) -> str:
-    """Convert a title to a filename-safe slug."""
-    slug = text.lower().strip()
-    slug = re.sub(r"[^a-z0-9\s-]", "", slug)
-    slug = re.sub(r"[\s_]+", "-", slug)
-    slug = re.sub(r"-+", "-", slug)
-    return slug[:60].strip("-")
+# Legacy underscore-prefixed alias -- extraction of the shared helper into
+# ``_vbrief_build`` (#454) preserves the public surface tests import today.
+_slugify = _slugify_shared
 
 
 def _parse_prd_narratives(content: str) -> dict[str, str]:
@@ -526,56 +530,10 @@ def _build_project_definition(
     }
 
 
-def _create_scope_vbrief(
-    item: dict,
-    repo_url: str = "",
-    status: str = "pending",
-    phase_description: str = "",
-) -> dict:
-    """Create an individual scope vBRIEF from a roadmap item.
-
-    Per RFC #309 D7: filename uses creation date + descriptive slug.
-    Per D11: origin provenance via references.
-    """
-    number = item.get("number", "")
-    title = item.get("title", "Untitled")
-    phase = item.get("phase", "")
-    tier = item.get("tier", "")
-
-    desc_label = f"#{number}: {title}" if number else title
-    narratives: dict[str, str] = {
-        "Description": title,
-        "Phase": phase,
-    }
-    if tier:
-        narratives["Tier"] = tier
-    if phase_description:
-        narratives["PhaseDescription"] = phase_description
-
-    vbrief: dict = {
-        "vBRIEFInfo": {
-            "version": "0.5",
-            "description": f"Scope vBRIEF for {desc_label}",
-        },
-        "plan": {
-            "title": title,
-            "status": status,
-            "narratives": narratives,
-            "items": [],
-        },
-    }
-
-    # Origin provenance per D11
-    if number:
-        ref: dict = {
-            "type": "github-issue",
-            "id": f"#{number}",
-        }
-        if repo_url:
-            ref["url"] = f"{repo_url}/issues/{number}"
-        vbrief["plan"]["references"] = [ref]
-
-    return vbrief
+# Legacy underscore-prefixed alias -- the shared helper lives in
+# ``_vbrief_build`` (#454). Tests and callers continue to import
+# ``_create_scope_vbrief`` from this module.
+_create_scope_vbrief = _create_scope_vbrief_shared
 
 
 def _deprecation_redirect(
