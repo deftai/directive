@@ -304,7 +304,8 @@ def test_setup_phase2_to_phase3_transition_structured(setup_text: str) -> None:
 
 def test_setup_phase3_to_build_transition_structured(setup_text: str) -> None:
     """The Phase 3 -> build handoff MUST use the structured-tool MUST rule
-    (#478 Fix 4)."""
+    AND reuse the canonical option labels shared with Phase 1->2 and Phase
+    2->3 (addresses Greptile P2 #508 -- label divergence) (#478 Fix 4)."""
     handoff_start = setup_text.find("### Handoff to deft-directive-build")
     assert handoff_start != -1, (
         f"{_SETUP_PATH}: missing 'Handoff to deft-directive-build' section"
@@ -314,6 +315,21 @@ def test_setup_phase3_to_build_transition_structured(setup_text: str) -> None:
     assert "Emit a structured-tool question" in block and "build phase" in block, (
         f"{_SETUP_PATH}: Phase 3->build handoff MUST use the structured-tool "
         "MUST rule and name the build phase (#478 Fix 4)"
+    )
+    # Canonical option labels must match Phase 1->2 and Phase 2->3 verbatim.
+    assert "Yes (continue)" in block and "Back (revisit previous phase)" in block, (
+        f"{_SETUP_PATH}: Phase 3->build handoff MUST use the canonical option "
+        "labels 'Yes (continue)' and 'Back (revisit previous phase)' to match "
+        "Phase 1->2 and Phase 2->3 (Greptile P2 #508)"
+    )
+    # Non-canonical earlier labels must not leak back in.
+    assert "Yes (start building now)" not in block, (
+        f"{_SETUP_PATH}: Phase 3->build handoff MUST NOT use the non-canonical "
+        "label 'Yes (start building now)' (Greptile P2 #508)"
+    )
+    assert "Back (revisit the spec)" not in block, (
+        f"{_SETUP_PATH}: Phase 3->build handoff MUST NOT use the non-canonical "
+        "label 'Back (revisit the spec)' (Greptile P2 #508)"
     )
 
 

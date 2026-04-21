@@ -347,7 +347,7 @@ Enter confirm / b back / 0 discuss
 - ⊗ Treat PRD.md as a source of truth — it is a read-only export via `task prd:render`
 - ⊗ Auto-advance to the next question on number press without echoing the selection and waiting for confirmation
 - ⊗ Refuse backward navigation during the interview -- the user must be able to revisit previous answers
-- ⊗ Render a deterministic question without the persistent `Enter confirm / b back / 0 discuss` legend directly below the options block
+- ⊗ Render a deterministic question without the persistent `Enter confirm / b back / 0 discuss` legend directly below the options block **in plain-text rendering mode** (Rule 11 Plain-Text Rendering Mode) -- in click-commit rendering mode the keystroke legend MAY be omitted per Rule 11 Click-Commit Rendering Mode, provided `Back` and `Discuss with agent` still render as clickable options
 - ⊗ Use `Pause`, `Escape`, `Other..`, or any non-self-describing label for slot 0 -- the label MUST be `Discuss with agent` (Rule 10)
 - ⊗ Place slot-0 `Discuss with agent` at the bottom of the options block or merge it with `Other / I don't know` -- slot 0 MUST be first and visually distinct (Rule 10)
 - ⊗ Emit a user-facing question as conversational prose outside the structured tool because the answer content is prose, because the preamble is long, because the question "feels conversational," or because the prior question was plain-text (Rule 2 Always-Structured Rendering, #478)

@@ -541,7 +541,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ### Handoff to deft-directive-build
 
-- ! Emit a structured-tool question asking whether to continue to the build phase. Options: Yes (start building now), Not now (exit setup), Discuss, Back (revisit the spec). Render per the host's rendering mode (click-commit vs plain-text typed) per `skills/deft-directive-interview/SKILL.md` Rule 2 Always-Structured Rendering.
+- ! Emit a structured-tool question asking whether to continue to the build phase. Options: Yes (continue), Not now (exit setup), Discuss, Back (revisit previous phase). Render per the host's rendering mode (click-commit vs plain-text typed) per `skills/deft-directive-interview/SKILL.md` Rule 2 Always-Structured Rendering.
 - ~ If platform supports skill invocation and the user picks Yes, invoke `skills/deft-directive-build/SKILL.md`
 - ⊗ Leave user with a dead end -- always offer the next step via the structured-tool phase-transition question
 - ⊗ Ask the handoff-to-build question as plain-text conversational prose -- it is a user-facing question with enumerable paths and MUST go through the structured tool (#478).
