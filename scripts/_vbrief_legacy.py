@@ -382,12 +382,18 @@ def emit_legacy_report(
     *,
     migrator_version: str,
     sources: list[str],
+    timestamp: str | None = None,
 ) -> Path | None:
     """Write ``vbrief/migration/LEGACY-REPORT.md``.
 
     ``captures`` keys are report section labels (e.g.
     ``"specification.vbrief.json -> LegacyArtifacts"``) mapping to the
     per-section stat dicts produced by :func:`emit_legacy_artifacts`.
+
+    ``timestamp`` is an ISO-8601 ``YYYY-MM-DDTHH:MM:SSZ`` string; when
+    ``None`` (default) the current UTC wall clock is used. Tests inject
+    a frozen value so the golden fixture can diff byte-for-byte without
+    a clock-freezing library (Greptile #525 P1).
 
     Returns the path to the written file, or ``None`` if there is
     nothing to report (all buckets empty).
@@ -399,7 +405,7 @@ def emit_legacy_report(
     report_dir.mkdir(parents=True, exist_ok=True)
     report_path = report_dir / "LEGACY-REPORT.md"
 
-    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = timestamp or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     lines: list[str] = [
         "# Legacy content captured during migration",
         "",

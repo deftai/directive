@@ -190,12 +190,24 @@ def parse_spec_tasks(content: str) -> list[dict]:
             if stripped.startswith(("-", "*")) and in_acceptance:
                 acceptance.append(re.sub(r"^[-*]\s+", "", stripped))
                 continue
-            if stripped.startswith(("-", "*")) and not in_acceptance:
-                # Loose bullet list under the task body counts as
-                # acceptance criteria when it looks like one (each bullet
-                # is a testable assertion).  Conservative: only capture
-                # when there is no other structured content.
+            if (
+                stripped.startswith(("-", "*"))
+                and not in_acceptance
+                and not description_lines
+            ):
+                # Loose bullet list at the START of the task body (before any
+                # description prose) counts as acceptance criteria when it
+                # looks like one (each bullet is a testable assertion).
+                # Conservative: only capture when no description prose has
+                # been accumulated yet -- bullets that appear after prose
+                # are description-area bullets (design notes, prerequisites)
+                # and must stay in description to preserve Agent B's
+                # reconciliation "SPEC owns body" routing (Greptile #525 P1).
                 acceptance.append(re.sub(r"^[-*]\s+", "", stripped))
+                continue
+            if stripped.startswith(("-", "*")) and not in_acceptance:
+                # Bullet after description prose -> treat as description.
+                description_lines.append(raw)
                 continue
             description_lines.append(raw)
             in_acceptance = False
