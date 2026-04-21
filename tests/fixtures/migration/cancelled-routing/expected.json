@@ -1,0 +1,13 @@
+{
+  "scenario": "cancelled-routing",
+  "folder_counts": {
+    "proposed": 0,
+    "pending": 0,
+    "active": 0,
+    "completed": 0,
+    "cancelled": 1
+  },
+  "statuses": {"cancelled": ["cancelled"]},
+  "reconciliation_md": false,
+  "registry_statuses": ["cancelled"]
+}

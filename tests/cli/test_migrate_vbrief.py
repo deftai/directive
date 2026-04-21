@@ -2356,3 +2356,341 @@ class TestGoldenFixture:
                     bad.append((fpath.name, id_value))
 
         assert not bad, f"non-schema-conformant ids emitted: {bad}"
+
+
+# ===========================================================================
+# #496 + #499 -- Reconciliation + lifecycle routing integration tests
+# ===========================================================================
+
+
+def _reconciled_scope(
+    tmp_path: Path, *, spec_items: list[dict], roadmap_md: str,
+    overrides_yaml: str | None = None,
+) -> Path:
+    """Build a reconciliation fixture project for #496 / #499 tests."""
+    spec_vbrief = {
+        "vBRIEFInfo": {"version": "0.5", "description": "Test spec"},
+        "plan": {
+            "title": "Test",
+            "status": "approved",
+            "narratives": {"Overview": "A reconciliation fixture."},
+            "items": spec_items,
+        },
+    }
+    project = _make_project(
+        tmp_path, spec_vbrief=spec_vbrief, roadmap_md=roadmap_md,
+    )
+    if overrides_yaml is not None:
+        (project / "vbrief" / "migration-overrides.yaml").write_text(
+            overrides_yaml, encoding="utf-8",
+        )
+    return project
+
+
+class TestLifecycleRouting:
+    """#499 routing: every folder gets the right scope vBRIEFs."""
+
+    def test_roadmap_completed_section_routes_to_completed(self, tmp_path):
+        roadmap = (
+            "# Roadmap\n\n## Phase 1\n\n"
+            "- **#100** -- Feature A\n\n"
+            "## Completed\n\n"
+            "- ~~#50 -- Shipped feature~~\n"
+        )
+        project = _make_project(tmp_path, roadmap_md=roadmap)
+        ok, _ = migrate(project)
+        assert ok
+        completed_files = list(
+            (project / "vbrief" / "completed").glob("*.vbrief.json")
+        )
+        assert len(completed_files) == 1
+        data = json.loads(completed_files[0].read_text(encoding="utf-8"))
+        assert data["plan"]["status"] == "completed"
+
+    def test_spec_tiebreaker_routes_to_completed(self, tmp_path):
+        """SPEC task status=completed wins when ROADMAP is silent (#496 D3)."""
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[{"id": "t1.1", "title": "Done-in-SPEC",
+                         "status": "completed"}],
+            roadmap_md="# Roadmap\n\n## Phase 1\n\n- `1.1` Done-in-SPEC\n",
+        )
+        ok, _ = migrate(project)
+        assert ok
+        completed = list(
+            (project / "vbrief" / "completed").glob("*.vbrief.json")
+        )
+        assert len(completed) == 1
+        data = json.loads(completed[0].read_text(encoding="utf-8"))
+        assert data["plan"]["status"] == "completed"
+        pending = list(
+            (project / "vbrief" / "pending").glob("*.vbrief.json")
+        )
+        assert all(
+            "Done-in-SPEC" not in json.loads(
+                p.read_text(encoding="utf-8")
+            )["plan"]["title"]
+            for p in pending
+        )
+
+    def test_spec_running_routes_to_active(self, tmp_path):
+        """SPEC status=running -> active/ with plan.status=running.
+
+        #499 correction comment: NEVER ``in_progress``.
+        """
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[{"id": "t2", "title": "Running task",
+                         "status": "running"}],
+            roadmap_md="# Roadmap\n\n## Phase 1\n\n- `2` Running task\n",
+        )
+        ok, _ = migrate(project)
+        assert ok
+        active = list((project / "vbrief" / "active").glob("*.vbrief.json"))
+        assert len(active) == 1
+        data = json.loads(active[0].read_text(encoding="utf-8"))
+        assert data["plan"]["status"] == "running"
+        assert "in_progress" not in active[0].read_text(encoding="utf-8")
+
+    def test_spec_cancelled_routes_to_cancelled(self, tmp_path):
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[{"id": "t3", "title": "Killed task",
+                         "status": "cancelled"}],
+            roadmap_md="# Roadmap\n\n## Phase 1\n\n- `3` Killed task\n",
+        )
+        ok, _ = migrate(project)
+        assert ok
+        cancelled = list(
+            (project / "vbrief" / "cancelled").glob("*.vbrief.json")
+        )
+        assert len(cancelled) == 1
+        data = json.loads(cancelled[0].read_text(encoding="utf-8"))
+        assert data["plan"]["status"] == "cancelled"
+
+    def test_orphan_roadmap_routes_to_proposed(self, tmp_path):
+        """SPEC has items but ROADMAP has an extra -> proposed/ with SourceConflict."""
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[{"id": "t1", "title": "Known task",
+                         "status": "pending"}],
+            roadmap_md=(
+                "# Roadmap\n\n## Phase 1\n\n"
+                "- `1` Known task\n"
+                "- Orphan stuff\n"
+            ),
+        )
+        ok, _ = migrate(project)
+        assert ok
+        proposed = list(
+            (project / "vbrief" / "proposed").glob("*.vbrief.json")
+        )
+        assert len(proposed) == 1
+        data = json.loads(proposed[0].read_text(encoding="utf-8"))
+        assert data["plan"]["status"] == "proposed"
+        assert data["plan"]["narratives"]["SourceConflict"] == (
+            "missing-from-spec"
+        )
+
+    def test_default_routes_to_pending(self, tmp_path):
+        """No completion signal from either source -> pending/."""
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[{"id": "t1", "title": "Backlog",
+                         "status": "pending"}],
+            roadmap_md="# Roadmap\n\n## Phase 1\n\n- `1` Backlog\n",
+        )
+        ok, _ = migrate(project)
+        assert ok
+        pending = list(
+            (project / "vbrief" / "pending").glob("*.vbrief.json")
+        )
+        assert len(pending) == 1
+        data = json.loads(pending[0].read_text(encoding="utf-8"))
+        assert data["plan"]["status"] == "pending"
+
+    def test_registry_mirrors_scope_status(self, tmp_path):
+        """#499-registry: PROJECT-DEFINITION.items[*].status == scope status."""
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[
+                {"id": "t1", "title": "Done task", "status": "completed"},
+                {"id": "t2", "title": "Active task", "status": "running"},
+            ],
+            roadmap_md=(
+                "# Roadmap\n\n## Phase 1\n\n"
+                "- `1` Done task\n"
+                "- `2` Active task\n"
+            ),
+        )
+        ok, _ = migrate(project)
+        assert ok
+        pd = json.loads(
+            (project / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        titles_to_status = {
+            item["title"]: item["status"] for item in pd["plan"]["items"]
+        }
+        assert titles_to_status["Done task"] == "completed"
+        assert titles_to_status["Active task"] == "running"
+        assert "in_progress" not in titles_to_status.values()
+
+
+class TestReconciliationMdEmission:
+    """#496 acceptance: RECONCILIATION.md emitted when disagreement exists."""
+
+    def test_no_disagreement_no_report(self, tmp_path):
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[{"id": "t1", "title": "Clean",
+                         "status": "pending"}],
+            roadmap_md="# Roadmap\n\n## Phase 1\n\n- `1` Clean\n",
+        )
+        ok, _ = migrate(project)
+        assert ok
+        assert not (
+            project / "vbrief" / "migration" / "RECONCILIATION.md"
+        ).exists()
+
+    def test_disagreement_emits_report(self, tmp_path):
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[{"id": "t1", "title": "Pending in SPEC",
+                         "status": "pending"}],
+            roadmap_md=(
+                "# Roadmap\n\n## Phase 1\n\n- `1` Pending in SPEC\n\n"
+                "## Completed\n\n- ~~#50 -- Pending in SPEC~~\n"
+            ),
+        )
+        ok, _ = migrate(project)
+        assert ok
+        report = project / "vbrief" / "migration" / "RECONCILIATION.md"
+        assert report.exists()
+        content = report.read_text(encoding="utf-8")
+        assert "Migration reconciliation report" in content
+
+
+class TestStrictMode:
+    """#496 acceptance: --strict exits non-zero on any conflict."""
+
+    def test_strict_exits_nonzero_on_conflict(self, tmp_path):
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[{"id": "t1", "title": "X", "status": "pending"}],
+            roadmap_md=(
+                "# Roadmap\n\n## Completed\n\n"
+                "- ~~#99 -- Orphan-in-roadmap~~\n"
+            ),
+        )
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "migrate_vbrief.py"),
+                str(project),
+                "--strict",
+                "--force",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 1, result.stdout + result.stderr
+        assert "STRICT" in result.stdout
+
+    def test_non_strict_succeeds_on_conflict(self, tmp_path):
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[{"id": "t1", "title": "X", "status": "pending"}],
+            roadmap_md=(
+                "# Roadmap\n\n## Completed\n\n"
+                "- ~~#99 -- Orphan-in-roadmap~~\n"
+            ),
+        )
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "migrate_vbrief.py"),
+                str(project),
+                "--force",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+
+class TestOverridesFileHonored:
+    """#496 acceptance: migration-overrides.yaml takes precedence over defaults."""
+
+    def test_override_status_routes_to_overridden_folder(self, tmp_path):
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[{"id": "t1", "title": "Task",
+                         "status": "pending"}],
+            roadmap_md="# Roadmap\n\n## Phase 1\n\n- `1` Task\n",
+            overrides_yaml=(
+                "overrides:\n"
+                "  t1:\n"
+                "    status: completed\n"
+            ),
+        )
+        ok, _ = migrate(project)
+        assert ok
+        completed = list(
+            (project / "vbrief" / "completed").glob("*.vbrief.json")
+        )
+        assert len(completed) == 1
+        data = json.loads(completed[0].read_text(encoding="utf-8"))
+        assert data["plan"]["status"] == "completed"
+        assert "migration-overrides.yaml" in (
+            data["plan"]["narratives"]["Status_source"]
+        )
+
+    def test_override_drop_skips_emission(self, tmp_path):
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[],
+            roadmap_md="# Roadmap\n\n## Phase 1\n\n- `drop-me` Bogus entry\n",
+            overrides_yaml=(
+                "overrides:\n"
+                "  drop-me:\n"
+                "    drop: true\n"
+            ),
+        )
+        ok, _ = migrate(project)
+        assert ok
+        for folder in ("pending", "proposed", "active",
+                       "completed", "cancelled"):
+            assert list(
+                (project / "vbrief" / folder).glob("*.vbrief.json")
+            ) == []
+
+
+class TestPerFieldProvenance:
+    """#496 acceptance: narrative.*_source tags appear on reconciled scopes."""
+
+    def test_description_source_emitted(self, tmp_path):
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[{
+                "id": "t1",
+                "title": "Task",
+                "status": "pending",
+                "narrative": {"Description": "SPEC-owned body."},
+            }],
+            roadmap_md="# Roadmap\n\n## Phase 1\n\n- `1` Task\n",
+        )
+        ok, _ = migrate(project)
+        assert ok
+        pending = list(
+            (project / "vbrief" / "pending").glob("*.vbrief.json")
+        )
+        assert len(pending) == 1
+        data = json.loads(pending[0].read_text(encoding="utf-8"))
+        narratives = data["plan"]["narratives"]
+        assert narratives["Description"] == "SPEC-owned body."
+        assert narratives["Description_source"] == "SPECIFICATION.md"
+        assert narratives["Status_source"]

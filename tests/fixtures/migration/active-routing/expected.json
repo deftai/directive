@@ -1,0 +1,15 @@
+{
+  "scenario": "active-routing",
+  "folder_counts": {
+    "proposed": 0,
+    "pending": 0,
+    "active": 1,
+    "completed": 0,
+    "cancelled": 0
+  },
+  "statuses": {"active": ["running"]},
+  "reconciliation_md": false,
+  "registry_statuses": ["running"],
+  "forbidden_values_in_any_file": ["in_progress"],
+  "notes": "#499 correction comment: active/ MUST use running, never in_progress."
+}

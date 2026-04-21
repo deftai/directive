@@ -50,6 +50,28 @@ _slug_fallback_id = slug_fallback_id
 # .premigrate.* backups, --dry-run preview, dirty-tree guard, --rollback.
 # See `scripts/_vbrief_safety.py` and tracking issue #506 (D7) for the
 # authoritative decisions this code implements.
+# --- end safety ---
+# --- reconciliation (Agent B, #496) ---
+# Role-based SPEC/ROADMAP reconciliation per #506 D3 + overrides loader +
+# RECONCILIATION.md emitter live in ``_vbrief_reconciliation``.
+from _vbrief_reconciliation import (  # noqa: E402
+    load_overrides as _load_overrides,
+)
+from _vbrief_reconciliation import (  # noqa: E402
+    reconcile_scope_items as _reconcile_scope_items,
+)
+from _vbrief_reconciliation import (  # noqa: E402
+    write_reconciliation_report as _write_reconciliation_report,
+)
+
+# --- end reconciliation ---
+# --- lifecycle-routing (Agent B, #499) ---
+# Lifecycle folder <-> status mapping + scope vBRIEF builder per #506 shared
+# conventions. Schema vocabulary only -- ``active/`` uses ``running``, NEVER
+# ``in_progress`` (the critical #499 correction comment).
+from _vbrief_routing import (  # noqa: E402
+    build_scope_vbrief_from_reconciled as _build_reconciled_scope_vbrief,
+)
 from _vbrief_safety import (  # noqa: E402
     SafetyManifest,
     dirty_tree_refusal_message,
@@ -63,7 +85,7 @@ from _vbrief_safety import (  # noqa: E402
 )
 from _vbrief_safety import rollback as safety_rollback  # noqa: E402
 
-# --- end safety ---
+# --- end lifecycle-routing ---
 
 # Lifecycle folders per RFC #309 D13
 LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
@@ -556,19 +578,22 @@ def _build_project_definition(
         number = scope.get("number", "")
         id_source = slug_fallback_id(scope)
         scope_id = f"scope-{slugify_id(id_source, emitted_scope_ids)}"
-        # Derive registry status from the roadmap phase -- ROADMAP.md items
-        # under a ## Completed heading carry phase="Completed" and emit to
-        # ``vbrief/completed/`` with ``plan.status == "completed"`` in their
-        # own scope vBRIEF. The PROJECT-DEFINITION scope registry must
-        # mirror that or downstream tooling (roadmap render, discovery
-        # tools) will misreport completed scopes as backlogged (Greptile
-        # P1 on #498 PR).
-        phase = str(scope.get("phase", "") or "")
-        registry_status = "completed" if "completed" in phase.lower() else "pending"
+        # #499-registry: registry status mirrors the scope's reconciled
+        # status when the caller provides it (the migrator passes
+        # reconciled items whose status already reflects the #506
+        # lifecycle<->status mapping). Falls back to the phase-based
+        # heuristic for unstructured callers (e.g. direct test callers
+        # that pass raw ROADMAP items without reconciliation).
+        scope_status = scope.get("status")
+        if not isinstance(scope_status, str) or not scope_status:
+            phase = str(scope.get("phase", "") or "")
+            scope_status = (
+                "completed" if "completed" in phase.lower() else "pending"
+            )
         item: dict = {
             "id": scope_id,
             "title": scope.get("title", "Untitled"),
-            "status": registry_status,
+            "status": scope_status,
         }
         # Origin provenance per D11
         if number:
@@ -629,6 +654,7 @@ def migrate(
     *,
     dry_run: bool = False,
     force: bool = False,
+    strict: bool = False,
 ) -> tuple[bool, list[str]]:
     """Run the full migration on the given project root.
 
@@ -640,6 +666,12 @@ def migrate(
     ``force`` -- when True, bypass the dirty-tree guard (#497-3).  The guard
     refuses to run on a dirty working tree by default to keep migration
     output separable from in-progress edits.
+
+    ``strict`` -- when True (``task migrate:vbrief -- --strict`` per #496),
+    exit non-zero if SPEC and ROADMAP disagreed on any dimension or any
+    override from ``vbrief/migration-overrides.yaml`` triggered. Scope
+    vBRIEFs and ``vbrief/migration/RECONCILIATION.md`` are still written so
+    the operator can inspect before re-running without ``--strict``.
 
     Returns:
         (True, actions) on success -- actions is a list of human-readable lines.
@@ -780,16 +812,53 @@ def migrate(
                     f"{', '.join(sorted(ingested_keys))}"
                 )
 
+    # --- reconciliation (Agent B, #496) ---
+    # Load overrides BEFORE defaults apply, then reconcile SPEC + ROADMAP
+    # into a single list of routed scope items. The report captures every
+    # resolved disagreement for downstream emission to
+    # vbrief/migration/RECONCILIATION.md and for --strict exit-code gating.
+    overrides = _load_overrides(vbrief_dir)
+    if overrides:
+        actions.append(
+            f"READ  vbrief/migration-overrides.yaml ({len(overrides)} override(s))"
+        )
+    reconciled_items, reconciliation_report = _reconcile_scope_items(
+        roadmap_active=roadmap_items,
+        roadmap_completed=completed_items,
+        spec_vbrief=spec_vbrief,
+        phase_descriptions=phase_descriptions,
+        overrides=overrides,
+    )
+    # --- end reconciliation ---
+
     # ---- Step 3: Generate PROJECT-DEFINITION.vbrief.json ----
     proj_def_path = vbrief_dir / "PROJECT-DEFINITION.vbrief.json"
     if proj_def_path.exists():
         actions.append("SKIP  PROJECT-DEFINITION.vbrief.json already exists (idempotent)")
     else:
-        all_items = roadmap_items + completed_items
+        # #499-registry: pass reconciled items so PROJECT-DEFINITION
+        # plan.items[*].status mirrors each scope's reconciled status. Falls
+        # back to raw roadmap_items + completed_items for the degenerate
+        # case where no ROADMAP existed (reconciled_items is empty and the
+        # registry was historically empty too).
+        if reconciled_items:
+            registry_items = [
+                {
+                    "number": r.get("number", ""),
+                    "title": r.get("title", "Untitled"),
+                    "status": r.get("status", "pending"),
+                    "phase": r.get("phase", ""),
+                    "task_id": r.get("original_task_id", ""),
+                    "synthetic_id": r.get("synthetic_id", ""),
+                }
+                for r in reconciled_items
+            ]
+        else:
+            registry_items = roadmap_items + completed_items
         proj_def = _build_project_definition(
             spec_vbrief,
             project_content,
-            all_items,
+            registry_items,
             repo_url=repo_url,
             spec_md_content=spec_md_content,
         )
@@ -805,24 +874,40 @@ def migrate(
             )
             actions.append("CREATE vbrief/PROJECT-DEFINITION.vbrief.json")
 
-    # ---- Step 4: Convert roadmap items to pending/ vBRIEFs ----
-    # Per #498: track emitted filename stems so slug collisions within a single
-    # migrate() run deterministically disambiguate via slugify_id's stable
-    # hash-suffix path instead of overwriting a prior file.
+    # --- lifecycle-routing (Agent B, #499) ---
+    # Write each reconciled scope vBRIEF to the lifecycle folder chosen by
+    # the reconciler (proposed / pending / active / completed / cancelled
+    # per #506). Replaces the old Steps 4 + 4b that dumped everything into
+    # pending/ or completed/. Orphan ROADMAP items route to proposed/ with
+    # narrative.SourceConflict = "missing-from-spec". Uses Agent D's
+    # slugify_id/slug_fallback_id for collision-safe filename stems and
+    # schema-compliant IDs (#498).
     emitted_stems: set[str] = set()
-    for item in roadmap_items:
-        number = item.get("number", "")
-        id_source = slug_fallback_id(item)
+    for reconciled in reconciled_items:
+        folder = reconciled.get("folder", "pending")
+        number = reconciled.get("number", "")
+        # Filename stem: id_source + title slug, disambiguated via
+        # slugify_id's collision-tracking path so repeated runs produce
+        # deterministic names.
+        id_source = slug_fallback_id({
+            "number": number,
+            "task_id": reconciled.get("original_task_id", ""),
+            "synthetic_id": reconciled.get("synthetic_id", ""),
+            "title": reconciled.get("title", "untitled"),
+        })
         id_part = slugify_id(id_source)
-        title_slug = slugify_id(item.get("title", "untitled"))
-        stem_seed = f"{id_part}-{title_slug}"
-        stem = slugify_id(stem_seed, emitted_stems)
+        title_slug = slugify_id(reconciled.get("title", "untitled"))
+        stem = slugify_id(f"{id_part}-{title_slug}", emitted_stems)
         filename = f"{_TODAY}-{stem}.vbrief.json"
-        target_path = vbrief_dir / "pending" / filename
-        phase_desc = phase_descriptions.get(item.get("phase", ""), "")
+        target_folder = vbrief_dir / folder
+        if not target_folder.exists() and not dry_run:
+            target_folder.mkdir(parents=True, exist_ok=True)
+        target_path = target_folder / filename
 
         if target_path.exists():
-            actions.append(f"SKIP  pending/{filename} already exists (idempotent)")
+            actions.append(
+                f"SKIP  {folder}/{filename} already exists (idempotent)"
+            )
             continue
 
         # Check if any existing file references this issue number
@@ -835,12 +920,15 @@ def migrate(
                 )
                 continue
 
-        scope_vbrief = _create_scope_vbrief(
-            item, repo_url=repo_url, phase_description=phase_desc
+        scope_vbrief = _build_reconciled_scope_vbrief(
+            reconciled, repo_url=repo_url
         )
-        label = f"#{number}" if number else item.get("task_id", title_slug)
+        label = (
+            f"#{number}" if number
+            else reconciled.get("task_id") or title_slug
+        )
         if dry_run:
-            actions.append(f"DRYRUN CREATE pending/{filename} ({label})")
+            actions.append(f"DRYRUN CREATE {folder}/{filename} ({label})")
         else:
             target_path.write_text(
                 json.dumps(scope_vbrief, indent=2, ensure_ascii=False) + "\n",
@@ -849,37 +937,8 @@ def migrate(
             created_files.append(
                 target_path.relative_to(project_root).as_posix()
             )
-            actions.append(f"CREATE pending/{filename} ({label})")
-
-    # ---- Step 4b: Convert completed items to completed/ vBRIEFs ----
-    emitted_completed_stems: set[str] = set()
-    for item in completed_items:
-        number = item.get("number", "")
-        id_source = slug_fallback_id(item)
-        id_part = slugify_id(id_source)
-        title_slug = slugify_id(item.get("title", "untitled"))
-        stem_seed = f"{id_part}-{title_slug}"
-        stem = slugify_id(stem_seed, emitted_completed_stems)
-        filename = f"{_TODAY}-{stem}.vbrief.json"
-        target_path = vbrief_dir / "completed" / filename
-
-        if target_path.exists():
-            actions.append(f"SKIP  completed/{filename} already exists (idempotent)")
-            continue
-
-        scope_vbrief = _create_scope_vbrief(item, repo_url=repo_url, status="completed")
-        label = f"#{number}" if number else title_slug
-        if dry_run:
-            actions.append(f"DRYRUN CREATE completed/{filename} ({label})")
-        else:
-            target_path.write_text(
-                json.dumps(scope_vbrief, indent=2, ensure_ascii=False) + "\n",
-                encoding="utf-8",
-            )
-            created_files.append(
-                target_path.relative_to(project_root).as_posix()
-            )
-            actions.append(f"CREATE completed/{filename} ({label})")
+            actions.append(f"CREATE {folder}/{filename} ({label})")
+    # --- end lifecycle-routing ---
 
     # ---- Step 5: Deprecation redirects ----
     # Hashes captured after write (or proposed-write in dry-run) so --rollback
@@ -955,6 +1014,28 @@ def migrate(
                 stub_hashes["PROJECT.md"] = sha256_of(project_md_path)
                 actions.append("REPLACE PROJECT.md with deprecation redirect")
 
+    # --- reconciliation-report (Agent B, #496) ---
+    # Emit vbrief/migration/RECONCILIATION.md when SPEC and ROADMAP
+    # disagreed or any override triggered. Runs AFTER scope vBRIEFs are
+    # written but BEFORE Agent C's safety manifest so the report is
+    # recorded in created_files and removed on --rollback.
+    if not dry_run and reconciliation_report.has_disagreement():
+        report_path = _write_reconciliation_report(
+            reconciliation_report, vbrief_dir
+        )
+        if report_path is not None:
+            try:
+                rel = report_path.relative_to(project_root).as_posix()
+            except ValueError:
+                rel = str(report_path)
+            created_files.append(rel)
+            actions.append(f"CREATE {rel}")
+    elif dry_run and reconciliation_report.has_disagreement():
+        actions.append(
+            "DRYRUN CREATE vbrief/migration/RECONCILIATION.md"
+        )
+    # --- end reconciliation-report ---
+
     # --- safety (Agent C, #497) ---
     # Persist a safety manifest for --rollback.  The manifest lives under
     # vbrief/migration/ (#506 shared path convention) and records:
@@ -1012,6 +1093,23 @@ def migrate(
     # ---- Report ----
     for w in warnings:
         actions.append(w)
+
+    # --- strict gate (Agent B, #496) ---
+    # ``task migrate:vbrief -- --strict`` must exit non-zero when any
+    # SPEC/ROADMAP disagreement was recorded so CI can gate cutover until
+    # the operator has reviewed RECONCILIATION.md. Runs BEFORE Agent D's
+    # validation gate because a reconciliation conflict is a workflow
+    # decision surface -- the scope vBRIEFs themselves are still
+    # schema-valid, so the operator would otherwise see a success exit
+    # from the validator. Agent C's .premigrate.* backups remain in place
+    # for ``task migrate:vbrief -- --rollback`` recovery either way.
+    if strict and reconciliation_report.has_disagreement() and not dry_run:
+        actions.append(
+            "STRICT: reconciliation conflicts detected; see "
+            "vbrief/migration/RECONCILIATION.md"
+        )
+        return False, actions
+    # --- end strict gate ---
 
     # --- validation (Agent D, #498) ---
     # Hard-block on schema-invalid migration output per #506 D8. Runs AFTER
@@ -1367,6 +1465,18 @@ def main() -> int:
             "vbrief/migration/safety-manifest.json written by the migrator."
         ),
     )
+    # --- strict flag (Agent B, #496) ---
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help=(
+            "Fail the run non-zero if SPEC and ROADMAP disagreed on any "
+            "dimension or any override from vbrief/migration-overrides.yaml "
+            "triggered. Scope vBRIEFs and vbrief/migration/RECONCILIATION.md "
+            "are still written so the operator can inspect and re-run."
+        ),
+    )
+    # --- end strict flag ---
     ns = parser.parse_args(args)
 
     project_root = (
@@ -1394,9 +1504,16 @@ def main() -> int:
         print(f"Dry-run migration at: {project_root}")
     else:
         print(f"Migrating project at: {project_root}")
+    if ns.strict:
+        print("Strict mode enabled: reconciliation conflicts will fail the run.")
     print("=" * 60)
 
-    ok, messages = migrate(project_root, dry_run=ns.dry_run, force=ns.force)
+    ok, messages = migrate(
+        project_root,
+        dry_run=ns.dry_run,
+        force=ns.force,
+        strict=ns.strict,
+    )
 
     for msg in messages:
         print(f"  {msg}")

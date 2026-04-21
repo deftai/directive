@@ -9,7 +9,9 @@
     "narratives": {
       "Description": "Implement widgets list CLI wrapping GET /widgets",
       "Phase": "Phase 2 -- Core API",
-      "Tier": "Tier 2 -- CLI"
+      "Tier": "Tier 2 -- CLI",
+      "Description_source": "ROADMAP.md",
+      "Status_source": "default"
     },
     "items": []
   }

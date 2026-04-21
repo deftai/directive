@@ -9,7 +9,9 @@
     "narratives": {
       "Description": "Add request-id logging middleware",
       "Phase": "Phase 1 -- Foundation",
-      "PhaseDescription": "Fix the blocking setup gaps before any feature work."
+      "PhaseDescription": "Fix the blocking setup gaps before any feature work.",
+      "Description_source": "ROADMAP.md",
+      "Status_source": "default"
     },
     "items": [],
     "references": [

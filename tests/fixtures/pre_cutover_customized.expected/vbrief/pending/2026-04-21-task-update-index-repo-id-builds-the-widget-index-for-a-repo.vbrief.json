@@ -9,7 +9,9 @@
     "narratives": {
       "Description": "Builds the widget index for a repo",
       "Phase": "Phase 3 -- Operations",
-      "PhaseDescription": "Items in this phase exercise the slug-safe ID sanitiser -- titles contain\nspaces, slashes, `<id>` placeholders, and `@` prefixes that previously\nleaked through as scope-registry ids and scope vBRIEF filenames."
+      "PhaseDescription": "Items in this phase exercise the slug-safe ID sanitiser -- titles contain\nspaces, slashes, `<id>` placeholders, and `@` prefixes that previously\nleaked through as scope-registry ids and scope vBRIEF filenames.",
+      "Description_source": "ROADMAP.md",
+      "Status_source": "default"
     },
     "items": []
   }

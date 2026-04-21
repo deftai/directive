@@ -9,7 +9,9 @@
     "narratives": {
       "Description": "POST /widgets: create a widget",
       "Phase": "Phase 2 -- Core API",
-      "Tier": "Tier 1 -- CRUD"
+      "Tier": "Tier 1 -- CRUD",
+      "Description_source": "ROADMAP.md",
+      "Status_source": "default"
     },
     "items": [],
     "references": [

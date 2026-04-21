@@ -1,0 +1,11 @@
+{
+  "vBRIEFInfo": {"version": "0.5", "description": "roadmap-stale scenario spec"},
+  "plan": {
+    "title": "Roadmap-stale",
+    "status": "approved",
+    "narratives": {"Overview": "ROADMAP has not been updated; SPEC is the truth."},
+    "items": [
+      {"id": "t3.1", "title": "Login bug", "status": "completed"}
+    ]
+  }
+}

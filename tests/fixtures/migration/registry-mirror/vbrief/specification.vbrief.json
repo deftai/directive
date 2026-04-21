@@ -1,0 +1,13 @@
+{
+  "vBRIEFInfo": {"version": "0.5", "description": "registry-mirror scenario spec"},
+  "plan": {
+    "title": "Registry mirror",
+    "status": "approved",
+    "narratives": {"Overview": "Validates PROJECT-DEFINITION items mirror scope status."},
+    "items": [
+      {"id": "t1", "title": "Shipped feature", "status": "completed"},
+      {"id": "t2", "title": "Current feature", "status": "running"},
+      {"id": "t3", "title": "Next feature",   "status": "pending"}
+    ]
+  }
+}

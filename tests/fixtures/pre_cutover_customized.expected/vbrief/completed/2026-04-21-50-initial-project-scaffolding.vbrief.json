@@ -8,7 +8,9 @@
     "status": "completed",
     "narratives": {
       "Description": "Initial project scaffolding",
-      "Phase": "Completed"
+      "Phase": "Completed",
+      "Description_source": "ROADMAP.md",
+      "Status_source": "ROADMAP.md"
     },
     "items": [],
     "references": [

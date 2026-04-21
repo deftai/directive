@@ -1,0 +1,16 @@
+{
+  "vBRIEFInfo": {"version": "0.5", "description": "spec-stale scenario spec"},
+  "plan": {
+    "title": "Spec-stale",
+    "status": "approved",
+    "narratives": {"Overview": "SPEC has not caught up to ROADMAP deliveries."},
+    "items": [
+      {
+        "id": "t2.4.1",
+        "title": "Repo indexer",
+        "status": "pending",
+        "references": [{"type": "github-issue", "id": "#50"}]
+      }
+    ]
+  }
+}
