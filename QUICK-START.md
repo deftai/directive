@@ -69,13 +69,14 @@ Pick exactly one case from Step 2 and follow its instructions. Do not mix cases.
 
 ### Case H — Pre-cutover migration (SPECIFICATION.md / PROJECT.md without sentinel)
 
-1. Tell the user: "Your project uses the pre-v0.20 document model. Shall I run `task migrate:vbrief` to upgrade? This replaces SPECIFICATION.md and PROJECT.md with deprecation redirect stubs and creates the `vbrief/` lifecycle folders."
-2. ! Wait for explicit user approval (`yes`, `approve`, `confirmed`). ⊗ Run migration on a broad "proceed" or "go ahead".
-3. On approval: run `task migrate:vbrief` from the project root. ! Before running, read `./skills/deft-directive-setup/SKILL.md` "Pre-Cutover Detection Guard" and execute its environment preflight (task resolvable, `uv` on PATH, `deft/scripts/migrate_vbrief.py` present) and report the preflight results to the user first.
-4. ! If `task migrate:vbrief` is not resolvable from the project root (the consumer `Taskfile.yml` does not yet include `deft/Taskfile.yml`), fall back to the explicit-taskfile invocation: `task -t ./deft/Taskfile.yml migrate:vbrief`. See [./main.md](./main.md#publishing-deft-tasks-in-your-project-root) for the recommended include pattern that makes the primary command work from the project root.
-5. See [./main.md](./main.md#migrating-from-pre-v020) for the full migration reference (what pre-cutover looks like, what the migrator produces, safety flags) and [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) for the brownfield adoption guide.
-6. After migration completes, re-run Step 2 of this QUICK-START — the project state has changed. Most likely you land in Case G (AGENTS.md still references old paths) or Case J.
-7. When AGENTS.md is refreshed, ! instruct the user: **"Framework updated. Start a new agent session to pick up the changes. The current session has stale context."**
+1. Tell the user: "Your project uses the pre-v0.20 document model. I can run `task migrate:vbrief` to upgrade, which replaces SPECIFICATION.md and PROJECT.md with deprecation redirect stubs and creates the `vbrief/` lifecycle folders. First I'll run an environment preflight."
+2. ! Execute the environment preflight from `./skills/deft-directive-setup/SKILL.md` "Pre-Cutover Detection Guard" § Environment Preflight: check (a) `task migrate:vbrief` resolvability, (b) `uv` on PATH, (c) `deft/scripts/migrate_vbrief.py` present. Report each result to the user BEFORE asking for approval. If any check fails, surface the specific fix pointer and stop — do not prompt for approval until preflight passes.
+3. ! If `task migrate:vbrief` is not resolvable from the project root (the consumer `Taskfile.yml` does not yet include `deft/Taskfile.yml`), tell the user the fallback invocation `task -t ./deft/Taskfile.yml migrate:vbrief` will be used instead. See [./main.md](./main.md#publishing-deft-tasks-in-your-project-root) for the recommended include pattern that makes the primary command work from the project root.
+4. ! Only after preflight results have been reported, ask the user: "Preflight passed. Shall I run `task migrate:vbrief` (or the fallback invocation) now?" Wait for explicit user approval (`yes`, `approve`, `confirmed`). ⊗ Run migration on a broad "proceed" or "go ahead".
+5. On approval: run the resolved command (primary `task migrate:vbrief` or the fallback `task -t ./deft/Taskfile.yml migrate:vbrief`) from the project root.
+6. See [./main.md](./main.md#migrating-from-pre-v020) for the full migration reference (what pre-cutover looks like, what the migrator produces, safety flags) and [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) for the brownfield adoption guide.
+7. After migration completes, re-run Step 2 of this QUICK-START — the project state has changed. Most likely you land in Case G (AGENTS.md still references old paths) or Case J.
+8. When AGENTS.md is refreshed, ! instruct the user: **"Framework updated. Start a new agent session to pick up the changes. The current session has stale context."**
 
 ### Case I — Partial migration repair
 
