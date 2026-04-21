@@ -120,6 +120,7 @@ def parse_overrides_yaml(text: str) -> dict[str, dict[str, Any]]:
     """
     result: dict[str, dict[str, Any]] = {}
     current_task: str | None = None
+    current_task_indent: int = 0
     in_overrides = False
 
     for raw_line in text.splitlines():
@@ -138,19 +139,30 @@ def parse_overrides_yaml(text: str) -> dict[str, dict[str, Any]]:
             key = stripped.split(":", 1)[0].strip()
             in_overrides = key == "overrides"
             current_task = None
+            current_task_indent = 0
             continue
 
         if not in_overrides:
             continue
 
-        # Task-id row (nested under ``overrides:``), e.g. ``  t2.4.1:``.
-        if stripped.endswith(":") and indent >= 2 and indent < 4:
+        # Task-id row: a colon-terminated key with no other colons in the key
+        # name (task IDs match ^[a-zA-Z0-9_.-]+$ per #506). Indent must be >= 2
+        # but we do NOT pin the exact indent width so 2-space AND 4-space YAML
+        # (common .editorconfig settings) both work (Greptile #524 P1).
+        if stripped.endswith(":") and ":" not in stripped[:-1] and indent >= 2:
             current_task = stripped[:-1].strip()
+            current_task_indent = indent
             result.setdefault(current_task, {})
             continue
 
-        # Field row, e.g. ``    status: completed``.
-        if current_task is not None and ":" in stripped and indent >= 4:
+        # Field row: must be nested under a task-id row (strictly deeper indent),
+        # e.g. ``    status: completed``. The stricter indent comparison catches
+        # malformed YAML where a field appears at the same level as the task id.
+        if (
+            current_task is not None
+            and ":" in stripped
+            and indent > current_task_indent
+        ):
             key, _, value = stripped.partition(":")
             result[current_task][key.strip()] = _coerce_scalar(value)
 
@@ -688,6 +700,11 @@ def reconcile_scope_items(
     return reconciled, report
 
 
+# NOTE: MUST mirror scripts/_vbrief_routing.STATUS_TO_FOLDER (#506 lifecycle↔status
+# table). Kept inline to avoid an import cycle between reconciliation and
+# routing. A cross-module equality test in tests/cli/test_vbrief_routing.py
+# asserts both dicts stay in sync; update both sides together when the
+# schema grows a new status (Greptile #524 P2).
 def _folder_from_status(status: str) -> str:
     """Local copy of ``_vbrief_routing.folder_for_status`` to avoid an import cycle."""
     mapping = {

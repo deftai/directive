@@ -84,6 +84,24 @@ class TestDefaultStatusForFolder:
             default_status_for_folder("archive")
 
 
+class TestCrossModuleStatusMappingSync:
+    """Greptile #524 P2: ``_vbrief_reconciliation._folder_from_status`` keeps a
+    local copy of the status->folder map to avoid an import cycle. If someone
+    adds a new status to the router without updating reconciliation, the
+    reconciliation copy would silently fall back to ``pending`` while the
+    router raises. This test fails loudly when the two go out of sync.
+    """
+
+    def test_reconciliation_local_copy_matches_router(self):
+        from _vbrief_reconciliation import _folder_from_status
+
+        for status, expected_folder in STATUS_TO_FOLDER.items():
+            assert _folder_from_status(status) == expected_folder, (
+                f"_vbrief_reconciliation._folder_from_status is out of sync with "
+                f"STATUS_TO_FOLDER on status={status!r}; update both dicts together"
+            )
+
+
 class TestPlanStatusMatchesFolder:
     def test_running_permitted_in_active(self):
         assert plan_status_matches_folder("running", "active") is True

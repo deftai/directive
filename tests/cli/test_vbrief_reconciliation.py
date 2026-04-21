@@ -85,6 +85,41 @@ class TestParseOverridesYaml:
         assert result["b"]["drop"] is False
         assert result["c"]["drop"] is True
 
+    def test_four_space_indent_still_parses(self):
+        # Regression for Greptile #524 P1 (cascade-2): the task-id detector used
+        # to gate on ``indent >= 2 and indent < 4`` which silently dropped every
+        # override when the file used 4-space YAML indentation (common
+        # .editorconfig setting). ``drop: true`` pins would then be inactive,
+        # and the operator would get no warning -- migration would proceed as
+        # if the override file were empty.
+        text = (
+            "overrides:\n"
+            "    t2.4.1:\n"
+            "        status: completed\n"
+            "        body_source: spec\n"
+            "    roadmap-9:\n"
+            "        drop: true\n"
+        )
+        result = parse_overrides_yaml(text)
+        assert result["t2.4.1"] == {"status": "completed", "body_source": "spec"}
+        assert result["roadmap-9"] == {"drop": True}
+
+    def test_mixed_indent_widths(self):
+        # Not recommended YAML, but the parser should not lose data if someone
+        # mixes 2 and 4 space blocks. A colon-terminated, colon-free key is
+        # treated as a new task id at whatever indent it appears (>= 2).
+        text = (
+            "overrides:\n"
+            "  t1:\n"
+            "    status: completed\n"
+            "    t2:\n"
+            "        status: pending\n"
+        )
+        result = parse_overrides_yaml(text)
+        assert "t1" in result
+        assert result["t1"]["status"] == "completed"
+        assert "t2" in result
+
     def test_load_overrides_missing_file(self, tmp_path):
         assert load_overrides(tmp_path / "vbrief") == {}
 
