@@ -1,0 +1,16 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "description": "Scope vBRIEF for Document the supported compose workflow"
+  },
+  "plan": {
+    "title": "Document the supported compose workflow",
+    "status": "pending",
+    "narratives": {
+      "Description": "Document the supported compose workflow",
+      "Phase": "Phase 3 -- Operations",
+      "PhaseDescription": "Items in this phase exercise the slug-safe ID sanitiser -- titles contain\nspaces, slashes, `<id>` placeholders, and `@` prefixes that previously\nleaked through as scope-registry ids and scope vBRIEF filenames."
+    },
+    "items": []
+  }
+}

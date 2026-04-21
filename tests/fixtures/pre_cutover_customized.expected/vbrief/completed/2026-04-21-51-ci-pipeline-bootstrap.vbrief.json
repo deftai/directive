@@ -1,0 +1,21 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "description": "Scope vBRIEF for #51: CI pipeline bootstrap"
+  },
+  "plan": {
+    "title": "CI pipeline bootstrap",
+    "status": "completed",
+    "narratives": {
+      "Description": "CI pipeline bootstrap",
+      "Phase": "Completed"
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#51"
+      }
+    ]
+  }
+}

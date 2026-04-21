@@ -1,0 +1,127 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "description": "Project definition -- synthesized gestalt of the project."
+  },
+  "plan": {
+    "title": "PROJECT-DEFINITION",
+    "status": "running",
+    "narratives": {
+      "ProblemStatement": "Operators managing widget inventories need a deterministic HTTP surface so\ndashboards, CLIs, and workflow tools can CRUD widgets without guessing\nserver-side shapes. The hand-rolled state currently lives in spreadsheets.",
+      "Goals": "- CRUD widgets via HTTP\n- List widgets by owner\n- Offer a typed CLI client",
+      "UserStories": "As an operator, I want to add a widget so downstream consumers see it\nwithin a single second.\n\nAs a consumer, I want to list widgets I own so I can review my inventory\nwithout direct database access.",
+      "Requirements": "- FR-1: POST /widgets creates a widget (returns 201 + widget body)\n- FR-2: GET /widgets/{id} returns 200 or 404\n- FR-3: GET /widgets?owner=X returns widgets for owner X\n- FR-4: CLI `widgets add` wraps FR-1",
+      "NonFunctionalRequirements": "- NFR-1: p95 latency < 200ms for FR-1 / FR-2\n- NFR-2: structured logging with request-id correlation\n- NFR-3: stdlib-only dependencies (zero runtime deps)",
+      "SuccessMetrics": "- 95% of FR-1 requests succeed within NFR-1\n- 0 unhandled 5xx errors in 30-day rolling window",
+      "Architecture": "Small monolith: single FastAPI process, SQLite-backed repository, thin CLI\nthat shells out to the same module. No worker queue; no cache.",
+      "ProjectConfig": "# Widget Service Project Guidelines\n\nCustom project rules for the Widget API -- hand-authored, no auto-generated\nmarkers. Exercises the migrator's user-customization detection path.\n\n## Tech Stack\n\nPython 3.12, FastAPI, SQLite, httpx, typer. stdlib-only for runtime;\npytest + pytest-cov for tests.\n\n## Project-Specific Rules\n\n- All new endpoints MUST include an integration test\n- SQLite schema migrations live under `migrations/` and MUST be idempotent\n- No worker queues until we outgrow SQLite; re-evaluate at 10k widgets\n\n## Branching\n\n- `master` is the integration branch\n- Feature branches use `feat/<issue>-<slug>` naming\n- Squash-merge only; no force-push to `master`\n",
+      "tech stack": "Python 3.12, FastAPI, SQLite, httpx, typer. stdlib-only for runtime;\npytest + pytest-cov for tests.",
+      "Overview": "This is a synthetic pre-cutover specification used as the input fixture for the #498 golden-file migration test. It exercises the structural sections that the migrator's reconciler and ingester surface: PascalCase and space-separated ## headings, FR-N traces, Depends-on lines, and per-task status markers.",
+      "SpecificationContent": "# Widget API SPECIFICATION\n\nThis is a synthetic pre-cutover specification used as the input fixture for\nthe #498 golden-file migration test. It exercises the structural sections\nthat the migrator's reconciler and ingester surface: PascalCase and\nspace-separated ## headings, FR-N traces, Depends-on lines, and per-task\nstatus markers.\n\n## Problem Statement\n\nOperators managing widget inventories need a deterministic HTTP surface so\ndashboards, CLIs, and workflow tools can CRUD widgets without guessing\nserver-side shapes. The hand-rolled state currently lives in spreadsheets.\n\n## Goals\n\n- CRUD widgets via HTTP\n- List widgets by owner\n- Offer a typed CLI client\n\n## User Stories\n\nAs an operator, I want to add a widget so downstream consumers see it\nwithin a single second.\n\nAs a consumer, I want to list widgets I own so I can review my inventory\nwithout direct database access.\n\n## Requirements\n\n- FR-1: POST /widgets creates a widget (returns 201 + widget body)\n- FR-2: GET /widgets/{id} returns 200 or 404\n- FR-3: GET /widgets?owner=X returns widgets for owner X\n- FR-4: CLI `widgets add` wraps FR-1\n\n## Non-Functional Requirements\n\n- NFR-1: p95 latency < 200ms for FR-1 / FR-2\n- NFR-2: structured logging with request-id correlation\n- NFR-3: stdlib-only dependencies (zero runtime deps)\n\n## Success Metrics\n\n- 95% of FR-1 requests succeed within NFR-1\n- 0 unhandled 5xx errors in 30-day rolling window\n\n## Architecture\n\nSmall monolith: single FastAPI process, SQLite-backed repository, thin CLI\nthat shells out to the same module. No worker queue; no cache.\n\n## Testing Strategy\n\nPytest with subprocess integration tests for the CLI; direct httpx calls\nfor FR-1 / FR-2; golden fixtures for the list-by-owner response shape.\n\n## Implementation Plan\n\n- **`t1.1`** Scaffold FastAPI app [done]\n  Depends on: none\n- **`t1.2`** Implement FR-1 (POST /widgets)\n  Depends on: t1.1\n- **`t1.3`** Implement FR-2 (GET /widgets/{id})\n  Depends on: t1.1\n- **`t2.1`** Implement FR-3 (GET /widgets?owner=X)\n  Depends on: t1.2, t1.3\n- **`t3.1`** Implement FR-4 (CLI widgets add)\n  Depends on: t1.2\n"
+    },
+    "items": [
+      {
+        "id": "scope-101",
+        "title": "Scaffold FastAPI app with SQLite",
+        "status": "pending",
+        "references": [
+          {
+            "type": "github-issue",
+            "id": "#101"
+          }
+        ]
+      },
+      {
+        "id": "scope-102",
+        "title": "Add request-id logging middleware",
+        "status": "pending",
+        "references": [
+          {
+            "type": "github-issue",
+            "id": "#102"
+          }
+        ]
+      },
+      {
+        "id": "scope-201",
+        "title": "POST /widgets: create a widget",
+        "status": "pending",
+        "references": [
+          {
+            "type": "github-issue",
+            "id": "#201"
+          }
+        ]
+      },
+      {
+        "id": "scope-202",
+        "title": "GET /widgets/{id}: fetch by id",
+        "status": "pending",
+        "references": [
+          {
+            "type": "github-issue",
+            "id": "#202"
+          }
+        ]
+      },
+      {
+        "id": "scope-203",
+        "title": "GET /widgets: list by owner",
+        "status": "pending",
+        "references": [
+          {
+            "type": "github-issue",
+            "id": "#203"
+          }
+        ]
+      },
+      {
+        "id": "scope-t3-1",
+        "title": "Implement widgets add CLI wrapping POST /widgets",
+        "status": "pending"
+      },
+      {
+        "id": "scope-t3-2",
+        "title": "Implement widgets list CLI wrapping GET /widgets",
+        "status": "pending"
+      },
+      {
+        "id": "scope-task-update-index-repo-id",
+        "title": "Builds the widget index for a repo",
+        "status": "pending"
+      },
+      {
+        "id": "scope-docker-compose-up-d",
+        "title": "Document the supported compose workflow",
+        "status": "pending"
+      },
+      {
+        "id": "scope-slizard-dismiss",
+        "title": "Dismiss a slizard escalation via CLI",
+        "status": "pending"
+      },
+      {
+        "id": "scope-50",
+        "title": "Initial project scaffolding",
+        "status": "completed",
+        "references": [
+          {
+            "type": "github-issue",
+            "id": "#50"
+          }
+        ]
+      },
+      {
+        "id": "scope-51",
+        "title": "CI pipeline bootstrap",
+        "status": "completed",
+        "references": [
+          {
+            "type": "github-issue",
+            "id": "#51"
+          }
+        ]
+      }
+    ]
+  }
+}

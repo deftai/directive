@@ -1,0 +1,16 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "description": "Scope vBRIEF for Builds the widget index for a repo"
+  },
+  "plan": {
+    "title": "Builds the widget index for a repo",
+    "status": "pending",
+    "narratives": {
+      "Description": "Builds the widget index for a repo",
+      "Phase": "Phase 3 -- Operations",
+      "PhaseDescription": "Items in this phase exercise the slug-safe ID sanitiser -- titles contain\nspaces, slashes, `<id>` placeholders, and `@` prefixes that previously\nleaked through as scope-registry ids and scope vBRIEF filenames."
+    },
+    "items": []
+  }
+}

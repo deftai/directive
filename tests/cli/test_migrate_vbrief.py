@@ -10,6 +10,8 @@ Author: agent3 -- 2026-04-13
 """
 
 import json
+import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -443,15 +445,21 @@ class TestBuildProjectDefinition:
 
     def test_no_sources_produces_synthesized_overview(self):
         """Post-#417: even with no spec / project / items, the generated
-        PROJECT-DEFINITION gets a synthesized Overview so it passes D3."""
+        PROJECT-DEFINITION gets a synthesized Overview so it passes D3.
+        Post-#498: ``tech stack`` is also synthesized for the same reason --
+        the self-validation hook hard-blocks on a missing `tech stack`
+        narrative (D3 second expected key), so the minimal fixture must
+        carry a placeholder value to round-trip through migration cleanly.
+        """
         result = _build_project_definition(None, None, [])
         narratives = result["plan"]["narratives"]
-        # Only Overview is synthesized; other narrative keys remain absent
-        # until a spec_vbrief / project_content source populates them.
-        assert set(narratives.keys()) == {"Overview"}, (
-            f"Expected only synthesized Overview, got {sorted(narratives)}"
+        # Overview + tech stack are the two D3-required keys; both are
+        # synthesized when no spec_vbrief / project_content populates them.
+        assert set(narratives.keys()) == {"Overview", "tech stack"}, (
+            f"Expected synthesized Overview + tech stack, got {sorted(narratives)}"
         )
         assert "was not auto-derived" in narratives["Overview"]
+        assert "was not auto-derived" in narratives["tech stack"]
         assert result["plan"]["items"] == []
 
 
@@ -1160,10 +1168,17 @@ class TestMigrateExistingScopeSkip:
     """Tests for skipping items that already have scope vBRIEFs."""
 
     def test_skips_item_with_existing_scope_vbrief(self, tmp_path):
-        """If an item already has a vBRIEF in a lifecycle folder, skip it."""
+        """If an item already has a vBRIEF in a lifecycle folder, skip it.
+
+        Post-#498: the pre-existing scope vBRIEF must itself be schema-valid
+        (plan.items present, filename matches YYYY-MM-DD-slug convention)
+        because the migrator's self-validation hook evaluates every file
+        under vbrief/ -- including pre-existing ones -- against the full
+        vbrief_validate rule set before reporting success.
+        """
         roadmap = "# Roadmap\n\n## Phase 1\n\n- **#42** -- Existing feature\n"
         project = _make_project(tmp_path, roadmap_md=roadmap)
-        # Pre-create a scope vBRIEF referencing #42
+        # Pre-create a schema-valid scope vBRIEF referencing #42
         pending_dir = project / "vbrief" / "pending"
         pending_dir.mkdir(parents=True, exist_ok=True)
         existing = {
@@ -1171,10 +1186,11 @@ class TestMigrateExistingScopeSkip:
             "plan": {
                 "title": "Old",
                 "status": "pending",
+                "items": [],
                 "references": [{"type": "github-issue", "id": "#42"}],
             },
         }
-        (pending_dir / "old-scope.vbrief.json").write_text(
+        (pending_dir / "2026-04-20-42-old-scope.vbrief.json").write_text(
             json.dumps(existing), encoding="utf-8"
         )
         ok, actions = migrate(project)
@@ -2074,3 +2090,269 @@ class TestSafetyGitignore:
         # PREMIGRATE_SUFFIX is re-exported so tests asserting on sibling
         # naming can reference the single source of truth.
         assert PREMIGRATE_SUFFIX == ".premigrate"
+
+
+# ===========================================================================
+# #498 -- Integration: slug-safe IDs + self-validation + golden fixture
+# ===========================================================================
+
+
+ID_REGEX = re.compile(r"^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*$")
+FILENAME_STEM_REGEX = re.compile(
+    r"^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.vbrief\.json$"
+)
+
+GOLDEN_FIXTURE_INPUT = REPO_ROOT / "tests" / "fixtures" / "pre_cutover_customized"
+GOLDEN_FIXTURE_EXPECTED = (
+    REPO_ROOT / "tests" / "fixtures" / "pre_cutover_customized.expected"
+)
+# All emitted JSON files in the golden fixture use this fixed date so the
+# byte-for-byte comparison is deterministic.
+GOLDEN_FIXTURE_DATE = "2026-04-21"
+
+
+def _canonicalise_json(path: Path) -> str:
+    """Canonical JSON re-serialisation for byte-for-byte comparison.
+
+    Re-serialising via ``json.dumps(..., indent=2, ensure_ascii=False)``
+    matches the migrator's own write format so insignificant whitespace or
+    key-order differences between platforms do not cause spurious failures.
+    """
+    raw = path.read_text(encoding="utf-8")
+    data = json.loads(raw)
+    return json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+
+
+class TestSlugSafeIds:
+    """Slug-safe IDs (#498 B) applied to filenames AND in-JSON ids."""
+
+    def test_unsafe_roadmap_titles_produce_safe_scope_ids(self, tmp_path):
+        roadmap = (
+            "# Roadmap\n\n## Phase 3\n\n"
+            "- `task update-index -- --repo <id>` Builds index for a repo\n"
+            "- `docker compose up -d` Starts the container\n"
+            "- `@slizard dismiss` Dismiss a slizard\n"
+            "- `GET /health` Health check endpoint\n"
+        )
+        project = _make_project(tmp_path, roadmap_md=roadmap)
+        ok, _ = migrate(project)
+        assert ok
+
+        pd_path = project / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
+        pd = json.loads(pd_path.read_text(encoding="utf-8"))
+        for item in pd["plan"]["items"]:
+            assert ID_REGEX.match(item["id"]), (
+                f"scope-registry id {item['id']!r} fails #506 ID regex"
+            )
+            # None of the originally-present unsafe characters should survive.
+            for bad in (" ", "<", ">", "/", "@"):
+                assert bad not in item["id"], (
+                    f"unsafe char {bad!r} leaked into id {item['id']!r}"
+                )
+
+    def test_filename_stems_are_slug_safe(self, tmp_path):
+        roadmap = (
+            "# Roadmap\n\n## Phase 3\n\n"
+            "- `task update-index -- --repo <id>` Builds index for a repo\n"
+            "- `docker compose up -d` Starts the container\n"
+            "- `@slizard dismiss` Dismiss a slizard\n"
+        )
+        project = _make_project(tmp_path, roadmap_md=roadmap)
+        ok, _ = migrate(project)
+        assert ok
+
+        pending = project / "vbrief" / "pending"
+        for f in pending.glob("*.vbrief.json"):
+            assert FILENAME_STEM_REGEX.match(f.name), (
+                f"filename {f.name!r} fails lifecycle-folder filename regex"
+            )
+
+    def test_filename_and_scope_id_share_sanitiser(self, tmp_path):
+        """The filename id-part and the scope-registry id both flow through
+        the same slugify_id implementation, so their logical identifier
+        must match after slugification."""
+        roadmap = (
+            "# Roadmap\n\n## Phase 1\n\n"
+            "- `docker compose up -d` Starts the container\n"
+        )
+        project = _make_project(tmp_path, roadmap_md=roadmap)
+        ok, _ = migrate(project)
+        assert ok
+
+        pd = json.loads(
+            (project / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        # Exactly one scope item; its id should match the filename id-part.
+        item_id = pd["plan"]["items"][0]["id"]
+        assert item_id == "scope-docker-compose-up-d"
+
+        pending = project / "vbrief" / "pending"
+        (fpath,) = list(pending.glob("*.vbrief.json"))
+        # Filename embeds the same slug logical identifier ("docker-compose-up-d")
+        # as the scope id suffix.
+        assert "docker-compose-up-d" in fpath.name
+
+    def test_duplicate_unidentified_titles_get_hash_suffix(self, tmp_path):
+        """Two items with no number/task_id and identical titles collide on
+        the slugifier; slugify_id's stable hash suffix disambiguates so both
+        scope vBRIEFs land as separate files."""
+        roadmap = (
+            "# Roadmap\n\n## Phase 3\n\n"
+            "- Code signing\n"
+            "- Code signing\n"
+        )
+        project = _make_project(tmp_path, roadmap_md=roadmap)
+        ok, _ = migrate(project)
+        assert ok
+        pending = list((project / "vbrief" / "pending").glob("*.vbrief.json"))
+        assert len(pending) == 2
+
+
+class TestMigrationSelfValidation:
+    """498-A: migrator hard-blocks on schema-invalid output (#506 D8)."""
+
+    def test_invalid_pre_existing_scope_vbrief_isolates_output(self, tmp_path):
+        """Pre-existing scope vBRIEF that violates schema triggers the hard-
+        block: vbrief/ moves to vbrief.invalid/ and migrate returns False."""
+        project = _make_project(tmp_path, project_md=SAMPLE_PROJECT_MD)
+        # Pre-create a schema-invalid scope vBRIEF (missing plan.items) that
+        # the validator will flag. The migrator would emit this file's
+        # neighbours and then the validator hook sees the broken file.
+        pending_dir = project / "vbrief" / "pending"
+        pending_dir.mkdir(parents=True, exist_ok=True)
+        (pending_dir / "2026-04-20-bogus-scope.vbrief.json").write_text(
+            json.dumps(
+                {
+                    "vBRIEFInfo": {"version": "0.5"},
+                    "plan": {"title": "Bogus", "status": "pending"},
+                }
+            ),
+            encoding="utf-8",
+        )
+        ok, actions = migrate(project)
+        assert ok is False
+        # Recovery hint is surfaced in actions so the CLI entry point can
+        # relay it to operators.
+        assert any("task migrate:vbrief -- --rollback" in a for a in actions)
+        # vbrief/ is moved aside; vbrief.invalid/ holds the partial output.
+        assert not (project / "vbrief").exists()
+        assert (project / "vbrief.invalid").is_dir()
+
+    def test_successful_migration_reports_success(self, tmp_path):
+        """Happy path: all emitted files pass validation, migrate returns True,
+        no vbrief.invalid/ is produced, the recovery hint is absent."""
+        project = _make_project(
+            tmp_path,
+            project_md=SAMPLE_PROJECT_MD,
+            roadmap_md=SAMPLE_ROADMAP_MD,
+        )
+        ok, actions = migrate(project)
+        assert ok is True
+        assert not (project / "vbrief.invalid").exists()
+        assert not any("task migrate:vbrief -- --rollback" in a for a in actions)
+
+
+class TestGoldenFixture:
+    """498-C: byte-for-byte golden-file test against the synthetic fixture.
+
+    The input lives under ``tests/fixtures/pre_cutover_customized/`` and is
+    fully synthetic (NO slizard or other real-project data). The expected
+    output lives under ``tests/fixtures/pre_cutover_customized.expected/``
+    and is compared byte-for-byte (after canonical JSON re-serialisation)
+    against what the migrator produces in a temp copy of the input.
+
+    When the migrator intentionally changes output shape, update both the
+    fixture and the expected tree together -- treat a drift in this test as
+    a signal to regenerate the expected fixture.
+    """
+
+    def _run_migration_on_fixture(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("migrate_vbrief._TODAY", GOLDEN_FIXTURE_DATE)
+        work = tmp_path / "work"
+        shutil.copytree(GOLDEN_FIXTURE_INPUT, work)
+        ok, actions = migrate(work)
+        assert ok, f"migrate failed: {actions}"
+        return work
+
+    def test_emitted_files_match_expected_tree(self, tmp_path, monkeypatch):
+        work = self._run_migration_on_fixture(tmp_path, monkeypatch)
+
+        produced = {
+            p.relative_to(work).as_posix()
+            for p in (work / "vbrief").rglob("*.vbrief.json")
+        }
+        expected = {
+            p.relative_to(GOLDEN_FIXTURE_EXPECTED).as_posix()
+            for p in (GOLDEN_FIXTURE_EXPECTED / "vbrief").rglob("*.vbrief.json")
+        }
+        assert produced == expected, (
+            f"Migrator file set drifted from golden fixture.\n"
+            f"Missing: {sorted(expected - produced)}\n"
+            f"Extra: {sorted(produced - expected)}"
+        )
+
+    def test_every_emitted_json_matches_expected_bytes(self, tmp_path, monkeypatch):
+        work = self._run_migration_on_fixture(tmp_path, monkeypatch)
+
+        for produced_file in sorted((work / "vbrief").rglob("*.vbrief.json")):
+            rel = produced_file.relative_to(work)
+            expected_file = GOLDEN_FIXTURE_EXPECTED / rel
+            assert expected_file.is_file(), (
+                f"Expected file missing from golden fixture: {rel}"
+            )
+            assert _canonicalise_json(produced_file) == _canonicalise_json(
+                expected_file
+            ), f"byte-for-byte mismatch for {rel}"
+
+    def test_migrated_output_passes_vbrief_validate_subprocess(
+        self, tmp_path, monkeypatch
+    ):
+        """498-D: ``scripts/vbrief_validate.py`` is the same tool ``task
+        check`` runs; exercising it directly on the migrator's output ties
+        the CI gate to the fixture."""
+        work = self._run_migration_on_fixture(tmp_path, monkeypatch)
+        validator = REPO_ROOT / "scripts" / "vbrief_validate.py"
+        result = subprocess.run(
+            [sys.executable, str(validator), "--vbrief-dir", "vbrief"],
+            cwd=str(work),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=60,
+        )
+        assert result.returncode == 0, (
+            f"vbrief_validate.py returned non-zero on golden fixture output.\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+    def test_every_emitted_id_matches_schema_regex(self, tmp_path, monkeypatch):
+        """Defense-in-depth: walk every emitted JSON file and verify every
+        ``id`` field conforms to the #506 schema-locked regex. Golden-file
+        comparison already covers this implicitly, but the assertion gives
+        a more actionable diagnostic when a rule change lands."""
+        work = self._run_migration_on_fixture(tmp_path, monkeypatch)
+
+        def _walk_ids(obj):
+            if isinstance(obj, dict):
+                if "id" in obj and isinstance(obj["id"], str):
+                    yield obj["id"]
+                for v in obj.values():
+                    yield from _walk_ids(v)
+            elif isinstance(obj, list):
+                for v in obj:
+                    yield from _walk_ids(v)
+
+        bad: list[tuple[str, str]] = []
+        for fpath in (work / "vbrief").rglob("*.vbrief.json"):
+            data = json.loads(fpath.read_text(encoding="utf-8"))
+            for id_value in _walk_ids(data):
+                # GitHub-issue reference ids are strings like "#123" and use
+                # a separate schema path; skip those.
+                if id_value.startswith("#"):
+                    continue
+                if not ID_REGEX.match(id_value):
+                    bad.append((fpath.name, id_value))
+
+        assert not bad, f"non-schema-conformant ids emitted: {bad}"
