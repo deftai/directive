@@ -1826,6 +1826,24 @@ class TestSafetyDirtyTreeGuard:
         assert proj_backup.read_text(encoding="utf-8") == proj_original, (
             "re-run must not overwrite original PROJECT backup with stub bytes"
         )
+        # Manifest must still reference the original-content backups so
+        # --rollback can restore them.  Greptile #509 cascade-3 P1: re-run
+        # previously wrote backups=[] over the good manifest, leaving
+        # rollback unable to restore anything.
+        from _vbrief_safety import load_safety_manifest
+        manifest = load_safety_manifest(project)
+        assert manifest is not None
+        assert len(manifest.backups) >= 2, (
+            "re-run manifest must preserve prior backup records"
+        )
+        recorded_backups = {b.backup for b in manifest.backups}
+        assert "SPECIFICATION.premigrate.md" in recorded_backups
+        assert "PROJECT.premigrate.md" in recorded_backups
+        # End-to-end rollback after re-run must restore originals.
+        ok, actions = safety_rollback(project, force=True)
+        assert ok, actions
+        assert (project / "SPECIFICATION.md").read_text(encoding="utf-8") == spec_original
+        assert (project / "PROJECT.md").read_text(encoding="utf-8") == proj_original
 
     def test_dry_run_bypasses_dirty_tree_guard(self, tmp_path):
         # Regression for Greptile #509 P1: --dry-run is read-only, so the

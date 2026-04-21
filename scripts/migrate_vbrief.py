@@ -43,6 +43,7 @@ from _vbrief_safety import (
     SafetyManifest,  # noqa: E402
     dirty_tree_refusal_message,  # noqa: E402
     is_tree_dirty,  # noqa: E402
+    load_safety_manifest,  # noqa: E402
     now_utc_iso,  # noqa: E402
     plan_backups,  # noqa: E402
     sha256_of,  # noqa: E402
@@ -906,13 +907,47 @@ def migrate(
     #   * every .premigrate.* backup we wrote (for restore);
     #   * every file/directory this run created (for removal on rollback);
     #   * post-migration stub hashes (so rollback can detect later edits).
+    #
+    # Re-run protection (Greptile #509 P1 cascade-3): when the migrator is
+    # re-invoked on an already-migrated project, plan_backups correctly
+    # returns zero pairs (sources are all stubs), so ``backup_records`` is
+    # empty.  Writing a fresh manifest with ``backups=[]`` would overwrite
+    # the first run's record, leaving ``--rollback`` unable to restore any
+    # originals.  Load any prior manifest and carry its backup records
+    # forward so subsequent rollback still works end-to-end.  Stub hashes
+    # and created_files are merged the same way so rollback still knows
+    # which artefacts to remove.
+    prior = load_safety_manifest(project_root) if not dry_run else None
+    merged_backups = list(backup_records)
+    merged_stub_hashes = dict(stub_hashes)
+    merged_created_files = list(created_files)
+    merged_created_dirs = list(created_dirs)
+    if prior is not None:
+        # Re-run on already-migrated project: union the prior manifest's
+        # records with this run's so nothing recorded before is dropped.
+        # Current-run records take precedence for overlapping sources
+        # (fresh digest wins), and prior-run records for sources we did
+        # not touch this time (e.g. SPECIFICATION.md / PROJECT.md are
+        # stubs on the second pass and get skipped by plan_backups).
+        current_sources = {b.source for b in backup_records}
+        for prior_record in prior.backups:
+            if prior_record.source not in current_sources:
+                merged_backups.append(prior_record)
+        for rel, digest in prior.post_migration_stub_hashes.items():
+            merged_stub_hashes.setdefault(rel, digest)
+        for rel in prior.created_files:
+            if rel not in merged_created_files:
+                merged_created_files.append(rel)
+        for rel in prior.created_dirs:
+            if rel not in merged_created_dirs:
+                merged_created_dirs.append(rel)
     manifest = SafetyManifest(
         version="1",
         migration_timestamp=now_utc_iso(),
-        backups=backup_records,
-        created_files=created_files,
-        created_dirs=created_dirs,
-        post_migration_stub_hashes=stub_hashes,
+        backups=merged_backups,
+        created_files=merged_created_files,
+        created_dirs=merged_created_dirs,
+        post_migration_stub_hashes=merged_stub_hashes,
     )
     manifest_action = write_safety_manifest(
         project_root, manifest, dry_run=dry_run
