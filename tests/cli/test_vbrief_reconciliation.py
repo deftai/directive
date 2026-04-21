@@ -320,6 +320,34 @@ class TestOverridesApplied:
         assert len(report.overrides_triggered) == 1
         assert report.overrides_triggered[0]["action"] == "dropped from migration"
 
+    def test_override_drop_false_is_noop_does_not_trip_strict(self):
+        # Regression for Greptile #524 P1: `drop: false` explicitly records
+        # "do NOT drop this task" and must not flag a disagreement (which
+        # would make --strict exit non-zero on a no-op).
+        spec = _spec_with([{"id": "t1", "title": "X", "status": "pending"}])
+        reconciled, report = reconcile_scope_items(
+            roadmap_active=[{"number": "", "task_id": "t1", "title": "X",
+                             "phase": "Phase 1"}],
+            roadmap_completed=[],
+            spec_vbrief=spec,
+            overrides={"t1": {"drop": False}},
+        )
+        # Task still migrated (not dropped).
+        assert len(reconciled) == 1
+        assert reconciled[0]["task_id"] == "t1"
+        # has_disagreement() must be False -- there were no actual conflicts
+        # and drop:false is a no-op pin.
+        assert not report.has_disagreement(), (
+            "drop:false no-op must not trigger --strict; only drop:true is a triggered action"
+        )
+        # No-op overrides are not recorded in overrides_triggered -- only
+        # overrides that actually changed a field (status, body_source, drop:true)
+        # are listed there.  has_disagreement() therefore stays False.
+        assert report.overrides_triggered == []
+        # But the override key is not counted as "unused" either -- it matched
+        # a real task, just with no triggered change.
+        assert report.overrides_unused == []
+
     def test_unused_override_surfaced_in_report(self):
         _, report = reconcile_scope_items(
             roadmap_active=[],

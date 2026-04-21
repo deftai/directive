@@ -648,14 +648,24 @@ def reconcile_scope_items(
 
         triggered_fields: list[str] = []
         if override is not None:
-            for key in ("status", "body_source", "drop"):
+            for key in ("status", "body_source"):
                 if key in override:
                     triggered_fields.append(key)
-            report.overrides_triggered.append({
-                "task_id": task_key,
-                "title": title,
-                "fields": ", ".join(triggered_fields) or "(none)",
-            })
+            # drop:false is a no-op that explicitly records "do NOT drop this
+            # task" and must not trip --strict.  Only drop:true is a triggered
+            # action (Greptile #524 P1).
+            if override.get("drop"):
+                triggered_fields.append("drop")
+            # Only record overrides that actually triggered a field change.
+            # A no-op override (e.g. drop:false with no other keys) still gets
+            # counted as used (so unused-override surfacing is accurate) but
+            # must not make has_disagreement() return True.
+            if triggered_fields:
+                report.overrides_triggered.append({
+                    "task_id": task_key,
+                    "title": title,
+                    "fields": ", ".join(triggered_fields),
+                })
 
         if dims or triggered_fields:
             report.conflicts.append(ConflictEntry(
