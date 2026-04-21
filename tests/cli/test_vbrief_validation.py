@@ -155,6 +155,10 @@ class TestSlugifyIdCollisionDisambiguation:
         for r in (r1, r2):
             assert r.startswith("hello-")
             assert len(r.removeprefix("hello-")) == HASH_SUFFIX_LENGTH
+        # Different raw inputs must produce different stable hash suffixes.
+        # ``sha1("hello") != sha1("HELLO")`` so the disambiguated slugs must
+        # differ even though both slugify to the same canonical base.
+        assert r1 != r2
 
     def test_triple_collision_still_unique(self):
         existing: set[str] = set()

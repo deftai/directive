@@ -50,16 +50,16 @@ _slug_fallback_id = slug_fallback_id
 # .premigrate.* backups, --dry-run preview, dirty-tree guard, --rollback.
 # See `scripts/_vbrief_safety.py` and tracking issue #506 (D7) for the
 # authoritative decisions this code implements.
-from _vbrief_safety import (
-    SafetyManifest,  # noqa: E402
-    dirty_tree_refusal_message,  # noqa: E402
-    is_tree_dirty,  # noqa: E402
-    load_safety_manifest,  # noqa: E402
-    now_utc_iso,  # noqa: E402
-    plan_backups,  # noqa: E402
-    sha256_of,  # noqa: E402
-    write_backups,  # noqa: E402
-    write_safety_manifest,  # noqa: E402
+from _vbrief_safety import (  # noqa: E402
+    SafetyManifest,
+    dirty_tree_refusal_message,
+    is_tree_dirty,
+    load_safety_manifest,
+    now_utc_iso,
+    plan_backups,
+    sha256_of,
+    write_backups,
+    write_safety_manifest,
 )
 from _vbrief_safety import rollback as safety_rollback  # noqa: E402
 
@@ -556,10 +556,19 @@ def _build_project_definition(
         number = scope.get("number", "")
         id_source = slug_fallback_id(scope)
         scope_id = f"scope-{slugify_id(id_source, emitted_scope_ids)}"
+        # Derive registry status from the roadmap phase -- ROADMAP.md items
+        # under a ## Completed heading carry phase="Completed" and emit to
+        # ``vbrief/completed/`` with ``plan.status == "completed"`` in their
+        # own scope vBRIEF. The PROJECT-DEFINITION scope registry must
+        # mirror that or downstream tooling (roadmap render, discovery
+        # tools) will misreport completed scopes as backlogged (Greptile
+        # P1 on #498 PR).
+        phase = str(scope.get("phase", "") or "")
+        registry_status = "completed" if "completed" in phase.lower() else "pending"
         item: dict = {
             "id": scope_id,
             "title": scope.get("title", "Untitled"),
-            "status": "pending",
+            "status": registry_status,
         }
         # Origin provenance per D11
         if number:

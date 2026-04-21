@@ -76,7 +76,7 @@ ID_MAX_LENGTH = 80
 HASH_SUFFIX_LENGTH = 6
 
 
-def slugify_id(raw: str, existing: set[str] | None = None) -> str:
+def slugify_id(raw: str | None, existing: set[str] | None = None) -> str:
     """Return a slug-safe id for filenames and in-JSON id fields (#498).
 
     Rules (per #498 acceptance criteria and #506 shared conventions):
@@ -255,8 +255,15 @@ def finalize_migration(
     The ``actions`` list passed in is NOT mutated so callers can reuse it
     for downstream logging independent of migration outcome.
     """
-    errors, _warnings = validate_migration_output(vbrief_dir)
+    errors, warnings = validate_migration_output(vbrief_dir)
     if not errors:
+        # Surface non-blocking validator warnings (e.g. D11 origin-provenance
+        # warnings for pending/active scopes without a github-issue reference)
+        # so operators see them even on the success path. Matches the
+        # ``scripts/vbrief_validate.py`` CLI behaviour where warnings print
+        # but do not change exit code.
+        for w in warnings:
+            print(f"WARNING: {w}", file=sys.stderr)
         return True, actions
 
     print(

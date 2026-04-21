@@ -103,7 +103,7 @@
       {
         "id": "scope-50",
         "title": "Initial project scaffolding",
-        "status": "pending",
+        "status": "completed",
         "references": [
           {
             "type": "github-issue",
@@ -114,7 +114,7 @@
       {
         "id": "scope-51",
         "title": "CI pipeline bootstrap",
-        "status": "pending",
+        "status": "completed",
         "references": [
           {
             "type": "github-issue",
