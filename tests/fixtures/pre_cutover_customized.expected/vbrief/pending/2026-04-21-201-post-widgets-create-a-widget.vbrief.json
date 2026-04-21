@@ -1,0 +1,22 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "description": "Scope vBRIEF for #201: POST /widgets: create a widget"
+  },
+  "plan": {
+    "title": "POST /widgets: create a widget",
+    "status": "pending",
+    "narratives": {
+      "Description": "POST /widgets: create a widget",
+      "Phase": "Phase 2 -- Core API",
+      "Tier": "Tier 1 -- CRUD"
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#201"
+      }
+    ]
+  }
+}

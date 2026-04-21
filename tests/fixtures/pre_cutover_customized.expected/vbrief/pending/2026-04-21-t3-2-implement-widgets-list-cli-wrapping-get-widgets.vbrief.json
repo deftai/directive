@@ -1,0 +1,16 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "description": "Scope vBRIEF for Implement widgets list CLI wrapping GET /widgets"
+  },
+  "plan": {
+    "title": "Implement widgets list CLI wrapping GET /widgets",
+    "status": "pending",
+    "narratives": {
+      "Description": "Implement widgets list CLI wrapping GET /widgets",
+      "Phase": "Phase 2 -- Core API",
+      "Tier": "Tier 2 -- CLI"
+    },
+    "items": []
+  }
+}

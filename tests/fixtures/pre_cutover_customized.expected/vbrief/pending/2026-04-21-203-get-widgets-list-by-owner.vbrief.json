@@ -1,0 +1,22 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "description": "Scope vBRIEF for #203: GET /widgets: list by owner"
+  },
+  "plan": {
+    "title": "GET /widgets: list by owner",
+    "status": "pending",
+    "narratives": {
+      "Description": "GET /widgets: list by owner",
+      "Phase": "Phase 2 -- Core API",
+      "Tier": "Tier 1 -- CRUD"
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#203"
+      }
+    ]
+  }
+}

@@ -33,6 +33,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _vbrief_build import create_scope_vbrief as _create_scope_vbrief_shared  # noqa: E402
 from _vbrief_build import slugify as _slugify_shared  # noqa: E402
+from _vbrief_validation import (  # noqa: E402
+    finalize_migration,
+    slug_fallback_id,
+    slugify_id,
+)
+
+# Re-export slug-safe sanitiser under the migrator's underscore-prefixed
+# convention so test harnesses and other migrator-adjacent tooling can import
+# it from ``migrate_vbrief`` alongside the existing ``_slugify`` shim (#498).
+_slugify_id = slugify_id
+_slug_fallback_id = slug_fallback_id
 
 # --- safety (Agent C, #497) ---
 # Safety affordances for `task migrate:vbrief` live in `_vbrief_safety`:
@@ -471,6 +482,11 @@ def _build_project_definition(
     ``spec_md_content`` is the raw SPECIFICATION.md text (pre-sentinel) for
     Overview-narrative derivation on canonical v0.19 consumer projects that
     have no pre-existing ``specification.vbrief.json`` (#417).
+
+    Per #498: every ``plan.items[*].id`` is routed through
+    :func:`_vbrief_validation.slugify_id` so the scope-registry id conforms
+    to the schema-locked ID regex ``^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$``
+    and matches the slug used for the scope vBRIEF filename.
     """
     narratives: dict[str, str] = {}
 
@@ -515,11 +531,31 @@ def _build_project_definition(
             # only in case.  Default to CamelCase "Overview" for new entries.
             narratives[overview_key or "Overview"] = derived
 
+    # Per #498 D8 / validator D3: PROJECT_DEF_EXPECTED_NARRATIVES requires
+    # `tech stack` (lowercase, space-separated) alongside `overview`. When
+    # no PROJECT.md was present we never populated it above, which the
+    # self-validation hook surfaces as a hard-block schema error. Synthesize
+    # a placeholder -- the same pattern #417 established for Overview -- so
+    # minimal fixtures round-trip cleanly and operators see a visible
+    # "fill-me-in" hint rather than a silent regression.
+    tech_stack_key = next((k for k in narratives if k.lower() == "tech stack"), None)
+    tech_stack_value = narratives.get(tech_stack_key, "") if tech_stack_key else ""
+    if not isinstance(tech_stack_value, str) or not tech_stack_value.strip():
+        narratives[tech_stack_key or "tech stack"] = (
+            "Tech stack was not auto-derived during migration. "
+            "Update vbrief/PROJECT-DEFINITION.vbrief.json narratives['tech stack'] "
+            "with your language, framework, and runtime versions."
+        )
+
     items: list[dict] = []
+    # Per #498: use slug-safe ids, disambiguating collisions within a single
+    # registry build so every emitted id is unique and passes the schema's
+    # ID regex out of the box.
+    emitted_scope_ids: set[str] = set()
     for scope in scope_items:
         number = scope.get("number", "")
-        fallback_id = scope.get("synthetic_id", scope.get("task_id", "unknown"))
-        scope_id = f"scope-{number}" if number else f"scope-{fallback_id}"
+        id_source = slug_fallback_id(scope)
+        scope_id = f"scope-{slugify_id(id_source, emitted_scope_ids)}"
         item: dict = {
             "id": scope_id,
             "title": scope.get("title", "Untitled"),
@@ -761,13 +797,18 @@ def migrate(
             actions.append("CREATE vbrief/PROJECT-DEFINITION.vbrief.json")
 
     # ---- Step 4: Convert roadmap items to pending/ vBRIEFs ----
+    # Per #498: track emitted filename stems so slug collisions within a single
+    # migrate() run deterministically disambiguate via slugify_id's stable
+    # hash-suffix path instead of overwriting a prior file.
+    emitted_stems: set[str] = set()
     for item in roadmap_items:
         number = item.get("number", "")
-        slug = _slugify(item.get("title", "untitled"))
-        # Build filename: use issue number, task_id, or synthetic_id
-        item_id = number or item.get("task_id", "") or item.get("synthetic_id", "")
-        id_part = _slugify(item_id.replace(".", "-")) if item_id else slug[:20]
-        filename = f"{_TODAY}-{id_part}-{slug}.vbrief.json"
+        id_source = slug_fallback_id(item)
+        id_part = slugify_id(id_source)
+        title_slug = slugify_id(item.get("title", "untitled"))
+        stem_seed = f"{id_part}-{title_slug}"
+        stem = slugify_id(stem_seed, emitted_stems)
+        filename = f"{_TODAY}-{stem}.vbrief.json"
         target_path = vbrief_dir / "pending" / filename
         phase_desc = phase_descriptions.get(item.get("phase", ""), "")
 
@@ -788,7 +829,7 @@ def migrate(
         scope_vbrief = _create_scope_vbrief(
             item, repo_url=repo_url, phase_description=phase_desc
         )
-        label = f"#{number}" if number else item.get("task_id", slug)
+        label = f"#{number}" if number else item.get("task_id", title_slug)
         if dry_run:
             actions.append(f"DRYRUN CREATE pending/{filename} ({label})")
         else:
@@ -802,11 +843,15 @@ def migrate(
             actions.append(f"CREATE pending/{filename} ({label})")
 
     # ---- Step 4b: Convert completed items to completed/ vBRIEFs ----
+    emitted_completed_stems: set[str] = set()
     for item in completed_items:
         number = item.get("number", "")
-        slug = _slugify(item.get("title", "untitled"))
-        id_part = _slugify(number) if number else slug[:20]
-        filename = f"{_TODAY}-{id_part}-{slug}.vbrief.json"
+        id_source = slug_fallback_id(item)
+        id_part = slugify_id(id_source)
+        title_slug = slugify_id(item.get("title", "untitled"))
+        stem_seed = f"{id_part}-{title_slug}"
+        stem = slugify_id(stem_seed, emitted_completed_stems)
+        filename = f"{_TODAY}-{stem}.vbrief.json"
         target_path = vbrief_dir / "completed" / filename
 
         if target_path.exists():
@@ -814,7 +859,7 @@ def migrate(
             continue
 
         scope_vbrief = _create_scope_vbrief(item, repo_url=repo_url, status="completed")
-        label = f"#{number}" if number else slug
+        label = f"#{number}" if number else title_slug
         if dry_run:
             actions.append(f"DRYRUN CREATE completed/{filename} ({label})")
         else:
@@ -959,7 +1004,17 @@ def migrate(
     for w in warnings:
         actions.append(w)
 
-    return True, actions
+    # --- validation (Agent D, #498) ---
+    # Hard-block on schema-invalid migration output per #506 D8. Runs AFTER
+    # Agent C's safety path (#497) so .premigrate.* backups and the safety
+    # manifest remain in place on failure for ``task migrate:vbrief --
+    # --rollback`` recovery. Skipped under --dry-run so operators can preview
+    # the plan without invoking the validator on a non-existent tree. Full
+    # implementation lives in scripts/_vbrief_validation.py::
+    # finalize_migration to keep migrate_vbrief.py under the 1000-line cap.
+    if dry_run:
+        return True, actions
+    return finalize_migration(project_root, vbrief_dir, actions)
 
 
 def _edge_nodes(edge: dict) -> tuple[str, str]:

@@ -1,0 +1,21 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "description": "Scope vBRIEF for #50: Initial project scaffolding"
+  },
+  "plan": {
+    "title": "Initial project scaffolding",
+    "status": "completed",
+    "narratives": {
+      "Description": "Initial project scaffolding",
+      "Phase": "Completed"
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#50"
+      }
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "description": "Scope vBRIEF for #101: Scaffold FastAPI app with SQLite"
+  },
+  "plan": {
+    "title": "Scaffold FastAPI app with SQLite",
+    "status": "pending",
+    "narratives": {
+      "Description": "Scaffold FastAPI app with SQLite",
+      "Phase": "Phase 1 -- Foundation",
+      "PhaseDescription": "Fix the blocking setup gaps before any feature work."
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#101"
+      }
+    ]
+  }
+}

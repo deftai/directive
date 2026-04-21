@@ -1,0 +1,22 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "description": "Scope vBRIEF for #202: GET /widgets/{id}: fetch by id"
+  },
+  "plan": {
+    "title": "GET /widgets/{id}: fetch by id",
+    "status": "pending",
+    "narratives": {
+      "Description": "GET /widgets/{id}: fetch by id",
+      "Phase": "Phase 2 -- Core API",
+      "Tier": "Tier 1 -- CRUD"
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#202"
+      }
+    ]
+  }
+}
