@@ -1811,16 +1811,19 @@ class TestSafetyDirtyTreeGuard:
         # First migration: stubs replace originals; backups hold originals.
         ok, _ = migrate(project)
         assert ok
-        assert DEPRECATION_SENTINEL in (project / "SPECIFICATION.md").read_text(encoding="utf-8")
-        assert (project / "SPECIFICATION.premigrate.md").read_text(encoding="utf-8") == spec_original
-        assert (project / "PROJECT.premigrate.md").read_text(encoding="utf-8") == proj_original
+        spec_md = (project / "SPECIFICATION.md").read_text(encoding="utf-8")
+        assert DEPRECATION_SENTINEL in spec_md
+        spec_backup = project / "SPECIFICATION.premigrate.md"
+        proj_backup = project / "PROJECT.premigrate.md"
+        assert spec_backup.read_text(encoding="utf-8") == spec_original
+        assert proj_backup.read_text(encoding="utf-8") == proj_original
         # Second migration on the already-migrated project.  The migrator
         # must NOT overwrite the .premigrate.* backups with stub bytes.
         migrate(project)
-        assert (project / "SPECIFICATION.premigrate.md").read_text(encoding="utf-8") == spec_original, (
+        assert spec_backup.read_text(encoding="utf-8") == spec_original, (
             "re-run must not overwrite original SPECIFICATION backup with stub bytes"
         )
-        assert (project / "PROJECT.premigrate.md").read_text(encoding="utf-8") == proj_original, (
+        assert proj_backup.read_text(encoding="utf-8") == proj_original, (
             "re-run must not overwrite original PROJECT backup with stub bytes"
         )
 
