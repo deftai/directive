@@ -51,7 +51,52 @@ Enter confirm / b back / 0 discuss
 - ! If no option is objectively better, pick the most common choice and mark it as default
 - ! Option `0. Discuss with agent` MUST appear in slot 0 at the top of the options block, visually separated from the numbered answer options (e.g. by a horizontal rule or blank line) so it is not confused with `Other / I don't know`
 - ! A persistent one-line legend MUST appear directly under the options block on every question (see Rule 11)
-- ~ Use structured question tools (AskQuestion, question picker, multi-choice UI) when available
+
+#### Always-Structured Rendering (Option A)
+
+! EVERY user-facing question MUST render via the structured question tool: click-commit on hosts that have one (e.g. Warp `ask_user_question`); plain-text with typed response otherwise. The agent MUST NOT emit a user-facing question as conversational prose regardless of whether the final answer content is enumerable or freeform. This is the Option A always-structured rendering rule (#478).
+
+! Freeform answer collection, when needed, MUST be a two-step flow:
+
+1. Structured-tool call with options such as `[Draft for me (I'll propose content) / Write my own / Defer / Discuss / Back]`.
+2. If the user picks "Write my own", a follow-up plain-text prompt collects the freeform content. The prompt itself is a non-question status message ("Type your answer below.") -- the enumerable path choice has already been captured by the structured tool.
+
+! The ONLY permissible plain-text-to-user emissions are:
+
+1. The Rule 6 Confirmation Gate (typed plain-text commit, see Rule 6's Click-Commit Hosts subsection).
+2. Agent-initiated status updates that do NOT ask the user to choose anything (e.g. "Files written. Next I'll read X.").
+
+- ⊗ Emit a user-facing question outside a structured-tool call because the answer content is prose, because a preamble is long, because the question "feels conversational," or because the prior question was plain-text. None of those are valid reasons.
+- ⊗ Present a user-facing choice as plain-text prose when a structured question tool is available on the host.
+
+#### Click-Commit Rendering
+
+! When the host's structured question tool is single-shot / click-commit (the tool returns the user's selection atomically with no separate Enter step -- e.g. Warp `ask_user_question`), Rules 8, 9, and 10 MUST be rendered as explicit clickable options in the options list on every applicable question. The `Enter confirm / b back / 0 discuss` keystroke legend from Rule 11 is a plain-text-mode affordance only.
+
+Click-commit options block shape:
+
+```
+[ Back -- revisit step N-1 ]
+[ Discuss with agent (pause interview) ]
+----------------------------------------
+[ Answer option 1 ]
+[ Answer option 2 [default] ]
+[ Answer option 3 ]
+[ Other / I don't know ]
+```
+
+- ! `Back` MUST appear on every question EXCEPT the first (nothing to go back to). Picking `Back` returns to question N-1 with its previously captured answer displayed.
+- ! `Discuss with agent` MUST appear on every question. Picking it enters Rule 10 freeform mode; the agent MUST re-render the same question after the discussion resolves.
+- ! Answer options MUST render with the default marker (e.g. `[default]` appended to the option label) since the `[default: N]` inline notation is not rendered by most click-commit tools.
+- ⊗ Omit `Back` on any question except the first.
+- ⊗ Omit `Discuss with agent` on any question.
+- ⊗ Treat a click-commit tool's returned selection as a Rule-8 confirmed commit. Click-commit tools do NOT satisfy Rule 8 -- there is no keyboard Enter step, so the click is both selection and commit. The Rule 6 Confirmation Gate (rendered as plain-text typed commit on click-commit hosts) provides the only typed-commit step in the flow.
+
+#### Preamble Placement
+
+~ Explanatory preamble (context, consequences, what-happens-next) MAY appear as plain markdown ABOVE the structured-tool call. The question itself -- the sentence that asks for a decision -- MUST be encoded in the structured tool's `question` field, and the enumerable options MUST be encoded in the tool's `options` field.
+
+- ⊗ Render a user-facing question as plain-text because you wanted to include preamble -- preamble belongs above the tool call, not instead of it.
 
 ### Rule 3: Explicit "Other / I Don't Know" Escape
 
@@ -107,6 +152,20 @@ Confirm these values? (yes / no)
 - ! If the user says `no`: ask which values to correct, re-ask those specific questions only (do not restart the full interview), then re-display the updated summary and re-confirm
 - ! If any value appears to be auto-generated filler (repeated default text, placeholder strings, or values that echo the question prompt), warn the user explicitly before confirming
 - ⊗ Proceed to artifact generation without displaying the summary and receiving explicit confirmation
+
+#### Click-Commit Hosts: Plain-Text Confirmation Gate
+
+! When the host's structured question tool is click-commit, the Confirmation Gate MUST be rendered as plain-text requiring a typed response (`yes` / `no` / `back` / `discuss`). It MUST NOT be rendered via the click-commit structured tool.
+
+- ! Accept only explicit affirmative tokens (`yes`, `confirmed`, `approve`) per the existing Rule 6 strictness. Reject click-level tokens and vague responses (`ok`, `proceed`, `do it`).
+- ! The typed commit provides the Enter-confirm semantic that Rule 8 was written to guarantee. This is the only place in the click-commit flow where a true commit step exists.
+- ⊗ Render the Confirmation Gate via a click-commit structured tool -- this removes the last safeguard against misclicks on the final answer.
+
+#### Mode Restore After the Gate
+
+! After the Rule 6 Confirmation Gate commits (user typed an affirmative token), the plain-text rendering mode is RELEASED. The next user-facing question MUST return to structured-tool rendering (click-commit on hosts that have one; plain-text with typed response otherwise, per Rule 2's Always-Structured Rendering). The plain-text gate does NOT establish a sticky mode for subsequent prompts.
+
+- ⊗ Render the next user-facing question as plain-text conversational prose because the Rule 6 Gate was just in plain-text mode.
 
 ### Rule 7: Structured Handoff Contract
 
@@ -242,20 +301,36 @@ Press Enter to confirm, type a different number to change, or `b` to go back.
 
 ### Rule 11: Persistent Legend Under Each Question
 
-! Every deterministic question MUST render a persistent one-line legend directly under the options block. The legend names the three always-available key affordances and is shown on every question (not only at the start of the interview).
+! Every deterministic question MUST surface the confirm / back / discuss affordances on every question (not only at the start of the interview). The way those affordances are surfaced depends on the host's rendering mode -- see Rule 2's Click-Commit Rendering and Always-Structured Rendering subsections.
 
-Canonical legend text:
+Canonical legend text (plain-text mode):
 
 ```
 Enter confirm / b back / 0 discuss
 ```
 
-- ! The legend MUST be present under EVERY deterministic question, including re-displayed questions after back-navigation (Rule 9) or freeform resume (Rule 10)
+#### Plain-Text Rendering Mode
+
+! In plain-text rendering mode, the keystroke legend above MUST be rendered directly under the options block on every deterministic question, including re-displayed questions after back-navigation (Rule 9) or freeform resume (Rule 10).
+
+- ! The legend MUST be present under every deterministic question in plain-text mode
 - ! The legend MUST name all three affordances: `Enter` (confirm selection -- Rule 8), `b` (back -- Rule 9), `0` (discuss -- Rule 10)
 - ~ The legend SHOULD appear as a single line directly below the options block, separated by a blank line
 - ? Additional hints (e.g. `c cancel`) MAY be appended with `/` separators, but the three canonical affordances MUST always be present
-- ⊗ Omit the legend from any deterministic question -- every question MUST carry it
+- ⊗ Omit the legend from any plain-text-mode deterministic question -- every question MUST carry it
 - ⊗ Replace the canonical affordance labels with non-self-describing abbreviations (e.g. `↵`, `←`) without also spelling them out
+
+#### Click-Commit Rendering Mode
+
+! In click-commit rendering mode, the confirm / back / discuss affordances are rendered as clickable options in the options list per Rule 2's Click-Commit Rendering subsection:
+
+- `Back -- revisit step N-1` renders as a clickable option on every question except the first
+- `Discuss with agent (pause interview)` renders as a clickable option on every question
+- Commit is implicit in the click-commit return; the Rule 6 plain-text Confirmation Gate is the only typed-commit step before file writes
+
+! The keystroke legend MAY be omitted in click-commit rendering because the host tool does not accept keystroke input. The affordances themselves MUST still be present as clickable options (not omitted).
+
+- ⊗ Omit `Back` (except on the first question) or `Discuss with agent` from any click-commit rendering -- the affordances survive the mode change even though the keystroke legend does not
 
 ## Anti-Patterns
 
@@ -275,3 +350,9 @@ Enter confirm / b back / 0 discuss
 - ⊗ Render a deterministic question without the persistent `Enter confirm / b back / 0 discuss` legend directly below the options block
 - ⊗ Use `Pause`, `Escape`, `Other..`, or any non-self-describing label for slot 0 -- the label MUST be `Discuss with agent` (Rule 10)
 - ⊗ Place slot-0 `Discuss with agent` at the bottom of the options block or merge it with `Other / I don't know` -- slot 0 MUST be first and visually distinct (Rule 10)
+- ⊗ Emit a user-facing question as conversational prose outside the structured tool because the answer content is prose, because the preamble is long, because the question "feels conversational," or because the prior question was plain-text (Rule 2 Always-Structured Rendering, #478)
+- ⊗ Omit `Back` or `Discuss with agent` as clickable options in click-commit rendering (Rule 2 Click-Commit Rendering, #477)
+- ⊗ Treat a click-commit tool's atomic return as a Rule-8-compliant confirmed commit (Rule 2 Click-Commit Rendering, #477)
+- ⊗ Render the Rule 6 Confirmation Gate via a click-commit structured tool on a click-commit host -- the gate MUST be plain-text with a typed `yes` commit (Rule 6 Click-Commit Hosts, #477)
+- ⊗ Render the next user-facing question as plain-text conversational prose because the Rule 6 Gate was just rendered in plain-text -- plain-text mode is released after the typed commit (Rule 6 Mode Restore, #478)
+- ⊗ Render a user-facing question as plain-text because you wanted to include a long preamble -- preamble belongs above the tool call, not instead of it (Rule 2 Preamble Placement, #478)

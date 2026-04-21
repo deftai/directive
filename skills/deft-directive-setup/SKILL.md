@@ -250,7 +250,8 @@ for project-scoped settings (strategy, coverage).
 
 ### Then
 
-- ~ Ask if user wants to continue to Phase 2 (project configuration)
+- ! Emit a structured-tool question asking whether to continue to Phase 2 (project configuration). Options: Yes (continue), Not now (exit setup), Discuss, Back (revisit previous phase). Render per the host's rendering mode (click-commit vs plain-text typed) per `skills/deft-directive-interview/SKILL.md` Rule 2 Always-Structured Rendering.
+- ⊗ Ask the phase-transition question as plain-text conversational prose -- it is a user-facing question with enumerable paths and MUST go through the structured tool (#478).
 
 ---
 
@@ -378,7 +379,8 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
 ### Then
 
-- ~ Ask if user wants to continue to Phase 3 (specification)
+- ! Emit a structured-tool question asking whether to continue to Phase 3 (specification). Options: Yes (continue), Not now (exit setup), Discuss, Back (revisit previous phase). Render per the host's rendering mode (click-commit vs plain-text typed) per `skills/deft-directive-interview/SKILL.md` Rule 2 Always-Structured Rendering.
+- ⊗ Ask the phase-transition question as plain-text conversational prose -- it is a user-facing question with enumerable paths and MUST go through the structured tool (#478).
 
 ---
 
@@ -539,9 +541,10 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ### Handoff to deft-directive-build
 
-- ! Offer to start building: "Your spec is ready. Want me to start building it now?"
-- ~ If platform supports skill invocation, invoke `skills/deft-directive-build/SKILL.md`
-- ⊗ Leave user with a dead end — always offer the next step
+- ! Emit a structured-tool question asking whether to continue to the build phase. Options: Yes (start building now), Not now (exit setup), Discuss, Back (revisit the spec). Render per the host's rendering mode (click-commit vs plain-text typed) per `skills/deft-directive-interview/SKILL.md` Rule 2 Always-Structured Rendering.
+- ~ If platform supports skill invocation and the user picks Yes, invoke `skills/deft-directive-build/SKILL.md`
+- ⊗ Leave user with a dead end -- always offer the next step via the structured-tool phase-transition question
+- ⊗ Ask the handoff-to-build question as plain-text conversational prose -- it is a user-facing question with enumerable paths and MUST go through the structured tool (#478).
 
 ## Warp Auto-Approve Warning
 
