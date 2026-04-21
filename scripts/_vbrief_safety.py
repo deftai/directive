@@ -165,21 +165,53 @@ def premigrate_sibling(path: Path) -> Path:
     return path.with_name(f"{name}{PREMIGRATE_SUFFIX}")
 
 
-def plan_backups(project_root: Path) -> list[tuple[Path, Path]]:
+# Default deprecation redirect sentinel (mirrors migrate_vbrief.DEPRECATION_SENTINEL).
+# Kept here to avoid an import cycle with migrate_vbrief.  A caller may override via
+# plan_backups(..., deprecation_sentinel=...) if the project-root sentinel ever changes.
+_DEPRECATION_SENTINEL_DEFAULT = "<!-- deft:deprecated-redirect -->"
+
+
+def _is_deprecation_stub(path: Path, sentinel: str) -> bool:
+    """Return True iff ``path`` already contains the deprecation redirect sentinel.
+
+    Protects re-run recovery (Greptile #509 P1): if the operator re-invokes
+    ``task migrate:vbrief`` on an already-migrated project, the root-level
+    ``SPECIFICATION.md`` / ``PROJECT.md`` are redirect stubs rather than
+    originals.  Backing them up would overwrite the real ``.premigrate.*``
+    copies from the first run with stub bytes, destroying ``--rollback``
+    recovery.  Files we cannot read (binary, permission-denied, missing
+    mid-call) are treated as non-stubs so we do not silently skip backups
+    that should have happened.
+    """
+    try:
+        head = path.read_text(encoding="utf-8", errors="replace")[:4096]
+    except OSError:
+        return False
+    return sentinel in head
+
+
+def plan_backups(
+    project_root: Path,
+    *,
+    deprecation_sentinel: str = _DEPRECATION_SENTINEL_DEFAULT,
+) -> list[tuple[Path, Path]]:
     """Return the list of ``(source, backup)`` pairs the migrator will write.
 
     Only includes inputs that actually exist on disk so the caller can log and
     emit one BACKUP line per real file.
+
+    Sources that already carry the deprecation redirect sentinel are skipped
+    (re-run protection -- see ``_is_deprecation_stub`` docstring).
     """
     pairs: list[tuple[Path, Path]] = []
     for name in _ROOT_MD_INPUTS:
         src = project_root / name
-        if src.is_file():
+        if src.is_file() and not _is_deprecation_stub(src, deprecation_sentinel):
             pairs.append((src, premigrate_sibling(src)))
     vbrief_dir = project_root / "vbrief"
     for name in _VBRIEF_JSON_INPUTS:
         src = vbrief_dir / name
-        if src.is_file():
+        if src.is_file() and not _is_deprecation_stub(src, deprecation_sentinel):
             pairs.append((src, premigrate_sibling(src)))
     return pairs
 

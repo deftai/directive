@@ -1798,6 +1798,32 @@ class TestSafetyDirtyTreeGuard:
         ok, _ = migrate(project)
         assert ok
 
+    def test_rerun_does_not_overwrite_original_backups(self, tmp_path):
+        # Regression for Greptile #509 P1: a second invocation of migrate()
+        # on an already-migrated project would back up the stub-bearing
+        # SPECIFICATION.md / PROJECT.md on top of the original-content
+        # .premigrate.* copies from the first run, destroying --rollback
+        # recovery.  plan_backups() must skip sources carrying the
+        # DEPRECATION_SENTINEL.
+        project = _make_safety_project(tmp_path)
+        spec_original = (project / "SPECIFICATION.md").read_text(encoding="utf-8")
+        proj_original = (project / "PROJECT.md").read_text(encoding="utf-8")
+        # First migration: stubs replace originals; backups hold originals.
+        ok, _ = migrate(project)
+        assert ok
+        assert DEPRECATION_SENTINEL in (project / "SPECIFICATION.md").read_text(encoding="utf-8")
+        assert (project / "SPECIFICATION.premigrate.md").read_text(encoding="utf-8") == spec_original
+        assert (project / "PROJECT.premigrate.md").read_text(encoding="utf-8") == proj_original
+        # Second migration on the already-migrated project.  The migrator
+        # must NOT overwrite the .premigrate.* backups with stub bytes.
+        migrate(project)
+        assert (project / "SPECIFICATION.premigrate.md").read_text(encoding="utf-8") == spec_original, (
+            "re-run must not overwrite original SPECIFICATION backup with stub bytes"
+        )
+        assert (project / "PROJECT.premigrate.md").read_text(encoding="utf-8") == proj_original, (
+            "re-run must not overwrite original PROJECT backup with stub bytes"
+        )
+
     def test_dry_run_bypasses_dirty_tree_guard(self, tmp_path):
         # Regression for Greptile #509 P1: --dry-run is read-only, so the
         # dirty-tree guard MUST NOT refuse it. Operators are encouraged to
