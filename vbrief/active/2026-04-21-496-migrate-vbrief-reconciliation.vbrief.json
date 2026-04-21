@@ -1,0 +1,37 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "author": "agent:deft-directive-swarm",
+    "description": "Define role-based SPEC/ROADMAP reconciliation for migrate:vbrief; emit RECONCILIATION.md; add --strict; honor vbrief/migration-overrides.yaml; add per-field provenance.",
+    "created": "2026-04-21T17:18:00Z"
+  },
+  "plan": {
+    "id": "rc3-496-reconciliation",
+    "title": "migrate:vbrief reconciliation strategy when SPEC and ROADMAP disagree (#496)",
+    "status": "running",
+    "tags": ["rc3", "wave-2", "agent-b", "migrator"],
+    "narratives": {
+      "Overview": "Implement per-dimension ownership (SPEC owns identity/bodies/acceptance/traces; ROADMAP owns completion; grouping preserved from both). Emit vbrief/migration/RECONCILIATION.md on disagreement. Add --strict exit-non-zero mode. Load vbrief/migration-overrides.yaml. Add sibling *_source provenance fields to scope narratives.",
+      "Problem": "Current migrator collapses SPEC + ROADMAP into single implicit policy that is wrong in both stale directions, causing silent data loss or silent staleness. No signal to operator when reconciliation occurred.",
+      "Action": "Edit scripts/migrate_vbrief.py to implement reconciliation components 1-5. Add vbrief/migration-overrides.yaml loader. Emit RECONCILIATION.md into vbrief/migration/. Plumb --strict through task migrate:vbrief. Orphan ROADMAP items route to vbrief/proposed/ with narrative.SourceConflict = 'missing-from-spec'.",
+      "Test": "Synthetic fixtures under deft/tests/fixtures/ covering spec-stale, roadmap-stale, both-stale, clean. Assert RECONCILIATION.md produced and formatted; --strict exits non-zero on conflict; overrides file honored; orphans route to proposed/ with SourceConflict.",
+      "Outcome": "Reconciliation explicit, auditable, and controllable. Feeds #499 lifecycle routing with reconciled status."
+    },
+    "items": [
+      {"id": "496-directive", "status": "running", "title": "Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit"},
+      {"id": "496-1", "status": "running", "title": "Role-based default merge policy (identity<-SPEC, status<-ROADMAP with SPEC tiebreaker, grouping from both)"},
+      {"id": "496-2", "status": "running", "title": "Emit vbrief/migration/RECONCILIATION.md on any disagreement"},
+      {"id": "496-3", "status": "running", "title": "Add --strict mode (exit non-zero on any conflict)"},
+      {"id": "496-4", "status": "running", "title": "Load and honor vbrief/migration-overrides.yaml"},
+      {"id": "496-5", "status": "running", "title": "Add per-field *_source provenance to scope narratives"},
+      {"id": "496-orphan", "status": "running", "title": "Orphan ROADMAP items route to vbrief/proposed/ with SourceConflict"},
+      {"id": "496-tests", "status": "running", "title": "Synthetic fixture tests for spec-stale / roadmap-stale / both-stale / clean"},
+      {"id": "496-changelog", "status": "running", "title": "CHANGELOG [Unreleased] entry under Added"}
+    ],
+    "references": [
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/496", "id": "#496"},
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/499", "id": "#499"},
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/506", "id": "#506"}
+    ]
+  }
+}

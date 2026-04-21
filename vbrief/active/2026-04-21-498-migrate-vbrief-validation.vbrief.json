@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "author": "agent:deft-directive-swarm",
+    "description": "migrate:vbrief self-validation + slug-safe IDs + golden-file tests; hard-block on schema-invalid output per #506 D8.",
+    "created": "2026-04-21T17:18:00Z"
+  },
+  "plan": {
+    "id": "rc3-498-validation",
+    "title": "migrate:vbrief self-validation + slug-safe IDs + golden tests (#498)",
+    "status": "running",
+    "tags": ["rc3", "wave-1", "agent-d", "migrator"],
+    "narratives": {
+      "Overview": "Per #506 D8, migrator hard-blocks on schema-invalid output: exit non-zero, leave .premigrate backups in place, write partial output to vbrief.invalid/ (isolated from vbrief/). Slug-safe IDs per regex ^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$ applied to filename AND in-JSON id. Real-fixture golden test added.",
+      "Problem": "Migrator exits 0 despite producing schema-violating output. IDs contain spaces, slashes, dots, @. CI does not validate migrated output. Operators are told 'success' on broken state.",
+      "Action": "Edit scripts/migrate_vbrief.py to: (A) run vbrief validation on all emitted files as last step; on failure, write partial output to vbrief.invalid/, leave .premigrate backups in place, exit non-zero with per-file diagnostics and rollback hint; (B) implement slug-safe sanitiser (lowercase ASCII + digits + - + _ + . as separator, collapse runs, strip leading/trailing hyphens, truncate to 80 chars with hash suffix if needed) used for BOTH filename slug and in-JSON id; disambiguate collisions. Add golden-file fixture under deft/tests/fixtures/pre_cutover_customized/ (SYNTHETIC, not slizard) with expected output. Wire vbrief:validate into tests/cli/test_migrate_vbrief.py.",
+      "Test": "tests/cli/test_migrate_vbrief.py: validator runs on last step; schema-invalid output triggers exit non-zero + vbrief.invalid/ + backups preserved; all emitted IDs match regex; filenames and in-JSON ids are identical slugs; golden-file fixture round-trips byte-for-byte via canonical JSON re-serialisation; validator hooked into task check.",
+      "Outcome": "Migration fails loudly on schema violations instead of silently producing broken state. IDs are universally slug-safe. Golden fixture prevents regression of every #495 finding caught by validation."
+    },
+    "items": [
+      {"id": "498-directive", "status": "running", "title": "Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit"},
+      {"id": "498-A", "status": "running", "title": "Migrator validates own output; hard-block on schema-invalid (exit non-zero, vbrief.invalid/, backups preserved)"},
+      {"id": "498-B", "status": "running", "title": "Slug-safe ID sanitiser applied to filename AND in-JSON id; collision disambiguation"},
+      {"id": "498-C", "status": "running", "title": "Synthetic pre-cutover fixture + golden-file test (no slizard data)"},
+      {"id": "498-D", "status": "running", "title": "Wire vbrief:validate into tests/cli/test_migrate_vbrief.py CI"},
+      {"id": "498-changelog", "status": "running", "title": "CHANGELOG [Unreleased] entry under Fixed"}
+    ],
+    "references": [
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/498", "id": "#498"},
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/506", "id": "#506"}
+    ]
+  }
+}

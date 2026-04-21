@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "author": "agent:deft-directive-swarm",
+    "description": "Document click-commit rendering mode and plain-text Confirmation Gate in deft-directive-interview skill.",
+    "created": "2026-04-21T17:18:00Z"
+  },
+  "plan": {
+    "id": "rc3-477-click-commit-rendering",
+    "title": "Interview skill: click-commit rendering mode + plain-text Confirmation Gate (#477)",
+    "status": "running",
+    "tags": ["rc3", "wave-1", "agent-f", "skill"],
+    "narratives": {
+      "Overview": "Rules 8-11 of deft-directive-interview/SKILL.md assume plain-text keyboard rendering. On click-commit structured tools (e.g. Warp ask_user_question), Back / Discuss / Enter-confirm have no keystroke equivalent. Document an explicit click-commit rendering mode and require plain-text for the Rule 6 Confirmation Gate on click-commit hosts.",
+      "Problem": "On click-commit hosts, deterministic-interview affordances silently degrade: no Back, no Discuss, no confirm-after-select, and the Rule 6 Confirmation Gate itself becomes a single-click commit with no typed safeguard.",
+      "Action": "Edit skills/deft-directive-interview/SKILL.md to add (A) Click-Commit Rendering subsection under Rule 2 specifying Back / Discuss options and default-marker handling; (B) Rule 6 addendum requiring plain-text typed confirm on click-commit hosts; (C) Rule 11 two-mode legend split. Add content tests.",
+      "Test": "tests/content/test_interview_click_commit.py asserts: click-commit subsection exists naming Back, Discuss, default marker; Rule 6 contains plain-text-gate-on-click-commit requirement and MUST-NOT anti-pattern; at least one example shows click-commit rendering; MUST-NOT forbids treating click-commit return as Rule-8-compliant.",
+      "Outcome": "Interview skill specifies click-commit rendering behavior; Rule 6 plain-text gate preserves a typed commit step; content tests lock in the specification."
+    },
+    "items": [
+      {"id": "477-directive", "status": "running", "title": "Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit"},
+      {"id": "477-1", "status": "running", "title": "Add Click-Commit Rendering subsection under Rule 2 (Back/Discuss/default-marker)"},
+      {"id": "477-2", "status": "running", "title": "Add Rule 6 plain-text Confirmation Gate requirement for click-commit hosts"},
+      {"id": "477-3", "status": "running", "title": "Rewrite Rule 11 legend behavior for plain-text vs click-commit modes"},
+      {"id": "477-4", "status": "running", "title": "Add content tests in tests/content/test_interview_click_commit.py"},
+      {"id": "477-5", "status": "running", "title": "CHANGELOG [Unreleased] entry under Fixed"}
+    ],
+    "references": [
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/477", "id": "#477"},
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/506", "id": "#506"}
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "author": "agent:deft-directive-swarm",
+    "description": "migrate:vbrief routes scope vBRIEFs to correct lifecycle folder based on reconciled status per #506 conventions.",
+    "created": "2026-04-21T17:18:00Z"
+  },
+  "plan": {
+    "id": "rc3-499-lifecycle-routing",
+    "title": "migrate:vbrief lifecycle folder routing per reconciled status (#499)",
+    "status": "running",
+    "tags": ["rc3", "wave-2", "agent-b", "migrator"],
+    "narratives": {
+      "Overview": "Migrator chooses lifecycle folder per scope based on reconciled source state (consuming #496 output). Uses schema-native status vocabulary: draft|proposed|approved|pending|running|completed|blocked|cancelled. NEVER 'in_progress' (#499 correction comment is authoritative, confirmed in #506).",
+      "Problem": "Current migrator dumps all scope vBRIEFs into pending/ regardless of completion state. plan.items[*].status in PROJECT-DEFINITION.vbrief.json defaults to pending and disagrees with specification.vbrief.json subItems. Lifecycle-folder convention meaningless immediately post-migration.",
+      "Action": "Edit scripts/migrate_vbrief.py to route scope vBRIEFs per #506 lifecycle-folder mapping: proposed/ <-> draft|proposed; pending/ <-> approved|pending; active/ <-> running|blocked; completed/ <-> completed; cancelled/ <-> cancelled. Use reconciled status from #496. Mirror status into PROJECT-DEFINITION.vbrief.json plan.items[*].status. Orphan ROADMAP items -> proposed/ with SourceConflict narrative.",
+      "Test": "Synthetic fixtures covering all five routing cases: [done] in SPEC -> completed/; in-progress/running -> active/; cancelled -> cancelled/; orphan ROADMAP -> proposed/ with SourceConflict; default -> pending/. Assert plan.status in each scope vBRIEF matches folder per mapping. Assert plan.items[*].status in PROJECT-DEFINITION matches scope status.",
+      "Outcome": "Lifecycle folder routing is status-driven and schema-consistent. Never emits 'in_progress'. PROJECT-DEFINITION registry agrees with scope vBRIEFs."
+    },
+    "items": [
+      {"id": "499-directive", "status": "running", "title": "Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit"},
+      {"id": "499-vocab", "status": "running", "title": "Use schema vocabulary only: running (NOT in_progress); match #506 lifecycle<->status mapping"},
+      {"id": "499-completed", "status": "running", "title": "[done] in SPEC or ROADMAP Completed -> completed/, plan.status=completed"},
+      {"id": "499-active", "status": "running", "title": "In-progress sources -> active/, plan.status=running (or blocked)"},
+      {"id": "499-cancelled", "status": "running", "title": "Cancelled sources -> cancelled/, plan.status=cancelled"},
+      {"id": "499-orphan", "status": "running", "title": "Orphan ROADMAP items -> proposed/, plan.status=proposed, narrative.SourceConflict set"},
+      {"id": "499-default", "status": "running", "title": "Default -> pending/, plan.status=pending (only when no completion signal)"},
+      {"id": "499-registry", "status": "running", "title": "PROJECT-DEFINITION.vbrief.json plan.items[*].status mirrors scope status"},
+      {"id": "499-tests", "status": "running", "title": "Synthetic fixture tests cover all five routing cases + registry mirror"},
+      {"id": "499-changelog", "status": "running", "title": "CHANGELOG [Unreleased] entry under Fixed"}
+    ],
+    "references": [
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/499", "id": "#499"},
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/496", "id": "#496"},
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/506", "id": "#506"}
+    ]
+  }
+}

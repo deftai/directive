@@ -1,0 +1,36 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "author": "agent:deft-directive-swarm",
+    "description": "Adopt Option A (always-structured) for every user-facing question; mode-restore after Rule 6 gate; preamble guidance; setup SKILL.md phase-transition prose fix.",
+    "created": "2026-04-21T17:18:00Z"
+  },
+  "plan": {
+    "id": "rc3-478-always-structured",
+    "title": "Interview skill: always-structured rendering (Option A) + mode-restore + preamble guidance (#478)",
+    "status": "running",
+    "tags": ["rc3", "wave-1", "agent-f", "skill"],
+    "narratives": {
+      "Overview": "Per Amendment 1 + reviewer comment, adopt Option A: every user-facing question MUST render via the structured tool; only the Rule 6 Confirmation Gate and non-question status updates may be plain-text. rendering_policy frontmatter flag and taxonomy appendix are OUT OF SCOPE (belong to #476, deferred).",
+      "Problem": "Taxonomy-based rules fail: agent reproduced the exact bug its own taxonomy forbade 12 minutes after filing. Also: after Rule 6 plain-text gate fires, agents get stuck in plain-text mode for subsequent prompts.",
+      "Action": "Edit skills/deft-directive-interview/SKILL.md to add always-structured MUST rule, Rule 6 mode-restore clause, preamble-placement guidance. Edit skills/deft-directive-setup/SKILL.md: replace every 'Ask if user wants to continue to Phase X' SHOULD with a MUST 'Emit a structured-tool question' for Phase 1->2, 2->3, 3->build. Add content tests.",
+      "Test": "tests/content/test_interview_always_structured.py asserts always-structured MUST rule exists; Rule 6 mode-release clause present; preamble-above-tool-call guidance present; setup SKILL.md no longer contains 'Ask if user wants to continue'; anti-pattern against 'because preamble was long' is present.",
+      "Outcome": "Interview + setup skills enforce always-structured rendering via prose rules; mode-restore and preamble guidance prevent the two observed failure modes without introducing rendering_policy frontmatter."
+    },
+    "items": [
+      {"id": "478-directive", "status": "running", "title": "Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit"},
+      {"id": "478-1", "status": "running", "title": "Add Option A always-structured MUST rule to interview SKILL.md"},
+      {"id": "478-2", "status": "running", "title": "Add Rule 6 mode-restore clause (plain-text does not stick)"},
+      {"id": "478-3", "status": "running", "title": "Add preamble-above-tool-call guidance"},
+      {"id": "478-4", "status": "running", "title": "Rewrite setup SKILL.md phase-transition prompts as structured-tool MUSTs"},
+      {"id": "478-5", "status": "running", "title": "Add content tests in tests/content/test_interview_always_structured.py"},
+      {"id": "478-6", "status": "running", "title": "Explicitly do NOT add rendering_policy frontmatter (reserved for #476)"},
+      {"id": "478-7", "status": "running", "title": "CHANGELOG [Unreleased] entry under Fixed"}
+    ],
+    "references": [
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/478", "id": "#478"},
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/477", "id": "#477"},
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/506", "id": "#506"}
+    ]
+  }
+}

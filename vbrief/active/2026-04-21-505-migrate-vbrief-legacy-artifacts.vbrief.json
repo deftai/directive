@@ -1,0 +1,39 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "author": "agent:deft-directive-swarm",
+    "description": "migrate:vbrief LegacyArtifacts mechanism per #506 D5: narrative + 6KB inline threshold + sidecars + LEGACY-REPORT.md + deft-directive-sync Phase 6c.",
+    "created": "2026-04-21T17:18:00Z"
+  },
+  "plan": {
+    "id": "rc3-505-legacy-artifacts",
+    "title": "migrate:vbrief LegacyArtifacts mechanism for non-canonical pre-cutover content (#505)",
+    "status": "running",
+    "tags": ["rc3", "wave-3", "agent-a", "migrator", "sync-skill"],
+    "narratives": {
+      "Overview": "Per #506 D5 locked parameters: LegacyArtifacts narrative per file (single string); 6KB inline threshold with overflow to vbrief/legacy/{stem}-{slug}.md; top-level ## boundary only (substructure preserved inside canonical narratives); PRD.md section-name diff only (OQ3-b), hand-edited sections captured with warning prefix; vbrief/migration/LEGACY-REPORT.md emitted; deft-directive-sync Phase 6c reviews and renames to LEGACY-REPORT.reviewed.md; files never deleted. Known-mappings hard-coded for v0.20 (shared with #495); normalization = case-insensitive + whitespace-collapsed + punctuation-stripped + word-separator-tolerant.",
+      "Problem": "Migrator either drops non-canonical sections (data loss) or dumps the whole pre-cutover file into SpecificationContent (opaque wall of escaped markdown). Neither is acceptable.",
+      "Action": "Edit scripts/migrate_vbrief.py to: (1) emit LegacyArtifacts narrative on specification.vbrief.json and PROJECT-DEFINITION.vbrief.json when non-canonical sections present; (2) capture rule at top-level ## boundaries; (3) apply known-mappings list (hard-coded v0.20); (4) sidecar overflow at 6KB to vbrief/legacy/{stem}-{slug}.md with pointer; (5) PRD.md section-name diff, warning prefix on hand-edited; (6) emit vbrief/migration/LEGACY-REPORT.md with suggested dispositions; (7) extend skills/deft-directive-sync/SKILL.md with Phase 6c Legacy Artifact Review; (8) migrator summary stdout announces capture.",
+      "Test": "Synthetic fixtures under deft/tests/fixtures/ cover: (a) all-canonical no-legacy no-op; (b) small inline legacy; (c) >6KB sidecar; (d) PRD hand-edit warning; (e) section-title normalization variants. Assert LEGACY-REPORT.md format; assert .reviewed.md rename semantics; assert nothing deleted.",
+      "Outcome": "Non-canonical content is preserved, labelled, reviewable, and never silently dropped. Known-mappings shared with #495 so canonical extraction and legacy capture agree on what is canonical."
+    },
+    "items": [
+      {"id": "505-directive", "status": "running", "title": "Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit"},
+      {"id": "505-1", "status": "running", "title": "LegacyArtifacts narrative per file (specification.vbrief.json, PROJECT-DEFINITION.vbrief.json)"},
+      {"id": "505-2", "status": "running", "title": "Capture rule: top-level ## boundaries only; substructure preserved inside canonical narratives"},
+      {"id": "505-3", "status": "running", "title": "Hard-code known-mappings list per #506 (shared with #495); apply four normalization rules"},
+      {"id": "505-4", "status": "running", "title": "6KB inline threshold; overflow to vbrief/legacy/{stem}-{slug}.md with pointer"},
+      {"id": "505-5", "status": "running", "title": "PRD.md section-name diff (OQ3-b); hand-edited sections get warning prefix"},
+      {"id": "505-6", "status": "running", "title": "Emit vbrief/migration/LEGACY-REPORT.md with suggested dispositions"},
+      {"id": "505-7", "status": "running", "title": "Extend skills/deft-directive-sync/SKILL.md with Phase 6c Legacy Artifact Review (rename to .reviewed.md, never delete)"},
+      {"id": "505-8", "status": "running", "title": "Migrator stdout summary announces legacy capture stats"},
+      {"id": "505-tests", "status": "running", "title": "Synthetic fixture tests for all capture-path branches"},
+      {"id": "505-changelog", "status": "running", "title": "CHANGELOG [Unreleased] entry under Added"}
+    ],
+    "references": [
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/505", "id": "#505"},
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/495", "id": "#495"},
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/506", "id": "#506"}
+    ]
+  }
+}

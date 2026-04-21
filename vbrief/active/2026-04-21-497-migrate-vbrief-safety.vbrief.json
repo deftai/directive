@@ -1,0 +1,36 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.5",
+    "author": "agent:deft-directive-swarm",
+    "description": "migrate:vbrief safety: .premigrate.* backups (always-on), --dry-run opt-in, dirty-tree guard, --rollback.",
+    "created": "2026-04-21T17:18:00Z"
+  },
+  "plan": {
+    "id": "rc3-497-safety",
+    "title": "migrate:vbrief safety: backups, dry-run, dirty-tree guard, rollback (#497)",
+    "status": "running",
+    "tags": ["rc3", "wave-1", "agent-c", "migrator"],
+    "narratives": {
+      "Overview": "Per #506 D7: default is destructive with explicit --dry-run opt-in. Always-on: .premigrate.* backups of pre-cutover inputs before any destructive write; dirty-tree guard refuses without --force; --rollback path available to restore from .premigrate.* and remove generated vBRIEF artifacts.",
+      "Problem": "migrator is a one-way door: no backups, no preview, no dirty-tree guard, no rollback. Recovery today requires git or manual Copy-Item.",
+      "Action": "Edit scripts/migrate_vbrief.py to: copy SPECIFICATION.md/PROJECT.md/ROADMAP.md/PRD.md/specification.vbrief.json to .premigrate.* siblings before destructive writes; implement --dry-run that prints migration plan without writing; implement dirty-tree guard (git status --porcelain non-empty => refuse unless --force); implement --rollback restoring from backups and removing generated artifacts; add .gitignore entries for .premigrate.*; update skills/deft-directive-setup/SKILL.md pre-cutover guard to document flags.",
+      "Test": "Synthetic fixtures under deft/tests/fixtures/ covering: backups emitted + content identical; --dry-run exits 0 without modifying tree; dirty-tree refuses without --force; --rollback restores originals and removes generated files; .gitignore contains .premigrate.* entries.",
+      "Outcome": "Destructive default is safe in practice: every run creates backups, dirty trees are refused, rollback is available. Coordinates with #498 (on validation failure: backups preserved, partial output in vbrief.invalid/)."
+    },
+    "items": [
+      {"id": "497-directive", "status": "running", "title": "Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit"},
+      {"id": "497-1", "status": "running", "title": "Automatic .premigrate.* backups of all pre-cutover inputs"},
+      {"id": "497-2", "status": "running", "title": "Implement --dry-run preview mode (no writes, print plan)"},
+      {"id": "497-3", "status": "running", "title": "Dirty-tree guard (refuse unless --force)"},
+      {"id": "497-4", "status": "running", "title": "Implement --rollback from .premigrate.* backups"},
+      {"id": "497-5", "status": "running", "title": "Update .gitignore to exclude .premigrate.* (opt-in to version)"},
+      {"id": "497-docs", "status": "running", "title": "Update skills/deft-directive-setup/SKILL.md pre-cutover guard and deft/QUICK-START.md to document flags"},
+      {"id": "497-tests", "status": "running", "title": "Synthetic fixture tests for backups, dry-run, dirty-tree refuse, rollback"},
+      {"id": "497-changelog", "status": "running", "title": "CHANGELOG [Unreleased] entry under Added"}
+    ],
+    "references": [
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/497", "id": "#497"},
+      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/506", "id": "#506"}
+    ]
+  }
+}
