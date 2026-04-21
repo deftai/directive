@@ -187,6 +187,13 @@ def parse_spec_tasks(content: str) -> list[dict]:
                         stripped, re.IGNORECASE):
                 in_acceptance = True
                 continue
+            # Blank lines preserve acceptance-capture state -- a blank
+            # line between ``Acceptance criteria:`` and its first bullet
+            # MUST NOT reset ``in_acceptance`` (PR #525 Greptile P1).
+            if not stripped:
+                if not in_acceptance:
+                    description_lines.append(raw)
+                continue
             if stripped.startswith(("-", "*")) and in_acceptance:
                 acceptance.append(re.sub(r"^[-*]\s+", "", stripped))
                 continue
@@ -207,6 +214,12 @@ def parse_spec_tasks(content: str) -> list[dict]:
                 continue
             if stripped.startswith(("-", "*")) and not in_acceptance:
                 # Bullet after description prose -> treat as description.
+                description_lines.append(raw)
+                continue
+            if not stripped:
+                # Blank line: preserve in_acceptance across it so patterns
+                # like ``Acceptance criteria:\n\n- first bullet`` still
+                # capture into the acceptance list (Greptile #525 P1).
                 description_lines.append(raw)
                 continue
             description_lines.append(raw)

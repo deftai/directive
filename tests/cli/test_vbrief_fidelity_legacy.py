@@ -193,6 +193,29 @@ SAMPLE_SPEC = (
 
 
 class TestParseSpecTasks:
+    def test_acceptance_criteria_survive_blank_line_after_header(self) -> None:
+        """Regression for PR #525 Greptile P1: blank line between
+        ``Acceptance criteria:`` header and the first bullet must NOT
+        reset the acceptance-capture state.  Common SPEC.md formatting
+        puts a blank line after the label for readability.
+        """
+        spec = (
+            "# Test Spec\n\n"
+            "## Implementation\n\n"
+            "### t9.9.9 -- With blank-line header\n\n"
+            "Body paragraph.\n\n"
+            "Acceptance criteria:\n\n"  # <- blank line here is the trap
+            "- crit A\n"
+            "- crit B\n"
+        )
+        tasks = parse_spec_tasks(spec)
+        assert len(tasks) == 1
+        task = tasks[0]
+        assert "crit A" in task["acceptance"]
+        assert "crit B" in task["acceptance"]
+        # And the body paragraph didn't get misrouted.
+        assert "Body paragraph." in task["body"]
+
     def test_extracts_task_body_and_depends(self) -> None:
         tasks = parse_spec_tasks(SAMPLE_SPEC)
         assert len(tasks) == 2
