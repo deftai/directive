@@ -170,6 +170,29 @@ class TestSlugifyIdCollisionDisambiguation:
         assert slugify_id("hello", None) == "hello"
         assert slugify_id("hello", None) == "hello"  # second call, no change
 
+    def test_hash_suffix_perturbs_on_double_collision(self):
+        """If the base+hash candidate itself collides, the loop perturbs the
+        seed with ``|1|2...`` suffixes until a unique candidate is found.
+        Seeds the existing set with the canonical slug AND its first hash
+        candidate so the else-branch runs."""
+        import hashlib
+
+        raw = "collision me"
+        text = raw.strip()
+        base_slug = "collision-me"
+        first_hash = hashlib.sha1(text.encode("utf-8")).hexdigest()[:6]
+        first_candidate = f"{base_slug}-{first_hash}"
+        existing: set[str] = {base_slug, first_candidate}
+
+        result = slugify_id(raw, existing)
+        # Must not be the canonical slug nor the first candidate
+        assert result != base_slug
+        assert result != first_candidate
+        # But must still start with the base prefix
+        assert result.startswith(f"{base_slug}-")
+        # And be registered in the set
+        assert result in existing
+
     def test_truncated_slug_still_disambiguates(self):
         # A slug already at the 80-char ceiling that collides must shrink to
         # make room for the hash suffix without exceeding the ceiling.
@@ -303,6 +326,43 @@ class TestIsolateInvalidOutput:
 
     def test_returns_none_when_vbrief_missing(self, tmp_path):
         assert isolate_invalid_output(tmp_path, tmp_path / "vbrief") is None
+
+
+class TestFinalizeMigrationCrossVolume:
+    """Covers the rel_invalid ValueError fallback in finalize_migration.
+
+    When ``vbrief.invalid/`` lives outside ``project_root`` (e.g. different
+    volume on a scratch setup) ``Path.relative_to`` raises ``ValueError`` and
+    we fall through to the absolute-path string. This guards that fallback.
+    """
+
+    def test_failure_path_uses_absolute_path_when_not_relative(
+        self, tmp_path, monkeypatch, capsys
+    ):
+        import scripts._vbrief_validation as mod  # type: ignore[import-not-found]
+
+        vbrief = tmp_path / "vbrief"
+        vbrief.mkdir()
+        (vbrief / "PROJECT-DEFINITION.vbrief.json").write_text(
+            json.dumps({"vBRIEFInfo": {"version": "0.5"}, "plan": {}}),
+            encoding="utf-8",
+        )
+
+        # Patch isolate_invalid_output to return a path that is NOT a
+        # subpath of project_root so relative_to raises ValueError.
+        external = tmp_path.parent / "external-vbrief.invalid"
+        external.mkdir(exist_ok=True)
+        monkeypatch.setattr(
+            mod, "isolate_invalid_output", lambda _root, _vbrief: external
+        )
+
+        ok, actions = mod.finalize_migration(tmp_path, vbrief, ["seed"])
+        assert ok is False
+        # The absolute external path surfaces in the MOVE action line.
+        assert any(str(external) in a for a in actions)
+
+        captured = capsys.readouterr()
+        assert str(external) in captured.err
 
 
 # ---------------------------------------------------------------------------
