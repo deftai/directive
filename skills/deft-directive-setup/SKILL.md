@@ -44,13 +44,33 @@ A project is **pre-cutover** if ANY of the following are true:
 - `PROJECT.md` with real content: "PROJECT.md contains non-redirect content -- this file is deprecated; use `PROJECT-DEFINITION.vbrief.json` instead"
 - Missing `PROJECT-DEFINITION.vbrief.json`: "Run `task project:render` to generate the project definition"
 
-! After displaying the diagnostic message, ask the user: "Would you like me to run `task migrate:vbrief` now?"
-- If yes: run the migration command, then re-run the pre-cutover detection guard to verify clean state before proceeding
-- If no: stop and let the user handle migration manually
+### Environment Preflight (before asking to run migration)
+
+! Before asking the user "Would you like me to run `task migrate:vbrief` now?", run an environment preflight and report the results to the user. Do NOT ask the yes/no prompt until preflight results have been reported. Each failing check must be surfaced with a specific fix pointer so the user (or agent) can resolve the blocker before approving the run.
+
+Run these three checks, in order:
+
+1. **Task resolvability** -- check whether `task migrate:vbrief` is dispatchable from the project root:
+   - Run `task --list` (or platform-equivalent) and grep the output for a line containing `migrate:vbrief`.
+   - If present: the primary command works from the project root -- canonical invocation is `task migrate:vbrief`.
+   - If absent: the consumer `Taskfile.yml` does not include `deft/Taskfile.yml`. Fall back to the explicit-taskfile invocation `task -t ./deft/Taskfile.yml migrate:vbrief` and tell the user: "`task migrate:vbrief` is not resolvable from the project root. I will use the fallback invocation `task -t ./deft/Taskfile.yml migrate:vbrief`, which reads the task directly from the framework Taskfile. To make the primary command work in future, add an include for `deft/Taskfile.yml` to your project `Taskfile.yml` — see `deft/main.md` § Publishing deft tasks in your project root."
+2. **`uv` on PATH** -- the migrator runs `uv run python scripts/migrate_vbrief.py`. Check `uv --version` (or equivalent): if it fails, point the user at the uv install docs (`https://docs.astral.sh/uv/`) and stop; migration cannot run without `uv`.
+3. **Migration script present** -- check `deft/scripts/migrate_vbrief.py` exists on disk. If absent, the `deft/` checkout is incomplete or came from a pre-v0.20 framework version; point the user at `deft/QUICK-START.md` (framework refresh guidance) and stop.
+
+! Report each preflight check's result to the user (e.g. "✓ task migrate:vbrief resolvable", "✗ uv not on PATH — install from https://docs.astral.sh/uv/") BEFORE prompting for yes/no approval. If any check fails, do NOT offer to run migration until it is resolved.
+
+⊗ Skip preflight and immediately ask "Would you like me to run `task migrate:vbrief` now?" -- preflight catches preventable errors (unresolvable task, missing `uv`, missing script) before the user commits to running migration.
+⊗ Propose an install-step mutation that writes `migrate:vbrief` content into the consumer Taskfile. The supported publish mechanism is the `includes: deft: deft/Taskfile.yml` pattern documented in `deft/main.md` § Publishing deft tasks in your project root; inline Taskfile mutation is explicitly out of scope (per #506 D6).
+
+### Prompt and Run
+
+! After preflight results are reported (and all checks pass), ask the user: "Would you like me to run `task migrate:vbrief` now?"
+- If yes: run the migration command (use the fallback invocation `task -t ./deft/Taskfile.yml migrate:vbrief` if the preflight resolvability check found the primary task unresolvable). Then re-run the pre-cutover detection guard to verify clean state before proceeding.
+- If no: stop and let the user handle migration manually.
 
 ⊗ Proceed with setup phases when pre-cutover artifacts are detected -- always redirect to migration first.
 ⊗ Silently ignore pre-cutover artifacts -- the user must be informed with an actionable command to fix the state.
-⊗ Display the migration diagnostic without offering to run it -- always ask the user if they want the agent to handle it.
+⊗ Display the migration diagnostic without offering to run it -- always ask the user if they want the agent to handle it (after preflight has passed).
 
 ### Greenfield Projects (No Migration Needed)
 

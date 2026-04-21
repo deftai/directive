@@ -83,6 +83,83 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 **See [vbrief/vbrief.md](./vbrief/vbrief.md) for the full taxonomy, lifecycle rules, and tool mappings.**
 
+## Migrating from pre-v0.20
+
+Projects that pre-date v0.20 (pre-vBRIEF-centric model) can be upgraded with `task migrate:vbrief`. This section tells you how to recognize a pre-cutover project, how to run the migrator from the project root, and what the migrator produces. Cross-linked from [QUICK-START.md](./QUICK-START.md) Case H / Case I and from the consumer `AGENTS.md` pre-cutover branch (see [templates/agents-entry.md](./templates/agents-entry.md)).
+
+### What pre-cutover looks like
+
+A consumer project is **pre-cutover** if ANY of these hold:
+
+- `SPECIFICATION.md` or `PROJECT.md` exists at the project root and does NOT contain the `<!-- deft:deprecated-redirect -->` sentinel (real content, not a post-migration redirect stub)
+- `vbrief/` exists but one or more of the five lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) is missing
+- `vbrief/PROJECT-DEFINITION.vbrief.json` is absent on a project that otherwise looks set up
+
+The full detection flow that agents use lives in [QUICK-START.md](./QUICK-START.md) Step 2 and in [skills/deft-directive-setup/SKILL.md](./skills/deft-directive-setup/SKILL.md) (Pre-Cutover Detection Guard).
+
+### Publishing deft tasks in your project root
+
+! The recommended way to make `task migrate:vbrief` (and every other `task *` deft ships) resolvable from the project root is to add a deft include to your project-root `Taskfile.yml`. With the include in place, `task --list` from the project root shows every deft task, and `task migrate:vbrief` dispatches into `deft/Taskfile.yml` the same way any other included taskfile works:
+
+```yaml
+version: '3'
+
+includes:
+  deft:
+    taskfile: ./deft/Taskfile.yml
+    optional: true
+```
+
+- ~ The `optional: true` flag keeps the include from failing the Taskfile load if `deft/` has not yet been cloned into the project.
+- ~ If you already include other taskfiles, just add the `deft:` entry alongside them.
+- ⊗ Do NOT add an `install`-step mutation that writes migrate-task content into the project Taskfile. The include pattern above is the supported publish mechanism; inline mutation is explicitly out of scope (per #506 D6).
+
+### Canonical migration command
+
+From the project root, once the consumer `Taskfile.yml` includes `deft/Taskfile.yml` as shown above, run:
+
+```
+task migrate:vbrief
+```
+
+! If the task is not resolvable from the project root (e.g. the consumer `Taskfile.yml` has not yet been wired up to include `deft/Taskfile.yml`), use the explicit-taskfile fallback invocation:
+
+```
+task -t ./deft/Taskfile.yml migrate:vbrief
+```
+
+The fallback reads `migrate:vbrief` directly out of the framework's own Taskfile and works even when the project-root Taskfile has no `includes:` entry for deft. The primary invocation is preferred once the include is in place.
+
+### What migration produces
+
+The migrator replaces `SPECIFICATION.md` and `PROJECT.md` with deprecation-redirect stubs (both carry the `<!-- deft:deprecated-redirect -->` sentinel) and writes:
+
+- `vbrief/PROJECT-DEFINITION.vbrief.json` — project identity gestalt (narratives + items registry)
+- `vbrief/specification.vbrief.json` — design narratives and requirements
+- Five lifecycle folders under `vbrief/` (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) populated from parsed ROADMAP.md items with origin provenance
+- `vbrief/migration/RECONCILIATION.md` — reconciliation report when SPEC and ROADMAP drift from each other during migration (see #496)
+- `vbrief/migration/LEGACY-REPORT.md` — captured non-canonical content record (see #495 / #505); non-canonical sections are preserved in a `LegacyArtifacts` narrative or sidecar file under `vbrief/legacy/`
+
+Consult `vbrief/migration/RECONCILIATION.md` when the migrator reports drift; it is the single source of truth for per-task reconciliation overrides (see `vbrief/migration-overrides.yaml`).
+
+### Safety flags
+
+The migrator ships with four flags (see #497):
+
+- `--dry-run` — preview every write without touching the working tree
+- `--rollback` — restore from `.premigrate.*` backups created on the first migration pass
+- `--strict` — refuse to produce output that would not pass `task vbrief:validate`
+- `--force` — bypass the dirty-working-tree guard (default is to refuse when the tree has uncommitted changes)
+
+~ Run a `--dry-run` pass first on any project with non-trivial SPEC / ROADMAP content so you can read `RECONCILIATION.md` / `LEGACY-REPORT.md` before committing to the change. Backups (`.premigrate.*`) are always created before any destructive write — `--rollback` restores them.
+
+### Cross-references
+
+- [QUICK-START.md](./QUICK-START.md) Step 2 (Case H, Case I) — the agent-side detection flow
+- [skills/deft-directive-setup/SKILL.md](./skills/deft-directive-setup/SKILL.md) — the Pre-Cutover Detection Guard and preflight checks
+- [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) — the authoritative adoption guide for existing projects
+- [UPGRADING.md](./UPGRADING.md) — version-by-version upgrade checklist
+
 ## Continuous Improvement
 
 **Learning:**
