@@ -381,28 +381,46 @@ def rollback(
         if not prompt_fn(summary):
             return False, ["Rollback aborted by operator."]
 
-    # 3. Restore backups.
-    missing_backups: list[str] = []
+    # 3. Pre-flight: make sure every recorded backup file is still on disk
+    # BEFORE we start restoring.  If any is missing we refuse the rollback
+    # entirely rather than do a partial restore that would leave some sources
+    # as deprecation stubs while also deleting the manifest (which would make
+    # a retry impossible).  Greptile P1 on #497: the prior implementation
+    # appended a warning and proceeded to (True, ...), printing a misleading
+    # "Rollback completed successfully" while half the tree was still stubs.
+    missing_backups = [
+        record.backup
+        for record in manifest.backups
+        if not (project_root / record.backup).is_file()
+    ]
+    if missing_backups:
+        lines = [
+            "ERROR: Backup file(s) missing -- cannot restore all sources:",
+            *[f"  - {p}" for p in missing_backups],
+            (
+                "Manifest preserved for investigation. Resolve the missing "
+                ".premigrate.* file(s) (or restore from VCS) and retry "
+                "`task migrate:vbrief -- --rollback`."
+            ),
+        ]
+        return False, actions + lines
+
     for record in manifest.backups:
         backup_path = project_root / record.backup
         source_path = project_root / record.source
-        if not backup_path.is_file():
-            missing_backups.append(record.backup)
-            continue
         source_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(backup_path, source_path)
         actions.append(
             f"RESTORE {record.source} <- {record.backup} ({record.size_bytes} bytes)"
         )
 
-    if missing_backups:
-        actions.append(
-            "WARNING: missing backup file(s) -- sources not restored: "
-            + ", ".join(missing_backups)
-        )
-
-    # 4. Remove migrator-created files.  Sort deepest-first so rmdir on
-    # created_dirs below has a chance at emptying parents cleanly.
+    # 4. Remove migrator-created files ONLY -- scoped strictly to
+    # manifest.created_files so rollback of this wave's run never deletes
+    # artefacts written by sibling waves that share `vbrief/migration/` or
+    # `vbrief/legacy/` (Agent D #498 writes validation-failure output there;
+    # Agent G #505 writes oversize legacy sections there).  Greptile P2 on
+    # #497.  Sort deepest-first so directory-removal in step 5 has a chance
+    # at emptying parents cleanly.
     for rel in sorted(manifest.created_files, key=lambda p: -p.count("/")):
         path = project_root / rel
         if path.is_file():
@@ -410,19 +428,6 @@ def rollback(
             actions.append(f"REMOVE {rel}")
         else:
             actions.append(f"SKIP   {rel} (already absent)")
-
-    # Also remove migration-report / legacy files the migrator writes, other
-    # than the manifest itself (that comes last so failures leave a trail).
-    for sub in (MIGRATION_DIR, LEGACY_DIR):
-        subdir = project_root / "vbrief" / sub
-        if not subdir.is_dir():
-            continue
-        for entry in sorted(subdir.glob("*")):
-            if entry.name == SAFETY_MANIFEST_NAME:
-                continue
-            if entry.is_file():
-                entry.unlink()
-                actions.append(f"REMOVE {_rel(project_root, entry)}")
 
     # 5. Remove migrator-created directories (only if now-empty) -- also
     # sorted deepest-first.

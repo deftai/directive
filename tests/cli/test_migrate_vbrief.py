@@ -1919,6 +1919,66 @@ class TestSafetyRollback:
         assert "Rollback completed successfully" in result.stdout
         assert not list(project.glob("*.premigrate.*"))
 
+    def test_rollback_refuses_when_backup_file_missing(self, tmp_path):
+        """Greptile P1 on #497: missing backup MUST fail-fast with manifest preserved.
+
+        Before this fix the rollback printed a warning and then returned
+        (True, ...), deleting the manifest on the way out -- which left the
+        tree half-restored (some sources still deprecation stubs) with no
+        way to retry.
+        """
+        project = _make_safety_project(tmp_path)
+        migrate(project)
+        # Simulate a human / VCS / tooling mishap that removed a backup.
+        (project / "SPECIFICATION.premigrate.md").unlink()
+        ok, messages = safety_rollback(project, force=True)
+        assert not ok
+        assert any("Backup file(s) missing" in m for m in messages)
+        assert any("Manifest preserved" in m for m in messages)
+        # Retry affordance: manifest + the other backups are still on disk.
+        assert manifest_path(project).is_file()
+        assert (project / "PROJECT.premigrate.md").is_file()
+        # And the deprecation stub is still a stub (no partial restore).
+        assert DEPRECATION_SENTINEL in (
+            project / "SPECIFICATION.md"
+        ).read_text(encoding="utf-8")
+
+    def test_rollback_preserves_sibling_wave_artefacts(self, tmp_path):
+        """Greptile P2 on #497: rollback must only remove files in manifest.
+
+        Sibling agents -- Agent D (#498) writes validation-failure output to
+        `vbrief/vbrief.invalid/`, and Agent G (#505) writes oversize captures
+        to `vbrief/legacy/` / report files to `vbrief/migration/`.  A
+        rollback of THIS wave's migration must not delete files written by
+        those waves; the scope is limited to `manifest.created_files`.
+        """
+        project = _make_safety_project(tmp_path)
+        migrate(project)
+        # Stage an unrelated file in vbrief/migration/ as if a sibling wave
+        # wrote it (not in the manifest's created_files).
+        sibling = project / "vbrief" / "migration" / "RECONCILIATION.md"
+        sibling.write_text(
+            "sibling-wave artefact (not written by this migration)\n",
+            encoding="utf-8",
+        )
+        # Similarly stage a file under vbrief/legacy/.
+        legacy_dir = project / "vbrief" / "legacy"
+        legacy_dir.mkdir(parents=True, exist_ok=True)
+        legacy_sibling = legacy_dir / "oversize.md"
+        legacy_sibling.write_text("legacy capture\n", encoding="utf-8")
+
+        ok, _ = safety_rollback(project, force=True)
+        assert ok
+        # Sibling-wave artefacts MUST survive.
+        assert sibling.is_file(), (
+            "rollback deleted a file in vbrief/migration/ that was NOT in "
+            "the manifest's created_files (Greptile P2 regression)"
+        )
+        assert legacy_sibling.is_file(), (
+            "rollback deleted a file in vbrief/legacy/ that was NOT in the "
+            "manifest's created_files (Greptile P2 regression)"
+        )
+
 
 class TestSafetyGitignore:
     """Task 497-5: .gitignore excludes .premigrate.* by default."""
