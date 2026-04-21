@@ -65,10 +65,11 @@ def _normalize_narrative_key(key: str) -> str:
     Lowercases, strips whitespace, and collapses word separators so
     ``TechStack`` / ``Tech Stack`` / ``tech stack`` / ``tech-stack`` all
     compare equal to the canonical ``techstack`` key (#506 D3 / D5).
+    Uses the module-level ``re`` already imported at the top of the file
+    (PR #525 Greptile P2 review).
     """
-    import re as _re  # noqa: WPS433 -- scoped helper
     low = (key or "").lower()
-    return _re.sub(r"[\s_\-]+", "", low)
+    return re.sub(r"[\s_\-]+", "", low)
 
 # D11: origin reference type patterns
 ORIGIN_TYPES = frozenset({
