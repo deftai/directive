@@ -365,7 +365,12 @@ class TestProjectDefinitionValidation:
         assert "overview" in result.stdout.lower()
 
     def test_missing_tech_stack_narrative(self, tmp_path):
-        """Missing 'tech stack' narrative key is an error (D3)."""
+        """Missing TechStack narrative key is an error (D3).
+
+        Post-#506 D3 the canonical narrative key is PascalCase
+        ``TechStack``; the validator error uses the normalized form
+        ``techstack`` (whitespace-insensitive per #506 D5).
+        """
         vbrief_dir = tmp_path / "vbrief"
         vbrief_dir.mkdir()
         write_vbrief(
@@ -378,7 +383,10 @@ class TestProjectDefinitionValidation:
         )
         result = run_validator(vbrief_dir)
         assert result.returncode == 1
-        assert "tech stack" in result.stdout.lower()
+        # Accept either the historic ``tech stack`` error string or the
+        # normalized ``techstack`` form emitted post-#506 D3.
+        lowered = result.stdout.lower()
+        assert "tech stack" in lowered or "techstack" in lowered
 
     def test_items_reference_nonexistent_file(self, tmp_path):
         """Items referencing nonexistent scope vBRIEF is an error (D3)."""

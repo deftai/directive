@@ -204,6 +204,36 @@ After structure validation, sync framework-level assets.
 2. ~ For each new skill, read its frontmatter `description` field and present a one-liner
 3. ~ Mention if any existing skills were updated (changed files)
 
+## Phase 6c -- Legacy Artifact Review (post-migration, one-time)
+
+! If `vbrief/migration/LEGACY-REPORT.md` exists (and has NOT been renamed to `LEGACY-REPORT.reviewed.md`), walk the operator through each captured legacy section and record their disposition inline in the same file. This phase surfaces the non-canonical content that `task migrate:vbrief` preserved via the `LegacyArtifacts` narrative mechanism (#505).
+
+### Detection
+
+1. ! Check for `vbrief/migration/LEGACY-REPORT.md` in the project root.
+2. ! If the file is absent or `LEGACY-REPORT.reviewed.md` exists (reviewed form), skip Phase 6c silently and proceed to Phase 7.
+3. ! If `LEGACY-REPORT.md` is present and has NOT been renamed, begin the review loop below.
+
+### Review loop
+
+1. ! Present the report summary (sources + per-bucket section counts) to the user.
+2. ! For each captured section listed under `## specification.vbrief.json -> LegacyArtifacts`, `## PROJECT-DEFINITION.vbrief.json -> LegacyArtifacts`, and `## PRD.md content (flagged: hand-edited)`:
+   - Restate the section title, source file + line range, and size.
+   - Offer exactly three disposition options: **Keep** (leave inside `LegacyArtifacts`), **Fold into {suggested narrative}** (move into a canonical narrative key), or **Drop** (remove from `LegacyArtifacts`, with explicit user confirmation).
+   - ~ If a sidecar pointer is present (`vbrief/legacy/{stem}-{slug}.md`), open the sidecar for the user before offering options so the full content is visible.
+3. ! Record each disposition inline in the same `LEGACY-REPORT.md` file under a new `## Reviewed` section with one entry per legacy item: original section, user's decision, target location (if folded) or confirmation note (if kept/dropped), and the reviewer's timestamp.
+4. ! For a **Fold** decision, the agent updates the target vBRIEF's narrative key AND deletes only the corresponding section from the `LegacyArtifacts` narrative -- never the file.
+5. ! For a **Drop** decision, the agent removes only the corresponding section from the `LegacyArtifacts` narrative.
+6. ! Once all sections carry a recorded disposition, rename the file to `LEGACY-REPORT.reviewed.md`. The file is kept so the audit trail remains -- ⊗ MUST NOT delete either form.
+
+### Anti-patterns
+
+- ⊗ Delete `LEGACY-REPORT.md` or `LEGACY-REPORT.reviewed.md` -- these are the migration audit trail and MUST persist.
+- ⊗ Auto-dispose of legacy artifacts without user input -- every section requires an explicit decision.
+- ⊗ Rename to `.reviewed.md` before every captured section has a recorded disposition in the `## Reviewed` section.
+- ⊗ Drop a legacy section without explicit user confirmation (even if the section looks obviously stale).
+- ⊗ Silently delete sidecar files under `vbrief/legacy/` -- they are referenced from `LegacyArtifacts` and are part of the audit trail.
+
 ## Phase 7 -- Summary
 
 ! Present a consolidated summary to the user covering:
