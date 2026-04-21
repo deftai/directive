@@ -1798,6 +1798,21 @@ class TestSafetyDirtyTreeGuard:
         ok, _ = migrate(project)
         assert ok
 
+    def test_dry_run_bypasses_dirty_tree_guard(self, tmp_path):
+        # Regression for Greptile #509 P1: --dry-run is read-only, so the
+        # dirty-tree guard MUST NOT refuse it. Operators are encouraged to
+        # preview BEFORE committing pending edits; requiring --force to preview
+        # would defeat the purpose of dry-run.
+        project = _make_safety_project(tmp_path)
+        self._init_git_repo(project)
+        (project / "NOTES.md").write_text("wip notes\n", encoding="utf-8")
+        ok, actions = migrate(project, dry_run=True)
+        assert ok, actions
+        # Dry-run must NOT have written backups or the manifest despite the
+        # dirty tree being present.
+        assert not (project / "SPECIFICATION.premigrate.md").exists()
+        assert not manifest_path(project).exists()
+
 
 class TestSafetyRollback:
     """Task 497-4: rollback restores originals and removes generated artefacts."""

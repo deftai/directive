@@ -609,7 +609,11 @@ def migrate(
     # Dirty-tree guard (#497-3): refuse on a non-clean git status unless the
     # operator passes --force.  Runs BEFORE any filesystem mutation so a
     # dirty-tree refusal leaves the project in its exact pre-run state.
-    if not force and is_tree_dirty(project_root):
+    # --dry-run is explicitly exempt (Greptile #509 P1): dry-run is read-only,
+    # cannot corrupt state, and operators are encouraged to preview BEFORE
+    # committing any pending edits. Pairing --force with --dry-run to preview
+    # on an unfamiliar project would defeat the purpose of dry-run.
+    if not force and not dry_run and is_tree_dirty(project_root):
         return False, [dirty_tree_refusal_message()]
 
     # Always-on backups (#497-1): copy every pre-cutover input to its
