@@ -84,6 +84,20 @@ Run these three checks, in order:
 
 ~ This is already handled by Phase 2 Output Path (creates `./vbrief/` and lifecycle subfolders) and Phase 3 Output (creates scope vBRIEFs in lifecycle folders). The guard ensures migrating projects are redirected before reaching these phases.
 
+### Migration safety flags
+
+`task migrate:vbrief` is destructive by default (it replaces `SPECIFICATION.md` and `PROJECT.md` with redirect stubs and rewrites `vbrief/`), but it carries four always-on / on-demand safety affordances so operators can preview, recover, and undo (#497, #506 D7). Agents offering to run migration MUST mention these and pick the right one for the operator's situation.
+
+- ! **Automatic `.premigrate.*` backups (always-on, no flag)**: before any destructive write the migrator copies every pre-cutover input to its `.premigrate` sibling -- `SPECIFICATION.md` -> `SPECIFICATION.premigrate.md`, `PROJECT.md` -> `PROJECT.premigrate.md`, `ROADMAP.md` -> `ROADMAP.premigrate.md`, `PRD.md` -> `PRD.premigrate.md` (only if present), and `vbrief/specification.vbrief.json` -> `vbrief/specification.premigrate.vbrief.json`. Each backup emits a `BACKUP <src> -> <dst> (<N> bytes)` line in the migration output. These files are `.gitignore`d by default so they do not leak into commits; operators who want them versioned can remove the patterns.
+- ! **`task migrate:vbrief -- --dry-run` (preview)**: prints the complete migration plan (every proposed backup, lifecycle folder, narrative ingestion, scope vBRIEF, and deprecation-redirect replacement) prefixed `DRYRUN` without writing any file. Exits 0 on success. Use this before running migration for the first time on an unfamiliar project.
+- ! **Dirty-tree guard (always-on)**: if `git status --porcelain` is non-empty the migrator refuses to run and points the operator at `--force`. Keeps migration output separable from in-progress edits. Bypass with `task migrate:vbrief -- --force` only after confirming the operator has accepted the risk.
+- ! **`task migrate:vbrief -- --rollback`**: restores every pre-cutover input from its `.premigrate.*` backup and removes the scope vBRIEFs and migration-report files a prior run created. Reads `vbrief/migration/safety-manifest.json` (written by the migrator). Refuses if any redirect stub has been edited since migration -- re-run with `--force` to overwrite those edits on purpose, or commit them before rolling back. Prompts for a yes/no confirmation unless `--force` is passed.
+
+! When a user declines an in-flight migration or reports an incorrect result, offer `task migrate:vbrief -- --rollback` before asking them to edit files by hand.
+
+⊗ Offer `task migrate:vbrief` without also telling the user about `--dry-run` when they sound hesitant -- previewing is free and catches reconciliation surprises that would otherwise land in a commit.
+⊗ Suggest `git reset --hard` or manual file deletion as a recovery path when `--rollback` would do the right thing more safely.
+
 ## Platform Detection
 
 ! Before resolving any config paths, detect the host OS from your environment context:

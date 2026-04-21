@@ -39,6 +39,14 @@ from migrate_vbrief import (  # noqa: E402, I001
     migrate,
     migrate_speckit_plan,
 )
+from _vbrief_safety import (  # noqa: E402, I001
+    PREMIGRATE_SUFFIX,
+    SafetyManifest,
+    load_safety_manifest,
+    manifest_path,
+    premigrate_sibling,
+    rollback as safety_rollback,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -1547,3 +1555,400 @@ class TestMigrateSpeckitPlan:
         assert result.returncode == 0, result.stderr
         pending = list((tmp_path / "vbrief" / "pending").glob("*.vbrief.json"))
         assert len(pending) == 1
+
+
+# ===========================================================================
+# #497 -- migrate:vbrief safety: backups, dry-run, dirty-tree, rollback
+# ===========================================================================
+
+
+_SAFETY_FIXTURE_DIR = REPO_ROOT / "tests" / "fixtures" / "safety"
+
+
+def _make_safety_project(tmp_path: Path) -> Path:
+    """Seed a tmp project using the synthetic fixtures under tests/fixtures/safety/.
+
+    Fixtures are intentionally synthetic (per #497-tests constraint: no slizard
+    or external data).  This helper copies them into ``tmp_path`` so each test
+    operates on an isolated, disposable project root.
+    """
+    spec = (_SAFETY_FIXTURE_DIR / "SPECIFICATION.md").read_text(encoding="utf-8")
+    project = (_SAFETY_FIXTURE_DIR / "PROJECT.md").read_text(encoding="utf-8")
+    roadmap = (_SAFETY_FIXTURE_DIR / "ROADMAP.md").read_text(encoding="utf-8")
+    return _make_project(
+        tmp_path,
+        spec_md=spec,
+        project_md=project,
+        roadmap_md=roadmap,
+    )
+
+
+class TestSafetyFixtures:
+    """Confirm the synthetic fixtures under tests/fixtures/safety/ exist."""
+
+    def test_fixture_dir_exists(self):
+        assert _SAFETY_FIXTURE_DIR.is_dir(), (
+            "tests/fixtures/safety/ must exist (#497-tests)"
+        )
+
+    def test_required_fixtures_present(self):
+        for name in ("SPECIFICATION.md", "PROJECT.md", "ROADMAP.md"):
+            assert (_SAFETY_FIXTURE_DIR / name).is_file(), (
+                f"tests/fixtures/safety/{name} is required by safety tests"
+            )
+
+    def test_premigrate_sibling_preserves_suffix_chain(self):
+        """`.premigrate` sits between stem and suffix chain -- not at the end."""
+        assert (
+            premigrate_sibling(Path("SPECIFICATION.md")).name
+            == "SPECIFICATION.premigrate.md"
+        )
+        assert (
+            premigrate_sibling(Path("vbrief/specification.vbrief.json")).name
+            == "specification.premigrate.vbrief.json"
+        )
+
+
+class TestSafetyBackups:
+    """Task 497-1: every pre-cutover input gets a `.premigrate.*` sibling."""
+
+    def test_backups_written_for_each_root_markdown_input(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        ok, actions = migrate(project)
+        assert ok, actions
+        assert (project / "SPECIFICATION.premigrate.md").is_file()
+        assert (project / "PROJECT.premigrate.md").is_file()
+        assert (project / "ROADMAP.premigrate.md").is_file()
+
+    def test_backup_contents_match_pre_cutover_bytes(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        spec_before = (project / "SPECIFICATION.md").read_bytes()
+        project_before = (project / "PROJECT.md").read_bytes()
+        roadmap_before = (project / "ROADMAP.md").read_bytes()
+        ok, _ = migrate(project)
+        assert ok
+        assert (project / "SPECIFICATION.premigrate.md").read_bytes() == spec_before
+        assert (project / "PROJECT.premigrate.md").read_bytes() == project_before
+        assert (project / "ROADMAP.premigrate.md").read_bytes() == roadmap_before
+
+    def test_prd_backed_up_when_present(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        (project / "PRD.md").write_text("# PRD fixture\n", encoding="utf-8")
+        ok, _ = migrate(project)
+        assert ok
+        assert (project / "PRD.premigrate.md").is_file()
+
+    def test_vbrief_json_backed_up_when_present(self, tmp_path):
+        project = _make_project(tmp_path, spec_vbrief=SAMPLE_SPEC_VBRIEF)
+        ok, _ = migrate(project)
+        assert ok
+        assert (
+            project / "vbrief" / "specification.premigrate.vbrief.json"
+        ).is_file()
+
+    def test_each_backup_logs_a_backup_line(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        ok, actions = migrate(project)
+        assert ok
+        backup_lines = [a for a in actions if a.startswith("BACKUP ")]
+        # SPECIFICATION.md, PROJECT.md, ROADMAP.md -- PRD/vBRIEF absent here.
+        assert len(backup_lines) == 3
+        assert any("SPECIFICATION.md" in line for line in backup_lines)
+
+    def test_safety_manifest_records_every_backup(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        ok, _ = migrate(project)
+        assert ok
+        manifest = load_safety_manifest(project)
+        assert manifest is not None
+        sources = {record.source for record in manifest.backups}
+        assert sources == {"SPECIFICATION.md", "PROJECT.md", "ROADMAP.md"}
+        assert all(r.size_bytes > 0 for r in manifest.backups)
+
+
+class TestSafetyDryRun:
+    """Task 497-2: --dry-run exits 0 without modifying the filesystem."""
+
+    def test_dry_run_does_not_create_lifecycle_folders(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        ok, actions = migrate(project, dry_run=True)
+        assert ok, actions
+        for folder in LIFECYCLE_FOLDERS:
+            assert not (project / "vbrief" / folder).exists(), (
+                f"dry-run must NOT create lifecycle folder vbrief/{folder}/"
+            )
+
+    def test_dry_run_does_not_write_backups(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        ok, _ = migrate(project, dry_run=True)
+        assert ok
+        assert not (project / "SPECIFICATION.premigrate.md").exists()
+        assert not (project / "PROJECT.premigrate.md").exists()
+
+    def test_dry_run_does_not_replace_markdown_stubs(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        spec_before = (project / "SPECIFICATION.md").read_text(encoding="utf-8")
+        project_before = (project / "PROJECT.md").read_text(encoding="utf-8")
+        ok, _ = migrate(project, dry_run=True)
+        assert ok
+        assert (project / "SPECIFICATION.md").read_text(encoding="utf-8") == spec_before
+        assert (project / "PROJECT.md").read_text(encoding="utf-8") == project_before
+        assert DEPRECATION_SENTINEL not in (
+            project / "SPECIFICATION.md"
+        ).read_text(encoding="utf-8")
+
+    def test_dry_run_does_not_write_manifest(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        ok, _ = migrate(project, dry_run=True)
+        assert ok
+        assert not manifest_path(project).exists()
+
+    def test_dry_run_actions_are_prefixed(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        ok, actions = migrate(project, dry_run=True)
+        assert ok
+        # At least one DRYRUN line for backups, lifecycle folders, and stubs.
+        assert any(a.startswith("DRYRUN BACKUP ") for a in actions)
+        assert any("DRYRUN CREATE lifecycle folder" in a for a in actions)
+        assert any("DRYRUN REPLACE" in a for a in actions)
+
+    def test_dry_run_cli_returns_zero(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "migrate_vbrief.py"),
+                str(project),
+                "--dry-run",
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "Dry-run completed successfully" in result.stdout
+        # No .premigrate.* files should exist post-run.
+        assert not list(project.glob("*.premigrate.*"))
+
+
+class TestSafetyDirtyTreeGuard:
+    """Task 497-3: dirty-tree guard refuses without --force."""
+
+    @staticmethod
+    def _init_git_repo(project: Path) -> None:
+        """Initialise a minimal git repo with one committed file so we can dirty it.
+
+        Uses `-c` overrides rather than `git config` so we do not touch the
+        test author's global git config.
+        """
+        def _git(*args: str) -> subprocess.CompletedProcess:
+            return subprocess.run(
+                [
+                    "git",
+                    "-c", "user.email=safety-test@example.invalid",
+                    "-c", "user.name=Safety Test",
+                    "-c", "commit.gpgsign=false",
+                    "-c", "core.autocrlf=false",
+                    *args,
+                ],
+                cwd=str(project),
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+
+        init = _git("init", "-q", "-b", "main")
+        if init.returncode != 0:
+            import pytest as _pytest
+            _pytest.skip(f"git not available: {init.stderr}")
+        _git("add", "-A")
+        _git("commit", "-q", "-m", "initial safety fixture")
+
+    def test_clean_tree_migrates_without_force(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        self._init_git_repo(project)
+        ok, actions = migrate(project)
+        assert ok, actions
+
+    def test_dirty_tree_refuses_without_force(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        self._init_git_repo(project)
+        # Dirty the tree with an unrelated edit.
+        (project / "NOTES.md").write_text("wip notes\n", encoding="utf-8")
+        ok, messages = migrate(project)
+        assert not ok
+        assert any("Working tree is not clean" in m for m in messages)
+        # Guard runs BEFORE any write: no backups, no lifecycle folders.
+        assert not (project / "SPECIFICATION.premigrate.md").exists()
+        assert not (project / "vbrief" / "proposed").exists()
+
+    def test_dirty_tree_proceeds_with_force(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        self._init_git_repo(project)
+        (project / "NOTES.md").write_text("wip notes\n", encoding="utf-8")
+        ok, _ = migrate(project, force=True)
+        assert ok
+        assert (project / "SPECIFICATION.premigrate.md").is_file()
+
+    def test_non_git_tree_is_treated_as_clean(self, tmp_path):
+        # tmp_path without `git init` -- should migrate without force.
+        project = _make_safety_project(tmp_path)
+        ok, _ = migrate(project)
+        assert ok
+
+
+class TestSafetyRollback:
+    """Task 497-4: rollback restores originals and removes generated artefacts."""
+
+    def test_rollback_restores_pre_cutover_content(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        spec_before = (project / "SPECIFICATION.md").read_text(encoding="utf-8")
+        project_before = (project / "PROJECT.md").read_text(encoding="utf-8")
+        roadmap_before = (project / "ROADMAP.md").read_text(encoding="utf-8")
+        ok, _ = migrate(project)
+        assert ok
+        # Sanity: stubs now in place.
+        assert DEPRECATION_SENTINEL in (
+            project / "SPECIFICATION.md"
+        ).read_text(encoding="utf-8")
+
+        ok, actions = safety_rollback(project, force=True)
+        assert ok, actions
+        assert (project / "SPECIFICATION.md").read_text(encoding="utf-8") == spec_before
+        assert (project / "PROJECT.md").read_text(encoding="utf-8") == project_before
+        assert (project / "ROADMAP.md").read_text(encoding="utf-8") == roadmap_before
+
+    def test_rollback_removes_generated_scope_vbriefs(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        ok, _ = migrate(project)
+        assert ok
+        pending = project / "vbrief" / "pending"
+        assert list(pending.glob("*.vbrief.json")), "migration should have created scopes"
+
+        ok, actions = safety_rollback(project, force=True)
+        assert ok, actions
+        assert not list(pending.glob("*.vbrief.json")), (
+            "rollback must remove migrator-created scope vBRIEFs"
+        )
+        # Migrator-created lifecycle folders should also be gone -- they were
+        # created by this run and are empty post-rollback.
+        assert not (project / "vbrief" / "pending").exists()
+
+    def test_rollback_removes_backup_files(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        migrate(project)
+        assert (project / "SPECIFICATION.premigrate.md").is_file()
+        ok, _ = safety_rollback(project, force=True)
+        assert ok
+        assert not list(project.glob("*.premigrate.*"))
+
+    def test_rollback_removes_safety_manifest(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        migrate(project)
+        assert manifest_path(project).is_file()
+        ok, _ = safety_rollback(project, force=True)
+        assert ok
+        assert not manifest_path(project).exists()
+
+    def test_rollback_without_manifest_errors(self, tmp_path):
+        # Nothing to roll back -- expect a clear error.
+        ok, messages = safety_rollback(tmp_path, force=True)
+        assert not ok
+        assert any("No safety manifest" in m for m in messages)
+
+    def test_rollback_refuses_if_stub_edited_without_force(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        migrate(project)
+        # Operator edits the redirect stub after migration.
+        stub_path = project / "SPECIFICATION.md"
+        edited = stub_path.read_text(encoding="utf-8") + "\n<!-- hand edit -->\n"
+        stub_path.write_text(edited, encoding="utf-8")
+        ok, messages = safety_rollback(project, force=False, confirm_fn=lambda _: True)
+        assert not ok
+        assert any("edited since migration" in m for m in messages)
+        # Backups + manifest are still around for a retry.
+        assert (project / "SPECIFICATION.premigrate.md").is_file()
+        assert manifest_path(project).is_file()
+
+    def test_rollback_force_overrides_stub_edit_guard(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        spec_before = (project / "SPECIFICATION.md").read_text(encoding="utf-8")
+        migrate(project)
+        stub_path = project / "SPECIFICATION.md"
+        stub_path.write_text(
+            stub_path.read_text(encoding="utf-8") + "\n<!-- hand edit -->\n",
+            encoding="utf-8",
+        )
+        ok, _ = safety_rollback(project, force=True)
+        assert ok
+        assert stub_path.read_text(encoding="utf-8") == spec_before
+
+    def test_rollback_aborts_on_negative_confirmation(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        migrate(project)
+        ok, messages = safety_rollback(
+            project, force=False, confirm_fn=lambda _: False
+        )
+        assert not ok
+        assert any("aborted by operator" in m for m in messages)
+        # Tree is unchanged (stubs still stubs, backups still present).
+        assert DEPRECATION_SENTINEL in (
+            project / "SPECIFICATION.md"
+        ).read_text(encoding="utf-8")
+        assert (project / "SPECIFICATION.premigrate.md").is_file()
+
+    def test_rollback_cli(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        migrate(project)
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "migrate_vbrief.py"),
+                str(project),
+                "--rollback",
+                "--force",
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "Rollback completed successfully" in result.stdout
+        assert not list(project.glob("*.premigrate.*"))
+
+
+class TestSafetyGitignore:
+    """Task 497-5: .gitignore excludes .premigrate.* by default."""
+
+    def test_gitignore_contains_root_premigrate_pattern(self):
+        body = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
+        assert "*.premigrate.*" in body, (
+            ".gitignore must exclude *.premigrate.* so backups do not leak "
+            "into commits by default (#497-5)"
+        )
+
+    def test_gitignore_contains_vbrief_premigrate_pattern(self):
+        body = (REPO_ROOT / ".gitignore").read_text(encoding="utf-8")
+        assert "vbrief/*.premigrate.*" in body, (
+            ".gitignore must also exclude vbrief/*.premigrate.* (#497-5)"
+        )
+
+    def test_safety_manifest_builds_round_trip(self):
+        original = SafetyManifest(
+            version="1",
+            migration_timestamp="2026-04-21T17:25:04Z",
+            backups=[],
+            created_files=["vbrief/pending/2026-04-21-100-x.vbrief.json"],
+            created_dirs=["vbrief/pending"],
+            post_migration_stub_hashes={"SPECIFICATION.md": "deadbeef"},
+        )
+        clone = SafetyManifest.from_json(original.to_json())
+        assert clone.created_files == original.created_files
+        assert clone.post_migration_stub_hashes == original.post_migration_stub_hashes
+        assert clone.migration_timestamp == original.migration_timestamp
+        # PREMIGRATE_SUFFIX is re-exported so tests asserting on sibling
+        # naming can reference the single source of truth.
+        assert PREMIGRATE_SUFFIX == ".premigrate"

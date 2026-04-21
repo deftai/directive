@@ -2,6 +2,9 @@ version: '3'
 
 tasks:
   vbrief:
-    desc: Migrate existing project files to vBRIEF-centric folder structure (RFC #309)
+    desc: >
+      Migrate existing project files to vBRIEF-centric folder structure (RFC #309).
+      Pass safety flags after --, e.g. `task migrate:vbrief -- --dry-run`,
+      `task migrate:vbrief -- --force`, `task migrate:vbrief -- --rollback` (#497, #506 D7).
     cmds:
-      - uv run python scripts/migrate_vbrief.py "{{.USER_WORKING_DIR}}"
+      - uv run python scripts/migrate_vbrief.py "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

@@ -34,6 +34,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _vbrief_build import create_scope_vbrief as _create_scope_vbrief_shared  # noqa: E402
 from _vbrief_build import slugify as _slugify_shared  # noqa: E402
 
+# --- safety (Agent C, #497) ---
+# Safety affordances for `task migrate:vbrief` live in `_vbrief_safety`:
+# .premigrate.* backups, --dry-run preview, dirty-tree guard, --rollback.
+# See `scripts/_vbrief_safety.py` and tracking issue #506 (D7) for the
+# authoritative decisions this code implements.
+from _vbrief_safety import (
+    SafetyManifest,  # noqa: E402
+    dirty_tree_refusal_message,  # noqa: E402
+    is_tree_dirty,  # noqa: E402
+    now_utc_iso,  # noqa: E402
+    plan_backups,  # noqa: E402
+    sha256_of,  # noqa: E402
+    write_backups,  # noqa: E402
+    write_safety_manifest,  # noqa: E402
+)
+from _vbrief_safety import rollback as safety_rollback  # noqa: E402
+
+# --- end safety ---
+
 # Lifecycle folders per RFC #309 D13
 LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
 
@@ -559,8 +578,22 @@ def _deprecation_redirect(
     )
 
 
-def migrate(project_root: Path) -> tuple[bool, list[str]]:
+def migrate(
+    project_root: Path,
+    *,
+    dry_run: bool = False,
+    force: bool = False,
+) -> tuple[bool, list[str]]:
     """Run the full migration on the given project root.
+
+    ``dry_run`` -- when True, produce the full action log without writing any
+    file to disk (#497-2).  All backup, manifest, and lifecycle-folder lines
+    are prefixed ``DRYRUN`` so the operator can distinguish a plan from a
+    real run.
+
+    ``force`` -- when True, bypass the dirty-tree guard (#497-3).  The guard
+    refuses to run on a dirty working tree by default to keep migration
+    output separable from in-progress edits.
 
     Returns:
         (True, actions) on success -- actions is a list of human-readable lines.
@@ -569,14 +602,39 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
     actions: list[str] = []
     warnings: list[str] = []
     vbrief_dir = project_root / "vbrief"
+    created_files: list[str] = []
+    created_dirs: list[str] = []
+
+    # --- safety (Agent C, #497) ---
+    # Dirty-tree guard (#497-3): refuse on a non-clean git status unless the
+    # operator passes --force.  Runs BEFORE any filesystem mutation so a
+    # dirty-tree refusal leaves the project in its exact pre-run state.
+    if not force and is_tree_dirty(project_root):
+        return False, [dirty_tree_refusal_message()]
+
+    # Always-on backups (#497-1): copy every pre-cutover input to its
+    # .premigrate.* sibling BEFORE we touch anything else (the lifecycle
+    # folder creation below is technically the first filesystem write, but
+    # backups come first so we can surface an actionable error if a backup
+    # itself fails before any write lands).
+    backup_pairs = plan_backups(project_root)
+    backup_records, backup_actions = write_backups(
+        project_root, backup_pairs, dry_run=dry_run
+    )
+    actions.extend(backup_actions)
+    # --- end safety ---
 
     # ---- Step 1: Create lifecycle folders ----
     for folder_name in LIFECYCLE_FOLDERS:
         folder = vbrief_dir / folder_name
+        rel = folder.relative_to(project_root).as_posix()
         if folder.exists():
             actions.append(f"SKIP  lifecycle folder already exists: vbrief/{folder_name}/")
+        elif dry_run:
+            actions.append(f"DRYRUN CREATE lifecycle folder: vbrief/{folder_name}/")
         else:
             folder.mkdir(parents=True, exist_ok=True)
+            created_dirs.append(rel)
             actions.append(f"CREATE lifecycle folder: vbrief/{folder_name}/")
 
     # ---- Step 2: Read existing sources ----
@@ -652,15 +710,25 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
                 ingested_keys.append(key)
 
         if ingested_keys:
-            spec_vbrief_path.parent.mkdir(parents=True, exist_ok=True)
-            spec_vbrief_path.write_text(
-                json.dumps(spec_vbrief, indent=2, ensure_ascii=False) + "\n",
-                encoding="utf-8",
-            )
-            actions.append(
-                f"INGEST narratives into specification.vbrief.json: "
-                f"{', '.join(sorted(ingested_keys))}"
-            )
+            rel = spec_vbrief_path.relative_to(project_root).as_posix()
+            created_new_spec_vbrief = not spec_vbrief_path.exists()
+            if dry_run:
+                actions.append(
+                    f"DRYRUN INGEST narratives into specification.vbrief.json: "
+                    f"{', '.join(sorted(ingested_keys))}"
+                )
+            else:
+                spec_vbrief_path.parent.mkdir(parents=True, exist_ok=True)
+                spec_vbrief_path.write_text(
+                    json.dumps(spec_vbrief, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8",
+                )
+                if created_new_spec_vbrief:
+                    created_files.append(rel)
+                actions.append(
+                    f"INGEST narratives into specification.vbrief.json: "
+                    f"{', '.join(sorted(ingested_keys))}"
+                )
 
     # ---- Step 3: Generate PROJECT-DEFINITION.vbrief.json ----
     proj_def_path = vbrief_dir / "PROJECT-DEFINITION.vbrief.json"
@@ -675,11 +743,17 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
             repo_url=repo_url,
             spec_md_content=spec_md_content,
         )
-        proj_def_path.write_text(
-            json.dumps(proj_def, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
-        actions.append("CREATE vbrief/PROJECT-DEFINITION.vbrief.json")
+        if dry_run:
+            actions.append("DRYRUN CREATE vbrief/PROJECT-DEFINITION.vbrief.json")
+        else:
+            proj_def_path.write_text(
+                json.dumps(proj_def, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            created_files.append(
+                proj_def_path.relative_to(project_root).as_posix()
+            )
+            actions.append("CREATE vbrief/PROJECT-DEFINITION.vbrief.json")
 
     # ---- Step 4: Convert roadmap items to pending/ vBRIEFs ----
     for item in roadmap_items:
@@ -709,12 +783,18 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
         scope_vbrief = _create_scope_vbrief(
             item, repo_url=repo_url, phase_description=phase_desc
         )
-        target_path.write_text(
-            json.dumps(scope_vbrief, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
         label = f"#{number}" if number else item.get("task_id", slug)
-        actions.append(f"CREATE pending/{filename} ({label})")
+        if dry_run:
+            actions.append(f"DRYRUN CREATE pending/{filename} ({label})")
+        else:
+            target_path.write_text(
+                json.dumps(scope_vbrief, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            created_files.append(
+                target_path.relative_to(project_root).as_posix()
+            )
+            actions.append(f"CREATE pending/{filename} ({label})")
 
     # ---- Step 4b: Convert completed items to completed/ vBRIEFs ----
     for item in completed_items:
@@ -729,42 +809,67 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
             continue
 
         scope_vbrief = _create_scope_vbrief(item, repo_url=repo_url, status="completed")
-        target_path.write_text(
-            json.dumps(scope_vbrief, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
         label = f"#{number}" if number else slug
-        actions.append(f"CREATE completed/{filename} ({label})")
+        if dry_run:
+            actions.append(f"DRYRUN CREATE completed/{filename} ({label})")
+        else:
+            target_path.write_text(
+                json.dumps(scope_vbrief, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            created_files.append(
+                target_path.relative_to(project_root).as_posix()
+            )
+            actions.append(f"CREATE completed/{filename} ({label})")
 
     # ---- Step 5: Deprecation redirects ----
+    # Hashes captured after write (or proposed-write in dry-run) so --rollback
+    # can detect whether the operator has edited the stub since migration.
+    stub_hashes: dict[str, str] = {}
     if spec_md_path.exists():
         if spec_md_content and DEPRECATION_SENTINEL in spec_md_content:
             actions.append("SKIP  SPECIFICATION.md already has deprecation redirect")
         else:
             # Check for user customization
             if spec_md_content and _is_user_customized(spec_md_content, _SPEC_AUTO_MARKERS):
-                preserved = _fold_custom_content(
-                    proj_def_path, "SpecificationContent", spec_md_content or ""
-                )
-                if preserved:
+                # In dry-run the fold target (PROJECT-DEFINITION) may not yet
+                # exist -- _fold_custom_content short-circuits gracefully and
+                # returns False, which would otherwise abort.  Skip the abort
+                # path in dry-run and record the fold as proposed.
+                if dry_run:
                     warnings.append(
                         "WARNING: SPECIFICATION.md appears user-customized. "
-                        "Original content preserved in PROJECT-DEFINITION.vbrief.json narratives."
+                        "Original content would be preserved in "
+                        "PROJECT-DEFINITION.vbrief.json narratives (dry-run)."
                     )
                 else:
-                    return False, [
-                        "ERROR: SPECIFICATION.md appears user-customized but content could not "
-                        "be preserved in PROJECT-DEFINITION.vbrief.json. Fix the project "
-                        "definition file structure and re-run to prevent data loss."
-                    ]
+                    preserved = _fold_custom_content(
+                        proj_def_path, "SpecificationContent", spec_md_content or ""
+                    )
+                    if preserved:
+                        warnings.append(
+                            "WARNING: SPECIFICATION.md appears user-customized. "
+                            "Original content preserved in "
+                            "PROJECT-DEFINITION.vbrief.json narratives."
+                        )
+                    else:
+                        return False, [
+                            "ERROR: SPECIFICATION.md appears user-customized but content could not "
+                            "be preserved in PROJECT-DEFINITION.vbrief.json. Fix the project "
+                            "definition file structure and re-run to prevent data loss."
+                        ]
 
             redirect = _deprecation_redirect(
                 "SPECIFICATION.md",
                 "vbrief/PROJECT-DEFINITION.vbrief.json",
                 "For scope details, see individual vBRIEF files in the lifecycle folders.",
             )
-            spec_md_path.write_text(redirect, encoding="utf-8")
-            actions.append("REPLACE SPECIFICATION.md with deprecation redirect")
+            if dry_run:
+                actions.append("DRYRUN REPLACE SPECIFICATION.md with deprecation redirect")
+            else:
+                spec_md_path.write_text(redirect, encoding="utf-8")
+                stub_hashes["SPECIFICATION.md"] = sha256_of(spec_md_path)
+                actions.append("REPLACE SPECIFICATION.md with deprecation redirect")
 
     if project_md_path.exists():
         if project_content and DEPRECATION_SENTINEL in project_content:
@@ -784,8 +889,32 @@ def migrate(project_root: Path) -> tuple[bool, list[str]]:
                 "vbrief/PROJECT-DEFINITION.vbrief.json",
                 "For project configuration, see the narratives section.",
             )
-            project_md_path.write_text(redirect, encoding="utf-8")
-            actions.append("REPLACE PROJECT.md with deprecation redirect")
+            if dry_run:
+                actions.append("DRYRUN REPLACE PROJECT.md with deprecation redirect")
+            else:
+                project_md_path.write_text(redirect, encoding="utf-8")
+                stub_hashes["PROJECT.md"] = sha256_of(project_md_path)
+                actions.append("REPLACE PROJECT.md with deprecation redirect")
+
+    # --- safety (Agent C, #497) ---
+    # Persist a safety manifest for --rollback.  The manifest lives under
+    # vbrief/migration/ (#506 shared path convention) and records:
+    #   * every .premigrate.* backup we wrote (for restore);
+    #   * every file/directory this run created (for removal on rollback);
+    #   * post-migration stub hashes (so rollback can detect later edits).
+    manifest = SafetyManifest(
+        version="1",
+        migration_timestamp=now_utc_iso(),
+        backups=backup_records,
+        created_files=created_files,
+        created_dirs=created_dirs,
+        post_migration_stub_hashes=stub_hashes,
+    )
+    manifest_action = write_safety_manifest(
+        project_root, manifest, dry_run=dry_run
+    )
+    actions.append(manifest_action)
+    # --- end safety ---
 
     # ---- Report ----
     for w in warnings:
@@ -1065,10 +1194,14 @@ def _fold_custom_content(proj_def_path: Path, key: str, content: str) -> bool:
 
 def main() -> int:
     """Entry point for the migration script."""
+    import argparse
+
     args = list(sys.argv[1:])
 
     # --speckit-plan <path> subcommand: convert a speckit-shaped plan.vbrief.json
     # into per-IP scope vBRIEFs in ``<plan dir>/pending/`` (#436, #458).
+    # Handled ahead of the main argparse so we keep its positional-path calling
+    # convention stable for the test harness that already exercises it.
     if args and args[0] == "--speckit-plan":
         if len(args) < 2:
             print(
@@ -1089,24 +1222,90 @@ def main() -> int:
         print("speckit plan migration FAILED.", file=sys.stderr)
         return 1
 
-    project_root = Path(args[0]).resolve() if args else Path.cwd()
+    # --- safety (Agent C, #497) ---
+    # Primary CLI for `task migrate:vbrief` -- positional project_root +
+    # --dry-run / --force / --rollback flags per #506 D7.
+    parser = argparse.ArgumentParser(
+        prog="migrate_vbrief.py",
+        description=(
+            "Migrate a Deft project to the vBRIEF-centric document model. "
+            "Destructive by default; use --dry-run to preview or --rollback "
+            "to undo a previous migration."
+        ),
+    )
+    parser.add_argument(
+        "project_root",
+        nargs="?",
+        default=None,
+        help="Path to the project root (default: current working directory).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Print the migration plan without writing any files. Exits 0 on "
+            "success with every planned action prefixed DRYRUN."
+        ),
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help=(
+            "Bypass the dirty-tree guard (and the rollback confirmation / "
+            "edited-stub guard). Not recommended."
+        ),
+    )
+    parser.add_argument(
+        "--rollback",
+        action="store_true",
+        help=(
+            "Restore from .premigrate.* backups and remove the scope "
+            "vBRIEFs and migration artefacts a prior run created. Reads "
+            "vbrief/migration/safety-manifest.json written by the migrator."
+        ),
+    )
+    ns = parser.parse_args(args)
+
+    project_root = (
+        Path(ns.project_root).resolve() if ns.project_root else Path.cwd()
+    )
 
     if not project_root.is_dir():
         print(f"ERROR: {project_root} is not a directory", file=sys.stderr)
         return 1
 
-    print(f"Migrating project at: {project_root}")
+    if ns.rollback:
+        print(f"Rolling back migration at: {project_root}")
+        print("=" * 60)
+        ok, messages = safety_rollback(project_root, force=ns.force)
+        for msg in messages:
+            print(f"  {msg}")
+        print("=" * 60)
+        if ok:
+            print("Rollback completed successfully.")
+            return 0
+        print("Rollback FAILED.", file=sys.stderr)
+        return 1
+
+    if ns.dry_run:
+        print(f"Dry-run migration at: {project_root}")
+    else:
+        print(f"Migrating project at: {project_root}")
     print("=" * 60)
 
-    ok, messages = migrate(project_root)
+    ok, messages = migrate(project_root, dry_run=ns.dry_run, force=ns.force)
 
     for msg in messages:
         print(f"  {msg}")
 
     print("=" * 60)
     if ok:
-        print("Migration completed successfully.")
+        if ns.dry_run:
+            print("Dry-run completed successfully. No files were modified.")
+        else:
+            print("Migration completed successfully.")
         return 0
+    # --- end safety ---
     print("Migration FAILED.", file=sys.stderr)
     return 1
 

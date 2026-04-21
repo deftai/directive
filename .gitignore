@@ -46,3 +46,8 @@ vcontext/
 
 # Generated Deft exports
 .deft/
+
+# Pre-cutover backups written by `task migrate:vbrief` (#497, #506 D7).
+# Operators who want these versioned can delete these lines or override per-file.
+*.premigrate.*
+vbrief/*.premigrate.*
