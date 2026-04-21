@@ -14,7 +14,7 @@ Deft is installed in deft/. Full guidelines: deft/main.md
 - ./PROJECT.md exists and its first 200 characters do NOT contain <!-- deft:deprecated-redirect -->
 - ./vbrief/ exists but any of the five lifecycle subfolders (proposed/, pending/, active/, completed/, cancelled/) is missing
 
-→ On detection: read deft/skills/deft-directive-setup/SKILL.md "Pre-Cutover Detection Guard" section and follow the migration path BEFORE any other action. See deft/main.md "Migrating from pre-v0.20" for the full migration reference, including the "task -t ./deft/Taskfile.yml migrate:vbrief" fallback when "task migrate:vbrief" is not resolvable from the project root.
+→ On detection: read deft/skills/deft-directive-setup/SKILL.md "Pre-Cutover Detection Guard" section and follow the migration path BEFORE any other action. The Migrating from pre-v0.20 section of the full guidelines has the canonical command, the "task -t ./deft/Taskfile.yml migrate:vbrief" fallback (for when "task migrate:vbrief" is not resolvable from the project root), what migration produces, and the available safety flags.
 
 ⊗ Start Phase 1, Phase 2, or a Returning-Sessions workflow while pre-cutover artifacts are present — run migration first.
 

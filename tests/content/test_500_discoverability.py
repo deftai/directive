@@ -246,8 +246,31 @@ def test_setup_go_mirrors_pre_cutover_branch() -> None:
             f"setup.go agentsMDEntry: must list the `{folder}` lifecycle "
             f"folder in its mirrored pre-cutover criterion"
         )
-    assert "deft/main.md" in content, (
-        "setup.go agentsMDEntry: mirrored branch must cross-link deft/main.md"
+    # Extract the agentsMDEntry raw-string constant body so we assert
+    # against the consumer-facing block only (not package comments or
+    # the agentsMDSentinel const declaration, which also contain the
+    # string "deft/main.md").
+    marker = "agentsMDEntry = `"
+    start = content.index(marker) + len(marker)
+    end = content.index("`", start)
+    entry = content[start:end]
+    # The `Full guidelines: deft/main.md` line is the single deft/main.md
+    # reference inside the entry (also the agentsMDSentinel used for
+    # idempotency in WriteAgentsMD). Adding a second reference in the
+    # entry breaks TestWriteAgentsMD_Idempotent, so the pre-cutover
+    # branch must route via the setup SKILL and name the
+    # "Migrating from pre-v0.20" section of the main guidelines without
+    # repeating the path.
+    assert entry.count("deft/main.md") == 1, (
+        "setup.go agentsMDEntry: must contain exactly one `deft/main.md` "
+        "reference (the 'Full guidelines:' line that doubles as the "
+        "agentsMDSentinel). Adding a second reference inside the entry "
+        "breaks the Go installer's WriteAgentsMD idempotency contract."
+    )
+    assert "Migrating from pre-v0.20" in entry, (
+        "setup.go agentsMDEntry: mirrored branch must name the "
+        "'Migrating from pre-v0.20' section of the main guidelines so "
+        "readers know where to find the full migration reference"
     )
 
 
