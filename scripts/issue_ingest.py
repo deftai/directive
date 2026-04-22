@@ -37,12 +37,16 @@ from pathlib import Path
 # by tests that pre-populate sys.path with the ``scripts/`` directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _project_context import resolve_project_repo, resolve_project_root  # noqa: E402
+from _stdio_utf8 import reconfigure_stdio  # noqa: E402
 from _vbrief_build import TODAY, slugify  # noqa: E402
 from reconcile_issues import (  # noqa: E402
     detect_repo,
     fetch_open_issues,
     scan_vbrief_dir,
 )
+
+reconfigure_stdio()
 
 # --- Constants --------------------------------------------------------------
 
@@ -116,7 +120,12 @@ def _target_filename(number: int, title: str) -> str:
     return f"{TODAY}-{number}-{slug}.vbrief.json"
 
 
-def _fetch_single_issue(repo: str, number: int) -> dict | None:
+def _fetch_single_issue(
+    repo: str,
+    number: int,
+    *,
+    cwd: Path | None = None,
+) -> dict | None:
     """Fetch a single issue via ``gh api repos/{repo}/issues/{number}``.
 
     Returns the parsed issue dict on success, ``None`` on error (with the
@@ -128,6 +137,7 @@ def _fetch_single_issue(repo: str, number: int) -> dict | None:
             capture_output=True,
             text=True,
             timeout=30,
+            cwd=str(cwd) if cwd is not None else None,
         )
     except FileNotFoundError:
         print("Error: gh CLI not found. Install GitHub CLI.", file=sys.stderr)
@@ -300,7 +310,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--repo",
         default=None,
-        help="GitHub repo in OWNER/REPO format (default: auto-detect from git remote)",
+        help=(
+            "GitHub repo in OWNER/REPO format. Highest precedence; beats "
+            "$DEFT_PROJECT_REPO and git-remote detection. Without a flag, "
+            "env var, or git remote in the project root the script FAILS "
+            "loudly rather than silently falling back to deft's own remote "
+            "(#538)."
+        ),
+    )
+    parser.add_argument(
+        "--project-root",
+        default=None,
+        help=(
+            "Consumer project root. Used as CWD for git-remote detection "
+            "so ``gh`` / ``git`` queries target the consumer repo, not "
+            "deftai/directive (#538)."
+        ),
     )
     return parser
 
@@ -319,17 +344,26 @@ def main(argv: list[str] | None = None) -> int:
     if not vbrief_dir.exists():
         vbrief_dir.mkdir(parents=True, exist_ok=True)
 
-    repo = args.repo or detect_repo()
+    project_root = resolve_project_root(args.project_root)
+    repo = resolve_project_repo(args.repo, project_root=project_root)
+    # Fall back to the legacy CWD-scoped ``detect_repo`` only when no
+    # project root could be inferred; that path still exists because
+    # some in-process test suites monkeypatch ``detect_repo`` directly.
+    if not repo:
+        repo = detect_repo()
     if not repo:
         print(
-            "Error: could not detect repo. Use --repo OWNER/REPO.",
+            "Error: could not detect repo. "
+            "Pass --repo OWNER/NAME, set $DEFT_PROJECT_REPO, or run from "
+            "a directory tree whose git remote origin is the consumer "
+            "repo (#538).",
             file=sys.stderr,
         )
         return 2
     repo_url = _resolve_repo_url(repo)
 
     if args.all:
-        issues = fetch_open_issues(repo)
+        issues = fetch_open_issues(repo, cwd=project_root)
         if issues is None:
             return 2
         summary = ingest_bulk(
@@ -356,7 +390,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     # Single-issue mode
-    issue = _fetch_single_issue(repo, args.number)
+    issue = _fetch_single_issue(repo, args.number, cwd=project_root)
     if issue is None:
         return 2
     result, path, msg = ingest_one(

@@ -155,7 +155,9 @@ class TestIngestOneDedup:
         vbrief_dir = tmp_path / "vbrief"
         self._write_existing(vbrief_dir, 77)
 
-        def fake_fetch(_repo, _number):
+        # main() passes ``cwd=project_root`` as a keyword arg to
+        # _fetch_single_issue (#538); fake stubs must accept it.
+        def fake_fetch(_repo, _number, *, cwd=None):
             return _issue_dict(77, "Dup CLI")
 
         monkeypatch.setattr(issue_ingest, "_fetch_single_issue", fake_fetch)
@@ -281,7 +283,12 @@ class TestGhApiError:
     def test_bulk_fetch_failure_returns_2(self, tmp_path, monkeypatch):
         vbrief_dir = tmp_path / "vbrief"
         vbrief_dir.mkdir()
-        monkeypatch.setattr(issue_ingest, "fetch_open_issues", lambda _repo: None)
+        # main() passes ``cwd=project_root`` to fetch_open_issues (#538).
+        monkeypatch.setattr(
+            issue_ingest,
+            "fetch_open_issues",
+            lambda _repo, cwd=None: None,
+        )
         monkeypatch.setattr(issue_ingest, "detect_repo", lambda: "o/r")
 
         rc = issue_ingest.main([

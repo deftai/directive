@@ -1,15 +1,23 @@
 version: '3'
 
+# spec tasks -- consumer-safe CWD + script resolution (#539, #540).
+
 tasks:
   validate:
     desc: Validate that vbrief/specification.vbrief.json exists and is well-formed JSON
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/spec_validate.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/spec_validate.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"
 
   render:
     desc: Render vbrief/specification.vbrief.json to SPECIFICATION.md
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/spec_render.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" "{{.USER_WORKING_DIR}}/SPECIFICATION.md"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/spec_render.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" "{{.USER_WORKING_DIR}}/SPECIFICATION.md"
 
   pipeline:
     desc: Run full spec pipeline (validate then render)

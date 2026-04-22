@@ -193,7 +193,9 @@ class TestMainCli:
 
         monkeypatch.setattr(
             issue_ingest, "_fetch_single_issue",
-            lambda _repo, _n: {"number": 1, "title": "T", "url": ""},
+            lambda _repo, _n, *, cwd=None: {
+                "number": 1, "title": "T", "url": "",
+            },
         )
         rc = issue_ingest.main(
             ["1", "--vbrief-dir", str(vbrief_dir), "--repo", "o/r"]
@@ -202,10 +204,18 @@ class TestMainCli:
         assert vbrief_dir.is_dir()
 
     def test_no_repo_detected_returns_2(self, tmp_path, monkeypatch, capsys):
-        """detect_repo returns falsy -> main prints error + returns 2."""
+        """detect_repo + resolve_project_repo both fail -> exit 2."""
         vbrief_dir = tmp_path / "vbrief"
         vbrief_dir.mkdir()
 
+        # Stub out BOTH detection paths. resolve_project_repo is called
+        # first (#538); without this stub the test running inside the
+        # deft worktree would return ``deftai/directive`` and we would
+        # never reach the detect_repo fallback.
+        monkeypatch.setattr(
+            issue_ingest, "resolve_project_repo",
+            lambda *_a, **_k: None,
+        )
         monkeypatch.setattr(issue_ingest, "detect_repo", lambda: "")
         rc = issue_ingest.main(["1", "--vbrief-dir", str(vbrief_dir)])
         assert rc == 2
@@ -217,7 +227,7 @@ class TestMainCli:
 
         monkeypatch.setattr(
             issue_ingest, "_fetch_single_issue",
-            lambda _repo, _n: {
+            lambda _repo, _n, *, cwd=None: {
                 "number": 42, "title": "Do thing",
                 "url": "https://github.com/o/r/issues/42",
                 "labels": [{"name": "bug"}],
@@ -256,7 +266,8 @@ class TestMainCli:
             {"number": 2, "title": "Dup", "url": "", "labels": []},
         ]
         monkeypatch.setattr(
-            issue_ingest, "fetch_open_issues", lambda _repo: issues
+            issue_ingest, "fetch_open_issues",
+            lambda _repo, cwd=None: issues,
         )
         monkeypatch.setattr(issue_ingest, "detect_repo", lambda: "o/r")
 
@@ -282,7 +293,8 @@ class TestMainCli:
             {"number": 11, "title": "B", "url": "", "labels": []},
         ]
         monkeypatch.setattr(
-            issue_ingest, "fetch_open_issues", lambda _repo: issues
+            issue_ingest, "fetch_open_issues",
+            lambda _repo, cwd=None: issues,
         )
 
         rc = issue_ingest.main([

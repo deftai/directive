@@ -4,6 +4,15 @@ vars:
   PROJECT_NAME: deft
   VERSION: 0.20.0
 
+# Top-level env propagates into included taskfiles (Task v3 includes inherit
+# the parent env:). PYTHONUTF8=1 ensures Python scripts invoked from any
+# deft task have UTF-8 stdout/stderr on Windows (cp1252 default would crash
+# on the ✓/→/✗/⚠ symbols emitted by spec_validate / roadmap_render / etc.).
+# Every task that runs Python ALSO sets this in its own env: block as a
+# belt-and-suspenders guard -- see #540 for the full audit.
+env:
+  PYTHONUTF8: "1"
+
 includes:
   core:
     taskfile: ./tasks/core.yml

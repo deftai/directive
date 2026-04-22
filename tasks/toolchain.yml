@@ -3,5 +3,7 @@ version: '3'
 tasks:
   check:
     desc: Verify required toolchain is installed (go, uv, task, git, gh)
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - python scripts/toolchain-check.py
+      - uv run python {{.TASKFILE_DIR}}/../scripts/toolchain-check.py

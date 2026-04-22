@@ -41,6 +41,12 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+# UTF-8 stdout guard (#540).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _stdio_utf8 import reconfigure_stdio  # noqa: E402
+
+reconfigure_stdio()
+
 LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
 
 # Keys intentionally match scripts/vbrief_validate.py PROJECT_DEF_EXPECTED_NARRATIVES

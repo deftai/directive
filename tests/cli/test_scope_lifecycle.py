@@ -424,7 +424,10 @@ class TestCLI:
             timeout=15,
         )
         assert result.returncode == 2
-        assert "Usage" in result.stderr
+        # argparse emits a lowercase "usage: " prefix; previous hand-rolled
+        # parser used "Usage:". Accept either so future parser swaps are
+        # backward compatible.
+        assert "usage" in result.stderr.lower()
 
     def test_cli_promote_success(self, tmp_path):
         f = make_vbrief(tmp_path, "proposed", "proposed")

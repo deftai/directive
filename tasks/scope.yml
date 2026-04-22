@@ -1,37 +1,72 @@
 version: '3'
 
+# scope lifecycle tasks.
+#
+# IMPORTANT: every task sets ``dir: '{{.USER_WORKING_DIR}}'`` so the Python
+# script's CWD is the consumer project root, NOT ``deft/``. The script path
+# is resolved via ``{{.TASKFILE_DIR}}`` so it still points at
+# ``deft/scripts/scope_lifecycle.py`` after the dir switch. The path arg
+# is passed as ``"{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}"`` so a relative
+# invocation like ``task scope:promote -- vbrief/proposed/X.vbrief.json``
+# resolves against the consumer root rather than ``deft/`` (#535).
+#
+# ``env: PYTHONUTF8: "1"`` is set per-task as a belt-and-suspenders guard
+# for Windows (cp1252 default crashes on -- / -> / x / !); the top-level
+# Taskfile.yml also sets this (#540).
+
 tasks:
   promote:
     desc: "Promote a vBRIEF scope: proposed/ -> pending/ (status: pending)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/scope_lifecycle.py promote "{{.CLI_ARGS}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py promote "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
 
   activate:
     desc: "Activate a vBRIEF scope: pending/ -> active/ (status: running)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/scope_lifecycle.py activate "{{.CLI_ARGS}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py activate "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
 
   complete:
     desc: "Complete a vBRIEF scope: active/ -> completed/ (status: completed)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/scope_lifecycle.py complete "{{.CLI_ARGS}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py complete "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
 
   cancel:
     desc: "Cancel a vBRIEF scope: any folder -> cancelled/ (status: cancelled)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/scope_lifecycle.py cancel "{{.CLI_ARGS}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py cancel "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
 
   restore:
     desc: "Restore a cancelled vBRIEF scope: cancelled/ -> proposed/ (status: proposed)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/scope_lifecycle.py restore "{{.CLI_ARGS}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py restore "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
 
   block:
     desc: "Block a vBRIEF scope: stays in active/ (status: blocked)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/scope_lifecycle.py block "{{.CLI_ARGS}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py block "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
 
   unblock:
     desc: "Unblock a vBRIEF scope: stays in active/ (status: running)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/scope_lifecycle.py unblock "{{.CLI_ARGS}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py unblock "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"

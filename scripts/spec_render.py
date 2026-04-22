@@ -25,7 +25,11 @@ from pathlib import Path
 
 # Allow co-located import of spec_validate when run as a script
 sys.path.insert(0, str(Path(__file__).parent))
+from _stdio_utf8 import reconfigure_stdio  # noqa: E402
 from spec_validate import validate_spec  # noqa: E402
+
+# UTF-8 stdout guard (#540).
+reconfigure_stdio()
 
 # Declared narrative ordering for SPECIFICATION.md. Covers both the
 # interview/light key set (Overview, ProblemStatement, Goals, UserStories,

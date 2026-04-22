@@ -1,9 +1,19 @@
 version: '3'
 
+# issue ingest task.
+#
+# IMPORTANT: runs from the consumer project root (``dir:
+# '{{.USER_WORKING_DIR}}'``) so ``gh`` and ``git`` commands executed by
+# ``scripts/issue_ingest.py`` resolve against the CONSUMER's remote, not
+# deftai/directive (#538). The explicit ``--project-root`` flag makes the
+# intent clear to the script and gives it a stable anchor even if Task's
+# ``dir:`` semantics ever change.
+
 tasks:
   ingest:
     desc: "Ingest GitHub issues as scope vBRIEFs (single <N> or --all [--label L] [--status S] [--dry-run])"
+    dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/issue_ingest.py --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" {{.CLI_ARGS}}
+      - uv run python {{.TASKFILE_DIR}}/../scripts/issue_ingest.py --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

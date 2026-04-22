@@ -17,6 +17,13 @@ import json
 import sys
 from pathlib import Path
 
+# Belt-and-suspenders UTF-8 stdout guard (#540) so non-ASCII status glyphs
+# do not crash on Windows cp1252 when the ``PYTHONUTF8`` env var is not set.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _stdio_utf8 import reconfigure_stdio  # noqa: E402
+
+reconfigure_stdio()
+
 VALID_STATUSES = frozenset({
     "draft", "proposed", "approved", "pending",
     "running", "completed", "blocked", "cancelled",

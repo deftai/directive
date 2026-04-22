@@ -33,6 +33,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Make sibling ``_stdio_utf8`` / ``_project_context`` importable when run
+# as ``__main__`` and when imported by tests that preload sys.path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _project_context import resolve_project_repo, resolve_project_root  # noqa: E402
+from _stdio_utf8 import reconfigure_stdio  # noqa: E402
+
+reconfigure_stdio()
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -133,8 +142,14 @@ def scan_vbrief_dir(vbrief_dir: Path) -> dict[int, list[str]]:
 ISSUE_FETCH_LIMIT = 200
 
 
-def fetch_open_issues(repo: str) -> list[dict] | None:
+def fetch_open_issues(repo: str, cwd: Path | None = None) -> list[dict] | None:
     """Fetch open issues from GitHub using gh CLI.
+
+    ``cwd`` is passed to ``subprocess.run`` so that ``gh`` resolves its
+    auth / config from the consumer project's directory rather than
+    whichever directory the included Taskfile happens to be in (#538).
+    Explicit ``--repo`` already targets the correct repository; ``cwd``
+    is a belt-and-suspenders guard for any future path-sensitive checks.
 
     Returns a list of dicts with keys: number, title, labels, url.
     Returns None on error (gh not found, timeout, API failure, parse error).
@@ -151,6 +166,7 @@ def fetch_open_issues(repo: str) -> list[dict] | None:
             capture_output=True,
             text=True,
             timeout=60,
+            cwd=str(cwd) if cwd is not None else None,
         )
     except FileNotFoundError:
         print("Error: gh CLI not found. Install GitHub CLI.", file=sys.stderr)
@@ -321,7 +337,22 @@ def main() -> int:
     parser.add_argument(
         "--repo",
         default=None,
-        help="GitHub repo in OWNER/REPO format (default: auto-detect from git remote)",
+        help=(
+            "GitHub repo in OWNER/REPO format. Highest precedence; beats "
+            "$DEFT_PROJECT_REPO and git-remote detection. Without a flag, "
+            "env var, or git remote in the project root the script FAILS "
+            "loudly rather than silently falling back to deft's own remote "
+            "(#538)."
+        ),
+    )
+    parser.add_argument(
+        "--project-root",
+        default=None,
+        help=(
+            "Consumer project root. Used as CWD for git-remote detection "
+            "so ``gh`` / ``git`` queries target the consumer repo, not "
+            "deftai/directive (#538)."
+        ),
     )
     parser.add_argument(
         "--format",
@@ -337,22 +368,31 @@ def main() -> int:
         print(f"Error: vbrief directory not found: {vbrief_dir}", file=sys.stderr)
         return 1
 
-    # Auto-detect repo from git remote if not specified
-    repo = args.repo
+    # Resolve repo using the shared precedence: --repo > $DEFT_PROJECT_REPO >
+    # git-remote in the (resolved) project root > legacy CWD-scoped
+    # ``detect_repo()`` fallback. Never silently fall through to deft's own
+    # origin (#538).
+    project_root = resolve_project_root(args.project_root)
+    repo = resolve_project_repo(args.repo, project_root=project_root)
     if repo is None:
         repo = detect_repo()
-        if repo is None:
-            print(
-                "Error: could not detect repo. Use --repo OWNER/REPO.",
-                file=sys.stderr,
-            )
-            return 1
+    if repo is None:
+        print(
+            "Error: could not detect repo. "
+            "Pass --repo OWNER/NAME, set $DEFT_PROJECT_REPO, or run from "
+            "a directory tree whose git remote origin is the consumer "
+            "repo (#538).",
+            file=sys.stderr,
+        )
+        return 1
 
     # Scan vBRIEFs
     issue_to_vbriefs = scan_vbrief_dir(vbrief_dir)
 
-    # Fetch open issues
-    open_issues = fetch_open_issues(repo)
+    # Fetch open issues -- run gh from the resolved project root so auth
+    # context + any future path-sensitive checks target the consumer
+    # repo, not deft's own tree (#538).
+    open_issues = fetch_open_issues(repo, cwd=project_root)
     if open_issues is None:
         return 1
 

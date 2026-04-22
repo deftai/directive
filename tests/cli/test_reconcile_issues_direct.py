@@ -286,6 +286,12 @@ class TestMainCli:
     def test_repo_detection_fails(self, tmp_path, monkeypatch, capsys):
         vbrief_dir = tmp_path / "vbrief"
         vbrief_dir.mkdir()
+        # Stub BOTH detection paths (#538): resolve_project_repo is
+        # consulted first; detect_repo is the CWD-scoped fallback.
+        monkeypatch.setattr(
+            reconcile, "resolve_project_repo",
+            lambda *_a, **_k: None,
+        )
         monkeypatch.setattr(reconcile, "detect_repo", lambda: None)
         monkeypatch.setattr(
             sys, "argv",
@@ -298,7 +304,9 @@ class TestMainCli:
     def test_fetch_failure_returns_1(self, tmp_path, monkeypatch):
         vbrief_dir = tmp_path / "vbrief"
         vbrief_dir.mkdir()
-        monkeypatch.setattr(reconcile, "fetch_open_issues", lambda _r: None)
+        monkeypatch.setattr(
+            reconcile, "fetch_open_issues", lambda _r, cwd=None: None
+        )
         monkeypatch.setattr(
             sys, "argv",
             [
@@ -315,7 +323,7 @@ class TestMainCli:
         vbrief_dir.mkdir()
         monkeypatch.setattr(
             reconcile, "fetch_open_issues",
-            lambda _r: [{"number": 1, "title": "T"}],
+            lambda _r, cwd=None: [{"number": 1, "title": "T"}],
         )
         monkeypatch.setattr(
             sys, "argv",
@@ -334,7 +342,7 @@ class TestMainCli:
         vbrief_dir.mkdir()
         monkeypatch.setattr(
             reconcile, "fetch_open_issues",
-            lambda _r: [{"number": 1, "title": "T"}],
+            lambda _r, cwd=None: [{"number": 1, "title": "T"}],
         )
         monkeypatch.setattr(
             sys, "argv",

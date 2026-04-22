@@ -1,9 +1,17 @@
 version: '3'
 
+# reconcile issues task.
+#
+# IMPORTANT: runs from the consumer project root (``dir:
+# '{{.USER_WORKING_DIR}}'``) so ``gh`` and ``git`` commands executed by
+# ``scripts/reconcile_issues.py`` resolve against the CONSUMER's remote,
+# not deftai/directive (#538).
+
 tasks:
   issues:
     desc: "Reconcile GitHub issues against vBRIEF references -- report linked, unlinked, and resolved"
+    dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/reconcile_issues.py --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" {{.CLI_ARGS}}
+      - uv run python {{.TASKFILE_DIR}}/../scripts/reconcile_issues.py --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

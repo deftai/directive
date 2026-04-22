@@ -3,7 +3,7 @@
 scope_lifecycle.py -- Deterministic vBRIEF scope lifecycle transitions.
 
 Usage:
-    uv run python scripts/scope_lifecycle.py <action> <file>
+    uv run python scripts/scope_lifecycle.py <action> <file> [--project-root PATH]
 
 Actions:
     promote   -- proposed/ -> pending/ (status: pending)
@@ -20,18 +20,34 @@ Each action:
     - Moves the file to the target lifecycle folder (where applicable)
     - Reports the transition performed
 
+Path resolution (#535):
+    Relative ``<file>`` arguments resolve against the consumer project
+    root (highest precedence flag beats environment beats sentinel walk),
+    NEVER against ``deft/``. If no project root can be detected the script
+    fails loudly with exit 2 instead of silently falling back.
+
 Exit codes:
     0 -- transition successful
     1 -- invalid transition or validation error
-    2 -- usage error
+    2 -- usage error (including: undetectable project root for relative path)
 
 RFC #309 decision D16. Story #324.
 """
 
+import argparse
 import json
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+
+# Make sibling ``_stdio_utf8`` / ``_project_context`` importable both when
+# run as ``__main__`` and when imported by tests that preload sys.path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _project_context import resolve_project_root  # noqa: E402
+from _stdio_utf8 import reconfigure_stdio  # noqa: E402
+
+reconfigure_stdio()
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -186,19 +202,87 @@ def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 
 
-def main() -> int:
-    if len(sys.argv) < 3:
-        print(
-            "Usage: scope_lifecycle.py <action> <file>\n"
-            f"Actions: {', '.join(sorted(TRANSITIONS))}",
-            file=sys.stderr,
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="scope_lifecycle.py",
+        description=(
+            "Deterministic vBRIEF scope lifecycle transitions. "
+            "Relative <file> paths resolve against --project-root / "
+            "$DEFT_PROJECT_ROOT / the nearest vbrief|.git ancestor -- "
+            "never deft/ (#535)."
+        ),
+    )
+    parser.add_argument(
+        "action",
+        choices=sorted(TRANSITIONS),
+        help="Lifecycle transition to perform.",
+    )
+    parser.add_argument(
+        "file",
+        help=(
+            "Path to the vBRIEF file. Absolute paths are used as-is; "
+            "relative paths resolve against --project-root / "
+            "$DEFT_PROJECT_ROOT / the detected consumer project root."
+        ),
+    )
+    parser.add_argument(
+        "--project-root",
+        default=None,
+        help=(
+            "Consumer project root. Overrides $DEFT_PROJECT_ROOT and the "
+            "sentinel search. Required when the invocation CWD is not "
+            "inside a project tree (falls back to a loud error instead "
+            "of silently using deft/)."
+        ),
+    )
+    return parser
+
+
+def _resolve_file_path(raw: str, cli_project_root: str | None) -> tuple[Path | None, str | None]:
+    """Resolve *raw* to an absolute Path using the project-root rules.
+
+    Returns ``(path, None)`` on success, ``(None, error_message)`` on
+    failure. ``error_message`` is a single actionable line ready for
+    stderr.
+    """
+    # Some invocations (e.g. ``task scope:promote`` with no CLI_ARGS) end
+    # up passing a trailing "/" to this script -- reject that cleanly.
+    stripped = raw.strip().rstrip("\\/") if raw else ""
+    if not stripped:
+        return None, (
+            "No vBRIEF file path provided. "
+            "Usage: scope_lifecycle.py <action> <file> [--project-root PATH]"
         )
+    candidate = Path(stripped)
+    if candidate.is_absolute():
+        return candidate.resolve(), None
+
+    project_root = resolve_project_root(cli_project_root)
+    if project_root is None:
+        return None, (
+            f"Cannot resolve relative path {stripped!r}: no project root "
+            "detected. Pass --project-root PATH, set $DEFT_PROJECT_ROOT, "
+            "or run from inside a directory tree that contains vbrief/ or "
+            ".git/ (#535)."
+        )
+    return (project_root / stripped).resolve(), None
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _build_parser()
+    # argparse prints its own usage; convert its SystemExit(2) into our
+    # documented usage-error exit code (2).
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as exc:
+        return int(exc.code) if isinstance(exc.code, int) else 2
+
+    file_path, error = _resolve_file_path(args.file, args.project_root)
+    if error is not None:
+        print(f"Error: {error}", file=sys.stderr)
         return 2
 
-    action = sys.argv[1]
-    file_path = Path(sys.argv[2]).resolve()
-
-    ok, message = run_transition(action, file_path)
+    ok, message = run_transition(args.action, file_path)  # type: ignore[arg-type]
     if ok:
         print(message)
         return 0
