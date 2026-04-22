@@ -41,11 +41,18 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-# UTF-8 stdout guard (#540).
+# Make sibling scripts importable both when run as __main__ and when imported
+# by tests that pre-populate sys.path with the ``scripts/`` directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+# UTF-8 stdout guard (#540).
 from _stdio_utf8 import reconfigure_stdio  # noqa: E402
 
 reconfigure_stdio()
+
+from _vbrief_build import (  # noqa: E402
+    EMITTED_VBRIEF_VERSION as _EMITTED_VBRIEF_VERSION,
+)
 
 LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
 
@@ -185,8 +192,10 @@ def create_skeleton(items: list[dict], now: str) -> dict:
         "vBRIEFInfo": {
             # #533: match the migrator's emitted version so skeletons
             # produced by ``task project:render`` round-trip through the
-            # validator during the v0.6 transition.
-            "version": "0.6",
+            # validator during the v0.6 transition. Sourced from the
+            # shared constant in _vbrief_build so a future bump lands in
+            # one place.
+            "version": _EMITTED_VBRIEF_VERSION,
             "description": "Project definition -- synthesized gestalt of the project",
             "created": now,
             "updated": now,
