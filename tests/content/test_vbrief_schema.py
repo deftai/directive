@@ -204,7 +204,7 @@ def test_spec_plan_has_title_status_items() -> None:
 def test_narrative_object_value_must_be_string() -> None:
     """Narrative values that are objects (not strings) must be flagged."""
     data = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "Test",
             "status": "draft",
@@ -222,7 +222,7 @@ def test_narrative_object_value_must_be_string() -> None:
 def test_item_narrative_value_must_be_string() -> None:
     """PlanItem narrative values that are objects (not strings) must be flagged."""
     data = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "Test",
             "status": "draft",
@@ -250,7 +250,7 @@ def test_item_narrative_value_must_be_string() -> None:
 def test_items_inside_plan_item_detected() -> None:
     """Using 'items' inside a PlanItem (instead of 'subItems') must be flagged."""
     data = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "Test",
             "status": "draft",
@@ -273,7 +273,7 @@ def test_items_inside_plan_item_detected() -> None:
 def test_recursive_subitems_validation() -> None:
     """Nested subItems must be validated recursively."""
     data = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "Test",
             "status": "draft",
@@ -307,7 +307,7 @@ def test_recursive_subitems_validation() -> None:
 def test_valid_hierarchical_spec_passes() -> None:
     """A correctly structured hierarchical spec must pass validation."""
     data = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "Project SPECIFICATION",
             "status": "draft",

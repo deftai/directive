@@ -562,8 +562,8 @@ def test_deft_directive_sync_project_definition_validation() -> None:
     assert "PROJECT-DEFINITION.vbrief.json" in text, (
         f"{_SYNC_PATH}: must validate PROJECT-DEFINITION.vbrief.json"
     )
-    assert "vBRIEFInfo" in text and '"0.5"' in text, (
-        f"{_SYNC_PATH}: must validate vBRIEF v0.5 schema conformance"
+    assert "vBRIEFInfo" in text and '"0.6"' in text, (
+        f"{_SYNC_PATH}: must validate vBRIEF v0.6 schema conformance"
     )
 
 

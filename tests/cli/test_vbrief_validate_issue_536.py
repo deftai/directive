@@ -19,6 +19,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
 
@@ -58,7 +59,7 @@ def _write_scope(
     version: str = "0.6",
     status: str = "pending",
 ) -> Path:
-    plan = {
+    plan: dict[str, Any] = {
         "title": "Scope T",
         "status": status,
         "items": [],

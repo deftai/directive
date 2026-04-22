@@ -246,7 +246,7 @@ class TestSlugFallbackId:
 
 def _write_valid_project_definition(vbrief_dir: Path) -> None:
     data = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "PROJECT-DEFINITION",
             "status": "running",
@@ -285,7 +285,7 @@ class TestValidateMigrationOutput:
         vbrief = tmp_path / "vbrief"
         vbrief.mkdir()
         bad = {
-            "vBRIEFInfo": {"version": "0.5"},
+            "vBRIEFInfo": {"version": "0.6"},
             "plan": {
                 "title": "Bad",
                 "status": "in_progress",  # not in enum -- must fail
@@ -348,7 +348,7 @@ class TestFinalizeMigrationCrossVolume:
         vbrief = tmp_path / "vbrief"
         vbrief.mkdir()
         (vbrief / "PROJECT-DEFINITION.vbrief.json").write_text(
-            json.dumps({"vBRIEFInfo": {"version": "0.5"}, "plan": {}}),
+            json.dumps({"vBRIEFInfo": {"version": "0.6"}, "plan": {}}),
             encoding="utf-8",
         )
 
@@ -391,7 +391,7 @@ class TestFinalizeMigration:
         vbrief.mkdir()
         # Bogus file that fails schema validation.
         (vbrief / "PROJECT-DEFINITION.vbrief.json").write_text(
-            json.dumps({"vBRIEFInfo": {"version": "0.5"}, "plan": {}}),
+            json.dumps({"vBRIEFInfo": {"version": "0.6"}, "plan": {}}),
             encoding="utf-8",
         )
 

@@ -81,23 +81,18 @@ def _validate_plan_item(
                 _validate_plan_item(sub, f"{item_path}.subItems", errors)
 
 
-# --- v0.6 transition accommodation (#533) ---
-# The migrator now emits ``"0.6"`` on every vBRIEF it writes (#561/agent1).
-# During the transition the validator accepts BOTH strings so mixed
-# pre-migration (``"0.5"``) and post-migration (``"0.6"``) trees round-trip
-# cleanly through ``task check`` + ``tests/content/test_vbrief_schema.py``.
-#
-# TODO(#533): tighten to 0.6-only after Agent 2 merge -- drop "0.5" from
-# ACCEPTED_VBRIEF_VERSIONS once the schema vendor PR removes the last
-# 0.5-only fixtures.
-ACCEPTED_VBRIEF_VERSIONS: frozenset[str] = frozenset({"0.5", "0.6"})
+# Strict v0.6-only acceptance (#533). The canonical schema at
+# vbrief/schemas/vbrief-core.schema.json pins vBRIEFInfo.version to
+# const "0.6"; this validator rejects every other version. Any legacy
+# v0.5 vBRIEF must be swept to v0.6 via the migrator.
+VALID_VBRIEF_VERSIONS: frozenset[str] = frozenset({"0.6"})
 
 
 def _validate_schema(data: dict, path: str) -> list[str]:
-    """Validate vBRIEF structural requirements. Returns a list of errors.
+    """Validate vBRIEF structural requirements (v0.6). Returns a list of errors.
 
-    Accepts both ``"0.5"`` and ``"0.6"`` in ``vBRIEFInfo.version`` during
-    the #533 schema vendor transition (see ACCEPTED_VBRIEF_VERSIONS).
+    Strictly requires ``vBRIEFInfo.version == "0.6"`` to match the canonical
+    v0.6 schema (#533). Any v0.5 vBRIEF must be migrated to v0.6.
     """
     errors: list[str] = []
 
@@ -108,11 +103,11 @@ def _validate_schema(data: dict, path: str) -> list[str]:
         info = data["vBRIEFInfo"]
         if not isinstance(info, dict):
             errors.append("'vBRIEFInfo' must be an object")
-        elif info.get("version") not in ACCEPTED_VBRIEF_VERSIONS:
-            accepted = sorted(ACCEPTED_VBRIEF_VERSIONS)
+        elif info.get("version") != "0.6":
             errors.append(
-                f"'vBRIEFInfo.version' must be one of {accepted}, "
-                f"got {info.get('version')!r}"
+                f"'vBRIEFInfo.version' must be '0.6' (canonical v0.6 schema, "
+                f"#533), got {info.get('version')!r}. Migrate legacy v0.5 "
+                f"vBRIEFs via the migrator sweep."
             )
 
     if "plan" not in data:

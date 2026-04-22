@@ -51,7 +51,7 @@ def _write_spec(
     """Write a specification.vbrief.json at ``vbrief_dir/specification.vbrief.json``."""
     vbrief_dir.mkdir(parents=True, exist_ok=True)
     spec = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": title,
             "status": status,
@@ -231,7 +231,7 @@ def _scope(title: str, status: str, narratives: dict, items: list | None = None,
         plan["id"] = plan_id
     if edges is not None:
         plan["edges"] = edges
-    return {"vBRIEFInfo": {"version": "0.5"}, "plan": plan}
+    return {"vBRIEFInfo": {"version": "0.6"}, "plan": plan}
 
 
 def test_aggregator_emits_implementation_plan_section(render_mod, tmp_path) -> None:

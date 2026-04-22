@@ -1186,7 +1186,7 @@ class TestMigrateExistingScopeSkip:
         pending_dir = project / "vbrief" / "pending"
         pending_dir.mkdir(parents=True, exist_ok=True)
         existing = {
-            "vBRIEFInfo": {"version": "0.5"},
+            "vBRIEFInfo": {"version": "0.6"},
             "plan": {
                 "title": "Old",
                 "status": "pending",
