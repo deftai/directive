@@ -115,13 +115,59 @@ from _vbrief_safety import (  # noqa: E402
     write_backups,
     write_safety_manifest,
 )
+from slug_normalize import (  # noqa: E402
+    DEFAULT_MAX_LEN as _SLUG_MAX_LEN,
+    disambiguate_slug as _disambiguate_slug,
+    normalize_slug as _normalize_slug,
+)
 
 MIGRATOR_VERSION = "0.20.0"
+
+# --- gitignore (#530) ---
+# Canonical comment block + patterns appended to a consumer project's
+# ``.gitignore`` by the migrator on its first run so ``.premigrate.*`` backup
+# files do not leak into commits. Idempotent -- the migrator only appends
+# patterns that are not already matched by an existing .gitignore rule.
+_GITIGNORE_MARKER_LINE = (
+    "# Migration backups (created by `task migrate:vbrief`) -- do NOT commit."
+)
+_GITIGNORE_COMMENT_BLOCK: tuple[str, ...] = (
+    _GITIGNORE_MARKER_LINE,
+    "# Post-commit, pre-migration state is recoverable via git history; see",
+    "# deft/main.md \u00a7 Safety flags for the post-commit recovery path.",
+)
+_GITIGNORE_PATTERNS: tuple[str, ...] = (
+    "*.premigrate.md",
+    "*.premigrate.vbrief.json",
+)
+# --- end gitignore ---
+
+# --- traces strip (#529) ---
+# Regex matching a ``**Traces**: ...`` line inside a LegacyArtifacts task block.
+# ``items[].subItems[].narrative.Traces`` is the single source of truth; the
+# duplicated line inside ``LegacyArtifacts`` is stripped during migration to
+# prevent downstream drift between the two copies.
+_TRACES_LINE_RE = re.compile(r"^\s*\*\*Traces\*\*\s*:.*$", re.MULTILINE)
+# Regex matching a LegacyArtifacts task header: e.g. ``### t2.1.2: ...`` or
+# ``### t2.1.2 -- ...``. Used to attribute the stripped line to a task id for
+# the RECONCILIATION.md audit trail.
+_TASK_HEADER_RE = re.compile(
+    r"^###\s+(?P<task_id>[A-Za-z]?\d+(?:\.\d+)+)\b",
+    re.MULTILINE,
+)
+# --- end traces strip ---
 
 # --- end fidelity + legacy-artifacts ---
 
 # Lifecycle folders per RFC #309 D13
 LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
+
+# Migrator-managed subdirectories under ``vbrief/`` that are created lazily by
+# sidecar emission (``vbrief/legacy/``, #505) and reporting (``vbrief/migration/``)
+# paths. Tracked in the safety manifest's ``created_dirs`` when the migrator
+# creates them for the first time so ``--rollback`` can RMDIR them consistently
+# with the lifecycle folders (issues #527, #528).
+_MANAGED_SUBDIRS: tuple[str, ...] = ("legacy", "migration")
 
 # Deprecation redirect sentinel per Story S (#334)
 DEPRECATION_SENTINEL = "<!-- deft:deprecated-redirect -->"
@@ -682,6 +728,216 @@ def _deprecation_redirect(
     )
 
 
+# --- gitignore helper (#530) ---
+def _ensure_gitignore_patterns(
+    project_root: Path, *, dry_run: bool
+) -> str | None:
+    """Append migration-backup gitignore patterns to ``.gitignore`` idempotently.
+
+    Per issue #530 Option A: the migrator writes the two ``.premigrate.*``
+    glob patterns under a comment block so the backups do not leak into
+    commits on greenfield consumer projects. Idempotent -- checks whether
+    each pattern is already present as a standalone rule before appending.
+    If ``.gitignore`` is absent, it is created.
+
+    Returns a human-readable log line describing the action taken (or
+    ``None`` when no change was needed). ``dry_run`` short-circuits all
+    filesystem writes but still returns a ``DRYRUN`` log line describing
+    what would have happened.
+    """
+    gitignore = project_root / ".gitignore"
+    existing: list[str]
+    if gitignore.is_file():
+        try:
+            existing_text = gitignore.read_text(encoding="utf-8")
+        except OSError:
+            return None
+        existing = existing_text.splitlines()
+    else:
+        existing_text = ""
+        existing = []
+
+    # A pattern is considered "present" if it appears verbatim on any
+    # non-comment line. This matches git's own loose interpretation: a
+    # project-level override that negates the pattern (``!*.premigrate.md``)
+    # still counts as "gitignore is aware of it" for our purposes.
+    existing_patterns = {
+        line.strip()
+        for line in existing
+        if line.strip() and not line.strip().startswith("#")
+    }
+    missing = [p for p in _GITIGNORE_PATTERNS if p not in existing_patterns]
+    if not missing:
+        return None
+
+    # Build the new block. When any patterns are missing we always include
+    # the full comment block for the first append so operators see the
+    # rationale. If the marker line is already present (partial prior
+    # append), skip re-emitting the comment block and just append the
+    # missing patterns under a short note.
+    block_lines: list[str] = []
+    if _GITIGNORE_MARKER_LINE in existing:
+        block_lines.append(
+            "# Additional migration backup patterns appended by "
+            "`task migrate:vbrief`."
+        )
+    else:
+        block_lines.extend(_GITIGNORE_COMMENT_BLOCK)
+    block_lines.extend(missing)
+    # Ensure the file ends with a newline before appending so we do not
+    # merge our comment onto a previous pattern line.
+    separator = ""
+    if existing_text and not existing_text.endswith("\n"):
+        separator = "\n"
+    addition = separator + ("\n" if existing_text else "") + "\n".join(block_lines) + "\n"
+
+    rel = ".gitignore"
+    verb = "CREATE" if not gitignore.is_file() else "UPDATE"
+    if dry_run:
+        return (
+            f"DRYRUN {verb} {rel} (append {len(missing)} migration-backup "
+            f"pattern(s): {', '.join(missing)})"
+        )
+    new_text = existing_text + addition if existing_text else "\n".join(block_lines) + "\n"
+    gitignore.write_text(new_text, encoding="utf-8")
+    return (
+        f"{verb} {rel} (append {len(missing)} migration-backup "
+        f"pattern(s): {', '.join(missing)})"
+    )
+# --- end gitignore helper ---
+
+
+# --- traces strip helpers (#529) ---
+def _strip_traces_from_narrative(narrative: str) -> tuple[str, list[str]]:
+    """Strip ``**Traces**: ...`` lines from a LegacyArtifacts narrative.
+
+    ``plan.items[].subItems[].narrative.Traces`` is the single source of
+    truth (see issue #529 for the 25/36 drift inventory). The duplicated
+    ``**Traces**: ...`` line inside each LegacyArtifacts task block is
+    stripped during migration so downstream tooling cannot pick a stale
+    second copy.
+
+    Returns ``(cleaned_narrative, stripped_task_ids)``. The cleaned
+    narrative preserves every other line verbatim; stripped task ids are
+    attributed to the preceding ``### tX.Y.Z`` header when available, or
+    recorded as ``<unattributed>`` when a ``**Traces**:`` line appears
+    outside any recognised task block.
+    """
+    if not narrative or "**Traces**" not in narrative:
+        return narrative, []
+
+    stripped_ids: list[str] = []
+    lines = narrative.splitlines()
+    current_task_id = ""
+    cleaned: list[str] = []
+    for line in lines:
+        header_match = _TASK_HEADER_RE.match(line)
+        if header_match:
+            current_task_id = header_match.group("task_id")
+        if _TRACES_LINE_RE.match(line):
+            attribution = current_task_id or "<unattributed>"
+            if attribution not in stripped_ids:
+                stripped_ids.append(attribution)
+            continue
+        cleaned.append(line)
+    # Preserve the trailing newline shape of the input (emit_legacy_artifacts
+    # emits narratives terminated with ``\n``).
+    trailing_newline = "\n" if narrative.endswith("\n") else ""
+    return "\n".join(cleaned) + trailing_newline, stripped_ids
+
+
+def _write_traces_stripped_note(
+    project_root: Path,
+    stripped_audit: list[dict],
+    *,
+    dry_run: bool,
+) -> tuple[Path | None, str | None]:
+    """Append a Traces-stripped section to ``vbrief/migration/RECONCILIATION.md``.
+
+    Creates the file if it doesn't exist. Returns ``(path, log_line)``.
+    ``log_line`` is ``None`` when ``stripped_audit`` is empty (nothing to
+    emit). Called after :func:`_vbrief_reconciliation.write_reconciliation_report`
+    so the Traces-stripped section follows any reconciliation conflicts
+    already recorded in the same file.
+    """
+    if not stripped_audit:
+        return None, None
+    report_dir = project_root / "vbrief" / "migration"
+    target = report_dir / "RECONCILIATION.md"
+    total = sum(len(entry.get("task_ids", [])) for entry in stripped_audit)
+
+    section_lines: list[str] = [
+        "## Traces lines stripped from LegacyArtifacts (#529)",
+        "",
+        (
+            "Per issue #529 the migrator strips duplicated ``**Traces**: ...`` "
+            "lines from LegacyArtifacts task blocks so downstream tooling reads "
+            "a single source of truth from ``plan.items[].subItems[].narrative.Traces``."
+        ),
+        "",
+    ]
+    for entry in stripped_audit:
+        source = entry.get("source", "?")
+        task_ids = entry.get("task_ids", []) or ["<none>"]
+        section_lines.append(f"- `{source}`: {', '.join(task_ids)}")
+    section_lines.append("")
+
+    section = "\n".join(section_lines)
+    rel = "vbrief/migration/RECONCILIATION.md"
+
+    if dry_run:
+        return None, (
+            f"DRYRUN APPEND {rel} (Traces-stripped audit: {total} task(s))"
+        )
+
+    report_dir.mkdir(parents=True, exist_ok=True)
+    if target.is_file():
+        existing = target.read_text(encoding="utf-8")
+        if not existing.endswith("\n"):
+            existing += "\n"
+        separator = "" if existing.endswith("\n\n") else "\n"
+        target.write_text(existing + separator + section, encoding="utf-8")
+        verb = "APPEND"
+    else:
+        header = (
+            "# Migration reconciliation report\n"
+            "\n"
+            f"Generated: {now_utc_iso()}\n"
+            "\n"
+            "Per #496 / #529 this file records SPEC/ROADMAP reconciliation "
+            "decisions and LegacyArtifacts traces-line stripping performed "
+            "during `task migrate:vbrief`.\n"
+            "\n"
+        )
+        target.write_text(header + section, encoding="utf-8")
+        verb = "CREATE"
+    return target, f"{verb} {rel} (Traces-stripped audit: {total} task(s))"
+# --- end traces strip helpers ---
+
+
+def _track_managed_subdir(
+    project_root: Path,
+    subdir_name: str,
+    pre_existed: dict[str, bool],
+    created_dirs: list[str],
+) -> None:
+    """Add ``vbrief/{subdir_name}`` to ``created_dirs`` if we created it (#527/#528).
+
+    Uses ``pre_existed`` (captured at migration start) so the decision is
+    derived from safety-manifest state, not from scanning the filesystem.
+    A repeat call is a no-op, preserving idempotency for callers that may
+    invoke this at multiple points in the migration flow.
+    """
+    rel = f"vbrief/{subdir_name}"
+    if pre_existed.get(subdir_name):
+        return
+    if rel in created_dirs:
+        return
+    folder = project_root / "vbrief" / subdir_name
+    if folder.is_dir():
+        created_dirs.append(rel)
+
+
 def migrate(
     project_root: Path,
     *,
@@ -716,6 +972,15 @@ def migrate(
     created_files: list[str] = []
     created_dirs: list[str] = []
 
+    # #527 / #528: snapshot which migrator-managed subdirs pre-existed so we
+    # can record any we create in the safety manifest's ``created_dirs``.
+    # Tracking is derived from this captured state -- NOT from post-hoc
+    # filesystem scans -- so rollback's RMDIR decision comes straight from
+    # the manifest and never clobbers a directory that was already present.
+    managed_subdir_pre_existed: dict[str, bool] = {
+        name: (vbrief_dir / name).is_dir() for name in _MANAGED_SUBDIRS
+    }
+
     # --- safety (Agent C, #497) ---
     # Dirty-tree guard (#497-3): refuse on a non-clean git status unless the
     # operator passes --force.  Runs BEFORE any filesystem mutation so a
@@ -738,6 +1003,15 @@ def migrate(
     )
     actions.extend(backup_actions)
     # --- end safety ---
+
+    # --- gitignore (#530) ---
+    # Append the ``.premigrate.*`` glob patterns to the consumer project's
+    # ``.gitignore`` on first migration so backups never leak into commits.
+    # Idempotent on subsequent runs.
+    gitignore_action = _ensure_gitignore_patterns(project_root, dry_run=dry_run)
+    if gitignore_action:
+        actions.append(gitignore_action)
+    # --- end gitignore ---
 
     # ---- Step 1: Create lifecycle folders ----
     for folder_name in LIFECYCLE_FOLDERS:
@@ -1044,16 +1318,17 @@ def migrate(
     # the reconciler (proposed / pending / active / completed / cancelled
     # per #506). Replaces the old Steps 4 + 4b that dumped everything into
     # pending/ or completed/. Orphan ROADMAP items route to proposed/ with
-    # narrative.SourceConflict = "missing-from-spec". Uses Agent D's
-    # slugify_id/slug_fallback_id for collision-safe filename stems and
-    # schema-compliant IDs (#498).
+    # narrative.SourceConflict = "missing-from-spec".
+    #
+    # #532: filename stem uses ``slug_normalize.normalize_slug`` (Unicode
+    # NFKD, checkbox markers stripped, word-boundary truncation at 60 chars,
+    # Windows-reserved fallback). The id prefix is still emitted via
+    # ``slugify_id`` (#498) because it is ALSO used as an in-JSON
+    # ``plan.items[*].id`` value that must match the schema ID regex.
     emitted_stems: set[str] = set()
     for reconciled in reconciled_items:
         folder = reconciled.get("folder", "pending")
         number = reconciled.get("number", "")
-        # Filename stem: id_source + title slug, disambiguated via
-        # slugify_id's collision-tracking path so repeated runs produce
-        # deterministic names.
         id_source = slug_fallback_id({
             "number": number,
             "task_id": reconciled.get("original_task_id", ""),
@@ -1061,8 +1336,20 @@ def migrate(
             "title": reconciled.get("title", "untitled"),
         })
         id_part = slugify_id(id_source)
-        title_slug = slugify_id(reconciled.get("title", "untitled"))
-        stem = slugify_id(f"{id_part}-{title_slug}", emitted_stems)
+        # Compose id + raw title then normalize as a single unit so the
+        # word-boundary truncation rule considers the full composed stem.
+        raw_title = reconciled.get("title", "untitled") or "untitled"
+        composed_raw = f"{id_part}-{raw_title}" if id_part else raw_title
+        normalized_stem = _normalize_slug(composed_raw, max_len=_SLUG_MAX_LEN)
+        stem = _disambiguate_slug(
+            normalized_stem, emitted_stems, max_len=_SLUG_MAX_LEN
+        )
+        emitted_stems.add(stem)
+        # Kept for the human-readable ``label`` fallback below.
+        title_slug = _normalize_slug(
+            reconciled.get("title", "untitled") or "untitled",
+            max_len=_SLUG_MAX_LEN,
+        )
         filename = f"{_TODAY}-{stem}.vbrief.json"
         target_folder = vbrief_dir / folder
         if not target_folder.exists() and not dry_run:
@@ -1196,6 +1483,12 @@ def migrate(
         "PROJECT-DEFINITION.vbrief.json -> LegacyArtifacts": [],
         "PRD.md content (flagged: hand-edited)": [],
     }
+    # #529: collect per-source Traces-stripping audit entries. Each entry
+    # records the source file name and the list of task ids whose
+    # ``**Traces**: ...`` line was stripped from the emitted LegacyArtifacts
+    # narrative. The audit is emitted to ``vbrief/migration/RECONCILIATION.md``
+    # after reconciliation writes its own conflicts.
+    traces_stripped_audit: list[dict] = []
     if not dry_run:
         # SPEC.md legacy sections were collected by the fidelity hook above.
         if spec_legacy_sections:
@@ -1206,6 +1499,12 @@ def migrate(
                 slugify_fn=_slugify_shared,
             )
             if narrative:
+                narrative, stripped_ids = _strip_traces_from_narrative(narrative)
+                if stripped_ids:
+                    traces_stripped_audit.append({
+                        "source": "SPECIFICATION.md",
+                        "task_ids": stripped_ids,
+                    })
                 if not spec_vbrief_path.exists():
                     # Nothing has written spec.vbrief.json yet (e.g. SPEC is
                     # 100% non-canonical) -- synthesize a minimal skeleton
@@ -1264,6 +1563,14 @@ def migrate(
                     slugify_fn=_slugify_shared,
                 )
                 if narrative and proj_def_path.exists():
+                    narrative, stripped_ids = _strip_traces_from_narrative(
+                        narrative
+                    )
+                    if stripped_ids:
+                        traces_stripped_audit.append({
+                            "source": "PROJECT.md",
+                            "task_ids": stripped_ids,
+                        })
                     _attach_legacy_narrative(proj_def_path, narrative)
                     for sidecar in sidecars:
                         try:
@@ -1301,6 +1608,14 @@ def migrate(
                 for stat in stats:
                     stat["flagged"] = True
                 if narrative and spec_vbrief_path.exists():
+                    narrative, stripped_ids = _strip_traces_from_narrative(
+                        narrative
+                    )
+                    if stripped_ids:
+                        traces_stripped_audit.append({
+                            "source": "PRD.md",
+                            "task_ids": stripped_ids,
+                        })
                     _attach_legacy_narrative(spec_vbrief_path, narrative)
                     for sidecar in sidecars:
                         try:
@@ -1368,6 +1683,44 @@ def migrate(
             "DRYRUN CREATE vbrief/migration/RECONCILIATION.md"
         )
     # --- end reconciliation-report ---
+
+    # #529: Append the Traces-stripped audit section to RECONCILIATION.md.
+    # Runs AFTER the reconciliation report so both live in the same file --
+    # the report writer overwrites, so appending last keeps both surfaces.
+    # In --dry-run the call short-circuits to a log line.
+    traces_report_path, traces_action = _write_traces_stripped_note(
+        project_root, traces_stripped_audit, dry_run=dry_run
+    )
+    if traces_action:
+        actions.append(traces_action)
+    if traces_report_path is not None:
+        try:
+            rel = traces_report_path.relative_to(project_root).as_posix()
+        except ValueError:
+            rel = str(traces_report_path)
+        if rel not in created_files:
+            created_files.append(rel)
+
+    # #527 / #528: record any migrator-managed subdirs we created (legacy,
+    # migration) in the safety manifest's created_dirs so --rollback RMDIRs
+    # them consistently with the lifecycle folders. Uses the pre-existed
+    # snapshot captured at the top of this function so the decision is
+    # driven by manifest state rather than filesystem scan.
+    #
+    # Pre-create vbrief/migration/ here because the safety manifest is about
+    # to be written into it below (via write_safety_manifest) -- by mkdir'ing
+    # now we surface its creation to the tracking helper in the same call
+    # site as all other managed-subdir tracking.
+    migration_dir = vbrief_dir / "migration"
+    if not dry_run and not migration_dir.is_dir():
+        migration_dir.mkdir(parents=True, exist_ok=True)
+    for subdir_name in _MANAGED_SUBDIRS:
+        _track_managed_subdir(
+            project_root,
+            subdir_name,
+            managed_subdir_pre_existed,
+            created_dirs,
+        )
 
     # --- safety (Agent C, #497) ---
     # Persist a safety manifest for --rollback.  The manifest lives under

@@ -94,6 +94,33 @@ class BackupRecord:
 
 
 @dataclass
+class RenameRecord:
+    """Single post-migration rename recorded in the safety manifest (#528).
+
+    When a ``deft-directive-*`` skill renames a file the migrator originally
+    created (e.g. Phase 6c of ``deft-directive-sync`` renames
+    ``LEGACY-REPORT.md`` -> ``LEGACY-REPORT.reviewed.md``), the skill
+    appends one of these records to :attr:`SafetyManifest.renames` so
+    rollback can resolve the current on-disk name before attempting
+    removal. Without this, rollback would target the original name,
+    silently miss the renamed file, and leave the artefact + its parent
+    directory orphaned on disk (issue #528).
+    """
+
+    original: str
+    """Project-root-relative path of the file when the migrator created it."""
+
+    current: str
+    """Project-root-relative path of the file on disk RIGHT NOW."""
+
+    renamed_by: str
+    """Human-readable name of the skill/phase that performed the rename."""
+
+    renamed_at: str
+    """UTC ISO-8601 timestamp (seconds precision) when the rename was recorded."""
+
+
+@dataclass
 class SafetyManifest:
     """State recorded at the end of a successful migration for rollback."""
 
@@ -118,6 +145,15 @@ class SafetyManifest:
     restore (and lose their changes) unless ``--force`` is passed.
     """
 
+    renames: list[RenameRecord] = field(default_factory=list)
+    """Post-migration renames recorded by downstream skills (#528).
+
+    Rollback consults this to resolve the current on-disk name of any
+    tracked file before attempting removal. The migrator never writes
+    entries here itself -- entries are appended by ``deft-directive-sync``
+    Phase 6c and any future skill that renames migrator-created files.
+    """
+
     def to_json(self) -> str:
         payload = {
             "version": self.version,
@@ -126,6 +162,7 @@ class SafetyManifest:
             "created_files": list(self.created_files),
             "created_dirs": list(self.created_dirs),
             "post_migration_stub_hashes": dict(self.post_migration_stub_hashes),
+            "renames": [asdict(r) for r in self.renames],
         }
         return json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
 
@@ -133,6 +170,7 @@ class SafetyManifest:
     def from_json(cls, raw: str) -> SafetyManifest:
         data = json.loads(raw)
         backups = [BackupRecord(**b) for b in data.get("backups", [])]
+        renames = [RenameRecord(**r) for r in data.get("renames", [])]
         return cls(
             version=str(data.get("version", "1")),
             migration_timestamp=str(data.get("migration_timestamp", "")),
@@ -142,7 +180,22 @@ class SafetyManifest:
             post_migration_stub_hashes=dict(
                 data.get("post_migration_stub_hashes", {})
             ),
+            renames=renames,
         )
+
+    def current_path_for(self, original: str) -> str:
+        """Return the current on-disk path for a migrator-created ``original``.
+
+        Consults :attr:`renames` first; falls back to ``original`` when no
+        rename record matches. The most recent rename (last in list) wins
+        when multiple records reference the same original so a chain of
+        renames resolves to the final destination (#528).
+        """
+        current = original
+        for record in self.renames:
+            if record.original == original:
+                current = record.current
+        return current
 
 
 # ---------------------------------------------------------------------------
@@ -454,12 +507,25 @@ def rollback(
     # #497.  Sort deepest-first so directory-removal in step 5 has a chance
     # at emptying parents cleanly.
     for rel in sorted(manifest.created_files, key=lambda p: -p.count("/")):
-        path = project_root / rel
+        # #528: downstream skills (e.g. deft-directive-sync Phase 6c) may
+        # rename migrator-created files. Resolve the current on-disk name
+        # via manifest.renames before attempting removal so renamed files
+        # do not get orphaned with their parent directory.
+        current_rel = manifest.current_path_for(rel)
+        path = project_root / current_rel
         if path.is_file():
             path.unlink()
-            actions.append(f"REMOVE {rel}")
+            if current_rel != rel:
+                actions.append(f"REMOVE {current_rel} (renamed from {rel})")
+            else:
+                actions.append(f"REMOVE {rel}")
         else:
-            actions.append(f"SKIP   {rel} (already absent)")
+            if current_rel != rel:
+                actions.append(
+                    f"SKIP   {current_rel} (already absent; renamed from {rel})"
+                )
+            else:
+                actions.append(f"SKIP   {rel} (already absent)")
 
     # 5. Remove migrator-created directories (only if now-empty) -- also
     # sorted deepest-first.
