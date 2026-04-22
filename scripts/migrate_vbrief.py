@@ -32,6 +32,7 @@ from urllib.parse import urlparse
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _vbrief_build import (
+    EMITTED_VBRIEF_VERSION,  # noqa: E402 -- canonical emitted version per #533
     create_scope_vbrief as _create_scope_vbrief_shared,  # noqa: E402
     slugify as _slugify_shared,  # noqa: E402
 )
@@ -124,11 +125,12 @@ from slug_normalize import (  # noqa: E402
 MIGRATOR_VERSION = "0.20.0"
 
 # --- vbrief version (#533) ---
-# Canonical ``vBRIEFInfo.version`` string the migrator emits on every file it
-# writes. Bumped from ``"0.5"`` to ``"0.6"`` as part of the Agent 2 schema
-# vendor transition (#533). During the transition the validator accepts both
-# values; the migrator only emits the newer string.
-EMITTED_VBRIEF_VERSION = "0.6"
+# ``EMITTED_VBRIEF_VERSION`` is the canonical ``vBRIEFInfo.version`` string
+# emitted on every file the migrator writes. Imported above from
+# ``_vbrief_build`` so the migrator, ingestion helpers, and speckit all share
+# a single source of truth. Bumped from ``"0.5"`` to ``"0.6"`` as part of the
+# Agent 2 schema vendor transition (#533). During the transition the
+# validator accepts both values; the migrator only emits the newer string.
 # --- end vbrief version ---
 
 # --- gitignore (#530) ---
