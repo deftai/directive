@@ -1605,3 +1605,145 @@ def test_deft_directive_swarm_antipattern_no_hardcoded_master() -> None:
     assert "hardcode `master` as the base branch" in text.lower(), (
         f"{_SWARM_PATH}: must have anti-pattern against hardcoding master (#373)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 38. deft-directive-swarm Phase 6 Greptile-service-errored recovery (#526)
+# ---------------------------------------------------------------------------
+
+
+def test_deft_directive_swarm_phase6_greptile_errored_detection() -> None:
+    """Phase 6 Step 1 must detect the 'Greptile encountered an error' comment body."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Greptile encountered an error while reviewing this PR" in text, (
+        f"{_SWARM_PATH}: Phase 6 Step 1 must detect the exact Greptile error sentinel (#526)"
+    )
+    assert "COMPLETED/NEUTRAL" in text and "do NOT interpret that as passing" in text, (
+        f"{_SWARM_PATH}: Phase 6 Step 1 must warn NEUTRAL CheckRun is not passing (#526)"
+    )
+
+
+def test_deft_directive_swarm_phase6_greptile_errored_retry_once() -> None:
+    """Phase 6 Step 1 must retry once via @greptileai review with a 10-minute cap."""
+    text = _read_skill(_SWARM_PATH)
+    assert "Retry ONCE" in text and "@greptileai review" in text, (
+        f"{_SWARM_PATH}: Phase 6 Step 1 must document retry-once via @greptileai review (#526)"
+    )
+    assert "10-minute cap" in text, (
+        f"{_SWARM_PATH}: Phase 6 Step 1 retry must specify 10-minute cap (#526)"
+    )
+
+
+def test_deft_directive_swarm_phase6_greptile_errored_three_way_escalation() -> None:
+    """Phase 6 Step 1 must document three-way escalation on second error."""
+    text = _read_skill(_SWARM_PATH)
+    # (a) wait longer
+    assert "wait longer" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 6 Step 1 escalation must include (a) wait longer (#526)"
+    )
+    # (b) push empty retrigger commit
+    assert (
+        "empty `chore: retrigger greptile` commit" in text
+        or "chore: retrigger greptile" in text
+    ), (
+        f"{_SWARM_PATH}: Phase 6 Step 1 escalation must include "
+        f"(b) empty retrigger commit (#526)"
+    )
+    # (c) merge with documented override
+    assert "merge with documented override" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 6 Step 1 escalation must include "
+        f"(c) documented override merge (#526)"
+    )
+    # Override rationale must be in merge commit body, not just PR body
+    assert "merge commit body" in text and "not just the PR body" in text, (
+        f"{_SWARM_PATH}: override rationale must be recorded in merge commit body, "
+        f"not just PR body (#526)"
+    )
+
+
+def test_deft_directive_swarm_phase6_gate_errored_extension() -> None:
+    """Phase 6 Step 1 Greptile gate must call errored reviews insufficient."""
+    text = _read_skill(_SWARM_PATH)
+    assert "an errored review is also not sufficient" in text, (
+        f"{_SWARM_PATH}: Phase 6 Step 1 gate must extend 'stale or in-progress' wording to "
+        f"call errored reviews insufficient and direct to the escalation procedure (#526)"
+    )
+
+
+def test_deft_directive_swarm_phase6_monitor_exit_errored() -> None:
+    """Monitor must exit the errored state with an explicit `errored` report, not loop forever."""
+    text = _read_skill(_SWARM_PATH)
+    assert "\u2297 Loop the monitor indefinitely on the errored state" in text, (
+        f"{_SWARM_PATH}: must have \u2297 rule against indefinite errored-state looping (#526)"
+    )
+    assert "explicit `errored` report" in text, (
+        f"{_SWARM_PATH}: monitor must exit with explicit `errored` report (#526)"
+    )
+
+
+def test_deft_directive_swarm_phase6_no_merge_on_neutral_alone() -> None:
+    """Phase 6 Step 1 must prohibit merging on the NEUTRAL CheckRun alone."""
+    text = _read_skill(_SWARM_PATH)
+    assert "\u2297 Merge on the basis of the NEUTRAL CheckRun alone" in text, (
+        f"{_SWARM_PATH}: must prohibit merging on NEUTRAL CheckRun alone (#526)"
+    )
+
+
+def test_deft_directive_swarm_phase6_polling_subagent_contract() -> None:
+    """Polling sub-agents must detect error and emit distinct errored message to parent."""
+    text = _read_skill(_SWARM_PATH)
+    assert "PR #<N> Greptile errored" in text, (
+        f"{_SWARM_PATH}: polling sub-agents must emit a distinct 'PR #<N> Greptile errored' "
+        f"message back to the parent (#526)"
+    )
+    lower = text.lower()
+    assert "last-reviewed sha" in lower and "errored on current head" in lower, (
+        f"{_SWARM_PATH}: sub-agents must separately track last-reviewed SHA vs "
+        f"errored-on-HEAD (#526)"
+    )
+
+
+def test_deft_directive_swarm_antipattern_neutral_checkrun() -> None:
+    """Anti-patterns must prohibit treating COMPLETED/NEUTRAL as a passing review."""
+    text = _read_skill(_SWARM_PATH)
+    needle = (
+        "\u2297 Treat a Greptile GitHub CheckRun of COMPLETED/NEUTRAL as "
+        "equivalent to a passing review"
+    )
+    assert needle in text, (
+        f"{_SWARM_PATH}: must have \u2297 anti-pattern against treating "
+        f"NEUTRAL CheckRun as passing (#526)"
+    )
+    assert "errored out mid-review" in text and "opposite responses" in text, (
+        f"{_SWARM_PATH}: NEUTRAL anti-pattern must explain the two-case "
+        f"ambiguity (#526)"
+    )
+
+
+def test_deft_directive_swarm_antipattern_errored_loop_and_override_logging() -> None:
+    """Anti-patterns must cover indefinite errored loop and override-merge announcement callout."""
+    text = _read_skill(_SWARM_PATH)
+    # Indefinite errored loop / silent poll-cap timeout
+    assert "Loop the monitor indefinitely on the Greptile-service-errored state" in text, (
+        f"{_SWARM_PATH}: must have anti-pattern against indefinite errored-state looping (#526)"
+    )
+    # Override-merged PRs must be called out in the Slack announcement
+    assert "Omit override-merged PRs from the Phase 6 Step 5 Slack release announcement" in text, (
+        f"{_SWARM_PATH}: must have anti-pattern against omitting override-merged PRs from the "
+        f"Slack announcement (#526)"
+    )
+
+
+def test_deft_directive_swarm_phase6_slack_override_merge_callout() -> None:
+    """Phase 6 Step 5 Slack announcement must call out override-merged PRs."""
+    text = _read_skill(_SWARM_PATH)
+    # Announcement template must include the override-merges line
+    assert "*Override merges*" in text, (
+        f"{_SWARM_PATH}: Phase 6 Step 5 Slack announcement must include an *Override merges* "
+        f"line so downstream readers can trace the documented override rationale (#526)"
+    )
+    # Populate rule must explicitly reference Greptile-service-errored override path
+    assert "Greptile-service-errored override path" in text, (
+        f"{_SWARM_PATH}: Phase 6 Step 5 populate rule must reference the "
+        f"Greptile-service-errored override path (#526)"
+    )

@@ -342,7 +342,21 @@ All PRs meet ALL of:
 
 ! **Autonomous re-review monitoring after force-push:** After each `--force-with-lease` push of a rebased branch in the cascade, the monitor MUST autonomously wait for the Greptile re-review to complete before proceeding to the next merge. Use the tiered monitoring approach defined in `skills/deft-directive-review-cycle/SKILL.md` Step 4 Review Monitoring (Approach 1: spawn sub-agent via `start_agent` to poll and report back; Approach 2 fallback: discrete `run_shell_command` wait-mode calls with yield between polls, adaptive cadence -- see deft-directive-review-cycle SKILL.md). Do NOT duplicate the full monitoring logic here -- follow the canonical skill.
 
-! **Gate:** Do NOT proceed to the next merge in the cascade until the Greptile review for the rebased branch is current (pushed SHA matches "Last reviewed commit" SHA) AND the exit condition is met (confidence > 3, no P0/P1 issues remaining). A stale or in-progress review is not sufficient.
+! **Gate:** Do NOT proceed to the next merge in the cascade until the Greptile review for the rebased branch is current (pushed SHA matches "Last reviewed commit" SHA) AND the exit condition is met (confidence > 3, no P0/P1 issues remaining). A stale or in-progress review is not sufficient; an errored review is also not sufficient; follow the escalation procedure below.
+
+! **Greptile service errored state (#526):** If the Greptile comment on the current HEAD is the exact string "Greptile encountered an error while reviewing this PR", treat the review as errored (distinct from stale, in-progress, or ready). The GitHub CheckRun will read COMPLETED/NEUTRAL; do NOT interpret that as passing.
+
+Retry ONCE via an `@greptileai review` comment with a 10-minute cap. If the retry also errors, escalate to the user with a three-way choice:
+
+  (a) wait longer (another ~15-20 min in case the service recovers);
+  (b) push an empty `chore: retrigger greptile` commit to force a fresh review pass;
+  (c) merge with documented override, where the rationale MUST be recorded in the merge commit body (not just the PR body) citing prior Greptile success on a pre-rebase SHA, CI/Go + CI/Python success on the current SHA, and the rebase being a pure conflict-resolution merge with no new business logic.
+
+⊗ Loop the monitor indefinitely on the errored state. The monitor MUST detect the "Greptile encountered an error" comment body and exit with an explicit `errored` report so the parent swarm monitor can route to the escalation procedure above.
+
+⊗ Merge on the basis of the NEUTRAL CheckRun alone -- the service-side failure is indistinguishable from a clean pass at the CheckRun level.
+
+! **Polling sub-agent contract for errored state (#526):** Short-lived polling sub-agents spawned under Phase 6 MUST detect the "Greptile encountered an error" comment body on the current HEAD and emit a distinct "PR #<N> Greptile errored" message back to the parent, rather than silently continuing to poll or timing out. Sub-agents MUST separately track "Greptile last-reviewed SHA" and "Greptile errored on current HEAD" so an errored state on the current HEAD is not masked by a successful review on a prior SHA.
 
 ? **Rebase-only annotation:** If the force-push contains no logic changes (pure rebase onto updated master), the monitor MAY post a brief PR comment noting "rebase-only, no logic changes" to give Greptile context and help reviewers triage the re-review.
 
@@ -391,6 +405,7 @@ All PRs meet ALL of:
 
 *Stats*: {N} agents | ~{duration} elapsed | {N} PRs merged
 *PRs*: {#PR1, #PR2, ...}
+*Override merges*: {#PRX: <one-line rationale from merge commit body>, ...} -- omit this line only if no PR in the release used the Greptile-service-errored override path
 *Release*: {GitHub release URL}
 ```
 
@@ -399,6 +414,7 @@ All PRs meet ALL of:
 - ! Key changes summarized from CHANGELOG `[Unreleased]` entries (not raw commit messages)
 - ! Agent count and approximate duration from the swarm session (Phase 3 launch to Phase 6 close)
 - ! PR numbers from the merged PRs in this swarm run
+- ! **Override merges line (#526):** For any PR in the release that was merged via the Greptile-service-errored override path (Phase 6 Step 1 choice (c)), explicitly call it out in the announcement with the one-line rationale taken from the merge commit body so downstream readers of the release notes can trace the documented rationale. Detect override merges by scanning each merged PR's merge commit body for the override rationale footprint (prior Greptile success on a pre-rebase SHA + CI green on current SHA + pure conflict-resolution rebase). Omit the `*Override merges*` line only when no merged PR in this release used the override path.
 - ! GitHub release URL from the `gh release create` output (or `gh release view --json url` if already created)
 - ~ Present the block as a code-fenced snippet the user can copy directly
 - ? If no formal GitHub release was created (e.g. user deferred), still generate the announcement with a placeholder URL and note that the release is pending
@@ -517,3 +533,7 @@ CONSTRAINTS:
 - ⊗ Hardcode a 1:1 vBRIEF-per-agent allocation rule — the monitor decides allocation dynamically based on scope, complexity, and dependencies
 - ⊗ Complete a story without moving its vBRIEF from `active/` to `completed/` and updating its origin references
 - ⊗ Hardcode `master` as the base branch -- always use the configured base branch from Phase 0
+- ⊗ Treat a Greptile GitHub CheckRun of COMPLETED/NEUTRAL as equivalent to a passing review without inspecting the comment body. NEUTRAL is the result both when Greptile intentionally has nothing to say AND when it errored out mid-review; the two cases require opposite responses (#526)
+- ⊗ Loop the monitor indefinitely on the Greptile-service-errored state or time out silently at the poll cap -- detect the "Greptile encountered an error" comment body, retry once via `@greptileai review` with a 10-minute cap, and on second error escalate to the user with the three-way choice (wait / empty retrigger commit / documented override) per Phase 6 Step 1 (#526)
+- ⊗ Merge a rebased PR on the basis of the NEUTRAL CheckRun alone when the Greptile comment body is the error sentinel -- the service-side failure is indistinguishable from a clean pass at the CheckRun level, and any merge taken must be recorded as a documented override in the merge commit body (#526)
+- ⊗ Omit override-merged PRs from the Phase 6 Step 5 Slack release announcement -- any merge that used the Greptile-service-errored override path MUST be called out with its one-line rationale so downstream readers can trace the documented override trail (#526)
