@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "migrate: disagreeing `Traces` tables in `plan.items[].subItems` vs `LegacyArtifacts` (25/36 tasks drift)",

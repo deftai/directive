@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "author": "agent:deft-directive-swarm",
     "description": "Pre-cutover migration discoverability per #506 D6: standard deft/Taskfile.yml include + actionable fallback message + AGENTS.md branch + docs entry.",
     "created": "2026-04-21T17:18:00Z"
@@ -9,7 +9,13 @@
     "id": "rc3-500-discoverability",
     "title": "Pre-cutover migration discoverability from project root and AGENTS.md (#500)",
     "status": "running",
-    "tags": ["rc3", "wave-1", "agent-e", "docs", "taskfile"],
+    "tags": [
+      "rc3",
+      "wave-1",
+      "agent-e",
+      "docs",
+      "taskfile"
+    ],
     "narratives": {
       "Overview": "Per #506 D6: (primary) publish migration via standard deft/Taskfile.yml include so 'task migrate:vbrief' works from project root when consumer Taskfile includes deft; (fallback) pre-cutover guard actionable message includes 'task -t ./deft/Taskfile.yml migrate:vbrief' when task isn't resolvable; SKIP option (ii) install-step Taskfile mutation.",
       "Problem": "Pre-cutover guard tells operator to run 'task migrate:vbrief' but the task is defined only in deft/Taskfile.yml and fails from project root. AGENTS.md has no pre-cutover branch. Setup flow doesn't preflight environment. No high-level migration doc.",
@@ -18,19 +24,63 @@
       "Outcome": "Agents literally following AGENTS.md on a pre-cutover project are directed to migration before Phase 1/2 interviews. Operators get a working command whether or not their root Taskfile includes deft."
     },
     "items": [
-      {"id": "500-directive", "status": "running", "title": "Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit"},
-      {"id": "500-A", "status": "running", "title": "Document deft/Taskfile.yml include pattern in deft/main.md and deft/QUICK-START.md"},
-      {"id": "500-B", "status": "running", "title": "Update pre-cutover guard with resolvability check + fallback command"},
-      {"id": "500-B2", "status": "running", "title": "Preflight: task resolvable + uv installed + migrate_vbrief.py present"},
-      {"id": "500-C", "status": "running", "title": "Add pre-cutover detection branch to AGENTS.md before Phase 1/2/Returning"},
-      {"id": "500-D", "status": "running", "title": "Add 'Migrating from pre-v0.20' section to deft/main.md; cross-link"},
-      {"id": "500-skip-ii", "status": "running", "title": "Explicitly do NOT add install-step Taskfile mutation (option ii skipped per D6)"},
-      {"id": "500-tests", "status": "running", "title": "Content tests for AGENTS.md branch, main.md section, guard wording"},
-      {"id": "500-changelog", "status": "running", "title": "CHANGELOG [Unreleased] entry under Added"}
+      {
+        "id": "500-directive",
+        "status": "running",
+        "title": "Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit"
+      },
+      {
+        "id": "500-A",
+        "status": "running",
+        "title": "Document deft/Taskfile.yml include pattern in deft/main.md and deft/QUICK-START.md"
+      },
+      {
+        "id": "500-B",
+        "status": "running",
+        "title": "Update pre-cutover guard with resolvability check + fallback command"
+      },
+      {
+        "id": "500-B2",
+        "status": "running",
+        "title": "Preflight: task resolvable + uv installed + migrate_vbrief.py present"
+      },
+      {
+        "id": "500-C",
+        "status": "running",
+        "title": "Add pre-cutover detection branch to AGENTS.md before Phase 1/2/Returning"
+      },
+      {
+        "id": "500-D",
+        "status": "running",
+        "title": "Add 'Migrating from pre-v0.20' section to deft/main.md; cross-link"
+      },
+      {
+        "id": "500-skip-ii",
+        "status": "running",
+        "title": "Explicitly do NOT add install-step Taskfile mutation (option ii skipped per D6)"
+      },
+      {
+        "id": "500-tests",
+        "status": "running",
+        "title": "Content tests for AGENTS.md branch, main.md section, guard wording"
+      },
+      {
+        "id": "500-changelog",
+        "status": "running",
+        "title": "CHANGELOG [Unreleased] entry under Added"
+      }
     ],
     "references": [
-      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/500", "id": "#500"},
-      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/506", "id": "#506"}
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/500",
+        "id": "#500"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/506",
+        "id": "#506"
+      }
     ]
   }
 }

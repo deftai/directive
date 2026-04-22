@@ -23,6 +23,17 @@ from datetime import UTC, datetime
 # is straightforward.
 TODAY: str = datetime.now(UTC).strftime("%Y-%m-%d")
 
+# ----------------------------------------------------------------------------
+# Emitted vBRIEF version (#533)
+# ----------------------------------------------------------------------------
+
+# Canonical ``vBRIEFInfo.version`` string emitted on every scope vBRIEF built
+# via :func:`create_scope_vbrief`. Bumped from ``"0.5"`` to ``"0.6"`` as part
+# of the Agent 2 schema vendor transition (#533). During the transition the
+# validator accepts both strings; ingestion/generation paths only emit the
+# newer one.
+EMITTED_VBRIEF_VERSION: str = "0.6"
+
 
 # ----------------------------------------------------------------------------
 # Slugification
@@ -64,8 +75,9 @@ def create_scope_vbrief(
       - ``phase`` (str): roadmap phase label (optional)
       - ``tier`` (str): sub-phase tier label (optional)
 
-    The returned structure conforms to vBRIEF v0.5:
-      - ``vBRIEFInfo.version = "0.5"``
+    The returned structure conforms to the canonical vBRIEF version emitted
+    by deft (``EMITTED_VBRIEF_VERSION``, currently ``"0.6"`` per #533):
+      - ``vBRIEFInfo.version = EMITTED_VBRIEF_VERSION``
       - ``plan.title`` is ``item['title']`` verbatim
       - ``plan.status`` is ``status`` (default ``pending``)
       - ``plan.narratives`` carries ``Description`` / ``Phase`` (and optional
@@ -90,7 +102,7 @@ def create_scope_vbrief(
 
     vbrief: dict = {
         "vBRIEFInfo": {
-            "version": "0.5",
+            "version": EMITTED_VBRIEF_VERSION,
             "description": f"Scope vBRIEF for {desc_label}",
         },
         "plan": {
@@ -114,4 +126,4 @@ def create_scope_vbrief(
     return vbrief
 
 
-__all__ = ["TODAY", "slugify", "create_scope_vbrief"]
+__all__ = ["EMITTED_VBRIEF_VERSION", "TODAY", "slugify", "create_scope_vbrief"]

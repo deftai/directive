@@ -439,7 +439,9 @@ class TestBuildProjectDefinition:
 
     def test_vbrief_envelope(self):
         result = _build_project_definition(None, None, [])
-        assert result["vBRIEFInfo"]["version"] == "0.5"
+        # #533: migrator emits "0.6"; validator still accepts "0.5" during
+        # the transition.
+        assert result["vBRIEFInfo"]["version"] == "0.6"
         assert result["plan"]["title"] == "PROJECT-DEFINITION"
         assert result["plan"]["status"] == "running"
 
@@ -469,7 +471,8 @@ class TestCreateScopeVbrief:
     def test_basic_scope_vbrief(self):
         item = {"number": "99", "title": "Test feature", "phase": "Phase 1"}
         result = _create_scope_vbrief(item)
-        assert result["vBRIEFInfo"]["version"] == "0.5"
+        # #533: migrator/shared helper now emits "0.6".
+        assert result["vBRIEFInfo"]["version"] == "0.6"
         assert result["plan"]["title"] == "Test feature"
         assert result["plan"]["status"] == "pending"
         assert result["plan"]["references"][0]["id"] == "#99"
@@ -547,7 +550,8 @@ class TestMigrateProjectDefinition:
         assert pd_path.exists()
 
         data = json.loads(pd_path.read_text(encoding="utf-8"))
-        assert data["vBRIEFInfo"]["version"] == "0.5"
+        # #533: migrator now emits "0.6" on PROJECT-DEFINITION.
+        assert data["vBRIEFInfo"]["version"] == "0.6"
         assert "Overview" in data["plan"]["narratives"]
         assert "ProjectConfig" in data["plan"]["narratives"]
 

@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Inform users about human-readable exports during greenfield speckit runs via Artifacts Summary + end-of-Phase-3 prompt + optional task check nudge.",
     "created": "2026-04-20T00:00:00Z",
     "updated": "2026-04-20T00:00:00Z"

@@ -1,25 +1,23 @@
 {
-    "vBRIEFInfo":  {
-                       "version":  "0.5",
-                       "author":  "agent:deft-directive-swarm",
-                       "description":  "Auto-generated from GitHub issue #382",
-                       "created":  "2026-04-15T17:34:00Z",
-                       "updated":  "2026-04-15T18:49:00Z"
-                   },
-    "plan":  {
-                 "title":  "migrate_vbrief: PROJECT-DEFINITION missing \u0027tech stack\u0027 narrative key -- validator D3 failure",
-                 "status":  "completed",
-                 "narratives":  {
-                                    "Overview":  "See GitHub issue #382 for full description and acceptance criteria."
-                                },
-                 "items":  [
-
-                           ],
-                 "references":  [
-                                    {
-                                        "type":  "github-issue",
-                                        "id":  "#382"
-                                    }
-                                ]
-             }
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "author": "agent:deft-directive-swarm",
+    "description": "Auto-generated from GitHub issue #382",
+    "created": "2026-04-15T17:34:00Z",
+    "updated": "2026-04-15T18:49:00Z"
+  },
+  "plan": {
+    "title": "migrate_vbrief: PROJECT-DEFINITION missing 'tech stack' narrative key -- validator D3 failure",
+    "status": "completed",
+    "narratives": {
+      "Overview": "See GitHub issue #382 for full description and acceptance criteria."
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#382"
+      }
+    ]
+  }
 }

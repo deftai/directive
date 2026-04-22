@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Create UPGRADING.md, make QUICK-START.md the universal onboarding / upgrade funnel, and build the v0.19 -> v0.20 bridge (skill redirect stubs + template fallback rule + README banner).",
     "created": "2026-04-16T00:00:00Z",
     "updated": "2026-04-16T00:00:00Z"

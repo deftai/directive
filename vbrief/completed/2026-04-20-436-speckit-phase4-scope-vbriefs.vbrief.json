@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Implement Option 1 from the issue: speckit Phase 4 emits scope vBRIEFs per implementation phase. plan.vbrief.json reverts to session-todo role. Migrator converts existing speckit projects.",
     "created": "2026-04-20T00:00:00Z",
     "updated": "2026-04-20T00:00:00Z"

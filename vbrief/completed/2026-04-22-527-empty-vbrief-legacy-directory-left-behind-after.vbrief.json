@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "rollback: empty `vbrief/legacy/` directory left behind after --rollback",

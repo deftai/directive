@@ -1,25 +1,23 @@
 {
-    "vBRIEFInfo":  {
-                       "version":  "0.5",
-                       "author":  "agent:deft-directive-swarm",
-                       "description":  "Auto-generated from GitHub issue #384",
-                       "created":  "2026-04-15T17:34:00Z",
-                       "updated":  "2026-04-15T18:49:00Z"
-                   },
-    "plan":  {
-                 "title":  "spec_render: status gate rejects \u0027completed\u0027 specs -- overly strict for post-implementation projects",
-                 "status":  "completed",
-                 "narratives":  {
-                                    "Overview":  "See GitHub issue #384 for full description and acceptance criteria."
-                                },
-                 "items":  [
-
-                           ],
-                 "references":  [
-                                    {
-                                        "type":  "github-issue",
-                                        "id":  "#384"
-                                    }
-                                ]
-             }
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "author": "agent:deft-directive-swarm",
+    "description": "Auto-generated from GitHub issue #384",
+    "created": "2026-04-15T17:34:00Z",
+    "updated": "2026-04-15T18:49:00Z"
+  },
+  "plan": {
+    "title": "spec_render: status gate rejects 'completed' specs -- overly strict for post-implementation projects",
+    "status": "completed",
+    "narratives": {
+      "Overview": "See GitHub issue #384 for full description and acceptance criteria."
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#384"
+      }
+    ]
+  }
 }

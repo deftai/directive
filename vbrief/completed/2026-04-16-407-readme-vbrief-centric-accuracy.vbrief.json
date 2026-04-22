@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Update README.md to describe the vBRIEF-centric flow: scope vBRIEFs are the source of truth; SPECIFICATION.md is a rendered view.",
     "created": "2026-04-16T00:00:00Z",
     "updated": "2026-04-16T00:00:00Z"

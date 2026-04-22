@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "rollback: orphaned `LEGACY-REPORT.reviewed.md` after Phase 6c rename (companion to #527)",

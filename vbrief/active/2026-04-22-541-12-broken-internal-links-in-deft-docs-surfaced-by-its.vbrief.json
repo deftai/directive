@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "docs: 12 broken internal links in deft docs surfaced by its own verify:links tool (unblocks #514 content cleanup)",

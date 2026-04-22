@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "migrate: .premigrate.* not gitignored by default; post-commit recovery path undocumented",

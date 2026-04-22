@@ -123,6 +123,14 @@ from slug_normalize import (  # noqa: E402
 
 MIGRATOR_VERSION = "0.20.0"
 
+# --- vbrief version (#533) ---
+# Canonical ``vBRIEFInfo.version`` string the migrator emits on every file it
+# writes. Bumped from ``"0.5"`` to ``"0.6"`` as part of the Agent 2 schema
+# vendor transition (#533). During the transition the validator accepts both
+# values; the migrator only emits the newer string.
+EMITTED_VBRIEF_VERSION = "0.6"
+# --- end vbrief version ---
+
 # --- gitignore (#530) ---
 # Canonical comment block + patterns appended to a consumer project's
 # ``.gitignore`` by the migrator on its first run so ``.premigrate.*`` backup
@@ -693,7 +701,7 @@ def _build_project_definition(
 
     return {
         "vBRIEFInfo": {
-            "version": "0.5",
+            "version": EMITTED_VBRIEF_VERSION,
             "description": "Project definition -- synthesized gestalt of the project.",
         },
         "plan": {
@@ -1096,7 +1104,10 @@ def migrate(
         # Ensure spec_vbrief structure exists
         if spec_vbrief is None:
             spec_vbrief = {
-                "vBRIEFInfo": {"version": "0.5", "description": "Specification"},
+                "vBRIEFInfo": {
+                    "version": EMITTED_VBRIEF_VERSION,
+                    "description": "Specification",
+                },
                 "plan": {
                     "title": "Specification",
                     "status": "approved",
@@ -1153,7 +1164,10 @@ def migrate(
         )
         if spec_vbrief is None:
             spec_vbrief = {
-                "vBRIEFInfo": {"version": "0.5", "description": "Specification"},
+                "vBRIEFInfo": {
+                    "version": EMITTED_VBRIEF_VERSION,
+                    "description": "Specification",
+                },
                 "plan": {
                     "title": "Specification",
                     "status": "approved",
@@ -1528,7 +1542,7 @@ def migrate(
                         json.dumps(
                             {
                                 "vBRIEFInfo": {
-                                    "version": "0.5",
+                                    "version": EMITTED_VBRIEF_VERSION,
                                     "description": "Specification",
                                 },
                                 "plan": {
@@ -1956,7 +1970,7 @@ def _create_speckit_scope_vbrief(
 
     return {
         "vBRIEFInfo": {
-            "version": "0.5",
+            "version": EMITTED_VBRIEF_VERSION,
             "description": f"Scope vBRIEF for speckit IP-{ip_index}",
         },
         "plan": plan,
@@ -2035,7 +2049,9 @@ def migrate_speckit_plan(
     # Rewrite plan.vbrief.json to the session-todo scaffold, preserving the
     # envelope title so context isn't lost.
     envelope = plan_data.get("vBRIEFInfo", {}) if isinstance(plan_data, dict) else {}
-    envelope.setdefault("version", "0.5")
+    # #533: force the emitted envelope to the current canonical version so a
+    # v0.5 speckit plan migrated today produces a v0.6 session scaffold.
+    envelope["version"] = EMITTED_VBRIEF_VERSION
     envelope["description"] = (
         "Session-level tactical plan (migrated from speckit plan). "
         "Scope vBRIEFs live in vbrief/pending/."

@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Scope vBRIEF for #202: GET /widgets/{id}: fetch by id"
   },
   "plan": {

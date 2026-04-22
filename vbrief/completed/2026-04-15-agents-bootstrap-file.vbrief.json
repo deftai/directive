@@ -1,25 +1,23 @@
 {
-    "vBRIEFInfo":  {
-                       "version":  "0.5",
-                       "author":  "agent:deft-directive-swarm",
-                       "description":  "Auto-generated from GitHub issue #358",
-                       "created":  "2026-04-15T17:34:00Z",
-                       "updated":  "2026-04-15T18:49:00Z"
-                   },
-    "plan":  {
-                 "title":  "feat(ux): make AGENTS.md readily available for users who clone directive without the installer",
-                 "status":  "completed",
-                 "narratives":  {
-                                    "Overview":  "See GitHub issue #358 for full description and acceptance criteria."
-                                },
-                 "items":  [
-
-                           ],
-                 "references":  [
-                                    {
-                                        "type":  "github-issue",
-                                        "id":  "#358"
-                                    }
-                                ]
-             }
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "author": "agent:deft-directive-swarm",
+    "description": "Auto-generated from GitHub issue #358",
+    "created": "2026-04-15T17:34:00Z",
+    "updated": "2026-04-15T18:49:00Z"
+  },
+  "plan": {
+    "title": "feat(ux): make AGENTS.md readily available for users who clone directive without the installer",
+    "status": "completed",
+    "narratives": {
+      "Overview": "See GitHub issue #358 for full description and acceptance criteria."
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#358"
+      }
+    ]
+  }
 }

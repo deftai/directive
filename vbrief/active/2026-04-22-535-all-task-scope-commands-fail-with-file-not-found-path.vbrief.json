@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "scope: all `task scope:*` commands fail with file-not-found (path resolved from deft/ CWD, not project root)",

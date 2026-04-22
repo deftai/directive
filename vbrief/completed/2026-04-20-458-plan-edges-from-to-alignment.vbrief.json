@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Bilingual edge reader in roadmap_render + spec_render (#435) + migrate_vbrief (#436). Canonical convention is schema-aligned from/to. Legacy source/target continues to work for at least one release cycle.",
     "created": "2026-04-20T00:00:00Z",
     "updated": "2026-04-20T00:00:00Z"

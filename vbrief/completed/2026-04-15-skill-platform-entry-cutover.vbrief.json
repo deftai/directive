@@ -1,25 +1,23 @@
 {
-    "vBRIEFInfo":  {
-                       "version":  "0.5",
-                       "author":  "agent:deft-directive-swarm",
-                       "description":  "Auto-generated from GitHub issue #389",
-                       "created":  "2026-04-15T17:34:00Z",
-                       "updated":  "2026-04-15T18:49:00Z"
-                   },
-    "plan":  {
-                 "title":  "SKILL.md platform entry point is entirely pre-cutover -- references old skill names and deprecated artifacts",
-                 "status":  "completed",
-                 "narratives":  {
-                                    "Overview":  "See GitHub issue #389 for full description and acceptance criteria."
-                                },
-                 "items":  [
-
-                           ],
-                 "references":  [
-                                    {
-                                        "type":  "github-issue",
-                                        "id":  "#389"
-                                    }
-                                ]
-             }
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "author": "agent:deft-directive-swarm",
+    "description": "Auto-generated from GitHub issue #389",
+    "created": "2026-04-15T17:34:00Z",
+    "updated": "2026-04-15T18:49:00Z"
+  },
+  "plan": {
+    "title": "SKILL.md platform entry point is entirely pre-cutover -- references old skill names and deprecated artifacts",
+    "status": "completed",
+    "narratives": {
+      "Overview": "See GitHub issue #389 for full description and acceptance criteria."
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#389"
+      }
+    ]
+  }
 }

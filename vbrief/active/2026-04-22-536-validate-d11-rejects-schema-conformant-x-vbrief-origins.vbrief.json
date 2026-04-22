@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "vbrief:validate: D11 rejects schema-conformant x-vbrief/* origins AND exits 1 on warnings-only runs",

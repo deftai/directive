@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Gate speckit Phase 3 -> Phase 4 transition on SPECIFICATION.md existence and hash match. Also restructure Post-Phase 3 section as a numbered transition gate.",
     "created": "2026-04-20T00:00:00Z",
     "updated": "2026-04-20T00:00:00Z"

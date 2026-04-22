@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "issue:ingest and reconcile:issues query deftai/directive instead of consumer project's GitHub repo (same root cause as #535)",

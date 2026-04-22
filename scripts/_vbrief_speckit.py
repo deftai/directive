@@ -14,7 +14,10 @@ import json
 import re
 from pathlib import Path
 
-from _vbrief_build import slugify as _slugify_shared
+from _vbrief_build import (
+    EMITTED_VBRIEF_VERSION as _EMITTED_VBRIEF_VERSION,
+    slugify as _slugify_shared,
+)
 
 
 def edge_nodes(edge: dict) -> tuple[str, str]:
@@ -133,7 +136,7 @@ def create_speckit_scope_vbrief(
 
     return {
         "vBRIEFInfo": {
-            "version": "0.5",
+            "version": _EMITTED_VBRIEF_VERSION,
             "description": f"Scope vBRIEF for speckit IP-{ip_index}",
         },
         "plan": plan,
@@ -207,7 +210,9 @@ def migrate_speckit_plan(
         created_paths.append(target)
 
     envelope = plan_data.get("vBRIEFInfo", {}) if isinstance(plan_data, dict) else {}
-    envelope.setdefault("version", "0.5")
+    # #533: force the emitted envelope to the current canonical version so a
+    # v0.5 speckit plan migrated today produces a v0.6 session scaffold.
+    envelope["version"] = _EMITTED_VBRIEF_VERSION
     envelope["description"] = (
         "Session-level tactical plan (migrated from speckit plan). "
         "Scope vBRIEFs live in vbrief/pending/."

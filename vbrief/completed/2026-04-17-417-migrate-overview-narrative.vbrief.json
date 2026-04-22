@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Populate Overview narrative on PROJECT-DEFINITION.vbrief.json so task migrate:vbrief output satisfies the D3 validator on v0.19 fixtures.",
     "created": "2026-04-17T00:00:00Z",
     "updated": "2026-04-17T00:00:00Z"

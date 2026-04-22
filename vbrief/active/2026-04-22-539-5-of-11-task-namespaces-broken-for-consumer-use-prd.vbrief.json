@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "audit: 5 of 11 task namespaces broken for consumer use (prd:render destructively overwrites deft/PRD.md)",

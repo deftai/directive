@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Mirror prd_render.py in spec_render.py so speckit narratives render in SPECIFICATION.md instead of being silently dropped.",
     "created": "2026-04-20T00:00:00Z",
     "updated": "2026-04-20T00:00:00Z"

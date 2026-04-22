@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Scaffold vbrief/ lifecycle subdirectories during `run project` so the CLI path matches the skill-driven greenfield path.",
     "created": "2026-04-16T00:00:00Z",
     "updated": "2026-04-16T00:00:00Z"

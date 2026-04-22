@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "refinement: Phase 1 Ingest and Phase 3 Reconcile duplicate `task issue:ingest` / `task reconcile:issues`; skill should wrap tasks",

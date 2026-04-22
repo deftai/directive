@@ -77,14 +77,15 @@ class TestSkeletonCreation:
         assert (vbrief_dir / "PROJECT-DEFINITION.vbrief.json").exists()
 
     def test_skeleton_has_valid_vbrief_structure(self, tmp_path):
-        """Skeleton has required vBRIEF v0.5 structure."""
+        """Skeleton has required vBRIEF structure (version 0.6 post-#533)."""
         vbrief_dir = tmp_path / "vbrief"
         vbrief_dir.mkdir()
 
         run_project_render(str(vbrief_dir))
         data = read_project_def(vbrief_dir)
 
-        assert data["vBRIEFInfo"]["version"] == "0.5"
+        # #533: project_render now emits "0.6" to match the migrator.
+        assert data["vBRIEFInfo"]["version"] == "0.6"
         assert data["plan"]["title"] == "PROJECT-DEFINITION"
         assert data["plan"]["status"] == "running"
         assert "narratives" in data["plan"]

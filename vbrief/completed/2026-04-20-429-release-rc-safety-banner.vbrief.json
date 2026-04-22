@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Remove RC-specific safety banner from README.md (Option A). Optionally move a distilled upgrade-safety paragraph to UPGRADING.md.",
     "created": "2026-04-20T00:00:00Z",
     "updated": "2026-04-20T00:00:00Z"

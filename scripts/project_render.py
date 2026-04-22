@@ -183,7 +183,10 @@ def create_skeleton(items: list[dict], now: str) -> dict:
 
     return {
         "vBRIEFInfo": {
-            "version": "0.5",
+            # #533: match the migrator's emitted version so skeletons
+            # produced by ``task project:render`` round-trip through the
+            # validator during the v0.6 transition.
+            "version": "0.6",
             "description": "Project definition -- synthesized gestalt of the project",
             "created": now,
             "updated": now,

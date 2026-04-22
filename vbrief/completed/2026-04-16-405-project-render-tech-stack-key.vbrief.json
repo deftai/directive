@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Fix project_render.py SKELETON_NARRATIVES to use the lowercase-space 'tech stack' key so task project:render skeletons pass task vbrief:validate.",
     "created": "2026-04-16T00:00:00Z",
     "updated": "2026-04-16T00:00:00Z"

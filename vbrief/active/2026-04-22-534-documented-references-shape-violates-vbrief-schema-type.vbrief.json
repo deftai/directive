@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "refinement: documented `references` shape violates vBRIEF schema (type pattern, uri vs url, undefined id field)",

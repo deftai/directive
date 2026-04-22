@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Scope vBRIEF for #101: Scaffold FastAPI app with SQLite"
   },
   "plan": {

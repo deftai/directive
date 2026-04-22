@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Add version/upgrade gate to deft/run entry point so CLI users see a warning after a framework update.",
     "created": "2026-04-16T00:00:00Z",
     "updated": "2026-04-16T00:00:00Z"

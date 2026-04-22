@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Deft Directive Phases 1-3 specification. Converted from legacy flat format to vBRIEF v0.5."
   },
   "plan": {
@@ -305,7 +305,7 @@
         "status": "completed",
         "narrative": {
           "Description": "After committing Greptile fixes, agents re-trigger CI without checking test coverage of changed lines. Add explicit step between fix commit and CI re-trigger to scan changed lines, identify untested code paths, and write tests in the same batch. Eliminates one CI round-trip per fix cycle. Closes #192.",
-          "Acceptance": "skills/deft-review-cycle/SKILL.md contains explicit step (between Step 3 fix commit and Step 4 push) to scan changed lines, identify untested code paths, and write tests\nStep is positioned to eliminate one CI round-trip per fix cycle\nskills/deft-review-cycle/SKILL.md Anti-Patterns contains \u2297 entry: push fix commits without scanning changed lines for untested code paths",
+          "Acceptance": "skills/deft-review-cycle/SKILL.md contains explicit step (between Step 3 fix commit and Step 4 push) to scan changed lines, identify untested code paths, and write tests\nStep is positioned to eliminate one CI round-trip per fix cycle\nskills/deft-review-cycle/SKILL.md Anti-Patterns contains ⊗ entry: push fix commits without scanning changed lines for untested code paths",
           "Traces": "#192"
         }
       },
@@ -564,8 +564,8 @@
         "title": "Add rules against mid-task instant-fix drift and skill-context bleed to main.md (#198)",
         "status": "completed",
         "narrative": {
-          "Description": "Agents fix discovered issues in-place during an unrelated task instead of filing an issue, and continue executing past a skill's explicit instruction boundary into adjacent work. Add \u2297 rules to main.md Decision Making section prohibiting both patterns, and add companion entry to meta/lessons.md. Closes #198.",
-          "Acceptance": "main.md Decision Making contains \u2297 rule: Fix a discovered issue in-place mid-task without filing a GitHub issue\nmain.md Decision Making contains \u2297 rule: Continue executing a skill past its explicit instruction boundary\nmain.md Decision Making contains ! rule: The end of a skill's final step is an exit condition\nmeta/lessons.md contains companion entry documenting these as learned patterns (xrefs #159, #167, #184)",
+          "Description": "Agents fix discovered issues in-place during an unrelated task instead of filing an issue, and continue executing past a skill's explicit instruction boundary into adjacent work. Add ⊗ rules to main.md Decision Making section prohibiting both patterns, and add companion entry to meta/lessons.md. Closes #198.",
+          "Acceptance": "main.md Decision Making contains ⊗ rule: Fix a discovered issue in-place mid-task without filing a GitHub issue\nmain.md Decision Making contains ⊗ rule: Continue executing a skill past its explicit instruction boundary\nmain.md Decision Making contains ! rule: The end of a skill's final step is an exit condition\nmeta/lessons.md contains companion entry documenting these as learned patterns (xrefs #159, #167, #184)",
           "Traces": "#198"
         }
       },
@@ -574,8 +574,8 @@
         "title": "Add mandatory skills/ scan rule to AGENTS.md before improvising multi-step workflows (#200)",
         "status": "completed",
         "narrative": {
-          "Description": "Agents improvise multi-step workflows from scratch without checking whether a skill already covers the task. Add ! rule and \u2297 anti-pattern to AGENTS.md requiring a skills/ scan before designing workflows. Add companion meta/lessons.md entry. Closes #200.",
-          "Acceptance": "AGENTS.md contains ! rule: Before designing a multi-step workflow from scratch, scan skills/ for an existing skill\nAGENTS.md contains \u2297 anti-pattern: Improvise a multi-step workflow without first checking skills/\nmeta/lessons.md contains companion entry",
+          "Description": "Agents improvise multi-step workflows from scratch without checking whether a skill already covers the task. Add ! rule and ⊗ anti-pattern to AGENTS.md requiring a skills/ scan before designing workflows. Add companion meta/lessons.md entry. Closes #200.",
+          "Acceptance": "AGENTS.md contains ! rule: Before designing a multi-step workflow from scratch, scan skills/ for an existing skill\nAGENTS.md contains ⊗ anti-pattern: Improvise a multi-step workflow without first checking skills/\nmeta/lessons.md contains companion entry",
           "Traces": "#200"
         }
       },
@@ -584,8 +584,8 @@
         "title": "Add keyword-to-skill routing table in AGENTS.md and add 3 missing skills to README (#147)",
         "status": "completed",
         "narrative": {
-          "Description": "Skills are undiscoverable \u2014 agents don't know which skill to use for common keywords. Add a keyword\u2192skill routing table to AGENTS.md mapping trigger phrases to skill paths. Add deft-review-cycle, deft-roadmap-refresh, and deft-swarm entries to README.md Skills section. Closes #147.",
-          "Acceptance": "AGENTS.md contains keyword\u2192skill routing table near Commands section\nTable maps: review cycle \u2192 deft-review-cycle, swarm \u2192 deft-swarm, roadmap refresh \u2192 deft-roadmap-refresh, build \u2192 deft-build\nREADME.md Skills section lists deft-review-cycle, deft-roadmap-refresh, deft-swarm with brief descriptions",
+          "Description": "Skills are undiscoverable — agents don't know which skill to use for common keywords. Add a keyword→skill routing table to AGENTS.md mapping trigger phrases to skill paths. Add deft-review-cycle, deft-roadmap-refresh, and deft-swarm entries to README.md Skills section. Closes #147.",
+          "Acceptance": "AGENTS.md contains keyword→skill routing table near Commands section\nTable maps: review cycle → deft-review-cycle, swarm → deft-swarm, roadmap refresh → deft-roadmap-refresh, build → deft-build\nREADME.md Skills section lists deft-review-cycle, deft-roadmap-refresh, deft-swarm with brief descriptions",
           "Traces": "#147"
         }
       },
@@ -666,7 +666,7 @@
         "status": "completed",
         "narrative": {
           "Description": "deft-roadmap-refresh currently adds one CHANGELOG.md entry per issue triaged, producing verbose noise. Change to one batch entry at the end of the full triage session summarizing all issues triaged. Add anti-pattern. Closes #238.",
-          "Acceptance": "skills/deft-roadmap-refresh/SKILL.md contains ! rule: write one batch CHANGELOG.md entry at the end of the full triage session, not one per issue triaged\nskills/deft-roadmap-refresh/SKILL.md Anti-Patterns contains \u2297 rule: add a CHANGELOG entry per individual issue during triage\ntests/content/test_skills.py passes",
+          "Acceptance": "skills/deft-roadmap-refresh/SKILL.md contains ! rule: write one batch CHANGELOG.md entry at the end of the full triage session, not one per issue triaged\nskills/deft-roadmap-refresh/SKILL.md Anti-Patterns contains ⊗ rule: add a CHANGELOG entry per individual issue during triage\ntests/content/test_skills.py passes",
           "Traces": "#238"
         }
       },
@@ -700,8 +700,8 @@
         "title": "Migrate ROADMAP.md em-dashes to ASCII -- to enable edit_files on Windows (#237)",
         "status": "completed",
         "narrative": {
-          "Description": "ROADMAP.md phase bodies and Open Issues Index rows contain Unicode em-dashes (\u2014) that cause edit_files tool failures on Windows (warpdotdev/warp#9022). Perform one-time migration: replace all em-dashes in ROADMAP.md with ASCII -- (double hyphen). This unblocks all future ROADMAP.md edits without requiring PowerShell fallbacks. Closes #237.",
-          "Acceptance": "ROADMAP.md contains no Unicode em-dash characters (\u2014) in phase body lines or Open Issues Index rows\nAll former em-dashes replaced with ASCII -- (double hyphen)\nROADMAP.md is structurally valid after migration (no broken entries)",
+          "Description": "ROADMAP.md phase bodies and Open Issues Index rows contain Unicode em-dashes (—) that cause edit_files tool failures on Windows (warpdotdev/warp#9022). Perform one-time migration: replace all em-dashes in ROADMAP.md with ASCII -- (double hyphen). This unblocks all future ROADMAP.md edits without requiring PowerShell fallbacks. Closes #237.",
+          "Acceptance": "ROADMAP.md contains no Unicode em-dash characters (—) in phase body lines or Open Issues Index rows\nAll former em-dashes replaced with ASCII -- (double hyphen)\nROADMAP.md is structurally valid after migration (no broken entries)",
           "Traces": "#237"
         }
       },
@@ -710,8 +710,8 @@
         "title": "Add blocker carve-out to main.md instant-fix drift rule (#241)",
         "status": "completed",
         "narrative": {
-          "Description": "The main.md instant-fix drift rule (\u2297: fix a discovered issue in-place mid-task) is too broad -- it inadvertently prohibits fixing genuine blockers discovered mid-task. Add a carve-out: blocking discoveries are in-scope with mandatory issue filing. Non-blocking discoveries remain prohibited (must file issue, do not fix in-place). Addresses ambiguity surfaced in #198 post-implementation. Closes #241.",
-          "Acceptance": "main.md Decision Making instant-fix drift \u2297 rule includes carve-out: if a discovered issue is a hard blocker to completing the current task, fixing it in-scope is permitted with mandatory GitHub issue filing\nCarve-out explicitly scoped to blocking discoveries only -- non-blocking nice-to-fix issues remain prohibited\ntests/content/test_standards.py passes",
+          "Description": "The main.md instant-fix drift rule (⊗: fix a discovered issue in-place mid-task) is too broad -- it inadvertently prohibits fixing genuine blockers discovered mid-task. Add a carve-out: blocking discoveries are in-scope with mandatory issue filing. Non-blocking discoveries remain prohibited (must file issue, do not fix in-place). Addresses ambiguity surfaced in #198 post-implementation. Closes #241.",
+          "Acceptance": "main.md Decision Making instant-fix drift ⊗ rule includes carve-out: if a discovered issue is a hard blocker to completing the current task, fixing it in-scope is permitted with mandatory GitHub issue filing\nCarve-out explicitly scoped to blocking discoveries only -- non-blocking nice-to-fix issues remain prohibited\ntests/content/test_standards.py passes",
           "Traces": "#241"
         }
       }

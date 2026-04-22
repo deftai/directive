@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "vbrief: scope filename slug normalization rules undefined; migrator truncates mid-word and leaks checkbox markers",

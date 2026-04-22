@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5"
+    "version": "0.6"
   },
   "plan": {
     "title": "tasks: inconsistent PYTHONUTF8 env setting causes intermittent UnicodeEncodeError on Windows (4/11 set, 7/11 don't)",

@@ -150,7 +150,8 @@ def _reconciled(**overrides):
 class TestBuildReconciledScopeVbrief:
     def test_envelope_and_title(self):
         scope = build_scope_vbrief_from_reconciled(_reconciled())
-        assert scope["vBRIEFInfo"]["version"] == "0.5"
+        # #533: emitted envelope bumped to "0.6".
+        assert scope["vBRIEFInfo"]["version"] == "0.6"
         assert scope["plan"]["title"] == "Widget feature"
         assert scope["plan"]["status"] == "pending"
 

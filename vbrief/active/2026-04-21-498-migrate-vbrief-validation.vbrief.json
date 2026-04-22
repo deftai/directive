@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "author": "agent:deft-directive-swarm",
     "description": "migrate:vbrief self-validation + slug-safe IDs + golden-file tests; hard-block on schema-invalid output per #506 D8.",
     "created": "2026-04-21T17:18:00Z"
@@ -9,7 +9,12 @@
     "id": "rc3-498-validation",
     "title": "migrate:vbrief self-validation + slug-safe IDs + golden tests (#498)",
     "status": "running",
-    "tags": ["rc3", "wave-1", "agent-d", "migrator"],
+    "tags": [
+      "rc3",
+      "wave-1",
+      "agent-d",
+      "migrator"
+    ],
     "narratives": {
       "Overview": "Per #506 D8, migrator hard-blocks on schema-invalid output: exit non-zero, leave .premigrate backups in place, write partial output to vbrief.invalid/ (isolated from vbrief/). Slug-safe IDs per regex ^[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)*$ applied to filename AND in-JSON id. Real-fixture golden test added.",
       "Problem": "Migrator exits 0 despite producing schema-violating output. IDs contain spaces, slashes, dots, @. CI does not validate migrated output. Operators are told 'success' on broken state.",
@@ -18,16 +23,48 @@
       "Outcome": "Migration fails loudly on schema violations instead of silently producing broken state. IDs are universally slug-safe. Golden fixture prevents regression of every #495 finding caught by validation."
     },
     "items": [
-      {"id": "498-directive", "status": "running", "title": "Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit"},
-      {"id": "498-A", "status": "running", "title": "Migrator validates own output; hard-block on schema-invalid (exit non-zero, vbrief.invalid/, backups preserved)"},
-      {"id": "498-B", "status": "running", "title": "Slug-safe ID sanitiser applied to filename AND in-JSON id; collision disambiguation"},
-      {"id": "498-C", "status": "running", "title": "Synthetic pre-cutover fixture + golden-file test (no slizard data)"},
-      {"id": "498-D", "status": "running", "title": "Wire vbrief:validate into tests/cli/test_migrate_vbrief.py CI"},
-      {"id": "498-changelog", "status": "running", "title": "CHANGELOG [Unreleased] entry under Fixed"}
+      {
+        "id": "498-directive",
+        "status": "running",
+        "title": "Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit"
+      },
+      {
+        "id": "498-A",
+        "status": "running",
+        "title": "Migrator validates own output; hard-block on schema-invalid (exit non-zero, vbrief.invalid/, backups preserved)"
+      },
+      {
+        "id": "498-B",
+        "status": "running",
+        "title": "Slug-safe ID sanitiser applied to filename AND in-JSON id; collision disambiguation"
+      },
+      {
+        "id": "498-C",
+        "status": "running",
+        "title": "Synthetic pre-cutover fixture + golden-file test (no slizard data)"
+      },
+      {
+        "id": "498-D",
+        "status": "running",
+        "title": "Wire vbrief:validate into tests/cli/test_migrate_vbrief.py CI"
+      },
+      {
+        "id": "498-changelog",
+        "status": "running",
+        "title": "CHANGELOG [Unreleased] entry under Fixed"
+      }
     ],
     "references": [
-      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/498", "id": "#498"},
-      {"type": "github-issue", "url": "https://github.com/deftai/directive/issues/506", "id": "#506"}
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/498",
+        "id": "#498"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/506",
+        "id": "#506"
+      }
     ]
   }
 }

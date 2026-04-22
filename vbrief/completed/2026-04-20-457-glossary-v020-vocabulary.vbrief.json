@@ -1,6 +1,6 @@
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "description": "Single canonical vocabulary surface for v0.20 terms, 13 required entries, cross-refs from vbrief.md/README/UPGRADING, content test, strict scope cap.",
     "created": "2026-04-20T00:00:00Z",
     "updated": "2026-04-20T00:00:00Z"
