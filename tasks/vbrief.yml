@@ -1,5 +1,8 @@
 version: '3'
 
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
 tasks:
   validate:
     desc: Validate vBRIEF lifecycle folder structure and cross-file consistency
@@ -7,4 +10,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/vbrief_validate.py --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief"
+      - uv run python "{{.DEFT_ROOT}}/scripts/vbrief_validate.py" --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief"

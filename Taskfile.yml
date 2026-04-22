@@ -3,6 +3,21 @@ version: '3'
 vars:
   PROJECT_NAME: deft
   VERSION: 0.20.0
+  # Each included sub-taskfile (tasks/*.yml) defines its own DEFT_ROOT as
+  # `{{joinPath .TASKFILE_DIR ".."}}` so scripts can be dispatched via
+  # `{{.DEFT_ROOT}}/scripts/...` on every platform (#566). `joinPath` is
+  # evaluated eagerly by go-task's templating and uses Go's `filepath.Clean`,
+  # which yields a native-separator, `..`-free absolute path that
+  # `uv run python` can open on Windows. The previous
+  # `{{.TASKFILE_DIR}}/../scripts/...` shape mixed native separators with
+  # forward-slash traversal and normalized incorrectly under Windows Python,
+  # dropping the deft/ prefix.
+  #
+  # DEFT_ROOT is intentionally NOT defined here at the root Taskfile level
+  # because go-task re-evaluates var templates at use site in included
+  # subfiles -- a root-level `DEFT_ROOT: '{{.TASKFILE_DIR}}'` would expand
+  # to the subfile's own directory (tasks/) when referenced from a subfile,
+  # not to the deft/ root.
 
 # Top-level env propagates into included taskfiles (Task v3 includes inherit
 # the parent env:). PYTHONUTF8=1 ensures Python scripts invoked from any

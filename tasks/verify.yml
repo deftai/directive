@@ -1,16 +1,19 @@
 version: '3'
 
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
 tasks:
   stubs:
     desc: Scan source files for stub patterns (TODO, FIXME, HACK, return null, bare pass)
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/verify-stubs.py
+      - uv run python "{{.DEFT_ROOT}}/scripts/verify-stubs.py"
 
   links:
     desc: Validate internal links in markdown files
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/validate-links.py
+      - uv run python "{{.DEFT_ROOT}}/scripts/validate-links.py"

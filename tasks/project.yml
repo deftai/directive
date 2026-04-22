@@ -1,5 +1,8 @@
 version: '3'
 
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
 # project:render task.
 #
 # Fixed #539: the task previously used ``{{.ROOT_DIR}}`` which is deft's
@@ -14,4 +17,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/project_render.py "{{.USER_WORKING_DIR}}/vbrief"
+      - uv run python "{{.DEFT_ROOT}}/scripts/project_render.py" "{{.USER_WORKING_DIR}}/vbrief"

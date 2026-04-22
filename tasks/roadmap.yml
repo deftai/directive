@@ -1,6 +1,12 @@
 version: '3'
 
-# roadmap tasks -- consumer-safe CWD + script resolution (#539, #540).
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# roadmap tasks -- consumer-safe CWD + script resolution (#539, #540, #566).
+# Scripts are dispatched via {{.DEFT_ROOT}} (defined in ../Taskfile.yml) to
+# avoid the {{.TASKFILE_DIR}}/.. path-traversal form that breaks on Windows
+# under `uv run python` (#566).
 
 tasks:
   render:
@@ -9,7 +15,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/roadmap_render.py "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md"
+      - uv run python "{{.DEFT_ROOT}}/scripts/roadmap_render.py" "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md"
 
   check:
     desc: Verify ROADMAP.md matches what roadmap:render would produce
@@ -17,4 +23,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/roadmap_render.py "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md" --check
+      - uv run python "{{.DEFT_ROOT}}/scripts/roadmap_render.py" "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md" --check

@@ -1,9 +1,12 @@
 version: '3'
 
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
 tasks:
   check:
     desc: Verify required toolchain is installed (go, uv, task, git, gh)
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/toolchain-check.py
+      - uv run python "{{.DEFT_ROOT}}/scripts/toolchain-check.py"
