@@ -7,7 +7,7 @@ metadata:
     requires:
       bins: ["task"]
     homepage: "https://github.com/deftai/directive"
-os: ["darwin", "linux"]
+os: ["darwin", "linux", "windows"]
 ---
 
 # Deft Framework
