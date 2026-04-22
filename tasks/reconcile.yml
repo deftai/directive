@@ -9,8 +9,11 @@ vars:
 # '{{.USER_WORKING_DIR}}'``) so ``gh`` and ``git`` commands executed by
 # ``scripts/reconcile_issues.py`` resolve against the CONSUMER's remote,
 # not deftai/directive (#538). Script path dispatched via {{.DEFT_ROOT}}
-# (defined in ../Taskfile.yml) to avoid the {{.TASKFILE_DIR}}/.. form that
-# breaks on Windows under `uv run python` (#566).
+# (defined locally in this file's `vars:` block via
+# ``{{joinPath .TASKFILE_DIR ".."}}`` -- see ../Taskfile.yml for why
+# root-level definition is avoided) to keep the path traversal-free and
+# avoid the {{.TASKFILE_DIR}}/.. form that breaks on Windows under
+# `uv run python` (#566).
 
 tasks:
   issues:

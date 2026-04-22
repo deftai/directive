@@ -11,8 +11,11 @@ vars:
 # deftai/directive (#538). The explicit ``--project-root`` flag makes the
 # intent clear to the script and gives it a stable anchor even if Task's
 # ``dir:`` semantics ever change. Script path dispatched via {{.DEFT_ROOT}}
-# (defined in ../Taskfile.yml) to avoid the {{.TASKFILE_DIR}}/.. form that
-# breaks on Windows under `uv run python` (#566).
+# (defined locally in this file's `vars:` block via
+# ``{{joinPath .TASKFILE_DIR ".."}}`` -- see ../Taskfile.yml for why
+# root-level definition is avoided) to keep the path traversal-free and
+# avoid the {{.TASKFILE_DIR}}/.. form that breaks on Windows under
+# `uv run python` (#566).
 
 tasks:
   ingest:

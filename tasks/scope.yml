@@ -7,11 +7,13 @@ vars:
 #
 # IMPORTANT: every task sets ``dir: '{{.USER_WORKING_DIR}}'`` so the Python
 # script's CWD is the consumer project root, NOT ``deft/``. The script path
-# is resolved via ``{{.DEFT_ROOT}}/scripts/`` (DEFT_ROOT is defined in the
-# root ../Taskfile.yml) so it still points at ``deft/scripts/scope_lifecycle.py``
-# after the dir switch. The previous ``{{.TASKFILE_DIR}}/../scripts/`` form
-# broke on Windows under `uv run python` (#566) because mixed-separator
-# traversal normalizes incorrectly and drops the deft/ prefix.
+# is resolved via ``{{.DEFT_ROOT}}/scripts/`` (DEFT_ROOT is defined locally
+# in this file's `vars:` block via ``{{joinPath .TASKFILE_DIR ".."}}`` --
+# see ../Taskfile.yml for why root-level definition is avoided) so it
+# still points at ``deft/scripts/scope_lifecycle.py`` after the dir switch.
+# The previous ``{{.TASKFILE_DIR}}/../scripts/`` form broke on Windows
+# under `uv run python` (#566) because mixed-separator traversal
+# normalizes incorrectly and drops the deft/ prefix.
 #
 # The path arg is passed to the script raw; ``scope_lifecycle.py`` handles
 # both absolute and relative values via ``_resolve_file_path`` +

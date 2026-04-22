@@ -21,7 +21,9 @@ tasks:
     cmds:
       # Pass Taskfile CLI args through so operators can opt into safety flags
       # (#497) or --strict reconciliation (#496) without editing this file.
-      # Script path uses {{.DEFT_ROOT}} (defined in ../Taskfile.yml) rather
-      # than {{.TASKFILE_DIR}}/.. to keep the path traversal-free -- the
+      # Script path uses {{.DEFT_ROOT}} (defined locally in this file's
+      # `vars:` block above via `joinPath .TASKFILE_DIR ".."` -- see
+      # ../Taskfile.yml for why root-level definition is avoided) rather
+      # than {{.TASKFILE_DIR}}/.. to keep the path traversal-free; the
       # mixed-separator form breaks `uv run python` on Windows (#566).
       - uv run python "{{.DEFT_ROOT}}/scripts/migrate_vbrief.py" "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

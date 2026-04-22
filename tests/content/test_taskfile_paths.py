@@ -10,15 +10,33 @@ produces a mixed-separator path that Windows' path normalization collapses
 incorrectly, dropping the ``deft\\`` prefix.
 
 The canonical replacement is ``{{.DEFT_ROOT}}/scripts/...`` where
-``DEFT_ROOT`` is defined at the root ``deft/Taskfile.yml`` level and
-captures ``{{.TASKFILE_DIR}}`` once at the correct scope.  That path is
-traversal-free and tolerates being quoted for parent-directory-with-spaces
-cases.
+``DEFT_ROOT`` is defined per-subfile in each ``deft/tasks/*.yml`` that
+dispatches a script, via ``{{joinPath .TASKFILE_DIR ".."}}``.  The
+per-subfile definition is load-bearing: go-task re-evaluates var templates
+at use site in included subfiles, so a root-Taskfile-level
+``DEFT_ROOT: '{{.TASKFILE_DIR}}'`` would expand to the subfile's own
+directory (``tasks/``) when referenced from inside a subfile, not to the
+``deft/`` root.  ``joinPath`` is eager and uses Go's ``filepath.Clean``,
+yielding a native-separator, ``..``-free absolute path that tolerates
+being quoted for parent-directory-with-spaces cases.
+
+This module enforces two invariants via parametrized tests:
+
+1. ``test_no_taskfile_dir_traversal_in_command_lines`` -- no non-comment
+   command line in any ``deft/tasks/*.yml`` matches
+   ``{{.TASKFILE_DIR}}/..``.  Both the list-item-anchored shape and the
+   looser fragment shape are checked so mixed-separator drift can't slip
+   through (e.g. YAML folded/block-scalar wrapping that moves the
+   fragment off its list-item line).
+2. ``test_deft_root_var_defined_via_joinpath`` -- every subfile that
+   references ``{{.DEFT_ROOT}}`` MUST define it in its own ``vars:`` block
+   via the exact ``{{joinPath .TASKFILE_DIR ".."}}`` form (forbids a bare
+   ``{{.TASKFILE_DIR}}``-style definition that would re-evaluate).
 
 See:
   - deftai/directive#566 -- root bug
-  - deft/Taskfile.yml -- DEFT_ROOT definition
-  - deft/tasks/*.yml -- call sites
+  - deft/Taskfile.yml -- why root-level DEFT_ROOT is intentionally absent
+  - deft/tasks/*.yml -- per-subfile joinPath definitions and call sites
 """
 
 from __future__ import annotations
@@ -35,15 +53,19 @@ TASKS_DIR = REPO_ROOT / "tasks"
 # about surrounding whitespace and alternative casing of ``TASKFILE_DIR``
 # but tightly scoped to ``/..`` traversal -- legitimate ``{{.TASKFILE_DIR}}``
 # uses that do NOT traverse upward are allowed (e.g. a task operating on
-# its own sibling fixtures).
+# its own sibling fixtures).  Anchored to ``^\s*-\s+`` so it only matches
+# YAML list items (command lines under ``cmds:``), not comments or scalars.
 _ANTIPATTERN_CMD = re.compile(
     r"^\s*-\s+.*\{\{\s*\.TASKFILE_DIR\s*\}\}/\.\.",
     re.MULTILINE,
 )
 
-# Secondary pattern: catches the fragment anywhere in a command line even if
-# the exact shape above drifts (e.g. wrapped quoting).  Used for an
-# informational assertion -- failure here is still a defect.
+# Broader secondary pattern: catches the fragment anywhere in a line even if
+# the YAML list-item prefix is split across folded/block-scalar continuations
+# or the quoting wraps it onto a subsequent line where the ``^\s*-\s+`` anchor
+# of _ANTIPATTERN_CMD would miss it.  Also catches ``\..`` with a backslash
+# separator instead of forward slash ([\\/] character class) so contributors
+# experimenting with native-separator forms on Windows can't slip past.
 _ANTIPATTERN_FRAGMENT = re.compile(
     r"\{\{\s*\.TASKFILE_DIR\s*\}\}[\\/]\.\.",
 )
@@ -56,16 +78,29 @@ def _task_yaml_files() -> list[Path]:
 @pytest.mark.parametrize("taskfile", _task_yaml_files(), ids=lambda p: p.name)
 def test_no_taskfile_dir_traversal_in_command_lines(taskfile: Path) -> None:
     """Every ``cmds:`` entry must resolve scripts via DEFT_ROOT, not
-    TASKFILE_DIR/.. -- see #566."""
+    TASKFILE_DIR/.. -- see #566.
+
+    Two passes, both over non-comment content:
+
+    1. _ANTIPATTERN_CMD: strict YAML list-item shape (``^\\s*-\\s+``) --
+       catches the canonical offending form.
+    2. _ANTIPATTERN_FRAGMENT: looser fragment shape -- catches
+       mixed-separator variants and YAML wrapping that move the fragment
+       off its list-item line.  Defense-in-depth.
+    """
     text = taskfile.read_text(encoding="utf-8")
-    matches = []
+    strict_matches: list[tuple[int, str]] = []
+    fragment_matches: list[tuple[int, str]] = []
     # Inspect only non-comment lines that look like list items under cmds:.
     for lineno, line in enumerate(text.splitlines(), start=1):
         stripped = line.lstrip()
         if stripped.startswith("#"):
             continue
         if _ANTIPATTERN_CMD.match(line):
-            matches.append((lineno, line.rstrip()))
+            strict_matches.append((lineno, line.rstrip()))
+        if _ANTIPATTERN_FRAGMENT.search(line):
+            fragment_matches.append((lineno, line.rstrip()))
+    matches = strict_matches or fragment_matches
     assert not matches, (
         f"{taskfile.relative_to(REPO_ROOT)} contains forbidden "
         f"{{{{.TASKFILE_DIR}}}}/.. traversal in command lines (replace with "
