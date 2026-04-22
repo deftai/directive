@@ -128,6 +128,58 @@ class TestSafetyManifestRenames:
             == "vbrief/migration/REPORT.v2.md"
         )
 
+    def test_true_chain_resolves_a_to_b_to_c(self):
+        """True A->B->C chain where skill-b's original = skill-a's current.
+
+        Greptile #561 P2 clarification: downstream skills may use the
+        previously-renamed name as the ``original`` of a subsequent
+        RenameRecord, so current_path_for must iterate until a fixed point.
+        """
+        manifest = SafetyManifest(
+            renames=[
+                RenameRecord(
+                    original="vbrief/migration/A.md",
+                    current="vbrief/migration/B.md",
+                    renamed_by="skill-a",
+                    renamed_at="2026-04-22T00:00:00Z",
+                ),
+                RenameRecord(
+                    original="vbrief/migration/B.md",
+                    current="vbrief/migration/C.md",
+                    renamed_by="skill-b",
+                    renamed_at="2026-04-22T01:00:00Z",
+                ),
+            ],
+        )
+        assert (
+            manifest.current_path_for("vbrief/migration/A.md")
+            == "vbrief/migration/C.md"
+        )
+
+    def test_chain_resolve_does_not_spin_on_cycle(self):
+        """Defensive: a pathological cycle A->B->A must terminate."""
+        manifest = SafetyManifest(
+            renames=[
+                RenameRecord(
+                    original="A",
+                    current="B",
+                    renamed_by="bad-skill",
+                    renamed_at="2026-04-22T00:00:00Z",
+                ),
+                RenameRecord(
+                    original="B",
+                    current="A",
+                    renamed_by="bad-skill",
+                    renamed_at="2026-04-22T01:00:00Z",
+                ),
+            ],
+        )
+        # Loop bound must be <= len(renames)+1 = 3 iterations; the call
+        # must return without spinning. Which endpoint is returned is
+        # implementation-defined for a cycle; just assert it terminates.
+        result = manifest.current_path_for("A")
+        assert result in {"A", "B"}
+
     def test_absent_renames_key_in_json_is_backward_compatible(self):
         """Prior safety-manifest JSON files without the renames key parse cleanly."""
         legacy_json = (
@@ -391,3 +443,37 @@ class TestTracesStripping:
         if report.is_file():
             body = report.read_text(encoding="utf-8")
             assert "Traces lines stripped from LegacyArtifacts" not in body
+
+    def test_reconciliation_md_section_is_idempotent(self, tmp_path):
+        """Greptile #561 P2: re-running migrate must not duplicate the
+        ``## Traces lines stripped from LegacyArtifacts`` section when
+        PROJECT.md / PRD.md still carry **Traces** lines (neither file is
+        replaced by a deprecation stub)."""
+        project = _make_safety_project(tmp_path)
+        (project / "PROJECT.md").write_text(
+            "# Project\n\n## Foo\n\n### t9.9.9: Leftover\n\n**Traces**: FR-99\n",
+            encoding="utf-8",
+        )
+        ok, _ = migrate(project)
+        assert ok
+        report = project / "vbrief" / "migration" / "RECONCILIATION.md"
+        if not report.is_file():
+            # PROJECT.md did not trigger LegacyArtifacts capture on this
+            # fixture; nothing to assert here.
+            return
+        first_count = report.read_text(encoding="utf-8").count(
+            "## Traces lines stripped from LegacyArtifacts",
+        )
+        # Re-inject the same PROJECT.md (first run may have replaced it
+        # with a deprecation stub) and re-run the migrator.
+        (project / "PROJECT.md").write_text(
+            "# Project\n\n## Foo\n\n### t9.9.9: Leftover\n\n**Traces**: FR-99\n",
+            encoding="utf-8",
+        )
+        migrate(project)
+        second_count = report.read_text(encoding="utf-8").count(
+            "## Traces lines stripped from LegacyArtifacts",
+        )
+        assert first_count == second_count, (
+            "Traces-stripped section must not be duplicated on re-run"
+        )

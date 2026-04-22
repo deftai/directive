@@ -146,15 +146,21 @@ _GITIGNORE_PATTERNS: tuple[str, ...] = (
 # Regex matching a ``**Traces**: ...`` line inside a LegacyArtifacts task block.
 # ``items[].subItems[].narrative.Traces`` is the single source of truth; the
 # duplicated line inside ``LegacyArtifacts`` is stripped during migration to
-# prevent downstream drift between the two copies.
-_TRACES_LINE_RE = re.compile(r"^\s*\*\*Traces\*\*\s*:.*$", re.MULTILINE)
+# prevent downstream drift between the two copies. Applied with ``.match()``
+# against each individual line in ``_strip_traces_from_narrative`` so the
+# ``re.MULTILINE`` flag is not needed (Greptile #561 P2).
+_TRACES_LINE_RE = re.compile(r"^\s*\*\*Traces\*\*\s*:.*$")
 # Regex matching a LegacyArtifacts task header: e.g. ``### t2.1.2: ...`` or
 # ``### t2.1.2 -- ...``. Used to attribute the stripped line to a task id for
-# the RECONCILIATION.md audit trail.
+# the RECONCILIATION.md audit trail. Applied with ``.match()`` against each
+# individual line so ``re.MULTILINE`` is likewise unnecessary.
 _TASK_HEADER_RE = re.compile(
     r"^###\s+(?P<task_id>[A-Za-z]?\d+(?:\.\d+)+)\b",
-    re.MULTILINE,
 )
+# Marker used to guard RECONCILIATION.md against duplicate Traces-stripped
+# sections on migrator re-runs (Greptile #561 P2). Must match the section
+# header emitted by :func:`_write_traces_stripped_note` exactly.
+_TRACES_SECTION_HEADER = "## Traces lines stripped from LegacyArtifacts (#529)"
 # --- end traces strip ---
 
 # --- end fidelity + legacy-artifacts ---
@@ -893,6 +899,14 @@ def _write_traces_stripped_note(
     report_dir.mkdir(parents=True, exist_ok=True)
     if target.is_file():
         existing = target.read_text(encoding="utf-8")
+        # Idempotency guard (Greptile #561 P2): re-running the migrator on
+        # a project whose PROJECT.md / PRD.md still carries **Traces**:
+        # lines would otherwise append a duplicate section on every pass.
+        # Skip when the canonical section header is already present.
+        if _TRACES_SECTION_HEADER in existing:
+            return target, (
+                f"SKIP   {rel} (Traces-stripped section already recorded)"
+            )
         if not existing.endswith("\n"):
             existing += "\n"
         separator = "" if existing.endswith("\n\n") else "\n"

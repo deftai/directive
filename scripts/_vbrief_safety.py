@@ -186,16 +186,35 @@ class SafetyManifest:
     def current_path_for(self, original: str) -> str:
         """Return the current on-disk path for a migrator-created ``original``.
 
-        Consults :attr:`renames` first; falls back to ``original`` when no
-        rename record matches. The most recent rename (last in list) wins
-        when multiple records reference the same original so a chain of
-        renames resolves to the final destination (#528).
+        Consults :attr:`renames` and follows genuine A -> B -> C chains:
+        each iteration looks up the *current* resolved path against the
+        ``original`` field of every :class:`RenameRecord`. Within a single
+        hop, the most recent rename (last in list) wins when multiple
+        records target the same original. Terminates on a fixed-point or
+        when the bounded iteration count is exceeded (defensive guard
+        against pathological loops).
+
+        Also returns ``original`` when no record matches (#528; Greptile
+        #561 P2 clarified the chain contract).
         """
-        current = original
-        for record in self.renames:
-            if record.original == original:
-                current = record.current
-        return current
+        resolved = original
+        # A chain cannot be longer than the number of records in practice;
+        # bound the loop to ``len(renames) + 1`` so a hypothetical cycle
+        # aborts rather than spinning forever.
+        for _ in range(len(self.renames) + 1):
+            # Within one hop, scan every record that matches the current
+            # ``resolved`` name; the last matching record wins so two
+            # skills that both rename the same original land on the most
+            # recent destination (same-original semantics). Chain hops
+            # advance by looping again against the new ``resolved``.
+            target = resolved
+            for record in self.renames:
+                if record.original == resolved:
+                    target = record.current
+            if target == resolved:
+                break
+            resolved = target
+        return resolved
 
 
 # ---------------------------------------------------------------------------
