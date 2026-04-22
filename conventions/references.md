@@ -52,7 +52,7 @@ semantics.
 - `x-vbrief/user-request` — a direct user request captured verbatim (no external tracker ID)
 - `x-vbrief/spec-section` — a pointer into `specification.vbrief.json` by item id or narrative key (traceability link for FR/NFR requirements)
 
-Consumer projects ! MAY extend the registry with additional `x-vbrief/*` values. When you do, document them in a project-local conventions file and cite them from `PROJECT-DEFINITION.vbrief.json`.
+Consumer projects ? MAY extend the registry with additional `x-vbrief/*` values. When you do, document them in a project-local conventions file and cite them from `PROJECT-DEFINITION.vbrief.json`.
 
 ## Origin Provenance (D11)
 

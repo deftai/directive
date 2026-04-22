@@ -296,13 +296,13 @@ Scope vBRIEFs use a small set of **canonical narrative keys** at the `plan.narra
 }
 ```
 
-### Hierarchical Items (subItems)
+### Hierarchical Items (v0.6)
 
-Specs with phases, subphases, and tasks use `subItems` to express nesting:
+Specs with phases, subphases, and tasks express nesting via `PlanItem.items`:
 
-- ! Nested children within a PlanItem MUST use `subItems` (not `items`)
-- ! `items` is ONLY valid at the `plan` level — inside a PlanItem it is ignored by tools
-- ⊗ Use `items` inside a PlanItem — it will be silently dropped by vBRIEF-Studio and other tools
+- ! In v0.6, `PlanItem.items` is the PREFERRED nested field for children
+- ~ `PlanItem.subItems` remains a deprecated legacy alias accepted for backward compatibility; existing v0.5 vBRIEFs that use it continue to validate, but new vBRIEFs SHOULD emit `items`
+- ~ Do not mix `items` and `subItems` on the same PlanItem — pick one (prefer `items`)
 
 ```json
 {
@@ -319,12 +319,12 @@ Specs with phases, subphases, and tasks use `subItems` to express nesting:
         "id": "phase-1",
         "title": "Phase 1: Foundation",
         "status": "pending",
-        "subItems": [
+        "items": [
           {
             "id": "1.1",
             "title": "Subphase 1.1: Setup",
             "status": "pending",
-            "subItems": [
+            "items": [
               {
                 "id": "1.1.1",
                 "title": "Project scaffolding",

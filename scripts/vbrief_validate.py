@@ -215,7 +215,13 @@ def _validate_narratives(narratives: object, path: str, errors: list[str]) -> No
 
 
 def _validate_plan_item(item: dict, path: str, errors: list[str]) -> None:
-    """Recursively validate a PlanItem and its subItems."""
+    """Recursively validate a PlanItem and its nested children.
+
+    Per the canonical v0.6 schema, ``PlanItem.items`` is the PREFERRED
+    nested field and ``PlanItem.subItems`` is the deprecated legacy alias
+    kept for backward compatibility (#533 / Greptile P1). Both are accepted
+    here and recursively validated; neither is treated as an error.
+    """
     item_id = item.get("id", "<no-id>")
     item_path = f"{path}[{item_id}]"
 
@@ -229,12 +235,18 @@ def _validate_plan_item(item: dict, path: str, errors: list[str]) -> None:
     if "narrative" in item:
         _validate_narratives(item["narrative"], f"{item_path}.narrative", errors)
 
+    # v0.6 preferred nested field.
     if "items" in item:
-        errors.append(
-            f"{item_path} uses 'items' for children -- use 'subItems' instead "
-            "('items' is only valid at plan level)"
-        )
+        if not isinstance(item["items"], list):
+            errors.append(f"{item_path}.items must be an array")
+        else:
+            for j, sub in enumerate(item["items"]):
+                if not isinstance(sub, dict):
+                    errors.append(f"{item_path}.items[{j}] must be an object")
+                    continue
+                _validate_plan_item(sub, f"{item_path}.items", errors)
 
+    # Deprecated legacy alias -- still accepted for backward compatibility.
     if "subItems" in item:
         if not isinstance(item["subItems"], list):
             errors.append(f"{item_path}.subItems must be an array")

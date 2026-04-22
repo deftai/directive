@@ -160,13 +160,49 @@ class TestValidateVbriefSchema:
         )
         assert any("invalid status" in e for e in errs)
 
-    def test_plan_item_items_not_allowed(self):
-        """items at nested level should use subItems."""
+    def test_plan_item_items_preferred_v06(self):
+        """v0.6: PlanItem.items is the preferred nested field (#533).
+
+        Previously this asserted an error; v0.6 schema promotes `items`
+        as canonical nesting so the same shape must now validate cleanly.
+        """
         errs = vv.validate_vbrief_schema(
-            _minimal_doc({"items": [{"title": "T", "status": "draft", "items": []}]}),
+            _minimal_doc(
+                {"items": [{"title": "T", "status": "draft", "items": []}]}
+            ),
             "f.json",
         )
-        assert any("use 'subItems' instead" in e for e in errs)
+        assert errs == []
+
+    def test_plan_item_items_recurses(self):
+        """v0.6 PlanItem.items children are validated recursively."""
+        bad_child = {
+            "title": "T",
+            "status": "draft",
+            "items": [{"status": "draft"}],  # missing child title
+        }
+        errs = vv.validate_vbrief_schema(
+            _minimal_doc({"items": [bad_child]}),
+            "f.json",
+        )
+        assert any("missing 'title'" in e for e in errs)
+
+    def test_plan_item_items_not_list(self):
+        errs = vv.validate_vbrief_schema(
+            _minimal_doc({"items": [{"title": "T", "status": "draft", "items": "nope"}]}),
+            "f.json",
+        )
+        assert any("items must be an array" in e for e in errs)
+
+    def test_plan_item_subitems_legacy_accepted(self):
+        """Deprecated legacy alias `subItems` continues to validate."""
+        errs = vv.validate_vbrief_schema(
+            _minimal_doc(
+                {"items": [{"title": "T", "status": "draft", "subItems": []}]}
+            ),
+            "f.json",
+        )
+        assert errs == []
 
     def test_plan_item_subitems_not_list(self):
         errs = vv.validate_vbrief_schema(
