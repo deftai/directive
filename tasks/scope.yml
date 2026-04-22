@@ -15,12 +15,19 @@ vars:
 # under `uv run python` (#566) because mixed-separator traversal
 # normalizes incorrectly and drops the deft/ prefix.
 #
-# The path arg is passed to the script raw; ``scope_lifecycle.py`` handles
-# both absolute and relative values via ``_resolve_file_path`` +
-# ``resolve_project_root`` -- the script owns path resolution, the task
-# just forwards ``--project-root`` so detection never silently falls back
-# to deft's own tree (#535). Relative paths resolve against the consumer
-# root thanks to ``--project-root``; absolute paths are used as-is.
+# CLI_ARGS: passed to the script raw / unquoted. go-task shell-escapes
+# CLI_ARGS with single quotes on its own, so wrapping the interpolation
+# in Taskfile-level double quotes produces ``"'path'"`` at dispatch time
+# on Windows (pwsh/cmd preserve nested quotes verbatim), and Python's
+# argv receives a literal single-quote-prefixed filename that fails to
+# open (#577). All seven scope:* commands therefore forward
+# ``{{.CLI_ARGS}}`` bare -- matching migrate.yml / prd.yml / issue.yml /
+# reconcile.yml.  ``scope_lifecycle.py`` handles both absolute and
+# relative values via ``_resolve_file_path`` + ``resolve_project_root``
+# -- the script owns path resolution, the task just forwards
+# ``--project-root`` so detection never silently falls back to deft's
+# own tree (#535). Relative paths resolve against the consumer root
+# thanks to ``--project-root``; absolute paths are used as-is.
 #
 # ``env: PYTHONUTF8: "1"`` is set per-task as a belt-and-suspenders guard
 # for Windows (cp1252 default crashes on -- / -> / x / !); the top-level
@@ -33,7 +40,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" promote "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" promote {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
   activate:
     desc: "Activate a vBRIEF scope: pending/ -> active/ (status: running)"
@@ -41,7 +48,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" activate "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" activate {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
   complete:
     desc: "Complete a vBRIEF scope: active/ -> completed/ (status: completed)"
@@ -49,7 +56,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" complete "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" complete {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
   cancel:
     desc: "Cancel a vBRIEF scope: any folder -> cancelled/ (status: cancelled)"
@@ -57,7 +64,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" cancel "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" cancel {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
   restore:
     desc: "Restore a cancelled vBRIEF scope: cancelled/ -> proposed/ (status: proposed)"
@@ -65,7 +72,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" restore "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" restore {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
   block:
     desc: "Block a vBRIEF scope: stays in active/ (status: blocked)"
@@ -73,7 +80,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" block "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" block {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
   unblock:
     desc: "Unblock a vBRIEF scope: stays in active/ (status: running)"
@@ -81,4 +88,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" unblock "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" unblock {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"

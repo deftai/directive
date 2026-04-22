@@ -14,6 +14,12 @@ vars:
 
 tasks:
   render:
+    # Caching: intentionally absent. `prd:render` runs in <30ms and its
+    # CLI_ARGS carry recovery flags (e.g. `--force` from the #539
+    # refuse-to-overwrite safety check). Declaring `sources:` / `generates:`
+    # would cause go-task to short-circuit before `cmds:` runs, dropping
+    # CLI_ARGS and silently breaking the #539 recovery path (#573, #574).
+    # See deft/conventions/task-caching.md for the full rule.
     desc: Export plan.narratives from specification.vbrief.json to a read-only PRD.md
     summary: |
       Reads specification.vbrief.json and extracts plan.narratives into a
@@ -24,7 +30,3 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/prd_render.py" --spec "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" --output "{{.USER_WORKING_DIR}}/PRD.md" {{.CLI_ARGS}}
-    sources:
-      - '{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json'
-    generates:
-      - '{{.USER_WORKING_DIR}}/PRD.md'
