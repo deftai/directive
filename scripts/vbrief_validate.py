@@ -87,8 +87,25 @@ DEPRECATED_FILES = ("SPECIFICATION.md", "PROJECT.md")
 # Schema validation (reuses spec_validate.py logic, extended)
 # ---------------------------------------------------------------------------
 
+# --- v0.6 transition accommodation (#533) ---
+# The migrator now emits ``"0.6"`` on every vBRIEF it writes (#561/agent1).
+# During the transition the validator accepts BOTH strings so mixed
+# pre-migration (``"0.5"``) and post-migration (``"0.6"``) trees round-trip
+# cleanly through ``task check``. Agent 2's #533 schema vendor PR tightens
+# this back to a single accepted value after the sweep lands.
+#
+# TODO(#533): tighten to 0.6-only after Agent 2 merge -- drop "0.5" from
+# ACCEPTED_VBRIEF_VERSIONS once the schema vendor PR removes the last
+# 0.5-only fixtures.
+ACCEPTED_VBRIEF_VERSIONS: frozenset[str] = frozenset({"0.5", "0.6"})
+
+
 def validate_vbrief_schema(data: dict, filepath: str) -> list[str]:
-    """Validate vBRIEF v0.5 structural requirements. Returns error list."""
+    """Validate vBRIEF structural requirements. Returns error list.
+
+    Accepts both ``"0.5"`` and ``"0.6"`` in ``vBRIEFInfo.version`` during
+    the #533 schema vendor transition (see ACCEPTED_VBRIEF_VERSIONS).
+    """
     errors: list[str] = []
 
     # Top-level envelope
@@ -98,10 +115,11 @@ def validate_vbrief_schema(data: dict, filepath: str) -> list[str]:
         info = data["vBRIEFInfo"]
         if not isinstance(info, dict):
             errors.append(f"{filepath}: 'vBRIEFInfo' must be an object")
-        elif info.get("version") != "0.5":
+        elif info.get("version") not in ACCEPTED_VBRIEF_VERSIONS:
+            accepted = sorted(ACCEPTED_VBRIEF_VERSIONS)
             errors.append(
-                f"{filepath}: 'vBRIEFInfo.version' must be '0.5', "
-                f"got {info.get('version')!r}"
+                f"{filepath}: 'vBRIEFInfo.version' must be one of "
+                f"{accepted}, got {info.get('version')!r}"
             )
 
     if "plan" not in data:

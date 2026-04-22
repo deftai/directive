@@ -81,8 +81,24 @@ def _validate_plan_item(
                 _validate_plan_item(sub, f"{item_path}.subItems", errors)
 
 
+# --- v0.6 transition accommodation (#533) ---
+# The migrator now emits ``"0.6"`` on every vBRIEF it writes (#561/agent1).
+# During the transition the validator accepts BOTH strings so mixed
+# pre-migration (``"0.5"``) and post-migration (``"0.6"``) trees round-trip
+# cleanly through ``task check`` + ``tests/content/test_vbrief_schema.py``.
+#
+# TODO(#533): tighten to 0.6-only after Agent 2 merge -- drop "0.5" from
+# ACCEPTED_VBRIEF_VERSIONS once the schema vendor PR removes the last
+# 0.5-only fixtures.
+ACCEPTED_VBRIEF_VERSIONS: frozenset[str] = frozenset({"0.5", "0.6"})
+
+
 def _validate_schema(data: dict, path: str) -> list[str]:
-    """Validate vBRIEF v0.5 structural requirements. Returns a list of errors."""
+    """Validate vBRIEF structural requirements. Returns a list of errors.
+
+    Accepts both ``"0.5"`` and ``"0.6"`` in ``vBRIEFInfo.version`` during
+    the #533 schema vendor transition (see ACCEPTED_VBRIEF_VERSIONS).
+    """
     errors: list[str] = []
 
     # Top-level envelope
@@ -92,9 +108,11 @@ def _validate_schema(data: dict, path: str) -> list[str]:
         info = data["vBRIEFInfo"]
         if not isinstance(info, dict):
             errors.append("'vBRIEFInfo' must be an object")
-        elif info.get("version") != "0.5":
+        elif info.get("version") not in ACCEPTED_VBRIEF_VERSIONS:
+            accepted = sorted(ACCEPTED_VBRIEF_VERSIONS)
             errors.append(
-                f"'vBRIEFInfo.version' must be '0.5', got {info.get('version')!r}"
+                f"'vBRIEFInfo.version' must be one of {accepted}, "
+                f"got {info.get('version')!r}"
             )
 
     if "plan" not in data:
@@ -172,7 +190,7 @@ def validate_spec(spec_path: str) -> tuple[bool, str]:
         detail = "\n".join(f"  • {e}" for e in errors)
         return False, f"✗ {path.name} has schema violations:\n{detail}"
 
-    return True, f"✓ {path.name} is valid vBRIEF v0.5"
+    return True, f"✓ {path.name} is valid vBRIEF"
 
 
 def main() -> int:
