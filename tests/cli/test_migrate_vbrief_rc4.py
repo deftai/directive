@@ -589,7 +589,9 @@ class TestMigratorVersionBump:
         )
 
     def test_dry_run_does_not_persist_bump(self, tmp_path):
-        """``--dry-run`` must report the bumps without mutating disk."""
+        """``--dry-run`` must report the bumps without mutating disk
+        AND surface each bump under the ``DRYRUN`` prefix so operators
+        previewing a run see exactly which files would be mutated."""
         project = self._seed_v05_fixture(tmp_path)
         ok, actions = migrate(project, dry_run=True)
         assert ok, actions
@@ -605,13 +607,29 @@ class TestMigratorVersionBump:
         )
         assert spec["vBRIEFInfo"]["version"] == "0.5"
         assert plan["vBRIEFInfo"]["version"] == "0.5"
-        # plan.vbrief.json bump logs under DRYRUN prefix; the
-        # specification.vbrief.json bump is performed in-memory even
-        # under dry-run (to keep downstream ingest logic consistent) but
-        # is not persisted to disk.
+        # Greptile P1 fix: both bumps must surface with the DRYRUN
+        # prefix under --dry-run (previously only plan.vbrief.json did).
+        assert any(
+            "DRYRUN BUMP specification.vbrief.json" in a for a in actions
+        ), (
+            "Missing DRYRUN BUMP log for specification.vbrief.json -- "
+            "the dry-run preview must be explicit about both bumps "
+            f"(actions={actions})"
+        )
         assert any(
             "DRYRUN BUMP plan.vbrief.json" in a for a in actions
-        ), f"Missing dry-run BUMP log for plan.vbrief.json: {actions}"
+        ), f"Missing DRYRUN BUMP log for plan.vbrief.json: {actions}"
+        # There must be no bare BUMP entries under dry-run that would
+        # mislead operators into thinking the change landed.
+        bare_bump_actions = [
+            a
+            for a in actions
+            if a.startswith("BUMP") and "DRYRUN" not in a
+        ]
+        assert not bare_bump_actions, (
+            "Dry-run must not emit bare BUMP actions (use DRYRUN BUMP "
+            f"instead); got: {bare_bump_actions}"
+        )
 
     def test_post_migration_spec_validate_passes(self, tmp_path):
         """After migration, running ``scripts/spec_validate.py`` on the
@@ -790,10 +808,34 @@ class TestRollbackReversesGitignore:
 
     def test_migrate_then_rollback_leaves_clean_git_tree(self, tmp_path):
         """Cross-platform end-to-end regression: migrate -> rollback ->
-        ``git status --porcelain`` must be empty (#567 AC 3)."""
+        ``git status --porcelain`` must be empty (#567 AC 3).
+
+        Seeds both a v0.5 ``specification.vbrief.json`` and a v0.5
+        ``plan.vbrief.json`` so the bump-then-rollback round trip is
+        exercised end-to-end -- Greptile P1 on this PR called out that
+        plan.vbrief.json was bumped without being backed up, leaving
+        ``git status`` dirty after rollback. This test guards that
+        regression.
+        """
         import subprocess
 
         project = _make_safety_project(tmp_path)
+        vbrief_dir = project / "vbrief"
+        # Seed pre-existing v0.5 spec + plan so the bump path triggers
+        # and rollback has to restore them from their .premigrate.*
+        # siblings.
+        (vbrief_dir / "specification.vbrief.json").write_text(
+            json.dumps(_V05_SPEC_VBRIEF, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        (vbrief_dir / "plan.vbrief.json").write_text(
+            json.dumps(_V05_PLAN_VBRIEF, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        spec_bytes_before = (
+            vbrief_dir / "specification.vbrief.json"
+        ).read_bytes()
+        plan_bytes_before = (vbrief_dir / "plan.vbrief.json").read_bytes()
 
         def _git(*args: str) -> subprocess.CompletedProcess:
             return subprocess.run(
@@ -822,15 +864,29 @@ class TestRollbackReversesGitignore:
 
         ok, _ = migrate(project)
         assert ok
-        # Sanity: something changed.
+        # Sanity: something changed (bumps + stubs + lifecycle dirs).
         assert _git("status", "--porcelain").stdout.strip() != ""
 
         ok, actions = safety_rollback(project, force=True)
         assert ok, actions
         status = _git("status", "--porcelain").stdout
         assert status.strip() == "", (
-            "#567: migrate -> rollback must leave a clean tree, got:\n"
-            f"{status}"
+            "#567 AC 3: migrate -> rollback must leave a clean tree, "
+            f"got:\n{status}"
+        )
+        # Spec + plan must be byte-identical to pre-migration state.
+        assert (
+            vbrief_dir / "specification.vbrief.json"
+        ).read_bytes() == spec_bytes_before, (
+            "rollback must restore specification.vbrief.json to its "
+            "pre-migration bytes (#567 / #571 Greptile P1)"
+        )
+        assert (
+            vbrief_dir / "plan.vbrief.json"
+        ).read_bytes() == plan_bytes_before, (
+            "rollback must restore plan.vbrief.json to its pre-migration "
+            "bytes -- the v0.5 -> v0.6 bump must be fully reversible "
+            "(#567 / #571 Greptile P1)"
         )
 
     def test_gitignore_append_is_idempotent_on_force_rerun(self, tmp_path):

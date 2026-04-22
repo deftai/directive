@@ -68,6 +68,13 @@ _ROOT_MD_INPUTS: tuple[str, ...] = (
 
 _VBRIEF_JSON_INPUTS: tuple[str, ...] = (
     "specification.vbrief.json",
+    # #571 / #567 Greptile P1: the migrator force-bumps
+    # ``plan.vbrief.json`` to v0.6 when present, so the pre-bump bytes
+    # MUST be backed up to its ``.premigrate.*`` sibling for rollback
+    # to restore them. Without this entry the bump was not reversible
+    # and ``migrate -> rollback`` left a non-empty ``git status
+    # --porcelain`` on any project that carried a v0.5 plan.vbrief.json.
+    "plan.vbrief.json",
 )
 
 
