@@ -95,8 +95,10 @@ def _validate_plan_item(
 
 # Strict v0.6-only acceptance (#533). The canonical schema at
 # vbrief/schemas/vbrief-core.schema.json pins vBRIEFInfo.version to
-# const "0.6"; this validator rejects every other version. Any legacy
-# v0.5 vBRIEF must be swept to v0.6 via the migrator.
+# const "0.6"; this validator rejects every other version. Pre-existing
+# v0.5 vBRIEFs are automatically bumped to v0.6 during ``task
+# migrate:vbrief`` (#571); operators who see the error below should run
+# the migrator on the affected project.
 VALID_VBRIEF_VERSIONS: frozenset[str] = frozenset({"0.6"})
 
 
@@ -116,10 +118,18 @@ def _validate_schema(data: dict, path: str) -> list[str]:
         if not isinstance(info, dict):
             errors.append("'vBRIEFInfo' must be an object")
         elif info.get("version") != "0.6":
+            # #571: the previous wording pointed at a "migrator sweep"
+            # that did not exist as a standalone command, leaving
+            # operators with an unactionable error. The migrator now
+            # auto-bumps v0.5 -> v0.6 on ingest (see
+            # ``scripts/migrate_vbrief.py`` ``_ingest_spec_narratives``
+            # path), so the actionable recovery command is just
+            # ``task migrate:vbrief``.
             errors.append(
-                f"'vBRIEFInfo.version' must be '0.6' (canonical v0.6 schema, "
-                f"#533), got {info.get('version')!r}. Migrate legacy v0.5 "
-                f"vBRIEFs via the migrator sweep."
+                f"'vBRIEFInfo.version' must be '0.6' (canonical v0.6 "
+                f"schema, #533), got {info.get('version')!r}. Run "
+                f"`task migrate:vbrief` to upgrade pre-existing v0.5 "
+                f"vBRIEFs in-place."
             )
 
     if "plan" not in data:

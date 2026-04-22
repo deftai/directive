@@ -50,9 +50,10 @@ VALID_STATUSES = frozenset(
 
 # Strict v0.6-only acceptance (#533). The canonical schema at
 # vbrief/schemas/vbrief-core.schema.json pins vBRIEFInfo.version to
-# const "0.6"; this validator rejects every other version. Any legacy
-# v0.5 vBRIEF must be swept to v0.6 (handled by the migrator sweep in
-# the Agent 1 coordination PR).
+# const "0.6"; this validator rejects every other version. Pre-existing
+# v0.5 vBRIEFs are automatically bumped to v0.6 during ``task
+# migrate:vbrief`` (#571); operators who see the error should re-run
+# the migrator on the affected project.
 VALID_VBRIEF_VERSIONS = frozenset({"0.6"})
 
 # D13: status-to-folder mapping. v0.6 adds ``failed`` as a terminal status
@@ -149,7 +150,8 @@ def validate_vbrief_schema(data: dict, filepath: str) -> list[str]:
 
     Strictly requires ``vBRIEFInfo.version == "0.6"`` to match the canonical
     v0.6 schema vendored at ``vbrief/schemas/vbrief-core.schema.json`` (#533).
-    Any v0.5 vBRIEF must be migrated to v0.6 (handled by the migrator sweep).
+    Any v0.5 vBRIEF is auto-bumped to v0.6 during ``task migrate:vbrief``
+    (#571); operators who hit the error should re-run the migrator.
     """
     errors: list[str] = []
 
@@ -161,10 +163,16 @@ def validate_vbrief_schema(data: dict, filepath: str) -> list[str]:
         if not isinstance(info, dict):
             errors.append(f"{filepath}: 'vBRIEFInfo' must be an object")
         elif info.get("version") not in VALID_VBRIEF_VERSIONS:
+            # #571: replaced the non-existent "migrator sweep" recovery
+            # pointer with the real command -- the migrator now auto-
+            # bumps v0.5 -> v0.6 on every pre-existing
+            # ``specification.vbrief.json`` / ``plan.vbrief.json`` it
+            # encounters.
             errors.append(
-                f"{filepath}: 'vBRIEFInfo.version' must be '0.6' (canonical "
-                f"v0.6 schema, #533), got {info.get('version')!r}. Migrate "
-                f"legacy v0.5 vBRIEFs via the migrator sweep."
+                f"{filepath}: 'vBRIEFInfo.version' must be '0.6' "
+                f"(canonical v0.6 schema, #533), got "
+                f"{info.get('version')!r}. Run `task migrate:vbrief` to "
+                f"upgrade pre-existing v0.5 vBRIEFs in-place."
             )
 
     if "plan" not in data:
