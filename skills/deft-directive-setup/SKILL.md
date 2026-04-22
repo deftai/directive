@@ -27,8 +27,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 A project is **pre-cutover** if ANY of the following are true:
 
-1. `SPECIFICATION.md` exists and does NOT contain the `<!-- deft:deprecated-redirect -->` sentinel (real content, not a deprecation redirect)
-2. `PROJECT.md` exists and does NOT contain the `<!-- deft:deprecated-redirect -->` sentinel (real content, not a deprecation redirect)
+1. `SPECIFICATION.md` exists and contains neither the legacy `<!-- deft:deprecated-redirect -->` sentinel NOR the current `Purpose: deprecation redirect` canonical-banner marker (real content, not a deprecation redirect). Accepting both markers for one release cycle keeps consumers who migrated under rc.1 / rc.2 from being re-flagged as pre-cutover on rc.3 once the canonical 4-line banner from `conventions/machine-generated-banner.md` (#572) lands.
+2. `PROJECT.md` exists and contains neither the legacy `<!-- deft:deprecated-redirect -->` sentinel NOR the current `Purpose: deprecation redirect` canonical-banner marker (same one-release-cycle grace window).
 3. `vbrief/specification.vbrief.json` exists but the lifecycle folders (`vbrief/proposed/`, `vbrief/pending/`, `vbrief/active/`, `vbrief/completed/`, `vbrief/cancelled/`) do NOT exist
 
 ### Action on Detection

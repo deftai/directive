@@ -87,7 +87,7 @@ The vendored schema at [`vbrief/schemas/vbrief-core.schema.json`](./vbrief/schem
 
 - ! Every vBRIEF MUST emit `"vBRIEFInfo": { "version": "0.6" }`
 - ! `scripts/vbrief_validate.py` accepts ONLY `"0.6"`; any other version (including `"0.5"`) is a hard validation error
-- ! `scripts/migrate_vbrief.py` emits `"0.6"`; the bulk sweep of pre-existing v0.5 vBRIEFs is part of the migrator flip PR
+- ! `scripts/migrate_vbrief.py` emits `"0.6"`. On every forward run the migrator auto-bumps the `vBRIEFInfo.version` header on any pre-existing `vbrief/specification.vbrief.json` and `vbrief/plan.vbrief.json` it reads (#571) -- bumping is part of `task migrate:vbrief` itself, NOT a separate sweep command. Scope vBRIEFs the migrator creates are written at `"0.6"` at construction time.
 - ~ v0.6 adds `failed` to the Status enum and promotes `PlanItem.items` as the preferred nested field (`subItems` remains a deprecated legacy alias)
 - ~ See [`conventions/references.md`](./conventions/references.md) for the `x-vbrief/*` reference type registry and the canonical `{uri, type, title}` shape that all `references` entries must use
 

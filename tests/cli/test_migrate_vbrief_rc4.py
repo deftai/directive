@@ -477,3 +477,373 @@ class TestTracesStripping:
         assert first_count == second_count, (
             "Traces-stripped section must not be duplicated on re-run"
         )
+
+
+# ===========================================================================
+# #571 -- migrator auto-bumps vBRIEFInfo.version v0.5 -> v0.6 on ingest
+# ===========================================================================
+
+
+_V05_SPEC_VBRIEF = {
+    "vBRIEFInfo": {
+        "version": "0.5",
+        "description": "Pre-cutover specification carried over from v0.19.",
+    },
+    "plan": {
+        "title": "Pre-cutover spec",
+        "status": "approved",
+        "narratives": {
+            "Overview": "Legacy overview preserved across the version flip.",
+        },
+        "items": [],
+    },
+}
+
+
+_V05_PLAN_VBRIEF = {
+    "vBRIEFInfo": {
+        "version": "0.5",
+        "description": "Pre-cutover session plan.",
+    },
+    "plan": {
+        "title": "Session plan",
+        "status": "running",
+        "items": [
+            {"id": "task-1", "title": "Do the thing", "status": "pending"},
+        ],
+    },
+}
+
+
+class TestMigratorVersionBump:
+    """#571: migrator bumps ``vBRIEFInfo.version`` from ``0.5`` to ``0.6``
+    on both pre-existing ``vbrief/specification.vbrief.json`` (via the
+    ``_ingest_spec_narratives`` code path) and pre-existing
+    ``vbrief/plan.vbrief.json`` (non-speckit session scaffold).
+    """
+
+    def _seed_v05_fixture(self, tmp_path: Path) -> Path:
+        """Create a synthetic pre-cutover project at v0.5 -- both
+        ``specification.vbrief.json`` and ``plan.vbrief.json`` carry
+        ``vBRIEFInfo.version: "0.5"`` before migration."""
+        project = _make_safety_project(tmp_path)
+        vbrief_dir = project / "vbrief"
+        (vbrief_dir / "specification.vbrief.json").write_text(
+            json.dumps(_V05_SPEC_VBRIEF, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        (vbrief_dir / "plan.vbrief.json").write_text(
+            json.dumps(_V05_PLAN_VBRIEF, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return project
+
+    def test_specification_vbrief_bumped_to_v06(self, tmp_path):
+        """Post-migration ``specification.vbrief.json`` must carry v0.6."""
+        project = self._seed_v05_fixture(tmp_path)
+        ok, actions = migrate(project)
+        assert ok, actions
+        data = json.loads(
+            (project / "vbrief" / "specification.vbrief.json").read_text(
+                encoding="utf-8",
+            ),
+        )
+        assert data["vBRIEFInfo"]["version"] == "0.6"
+        # Pre-existing narratives must be preserved through the bump --
+        # the migrator only touches the envelope version.
+        assert (
+            data["plan"]["narratives"]["Overview"]
+            == "Legacy overview preserved across the version flip."
+        )
+        # The migrator must surface a BUMP log line so operators can audit.
+        assert any(
+            "specification.vbrief.json" in a
+            and "BUMP" in a
+            and "'0.5' -> '0.6'" in a
+            for a in actions
+        ), (
+            "Expected a BUMP log line for specification.vbrief.json, got: "
+            f"{[a for a in actions if 'BUMP' in a]}"
+        )
+
+    def test_plan_vbrief_bumped_to_v06(self, tmp_path):
+        """Post-migration ``plan.vbrief.json`` must carry v0.6."""
+        project = self._seed_v05_fixture(tmp_path)
+        ok, actions = migrate(project)
+        assert ok, actions
+        data = json.loads(
+            (project / "vbrief" / "plan.vbrief.json").read_text(
+                encoding="utf-8",
+            ),
+        )
+        assert data["vBRIEFInfo"]["version"] == "0.6"
+        # Items preserved across the bump -- the migrator must not
+        # restructure a session plan, only bump the envelope.
+        assert data["plan"]["items"][0]["id"] == "task-1"
+        assert any(
+            "plan.vbrief.json" in a and "BUMP" in a and "'0.5' -> '0.6'" in a
+            for a in actions
+        ), (
+            "Expected a BUMP log line for plan.vbrief.json, got: "
+            f"{[a for a in actions if 'BUMP' in a]}"
+        )
+
+    def test_dry_run_does_not_persist_bump(self, tmp_path):
+        """``--dry-run`` must report the bumps without mutating disk."""
+        project = self._seed_v05_fixture(tmp_path)
+        ok, actions = migrate(project, dry_run=True)
+        assert ok, actions
+        spec = json.loads(
+            (project / "vbrief" / "specification.vbrief.json").read_text(
+                encoding="utf-8",
+            ),
+        )
+        plan = json.loads(
+            (project / "vbrief" / "plan.vbrief.json").read_text(
+                encoding="utf-8",
+            ),
+        )
+        assert spec["vBRIEFInfo"]["version"] == "0.5"
+        assert plan["vBRIEFInfo"]["version"] == "0.5"
+        # plan.vbrief.json bump logs under DRYRUN prefix; the
+        # specification.vbrief.json bump is performed in-memory even
+        # under dry-run (to keep downstream ingest logic consistent) but
+        # is not persisted to disk.
+        assert any(
+            "DRYRUN BUMP plan.vbrief.json" in a for a in actions
+        ), f"Missing dry-run BUMP log for plan.vbrief.json: {actions}"
+
+    def test_post_migration_spec_validate_passes(self, tmp_path):
+        """After migration, running ``scripts/spec_validate.py`` on the
+        bumped ``specification.vbrief.json`` must succeed (the whole
+        point of the #571 fix -- the pre-fix state failed here with a
+        misleading "migrator sweep" pointer)."""
+        import subprocess
+
+        project = self._seed_v05_fixture(tmp_path)
+        ok, _ = migrate(project)
+        assert ok
+        validate_script = REPO_ROOT / "scripts" / "spec_validate.py"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(validate_script),
+                str(project / "vbrief" / "specification.vbrief.json"),
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=30,
+        )
+        assert result.returncode == 0, (
+            f"spec_validate.py failed on bumped spec\n"
+            f"stdout: {result.stdout}\nstderr: {result.stderr}"
+        )
+
+    def test_spec_validate_error_wording_lost_migrator_sweep(self, tmp_path):
+        """When the validator DOES fire (e.g. user hand-wrote a v0.5
+        spec somewhere), the error must no longer point at the
+        non-existent 'migrator sweep' -- it must point at the real
+        ``task migrate:vbrief`` command instead (#571 AC 2).
+        """
+        import subprocess
+
+        bad_spec = tmp_path / "bad.vbrief.json"
+        bad_spec.write_text(
+            json.dumps(
+                {
+                    "vBRIEFInfo": {"version": "0.5"},
+                    "plan": {
+                        "title": "x",
+                        "status": "draft",
+                        "items": [],
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        validate_script = REPO_ROOT / "scripts" / "spec_validate.py"
+        result = subprocess.run(
+            [sys.executable, str(validate_script), str(bad_spec)],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=30,
+        )
+        assert result.returncode == 1
+        # Error must point at a real recovery command.
+        assert "task migrate:vbrief" in result.stdout, (
+            "#571 AC 2: error must point at a real recovery command, got:\n"
+            f"{result.stdout}"
+        )
+        # Error must NOT reference the non-existent 'migrator sweep'.
+        assert "migrator sweep" not in result.stdout, (
+            "#571 AC 2: 'migrator sweep' phrase MUST be removed, got:\n"
+            f"{result.stdout}"
+        )
+
+
+# ===========================================================================
+# #567 -- migrate -> rollback leaves a clean working tree (.gitignore
+# reversibility via SafetyManifest.file_modifications[])
+# ===========================================================================
+
+
+class TestRollbackReversesGitignore:
+    """#567: forward migration records its ``.gitignore`` append in
+    ``safety-manifest.json`` under the new ``file_modifications[]`` array,
+    and rollback reverses it so ``git status --porcelain`` is empty.
+    """
+
+    def test_safety_manifest_records_gitignore_modification(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        # Seed a pre-existing .gitignore so the modification records
+        # operation == "append" (the common consumer case). The
+        # greenfield "create" path is exercised by
+        # ``test_rollback_removes_gitignore_created_by_migrator``.
+        (project / ".gitignore").write_text(
+            "# Project rules\n__pycache__/\n", encoding="utf-8",
+        )
+        ok, actions = migrate(project)
+        assert ok, actions
+        manifest = load_safety_manifest(project)
+        assert manifest is not None
+        assert manifest.file_modifications, (
+            "#567: safety manifest must record every in-place file "
+            "modification (the .gitignore append) so rollback can reverse it"
+        )
+        entry = next(
+            (
+                m
+                for m in manifest.file_modifications
+                if m.path == ".gitignore"
+            ),
+            None,
+        )
+        assert entry is not None, (
+            "#567: .gitignore append must appear as a file_modifications entry"
+        )
+        assert entry.operation == "append"
+        assert entry.pre_hash != entry.post_hash
+        assert "*.premigrate.md" in entry.appended_content
+
+    def test_rollback_restores_gitignore_to_pre_migration_bytes(self, tmp_path):
+        project = _make_safety_project(tmp_path)
+        # Pre-seed with a non-trivial .gitignore so we can verify the
+        # pre-migration bytes survive a round trip byte-for-byte.
+        gitignore = project / ".gitignore"
+        pre_content = "# Project rules\n__pycache__/\n.env\n"
+        gitignore.write_text(pre_content, encoding="utf-8")
+        ok, _ = migrate(project)
+        assert ok
+        # After migration the file must have grown to include the
+        # migrator's appended block.
+        post_content = gitignore.read_text(encoding="utf-8")
+        assert "*.premigrate.md" in post_content
+        # Rollback restores the pre-migration bytes.
+        ok, actions = safety_rollback(project, force=True)
+        assert ok, actions
+        assert gitignore.read_text(encoding="utf-8") == pre_content, (
+            "#567: rollback must restore .gitignore to its pre-migration "
+            "bytes (strip the appended content)"
+        )
+
+    def test_rollback_removes_gitignore_created_by_migrator(self, tmp_path):
+        """When the migrator CREATED the .gitignore (greenfield), rollback
+        must delete it entirely -- the pre-migration state was 'file
+        absent', not 'file empty'."""
+        project = _make_safety_project(tmp_path)
+        assert not (project / ".gitignore").exists()
+        ok, _ = migrate(project)
+        assert ok
+        assert (project / ".gitignore").is_file()
+        ok, _ = safety_rollback(project, force=True)
+        assert ok
+        assert not (project / ".gitignore").exists(), (
+            "#567: a .gitignore the migrator CREATED from scratch must be "
+            "removed on rollback (pre-migration state was absent)"
+        )
+
+    def test_rollback_refuses_if_gitignore_edited_without_force(self, tmp_path):
+        """Operator edits after migration must block rollback unless
+        ``--force`` is passed -- same pattern as
+        ``post_migration_stub_hashes`` for SPECIFICATION.md / PROJECT.md."""
+        project = _make_safety_project(tmp_path)
+        ok, _ = migrate(project)
+        assert ok
+        gitignore = project / ".gitignore"
+        # Operator appends a new rule post-migration.
+        gitignore.write_text(
+            gitignore.read_text(encoding="utf-8") + "\n# operator edit\n",
+            encoding="utf-8",
+        )
+        ok, messages = safety_rollback(
+            project, force=False, confirm_fn=lambda _: True,
+        )
+        assert not ok
+        joined = "\n".join(messages)
+        assert ".gitignore" in joined
+        assert (
+            "edited since migration" in joined
+            or "edited .gitignore" in joined
+        )
+
+    def test_migrate_then_rollback_leaves_clean_git_tree(self, tmp_path):
+        """Cross-platform end-to-end regression: migrate -> rollback ->
+        ``git status --porcelain`` must be empty (#567 AC 3)."""
+        import subprocess
+
+        project = _make_safety_project(tmp_path)
+
+        def _git(*args: str) -> subprocess.CompletedProcess:
+            return subprocess.run(
+                [
+                    "git",
+                    "-c", "user.email=rollback-567@example.invalid",
+                    "-c", "user.name=Rollback 567 Test",
+                    "-c", "commit.gpgsign=false",
+                    "-c", "core.autocrlf=false",
+                    *args,
+                ],
+                cwd=str(project),
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+
+        init = _git("init", "-q", "-b", "main")
+        if init.returncode != 0:
+            import pytest as _pytest
+            _pytest.skip(f"git not available: {init.stderr}")
+        _git("add", "-A")
+        _git("commit", "-q", "-m", "initial pre-migration state")
+        assert _git("status", "--porcelain").stdout.strip() == ""
+
+        ok, _ = migrate(project)
+        assert ok
+        # Sanity: something changed.
+        assert _git("status", "--porcelain").stdout.strip() != ""
+
+        ok, actions = safety_rollback(project, force=True)
+        assert ok, actions
+        status = _git("status", "--porcelain").stdout
+        assert status.strip() == "", (
+            "#567: migrate -> rollback must leave a clean tree, got:\n"
+            f"{status}"
+        )
+
+    def test_gitignore_append_is_idempotent_on_force_rerun(self, tmp_path):
+        """#567 minor: second migrate with ``--force`` must be a no-op on
+        the .gitignore (the patterns are already present)."""
+        project = _make_safety_project(tmp_path)
+        ok, _ = migrate(project)
+        assert ok
+        first_body = (project / ".gitignore").read_text(encoding="utf-8")
+        ok2, _ = migrate(project, force=True)
+        # Second run may refuse further mutation (stubs in place), but if
+        # it does proceed, the .gitignore must remain unchanged.
+        del ok2
+        second_body = (project / ".gitignore").read_text(encoding="utf-8")
+        assert first_body == second_body
+        assert second_body.count("*.premigrate.md") == 1

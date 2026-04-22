@@ -94,6 +94,50 @@ class BackupRecord:
 
 
 @dataclass
+class FileModification:
+    """In-place file-modification recorded in the safety manifest (#567).
+
+    Tracks every non-backup forward-pass edit the migrator performs on a
+    pre-existing project file (currently: ``.gitignore`` append) so the
+    rollback path can reverse it symmetrically to
+    :attr:`SafetyManifest.post_migration_stub_hashes` for redirect
+    stubs.
+
+    Attributes
+    ----------
+    path
+        Project-root-relative path of the modified file.
+    operation
+        ``"append"`` when the migrator added content to an existing
+        file, or ``"create"`` when the migrator created the file from
+        scratch (pre-migration state was "absent"). Additional
+        operations may be introduced as the migrator grows; rollback
+        refuses when it sees an operation it does not recognise.
+    pre_hash
+        sha256 of the file BEFORE the modification. Empty string when
+        the file did not exist pre-migration (operation == "create").
+    post_hash
+        sha256 of the file AFTER the modification. Used by rollback to
+        detect whether the operator has edited the file since migration;
+        rollback refuses (same pattern as
+        :attr:`SafetyManifest.post_migration_stub_hashes`) when the
+        current on-disk hash matches neither ``pre_hash`` nor
+        ``post_hash``.
+    appended_content
+        Exact bytes the migrator appended (operation == "append") or
+        the full file content (operation == "create"). On rollback the
+        append case strips this suffix from the current file; the
+        create case deletes the file entirely.
+    """
+
+    path: str
+    operation: str
+    pre_hash: str
+    post_hash: str
+    appended_content: str
+
+
+@dataclass
 class RenameRecord:
     """Single post-migration rename recorded in the safety manifest (#528).
 
@@ -154,6 +198,22 @@ class SafetyManifest:
     Phase 6c and any future skill that renames migrator-created files.
     """
 
+    file_modifications: list[FileModification] = field(default_factory=list)
+    """In-place edits the migrator performed on pre-existing files (#567).
+
+    Currently limited to the ``.gitignore`` append, but the shape is
+    deliberately generic so future migrator features (e.g. README
+    patches, Taskfile ``includes:`` injection) can record here too.
+    Rollback iterates this list and either strips the appended content
+    (``operation == "append"``) or deletes the file entirely
+    (``operation == "create"``) if the current on-disk hash matches the
+    recorded ``post_hash``. When the hash matches neither ``pre_hash``
+    nor ``post_hash`` the operator has edited the file since migration
+    and rollback refuses -- same pattern as
+    :attr:`post_migration_stub_hashes` for SPECIFICATION.md /
+    PROJECT.md redirect stubs.
+    """
+
     def to_json(self) -> str:
         payload = {
             "version": self.version,
@@ -163,6 +223,7 @@ class SafetyManifest:
             "created_dirs": list(self.created_dirs),
             "post_migration_stub_hashes": dict(self.post_migration_stub_hashes),
             "renames": [asdict(r) for r in self.renames],
+            "file_modifications": [asdict(m) for m in self.file_modifications],
         }
         return json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
 
@@ -171,6 +232,13 @@ class SafetyManifest:
         data = json.loads(raw)
         backups = [BackupRecord(**b) for b in data.get("backups", [])]
         renames = [RenameRecord(**r) for r in data.get("renames", [])]
+        # Backward compatible: older manifests have no file_modifications
+        # key at all (pre-#567); parse to an empty list so rollback still
+        # runs for tree-states produced by earlier migrator versions.
+        file_mods = [
+            FileModification(**m)
+            for m in data.get("file_modifications", [])
+        ]
         return cls(
             version=str(data.get("version", "1")),
             migration_timestamp=str(data.get("migration_timestamp", "")),
@@ -181,6 +249,7 @@ class SafetyManifest:
                 data.get("post_migration_stub_hashes", {})
             ),
             renames=renames,
+            file_modifications=file_mods,
         )
 
     def current_path_for(self, original: str) -> str:
@@ -474,6 +543,42 @@ def rollback(
         )
         return False, lines
 
+    # 1b. Detect edited in-place file modifications unless force (#567).
+    # Mirrors the stub-hash guard for the ``.gitignore`` append and any
+    # future non-backup in-place edit the migrator records. A current
+    # hash that matches neither ``pre_hash`` (already reverted -- safe to
+    # skip) nor ``post_hash`` (untouched since migration -- safe to
+    # reverse) means the operator edited the file post-migration; we
+    # refuse to clobber those edits without ``--force``.
+    edited_modifications: list[tuple[str, str, str, str]] = []
+    for mod in manifest.file_modifications:
+        current = sha256_of(project_root / mod.path)
+        # operation == "create" + file absent post-rollback is fine; the
+        # guard only fires when the file exists but the hash doesn't
+        # match either snapshot.
+        if not current:
+            continue
+        if current in {mod.pre_hash, mod.post_hash}:
+            continue
+        edited_modifications.append(
+            (mod.path, mod.pre_hash, mod.post_hash, current)
+        )
+    if edited_modifications and not force:
+        lines = [
+            "ERROR: Migrator-modified file(s) have been edited since migration:"
+        ]
+        for rel, pre, post, current in edited_modifications:
+            lines.append(
+                f"  - {rel} (expected sha256 "
+                f"{post[:12]}... or {pre[:12]}..., got "
+                f"{current[:12]}...)"
+            )
+        lines.append(
+            "Rollback would overwrite your edits. Re-run with --force to "
+            "proceed anyway, or commit the file(s) before rolling back."
+        )
+        return False, lines
+
     # 2. Confirmation prompt.
     if not force:
         prompt_fn = confirm_fn or _default_confirm
@@ -556,6 +661,71 @@ def rollback(
                 actions.append(f"RMDIR  {rel}")
             except OSError:
                 actions.append(f"SKIP   rmdir {rel} (not empty)")
+
+    # 5b. Reverse each recorded file_modification (#567). Runs BEFORE
+    # removing backup files so the log order matches the operator's
+    # mental model of "undo everything the forward pass did, then
+    # clean up the .premigrate.* siblings".
+    for mod in manifest.file_modifications:
+        target = project_root / mod.path
+        current = sha256_of(target)
+        if mod.operation == "create":
+            # Pre-migration state was "file absent". If the file is
+            # already gone, rollback is a no-op. Otherwise delete it --
+            # the force-path has already been gated on the hash guard
+            # above so we only reach here when the file is either at
+            # post_hash (created by us) or force is set.
+            if current and target.is_file():
+                target.unlink()
+                actions.append(f"REMOVE {mod.path} (created by migrator)")
+            else:
+                actions.append(
+                    f"SKIP   {mod.path} (already absent)"
+                )
+            continue
+        if mod.operation == "append":
+            if not current:
+                # File deleted since migration -- nothing to reverse.
+                actions.append(
+                    f"SKIP   {mod.path} (file no longer exists; "
+                    f"nothing to strip)"
+                )
+                continue
+            if current == mod.pre_hash:
+                # Already reverted (operator manually reset the file).
+                actions.append(
+                    f"SKIP   {mod.path} (already at pre-migration hash)"
+                )
+                continue
+            try:
+                body = target.read_text(encoding="utf-8")
+            except OSError:
+                actions.append(
+                    f"SKIP   {mod.path} (unreadable; cannot strip append)"
+                )
+                continue
+            if body.endswith(mod.appended_content):
+                stripped = body[: -len(mod.appended_content)]
+                target.write_text(stripped, encoding="utf-8")
+                actions.append(
+                    f"REVERT {mod.path} (stripped "
+                    f"{len(mod.appended_content)} appended byte(s))"
+                )
+            else:
+                # Post-hash matched the snapshot but suffix no longer
+                # matches verbatim (rare: CRLF normalization after
+                # commit, etc.). Surface a clear message rather than
+                # silently leaving junk behind.
+                actions.append(
+                    f"SKIP   {mod.path} (content shape drifted; "
+                    f"cannot strip append cleanly -- restore manually)"
+                )
+            continue
+        # Unknown operation -- be conservative and skip rather than
+        # mutating the file blindly.
+        actions.append(
+            f"SKIP   {mod.path} (unknown operation {mod.operation!r})"
+        )
 
     # 6. Remove the backup files themselves so the tree ends clean.
     for record in manifest.backups:
