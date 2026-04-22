@@ -95,12 +95,12 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Language-Specific Details
 
-**Python**: [python.md](./python.md#testing) - pytest, pytest-cov, pytest-mock
-**Go**: [go.md](./go.md#testing) - Testify, table-driven tests
-**C++**: [cpp.md](./cpp.md#testing) - Catch2/GoogleTest, GoogleMock
-**TypeScript**: [typescript.md](./typescript.md#testing) - Vitest/Jest, React Testing Library
-**CLI**: [cli.md](./cli.md#testing) - CliRunner, format validation
-**REST APIs**: [rest.md](./rest.md#testing) - endpoint testing, security testing
+**Python**: [../languages/python.md](../languages/python.md#testing) - pytest, pytest-cov, pytest-mock
+**Go**: [../languages/go.md](../languages/go.md#testing) - Testify, table-driven tests
+**C++**: [../languages/cpp.md](../languages/cpp.md#testing) - Catch2/GoogleTest, GoogleMock
+**TypeScript**: [../languages/typescript.md](../languages/typescript.md#testing) - Vitest/Jest, React Testing Library
+**CLI**: [../interfaces/cli.md](../interfaces/cli.md#testing) - CliRunner, format validation
+**REST APIs**: [../interfaces/rest.md](../interfaces/rest.md#testing) - endpoint testing, security testing
 
 ## Test Organization
 

@@ -49,7 +49,7 @@ vbrief/
 
 | File | Purpose | Lifecycle |
 |------|---------|----------|
-| `PROJECT-DEFINITION.vbrief.json` | Project identity gestalt — `narratives` for identity (overview, tech stack, architecture, risks/unknowns, config), `items` as scope registry; uses existing v0.5 schema | Durable (regenerated on demand) |
+| `PROJECT-DEFINITION.vbrief.json` | Project identity gestalt — `narratives` for identity (overview, tech stack, architecture, risks/unknowns, config), `items` as scope registry; uses the canonical v0.6 schema | Durable (regenerated on demand) |
 | `specification.vbrief.json` | Project spec source of truth | Durable (never deleted) |
 | `specification-{name}.vbrief.json` | Add-on spec with `planRef` back to main spec | Durable |
 | `plan.vbrief.json` | Session-level tactical plan; the *how right now*; carries `planRef` to scope vBRIEFs | Session-durable |
@@ -65,7 +65,7 @@ Individual units of work (features, bugs, initiatives) live as scope vBRIEFs in 
 | `proposed/` | `draft`, `proposed` | Ideas and proposals, not yet committed |
 | `pending/` | `approved`, `pending` | Accepted backlog, ready for work |
 | `active/` | `running`, `blocked` | In progress; `blocked` is temporary — stays in `active/` |
-| `completed/` | `completed` | Done — terminal state |
+| `completed/` | `completed`, `failed` | Done — terminal state (`failed` is v0.6+ for terminal non-success) |
 | `cancelled/` | `cancelled` | Rejected/abandoned — restorable to `proposed/` |
 
 ### Status-Driven Moves
@@ -73,7 +73,7 @@ Individual units of work (features, bugs, initiatives) live as scope vBRIEFs in 
 - ! `plan.status` inside each scope vBRIEF is the **source of truth** — not the folder location
 - ! Folder location is a convenience view for humans; metadata is authoritative
 - ! Agents MUST move files to the matching lifecycle folder when status changes
-- ! When moving a file, agents MUST update all `planRef` and `references[].url` values in other scope vBRIEFs and in `PROJECT-DEFINITION.vbrief.json` that point to the moved file
+- ! When moving a file, agents MUST update all `planRef` and `references[].uri` values in other scope vBRIEFs and in `PROJECT-DEFINITION.vbrief.json` that point to the moved file
 - ~ When folder/status drift is detected, trust the status field and correct the folder
 - ⊗ Move files between folders without updating `plan.status`
 
@@ -98,13 +98,17 @@ When the [speckit strategy](../strategies/speckit.md#phase-4-tasks-scope-vbrief-
 - ! Enables deduplication during ingest (diff open issues against existing vBRIEF references)
 - ~ On scope completion, update the origin (close the issue, post a comment linking to the PR)
 
-Reference types (extensible by convention): `github-issue`, `jira-ticket`, `user-request`
+Canonical reference types (all prefixed `x-vbrief/` per the v0.6 schema): `x-vbrief/github-issue`, `x-vbrief/github-pr`, `x-vbrief/jira-ticket`, `x-vbrief/user-request`, `x-vbrief/plan`, `x-vbrief/spec-section`. See [`../conventions/references.md`](../conventions/references.md) for the full type registry.
 
-**Platform note:** The migration script (`task migrate:vbrief`) defaults origin provenance to `github-issue` type. Non-GitHub users should manually adjust `references[].type` in generated vBRIEFs after migration. See [README.md — Platform Requirements](../README.md#%EF%B8%8F-platform-requirements).
+**Platform note:** The migration script (`task migrate:vbrief`) defaults origin provenance to `x-vbrief/github-issue` type. Non-GitHub users should manually adjust `references[].type` in generated vBRIEFs after migration. See [README.md — Platform Requirements](../README.md#%EF%B8%8F-platform-requirements).
 
 ```json
 "references": [
-  { "type": "github-issue", "url": "https://github.com/deftai/directive/issues/123", "id": "#123" }
+  {
+    "uri": "https://github.com/deftai/directive/issues/123",
+    "type": "x-vbrief/github-issue",
+    "title": "Issue #123: Example title"
+  }
 ]
 ```
 
@@ -112,7 +116,7 @@ Reference types (extensible by convention): `github-issue`, `jira-ticket`, `user
 
 Larger initiatives use **epic vBRIEFs** linking to child **story vBRIEFs**. Linking is bidirectional:
 
-- ! All `url` and `planRef` path values in scope vBRIEF JSON are **relative to the `vbrief/` directory** — not relative to the containing file's location
+- ! All `uri` and `planRef` path values in scope vBRIEF JSON are **relative to the `vbrief/` directory** — not relative to the containing file's location
 - ! Epic `references` array MUST list child story file paths (type: `x-vbrief/plan`)
 - ! Story vBRIEFs MUST carry `planRef` back to their parent epic
 - ~ The decision to create an epic vs. a standalone story is made collaboratively between user and agent
@@ -120,13 +124,13 @@ Larger initiatives use **epic vBRIEFs** linking to child **story vBRIEFs**. Link
 **Epic → Stories** (via `references`):
 ```json
 {
-  "vBRIEFInfo": { "version": "0.5" },
+  "vBRIEFInfo": { "version": "0.6" },
   "plan": {
     "title": "Auth system overhaul",
     "status": "running",
     "references": [
-      { "type": "x-vbrief/plan", "url": "./active/2026-04-12-oauth-flow.vbrief.json" },
-      { "type": "x-vbrief/plan", "url": "./active/2026-04-12-session-mgmt.vbrief.json" }
+      { "type": "x-vbrief/plan", "uri": "./active/2026-04-12-oauth-flow.vbrief.json" },
+      { "type": "x-vbrief/plan", "uri": "./active/2026-04-12-session-mgmt.vbrief.json" }
     ]
   }
 }
@@ -135,7 +139,7 @@ Larger initiatives use **epic vBRIEFs** linking to child **story vBRIEFs**. Link
 **Story → Epic** (via `planRef`):
 ```json
 {
-  "vBRIEFInfo": { "version": "0.5" },
+  "vBRIEFInfo": { "version": "0.6" },
   "plan": {
     "title": "Implement OAuth flow",
     "status": "running",
@@ -182,7 +186,7 @@ When a scope grows too large, the parent vBRIEF becomes an epic and children are
 
 ## File Format
 
-All `.vbrief.json` files conform to the **vBRIEF v0.5** specification.
+All `.vbrief.json` files conform to the **vBRIEF v0.6** specification.
 Canonical reference: [https://vbrief.org](https://vbrief.org)
 
 ### Required Top-Level Structure
@@ -190,7 +194,7 @@ Canonical reference: [https://vbrief.org](https://vbrief.org)
 Every vBRIEF file ! MUST contain exactly two top-level keys:
 
 - **`vBRIEFInfo`** — envelope metadata
-  - ! `version` MUST be `"0.5"`
+  - ! `version` MUST be `"0.6"`
   - ? `author`, `description`, `created`, `updated`, `metadata`
 - **`plan`** — the plan payload
   - ! `title` (non-empty string), `status`, `items` (array of PlanItems)
@@ -201,18 +205,19 @@ Every vBRIEF file ! MUST contain exactly two top-level keys:
 The `Status` type is shared by `plan.status` and every `PlanItem.status`:
 
 ```
-draft | proposed | approved | pending | running | completed | blocked | cancelled
+draft | proposed | approved | pending | running | completed | blocked | failed | cancelled
 ```
 
-- ! Status values MUST be one of the eight values above (case-sensitive, lowercase)
+- ! Status values MUST be one of the nine values above (case-sensitive, lowercase)
 - ~ Use `blocked` with a narrative explaining the blocker
+- ~ Use `failed` for work that reached a terminal non-success state (v0.6)
 - ~ Use `cancelled` rather than deleting items — preserve history
 
 ### Minimal Example
 
 ```json
 {
-  "vBRIEFInfo": { "version": "0.5" },
+  "vBRIEFInfo": { "version": "0.6" },
   "plan": {
     "title": "Fix login bug",
     "status": "running",
@@ -229,7 +234,7 @@ draft | proposed | approved | pending | running | completed | blocked | cancelle
 ```json
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "author": "agent:warp-oz",
     "description": "Sprint 4 delivery plan",
     "created": "2026-03-10T14:00:00Z"
@@ -301,7 +306,7 @@ Specs with phases, subphases, and tasks use `subItems` to express nesting:
 
 ```json
 {
-  "vBRIEFInfo": { "version": "0.5" },
+  "vBRIEFInfo": { "version": "0.6" },
   "plan": {
     "title": "Project SPECIFICATION",
     "status": "draft",
@@ -365,7 +370,7 @@ The source-of-truth for project intent. Created via the interview process in
 
 ## PROJECT-DEFINITION.vbrief.json
 
-The synthesized project identity — what this project IS right now. Uses the existing vBRIEF v0.5 schema:
+The synthesized project identity — what this project IS right now. Uses the canonical vBRIEF v0.6 schema:
 
 - `narratives` holds project identity: overview, tech stack, architecture, risks/unknowns, configuration
 - `items` acts as a registry of project scopes across all lifecycle folders, each referencing its individual scope vBRIEF file via `references`
@@ -373,7 +378,7 @@ The synthesized project identity — what this project IS right now. Uses the ex
 
 ```json
 {
-  "vBRIEFInfo": { "version": "0.5" },
+  "vBRIEFInfo": { "version": "0.6" },
   "plan": {
     "title": "My Project",
     "status": "running",
@@ -387,7 +392,7 @@ The synthesized project identity — what this project IS right now. Uses the ex
         "title": "Add OAuth flow",
         "status": "running",
         "references": [
-          { "type": "x-vbrief/plan", "url": "./active/2026-04-12-add-oauth-flow.vbrief.json" }
+          { "type": "x-vbrief/plan", "uri": "./active/2026-04-12-add-oauth-flow.vbrief.json" }
         ]
       }
     ]
@@ -406,7 +411,7 @@ The synthesized project identity — what this project IS right now. Uses the ex
 
 The single active work plan. Unifies what were previously separate todo, plan, and progress files. When scope vBRIEFs are in use, plan.vbrief.json is the session-level tactical plan (the *how right now*) and carries a `planRef` to the scope vBRIEF(s) being implemented.
 
-**Status lifecycle per task:** `pending` → `running` → `completed` / `blocked` / `cancelled`
+**Status lifecycle per task:** `pending` → `running` → `completed` / `blocked` / `failed` / `cancelled`
 
 - ! There is exactly ONE `plan.vbrief.json` at a time per project
 - ! Use this wherever you would use a Warp `create_todo_list` — externalise to this file instead
@@ -432,7 +437,7 @@ tracks which strategies have been run and what artifacts they produced.
 
 ```json
 {
-  "vBRIEFInfo": { "version": "0.5" },
+  "vBRIEFInfo": { "version": "0.6" },
   "plan": {
     "title": "Auth feature planning",
     "status": "running",

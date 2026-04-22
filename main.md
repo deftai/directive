@@ -17,7 +17,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ## Framework Structure
 
 **Core Documents:**
-- [main.md](../main.md) - General AI behavior (this document)
+- `main.md` - General AI behavior (this document)
 - [coding/coding.md](./coding/coding.md) - Software development guidelines
 - `~/.config/deft/USER.md` - Personal preferences (highest precedence)
 - `./vbrief/PROJECT-DEFINITION.vbrief.json` - Project identity gestalt and scope registry
@@ -74,14 +74,24 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Use `continue.vbrief.json` (singular) for interruption recovery checkpoints
 - ! Specifications are written as `specification.vbrief.json`, then rendered to `.md`
 - ! Scope vBRIEFs live in lifecycle folders: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`
-- ! Scope vBRIEF filenames MUST follow: `YYYY-MM-DD-descriptive-slug.vbrief.json`
+- ! Scope vBRIEF filenames MUST follow: `YYYY-MM-DD-descriptive-slug.vbrief.json` (slug rules: [`conventions/vbrief-filenames.md`](./conventions/vbrief-filenames.md))
 - ! Playbooks use `playbook-{name}.vbrief.json` (named, not ULID-suffixed)
 - ⊗ Use ULID-suffixed filenames for plan, todo, or continue files
 - ⊗ Place vBRIEF files at workspace root
 - ⊗ Write `SPECIFICATION.md` directly — it MUST be generated from `specification.vbrief.json`
 - ⊗ Move scope vBRIEFs between lifecycle folders without updating `plan.status`
 
-**See [vbrief/vbrief.md](./vbrief/vbrief.md) for the full taxonomy, lifecycle rules, and tool mappings.**
+### Schema version: v0.6 (canonical)
+
+The vendored schema at [`vbrief/schemas/vbrief-core.schema.json`](./vbrief/schemas/vbrief-core.schema.json) is the canonical v0.6 copy from [`deftai/vBRIEF`](https://github.com/deftai/vBRIEF) (`const: "0.6"`). All vBRIEFs MUST use `"vBRIEFInfo": { "version": "0.6" }`:
+
+- ! Every vBRIEF MUST emit `"vBRIEFInfo": { "version": "0.6" }`
+- ! `scripts/vbrief_validate.py` accepts ONLY `"0.6"`; any other version (including `"0.5"`) is a hard validation error
+- ! `scripts/migrate_vbrief.py` emits `"0.6"`; the bulk sweep of pre-existing v0.5 vBRIEFs is part of the migrator flip PR
+- ~ v0.6 adds `failed` to the Status enum and promotes `PlanItem.items` as the preferred nested field (`subItems` remains a deprecated legacy alias)
+- ~ See [`conventions/references.md`](./conventions/references.md) for the `x-vbrief/*` reference type registry and the canonical `{uri, type, title}` shape that all `references` entries must use
+
+**See [vbrief/vbrief.md](./vbrief/vbrief.md) for the full taxonomy, lifecycle rules, and tool mappings; [`conventions/references.md`](./conventions/references.md) for the reference type registry; [`conventions/vbrief-filenames.md`](./conventions/vbrief-filenames.md) for filename slug rules.**
 
 ## Migrating from pre-v0.20
 
@@ -160,6 +170,17 @@ The migrator ships with four flags (see #497):
 - [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) — the authoritative adoption guide for existing projects
 - [UPGRADING.md](./UPGRADING.md) — version-by-version upgrade checklist
 
+## Preferred Workflow: Tasks + Skills Together
+
+Many refinement operations are implemented as both deterministic Taskfile commands and conversational skills. When a task already exists, skills MUST delegate to it rather than reinventing the logic inline (see #537 for why the split sources of truth create drift):
+
+- **Ingest GitHub issues** — run `task deft:issue:ingest -- <N>` (single) or `task deft:issue:ingest -- --all [--label L] [--status S] [--dry-run]` (batch). Do NOT hand-author scope vBRIEFs from the refinement skill; the task is the canonical producer of the `{uri, type, title}` origin shape and the canonical filename slug.
+- **Reconcile against GitHub origins** — run `task deft:reconcile:issues`, then walk the user through flagged items (stale / externally closed / unlinked) for approval. The `deft-directive-refinement` skill is a thin wrapper around this task.
+- **Lifecycle transitions** — always use `task scope:{promote,activate,complete,cancel,restore,block,unblock}` so `plan.status`, `plan.updated` timestamps, and folder moves stay in sync.
+- **Re-render roadmap and project definition** — run `task roadmap:render` and `task project:render` after significant lifecycle changes.
+
+See [`skills/deft-directive-refinement/SKILL.md`](./skills/deft-directive-refinement/SKILL.md) for the full refinement loop that chains these tasks together.
+
 ## Continuous Improvement
 
 **Learning:**
@@ -212,7 +233,7 @@ See [commands.md](./commands.md) for full workflow details.
 ## Context Awareness
 
 **Project Context:**
-- ! Check [PROJECT-DEFINITION.vbrief.json](./vbrief/PROJECT-DEFINITION.vbrief.json) for project-specific rules and scope registry
+- ! Check `./vbrief/PROJECT-DEFINITION.vbrief.json` (in your consumer project) for project-specific rules and scope registry
 - ! Follow project-specific patterns and conventions
 - ~ Note which rules/patterns are being applied
 

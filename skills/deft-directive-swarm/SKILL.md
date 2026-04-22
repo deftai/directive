@@ -45,14 +45,23 @@ Ask the user: **"Are work items already in `vbrief/active/` as vBRIEFs, or shoul
 - **Option A — Existing vBRIEFs**: Proceed directly to Step 1.
 - **Option B — GitHub issue numbers**: The user provides a list of issue numbers. For each issue:
   1. ! Fetch issue data: `gh issue view <N> --json title,body,labels,number`
-  2. ! Generate a minimal vBRIEF in `vbrief/active/` following the `YYYY-MM-DD-descriptive-slug.vbrief.json` naming convention
-  3. ! The generated vBRIEF must conform to `vbrief/schemas/vbrief-core.schema.json` (vBRIEFInfo with version `"0.5"`, plan with title/status/narratives/items):
-     - `vBRIEFInfo.version`: `"0.5"`
+  2. ! Generate a minimal vBRIEF in `vbrief/active/` following the `YYYY-MM-DD-descriptive-slug.vbrief.json` naming convention (slug rules: [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md))
+  3. ! The generated vBRIEF must conform to the canonical v0.6 schema (`vbrief/schemas/vbrief-core.schema.json`, strict `const: "0.6"`; see [`../../conventions/references.md`](../../conventions/references.md)):
+     - `vBRIEFInfo.version`: `"0.6"`
      - `plan.title`: issue title
      - `plan.status`: `"running"`
      - `plan.narratives`: object with `{ "Overview": "<issue body content>" }`
-     - `plan.items`: empty array (to be enriched)
-     - `plan.references`: array containing `{ "type": "github-issue", "id": "#<N>" }`
+     - `plan.items`: empty array (to be enriched); use `items` for any nested structure (v0.6 preferred field), not `subItems`
+     - `plan.references`: array of schema-conformant entries; for GitHub origins use the canonical shape (see [`../../conventions/references.md`](../../conventions/references.md)):
+       ```json
+       [
+         {
+           "uri": "https://github.com/{owner}/{repo}/issues/<N>",
+           "type": "x-vbrief/github-issue",
+           "title": "Issue #<N>: <issue title>"
+         }
+       ]
+       ```
   4. ! Proceed to Step 1 as normal after all vBRIEFs are generated
 
 ! Auto-generated vBRIEFs are minimal scaffolds -- the monitor or user should review and enrich acceptance criteria before proceeding to Phase 1.

@@ -56,7 +56,7 @@ def _minimal_doc(plan_overrides=None):
     plan = {"title": "Scope T", "status": "draft", "items": []}
     if plan_overrides:
         plan.update(plan_overrides)
-    return {"vBRIEFInfo": {"version": "0.5"}, "plan": plan}
+    return {"vBRIEFInfo": {"version": "0.6"}, "plan": plan}
 
 
 # ===========================================================================
@@ -72,7 +72,9 @@ class TestValidateProjectDefinition:
         data = {
             "vBRIEFInfo": {"version": "0.5"},
             "plan": {
-                "title": "Proj", "status": "draft", "items": [],
+                "title": "Proj",
+                "status": "draft",
+                "items": [],
                 "narratives": {"unrelated": "x"},
             },
         }
@@ -88,18 +90,17 @@ class TestValidateProjectDefinition:
         data = {
             "vBRIEFInfo": {"version": "0.5"},
             "plan": {
-                "title": "P", "status": "draft",
+                "title": "P",
+                "status": "draft",
                 "narratives": {"overview": "o", "tech stack": "ts"},
                 "items": [
                     {
-                        "title": "I", "status": "draft",
+                        "title": "I",
+                        "status": "draft",
                         "references": [
-                            {"type": "x-vbrief/plan",
-                             "uri": "file://proposed/real.vbrief.json"},
-                            {"type": "x-vbrief/plan",
-                             "uri": "file://proposed/missing.vbrief.json"},
-                            {"type": "x-vbrief/plan",
-                             "uri": f"file://../{outside.name}"},
+                            {"type": "x-vbrief/plan", "uri": "file://proposed/real.vbrief.json"},
+                            {"type": "x-vbrief/plan", "uri": "file://proposed/missing.vbrief.json"},
+                            {"type": "x-vbrief/plan", "uri": f"file://../{outside.name}"},
                         ],
                     }
                 ],
@@ -117,16 +118,16 @@ class TestValidateProjectDefinition:
         data = {
             "vBRIEFInfo": {"version": "0.5"},
             "plan": {
-                "title": "P", "status": "draft",
+                "title": "P",
+                "status": "draft",
                 "narratives": {"overview": "o", "tech stack": "ts"},
                 "items": [
                     {
-                        "title": "I", "status": "draft",
+                        "title": "I",
+                        "status": "draft",
                         "references": [
-                            {"type": "x-vbrief/plan",
-                             "uri": "pending/ok.vbrief.json"},
-                            {"type": "x-vbrief/plan",
-                             "uri": "pending/gone.vbrief.json"},
+                            {"type": "x-vbrief/plan", "uri": "pending/ok.vbrief.json"},
+                            {"type": "x-vbrief/plan", "uri": "pending/gone.vbrief.json"},
                             {"type": "x-vbrief/plan", "uri": "../escape.json"},
                             {"type": "web", "uri": "https://example.com"},
                             {"type": "x-vbrief/plan", "uri": "#anchor"},
@@ -149,12 +150,16 @@ class TestValidateProjectDefinition:
         data = {
             "vBRIEFInfo": {"version": "0.5"},
             "plan": {
-                "title": "P", "status": "draft",
+                "title": "P",
+                "status": "draft",
                 "narratives": {"overview": "o", "tech stack": "ts"},
-                "items": [{
-                    "title": "I", "status": "draft",
-                    "references": "not-a-list",
-                }],
+                "items": [
+                    {
+                        "title": "I",
+                        "status": "draft",
+                        "references": "not-a-list",
+                    }
+                ],
             },
         }
         assert vv.validate_project_definition(fp, data, vd) == []
@@ -180,13 +185,15 @@ class TestValidateEpicStoryLinks:
         vd = tmp_path / "vbrief"
         docs = self._build(
             vd,
-            ("pending/parent.vbrief.json", {
-                "title": "P", "status": "pending", "items": [],
-                "references": [
-                    {"type": "x-vbrief/plan",
-                     "uri": "pending/missing.vbrief.json"}
-                ],
-            }),
+            (
+                "pending/parent.vbrief.json",
+                {
+                    "title": "P",
+                    "status": "pending",
+                    "items": [],
+                    "references": [{"type": "x-vbrief/plan", "uri": "pending/missing.vbrief.json"}],
+                },
+            ),
         )
         errs = vv.validate_epic_story_links(docs, vd)
         assert any("does not exist" in e and "(D4)" in e for e in errs)
@@ -195,16 +202,23 @@ class TestValidateEpicStoryLinks:
         vd = tmp_path / "vbrief"
         docs = self._build(
             vd,
-            ("pending/parent.vbrief.json", {
-                "title": "P", "status": "pending", "items": [],
-                "references": [
-                    {"type": "x-vbrief/plan",
-                     "uri": "pending/child.vbrief.json"}
-                ],
-            }),
-            ("pending/child.vbrief.json", {
-                "title": "C", "status": "pending", "items": [],
-            }),
+            (
+                "pending/parent.vbrief.json",
+                {
+                    "title": "P",
+                    "status": "pending",
+                    "items": [],
+                    "references": [{"type": "x-vbrief/plan", "uri": "pending/child.vbrief.json"}],
+                },
+            ),
+            (
+                "pending/child.vbrief.json",
+                {
+                    "title": "C",
+                    "status": "pending",
+                    "items": [],
+                },
+            ),
         )
         errs = vv.validate_epic_story_links(docs, vd)
         assert any("missing planRef back" in e for e in errs)
@@ -213,35 +227,49 @@ class TestValidateEpicStoryLinks:
         vd = tmp_path / "vbrief"
         docs = self._build(
             vd,
-            ("pending/parent.vbrief.json", {
-                "title": "P", "status": "pending", "items": [],
-            }),
-            ("pending/child.vbrief.json", {
-                "title": "C", "status": "pending", "items": [],
-                "planRef": "pending/parent.vbrief.json",
-            }),
+            (
+                "pending/parent.vbrief.json",
+                {
+                    "title": "P",
+                    "status": "pending",
+                    "items": [],
+                },
+            ),
+            (
+                "pending/child.vbrief.json",
+                {
+                    "title": "C",
+                    "status": "pending",
+                    "items": [],
+                    "planRef": "pending/parent.vbrief.json",
+                },
+            ),
         )
         errs = vv.validate_epic_story_links(docs, vd)
-        assert any(
-            "parent does not list this file" in e.replace("\n", " ")
-            for e in errs
-        )
+        assert any("parent does not list this file" in e.replace("\n", " ") for e in errs)
 
     def test_happy_bidirectional(self, tmp_path):
         vd = tmp_path / "vbrief"
         docs = self._build(
             vd,
-            ("pending/parent.vbrief.json", {
-                "title": "P", "status": "pending", "items": [],
-                "references": [
-                    {"type": "x-vbrief/plan",
-                     "uri": "pending/child.vbrief.json"}
-                ],
-            }),
-            ("pending/child.vbrief.json", {
-                "title": "C", "status": "pending", "items": [],
-                "planRef": "pending/parent.vbrief.json",
-            }),
+            (
+                "pending/parent.vbrief.json",
+                {
+                    "title": "P",
+                    "status": "pending",
+                    "items": [],
+                    "references": [{"type": "x-vbrief/plan", "uri": "pending/child.vbrief.json"}],
+                },
+            ),
+            (
+                "pending/child.vbrief.json",
+                {
+                    "title": "C",
+                    "status": "pending",
+                    "items": [],
+                    "planRef": "pending/parent.vbrief.json",
+                },
+            ),
         )
         assert vv.validate_epic_story_links(docs, vd) == []
 
@@ -249,10 +277,15 @@ class TestValidateEpicStoryLinks:
         vd = tmp_path / "vbrief"
         docs = self._build(
             vd,
-            ("pending/child.vbrief.json", {
-                "title": "C", "status": "pending", "items": [],
-                "planRef": "pending/ghost.vbrief.json",
-            }),
+            (
+                "pending/child.vbrief.json",
+                {
+                    "title": "C",
+                    "status": "pending",
+                    "items": [],
+                    "planRef": "pending/ghost.vbrief.json",
+                },
+            ),
         )
         errs = vv.validate_epic_story_links(docs, vd)
         assert any("does not exist" in e for e in errs)
@@ -261,14 +294,19 @@ class TestValidateEpicStoryLinks:
         vd = tmp_path / "vbrief"
         docs = self._build(
             vd,
-            ("pending/x.vbrief.json", {
-                "title": "X", "status": "pending", "items": [],
-                "references": [
-                    {"type": "github-issue", "uri": "unused", "id": "#1"},
-                    {"type": "x-vbrief/plan", "uri": ""},
-                    "garbage",
-                ],
-            }),
+            (
+                "pending/x.vbrief.json",
+                {
+                    "title": "X",
+                    "status": "pending",
+                    "items": [],
+                    "references": [
+                        {"type": "github-issue", "uri": "unused", "id": "#1"},
+                        {"type": "x-vbrief/plan", "uri": ""},
+                        "garbage",
+                    ],
+                },
+            ),
         )
         assert vv.validate_epic_story_links(docs, vd) == []
 
@@ -286,7 +324,9 @@ class TestRenderStaleness:
             {
                 "vBRIEFInfo": {"version": "0.5"},
                 "plan": {
-                    "title": title, "status": "draft", "items": items,
+                    "title": title,
+                    "status": "draft",
+                    "items": items,
                     "narratives": narratives,
                 },
             },
@@ -314,9 +354,7 @@ class TestRenderStaleness:
 
     def test_prd_stale(self, tmp_path):
         vd = tmp_path / "vbrief"
-        self._write_spec(
-            vd, {"overview": "brand new overview"}, [], "Fresh Title"
-        )
+        self._write_spec(vd, {"overview": "brand new overview"}, [], "Fresh Title")
         (tmp_path / "PRD.md").write_text("OUT OF DATE", encoding="utf-8")
         warnings = vv.check_render_staleness(vd)
         assert any("PRD.md" in w for w in warnings)
@@ -324,29 +362,27 @@ class TestRenderStaleness:
     def test_prd_fresh(self, tmp_path):
         vd = tmp_path / "vbrief"
         self._write_spec(vd, {"overview": "alpha"}, [], "Fresh Title")
-        (tmp_path / "PRD.md").write_text(
-            "Fresh Title\n\nalpha\n", encoding="utf-8"
-        )
+        (tmp_path / "PRD.md").write_text("Fresh Title\n\nalpha\n", encoding="utf-8")
         warnings = vv.check_render_staleness(vd)
         assert not any("PRD.md" in w for w in warnings)
 
     def test_spec_md_stale_item_title(self, tmp_path):
         vd = tmp_path / "vbrief"
         self._write_spec(
-            vd, {"overview": "o"},
+            vd,
+            {"overview": "o"},
             [{"title": "ItemFoo", "status": "draft"}],
             "Title",
         )
-        (tmp_path / "SPECIFICATION.md").write_text(
-            "No match here", encoding="utf-8"
-        )
+        (tmp_path / "SPECIFICATION.md").write_text("No match here", encoding="utf-8")
         warnings = vv.check_render_staleness(vd)
         assert any("SPECIFICATION.md" in w for w in warnings)
 
     def test_spec_md_with_redirect_sentinel_skipped(self, tmp_path):
         vd = tmp_path / "vbrief"
         self._write_spec(
-            vd, {"overview": "o"},
+            vd,
+            {"overview": "o"},
             [{"title": "ItemFoo", "status": "draft"}],
             "Title",
         )
@@ -366,18 +402,14 @@ class TestDeprecatedPlaceholders:
     def test_file_without_sentinel_warns(self, tmp_path):
         vd = tmp_path / "vbrief"
         vd.mkdir()
-        (tmp_path / "SPECIFICATION.md").write_text(
-            "Real content", encoding="utf-8"
-        )
+        (tmp_path / "SPECIFICATION.md").write_text("Real content", encoding="utf-8")
         warnings = vv.validate_deprecated_placeholders(vd)
         assert any("SPECIFICATION.md" in w for w in warnings)
 
     def test_file_with_sentinel_no_warn(self, tmp_path):
         vd = tmp_path / "vbrief"
         vd.mkdir()
-        (tmp_path / "PROJECT.md").write_text(
-            vv.DEPRECATED_REDIRECT_SENTINEL, encoding="utf-8"
-        )
+        (tmp_path / "PROJECT.md").write_text(vv.DEPRECATED_REDIRECT_SENTINEL, encoding="utf-8")
         assert vv.validate_deprecated_placeholders(vd) == []
 
 
@@ -412,9 +444,11 @@ class TestValidateAll:
         _write_json(
             vd / "PROJECT-DEFINITION.vbrief.json",
             {
-                "vBRIEFInfo": {"version": "0.5"},
+                "vBRIEFInfo": {"version": "0.6"},
                 "plan": {
-                    "title": "Proj", "status": "draft", "items": [],
+                    "title": "Proj",
+                    "status": "draft",
+                    "items": [],
                     "narratives": {"overview": "o", "tech stack": "ts"},
                 },
             },
@@ -452,31 +486,27 @@ class TestMain:
             vd / "proposed" / "2026-04-13-ok.vbrief.json",
             _minimal_doc(),
         )
-        monkeypatch.setattr(
-            sys, "argv", ["vbrief_validate.py", "--vbrief-dir", str(vd)]
-        )
+        monkeypatch.setattr(sys, "argv", ["vbrief_validate.py", "--vbrief-dir", str(vd)])
         rc = vv.main()
         assert rc == 0
         assert "validation passed" in capsys.readouterr().out
 
-    def test_validation_pass_with_project_definition(
-        self, tmp_path, monkeypatch, capsys
-    ):
+    def test_validation_pass_with_project_definition(self, tmp_path, monkeypatch, capsys):
         vd = tmp_path / "vbrief"
         _make_lifecycle_dirs(vd)
         _write_json(
             vd / "PROJECT-DEFINITION.vbrief.json",
             {
-                "vBRIEFInfo": {"version": "0.5"},
+                "vBRIEFInfo": {"version": "0.6"},
                 "plan": {
-                    "title": "Proj", "status": "draft", "items": [],
+                    "title": "Proj",
+                    "status": "draft",
+                    "items": [],
                     "narratives": {"overview": "o", "tech stack": "ts"},
                 },
             },
         )
-        monkeypatch.setattr(
-            sys, "argv", ["vbrief_validate.py", "--vbrief-dir", str(vd)]
-        )
+        monkeypatch.setattr(sys, "argv", ["vbrief_validate.py", "--vbrief-dir", str(vd)])
         rc = vv.main()
         assert rc == 0
         assert "PROJECT-DEFINITION" in capsys.readouterr().out
@@ -491,21 +521,15 @@ class TestMain:
                 "plan": {"status": "draft", "items": []},
             },
         )
-        monkeypatch.setattr(
-            sys, "argv", ["vbrief_validate.py", "--vbrief-dir", str(vd)]
-        )
+        monkeypatch.setattr(sys, "argv", ["vbrief_validate.py", "--vbrief-dir", str(vd)])
         rc = vv.main()
         assert rc == 1
         assert "FAIL" in capsys.readouterr().out
 
-    def test_empty_vbrief_directory_passes_with_no_files_note(
-        self, tmp_path, monkeypatch, capsys
-    ):
+    def test_empty_vbrief_directory_passes_with_no_files_note(self, tmp_path, monkeypatch, capsys):
         vd = tmp_path / "vbrief"
         vd.mkdir()
-        monkeypatch.setattr(
-            sys, "argv", ["vbrief_validate.py", "--vbrief-dir", str(vd)]
-        )
+        monkeypatch.setattr(sys, "argv", ["vbrief_validate.py", "--vbrief-dir", str(vd)])
         rc = vv.main()
         assert rc == 0
         assert "no vBRIEF files" in capsys.readouterr().out

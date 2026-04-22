@@ -108,6 +108,8 @@ Scope vBRIEFs                     <- LOWEST
 
 ## Build Process
 
+All vBRIEFs (including those read from `vbrief/active/` and any new vBRIEFs this skill emits) MUST use `"vBRIEFInfo": { "version": "0.6" }`. The validator rejects any other version (see [`../../conventions/references.md`](../../conventions/references.md)).
+
 ### Step 1: Understand the Scope
 
 - ! Read story vBRIEFs from `vbrief/active/` and `PROJECT-DEFINITION.vbrief.json`

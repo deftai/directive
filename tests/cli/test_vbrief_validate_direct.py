@@ -64,7 +64,7 @@ def _minimal_plan(**overrides):
     return plan
 
 
-def _minimal_doc(plan_overrides=None, version="0.5"):
+def _minimal_doc(plan_overrides=None, version="0.6"):
     return {
         "vBRIEFInfo": {"version": version},
         "plan": _minimal_plan(**(plan_overrides or {})),
@@ -86,9 +86,7 @@ class TestValidateVbriefSchema:
         assert vv.validate_vbrief_schema(_minimal_doc(), "f.json") == []
 
     def test_missing_vbrief_info(self):
-        errs = vv.validate_vbrief_schema(
-            {"plan": _minimal_plan()}, "f.json"
-        )
+        errs = vv.validate_vbrief_schema({"plan": _minimal_plan()}, "f.json")
         assert any("vBRIEFInfo" in e for e in errs)
 
     def test_vbrief_info_wrong_type(self):
@@ -99,24 +97,27 @@ class TestValidateVbriefSchema:
 
     def test_wrong_version(self):
         errs = vv.validate_vbrief_schema(_minimal_doc(version="0.4"), "f.json")
-        assert any("0.5" in e for e in errs)
+        # Validator is strict v0.6-only (#533).
+        assert any("0.6" in e for e in errs)
+
+    def test_rejects_v0_5(self):
+        """Strict v0.6-only acceptance: v0.5 is now rejected (#533)."""
+        errs = vv.validate_vbrief_schema(_minimal_doc(version="0.5"), "f.json")
+        assert any("0.6" in e for e in errs)
+
+    def test_accepts_v0_6(self):
+        assert vv.validate_vbrief_schema(_minimal_doc(version="0.6"), "f.json") == []
 
     def test_missing_plan(self):
-        errs = vv.validate_vbrief_schema(
-            {"vBRIEFInfo": {"version": "0.5"}}, "f.json"
-        )
+        errs = vv.validate_vbrief_schema({"vBRIEFInfo": {"version": "0.5"}}, "f.json")
         assert any("'plan'" in e for e in errs)
 
     def test_plan_wrong_type(self):
-        errs = vv.validate_vbrief_schema(
-            {"vBRIEFInfo": {"version": "0.5"}, "plan": []}, "f.json"
-        )
+        errs = vv.validate_vbrief_schema({"vBRIEFInfo": {"version": "0.5"}, "plan": []}, "f.json")
         assert any("'plan' must be an object" in e for e in errs)
 
     def test_missing_plan_fields(self):
-        errs = vv.validate_vbrief_schema(
-            {"vBRIEFInfo": {"version": "0.5"}, "plan": {}}, "f.json"
-        )
+        errs = vv.validate_vbrief_schema({"vBRIEFInfo": {"version": "0.5"}, "plan": {}}, "f.json")
         assert sum(1 for e in errs if "missing required field" in e) == 3
 
     def test_empty_title(self):
@@ -124,45 +125,31 @@ class TestValidateVbriefSchema:
         assert any("title" in e for e in errs)
 
     def test_title_wrong_type(self):
-        errs = vv.validate_vbrief_schema(
-            _minimal_doc({"title": 123}), "f.json"
-        )
+        errs = vv.validate_vbrief_schema(_minimal_doc({"title": 123}), "f.json")
         assert any("non-empty string" in e for e in errs)
 
     def test_invalid_status(self):
-        errs = vv.validate_vbrief_schema(
-            _minimal_doc({"status": "bogus"}), "f.json"
-        )
+        errs = vv.validate_vbrief_schema(_minimal_doc({"status": "bogus"}), "f.json")
         assert any("invalid" in e for e in errs)
 
     def test_narratives_non_dict(self):
-        errs = vv.validate_vbrief_schema(
-            _minimal_doc({"narratives": "not-a-dict"}), "f.json"
-        )
+        errs = vv.validate_vbrief_schema(_minimal_doc({"narratives": "not-a-dict"}), "f.json")
         assert any("plan.narratives" in e and "object" in e for e in errs)
 
     def test_narratives_non_string_values(self):
-        errs = vv.validate_vbrief_schema(
-            _minimal_doc({"narratives": {"overview": 123}}), "f.json"
-        )
+        errs = vv.validate_vbrief_schema(_minimal_doc({"narratives": {"overview": 123}}), "f.json")
         assert any("must be a string" in e for e in errs)
 
     def test_items_not_list(self):
-        errs = vv.validate_vbrief_schema(
-            _minimal_doc({"items": "nope"}), "f.json"
-        )
+        errs = vv.validate_vbrief_schema(_minimal_doc({"items": "nope"}), "f.json")
         assert any("plan.items" in e and "array" in e for e in errs)
 
     def test_item_not_dict(self):
-        errs = vv.validate_vbrief_schema(
-            _minimal_doc({"items": ["not-a-dict"]}), "f.json"
-        )
+        errs = vv.validate_vbrief_schema(_minimal_doc({"items": ["not-a-dict"]}), "f.json")
         assert any("plan.items[0]" in e for e in errs)
 
     def test_plan_item_missing_title_status(self):
-        errs = vv.validate_vbrief_schema(
-            _minimal_doc({"items": [{"id": "x"}]}), "f.json"
-        )
+        errs = vv.validate_vbrief_schema(_minimal_doc({"items": [{"id": "x"}]}), "f.json")
         assert any("missing 'title'" in e for e in errs)
         assert any("missing 'status'" in e for e in errs)
 
@@ -176,37 +163,30 @@ class TestValidateVbriefSchema:
     def test_plan_item_items_not_allowed(self):
         """items at nested level should use subItems."""
         errs = vv.validate_vbrief_schema(
-            _minimal_doc({"items": [
-                {"title": "T", "status": "draft", "items": []}
-            ]}),
+            _minimal_doc({"items": [{"title": "T", "status": "draft", "items": []}]}),
             "f.json",
         )
         assert any("use 'subItems' instead" in e for e in errs)
 
     def test_plan_item_subitems_not_list(self):
         errs = vv.validate_vbrief_schema(
-            _minimal_doc({"items": [
-                {"title": "T", "status": "draft", "subItems": "nope"}
-            ]}),
+            _minimal_doc({"items": [{"title": "T", "status": "draft", "subItems": "nope"}]}),
             "f.json",
         )
         assert any("subItems must be an array" in e for e in errs)
 
     def test_plan_item_subitem_not_dict(self):
         errs = vv.validate_vbrief_schema(
-            _minimal_doc({"items": [
-                {"title": "T", "status": "draft", "subItems": ["oops"]}
-            ]}),
+            _minimal_doc({"items": [{"title": "T", "status": "draft", "subItems": ["oops"]}]}),
             "f.json",
         )
         assert any("subItems[0]" in e for e in errs)
 
     def test_plan_item_narrative_validated(self):
         errs = vv.validate_vbrief_schema(
-            _minimal_doc({"items": [
-                {"title": "T", "status": "draft",
-                 "narrative": {"overview": 42}}
-            ]}),
+            _minimal_doc(
+                {"items": [{"title": "T", "status": "draft", "narrative": {"overview": 42}}]}
+            ),
             "f.json",
         )
         assert any("must be a string" in e for e in errs)
@@ -219,14 +199,10 @@ class TestValidateVbriefSchema:
 
 class TestValidateFilename:
     def test_project_definition_passthrough(self, tmp_path):
-        assert vv.validate_filename(
-            tmp_path / "PROJECT-DEFINITION.vbrief.json"
-        ) == []
+        assert vv.validate_filename(tmp_path / "PROJECT-DEFINITION.vbrief.json") == []
 
     def test_valid_filename(self, tmp_path):
-        assert vv.validate_filename(
-            tmp_path / "2026-04-13-feature-x.vbrief.json"
-        ) == []
+        assert vv.validate_filename(tmp_path / "2026-04-13-feature-x.vbrief.json") == []
 
     def test_invalid_filename(self, tmp_path):
         errs = vv.validate_filename(tmp_path / "bad-name.json")
@@ -244,9 +220,7 @@ class TestValidateFolderStatus:
         (vd / "proposed").mkdir(parents=True)
         fp = vd / "proposed" / "2026-04-01-x.vbrief.json"
         fp.write_text("{}")
-        assert vv.validate_folder_status(
-            fp, _minimal_doc({"status": "draft"}), vd
-        ) == []
+        assert vv.validate_folder_status(fp, _minimal_doc({"status": "draft"}), vd) == []
 
     def test_file_outside_vbrief_dir(self, tmp_path):
         vd = tmp_path / "vbrief"
@@ -277,9 +251,7 @@ class TestValidateFolderStatus:
         vd = tmp_path / "vbrief"
         (vd / "proposed").mkdir(parents=True)
         fp = vd / "proposed" / "x.vbrief.json"
-        errs = vv.validate_folder_status(
-            fp, _minimal_doc({"status": "running"}), vd
-        )
+        errs = vv.validate_folder_status(fp, _minimal_doc({"status": "running"}), vd)
         assert errs and "D2" in errs[0]
 
 
@@ -310,17 +282,13 @@ class TestValidateOriginProvenance:
     def test_with_origin_ok(self, tmp_path):
         vd = tmp_path / "vbrief"
         fp = self._fp(vd, "pending")
-        doc = _minimal_doc({
-            "references": [{"type": "github-issue", "id": "#1"}]
-        })
+        doc = _minimal_doc({"references": [{"type": "github-issue", "id": "#1"}]})
         assert vv.validate_origin_provenance(fp, doc, vd) == []
 
     def test_extended_origin_type_accepted(self, tmp_path):
         vd = tmp_path / "vbrief"
         fp = self._fp(vd, "active")
-        doc = _minimal_doc({
-            "references": [{"type": "github-issue-v2", "id": "#1"}]
-        })
+        doc = _minimal_doc({"references": [{"type": "github-issue-v2", "id": "#1"}]})
         assert vv.validate_origin_provenance(fp, doc, vd) == []
 
     def test_proposed_folder_skipped(self, tmp_path):
@@ -403,9 +371,7 @@ class TestPrivateHelpers:
                 {"no_ref": True},
             ],
         }
-        assert vv._collect_plan_refs(plan) == [
-            "root.vbrief.json", "item.vbrief.json"
-        ]
+        assert vv._collect_plan_refs(plan) == ["root.vbrief.json", "item.vbrief.json"]
 
     def test_collect_plan_refs_empty(self):
         assert vv._collect_plan_refs({"items": []}) == []
@@ -414,9 +380,10 @@ class TestPrivateHelpers:
         assert vv._collect_plan_refs({"planRef": 123}) == []
 
     def test_resolve_ref_path_file_uri(self, tmp_path):
-        assert vv._resolve_ref_path(
-            "file://a.vbrief.json", tmp_path
-        ) == (tmp_path / "a.vbrief.json").resolve()
+        assert (
+            vv._resolve_ref_path("file://a.vbrief.json", tmp_path)
+            == (tmp_path / "a.vbrief.json").resolve()
+        )
 
     def test_resolve_ref_path_http_returns_none(self, tmp_path):
         assert vv._resolve_ref_path("https://x", tmp_path) is None
@@ -428,9 +395,9 @@ class TestPrivateHelpers:
         assert vv._resolve_ref_path(None, tmp_path) is None
 
     def test_resolve_ref_path_relative(self, tmp_path):
-        assert vv._resolve_ref_path(
-            "sub/x.json", tmp_path
-        ) == (tmp_path / "sub" / "x.json").resolve()
+        assert (
+            vv._resolve_ref_path("sub/x.json", tmp_path) == (tmp_path / "sub" / "x.json").resolve()
+        )
 
     def test_has_plan_ref_to_via_items(self, tmp_path):
         (tmp_path / "parent.vbrief.json").write_text("{}")
@@ -444,12 +411,8 @@ class TestPrivateHelpers:
 
     def test_path_in_refs_true(self, tmp_path):
         (tmp_path / "a.json").write_text("{}")
-        assert vv._path_in_refs(
-            tmp_path / "a.json", {"a.json"}, tmp_path
-        ) is True
+        assert vv._path_in_refs(tmp_path / "a.json", {"a.json"}, tmp_path) is True
 
     def test_path_in_refs_false(self, tmp_path):
         (tmp_path / "a.json").write_text("{}")
-        assert vv._path_in_refs(
-            tmp_path / "a.json", {"b.json"}, tmp_path
-        ) is False
+        assert vv._path_in_refs(tmp_path / "a.json", {"b.json"}, tmp_path) is False

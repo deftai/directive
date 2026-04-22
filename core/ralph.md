@@ -213,7 +213,7 @@ Agent (to user):
 ## 📚 References
 
 - **Simpsons Reference**: Ralph Wiggum's "I'm in danger!" meme captures the spirit of honest self-assessment
-- **Related**: Test-Driven Development (TDD) in [README.md](./README.md)
+- **Related**: Test-Driven Development (TDD) in [README.md](../README.md)
 - **Related**: Quality standards in [main.md](../main.md)
 - **Related**: Language-specific checks in [python.md](../languages/python.md), [go.md](../languages/go.md)
 

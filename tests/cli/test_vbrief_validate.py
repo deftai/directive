@@ -24,9 +24,8 @@ REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
 # helpers
 # ---------------------------------------------------------------------------
 
-def run_validator(
-    vbrief_dir: Path, env: dict | None = None
-) -> subprocess.CompletedProcess:
+
+def run_validator(vbrief_dir: Path, env: dict | None = None) -> subprocess.CompletedProcess:
     """Run vbrief_validate.py with --vbrief-dir pointing to a test fixture."""
     script = REPO_ROOT / "scripts" / "vbrief_validate.py"
     merged_env = {**os.environ, **(env or {})}
@@ -44,19 +43,17 @@ def minimal_vbrief(
     *,
     title: str = "Test scope",
     status: str = "draft",
-    version: str = "0.5",
+    version: str = "0.6",
     items: list | None = None,
     narratives: dict | None = None,
     references: list | None = None,
     plan_ref: str | None = None,
 ) -> dict:
-    """Build a minimal valid vBRIEF v0.5 document."""
+    """Build a minimal valid vBRIEF v0.6 document."""
     plan: dict = {
         "title": title,
         "status": status,
-        "items": items if items is not None else [
-            {"title": "Task 1", "status": "pending"}
-        ],
+        "items": items if items is not None else [{"title": "Task 1", "status": "pending"}],
     }
     if narratives is not None:
         plan["narratives"] = narratives
@@ -86,6 +83,7 @@ def make_lifecycle_dirs(vbrief_dir: Path) -> None:
 # Scope vBRIEF schema validation
 # ===========================================================================
 
+
 class TestScopeSchemaValidation:
     """Tests for individual scope vBRIEF schema validation."""
 
@@ -106,33 +104,29 @@ class TestScopeSchemaValidation:
         vbrief_dir = tmp_path / "vbrief"
         make_lifecycle_dirs(vbrief_dir)
         bad = {"plan": {"title": "X", "status": "draft", "items": []}}
-        write_vbrief(
-            vbrief_dir / "proposed" / "2026-04-13-bad.vbrief.json", bad
-        )
+        write_vbrief(vbrief_dir / "proposed" / "2026-04-13-bad.vbrief.json", bad)
         result = run_validator(vbrief_dir)
         assert result.returncode == 1
         assert "vBRIEFInfo" in result.stdout
 
     def test_wrong_version(self, tmp_path):
-        """vBRIEFInfo.version != '0.5' is an error."""
+        """vBRIEFInfo.version != '0.6' is an error (#533 strict v0.6-only)."""
         vbrief_dir = tmp_path / "vbrief"
         make_lifecycle_dirs(vbrief_dir)
         write_vbrief(
             vbrief_dir / "proposed" / "2026-04-13-old-ver.vbrief.json",
-            minimal_vbrief(version="0.4"),
+            minimal_vbrief(version="0.5"),
         )
         result = run_validator(vbrief_dir)
         assert result.returncode == 1
-        assert "0.5" in result.stdout
+        assert "0.6" in result.stdout
 
     def test_missing_plan(self, tmp_path):
         """Missing plan key is an error."""
         vbrief_dir = tmp_path / "vbrief"
         make_lifecycle_dirs(vbrief_dir)
-        bad = {"vBRIEFInfo": {"version": "0.5"}}
-        write_vbrief(
-            vbrief_dir / "proposed" / "2026-04-13-no-plan.vbrief.json", bad
-        )
+        bad = {"vBRIEFInfo": {"version": "0.6"}}
+        write_vbrief(vbrief_dir / "proposed" / "2026-04-13-no-plan.vbrief.json", bad)
         result = run_validator(vbrief_dir)
         assert result.returncode == 1
         assert "plan" in result.stdout.lower()
@@ -143,9 +137,7 @@ class TestScopeSchemaValidation:
         make_lifecycle_dirs(vbrief_dir)
         doc = minimal_vbrief()
         del doc["plan"]["title"]
-        write_vbrief(
-            vbrief_dir / "proposed" / "2026-04-13-no-title.vbrief.json", doc
-        )
+        write_vbrief(vbrief_dir / "proposed" / "2026-04-13-no-title.vbrief.json", doc)
         result = run_validator(vbrief_dir)
         assert result.returncode == 1
         assert "title" in result.stdout
@@ -156,9 +148,7 @@ class TestScopeSchemaValidation:
         make_lifecycle_dirs(vbrief_dir)
         doc = minimal_vbrief()
         del doc["plan"]["status"]
-        write_vbrief(
-            vbrief_dir / "proposed" / "2026-04-13-no-status.vbrief.json", doc
-        )
+        write_vbrief(vbrief_dir / "proposed" / "2026-04-13-no-status.vbrief.json", doc)
         result = run_validator(vbrief_dir)
         assert result.returncode == 1
         assert "status" in result.stdout
@@ -169,9 +159,7 @@ class TestScopeSchemaValidation:
         make_lifecycle_dirs(vbrief_dir)
         doc = minimal_vbrief()
         del doc["plan"]["items"]
-        write_vbrief(
-            vbrief_dir / "proposed" / "2026-04-13-no-items.vbrief.json", doc
-        )
+        write_vbrief(vbrief_dir / "proposed" / "2026-04-13-no-items.vbrief.json", doc)
         result = run_validator(vbrief_dir)
         assert result.returncode == 1
         assert "items" in result.stdout
@@ -203,6 +191,7 @@ class TestScopeSchemaValidation:
 # ===========================================================================
 # D7: Filename convention
 # ===========================================================================
+
 
 class TestFilenameConvention:
     """Tests for YYYY-MM-DD-descriptive-slug.vbrief.json naming (D7)."""
@@ -258,6 +247,7 @@ class TestFilenameConvention:
 # ===========================================================================
 # D2: Folder/status consistency
 # ===========================================================================
+
 
 class TestFolderStatusConsistency:
     """Tests for folder/status matching (D2)."""
@@ -326,6 +316,7 @@ class TestFolderStatusConsistency:
 # ===========================================================================
 # D3: PROJECT-DEFINITION.vbrief.json
 # ===========================================================================
+
 
 class TestProjectDefinitionValidation:
     """Tests for PROJECT-DEFINITION.vbrief.json validation (D3)."""
@@ -412,9 +403,7 @@ class TestProjectDefinitionValidation:
                 }
             ],
         )
-        write_vbrief(
-            vbrief_dir / "PROJECT-DEFINITION.vbrief.json", doc
-        )
+        write_vbrief(vbrief_dir / "PROJECT-DEFINITION.vbrief.json", doc)
         result = run_validator(vbrief_dir)
         assert result.returncode == 1
         assert "does not exist" in result.stdout
@@ -448,9 +437,7 @@ class TestProjectDefinitionValidation:
                 }
             ],
         )
-        write_vbrief(
-            vbrief_dir / "PROJECT-DEFINITION.vbrief.json", doc
-        )
+        write_vbrief(vbrief_dir / "PROJECT-DEFINITION.vbrief.json", doc)
         result = run_validator(vbrief_dir)
         assert result.returncode == 0
 
@@ -458,6 +445,7 @@ class TestProjectDefinitionValidation:
 # ===========================================================================
 # D4: Epic-story bidirectional link validation
 # ===========================================================================
+
 
 class TestEpicStoryLinks:
     """Tests for epic-story bidirectional references (D4)."""
@@ -476,9 +464,7 @@ class TestEpicStoryLinks:
             minimal_vbrief(
                 title="Epic",
                 status="running",
-                references=[
-                    {"uri": story_path, "type": "x-vbrief/plan"}
-                ],
+                references=[{"uri": story_path, "type": "x-vbrief/plan"}],
             ),
         )
         # Story has planRef back to epic
@@ -531,9 +517,7 @@ class TestEpicStoryLinks:
             minimal_vbrief(
                 title="Epic",
                 status="running",
-                references=[
-                    {"uri": story_path, "type": "x-vbrief/plan"}
-                ],
+                references=[{"uri": story_path, "type": "x-vbrief/plan"}],
             ),
         )
         # Story has NO planRef
@@ -637,6 +621,7 @@ class TestEpicStoryLinks:
 # D11: Origin provenance check
 # ===========================================================================
 
+
 class TestOriginProvenance:
     """Tests for origin provenance warnings (D11)."""
 
@@ -726,6 +711,7 @@ class TestOriginProvenance:
 # Edge cases
 # ===========================================================================
 
+
 class TestEdgeCases:
     """Edge case tests."""
 
@@ -801,6 +787,7 @@ class TestEdgeCases:
 # #398: Render staleness detection
 # ===========================================================================
 
+
 def _spec_vbrief(
     *,
     title: str = "Test Spec",
@@ -812,9 +799,13 @@ def _spec_vbrief(
     plan: dict = {
         "title": title,
         "status": status,
-        "items": items if items is not None else [
-            {"id": "T1", "title": "Feature Alpha", "status": "running"},
-        ],
+        "items": (
+            items
+            if items is not None
+            else [
+                {"id": "T1", "title": "Feature Alpha", "status": "running"},
+            ]
+        ),
     }
     if narratives is not None:
         plan["narratives"] = narratives
@@ -900,8 +891,7 @@ class TestRenderStaleness:
         )
         spec_md = tmp_path / "SPECIFICATION.md"
         spec_md.write_text(
-            "# My Project\n\nCurrent overview\n\n"
-            "## T1: Feature Alpha  [running]\n",
+            "# My Project\n\nCurrent overview\n\n## T1: Feature Alpha  [running]\n",
             encoding="utf-8",
         )
         result = run_validator(vbrief_dir)
@@ -922,8 +912,7 @@ class TestRenderStaleness:
         )
         spec_md = tmp_path / "SPECIFICATION.md"
         spec_md.write_text(
-            "<!-- deft:deprecated-redirect -->\n"
-            "This file is deprecated. See vbrief/ instead.\n",
+            "<!-- deft:deprecated-redirect -->\nThis file is deprecated. See vbrief/ instead.\n",
             encoding="utf-8",
         )
         result = run_validator(vbrief_dir)

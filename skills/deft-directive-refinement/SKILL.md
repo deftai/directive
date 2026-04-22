@@ -65,36 +65,43 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 
 ### Step 1: Gather Sources
 
-1. ! Fetch all open GitHub issues: `gh issue list --repo {owner/repo} --state open --limit 200 --json number,title,labels,createdAt,updatedAt`
-2. ? Scan other configured sources (Jira, user requests, etc.) if applicable
+1. ? Scan non-GitHub sources (Jira, direct user requests, etc.) manually if applicable — those ingest paths are not yet task-wrapped
+2. ! GitHub issues are ingested via the task wrapper documented in Step 3 — the task fetches open issues itself, so no separate `gh issue list` call is needed
 
-### Step 2: Deduplicate via References
+### Step 2: Deduplicate via References (Dry-Run Preview)
 
-1. ! Read all existing vBRIEFs across all lifecycle folders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`)
-2. ! Extract `references` entries from each vBRIEF to build a known-origins set
-3. ! Diff the fetched issues against the known-origins set to identify:
-   - **New items** -- issues not tracked by any existing vBRIEF reference (ingest targets)
-   - **Already tracked** -- issues with an existing vBRIEF reference (skip)
-4. ! Present the summary to the user: "{N} new items found, {M} already tracked"
+1. ? Run `task deft:issue:ingest -- --all --dry-run` to preview which issues the ingest task would create scope vBRIEFs for. The task deduplicates candidates against `references` entries in existing vBRIEFs (across all lifecycle folders) so already-tracked issues are skipped automatically.
+2. ! Present the user with the list of new-vs-already-tracked items the dry-run reports: "{N} new items found, {M} already tracked"
+3. ! Wait for user approval before proceeding to ingest
 
-### Step 3: Create Proposed vBRIEFs
+### Step 3: Ingest Approved Items
 
-! For each new item the user approves for ingest:
+! Delegate ingest to `task deft:issue:ingest` — the task is the canonical implementation of scope-vBRIEF creation. Skills MUST NOT reinvent the slug rules, reference shape, or deduplication logic inline (see #537 for background).
 
-1. ! Create a scope vBRIEF in `vbrief/proposed/` with filename `YYYY-MM-DD-descriptive-slug.vbrief.json` (date is today's creation date)
-2. ! Include origin provenance in `references`:
-   ```json
-   "references": [
-     { "type": "github-issue", "url": "https://github.com/{owner}/{repo}/issues/{N}", "id": "#{N}" }
-   ]
-   ```
-3. ! Set `plan.status` to `"proposed"`
-4. ! Populate `plan.title` from the issue title
-5. ~ Populate `plan.narratives` with a summary extracted from the issue body
-6. ! Conform to vBRIEF v0.5 schema (`vBRIEFInfo.version: "0.5"`, `plan.title`, `plan.status`, `plan.items`)
+- **Single issue**: `task deft:issue:ingest -- <N>` — creates `vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json` with origin `references`, canonical slug from `scripts/slug_normalize.py` (see [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md)), and schema-conformant shape.
+- **Batch**: `task deft:issue:ingest -- --all [--label <L>] [--status <S>]` — ingests every open issue matching the filters, skipping duplicates by `references.uri` match.
+- **Preview**: add `--dry-run` to either form to preview without writing files.
 
-⊗ Create vBRIEFs without origin provenance (`references` linking to the source)
-⊗ Ingest an item that already has a matching vBRIEF reference -- deduplication must be checked first
+The task emits vBRIEFs conforming to the canonical v0.6 schema (`vbrief/schemas/vbrief-core.schema.json`) with origin references in the form documented in [`../../conventions/references.md`](../../conventions/references.md):
+
+```json
+"references": [
+  {
+    "uri": "https://github.com/{owner}/{repo}/issues/{N}",
+    "type": "x-vbrief/github-issue",
+    "title": "Issue #{N}: {issue title}"
+  }
+]
+```
+
+- ! New scope vBRIEFs MUST target `"vBRIEFInfo": { "version": "0.6" }` (the task handles this automatically)
+- ! `plan.status` starts at `"proposed"`; the task sets this
+- ! Conform to `vbrief/schemas/vbrief-core.schema.json` (v0.6) -- the task validates before writing
+- ~ After ingest, review the generated vBRIEFs with the user before promoting any of them to `pending/`
+
+⊗ Hand-author scope vBRIEFs inside the skill when the ingest task exists — duplicating the narrative logic is how #534 (non-conformant references) and #537 (drift between skill and task) arise
+⊗ Write references with `url`/`id`/bare `github-issue` types — use the schema-conformant `{uri, type, title}` shape above
+⊗ Ingest an item that already has a matching vBRIEF reference -- `task deft:issue:ingest` handles deduplication; skills MUST NOT duplicate that logic inline
 
 ## Phase 2 -- Evaluate
 
@@ -123,39 +130,40 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 
 ## Phase 3 -- Reconcile (RFC D12)
 
-! Check if linked origins have changed since the vBRIEF was last touched.
+! Check if linked origins have changed since the vBRIEF was last touched. Delegate the scan to `task deft:reconcile:issues` and walk the user through flagged items for approval (see #537 for why the skill is a thin wrapper over the task).
 
-### Step 1: Scan for Staleness
+### Step 1: Run the Reconciler
 
-1. ! For each vBRIEF in `proposed/` and `pending/` with a `github-issue` reference:
-   - Fetch the issue: `gh issue view {N} --repo {owner/repo} --json updatedAt,state,title,body,comments`
-   - Compare the issue's `updatedAt` against the vBRIEF's `vBRIEFInfo.updated` (or `vBRIEFInfo.created` if no `updated` field)
-2. ! Categorize results:
-   - **Stale** -- origin updated after vBRIEF was last modified
-   - **Externally closed** -- origin issue is closed (duplicate, won't-fix, completed elsewhere)
-   - **Current** -- no changes detected
+```
+task deft:reconcile:issues
+```
 
-### Step 2: Present Changes
+The task scans every vBRIEF with a GitHub-backed reference (whether the reference uses the legacy `github-issue` bare type or the canonical `x-vbrief/github-issue` shape), fetches each linked issue, compares timestamps and state, and reports items in four buckets:
 
-1. ! For each stale vBRIEF, show the user what changed in the origin:
-   - "Issue #{N} was updated {time ago} -- here's what changed: {summary of changes}"
-   - Propose vBRIEF edits if the origin changes are material
-2. ! For each externally closed vBRIEF:
-   - "Issue #{N} was closed ({reason}) -- cancel this vBRIEF?"
-   - Flag for user decision: cancel the vBRIEF or keep it (intentional divergence)
+- **Linked & current** — origin has not changed since the vBRIEF was last updated (no action)
+- **Stale** — origin `updatedAt` is newer than the vBRIEF (propose an update)
+- **Externally closed** — origin issue is `CLOSED` (propose cancellation or reconcile if intentional divergence)
+- **Unlinked** — vBRIEF has no GitHub reference (flag for review)
 
-### Step 3: Apply Updates (User-Approved Only)
+### Step 2: Walk Flagged Items with the User
 
-- ! Agent proposes vBRIEF edits; user approves each change
-- ! Never auto-update vBRIEFs -- intentional divergence (vBRIEF refined beyond original issue scope) must be preserved
-- ! For approved updates, update the vBRIEF content and `vBRIEFInfo.updated` timestamp
+1. ! For each **stale** item the task surfaces, show the user the diff between the current vBRIEF and the refreshed origin. Propose edits; ! wait for explicit user approval before writing anything.
+2. ! For each **externally closed** item, ask the user whether to `task scope:cancel <file>` it or preserve intentional divergence.
+3. ! For each **unlinked** item, ask whether to attach an origin reference or leave the vBRIEF as-is.
 
+### Step 3: Apply User-Approved Updates
+
+- ! Agent proposes edits; ! user approves each change
+- ! Never auto-update vBRIEFs — intentional divergence (vBRIEF refined beyond original issue scope) must be preserved
+- ! For approved updates, update the vBRIEF content and `vBRIEFInfo.updated` timestamp; prefer the task commands (`task scope:cancel`, `task scope:block`, etc.) over hand-editing where they apply
+
+⊗ Replace the task invocation with a hand-written `gh issue view` loop — the task is the canonical implementation; skills MUST NOT duplicate it (#537)
 ⊗ Auto-update vBRIEFs based on origin changes without user approval
 ⊗ Overwrite intentional divergence -- if a vBRIEF has been refined beyond the original issue, preserve the refinement
 
 ## Phase 4 -- Promote/Demote
 
-! Move vBRIEFs between lifecycle folders using deterministic task commands.
+! Move vBRIEFs between lifecycle folders using deterministic task commands. The status values below align with the canonical v0.6 Status enum (`draft | proposed | approved | pending | running | completed | blocked | failed | cancelled`) — note that `failed` is also a valid terminal transition for active work that could not complete.
 
 ### Available Commands
 
@@ -166,6 +174,7 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 - `task scope:restore <file>` -- cancelled/ -> proposed/ (status: proposed)
 - `task scope:block <file>` -- stays in active/ (status: blocked)
 - `task scope:unblock <file>` -- stays in active/ (status: running)
+- `task scope:fail <file>` (v0.6+) -- active/ -> completed/ (status: failed) — record a failure terminal state when a scope cannot complete but should not be cancelled
 
 ### Workflow
 
@@ -195,12 +204,13 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 ### When a Scope Completes
 
 1. ! Read the completed vBRIEF's `references` array
-2. ! For each `github-issue` reference:
+2. ! For each GitHub-issue reference (either the legacy bare `github-issue` type or the canonical `x-vbrief/github-issue` shape):
    - Close the issue with a comment linking to the implementing PR:
      ```
      gh issue close {N} --comment "Completed via PR #{PR} -- scope vBRIEF: {filename}"
      ```
-3. ? For other reference types (jira-ticket, user-request), follow the appropriate update mechanism
+   - The issue number is extracted from the reference `uri` (e.g. `https://github.com/o/r/issues/{N}`)
+3. ? For other reference types (`x-vbrief/jira-ticket`, `x-vbrief/user-request`, `x-vbrief/github-pr`, etc.), follow the appropriate update mechanism
 4. ! Update PROJECT-DEFINITION via `task project:render`
 
 ⊗ Complete a scope without updating its origins
@@ -224,7 +234,7 @@ After all refinement work is complete:
 
 1. ! Verify `CHANGELOG.md` has an `[Unreleased]` entry covering the refinement changes
 2. ! Run `task check` -- all checks must pass
-3. ! Verify `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfiable for this PR
+3. ! Verify `.github/PULL_REQUEST_TEMPLATE.md` checklist is satisfiable for this PR. If the file is **missing**, do NOT block — copy the canonical template from `templates/PULL_REQUEST_TEMPLATE.md` (ship-with-deft) to `.github/PULL_REQUEST_TEMPLATE.md` in the consumer project, then proceed with pre-flight (#531). If the file exists but contains unsatisfiable checklist items for this PR, call them out to the user before pushing.
 4. ! **Mandatory file review**: Re-read ALL modified files before committing. Explicitly check for:
    - Encoding errors (em-dashes corrupted to replacement characters, BOM artifacts)
    - Unintended duplication (accidental double vBRIEFs or duplicate entries)

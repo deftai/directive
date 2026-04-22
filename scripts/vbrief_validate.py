@@ -8,13 +8,17 @@ cross-file consistency.
 
 Usage:
     uv run python scripts/vbrief_validate.py [--vbrief-dir <path>]
+                                             [--strict-origin-types]
+                                             [--warnings-as-errors]
 
 Exit codes:
-    0 -- valid (may have warnings)
-    1 -- validation errors found
+    0 -- valid (may have warnings); also valid with warnings unless
+         --warnings-as-errors is set
+    1 -- validation errors found (or warnings with --warnings-as-errors)
     2 -- usage error
 
-Story: #333 (RFC #309)
+Story: #333 (RFC #309), #536 (validator CLI flags, schema-trusting D11),
+       #533 (full v0.6 transition -- strict 0.6-only acceptance)
 """
 
 from __future__ import annotations
@@ -28,35 +32,56 @@ from pathlib import Path
 # Constants
 # ---------------------------------------------------------------------------
 
-VALID_STATUSES = frozenset({
-    "draft", "proposed", "approved", "pending",
-    "running", "completed", "blocked", "cancelled",
-})
+# v0.6 Status enum from the canonical schema
+# (https://github.com/deftai/vBRIEF/blob/master/schemas/vbrief-core-0.6.schema.json).
+VALID_STATUSES = frozenset(
+    {
+        "draft",
+        "proposed",
+        "approved",
+        "pending",
+        "running",
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled",
+    }
+)
 
-# D13: status-to-folder mapping
+# Strict v0.6-only acceptance (#533). The canonical schema at
+# vbrief/schemas/vbrief-core.schema.json pins vBRIEFInfo.version to
+# const "0.6"; this validator rejects every other version. Any legacy
+# v0.5 vBRIEF must be swept to v0.6 (handled by the migrator sweep in
+# the Agent 1 coordination PR).
+VALID_VBRIEF_VERSIONS = frozenset({"0.6"})
+
+# D13: status-to-folder mapping. v0.6 adds ``failed`` as a terminal status
+# (#533 / refinement skill Phase 4 ``task scope:fail``); it belongs in
+# ``completed/`` because the scope has reached a terminal state (#537).
 FOLDER_ALLOWED_STATUSES: dict[str, frozenset[str]] = {
     "proposed": frozenset({"draft", "proposed"}),
     "pending": frozenset({"approved", "pending"}),
     "active": frozenset({"running", "blocked"}),
-    "completed": frozenset({"completed"}),
+    "completed": frozenset({"completed", "failed"}),
     "cancelled": frozenset({"cancelled"}),
 }
 
 LIFECYCLE_FOLDERS = tuple(FOLDER_ALLOWED_STATUSES.keys())
 
 # D7: filename convention YYYY-MM-DD-descriptive-slug.vbrief.json
-FILENAME_PATTERN = re.compile(
-    r"^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.vbrief\.json$"
-)
+FILENAME_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.vbrief\.json$")
 
 # D3: expected narrative keys for PROJECT-DEFINITION (per #506 D3).
 # Values are normalized (lowercase, whitespace collapsed) so both the
 # historic lowercase-space ``tech stack`` and the #506 D3 PascalCase
 # ``TechStack`` shapes satisfy the validator.  Comparison normalizes the
 # candidate key the same way.
-PROJECT_DEF_EXPECTED_NARRATIVES = frozenset({
-    "overview", "techstack",
-})
+PROJECT_DEF_EXPECTED_NARRATIVES = frozenset(
+    {
+        "overview",
+        "techstack",
+    }
+)
 
 
 def _normalize_narrative_key(key: str) -> str:
@@ -71,10 +96,41 @@ def _normalize_narrative_key(key: str) -> str:
     low = (key or "").lower()
     return re.sub(r"[\s_\-]+", "", low)
 
-# D11: origin reference type patterns
-ORIGIN_TYPES = frozenset({
-    "github-issue", "jira-ticket", "user-request",
-})
+
+# D11: origin reference type patterns.
+#
+# Default behavior (schema-trusting, Option A from #536): ANY reference whose
+# `type` matches `^x-vbrief/` counts as an origin. This matches the v0.6
+# schema pattern and aligns with the shape documented in
+# conventions/references.md and the refinement skill.
+#
+# Strict behavior (opt-in via --strict-origin-types): only the registered
+# allow-list below counts. Teams who want zero tolerance for ad-hoc
+# `x-vbrief/*` values pass --strict-origin-types in CI.
+ORIGIN_TYPE_PATTERN = re.compile(r"^x-vbrief/")
+
+STRICT_ORIGIN_ALLOWLIST = frozenset(
+    {
+        "x-vbrief/plan",
+        "x-vbrief/github-issue",
+        "x-vbrief/github-pr",
+        "x-vbrief/jira-ticket",
+        "x-vbrief/user-request",
+        "x-vbrief/spec-section",
+    }
+)
+
+# Legacy bare origin types accepted for backward compatibility with
+# pre-v0.20 vBRIEFs that pre-date the x-vbrief/* prefix convention.
+# These are accepted unconditionally (independent of --strict-origin-types)
+# so pre-migration vBRIEFs do not regress.
+LEGACY_ORIGIN_TYPES = frozenset(
+    {
+        "github-issue",
+        "jira-ticket",
+        "user-request",
+    }
+)
 
 # Story S (#334): deprecation redirect sentinel
 DEPRECATED_REDIRECT_SENTINEL = "<!-- deft:deprecated-redirect -->"
@@ -87,24 +143,13 @@ DEPRECATED_FILES = ("SPECIFICATION.md", "PROJECT.md")
 # Schema validation (reuses spec_validate.py logic, extended)
 # ---------------------------------------------------------------------------
 
-# --- v0.6 transition accommodation (#533) ---
-# The migrator now emits ``"0.6"`` on every vBRIEF it writes (#561/agent1).
-# During the transition the validator accepts BOTH strings so mixed
-# pre-migration (``"0.5"``) and post-migration (``"0.6"``) trees round-trip
-# cleanly through ``task check``. Agent 2's #533 schema vendor PR tightens
-# this back to a single accepted value after the sweep lands.
-#
-# TODO(#533): tighten to 0.6-only after Agent 2 merge -- drop "0.5" from
-# ACCEPTED_VBRIEF_VERSIONS once the schema vendor PR removes the last
-# 0.5-only fixtures.
-ACCEPTED_VBRIEF_VERSIONS: frozenset[str] = frozenset({"0.5", "0.6"})
-
 
 def validate_vbrief_schema(data: dict, filepath: str) -> list[str]:
-    """Validate vBRIEF structural requirements. Returns error list.
+    """Validate vBRIEF structural requirements (v0.6). Returns errors.
 
-    Accepts both ``"0.5"`` and ``"0.6"`` in ``vBRIEFInfo.version`` during
-    the #533 schema vendor transition (see ACCEPTED_VBRIEF_VERSIONS).
+    Strictly requires ``vBRIEFInfo.version == "0.6"`` to match the canonical
+    v0.6 schema vendored at ``vbrief/schemas/vbrief-core.schema.json`` (#533).
+    Any v0.5 vBRIEF must be migrated to v0.6 (handled by the migrator sweep).
     """
     errors: list[str] = []
 
@@ -115,11 +160,11 @@ def validate_vbrief_schema(data: dict, filepath: str) -> list[str]:
         info = data["vBRIEFInfo"]
         if not isinstance(info, dict):
             errors.append(f"{filepath}: 'vBRIEFInfo' must be an object")
-        elif info.get("version") not in ACCEPTED_VBRIEF_VERSIONS:
-            accepted = sorted(ACCEPTED_VBRIEF_VERSIONS)
+        elif info.get("version") != "0.6":
             errors.append(
-                f"{filepath}: 'vBRIEFInfo.version' must be one of "
-                f"{accepted}, got {info.get('version')!r}"
+                f"{filepath}: 'vBRIEFInfo.version' must be '0.6' (canonical "
+                f"v0.6 schema, #533), got {info.get('version')!r}. Migrate "
+                f"legacy v0.5 vBRIEFs via the migrator sweep."
             )
 
     if "plan" not in data:
@@ -131,13 +176,9 @@ def validate_vbrief_schema(data: dict, filepath: str) -> list[str]:
         else:
             for field in ("title", "status", "items"):
                 if field not in plan:
-                    errors.append(
-                        f"{filepath}: 'plan' missing required field '{field}'"
-                    )
+                    errors.append(f"{filepath}: 'plan' missing required field '{field}'")
 
-            if "title" in plan and (
-                not isinstance(plan["title"], str) or not plan["title"]
-            ):
+            if "title" in plan and (not isinstance(plan["title"], str) or not plan["title"]):
                 errors.append(f"{filepath}: 'plan.title' must be a non-empty string")
 
             if "status" in plan and plan["status"] not in VALID_STATUSES:
@@ -148,9 +189,7 @@ def validate_vbrief_schema(data: dict, filepath: str) -> list[str]:
 
             # Validate narratives values are strings
             if "narratives" in plan:
-                _validate_narratives(
-                    plan["narratives"], f"{filepath}: plan.narratives", errors
-                )
+                _validate_narratives(plan["narratives"], f"{filepath}: plan.narratives", errors)
 
             if "items" in plan:
                 if not isinstance(plan["items"], list):
@@ -158,32 +197,24 @@ def validate_vbrief_schema(data: dict, filepath: str) -> list[str]:
                 else:
                     for i, item in enumerate(plan["items"]):
                         if not isinstance(item, dict):
-                            errors.append(
-                                f"{filepath}: plan.items[{i}] must be an object"
-                            )
+                            errors.append(f"{filepath}: plan.items[{i}] must be an object")
                             continue
                         _validate_plan_item(item, f"{filepath}: plan.items", errors)
 
     return errors
 
 
-def _validate_narratives(
-    narratives: object, path: str, errors: list[str]
-) -> None:
+def _validate_narratives(narratives: object, path: str, errors: list[str]) -> None:
     """Validate that all values in a narratives object are strings."""
     if not isinstance(narratives, dict):
         errors.append(f"{path} must be an object")
         return
     for key, value in narratives.items():
         if not isinstance(value, str):
-            errors.append(
-                f"{path}.{key} must be a string, got {type(value).__name__}"
-            )
+            errors.append(f"{path}.{key} must be a string, got {type(value).__name__}")
 
 
-def _validate_plan_item(
-    item: dict, path: str, errors: list[str]
-) -> None:
+def _validate_plan_item(item: dict, path: str, errors: list[str]) -> None:
     """Recursively validate a PlanItem and its subItems."""
     item_id = item.get("id", "<no-id>")
     item_path = f"{path}[{item_id}]"
@@ -219,6 +250,7 @@ def _validate_plan_item(
 # D7: Filename convention
 # ---------------------------------------------------------------------------
 
+
 def validate_filename(filepath: Path) -> list[str]:
     """Check filename matches YYYY-MM-DD-descriptive-slug.vbrief.json."""
     name = filepath.name
@@ -236,9 +268,8 @@ def validate_filename(filepath: Path) -> list[str]:
 # D2: Folder/status consistency
 # ---------------------------------------------------------------------------
 
-def validate_folder_status(
-    filepath: Path, data: dict, vbrief_dir: Path
-) -> list[str]:
+
+def validate_folder_status(filepath: Path, data: dict, vbrief_dir: Path) -> list[str]:
     """Verify plan.status matches the lifecycle folder the file is in."""
     errors: list[str] = []
     try:
@@ -273,9 +304,8 @@ def validate_folder_status(
 # D3: PROJECT-DEFINITION.vbrief.json validator
 # ---------------------------------------------------------------------------
 
-def validate_project_definition(
-    filepath: Path, data: dict, vbrief_dir: Path
-) -> list[str]:
+
+def validate_project_definition(filepath: Path, data: dict, vbrief_dir: Path) -> list[str]:
     """Validate PROJECT-DEFINITION.vbrief.json specific requirements."""
     errors: list[str] = []
     resolved_root = vbrief_dir.resolve()
@@ -289,10 +319,7 @@ def validate_project_definition(
         present = {_normalize_narrative_key(k) for k in narratives}
         for expected in PROJECT_DEF_EXPECTED_NARRATIVES:
             if expected not in present:
-                errors.append(
-                    f"{filepath}: narratives missing expected key "
-                    f"'{expected}' (D3)"
-                )
+                errors.append(f"{filepath}: narratives missing expected key '{expected}' (D3)")
 
     # Check items registry entries reference existing scope vBRIEF files
     items = plan.get("items", [])
@@ -332,8 +359,7 @@ def validate_project_definition(
                         continue
                     if not full_path.exists():
                         errors.append(
-                            f"{filepath}: items[{i}] references "
-                            f"'{uri}' which does not exist (D3)"
+                            f"{filepath}: items[{i}] references '{uri}' which does not exist (D3)"
                         )
 
     return errors
@@ -342,6 +368,7 @@ def validate_project_definition(
 # ---------------------------------------------------------------------------
 # D4: Epic-story bidirectional link validation
 # ---------------------------------------------------------------------------
+
 
 def validate_epic_story_links(
     all_vbriefs: dict[Path, dict],
@@ -381,8 +408,7 @@ def validate_epic_story_links(
                     if child_path.exists():
                         continue  # file exists but wasn't loaded
                     errors.append(
-                        f"{fp_display}: references child '{uri}' "
-                        "which does not exist (D4)"
+                        f"{fp_display}: references child '{uri}' which does not exist (D4)"
                     )
                     continue
                 # Verify child has planRef back
@@ -405,14 +431,9 @@ def validate_epic_story_links(
                 if isinstance(parent_refs, list):
                     child_uris = set()
                     for pref in parent_refs:
-                        if (
-                            isinstance(pref, dict)
-                            and pref.get("type") == "x-vbrief/plan"
-                        ):
+                        if isinstance(pref, dict) and pref.get("type") == "x-vbrief/plan":
                             child_uris.add(pref.get("uri", ""))
-                    if not _path_in_refs(
-                        filepath, child_uris, vbrief_dir
-                    ):
+                    if not _path_in_refs(filepath, child_uris, vbrief_dir):
                         errors.append(
                             f"{fp_display}: has planRef to "
                             f"'{parent_path.name}' but parent "
@@ -421,8 +442,7 @@ def validate_epic_story_links(
                         )
             elif parent_path and not parent_path.exists():
                 errors.append(
-                    f"{fp_display}: planRef references "
-                    f"'{plan_ref}' which does not exist (D4)"
+                    f"{fp_display}: planRef references '{plan_ref}' which does not exist (D4)"
                 )
 
     return errors
@@ -459,9 +479,7 @@ def _resolve_ref_path(uri: str, vbrief_dir: Path) -> Path | None:
     return (vbrief_dir / uri).resolve()
 
 
-def _has_plan_ref_to(
-    child_plan: dict, parent_path: Path, vbrief_dir: Path
-) -> bool:
+def _has_plan_ref_to(child_plan: dict, parent_path: Path, vbrief_dir: Path) -> bool:
     """Check if a plan has a planRef pointing back to parent_path."""
     plan_ref = child_plan.get("planRef")
     if plan_ref:
@@ -479,9 +497,7 @@ def _has_plan_ref_to(
     return False
 
 
-def _path_in_refs(
-    filepath: Path, uris: set[str], vbrief_dir: Path
-) -> bool:
+def _path_in_refs(filepath: Path, uris: set[str], vbrief_dir: Path) -> bool:
     """Check if filepath is referenced by any URI in the set."""
     resolved_file = filepath.resolve()
     for uri in uris:
@@ -495,10 +511,24 @@ def _path_in_refs(
 # D11: Origin provenance check
 # ---------------------------------------------------------------------------
 
+
 def validate_origin_provenance(
-    filepath: Path, data: dict, vbrief_dir: Path
+    filepath: Path,
+    data: dict,
+    vbrief_dir: Path,
+    strict_origin_types: bool = False,
 ) -> list[str]:
-    """Warn if a scope vBRIEF in pending/ or active/ has no origin reference."""
+    """Warn if a scope vBRIEF in pending/ or active/ has no origin reference.
+
+    Default behavior (schema-trusting): ANY reference whose ``type`` matches
+    ``^x-vbrief/`` counts as an origin. Legacy bare origin types
+    (``github-issue``, ``jira-ticket``, ``user-request``) are also accepted
+    unconditionally for pre-migration vBRIEFs (#536).
+
+    Strict behavior (``strict_origin_types=True``): only values in
+    :data:`STRICT_ORIGIN_ALLOWLIST` count. Legacy bare types continue to be
+    accepted so pre-migration vBRIEFs do not regress.
+    """
     warnings: list[str] = []
 
     try:
@@ -522,23 +552,44 @@ def validate_origin_provenance(
             if not isinstance(ref, dict):
                 continue
             ref_type = ref.get("type", "")
-            # Check for origin types (github-issue, jira-ticket, etc.)
-            if ref_type in ORIGIN_TYPES:
+            if not isinstance(ref_type, str):
+                continue
+
+            # Legacy bare origin types always count (pre-migration vBRIEFs).
+            if ref_type in LEGACY_ORIGIN_TYPES:
                 has_origin = True
                 break
-            # Also accept extended origin types (e.g. github-issue-v2)
+            # Legacy extended types (e.g. "github-issue-v2") also count for
+            # backward compatibility with pre-v0.20 tooling.
             if any(
-                ref_type.startswith((f"{origin}-", f"{origin}/"))
-                for origin in ORIGIN_TYPES
+                ref_type.startswith((f"{legacy}-", f"{legacy}/")) for legacy in LEGACY_ORIGIN_TYPES
             ):
                 has_origin = True
                 break
 
+            if strict_origin_types:
+                # Allow-list mode: only registered x-vbrief/* values count.
+                if ref_type in STRICT_ORIGIN_ALLOWLIST:
+                    has_origin = True
+                    break
+            else:
+                # Schema-trusting default: any x-vbrief/* value counts.
+                if ORIGIN_TYPE_PATTERN.match(ref_type):
+                    has_origin = True
+                    break
+
     if not has_origin:
-        warnings.append(
-            f"{filepath}: scope vBRIEF in '{folder}/' has no references "
-            "with an origin type (D11)"
-        )
+        if strict_origin_types:
+            warnings.append(
+                f"{filepath}: scope vBRIEF in '{folder}/' has no references "
+                "with an allow-listed origin type (D11; "
+                "--strict-origin-types)"
+            )
+        else:
+            warnings.append(
+                f"{filepath}: scope vBRIEF in '{folder}/' has no references "
+                "with an origin type (D11)"
+            )
 
     return warnings
 
@@ -546,6 +597,7 @@ def validate_origin_provenance(
 # ---------------------------------------------------------------------------
 # #398: Render staleness detection (PRD.md / SPECIFICATION.md)
 # ---------------------------------------------------------------------------
+
 
 def check_render_staleness(vbrief_dir: Path) -> list[str]:
     """Warn if PRD.md or SPECIFICATION.md are stale relative to specification.vbrief.json.
@@ -591,15 +643,15 @@ def check_render_staleness(vbrief_dir: Path) -> list[str]:
     # for the user's attention.
     spec_md_path = project_root / "SPECIFICATION.md"
     if spec_md_path.is_file():
-        warnings.extend(
-            _check_spec_staleness(spec_md_path, narratives, items, title)
-        )
+        warnings.extend(_check_spec_staleness(spec_md_path, narratives, items, title))
 
     return warnings
 
 
 def _check_prd_staleness(
-    prd_path: Path, narratives: dict, title: str,
+    prd_path: Path,
+    narratives: dict,
+    title: str,
 ) -> list[str]:
     """Return a warning if PRD.md does not reflect current source narratives."""
     try:
@@ -676,6 +728,7 @@ def _check_spec_staleness(
 # Story S (#334): Post-migration placeholder integrity
 # ---------------------------------------------------------------------------
 
+
 def validate_deprecated_placeholders(
     vbrief_dir: Path,
 ) -> list[str]:
@@ -714,6 +767,7 @@ def validate_deprecated_placeholders(
 # Main orchestrator
 # ---------------------------------------------------------------------------
 
+
 def load_vbrief(filepath: Path) -> tuple[dict | None, str | None]:
     """Load and parse a .vbrief.json file. Returns (data, error)."""
     try:
@@ -738,6 +792,7 @@ def discover_vbriefs(vbrief_dir: Path) -> list[Path]:
 
 def validate_all(
     vbrief_dir: Path,
+    strict_origin_types: bool = False,
 ) -> tuple[list[str], list[str], int]:
     """Run all validators. Returns (errors, warnings, scope_count)."""
     errors: list[str] = []
@@ -773,7 +828,14 @@ def validate_all(
         errors.extend(validate_folder_status(filepath, data, vbrief_dir))
 
         # Origin provenance (D11) -- warnings only
-        warnings.extend(validate_origin_provenance(filepath, data, vbrief_dir))
+        warnings.extend(
+            validate_origin_provenance(
+                filepath,
+                data,
+                vbrief_dir,
+                strict_origin_types=strict_origin_types,
+            )
+        )
 
     # Validate PROJECT-DEFINITION.vbrief.json if it exists
     project_def = vbrief_dir / "PROJECT-DEFINITION.vbrief.json"
@@ -786,17 +848,11 @@ def validate_all(
             all_vbriefs[resolved_pd] = data
             resolved_to_original[resolved_pd] = project_def
             errors.extend(validate_vbrief_schema(data, str(project_def)))
-            errors.extend(
-                validate_project_definition(project_def, data, vbrief_dir)
-            )
+            errors.extend(validate_project_definition(project_def, data, vbrief_dir))
 
     # Epic-story bidirectional link validation (D4)
     if all_vbriefs:
-        errors.extend(
-            validate_epic_story_links(
-                all_vbriefs, vbrief_dir, resolved_to_original
-            )
-        )
+        errors.extend(validate_epic_story_links(all_vbriefs, vbrief_dir, resolved_to_original))
 
     # Post-migration placeholder integrity (Story S #334)
     warnings.extend(validate_deprecated_placeholders(vbrief_dir))
@@ -807,23 +863,43 @@ def validate_all(
     return errors, warnings, len(scope_files)
 
 
-def main() -> int:
-    """CLI entry point."""
+USAGE = (
+    "Usage: vbrief_validate.py [--vbrief-dir <path>] [--strict-origin-types] [--warnings-as-errors]"
+)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI entry point.
+
+    Exit codes (#536):
+        0 -- no errors (warnings tolerated unless --warnings-as-errors is set)
+        1 -- errors, or warnings when --warnings-as-errors is set
+        2 -- usage error (unknown flag / missing argument)
+    """
     vbrief_dir = Path("vbrief")
+    strict_origin_types = False
+    warnings_as_errors = False
 
     # Parse args
-    args = sys.argv[1:]
+    args = list(sys.argv[1:] if argv is None else argv)
     i = 0
     while i < len(args):
-        if args[i] == "--vbrief-dir" and i + 1 < len(args):
+        arg = args[i]
+        if arg == "--vbrief-dir" and i + 1 < len(args):
             vbrief_dir = Path(args[i + 1])
             i += 2
+        elif arg == "--strict-origin-types":
+            strict_origin_types = True
+            i += 1
+        elif arg == "--warnings-as-errors":
+            warnings_as_errors = True
+            i += 1
+        elif arg in ("-h", "--help"):
+            print(USAGE)
+            return 0
         else:
-            print(f"Unknown argument: {args[i]}", file=sys.stderr)
-            print(
-                "Usage: vbrief_validate.py [--vbrief-dir <path>]",
-                file=sys.stderr,
-            )
+            print(f"Unknown argument: {arg}", file=sys.stderr)
+            print(USAGE, file=sys.stderr)
             return 2
 
     if not vbrief_dir.is_dir():
@@ -831,30 +907,38 @@ def main() -> int:
         print(f"OK: No vbrief directory at {vbrief_dir} -- skipping validation")
         return 0
 
-    errors, warnings, scope_count = validate_all(vbrief_dir)
+    errors, warnings, scope_count = validate_all(
+        vbrief_dir, strict_origin_types=strict_origin_types
+    )
 
-    # Print warnings
+    # Print warnings first, then errors
     for w in warnings:
         print(f"WARN: {w}")
-
-    # Print errors
     for e in errors:
         print(f"FAIL: {e}")
 
-    if errors:
-        print(f"\nFAIL: {len(errors)} error(s) found")
-        return 1
-    project_def = vbrief_dir / "PROJECT-DEFINITION.vbrief.json"
-    parts = []
-    if scope_count:
-        parts.append(f"{scope_count} scope vBRIEF(s)")
-    if project_def.exists():
-        parts.append("PROJECT-DEFINITION")
-    summary = ", ".join(parts) if parts else "no vBRIEF files"
+    # Determine exit code up-front so the summary banner reflects it.
+    warnings_escalated = bool(warnings) and warnings_as_errors
+    exit_code = 1 if errors or warnings_escalated else 0
 
-    warning_note = f" ({len(warnings)} warning(s))" if warnings else ""
-    print(f"OK: vBRIEF validation passed: {summary}{warning_note}")
-    return 0
+    # Only emit the "OK" banner when we will actually exit 0 (#536 Defect 2).
+    if exit_code == 0:
+        project_def = vbrief_dir / "PROJECT-DEFINITION.vbrief.json"
+        parts = []
+        if scope_count:
+            parts.append(f"{scope_count} scope vBRIEF(s)")
+        if project_def.exists():
+            parts.append("PROJECT-DEFINITION")
+        summary = ", ".join(parts) if parts else "no vBRIEF files"
+        warning_note = f" ({len(warnings)} warning(s))" if warnings else ""
+        print(f"OK: vBRIEF validation passed: {summary}{warning_note}")
+    else:
+        if errors:
+            print(f"\nFAIL: {len(errors)} error(s) found")
+        if warnings_escalated and not errors:
+            print(f"\nFAIL: {len(warnings)} warning(s) treated as errors (--warnings-as-errors)")
+
+    return exit_code
 
 
 if __name__ == "__main__":

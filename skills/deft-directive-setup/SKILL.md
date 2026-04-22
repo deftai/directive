@@ -279,7 +279,7 @@ for project-scoped settings (strategy, coverage).
 ---
 
 **Note**: Edit this file anytime to update your preferences.
-**See**: [../main.md](../main.md) for framework defaults.
+**See**: [../../main.md](../../main.md) for framework defaults.
 ```
 
 ### Then
@@ -379,14 +379,25 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 
 `./vbrief/PROJECT-DEFINITION.vbrief.json` (or `$DEFT_PROJECT_PATH` if set). Create `./vbrief/` directory and lifecycle subfolders (`proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`) if they don't exist.
 
+### GitHub PR Template Scaffolding (#531)
+
+! Before writing `PROJECT-DEFINITION.vbrief.json`, offer to scaffold a default GitHub PR template so downstream skills (`deft-directive-refinement` Pre-Flight, `deft-directive-pre-pr`) can satisfy their `.github/PULL_REQUEST_TEMPLATE.md` checks without blocking.
+
+1. ! Ask the user via the structured question tool: "Create a default GitHub PR template at `.github/PULL_REQUEST_TEMPLATE.md`? (Y/n)" (default: Yes).
+2. ! If the user accepts AND `.github/PULL_REQUEST_TEMPLATE.md` does NOT already exist: copy `templates/PULL_REQUEST_TEMPLATE.md` (shipped with deft) to `./.github/PULL_REQUEST_TEMPLATE.md` in the consumer project. Create `.github/` if it does not exist.
+3. ! If the file already exists, do NOT overwrite it — report that it is present and continue.
+4. ~ If the user declines, note that `deft-directive-refinement` Pre-Flight will offer to scaffold later when needed.
+
+⊗ Overwrite an existing `.github/PULL_REQUEST_TEMPLATE.md` without explicit user approval.
+
 ### Template
 
-! The output MUST conform to the vBRIEF v0.5 schema (`vbrief/schemas/vbrief-core.schema.json`):
+! The output MUST conform to the canonical vBRIEF v0.6 schema (`vbrief/schemas/vbrief-core.schema.json`, strict `const: "0.6"`). See [`../../conventions/references.md`](../../conventions/references.md).
 
 ```json
 {
   "vBRIEFInfo": {
-    "version": "0.5",
+    "version": "0.6",
     "author": "agent:deft-directive-setup",
     "description": "Project identity gestalt",
     "created": "{ISO-8601 timestamp}"
@@ -512,27 +523,38 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 
 ### Output — Light Path
 
-1. ! Write `./vbrief/specification.vbrief.json` with `status: draft` and slim narratives:
+1. ! Write `./vbrief/specification.vbrief.json` with `"vBRIEFInfo": { "version": "0.6" }`, `status: draft`, and slim narratives:
    - `Overview`: Brief project summary
    - `Architecture`: System design description
 2. ! Create scope vBRIEFs in `./vbrief/proposed/` for each identified work item
-   - Each scope vBRIEF follows the `YYYY-MM-DD-descriptive-slug.vbrief.json` filename convention
+   - Each scope vBRIEF follows the `YYYY-MM-DD-descriptive-slug.vbrief.json` filename convention (slug rules in [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md))
+   - Each MUST use `"vBRIEFInfo": { "version": "0.6" }`
    - Each MUST include embedded Requirements (FR-N, NFR-N) in its `narrative`
    - Each task SHOULD reference which FR/NFR it implements via `narrative.Traces`
+   - When the scope originates from a GitHub issue, include a `references` entry in the canonical form (see [`../../conventions/references.md`](../../conventions/references.md)):
+     ```json
+     "references": [
+       {
+         "uri": "https://github.com/{owner}/{repo}/issues/{N}",
+         "type": "x-vbrief/github-issue",
+         "title": "Issue #{N}: {issue title}"
+       }
+     ]
+     ```
 3. ! Summarize decisions, ask user to review the vBRIEF narratives
 4. ! On approval, update `specification.vbrief.json` status to `approved`
 - ⊗ Create a separate PRD.md on the Light path
 - ⊗ Generate an authoritative PRD.md — if needed, users run `task prd:render`
 
-! The vBRIEF files MUST conform to `vbrief/schemas/vbrief-core.schema.json`:
+! The vBRIEF files MUST conform to `vbrief/schemas/vbrief-core.schema.json` (v0.6):
 
 - ! All `narratives` and `narrative` values MUST be plain strings — never objects or arrays
-- ! Nested children within a PlanItem MUST use `subItems` (not `items`)
-- ⊗ Use `items` inside a PlanItem — only `plan.items` is valid; within items use `subItems`
+- ! Nested children within a PlanItem use `items` (v0.6 preferred field); `subItems` is the deprecated legacy alias kept for backward compatibility only
+- ⊗ Mix `items` and `subItems` on the same PlanItem — pick one (prefer `items`)
 
 ### Output — Full Path
 
-1. ! Write rich narratives to `./vbrief/specification.vbrief.json` `plan.narratives` with `status: draft` and these keys:
+1. ! Write rich narratives to `./vbrief/specification.vbrief.json` with `"vBRIEFInfo": { "version": "0.6" }`, `plan.status: draft`, and these narrative keys:
    - `ProblemStatement`: What problem this project solves
    - `Goals`: High-level project goals
    - `UserStories`: User stories in standard format

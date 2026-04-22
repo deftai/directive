@@ -33,19 +33,28 @@ _SCHEMA_PATH = _REPO_ROOT / "vbrief" / "schemas" / "vbrief-core.schema.json"
 # Lifecycle folders documented in vbrief.md (RFC D2/D13)
 _LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
 
-# Status values that belong in each lifecycle folder (from vbrief.md)
+# Status values that belong in each lifecycle folder (from vbrief.md).
+# v0.6 adds `failed` as a terminal status (#533); it maps to `completed/`
+# because the scope has reached a terminal state that is not a success.
 _FOLDER_STATUS_MAP: dict[str, set[str]] = {
     "proposed": {"draft", "proposed"},
     "pending": {"approved", "pending"},
     "active": {"running", "blocked"},
-    "completed": {"completed"},
+    "completed": {"completed", "failed"},
     "cancelled": {"cancelled"},
 }
 
-# Valid vBRIEF status values (from schema)
+# Valid vBRIEF status values (from the canonical v0.6 schema).
 _VALID_STATUSES = {
-    "draft", "proposed", "approved", "pending",
-    "running", "completed", "blocked", "cancelled",
+    "draft",
+    "proposed",
+    "approved",
+    "pending",
+    "running",
+    "completed",
+    "blocked",
+    "failed",
+    "cancelled",
 }
 
 # Files that should NOT reference SPECIFICATION.md or PROJECT.md as
@@ -61,6 +70,7 @@ _CONTENT_GLOBS = [
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
@@ -121,16 +131,18 @@ _CONTENT_FILES = _content_files()
 # cycle so consumer projects with old AGENTS.md paths keep working until
 # QUICK-START can refresh them. See issue #411 and
 # `tests/content/test_deprecated_skill_redirects.py` for stub content checks.
-_DEPRECATED_SKILL_REDIRECT_STUBS = frozenset({
-    "deft-build",
-    "deft-interview",
-    "deft-pre-pr",
-    "deft-review-cycle",
-    "deft-roadmap-refresh",
-    "deft-setup",
-    "deft-swarm",
-    "deft-sync",
-})
+_DEPRECATED_SKILL_REDIRECT_STUBS = frozenset(
+    {
+        "deft-build",
+        "deft-interview",
+        "deft-pre-pr",
+        "deft-review-cycle",
+        "deft-roadmap-refresh",
+        "deft-setup",
+        "deft-swarm",
+        "deft-sync",
+    }
+)
 
 
 def test_skills_dir_only_deft_directive_prefixed() -> None:
@@ -143,9 +155,9 @@ def test_skills_dir_only_deft_directive_prefixed() -> None:
     subdirs = _skill_subdirs()
     assert subdirs, "skills/ directory is empty or missing"
     non_conforming = [
-        d for d in subdirs
-        if not d.startswith("deft-directive-")
-        and d not in _DEPRECATED_SKILL_REDIRECT_STUBS
+        d
+        for d in subdirs
+        if not d.startswith("deft-directive-") and d not in _DEPRECATED_SKILL_REDIRECT_STUBS
     ]
     assert not non_conforming, (
         f"skills/ contains subdirectories without 'deft-directive-' prefix: "
@@ -159,7 +171,8 @@ def test_skills_dir_has_no_bare_deft_prefix() -> None:
     bare deft-* deprecated-redirect stubs (#411 v0.19 -> v0.20 bridge)."""
     subdirs = _skill_subdirs()
     bare_deft = [
-        d for d in subdirs
+        d
+        for d in subdirs
         if d.startswith("deft-")
         and not d.startswith("deft-directive-")
         and d not in _DEPRECATED_SKILL_REDIRECT_STUBS
@@ -174,12 +187,11 @@ def test_skills_dir_has_no_bare_deft_prefix() -> None:
 # 1b. AGENTS.md routing table entries reference existing skill directories
 # ---------------------------------------------------------------------------
 
+
 def test_agents_md_routing_entries_exist() -> None:
     """AGENTS.md Skill Routing section must have at least one entry."""
     entries = _routing_entries()
-    assert len(entries) >= 1, (
-        "AGENTS.md Skill Routing section has no parseable routing entries"
-    )
+    assert len(entries) >= 1, "AGENTS.md Skill Routing section has no parseable routing entries"
 
 
 @pytest.mark.parametrize(
@@ -190,10 +202,9 @@ def test_agents_md_routing_entries_exist() -> None:
 def test_agents_md_routing_path_exists(line: str, skill_path: str) -> None:
     """Each AGENTS.md routing entry must point to an existing file."""
     full_path = _REPO_ROOT / skill_path
-    assert full_path.is_file(), (
-        f"AGENTS.md routing entry points to missing file: {skill_path}\n"
-        f"  Line: {line}"
-    )
+    assert (
+        full_path.is_file()
+    ), f"AGENTS.md routing entry points to missing file: {skill_path}\n  Line: {line}"
 
 
 @pytest.mark.parametrize(
@@ -214,6 +225,7 @@ def test_agents_md_routing_uses_directive_prefix(line: str, skill_path: str) -> 
 #     in non-deprecated skill/framework content files
 # ---------------------------------------------------------------------------
 
+
 def _is_stale_output_reference(line: str) -> bool:
     """Check if a line references SPECIFICATION.md or PROJECT.md as an output target.
 
@@ -223,10 +235,19 @@ def _is_stale_output_reference(line: str) -> bool:
     """
     lower = line.lower()
     # Skip lines that are about deprecation, migration, or history
-    if any(word in lower for word in (
-        "deprecated", "redirect", "migration", "legacy", "replaced by",
-        "no longer", "instead of", "was previously",
-    )):
+    if any(
+        word in lower
+        for word in (
+            "deprecated",
+            "redirect",
+            "migration",
+            "legacy",
+            "replaced by",
+            "no longer",
+            "instead of",
+            "was previously",
+        )
+    ):
         return False
     # Check for output-target language
     output_patterns = [
@@ -259,60 +280,58 @@ def test_no_stale_output_target_references(content_file: Path) -> None:
 # 1d. vbrief/vbrief.md documents lifecycle folder structure
 # ---------------------------------------------------------------------------
 
+
 def test_vbrief_md_documents_all_lifecycle_folders() -> None:
     """vbrief.md must document all five lifecycle folders."""
     text = _read_text(_VBRIEF_MD)
     for folder in _LIFECYCLE_FOLDERS:
-        assert f"{folder}/" in text, (
-            f"vbrief/vbrief.md missing documentation for lifecycle folder: {folder}/"
-        )
+        assert (
+            f"{folder}/" in text
+        ), f"vbrief/vbrief.md missing documentation for lifecycle folder: {folder}/"
 
 
 def test_vbrief_md_documents_directory_structure() -> None:
     """vbrief.md must contain a Directory Structure section with folder layout."""
     text = _read_text(_VBRIEF_MD)
-    assert "### Directory Structure" in text, (
-        "vbrief/vbrief.md missing '### Directory Structure' section"
-    )
-    assert "PROJECT-DEFINITION.vbrief.json" in text, (
-        "vbrief/vbrief.md Directory Structure must reference "
-        "PROJECT-DEFINITION.vbrief.json"
-    )
+    assert (
+        "### Directory Structure" in text
+    ), "vbrief/vbrief.md missing '### Directory Structure' section"
+    assert (
+        "PROJECT-DEFINITION.vbrief.json" in text
+    ), "vbrief/vbrief.md Directory Structure must reference PROJECT-DEFINITION.vbrief.json"
 
 
 def test_vbrief_md_documents_status_driven_moves() -> None:
     """vbrief.md must document status-driven file moves."""
     text = _read_text(_VBRIEF_MD)
-    assert "### Status-Driven Moves" in text, (
-        "vbrief/vbrief.md missing '### Status-Driven Moves' section"
-    )
-    assert "plan.status" in text, (
-        "vbrief/vbrief.md Status-Driven Moves must reference plan.status "
-        "as source of truth"
-    )
+    assert (
+        "### Status-Driven Moves" in text
+    ), "vbrief/vbrief.md missing '### Status-Driven Moves' section"
+    assert (
+        "plan.status" in text
+    ), "vbrief/vbrief.md Status-Driven Moves must reference plan.status as source of truth"
 
 
 def test_vbrief_md_documents_filename_convention() -> None:
     """vbrief.md must document the scope vBRIEF filename convention."""
     text = _read_text(_VBRIEF_MD)
-    assert "### Filename Convention" in text, (
-        "vbrief/vbrief.md missing '### Filename Convention' section"
-    )
-    assert "YYYY-MM-DD" in text, (
-        "vbrief/vbrief.md Filename Convention must specify YYYY-MM-DD date prefix"
-    )
+    assert (
+        "### Filename Convention" in text
+    ), "vbrief/vbrief.md missing '### Filename Convention' section"
+    assert (
+        "YYYY-MM-DD" in text
+    ), "vbrief/vbrief.md Filename Convention must specify YYYY-MM-DD date prefix"
 
 
 def test_vbrief_md_documents_origin_provenance() -> None:
     """vbrief.md must document origin provenance requirements."""
     text = _read_text(_VBRIEF_MD)
-    assert "### Origin Provenance" in text, (
-        "vbrief/vbrief.md missing '### Origin Provenance' section"
-    )
-    assert "github-issue" in text, (
-        "vbrief/vbrief.md Origin Provenance must list github-issue as a "
-        "reference type"
-    )
+    assert (
+        "### Origin Provenance" in text
+    ), "vbrief/vbrief.md missing '### Origin Provenance' section"
+    assert (
+        "github-issue" in text
+    ), "vbrief/vbrief.md Origin Provenance must list github-issue as a reference type"
 
 
 # ===========================================================================
@@ -324,9 +343,7 @@ def test_vbrief_md_documents_origin_provenance() -> None:
 # 2a. vBRIEF filename convention: YYYY-MM-DD-slug.vbrief.json
 # ---------------------------------------------------------------------------
 
-_FILENAME_PATTERN = re.compile(
-    r"^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.vbrief\.json$"
-)
+_FILENAME_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.vbrief\.json$")
 
 
 @pytest.mark.parametrize(
@@ -340,33 +357,34 @@ _FILENAME_PATTERN = re.compile(
 )
 def test_filename_convention_accepts_valid(valid_name: str) -> None:
     """Valid vBRIEF filenames must match the YYYY-MM-DD-slug pattern."""
-    assert _FILENAME_PATTERN.match(valid_name), (
-        f"Expected valid vBRIEF filename to match: {valid_name}"
-    )
+    assert _FILENAME_PATTERN.match(
+        valid_name
+    ), f"Expected valid vBRIEF filename to match: {valid_name}"
 
 
 @pytest.mark.parametrize(
     "invalid_name",
     [
-        "oauth-flow.vbrief.json",           # missing date
-        "2026-04-12.vbrief.json",           # missing slug
-        "2026-4-12-fix.vbrief.json",        # non-zero-padded month
-        "2026-04-12-Fix-Bug.vbrief.json",   # uppercase in slug
-        "2026-04-12-fix_bug.vbrief.json",   # underscore in slug
-        "specification.vbrief.json",         # root-level file, not scope
+        "oauth-flow.vbrief.json",  # missing date
+        "2026-04-12.vbrief.json",  # missing slug
+        "2026-4-12-fix.vbrief.json",  # non-zero-padded month
+        "2026-04-12-Fix-Bug.vbrief.json",  # uppercase in slug
+        "2026-04-12-fix_bug.vbrief.json",  # underscore in slug
+        "specification.vbrief.json",  # root-level file, not scope
     ],
     ids=["no-date", "no-slug", "bad-month", "uppercase", "underscore", "root-file"],
 )
 def test_filename_convention_rejects_invalid(invalid_name: str) -> None:
     """Invalid vBRIEF filenames must not match the scope filename pattern."""
-    assert not _FILENAME_PATTERN.match(invalid_name), (
-        f"Expected invalid vBRIEF filename to NOT match: {invalid_name}"
-    )
+    assert not _FILENAME_PATTERN.match(
+        invalid_name
+    ), f"Expected invalid vBRIEF filename to NOT match: {invalid_name}"
 
 
 # ---------------------------------------------------------------------------
 # 2b. Status/folder consistency: status values match lifecycle folder names
 # ---------------------------------------------------------------------------
+
 
 def test_folder_status_map_covers_all_valid_statuses() -> None:
     """The folder-status mapping must cover every valid status value exactly once."""
@@ -385,10 +403,9 @@ def test_folder_status_map_no_overlap() -> None:
     seen: dict[str, str] = {}
     for folder, statuses in _FOLDER_STATUS_MAP.items():
         for status in statuses:
-            assert status not in seen, (
-                f"Status '{status}' appears in both '{seen[status]}' and "
-                f"'{folder}' folder mappings"
-            )
+            assert (
+                status not in seen
+            ), f"Status '{status}' appears in both '{seen[status]}' and '{folder}' folder mappings"
             seen[status] = folder
 
 
@@ -398,36 +415,45 @@ def test_folder_status_map_no_overlap() -> None:
     ids=list(_FOLDER_STATUS_MAP.keys()),
 )
 def test_vbrief_md_documents_folder_status_mapping(
-    folder: str, expected_statuses: set[str],
+    folder: str,
+    expected_statuses: set[str],
 ) -> None:
     """vbrief.md must document the status-to-folder mapping for each folder."""
     text = _read_text(_VBRIEF_MD)
     for status in expected_statuses:
-        assert f"`{status}`" in text, (
-            f"vbrief/vbrief.md missing status '{status}' for folder {folder}/"
-        )
+        assert (
+            f"`{status}`" in text
+        ), f"vbrief/vbrief.md missing status '{status}' for folder {folder}/"
 
 
 # ---------------------------------------------------------------------------
 # 2c. Origin provenance structure (references array format)
 # ---------------------------------------------------------------------------
 
+
 def test_origin_provenance_example_in_vbrief_md() -> None:
-    """vbrief.md must contain a JSON example of the references array format."""
+    """vbrief.md must contain a JSON example of the references array format.
+
+    Per the v0.6 schema + #534, the canonical shape uses `uri`, `type`
+    (prefixed ``x-vbrief/``), and `title` — not the pre-v0.20 `url` / `id`
+    shape.
+    """
     text = _read_text(_VBRIEF_MD)
-    assert '"references"' in text, (
-        "vbrief/vbrief.md must contain a references array example"
-    )
-    assert '"type"' in text and '"url"' in text and '"id"' in text, (
-        "vbrief/vbrief.md references example must include type, url, and id fields"
-    )
+    assert '"references"' in text, "vbrief/vbrief.md must contain a references array example"
+    assert (
+        '"type"' in text and '"uri"' in text and '"title"' in text
+    ), "vbrief/vbrief.md references example must include type, uri, and title fields (v0.6, #534)"
 
 
 def test_origin_provenance_valid_reference_structure() -> None:
-    """Validate that a JSON example in vbrief.md contains a well-formed references array."""
+    """Validate that a JSON example in vbrief.md contains a well-formed references array.
+
+    The canonical v0.6 shape requires `uri` (not `url`) and a `type` value
+    beginning with ``x-vbrief/`` (#534).
+    """
     text = _read_text(_VBRIEF_MD)
     # Find JSON code blocks that are complete objects and contain "references"
-    for match in re.finditer(r'```json\n(\{.*?\})\n```', text, re.DOTALL):
+    for match in re.finditer(r"```json\n(\{.*?\})\n```", text, re.DOTALL):
         try:
             data = json.loads(match.group(1))
         except json.JSONDecodeError:
@@ -440,7 +466,10 @@ def test_origin_provenance_valid_reference_structure() -> None:
         if refs:
             ref = refs[0]
             assert "type" in ref, "reference must have 'type' key"
-            assert "url" in ref, "reference must have 'url' key"
+            assert "uri" in ref, "reference must have 'uri' key (v0.6 canonical, #534)"
+            assert ref["type"].startswith(
+                "x-vbrief/"
+            ), "reference 'type' MUST match ^x-vbrief/ per the v0.6 schema (#534)"
             return
     pytest.fail("No JSON code block with a valid 'references' array found in vbrief.md")
 
@@ -448,15 +477,9 @@ def test_origin_provenance_valid_reference_structure() -> None:
 def test_origin_provenance_reference_types_documented() -> None:
     """vbrief.md must document extensible reference types."""
     text = _read_text(_VBRIEF_MD)
-    assert "github-issue" in text, (
-        "vbrief/vbrief.md must document 'github-issue' reference type"
-    )
-    assert "jira-ticket" in text, (
-        "vbrief/vbrief.md must document 'jira-ticket' reference type"
-    )
-    assert "user-request" in text, (
-        "vbrief/vbrief.md must document 'user-request' reference type"
-    )
+    assert "github-issue" in text, "vbrief/vbrief.md must document 'github-issue' reference type"
+    assert "jira-ticket" in text, "vbrief/vbrief.md must document 'jira-ticket' reference type"
+    assert "user-request" in text, "vbrief/vbrief.md must document 'user-request' reference type"
 
 
 # ===========================================================================

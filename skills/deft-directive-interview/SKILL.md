@@ -188,11 +188,23 @@ The answers map format:
 
 ## Output Targets
 
-Interview output writes to `specification.vbrief.json` `plan.narratives` — the vBRIEF draft is the sole authoritative output. PRD.md is never generated.
+Interview output writes to `specification.vbrief.json` `plan.narratives` — the vBRIEF draft is the sole authoritative output. PRD.md is never generated. All vBRIEFs target the canonical v0.6 schema (`vbrief/schemas/vbrief-core.schema.json`, strict `const: "0.6"`); see [`../../conventions/references.md`](../../conventions/references.md).
+
+When the interview captures origin provenance (e.g. the user links to a GitHub issue or Jira ticket), include a `references` entry in the canonical form documented in [`../../conventions/references.md`](../../conventions/references.md):
+
+```json
+"references": [
+  {
+    "uri": "https://github.com/{owner}/{repo}/issues/{N}",
+    "type": "x-vbrief/github-issue",
+    "title": "Issue #{N}: {issue title}"
+  }
+]
+```
 
 ### Full Path Output
 
-! On the Full path, the interview populates `specification.vbrief.json` `plan.narratives` with `status: draft` and rich keys:
+! On the Full path, the interview populates `specification.vbrief.json` `plan.narratives` with `vBRIEFInfo.version: "0.6"`, `status: draft`, and rich keys:
 
 - `ProblemStatement`: What problem this project solves
 - `Goals`: High-level project goals
