@@ -52,12 +52,15 @@ def _is_deft_generated(path: Path) -> bool:
     """Return True iff *path* is a previously-generated PRD we may overwrite."""
     if not path.is_file():
         return True  # nothing there; writing is safe
+    # Read only the first ~4KB so a multi-MB hand-authored PRD is not
+    # fully loaded into memory (Greptile P2 on #562; prior implementation
+    # used ``read_text()`` + slice which contradicted this comment).
     try:
-        head = path.read_text(encoding="utf-8", errors="replace")
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            head = fh.read(4096)
     except OSError:
         return False
-    # Only inspect the first ~4KB so a very large file isn't fully loaded.
-    return _GENERATED_SENTINEL in head[:4096]
+    return _GENERATED_SENTINEL in head
 
 
 def render_prd(spec_path: Path, output_path: Path, *, force: bool = False) -> None:

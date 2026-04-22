@@ -298,7 +298,9 @@ class TestMainCli:
             ["reconcile_issues.py", "--vbrief-dir", str(vbrief_dir)],
         )
         rc = reconcile.main()
-        assert rc == 1
+        # Exit 2 matches issue_ingest.py / scope_lifecycle.py for the
+        # same usage-style error (Greptile P2 on #562).
+        assert rc == 2
         assert "could not detect repo" in capsys.readouterr().err
 
     def test_fetch_failure_returns_1(self, tmp_path, monkeypatch):

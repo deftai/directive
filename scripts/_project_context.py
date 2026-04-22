@@ -100,16 +100,33 @@ def resolve_project_repo(
         slug = _normalise_repo_slug(env_repo)
         if slug:
             return slug
+        # Greptile P2 on #562: fail loudly when the env var is set but
+        # unparseable, to match the explicit-flag path (which returns
+        # None on a malformed value rather than falling through to git
+        # auto-detection). Silent fallback to git is exactly the
+        # anti-pattern this helper was introduced to prevent.
+        return None
 
     return _detect_repo_from_git(project_root)
 
 
 def _normalise_repo_slug(value: str) -> str | None:
-    """Accept ``OWNER/NAME`` or a full GitHub URL, return ``OWNER/NAME``."""
+    r"""Accept ``OWNER/NAME`` or a full GitHub URL, return ``OWNER/NAME``.
+
+    Allows dots in the name component (``acme/dotnet.runtime``,
+    ``acme/my.project.git``) -- the previous ``[^/\.\s]+`` pattern stopped
+    at the first dot and silently truncated the repo name, routing ``gh``
+    calls to the wrong (or non-existent) repository (Greptile P1 on #562).
+    Strips a trailing ``.git`` suffix explicitly so SSH clone URLs still
+    normalise to the bare ``OWNER/NAME`` form.
+    """
     value = value.strip()
     if not value:
         return None
-    match = re.search(r"github\.com[:/]([^/]+)/([^/\.\s]+)", value)
+    match = re.search(
+        r"github\.com[:/]([^/\s]+)/([^/\s]+?)(?:\.git)?(?:\s|$)",
+        value,
+    )
     if match:
         return f"{match.group(1)}/{match.group(2)}"
     if re.match(r"^[^/\s]+/[^/\s]+$", value):

@@ -384,7 +384,11 @@ def main() -> int:
             "repo (#538).",
             file=sys.stderr,
         )
-        return 1
+        # Exit 2 for this usage-style error keeps reconcile:issues
+        # consistent with issue_ingest.py and scope_lifecycle.py, so
+        # CI scripts/shell conditionals can treat "no repo detected"
+        # as a single exit-code bucket (Greptile P2 on #562).
+        return 2
 
     # Scan vBRIEFs
     issue_to_vbriefs = scan_vbrief_dir(vbrief_dir)
