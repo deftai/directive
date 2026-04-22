@@ -1,5 +1,12 @@
 version: '3'
 
+vars:
+  # See deft/Taskfile.yml for the rationale behind per-subfile DEFT_ROOT
+  # (go-task re-evaluates var templates at use site; joinPath is eager and
+  # produces a clean, native-separator path so `uv run python` resolves it
+  # correctly on Windows -- #566).
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
 tasks:
   vbrief:
     desc: >
@@ -14,4 +21,9 @@ tasks:
     cmds:
       # Pass Taskfile CLI args through so operators can opt into safety flags
       # (#497) or --strict reconciliation (#496) without editing this file.
-      - uv run python {{.TASKFILE_DIR}}/../scripts/migrate_vbrief.py "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Script path uses {{.DEFT_ROOT}} (defined locally in this file's
+      # `vars:` block above via `joinPath .TASKFILE_DIR ".."` -- see
+      # ../Taskfile.yml for why root-level definition is avoided) rather
+      # than {{.TASKFILE_DIR}}/.. to keep the path traversal-free; the
+      # mixed-separator form breaks `uv run python` on Windows (#566).
+      - uv run python "{{.DEFT_ROOT}}/scripts/migrate_vbrief.py" "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

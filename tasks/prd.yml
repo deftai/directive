@@ -1,5 +1,8 @@
 version: '3'
 
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
 # prd:render task.
 #
 # IMPORTANT: explicit absolute paths are passed for BOTH the input spec and
@@ -20,7 +23,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/prd_render.py --spec "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" --output "{{.USER_WORKING_DIR}}/PRD.md" {{.CLI_ARGS}}
+      - uv run python "{{.DEFT_ROOT}}/scripts/prd_render.py" --spec "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" --output "{{.USER_WORKING_DIR}}/PRD.md" {{.CLI_ARGS}}
     sources:
       - '{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json'
     generates:

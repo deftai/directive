@@ -1,6 +1,14 @@
 version: '3'
 
-# roadmap tasks -- consumer-safe CWD + script resolution (#539, #540).
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# roadmap tasks -- consumer-safe CWD + script resolution (#539, #540, #566).
+# Scripts are dispatched via {{.DEFT_ROOT}} (defined locally in this file's
+# `vars:` block via ``{{joinPath .TASKFILE_DIR ".."}}`` -- see
+# ../Taskfile.yml for why root-level definition is avoided) to keep the
+# path traversal-free and avoid the {{.TASKFILE_DIR}}/.. form that breaks
+# on Windows under `uv run python` (#566).
 
 tasks:
   render:
@@ -9,7 +17,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/roadmap_render.py "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md"
+      - uv run python "{{.DEFT_ROOT}}/scripts/roadmap_render.py" "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md"
 
   check:
     desc: Verify ROADMAP.md matches what roadmap:render would produce
@@ -17,4 +25,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/roadmap_render.py "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md" --check
+      - uv run python "{{.DEFT_ROOT}}/scripts/roadmap_render.py" "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md" --check

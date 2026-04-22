@@ -1,11 +1,19 @@
 version: '3'
 
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
 # reconcile issues task.
 #
 # IMPORTANT: runs from the consumer project root (``dir:
 # '{{.USER_WORKING_DIR}}'``) so ``gh`` and ``git`` commands executed by
 # ``scripts/reconcile_issues.py`` resolve against the CONSUMER's remote,
-# not deftai/directive (#538).
+# not deftai/directive (#538). Script path dispatched via {{.DEFT_ROOT}}
+# (defined locally in this file's `vars:` block via
+# ``{{joinPath .TASKFILE_DIR ".."}}`` -- see ../Taskfile.yml for why
+# root-level definition is avoided) to keep the path traversal-free and
+# avoid the {{.TASKFILE_DIR}}/.. form that breaks on Windows under
+# `uv run python` (#566).
 
 tasks:
   issues:
@@ -14,4 +22,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/reconcile_issues.py --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - uv run python "{{.DEFT_ROOT}}/scripts/reconcile_issues.py" --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

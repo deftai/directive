@@ -1,6 +1,14 @@
 version: '3'
 
-# spec tasks -- consumer-safe CWD + script resolution (#539, #540).
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# spec tasks -- consumer-safe CWD + script resolution (#539, #540, #566).
+# Scripts are dispatched via {{.DEFT_ROOT}} (defined locally in this file's
+# `vars:` block via ``{{joinPath .TASKFILE_DIR ".."}}`` -- see
+# ../Taskfile.yml for why root-level definition is avoided) to keep the
+# path traversal-free and avoid the {{.TASKFILE_DIR}}/.. form that breaks
+# on Windows under `uv run python` (#566).
 
 tasks:
   validate:
@@ -9,7 +17,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/spec_validate.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"
+      - uv run python "{{.DEFT_ROOT}}/scripts/spec_validate.py" "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json"
 
   render:
     desc: Render vbrief/specification.vbrief.json to SPECIFICATION.md
@@ -17,7 +25,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/spec_render.py "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" "{{.USER_WORKING_DIR}}/SPECIFICATION.md"
+      - uv run python "{{.DEFT_ROOT}}/scripts/spec_render.py" "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" "{{.USER_WORKING_DIR}}/SPECIFICATION.md"
 
   pipeline:
     desc: Run full spec pipeline (validate then render)

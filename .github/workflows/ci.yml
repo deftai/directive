@@ -64,3 +64,60 @@ jobs:
           GOOS: windows
           GOARCH: amd64
         run: go build -o /dev/null ./cmd/deft-install/
+
+  windows-task-dispatch:
+    # Regression guard for #566: `task migrate:vbrief` (and every other task
+    # that dispatches a Python script via `{{.DEFT_ROOT}}/scripts/...`) must
+    # run without the path-traversal defect that dropped the `deft\` prefix
+    # on Windows.  Runs a dry-run migration against the pre-cutover fixture
+    # so the path is actually exercised end-to-end under `uv run python`
+    # and PowerShell, not just statically lint-checked.
+    name: Windows (task dispatch regression)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Stage pre-cutover fixture as consumer project
+        shell: pwsh
+        run: |
+          $fixtureDir = Join-Path $env:RUNNER_TEMP 'consumer'
+          New-Item -ItemType Directory -Path $fixtureDir -Force | Out-Null
+          Copy-Item tests\fixtures\pre_cutover_customized\* $fixtureDir -Recurse
+          # Drop a vbrief/specification.vbrief.json so migrate:vbrief has
+          # something to enrich (pre-cutover detection hits criterion #3 even
+          # with just the root .md files; emitting an empty spec keeps the
+          # dry-run output stable for the assertion below).
+          New-Item -ItemType Directory -Path (Join-Path $fixtureDir 'vbrief') -Force | Out-Null
+          '{"vBRIEFInfo":{"version":"0.6"},"plan":{"title":"fixture","status":"running","narratives":{},"items":[]}}' | Set-Content -Path (Join-Path $fixtureDir 'vbrief\specification.vbrief.json')
+          # Git-init so the migrator's dirty-tree guard is satisfied.
+          Push-Location $fixtureDir
+          git init -q
+          git -c user.name=ci -c user.email=ci@example.com add -A
+          git -c user.name=ci -c user.email=ci@example.com commit -q -m seed
+          Pop-Location
+          "fixture=$fixtureDir" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: task -t Taskfile.yml migrate:vbrief -- --dry-run (via absolute path)
+        shell: pwsh
+        working-directory: ${{ env.fixture }}
+        run: |
+          $deftTaskfile = Join-Path $env:GITHUB_WORKSPACE 'Taskfile.yml'
+          task -t $deftTaskfile migrate:vbrief -- --dry-run
+
+      - name: Pytest guard-rail (#566 regression)
+        run: uv run pytest tests/content/test_taskfile_paths.py -v
