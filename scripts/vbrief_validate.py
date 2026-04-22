@@ -49,10 +49,27 @@ FILENAME_PATTERN = re.compile(
     r"^\d{4}-\d{2}-\d{2}-[a-z0-9]+(?:-[a-z0-9]+)*\.vbrief\.json$"
 )
 
-# D3: expected narrative keys for PROJECT-DEFINITION
+# D3: expected narrative keys for PROJECT-DEFINITION (per #506 D3).
+# Values are normalized (lowercase, whitespace collapsed) so both the
+# historic lowercase-space ``tech stack`` and the #506 D3 PascalCase
+# ``TechStack`` shapes satisfy the validator.  Comparison normalizes the
+# candidate key the same way.
 PROJECT_DEF_EXPECTED_NARRATIVES = frozenset({
-    "overview", "tech stack",
+    "overview", "techstack",
 })
+
+
+def _normalize_narrative_key(key: str) -> str:
+    """Normalize a narrative key for D3 comparison.
+
+    Lowercases, strips whitespace, and collapses word separators so
+    ``TechStack`` / ``Tech Stack`` / ``tech stack`` / ``tech-stack`` all
+    compare equal to the canonical ``techstack`` key (#506 D3 / D5).
+    Uses the module-level ``re`` already imported at the top of the file
+    (PR #525 Greptile P2 review).
+    """
+    low = (key or "").lower()
+    return re.sub(r"[\s_\-]+", "", low)
 
 # D11: origin reference type patterns
 ORIGIN_TYPES = frozenset({
@@ -245,13 +262,15 @@ def validate_project_definition(
     errors: list[str] = []
     resolved_root = vbrief_dir.resolve()
 
-    # Check narratives contains expected keys
+    # Check narratives contains expected keys.  Normalization collapses
+    # word separators so both the historic ``tech stack`` spelling and the
+    # #506 D3 canonical ``TechStack`` shape satisfy the check.
     plan = data.get("plan", {})
     narratives = plan.get("narratives", {})
     if isinstance(narratives, dict):
-        narrative_keys_lower = {k.lower() for k in narratives}
+        present = {_normalize_narrative_key(k) for k in narratives}
         for expected in PROJECT_DEF_EXPECTED_NARRATIVES:
-            if expected not in narrative_keys_lower:
+            if expected not in present:
                 errors.append(
                     f"{filepath}: narratives missing expected key "
                     f"'{expected}' (D3)"

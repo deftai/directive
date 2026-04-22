@@ -31,8 +31,10 @@ from urllib.parse import urlparse
 # imported from a test harness that appends the ``scripts/`` path.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _vbrief_build import create_scope_vbrief as _create_scope_vbrief_shared  # noqa: E402
-from _vbrief_build import slugify as _slugify_shared  # noqa: E402
+from _vbrief_build import (
+    create_scope_vbrief as _create_scope_vbrief_shared,  # noqa: E402
+    slugify as _slugify_shared,  # noqa: E402
+)
 from _vbrief_validation import (  # noqa: E402
     finalize_migration,
     slug_fallback_id,
@@ -54,13 +56,42 @@ _slug_fallback_id = slug_fallback_id
 # --- reconciliation (Agent B, #496) ---
 # Role-based SPEC/ROADMAP reconciliation per #506 D3 + overrides loader +
 # RECONCILIATION.md emitter live in ``_vbrief_reconciliation``.
+# --- end lifecycle-routing ---
+# --- fidelity (Agent A, #495) ---
+# Per-task body / FR-NFR definition parsing, Requirements narrative, plan.edges[]
+# extraction, and the disambiguated ROUTE migration log live in
+# ``_vbrief_fidelity``.  Per #506 D2 #14 body routing is reconciled by Agent B;
+# this module FEEDS reconciliation by enriching spec_vbrief.plan.items with
+# the narratives parsed from raw SPECIFICATION.md content.
+from _vbrief_fidelity import (  # noqa: E402
+    build_edges_from_tasks as _build_edges_from_tasks,
+    build_requirements_narrative as _build_requirements_narrative,
+    format_migration_log_entry as _format_migration_log_entry,
+    ingest_spec_narratives as _ingest_spec_narratives,
+    parse_requirement_definitions as _parse_requirement_definitions,
+    parse_spec_tasks as _parse_spec_tasks,
+    task_scope_narratives as _task_scope_narratives,
+)
+
+# --- legacy-artifacts (Agent A, #505) ---
+# LegacyArtifacts narrative emission + 6KB sidecar overflow + LEGACY-REPORT.md
+# + stdout summary live in ``_vbrief_legacy``.  The known-mappings list is
+# shared with #495's canonical extraction path so both agree on what is
+# canonical vs non-canonical (#506 D5).
+from _vbrief_legacy import (  # noqa: E402
+    CANONICAL_SPEC_KEYS as _CANONICAL_SPEC_KEYS,
+    PRD_HAND_EDIT_WARNING as _PRD_HAND_EDIT_WARNING,
+    PROJECT_KNOWN_MAPPINGS as _PROJECT_KNOWN_MAPPINGS,
+    detect_prd_legacy as _detect_prd_legacy,
+    emit_legacy_artifacts as _emit_legacy_artifacts,
+    emit_legacy_report as _emit_legacy_report,
+    parse_top_level_sections as _parse_top_level_sections,
+    partition_sections as _partition_sections,
+    summarize_captures as _summarize_captures,
+)
 from _vbrief_reconciliation import (  # noqa: E402
     load_overrides as _load_overrides,
-)
-from _vbrief_reconciliation import (  # noqa: E402
     reconcile_scope_items as _reconcile_scope_items,
-)
-from _vbrief_reconciliation import (  # noqa: E402
     write_reconciliation_report as _write_reconciliation_report,
 )
 
@@ -79,13 +110,15 @@ from _vbrief_safety import (  # noqa: E402
     load_safety_manifest,
     now_utc_iso,
     plan_backups,
+    rollback as safety_rollback,  # noqa: E402
     sha256_of,
     write_backups,
     write_safety_manifest,
 )
-from _vbrief_safety import rollback as safety_rollback  # noqa: E402
 
-# --- end lifecycle-routing ---
+MIGRATOR_VERSION = "0.20.0"
+
+# --- end fidelity + legacy-artifacts ---
 
 # Lifecycle folders per RFC #309 D13
 LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
@@ -812,6 +845,138 @@ def migrate(
                     f"{', '.join(sorted(ingested_keys))}"
                 )
 
+    # --- fidelity (Agent A, #495) ---
+    # Parse the raw SPECIFICATION.md for per-task bodies (Description /
+    # DependsOn / AcceptanceCriteria / Traces) + FR-N / NFR-N definitions
+    # + non-canonical ## sections.  Enrich spec_vbrief.plan.items so Agent
+    # B's reconciliation picks up the bodies through its "spec owns body"
+    # path (#506 D2 #14).  Emit the Requirements narrative (#495-4) and
+    # plan.edges[] (#495-6, #506 D4) on the spec vBRIEF.  Collect legacy
+    # SPEC sections for #505 capture at the end of the run.
+    spec_tasks: list[dict] = []
+    requirement_defs: dict[str, str] = {}
+    spec_legacy_sections: list[tuple[str, str, int, int]] = []
+    fidelity_log: list[dict] = []
+    if spec_md_content and DEPRECATION_SENTINEL not in spec_md_content:
+        spec_tasks = _parse_spec_tasks(spec_md_content)
+        requirement_defs = _parse_requirement_definitions(spec_md_content)
+        _canon, fidelity_log, spec_legacy_sections = _ingest_spec_narratives(
+            spec_md_content, source_file="SPECIFICATION.md"
+        )
+        if spec_vbrief is None:
+            spec_vbrief = {
+                "vBRIEFInfo": {"version": "0.5", "description": "Specification"},
+                "plan": {
+                    "title": "Specification",
+                    "status": "approved",
+                    "narratives": {},
+                    "items": [],
+                },
+            }
+        spec_plan = spec_vbrief.setdefault("plan", {})
+        spec_narratives = spec_plan.setdefault("narratives", {})
+
+        # Requirements narrative (#495-4): FR/NFR defs emitted as a single
+        # string. Preserve any pre-existing narrative.
+        req_narrative = _build_requirements_narrative(requirement_defs)
+        if req_narrative and not spec_narratives.get("Requirements"):
+            spec_narratives["Requirements"] = req_narrative
+            actions.append(
+                "FIDELITY specification.vbrief.json Requirements: "
+                f"{len(requirement_defs)} FR/NFR definition(s)"
+            )
+
+        # plan.edges[] from per-task Depends-on (#495-6, D4).
+        edges = _build_edges_from_tasks(spec_tasks)
+        if edges:
+            existing_edges = spec_plan.get("edges", [])
+            if not isinstance(existing_edges, list):
+                existing_edges = []
+            seen_keys = {
+                (str(e.get("from", "")), str(e.get("to", "")),
+                 str(e.get("type", "")))
+                for e in existing_edges if isinstance(e, dict)
+            }
+            new_count = 0
+            for edge in edges:
+                key = (edge["from"], edge["to"], edge["type"])
+                if key not in seen_keys:
+                    existing_edges.append(edge)
+                    seen_keys.add(key)
+                    new_count += 1
+            if new_count:
+                spec_plan["edges"] = existing_edges
+                actions.append(
+                    f"FIDELITY specification.vbrief.json plan.edges[]: "
+                    f"{new_count} Depends-on edge(s) emitted (#506 D4)"
+                )
+
+        # Enrich spec_vbrief.plan.items with per-task narratives so B's
+        # reconciliation picks up Description / DependsOn / AcceptanceCriteria
+        # / Traces from SPEC.md bodies (#495-1). Match by task_id; when no
+        # matching item exists, synthesize a new item so the body is not lost.
+        spec_items = spec_plan.setdefault("items", [])
+        if not isinstance(spec_items, list):
+            spec_items = []
+            spec_plan["items"] = spec_items
+
+        def _find_spec_item(task_id: str) -> dict | None:
+            for item in spec_items:
+                if isinstance(item, dict) and str(item.get("id", "")) == task_id:
+                    return item
+            return None
+
+        enriched_count = 0
+        for task in spec_tasks:
+            task_id = task.get("task_id", "")
+            if not task_id:
+                continue
+            task_narr = _task_scope_narratives(task)
+            if not task_narr:
+                continue
+            item = _find_spec_item(task_id)
+            if item is None:
+                item = {
+                    "id": task_id,
+                    "title": task.get("title", task_id),
+                    "status": task.get("status", "pending"),
+                    "narrative": {},
+                }
+                spec_items.append(item)
+            narrative = item.setdefault("narrative", {})
+            if not isinstance(narrative, dict):
+                narrative = {}
+                item["narrative"] = narrative
+            for key, value in task_narr.items():
+                if not narrative.get(key):
+                    narrative[key] = value
+                    enriched_count += 1
+
+        if enriched_count:
+            actions.append(
+                f"FIDELITY specification.vbrief.json items enriched: "
+                f"{enriched_count} per-task narrative field(s) (#495-1)"
+            )
+
+        # Persist the enriched spec vBRIEF so Agent B's reconciliation
+        # reads the enriched state.  Skipped under --dry-run.
+        if not dry_run and (req_narrative or edges or enriched_count):
+            rel_spec = spec_vbrief_path.relative_to(project_root).as_posix()
+            created_new = not spec_vbrief_path.exists()
+            spec_vbrief_path.parent.mkdir(parents=True, exist_ok=True)
+            spec_vbrief_path.write_text(
+                json.dumps(spec_vbrief, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            if created_new and rel_spec not in created_files:
+                created_files.append(rel_spec)
+
+    # Disambiguated migration log (#495-15): every section routing decision
+    # gets a ROUTE line recording source : line-range -> target-key -> target-file.
+    for entry in fidelity_log:
+        actions.append(_format_migration_log_entry(entry))
+    # --- end fidelity ---
+
     # --- reconciliation (Agent B, #496) ---
     # Load overrides BEFORE defaults apply, then reconcile SPEC + ROADMAP
     # into a single list of routed scope items. The report captures every
@@ -1013,6 +1178,174 @@ def migrate(
                 project_md_path.write_text(redirect, encoding="utf-8")
                 stub_hashes["PROJECT.md"] = sha256_of(project_md_path)
                 actions.append("REPLACE PROJECT.md with deprecation redirect")
+
+    # --- legacy-artifacts (Agent A, #505) ---
+    # Capture non-canonical ## sections from SPECIFICATION.md, PROJECT.md,
+    # and PRD.md into a ``LegacyArtifacts`` narrative on the matching
+    # vBRIEF file (per #506 D5 / #505 Section 1).  Sections >6 KB overflow
+    # to ``vbrief/legacy/{stem}-{slug}.md`` sidecars (Section 4).  PRD.md
+    # hand-edited sections get the RFC-defined warning prefix (Section 5).
+    # Emit ``vbrief/migration/LEGACY-REPORT.md`` when any capture occurs
+    # (Section 6) and append a stdout summary (Section 8).
+    #
+    # Skipped under --dry-run so operators can preview the plan without
+    # synthesising sidecar files. The .premigrate.* backups (Agent C)
+    # cover rollback; LegacyArtifacts is an additive preservation mechanism.
+    captures: dict[str, list[dict]] = {
+        "specification.vbrief.json -> LegacyArtifacts": [],
+        "PROJECT-DEFINITION.vbrief.json -> LegacyArtifacts": [],
+        "PRD.md content (flagged: hand-edited)": [],
+    }
+    if not dry_run:
+        # SPEC.md legacy sections were collected by the fidelity hook above.
+        if spec_legacy_sections:
+            narrative, sidecars, stats = _emit_legacy_artifacts(
+                spec_legacy_sections,
+                "SPECIFICATION.md",
+                project_root,
+                slugify_fn=_slugify_shared,
+            )
+            if narrative:
+                if not spec_vbrief_path.exists():
+                    # Nothing has written spec.vbrief.json yet (e.g. SPEC is
+                    # 100% non-canonical) -- synthesize a minimal skeleton
+                    # so LegacyArtifacts has a target file.
+                    spec_vbrief_path.parent.mkdir(parents=True, exist_ok=True)
+                    spec_vbrief_path.write_text(
+                        json.dumps(
+                            {
+                                "vBRIEFInfo": {
+                                    "version": "0.5",
+                                    "description": "Specification",
+                                },
+                                "plan": {
+                                    "title": "Specification",
+                                    "status": "approved",
+                                    "narratives": {},
+                                    "items": [],
+                                },
+                            },
+                            indent=2,
+                            ensure_ascii=False,
+                        )
+                        + "\n",
+                        encoding="utf-8",
+                    )
+                    created_files.append(
+                        spec_vbrief_path.relative_to(project_root).as_posix()
+                    )
+                _attach_legacy_narrative(spec_vbrief_path, narrative)
+                for sidecar in sidecars:
+                    try:
+                        rel = sidecar.relative_to(project_root).as_posix()
+                    except ValueError:
+                        rel = str(sidecar)
+                    if rel not in created_files:
+                        created_files.append(rel)
+                captures[
+                    "specification.vbrief.json -> LegacyArtifacts"
+                ].extend(stats)
+                actions.append(
+                    "LEGACY specification.vbrief.json LegacyArtifacts: "
+                    f"{len(stats)} section(s)"
+                )
+
+        # PROJECT.md non-canonical sections -> PROJECT-DEFINITION.vbrief.json.
+        if project_content and DEPRECATION_SENTINEL not in project_content:
+            project_sections = _parse_top_level_sections(project_content)
+            _project_canonical, project_legacy = _partition_sections(
+                project_sections, _PROJECT_KNOWN_MAPPINGS
+            )
+            if project_legacy:
+                narrative, sidecars, stats = _emit_legacy_artifacts(
+                    project_legacy,
+                    "PROJECT.md",
+                    project_root,
+                    slugify_fn=_slugify_shared,
+                )
+                if narrative and proj_def_path.exists():
+                    _attach_legacy_narrative(proj_def_path, narrative)
+                    for sidecar in sidecars:
+                        try:
+                            rel = sidecar.relative_to(project_root).as_posix()
+                        except ValueError:
+                            rel = str(sidecar)
+                        if rel not in created_files:
+                            created_files.append(rel)
+                    captures[
+                        "PROJECT-DEFINITION.vbrief.json -> LegacyArtifacts"
+                    ].extend(stats)
+                    actions.append(
+                        "LEGACY PROJECT-DEFINITION.vbrief.json LegacyArtifacts: "
+                        f"{len(stats)} section(s)"
+                    )
+
+        # PRD.md section-name diff (OQ3-b, #505 Section 5). Hand-edited
+        # sections whose normalised title is NOT a canonical spec narrative
+        # key on the post-migration spec vBRIEF get captured with the
+        # warning prefix.
+        if prd_path.exists():
+            prd_content = prd_path.read_text(encoding="utf-8")
+            canonical_present = _canonical_spec_keys_in(spec_vbrief_path)
+            prd_legacy = _detect_prd_legacy(
+                prd_content, canonical_present, source_name="PRD.md"
+            )
+            if prd_legacy:
+                narrative, sidecars, stats = _emit_legacy_artifacts(
+                    prd_legacy,
+                    "PRD.md",
+                    project_root,
+                    slugify_fn=_slugify_shared,
+                    warning_prefix=_PRD_HAND_EDIT_WARNING,
+                )
+                for stat in stats:
+                    stat["flagged"] = True
+                if narrative and spec_vbrief_path.exists():
+                    _attach_legacy_narrative(spec_vbrief_path, narrative)
+                    for sidecar in sidecars:
+                        try:
+                            rel = sidecar.relative_to(project_root).as_posix()
+                        except ValueError:
+                            rel = str(sidecar)
+                        if rel not in created_files:
+                            created_files.append(rel)
+                    captures[
+                        "PRD.md content (flagged: hand-edited)"
+                    ].extend(stats)
+                    actions.append(
+                        "LEGACY PRD.md hand-edit captures: "
+                        f"{len(stats)} section(s)"
+                    )
+
+        # Emit vbrief/migration/LEGACY-REPORT.md + stdout summary.
+        sources_read = [p for p in (
+            "SPECIFICATION.md" if spec_md_content else None,
+            "PROJECT.md" if project_content else None,
+            "ROADMAP.md" if total_items else None,
+            "PRD.md" if prd_path.exists() else None,
+        ) if p]
+        report_path = _emit_legacy_report(
+            project_root,
+            captures,
+            migrator_version=MIGRATOR_VERSION,
+            sources=sources_read,
+        )
+        if report_path is not None:
+            try:
+                rel_report = report_path.relative_to(project_root).as_posix()
+            except ValueError:
+                rel_report = str(report_path)
+            if rel_report not in created_files:
+                created_files.append(rel_report)
+            total_captured = sum(len(v) for v in captures.values())
+            actions.append(
+                f"CREATE {rel_report} ({total_captured} section(s) captured)"
+            )
+            for line in _summarize_captures(captures):
+                actions.append(line)
+    elif spec_legacy_sections or project_content:
+        actions.append("DRYRUN LEGACY capture (skipped under --dry-run)")
+    # --- end legacy-artifacts ---
 
     # --- reconciliation-report (Agent B, #496) ---
     # Emit vbrief/migration/RECONCILIATION.md when SPEC and ROADMAP
@@ -1378,6 +1711,11 @@ def _fold_custom_content(proj_def_path: Path, key: str, content: str) -> bool:
     """Fold custom content into PROJECT-DEFINITION.vbrief.json narratives.
 
     Returns True if content was successfully preserved, False otherwise.
+
+    Legacy fallback preserved for backward compatibility; the new
+    ``LegacyArtifacts`` mechanism (#505) captures non-canonical ## sections
+    with full provenance headers and is the preferred preservation surface
+    going forward.
     """
     if not proj_def_path.exists():
         return False
@@ -1391,6 +1729,58 @@ def _fold_custom_content(proj_def_path: Path, key: str, content: str) -> bool:
         return True
     except (json.JSONDecodeError, AttributeError):
         return False
+
+
+# --- legacy-artifacts (Agent A, #505) ---
+def _attach_legacy_narrative(vbrief_path: Path, narrative: str) -> None:
+    """Append a ``LegacyArtifacts`` narrative onto an existing vBRIEF file.
+
+    If the file already carries a ``LegacyArtifacts`` narrative, the new
+    content is concatenated (blank-line separator) so multiple capture
+    passes on one run do not silently overwrite one another.
+    """
+    if not vbrief_path.exists():
+        return
+    try:
+        data = json.loads(vbrief_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+    plan = data.setdefault("plan", {})
+    narratives = plan.setdefault("narratives", {})
+    existing = narratives.get("LegacyArtifacts", "")
+    if isinstance(existing, str) and existing.strip():
+        narratives["LegacyArtifacts"] = (
+            existing.rstrip() + "\n\n" + narrative.strip() + "\n"
+        )
+    else:
+        narratives["LegacyArtifacts"] = narrative
+    vbrief_path.write_text(
+        json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _canonical_spec_keys_in(spec_vbrief_path: Path) -> set[str]:
+    """Return the canonical spec narrative keys present on disk.
+
+    Used by the PRD.md section-name diff (OQ3-b, #505 Section 5) to decide
+    whether a PRD ## section is expected render output (skip capture) or a
+    hand-edited section that should be captured with the warning prefix.
+    """
+    if not spec_vbrief_path.exists():
+        return set()
+    try:
+        data = json.loads(spec_vbrief_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return set()
+    narratives = data.get("plan", {}).get("narratives", {}) or {}
+    if not isinstance(narratives, dict):
+        return set()
+    return {
+        k for k, v in narratives.items()
+        if k in _CANONICAL_SPEC_KEYS and isinstance(v, str) and v.strip()
+    }
+# --- end legacy-artifacts ---
 
 
 def main() -> int:
