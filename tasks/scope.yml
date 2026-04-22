@@ -4,11 +4,15 @@ version: '3'
 #
 # IMPORTANT: every task sets ``dir: '{{.USER_WORKING_DIR}}'`` so the Python
 # script's CWD is the consumer project root, NOT ``deft/``. The script path
-# is resolved via ``{{.TASKFILE_DIR}}`` so it still points at
-# ``deft/scripts/scope_lifecycle.py`` after the dir switch. The path arg
-# is passed as ``"{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}"`` so a relative
-# invocation like ``task scope:promote -- vbrief/proposed/X.vbrief.json``
-# resolves against the consumer root rather than ``deft/`` (#535).
+# is resolved via ``{{.TASKFILE_DIR}}/../scripts/`` so it still points at
+# ``deft/scripts/scope_lifecycle.py`` after the dir switch.
+#
+# The path arg is passed to the script raw; ``scope_lifecycle.py`` handles
+# both absolute and relative values via ``_resolve_file_path`` +
+# ``resolve_project_root`` -- the script owns path resolution, the task
+# just forwards ``--project-root`` so detection never silently falls back
+# to deft's own tree (#535). Relative paths resolve against the consumer
+# root thanks to ``--project-root``; absolute paths are used as-is.
 #
 # ``env: PYTHONUTF8: "1"`` is set per-task as a belt-and-suspenders guard
 # for Windows (cp1252 default crashes on -- / -> / x / !); the top-level
@@ -21,7 +25,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py promote "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py promote "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
 
   activate:
     desc: "Activate a vBRIEF scope: pending/ -> active/ (status: running)"
@@ -29,7 +33,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py activate "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py activate "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
 
   complete:
     desc: "Complete a vBRIEF scope: active/ -> completed/ (status: completed)"
@@ -37,7 +41,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py complete "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py complete "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
 
   cancel:
     desc: "Cancel a vBRIEF scope: any folder -> cancelled/ (status: cancelled)"
@@ -45,7 +49,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py cancel "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py cancel "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
 
   restore:
     desc: "Restore a cancelled vBRIEF scope: cancelled/ -> proposed/ (status: proposed)"
@@ -53,7 +57,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py restore "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py restore "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
 
   block:
     desc: "Block a vBRIEF scope: stays in active/ (status: blocked)"
@@ -61,7 +65,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py block "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py block "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
 
   unblock:
     desc: "Unblock a vBRIEF scope: stays in active/ (status: running)"
@@ -69,4 +73,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py unblock "{{.USER_WORKING_DIR}}/{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"
+      - uv run python {{.TASKFILE_DIR}}/../scripts/scope_lifecycle.py unblock "{{.CLI_ARGS}}" --project-root "{{.USER_WORKING_DIR}}"

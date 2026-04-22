@@ -413,7 +413,15 @@ def main() -> int:
 
 
 def detect_repo() -> str | None:
-    """Auto-detect OWNER/REPO from git remote origin."""
+    """Auto-detect OWNER/REPO from git remote origin.
+
+    Legacy fallback kept for backwards compatibility with in-process tests
+    that monkeypatch this symbol directly; the primary repo-resolution
+    path goes through ``_project_context.resolve_project_repo``. Uses the
+    same ``.git``-suffix-aware regex as ``_normalise_repo_slug`` so a
+    dotted repo name (``acme/my.project``) isn't silently truncated to
+    ``acme/my`` when this fallback IS reached (Greptile P2 on #562).
+    """
     try:
         result = subprocess.run(
             ["git", "remote", "get-url", "origin"],
@@ -428,8 +436,12 @@ def detect_repo() -> str | None:
         return None
 
     url = result.stdout.strip()
-    # Handle SSH: git@github.com:owner/repo.git
-    m = re.search(r"github\.com[:/]([^/]+)/([^/.]+)", url)
+    # Mirrors ``_normalise_repo_slug`` -- the legacy fallback used to
+    # share its bug (``[^/.]+`` truncates dotted names).
+    m = re.search(
+        r"github\.com[:/]([^/\s]+)/([^/\s]+?)(?:\.git)?(?:\s|$)",
+        url,
+    )
     if m:
         return f"{m.group(1)}/{m.group(2)}"
     return None
