@@ -247,8 +247,9 @@ def test_item_narrative_value_must_be_string() -> None:
 # subItems / items-inside-PlanItem validation tests
 # ---------------------------------------------------------------------------
 
-def test_items_inside_plan_item_detected() -> None:
-    """Using 'items' inside a PlanItem (instead of 'subItems') must be flagged."""
+def test_items_inside_plan_item_accepted_v06() -> None:
+    """Per v0.6 schema, ``PlanItem.items`` is the preferred nested field
+    and MUST be accepted without error (#533 / Greptile P1 alignment)."""
     data = {
         "vBRIEFInfo": {"version": "0.6"},
         "plan": {
@@ -267,7 +268,7 @@ def test_items_inside_plan_item_detected() -> None:
         },
     }
     errors = _validate_schema(data, "test")
-    assert any("use 'subItems' instead" in e for e in errors)
+    assert errors == [], f"PlanItem.items should be accepted in v0.6: {errors}"
 
 
 def test_recursive_subitems_validation() -> None:
