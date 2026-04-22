@@ -160,7 +160,7 @@ def validate_vbrief_schema(data: dict, filepath: str) -> list[str]:
         info = data["vBRIEFInfo"]
         if not isinstance(info, dict):
             errors.append(f"{filepath}: 'vBRIEFInfo' must be an object")
-        elif info.get("version") != "0.6":
+        elif info.get("version") not in VALID_VBRIEF_VERSIONS:
             errors.append(
                 f"{filepath}: 'vBRIEFInfo.version' must be '0.6' (canonical "
                 f"v0.6 schema, #533), got {info.get('version')!r}. Migrate "

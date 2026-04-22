@@ -70,7 +70,7 @@ class TestValidateProjectDefinition:
         vd.mkdir()
         fp = vd / "PROJECT-DEFINITION.vbrief.json"
         data = {
-            "vBRIEFInfo": {"version": "0.5"},
+            "vBRIEFInfo": {"version": "0.6"},
             "plan": {
                 "title": "Proj",
                 "status": "draft",
@@ -88,7 +88,7 @@ class TestValidateProjectDefinition:
         outside = tmp_path / "outside.json"
         outside.write_text("{}")
         data = {
-            "vBRIEFInfo": {"version": "0.5"},
+            "vBRIEFInfo": {"version": "0.6"},
             "plan": {
                 "title": "P",
                 "status": "draft",
@@ -116,7 +116,7 @@ class TestValidateProjectDefinition:
         (vd / "pending").mkdir(parents=True)
         (vd / "pending" / "ok.vbrief.json").write_text("{}")
         data = {
-            "vBRIEFInfo": {"version": "0.5"},
+            "vBRIEFInfo": {"version": "0.6"},
             "plan": {
                 "title": "P",
                 "status": "draft",
@@ -148,7 +148,7 @@ class TestValidateProjectDefinition:
         vd.mkdir()
         fp = vd / "PROJECT-DEFINITION.vbrief.json"
         data = {
-            "vBRIEFInfo": {"version": "0.5"},
+            "vBRIEFInfo": {"version": "0.6"},
             "plan": {
                 "title": "P",
                 "status": "draft",
@@ -176,7 +176,7 @@ class TestValidateEpicStoryLinks:
         for rel, plan in specs:
             path = vd / rel
             path.parent.mkdir(parents=True, exist_ok=True)
-            doc = {"vBRIEFInfo": {"version": "0.5"}, "plan": plan}
+            doc = {"vBRIEFInfo": {"version": "0.6"}, "plan": plan}
             path.write_text(json.dumps(doc), encoding="utf-8")
             docs[path.resolve()] = doc
         return docs
@@ -322,7 +322,7 @@ class TestRenderStaleness:
         _write_json(
             vd / "specification.vbrief.json",
             {
-                "vBRIEFInfo": {"version": "0.5"},
+                "vBRIEFInfo": {"version": "0.6"},
                 "plan": {
                     "title": title,
                     "status": "draft",
@@ -348,7 +348,7 @@ class TestRenderStaleness:
         vd.mkdir()
         _write_json(
             vd / "specification.vbrief.json",
-            {"vBRIEFInfo": {"version": "0.5"}, "plan": []},
+            {"vBRIEFInfo": {"version": "0.6"}, "plan": []},
         )
         assert vv.check_render_staleness(vd) == []
 
@@ -517,7 +517,7 @@ class TestMain:
         _write_json(
             vd / "proposed" / "2026-04-13-bad.vbrief.json",
             {
-                "vBRIEFInfo": {"version": "0.5"},
+                "vBRIEFInfo": {"version": "0.6"},
                 "plan": {"status": "draft", "items": []},
             },
         )

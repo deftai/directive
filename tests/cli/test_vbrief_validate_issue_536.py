@@ -7,10 +7,10 @@ Covers:
 - Exit code semantics: exit 0 when only warnings are present; exit 1 with
   ``--warnings-as-errors``.
 - "OK" banner is suppressed when exit code is non-zero.
-- Dual-version acceptance (v0.5 + v0.6) during the transition window (#533).
+- Strict v0.6-only version acceptance (#533) -- v0.5 is rejected.
 
 Part of #536 (validator D11 schema-trusting, exit code semantics) and #533
-(v0.5 -> v0.6 transition window).
+(strict v0.6-only acceptance -- v0.5 is no longer a valid version).
 """
 
 from __future__ import annotations
