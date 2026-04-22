@@ -119,5 +119,33 @@ jobs:
           $deftTaskfile = Join-Path $env:GITHUB_WORKSPACE 'Taskfile.yml'
           task -t $deftTaskfile migrate:vbrief -- --dry-run
 
-      - name: Pytest guard-rail (#566 regression)
-        run: uv run pytest tests/content/test_taskfile_paths.py -v
+      - name: task -t Taskfile.yml scope:promote (end-to-end #577 regression)
+        shell: pwsh
+        working-directory: ${{ env.fixture }}
+        run: |
+          $deftTaskfile = Join-Path $env:GITHUB_WORKSPACE 'Taskfile.yml'
+          # Stage a proposed scope vBRIEF in the same fixture consumer
+          # project used by the migrate:vbrief step above.  The file name
+          # must match the YYYY-MM-DD-<slug>.vbrief.json convention so the
+          # scope_lifecycle.py path resolver accepts it end-to-end.
+          $proposedDir = Join-Path $env:fixture 'vbrief\proposed'
+          New-Item -ItemType Directory -Path $proposedDir -Force | Out-Null
+          $scopeFile = Join-Path $proposedDir '2026-04-22-scope-cli-args-windows-ci.vbrief.json'
+          $scopeJson = '{"vBRIEFInfo":{"version":"0.6"},"plan":{"title":"scope CLI_ARGS windows CI fixture","status":"proposed","narratives":{"Overview":"Regression fixture for #577."},"items":[]}}'
+          $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+          [System.IO.File]::WriteAllText($scopeFile, $scopeJson, $utf8NoBom)
+          # Dispatch scope:promote against a relative path -- this is the
+          # exact invocation shape that previously failed on Windows with
+          # ``File not found: ...\'.\vbrief\proposed\<slug>.vbrief.json'``
+          # because ``tasks/scope.yml`` wrapped ``{{.CLI_ARGS}}`` in
+          # double quotes (#577).
+          task -t $deftTaskfile scope:promote -- .\vbrief\proposed\2026-04-22-scope-cli-args-windows-ci.vbrief.json
+          if ($LASTEXITCODE -ne 0) { throw "scope:promote exited $LASTEXITCODE" }
+          # Assert the file moved from proposed/ to pending/.
+          $pendingFile = Join-Path $env:fixture 'vbrief\pending\2026-04-22-scope-cli-args-windows-ci.vbrief.json'
+          if (Test-Path $scopeFile) { throw "scope:promote did not remove source file: $scopeFile" }
+          if (-not (Test-Path $pendingFile)) { throw "scope:promote did not create target file: $pendingFile" }
+          Write-Host "scope:promote end-to-end OK -- $scopeFile -> $pendingFile"
+
+      - name: Pytest guard-rails (#566 + #577 + #574 regressions)
+        run: uv run pytest tests/content/test_taskfile_paths.py tests/content/test_taskfile_cli_args.py tests/content/test_taskfile_caching.py -v
