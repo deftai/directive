@@ -254,3 +254,29 @@ During a swarm run, the monitor agent observed apparent stalls in sub-agent tabs
 The monitor agent crashed mid-cascade (likely due to conversation corruption from accumulated context -- ~158 messages of tool_use/tool_result pairs). On recovery, the new session could not determine which PRs had been merged, which were rebased, and which still needed action. The fix is twofold: (1) make every Phase 6 action idempotent (check state before acting -- already merged? already rebased? already closed?) so re-running any step is safe, and (2) record progress checkpoints at each milestone so a recovery session can reconstruct state via `gh pr list --state all` and `gh pr view <number>`.
 
 **The crash risk is proportional to monitor conversation length. MUST offload rebase, review-watch, and merge sub-tasks to ephemeral sub-agents (per the tiered approach in deft-review-cycle/SKILL.md) to keep the monitor conversation shallow. Target <100 tool-call round-trips in any single monitor conversation before considering a fresh session handoff.** (#263)
+
+## RC3 Validation on Windows (2026-04)
+
+**Source:** v0.20.0-rc.3 validation on MScottAdams/slizard-rc3-test — issues #566, #567, #571, #572, #574
+
+**1. Frameworks that vendor-require a task runner MUST have explicit platform-matrix CI on that runner**
+
+Language-level tests (pytest, go test, etc.) do not catch task-runner-specific defects: template-expansion quirks, path normalization on Windows, shell interpretation differences across OSes. A framework that documents "use go-task" (or make, just, etc.) MUST include CI jobs that exercise the runner on every supported OS — at minimum Linux + macOS + Windows if the consumer audience spans those. #566 was a go-task + Windows `GetFullPathNameW` + mixed-separator-normalization interaction; the existing Linux-only CI would never have caught it. Added the `windows-task-dispatch` job in #568 as the regression guard; that pattern MUST be preserved and extended as new render / migration / lifecycle tasks ship.
+
+**2. go-task `vars:` templates re-evaluate at use site in included subfiles — path vars MUST be defined per-subfile with eager `joinPath`**
+
+A `vars:` entry like `DEFT_ROOT: '{{.TASKFILE_DIR}}'` declared in a root Taskfile does NOT hold the root's TASKFILE_DIR value when referenced from an included subfile — go-task re-expands the template in the subfile's scope, where TASKFILE_DIR points at the subfile's own directory. To stabilize a path var across the include hierarchy, define it in each subfile that uses it via the eager form `DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'`. `joinPath` is evaluated at template-expansion time with Go's `filepath.Clean`, producing a native-separator, `..`-free absolute path.
+
+Corollary: **pytest guard-rails on task file *content* are insufficient** for template-expansion correctness. A test that verifies `{{joinPath .TASKFILE_DIR ".."}}` appears in the file tells you nothing about what it expands to at runtime. MUST pair static content checks with a live subprocess dispatch test that invokes the task through `task --dry-run` or equivalent. This near-miss was caught in #568's pre-push local validation, not by the pytest guard-rail — which passed green on the wrong configuration.
+
+**3. A task that accepts user recovery flags in CLI_ARGS MUST NOT declare `sources:`/`generates:` incremental-build keys**
+
+go-task's `sources:` / `generates:` declarations cause the task runner to skip `cmds:` entirely when inputs haven't changed and outputs exist — printing `Task "X" is up to date` without dispatching anything. CLI_ARGS (`-- --force`, `-- --rebuild`, etc.) are relayed only if `cmds:` actually runs, so any user recovery flag documented in a script's error message (e.g. the `#539` "Re-run with --force" pattern) will silently no-op when the task is cached. Every task whose script emits "Re-run with --force"-style error messages MUST declare neither `sources:` nor `generates:`. See `deft/conventions/task-caching.md` (scaffolded in the #574 fix) for the canonical rule and the regression guard-rail. (#539, #573, #574)
+
+**4. Error messages that prescribe a recovery command are a contract — they MUST be regression-tested**
+
+When a tool emits an error of the shape "to recover, run X", following X literally MUST actually recover. A documented recovery command that doesn't work is worse than no recovery message at all — it sends the operator down a dead-end path believing they've followed the correct fix. MUST add a regression test for every prescriptive error message: reproduce the error, run the command the message suggests literally, assert the expected post-recovery state. Applies equally to operator-facing errors and agent-facing errors. (#539, #574)
+
+**5. Heuristics that detect "machine-generated" by fishing for substrings MUST be part of a canonical marker contract shared with the writers**
+
+When code like `migrate_vbrief.py::_is_user_customized()` decides preservation vs overwrite based on whether a file contains strings such as `"Generated by"` or `"spec_render.py"`, those strings MUST be part of a canonical banner contract that the relevant writers (`spec_render.py`, `prd_render.py`, `roadmap_render.py`, `migrate_vbrief.py` deprecation stubs, and any future render / stub emitters) actually emit. A detector-writer asymmetry — where the detector fishes for text nobody writes — is a latent correctness bug waiting to misclassify operator edits as auto-generated content or vice versa. MUST co-locate the marker specification (as a `deft/conventions/<topic>.md` doc), the writers that emit it, and the detectors that consume it, with a regression test asserting every writer's output matches what every detector expects. (#572)
