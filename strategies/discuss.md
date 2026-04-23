@@ -97,7 +97,7 @@ run additional preparatory strategies or proceed to spec generation.
 - ⊗ End the session after discuss without returning to the chaining gate
   or the invoking strategy's next-step menu
 
-? **Standalone context:** If invoked from a standalone strategy (e.g. map's
+! **Standalone context:** If invoked from a standalone strategy (e.g. map's
   standalone next-step menu) rather than from the interview chaining gate,
   return to the invoking strategy's menu instead.
 
@@ -109,7 +109,7 @@ run additional preparatory strategies or proceed to spec generation.
 2. **Explore** -- Follow energy, challenge vagueness, ask domain-sensitive questions
 3. **Lock** -- Record each decision in `vbrief/proposed/{scope}-context.vbrief.json` `LockedDecisions` narrative with what/why/alternatives
 4. **Verify** -- Explain the full picture back to the user (Feynman check)
-5. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
+5. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate), or -- if invoked from a standalone strategy (e.g. map's standalone next-step menu) -- return to the invoking strategy's menu per the [Standalone context](#then-chaining-gate) rule above
 
 ## Anti-Patterns
 
