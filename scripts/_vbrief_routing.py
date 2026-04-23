@@ -39,11 +39,20 @@ from _vbrief_build import create_scope_vbrief as _create_scope_vbrief  # noqa: E
 def _migration_timestamp() -> str:
     """Return an ISO-8601 UTC timestamp for ``vBRIEFInfo.updated`` stamps.
 
-    Emitted at second precision so byte-for-byte fixture comparison is
-    stable when the caller pins the system clock (tests in
-    ``test_migrate_vbrief.py`` monkeypatch ``migrate_vbrief._TODAY`` for
-    filename determinism; ``_migration_timestamp`` is the analogous knob
-    for scope vBRIEF envelope metadata).
+    Emitted at second precision. This helper is ONLY the fallback used when
+    ``build_scope_vbrief_from_reconciled(..., migration_timestamp=None)`` is
+    called directly. Under the normal ``migrate()`` entry point the caller
+    always passes ``migration_timestamp=migrate_vbrief._MIGRATION_TIMESTAMP``
+    (a module-level constant stamped once per migration run), so this helper
+    is effectively unreachable there.
+
+    Test-pinning knob: deterministic migrate() tests (for example the
+    byte-for-byte golden-fixture suite in ``test_migrate_vbrief.py``) MUST
+    monkeypatch ``migrate_vbrief._MIGRATION_TIMESTAMP`` -- NOT this helper --
+    because the full migrate() path always threads the module-level constant
+    through to ``build_scope_vbrief_from_reconciled(migration_timestamp=...)``.
+    Callers that invoke ``build_scope_vbrief_from_reconciled`` directly can
+    either pass ``migration_timestamp=`` explicitly or monkeypatch this helper.
     """
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 

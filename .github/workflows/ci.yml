@@ -183,7 +183,9 @@ jobs:
           if ($proposed.Count -ne 2) {
             throw "expected 2 scope vBRIEFs in vbrief/proposed/ (active-phase orphans); got $($proposed.Count)"
           }
-          # Every completed scope must carry plan.status="completed".
+          # Both cohorts are inspected here so the e2e check mirrors the
+          # #593 unit-test coverage: completed scopes must carry
+          # vBRIEFInfo.updated; proposed scopes must NOT carry it.
           foreach ($f in $completed) {
             $data = Get-Content -Raw $f.FullName | ConvertFrom-Json
             if ($data.plan.status -ne 'completed') {
@@ -191,6 +193,21 @@ jobs:
             }
             if ($data.plan.narratives.SourceSection -ne 'ROADMAP Completed section') {
               throw "scope $($f.Name) missing SourceSection narrative (#593)"
+            }
+            if (-not $data.vBRIEFInfo.updated) {
+              throw "scope $($f.Name) missing vBRIEFInfo.updated timestamp (#593)"
+            }
+          }
+          foreach ($f in $proposed) {
+            $data = Get-Content -Raw $f.FullName | ConvertFrom-Json
+            if ($data.plan.status -ne 'proposed') {
+              throw "scope $($f.Name) has plan.status=$($data.plan.status); expected 'proposed' (#593)"
+            }
+            if ($data.plan.narratives.SourceSection -ne 'ROADMAP active phase') {
+              throw "scope $($f.Name) missing active-phase SourceSection narrative (#593)"
+            }
+            if ($data.vBRIEFInfo.updated) {
+              throw "scope $($f.Name) unexpectedly carries vBRIEFInfo.updated (#593)"
             }
           }
           Write-Host "migrate:vbrief Completed-section partition OK (#593)"
