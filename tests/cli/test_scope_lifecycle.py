@@ -155,6 +155,128 @@ class TestComplete:
 
 
 # ---------------------------------------------------------------------------
+# Fail: active/ -> completed/ (status: failed) -- #614
+# ---------------------------------------------------------------------------
+
+class TestFail:
+    """Tests for the ``fail`` terminal transition (#614).
+
+    ``fail`` parallels ``complete`` on folder movement (both move
+    active/ -> completed/) but stamps ``plan.status = "failed"`` instead
+    of ``"completed"``.  The semantic distinction from ``cancel`` is
+    deliberate: ``cancel`` records a decision (scope no longer wanted,
+    superseded, obsolete -> moves to cancelled/), ``fail`` records an
+    attempt that could not be completed (external blocker, infeasibility,
+    deadline) -> moves to completed/.  Collapsing the two would lose this
+    information, per issue #614.
+    """
+
+    def test_fail_success(self, tmp_path):
+        f = make_vbrief(tmp_path, "active", "running")
+        ok, msg = run_transition("fail", f)
+        assert ok
+        assert "Failed" in msg
+        assert "active/ -> completed/" in msg
+        dest = tmp_path / "vbrief" / "completed" / f.name
+        assert dest.exists()
+        data = read_vbrief(dest)
+        # The resulting status MUST be "failed" -- distinct from
+        # "completed" (scope:complete) and "cancelled" (scope:cancel).
+        assert data["plan"]["status"] == "failed"
+        assert data["plan"]["status"] != "completed"
+        assert data["plan"]["status"] != "cancelled"
+
+    def test_fail_updates_timestamp(self, tmp_path):
+        f = make_vbrief(tmp_path, "active", "running")
+        run_transition("fail", f)
+        dest = tmp_path / "vbrief" / "completed" / f.name
+        data = read_vbrief(dest)
+        ts = data["plan"]["updated"]
+        # ISO 8601 UTC timestamp (mirrors TestValidation::test_timestamp_updated).
+        assert "T" in ts
+        assert ts.endswith("Z")
+
+    def test_fail_from_blocked_status_is_accepted(self, tmp_path):
+        """A blocked active scope can also fail -- matches complete's
+        contract, which does not gate on ``plan.status`` (only the source
+        folder), so an external blocker that proved unrecoverable does
+        not first require an unblock round-trip.
+        """
+        f = make_vbrief(tmp_path, "active", "blocked")
+        ok, msg = run_transition("fail", f)
+        assert ok
+        dest = tmp_path / "vbrief" / "completed" / f.name
+        assert dest.exists()
+        assert read_vbrief(dest)["plan"]["status"] == "failed"
+
+    @pytest.mark.parametrize("folder,status", [
+        ("proposed", "proposed"),
+        ("pending", "pending"),
+        ("completed", "completed"),
+        ("cancelled", "cancelled"),
+    ])
+    def test_fail_outside_active_is_rejected(self, tmp_path, folder, status):
+        """``scope:fail`` on a vBRIEF outside ``active/`` is rejected --
+        same contract as the other transitions (see #614 Fix section).
+        The error message identifies the required source folder so the
+        user knows how to recover.
+        """
+        f = make_vbrief(tmp_path, folder, status)
+        ok, msg = run_transition("fail", f)
+        assert not ok
+        assert "Invalid transition" in msg
+        assert "active/" in msg
+
+    def test_fail_idempotent_same_folder_noop(self, tmp_path):
+        """Calling ``fail`` on a vBRIEF already in ``completed/`` is
+        rejected because the allowed source is strictly ``active/`` --
+        the completed-folder idempotency path in run_transition applies
+        to actions whose target folder matches the current folder, which
+        cannot arise for ``fail`` without the file already being in
+        ``completed/``.  This test locks the rejection shape.
+        """
+        f = make_vbrief(tmp_path, "completed", "completed")
+        ok, msg = run_transition("fail", f)
+        assert not ok
+        assert "Invalid transition" in msg
+
+    def test_fail_failed_status_is_schema_valid(self, tmp_path):
+        """The resulting vBRIEF (with plan.status == "failed") must pass
+        the canonical v0.6 schema validator in
+        scripts/vbrief_validate.py -- ``failed`` is already in the v0.6
+        Status enum (vbrief/schemas/vbrief-core.schema.json:367) and the
+        validator's FOLDER_ALLOWED_STATUSES maps ``completed/`` to
+        ``{completed, failed}`` (#614).
+        """
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "vbrief_validate", REPO_ROOT / "scripts" / "vbrief_validate.py"
+        )
+        module = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+        spec.loader.exec_module(module)  # type: ignore[union-attr]
+
+        # Sanity: failed IS in the v0.6 Status enum.
+        assert "failed" in module.VALID_STATUSES
+        # Sanity: completed/ accepts both completed and failed.
+        assert "failed" in module.FOLDER_ALLOWED_STATUSES["completed"]
+
+        # Perform the transition and run the schema validator over the
+        # resulting document.
+        f = make_vbrief(tmp_path, "active", "running")
+        ok, _ = run_transition("fail", f)
+        assert ok
+        dest = tmp_path / "vbrief" / "completed" / f.name
+        data = read_vbrief(dest)
+        # We inject the required vBRIEFInfo.version so the fixture
+        # satisfies the strict 0.6-only acceptance rule (#533); the
+        # lifecycle transition does not touch the envelope.
+        data["vBRIEFInfo"] = {"version": "0.6"}
+        errors = module.validate_vbrief_schema(data, str(dest))
+        assert errors == [], f"Schema validation errors: {errors}"
+
+
+# ---------------------------------------------------------------------------
 # Cancel: any folder -> cancelled/
 # ---------------------------------------------------------------------------
 

@@ -58,6 +58,24 @@ tasks:
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" complete {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
+  fail:
+    # Terminal ``failed`` transition (#614). Parallels ``scope:complete``
+    # (same source + destination folders) and differs only in the
+    # resulting ``plan.status`` (``failed`` vs ``completed``). Semantic
+    # contract: use ``scope:fail`` when a scope was attempted but could
+    # not be completed (external blocker, infeasibility discovered
+    # mid-flight, deadline hit, agent exhausted retries) and should NOT
+    # be cancelled. ``scope:cancel`` remains the right call when the
+    # scope is no longer wanted / superseded / obsolete. The canonical
+    # v0.6 Status enum includes ``failed`` (see
+    # vbrief/schemas/vbrief-core.schema.json).
+    desc: "Fail a vBRIEF scope: active/ -> completed/ (status: failed)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" fail {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
   cancel:
     desc: "Cancel a vBRIEF scope: any folder -> cancelled/ (status: cancelled)"
     dir: '{{.USER_WORKING_DIR}}'

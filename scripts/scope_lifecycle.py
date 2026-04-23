@@ -9,10 +9,27 @@ Actions:
     promote   -- proposed/ -> pending/ (status: pending)
     activate  -- pending/ -> active/ (status: running)
     complete  -- active/ -> completed/ (status: completed)
+    fail      -- active/ -> completed/ (status: failed)
     cancel    -- any folder -> cancelled/ (status: cancelled)
     restore   -- cancelled/ -> proposed/ (status: proposed)
     block     -- stays in active/ (status: blocked)
     unblock   -- stays in active/ (status: running)
+
+Note: ``complete`` and ``fail`` share the active/ -> completed/ move;
+they differ only in terminal status (``completed`` vs ``failed``). The
+semantic distinction (#614) is:
+
+* ``complete`` -- the scope succeeded.
+* ``cancel`` -- decision: the scope is no longer wanted (superseded,
+  obsolete); moves to cancelled/.
+* ``fail`` -- attempt: the scope was tried but could not complete
+  (external blocker, infeasibility discovered mid-flight, deadline hit,
+  agent exhausted retries). Records a failure terminal state when the
+  work should NOT be cancelled.
+
+Collapsing ``failed`` into ``cancelled`` would lose this information
+and leave ``active/`` as a zombie graveyard when agents hit
+unrecoverable blockers.
 
 Each action:
     - Validates the transition is legal (source folder + current status)
@@ -57,10 +74,16 @@ LIFECYCLE_FOLDERS = ("proposed", "pending", "active", "completed", "cancelled")
 
 # action -> (allowed_source_folders, target_folder, target_status)
 # None for target_folder means file stays in place.
+#
+# ``fail`` parallels ``complete`` exactly on folder movement (both move
+# active/ -> completed/); they differ only in the terminal status
+# stamped onto ``plan.status`` (``failed`` vs ``completed``). See the
+# module docstring for the cancel/fail semantic distinction (#614).
 TRANSITIONS: dict[str, tuple[tuple[str, ...], str | None, str]] = {
     "promote": (("proposed",), "pending", "pending"),
     "activate": (("pending",), "active", "running"),
     "complete": (("active",), "completed", "completed"),
+    "fail": (("active",), "completed", "failed"),
     "cancel": (LIFECYCLE_FOLDERS, "cancelled", "cancelled"),
     "restore": (("cancelled",), "proposed", "proposed"),
     "block": (("active",), None, "blocked"),
@@ -179,6 +202,7 @@ def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
             "promote": "Promoted",
             "activate": "Activated",
             "complete": "Completed",
+            "fail": "Failed",
             "cancel": "Cancelled",
             "restore": "Restored",
         }
