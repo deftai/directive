@@ -276,7 +276,69 @@ class TestReconcileScenarios:
         assert reconciled[0]["folder"] == "proposed"
         assert reconciled[0]["status"] == "proposed"
         assert reconciled[0]["source_conflict"] == "missing-from-spec"
+        assert reconciled[0]["source_section"] == "ROADMAP active phase"
+        assert reconciled[0]["is_completed"] is False
         assert len(report.orphans) == 1
+
+    def test_completed_section_orphan_routes_to_completed(self):
+        """#593: Completed-section orphan must route to completed/ not proposed/.
+
+        Before #593 a ROADMAP ``## Completed`` row that did not match any
+        SPEC task collapsed into ``vbrief/proposed/`` with
+        ``plan.status=proposed``, silently dropping the completion signal
+        ROADMAP.md had explicitly recorded. After #593 the completion
+        signal wins: folder=completed/ with status=completed. The row is
+        still recorded on ``report.orphans`` so --strict flags the SPEC
+        drift for operator triage.
+        """
+        spec = _spec_with([
+            {"id": "t1", "title": "One", "status": "pending"},
+        ])
+        reconciled, report = reconcile_scope_items(
+            roadmap_active=[],
+            roadmap_completed=[{"number": "9", "title": "Shipped orphan",
+                                "phase": "Completed"}],
+            spec_vbrief=spec,
+        )
+        assert reconciled[0]["folder"] == "completed"
+        assert reconciled[0]["status"] == "completed"
+        assert reconciled[0]["source_conflict"] == "missing-from-spec"
+        assert reconciled[0]["source_section"] == "ROADMAP Completed section"
+        assert reconciled[0]["is_completed"] is True
+        assert "#593" in reconciled[0]["status_source"]
+        # Still surfaced in report.orphans so --strict exits non-zero.
+        assert len(report.orphans) == 1
+
+    def test_both_cohorts_partitioned_correctly(self):
+        """#593 acceptance: mixed ROADMAP (active + Completed) partitions cleanly.
+
+        Guards the critical acceptance criterion: Completed-section items
+        land in completed/ AND active-phase items stay in proposed/ in the
+        same migration pass.
+        """
+        spec = _spec_with([
+            {"id": "t1", "title": "Spec-only task", "status": "pending"},
+        ])
+        reconciled, _ = reconcile_scope_items(
+            roadmap_active=[
+                {"number": "201", "title": "Active orphan",
+                 "phase": "Phase 1"},
+            ],
+            roadmap_completed=[
+                {"number": "101", "title": "Done orphan",
+                 "phase": "Completed"},
+            ],
+            spec_vbrief=spec,
+        )
+        by_number = {r["number"]: r for r in reconciled}
+        assert by_number["101"]["folder"] == "completed"
+        assert by_number["101"]["status"] == "completed"
+        assert by_number["101"]["source_section"] == (
+            "ROADMAP Completed section"
+        )
+        assert by_number["201"]["folder"] == "proposed"
+        assert by_number["201"]["status"] == "proposed"
+        assert by_number["201"]["source_section"] == "ROADMAP active phase"
 
     def test_no_spec_items_means_no_orphan_detection(self):
         """Degenerate case: no SPEC items -> ROADMAP items stay in pending/."""

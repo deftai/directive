@@ -1,7 +1,8 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #51: CI pipeline bootstrap"
+    "description": "Scope vBRIEF for #51: CI pipeline bootstrap",
+    "updated": "2026-04-21T00:00:00Z"
   },
   "plan": {
     "title": "CI pipeline bootstrap",
@@ -10,7 +11,8 @@
       "Description": "CI pipeline bootstrap",
       "Phase": "Completed",
       "Description_source": "ROADMAP.md",
-      "Status_source": "ROADMAP.md"
+      "Status_source": "ROADMAP.md",
+      "SourceSection": "ROADMAP Completed section"
     },
     "items": [],
     "references": [

@@ -1,0 +1,21 @@
+{
+  "scenario": "completed-routing",
+  "folder_counts": {
+    "proposed": 2,
+    "pending": 0,
+    "active": 0,
+    "completed": 2,
+    "cancelled": 0
+  },
+  "statuses": {
+    "proposed": ["proposed"],
+    "completed": ["completed"]
+  },
+  "reconciliation_md": true,
+  "registry_statuses_include": ["completed", "proposed"],
+  "narrative_contains": {
+    "completed": {"SourceSection": "ROADMAP Completed section", "SourceConflict": "missing-from-spec"},
+    "proposed": {"SourceSection": "ROADMAP active phase", "SourceConflict": "missing-from-spec"}
+  },
+  "notes": "Regression for #593: ROADMAP Completed-section rows (#101, #102) are orphans relative to SPEC (t1.1 only). Before the fix they all landed in proposed/ with status=proposed. After #593 they route to completed/ with plan.status=completed and narrative.SourceSection='ROADMAP Completed section'; active-phase orphans (#201, #202) still route to proposed/."
+}
