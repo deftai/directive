@@ -12,7 +12,7 @@ vars:
 
 tasks:
   render:
-    desc: Render ROADMAP.md from vbrief/pending/ vBRIEFs
+    desc: Render ROADMAP.md from vbrief/pending/ (Active) and vbrief/completed/ (Completed) lifecycle folders
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"

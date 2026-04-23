@@ -70,16 +70,16 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 
 ### Step 2: Deduplicate via References (Dry-Run Preview)
 
-1. ? Run `task deft:issue:ingest -- --all --dry-run` to preview which issues the ingest task would create scope vBRIEFs for. The task deduplicates candidates against `references` entries in existing vBRIEFs (across all lifecycle folders) so already-tracked issues are skipped automatically.
+1. ? Run `task issue:ingest -- --all --dry-run` to preview which issues the ingest task would create scope vBRIEFs for. The task deduplicates candidates against `references` entries in existing vBRIEFs (across all lifecycle folders) so already-tracked issues are skipped automatically.
 2. ! Present the user with the list of new-vs-already-tracked items the dry-run reports: "{N} new items found, {M} already tracked"
 3. ! Wait for user approval before proceeding to ingest
 
 ### Step 3: Ingest Approved Items
 
-! Delegate ingest to `task deft:issue:ingest` — the task is the canonical implementation of scope-vBRIEF creation. Skills MUST NOT reinvent the slug rules, reference shape, or deduplication logic inline (see #537 for background).
+! Delegate ingest to `task issue:ingest` — the task is the canonical implementation of scope-vBRIEF creation. Skills MUST NOT reinvent the slug rules, reference shape, or deduplication logic inline (see #537 for background).
 
-- **Single issue**: `task deft:issue:ingest -- <N>` — creates `vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json` with origin `references`, canonical slug from `scripts/slug_normalize.py` (see [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md)), and schema-conformant shape.
-- **Batch**: `task deft:issue:ingest -- --all [--label <L>] [--status <S>]` — ingests every open issue matching the filters, skipping duplicates by `references.uri` match.
+- **Single issue**: `task issue:ingest -- <N>` — creates `vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json` with origin `references`, canonical slug from `scripts/slug_normalize.py` (see [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md)), and schema-conformant shape.
+- **Batch**: `task issue:ingest -- --all [--label <L>] [--status <S>]` — ingests every open issue matching the filters, skipping duplicates by `references.uri` match.
 - **Preview**: add `--dry-run` to either form to preview without writing files.
 
 The task emits vBRIEFs conforming to the canonical v0.6 schema (`vbrief/schemas/vbrief-core.schema.json`) with origin references in the form documented in [`../../conventions/references.md`](../../conventions/references.md):
@@ -101,7 +101,7 @@ The task emits vBRIEFs conforming to the canonical v0.6 schema (`vbrief/schemas/
 
 ⊗ Hand-author scope vBRIEFs inside the skill when the ingest task exists — duplicating the narrative logic is how #534 (non-conformant references) and #537 (drift between skill and task) arise
 ⊗ Write references with `url`/`id`/bare `github-issue` types — use the schema-conformant `{uri, type, title}` shape above
-⊗ Ingest an item that already has a matching vBRIEF reference -- `task deft:issue:ingest` handles deduplication; skills MUST NOT duplicate that logic inline
+⊗ Ingest an item that already has a matching vBRIEF reference -- `task issue:ingest` handles deduplication; skills MUST NOT duplicate that logic inline
 
 ## Phase 2 -- Evaluate
 
@@ -130,12 +130,12 @@ The task emits vBRIEFs conforming to the canonical v0.6 schema (`vbrief/schemas/
 
 ## Phase 3 -- Reconcile (RFC D12)
 
-! Check if linked origins have changed since the vBRIEF was last touched. Delegate the scan to `task deft:reconcile:issues` and walk the user through flagged items for approval (see #537 for why the skill is a thin wrapper over the task).
+! Check if linked origins have changed since the vBRIEF was last touched. Delegate the scan to `task reconcile:issues` and walk the user through flagged items for approval (see #537 for why the skill is a thin wrapper over the task).
 
 ### Step 1: Run the Reconciler
 
 ```
-task deft:reconcile:issues
+task reconcile:issues
 ```
 
 The task scans every vBRIEF with a GitHub-backed reference (whether the reference uses the legacy `github-issue` bare type or the canonical `x-vbrief/github-issue` shape), fetches each linked issue, compares timestamps and state, and reports items in four buckets:
