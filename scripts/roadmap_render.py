@@ -61,18 +61,31 @@ def _load_vbriefs(folder: Path) -> list[dict]:
 
 
 def _extract_issue_refs(references: list[dict]) -> list[str]:
-    """Extract GitHub issue numbers from vBRIEF references entries."""
+    """Extract GitHub issue numbers from vBRIEF references entries.
+
+    Accepts both the canonical v0.6 shape ``{uri, type, title}`` (#613)
+    and the legacy ``{id}`` / ``{url}`` shapes so ROADMAP.md renders
+    correctly against mixed-shape worktrees during the migrator flip.
+    """
     issues: list[str] = []
     for ref in references:
+        if not isinstance(ref, dict):
+            continue
+        # Legacy shape: explicit ``#N`` in ``id``.
         ref_id = ref.get("id", "")
-        if ref_id.startswith("#"):
+        if isinstance(ref_id, str) and ref_id.startswith("#"):
             issues.append(ref_id)
             continue
-        url = ref.get("url", "")
-        if "/issues/" in url:
-            num = url.rstrip("/").rsplit("/", 1)[-1]
-            if num.isdigit():
-                issues.append(f"#{num}")
+        # Canonical v0.6 (``uri``) and legacy (``url``) both carry a
+        # ``/issues/{N}`` suffix when the reference points at a GitHub
+        # issue; check both so no issue number is silently dropped.
+        for key in ("uri", "url"):
+            url = ref.get(key, "")
+            if isinstance(url, str) and "/issues/" in url:
+                num = url.rstrip("/").rsplit("/", 1)[-1]
+                if num.isdigit():
+                    issues.append(f"#{num}")
+                    break
     return issues
 
 
@@ -225,14 +238,59 @@ def render_roadmap(
         return False, f"✗ Failed to write {out_path}: {exc}"
 
 
+# #616: migrator-internal provenance (Phase / Tier / PhaseDescription)
+# now lives under ``plan.metadata['x-migrator']`` on scope vBRIEFs
+# produced by ``task migrate:vbrief``. Scope vBRIEFs authored before the
+# clamp still carry these keys under ``plan.narratives``, so the
+# grouping helpers below consult BOTH locations: metadata wins when
+# present (new shape), narratives are the fallback (legacy / hand-
+# authored files).
+_MIGRATOR_METADATA_KEY: str = "x-migrator"
+
+
+def _migrator_metadata(plan: dict) -> dict:
+    """Return ``plan.metadata['x-migrator']`` as a dict (empty if absent)."""
+    metadata = plan.get("metadata", {}) if isinstance(plan, dict) else {}
+    if not isinstance(metadata, dict):
+        return {}
+    bucket = metadata.get(_MIGRATOR_METADATA_KEY, {})
+    if not isinstance(bucket, dict):
+        return {}
+    return bucket
+
+
+def _migrator_field(plan: dict, key: str) -> str:
+    """Return ``plan.metadata['x-migrator'][key]`` falling back to ``plan.narratives[key]``.
+
+    Returns the empty string if neither location carries a non-empty
+    string value. Used for Phase / Tier / PhaseDescription lookups that
+    were relocated from narratives to metadata in #616 while keeping
+    backwards compatibility with legacy scope vBRIEFs.
+    """
+    bucket = _migrator_metadata(plan)
+    value = bucket.get(key, "")
+    if isinstance(value, str) and value:
+        return value
+    narratives = plan.get("narratives", {}) if isinstance(plan, dict) else {}
+    if isinstance(narratives, dict):
+        fallback = narratives.get(key, "")
+        if isinstance(fallback, str):
+            return fallback
+    return ""
+
+
 def _group_by_phase(
     vbriefs: list[dict],
 ) -> tuple[dict[str, list[dict]], dict[str, str]]:
-    """Group flat scope vBRIEFs by their Phase narrative key.
+    """Group flat scope vBRIEFs by their Phase label.
+
+    Reads Phase / PhaseDescription from ``plan.metadata['x-migrator']``
+    first (canonical post-#616 location) and falls back to
+    ``plan.narratives`` for legacy / hand-authored vBRIEFs.
 
     Returns:
       - phase_groups: ordered dict of phase -> list of vBRIEFs
-      - phase_descriptions: dict of phase -> PhaseDescription narrative
+      - phase_descriptions: dict of phase -> PhaseDescription
     """
     phase_groups: dict[str, list[dict]] = {}
     phase_descriptions: dict[str, str] = {}
@@ -241,16 +299,11 @@ def _group_by_phase(
         plan = vb.get("plan", {})
         if not isinstance(plan, dict):
             continue
-        narratives = plan.get("narratives", {})
-        if not isinstance(narratives, dict):
-            narratives = {}
-        phase = narratives.get("Phase", "")
-        if not phase:
-            phase = "Ungrouped"
+        phase = _migrator_field(plan, "Phase") or "Ungrouped"
         phase_groups.setdefault(phase, []).append(vb)
         # Capture phase description from the first vBRIEF that has one
         if phase not in phase_descriptions:
-            pd = narratives.get("PhaseDescription", "")
+            pd = _migrator_field(plan, "PhaseDescription")
             if pd:
                 phase_descriptions[phase] = pd
 
@@ -258,14 +311,13 @@ def _group_by_phase(
 
 
 def _group_by_tier(vbriefs: list[dict]) -> dict[str, list[dict]]:
-    """Group vBRIEFs by their Tier narrative key within a phase."""
+    """Group vBRIEFs by their Tier label within a phase (bilingual reader)."""
     tier_groups: dict[str, list[dict]] = {}
     for vb in vbriefs:
         plan = vb.get("plan", {})
         if not isinstance(plan, dict):
             continue
-        narratives = plan.get("narratives", {})
-        tier = narratives.get("Tier", "") if isinstance(narratives, dict) else ""
+        tier = _migrator_field(plan, "Tier")
         tier_groups.setdefault(tier, []).append(vb)
     return tier_groups
 
@@ -316,11 +368,14 @@ def generate_roadmap_content(
         lines.append("No pending work items.\n")
         return "\n".join(lines) + "\n"
 
-    # Check if any vBRIEFs use the flat scope model (Phase narrative key)
+    # Check if any vBRIEFs use the flat scope model. Post-#616 the
+    # migrator writes Phase to ``plan.metadata['x-migrator']``; legacy
+    # vBRIEFs still carry it under ``plan.narratives``. Accept either so
+    # a mid-transition repo renders consistently.
     has_phase_narratives = any(
-        isinstance(vb.get("plan", {}).get("narratives", {}), dict)
-        and vb.get("plan", {}).get("narratives", {}).get("Phase")
+        _migrator_field(vb.get("plan", {}), "Phase")
         for vb in vbriefs
+        if isinstance(vb.get("plan", {}), dict)
     )
 
     if has_phase_narratives:

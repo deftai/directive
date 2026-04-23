@@ -201,18 +201,49 @@ def _normalize_task_id(task_id: str) -> str:
     return s
 
 
+# Bilingual reference-type gate: accepts both the canonical v0.6
+# ``x-vbrief/github-issue`` type (#613) and the legacy ``github-issue``
+# shape so SPEC items authored before the canonical flip continue to
+# surface their GitHub-issue cross-links during reconciliation.
+_GITHUB_ISSUE_REF_TYPES: frozenset[str] = frozenset(
+    {"github-issue", "x-vbrief/github-issue"}
+)
+# Match a canonical v0.6 ``https://github.com/{owner}/{repo}/issues/{N}``
+# URI so ``_collect_issue_numbers`` can recover the bare issue number from
+# either the legacy ``id: "#N"`` field or the canonical ``uri``.
+_GITHUB_ISSUE_URI_RE = re.compile(
+    r"https://github\.com/[^/]+/[^/]+/issues/(?P<number>\d+)"
+)
+
+
 def _collect_issue_numbers(item: dict) -> list[str]:
-    """Extract GitHub issue numbers referenced by a SPEC item."""
+    """Extract GitHub issue numbers referenced by a SPEC item.
+
+    Accepts both the canonical v0.6 reference shape ``{uri, type: x-
+    vbrief/github-issue, title}`` and the legacy ``{type: github-issue,
+    id}`` shape so mixed-shape SPEC files reconcile correctly during the
+    migrator transition (#613).
+    """
     numbers: list[str] = []
     refs = item.get("references") or []
     if isinstance(refs, list):
         for ref in refs:
             if not isinstance(ref, dict):
                 continue
-            if ref.get("type") == "github-issue":
-                rid = str(ref.get("id", "")).lstrip("#")
-                if rid:
-                    numbers.append(rid)
+            if ref.get("type") not in _GITHUB_ISSUE_REF_TYPES:
+                continue
+            # Canonical shape: recover the trailing /issues/{N} segment
+            # from ``uri``.
+            uri = ref.get("uri")
+            if isinstance(uri, str) and uri:
+                match = _GITHUB_ISSUE_URI_RE.search(uri)
+                if match:
+                    numbers.append(match.group("number"))
+                    continue
+            # Legacy shape: ``id`` carries ``#N`` verbatim.
+            rid = str(ref.get("id", "")).lstrip("#")
+            if rid:
+                numbers.append(rid)
     return numbers
 
 

@@ -148,18 +148,39 @@ def _reconciled(**overrides):
 
 
 class TestBuildReconciledScopeVbrief:
+    """Post-#613 + #616 (with Fix A for #593 SourceSection exception):
+
+    * ``plan.narratives`` is empty on per-issue scope vBRIEFs EXCEPT for
+      ``SourceSection`` (named exception per #593 audit-trail contract).
+    * References are canonical ``{uri, type: x-vbrief/github-issue, title}``
+      shape; the legacy ``{type, id, url}`` shape is gone.
+    * Reconciler provenance (Description / Description_source /
+      Status_source / Title_source / SpecPhase / RoadmapSummary /
+      SourceConflict) lives under ``plan.metadata['x-migrator']``.
+    * ``SourceSection`` is the single named exception: it stays in
+      ``plan.narratives`` because #593 intentionally surfaces the
+      routing decision as an auditable user-visible narrative.
+    """
+
+    def _migrator_meta(self, scope: dict) -> dict:
+        return scope["plan"].get("metadata", {}).get("x-migrator", {})
+
     def test_envelope_and_title(self):
         scope = build_scope_vbrief_from_reconciled(_reconciled())
         # #533: emitted envelope bumped to "0.6".
         assert scope["vBRIEFInfo"]["version"] == "0.6"
         assert scope["plan"]["title"] == "Widget feature"
         assert scope["plan"]["status"] == "pending"
+        # #616: narratives clamped to empty for per-issue scope vBRIEFs.
+        assert scope["plan"]["narratives"] == {}
 
-    def test_description_and_source_emitted(self):
+    def test_description_and_source_emitted_as_metadata(self):
+        """#616: Description + Description_source live under metadata."""
         scope = build_scope_vbrief_from_reconciled(_reconciled())
-        narratives = scope["plan"]["narratives"]
-        assert narratives["Description"] == "Add a widget."
-        assert narratives["Description_source"] == "SPECIFICATION.md"
+        meta = self._migrator_meta(scope)
+        assert meta["Description"] == "Add a widget."
+        assert meta["Description_source"] == "SPECIFICATION.md"
+        assert scope["plan"]["narratives"] == {}
 
     def test_active_folder_emits_running_not_in_progress(self):
         """The #499 correction comment made this the explicit contract."""
@@ -170,7 +191,8 @@ class TestBuildReconciledScopeVbrief:
         # The schema-native value must appear verbatim in the written payload.
         assert scope["plan"]["status"] != "in_progress"
 
-    def test_orphan_source_conflict_emitted(self):
+    def test_orphan_source_conflict_emitted_as_metadata(self):
+        """#616: SourceConflict moved from narratives to x-migrator."""
         scope = build_scope_vbrief_from_reconciled(
             _reconciled(
                 status="proposed",
@@ -178,17 +200,24 @@ class TestBuildReconciledScopeVbrief:
                 source_conflict="missing-from-spec",
             )
         )
-        assert scope["plan"]["narratives"]["SourceConflict"] == "missing-from-spec"
+        assert scope["plan"]["narratives"] == {}
+        assert (
+            self._migrator_meta(scope)["SourceConflict"]
+            == "missing-from-spec"
+        )
 
     def test_spec_phase_preserved_alongside_roadmap_phase(self):
+        """#616: Phase + SpecPhase live under plan.metadata['x-migrator']."""
         scope = build_scope_vbrief_from_reconciled(
             _reconciled(phase="Milestone 2", spec_phase="Phase 3: Integration")
         )
-        narratives = scope["plan"]["narratives"]
-        assert narratives["Phase"] == "Milestone 2"
-        assert narratives["SpecPhase"] == "Phase 3: Integration"
+        meta = self._migrator_meta(scope)
+        assert meta["Phase"] == "Milestone 2"
+        assert meta["SpecPhase"] == "Phase 3: Integration"
+        assert scope["plan"]["narratives"] == {}
 
     def test_roadmap_summary_emitted_on_title_drift(self):
+        """#616: RoadmapSummary + Title_source live under x-migrator."""
         scope = build_scope_vbrief_from_reconciled(
             _reconciled(
                 title="Repo indexer (full and incremental)",
@@ -196,23 +225,31 @@ class TestBuildReconciledScopeVbrief:
                 roadmap_summary="Repo indexer (full + incremental)",
             )
         )
-        narratives = scope["plan"]["narratives"]
-        assert narratives["RoadmapSummary"] == "Repo indexer (full + incremental)"
-        assert narratives["Title_source"] == "SPECIFICATION.md"
+        meta = self._migrator_meta(scope)
+        assert meta["RoadmapSummary"] == "Repo indexer (full + incremental)"
+        assert meta["Title_source"] == "SPECIFICATION.md"
+        assert scope["plan"]["narratives"] == {}
 
-    def test_github_origin_provenance_preserved(self):
+    def test_github_origin_provenance_canonical(self):
+        """#613: references emit canonical {uri, type, title} shape."""
         scope = build_scope_vbrief_from_reconciled(
             _reconciled(), repo_url="https://github.com/acme/widget",
         )
         refs = scope["plan"]["references"]
-        assert any(
-            r.get("type") == "github-issue" and r.get("id") == "#99"
-            and r.get("url") == "https://github.com/acme/widget/issues/99"
-            for r in refs
-        )
+        assert len(refs) == 1
+        assert refs[0]["type"] == "x-vbrief/github-issue"
+        assert refs[0]["uri"] == "https://github.com/acme/widget/issues/99"
+        assert refs[0]["title"] == "Issue #99: Widget feature"
+        # Legacy fields must not leak into canonical output.
+        assert "id" not in refs[0]
+        assert "url" not in refs[0]
 
-    def test_source_section_emitted_in_narratives(self):
-        """#593: SourceSection narrative carries ROADMAP origin on disk."""
+    def test_source_section_emitted_as_narrative(self):
+        """#593 + #616 Fix A: SourceSection stays in plan.narratives as the
+        single named exception to the #616 clamp. The Windows task-
+        dispatch regression in .github/workflows/ci.yml asserts
+        ``plan.narratives.SourceSection`` specifically.
+        """
         scope = build_scope_vbrief_from_reconciled(
             _reconciled(
                 status="completed",
@@ -220,9 +257,14 @@ class TestBuildReconciledScopeVbrief:
                 source_section="ROADMAP Completed section",
             )
         )
-        assert scope["plan"]["narratives"]["SourceSection"] == (
-            "ROADMAP Completed section"
-        )
+        assert scope["plan"]["narratives"] == {
+            "SourceSection": "ROADMAP Completed section",
+        }
+        # Single source of truth: SourceSection is NOT duplicated under
+        # x-migrator metadata. The other reconciler provenance fields
+        # (Description_source, etc.) live there; SourceSection is
+        # deliberately narratives-only.
+        assert "SourceSection" not in self._migrator_meta(scope)
 
     def test_completed_status_stamps_vbriefinfo_updated(self):
         """#593: completed items get vBRIEFInfo.updated set to the migration timestamp."""

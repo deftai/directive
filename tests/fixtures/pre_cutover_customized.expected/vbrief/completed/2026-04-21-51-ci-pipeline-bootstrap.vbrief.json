@@ -8,18 +8,16 @@
     "title": "CI pipeline bootstrap",
     "status": "completed",
     "narratives": {
-      "Description": "CI pipeline bootstrap",
-      "Phase": "Completed",
-      "Description_source": "ROADMAP.md",
-      "Status_source": "ROADMAP.md",
       "SourceSection": "ROADMAP Completed section"
     },
     "items": [],
-    "references": [
-      {
-        "type": "github-issue",
-        "id": "#51"
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "CI pipeline bootstrap",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "ROADMAP.md"
       }
-    ]
+    }
   }
 }

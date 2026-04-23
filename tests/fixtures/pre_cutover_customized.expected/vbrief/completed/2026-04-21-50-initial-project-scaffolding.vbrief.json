@@ -8,18 +8,16 @@
     "title": "Initial project scaffolding",
     "status": "completed",
     "narratives": {
-      "Description": "Initial project scaffolding",
-      "Phase": "Completed",
-      "Description_source": "ROADMAP.md",
-      "Status_source": "ROADMAP.md",
       "SourceSection": "ROADMAP Completed section"
     },
     "items": [],
-    "references": [
-      {
-        "type": "github-issue",
-        "id": "#50"
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Initial project scaffolding",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "ROADMAP.md"
       }
-    ]
+    }
   }
 }

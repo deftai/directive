@@ -7,19 +7,17 @@
     "title": "GET /widgets: list by owner",
     "status": "pending",
     "narratives": {
-      "Description": "GET /widgets: list by owner",
-      "Phase": "Phase 2 -- Core API",
-      "Tier": "Tier 1 -- CRUD",
-      "Description_source": "ROADMAP.md",
-      "Status_source": "default",
       "SourceSection": "ROADMAP active phase"
     },
     "items": [],
-    "references": [
-      {
-        "type": "github-issue",
-        "id": "#203"
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2 -- Core API",
+        "Tier": "Tier 1 -- CRUD",
+        "Description": "GET /widgets: list by owner",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "default"
       }
-    ]
+    }
   }
 }

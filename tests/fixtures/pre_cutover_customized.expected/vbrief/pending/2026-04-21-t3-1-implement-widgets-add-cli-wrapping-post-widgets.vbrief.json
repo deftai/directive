@@ -7,13 +7,17 @@
     "title": "Implement widgets add CLI wrapping POST /widgets",
     "status": "pending",
     "narratives": {
-      "Description": "Implement widgets add CLI wrapping POST /widgets",
-      "Phase": "Phase 2 -- Core API",
-      "Tier": "Tier 2 -- CLI",
-      "Description_source": "ROADMAP.md",
-      "Status_source": "default",
       "SourceSection": "ROADMAP active phase"
     },
-    "items": []
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2 -- Core API",
+        "Tier": "Tier 2 -- CLI",
+        "Description": "Implement widgets add CLI wrapping POST /widgets",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "default"
+      }
+    }
   }
 }

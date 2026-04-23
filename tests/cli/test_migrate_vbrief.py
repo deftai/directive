@@ -430,12 +430,32 @@ class TestBuildProjectDefinition:
 
     def test_includes_scope_items_with_provenance(self):
         items = [{"number": "42", "title": "Test item", "phase": "Phase 1"}]
-        result = _build_project_definition(None, None, items)
+        # #613: references are only emitted when a ``repo_url`` is
+        # resolvable (the VBriefReference schema requires ``uri``). Pass
+        # one explicitly so the registry row carries the canonical
+        # ``{uri, type, title}`` shape.
+        result = _build_project_definition(
+            None, None, items, repo_url="https://github.com/owner/repo"
+        )
         plan_items = result["plan"]["items"]
         assert len(plan_items) == 1
         assert plan_items[0]["id"] == "scope-42"
-        assert plan_items[0]["references"][0]["type"] == "github-issue"
-        assert plan_items[0]["references"][0]["id"] == "#42"
+        ref = plan_items[0]["references"][0]
+        assert ref["type"] == "x-vbrief/github-issue"
+        assert ref["uri"] == "https://github.com/owner/repo/issues/42"
+        assert ref["title"] == "Issue #42: Test item"
+        # Legacy keys must not leak into the canonical shape (#613).
+        assert "id" not in ref
+        assert "url" not in ref
+
+    def test_omits_references_without_repo_url(self):
+        """#613: when no repo_url resolves, drop the reference rather than
+        emit a malformed stub (the schema requires ``uri``)."""
+        items = [{"number": "42", "title": "Test item", "phase": "Phase 1"}]
+        result = _build_project_definition(None, None, items, repo_url="")
+        plan_items = result["plan"]["items"]
+        assert len(plan_items) == 1
+        assert "references" not in plan_items[0]
 
     def test_vbrief_envelope(self):
         result = _build_project_definition(None, None, [])
@@ -466,48 +486,84 @@ class TestBuildProjectDefinition:
 
 
 class TestCreateScopeVbrief:
-    """Tests for _create_scope_vbrief."""
+    """Tests for _create_scope_vbrief.
+
+    Post-#613 and #616 the helper emits:
+      * ``plan.narratives = {}`` on every per-issue scope vBRIEF.
+      * Canonical ``{uri, type: "x-vbrief/github-issue", title}``
+        references -- never the legacy ``{type, id, url}`` shape.
+      * Migrator-internal provenance (Phase / Tier / PhaseDescription)
+        under ``plan.metadata['x-migrator']`` instead of leaking into
+        narratives.
+    """
 
     def test_basic_scope_vbrief(self):
         item = {"number": "99", "title": "Test feature", "phase": "Phase 1"}
-        result = _create_scope_vbrief(item)
+        result = _create_scope_vbrief(
+            item, repo_url="https://github.com/owner/repo"
+        )
         # #533: migrator/shared helper now emits "0.6".
         assert result["vBRIEFInfo"]["version"] == "0.6"
         assert result["plan"]["title"] == "Test feature"
         assert result["plan"]["status"] == "pending"
-        assert result["plan"]["references"][0]["id"] == "#99"
+        # #616: per-issue scope vBRIEFs ship with empty narratives.
+        assert result["plan"]["narratives"] == {}
+        # #613: canonical reference shape.
+        ref = result["plan"]["references"][0]
+        assert ref["uri"] == "https://github.com/owner/repo/issues/99"
+        assert ref["type"] == "x-vbrief/github-issue"
+        assert ref["title"] == "Issue #99: Test feature"
 
-    def test_origin_provenance(self):
+    def test_origin_provenance_canonical_shape(self):
+        """#613: refs carry {uri, type: x-vbrief/github-issue, title}."""
         item = {"number": "123", "title": "Bug fix", "phase": "Phase 2"}
-        result = _create_scope_vbrief(item)
+        result = _create_scope_vbrief(
+            item, repo_url="https://github.com/owner/repo"
+        )
         refs = result["plan"]["references"]
         assert len(refs) == 1
-        assert refs[0]["type"] == "github-issue"
-        assert refs[0]["id"] == "#123"
+        assert refs[0]["type"] == "x-vbrief/github-issue"
+        assert refs[0]["uri"] == "https://github.com/owner/repo/issues/123"
+        assert refs[0]["title"] == "Issue #123: Bug fix"
+        # Legacy fields must not leak into the canonical shape.
+        assert "id" not in refs[0]
+        assert "url" not in refs[0]
 
-    def test_origin_provenance_with_repo_url(self):
+    def test_no_reference_without_repo_url(self):
+        """#613: schema requires uri; if no repo_url we cannot build it."""
         item = {"number": "123", "title": "Bug fix", "phase": "Phase 2"}
-        result = _create_scope_vbrief(item, repo_url="https://github.com/owner/repo")
-        refs = result["plan"]["references"]
-        assert refs[0]["url"] == "https://github.com/owner/repo/issues/123"
+        result = _create_scope_vbrief(item, repo_url="")
+        assert "references" not in result["plan"]
 
-    def test_tier_narrative_included(self):
-        """Scope vBRIEF must include Tier narrative when tier is set (#383)."""
+    def test_tier_moved_to_migrator_metadata(self):
+        """#616: Tier is migrator provenance, not a narrative."""
         item = {"number": "99", "title": "Feature", "phase": "Phase 2", "tier": "Tier 1"}
         result = _create_scope_vbrief(item)
-        assert result["plan"]["narratives"]["Tier"] == "Tier 1"
+        assert result["plan"]["narratives"] == {}
+        assert result["plan"]["metadata"]["x-migrator"]["Tier"] == "Tier 1"
+        assert result["plan"]["metadata"]["x-migrator"]["Phase"] == "Phase 2"
 
-    def test_phase_description_narrative_included(self):
-        """Scope vBRIEF must include PhaseDescription when provided (#383)."""
+    def test_phase_description_moved_to_migrator_metadata(self):
+        """#616: PhaseDescription is migrator provenance, not a narrative."""
         item = {"number": "99", "title": "Feature", "phase": "Phase 1"}
         result = _create_scope_vbrief(item, phase_description="Fix blocking bugs.")
-        assert result["plan"]["narratives"]["PhaseDescription"] == "Fix blocking bugs."
+        assert result["plan"]["narratives"] == {}
+        assert (
+            result["plan"]["metadata"]["x-migrator"]["PhaseDescription"]
+            == "Fix blocking bugs."
+        )
 
     def test_completed_status_parameter(self):
         """Scope vBRIEF must use the status parameter (#383)."""
         item = {"number": "50", "title": "Done", "phase": "Completed"}
         result = _create_scope_vbrief(item, status="completed")
         assert result["plan"]["status"] == "completed"
+
+    def test_no_migrator_metadata_when_empty(self):
+        """#616: skip plan.metadata entirely when nothing to store."""
+        item = {"number": "99", "title": "Minimal"}
+        result = _create_scope_vbrief(item)
+        assert "metadata" not in result["plan"]
 
 
 # ===========================================================================
@@ -590,7 +646,19 @@ class TestMigrateRoadmapConversion:
         assert len(vbrief_files) == 3  # #100, #101, #200
 
     def test_scope_vbrief_has_origin_provenance(self, tmp_path):
-        project = _make_project(tmp_path, roadmap_md=SAMPLE_ROADMAP_MD)
+        """#613: scope vBRIEFs with an issue number emit canonical refs.
+
+        Exercise via a ``spec_vbrief.repository`` hint so the migrator can
+        resolve ``repo_url`` without relying on pytest's tmp_path being a
+        git repo (which it isn't).
+        """
+        spec_with_repo = {
+            "vBRIEFInfo": {"version": "0.5", "repository": "owner/repo"},
+            "plan": {"title": "T", "status": "approved", "narratives": {}, "items": []},
+        }
+        project = _make_project(
+            tmp_path, spec_vbrief=spec_with_repo, roadmap_md=SAMPLE_ROADMAP_MD
+        )
         migrate(project)
 
         pending_dir = project / "vbrief" / "pending"
@@ -598,7 +666,9 @@ class TestMigrateRoadmapConversion:
             data = json.loads(fpath.read_text(encoding="utf-8"))
             refs = data["plan"].get("references", [])
             assert len(refs) >= 1
-            assert refs[0]["type"] == "github-issue"
+            assert refs[0]["type"] == "x-vbrief/github-issue"
+            assert refs[0]["uri"].startswith("https://github.com/owner/repo/issues/")
+            assert refs[0]["title"].startswith("Issue #")
 
     def test_filename_includes_issue_number(self, tmp_path):
         """Filenames include issue number to prevent slug collisions."""
@@ -1228,7 +1298,7 @@ class TestMigrateRepoUrlIntegration:
     """Tests that repo_url propagates into generated scope vBRIEFs."""
 
     def test_scope_vbrief_gets_url_from_spec(self, tmp_path):
-        """When spec has repository field, scope vBRIEFs get full URLs."""
+        """#613: when spec carries repository, refs get the canonical URI."""
         spec_with_repo = {
             "vBRIEFInfo": {"version": "0.5", "repository": "myorg/myproject"},
             "plan": {"title": "Test", "status": "approved", "narratives": {}, "items": []},
@@ -1238,14 +1308,31 @@ class TestMigrateRepoUrlIntegration:
         ok, actions = migrate(project)
         assert ok
         pending = project / "vbrief" / "pending"
+        saw_ref = False
         for f in pending.glob("*.vbrief.json"):
             data = json.loads(f.read_text(encoding="utf-8"))
             refs = data["plan"].get("references", [])
             if refs:
-                assert "myorg/myproject" in refs[0].get("url", "")
+                saw_ref = True
+                assert refs[0]["type"] == "x-vbrief/github-issue"
+                assert refs[0]["uri"].startswith(
+                    "https://github.com/myorg/myproject/issues/"
+                )
+        assert saw_ref, "expected at least one scope vBRIEF to emit a reference"
 
-    def test_scope_vbrief_no_url_without_repo(self, tmp_path):
-        """Without repository info, references have id but no url."""
+    def test_scope_vbrief_no_references_without_repo(
+        self, tmp_path, monkeypatch
+    ):
+        """#613: no repo hint + no git remote -> empty references rather than
+        a malformed legacy-shape stub. Monkeypatches the git-remote fallback
+        so the test does not depend on pytest's tmp_path not being a git
+        repo (which cannot be guaranteed across platforms).
+        """
+        import migrate_vbrief as _mv
+
+        monkeypatch.setattr(
+            _mv, "_detect_repo_from_git_remote", lambda _root: ""
+        )
         roadmap = "# Roadmap\n\n## Phase 1\n\n- **#99** -- Test feature\n"
         project = _make_project(tmp_path, roadmap_md=roadmap)
         ok, actions = migrate(project)
@@ -1254,9 +1341,12 @@ class TestMigrateRepoUrlIntegration:
         for f in pending.glob("*.vbrief.json"):
             data = json.loads(f.read_text(encoding="utf-8"))
             refs = data["plan"].get("references", [])
-            if refs:
-                assert "url" not in refs[0]
-                assert refs[0]["id"] == "#99"
+            # Either no references at all, or none carry a legacy id/url
+            # shape -- the schema-conformant canonical shape is the only
+            # acceptable output of the migrator (#613).
+            for ref in refs:
+                assert "id" not in ref
+                assert "url" not in ref
 
 
 class TestMigrateInvalidInput:
@@ -2481,14 +2571,26 @@ class TestLifecycleRouting:
         # #201 is an active-phase orphan -> still proposed/.
         assert len(proposed) == 1
         # Every completed scope carries status=completed + the #593
-        # SourceSection narrative + vBRIEFInfo.updated.
+        # SourceSection provenance + vBRIEFInfo.updated. Post-#616 Fix A,
+        # SourceSection is the named exception that stays in
+        # plan.narratives (it is a deliberate user-visible audit-trail
+        # narrative #593 added). The reconciler-internal provenance
+        # (SourceConflict, Description_source, etc.) still lives under
+        # plan.metadata['x-migrator'].
         for fpath in completed:
             data = json.loads(fpath.read_text(encoding="utf-8"))
             assert data["plan"]["status"] == "completed"
-            assert data["plan"]["narratives"]["SourceSection"] == (
-                "ROADMAP Completed section"
+            # SourceSection narrative is present and nothing else leaks.
+            assert data["plan"]["narratives"] == {
+                "SourceSection": "ROADMAP Completed section",
+            }
+            migrator_meta = (
+                data["plan"].get("metadata", {}).get("x-migrator", {})
             )
-            assert data["plan"]["narratives"]["SourceConflict"] == (
+            # SourceSection is NOT duplicated in metadata (single source
+            # of truth).
+            assert "SourceSection" not in migrator_meta
+            assert migrator_meta.get("SourceConflict") == (
                 "missing-from-spec"
             )
             assert data["vBRIEFInfo"].get("updated"), (
@@ -2586,9 +2688,16 @@ class TestLifecycleRouting:
         assert len(proposed) == 1
         data = json.loads(proposed[0].read_text(encoding="utf-8"))
         assert data["plan"]["status"] == "proposed"
-        assert data["plan"]["narratives"]["SourceConflict"] == (
-            "missing-from-spec"
+        # #616: SourceConflict lives under plan.metadata['x-migrator'].
+        migrator_meta = (
+            data["plan"].get("metadata", {}).get("x-migrator", {})
         )
+        assert migrator_meta.get("SourceConflict") == "missing-from-spec"
+        # Fix A: SourceSection is the named narrative exception; the
+        # orphan row's active-phase provenance surfaces there.
+        assert data["plan"]["narratives"] == {
+            "SourceSection": "ROADMAP active phase",
+        }
 
     def test_default_routes_to_pending(self, tmp_path):
         """No completion signal from either source -> pending/."""
@@ -2743,8 +2852,12 @@ class TestOverridesFileHonored:
         assert len(completed) == 1
         data = json.loads(completed[0].read_text(encoding="utf-8"))
         assert data["plan"]["status"] == "completed"
-        assert "migration-overrides.yaml" in (
-            data["plan"]["narratives"]["Status_source"]
+        # #616: Status_source lives under plan.metadata['x-migrator'].
+        migrator_meta = (
+            data["plan"].get("metadata", {}).get("x-migrator", {})
+        )
+        assert "migration-overrides.yaml" in migrator_meta.get(
+            "Status_source", ""
         )
 
     def test_override_drop_skips_emission(self, tmp_path):
@@ -2788,7 +2901,15 @@ class TestPerFieldProvenance:
         )
         assert len(pending) == 1
         data = json.loads(pending[0].read_text(encoding="utf-8"))
-        narratives = data["plan"]["narratives"]
-        assert narratives["Description"] == "SPEC-owned body."
-        assert narratives["Description_source"] == "SPECIFICATION.md"
-        assert narratives["Status_source"]
+        # #616 + Fix A: per-field provenance moved from plan.narratives
+        # to plan.metadata['x-migrator']. narratives carries only the
+        # named SourceSection audit-trail exception (#593).
+        assert data["plan"]["narratives"] == {
+            "SourceSection": "ROADMAP active phase",
+        }
+        migrator_meta = (
+            data["plan"].get("metadata", {}).get("x-migrator", {})
+        )
+        assert migrator_meta["Description"] == "SPEC-owned body."
+        assert migrator_meta["Description_source"] == "SPECIFICATION.md"
+        assert migrator_meta["Status_source"]

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -440,10 +441,72 @@ def _parse_roadmap_items(roadmap_path: Path) -> tuple[list[dict], dict[str, str]
     return items, phase_descriptions, completed_items
 
 
-def _resolve_repo_url(spec_vbrief: dict | None) -> str:
-    """Resolve the GitHub repository URL from spec_vbrief or git remote.
+# --- repo detection (#613) ---
+# Regex mirroring ``reconcile_issues.detect_repo`` + ``issue_ingest._resolve_
+# repo_url``: accept both ``git@github.com:owner/repo.git`` and
+# ``https://github.com/owner/repo.git`` origin URLs and tolerate a trailing
+# ``.git`` suffix. Exposed at module level so tests can monkeypatch
+# ``_GIT_REMOTE_RE`` if they need to stub edge-case remotes without fighting
+# subprocess.
+_GIT_REMOTE_RE = re.compile(
+    r"github\.com[:/]([^/\s]+)/([^/\s]+?)(?:\.git)?(?:\s|$)",
+)
 
-    Falls back to a generic issue: prefix if no repository can be determined.
+
+def _detect_repo_from_git_remote(project_root: Path | None) -> str:
+    """Return ``https://github.com/owner/repo`` from ``git remote get-url origin``.
+
+    Matches the detection approach used by ``scripts/issue_ingest.py`` /
+    ``scripts/reconcile_issues.detect_repo`` -- shells out to ``git remote
+    get-url origin`` inside ``project_root`` (not the migrator's own CWD,
+    which would pick up deft's own remote on consumer projects, #538) and
+    returns the matching ``https://github.com/{owner}/{repo}`` URL. Returns
+    the empty string on any failure (git missing, remote missing, parse
+    failure) so callers can fall back cleanly without surfacing subprocess
+    errors to the migration log.
+    """
+    cwd = str(project_root) if project_root is not None else None
+    try:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            cwd=cwd,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return ""
+    if result.returncode != 0:
+        return ""
+    url = (result.stdout or "").strip()
+    if not url:
+        return ""
+    match = _GIT_REMOTE_RE.search(url)
+    if not match:
+        return ""
+    return f"https://github.com/{match.group(1)}/{match.group(2)}"
+
+
+def _resolve_repo_url(
+    spec_vbrief: dict | None,
+    project_root: Path | None = None,
+) -> str:
+    """Resolve ``https://github.com/{owner}/{repo}`` for scope vBRIEF references.
+
+    Resolution order (highest precedence first):
+
+    1. ``spec_vbrief.vBRIEFInfo.repository`` (OWNER/REPO string).
+    2. Any ``github.com/{owner}/{repo}`` URI inside ``spec_vbrief.plan.
+       references[]`` (matches canonical v0.6 and legacy shapes).
+    3. ``git remote get-url origin`` rooted at ``project_root`` when
+       provided -- mirrors ``scripts/issue_ingest.py`` so consumer-project
+       migrations resolve to the consumer's GitHub repo, not deft's own
+       remote (#538, #613).
+
+    Returns the empty string when none resolve. Callers that receive the
+    empty string MUST NOT emit a ``references[]`` entry for GitHub issues
+    (the canonical v0.6 shape requires ``uri`` -- see #613 and
+    ``conventions/references.md``).
     """
     # Try spec_vbrief metadata first
     if spec_vbrief:
@@ -459,6 +522,11 @@ def _resolve_repo_url(spec_vbrief: dict | None) -> str:
                 parts = uri.split("github.com/")[-1].split("/")
                 if len(parts) >= 2:
                     return f"https://github.com/{parts[0]}/{parts[1]}"
+    # #613: fall back to the project's git origin so consumer migrations
+    # get canonical URIs even when spec_vbrief is absent or carries no
+    # repository hint.
+    if project_root is not None:
+        return _detect_repo_from_git_remote(project_root)
     return ""
 
 
@@ -718,20 +786,30 @@ def _build_project_definition(
             scope_status = (
                 "completed" if "completed" in phase.lower() else "pending"
             )
+        item_title = scope.get("title", "Untitled")
         item: dict = {
             "id": scope_id,
-            "title": scope.get("title", "Untitled"),
+            "title": item_title,
             "status": scope_status,
         }
-        # Origin provenance per D11
-        if number:
-            ref: dict = {
-                "type": "github-issue",
-                "id": f"#{number}",
-            }
-            if repo_url:
-                ref["url"] = f"{repo_url}/issues/{number}"
-            item["references"] = [ref]
+        # #613: emit canonical v0.6 references on PROJECT-DEFINITION.plan.
+        # items[*].references so every scope registry row links back to
+        # its origin GitHub issue in the same shape the scope vBRIEF file
+        # carries. The VBriefReference schema requires ``uri`` and a
+        # ``^x-vbrief/`` type -- without a resolvable ``repo_url`` we
+        # cannot honestly construct ``uri`` so we drop the reference
+        # rather than emit a malformed stub.
+        if number and repo_url:
+            ref_title = (
+                f"Issue #{number}: {item_title}"
+                if item_title and item_title != "Untitled"
+                else f"Issue #{number}"
+            )
+            item["references"] = [{
+                "uri": f"{repo_url}/issues/{number}",
+                "type": "x-vbrief/github-issue",
+                "title": ref_title,
+            }]
         items.append(item)
 
     return {
@@ -1264,8 +1342,11 @@ def migrate(
     else:
         actions.append("SKIP  ROADMAP.md not found or no items parsed")
 
-    # Resolve repository URL for provenance references
-    repo_url = _resolve_repo_url(spec_vbrief)
+    # Resolve repository URL for provenance references. The ``project_root``
+    # arg enables the ``git remote get-url origin`` fallback added in #613 so
+    # scope vBRIEFs built without a pre-existing ``specification.vbrief.json``
+    # repository hint still get canonical ``{uri, type, title}`` references.
+    repo_url = _resolve_repo_url(spec_vbrief, project_root=project_root)
 
     # ---- Step 2b: Ingest PRD/SPECIFICATION structured narratives (#397) ----
     prd_path = project_root / "PRD.md"
@@ -2278,8 +2359,72 @@ def migrate_speckit_plan(
     return True, actions
 
 
+# Pattern shared with ``reconcile_issues.ISSUE_URL_PATTERN``: matches the
+# canonical v0.6 ``https://github.com/{owner}/{repo}/issues/{N}`` URI that
+# the migrator now emits on scope vBRIEF references (#613). Kept at module
+# scope so the regex compiles once per interpreter.
+_CANONICAL_ISSUE_URI_RE = re.compile(
+    r"https://github\.com/[^/]+/[^/]+/issues/(?P<number>\d+)"
+)
+
+# Filename-stem fallback pattern. When ``repo_url`` is unresolvable at
+# migration time (no git remote, no ``spec_vbrief.repository`` hint), the
+# migrator's scope vBRIEFs carry an empty ``plan.references`` -- the
+# canonical shape requires ``uri`` which we can't synthesize without
+# ``{owner}/{repo}``. Cross-day re-migrations must still deduplicate
+# those files, so we pattern-match the leading issue number out of the
+# filename stem (``YYYY-MM-DD-<N>-<slug>.vbrief.json`` per
+# ``conventions/vbrief-filenames.md``). Addresses Greptile P1 finding:
+# without this fallback, ``_find_existing_scope_vbrief`` returns None
+# for every reference-less file and duplicate scope vBRIEFs accumulate
+# on each re-run.
+_FILENAME_ISSUE_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}-(?P<number>\d+)-"
+)
+
+
+def _reference_matches_issue(ref: dict, issue_number: str) -> bool:
+    """Return True if ``ref`` points at GitHub issue ``#{issue_number}``.
+
+    Accepts both the canonical v0.6 shape ``{uri, type: x-vbrief/github-
+    issue, title}`` and the legacy shape ``{type: github-issue, id}`` so
+    the migrator's duplicate-suppression path stays idempotent during the
+    transition (#613). ``issue_number`` is the bare digit string.
+    """
+    if not isinstance(ref, dict) or not issue_number:
+        return False
+    legacy_id = ref.get("id")
+    if isinstance(legacy_id, str) and legacy_id == f"#{issue_number}":
+        return True
+    uri = ref.get("uri")
+    if isinstance(uri, str) and uri:
+        match = _CANONICAL_ISSUE_URI_RE.search(uri)
+        if match and match.group("number") == issue_number:
+            return True
+    return False
+
+
 def _find_existing_scope_vbrief(vbrief_dir: Path, issue_number: str) -> Path | None:
-    """Check if any existing vBRIEF in lifecycle folders references the issue."""
+    """Check if any existing vBRIEF in lifecycle folders matches the issue.
+
+    Three-tier match (most-reliable first):
+
+    1. Canonical v0.6 reference shape -- ``plan.references[*].uri``
+       contains the canonical ``.../issues/{N}`` URI (#613 primary path).
+    2. Legacy reference shape -- ``plan.references[*].id == "#{N}"`` (kept
+       for mixed-shape worktrees during the transition).
+    3. Filename-stem fallback -- ``YYYY-MM-DD-{N}-`` prefix. Covers the
+       edge case where ``repo_url`` was unresolvable at migration time
+       (no git remote, no ``spec_vbrief.repository`` hint); those files
+       ship with empty ``plan.references`` because the canonical
+       ``VBriefReference`` schema requires ``uri`` which we cannot
+       synthesize. Without this fallback, cross-day re-migrations on
+       such projects silently produce duplicate scope vBRIEFs because
+       tier 1 and tier 2 both miss.
+
+    Returns the first matching path found, or ``None``.
+    """
+    # Pass 1: reference-based match (canonical + legacy, same scan).
     for folder_name in LIFECYCLE_FOLDERS:
         folder = vbrief_dir / folder_name
         if not folder.exists():
@@ -2288,11 +2433,26 @@ def _find_existing_scope_vbrief(vbrief_dir: Path, issue_number: str) -> Path | N
             try:
                 data = json.loads(fpath.read_text(encoding="utf-8"))
                 refs = data.get("plan", {}).get("references", [])
+                if not isinstance(refs, list):
+                    continue
                 for ref in refs:
-                    if ref.get("id") == f"#{issue_number}":
+                    if _reference_matches_issue(ref, issue_number):
                         return fpath
             except (json.JSONDecodeError, AttributeError):
                 continue
+
+    # Pass 2: filename-stem fallback for reference-less files.
+    if not issue_number:
+        return None
+    for folder_name in LIFECYCLE_FOLDERS:
+        folder = vbrief_dir / folder_name
+        if not folder.exists():
+            continue
+        for fpath in folder.glob("*.vbrief.json"):
+            stem = fpath.name.removesuffix(".vbrief.json")
+            match = _FILENAME_ISSUE_RE.match(stem)
+            if match and match.group("number") == issue_number:
+                return fpath
     return None
 
 

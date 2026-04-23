@@ -23,57 +23,27 @@
       {
         "id": "scope-101",
         "title": "Scaffold FastAPI app with SQLite",
-        "status": "pending",
-        "references": [
-          {
-            "type": "github-issue",
-            "id": "#101"
-          }
-        ]
+        "status": "pending"
       },
       {
         "id": "scope-102",
         "title": "Add request-id logging middleware",
-        "status": "pending",
-        "references": [
-          {
-            "type": "github-issue",
-            "id": "#102"
-          }
-        ]
+        "status": "pending"
       },
       {
         "id": "scope-201",
         "title": "POST /widgets: create a widget",
-        "status": "pending",
-        "references": [
-          {
-            "type": "github-issue",
-            "id": "#201"
-          }
-        ]
+        "status": "pending"
       },
       {
         "id": "scope-202",
         "title": "GET /widgets/{id}: fetch by id",
-        "status": "pending",
-        "references": [
-          {
-            "type": "github-issue",
-            "id": "#202"
-          }
-        ]
+        "status": "pending"
       },
       {
         "id": "scope-203",
         "title": "GET /widgets: list by owner",
-        "status": "pending",
-        "references": [
-          {
-            "type": "github-issue",
-            "id": "#203"
-          }
-        ]
+        "status": "pending"
       },
       {
         "id": "scope-t3-1",
@@ -103,24 +73,12 @@
       {
         "id": "scope-50",
         "title": "Initial project scaffolding",
-        "status": "completed",
-        "references": [
-          {
-            "type": "github-issue",
-            "id": "#50"
-          }
-        ]
+        "status": "completed"
       },
       {
         "id": "scope-51",
         "title": "CI pipeline bootstrap",
-        "status": "completed",
-        "references": [
-          {
-            "type": "github-issue",
-            "id": "#51"
-          }
-        ]
+        "status": "completed"
       }
     ]
   }

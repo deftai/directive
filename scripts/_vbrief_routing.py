@@ -33,7 +33,10 @@ from typing import Any
 # imported as part of the ``scripts/`` package layout or as a top-level module.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _vbrief_build import create_scope_vbrief as _create_scope_vbrief  # noqa: E402
+from _vbrief_build import (  # noqa: E402
+    MIGRATOR_METADATA_KEY as _MIGRATOR_METADATA_KEY,
+    create_scope_vbrief as _create_scope_vbrief,
+)
 
 
 def _migration_timestamp() -> str:
@@ -138,7 +141,7 @@ def build_scope_vbrief_from_reconciled(
     repo_url: str = "",
     migration_timestamp: str | None = None,
 ) -> dict:
-    """Build a scope vBRIEF dict from a reconciled item (#496 + #499).
+    """Build a scope vBRIEF dict from a reconciled item (#496 + #499 + #616).
 
     ``reconciled`` is a dict with the following recognised keys (produced by
     ``_vbrief_reconciliation.reconcile_scope_items``):
@@ -148,19 +151,25 @@ def build_scope_vbrief_from_reconciled(
       roadmap_summary, source_conflict, override_applied, references.
 
     The output preserves the ``_create_scope_vbrief`` envelope shape that
-    tests already rely on and extends ``plan.narratives`` with reconciliation
-    provenance fields:
+    tests already rely on. Per issue #616 (option A, scope-clamped) the
+    user-visible ``plan.narratives`` is left almost EMPTY on per-issue
+    scope vBRIEFs -- ROADMAP rows do not carry enough data to populate
+    any canonical narrative key meaningfully. Reconciliation provenance
+    (Description / Description_source / Status_source / Title_source /
+    SpecPhase / RoadmapSummary / SourceConflict) is relocated to
+    ``plan.metadata['x-migrator']`` so downstream tooling that cares
+    about SPEC/ROADMAP lineage can still read it without the invented
+    keys leaking into the user-facing summary surface.
 
-      Description          <- SPEC body when available, ROADMAP title otherwise
-      Description_source   <- origin ref (e.g. "SPECIFICATION.md" / "ROADMAP.md")
-      Status_source        <- which source decided the status
-      Title_source         <- which source decided the title (if drifted)
-      Phase                <- ROADMAP milestone (#496 D1)
-      SpecPhase            <- SPEC phase heading (#496 D1, preserved alongside)
-      RoadmapSummary       <- ROADMAP one-liner (only when it differs from SPEC)
-      PhaseDescription     <- ROADMAP phase description text
-      Tier                 <- ROADMAP sub-phase tier
-      SourceConflict       <- e.g. "missing-from-spec" for orphan ROADMAP items
+    ``SourceSection`` is the named exception to the #616 clamp: it
+    remains in ``plan.narratives`` because it is a deliberate,
+    user-visible audit-trail narrative (``ROADMAP Completed section``
+    vs ``ROADMAP active phase``) added by #593 so operators can audit
+    the routing decision post-migration without re-running the
+    migrator. Unlike the reconciler-internal provenance above (which
+    really is plumbing noise), SourceSection is intentional signal.
+    The Windows task-dispatch regression asserts
+    ``plan.narratives.SourceSection`` specifically.
     """
     status = reconciled.get("status") or default_status_for_folder(
         reconciled.get("folder", "pending")
@@ -181,45 +190,53 @@ def build_scope_vbrief_from_reconciled(
         phase_description=reconciled.get("phase_description", ""),
     )
 
-    narratives = scope["plan"].setdefault("narratives", {})
+    # #616: migrator provenance flows into plan.metadata['x-migrator'],
+    # NOT plan.narratives. The shared ``create_scope_vbrief`` helper
+    # already seeded Phase / Tier / PhaseDescription under the same key
+    # when populated; we extend that bucket with reconciler-specific
+    # fields so a single metadata blob captures the full lineage.
+    plan_meta = scope["plan"].setdefault("metadata", {})
+    migrator_meta = plan_meta.setdefault(_MIGRATOR_METADATA_KEY, {})
 
-    description = _narrative_str(reconciled.get("description"))
-    if description:
-        narratives["Description"] = description
+    def _store(key: str, value: Any) -> None:
+        coerced = _narrative_str(value)
+        if coerced:
+            migrator_meta[key] = coerced
 
-    description_source = _narrative_str(reconciled.get("description_source"))
-    if description_source:
-        narratives["Description_source"] = description_source
+    _store("Description", reconciled.get("description"))
+    _store("Description_source", reconciled.get("description_source"))
+    _store("Status_source", reconciled.get("status_source"))
+    _store("Title_source", reconciled.get("title_source"))
+    _store("SpecPhase", reconciled.get("spec_phase"))
+    _store("RoadmapSummary", reconciled.get("roadmap_summary"))
+    _store("SourceConflict", reconciled.get("source_conflict"))
 
-    status_source = _narrative_str(reconciled.get("status_source"))
-    if status_source:
-        narratives["Status_source"] = status_source
-
-    title_source = _narrative_str(reconciled.get("title_source"))
-    if title_source:
-        narratives["Title_source"] = title_source
-
-    spec_phase = _narrative_str(reconciled.get("spec_phase"))
-    if spec_phase:
-        narratives["SpecPhase"] = spec_phase
-
-    roadmap_summary = _narrative_str(reconciled.get("roadmap_summary"))
-    if roadmap_summary:
-        narratives["RoadmapSummary"] = roadmap_summary
-
-    source_conflict = _narrative_str(reconciled.get("source_conflict"))
-    if source_conflict:
-        narratives["SourceConflict"] = source_conflict
-
-    # #593: surface the ROADMAP source section (``active phase`` vs
-    # ``Completed section``) in the scope vBRIEF narratives so operators
-    # can audit the routing decision on disk without re-running the
-    # migrator. Only emitted when the reconciler populated it -- callers
-    # that build reconciled dicts by hand (e.g. unit tests for the
-    # schema-vocabulary guards) are unaffected.
+    # #593: SourceSection is the named exception to the #616 narrative
+    # clamp -- it is a deliberate, user-visible audit-trail narrative
+    # (``ROADMAP Completed section`` vs ``ROADMAP active phase``) that
+    # operators need surfaced at the narrative level so the routing
+    # decision is auditable without re-running the migrator. Unlike the
+    # reconciler-internal provenance above (Description_source /
+    # Status_source / ...), which is plumbing noise, SourceSection is
+    # intended signal. The Windows task-dispatch regression asserts
+    # ``plan.narratives.SourceSection`` specifically. Single source of
+    # truth: we record it in narratives only, not duplicated under
+    # x-migrator metadata.
     source_section = _narrative_str(reconciled.get("source_section"))
     if source_section:
+        narratives = scope["plan"].setdefault("narratives", {})
         narratives["SourceSection"] = source_section
+
+    # Clean up an empty migrator bucket so the emitted JSON doesn't
+    # carry an empty ``metadata.x-migrator`` payload on fully bare
+    # reconciled items (happens in unit tests that bypass the
+    # reconciler). Mirrors the clean-up path in ``create_scope_vbrief``
+    # where plan.metadata is only materialised when there is something
+    # to store.
+    if not migrator_meta:
+        plan_meta.pop(_MIGRATOR_METADATA_KEY, None)
+    if not plan_meta:
+        scope["plan"].pop("metadata", None)
 
     # #593: stamp ``vBRIEFInfo.updated`` with the migration timestamp when
     # we route an item to ``completed/``. The vBRIEF carries completion

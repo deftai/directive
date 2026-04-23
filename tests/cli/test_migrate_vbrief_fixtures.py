@@ -123,15 +123,60 @@ def test_scenario_forbidden_values(scenario):
 
 
 def test_scenario_narrative_contains(scenario):
+    """Scenario-level assertion for migrator provenance values.
+
+    Post-#616 migrator provenance (SourceSection / SourceConflict /
+    Description / Status_source / etc.) lives under
+    ``plan.metadata['x-migrator']``, NOT ``plan.narratives``. This helper
+    accepts both locations so the fixture ``expected.json`` files can
+    continue to use the ``narrative_contains`` key without forcing a
+    rename across every scenario. Fixtures may ALSO declare an explicit
+    ``metadata_contains`` block for assertions that are specifically
+    about migrator metadata (preferred for new fixtures).
+    """
     project: Path = scenario["project"]
     expected = scenario["expected"]
+
+    def _lookup(plan: dict, key: str) -> object:
+        # #616: provenance was moved from narratives to
+        # plan.metadata['x-migrator']. Check metadata first so new
+        # fixtures that declare migrator provenance keys see the
+        # relocated value; fall back to narratives for legacy fixtures
+        # and for genuinely user-authored narrative keys.
+        meta = plan.get("metadata", {}) if isinstance(plan, dict) else {}
+        if isinstance(meta, dict):
+            bucket = meta.get("x-migrator", {})
+            if isinstance(bucket, dict) and key in bucket:
+                return bucket[key]
+        narratives = plan.get("narratives", {}) if isinstance(plan, dict) else {}
+        if isinstance(narratives, dict):
+            return narratives.get(key)
+        return None
+
     for folder, pairs in expected.get("narrative_contains", {}).items():
         for fpath in (project / "vbrief" / folder).glob("*.vbrief.json"):
             data = json.loads(fpath.read_text(encoding="utf-8"))
-            narratives = data["plan"].get("narratives", {})
+            plan = data.get("plan", {})
             for key, value in pairs.items():
-                assert narratives.get(key) == value, (
+                actual = _lookup(plan, key)
+                assert actual == value, (
                     f"{expected['scenario']}: {fpath.relative_to(project)} "
-                    f"narrative[{key!r}] = {narratives.get(key)!r} != "
+                    f"narrative/metadata[{key!r}] = {actual!r} != "
                     f"{value!r}"
+                )
+    for folder, pairs in expected.get("metadata_contains", {}).items():
+        for fpath in (project / "vbrief" / folder).glob("*.vbrief.json"):
+            data = json.loads(fpath.read_text(encoding="utf-8"))
+            plan = data.get("plan", {})
+            bucket = (
+                plan.get("metadata", {}).get("x-migrator", {})
+                if isinstance(plan.get("metadata", {}), dict)
+                else {}
+            )
+            for key, value in pairs.items():
+                actual = bucket.get(key) if isinstance(bucket, dict) else None
+                assert actual == value, (
+                    f"{expected['scenario']}: {fpath.relative_to(project)} "
+                    f"plan.metadata['x-migrator'][{key!r}] = "
+                    f"{actual!r} != {value!r}"
                 )

@@ -7,19 +7,17 @@
     "title": "POST /widgets: create a widget",
     "status": "pending",
     "narratives": {
-      "Description": "POST /widgets: create a widget",
-      "Phase": "Phase 2 -- Core API",
-      "Tier": "Tier 1 -- CRUD",
-      "Description_source": "ROADMAP.md",
-      "Status_source": "default",
       "SourceSection": "ROADMAP active phase"
     },
     "items": [],
-    "references": [
-      {
-        "type": "github-issue",
-        "id": "#201"
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2 -- Core API",
+        "Tier": "Tier 1 -- CRUD",
+        "Description": "POST /widgets: create a widget",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "default"
       }
-    ]
+    }
   }
 }

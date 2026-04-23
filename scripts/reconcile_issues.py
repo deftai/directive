@@ -53,6 +53,15 @@ ISSUE_URL_PATTERN = re.compile(
 )
 ISSUE_ID_PATTERN = re.compile(r"^#(?P<number>\d+)$")
 
+# Reference-type strings that identify a GitHub issue origin. The migrator
+# emits the canonical v0.6 ``x-vbrief/github-issue`` type (#613); legacy
+# vBRIEFs produced by earlier migrator runs (or hand-authored pre-v0.20
+# fixtures) use the bare ``github-issue`` string. Both shapes are accepted
+# here so the reconciler stays idempotent across the transition.
+GITHUB_ISSUE_REF_TYPES: frozenset[str] = frozenset(
+    {"github-issue", "x-vbrief/github-issue"}
+)
+
 
 # ---------------------------------------------------------------------------
 # vBRIEF scanning
@@ -90,17 +99,25 @@ def extract_references_from_vbrief(data: dict) -> list[dict]:
 def parse_issue_number(ref: dict) -> int | None:
     """Extract a GitHub issue number from a vBRIEF reference dict.
 
-    Supports both ``url`` (full GitHub URL) and ``id`` (#NNN) fields.
+    Accepts both the canonical v0.6 shape ``{uri, type, title}`` (#613) and
+    the legacy pre-v0.20 shapes ``{type, url}`` / ``{type, id}`` so mixed-
+    shape trees (projects partway through the migrator flip) reconcile
+    cleanly. The URL-bearing keys (``uri`` and ``url``) are searched first
+    because they disambiguate the owner/repo; ``id`` is the last-resort
+    fallback used by the legacy migrator output.
     """
-    url = ref.get("url", "")
-    m = ISSUE_URL_PATTERN.search(url)
-    if m:
-        return int(m.group("number"))
+    for key in ("uri", "url"):
+        value = ref.get(key, "")
+        if isinstance(value, str) and value:
+            m = ISSUE_URL_PATTERN.search(value)
+            if m:
+                return int(m.group("number"))
 
     ref_id = ref.get("id", "")
-    m = ISSUE_ID_PATTERN.match(ref_id)
-    if m:
-        return int(m.group("number"))
+    if isinstance(ref_id, str):
+        m = ISSUE_ID_PATTERN.match(ref_id)
+        if m:
+            return int(m.group("number"))
     return None
 
 
@@ -125,7 +142,11 @@ def scan_vbrief_dir(vbrief_dir: Path) -> dict[int, list[str]]:
             refs = extract_references_from_vbrief(data)
             rel_path = f"{folder}/{vbrief_file.name}"
             for ref in refs:
-                if ref.get("type") != "github-issue":
+                # #613: accept both the canonical v0.6 type
+                # (``x-vbrief/github-issue``) and the legacy bare
+                # ``github-issue`` so scans over partially-migrated
+                # trees find every GitHub-issue origin.
+                if ref.get("type") not in GITHUB_ISSUE_REF_TYPES:
                     continue
                 num = parse_issue_number(ref)
                 if num is not None:

@@ -7,19 +7,17 @@
     "title": "GET /widgets/{id}: fetch by id",
     "status": "pending",
     "narratives": {
-      "Description": "GET /widgets/{id}: fetch by id",
-      "Phase": "Phase 2 -- Core API",
-      "Tier": "Tier 1 -- CRUD",
-      "Description_source": "ROADMAP.md",
-      "Status_source": "default",
       "SourceSection": "ROADMAP active phase"
     },
     "items": [],
-    "references": [
-      {
-        "type": "github-issue",
-        "id": "#202"
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2 -- Core API",
+        "Tier": "Tier 1 -- CRUD",
+        "Description": "GET /widgets/{id}: fetch by id",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "default"
       }
-    ]
+    }
   }
 }

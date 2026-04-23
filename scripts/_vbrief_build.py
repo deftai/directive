@@ -57,6 +57,27 @@ def slugify(text: str) -> str:
 
 
 # ----------------------------------------------------------------------------
+# Migrator provenance metadata namespace (#616)
+# ----------------------------------------------------------------------------
+
+# Per issue #616 (option A, scope-clamped), per-issue scope vBRIEFs emit
+# ``plan.narratives`` as an empty object because a ROADMAP.md row does not
+# carry enough data to populate any canonical narrative key meaningfully
+# (Goals / ProblemStatement / UserStories need hand-authoring). Migrator-
+# internal provenance (Phase, Tier, PhaseDescription plus reconciler-
+# emitted fields) is relocated under ``plan.metadata`` in the
+# ``x-migrator/*`` namespace so downstream readers can still access it
+# without it leaking into user-visible narratives.
+#
+# The surface key is a string (``"x-migrator"``) rather than a dotted
+# path because ``plan.metadata`` is schema-defined as ``{type: object}``
+# with no structural constraints -- any key is legal. Using the
+# ``x-migrator`` namespace signals "this value comes from `task
+# migrate:vbrief`" at a glance and keeps the payload compatible with the
+# vendored v0.6 schema without touching it.
+MIGRATOR_METADATA_KEY: str = "x-migrator"
+
+# ----------------------------------------------------------------------------
 # Scope vBRIEF construction
 # ----------------------------------------------------------------------------
 
@@ -80,10 +101,20 @@ def create_scope_vbrief(
       - ``vBRIEFInfo.version = EMITTED_VBRIEF_VERSION``
       - ``plan.title`` is ``item['title']`` verbatim
       - ``plan.status`` is ``status`` (default ``pending``)
-      - ``plan.narratives`` carries ``Description`` / ``Phase`` (and optional
-        ``Tier`` / ``PhaseDescription``).
-      - ``plan.references`` carries a ``github-issue`` origin-provenance entry
-        when ``item['number']`` is non-empty.
+      - ``plan.narratives`` is ``{}`` (empty). Per-issue scope vBRIEFs
+        intentionally ship with no narratives -- ROADMAP rows do not
+        carry enough data for any canonical narrative key, and inventing
+        keys leaked migrator internals into user-visible narratives
+        (#616). Migrator-internal provenance (``Phase`` / ``Tier`` /
+        ``PhaseDescription``) lives in ``plan.metadata['x-migrator']``
+        when populated.
+      - ``plan.references`` carries the canonical v0.6 origin-provenance
+        entry ``{uri, type: "x-vbrief/github-issue", title}`` when
+        ``item['number']`` is non-empty AND ``repo_url`` can be resolved
+        to a GitHub owner/repo (#613). Legacy readers that used to
+        receive a bare ``{type: "github-issue", id: "#N"}`` must migrate
+        to the canonical shape -- see ``scripts/reconcile_issues.py``
+        for a bilingual reader example.
     """
     number = item.get("number", "")
     title = item.get("title", "Untitled")
@@ -91,14 +122,6 @@ def create_scope_vbrief(
     tier = item.get("tier", "")
 
     desc_label = f"#{number}: {title}" if number else title
-    narratives: dict[str, str] = {
-        "Description": title,
-        "Phase": phase,
-    }
-    if tier:
-        narratives["Tier"] = tier
-    if phase_description:
-        narratives["PhaseDescription"] = phase_description
 
     vbrief: dict = {
         "vBRIEFInfo": {
@@ -108,22 +131,50 @@ def create_scope_vbrief(
         "plan": {
             "title": title,
             "status": status,
-            "narratives": narratives,
+            "narratives": {},
             "items": [],
         },
     }
 
-    # Origin provenance per RFC #309 D11
-    if number:
-        ref: dict = {
-            "type": "github-issue",
-            "id": f"#{number}",
+    # #616: relocate migrator-internal provenance from plan.narratives to
+    # plan.metadata['x-migrator'] so downstream tools (roadmap_render) keep
+    # working without leaking invented keys into user-visible narratives.
+    migrator_meta: dict[str, str] = {}
+    if phase:
+        migrator_meta["Phase"] = phase
+    if tier:
+        migrator_meta["Tier"] = tier
+    if phase_description:
+        migrator_meta["PhaseDescription"] = phase_description
+    if migrator_meta:
+        vbrief["plan"].setdefault("metadata", {})[MIGRATOR_METADATA_KEY] = migrator_meta
+
+    # #613: origin provenance per RFC #309 D11 + conventions/references.md.
+    # Canonical shape: {uri, type: "x-vbrief/github-issue", title}. A
+    # reference is only emitted when BOTH ``number`` and ``repo_url`` are
+    # present -- the schema's VBriefReference definition requires ``uri``
+    # so we cannot honestly emit a reference without a resolvable URL.
+    # ROADMAP bare-text rows (no issue number) legitimately ship with no
+    # origin reference; the migrator logs them as proposed/ orphans.
+    if number and repo_url:
+        ref_title = (
+            f"Issue #{number}: {title}" if title and title != "Untitled"
+            else f"Issue #{number}"
+        )
+        canonical_ref: dict = {
+            "uri": f"{repo_url}/issues/{number}",
+            "type": "x-vbrief/github-issue",
+            "title": ref_title,
         }
-        if repo_url:
-            ref["url"] = f"{repo_url}/issues/{number}"
-        vbrief["plan"]["references"] = [ref]
+        vbrief["plan"]["references"] = [canonical_ref]
 
     return vbrief
 
 
-__all__ = ["EMITTED_VBRIEF_VERSION", "TODAY", "slugify", "create_scope_vbrief"]
+__all__ = [
+    "EMITTED_VBRIEF_VERSION",
+    "MIGRATOR_METADATA_KEY",
+    "TODAY",
+    "slugify",
+    "create_scope_vbrief",
+]

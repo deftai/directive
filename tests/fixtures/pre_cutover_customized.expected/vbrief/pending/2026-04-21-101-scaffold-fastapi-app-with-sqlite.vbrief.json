@@ -7,19 +7,17 @@
     "title": "Scaffold FastAPI app with SQLite",
     "status": "pending",
     "narratives": {
-      "Description": "Scaffold FastAPI app with SQLite",
-      "Phase": "Phase 1 -- Foundation",
-      "PhaseDescription": "Fix the blocking setup gaps before any feature work.",
-      "Description_source": "ROADMAP.md",
-      "Status_source": "default",
       "SourceSection": "ROADMAP active phase"
     },
     "items": [],
-    "references": [
-      {
-        "type": "github-issue",
-        "id": "#101"
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Foundation",
+        "PhaseDescription": "Fix the blocking setup gaps before any feature work.",
+        "Description": "Scaffold FastAPI app with SQLite",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "default"
       }
-    ]
+    }
   }
 }
