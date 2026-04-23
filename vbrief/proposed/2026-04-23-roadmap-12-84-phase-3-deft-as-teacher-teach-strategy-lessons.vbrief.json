@@ -1,0 +1,24 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for **#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution"
+  },
+  "plan": {
+    "title": "**#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution",
+    "status": "proposed",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 6 -- CLI Overhaul & New Features",
+        "PhaseDescription": "Larger feature work -- only after issues are resolved and content is stable.",
+        "Description": "**#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    }
+  }
+}

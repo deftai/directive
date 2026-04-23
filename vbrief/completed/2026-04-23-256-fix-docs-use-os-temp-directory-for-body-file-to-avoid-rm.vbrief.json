@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #256: fix(docs): use OS temp directory for --body-file to avoid rm denylist collision",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "fix(docs): use OS temp directory for --body-file to avoid rm denylist collision",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "fix(docs): use OS temp directory for --body-file to avoid rm denylist collision",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/256",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #256: fix(docs): use OS temp directory for --body-file to avoid rm denylist collision"
+      }
+    ]
+  }
+}

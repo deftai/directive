@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #172: deft-swarm skill: oz agent run is local, oz agent run-cloud is cloud -- corrected Phase 3, lessons #1+#7, SPECIFICATION.md t2.5.4",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "deft-swarm skill: oz agent run is local, oz agent run-cloud is cloud -- corrected Phase 3, lessons #1+#7, SPECIFICATION.md t2.5.4",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "deft-swarm skill: oz agent run is local, oz agent run-cloud is cloud -- corrected Phase 3, lessons #1+#7, SPECIFICATION.md t2.5.4",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/172",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #172: deft-swarm skill: oz agent run is local, oz agent run-cloud is cloud -- corrected Phase 3, lessons #1+#7, SPECIFICATION.md t2.5.4"
+      }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #6: Programming languages asked too early / limited options",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Programming languages asked too early / limited options",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Programming languages asked too early / limited options",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #6: Programming languages asked too early / limited options"
+      }
+    ]
+  }
+}

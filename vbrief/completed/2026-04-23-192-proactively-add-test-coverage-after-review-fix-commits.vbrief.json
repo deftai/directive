@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #192: Proactively add test coverage after review-fix commits before CI re-run",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Proactively add test coverage after review-fix commits before CI re-run",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Proactively add test coverage after review-fix commits before CI re-run",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/192",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #192: Proactively add test coverage after review-fix commits before CI re-run"
+      }
+    ]
+  }
+}

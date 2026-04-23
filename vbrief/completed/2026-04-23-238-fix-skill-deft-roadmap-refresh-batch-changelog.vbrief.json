@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #238: fix(skill): deft-roadmap-refresh batch changelog convention -- one batch entry at session end, anti-pattern added",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "fix(skill): deft-roadmap-refresh batch changelog convention -- one batch entry at session end, anti-pattern added",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "fix(skill): deft-roadmap-refresh batch changelog convention -- one batch entry at session end, anti-pattern added",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/238",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #238: fix(skill): deft-roadmap-refresh batch changelog convention -- one batch entry at session end, anti-pattern added"
+      }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #12: Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)"
+  },
+  "plan": {
+    "title": "Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)",
+    "status": "proposed",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 6 -- CLI Overhaul & New Features",
+        "PhaseDescription": "Larger feature work -- only after issues are resolved and content is stable.",
+        "Description": "Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/12",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #12: Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #80: deft-setup project name fallback",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "deft-setup project name fallback",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "deft-setup project name fallback",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/80",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #80: deft-setup project name fallback"
+      }
+    ]
+  }
+}

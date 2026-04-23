@@ -1,0 +1,2392 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Project definition -- synthesized gestalt of the project."
+  },
+  "plan": {
+    "title": "PROJECT-DEFINITION",
+    "status": "running",
+    "narratives": {
+      "Overview": "Deft Directive is a Markdown framework for AI agents to use when generating software. It defines layered behavioral rules, workflow strategies, and quality gates across four components: (1) the Markdown framework (primary product — .md files consumed by agents at runtime), (2) the Python CLI (`run` — terminal setup and spec generation), (3) the Go installer (`cmd/deft-install/` — standalone binary for end-user install), and (4) the test suite (`tests/` — CLI and content validation). This specification covers Phase 1 (bug fixes and adoption blockers), Phase 2 (content fixes), and Phase 3 (CI). Phases 4–5 are deferred; see PRD.md and #67 for scope boundaries. References: PRD.md, .planning/codebase/ARCHITECTURE.md, docs/research/deft-directive-research.md.",
+      "Architecture": "Four components. (1) Markdown framework: .md files organized by domain (languages/, strategies/, templates/, skills/, context/, meta/, vbrief/). Rule precedence: USER.md Personal > PROJECT.md > USER.md Defaults > language.md > tool.md > main.md > specification.md. (2) Python CLI (run): cmd_* functions, ask_input/ask_choice/ask_confirm for interaction, _atomic_write for file output, _resume_or_ask for resume support. Extension-less; test shim via run.py importlib. (3) Go installer (cmd/deft-install/): Wizard → CloneDeft/UpdateDeft → WriteAgentsMD → WriteAgentsSkills → CreateUserConfigDir. Stdlib-only. Platform files: drives_windows.go / drives_other.go. (4) Tests: CLI tests (tests/cli/) use isolated_env + mock_user_input fixtures; content tests (tests/content/) validate .md structure, links, schema compliance.",
+      "ProblemStatement": "Deft Directive is a Markdown framework for AI agents to use when generating software. It defines layered behavioral rules, workflow strategies, and quality gates — but it does not have a specification for itself. This creates a compounding problem: agents working on deft fill gaps with guesses, bugs accumulate without authoritative acceptance criteria, and contributors have no clear picture of what deft is supposed to do. Twelve open Phase 1 issues are actively blocking user adoption.\n\n---",
+      "Goals": "1. **Close the dogfooding gap** — deft must have a SPECIFICATION.md that defines its own behavior (closes #67)\n2. **Fix adoption blockers** — resolve all Phase 1 bugs preventing reliable first-run experience\n3. **Clean the content layer** — remove stale references, deduplication debt, and leaked personal data from the framework files\n4. **Establish CI** — automated lint + test on every PR; no more unguarded merges\n\n---",
+      "UserStories": "**US-1** — As a new user, I want deft-setup to correctly identify my project name and tech stack so that my PROJECT.md reflects my actual project, not the deft framework internals.\n*(Closes #79, #80)*\n\n**US-2** — As a new user, I want USER.md to capture only personal preferences (name, strategy, coverage) so the interview doesn't ask me for language preferences that don't make sense for AI-first workflows.\n*(Closes #107, #108)*\n\n**US-3** — As an AI agent, I want deft to generate valid vBRIEF files so I can use them for task tracking without manual correction.\n*(Closes #72)*\n\n**US-4** — As an AI agent using deft, I want testing to be a mandatory gate rather than an optional step so I cannot commit untested code.\n*(Addresses #68 root cause)*\n\n**US-5** — As a contributor to deft, I want a CONTRIBUTING.md that tells me how to set up my environment, run tests, and build the installer so I can start contributing without guesswork.\n*(Closes #67 AC item 3)*\n\n**US-6** — As a framework user, I want strategy files to be canonical and non-duplicated so that fixes to shared logic (sizing gate, chaining gate) don't require multi-file edits.\n*(Closes #23, #31, #50)*\n\n**US-7** — As a framework user, I want framework cross-references to resolve correctly so I'm not sent to files or directories that don't exist.\n*(Closes #58, #59, #24, #25)*\n\n**US-8** — As a contributor, I want CI to catch regressions on every PR so no broken code reaches master.\n*(Closes #57)*\n\n---",
+      "NonFunctionalRequirements": "- **NFR-1**: Test coverage MUST be ≥85% on all measurable Python code. *(Resolves stated-vs-enforced gap)*\n- **NFR-2**: `run` and `run.py` are explicitly excluded from coverage measurement. This exclusion MUST be documented in `pyproject.toml` with a comment explaining the rationale (terminal-only path; pending dedicated tracking issue for future refactor). A new GitHub issue MUST be opened to track bringing `run` into coverage.\n- **NFR-3**: Framework MUST support Windows, macOS (Intel + Apple Silicon), and Linux (amd64 + arm64) — no platform regressions.\n- **NFR-4**: All vBRIEF files generated by any deft entry point (CLI, agent skill) MUST pass `task spec:validate` without manual correction.\n- **NFR-5**: `task check` MUST serve as the authoritative pre-commit gate — passing `task check` is the definition of \"ready to commit\" for all code changes.\n\n---",
+      "SuccessMetrics": "- All 12 Phase 1 open issues closed\n- All Phase 2 non-blocked issues closed; #89-blocked items have explicit dependency markers\n- CI passes on every PR (0 unguarded merges after Phase 3 ships)\n- Coverage ≥85% enforced in CI\n- `CONTRIBUTING.md` exists with complete dev bootstrap instructions\n- `SPECIFICATION.md` exists, closing #67 (Phases 1–3 scope documented in #67 comment)\n- No test in `test_standards.py` fails for Warping references or Voxio Bot content (after Phase 2)\n\n---",
+      "OpenQuestions": "1. **Version unification** — three independent version numbers exist (`0.5.2`, `0.5.0`, `0.4.2`). Should a single source of truth (`Taskfile.yml VERSION`) be added as a Phase 1 or Phase 2 task? Not currently scoped.\n2. **`run` coverage issue number** — a new GitHub issue should be opened for this; assign to Phase 4 or Phase 5 backlog.\n3. **`#89` resolution timeline** — Phase 2 blocked items (#23, #84 Phase 2) cannot ship until #89 is resolved. No hard dependency on this spec's implementation timeline.\n\n---\n\n**Generated by**: deft-setup skill (interview strategy, Full path)\n**Date**: 2026-03-23",
+      "ProjectConfig": "# Deft Directive Project Guidelines\n\nLegend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.\n\nOnly specify items here that **override or extend** the deft defaults.\n\n**Reference**: [main.md](main.md) | [languages/go.md](languages/go.md) | [languages/python.md](languages/python.md)\n\n## Project Configuration\n\n**Tech Stack**: MD Framework for LLMs to use when generating software, using Go, Python, and Shell. Uses [vBRIEF](https://github.com/deftai/vBRIEF) for structured task plans and specifications.\n\n## Strategy\n\nUse [map](strategies/map.md) for this project.\n\n## Workflow\n\n```bash\ntask check         # Pre-commit gate\ntask test:coverage # Coverage target\ntask build         # Build project\ntask clean         # Clean artifacts\n```\n\n## Standards\n\n**Quality:**\n- ! Run `task check` before every commit\n- ! Achieve ≥85% coverage overall + per-module\n\n## Project-Specific Rules\n\n(Add your custom rules here)\n\n---\n\n**Generated by**: deft-setup skill\n**Date**: 2026-03-23\n",
+      "tech stack": "MD Framework for LLMs to use when generating software, using Go, Python, and Shell. Uses [vBRIEF](https://github.com/deftai/vBRIEF) for structured task plans and specifications.",
+      "LegacyArtifacts": "### Workflow (from PROJECT.md:17-25)\n\n```bash\ntask check         # Pre-commit gate\ntask test:coverage # Coverage target\ntask build         # Build project\ntask clean         # Clean artifacts\n```\n"
+    },
+    "items": [
+      {
+        "id": "scope-89",
+        "title": "Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/89",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #89: Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)"
+          }
+        ]
+      },
+      {
+        "id": "scope-151",
+        "title": "[Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/151",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #151: [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)"
+          }
+        ]
+      },
+      {
+        "id": "scope-roadmap-1",
+        "title": "Rename: purge remaining \"Warping\" references from README.md, `warping.sh`, Taskfile.yml; reframe README per #89 resolution (#84 Phase 2, blocked on #89)",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-roadmap-2",
+        "title": "Clean leaked personal files:",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-roadmap-3",
+        "title": "Update `strategies/interview.md` to probe language/tool choices through the contract lens -- when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-roadmap-4",
+        "title": "Create `meta/philosophy.md` -- full contract hierarchy narrative for agent reference and direct user reading (#84 Phase 2)",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-82",
+        "title": "Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/82",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #82: Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)"
+          }
+        ]
+      },
+      {
+        "id": "scope-103",
+        "title": "Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/103",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #103: Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)"
+          }
+        ]
+      },
+      {
+        "id": "scope-127",
+        "title": "Improved support for Deft in existing repositories -- bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/127",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #127: Improved support for Deft in existing repositories -- bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)"
+          }
+        ]
+      },
+      {
+        "id": "scope-roadmap-5",
+        "title": "Port any remaining `SKILL.md` carry-forward content from master",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-roadmap-6",
+        "title": "~~Write remaining CHANGELOG entries~~ -- tracked by #71 (Phase 1)",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-112",
+        "title": "External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/112",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #112: External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship"
+          }
+        ]
+      },
+      {
+        "id": "scope-114",
+        "title": "Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/114",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #114: Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`"
+          }
+        ]
+      },
+      {
+        "id": "scope-258",
+        "title": "Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/258",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #258: Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)"
+          }
+        ]
+      },
+      {
+        "id": "scope-136",
+        "title": "Warp doesn't load deft's AGENTS.md by default",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/136",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #136: Warp doesn't load deft's AGENTS.md by default"
+          }
+        ]
+      },
+      {
+        "id": "scope-194",
+        "title": "User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/194",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #194: User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)"
+          }
+        ]
+      },
+      {
+        "id": "scope-74",
+        "title": "Automate release process",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/74",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #74: Automate release process"
+          }
+        ]
+      },
+      {
+        "id": "scope-128",
+        "title": "CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/128",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #128: CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)"
+          }
+        ]
+      },
+      {
+        "id": "scope-115",
+        "title": "Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/115",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #115: Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)"
+          }
+        ]
+      },
+      {
+        "id": "scope-33",
+        "title": "When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/33",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #33: When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)"
+          }
+        ]
+      },
+      {
+        "id": "scope-roadmap-7",
+        "title": "CLI tests for remaining commands: `cmd_spec`, `cmd_install`, `cmd_reset`, `cmd_update`",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-roadmap-8",
+        "title": "Error and edge case testing for core CLI commands",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-163",
+        "title": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/163",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
+          }
+        ]
+      },
+      {
+        "id": "scope-228",
+        "title": "Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/228",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #228: Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)"
+          }
+        ]
+      },
+      {
+        "id": "scope-roadmap-9",
+        "title": "Code signing",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-roadmap-10",
+        "title": "Low-end LLM compatibility testing",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-roadmap-11",
+        "title": "Upgrade GitHub Actions to Node.js 24",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-56",
+        "title": "Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/56",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #56: Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)"
+          }
+        ]
+      },
+      {
+        "id": "scope-53",
+        "title": "deft-install should bootstrap the current directory by default",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/53",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #53: deft-install should bootstrap the current directory by default"
+          }
+        ]
+      },
+      {
+        "id": "scope-75",
+        "title": "Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/75",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #75: Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)"
+          }
+        ]
+      },
+      {
+        "id": "scope-11",
+        "title": "NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/11",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)"
+          }
+        ]
+      },
+      {
+        "id": "scope-roadmap-12",
+        "title": "**#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-52",
+        "title": "Install into `.deft/` (hidden directory) instead of `deft/`",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/52",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #52: Install into `.deft/` (hidden directory) instead of `deft/`"
+          }
+        ]
+      },
+      {
+        "id": "scope-55",
+        "title": "Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/55",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #55: Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54"
+          }
+        ]
+      },
+      {
+        "id": "scope-46",
+        "title": "Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/46",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #46: Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)"
+          }
+        ]
+      },
+      {
+        "id": "scope-77",
+        "title": "Allow users to change technical rating (1/2/3) when starting a new project",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/77",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #77: Allow users to change technical rating (1/2/3) when starting a new project"
+          }
+        ]
+      },
+      {
+        "id": "scope-78",
+        "title": "Bootstrap: offer to update user preferences when USER.md already exists",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/78",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #78: Bootstrap: offer to update user preferences when USER.md already exists"
+          }
+        ]
+      },
+      {
+        "id": "scope-86",
+        "title": "Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/86",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #86: Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest)"
+          }
+        ]
+      },
+      {
+        "id": "scope-76",
+        "title": "Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/76",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #76: Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)"
+          }
+        ]
+      },
+      {
+        "id": "scope-12",
+        "title": "Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/12",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #12: Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)"
+          }
+        ]
+      },
+      {
+        "id": "scope-9",
+        "title": "Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/9",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #9: Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)"
+          }
+        ]
+      },
+      {
+        "id": "scope-95",
+        "title": "Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/95",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #95: Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks"
+          }
+        ]
+      },
+      {
+        "id": "scope-140",
+        "title": "Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/140",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #140: Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)"
+          }
+        ]
+      },
+      {
+        "id": "scope-160",
+        "title": "Consider TypeScript instead of Python for `run` CLI -- architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/160",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #160: Consider TypeScript instead of Python for `run` CLI -- architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118)"
+          }
+        ]
+      },
+      {
+        "id": "scope-212",
+        "title": "discussion: Process control belongs in Directive -- universal process principles (review cycle, parallel work, batch-fix) as first-class Directive content; skills become tool-specific adapters; explicitly DO NOT IMPLEMENT until team decision reached (xrefs #89, #147, #194, #159)",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/212",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #212: discussion: Process control belongs in Directive -- universal process principles (review cycle, parallel work, batch-fix) as first-class Directive content; skills become tool-specific adapters; explicitly DO NOT IMPLEMENT until team decision reached (xrefs #89, #147, #194, #159)"
+          }
+        ]
+      },
+      {
+        "id": "scope-233",
+        "title": "More Determinism: full initiative -- Phase 0 spec scaffolding (generated per-phase task gates), task doctor, and remaining deterministic enforcement tasks (build:verify, change:archive); tasks/ restructure, toolchain:check, verify:stubs, validate:links, changelog:check, change:init, commit:lint completed in v0.17.0; early-win subset #235 closed in v0.17.0",
+        "status": "proposed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/233",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #233: More Determinism: full initiative -- Phase 0 spec scaffolding (generated per-phase task gates), task doctor, and remaining deterministic enforcement tasks (build:verify, change:archive); tasks/ restructure, toolchain:check, verify:stubs, validate:links, changelog:check, change:init, commit:lint completed in v0.17.0; early-win subset #235 closed in v0.17.0"
+          }
+        ]
+      },
+      {
+        "id": "scope-roadmap-13",
+        "title": "LLM-assisted content validation",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-roadmap-14",
+        "title": "Self-upgrade to Deft Directive product (branding, public docs, distribution packaging)",
+        "status": "proposed"
+      },
+      {
+        "id": "scope-309",
+        "title": "RFC: vBRIEF-centric document model for Deft Directive (D1-D18; 18 design decisions + 21 implementation stories)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/309",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #309: RFC: vBRIEF-centric document model for Deft Directive (D1-D18; 18 design decisions + 21 implementation stories)"
+          }
+        ]
+      },
+      {
+        "id": "scope-310",
+        "title": "Story A: Update vbrief.md with new vBRIEF-centric document model (lifecycle folders, PROJECT-DEFINITION type, epic-story linking, filename convention, scope splitting)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/310",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #310: Story A: Update vbrief.md with new vBRIEF-centric document model (lifecycle folders, PROJECT-DEFINITION type, epic-story linking, filename convention, scope splitting)"
+          }
+        ]
+      },
+      {
+        "id": "scope-311",
+        "title": "Story B: Roadmap generation tool (task roadmap:render) + auto-generated banner + drift detection",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/311",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #311: Story B: Roadmap generation tool (task roadmap:render) + auto-generated banner + drift detection"
+          }
+        ]
+      },
+      {
+        "id": "scope-312",
+        "title": "Story C: Migration script (task migrate:vbrief) -- SPECIFICATION.md/PROJECT.md deprecation redirects, lifecycle folder creation",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/312",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #312: Story C: Migration script (task migrate:vbrief) -- SPECIFICATION.md/PROJECT.md deprecation redirects, lifecycle folder creation"
+          }
+        ]
+      },
+      {
+        "id": "scope-313",
+        "title": "Story D: Core doc updates (main.md, AGENTS.md) for vBRIEF-centric model",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/313",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #313: Story D: Core doc updates (main.md, AGENTS.md) for vBRIEF-centric model"
+          }
+        ]
+      },
+      {
+        "id": "scope-314",
+        "title": "Story E: deft-directive-setup (rename + rewrite for vBRIEF model)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/314",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #314: Story E: deft-directive-setup (rename + rewrite for vBRIEF model)"
+          }
+        ]
+      },
+      {
+        "id": "scope-315",
+        "title": "Story F: deft-directive-build, review-cycle, pre-pr (rename + update)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/315",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #315: Story F: deft-directive-build, review-cycle, pre-pr (rename + update)"
+          }
+        ]
+      },
+      {
+        "id": "scope-316",
+        "title": "Story G: deft-directive-refinement (rename + rewrite from roadmap-refresh)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/316",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #316: Story G: deft-directive-refinement (rename + rewrite from roadmap-refresh)"
+          }
+        ]
+      },
+      {
+        "id": "scope-317",
+        "title": "Story H: deft-directive-swarm (rename + flexible vBRIEF-based allocation)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/317",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #317: Story H: deft-directive-swarm (rename + flexible vBRIEF-based allocation)"
+          }
+        ]
+      },
+      {
+        "id": "scope-318",
+        "title": "Story I: deft-directive-sync (rename + validate new structure + origin freshness)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/318",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #318: Story I: deft-directive-sync (rename + validate new structure + origin freshness)"
+          }
+        ]
+      },
+      {
+        "id": "scope-319",
+        "title": "Story J: deft-directive-interview (namespace rename)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/319",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #319: Story J: deft-directive-interview (namespace rename)"
+          }
+        ]
+      },
+      {
+        "id": "scope-320",
+        "title": "Story K: CLI updates (cmd_spec, cmd_project) for vBRIEF model",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/320",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #320: Story K: CLI updates (cmd_spec, cmd_project) for vBRIEF model"
+          }
+        ]
+      },
+      {
+        "id": "scope-321",
+        "title": "Story L: Test coverage for vBRIEF-centric document model",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/321",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #321: Story L: Test coverage for vBRIEF-centric document model"
+          }
+        ]
+      },
+      {
+        "id": "scope-322",
+        "title": "Story M: Post-cutover GitHub issue reconciliation",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/322",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #322: Story M: Post-cutover GitHub issue reconciliation"
+          }
+        ]
+      },
+      {
+        "id": "scope-323",
+        "title": "Story N: PROJECT-DEFINITION regeneration tool (task project:render)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/323",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #323: Story N: PROJECT-DEFINITION regeneration tool (task project:render)"
+          }
+        ]
+      },
+      {
+        "id": "scope-324",
+        "title": "Story O: Scope lifecycle task commands (task scope:*)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/324",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #324: Story O: Scope lifecycle task commands (task scope:*)"
+          }
+        ]
+      },
+      {
+        "id": "scope-331",
+        "title": "Story P: Ancillary doc updates for vBRIEF-centric model",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/331",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #331: Story P: Ancillary doc updates for vBRIEF-centric model"
+          }
+        ]
+      },
+      {
+        "id": "scope-332",
+        "title": "Story Q: Go installer rewrite for deft-directive-* namespace",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/332",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #332: Story Q: Go installer rewrite for deft-directive-* namespace"
+          }
+        ]
+      },
+      {
+        "id": "scope-333",
+        "title": "Story R: Validation tooling for vBRIEF-centric model",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/333",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #333: Story R: Validation tooling for vBRIEF-centric model"
+          }
+        ]
+      },
+      {
+        "id": "scope-334",
+        "title": "Story S: Pre-cutover detection and backward compatibility guard",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/334",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #334: Story S: Pre-cutover detection and backward compatibility guard"
+          }
+        ]
+      },
+      {
+        "id": "scope-335",
+        "title": "Story T: Release and version boundary items (v0.20.0)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/335",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #335: Story T: Release and version boundary items (v0.20.0)"
+          }
+        ]
+      },
+      {
+        "id": "scope-305",
+        "title": "perf(review-cycle): Greptile review cycle bottlenecks -- 5-change optimization bundle (mandate deft-pre-pr, PR scope gate, adaptive poll cadence, parallel swarm cascade monitoring, .greptile/rules.md template)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/305",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #305: perf(review-cycle): Greptile review cycle bottlenecks -- 5-change optimization bundle (mandate deft-pre-pr, PR scope gate, adaptive poll cadence, parallel swarm cascade monitoring, .greptile/rules.md template)"
+          }
+        ]
+      },
+      {
+        "id": "scope-307",
+        "title": "fix(skill): deft-review-cycle Approach 2 capability detection gap -- add Approach 3 interactive blocking fallback with user warning",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/307",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #307: fix(skill): deft-review-cycle Approach 2 capability detection gap -- add Approach 3 interactive blocking fallback with user warning"
+          }
+        ]
+      },
+      {
+        "id": "scope-328",
+        "title": "docs(deft-review-cycle): add Select-String fallback for oversized gh pr view output",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/328",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #328: docs(deft-review-cycle): add Select-String fallback for oversized gh pr view output"
+          }
+        ]
+      },
+      {
+        "id": "scope-301",
+        "title": "fix(agents): tighten deft-interview routing keyword -- replace bare interview with interview loop / q&a loop / run interview loop",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/301",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #301: fix(agents): tighten deft-interview routing keyword -- replace bare interview with interview loop / q&a loop / run interview loop"
+          }
+        ]
+      },
+      {
+        "id": "scope-302",
+        "title": "fix(skill): deft-interview invocation contract -- clarify embedded vs delegation usage modes",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/302",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #302: fix(skill): deft-interview invocation contract -- clarify embedded vs delegation usage modes"
+          }
+        ]
+      },
+      {
+        "id": "scope-303",
+        "title": "fix(skill): deft-interview Rule 5 vs Rule 6 inconsistency -- ok accepted for default but not confirmation gate",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/303",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #303: fix(skill): deft-interview Rule 5 vs Rule 6 inconsistency -- ok accepted for default but not confirmation gate"
+          }
+        ]
+      },
+      {
+        "id": "scope-304",
+        "title": "test(skill): add regression test for deft-setup Phase 1/2 referencing deft-interview",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/304",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #304: test(skill): add regression test for deft-setup Phase 1/2 referencing deft-interview"
+          }
+        ]
+      },
+      {
+        "id": "scope-293",
+        "title": "test(cli): add subprocess-based unit tests for v0.17.0 task scripts -- 25 test cases in tests/cli/test_task_scripts.py",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/293",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #293: test(cli): add subprocess-based unit tests for v0.17.0 task scripts -- 25 test cases in tests/cli/test_task_scripts.py"
+          }
+        ]
+      },
+      {
+        "id": "scope-298",
+        "title": "chore(spec): flip all 24 stale [pending] task statuses to [completed] in SPECIFICATION.md",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/298",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #298: chore(spec): flip all 24 stale [pending] task statuses to [completed] in SPECIFICATION.md"
+          }
+        ]
+      },
+      {
+        "id": "scope-233-partial-more-determinism-tasks-restructure-toolchain-check-verify-stubs-vali",
+        "title": "#233 (partial) -- More Determinism: tasks/ restructure, toolchain:check, verify:stubs, validate:links, spec:pipeline, changelog:check, change:init, commit:lint, enhanced check -- remaining items (Phase 0 generation, build:verify, change:archive, doctor) still open",
+        "status": "completed"
+      },
+      {
+        "id": "scope-256",
+        "title": "fix(docs): use OS temp directory for --body-file to avoid rm denylist collision",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/256",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #256: fix(docs): use OS temp directory for --body-file to avoid rm denylist collision"
+          }
+        ]
+      },
+      {
+        "id": "scope-261-263-fix-skill-deft-swarm-phase-5-6-gate-hardening-crash-recovery-context-pre",
+        "title": "#261 + #263 -- fix(skill): deft-swarm Phase 5->6 gate hardening + crash recovery -- context-pressure bypass prohibition + structured merge-readiness checklist",
+        "status": "completed"
+      },
+      {
+        "id": "scope-279",
+        "title": "fix(skill): deft-review-cycle Approach 2 idle-stoppage warning + prefer Approach 1 rule for swarm agents",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/279",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #279: fix(skill): deft-review-cycle Approach 2 idle-stoppage warning + prefer Approach 1 rule for swarm agents"
+          }
+        ]
+      },
+      {
+        "id": "scope-272",
+        "title": "fix(skill): deft-setup pwd path anchor -- ! rule anchoring all paths to pwd at skill entry",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/272",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #272: fix(skill): deft-setup pwd path anchor -- ! rule anchoring all paths to pwd at skill entry"
+          }
+        ]
+      },
+      {
+        "id": "scope-269",
+        "title": "fix(skill): deft-setup post-interview confirmation gate + Warp auto-approve warning; absorbs #271",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/269",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #269: fix(skill): deft-setup post-interview confirmation gate + Warp auto-approve warning; absorbs #271"
+          }
+        ]
+      },
+      {
+        "id": "scope-274",
+        "title": "fix(workflow): semantic accuracy check in mandatory pre-commit file review",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/274",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #274: fix(workflow): semantic accuracy check in mandatory pre-commit file review"
+          }
+        ]
+      },
+      {
+        "id": "scope-281",
+        "title": "fix(test): WinError 448 pytest-current symlink cleanup -- tmp_path_retention_count + conftest.py monkeypatch",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/281",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #281: fix(test): WinError 448 pytest-current symlink cleanup -- tmp_path_retention_count + conftest.py monkeypatch"
+          }
+        ]
+      },
+      {
+        "id": "scope-282",
+        "title": "fix(skill): deft-review-cycle MCP capability detection + task check pre-existing failure carve-out",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/282",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #282: fix(skill): deft-review-cycle MCP capability detection + task check pre-existing failure carve-out"
+          }
+        ]
+      },
+      {
+        "id": "scope-283",
+        "title": "fix(agents): AGENTS.md ! rule for BOM-safe PowerShell file writes",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/283",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #283: fix(agents): AGENTS.md ! rule for BOM-safe PowerShell file writes"
+          }
+        ]
+      },
+      {
+        "id": "scope-266",
+        "title": "docs(readme): move installer asset links to top near install instructions",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/266",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #266: docs(readme): move installer asset links to top near install instructions"
+          }
+        ]
+      },
+      {
+        "id": "scope-268",
+        "title": "docs(readme): wrap install commands in fenced code blocks for GitHub copy button",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/268",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #268: docs(readme): wrap install commands in fenced code blocks for GitHub copy button"
+          }
+        ]
+      },
+      {
+        "id": "scope-270",
+        "title": "feat(setup): validate USER.md against current schema + artifact format versioning (deft_version field)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/270",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #270: feat(setup): validate USER.md against current schema + artifact format versioning (deft_version field)"
+          }
+        ]
+      },
+      {
+        "id": "scope-51",
+        "title": "Project bootstrap: purge stale legacy path references across 42 files; add strategy stubs (rapid.md, enterprise.md); add docs/getting-started.md stub",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/51",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #51: Project bootstrap: purge stale legacy path references across 42 files; add strategy stubs (rapid.md, enterprise.md); add docs/getting-started.md stub"
+          }
+        ]
+      },
+      {
+        "id": "scope-221",
+        "title": "fix(skill): deft-roadmap-refresh explicit row format template + double-pipe anti-pattern",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/221",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #221: fix(skill): deft-roadmap-refresh explicit row format template + double-pipe anti-pattern"
+          }
+        ]
+      },
+      {
+        "id": "scope-226",
+        "title": "refactor(skills): rename deft-rwldl to deft-pre-pr + AGENTS.md auto-suggestion + keyword routing",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/226",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #226: refactor(skills): rename deft-rwldl to deft-pre-pr + AGENTS.md auto-suggestion + keyword routing"
+          }
+        ]
+      },
+      {
+        "id": "scope-234",
+        "title": "docs(readme): add \"Your Artifacts\" section documenting user-generated artifact locations",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/234",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #234: docs(readme): add \"Your Artifacts\" section documenting user-generated artifact locations"
+          }
+        ]
+      },
+      {
+        "id": "scope-248",
+        "title": "fix(skill): roadmap-refresh + swarm Phase 0 spec task scaffolding and transparency note",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/248",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #248: fix(skill): roadmap-refresh + swarm Phase 0 spec task scaffolding and transparency note"
+          }
+        ]
+      },
+      {
+        "id": "scope-249",
+        "title": "fix(skill): deft-swarm Phase 6 autonomous Greptile re-review monitoring in rebase cascade -- tiered monitoring step after each force-push",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/249",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #249: fix(skill): deft-swarm Phase 6 autonomous Greptile re-review monitoring in rebase cascade -- tiered monitoring step after each force-push"
+          }
+        ]
+      },
+      {
+        "id": "scope-250",
+        "title": "fix(skill): deft-review-cycle batch-fix enforcement -- ! pre-commit gate + 2 anti-patterns against per-finding commits",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/250",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #250: fix(skill): deft-review-cycle batch-fix enforcement -- ! pre-commit gate + 2 anti-patterns against per-finding commits"
+          }
+        ]
+      },
+      {
+        "id": "scope-251",
+        "title": "fix(skill): deft-build + deft-rwldl semantic contradiction check -- ! rules + ⊗ anti-pattern for conflicting rule strengths",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/251",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #251: fix(skill): deft-build + deft-rwldl semantic contradiction check -- ! rules + ⊗ anti-pattern for conflicting rule strengths"
+          }
+        ]
+      },
+      {
+        "id": "scope-236",
+        "title": "fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip rules for PS 5.1 -- scm/github.md PS 5.1 section updated with ! rules",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/236",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #236: fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip rules for PS 5.1 -- scm/github.md PS 5.1 section updated with ! rules"
+          }
+        ]
+      },
+      {
+        "id": "scope-237",
+        "title": "chore(docs): migrate ROADMAP.md em-dashes to ASCII -- (317 replacements) -- enables edit_files on Windows without PowerShell fallback",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/237",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #237: chore(docs): migrate ROADMAP.md em-dashes to ASCII -- (317 replacements) -- enables edit_files on Windows without PowerShell fallback"
+          }
+        ]
+      },
+      {
+        "id": "scope-238",
+        "title": "fix(skill): deft-roadmap-refresh batch changelog convention -- one batch entry at session end, anti-pattern added",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/238",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #238: fix(skill): deft-roadmap-refresh batch changelog convention -- one batch entry at session end, anti-pattern added"
+          }
+        ]
+      },
+      {
+        "id": "scope-239",
+        "title": "fix(workflow): mandatory pre-commit file review step -- added to deft-roadmap-refresh Phase 4 pre-flight and deft-build checklist",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/239",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #239: fix(workflow): mandatory pre-commit file review step -- added to deft-roadmap-refresh Phase 4 pre-flight and deft-build checklist"
+          }
+        ]
+      },
+      {
+        "id": "scope-240",
+        "title": "fix(docs): Warp terminal multi-line PS string temp-file rule -- scm/github.md + meta/lessons.md",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/240",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #240: fix(docs): Warp terminal multi-line PS string temp-file rule -- scm/github.md + meta/lessons.md"
+          }
+        ]
+      },
+      {
+        "id": "scope-241",
+        "title": "fix(docs): main.md blocker carve-out for instant-fix drift rule -- hard blockers in-scope with mandatory issue filing",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/241",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #241: fix(docs): main.md blocker carve-out for instant-fix drift rule -- hard blockers in-scope with mandatory issue filing"
+          }
+        ]
+      },
+      {
+        "id": "scope-243",
+        "title": "fix(workflow): skill completion gate -- AGENTS.md rule + deft-roadmap-refresh EXIT block + routing table chaining annotations",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/243",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #243: fix(workflow): skill completion gate -- AGENTS.md rule + deft-roadmap-refresh EXIT block + routing table chaining annotations"
+          }
+        ]
+      },
+      {
+        "id": "scope-57",
+        "title": "GitHub Actions CI workflow -- Python (ruff, mypy, pytest+cov) + Go (test + 3-platform build); pyproject.toml fail_under raised to 85%",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/57",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #57: GitHub Actions CI workflow -- Python (ruff, mypy, pytest+cov) + Go (test + 3-platform build); pyproject.toml fail_under raised to 85%"
+          }
+        ]
+      },
+      {
+        "id": "scope-81",
+        "title": "BDD/acceptance-test-first strategy -- strategies/bdd.md with 6-step Given/When/Then workflow and chaining gate integration",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/81",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #81: BDD/acceptance-test-first strategy -- strategies/bdd.md with 6-step Given/When/Then workflow and chaining gate integration"
+          }
+        ]
+      },
+      {
+        "id": "scope-134",
+        "title": "Deft alignment confirmation rule -- AGENTS.md behavioral rule: confirm Deft Directive active at session start and after context resets",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/134",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #134: Deft alignment confirmation rule -- AGENTS.md behavioral rule: confirm Deft Directive active at session start and after context resets"
+          }
+        ]
+      },
+      {
+        "id": "scope-146",
+        "title": "skills/deft-sync/SKILL.md -- session-start framework sync: pre-flight, submodule update, vBRIEF validation, AGENTS.md freshness, new skills listing",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/146",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #146: skills/deft-sync/SKILL.md -- session-start framework sync: pre-flight, submodule update, vBRIEF validation, AGENTS.md freshness, new skills listing"
+          }
+        ]
+      },
+      {
+        "id": "scope-159",
+        "title": "meta/philosophy.md -- deterministic > probabilistic design principle: definition, rationale, examples, Phase 5 scope note",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/159",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #159: meta/philosophy.md -- deterministic > probabilistic design principle: definition, rationale, examples, Phase 5 scope note"
+          }
+        ]
+      },
+      {
+        "id": "scope-168",
+        "title": "deft-roadmap-refresh: ! rule confirming analysis comment post to user with issue number and link",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/168",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #168: deft-roadmap-refresh: ! rule confirming analysis comment post to user with issue number and link"
+          }
+        ]
+      },
+      {
+        "id": "scope-174",
+        "title": "deft-roadmap-refresh: Phase 4 PR & Review Cycle -- user confirmation gate, pre-flight before push, auto-chains to deft-review-cycle",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/174",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #174: deft-roadmap-refresh: Phase 4 PR & Review Cycle -- user confirmation gate, pre-flight before push, auto-chains to deft-review-cycle"
+          }
+        ]
+      },
+      {
+        "id": "scope-195",
+        "title": "deft-review-cycle: replace blocking polling with tiered start_agent monitoring -- Approach 1 (sub-agent + send_message), Approach 2 (tool-call + yield fallback)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/195",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #195: deft-review-cycle: replace blocking polling with tiered start_agent monitoring -- Approach 1 (sub-agent + send_message), Approach 2 (tool-call + yield fallback)"
+          }
+        ]
+      },
+      {
+        "id": "scope-196",
+        "title": "deft-roadmap-refresh: explicit cleanup convention -- remove from phase body, strike in index with date, anti-pattern against duplicates",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/196",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #196: deft-roadmap-refresh: explicit cleanup convention -- remove from phase body, strike in index with date, anti-pattern against duplicates"
+          }
+        ]
+      },
+      {
+        "id": "scope-217",
+        "title": "pyproject.toml dev deps breaks task check in fresh worktrees -- moved to [dependency-groups] (PEP 735), languages/python.md updated, uv.lock regenerated",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/217",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #217: pyproject.toml dev deps breaks task check in fresh worktrees -- moved to [dependency-groups] (PEP 735), languages/python.md updated, uv.lock regenerated"
+          }
+        ]
+      },
+      {
+        "id": "scope-218",
+        "title": "deft-swarm release decision checkpoint -- Phase 0 version bump proposal + Phase 5->6 confirmation gate before merge cascade",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/218",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #218: deft-swarm release decision checkpoint -- Phase 0 version bump proposal + Phase 5->6 confirmation gate before merge cascade"
+          }
+        ]
+      },
+      {
+        "id": "scope-207",
+        "title": "Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/207",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #207: Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance"
+          }
+        ]
+      },
+      {
+        "id": "scope-198",
+        "title": "main.md instant-fix drift and skill-context bleed rules -- prohibited in Decision Making with companion meta/lessons.md entries",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/198",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #198: main.md instant-fix drift and skill-context bleed rules -- prohibited in Decision Making with companion meta/lessons.md entries"
+          }
+        ]
+      },
+      {
+        "id": "scope-200",
+        "title": "Agent must scan skills/ before improvising multi-step workflows -- ! rule + ⊗ anti-pattern added to AGENTS.md",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/200",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #200: Agent must scan skills/ before improvising multi-step workflows -- ! rule + ⊗ anti-pattern added to AGENTS.md"
+          }
+        ]
+      },
+      {
+        "id": "scope-147",
+        "title": "Skills undiscoverable -- keyword->skill routing table added to AGENTS.md, 3 missing skills added to README",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/147",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #147: Skills undiscoverable -- keyword->skill routing table added to AGENTS.md, 3 missing skills added to README"
+          }
+        ]
+      },
+      {
+        "id": "scope-219",
+        "title": "README stale content -- CONTRIBUTING.md, contracts/hierarchy.md, 3 skills added to directory tree and Skills section",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/219",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #219: README stale content -- CONTRIBUTING.md, contracts/hierarchy.md, 3 skills added to directory tree and Skills section"
+          }
+        ]
+      },
+      {
+        "id": "scope-197",
+        "title": "scm/github.md -- gh CLI rules, PR conventions, Windows/PS 5.x encoding guidance (absorbs #201)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/197",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #197: scm/github.md -- gh CLI rules, PR conventions, Windows/PS 5.x encoding guidance (absorbs #201)"
+          }
+        ]
+      },
+      {
+        "id": "scope-202",
+        "title": "ASCII convention for machine-editable sections -- Windows/ASCII rules documented in scm/github.md",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/202",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #202: ASCII convention for machine-editable sections -- Windows/ASCII rules documented in scm/github.md"
+          }
+        ]
+      },
+      {
+        "id": "scope-182",
+        "title": "skills/deft-rwldl/SKILL.md -- iterative pre-PR quality improvement loop (Read-Write-Lint-Diff) with thin pointer",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/182",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #182: skills/deft-rwldl/SKILL.md -- iterative pre-PR quality improvement loop (Read-Write-Lint-Diff) with thin pointer"
+          }
+        ]
+      },
+      {
+        "id": "scope-167",
+        "title": "PR merge hygiene: squash-merge issue-close verification -- PR template, deft-review-cycle Post-Merge Verification, AGENTS.md convention, meta/lessons.md root cause",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/167",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #167: PR merge hygiene: squash-merge issue-close verification -- PR template, deft-review-cycle Post-Merge Verification, AGENTS.md convention, meta/lessons.md root cause"
+          }
+        ]
+      },
+      {
+        "id": "scope-116",
+        "title": "Installer now creates all 6 skill thin pointers (deft-review-cycle, deft-roadmap-refresh, deft-swarm were missing) -- consistent ./deft/ paths, 3 new path consistency tests",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/116",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #116: Installer now creates all 6 skill thin pointers (deft-review-cycle, deft-roadmap-refresh, deft-swarm were missing) -- consistent ./deft/ paths, 3 new path consistency tests"
+          }
+        ]
+      },
+      {
+        "id": "scope-84-phase-1-deft-as-teacher-phase-1-complete-contracts-hierarchy-md-v0-10-0-adapt",
+        "title": "#84 Phase 1 -- Deft as teacher Phase 1 complete: contracts/hierarchy.md (v0.10.0), adaptive teaching main.md (v0.10.0), State WHY rule interview.md (v0.12.1)",
+        "status": "completed"
+      },
+      {
+        "id": "scope-209",
+        "title": "Swarm force-push anti-pattern scope fix + GIT_EDITOR Windows portability + 7 regression tests",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/209",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #209: Swarm force-push anti-pattern scope fix + GIT_EDITOR Windows portability + 7 regression tests"
+          }
+        ]
+      },
+      {
+        "id": "scope-206",
+        "title": "Swarm close-out orchestration rules for start_agent monitor workflow -- merge authority, rebase ownership, GIT_EDITOR, post-merge verification, push autonomy, MCP fallback",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/206",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #206: Swarm close-out orchestration rules for start_agent monitor workflow -- merge authority, rebase ownership, GIT_EDITOR, post-merge verification, push autonomy, MCP fallback"
+          }
+        ]
+      },
+      {
+        "id": "scope-199",
+        "title": "deft-swarm mandatory analyze phase with user approval gate before launch",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/199",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #199: deft-swarm mandatory analyze phase with user approval gate before launch"
+          }
+        ]
+      },
+      {
+        "id": "scope-192",
+        "title": "Proactively add test coverage after review-fix commits before CI re-run",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/192",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #192: Proactively add test coverage after review-fix commits before CI re-run"
+          }
+        ]
+      },
+      {
+        "id": "scope-191",
+        "title": "Remove defensive vBRIEF reference-type workarounds -- deftai/vBRIEF#2 resolved",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/191",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #191: Remove defensive vBRIEF reference-type workarounds -- deftai/vBRIEF#2 resolved"
+          }
+        ]
+      },
+      {
+        "id": "scope-188",
+        "title": "deft-swarm runtime capability detection for start_agent + Warp environment gate",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/188",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #188: deft-swarm runtime capability detection for start_agent + Warp environment gate"
+          }
+        ]
+      },
+      {
+        "id": "scope-184",
+        "title": "deft-review-cycle autonomous polling imperative after push",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/184",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #184: deft-review-cycle autonomous polling imperative after push"
+          }
+        ]
+      },
+      {
+        "id": "scope-166",
+        "title": "Greptile Review status check blocks merge -- .greptile/config.json added with triggerOnUpdates, deft-review-cycle pre-flight check",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/166",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #166: Greptile Review status check blocks merge -- .greptile/config.json added with triggerOnUpdates, deft-review-cycle pre-flight check"
+          }
+        ]
+      },
+      {
+        "id": "scope-189",
+        "title": "vBRIEF defensive reference-type mitigations -- superseded by #191 (deftai/vBRIEF#2 resolved; mitigations no longer needed)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/189",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #189: vBRIEF defensive reference-type mitigations -- superseded by #191 (deftai/vBRIEF#2 resolved; mitigations no longer needed)"
+          }
+        ]
+      },
+      {
+        "id": "scope-133",
+        "title": "Generated vBRIEF files use invalid reference types -- upstream deftai/vBRIEF#2 resolved; cleanup tracked in #191",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/133",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #133: Generated vBRIEF files use invalid reference types -- upstream deftai/vBRIEF#2 resolved; cleanup tracked in #191"
+          }
+        ]
+      },
+      {
+        "id": "scope-58",
+        "title": "Stale cross-references to legacy paths",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/58",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #58: Stale cross-references to legacy paths"
+          }
+        ]
+      },
+      {
+        "id": "scope-185",
+        "title": "Change gate UX: replace name-echo with yes/no confirmation -- main.md, deft-build, deft-review-cycle, PR template all updated",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/185",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #185: Change gate UX: replace name-echo with yes/no confirmation -- main.md, deft-build, deft-review-cycle, PR template all updated"
+          }
+        ]
+      },
+      {
+        "id": "scope-179",
+        "title": "deft-swarm Option A limitations documented -- Option A demoted, Option B elevated as recommended",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/179",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #179: deft-swarm Option A limitations documented -- Option A demoted, Option B elevated as recommended"
+          }
+        ]
+      },
+      {
+        "id": "scope-186",
+        "title": "AGENTS.md pre-implementation gate enforcement -- ! markers added to Before code changes checklist",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/186",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #186: AGENTS.md pre-implementation gate enforcement -- ! markers added to Before code changes checklist"
+          }
+        ]
+      },
+      {
+        "id": "scope-170",
+        "title": "Move ROADMAP.md updates from merge-time to release-time -- AGENTS.md convention updated, deft-swarm SKILL.md Phase 6 Step 5 added, ⊗ swarm anti-patterns added",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/170",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #170: Move ROADMAP.md updates from merge-time to release-time -- AGENTS.md convention updated, deft-swarm SKILL.md Phase 6 Step 5 added, ⊗ swarm anti-patterns added"
+          }
+        ]
+      },
+      {
+        "id": "scope-102",
+        "title": "Codify Mermaid gist-rendering best practices -- RFC2119 MUST/SHOULD rules + box/end pattern in `languages/mermaid.md`, regression tests added",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/102",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #102: Codify Mermaid gist-rendering best practices -- RFC2119 MUST/SHOULD rules + box/end pattern in `languages/mermaid.md`, regression tests added"
+          }
+        ]
+      },
+      {
+        "id": "scope-144",
+        "title": "vBRIEF wrong narrative type (object) + wrong child key (`items` vs `subItems`) -- fixed in agent guidance + spec_validate.py (with #126)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/144",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #144: vBRIEF wrong narrative type (object) + wrong child key (`items` vs `subItems`) -- fixed in agent guidance + spec_validate.py (with #126)"
+          }
+        ]
+      },
+      {
+        "id": "scope-126",
+        "title": "specification.vbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/126",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #126: specification.vbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests"
+          }
+        ]
+      },
+      {
+        "id": "scope-175",
+        "title": "deft-review-cycle: no-push-while-reviewing + 60s poll cadence -- ⊗ rule + ~ guidance + meta/lessons.md #2+#3",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/175",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #175: deft-review-cycle: no-push-while-reviewing + 60s poll cadence -- ⊗ rule + ~ guidance + meta/lessons.md #2+#3"
+          }
+        ]
+      },
+      {
+        "id": "scope-172",
+        "title": "deft-swarm skill: oz agent run is local, oz agent run-cloud is cloud -- corrected Phase 3, lessons #1+#7, SPECIFICATION.md t2.5.4",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/172",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #172: deft-swarm skill: oz agent run is local, oz agent run-cloud is cloud -- corrected Phase 3, lessons #1+#7, SPECIFICATION.md t2.5.4"
+          }
+        ]
+      },
+      {
+        "id": "scope-171",
+        "title": "No direct-to-master agent commits -- ⊗ gate + PROJECT.md trunk-based opt-in, full agentic + CLI parity",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/171",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #171: No direct-to-master agent commits -- ⊗ gate + PROJECT.md trunk-based opt-in, full agentic + CLI parity"
+          }
+        ]
+      },
+      {
+        "id": "scope-145",
+        "title": "deft-review-cycle Greptile issue comment as primary review signal",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/145",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #145: deft-review-cycle Greptile issue comment as primary review signal"
+          }
+        ]
+      },
+      {
+        "id": "scope-142",
+        "title": "AGENTS.md onboarding gate blocks headless/cloud agents -- headless bypass added",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/142",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #142: AGENTS.md onboarding gate blocks headless/cloud agents -- headless bypass added"
+          }
+        ]
+      },
+      {
+        "id": "scope-139",
+        "title": "Agent skips vbrief source step -- ⊗ rule added to main.md and deft-build SKILL.md",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/139",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #139: Agent skips vbrief source step -- ⊗ rule added to main.md and deft-build SKILL.md"
+          }
+        ]
+      },
+      {
+        "id": "scope-138",
+        "title": "Branching requirement too prescriptive -- context-aware solo-project qualifier",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/138",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #138: Branching requirement too prescriptive -- context-aware solo-project qualifier"
+          }
+        ]
+      },
+      {
+        "id": "scope-135",
+        "title": "Greptile review rules SKILL.md in repo",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/135",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #135: Greptile review rules SKILL.md in repo"
+          }
+        ]
+      },
+      {
+        "id": "scope-131",
+        "title": "Mac installer post-install text",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/131",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #131: Mac installer post-install text"
+          }
+        ]
+      },
+      {
+        "id": "scope-123",
+        "title": "Change lifecycle gate enforcement -- strengthened /deft:change rule",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/123",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #123: Change lifecycle gate enforcement -- strengthened /deft:change rule"
+          }
+        ]
+      },
+      {
+        "id": "scope-118",
+        "title": "CLI code quality sweep",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/118",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #118: CLI code quality sweep"
+          }
+        ]
+      },
+      {
+        "id": "scope-108",
+        "title": "Ask deployment platform before language",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/108",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #108: Ask deployment platform before language"
+          }
+        ]
+      },
+      {
+        "id": "scope-107",
+        "title": "Remove language defaults from USER.md",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/107",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #107: Remove language defaults from USER.md"
+          }
+        ]
+      },
+      {
+        "id": "scope-80",
+        "title": "deft-setup project name fallback",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/80",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #80: deft-setup project name fallback"
+          }
+        ]
+      },
+      {
+        "id": "scope-79",
+        "title": "deft-setup inference boundary guards",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/79",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #79: deft-setup inference boundary guards"
+          }
+        ]
+      },
+      {
+        "id": "scope-137",
+        "title": "README: move startup instructions higher, clarify installer location",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/137",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #137: README: move startup instructions higher, clarify installer location"
+          }
+        ]
+      },
+      {
+        "id": "scope-68",
+        "title": "Testing enforcement gate -- hard gate rule added to main.md",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/68",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #68: Testing enforcement gate -- hard gate rule added to main.md"
+          }
+        ]
+      },
+      {
+        "id": "scope-59",
+        "title": "history/changes/ directory created with README.md",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/59",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #59: history/changes/ directory created with README.md"
+          }
+        ]
+      },
+      {
+        "id": "scope-50",
+        "title": "Strategies redundant old names -- brownfield.md redirect, default.md deleted",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/50",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #50: Strategies redundant old names -- brownfield.md redirect, default.md deleted"
+          }
+        ]
+      },
+      {
+        "id": "scope-49",
+        "title": "All CLI commands display version on startup",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/49",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #49: All CLI commands display version on startup"
+          }
+        ]
+      },
+      {
+        "id": "scope-31",
+        "title": "Merge default.md into interview.md",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/31",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #31: Merge default.md into interview.md"
+          }
+        ]
+      },
+      {
+        "id": "scope-25",
+        "title": "commands.md vBRIEF example fixed",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/25",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #25: commands.md vBRIEF example fixed"
+          }
+        ]
+      },
+      {
+        "id": "scope-24",
+        "title": "speckit.md See also banner",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/24",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #24: speckit.md See also banner"
+          }
+        ]
+      },
+      {
+        "id": "scope-23",
+        "title": "yolo.md refactored to reference interview.md shared phases",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/23",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #23: yolo.md refactored to reference interview.md shared phases"
+          }
+        ]
+      },
+      {
+        "id": "scope-104",
+        "title": "Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/104",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #104: Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)"
+          }
+        ]
+      },
+      {
+        "id": "scope-124",
+        "title": "Warp context window improvements: behavioral rule for periodic context checkpointing and structured handoff notes",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/124",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #124: Warp context window improvements: behavioral rule for periodic context checkpointing and structured handoff notes"
+          }
+        ]
+      },
+      {
+        "id": "scope-67",
+        "title": "Write SPECIFICATION.md and proper PROJECT.md for the deft project itself",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/67",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #67: Write SPECIFICATION.md and proper PROJECT.md for the deft project itself"
+          }
+        ]
+      },
+      {
+        "id": "scope-72",
+        "title": "vBRIEF files still invalid on master -- five-component generation chain fix (CONVENTIONS.md root cause, validator, renderer, data migration, templates, 7 new tests, minimal CI)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/72",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #72: vBRIEF files still invalid on master -- five-component generation chain fix (CONVENTIONS.md root cause, validator, renderer, data migration, templates, 7 new tests, minimal CI)"
+          }
+        ]
+      },
+      {
+        "id": "scope-91",
+        "title": "run bootstrap goes in a loop",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/91",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #91: run bootstrap goes in a loop"
+          }
+        ]
+      },
+      {
+        "id": "scope-92",
+        "title": "Strategy selection infinite loop when strategies/ empty",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/92",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #92: Strategy selection infinite loop when strategies/ empty"
+          }
+        ]
+      },
+      {
+        "id": "scope-106",
+        "title": "Add toolchain/environment validation gate (coding/toolchain.md, deft-build Step 2, strategies/interview.md Acceptance Gate, meta/lessons.md incident entry)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/106",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #106: Add toolchain/environment validation gate (coding/toolchain.md, deft-build Step 2, strategies/interview.md Acceptance Gate, meta/lessons.md incident entry)"
+          }
+        ]
+      },
+      {
+        "id": "scope-105",
+        "title": "Add build output validation directive for custom build scripts (`coding/build-output.md`, `coding/testing.md` Build Output Tests, `meta/lessons.md` incident entry)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/105",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #105: Add build output validation directive for custom build scripts (`coding/build-output.md`, `coding/testing.md` Build Output Tests, `meta/lessons.md` incident entry)"
+          }
+        ]
+      },
+      {
+        "id": "scope-117",
+        "title": "Interview command loops in CLI -- `cmd_project` no longer re-runs questionnaire after `cmd_install` chains through `cmd_spec`",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/117",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #117: Interview command loops in CLI -- `cmd_project` no longer re-runs questionnaire after `cmd_install` chains through `cmd_spec`"
+          }
+        ]
+      },
+      {
+        "id": "scope-94",
+        "title": "Agent auto-alignment on startup: thin skill pointer + change lifecycle rule",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/94",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #94: Agent auto-alignment on startup: thin skill pointer + change lifecycle rule"
+          }
+        ]
+      },
+      {
+        "id": "scope-54",
+        "title": "AGENTS.md provides no actionable onboarding",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/54",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #54: AGENTS.md provides no actionable onboarding"
+          }
+        ]
+      },
+      {
+        "id": "scope-45",
+        "title": "Bootstrap parity",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/45",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #45: Bootstrap parity"
+          }
+        ]
+      },
+      {
+        "id": "scope-39",
+        "title": "Strategy chaining options before spec generation",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/39",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #39: Strategy chaining options before spec generation"
+          }
+        ]
+      },
+      {
+        "id": "scope-71",
+        "title": "CHANGELOG catch-up",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/71",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #71: CHANGELOG catch-up"
+          }
+        ]
+      },
+      {
+        "id": "scope-63",
+        "title": "Installer hardcodes old repo URL",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/63",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #63: Installer hardcodes old repo URL"
+          }
+        ]
+      },
+      {
+        "id": "scope-69",
+        "title": "Remove stale beta branch and update docs",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/69",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #69: Remove stale beta branch and update docs"
+          }
+        ]
+      },
+      {
+        "id": "scope-34",
+        "title": "Zero-prerequisite installer",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/34",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #34: Zero-prerequisite installer"
+          }
+        ]
+      },
+      {
+        "id": "scope-10",
+        "title": "AGENTS.md setup improvement in docs",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/10",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #10: AGENTS.md setup improvement in docs"
+          }
+        ]
+      },
+      {
+        "id": "scope-51-b7eb6c",
+        "title": "Project bootstrap (partial)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/51",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #51: Project bootstrap (partial)"
+          }
+        ]
+      },
+      {
+        "id": "scope-60",
+        "title": "pressEnterToExit() Windows-only",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/60",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #60: pressEnterToExit() Windows-only"
+          }
+        ]
+      },
+      {
+        "id": "scope-62",
+        "title": "beta branch 50+ unmerged commits",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/62",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #62: beta branch 50+ unmerged commits"
+          }
+        ]
+      },
+      {
+        "id": "scope-47",
+        "title": "PROJECT.md defaults + input validation",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/47",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #47: PROJECT.md defaults + input validation"
+          }
+        ]
+      },
+      {
+        "id": "scope-44",
+        "title": "CLI bootstrap overwrites USER.md + input validation",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/44",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #44: CLI bootstrap overwrites USER.md + input validation"
+          }
+        ]
+      },
+      {
+        "id": "scope-8",
+        "title": "Don't commit until questionnaires finished",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/8",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #8: Don't commit until questionnaires finished"
+          }
+        ]
+      },
+      {
+        "id": "scope-7",
+        "title": "Double prompting for languages during bootstrap",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/7",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #7: Double prompting for languages during bootstrap"
+          }
+        ]
+      },
+      {
+        "id": "scope-32",
+        "title": "Strategy selection doesn't work",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/32",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #32: Strategy selection doesn't work"
+          }
+        ]
+      },
+      {
+        "id": "scope-single-entry-point-go-installer",
+        "title": "Single entry point Go installer",
+        "status": "completed"
+      },
+      {
+        "id": "scope-agent-driven-skills-deft-setup-deft-build",
+        "title": "Agent-driven skills (deft-setup + deft-build)",
+        "status": "completed"
+      },
+      {
+        "id": "scope-enforce-user-md-gate-skills-path",
+        "title": "Enforce USER.md gate (skills path)",
+        "status": "completed"
+      },
+      {
+        "id": "scope-28",
+        "title": "vBRIEF schema reference + fix non-conforming status values",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/28",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #28: vBRIEF schema reference + fix non-conforming status values"
+          }
+        ]
+      },
+      {
+        "id": "scope-21",
+        "title": "Testbed regression testing suite",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/21",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #21: Testbed regression testing suite"
+          }
+        ]
+      },
+      {
+        "id": "scope-convert-to-tdd-mode",
+        "title": "Convert to TDD mode",
+        "status": "completed"
+      },
+      {
+        "id": "scope-land-pr-26-on-master",
+        "title": "Land PR #26 on master",
+        "status": "completed"
+      },
+      {
+        "id": "scope-merge-master-beta",
+        "title": "Merge master → beta",
+        "status": "completed"
+      },
+      {
+        "id": "scope-v0-6-0-content-prs-16-20",
+        "title": "v0.6.0 content (PRs #16–20)",
+        "status": "completed"
+      },
+      {
+        "id": "scope-reopen-pr-22-and-merge-testbed-to-master",
+        "title": "Reopen PR #22 and merge testbed to master",
+        "status": "completed"
+      },
+      {
+        "id": "scope-add-strategies-discuss-md-to-readme-table",
+        "title": "Add `strategies/discuss.md` to README table",
+        "status": "completed"
+      },
+      {
+        "id": "scope-v0-6-0-changelog-entry",
+        "title": "v0.6.0 CHANGELOG entry",
+        "status": "completed"
+      },
+      {
+        "id": "scope-6",
+        "title": "Programming languages asked too early / limited options",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/6",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #6: Programming languages asked too early / limited options"
+          }
+        ]
+      },
+      {
+        "id": "scope-5",
+        "title": "SDD should focus on intent first",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/5",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #5: SDD should focus on intent first"
+          }
+        ]
+      },
+      {
+        "id": "scope-4",
+        "title": "Make /deft read-only (project-local layout)",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/4",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #4: Make /deft read-only (project-local layout)"
+          }
+        ]
+      },
+      {
+        "id": "scope-3",
+        "title": "Add run.bat for Windows",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/3",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #3: Add run.bat for Windows"
+          }
+        ]
+      },
+      {
+        "id": "scope-2",
+        "title": "CLI output cleanup",
+        "status": "completed",
+        "references": [
+          {
+            "uri": "https://github.com/deftai/directive/issues/2",
+            "type": "x-vbrief/github-issue",
+            "title": "Issue #2: CLI output cleanup"
+          }
+        ]
+      }
+    ]
+  }
+}

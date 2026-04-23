@@ -1,0 +1,32 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #82: Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)"
+  },
+  "plan": {
+    "title": "Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)",
+    "status": "proposed",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 3 -- Documentation & Content Fixes",
+        "Tier": "Content & Doc Fixes",
+        "PhaseDescription": "Quick doc/content fixes that don't require code changes.",
+        "Description": "Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/82",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #82: Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)"
+      }
+    ]
+  }
+}

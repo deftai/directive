@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #282: fix(skill): deft-review-cycle MCP capability detection + task check pre-existing failure carve-out",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "fix(skill): deft-review-cycle MCP capability detection + task check pre-existing failure carve-out",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "fix(skill): deft-review-cycle MCP capability detection + task check pre-existing failure carve-out",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/282",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #282: fix(skill): deft-review-cycle MCP capability detection + task check pre-existing failure carve-out"
+      }
+    ]
+  }
+}

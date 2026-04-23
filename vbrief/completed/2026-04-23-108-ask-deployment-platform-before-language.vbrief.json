@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #108: Ask deployment platform before language",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Ask deployment platform before language",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Ask deployment platform before language",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/108",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #108: Ask deployment platform before language"
+      }
+    ]
+  }
+}

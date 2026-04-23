@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #322: Story M: Post-cutover GitHub issue reconciliation",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Story M: Post-cutover GitHub issue reconciliation",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Story M: Post-cutover GitHub issue reconciliation",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/322",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #322: Story M: Post-cutover GitHub issue reconciliation"
+      }
+    ]
+  }
+}

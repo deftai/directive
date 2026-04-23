@@ -1,0 +1,24 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for Reopen PR #22 and merge testbed to master",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Reopen PR #22 and merge testbed to master",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Reopen PR #22 and merge testbed to master",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    }
+  }
+}

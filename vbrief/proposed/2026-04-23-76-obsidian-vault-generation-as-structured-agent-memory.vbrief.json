@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #76: Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)"
+  },
+  "plan": {
+    "title": "Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)",
+    "status": "proposed",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 6 -- CLI Overhaul & New Features",
+        "PhaseDescription": "Larger feature work -- only after issues are resolved and content is stable.",
+        "Description": "Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/76",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #76: Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)"
+      }
+    ]
+  }
+}

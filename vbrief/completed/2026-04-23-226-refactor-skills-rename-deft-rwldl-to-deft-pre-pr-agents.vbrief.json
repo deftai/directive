@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #226: refactor(skills): rename deft-rwldl to deft-pre-pr + AGENTS.md auto-suggestion + keyword routing",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "refactor(skills): rename deft-rwldl to deft-pre-pr + AGENTS.md auto-suggestion + keyword routing",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "refactor(skills): rename deft-rwldl to deft-pre-pr + AGENTS.md auto-suggestion + keyword routing",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/226",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #226: refactor(skills): rename deft-rwldl to deft-pre-pr + AGENTS.md auto-suggestion + keyword routing"
+      }
+    ]
+  }
+}

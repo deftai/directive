@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #59: history/changes/ directory created with README.md",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "history/changes/ directory created with README.md",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "history/changes/ directory created with README.md",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/59",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #59: history/changes/ directory created with README.md"
+      }
+    ]
+  }
+}

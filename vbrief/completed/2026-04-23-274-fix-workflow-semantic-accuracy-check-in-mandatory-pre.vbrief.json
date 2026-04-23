@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #274: fix(workflow): semantic accuracy check in mandatory pre-commit file review",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "fix(workflow): semantic accuracy check in mandatory pre-commit file review",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "fix(workflow): semantic accuracy check in mandatory pre-commit file review",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/274",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #274: fix(workflow): semantic accuracy check in mandatory pre-commit file review"
+      }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #268: docs(readme): wrap install commands in fenced code blocks for GitHub copy button",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "docs(readme): wrap install commands in fenced code blocks for GitHub copy button",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "docs(readme): wrap install commands in fenced code blocks for GitHub copy button",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/268",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #268: docs(readme): wrap install commands in fenced code blocks for GitHub copy button"
+      }
+    ]
+  }
+}

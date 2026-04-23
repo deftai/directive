@@ -1,0 +1,32 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #136: Warp doesn't load deft's AGENTS.md by default"
+  },
+  "plan": {
+    "title": "Warp doesn't load deft's AGENTS.md by default",
+    "status": "proposed",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 3 -- Documentation & Content Fixes",
+        "Tier": "Content & Doc Fixes",
+        "PhaseDescription": "Quick doc/content fixes that don't require code changes.",
+        "Description": "Warp doesn't load deft's AGENTS.md by default",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/136",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #136: Warp doesn't load deft's AGENTS.md by default"
+      }
+    ]
+  }
+}

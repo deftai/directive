@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #124: Warp context window improvements: behavioral rule for periodic context checkpointing and structured handoff notes",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Warp context window improvements: behavioral rule for periodic context checkpointing and structured handoff notes",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Warp context window improvements: behavioral rule for periodic context checkpointing and structured handoff notes",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/124",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #124: Warp context window improvements: behavioral rule for periodic context checkpointing and structured handoff notes"
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for Update `strategies/interview.md` to probe language/tool choices through the contract lens -- when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)"
+  },
+  "plan": {
+    "title": "Update `strategies/interview.md` to probe language/tool choices through the contract lens -- when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)",
+    "status": "proposed",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 3 -- Documentation & Content Fixes",
+        "Tier": "Content & Doc Fixes",
+        "PhaseDescription": "Quick doc/content fixes that don't require code changes.",
+        "Description": "Update `strategies/interview.md` to probe language/tool choices through the contract lens -- when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    }
+  }
+}

@@ -1,0 +1,448 @@
+# Migration reconciliation report
+
+Generated: 2026-04-23T14:30:11Z
+
+Per #496 this file is emitted whenever SPECIFICATION.md and ROADMAP.md disagreed on any dimension during `task migrate:vbrief`, or when any override from `vbrief/migration-overrides.yaml` triggered.
+
+## Per-task conflicts
+
+(none)
+
+## Orphans in ROADMAP (no matching SPEC task)
+
+- `#89` -- Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#151` -- [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-1` -- Rename: purge remaining "Warping" references from README.md, `warping.sh`, Taskfile.yml; reframe README per #89 resolution (#84 Phase 2, blocked on #89)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-2` -- Clean leaked personal files:
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-3` -- Update `strategies/interview.md` to probe language/tool choices through the contract lens -- when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-4` -- Create `meta/philosophy.md` -- full contract hierarchy narrative for agent reference and direct user reading (#84 Phase 2)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#82` -- Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#103` -- Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#127` -- Improved support for Deft in existing repositories -- bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-5` -- Port any remaining `SKILL.md` carry-forward content from master
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-6` -- ~~Write remaining CHANGELOG entries~~ -- tracked by #71 (Phase 1)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#112` -- External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#114` -- Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#258` -- Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#136` -- Warp doesn't load deft's AGENTS.md by default
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#194` -- User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#74` -- Automate release process
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#128` -- CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#115` -- Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#33` -- When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-7` -- CLI tests for remaining commands: `cmd_spec`, `cmd_install`, `cmd_reset`, `cmd_update`
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-8` -- Error and edge case testing for core CLI commands
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#163` -- Enforce USER.md gate in CLI path -- parity with agentic (skills) path
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#228` -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-9` -- Code signing
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-10` -- Low-end LLM compatibility testing
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-11` -- Upgrade GitHub Actions to Node.js 24
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#56` -- Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#53` -- deft-install should bootstrap the current directory by default
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#75` -- Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#11` -- NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-12` -- **#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#52` -- Install into `.deft/` (hidden directory) instead of `deft/`
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#55` -- Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#46` -- Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#77` -- Allow users to change technical rating (1/2/3) when starting a new project
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#78` -- Bootstrap: offer to update user preferences when USER.md already exists
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#86` -- Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#76` -- Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#12` -- Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#9` -- Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#95` -- Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#140` -- Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#160` -- Consider TypeScript instead of Python for `run` CLI -- architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#212` -- discussion: Process control belongs in Directive -- universal process principles (review cycle, parallel work, batch-fix) as first-class Directive content; skills become tool-specific adapters; explicitly DO NOT IMPLEMENT until team decision reached (xrefs #89, #147, #194, #159)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#233` -- More Determinism: full initiative -- Phase 0 spec scaffolding (generated per-phase task gates), task doctor, and remaining deterministic enforcement tasks (build:verify, change:archive); tasks/ restructure, toolchain:check, verify:stubs, validate:links, changelog:check, change:init, commit:lint completed in v0.17.0; early-win subset #235 closed in v0.17.0
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-13` -- LLM-assisted content validation
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `roadmap-14` -- Self-upgrade to Deft Directive product (branding, public docs, distribution packaging)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#309` -- RFC: vBRIEF-centric document model for Deft Directive (D1-D18; 18 design decisions + 21 implementation stories)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#310` -- Story A: Update vbrief.md with new vBRIEF-centric document model (lifecycle folders, PROJECT-DEFINITION type, epic-story linking, filename convention, scope splitting)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#311` -- Story B: Roadmap generation tool (task roadmap:render) + auto-generated banner + drift detection
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#312` -- Story C: Migration script (task migrate:vbrief) -- SPECIFICATION.md/PROJECT.md deprecation redirects, lifecycle folder creation
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#313` -- Story D: Core doc updates (main.md, AGENTS.md) for vBRIEF-centric model
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#314` -- Story E: deft-directive-setup (rename + rewrite for vBRIEF model)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#315` -- Story F: deft-directive-build, review-cycle, pre-pr (rename + update)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#316` -- Story G: deft-directive-refinement (rename + rewrite from roadmap-refresh)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#317` -- Story H: deft-directive-swarm (rename + flexible vBRIEF-based allocation)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#318` -- Story I: deft-directive-sync (rename + validate new structure + origin freshness)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#319` -- Story J: deft-directive-interview (namespace rename)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#320` -- Story K: CLI updates (cmd_spec, cmd_project) for vBRIEF model
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#321` -- Story L: Test coverage for vBRIEF-centric document model
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#322` -- Story M: Post-cutover GitHub issue reconciliation
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#323` -- Story N: PROJECT-DEFINITION regeneration tool (task project:render)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#324` -- Story O: Scope lifecycle task commands (task scope:*)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#331` -- Story P: Ancillary doc updates for vBRIEF-centric model
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#332` -- Story Q: Go installer rewrite for deft-directive-* namespace
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#333` -- Story R: Validation tooling for vBRIEF-centric model
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#334` -- Story S: Pre-cutover detection and backward compatibility guard
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#335` -- Story T: Release and version boundary items (v0.20.0)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#305` -- perf(review-cycle): Greptile review cycle bottlenecks -- 5-change optimization bundle (mandate deft-pre-pr, PR scope gate, adaptive poll cadence, parallel swarm cascade monitoring, .greptile/rules.md template)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#307` -- fix(skill): deft-review-cycle Approach 2 capability detection gap -- add Approach 3 interactive blocking fallback with user warning
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#328` -- docs(deft-review-cycle): add Select-String fallback for oversized gh pr view output
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#301` -- fix(agents): tighten deft-interview routing keyword -- replace bare interview with interview loop / q&a loop / run interview loop
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#302` -- fix(skill): deft-interview invocation contract -- clarify embedded vs delegation usage modes
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#303` -- fix(skill): deft-interview Rule 5 vs Rule 6 inconsistency -- ok accepted for default but not confirmation gate
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#304` -- test(skill): add regression test for deft-setup Phase 1/2 referencing deft-interview
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#293` -- test(cli): add subprocess-based unit tests for v0.17.0 task scripts -- 25 test cases in tests/cli/test_task_scripts.py
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#298` -- chore(spec): flip all 24 stale [pending] task statuses to [completed] in SPECIFICATION.md
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:#233 (partial) -- More Determinism: tasks/ restructure, toolchain:check, verify:stubs, validate:links, spec:pipeline, changelog:check, change:init, commit:lint, enhanced check -- remaining items (Phase 0 generation, build:verify, change:archive, doctor) still open` -- #233 (partial) -- More Determinism: tasks/ restructure, toolchain:check, verify:stubs, validate:links, spec:pipeline, changelog:check, change:init, commit:lint, enhanced check -- remaining items (Phase 0 generation, build:verify, change:archive, doctor) still open
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#256` -- fix(docs): use OS temp directory for --body-file to avoid rm denylist collision
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:#261 + #263 -- fix(skill): deft-swarm Phase 5->6 gate hardening + crash recovery -- context-pressure bypass prohibition + structured merge-readiness checklist` -- #261 + #263 -- fix(skill): deft-swarm Phase 5->6 gate hardening + crash recovery -- context-pressure bypass prohibition + structured merge-readiness checklist
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#279` -- fix(skill): deft-review-cycle Approach 2 idle-stoppage warning + prefer Approach 1 rule for swarm agents
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#272` -- fix(skill): deft-setup pwd path anchor -- ! rule anchoring all paths to pwd at skill entry
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#269` -- fix(skill): deft-setup post-interview confirmation gate + Warp auto-approve warning; absorbs #271
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#274` -- fix(workflow): semantic accuracy check in mandatory pre-commit file review
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#281` -- fix(test): WinError 448 pytest-current symlink cleanup -- tmp_path_retention_count + conftest.py monkeypatch
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#282` -- fix(skill): deft-review-cycle MCP capability detection + task check pre-existing failure carve-out
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#283` -- fix(agents): AGENTS.md ! rule for BOM-safe PowerShell file writes
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#266` -- docs(readme): move installer asset links to top near install instructions
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#268` -- docs(readme): wrap install commands in fenced code blocks for GitHub copy button
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#270` -- feat(setup): validate USER.md against current schema + artifact format versioning (deft_version field)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#51` -- Project bootstrap: purge stale legacy path references across 42 files; add strategy stubs (rapid.md, enterprise.md); add docs/getting-started.md stub
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#221` -- fix(skill): deft-roadmap-refresh explicit row format template + double-pipe anti-pattern
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#226` -- refactor(skills): rename deft-rwldl to deft-pre-pr + AGENTS.md auto-suggestion + keyword routing
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#234` -- docs(readme): add "Your Artifacts" section documenting user-generated artifact locations
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#248` -- fix(skill): roadmap-refresh + swarm Phase 0 spec task scaffolding and transparency note
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#249` -- fix(skill): deft-swarm Phase 6 autonomous Greptile re-review monitoring in rebase cascade -- tiered monitoring step after each force-push
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#250` -- fix(skill): deft-review-cycle batch-fix enforcement -- ! pre-commit gate + 2 anti-patterns against per-finding commits
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#251` -- fix(skill): deft-build + deft-rwldl semantic contradiction check -- ! rules + ⊗ anti-pattern for conflicting rule strengths
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#236` -- fix(docs): Get-Content -Raw UTF-8 footgun + BOM-safe round-trip rules for PS 5.1 -- scm/github.md PS 5.1 section updated with ! rules
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#237` -- chore(docs): migrate ROADMAP.md em-dashes to ASCII -- (317 replacements) -- enables edit_files on Windows without PowerShell fallback
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#238` -- fix(skill): deft-roadmap-refresh batch changelog convention -- one batch entry at session end, anti-pattern added
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#239` -- fix(workflow): mandatory pre-commit file review step -- added to deft-roadmap-refresh Phase 4 pre-flight and deft-build checklist
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#240` -- fix(docs): Warp terminal multi-line PS string temp-file rule -- scm/github.md + meta/lessons.md
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#241` -- fix(docs): main.md blocker carve-out for instant-fix drift rule -- hard blockers in-scope with mandatory issue filing
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#243` -- fix(workflow): skill completion gate -- AGENTS.md rule + deft-roadmap-refresh EXIT block + routing table chaining annotations
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#57` -- GitHub Actions CI workflow -- Python (ruff, mypy, pytest+cov) + Go (test + 3-platform build); pyproject.toml fail_under raised to 85%
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#81` -- BDD/acceptance-test-first strategy -- strategies/bdd.md with 6-step Given/When/Then workflow and chaining gate integration
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#134` -- Deft alignment confirmation rule -- AGENTS.md behavioral rule: confirm Deft Directive active at session start and after context resets
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#146` -- skills/deft-sync/SKILL.md -- session-start framework sync: pre-flight, submodule update, vBRIEF validation, AGENTS.md freshness, new skills listing
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#159` -- meta/philosophy.md -- deterministic > probabilistic design principle: definition, rationale, examples, Phase 5 scope note
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#168` -- deft-roadmap-refresh: ! rule confirming analysis comment post to user with issue number and link
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#174` -- deft-roadmap-refresh: Phase 4 PR & Review Cycle -- user confirmation gate, pre-flight before push, auto-chains to deft-review-cycle
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#195` -- deft-review-cycle: replace blocking polling with tiered start_agent monitoring -- Approach 1 (sub-agent + send_message), Approach 2 (tool-call + yield fallback)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#196` -- deft-roadmap-refresh: explicit cleanup convention -- remove from phase body, strike in index with date, anti-pattern against duplicates
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#217` -- pyproject.toml dev deps breaks task check in fresh worktrees -- moved to [dependency-groups] (PEP 735), languages/python.md updated, uv.lock regenerated
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#218` -- deft-swarm release decision checkpoint -- Phase 0 version bump proposal + Phase 5->6 confirmation gate before merge cascade
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#207` -- Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#198` -- main.md instant-fix drift and skill-context bleed rules -- prohibited in Decision Making with companion meta/lessons.md entries
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#200` -- Agent must scan skills/ before improvising multi-step workflows -- ! rule + ⊗ anti-pattern added to AGENTS.md
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#147` -- Skills undiscoverable -- keyword->skill routing table added to AGENTS.md, 3 missing skills added to README
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#219` -- README stale content -- CONTRIBUTING.md, contracts/hierarchy.md, 3 skills added to directory tree and Skills section
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#197` -- scm/github.md -- gh CLI rules, PR conventions, Windows/PS 5.x encoding guidance (absorbs #201)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#202` -- ASCII convention for machine-editable sections -- Windows/ASCII rules documented in scm/github.md
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#182` -- skills/deft-rwldl/SKILL.md -- iterative pre-PR quality improvement loop (Read-Write-Lint-Diff) with thin pointer
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#167` -- PR merge hygiene: squash-merge issue-close verification -- PR template, deft-review-cycle Post-Merge Verification, AGENTS.md convention, meta/lessons.md root cause
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#116` -- Installer now creates all 6 skill thin pointers (deft-review-cycle, deft-roadmap-refresh, deft-swarm were missing) -- consistent ./deft/ paths, 3 new path consistency tests
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:#84 Phase 1 -- Deft as teacher Phase 1 complete: contracts/hierarchy.md (v0.10.0), adaptive teaching main.md (v0.10.0), State WHY rule interview.md (v0.12.1)` -- #84 Phase 1 -- Deft as teacher Phase 1 complete: contracts/hierarchy.md (v0.10.0), adaptive teaching main.md (v0.10.0), State WHY rule interview.md (v0.12.1)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#209` -- Swarm force-push anti-pattern scope fix + GIT_EDITOR Windows portability + 7 regression tests
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#206` -- Swarm close-out orchestration rules for start_agent monitor workflow -- merge authority, rebase ownership, GIT_EDITOR, post-merge verification, push autonomy, MCP fallback
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#199` -- deft-swarm mandatory analyze phase with user approval gate before launch
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#192` -- Proactively add test coverage after review-fix commits before CI re-run
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#191` -- Remove defensive vBRIEF reference-type workarounds -- deftai/vBRIEF#2 resolved
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#188` -- deft-swarm runtime capability detection for start_agent + Warp environment gate
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#184` -- deft-review-cycle autonomous polling imperative after push
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#166` -- Greptile Review status check blocks merge -- .greptile/config.json added with triggerOnUpdates, deft-review-cycle pre-flight check
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#189` -- vBRIEF defensive reference-type mitigations -- superseded by #191 (deftai/vBRIEF#2 resolved; mitigations no longer needed)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#133` -- Generated vBRIEF files use invalid reference types -- upstream deftai/vBRIEF#2 resolved; cleanup tracked in #191
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#58` -- Stale cross-references to legacy paths
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#185` -- Change gate UX: replace name-echo with yes/no confirmation -- main.md, deft-build, deft-review-cycle, PR template all updated
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#179` -- deft-swarm Option A limitations documented -- Option A demoted, Option B elevated as recommended
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#186` -- AGENTS.md pre-implementation gate enforcement -- ! markers added to Before code changes checklist
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#170` -- Move ROADMAP.md updates from merge-time to release-time -- AGENTS.md convention updated, deft-swarm SKILL.md Phase 6 Step 5 added, ⊗ swarm anti-patterns added
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#102` -- Codify Mermaid gist-rendering best practices -- RFC2119 MUST/SHOULD rules + box/end pattern in `languages/mermaid.md`, regression tests added
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#144` -- vBRIEF wrong narrative type (object) + wrong child key (`items` vs `subItems`) -- fixed in agent guidance + spec_validate.py (with #126)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#126` -- specification.vbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#175` -- deft-review-cycle: no-push-while-reviewing + 60s poll cadence -- ⊗ rule + ~ guidance + meta/lessons.md #2+#3
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#172` -- deft-swarm skill: oz agent run is local, oz agent run-cloud is cloud -- corrected Phase 3, lessons #1+#7, SPECIFICATION.md t2.5.4
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#171` -- No direct-to-master agent commits -- ⊗ gate + PROJECT.md trunk-based opt-in, full agentic + CLI parity
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#145` -- deft-review-cycle Greptile issue comment as primary review signal
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#142` -- AGENTS.md onboarding gate blocks headless/cloud agents -- headless bypass added
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#139` -- Agent skips vbrief source step -- ⊗ rule added to main.md and deft-build SKILL.md
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#138` -- Branching requirement too prescriptive -- context-aware solo-project qualifier
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#135` -- Greptile review rules SKILL.md in repo
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#131` -- Mac installer post-install text
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#123` -- Change lifecycle gate enforcement -- strengthened /deft:change rule
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#118` -- CLI code quality sweep
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#108` -- Ask deployment platform before language
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#107` -- Remove language defaults from USER.md
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#80` -- deft-setup project name fallback
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#79` -- deft-setup inference boundary guards
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#137` -- README: move startup instructions higher, clarify installer location
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#68` -- Testing enforcement gate -- hard gate rule added to main.md
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#59` -- history/changes/ directory created with README.md
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#50` -- Strategies redundant old names -- brownfield.md redirect, default.md deleted
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#49` -- All CLI commands display version on startup
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#31` -- Merge default.md into interview.md
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#25` -- commands.md vBRIEF example fixed
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#24` -- speckit.md See also banner
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#23` -- yolo.md refactored to reference interview.md shared phases
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#104` -- Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#124` -- Warp context window improvements: behavioral rule for periodic context checkpointing and structured handoff notes
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#67` -- Write SPECIFICATION.md and proper PROJECT.md for the deft project itself
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#72` -- vBRIEF files still invalid on master -- five-component generation chain fix (CONVENTIONS.md root cause, validator, renderer, data migration, templates, 7 new tests, minimal CI)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#91` -- run bootstrap goes in a loop
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#92` -- Strategy selection infinite loop when strategies/ empty
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#106` -- Add toolchain/environment validation gate (coding/toolchain.md, deft-build Step 2, strategies/interview.md Acceptance Gate, meta/lessons.md incident entry)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#105` -- Add build output validation directive for custom build scripts (`coding/build-output.md`, `coding/testing.md` Build Output Tests, `meta/lessons.md` incident entry)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#117` -- Interview command loops in CLI -- `cmd_project` no longer re-runs questionnaire after `cmd_install` chains through `cmd_spec`
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#94` -- Agent auto-alignment on startup: thin skill pointer + change lifecycle rule
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#54` -- AGENTS.md provides no actionable onboarding
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#45` -- Bootstrap parity
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#39` -- Strategy chaining options before spec generation
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#71` -- CHANGELOG catch-up
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#63` -- Installer hardcodes old repo URL
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#69` -- Remove stale beta branch and update docs
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#34` -- Zero-prerequisite installer
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#10` -- AGENTS.md setup improvement in docs
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#51` -- Project bootstrap (partial)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#60` -- pressEnterToExit() Windows-only
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#62` -- beta branch 50+ unmerged commits
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#47` -- PROJECT.md defaults + input validation
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#44` -- CLI bootstrap overwrites USER.md + input validation
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#8` -- Don't commit until questionnaires finished
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#7` -- Double prompting for languages during bootstrap
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#32` -- Strategy selection doesn't work
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:Single entry point Go installer` -- Single entry point Go installer
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:Agent-driven skills (deft-setup + deft-build)` -- Agent-driven skills (deft-setup + deft-build)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:Enforce USER.md gate (skills path)` -- Enforce USER.md gate (skills path)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#28` -- vBRIEF schema reference + fix non-conforming status values
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#21` -- Testbed regression testing suite
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:Convert to TDD mode` -- Convert to TDD mode
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:Land PR #26 on master` -- Land PR #26 on master
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:Merge master → beta` -- Merge master → beta
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:v0.6.0 content (PRs #16–20)` -- v0.6.0 content (PRs #16–20)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:Reopen PR #22 and merge testbed to master` -- Reopen PR #22 and merge testbed to master
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:Add `strategies/discuss.md` to README table` -- Add `strategies/discuss.md` to README table
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `completed:v0.6.0 CHANGELOG entry` -- v0.6.0 CHANGELOG entry
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#6` -- Programming languages asked too early / limited options
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#5` -- SDD should focus on intent first
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#4` -- Make /deft read-only (project-local layout)
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#3` -- Add run.bat for Windows
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+- `#2` -- CLI output cleanup
+  - Resolution: emitted to vbrief/proposed/ with narrative.SourceConflict = "missing-from-spec".
+
+## Overrides applied (vbrief/migration-overrides.yaml)
+
+(none)
+
+## Traces lines stripped from LegacyArtifacts (#529)
+
+Per issue #529 the migrator strips duplicated ``**Traces**: ...`` lines from LegacyArtifacts task blocks so downstream tooling reads a single source of truth from ``plan.items[].subItems[].narrative.Traces``.
+
+- `SPECIFICATION.md`: t1.1.1, t1.1.2, t1.1.3, t1.1.4, t1.1.5, t1.2.1, t1.2.2, t1.3.1, t1.3.2, t1.4.1, t1.4.2, t1.5.1, t1.5.2, t1.6.1, t1.6.2, t1.6.3, t1.6.4, t1.7.1, t1.7.2, t1.7.3, t1.7.4, t1.7.5, t1.8.1, t1.8.2, t1.9.3, t1.9.4, t1.9.5, t1.8.3, t1.8.4, t1.9.1, t1.9.2, t1.12.2, t2.1.1, t2.1.2, t2.1.3, t2.1.4, t2.1.5, t2.1.6, t2.2.1, t2.2.2, t2.2.3, t2.3.1, t2.4.1, t2.4.2, t2.5.1, t2.5.2, t2.5.3, t2.5.4, t2.5.5, t2.6.1, t2.6.2, t2.6.3, t1.10.1, t1.10.2, t1.10.3, t3.1.1, t3.1.2, t2.6.6, t2.6.7, t2.6.8, t3.2.1, t3.1.3, t1.10.4, t1.10.5, t2.6.4, t2.6.5, t2.7.1, t2.7.2, t2.7.3, t2.7.4, t2.7.5, t2.7.6, t2.7.7, t2.7.8, t1.11.1, t1.11.2, t1.11.3, t1.11.4, t1.11.5, t1.11.6, t1.11.7, t1.12.1, t1.12.3, t1.13.1, t1.13.2, t1.14.1, t1.15.1, t1.16.1, t1.17.1, t1.18.1, t1.19.1, t1.20.1, t1.21.1, t1.22.1, t1.23.1, t1.24.1, t2.11.1, t2.8.1, t2.8.2, t2.8.3, t2.8.4, t2.10.1, t2.10.2, t2.9.1, t3.3.1, t3.3.3, t3.3.4, t2.12.1, t1.31.1, t1.32.1, t1.30.1, t1.29.1, t1.28.1, t1.27.1, t1.26.1, t1.25.1

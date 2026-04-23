@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #139: Agent skips vbrief source step -- ⊗ rule added to main.md and deft-build SKILL.md",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Agent skips vbrief source step -- ⊗ rule added to main.md and deft-build SKILL.md",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Agent skips vbrief source step -- ⊗ rule added to main.md and deft-build SKILL.md",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/139",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #139: Agent skips vbrief source step -- ⊗ rule added to main.md and deft-build SKILL.md"
+      }
+    ]
+  }
+}

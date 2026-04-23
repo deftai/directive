@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #317: Story H: deft-directive-swarm (rename + flexible vBRIEF-based allocation)",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Story H: deft-directive-swarm (rename + flexible vBRIEF-based allocation)",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Story H: deft-directive-swarm (rename + flexible vBRIEF-based allocation)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/317",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #317: Story H: deft-directive-swarm (rename + flexible vBRIEF-based allocation)"
+      }
+    ]
+  }
+}

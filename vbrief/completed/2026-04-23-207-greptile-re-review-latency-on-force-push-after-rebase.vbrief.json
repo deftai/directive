@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #207: Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/207",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #207: Greptile re-review latency on force-push after rebase -- documented in swarm Phase 6 with time estimates and annotation guidance"
+      }
+    ]
+  }
+}

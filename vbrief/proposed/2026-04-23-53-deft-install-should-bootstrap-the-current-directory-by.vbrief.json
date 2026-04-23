@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #53: deft-install should bootstrap the current directory by default"
+  },
+  "plan": {
+    "title": "deft-install should bootstrap the current directory by default",
+    "status": "proposed",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 5 -- Package Distribution & Install UX",
+        "PhaseDescription": "Publish deft as NPM + PIP CLI packages for developer-audience install.\nComplements the Go installer (which targets novice/bare-machine users).",
+        "Description": "deft-install should bootstrap the current directory by default",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/53",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #53: deft-install should bootstrap the current directory by default"
+      }
+    ]
+  }
+}

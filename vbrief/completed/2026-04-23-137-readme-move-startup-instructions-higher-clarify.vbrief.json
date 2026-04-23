@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #137: README: move startup instructions higher, clarify installer location",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "README: move startup instructions higher, clarify installer location",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "README: move startup instructions higher, clarify installer location",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/137",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #137: README: move startup instructions higher, clarify installer location"
+      }
+    ]
+  }
+}

@@ -66,6 +66,34 @@ def _exempt_set(check: str) -> set[str]:
 # File collection helpers
 # ---------------------------------------------------------------------------
 
+# Migration artifacts produced by `task migrate:vbrief` preserve verbatim
+# pre-cutover content (for rollback + audit) and therefore legitimately
+# contain old paths / renamed terms ("warping", etc.) that the framework
+# no longer uses. The content-standards tests below assert *current*
+# framework content conforms, so these migration byproducts must be
+# skipped.  Two categories:
+#
+# 1. ``*.premigrate.*`` backups at the project root (SPECIFICATION /
+#    PROJECT / ROADMAP / PRD) -- already gitignored by the migrator via
+#    `.gitignore` append, but some test environments scan the untracked
+#    working tree; the filename-suffix filter here is belt-and-suspenders.
+# 2. ``vbrief/migration/*.md`` audit reports (LEGACY-REPORT.md,
+#    RECONCILIATION.md) -- these are tracked (committed) but contain
+#    captured legacy content verbatim; they are historical records, not
+#    framework docs.
+_MIGRATION_ARTIFACT_TREES = ("vbrief/migration",)
+
+
+def _is_migration_artifact(rel: str) -> bool:
+    """True if ``rel`` is a migration byproduct that carries legacy content."""
+    if any(rel.startswith(t + "/") for t in _MIGRATION_ARTIFACT_TREES):
+        return True
+    # Match ``*.premigrate.md`` / ``*.premigrate.anything.md`` -- the
+    # migrator-assigned sibling names for pre-migration backups.
+    name = rel.rsplit("/", 1)[-1]
+    return ".premigrate." in name
+
+
 def _all_md_files(exclude_trees: list[str] | None = None) -> list[str]:
     """Return all .md paths (relative to repo root), excluding skip dirs and trees."""
     result = []
@@ -74,6 +102,8 @@ def _all_md_files(exclude_trees: list[str] | None = None) -> list[str]:
             continue
         rel = path.relative_to(_REPO_ROOT).as_posix()
         if exclude_trees and any(rel.startswith(t + "/") for t in exclude_trees):
+            continue
+        if _is_migration_artifact(rel):
             continue
         result.append(rel)
     return result

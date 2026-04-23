@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
+  },
+  "plan": {
+    "title": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
+    "status": "proposed",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 4",
+        "Description": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/163",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
+      }
+    ]
+  }
+}

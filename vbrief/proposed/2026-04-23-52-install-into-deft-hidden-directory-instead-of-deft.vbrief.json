@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #52: Install into `.deft/` (hidden directory) instead of `deft/`"
+  },
+  "plan": {
+    "title": "Install into `.deft/` (hidden directory) instead of `deft/`",
+    "status": "proposed",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 6 -- CLI Overhaul & New Features",
+        "PhaseDescription": "Larger feature work -- only after issues are resolved and content is stable.",
+        "Description": "Install into `.deft/` (hidden directory) instead of `deft/`",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/52",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #52: Install into `.deft/` (hidden directory) instead of `deft/`"
+      }
+    ]
+  }
+}

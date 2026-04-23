@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #309: RFC: vBRIEF-centric document model for Deft Directive (D1-D18; 18 design decisions + 21 implementation stories)",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "RFC: vBRIEF-centric document model for Deft Directive (D1-D18; 18 design decisions + 21 implementation stories)",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "RFC: vBRIEF-centric document model for Deft Directive (D1-D18; 18 design decisions + 21 implementation stories)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/309",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #309: RFC: vBRIEF-centric document model for Deft Directive (D1-D18; 18 design decisions + 21 implementation stories)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #134: Deft alignment confirmation rule -- AGENTS.md behavioral rule: confirm Deft Directive active at session start and after context resets",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Deft alignment confirmation rule -- AGENTS.md behavioral rule: confirm Deft Directive active at session start and after context resets",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Deft alignment confirmation rule -- AGENTS.md behavioral rule: confirm Deft Directive active at session start and after context resets",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/134",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #134: Deft alignment confirmation rule -- AGENTS.md behavioral rule: confirm Deft Directive active at session start and after context resets"
+      }
+    ]
+  }
+}

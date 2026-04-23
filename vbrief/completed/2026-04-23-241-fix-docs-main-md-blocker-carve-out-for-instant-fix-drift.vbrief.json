@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #241: fix(docs): main.md blocker carve-out for instant-fix drift rule -- hard blockers in-scope with mandatory issue filing",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "fix(docs): main.md blocker carve-out for instant-fix drift rule -- hard blockers in-scope with mandatory issue filing",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "fix(docs): main.md blocker carve-out for instant-fix drift rule -- hard blockers in-scope with mandatory issue filing",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/241",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #241: fix(docs): main.md blocker carve-out for instant-fix drift rule -- hard blockers in-scope with mandatory issue filing"
+      }
+    ]
+  }
+}

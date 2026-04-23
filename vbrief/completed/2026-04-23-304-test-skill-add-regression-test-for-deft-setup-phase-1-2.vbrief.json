@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #304: test(skill): add regression test for deft-setup Phase 1/2 referencing deft-interview",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "test(skill): add regression test for deft-setup Phase 1/2 referencing deft-interview",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "test(skill): add regression test for deft-setup Phase 1/2 referencing deft-interview",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/304",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #304: test(skill): add regression test for deft-setup Phase 1/2 referencing deft-interview"
+      }
+    ]
+  }
+}
