@@ -118,4 +118,4 @@ run additional preparatory strategies or proceed to spec generation.
 - ⊗ Accepting "make it nice" / "standard approach" / "whatever works" without pushback
 - ⊗ Scope creep — capturing out-of-scope ideas inline instead of deferring
 - ⊗ Decisions that exist only in conversation history (they must be in the vBRIEF `LockedDecisions` narrative)
-- ⊗ Ending after discuss without chaining into specification generation
+- ⊗ Ending after discuss without chaining into specification generation (chained mode; in standalone context, returning to the invoking strategy's menu satisfies the completion requirement per the [standalone-context rule](#then-chaining-gate))

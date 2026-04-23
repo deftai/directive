@@ -114,4 +114,4 @@ so the user can run additional preparatory strategies or proceed to spec generat
 - ⊗ Skipping research for unfamiliar domains ("how hard can auth be?")
 - ⊗ Research that produces a reading list instead of actionable guidance
 - ⊗ Research that doesn't flow into planning (written and never referenced)
-- ⊗ Ending after research without chaining into specification generation
+- ⊗ Ending after research without chaining into specification generation (chained mode; in standalone context, returning to the invoking strategy's menu satisfies the completion requirement per the [standalone-context rule](#then-chaining-gate))
