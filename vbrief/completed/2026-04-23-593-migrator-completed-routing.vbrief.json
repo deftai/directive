@@ -8,7 +8,7 @@
   "plan": {
     "id": "rc3-593-migrator-completed-routing",
     "title": "migrator: ROADMAP.md Completed section items routed to vbrief/proposed/ instead of vbrief/completed/",
-    "status": "running",
+    "status": "completed",
     "tags": [
       "rc3",
       "rc4",
@@ -66,6 +66,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #593: migrator: ROADMAP.md Completed section items routed to vbrief/proposed/ instead of vbrief/completed/"
       }
-    ]
+    ],
+    "updated": "2026-04-23T02:22:16Z"
   }
 }
