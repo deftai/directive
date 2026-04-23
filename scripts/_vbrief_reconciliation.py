@@ -591,21 +591,31 @@ def reconcile_scope_items(
         # Orphan: ROADMAP item with no SPEC match, but SPEC had items.
         # #496 acceptance: "route to vbrief/proposed/ with
         # narrative.SourceConflict = 'missing-from-spec' so it surfaces for
-        # triage rather than silently joining the backlog." Operators
-        # evaluate orphans individually, so we force status=proposed even
-        # when ROADMAP carried a completion signal. Without this override,
-        # ROADMAP-Completed orphans would emit to proposed/ with
-        # plan.status="completed" and fail Agent D's D2 folder/status
-        # validator (proposed/ only permits draft|proposed). The inbound
-        # completion signal is preserved in the RoadmapSummary narrative so
-        # nothing is lost during triage.
+        # triage rather than silently joining the backlog."
+        #
+        # #593 (rc.4): when the orphan came from the ROADMAP's ``##
+        # Completed`` section, the completion signal is authoritative --
+        # ROADMAP explicitly tombstoned the issue as shipped. Preserve
+        # that signal by routing to completed/ with status=completed
+        # rather than burying it in proposed/ where downstream renderers
+        # (task roadmap:render / task project:render) would misreport 165
+        # shipped items as open backlog. Active-phase orphans retain the
+        # original proposed/ routing for triage. The orphan is still
+        # recorded in report.orphans so --strict flags the SPEC drift.
         source_conflict = ""
         folder: str
         if spec_has_items and spec_entry is None:
             source_conflict = "missing-from-spec"
-            folder = "proposed"
-            status = "proposed"
-            status_source = "orphan: proposed default"
+            if is_completed:
+                folder = "completed"
+                status = "completed"
+                status_source = (
+                    "orphan: ROADMAP Completed section (#593)"
+                )
+            else:
+                folder = "proposed"
+                status = "proposed"
+                status_source = "orphan: proposed default"
             report.orphans.append({
                 "task_id": task_key,
                 "title": title or str(item.get("title", "") or ""),
@@ -620,6 +630,16 @@ def reconcile_scope_items(
         phase_desc = phase_descriptions.get(phase, "") if phase else ""
         spec_phase = spec_entry.spec_phase if spec_entry else ""
 
+        # ``source_section`` is the human-readable label for which part of
+        # ROADMAP.md fed this item (#593). ``is_completed`` is True for rows
+        # parsed from ``## Completed``; every other row (phase sections,
+        # tiered sub-phases, and items accumulated when SPEC has no
+        # ROADMAP counterpart at all) comes from the active phase
+        # portion of the document.
+        source_section = (
+            "ROADMAP Completed section" if is_completed
+            else "ROADMAP active phase"
+        )
         reconciled.append({
             "task_id": task_key,
             "number": str(item.get("number", "") or ""),
@@ -636,6 +656,8 @@ def reconcile_scope_items(
             "spec_phase": spec_phase if spec_phase != phase else "",
             "roadmap_summary": roadmap_summary,
             "source_conflict": source_conflict,
+            "source_section": source_section,
+            "is_completed": is_completed,
             "override_applied": override is not None,
             "synthetic_id": item.get("synthetic_id", ""),
             "original_task_id": item.get("task_id", ""),

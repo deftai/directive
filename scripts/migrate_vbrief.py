@@ -229,6 +229,12 @@ _PROJECT_AUTO_MARKERS = (
 # Date for migration-created vBRIEF filenames (D7: creation date)
 _TODAY = datetime.now(UTC).strftime("%Y-%m-%d")
 
+# ISO-8601 UTC timestamp stamped onto ``vBRIEFInfo.updated`` when the
+# migrator routes a scope to ``completed/`` (#593). Module-level so the
+# golden-file test can monkeypatch for deterministic byte-for-byte output
+# (mirrors ``_TODAY``).
+_MIGRATION_TIMESTAMP = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
 # Mapping of markdown heading text (lowercased) to canonical narrative key names.
 # Covers both CamelCase keys (from prd_render.py output) and space-separated
 # forms (from hand-written PRDs/specs).  Keys must match prd_render.py.
@@ -1576,14 +1582,27 @@ def migrate(
                 continue
 
         scope_vbrief = _build_reconciled_scope_vbrief(
-            reconciled, repo_url=repo_url
+            reconciled,
+            repo_url=repo_url,
+            migration_timestamp=_MIGRATION_TIMESTAMP,
         )
         label = (
             f"#{number}" if number
             else reconciled.get("task_id") or title_slug
         )
+        # #593: annotate the CREATE log line with the source section so
+        # operators can audit routing decisions post-migration without
+        # re-running the migrator. ``source_section`` is populated by the
+        # reconciler for every ROADMAP-sourced row; SPEC-only items (no
+        # ROADMAP counterpart) fall back to the short label.
+        source_section = reconciled.get("source_section", "")
+        log_suffix = (
+            f"({label}, from {source_section})"
+            if source_section
+            else f"({label})"
+        )
         if dry_run:
-            actions.append(f"DRYRUN CREATE {folder}/{filename} ({label})")
+            actions.append(f"DRYRUN CREATE {folder}/{filename} {log_suffix}")
         else:
             target_path.write_text(
                 json.dumps(scope_vbrief, indent=2, ensure_ascii=False) + "\n",
@@ -1592,7 +1611,7 @@ def migrate(
             created_files.append(
                 target_path.relative_to(project_root).as_posix()
             )
-            actions.append(f"CREATE {folder}/{filename} ({label})")
+            actions.append(f"CREATE {folder}/{filename} {log_suffix}")
     # --- end lifecycle-routing ---
 
     # ---- Step 5: Deprecation redirects ----

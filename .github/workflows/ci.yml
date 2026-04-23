@@ -149,3 +149,48 @@ jobs:
 
       - name: Pytest guard-rails (#566 + #577 + #574 regressions)
         run: uv run pytest tests/content/test_taskfile_paths.py tests/content/test_taskfile_cli_args.py tests/content/test_taskfile_caching.py -v
+
+      - name: task migrate:vbrief end-to-end Completed-section partition (#593)
+        shell: pwsh
+        run: |
+          # #593 regression: run a real (non-dry-run) migration against
+          # the completed-routing fixture and assert that Completed
+          # section items land in vbrief/completed/ with plan.status=
+          # "completed", while active-phase items stay in vbrief/
+          # proposed/. Pre-#593 this partition check would have failed
+          # because every Completed-section orphan collapsed into
+          # vbrief/proposed/ silently.
+          $fixture = Join-Path $env:RUNNER_TEMP 'completed-consumer'
+          if (Test-Path $fixture) { Remove-Item -Recurse -Force $fixture }
+          Copy-Item -Recurse tests\fixtures\migration\completed-routing $fixture
+          # Git-init so the migrator's dirty-tree guard is satisfied.
+          Push-Location $fixture
+          git init -q
+          git -c user.name=ci -c user.email=ci@example.com add -A
+          git -c user.name=ci -c user.email=ci@example.com commit -q -m seed
+          Pop-Location
+          $deftTaskfile = Join-Path $env:GITHUB_WORKSPACE 'Taskfile.yml'
+          Push-Location $fixture
+          task -t $deftTaskfile migrate:vbrief
+          if ($LASTEXITCODE -ne 0) { throw "migrate:vbrief exited $LASTEXITCODE" }
+          Pop-Location
+          # Partition assertions.
+          $completed = Get-ChildItem -Path (Join-Path $fixture 'vbrief\completed') -Filter '*.vbrief.json' -ErrorAction SilentlyContinue
+          $proposed  = Get-ChildItem -Path (Join-Path $fixture 'vbrief\proposed')  -Filter '*.vbrief.json' -ErrorAction SilentlyContinue
+          if ($completed.Count -ne 2) {
+            throw "expected 2 scope vBRIEFs in vbrief/completed/ (#593); got $($completed.Count): $($completed.Name -join ', ')"
+          }
+          if ($proposed.Count -ne 2) {
+            throw "expected 2 scope vBRIEFs in vbrief/proposed/ (active-phase orphans); got $($proposed.Count)"
+          }
+          # Every completed scope must carry plan.status="completed".
+          foreach ($f in $completed) {
+            $data = Get-Content -Raw $f.FullName | ConvertFrom-Json
+            if ($data.plan.status -ne 'completed') {
+              throw "scope $($f.Name) has plan.status=$($data.plan.status); expected 'completed' (#593)"
+            }
+            if ($data.plan.narratives.SourceSection -ne 'ROADMAP Completed section') {
+              throw "scope $($f.Name) missing SourceSection narrative (#593)"
+            }
+          }
+          Write-Host "migrate:vbrief Completed-section partition OK (#593)"

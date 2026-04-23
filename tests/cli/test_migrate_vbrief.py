@@ -2135,6 +2135,9 @@ GOLDEN_FIXTURE_EXPECTED = (
 # All emitted JSON files in the golden fixture use this fixed date so the
 # byte-for-byte comparison is deterministic.
 GOLDEN_FIXTURE_DATE = "2026-04-21"
+# Pinned migration timestamp for completed-folder ``vBRIEFInfo.updated``
+# determinism (#593).
+GOLDEN_FIXTURE_TIMESTAMP = "2026-04-21T00:00:00Z"
 
 
 def _canonicalise_json(path: Path) -> str:
@@ -2296,6 +2299,9 @@ class TestGoldenFixture:
 
     def _run_migration_on_fixture(self, tmp_path, monkeypatch):
         monkeypatch.setattr("migrate_vbrief._TODAY", GOLDEN_FIXTURE_DATE)
+        monkeypatch.setattr(
+            "migrate_vbrief._MIGRATION_TIMESTAMP", GOLDEN_FIXTURE_TIMESTAMP
+        )
         work = tmp_path / "work"
         shutil.copytree(GOLDEN_FIXTURE_INPUT, work)
         ok, actions = migrate(work)
@@ -2432,6 +2438,72 @@ class TestLifecycleRouting:
         assert len(completed_files) == 1
         data = json.loads(completed_files[0].read_text(encoding="utf-8"))
         assert data["plan"]["status"] == "completed"
+
+    def test_593_completed_orphans_route_to_completed_when_spec_has_items(
+        self, tmp_path,
+    ):
+        """#593 (rc.4) regression: a SPEC with unrelated items must not bury
+        ROADMAP Completed-section rows in proposed/.
+
+        Before #593 every Completed row that did not match a SPEC task
+        fell into the orphan branch and collapsed into
+        ``vbrief/proposed/`` with ``plan.status=proposed``, silently
+        dropping the completion signal. deft's own repo (165 completed
+        items) would have required that many manual ``task
+        scope:complete`` invocations post-migration.
+        """
+        project = _reconciled_scope(
+            tmp_path,
+            spec_items=[
+                {"id": "t1.1", "title": "Unrelated SPEC task",
+                 "status": "pending"},
+            ],
+            roadmap_md=(
+                "# Roadmap\n\n## Phase 1\n\n"
+                "- **#201** -- Ship feature A\n\n"
+                "## Completed\n\n"
+                "- ~~#101 -- Foundation scaffolding~~\n"
+                "- ~~#102 -- CI bootstrap~~\n"
+            ),
+        )
+        ok, actions = migrate(project)
+        assert ok, actions
+        completed = list(
+            (project / "vbrief" / "completed").glob("*.vbrief.json")
+        )
+        proposed = list(
+            (project / "vbrief" / "proposed").glob("*.vbrief.json")
+        )
+        assert len(completed) == 2, (
+            f"Completed-section orphans #101 and #102 must both land in "
+            f"completed/; got: {[p.name for p in completed]}"
+        )
+        # #201 is an active-phase orphan -> still proposed/.
+        assert len(proposed) == 1
+        # Every completed scope carries status=completed + the #593
+        # SourceSection narrative + vBRIEFInfo.updated.
+        for fpath in completed:
+            data = json.loads(fpath.read_text(encoding="utf-8"))
+            assert data["plan"]["status"] == "completed"
+            assert data["plan"]["narratives"]["SourceSection"] == (
+                "ROADMAP Completed section"
+            )
+            assert data["plan"]["narratives"]["SourceConflict"] == (
+                "missing-from-spec"
+            )
+            assert data["vBRIEFInfo"].get("updated"), (
+                "completed scopes must carry vBRIEFInfo.updated (#593)"
+            )
+        # The CREATE log line annotates the source section so operators can
+        # audit routing decisions post-migration.
+        create_lines = [
+            a for a in actions if a.startswith("CREATE completed/")
+        ]
+        assert create_lines, "expected CREATE lines for completed/ entries"
+        assert all(
+            "from ROADMAP Completed section" in line
+            for line in create_lines
+        ), create_lines
 
     def test_spec_tiebreaker_routes_to_completed(self, tmp_path):
         """SPEC task status=completed wins when ROADMAP is silent (#496 D3)."""

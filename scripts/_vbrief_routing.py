@@ -25,6 +25,7 @@ Exposes:
 from __future__ import annotations
 
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +34,18 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _vbrief_build import create_scope_vbrief as _create_scope_vbrief  # noqa: E402
+
+
+def _migration_timestamp() -> str:
+    """Return an ISO-8601 UTC timestamp for ``vBRIEFInfo.updated`` stamps.
+
+    Emitted at second precision so byte-for-byte fixture comparison is
+    stable when the caller pins the system clock (tests in
+    ``test_migrate_vbrief.py`` monkeypatch ``migrate_vbrief._TODAY`` for
+    filename determinism; ``_migration_timestamp`` is the analogous knob
+    for scope vBRIEF envelope metadata).
+    """
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 # ---------------------------------------------------------------------------
 # Lifecycle <-> status mapping (#506 Shared conventions, schema-locked)
@@ -112,7 +125,9 @@ def _narrative_str(value: Any) -> str:
 
 
 def build_scope_vbrief_from_reconciled(
-    reconciled: dict, repo_url: str = "",
+    reconciled: dict,
+    repo_url: str = "",
+    migration_timestamp: str | None = None,
 ) -> dict:
     """Build a scope vBRIEF dict from a reconciled item (#496 + #499).
 
@@ -186,6 +201,31 @@ def build_scope_vbrief_from_reconciled(
     source_conflict = _narrative_str(reconciled.get("source_conflict"))
     if source_conflict:
         narratives["SourceConflict"] = source_conflict
+
+    # #593: surface the ROADMAP source section (``active phase`` vs
+    # ``Completed section``) in the scope vBRIEF narratives so operators
+    # can audit the routing decision on disk without re-running the
+    # migrator. Only emitted when the reconciler populated it -- callers
+    # that build reconciled dicts by hand (e.g. unit tests for the
+    # schema-vocabulary guards) are unaffected.
+    source_section = _narrative_str(reconciled.get("source_section"))
+    if source_section:
+        narratives["SourceSection"] = source_section
+
+    # #593: stamp ``vBRIEFInfo.updated`` with the migration timestamp when
+    # we route an item to ``completed/``. The vBRIEF carries completion
+    # provenance in its envelope so downstream tooling that sorts by
+    # completion time has a non-null date to work with. Active/pending/
+    # proposed items do not receive an ``updated`` stamp because the
+    # scope has not yet reached a terminal state. ``migration_timestamp``
+    # is pinnable by callers (tests monkeypatch it for byte-for-byte
+    # fixture determinism).
+    if reconciled.get("status") == "completed":
+        envelope = scope.setdefault("vBRIEFInfo", {})
+        if isinstance(envelope, dict):
+            envelope.setdefault(
+                "updated", migration_timestamp or _migration_timestamp()
+            )
 
     # Preserve any explicitly supplied references (e.g. spec back-link) on top
     # of the origin-provenance reference set by ``_create_scope_vbrief``.

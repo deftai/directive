@@ -43,3 +43,8 @@ only the reconciliation decision surface.
 - `registry-mirror/`  -- Validates PROJECT-DEFINITION.vbrief.json
                          `plan.items[*].status` mirrors each scope's status
                          (#499-registry).
+- `completed-routing/` -- Regression for #593. ROADMAP has both active-phase
+                         items AND `## Completed` items while SPEC lists
+                         unrelated tasks. Completed-section orphans route
+                         to `completed/` with `plan.status=completed`;
+                         active-phase orphans stay in `proposed/`.

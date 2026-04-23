@@ -210,3 +210,32 @@ class TestBuildReconciledScopeVbrief:
             and r.get("url") == "https://github.com/acme/widget/issues/99"
             for r in refs
         )
+
+    def test_source_section_emitted_in_narratives(self):
+        """#593: SourceSection narrative carries ROADMAP origin on disk."""
+        scope = build_scope_vbrief_from_reconciled(
+            _reconciled(
+                status="completed",
+                folder="completed",
+                source_section="ROADMAP Completed section",
+            )
+        )
+        assert scope["plan"]["narratives"]["SourceSection"] == (
+            "ROADMAP Completed section"
+        )
+
+    def test_completed_status_stamps_vbriefinfo_updated(self):
+        """#593: completed items get vBRIEFInfo.updated set to the migration timestamp."""
+        scope = build_scope_vbrief_from_reconciled(
+            _reconciled(status="completed", folder="completed"),
+            migration_timestamp="2026-04-23T00:00:00Z",
+        )
+        assert scope["vBRIEFInfo"]["updated"] == "2026-04-23T00:00:00Z"
+
+    def test_non_completed_status_does_not_stamp_updated(self):
+        """#593: only completed items are stamped with updated; others stay bare."""
+        scope = build_scope_vbrief_from_reconciled(
+            _reconciled(status="pending", folder="pending"),
+            migration_timestamp="2026-04-23T00:00:00Z",
+        )
+        assert "updated" not in scope["vBRIEFInfo"]
