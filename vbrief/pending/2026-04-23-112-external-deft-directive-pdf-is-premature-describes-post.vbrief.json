@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship",
-    "status": "proposed",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -18,7 +18,8 @@
         "Description": "External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship",
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: proposed default",
-        "SourceConflict": "missing-from-spec"
+        "SourceConflict": "missing-from-spec",
+        "Phase_source": "pre-migration ROADMAP (commit 3925468)"
       }
     },
     "references": [
@@ -27,6 +28,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #112: External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship"
       }
-    ]
+    ],
+    "updated": "2026-04-23T18:53:11Z"
   }
 }

@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)",
-    "status": "proposed",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -18,7 +18,8 @@
         "Description": "Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)",
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: proposed default",
-        "SourceConflict": "missing-from-spec"
+        "SourceConflict": "missing-from-spec",
+        "Phase_source": "pre-migration ROADMAP (commit 3925468)"
       }
     },
     "references": [
@@ -27,6 +28,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #89: Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)"
       }
-    ]
+    ],
+    "updated": "2026-04-23T18:53:09Z"
   }
 }

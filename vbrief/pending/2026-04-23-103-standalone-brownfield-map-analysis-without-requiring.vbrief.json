@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)",
-    "status": "proposed",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -18,7 +18,8 @@
         "Description": "Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)",
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: proposed default",
-        "SourceConflict": "missing-from-spec"
+        "SourceConflict": "missing-from-spec",
+        "Phase_source": "pre-migration ROADMAP (commit 3925468)"
       }
     },
     "references": [
@@ -27,6 +28,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #103: Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)"
       }
-    ]
+    ],
+    "updated": "2026-04-23T18:53:10Z"
   }
 }

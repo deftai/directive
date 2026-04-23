@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #96"
+  },
+  "plan": {
+    "title": "[Compliance] Config schema + compliance-aware constitution templates",
+    "status": "pending",
+    "narratives": {
+      "Description": "[Compliance] Config schema + compliance-aware constitution templates",
+      "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/96",
+      "Labels": "enhancement, compliance, soc2"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/96",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #96: [Compliance] Config schema + compliance-aware constitution templates"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 6 -- CLI Overhaul & New Features",
+        "Phase_source": "pre-migration ROADMAP (commit 3925468)"
+      }
+    },
+    "updated": "2026-04-23T18:53:17Z"
+  }
+}

@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)",
-    "status": "proposed",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -17,7 +17,8 @@
         "Description": "Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)",
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: proposed default",
-        "SourceConflict": "missing-from-spec"
+        "SourceConflict": "missing-from-spec",
+        "Phase_source": "pre-migration ROADMAP (commit 3925468)"
       }
     },
     "references": [
@@ -26,6 +27,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #46: Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)"
       }
-    ]
+    ],
+    "updated": "2026-04-23T18:53:15Z"
   }
 }

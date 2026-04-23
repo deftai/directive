@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Bootstrap: offer to update user preferences when USER.md already exists",
-    "status": "proposed",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -17,7 +17,8 @@
         "Description": "Bootstrap: offer to update user preferences when USER.md already exists",
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: proposed default",
-        "SourceConflict": "missing-from-spec"
+        "SourceConflict": "missing-from-spec",
+        "Phase_source": "pre-migration ROADMAP (commit 3925468)"
       }
     },
     "references": [
@@ -26,6 +27,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #78: Bootstrap: offer to update user preferences when USER.md already exists"
       }
-    ]
+    ],
+    "updated": "2026-04-23T18:53:15Z"
   }
 }

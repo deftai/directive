@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)",
-    "status": "proposed",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -18,7 +18,8 @@
         "Description": "Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)",
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: proposed default",
-        "SourceConflict": "missing-from-spec"
+        "SourceConflict": "missing-from-spec",
+        "Phase_source": "pre-migration ROADMAP (commit 3925468)"
       }
     },
     "references": [
@@ -27,6 +28,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #82: Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)"
       }
-    ]
+    ],
+    "updated": "2026-04-23T18:53:10Z"
   }
 }

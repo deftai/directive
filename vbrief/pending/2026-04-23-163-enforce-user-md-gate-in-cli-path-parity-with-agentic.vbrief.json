@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
-    "status": "proposed",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -16,7 +16,8 @@
         "Description": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: proposed default",
-        "SourceConflict": "missing-from-spec"
+        "SourceConflict": "missing-from-spec",
+        "Phase_source": "pre-migration ROADMAP (commit 3925468)"
       }
     },
     "references": [
@@ -25,6 +26,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
       }
-    ]
+    ],
+    "updated": "2026-04-23T18:53:14Z"
   }
 }

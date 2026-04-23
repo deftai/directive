@@ -5,19 +5,20 @@
   },
   "plan": {
     "title": "deft-install should bootstrap the current directory by default",
-    "status": "proposed",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
     "items": [],
     "metadata": {
       "x-migrator": {
-        "Phase": "Phase 5 -- Package Distribution & Install UX",
+        "Phase": "Phase 3 -- Documentation & Content Fixes",
         "PhaseDescription": "Publish deft as NPM + PIP CLI packages for developer-audience install.\nComplements the Go installer (which targets novice/bare-machine users).",
         "Description": "deft-install should bootstrap the current directory by default",
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: proposed default",
-        "SourceConflict": "missing-from-spec"
+        "SourceConflict": "missing-from-spec",
+        "Phase_source": "pre-migration ROADMAP (commit 3925468)"
       }
     },
     "references": [
@@ -26,6 +27,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #53: deft-install should bootstrap the current directory by default"
       }
-    ]
+    ],
+    "updated": "2026-04-23T18:53:10Z"
   }
 }
