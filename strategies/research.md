@@ -106,7 +106,7 @@ so the user can run additional preparatory strategies or proceed to spec generat
 1. **Scope** -- Identify the domain and feature boundaries for research
 2. **Survey** -- Check existing project dependencies, official docs, and known pitfalls
 3. **Document** -- Produce `vbrief/proposed/{feature}-research.vbrief.json` with `DontHandRoll` and `CommonPitfalls` narratives
-4. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate), or -- if invoked from a standalone strategy (e.g. map's standalone next-step menu) -- return to the invoking strategy's menu per the [Standalone context](#then-chaining-gate) rule above
+4. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate), or -- if invoked from a standalone strategy (e.g. map's standalone next-step menu) -- return to the invoking strategy's menu per the [standalone-context rule](#then-chaining-gate) above
 
 ## Anti-Patterns
 
