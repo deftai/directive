@@ -49,6 +49,11 @@ Present two groups sourced from the `Type` column in
 - Discuss — lock key decisions using Feynman technique
 - Map — analyze existing codebase conventions
 
+~ Some preparatory strategies (currently map) also support standalone invocation
+via `/deft:run:<name>` without entering the interview flow. When invoked standalone,
+they present their own completion options instead of returning to this gate.
+See `strategies/map.md` for standalone behavior.
+
 **Switch spec-generating strategy** (type: `spec-generating` — replaces current pipeline):
 - Yolo — auto-pilot, Johnbot picks all answers
 - SpecKit — five-phase formal spec process

@@ -93,6 +93,11 @@ so the user can run additional preparatory strategies or proceed to spec generat
   - "Don't Hand-Roll" items become constraints in the specification
   - "Common Pitfalls" become acceptance criteria or NFRs
 - ⊗ End the session after research without returning to the chaining gate
+  or the invoking strategy's next-step menu
+
+! **Standalone context:** If invoked from a standalone strategy (e.g. map's
+  standalone next-step menu) rather than from the interview chaining gate,
+  return to the invoking strategy's menu instead.
 
 ---
 
@@ -101,7 +106,7 @@ so the user can run additional preparatory strategies or proceed to spec generat
 1. **Scope** -- Identify the domain and feature boundaries for research
 2. **Survey** -- Check existing project dependencies, official docs, and known pitfalls
 3. **Document** -- Produce `vbrief/proposed/{feature}-research.vbrief.json` with `DontHandRoll` and `CommonPitfalls` narratives
-4. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
+4. **Chain** -- Return to [interview.md Chaining Gate](./interview.md#chaining-gate), or -- if invoked from a standalone strategy (e.g. map's standalone next-step menu) -- return to the invoking strategy's menu per the [standalone-context rule](#then-chaining-gate) above
 
 ## Anti-Patterns
 
@@ -109,4 +114,4 @@ so the user can run additional preparatory strategies or proceed to spec generat
 - ⊗ Skipping research for unfamiliar domains ("how hard can auth be?")
 - ⊗ Research that produces a reading list instead of actionable guidance
 - ⊗ Research that doesn't flow into planning (written and never referenced)
-- ⊗ Ending after research without chaining into specification generation
+- ⊗ Ending after research without chaining into specification generation (chained mode; in standalone context, returning to the invoking strategy's menu satisfies the completion requirement per the [standalone-context rule](#then-chaining-gate))
