@@ -1,0 +1,32 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: restore pre-v0.20 Phase 3-6 forward-plan structure in rendered ROADMAP.md after self-migration left vbrief/pending/ empty"
+  },
+  "plan": {
+    "title": "Restore pre-v0.20 Phase 3-6 forward-plan structure in ROADMAP.md",
+    "status": "proposed",
+    "narratives": {
+      "Overview": "After v0.20.0 self-migration on phase2/vbrief-cutover, all completed work landed in vbrief/completed/ (239 items) and vbrief/pending/ and vbrief/active/ ended up empty. Rendered ROADMAP.md consequently shows only a ## Completed section -- the multi-phase forward-looking structure (## Phase 1..6, ### Tier groupings) that existed at commit 3925468 (tag v0.20.0-pre-self-migration) is absent. This vBRIEF captures the remediation task: identify open issues that were listed under Phase 3/4/5/6 of the pre-migration ROADMAP, locate their scope vBRIEFs in vbrief/proposed/, attach Phase (and optionally Tier) metadata, and promote them to vbrief/pending/ so the next task roadmap:render produces a forward-plan view similar in shape to the pre-migration state.",
+      "ProblemStatement": "The v0.20 renderer (scripts/roadmap_render.py, #383) groups scope vBRIEFs in vbrief/pending/ and vbrief/completed/ by Phase narrative / metadata.x-migrator.Phase and emits ## Phase N headings with ### Tier subgroupings. With vbrief/pending/ empty and no Phase/Tier metadata on proposed/ scopes ingested from live GitHub issues (via task issue:ingest at 2026-04-23T11:03Z), the renderer has no forward-looking grouping to emit, so ROADMAP.md collapses to a single ## Completed section. The repo's front-page view of upcoming work is therefore absent.",
+      "Goals": "1. Cross-reference pre-migration ROADMAP (commit 3925468) Phase 3-6 issue references against currently-open GitHub issues. 2. For each still-open issue, locate the existing scope vBRIEF in vbrief/proposed/ (35 identified in prior audit) and attach Phase metadata matching its pre-migration phase assignment. 3. Handle the 2 open issues that have no vBRIEF (need task issue:ingest first) and the 1 issue not in the repo (skip). 4. Promote all now-annotated items from vbrief/proposed/ to vbrief/pending/ via task scope:promote. 5. Re-run task roadmap:render and commit the regenerated ROADMAP.md plus the moved+annotated vBRIEFs.",
+      "Approach": "Walk the deft-directive-refinement skill end-to-end: Phase 1 Ingest covers the 2 missing vBRIEFs via task issue:ingest; Phase 2 Evaluate confirms the 35+2 Phase-mapped items with the user; Phase 4 Promote/Demote applies Phase metadata and runs task scope:promote per item (either one-by-one through the conversational flow or bulk-scripted if the user prefers speed); Phase 5 Prioritize re-orders vbrief/pending/ then runs task roadmap:render. The conversational walk is the canonical path per AGENTS.md line 40-43 (before-improvising rule). Bulk-scripting is an explicit acceleration with user approval.",
+      "Acceptance": "1. task roadmap:render produces a ROADMAP.md containing ## Phase 3, ## Phase 4, ## Phase 5, ## Phase 6 sections with bullets for every still-open, Phase-mapped issue, plus the existing ## Completed section unchanged. 2. vbrief/pending/ contains one scope vBRIEF per promoted item, each carrying plan.metadata['x-migrator'].Phase matching its pre-migration phase assignment. 3. task check passes (no vbrief:validate warnings on folder-status mismatch, no broken internal links). 4. The resulting PR is merged via the normal flow (not --admin bypass), subject to branch protection and Greptile review. 5. No items currently in vbrief/completed/ are disturbed -- this task is purely additive to pending/."
+    },
+    "items": [],
+    "metadata": {
+      "x-origin": {
+        "discovered-during": "v0.20.1 post-release session, 2026-04-23 ~16:37Z",
+        "pre-migration-anchor": "commit 3925468 (tag v0.20.0-pre-self-migration)",
+        "audit-script": "diagnostic produced 35 promotable + 2 need-ingest + 1 not-in-repo out of 48 unique Phase 3-6 issue refs"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/commit/3925468",
+        "type": "x-vbrief/spec-section",
+        "title": "pre-migration ROADMAP.md at v0.20.0-pre-self-migration checkpoint"
+      }
+    ]
+  }
+}
