@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "skills/deft-directive-refinement/SKILL.md currently directs agents to call task roadmap:render after promotions/demotions and task project:render after significant lifecycle changes. The wording is semantically correct but operationally inefficient during conversational one-by-one triage -- agents interpret it as 'rerender after every accepted/rejected item'. A dry-run ingest preview surfacing 131 new issues would spend disproportionate time rebuilding derived artifacts instead of continuing triage. The roadmap and project artifacts are derived views; the source of truth is the lifecycle folders under vbrief/.",
       "Problem": "Refinement skill wording nudges agents into O(N) rerenders during high-volume triage, even though derived artifacts can be refreshed once per batch without loss of correctness.",
@@ -59,6 +59,6 @@
         "title": "Issue #638: refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion"
       }
     ],
-    "updated": "2026-04-24T14:33:29Z"
+    "updated": "2026-04-24T15:49:34Z"
   }
 }

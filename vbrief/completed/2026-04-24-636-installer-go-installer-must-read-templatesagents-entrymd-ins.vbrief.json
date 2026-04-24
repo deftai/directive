@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "installer: Go installer must read templates/agents-entry.md instead of hardcoded agentsMDEntry const (follow-up to #358 Option 3)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "Go installer (cmd/deft-install/setup.go) still writes AGENTS.md from a hardcoded const agentsMDEntry, even though #358 introduced templates/agents-entry.md as the intended single source of truth. Four writers of the AGENTS.md body exist today and do not agree on a source: task agents:init and QUICK-START.md read the template, setup.go uses the hardcoded const, and the webinstaller probes a different path. This creates ongoing dual-maintenance tax (e.g. #428 lists both files as affected). Follow-up to #358 Option 3: installer reads template at build time.",
       "Problem": "cmd/deft-install/setup.go::WriteAgentsMD writes hardcoded const agentsMDEntry (lines 18-64) instead of reading templates/agents-entry.md, forcing manual dual-maintenance across the Go installer, task agents:init, and QUICK-START.md.",
@@ -55,6 +55,6 @@
         "title": "Issue #636: installer: Go installer must read templates/agents-entry.md instead of hardcoded agentsMDEntry const (follow-up to #358 Option 3)"
       }
     ],
-    "updated": "2026-04-24T14:33:29Z"
+    "updated": "2026-04-24T15:49:34Z"
   }
 }

@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "scripts/issue_ingest.py::_build_issue_vbrief() hardcodes vBRIEFInfo.version = '0.5' and emits legacy reference shape {type: 'github-issue', id: '#N', url: ...} instead of canonical v0.6 shape {uri, type: 'x-vbrief/github-issue', title}. The refinement skill, vendored schema, and conventions/references.md already describe the canonical shape (fixed in #534 for docs, #613 for migrator); issue:ingest is the last laggard. Freshly ingested vBRIEFs in this branch (including the #636 brief) carry the legacy shape.",
       "Problem": "task issue:ingest emits legacy v0.5 vBRIEFs with non-canonical reference shape, forcing downstream cleanup and drifting from the schema contract the rest of the tooling honors.",
@@ -55,6 +55,6 @@
         "title": "Issue #639: issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6"
       }
     ],
-    "updated": "2026-04-24T14:33:29Z"
+    "updated": "2026-04-24T15:49:34Z"
   }
 }
