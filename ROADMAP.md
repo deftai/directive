@@ -5,22 +5,13 @@
 
 # Roadmap
 
-## Phase 6 -- CLI Overhaul & New Features
+## Phase 2
 
-Larger feature work -- only after issues are resolved and content is stable.
-
-- **#100** -- [Compliance] Evidence collection automation hooks
-- **#12** -- Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)
-- **#140** -- Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)
-- **#46** -- Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)
-- **#52** -- Install into `.deft/` (hidden directory) instead of `deft/`
-- **#55** -- Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54
-- **#76** -- Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)
-- **#78** -- Bootstrap: offer to update user preferences when USER.md already exists
-- **#86** -- Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest)
-- **#9** -- Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)
-- **#95** -- Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks
-- **#96** -- [Compliance] Config schema + compliance-aware constitution templates
+- **#624** -- feat(swarm): encode writes-single-threaded principle and named manager-child anti-patterns in deft-swarm
+- **#628** -- chore(sync): complete Phase 6c LegacyArtifacts review for v0.20.0 self-migration (120 sections deferred)
+- **#629** -- chore(conventions): document migration-artifact exclusion pattern for consumer content-linting tests
+- **#630** -- migrator: auto-invoke render tasks at end of task migrate:vbrief
+- **#642** -- tracking: framework maintainability, rule ownership, and determinism codification (PR #401)
 
 ## Phase 3 -- Documentation & Content Fixes
 
@@ -45,6 +36,13 @@ Quick doc/content fixes that don't require code changes.
 - **#53** -- deft-install should bootstrap the current directory by default
 - **#77** -- Allow users to change technical rating (1/2/3) when starting a new project
 
+## Phase 4
+
+- **#128** -- CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)
+- **#163** -- Enforce USER.md gate in CLI path -- parity with agentic (skills) path
+- **#228** -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)
+- **#74** -- Automate release process
+
 ## Phase 5 -- Package Distribution & Install UX
 
 Publish deft as NPM + PIP CLI packages for developer-audience install.
@@ -54,29 +52,22 @@ Complements the Go installer (which targets novice/bare-machine users).
 - **#56** -- Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)
 - **#75** -- Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)
 
-## Phase 4
+## Phase 6 -- CLI Overhaul & New Features
 
-- **#128** -- CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)
-- **#163** -- Enforce USER.md gate in CLI path -- parity with agentic (skills) path
-- **#228** -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)
-- **#74** -- Automate release process
+Larger feature work -- only after issues are resolved and content is stable.
 
-## Phase 2
-
-- **#624** -- feat(swarm): encode writes-single-threaded principle and named manager-child anti-patterns in deft-swarm
-- **#628** -- chore(sync): complete Phase 6c LegacyArtifacts review for v0.20.0 self-migration (120 sections deferred)
-- **#629** -- chore(conventions): document migration-artifact exclusion pattern for consumer content-linting tests
-- **#630** -- migrator: auto-invoke render tasks at end of task migrate:vbrief
-- **#642** -- tracking: framework maintainability, rule ownership, and determinism codification (PR #401)
-
-## Phase 1 -- Fix Now
-
-Urgent fixes to land ahead of broader roadmap work.
-
-- **#636** -- installer: Go installer must read templates/agents-entry.md instead of hardcoded agentsMDEntry const (follow-up to #358 Option 3)
-- **#638** -- refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion
-- **#639** -- issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6
-- **#641** -- roadmap:render should sort Phase X sections numerically instead of preserving incidental file order
+- **#100** -- [Compliance] Evidence collection automation hooks
+- **#12** -- Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)
+- **#140** -- Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)
+- **#46** -- Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)
+- **#52** -- Install into `.deft/` (hidden directory) instead of `deft/`
+- **#55** -- Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54
+- **#76** -- Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)
+- **#78** -- Bootstrap: offer to update user preferences when USER.md already exists
+- **#86** -- Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest)
+- **#9** -- Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)
+- **#95** -- Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks
+- **#96** -- [Compliance] Config schema + compliance-aware constitution templates
 
 ## Completed
 

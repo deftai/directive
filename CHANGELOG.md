@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+<!-- No unreleased changes yet. -->
+
+<!-- v0.20.1 was tagged on commit 493050b but never released due to Blacksmith CI failure; its content (the #630 docs follow-up) shipped in v0.20.2. -->
+
+## [0.20.2] - 2026-04-24
+
 ### Added
 - **feat(strategy): standalone map/brownfield analysis without requiring interview** (#103): `/deft:run:map` can now be invoked as a standalone first-class command without an active interview context. `strategies/map.md` gains an Invocation Modes section distinguishing Standalone vs Chained modes, a Completion section that splits artifact registration (shared) from mode-specific handoff (Chained returns to interview.md chaining gate; Standalone presents a narrative summary and offers next-step options: interview / discuss / research / done). The `⊗ End the session after mapping without returning to the chaining gate` rule is scoped to Chained mode only. `strategies/interview.md` and `strategies/README.md` gain a standalone invocation note for preparatory strategies. `strategies/discuss.md` and `strategies/research.md` gain a `!` standalone-context rule and update their Workflow chaining step so invocations from a standalone strategy return to the invoking strategy's next-step menu instead of the interview chaining gate. `tests/content/test_strategy_chaining.py` accepts both the original `## Then: Chaining Gate` heading and the new `### Chained Mode` pattern for preparatory strategies. Closes #103.
 
@@ -991,7 +997,12 @@ If you have custom scripts or references to deft files, update these paths:
 - Explore new interface guidelines if building CLIs, APIs, or UIs
 - Review enhanced language standards for Python, Go, TypeScript, and C++
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.20.2...HEAD
+[0.20.2]: https://github.com/deftai/directive/compare/v0.20.0...v0.20.2
+[0.20.0]: https://github.com/deftai/directive/compare/v0.19.0...v0.20.0
+[0.19.0]: https://github.com/deftai/directive/compare/v0.18.0...v0.19.0
+[0.18.0]: https://github.com/deftai/directive/compare/v0.17.0...v0.18.0
+[0.17.0]: https://github.com/deftai/directive/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/deftai/directive/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/deftai/directive/compare/v0.14.2...v0.15.0
 [0.14.2]: https://github.com/deftai/directive/compare/v0.14.1...v0.14.2
