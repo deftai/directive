@@ -1,0 +1,64 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for GitHub issue #638 (swarm Phase 1)",
+    "updated": "2026-04-24T14:30:00Z"
+  },
+  "plan": {
+    "title": "refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion",
+    "status": "running",
+    "narratives": {
+      "Overview": "skills/deft-directive-refinement/SKILL.md currently directs agents to call task roadmap:render after promotions/demotions and task project:render after significant lifecycle changes. The wording is semantically correct but operationally inefficient during conversational one-by-one triage -- agents interpret it as 'rerender after every accepted/rejected item'. A dry-run ingest preview surfacing 131 new issues would spend disproportionate time rebuilding derived artifacts instead of continuing triage. The roadmap and project artifacts are derived views; the source of truth is the lifecycle folders under vbrief/.",
+      "Problem": "Refinement skill wording nudges agents into O(N) rerenders during high-volume triage, even though derived artifacts can be refreshed once per batch without loss of correctness.",
+      "Origin": "https://github.com/deftai/directive/issues/638"
+    },
+    "items": [
+      {
+        "title": "Refinement skill Phase 4 wording updated: renders happen after a batch of promotions/demotions, not after each individual item",
+        "status": "pending"
+      },
+      {
+        "title": "Refinement skill Phase 5 wording updated: task roadmap:render is the checkpoint before showing the reordered backlog, not a per-edit tax",
+        "status": "pending"
+      },
+      {
+        "title": "task project:render clarified as once-per-refinement-pass unless the user explicitly needs an intermediate registry refresh",
+        "status": "pending"
+      },
+      {
+        "title": "Anti-pattern or note added: agents should not rerender after every single accept/reject during high-volume triage",
+        "status": "pending"
+      },
+      {
+        "title": "Documented workflow still guarantees ROADMAP.md and PROJECT-DEFINITION.vbrief.json are refreshed before the user is shown final backlog state",
+        "status": "pending"
+      },
+      {
+        "title": "A large refinement session can ingest/evaluate/promote multiple issues with one final render checkpoint rather than N repetitive renders",
+        "status": "pending"
+      },
+      {
+        "title": "Any skill tests or snapshots reflecting the old wording are updated",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md entry under [Unreleased]",
+        "status": "pending"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/638",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #638: refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion"
+      }
+    ],
+    "updated": "2026-04-24T14:33:29Z"
+  }
+}

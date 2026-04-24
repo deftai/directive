@@ -1,0 +1,60 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for GitHub issue #641 (swarm Phase 1)",
+    "updated": "2026-04-24T14:30:00Z"
+  },
+  "plan": {
+    "title": "roadmap:render should sort Phase X sections numerically instead of preserving incidental file order",
+    "status": "running",
+    "narratives": {
+      "Overview": "task roadmap:render produces unstable semantic ordering for phase sections in ROADMAP.md. Current branch shows Phase 6, 3, 5, 4, 1 -- scripts/roadmap_render.py preserves insertion order from the first time each phase label is encountered while scanning pending vBRIEFs, so final section order depends on file discovery order rather than numeric phase. Phases should render in numeric order for a readable roadmap.",
+      "Problem": "scripts/roadmap_render.py does not sort Phase X headings by numeric phase; output is non-deterministic relative to roadmap semantics.",
+      "Origin": "https://github.com/deftai/directive/issues/641"
+    },
+    "items": [
+      {
+        "title": "scripts/roadmap_render.py sorts grouped phase names before rendering",
+        "status": "pending"
+      },
+      {
+        "title": "Group names matching ^Phase\\s+(\\d+)\\b are sorted by the parsed integer in ascending order",
+        "status": "pending"
+      },
+      {
+        "title": "Deterministic fallback for non-phase groups: numbered phases first ascending, then non-numbered groups (e.g. Ungrouped) in alphabetical or explicit fixed order",
+        "status": "pending"
+      },
+      {
+        "title": "task roadmap:render renders numbered phase sections in ascending numeric order (Phase 1, Phase 2, Phase 3, ...)",
+        "status": "pending"
+      },
+      {
+        "title": "Regression test covers mixed input such as Phase 6, Phase 3, Phase 1, and Ungrouped -- phase placement cannot drift again",
+        "status": "pending"
+      },
+      {
+        "title": "Existing grouped roadmap behavior is otherwise preserved (no other render changes)",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md entry under [Unreleased]",
+        "status": "pending"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/641",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #641: roadmap:render should sort Phase X sections numerically instead of preserving incidental file order"
+      }
+    ],
+    "updated": "2026-04-24T14:33:29Z"
+  }
+}
