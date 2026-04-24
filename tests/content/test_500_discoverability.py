@@ -230,45 +230,55 @@ def test_agents_entry_template_routes_to_setup_skill() -> None:
 
 
 def test_setup_go_mirrors_pre_cutover_branch() -> None:
-    """cmd/deft-install/setup.go agentsMDEntry must mirror the pre-cutover
-    branch (same content installed into consumer AGENTS.md)."""
-    content = _SETUP_GO.read_text(encoding="utf-8")
-    assert "Pre-Cutover Check" in content, (
-        "setup.go agentsMDEntry: must mirror the Pre-Cutover Check branch "
-        "from templates/agents-entry.md (Task 500-C)"
+    """The pre-cutover branch content installed into consumer AGENTS.md is
+    sourced from templates/agents-entry.md via //go:embed in setup.go
+    (#636). Assert that the single canonical template carries every
+    required element of the pre-cutover branch, and that setup.go
+    consumes it exclusively through templates.AgentsEntry.
+    """
+    setup_go_content = _SETUP_GO.read_text(encoding="utf-8")
+    # Installer must source the entry from the templates package, not a
+    # hardcoded literal (#636).
+    assert "templates.AgentsEntry" in setup_go_content, (
+        "cmd/deft-install/setup.go must source agentsMDEntry from "
+        "templates.AgentsEntry (//go:embed templates/agents-entry.md) (#636)."
     )
-    assert "deft:deprecated-redirect" in content, (
-        "setup.go agentsMDEntry: must reference the deprecation redirect "
-        "sentinel in the mirrored pre-cutover branch"
+    assert "agentsMDEntry = `" not in setup_go_content, (
+        "cmd/deft-install/setup.go reintroduced a hardcoded agentsMDEntry "
+        "raw-string literal -- the AGENTS.md body must live exclusively in "
+        "templates/agents-entry.md (#636)."
+    )
+
+    # Assertions below are on the canonical template, which IS the content
+    # the installer writes into consumer AGENTS.md.
+    entry = _AGENTS_ENTRY_TEMPLATE.read_text(encoding="utf-8")
+    assert "Pre-Cutover Check" in entry, (
+        "templates/agents-entry.md: must carry the Pre-Cutover Check branch "
+        "(Task 500-C)"
+    )
+    assert "deft:deprecated-redirect" in entry, (
+        "templates/agents-entry.md: must reference the deprecation redirect "
+        "sentinel in the pre-cutover branch"
     )
     for folder in ("proposed/", "pending/", "active/", "completed/", "cancelled/"):
-        assert folder in content, (
-            f"setup.go agentsMDEntry: must list the `{folder}` lifecycle "
-            f"folder in its mirrored pre-cutover criterion"
+        assert folder in entry, (
+            f"templates/agents-entry.md: must list the `{folder}` lifecycle "
+            f"folder in its pre-cutover criterion"
         )
-    # Extract the agentsMDEntry raw-string constant body so we assert
-    # against the consumer-facing block only (not package comments or
-    # the agentsMDSentinel const declaration, which also contain the
-    # string "deft/main.md").
-    marker = "agentsMDEntry = `"
-    start = content.index(marker) + len(marker)
-    end = content.index("`", start)
-    entry = content[start:end]
     # The `Full guidelines: deft/main.md` line is the single deft/main.md
     # reference inside the entry (also the agentsMDSentinel used for
-    # idempotency in WriteAgentsMD). Adding a second reference in the
-    # entry breaks TestWriteAgentsMD_Idempotent, so the pre-cutover
-    # branch must route via the setup SKILL and name the
-    # "Migrating from pre-v0.20" section of the main guidelines without
-    # repeating the path.
+    # idempotency in WriteAgentsMD). Adding a second reference breaks
+    # TestWriteAgentsMD_Idempotent, so the pre-cutover branch must route
+    # via the setup SKILL and name the "Migrating from pre-v0.20" section
+    # of the main guidelines without repeating the path.
     assert entry.count("deft/main.md") == 1, (
-        "setup.go agentsMDEntry: must contain exactly one `deft/main.md` "
+        "templates/agents-entry.md: must contain exactly one `deft/main.md` "
         "reference (the 'Full guidelines:' line that doubles as the "
         "agentsMDSentinel). Adding a second reference inside the entry "
         "breaks the Go installer's WriteAgentsMD idempotency contract."
     )
     assert "Migrating from pre-v0.20" in entry, (
-        "setup.go agentsMDEntry: mirrored branch must name the "
+        "templates/agents-entry.md: pre-cutover branch must name the "
         "'Migrating from pre-v0.20' section of the main guidelines so "
         "readers know where to find the full migration reference"
     )

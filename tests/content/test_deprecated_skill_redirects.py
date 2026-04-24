@@ -304,10 +304,29 @@ class TestAgentsEntryFallbackRule:
         )
 
     def test_setup_go_has_fallback_rule(self) -> None:
+        """The fallback rule lives in templates/agents-entry.md (the single
+        canonical source embedded via //go:embed) rather than a hardcoded
+        literal in setup.go (#636). Assert that setup.go sources from the
+        templates package and that the template carries the fallback rule.
+        """
         content = self.SETUP_GO.read_text(encoding="utf-8")
-        assert "deft/skills/" in content, (
-            "setup.go agentsMDEntry must mirror the fallback rule."
+        assert "templates.AgentsEntry" in content, (
+            "cmd/deft-install/setup.go must source agentsMDEntry from "
+            "templates.AgentsEntry (//go:embed templates/agents-entry.md) (#636)."
         )
-        assert "deft/QUICK-START.md" in content, (
-            "setup.go agentsMDEntry must point at deft/QUICK-START.md."
+        assert "agentsMDEntry = `" not in content, (
+            "cmd/deft-install/setup.go reintroduced a hardcoded raw-string "
+            "AGENTS.md body -- the fallback rule must live in "
+            "templates/agents-entry.md only (#636)."
+        )
+        # Assert the fallback rule exists in the canonical template, which
+        # IS the body the installer writes into consumer AGENTS.md.
+        template = self.TEMPLATE.read_text(encoding="utf-8")
+        assert "deft/skills/" in template, (
+            "templates/agents-entry.md must carry the fallback rule "
+            "(mentions deft/skills/)."
+        )
+        assert "deft/QUICK-START.md" in template, (
+            "templates/agents-entry.md fallback rule must point at "
+            "deft/QUICK-START.md."
         )

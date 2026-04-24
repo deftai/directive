@@ -7,62 +7,25 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/deftai/directive/templates"
 )
+
+// agentsMDEntry is the AGENTS.md body the installer writes into consumer
+// projects. It is sourced from templates/agents-entry.md via //go:embed (see
+// templates/embed.go) so that editing the template alone is sufficient to
+// change what the installer writes -- no Go file edit required (closes #636).
+// It must contain agentsMDSentinel ("deft/main.md") for idempotency --
+// WriteAgentsMD checks for that string before appending.
+var agentsMDEntry = templates.AgentsEntry
 
 const (
 	deftRepoURL = "https://github.com/deftai/directive"
 
-	// agentsMDEntry is written into the project's AGENTS.md during install.
-	// It must contain agentsMDSentinel ("deft/main.md") for idempotency —
-	// WriteAgentsMD checks for that string before appending.
-	agentsMDEntry = `# Deft — AI Development Framework
-
-Deft is installed in deft/. Full guidelines: deft/main.md
-
-! If any deft/skills/ path referenced in this file cannot be read (missing file, stale path from a previous framework version, or a deprecation redirect stub), read deft/QUICK-START.md instead and follow it. QUICK-START refreshes this section idempotently for the current framework version.
-
-## Pre-Cutover Check (run before First Session / Returning Sessions)
-
-! Before the First Session / Returning Sessions checks below, detect whether this project pre-dates the v0.20 vBRIEF-centric model. If it does, migration MUST happen before any Phase 1, Phase 2, or Returning-Sessions routing fires.
-
-**Pre-cutover detected** if ANY of the following are true:
-
-- ./SPECIFICATION.md exists and its first 200 characters do NOT contain <!-- deft:deprecated-redirect -->
-- ./PROJECT.md exists and its first 200 characters do NOT contain <!-- deft:deprecated-redirect -->
-- ./vbrief/ exists but any of the five lifecycle subfolders (proposed/, pending/, active/, completed/, cancelled/) is missing
-
-→ On detection: read deft/skills/deft-directive-setup/SKILL.md "Pre-Cutover Detection Guard" section and follow the migration path BEFORE any other action. The Migrating from pre-v0.20 section of the full guidelines has the canonical command, the "task -t ./deft/Taskfile.yml migrate:vbrief" fallback (for when "task migrate:vbrief" is not resolvable from the project root), what migration produces, and the available safety flags.
-
-⊗ Start Phase 1, Phase 2, or a Returning-Sessions workflow while pre-cutover artifacts are present — run migration first.
-
-## First Session
-
-Check what exists before doing anything else:
-
-**USER.md missing** (~/.config/deft/USER.md or %APPDATA%\deft\USER.md):
-→ Read deft/skills/deft-directive-setup/SKILL.md and start Phase 1 (user preferences)
-
-**USER.md exists, PROJECT-DEFINITION.vbrief.json missing** (./vbrief/):
-→ Read deft/skills/deft-directive-setup/SKILL.md and start Phase 2 (project definition)
-
-## Returning Sessions
-
-When all config exists: read the guidelines, your USER.md preferences, and PROJECT-DEFINITION.vbrief.json, then continue with your task.
-
-~ Run deft/skills/deft-directive-sync/SKILL.md to pull latest framework updates and validate project files.
-
-## Commands
-
-- /deft:change <name>        — Propose a scoped change
-- /deft:run:interview        — Structured spec interview
-- /deft:run:speckit          — Five-phase spec workflow (large projects)
-- /deft:run:discuss <topic>  — Feynman-style alignment
-- /deft:run:research <topic> — Research before planning
-- /deft:run:map              — Map an existing codebase
-- deft/run bootstrap         — CLI setup (terminal users)
-- deft/run spec              — CLI spec generation
-`
-	// Sentinel used to detect an existing deft entry in AGENTS.md.
+	// Sentinel used to detect an existing deft entry in AGENTS.md. This is a
+	// contract between the installer and WriteAgentsMD's idempotency check, not
+	// template content -- it is intentionally kept in Go source rather than
+	// derived from the template.
 	agentsMDSentinel = "deft/main.md"
 
 	// agentsSkillDeft is the thin pointer content for .agents/skills/deft/SKILL.md.
