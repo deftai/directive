@@ -145,12 +145,18 @@ class TestFetchSingleIssue:
         assert issue is not None
         assert issue["url"] == "https://x/1"
 
-    def test_existing_url_not_overwritten(self, monkeypatch):
+    def test_gh_api_shape_prefers_html_url_over_rest_api_url(self, monkeypatch):
+        """#639 follow-up (Greptile P1): real ``gh api`` responses always
+        carry BOTH ``url`` (REST API URL) AND ``html_url`` (browser URL).
+        ``_fetch_single_issue`` MUST prefer ``html_url`` so the canonical
+        ``uri`` field ends up as the browser URL required by
+        ``conventions/references.md``.
+        """
         payload = {
             "number": 7,
             "title": "Y",
-            "url": "https://explicit",
-            "html_url": "https://should-ignore",
+            "url": "https://api.github.com/repos/o/r/issues/7",
+            "html_url": "https://github.com/o/r/issues/7",
         }
 
         class FakeResult:
@@ -163,7 +169,31 @@ class TestFetchSingleIssue:
         )
         issue = issue_ingest._fetch_single_issue("o/r", 7)
         assert issue is not None
-        assert issue["url"] == "https://explicit"
+        # Browser URL wins over REST API URL.
+        assert issue["url"] == "https://github.com/o/r/issues/7"
+
+    def test_empty_html_url_does_not_clobber_url(self, monkeypatch):
+        """Defensive: an explicitly-empty ``html_url`` must not overwrite an
+        otherwise-usable ``url`` field.
+        """
+        payload = {
+            "number": 8,
+            "title": "Z",
+            "url": "https://github.com/o/r/issues/8",
+            "html_url": "",
+        }
+
+        class FakeResult:
+            returncode = 0
+            stdout = json.dumps(payload)
+            stderr = ""
+
+        monkeypatch.setattr(
+            issue_ingest.subprocess, "run", lambda *a, **k: FakeResult()
+        )
+        issue = issue_ingest._fetch_single_issue("o/r", 8)
+        assert issue is not None
+        assert issue["url"] == "https://github.com/o/r/issues/8"
 
 
 # ---------------------------------------------------------------------------

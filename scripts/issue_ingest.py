@@ -185,8 +185,17 @@ def _fetch_single_issue(
             file=sys.stderr,
         )
         return None
-    # gh api uses "html_url"; normalise to "url" for uniformity with fetch_open_issues.
-    if "url" not in issue and "html_url" in issue:
+    # #639 follow-up (Greptile P1): ``gh api repos/{repo}/issues/{N}``
+    # ALWAYS returns both ``url`` (REST API URL, ``https://api.github.com/repos/...``)
+    # and ``html_url`` (browser URL, ``https://github.com/{owner}/{repo}/issues/{N}``).
+    # The previous ``"url" not in issue`` guard was therefore always False for
+    # real gh api output, so ``issue["url"]`` leaked through as the REST API
+    # URL and ended up in the canonical ``uri`` field -- contradicting the
+    # ``conventions/references.md`` spec which requires the browser URL.
+    # ``fetch_open_issues`` (``gh issue list --json ...,url``) already returns
+    # ``url`` = browser URL, so unconditionally preferring ``html_url`` when
+    # present aligns the single-issue and bulk paths.
+    if "html_url" in issue and issue.get("html_url"):
         issue["url"] = issue["html_url"]
     return issue
 
