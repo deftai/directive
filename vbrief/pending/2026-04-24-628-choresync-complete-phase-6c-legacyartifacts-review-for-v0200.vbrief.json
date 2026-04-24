@@ -1,0 +1,29 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #628"
+  },
+  "plan": {
+    "title": "chore(sync): complete Phase 6c LegacyArtifacts review for v0.20.0 self-migration (120 sections deferred)",
+    "status": "pending",
+    "narratives": {
+      "Description": "chore(sync): complete Phase 6c LegacyArtifacts review for v0.20.0 self-migration (120 sections deferred)",
+      "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/628",
+      "Labels": "chore, skills, operational"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2"
+      }
+    },
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#628",
+        "url": "https://api.github.com/repos/deftai/directive/issues/628"
+      }
+    ],
+    "updated": "2026-04-24T01:16:04Z"
+  }
+}

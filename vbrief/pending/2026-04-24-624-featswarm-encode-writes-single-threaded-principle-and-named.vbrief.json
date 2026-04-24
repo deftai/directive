@@ -1,0 +1,29 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #624"
+  },
+  "plan": {
+    "title": "feat(swarm): encode writes-single-threaded principle and named manager-child anti-patterns in deft-swarm",
+    "status": "pending",
+    "narratives": {
+      "Description": "feat(swarm): encode writes-single-threaded principle and named manager-child anti-patterns in deft-swarm",
+      "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/624",
+      "Labels": "enhancement, skills"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2"
+      }
+    },
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#624",
+        "url": "https://api.github.com/repos/deftai/directive/issues/624"
+      }
+    ],
+    "updated": "2026-04-24T01:23:53Z"
+  }
+}

@@ -61,6 +61,22 @@ Complements the Go installer (which targets novice/bare-machine users).
 - **#228** -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)
 - **#74** -- Automate release process
 
+## Phase 2
+
+- **#624** -- feat(swarm): encode writes-single-threaded principle and named manager-child anti-patterns in deft-swarm
+- **#628** -- chore(sync): complete Phase 6c LegacyArtifacts review for v0.20.0 self-migration (120 sections deferred)
+- **#629** -- chore(conventions): document migration-artifact exclusion pattern for consumer content-linting tests
+- **#630** -- migrator: auto-invoke render tasks at end of task migrate:vbrief
+- **#642** -- tracking: framework maintainability, rule ownership, and determinism codification (PR #401)
+
+## Phase 1 -- Fix Now
+
+Urgent fixes to land ahead of broader roadmap work.
+
+- **#636** -- installer: Go installer must read templates/agents-entry.md instead of hardcoded agentsMDEntry const (follow-up to #358 Option 3)
+- **#638** -- refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion
+- **#639** -- issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6
+
 ## Completed
 
 - **#365** -- bdd strategy: move context and scenarios to vbrief; remove specs/ folder -- `[completed]`

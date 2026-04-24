@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #622"
+  },
+  "plan": {
+    "title": "feat(skills): clean-context reviewer principle and communication bridge filter for deft-review-cycle",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(skills): clean-context reviewer principle and communication bridge filter for deft-review-cycle",
+      "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/622",
+      "Labels": "enhancement, skills"
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#622",
+        "url": "https://api.github.com/repos/deftai/directive/issues/622"
+      }
+    ]
+  }
+}

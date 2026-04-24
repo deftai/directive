@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-04-23T18:55:09Z"
+    "updated": "2026-04-24T01:37:10Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -241,6 +241,70 @@
         "metadata": {
           "source_path": "proposed/2026-04-23-roadmap-9-code-signing.vbrief.json",
           "lifecycle_folder": "proposed"
+        }
+      },
+      {
+        "id": "2026-04-24-622-featskills-clean-context-reviewer-principle-and-communicatio",
+        "title": "feat(skills): clean-context reviewer principle and communication bridge filter for deft-review-cycle",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-04-24-622-featskills-clean-context-reviewer-principle-and-communicatio.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#622",
+              "url": "https://api.github.com/repos/deftai/directive/issues/622"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-623-featcontext-name-and-encode-context-rot-as-a-first-class-con",
+        "title": "feat(context): name and encode Context Rot as a first-class concept with mitigations",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-04-24-623-featcontext-name-and-encode-context-rot-as-a-first-class-con.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#623",
+              "url": "https://api.github.com/repos/deftai/directive/issues/623"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-625-featpatterns-generator-verifier-loop-and-capability-routing",
+        "title": "feat(patterns): generator-verifier loop and capability routing as multi-agent architecture patterns",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-04-24-625-featpatterns-generator-verifier-loop-and-capability-routing.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#625",
+              "url": "https://api.github.com/repos/deftai/directive/issues/625"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-627-featstrategies-add-strategiesdelegatemd-controlled-delegatio",
+        "title": "feat(strategies): add strategies/delegate.md — controlled delegation framework for agent-driven implementation",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-04-24-627-featstrategies-add-strategiesdelegatemd-controlled-delegatio.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#627",
+              "url": "https://api.github.com/repos/deftai/directive/issues/627"
+            }
+          ]
         }
       },
       {
@@ -735,6 +799,134 @@
               "uri": "https://github.com/deftai/directive/issues/96",
               "type": "x-vbrief/github-issue",
               "title": "Issue #96: [Compliance] Config schema + compliance-aware constitution templates"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-624-featswarm-encode-writes-single-threaded-principle-and-named",
+        "title": "feat(swarm): encode writes-single-threaded principle and named manager-child anti-patterns in deft-swarm",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-24-624-featswarm-encode-writes-single-threaded-principle-and-named.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#624",
+              "url": "https://api.github.com/repos/deftai/directive/issues/624"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-628-choresync-complete-phase-6c-legacyartifacts-review-for-v0200",
+        "title": "chore(sync): complete Phase 6c LegacyArtifacts review for v0.20.0 self-migration (120 sections deferred)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-24-628-choresync-complete-phase-6c-legacyartifacts-review-for-v0200.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#628",
+              "url": "https://api.github.com/repos/deftai/directive/issues/628"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-629-choreconventions-document-migration-artifact-exclusion-patte",
+        "title": "chore(conventions): document migration-artifact exclusion pattern for consumer content-linting tests",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-24-629-choreconventions-document-migration-artifact-exclusion-patte.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#629",
+              "url": "https://api.github.com/repos/deftai/directive/issues/629"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-630-migrator-auto-invoke-render-tasks-at-end-of-task-migratevbri",
+        "title": "migrator: auto-invoke render tasks at end of task migrate:vbrief",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-24-630-migrator-auto-invoke-render-tasks-at-end-of-task-migratevbri.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#630",
+              "url": "https://api.github.com/repos/deftai/directive/issues/630"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-636-installer-go-installer-must-read-templatesagents-entrymd-ins",
+        "title": "installer: Go installer must read templates/agents-entry.md instead of hardcoded agentsMDEntry const (follow-up to #358 Option 3)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-24-636-installer-go-installer-must-read-templatesagents-entrymd-ins.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#636",
+              "url": "https://api.github.com/repos/deftai/directive/issues/636"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-638-refinement-batch-roadmapproject-renders-during-multi-item-tr",
+        "title": "refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-24-638-refinement-batch-roadmapproject-renders-during-multi-item-tr.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#638",
+              "url": "https://api.github.com/repos/deftai/directive/issues/638"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-639-issueingest-emits-legacy-v05-scope-vbriefs-and-non-canonical",
+        "title": "issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-24-639-issueingest-emits-legacy-v05-scope-vbriefs-and-non-canonical.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#639",
+              "url": "https://api.github.com/repos/deftai/directive/issues/639"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ",
+        "title": "tracking: framework maintainability, rule ownership, and determinism codification (PR #401)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#642",
+              "url": "https://api.github.com/repos/deftai/directive/issues/642"
             }
           ]
         }

@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #623"
+  },
+  "plan": {
+    "title": "feat(context): name and encode Context Rot as a first-class concept with mitigations",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(context): name and encode Context Rot as a first-class concept with mitigations",
+      "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/623",
+      "Labels": "enhancement, context-engineering"
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#623",
+        "url": "https://api.github.com/repos/deftai/directive/issues/623"
+      }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #638"
+  },
+  "plan": {
+    "title": "refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion",
+    "status": "pending",
+    "narratives": {
+      "Description": "refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion",
+      "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/638"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work."
+      }
+    },
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#638",
+        "url": "https://api.github.com/repos/deftai/directive/issues/638"
+      }
+    ],
+    "updated": "2026-04-24T00:35:28Z"
+  }
+}
