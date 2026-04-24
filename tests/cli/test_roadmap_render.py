@@ -846,3 +846,237 @@ def test_drift_check_completed_only_detects_drift(roadmap_mod, tmp_path) -> None
     ok, msg = roadmap_mod.check_drift(str(pending), str(out))
     assert ok is False
     assert "vBRIEFs found" in msg
+
+
+# ---------------------------------------------------------------------------
+# Numeric phase sort order (#641)
+#
+# ``scripts/roadmap_render.py`` previously preserved insertion order of
+# phase labels as they were first encountered while scanning
+# ``vbrief/pending/``, which made section order depend on file-discovery
+# order. Regression guards below lock in the new numeric-first ordering
+# (Phase 1, Phase 2, ...) with non-numbered groups (Ungrouped, etc.)
+# sorted AFTER numbered phases.
+# ---------------------------------------------------------------------------
+
+
+def _make_phase_vbrief(title: str, phase_label: str, issue: str) -> dict:
+    """Build a minimal scope vBRIEF carrying only the Phase label we want.
+
+    Uses the canonical post-#616 ``plan.metadata['x-migrator'].Phase``
+    location so the test reflects current migrator output and exercises
+    the same code path production renders use.
+    """
+    return {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {
+            "title": title,
+            "status": "pending",
+            "references": [{"type": "github-issue", "id": issue}],
+            "items": [],
+            "metadata": {"x-migrator": {"Phase": phase_label}},
+        },
+    }
+
+
+def test_phase_sort_key_numbered_phases_sort_ascending(roadmap_mod) -> None:
+    """``Phase N`` labels sort by parsed integer in ascending order (#641)."""
+    names = ["Phase 6", "Phase 3", "Phase 1", "Phase 10", "Phase 2"]
+    assert roadmap_mod._sorted_phase_names(names) == [
+        "Phase 1",
+        "Phase 2",
+        "Phase 3",
+        "Phase 6",
+        "Phase 10",
+    ]
+
+
+def test_phase_sort_key_non_numbered_phases_come_after(roadmap_mod) -> None:
+    """Non-numbered phase labels come after all numbered phases (#641)."""
+    names = ["Ungrouped", "Phase 2", "Phase 1", "Backlog"]
+    sorted_names = roadmap_mod._sorted_phase_names(names)
+    # Numbered phases first in ascending order
+    assert sorted_names[0] == "Phase 1"
+    assert sorted_names[1] == "Phase 2"
+    # Non-numbered phases after, alphabetically
+    assert sorted_names[2] == "Backlog"
+    assert sorted_names[3] == "Ungrouped"
+
+
+def test_phase_sort_key_non_numbered_only_alphabetical(roadmap_mod) -> None:
+    """Non-numbered phases alone sort alphabetically (#641)."""
+    names = ["Ungrouped", "Backlog", "Completed"]
+    assert roadmap_mod._sorted_phase_names(names) == [
+        "Backlog",
+        "Completed",
+        "Ungrouped",
+    ]
+
+
+def test_phase_sort_key_suffix_after_number(roadmap_mod) -> None:
+    """``Phase N -- Suffix`` labels sort by N, not by the full label (#641)."""
+    names = [
+        "Phase 3 -- Documentation & Content Fixes",
+        "Phase 1 -- Foundation",
+        "Phase 2 -- Features",
+    ]
+    assert roadmap_mod._sorted_phase_names(names) == [
+        "Phase 1 -- Foundation",
+        "Phase 2 -- Features",
+        "Phase 3 -- Documentation & Content Fixes",
+    ]
+
+
+def test_group_by_phase_sorts_numeric_ascending(roadmap_mod) -> None:
+    """_group_by_phase returns numbered phases in ascending numeric order (#641)."""
+    vbriefs = [
+        _make_phase_vbrief("Widget A", "Phase 6", "#600"),
+        _make_phase_vbrief("Widget B", "Phase 3", "#300"),
+        _make_phase_vbrief("Widget C", "Phase 1", "#100"),
+    ]
+    phase_groups, _descs = roadmap_mod._group_by_phase(vbriefs)
+    assert list(phase_groups.keys()) == ["Phase 1", "Phase 3", "Phase 6"]
+
+
+def test_group_by_phase_places_ungrouped_last(roadmap_mod) -> None:
+    """_group_by_phase places non-numbered groups after numbered phases (#641)."""
+    vbriefs = [
+        _make_phase_vbrief("Widget A", "Phase 6", "#600"),
+        # Missing Phase -- falls back to "Ungrouped" in _group_by_phase
+        {
+            "vBRIEFInfo": {"version": "0.6"},
+            "plan": {
+                "title": "Widget U",
+                "status": "pending",
+                "references": [{"type": "github-issue", "id": "#900"}],
+                "items": [],
+            },
+        },
+        _make_phase_vbrief("Widget B", "Phase 3", "#300"),
+        _make_phase_vbrief("Widget C", "Phase 1", "#100"),
+    ]
+    phase_groups, _descs = roadmap_mod._group_by_phase(vbriefs)
+    assert list(phase_groups.keys()) == [
+        "Phase 1",
+        "Phase 3",
+        "Phase 6",
+        "Ungrouped",
+    ]
+
+
+def test_render_mixed_phase_input_renders_numerically(roadmap_mod, tmp_path) -> None:
+    """End-to-end: mixed Phase 6/3/1 + Ungrouped inputs render in numeric order (#641).
+
+    This is the primary regression guard -- reproduces the bug scenario
+    from issue #641 where ROADMAP.md showed Phase 6, 3, 5, 4, 1 because
+    phase ordering depended on file-discovery order. We seed files whose
+    filename sort order is the reverse of the desired phase order so a
+    regression (e.g. falling back to insertion order) would surface
+    immediately.
+    """
+    pending = tmp_path / "pending"
+    completed = tmp_path / "completed"
+    completed.mkdir(parents=True)
+    # Filenames chosen so ``sorted(pending.glob("*.vbrief.json"))`` yields
+    # phase-6 first, then phase-3, then phase-1, then ungrouped -- i.e.
+    # the opposite of the numeric ordering we expect in the output.
+    _write_vbrief(
+        pending / "2026-04-15-a-phase6.vbrief.json",
+        _make_phase_vbrief("Widget 6", "Phase 6", "#600"),
+    )
+    _write_vbrief(
+        pending / "2026-04-15-b-phase3.vbrief.json",
+        _make_phase_vbrief("Widget 3", "Phase 3", "#300"),
+    )
+    _write_vbrief(
+        pending / "2026-04-15-c-phase1.vbrief.json",
+        _make_phase_vbrief("Widget 1", "Phase 1", "#100"),
+    )
+    _write_vbrief(
+        pending / "2026-04-15-d-ungrouped.vbrief.json",
+        {
+            "vBRIEFInfo": {"version": "0.6"},
+            "plan": {
+                "title": "Widget U",
+                "status": "pending",
+                "references": [{"type": "github-issue", "id": "#900"}],
+                "items": [],
+                # No x-migrator Phase -- will fall back to "Ungrouped".
+                # Include a dummy migrator Phase on one sibling (above) so
+                # has_phase_narratives detection flips to True and the
+                # flat-phase branch executes.
+            },
+        },
+    )
+    content = roadmap_mod.generate_roadmap_content(pending, completed_dir=completed)
+
+    # All expected phase headings must appear.
+    for heading in (
+        "## Phase 1",
+        "## Phase 3",
+        "## Phase 6",
+        "## Ungrouped",
+    ):
+        assert heading in content, f"missing heading: {heading}"
+
+    # Numbered phases must render in ascending numeric order, and the
+    # Ungrouped bucket must come after every numbered phase (#641).
+    p1 = content.index("## Phase 1")
+    p3 = content.index("## Phase 3")
+    p6 = content.index("## Phase 6")
+    ungrouped = content.index("## Ungrouped")
+    assert p1 < p3 < p6 < ungrouped, (
+        f"phase sections out of numeric order: "
+        f"Phase1@{p1}, Phase3@{p3}, Phase6@{p6}, Ungrouped@{ungrouped}"
+    )
+
+
+def test_render_phase_order_independent_of_filename_order(roadmap_mod, tmp_path) -> None:
+    """Two filename permutations must produce identical phase section order (#641).
+
+    Locks in that render output is stable regardless of which file the
+    glob happens to yield first -- the defect that motivated #641.
+    """
+    def _render(label: str, order: list[tuple[str, str]]) -> str:
+        pending = tmp_path / f"pending_{label}"
+        completed = tmp_path / f"completed_{label}"
+        completed.mkdir(parents=True)
+        for filename, phase in order:
+            _write_vbrief(
+                pending / filename,
+                _make_phase_vbrief(f"Scope {phase}", phase, f"#{phase[-1]}00"),
+            )
+        return roadmap_mod.generate_roadmap_content(
+            pending, completed_dir=completed
+        )
+
+    content_a = _render(
+        "a",
+        [
+            ("2026-04-15-a.vbrief.json", "Phase 6"),
+            ("2026-04-15-b.vbrief.json", "Phase 1"),
+            ("2026-04-15-c.vbrief.json", "Phase 3"),
+        ],
+    )
+    content_b = _render(
+        "b",
+        [
+            ("2026-04-15-a.vbrief.json", "Phase 1"),
+            ("2026-04-15-b.vbrief.json", "Phase 3"),
+            ("2026-04-15-c.vbrief.json", "Phase 6"),
+        ],
+    )
+
+    # Extract just the phase heading order from each render.
+    def _phase_order(text: str) -> list[str]:
+        return [
+            line.strip()
+            for line in text.splitlines()
+            if line.startswith("## Phase ")
+        ]
+
+    assert _phase_order(content_a) == _phase_order(content_b) == [
+        "## Phase 1",
+        "## Phase 3",
+        "## Phase 6",
+    ]
