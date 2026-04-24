@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "roadmap:render should sort Phase X sections numerically instead of preserving incidental file order",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "task roadmap:render produces unstable semantic ordering for phase sections in ROADMAP.md. Current branch shows Phase 6, 3, 5, 4, 1 -- scripts/roadmap_render.py preserves insertion order from the first time each phase label is encountered while scanning pending vBRIEFs, so final section order depends on file discovery order rather than numeric phase. Phases should render in numeric order for a readable roadmap.",
       "Problem": "scripts/roadmap_render.py does not sort Phase X headings by numeric phase; output is non-deterministic relative to roadmap semantics.",
@@ -55,6 +55,6 @@
         "title": "Issue #641: roadmap:render should sort Phase X sections numerically instead of preserving incidental file order"
       }
     ],
-    "updated": "2026-04-24T14:33:29Z"
+    "updated": "2026-04-24T15:49:34Z"
   }
 }
