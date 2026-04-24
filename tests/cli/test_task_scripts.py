@@ -470,23 +470,34 @@ class TestAgentsBootstrap:
         assert "deft-directive-setup" in content
         assert "PROJECT-DEFINITION.vbrief.json" in content
 
-    def test_template_matches_go_installer_constant(self):
-        """templates/agents-entry.md must match agentsMDEntry in setup.go.
+    def test_template_is_single_source_for_go_installer(self):
+        """cmd/deft-install/setup.go must source agentsMDEntry from the
+        templates package (//go:embed templates/agents-entry.md) rather than
+        a hardcoded raw string literal (#636).
 
-        If this test fails, the template and Go installer have drifted.
-        To repair: copy the content of templates/agents-entry.md into the
-        agentsMDEntry constant in cmd/deft-install/setup.go (or vice versa),
-        then re-run task check.
+        If this test fails, the installer has grown a second hardcoded copy
+        of the AGENTS.md body and the single-source-of-truth contract is
+        broken. To repair: remove the hardcoded copy and rely on the embed
+        in templates/embed.go.
         """
-        template = self.TEMPLATE_PATH.read_text(encoding="utf-8")
         setup_go = (REPO_ROOT / "cmd" / "deft-install" / "setup.go").read_text(encoding="utf-8")
-        # Extract agentsMDEntry constant â€” content between backticks after 'agentsMDEntry = `'
-        start = setup_go.index('agentsMDEntry = `') + len('agentsMDEntry = `')
-        end = setup_go.index('`', start)
-        go_content = setup_go[start:end]
-        assert template.strip() == go_content.strip(), (
-            "templates/agents-entry.md and cmd/deft-install/setup.go agentsMDEntry have drifted.\n"
-            "To repair: sync the content between the two files and re-run task check."
+        assert "templates.AgentsEntry" in setup_go, (
+            "cmd/deft-install/setup.go must reference templates.AgentsEntry "
+            "(sourced via //go:embed from templates/agents-entry.md) so that "
+            "editing the template alone is sufficient to change what the "
+            "installer writes (#636)."
+        )
+        assert "github.com/deftai/directive/templates" in setup_go, (
+            "cmd/deft-install/setup.go must import the templates package "
+            "(github.com/deftai/directive/templates) to consume the embedded "
+            "agents-entry.md (#636)."
+        )
+        # Guard against reintroduction of the backtick raw-string literal
+        # that previously held the hardcoded AGENTS.md body.
+        assert "agentsMDEntry = `" not in setup_go, (
+            "cmd/deft-install/setup.go reintroduced a hardcoded agentsMDEntry "
+            "raw-string literal. The AGENTS.md body must be sourced exclusively "
+            "from templates/agents-entry.md via the templates package embed (#636)."
         )
 
     def test_readme_calls_out_trampoline(self):

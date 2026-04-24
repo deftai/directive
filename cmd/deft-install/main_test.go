@@ -588,6 +588,78 @@ func TestWriteAgentsMD_Idempotent(t *testing.T) {
 	}
 }
 
+// repoRootFromDeftInstall walks up from the cmd/deft-install test working
+// directory to find the repo root (identified by the go.mod file). Keeps the
+// template fixture tests independent of how `go test` was invoked.
+func repoRootFromDeftInstall(t *testing.T) string {
+	t.Helper()
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working directory: %v", err)
+	}
+	for i := 0; i < 6; i++ {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	t.Fatalf("could not locate repo root (go.mod) from %s", dir)
+	return ""
+}
+
+// TestWriteAgentsMD_MatchesTemplateFixture asserts that the AGENTS.md the
+// installer writes is byte-identical to templates/agents-entry.md at the repo
+// root. This ties cmd/deft-install to the canonical template so the installer,
+// task agents:init, and QUICK-START.md all produce byte-identical output for
+// the same template revision (closes #636).
+func TestWriteAgentsMD_MatchesTemplateFixture(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+
+	written, err := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	templatePath := filepath.Join(repoRootFromDeftInstall(t), "templates", "agents-entry.md")
+	template, err := os.ReadFile(templatePath)
+	if err != nil {
+		t.Fatalf("could not read %s: %v", templatePath, err)
+	}
+
+	if string(written) != string(template) {
+		t.Errorf("installer-written AGENTS.md drifted from %s: wrote %d bytes, template has %d bytes",
+			templatePath, len(written), len(template))
+	}
+}
+
+// TestAgentsMDEntrySourcedFromTemplate asserts the installer's agentsMDEntry
+// is fed by the embedded templates.AgentsEntry (i.e. no stray hardcoded copy
+// was re-introduced alongside it). This is the cmd-level mirror of the drift
+// test in templates/embed_test.go (closes #636).
+func TestAgentsMDEntrySourcedFromTemplate(t *testing.T) {
+	templatePath := filepath.Join(repoRootFromDeftInstall(t), "templates", "agents-entry.md")
+	template, err := os.ReadFile(templatePath)
+	if err != nil {
+		t.Fatalf("could not read %s: %v", templatePath, err)
+	}
+	if agentsMDEntry != string(template) {
+		t.Errorf("agentsMDEntry drifted from %s: installer has %d bytes, template has %d bytes",
+			templatePath, len(agentsMDEntry), len(template))
+	}
+	if !strings.Contains(agentsMDEntry, agentsMDSentinel) {
+		t.Errorf("agentsMDEntry must contain the %q sentinel for idempotency", agentsMDSentinel)
+	}
+}
+
 func TestUserConfigDir_EnvOverride(t *testing.T) {
 	t.Setenv("DEFT_USER_PATH", "/custom/path")
 	if got := UserConfigDir(); got != "/custom/path" {
