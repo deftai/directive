@@ -77,12 +77,17 @@ class TestIngestOneHappyPath:
         assert path.parent.name == "proposed"
         assert path.exists()
         data = json.loads(path.read_text(encoding="utf-8"))
+        # #639: canonical v0.6 envelope + canonical reference shape.
+        assert data["vBRIEFInfo"]["version"] == "0.6"
         assert data["plan"]["title"] == "Add widget support"
         assert data["plan"]["status"] == "proposed"
         refs = data["plan"]["references"]
-        assert refs[0]["type"] == "github-issue"
-        assert refs[0]["id"] == "#100"
-        assert refs[0]["url"] == "https://github.com/o/r/issues/100"
+        assert refs[0]["type"] == "x-vbrief/github-issue"
+        assert refs[0]["uri"] == "https://github.com/o/r/issues/100"
+        assert refs[0]["title"] == "Issue #100: Add widget support"
+        # Legacy fields MUST NOT leak into canonical output.
+        assert "id" not in refs[0]
+        assert "url" not in refs[0]
         assert "Labels" in data["plan"]["narratives"]
 
     def test_filename_convention(self, tmp_path):

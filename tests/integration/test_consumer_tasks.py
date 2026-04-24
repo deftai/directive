@@ -265,8 +265,16 @@ def test_issue_ingest_writes_to_consumer_vbrief(
     written = list((consumer_project / "vbrief" / "proposed").glob("*.vbrief.json"))
     assert written, "ingest should have created a scope vBRIEF in consumer/vbrief/proposed/"
     payload = json.loads(written[0].read_text(encoding="utf-8"))
+    # #639: ingest emits canonical v0.6 envelope + canonical VBriefReference
+    # shape ({uri, type: x-vbrief/github-issue, title}). Legacy ``url``/``id``
+    # fields must not leak into freshly-ingested output.
+    assert payload["vBRIEFInfo"]["version"] == "0.6"
     refs = payload["plan"]["references"]
-    assert refs[0]["url"] == "https://github.com/owner/consumer/issues/101"
+    assert refs[0]["uri"] == "https://github.com/owner/consumer/issues/101"
+    assert refs[0]["type"] == "x-vbrief/github-issue"
+    assert refs[0]["title"] == "Issue #101: Consumer fixture issue"
+    assert "url" not in refs[0]
+    assert "id" not in refs[0]
 
 
 def test_issue_ingest_fails_loudly_without_repo(

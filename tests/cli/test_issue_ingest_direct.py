@@ -323,23 +323,34 @@ class TestBuildIssueVbrief:
         assert folder == "pending"
 
     def test_issue_without_url_uses_repo_url_template(self):
+        """#639: canonical ``{uri, type, title}`` shape with resolvable URL."""
         vbrief, folder = issue_ingest._build_issue_vbrief(
             {"number": 5, "title": "hi"}, "proposed", "https://github.com/o/r"
         )
+        assert vbrief["vBRIEFInfo"]["version"] == "0.6"
         refs = vbrief["plan"]["references"]
-        assert refs[0]["url"] == "https://github.com/o/r/issues/5"
+        assert refs[0]["uri"] == "https://github.com/o/r/issues/5"
+        assert refs[0]["type"] == "x-vbrief/github-issue"
+        assert refs[0]["title"] == "Issue #5: hi"
+        # Legacy keys MUST NOT leak into canonical output.
+        assert "id" not in refs[0]
+        assert "url" not in refs[0]
         assert "Ingested from https://github.com/o/r/issues/5" in (
             vbrief["plan"]["narratives"]["Origin"]
         )
 
-    def test_issue_without_url_or_repo_origin_reference_minimal(self):
+    def test_issue_without_url_or_repo_origin_reference_omitted(self):
+        """#639: when neither the payload nor ``repo_url`` yields a browser URL,
+        no reference is emitted -- ``VBriefReference`` requires ``uri`` and we
+        must not forge one. The issue number survives in ``narratives.Origin``.
+        """
         vbrief, _ = issue_ingest._build_issue_vbrief(
             {"number": 3, "title": "z"}, "proposed", ""
         )
-        refs = vbrief["plan"]["references"]
-        assert refs[0]["id"] == "#3"
-        assert "url" not in refs[0]
+        # references is either absent or empty -- both are honest signals.
+        assert vbrief["plan"].get("references", []) == []
         assert vbrief["plan"]["narratives"]["Origin"] == "Ingested from issue #3"
+        assert vbrief["vBRIEFInfo"]["version"] == "0.6"
 
     def test_labels_as_strings_supported(self):
         vbrief, _ = issue_ingest._build_issue_vbrief(

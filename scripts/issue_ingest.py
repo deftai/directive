@@ -39,7 +39,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _project_context import resolve_project_repo, resolve_project_root  # noqa: E402
 from _stdio_utf8 import reconfigure_stdio  # noqa: E402
-from _vbrief_build import TODAY, slugify  # noqa: E402
+from _vbrief_build import EMITTED_VBRIEF_VERSION, TODAY, slugify  # noqa: E402
 from reconcile_issues import (  # noqa: E402
     detect_repo,
     fetch_open_issues,
@@ -74,6 +74,21 @@ def _build_issue_vbrief(
 
     ``issue`` is the JSON payload returned by ``gh api repos/.../issues/N`` or
     one element of the ``gh issue list --json number,title,labels,url`` array.
+
+    Emits canonical vBRIEF v0.6 output (#639):
+      - ``vBRIEFInfo.version = EMITTED_VBRIEF_VERSION`` (``"0.6"``) -- the
+        canonical schema pin (const ``"0.6"`` in
+        ``vbrief/schemas/vbrief-core.schema.json``).
+      - ``plan.references`` uses the canonical
+        ``VBriefReference`` shape ``{uri, type: "x-vbrief/github-issue",
+        title: "Issue #{N}: {title}"}`` documented in
+        ``conventions/references.md`` (matches ``scripts/_vbrief_build.py::
+        create_scope_vbrief``). The legacy bare
+        ``{type: "github-issue", id: "#N", url}`` shape is NEVER emitted.
+      - When no browser URL can be resolved (neither the issue payload's
+        ``url`` nor a non-empty ``repo_url``) the reference is omitted --
+        ``VBriefReference`` requires ``uri``, so we cannot honestly emit
+        one. The caller still has the issue number in ``plan.narratives["Origin"]``.
     """
     number = int(issue["number"])
     title = str(issue.get("title", f"Issue #{number}")) or f"Issue #{number}"
@@ -95,22 +110,32 @@ def _build_issue_vbrief(
     if label_names:
         narratives["Labels"] = ", ".join(label_names)
 
-    ref: dict = {"type": "github-issue", "id": f"#{number}"}
+    plan: dict = {
+        "title": title,
+        "status": plan_status,
+        "narratives": narratives,
+        "items": [],
+    }
+
+    # #639: canonical v0.6 VBriefReference shape. Only emit when we have a
+    # resolvable URL -- the schema requires ``uri`` and we must not forge
+    # one. Matches ``scripts/_vbrief_build.py::create_scope_vbrief`` and
+    # ``conventions/references.md``.
     if url:
-        ref["url"] = url
+        plan["references"] = [
+            {
+                "uri": url,
+                "type": "x-vbrief/github-issue",
+                "title": f"Issue #{number}: {title}",
+            }
+        ]
 
     return {
         "vBRIEFInfo": {
-            "version": "0.5",
+            "version": EMITTED_VBRIEF_VERSION,
             "description": f"Scope vBRIEF ingested from GitHub issue #{number}",
         },
-        "plan": {
-            "title": title,
-            "status": plan_status,
-            "narratives": narratives,
-            "items": [],
-            "references": [ref],
-        },
+        "plan": plan,
     }, folder
 
 
