@@ -76,6 +76,7 @@ Urgent fixes to land ahead of broader roadmap work.
 - **#636** -- installer: Go installer must read templates/agents-entry.md instead of hardcoded agentsMDEntry const (follow-up to #358 Option 3)
 - **#638** -- refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion
 - **#639** -- issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6
+- **#641** -- roadmap:render should sort Phase X sections numerically instead of preserving incidental file order
 
 ## Completed
 

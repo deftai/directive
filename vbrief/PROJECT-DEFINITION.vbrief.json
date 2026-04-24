@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-04-24T01:37:10Z"
+    "updated": "2026-04-24T01:55:32Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -911,6 +911,22 @@
               "type": "github-issue",
               "id": "#639",
               "url": "https://api.github.com/repos/deftai/directive/issues/639"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-641-roadmaprender-should-sort-phase-x-sections-numerically-inste",
+        "title": "roadmap:render should sort Phase X sections numerically instead of preserving incidental file order",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-24-641-roadmaprender-should-sort-phase-x-sections-numerically-inste.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "type": "github-issue",
+              "id": "#641",
+              "url": "https://api.github.com/repos/deftai/directive/issues/641"
             }
           ]
         }
