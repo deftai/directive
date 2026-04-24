@@ -179,10 +179,15 @@ The task scans every vBRIEF with a GitHub-backed reference (whether the referenc
 ### Workflow
 
 1. ! Execute transitions using the task commands above -- they handle `plan.status` updates, `plan.updated` timestamps, and file moves atomically
-2. ! After promotions/demotions, call `task roadmap:render` to regenerate ROADMAP.md
-3. ! After significant lifecycle changes, call `task project:render` to update the PROJECT-DEFINITION items registry
-4. ! Mark rejected items as `cancelled` via `task scope:cancel` (never delete vBRIEFs)
+2. ! Derived-artifact renders (`task roadmap:render`, `task project:render`) happen after a **batch** of promotions/demotions, not after each individual item. During high-volume triage (e.g. dozens of accept/reject decisions in one session), defer both renders until the end of the batch -- the source of truth is the lifecycle folder contents under `vbrief/`, so ROADMAP.md and PROJECT-DEFINITION.vbrief.json can be refreshed once per batch without losing correctness.
+3. ! `task roadmap:render` regenerates ROADMAP.md from the updated lifecycle folder contents. Call it once per batch (typically at the end of Phase 4, before handing back to the user or transitioning to Phase 5), not after every single promote/demote.
+4. ! `task project:render` refreshes the PROJECT-DEFINITION items registry. Call it **once per refinement pass** -- usually at the end of the session alongside the final roadmap render -- unless the user explicitly needs an intermediate registry refresh. It is not a per-edit tax.
+5. ! Before the user is shown the final backlog state (end of Phase 4, end of Phase 5, or session exit), both `task roadmap:render` AND `task project:render` MUST have been run at least once so ROADMAP.md and PROJECT-DEFINITION.vbrief.json reflect the current lifecycle folder truth. This preserves correctness while allowing N promotions/demotions to share one render checkpoint.
+6. ! Mark rejected items as `cancelled` via `task scope:cancel` (never delete vBRIEFs)
 
+~ Operationally: a large refinement session can ingest/evaluate/promote multiple issues and close out with **one** final render checkpoint, rather than N repetitive renders after every individual item.
+
+⊗ Rerender derived artifacts (`task roadmap:render`, `task project:render`) after every single accept/reject/promote/demote during high-volume triage -- batch the lifecycle edits and render once at the end of the batch
 ⊗ Move vBRIEFs between folders manually (cp/mv) -- always use `task scope:*` commands
 ⊗ Delete vBRIEFs -- use `task scope:cancel` to preserve history
 
@@ -194,7 +199,7 @@ The task scans every vBRIEF with a GitHub-backed reference (whether the referenc
 2. ~ Help the user set phases and dependencies:
    - Group related items into phases (via vBRIEF `items` hierarchy or `tags`)
    - Identify dependencies between items (via `edges` in vBRIEF schema)
-3. ! After reordering, call `task roadmap:render` to regenerate ROADMAP.md from the updated pending/ contents
+3. ! `task roadmap:render` is the **checkpoint** before showing the reordered backlog to the user -- not a per-edit tax. Run it ONCE at the end of the reorder pass to regenerate ROADMAP.md from the updated pending/ contents. Do not invoke it after each individual reorder action.
 4. ~ Present the regenerated roadmap summary to the user for confirmation
 
 ## Phase 6 -- Completion Lifecycle
@@ -279,3 +284,5 @@ After all refinement work is complete:
 - ⊗ Add a CHANGELOG entry per individual action during refinement -- write one batch entry at the end of the full session
 - ⊗ Proceed to the next proposed item without waiting for user decision during evaluate
 - ⊗ Auto-push without explicit user instruction
+- ⊗ Rerender ROADMAP.md or PROJECT-DEFINITION.vbrief.json after every single accept/reject/promote/demote during high-volume triage -- `task roadmap:render` and `task project:render` are batch checkpoints, not per-edit taxes, and calling them N times for N lifecycle edits turns O(1) render work into O(N) without changing correctness (see #638)
+- ⊗ Return a final backlog view to the user without having run `task roadmap:render` and `task project:render` at least once since the last lifecycle edit -- batch the renders, but do not skip them

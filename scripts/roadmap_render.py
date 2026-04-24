@@ -22,6 +22,7 @@ Part of #309 (RFC: vBRIEF-centric document model). Closes #311.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -279,6 +280,44 @@ def _migrator_field(plan: dict, key: str) -> str:
     return ""
 
 
+# #641: ``task roadmap:render`` previously preserved insertion order
+# of phase labels as they were first encountered while scanning
+# ``vbrief/pending/``. That made the rendered section order depend on
+# file-discovery / glob order rather than numeric phase, so ROADMAP.md
+# could render Phase 6 before Phase 1. ``_PHASE_NUMBER_RE`` and
+# ``_phase_sort_key`` give us a deterministic numeric-first ordering
+# (Phase 1, Phase 2, ...) with non-numbered groups (e.g. "Ungrouped")
+# sorted alphabetically AFTER all numbered phases.
+_PHASE_NUMBER_RE: re.Pattern[str] = re.compile(r"^Phase\s+(\d+)\b")
+
+
+def _phase_sort_key(phase_name: str) -> tuple[int, int, str]:
+    """Sort key for phase group names.
+
+    Numbered phases (``^Phase\\s+(\\d+)\\b``) sort FIRST in ascending
+    numeric order (tuple slot 0 == 0). Non-numbered phase labels (e.g.
+    ``Ungrouped``, ``Backlog``, ``Completed``) sort AFTER all numbered
+    phases (tuple slot 0 == 1), then alphabetically by label.
+
+    The numeric slot is unused for non-numbered phases (set to 0) so the
+    alphabetical tiebreaker comes from slot 2. Fixes #641.
+    """
+    match = _PHASE_NUMBER_RE.match(phase_name)
+    if match is not None:
+        return (0, int(match.group(1)), phase_name)
+    return (1, 0, phase_name)
+
+
+def _sorted_phase_names(phase_names: list[str]) -> list[str]:
+    """Return phase names sorted by ``_phase_sort_key`` (#641).
+
+    Numbered phases (``Phase 1``, ``Phase 2``, ...) come first in
+    ascending numeric order; non-numbered groups come after in
+    alphabetical order. Duplicates are preserved (caller responsibility).
+    """
+    return sorted(phase_names, key=_phase_sort_key)
+
+
 def _group_by_phase(
     vbriefs: list[dict],
 ) -> tuple[dict[str, list[dict]], dict[str, str]]:
@@ -288,11 +327,21 @@ def _group_by_phase(
     first (canonical post-#616 location) and falls back to
     ``plan.narratives`` for legacy / hand-authored vBRIEFs.
 
+    Phase groups are returned in numeric-first ascending order: any
+    ``^Phase\\s+(\\d+)\\b`` label sorts by the parsed integer, and
+    non-numbered groups (e.g. ``Ungrouped``) sort after all numbered
+    phases in alphabetical order. This replaces the previous
+    insertion-order behaviour that depended on file-discovery order
+    (#641).
+
     Returns:
-      - phase_groups: ordered dict of phase -> list of vBRIEFs
+      - phase_groups: dict of phase -> list of vBRIEFs, keys iterated
+        in numeric-phase-first order
       - phase_descriptions: dict of phase -> PhaseDescription
     """
-    phase_groups: dict[str, list[dict]] = {}
+    # First pass: accumulate in insertion order so per-phase vBRIEF
+    # order is still filename-sorted (from ``_load_vbriefs``).
+    insertion_groups: dict[str, list[dict]] = {}
     phase_descriptions: dict[str, str] = {}
 
     for vb in vbriefs:
@@ -300,12 +349,20 @@ def _group_by_phase(
         if not isinstance(plan, dict):
             continue
         phase = _migrator_field(plan, "Phase") or "Ungrouped"
-        phase_groups.setdefault(phase, []).append(vb)
+        insertion_groups.setdefault(phase, []).append(vb)
         # Capture phase description from the first vBRIEF that has one
         if phase not in phase_descriptions:
             pd = _migrator_field(plan, "PhaseDescription")
             if pd:
                 phase_descriptions[phase] = pd
+
+    # Second pass: rebuild the dict in sorted phase order so downstream
+    # iteration (e.g. ``generate_roadmap_content``) emits ``## Phase 1``
+    # before ``## Phase 2`` before ``## Ungrouped`` (#641).
+    phase_groups: dict[str, list[dict]] = {
+        name: insertion_groups[name]
+        for name in _sorted_phase_names(list(insertion_groups.keys()))
+    }
 
     return phase_groups, phase_descriptions
 
