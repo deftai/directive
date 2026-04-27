@@ -287,7 +287,7 @@ When code like `migrate_vbrief.py::_is_user_customized()` decides preservation v
 
 **1. GitHub's closing-keyword parser is substring-based -- the literal token `Closes #N` MUST NOT appear in the PR body even inside a negation, quotation, or example**
 
-The PR body for #697 contained the parenthetical `(Intentionally not `Closes #642` -- #642 is a tracking umbrella that should remain open until PR #401's full scope is merged or split into linked follow-up issues.)`. The text was negating the closing keyword in plain English, but GitHub's auto-close parser operates on token presence, not surrounding semantics. The squash merge processed the literal `Closes #642` substring and closed the issue. The same hazard applies to `Fixes #N`, `Resolves #N`, and the past-tense / lowercase variants (`closed`, `fixed`, `resolved`, etc. -- see GitHub's full keyword list).
+The PR body for #697 contained the parenthetical `` (Intentionally not `Closes #642` -- #642 is a tracking umbrella that should remain open until PR #401's full scope is merged or split into linked follow-up issues.) ``. The text was negating the closing keyword in plain English, but GitHub's auto-close parser operates on token presence, not surrounding semantics. The squash merge processed the literal `Closes #642` substring and closed the issue. The same hazard applies to `Fixes #N`, `Resolves #N`, and the past-tense / lowercase variants (`closed`, `fixed`, `resolved`, etc. -- see GitHub's full keyword list).
 
 **Rule:** When a PR body needs to discuss what it intentionally does NOT close (e.g. tracking umbrellas, partial scope, deferred follow-ups), MUST phrase the disclaimer without using any closing keyword token at all. Use phrasings like:
 
