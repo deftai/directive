@@ -117,7 +117,7 @@ Key settings: `@typescript-eslint/parser`, extends `recommended` + `recommended-
 - ~ Add `knip` as a `task hygiene` target; treat unused exports in library code as errors
 
 **Circular dependencies:**
-- ~ Run `madge --circular src/` to detect cycles; resolve by extracting shared types to a lower-level module
+- ~ Run `madge --circular --exit-code src/` to detect cycles; resolve by extracting shared types to a lower-level module
 - ⊗ Circular imports between modules — use dependency inversion (interfaces/types in a shared module)
 
 **Error handling:**

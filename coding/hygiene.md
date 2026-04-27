@@ -40,7 +40,7 @@ Circular imports create tight coupling, prevent modular testing, and indicate ar
   - Python: `pydeps` or `importlab` for full cycle detection
   - Go: the compiler rejects import cycles — trust the error; fix by extracting shared packages
   - TypeScript/JS: `madge` — visualises and detects circular dependencies
-- ~ For large codebases, add `madge --circular` (or equivalent) as a CI check
+- ~ For large codebases, add `madge --circular --exit-code` (or equivalent) as a CI check
 
 ---
 

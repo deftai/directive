@@ -152,6 +152,10 @@ disallow_untyped_defs=true
 - ~ Run `vulture` to detect unused functions, classes, and variables
 - ~ Add `vulture . --min-confidence 80` as a `task hygiene` target
 
+**Circular dependencies:**
+- ~ Run `pydeps <package>` or `importlab` to detect import cycles; resolve by extracting shared types to a lower-level module
+- ⊗ Circular imports between modules — see [coding/hygiene.md](../coding/hygiene.md) for resolution pattern
+
 ## Compliance Checklist
 
 - ! Follow PEP 257 (docstrings) and PEP 484 (type hints)

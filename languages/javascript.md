@@ -149,7 +149,7 @@ Items marked ⊗ in Standards above are not repeated here.
 - ~ Add `knip` as a `task hygiene` target
 
 **Circular dependencies:**
-- ~ Run `madge --circular src/` to detect cycles
+- ~ Run `madge --circular --exit-code src/` to detect cycles
 - ⊗ Circular imports — restructure or extract shared code to a lower-level module
 
 ## Compliance Checklist
