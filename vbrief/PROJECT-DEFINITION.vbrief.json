@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-04-24T01:55:32Z"
+    "updated": "2026-04-27T18:02:57Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -868,81 +868,22 @@
         }
       },
       {
-        "id": "2026-04-24-636-installer-go-installer-must-read-templatesagents-entrymd-ins",
-        "title": "installer: Go installer must read templates/agents-entry.md instead of hardcoded agentsMDEntry const (follow-up to #358 Option 3)",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-04-24-636-installer-go-installer-must-read-templatesagents-entrymd-ins.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "type": "github-issue",
-              "id": "#636",
-              "url": "https://api.github.com/repos/deftai/directive/issues/636"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-24-638-refinement-batch-roadmapproject-renders-during-multi-item-tr",
-        "title": "refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-04-24-638-refinement-batch-roadmapproject-renders-during-multi-item-tr.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "type": "github-issue",
-              "id": "#638",
-              "url": "https://api.github.com/repos/deftai/directive/issues/638"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-24-639-issueingest-emits-legacy-v05-scope-vbriefs-and-non-canonical",
-        "title": "issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-04-24-639-issueingest-emits-legacy-v05-scope-vbriefs-and-non-canonical.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "type": "github-issue",
-              "id": "#639",
-              "url": "https://api.github.com/repos/deftai/directive/issues/639"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-24-641-roadmaprender-should-sort-phase-x-sections-numerically-inste",
-        "title": "roadmap:render should sort Phase X sections numerically instead of preserving incidental file order",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-04-24-641-roadmaprender-should-sort-phase-x-sections-numerically-inste.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "type": "github-issue",
-              "id": "#641",
-              "url": "https://api.github.com/repos/deftai/directive/issues/641"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ",
         "title": "tracking: framework maintainability, rule ownership, and determinism codification (PR #401)",
-        "status": "pending",
+        "status": "running",
         "metadata": {
-          "source_path": "pending/2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ.vbrief.json",
-          "lifecycle_folder": "pending",
+          "source_path": "active/2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ.vbrief.json",
+          "lifecycle_folder": "active",
           "references": [
             {
-              "type": "github-issue",
-              "id": "#642",
-              "url": "https://api.github.com/repos/deftai/directive/issues/642"
+              "uri": "https://github.com/deftai/directive/issues/642",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #642: tracking: framework maintainability, rule ownership, and determinism codification (PR #401)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/pull/401",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #401: feat(coding): codebase hygiene, DDD framework structure, and determinism design"
             }
           ]
         }
@@ -4794,6 +4735,70 @@
           "source_path": "completed/2026-04-23-v0-6-0-content-prs-16-20-v0-6-0-content-prs-1620.vbrief.json",
           "lifecycle_folder": "completed"
         }
+      },
+      {
+        "id": "2026-04-24-636-installer-go-installer-must-read-templatesagents-entrymd-ins",
+        "title": "installer: Go installer must read templates/agents-entry.md instead of hardcoded agentsMDEntry const (follow-up to #358 Option 3)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-24-636-installer-go-installer-must-read-templatesagents-entrymd-ins.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/636",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #636: installer: Go installer must read templates/agents-entry.md instead of hardcoded agentsMDEntry const (follow-up to #358 Option 3)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-638-refinement-batch-roadmapproject-renders-during-multi-item-tr",
+        "title": "refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-24-638-refinement-batch-roadmapproject-renders-during-multi-item-tr.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/638",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #638: refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-639-issueingest-emits-legacy-v05-scope-vbriefs-and-non-canonical",
+        "title": "issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-24-639-issueingest-emits-legacy-v05-scope-vbriefs-and-non-canonical.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/639",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #639: issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-641-roadmaprender-should-sort-phase-x-sections-numerically-inste",
+        "title": "roadmap:render should sort Phase X sections numerically instead of preserving incidental file order",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-24-641-roadmaprender-should-sort-phase-x-sections-numerically-inste.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/641",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #641: roadmap:render should sort Phase X sections numerically instead of preserving incidental file order"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
@@ -4802,6 +4807,7 @@
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'SKILL.md platform entry point is entirely pre-cutover -- references old skill names and deprecated artifacts' shares topics (artifacts)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Stale cross-references to legacy paths' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'docs(readme): add \"Your Artifacts\" section documenting user-generated artifact locations' shares topics (artifacts)",
+        "Narrative 'LegacyArtifacts' may be stale: completed scope 'issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'rollback: empty `vbrief/legacy/` directory left behind after --rollback' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'rollback: orphaned `LEGACY-REPORT.reviewed.md` after Phase 6c rename (companion to #527)' shares topics (legacy)",
         "Narrative 'OpenQuestions' may be stale: completed scope '#233 (partial) -- More Determinism: tasks/ restructure, toolchain:check, verify:stubs, validate:links, spec:pipeline, changelog:check, change:init, commit:lint, enhanced check -- remaining items (Phase 0 generation, build:verify, change:archive, doctor) still open' shares topics (open)",
@@ -4824,6 +4830,7 @@
         "Narrative 'ProjectConfig' may be stale: completed scope 'fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'issue:ingest and reconcile:issues query deftai/directive instead of consumer project's GitHub repo (same root cause as #535)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'migrate_vbrief: PROJECT-DEFINITION missing 'tech stack' narrative key -- validator D3 failure' shares topics (project)",
+        "Narrative 'ProjectConfig' may be stale: completed scope 'refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'scope: all `task scope:*` commands fail with file-not-found (path resolved from deft/ CWD, not project root)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'speckit Phase 1 creates project.md instead of writing Principles to PROJECT-DEFINITION.vbrief.json' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'strategies: no idempotency guard -- can silently overwrite approved specs and project narratives' shares topics (project)",

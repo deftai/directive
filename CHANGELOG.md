@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<!-- No unreleased changes yet. -->
+### Changed
+- **chore(vbrief): activate #642 tracking scope and enrich narratives/items**: Promoted `vbrief/pending/2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ.vbrief.json` to `vbrief/active/` (`plan.status: pending` -> `running`) via `task scope:activate` to anchor PR #401 work this cycle. Replaced the migrator-emitted thin shell (`narratives.{Description, Origin}`, `items: []`, legacy `{type: github-issue, id, url}` reference shape) with a fleshed-out scope vBRIEF: canonical narratives (`Problem`, `Overview`, `Background`, `Constraint`, `Risk`, `Outcome` for acceptance criteria, `Test` for verification), 5 `plan.items[]` mirroring the issue's scope sections (`hygiene-codification`, `language-hygiene`, `framework-structure`, `review-fix-cleanup`, `determinism-design`) each with an `Action` item-level narrative, a `plan.metadata['x-tracking']` block (`umbrella: true`, `anchored_pr: "#401"`, split policy), and references upgraded to the canonical v0.6 `VBriefReference` shape (`{uri, type: x-vbrief/github-issue, title}` for #642 plus an `x-vbrief/github-pr` reference to PR #401) per `conventions/references.md`. Regenerated `vbrief/PROJECT-DEFINITION.vbrief.json` via `task project:render` so the items registry reflects the new lifecycle folder (`active`).
 
 <!-- v0.20.1 was tagged on commit 493050b but never released due to Blacksmith CI failure; its content (the #630 docs follow-up) shipped in v0.20.2. -->
 
