@@ -42,6 +42,16 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ~ Be direct, critical, and constructive — say when suboptimal, propose better options
 - ~ Assume expert-level context unless told otherwise
 
+## Rule Authority [AXIOM]
+
+! Every rule MUST use the strongest applicable layer.
+! Order: deterministic > Taskfile > vBRIEF > RFC2119 > prose.
+! Prose is fallback only — never preferred when a stronger form applies.
+
+⊗ Encode a rule in a weaker layer when a stronger applies.
+
+See #634, #642.
+
 **Decision Making:**
 - ! Follow established patterns in current context
 - ~ Question assumptions and probe for clarity

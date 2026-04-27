@@ -68,8 +68,6 @@ Terms describing how directive itself is structured and governed.
 
 **Rule ownership** — The principle that each concept in directive has exactly one owning file. When multiple files need to reference the concept, they link to the owner rather than duplicating the rule. The ownership map lives in [REFERENCES.md](../REFERENCES.md).
 
-**Domain event** — A named occurrence in an agent session that triggers specific, mandatory behaviour. The canonical list is in [core/events.md](./events.md). When an event fires, its response is not optional.
-
 **Ubiquitous language** — The shared, precisely defined vocabulary used consistently across all directive files and by all agents. This glossary is the source of truth. Synonyms and informal restatements of defined terms are not permitted.
 
 ---

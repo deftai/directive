@@ -17,10 +17,6 @@
 - Load: When any term is undefined or used ambiguously; before introducing a new term
 - Contains: work decomposition hierarchy, hygiene terms, framework design terms, GSD → Deft mapping
 
-**[core/events.md](./core/events.md)** - Domain events
-- Load: When unsure what to do when a condition arises (coverage drops, spec approved, stub found, etc.)
-- Contains: canonical trigger → mandatory response table for 9 session events
-
 ## 📋 Task-Based Loading
 
 ### When Writing Code
@@ -128,48 +124,6 @@ Load as needed:
 - Load: When creating, validating, or debugging `.vbrief.json` files
 - Contains: JSON Schema (draft 2020-12) defining `vBRIEFInfo`, `Plan`, `PlanItem`, `Status` enum
 - Source: [github.com/deftai/vBRIEF](https://github.com/deftai/vBRIEF)
-
-## 🏠 Rule Ownership
-
-**Principle**: Each concept in directive has exactly one owning file. Other files reference the owner; they do not restate its rules. When you need to add a rule, identify the correct owner first.
-
-- ! Add rules to the owning file, not to the file where you happen to be working
-- ⊗ Duplicate a rule in a non-owning file — link to the owner instead
-- ! When the owner is unclear, check this map or add to `core/glossary.md` to establish it
-
-| Concept | Owner |
-|---------|-------|
-| Coding standards (modularity, contracts, DRY) | `coding/coding.md` |
-| Codebase hygiene (dead code, error hiding, legacy, circular deps, comments) | `coding/hygiene.md` |
-| Universal testing standards | `coding/testing.md` |
-| Build output validation | `coding/build-output.md` |
-| Toolchain validation | `coding/toolchain.md` |
-| Verification / stub detection | `verification/verification.md` |
-| Legacy / deprecated code detection | `verification/verification.md` |
-| Domain events (trigger → response) | `core/events.md` |
-| Terminology / ubiquitous language | `core/glossary.md` |
-| Work decomposition (release / feature / task) | `core/glossary.md` |
-| Git / commit conventions | `scm/git.md` |
-| CI/CD / GitHub workflows | `scm/github.md` |
-| Build automation / Taskfile | `tools/taskfile.md` |
-| vBRIEF lifecycle and schema | `vbrief/vbrief.md` |
-| Session continuity / checkpoints | `resilience/continue-here.md` |
-| Context engineering strategies | `context/context.md` |
-| Multi-agent coordination | `swarm/swarm.md` |
-| Change lifecycle | `commands.md` |
-| Language hygiene — Python | `languages/python.md` (Hygiene section) |
-| Language hygiene — Go | `languages/go.md` (Hygiene section) |
-| Language hygiene — TypeScript | `languages/typescript.md` (Hygiene section) |
-| Language hygiene — JavaScript | `languages/javascript.md` (Hygiene section) |
-| Language hygiene — Rust | `languages/rust.md` (Hygiene section) |
-| Language hygiene — C++ | `languages/cpp.md` (Hygiene section) |
-| Language hygiene — C# | `languages/csharp.md` (Hygiene section) |
-| Language hygiene — Java | `languages/java.md` (Hygiene section) |
-| Language hygiene — Kotlin | `languages/kotlin.md` (Hygiene section) |
-| Language hygiene — Swift | `languages/swift.md` (Hygiene section) |
-| Language hygiene — C | `languages/c.md` (Hygiene section) |
-
----
 
 ## 🔄 Reference Chains
 
