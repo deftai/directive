@@ -1,0 +1,3 @@
+# 2026-04-18 -- More Determinism (proposal pointer)
+
+Original proposal: commit [`47034134`](https://github.com/deftai/directive/commit/47034134) -- `docs/more-determinism.md`. Doc removed during the PR #401 trim per canonical [#642 workflow comment](https://github.com/deftai/directive/issues/642#issuecomment-4330742436); content reachable via git history. Surviving structural work tracked in [`vbrief/pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.vbrief.json`](../../vbrief/pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.vbrief.json) and [`vbrief/proposed/2026-04-27-635-phase-0-spec-scaffolding-rfc.vbrief.json`](../../vbrief/proposed/2026-04-27-635-phase-0-spec-scaffolding-rfc.vbrief.json).

@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF (#635 child, needs-discussion shape): Phase 0 spec scaffolding RFC -- multi-phase plan with open design questions for generated per-phase task gates (e.g. spec:phase0, spec:pipeline). Should run discussion before swarm assignment per canonical #642 workflow comment.",
+    "created": "2026-04-27T22:25:52Z",
+    "updated": "2026-04-27T22:25:52Z"
+  },
+  "plan": {
+    "id": "635-phase-0-spec-scaffolding-rfc",
+    "title": "RFC: Phase 0 spec scaffolding -- generated per-phase task gates (needs-discussion)",
+    "status": "proposed",
+    "planRef": "#635",
+    "narratives": {
+      "Problem": "The original #233 More Determinism initiative proposed `task spec:phase0` and `task spec:pipeline` as generated per-phase task gates -- one of the largest design questions in the determinism arc, with cross-cutting impact on speckit / interview / build skills, the spec validator, and the migrator. Per canonical #642 workflow comment locked decisions, this is too multi-phased and design-question-heavy to compress into a leaf plan.item under #233; it gets its own RFC vBRIEF that runs discussion before swarm assignment. The #233 vBRIEF references this RFC as the gate item for `task ci:local` and `task release` (which depend on the Phase 0 design outcome).",
+      "Overview": "Author and run a Phase 0 spec scaffolding RFC. The RFC asks: how should per-phase gates (Phase 1 -> 2 spec approval, Phase 3 -> 4 spec render, Phase 4 implementation phase boundaries) be generated as runnable tasks rather than enforced by skill prose? Open design questions (non-exhaustive): (1) one task per spec or one task per phase? (2) where does the generated task live -- tasks/spec.yml, a generated tasks/spec-<project>.yml, or inline in vbrief/specification.vbrief.json metadata? (3) how do the gates interact with skills/deft-directive-build/SKILL.md and skills/deft-directive-interview/SKILL.md? (4) backwards compat with existing speckit Phase 4 emission? The RFC reaches discussion exit when the design question is settled enough to scaffold leaf items; those leaves can then be harvested by the swarm.",
+      "Background": "The original docs/more-determinism.md (commit 47034134) proposed Phase 0 as 'generated per-phase task gates' but did not specify the design. v0.17.0 shipped 8 of the 12 determinism tasks but explicitly deferred Phase 0 because the design wasn't settled. This RFC closes that gap. Adjacent prior art: tasks/spec.yml exists; scripts/spec_render.py renders SPECIFICATION.md from the spec vBRIEF; skills/deft-directive-build/SKILL.md handles Phase 4 implementation. The RFC must coordinate with all three.",
+      "Constraint": "MUST run a discussion phase via skills/deft-directive-discuss/SKILL.md or an equivalent design-question loop before swarm assignment. Direct swarm assignment is forbidden until the open design questions are settled. Output of discussion: an updated vBRIEF with concrete plan.items[] that ARE swarm-ready leaves.",
+      "Risk": "(1) Without the discussion gate the swarm picks up an under-specified RFC and burns time on conflicting interpretations. (2) Backwards-compat with the existing speckit Phase 4 emission is non-trivial -- the RFC must not break the per-phase scope vBRIEF emission contract from #436. (3) Cross-skill coordination (build / interview) means the RFC's outcome affects multiple skill files; a multi-PR rollout is likely.",
+      "Outcome": "Acceptance: (1) RFC discussion phase reaches close-out with the four open design questions settled; (2) plan.items[] in this vBRIEF are rewritten as concrete swarm-ready leaves post-discussion; (3) at least one leaf demonstrates a working `task spec:phase0` (or equivalent) for the deft repo's own spec; (4) the #233 vBRIEF item `phase-0-generated-per-phase-gates` references this RFC's outcome and unblocks; (5) `task check` passes with whatever new tasks land.",
+      "Test": "Verification deferred to per-leaf items post-discussion. RFC validation: discussion notes appended to plan.narratives.Discussion; final plan.items[] reflect settled design.",
+      "Action": "Pre-swarm step: run skills/deft-directive-discuss/SKILL.md (or equivalent) on this vBRIEF before any implementation work. Once discussion closes, this vBRIEF moves to vbrief/pending/ via task scope:promote, and the new leaf items become harvestable."
+    },
+    "items": [
+      {
+        "id": "phase-0-rfc-discussion",
+        "title": "Run discussion phase on the 4 open design questions (one-task-per-spec vs per-phase, task location, skill interaction, speckit backwards-compat)",
+        "status": "pending",
+        "narrative": {
+          "Action": "Use skills/deft-directive-discuss/SKILL.md or an equivalent Feynman-style alignment loop. Append decisions to plan.narratives.Discussion."
+        }
+      },
+      {
+        "id": "phase-0-rfc-rewrite-as-leaves",
+        "title": "Post-discussion: rewrite plan.items[] as concrete swarm-ready leaves with no remaining open design questions",
+        "status": "pending",
+        "narrative": {
+          "Action": "Each leaf must be a single PR's worth of work; no leaf may carry an open design question."
+        }
+      },
+      {
+        "id": "phase-0-rfc-promote-to-pending",
+        "title": "Promote this vBRIEF from proposed/ to pending/ via `task scope:promote` once leaves are concrete",
+        "status": "pending",
+        "narrative": {
+          "Action": "Lifecycle move signals readiness for swarm harvest."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_epic": "#635",
+        "split_authority": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
+        "swarm_ready": false,
+        "needs_discussion": true,
+        "blocks": "vbrief/pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.vbrief.json::phase-0-generated-per-phase-gates",
+        "blocked_by": "PR #401 trim merge (clears the determinism design surface so this RFC owns the topic)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/635",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/642",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this RFC split)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/233",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #233: More Determinism (this RFC settles the Phase 0 design question that gates the #233 phase-0-generated-per-phase-gates item)"
+      },
+      {
+        "uri": "pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "#233 (remaining 6) -- the phase-0-generated-per-phase-gates item references this RFC as its design gate (related-plan, not parent/child, so no D4 back-link required)"
+      }
+    ]
+  }
+}

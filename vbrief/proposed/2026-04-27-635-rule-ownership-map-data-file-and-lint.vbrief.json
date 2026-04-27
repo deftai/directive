@@ -1,0 +1,81 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF (#635 child): replace the descriptive Rule Ownership Map prose section being removed from REFERENCES.md by Unit B with a structural data file + lint enforcement. Per canonical #642 workflow comment locked decision: Rule Ownership Map respawns as enforceable structural artifact, not prose.",
+    "created": "2026-04-27T22:25:52Z",
+    "updated": "2026-04-27T22:25:52Z"
+  },
+  "plan": {
+    "id": "635-rule-ownership-map",
+    "title": "Rule Ownership Map: data file + lint enforcement (replaces REFERENCES.md prose section)",
+    "status": "proposed",
+    "planRef": "#635",
+    "narratives": {
+      "Problem": "PR #401 originally proposed a Rule Ownership Map as a descriptive prose section inside REFERENCES.md, mapping each framework rule (in main.md, AGENTS.md, SKILL.md prose) to its owning file and authority. Per canonical #642 workflow comment locked decisions, that prose section is being removed by Unit B during the trim because descriptive prose mapping decays under agent pressure -- agents move rules without updating the map, and there's no enforcement mechanism. The replacement: a structural data file consumed by a lint check that fails CI when a rule moves without a corresponding map update.",
+      "Overview": "Land a rule-ownership-map data file (e.g. conventions/rule-ownership.yaml or rule-ownership.json) listing each framework rule with `id`, `text`, `owner_file`, `owner_section`, `authority` (RFC2119 marker), and `last_verified`. Land a lint check (e.g. scripts/rule_ownership_lint.py) that wires into `task check` via tasks/verify.yml or a new tasks/rule-ownership.yml -- it scans owner files for rule presence and fails when a rule listed in the map has been moved or deleted without a map update. Migration: capture the descriptive section being removed by Unit B and translate each entry into the data file before lint goes mandatory.",
+      "Background": "REFERENCES.md is off-limits to PR-A (Unit B owns it). PR-A only scaffolds this vBRIEF; the actual data file authoring and lint implementation happen in a follow-up swarm leaf. The data file lives outside REFERENCES.md so the descriptive doc can stay focused on cross-references while the structural enforcement lives where lint can read it.",
+      "Constraint": "MUST NOT live as prose in REFERENCES.md, main.md, or any other prose doc -- the entire point of the split is to move from prose-decay to structural enforcement. The lint check MUST be wired into `task check` (or a sibling that fails CI) before the data file is treated as authoritative; otherwise the same prose-decay problem recurs at the YAML level.",
+      "Risk": "(1) The data file becomes outdated faster than the prose if lint is not wired in immediately. (2) Initial ownership-map authoring requires reading the descriptive section that Unit B is removing; the swarm worker SHOULD pull the prose from PR #401's pre-trim head as the source of truth for the initial entries. (3) Some rules are owned by `meta/lessons.md` lessons; the data file MUST handle that case (e.g. authority='lesson', owner_file='meta/lessons.md', owner_section='## <lesson title>').",
+      "Outcome": "Acceptance: (1) conventions/rule-ownership.yaml (or equivalent data file) lists every load-bearing framework rule with `id`, `text`, `owner_file`, `owner_section`, `authority`, `last_verified`; (2) scripts/rule_ownership_lint.py validates the data file against the actual owner files and fails when drift is detected; (3) the lint check is wired into `task check` (or a CI-gating sibling); (4) coverage of the initial ownership map equals or exceeds the descriptive section that Unit B removed from REFERENCES.md; (5) `task check` passes with the new lint enabled.",
+      "Test": "Verification: tests/cli/test_rule_ownership_lint.py exercises map/owner sync, drift detection, lesson-owner case, and CI exit code; existing tests remain green.",
+      "Action": "Swarm-ready leaf: independent of the events vBRIEFs (different files/surface). Gated on PR #401 trim merge so the descriptive REFERENCES.md section is removed before the data file becomes the source of truth."
+    },
+    "items": [
+      {
+        "id": "rule-ownership-map-data-file",
+        "title": "Author conventions/rule-ownership.yaml (or .json) capturing every rule from the descriptive section Unit B removes from REFERENCES.md",
+        "status": "pending",
+        "narrative": {
+          "Action": "Pull the descriptive Rule Ownership Map prose from PR #401's pre-trim head; translate each entry into a structural row with id/text/owner_file/owner_section/authority/last_verified."
+        }
+      },
+      {
+        "id": "rule-ownership-map-lint",
+        "title": "Add scripts/rule_ownership_lint.py + tasks/verify.yml entry; fail CI on drift (rule moved/deleted without map update, or text mismatch)",
+        "status": "pending",
+        "narrative": {
+          "Action": "Lint reads the data file, opens each owner_file, asserts owner_section contains a substring match for the rule text. Fail with actionable diagnostics."
+        }
+      },
+      {
+        "id": "rule-ownership-map-wire-into-task-check",
+        "title": "Wire rule_ownership_lint into `task check` so the structural enforcement is mandatory before merge",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add to Taskfile.yml `check` deps or to tasks/verify.yml as a new sibling; update CHANGELOG; document in main.md or conventions/."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_epic": "#635",
+        "split_authority": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
+        "swarm_ready": true,
+        "blocks": null,
+        "blocked_by": "PR #401 trim merge (removes the descriptive Rule Ownership Map prose from REFERENCES.md so the data file becomes the source of truth)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/635",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/642",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this split + replaces descriptive prose with structural enforcement)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/401",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #401: hygiene/DDD/determinism (trim removes the descriptive Rule Ownership Map prose from REFERENCES.md)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/634",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #634: determinism-tier ladder (this vBRIEF's lint deliverable sits at T5/T6 -- structural enforcement)"
+      }
+    ]
+  }
+}
