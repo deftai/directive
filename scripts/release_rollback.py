@@ -59,6 +59,7 @@ Refs #716 (canonical spec; safety hardening Item 3 of 7),
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as _dt
 import json
 import shutil
@@ -334,10 +335,8 @@ def _sum_downloads(payload: dict) -> int:
     for asset in assets:
         # gh returns the field as ``downloadCount`` (camelCase under --json).
         count = asset.get("downloadCount", 0)
-        try:
+        with contextlib.suppress(TypeError, ValueError):
             total += int(count)
-        except (TypeError, ValueError):
-            pass
     return total
 
 
@@ -680,7 +679,7 @@ def run_rollback(config: RollbackConfig) -> int:
         # and report the actual branch. Otherwise fall back to the
         # most-complex branch.
         state, payload, reason = detect_state(config)
-        _emit(f"State (dry-run probe)", f"{state} ({reason or 'no reason'})")
+        _emit("State (dry-run probe)", f"{state} ({reason or 'no reason'})")
         if state == "absent":
             _emit("Rollback", "DRYRUN (no-op; nothing to unwind)")
             return EXIT_OK

@@ -829,7 +829,10 @@ def run_pipeline(config: ReleaseConfig) -> int:
         _emit(
             10,
             label,
-            f"DRYRUN (would run `gh release create v{version} --repo {config.repo}{draft_flag} ...`)",
+            (
+                f"DRYRUN (would run `gh release create v{version} "
+                f"--repo {config.repo}{draft_flag} ...`)"
+            ),
         )
     else:
         notes = _section_for_version(promoted_changelog, version)
