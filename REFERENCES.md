@@ -13,9 +13,9 @@
 - Check for custom rules and preferences
 - Override path via `DEFT_USER_PATH` env var
 
-**[core/glossary.md](./core/glossary.md)** - Term definitions
-- Load: When encountering unfamiliar terms (release, feature, demo sentence, context rot, etc.)
-- Contains: work decomposition hierarchy, GSD → Deft term mapping
+**[core/glossary.md](./core/glossary.md)** - Authoritative vocabulary
+- Load: When any term is undefined or used ambiguously; before introducing a new term
+- Contains: work decomposition hierarchy, hygiene terms, framework design terms, GSD → Deft mapping
 
 ## 📋 Task-Based Loading
 
@@ -99,7 +99,7 @@ Load as needed:
 - **[strategies/discuss.md](./strategies/discuss.md)** - Structured alignment phase with Feynman technique
 - **[strategies/map.md](./strategies/map.md)** - Codebase mapping for existing projects (stack, architecture, conventions, concerns)
 - **[strategies/research.md](./strategies/research.md)** - Structured research: Don't Hand-Roll + Common Pitfalls output
-- **[core/glossary.md](./core/glossary.md)** - Term definitions (release, feature, task, demo sentence, etc.)
+- **[core/glossary.md](./core/glossary.md)** - Authoritative vocabulary (release, feature, task, demo sentence, context rot, etc.)
 - Load: When planning features with multiple phases or gray areas
 
 ### When Working with Changes
