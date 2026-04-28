@@ -82,6 +82,8 @@ includes:
     optional: true
   release:
     taskfile: ./tasks/release.yml
+  ci:
+    taskfile: ./tasks/ci.yml
     optional: true
 
 tasks:
