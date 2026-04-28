@@ -62,7 +62,8 @@ import argparse
 import contextlib
 import datetime as _dt
 import json
-import shutil
+import os
+import shutil  # noqa: F401  -- kept for tests that monkeypatch release_rollback.shutil.which
 import subprocess
 import sys
 import time
@@ -203,11 +204,12 @@ def _gh_release_view_json(version: str, repo: str) -> tuple[bool, dict | None, s
     Includes ``createdAt`` and the ``assets[]`` array (each with
     ``downloadCount``). Used by the guard logic.
     """
-    if shutil.which("gh") is None:
+    gh_path = release._resolve_gh()
+    if gh_path is None:
         return False, None, "gh CLI not found on PATH"
     tag = f"v{version}"
     cmd = [
-        "gh", "release", "view", tag,
+        gh_path, "release", "view", tag,
         "--repo", repo,
         "--json", "isDraft,name,tagName,createdAt,publishedAt,assets,url",
     ]
@@ -218,6 +220,7 @@ def _gh_release_view_json(version: str, repo: str) -> tuple[bool, dict | None, s
             text=True,
             timeout=60,
             check=False,
+            env=os.environ.copy(),
         )
     except FileNotFoundError:
         return False, None, "gh CLI not found on PATH"
@@ -242,18 +245,24 @@ def gh_release_exists(version: str, repo: str) -> tuple[str, dict | None, str]:
 
 
 def gh_release_delete(version: str, repo: str) -> tuple[bool, str]:
-    if shutil.which("gh") is None:
+    gh_path = release._resolve_gh()
+    if gh_path is None:
         return False, "gh CLI not found on PATH"
     tag = f"v{version}"
     cmd = [
-        "gh", "release", "delete", tag,
+        gh_path, "release", "delete", tag,
         "--repo", repo,
         "--yes",
         "--cleanup-tag",
     ]
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=60, check=False
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+            env=os.environ.copy(),
         )
     except FileNotFoundError:
         return False, "gh CLI not found on PATH"

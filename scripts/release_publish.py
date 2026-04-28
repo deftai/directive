@@ -39,7 +39,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
+import os
+import shutil  # noqa: F401  -- kept for tests that monkeypatch release_publish.shutil.which
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -133,11 +134,12 @@ def view_release(version: str, repo: str) -> tuple[str, dict | None, str]:
     - ``"gh-error"`` -- gh failed for an unexpected reason (CLI missing,
       auth, network); ``reason`` carries the diagnostic
     """
-    if shutil.which("gh") is None:
+    gh_path = release._resolve_gh()
+    if gh_path is None:
         return "gh-error", None, "gh CLI not found on PATH"
     tag = f"v{version}"
     cmd = [
-        "gh", "release", "view", tag,
+        gh_path, "release", "view", tag,
         "--repo", repo,
         "--json", "isDraft,name,tagName,url",
     ]
@@ -148,6 +150,7 @@ def view_release(version: str, repo: str) -> tuple[str, dict | None, str]:
             text=True,
             timeout=60,
             check=False,
+            env=os.environ.copy(),
         )
     except FileNotFoundError:
         return "gh-error", None, "gh CLI not found on PATH"
@@ -172,10 +175,11 @@ def view_release(version: str, repo: str) -> tuple[str, dict | None, str]:
 
 def edit_release_publish(version: str, repo: str) -> tuple[bool, str]:
     """Invoke ``gh release edit`` to flip ``--draft=false``."""
-    if shutil.which("gh") is None:
+    gh_path = release._resolve_gh()
+    if gh_path is None:
         return False, "gh CLI not found on PATH"
     tag = f"v{version}"
-    cmd = ["gh", "release", "edit", tag, "--repo", repo, "--draft=false"]
+    cmd = [gh_path, "release", "edit", tag, "--repo", repo, "--draft=false"]
     try:
         result = subprocess.run(
             cmd,
@@ -183,6 +187,7 @@ def edit_release_publish(version: str, repo: str) -> tuple[bool, str]:
             text=True,
             timeout=60,
             check=False,
+            env=os.environ.copy(),
         )
     except FileNotFoundError:
         return False, "gh CLI not found on PATH"
