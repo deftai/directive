@@ -98,6 +98,7 @@ tasks:
       - toolchain:check
       - verify:stubs
       - verify:links
+      - verify:rule-ownership
       - vbrief:validate
     cmds:
       - echo "All checks passed"

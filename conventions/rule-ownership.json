@@ -1,0 +1,382 @@
+{
+  "version": 1,
+  "description": "Rule Ownership Map (ROM): structural source of truth mapping each load-bearing framework rule to its owning file and section. Replaces the descriptive prose section removed from REFERENCES.md by the PR #401 trim. Every entry is enforced by scripts/rule_ownership_lint.py via tasks/verify.yml -> task check; drift between this map and the owner files fails CI. Authority values follow RFC2119 (MUST/SHOULD/MUST_NOT/SHOULD_NOT/AXIOM) with the additional 'lesson' value reserved for rules whose source of truth is a meta/lessons.md entry. See vBRIEF: vbrief/proposed/2026-04-27-635-rule-ownership-map-data-file-and-lint.vbrief.json. Refs #635 (epic), #642 (workflow umbrella), #634 (determinism-tier ladder T5/T6).",
+  "rules": [
+    {
+      "id": "coding-standards-modularity",
+      "text": "One responsibility per file/module",
+      "owner_file": "coding/coding.md",
+      "owner_section": "## Code Design",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "coding-standards-contract-first",
+      "text": "Define interfaces/types/protocols before implementation",
+      "owner_file": "coding/coding.md",
+      "owner_section": "## Code Design",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "coding-standards-error-handling-no-hide",
+      "text": "Empty catch/except/recover blocks that swallow errors silently",
+      "owner_file": "coding/coding.md",
+      "owner_section": "## Code Design",
+      "authority": "MUST_NOT",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "coding-standards-quality-checks",
+      "text": "Run all relevant checks (lint, fmt, quality, build, test) before submitting changes",
+      "owner_file": "coding/coding.md",
+      "owner_section": "## Quality Standards",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "codebase-hygiene-dead-code",
+      "text": "Commented-out code blocks committed to version control",
+      "owner_file": "coding/hygiene.md",
+      "owner_section": "## Dead Code Removal",
+      "authority": "MUST_NOT",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "codebase-hygiene-circular-dependencies",
+      "text": "Circular imports between modules/packages",
+      "owner_file": "coding/hygiene.md",
+      "owner_section": "## Circular Dependencies",
+      "authority": "MUST_NOT",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "codebase-hygiene-error-hiding",
+      "text": "Empty catch/except/recover blocks that swallow errors silently",
+      "owner_file": "coding/hygiene.md",
+      "owner_section": "## Error Handling: No Hiding",
+      "authority": "MUST_NOT",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "codebase-hygiene-legacy-deprecated",
+      "text": "Parallel implementations: old approach and new approach coexisting",
+      "owner_file": "coding/hygiene.md",
+      "owner_section": "## Legacy and Deprecated Code",
+      "authority": "MUST_NOT",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "codebase-hygiene-dry",
+      "text": "Extract shared abstractions when logic is duplicated across 2+ call sites",
+      "owner_file": "coding/hygiene.md",
+      "owner_section": "## DRY: Don't Repeat Yourself",
+      "authority": "SHOULD",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "codebase-hygiene-comments-signal-vs-noise",
+      "text": "Comments should explain **why**, not **what**",
+      "owner_file": "coding/hygiene.md",
+      "owner_section": "## Comments: Signal vs. Noise",
+      "authority": "SHOULD",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "testing-universal-coverage",
+      "text": "Achieve \u226585% coverage (overall + per-module/package/file)",
+      "owner_file": "coding/testing.md",
+      "owner_section": "## Universal Requirements",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "testing-test-first-development",
+      "text": "Implementation is INCOMPLETE until tests written AND `task test:coverage` passes",
+      "owner_file": "coding/testing.md",
+      "owner_section": "## Test-First Development",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "build-output-artifact-verification",
+      "text": "After running a custom build script, verify expected output files exist and are non-empty",
+      "owner_file": "coding/build-output.md",
+      "owner_section": "## Artifact Verification",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "toolchain-pre-implementation-gate",
+      "text": "Before beginning implementation, verify all required toolchain components are installed and functional",
+      "owner_file": "coding/toolchain.md",
+      "owner_section": "## Pre-Implementation Gate",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "verification-stub-detection",
+      "text": "Scan for incomplete implementations before marking done",
+      "owner_file": "verification/verification.md",
+      "owner_section": "## Stub Detection",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "verification-legacy-deprecated-detection",
+      "text": "When reviewing or modifying any file, scan for legacy indicators",
+      "owner_file": "verification/verification.md",
+      "owner_section": "## Legacy and Deprecated Code Detection",
+      "authority": "SHOULD",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "glossary-ubiquitous-language",
+      "text": "**Ubiquitous language** \u2014 The shared, precisely defined vocabulary",
+      "owner_file": "core/glossary.md",
+      "owner_section": "## Framework Design Terms",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "glossary-rule-ownership-principle",
+      "text": "**Rule ownership** \u2014 The principle that each concept in directive has exactly one owning file",
+      "owner_file": "core/glossary.md",
+      "owner_section": "## Framework Design Terms",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "glossary-work-decomposition-hierarchy",
+      "text": "Release          \u2190 Shippable version (one or more features)",
+      "owner_file": "core/glossary.md",
+      "owner_section": "## Deft Work Decomposition Hierarchy",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "scm-git-conventional-commits",
+      "text": "use Conventional Commits format: `type(scope): description`",
+      "owner_file": "scm/git.md",
+      "owner_section": "## Standards",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "scm-git-safety-rules",
+      "text": "MUST NOT do without explicit permission",
+      "owner_file": "scm/git.md",
+      "owner_section": "## Safety Rules",
+      "authority": "MUST_NOT",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "scm-github-pr-merge-strategy",
+      "text": "Use squash-merge as the default merge method",
+      "owner_file": "scm/github.md",
+      "owner_section": "## PR Workflow Conventions",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "scm-github-post-merge-issue-verification",
+      "text": "After a PR is squash-merged, verify that all referenced issues were actually closed",
+      "owner_file": "scm/github.md",
+      "owner_section": "## Post-Merge Issue Verification",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "tools-taskfile-build-automation",
+      "text": "Use `task` for repeatable operations",
+      "owner_file": "tools/taskfile.md",
+      "owner_section": "## Task-Centric Workflow",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "vbrief-lifecycle-folders",
+      "text": "Individual units of work (features, bugs, initiatives) live as scope vBRIEFs in five lifecycle folders",
+      "owner_file": "vbrief/vbrief.md",
+      "owner_section": "## File Taxonomy",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "vbrief-filename-convention",
+      "text": "Scope vBRIEF filenames MUST follow: `YYYY-MM-DD-descriptive-slug.vbrief.json`",
+      "owner_file": "vbrief/vbrief.md",
+      "owner_section": "## File Taxonomy",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "resilience-session-continuity",
+      "text": "Persist to `./vbrief/continue.vbrief.json` in vBRIEF format",
+      "owner_file": "resilience/continue-here.md",
+      "owner_section": "## Continue Checkpoint Contents",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "context-engineering-write-strategy",
+      "text": "Externalize intermediate state so it doesn't consume context window",
+      "owner_file": "context/context.md",
+      "owner_section": "## Strategy 1: Write",
+      "authority": "SHOULD",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "swarm-explicit-context",
+      "text": "Never assume previous agent \"knew\" something implicit",
+      "owner_file": "swarm/swarm.md",
+      "owner_section": "## Communication Protocols",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "change-lifecycle-overview",
+      "text": "Each change is a self-contained unit of work with its own folder in `history/changes/`",
+      "owner_file": "commands.md",
+      "owner_section": "## Overview",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "main-rule-authority-axiom",
+      "text": "Every rule MUST use the strongest applicable layer",
+      "owner_file": "main.md",
+      "owner_section": "## Rule Authority [AXIOM]",
+      "authority": "AXIOM",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "main-vbrief-persistence",
+      "text": "All vBRIEF files MUST be stored in `./vbrief/` or its lifecycle subfolders",
+      "owner_file": "main.md",
+      "owner_section": "## vBRIEF Persistence",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "agents-deft-alignment-confirmation",
+      "text": "confirm to the user that Deft Directive is active",
+      "owner_file": "AGENTS.md",
+      "owner_section": "### Deft Alignment Confirmation",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "agents-skill-completion-gate",
+      "text": "explicitly confirm skill exit and provide chaining instructions",
+      "owner_file": "AGENTS.md",
+      "owner_section": "## Skill Completion Gate",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "language-hygiene-python",
+      "text": "**Dead code:**",
+      "owner_file": "languages/python.md",
+      "owner_section": "## Hygiene",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "language-hygiene-go",
+      "text": "**Dead code:**",
+      "owner_file": "languages/go.md",
+      "owner_section": "## Hygiene",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "language-hygiene-typescript",
+      "text": "**Dead code:**",
+      "owner_file": "languages/typescript.md",
+      "owner_section": "## Hygiene",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "language-hygiene-javascript",
+      "text": "**Dead code:**",
+      "owner_file": "languages/javascript.md",
+      "owner_section": "## Hygiene",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "language-hygiene-rust",
+      "text": "**Dead code:**",
+      "owner_file": "languages/rust.md",
+      "owner_section": "## Hygiene",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "language-hygiene-cpp",
+      "text": "**Dead code:**",
+      "owner_file": "languages/cpp.md",
+      "owner_section": "## Hygiene",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "language-hygiene-csharp",
+      "text": "**Dead code:**",
+      "owner_file": "languages/csharp.md",
+      "owner_section": "## Hygiene",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "language-hygiene-java",
+      "text": "**Dead code:**",
+      "owner_file": "languages/java.md",
+      "owner_section": "## Hygiene",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "language-hygiene-kotlin",
+      "text": "**Dead code:**",
+      "owner_file": "languages/kotlin.md",
+      "owner_section": "## Hygiene",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "language-hygiene-swift",
+      "text": "**Dead code:**",
+      "owner_file": "languages/swift.md",
+      "owner_section": "## Hygiene",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "language-hygiene-c",
+      "text": "**Dead code:**",
+      "owner_file": "languages/c.md",
+      "owner_section": "## Hygiene",
+      "authority": "MUST",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "lesson-toolchain-validation-gate",
+      "text": "Before beginning any implementation phase, MUST verify that the complete toolchain",
+      "owner_file": "meta/lessons.md",
+      "owner_section": "## Toolchain Validation Gate (2026-03)",
+      "authority": "lesson",
+      "last_verified": "2026-04-28"
+    },
+    {
+      "id": "lesson-build-script-output-validation",
+      "text": "When modifying a build script, MUST verify that expected output artifacts exist",
+      "owner_file": "meta/lessons.md",
+      "owner_section": "## Build Script Output Validation (2026-03)",
+      "authority": "lesson",
+      "last_verified": "2026-04-28"
+    }
+  ]
+}
