@@ -475,7 +475,59 @@ def run_build(project_root: Path) -> tuple[bool, str]:
     return True, "task build ran clean"
 
 
-# ---- Step 7/8 -- tag + push ------------------------------------------------
+# ---- Step 7/8 -- commit + tag + push ---------------------------------------
+
+
+# Files written by the release pipeline (steps 4 + 5) that MUST be committed
+# before tagging so the annotated tag and GitHub release point at the
+# CHANGELOG-promoted / ROADMAP-refreshed commit (#74 Greptile P1).
+_RELEASE_ARTIFACTS = ("CHANGELOG.md", "ROADMAP.md")
+
+
+def _release_commit_subject(version: str) -> str:
+    """Return the canonical subject line for the release commit."""
+    return f"chore(release): v{version} -- promote CHANGELOG + ROADMAP"
+
+
+def commit_release_artifacts(
+    project_root: Path, version: str
+) -> tuple[bool, str]:
+    """Stage and commit CHANGELOG.md / ROADMAP.md before tagging.
+
+    Without this step the annotated tag would land on the pre-release HEAD
+    commit -- meaning the tagged commit and GitHub release would be anchored
+    to content that predates the CHANGELOG promotion, AND the working tree
+    would remain dirty after the pipeline (#74 Greptile P1).
+
+    Stages only the canonical release artifacts (CHANGELOG.md / ROADMAP.md)
+    so any unrelated changes the operator left in the tree are NOT silently
+    swept into the release commit. If neither file actually changed, the
+    function reports a clean no-op so callers can proceed to tagging without
+    a bogus empty commit.
+    """
+    paths_to_stage = [
+        path
+        for path in _RELEASE_ARTIFACTS
+        if (project_root / path).is_file()
+    ]
+    if not paths_to_stage:
+        return True, "no release artifacts to commit (none exist)"
+
+    add = _run_git(project_root, "add", "--", *paths_to_stage)
+    if add.returncode != 0:
+        return False, f"git add failed: {add.stderr.strip()}"
+
+    # Confirm something is actually staged before committing -- a no-op
+    # `git commit` would otherwise return non-zero with "nothing to commit".
+    diff = _run_git(project_root, "diff", "--cached", "--quiet")
+    if diff.returncode == 0:
+        return True, "release artifacts already up-to-date; no commit needed"
+
+    subject = _release_commit_subject(version)
+    commit = _run_git(project_root, "commit", "-m", subject)
+    if commit.returncode != 0:
+        return False, f"git commit failed: {commit.stderr.strip()}"
+    return True, f"committed release artifacts ({subject})"
 
 
 def create_tag(project_root: Path, version: str) -> tuple[bool, str]:
@@ -486,12 +538,37 @@ def create_tag(project_root: Path, version: str) -> tuple[bool, str]:
     return True, f"created tag {tag}"
 
 
-def push_tag(project_root: Path, version: str) -> tuple[bool, str]:
+def push_release(
+    project_root: Path, version: str, base_branch: str
+) -> tuple[bool, str]:
+    """Push the release commit + the annotated tag to ``origin`` atomically.
+
+    The branch update is published BEFORE the tag (`--atomic`) so the tag
+    always resolves to a publicly-fetchable commit on ``origin/<base>``.
+    Without the branch push the tag would dangle on origin until the next
+    push of the branch, breaking ``gh release create --notes-from-tag`` and
+    `git describe` for downstream consumers.
+    """
     tag = f"v{version}"
-    result = _run_git(project_root, "push", "origin", tag)
+    result = _run_git(
+        project_root, "push", "--atomic", "origin", base_branch, tag
+    )
     if result.returncode != 0:
         return False, f"git push failed: {result.stderr.strip()}"
-    return True, f"pushed tag {tag}"
+    return True, f"pushed {base_branch} + {tag} to origin"
+
+
+# Backwards-compatible alias for callers (and tests) that still reference
+# the original symbol name.
+def push_tag(project_root: Path, version: str) -> tuple[bool, str]:
+    """Deprecated alias kept for backwards compatibility.
+
+    Prefer ``push_release`` which atomically pushes the release branch and
+    its annotated tag together (#74 Greptile P1). This shim exists so
+    pre-existing callers that reference ``push_tag`` continue to work; new
+    code MUST call ``push_release`` directly.
+    """
+    return push_release(project_root, version, DEFAULT_BASE_BRANCH)
 
 
 # ---- Step 9 -- gh release create -------------------------------------------
@@ -531,7 +608,7 @@ def create_github_release(
 # ---- Pipeline orchestration ------------------------------------------------
 
 
-_TOTAL_STEPS = 9
+_TOTAL_STEPS = 10
 
 
 def _emit(step: int, label: str, status: str, *, file=None) -> None:
@@ -645,41 +722,68 @@ def run_pipeline(config: ReleaseConfig) -> int:
             _emit(6, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 7: git tag.
-    label = f"Tag v{version}"
+    # Step 7: commit release artifacts (CHANGELOG + ROADMAP) before tagging
+    # so the annotated tag and GitHub release anchor at the promoted commit
+    # rather than the pre-release HEAD (#74 Greptile P1). Skipped together
+    # with tagging when --skip-tag is set, since a committed-but-untagged
+    # state would still leave the working tree dirty post-pipeline.
+    label = f"Commit release artifacts ({', '.join(_RELEASE_ARTIFACTS)})"
     if config.skip_tag:
         _emit(7, label, "SKIP (--skip-tag)")
     elif config.dry_run:
-        _emit(7, label, f"DRYRUN (would run `git tag -a v{version} -m 'Release v{version}'`)")
+        _emit(
+            7,
+            label,
+            f"DRYRUN (would run `git add {' '.join(_RELEASE_ARTIFACTS)}` + "
+            f"`git commit -m '{_release_commit_subject(version)}'`)",
+        )
     else:
-        ok, reason = create_tag(project_root, version)
+        ok, reason = commit_release_artifacts(project_root, version)
         if ok:
             _emit(7, label, f"OK ({reason})")
         else:
             _emit(7, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 8: push tag.
-    label = f"Push tag v{version} to origin"
+    # Step 8: git tag.
+    label = f"Tag v{version}"
     if config.skip_tag:
         _emit(8, label, "SKIP (--skip-tag)")
     elif config.dry_run:
-        _emit(8, label, f"DRYRUN (would run `git push origin v{version}`)")
+        _emit(8, label, f"DRYRUN (would run `git tag -a v{version} -m 'Release v{version}'`)")
     else:
-        ok, reason = push_tag(project_root, version)
+        ok, reason = create_tag(project_root, version)
         if ok:
             _emit(8, label, f"OK ({reason})")
         else:
             _emit(8, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 9: GitHub release.
-    label = f"GitHub release v{version}"
-    if config.skip_release:
-        _emit(9, label, "SKIP (--skip-release)")
+    # Step 9: push branch + tag atomically.
+    label = f"Push {config.base_branch} + v{version} to origin (atomic)"
+    if config.skip_tag:
+        _emit(9, label, "SKIP (--skip-tag)")
     elif config.dry_run:
         _emit(
             9,
+            label,
+            f"DRYRUN (would run `git push --atomic origin {config.base_branch} v{version}`)",
+        )
+    else:
+        ok, reason = push_release(project_root, version, config.base_branch)
+        if ok:
+            _emit(9, label, f"OK ({reason})")
+        else:
+            _emit(9, label, f"FAIL ({reason})")
+            return EXIT_VIOLATION
+
+    # Step 10: GitHub release.
+    label = f"GitHub release v{version}"
+    if config.skip_release:
+        _emit(10, label, "SKIP (--skip-release)")
+    elif config.dry_run:
+        _emit(
+            10,
             label,
             f"DRYRUN (would run `gh release create v{version} --repo {config.repo} ...`)",
         )
@@ -687,9 +791,9 @@ def run_pipeline(config: ReleaseConfig) -> int:
         notes = _section_for_version(promoted_changelog, version)
         ok, reason = create_github_release(project_root, version, config.repo, notes)
         if ok:
-            _emit(9, label, f"OK ({reason})")
+            _emit(10, label, f"OK ({reason})")
         else:
-            _emit(9, label, f"FAIL ({reason})")
+            _emit(10, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
     print(

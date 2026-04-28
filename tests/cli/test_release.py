@@ -507,6 +507,7 @@ class TestPipeline:
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "commit_release_artifacts", lambda *_a, **_kw: (True, "stub"))
         config = _make_config(temp_project, allow_dirty=True)
         rc = release.run_pipeline(config)
         assert rc == release.EXIT_OK
@@ -528,14 +529,22 @@ class TestPipeline:
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
 
+        def boom_commit(*_a, **_kw):  # pragma: no cover - asserted not called
+            raise AssertionError(
+                "commit_release_artifacts must not be called when --skip-tag"
+            )
+
         def boom_tag(*_a, **_kw):  # pragma: no cover - asserted not called
             raise AssertionError("create_tag must not be called when --skip-tag")
 
         def boom_push(*_a, **_kw):  # pragma: no cover - asserted not called
-            raise AssertionError("push_tag must not be called when --skip-tag")
+            raise AssertionError(
+                "push_release must not be called when --skip-tag"
+            )
 
+        monkeypatch.setattr(release, "commit_release_artifacts", boom_commit)
         monkeypatch.setattr(release, "create_tag", boom_tag)
-        monkeypatch.setattr(release, "push_tag", boom_push)
+        monkeypatch.setattr(release, "push_release", boom_push)
         config = _make_config(temp_project, skip_tag=True, skip_release=True)
         rc = release.run_pipeline(config)
         assert rc == release.EXIT_OK
@@ -552,6 +561,11 @@ class TestPipeline:
         def boom_release(*_a, **_kw):  # pragma: no cover - asserted not called
             raise AssertionError("create_github_release must not be called when --skip-release")
 
+        # Stub the new commit step so the pipeline can run end-to-end
+        # without touching the synthetic git repo.
+        monkeypatch.setattr(
+            release, "commit_release_artifacts", lambda *_a, **_kw: (True, "stub")
+        )
         monkeypatch.setattr(release, "create_github_release", boom_release)
         config = _make_config(temp_project, skip_tag=True, skip_release=True)
         rc = release.run_pipeline(config)
@@ -609,6 +623,11 @@ class TestPipeline:
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
+        # Stub the commit-release-artifacts step so we don't try to mutate
+        # the synthetic git repo state during the test.
+        monkeypatch.setattr(
+            release, "commit_release_artifacts", lambda *_a, **_kw: (True, "stub")
+        )
         config = _make_config(temp_project)
         rc = release.run_pipeline(config)
         assert rc == release.EXIT_OK
@@ -617,6 +636,100 @@ class TestPipeline:
         assert (
             "[0.21.0]: https://github.com/deftai/directive/compare/v0.20.2...v0.21.0"
             in text
+        )
+
+    def test_pipeline_commits_release_artifacts_before_tag(
+        self, temp_project, monkeypatch
+    ):
+        """Greptile P1 regression (#74): the pipeline MUST commit CHANGELOG.md
+        (and ROADMAP.md when present) BEFORE invoking ``git tag``, so the
+        annotated tag points at the promoted commit and the working tree is
+        clean post-pipeline. We assert the call order and the final tree state.
+        """
+        order: list[str] = []
+
+        def fake_commit(project_root, version):
+            order.append("commit")
+            # Drive the same effect as the real helper by staging + committing
+            # the promoted CHANGELOG so the post-pipeline tree is clean.
+            subprocess.run(
+                ["git", "-C", str(project_root), "add", "CHANGELOG.md"], check=True
+            )
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(project_root),
+                    "commit",
+                    "-q",
+                    "-m",
+                    f"chore(release): v{version}",
+                ],
+                check=True,
+            )
+            return True, f"committed v{version}"
+
+        def fake_tag(project_root, version):
+            order.append("tag")
+            subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(project_root),
+                    "tag",
+                    "-a",
+                    f"v{version}",
+                    "-m",
+                    f"Release v{version}",
+                ],
+                check=True,
+            )
+            return True, f"created tag v{version}"
+
+        def fake_push(project_root, version, base_branch):
+            order.append("push")
+            return True, f"pushed {base_branch} + v{version}"
+
+        monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "commit_release_artifacts", fake_commit)
+        monkeypatch.setattr(release, "create_tag", fake_tag)
+        monkeypatch.setattr(release, "push_release", fake_push)
+        # skip_release=True so we don't depend on gh CLI behavior here.
+        config = _make_config(temp_project, skip_tag=False, skip_release=True)
+        rc = release.run_pipeline(config)
+        assert rc == release.EXIT_OK
+        assert order == ["commit", "tag", "push"], (
+            "commit_release_artifacts MUST run BEFORE create_tag and push_release; "
+            f"observed order: {order}"
+        )
+        # The release tag must resolve to a commit whose tree contains the
+        # promoted CHANGELOG (the heading we just wrote).
+        log = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(temp_project),
+                "show",
+                "--no-patch",
+                "--format=%s",
+                "v0.21.0",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "chore(release): v0.21.0" in log.stdout
+        # Working tree is clean (no leftover dirty CHANGELOG / ROADMAP).
+        status = subprocess.run(
+            ["git", "-C", str(temp_project), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert status.stdout.strip() == "", (
+            f"working tree is dirty post-pipeline: {status.stdout!r}"
         )
 
 
@@ -665,6 +778,132 @@ class TestMain:
 
 # ---------------------------------------------------------------------------
 # Subprocess-driven smoke test (only runs when uv + python are on PATH)
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# commit_release_artifacts / push_release
+# ---------------------------------------------------------------------------
+
+
+class TestCommitReleaseArtifacts:
+    def test_commit_stages_changelog_and_roadmap(self, temp_project):
+        # Modify CHANGELOG and add a ROADMAP so both files are in scope.
+        (temp_project / "CHANGELOG.md").write_text(
+            SAMPLE_CHANGELOG.replace("## [Unreleased]", "## [0.21.0] - 2026-04-28"),
+            encoding="utf-8",
+        )
+        (temp_project / "ROADMAP.md").write_text(
+            "# Roadmap\n\n## Active\n- foo\n", encoding="utf-8"
+        )
+        ok, reason = release.commit_release_artifacts(temp_project, "0.21.0")
+        assert ok is True
+        assert "committed" in reason
+        # The new release commit must be on HEAD with the canonical subject.
+        log = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(temp_project),
+                "log",
+                "-1",
+                "--format=%s",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert "chore(release): v0.21.0" in log.stdout
+        # Tree must be clean.
+        status = subprocess.run(
+            ["git", "-C", str(temp_project), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        assert status.stdout.strip() == ""
+
+    def test_commit_no_op_when_nothing_changed(self, temp_project):
+        # Tree is already clean from the fixture.
+        ok, reason = release.commit_release_artifacts(temp_project, "0.21.0")
+        assert ok is True
+        # The helper must NOT create an empty commit when there is nothing to
+        # stage; reason should mention the no-op.
+        assert (
+            "already up-to-date" in reason or "no commit needed" in reason
+        ), reason
+
+    def test_commit_skips_when_no_release_artifacts_exist(self, tmp_path):
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        # Initialise git so _run_git does not blow up; no CHANGELOG.md.
+        subprocess.run(
+            ["git", "init", "-q", "-b", "master", str(empty)], check=True
+        )
+        subprocess.run(
+            ["git", "-C", str(empty), "config", "user.email", "t@x"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(empty), "config", "user.name", "T"], check=True
+        )
+        ok, reason = release.commit_release_artifacts(empty, "0.21.0")
+        assert ok is True
+        assert "none exist" in reason
+
+    def test_release_commit_subject_format(self):
+        # The commit subject must be deterministic so reviewers / grep / git log
+        # filtering can find release commits without parsing variants.
+        assert (
+            release._release_commit_subject("0.21.0")
+            == "chore(release): v0.21.0 -- promote CHANGELOG + ROADMAP"
+        )
+
+
+class TestPushRelease:
+    def test_push_release_invokes_atomic_with_branch_and_tag(self, monkeypatch, tmp_path):
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.push_release(tmp_path, "0.21.0", "master")
+        assert ok is True
+        assert "pushed master + v0.21.0" in reason
+        # Verify --atomic + branch + tag in the argv.
+        assert "--atomic" in captured["cmd"]
+        assert "master" in captured["cmd"]
+        assert "v0.21.0" in captured["cmd"]
+
+    def test_push_release_reports_failure(self, monkeypatch, tmp_path):
+        def fake_run(cmd, **kwargs):
+            return SimpleNamespace(stdout="", stderr="non-fast-forward", returncode=1)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.push_release(tmp_path, "0.21.0", "master")
+        assert ok is False
+        assert "non-fast-forward" in reason
+
+    def test_push_tag_alias_uses_default_base_branch(self, monkeypatch, tmp_path):
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, _ = release.push_tag(tmp_path, "0.21.0")
+        assert ok is True
+        # The deprecated alias delegates to push_release with the default
+        # base branch -- proves backwards compatibility for any external
+        # caller still importing push_tag.
+        assert release.DEFAULT_BASE_BRANCH in captured["cmd"]
+
+
+# ---------------------------------------------------------------------------
+# Subprocess smoke
 # ---------------------------------------------------------------------------
 
 
