@@ -22,6 +22,9 @@ Thumbs.db
 *.tmp
 *.bak
 
+# Transient agent scratch directory (PR #401 trim arc convention -- see #642)
+temp/
+
 # User-specific files (users should copy from templates)
 core/user.md
 
