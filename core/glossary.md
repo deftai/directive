@@ -66,7 +66,7 @@ Terms describing how directive itself is structured and governed.
 
 **Bounded context** (framework sense) — A file or directory in directive that owns a specific rule domain. Other files reference it; they do not restate its rules. Prevents rule drift through duplication. Examples: `coding/hygiene.md` owns hygiene rules; `coding/testing.md` owns universal testing standards.
 
-**Rule ownership** — The principle that each concept in directive has exactly one owning file. When multiple files need to reference the concept, they link to the owner rather than duplicating the rule. The ownership map lives in [REFERENCES.md](../REFERENCES.md).
+**Rule ownership** — The principle that each concept in directive has exactly one owning file. When multiple files need to reference the concept, they link to the owner rather than duplicating the rule.
 
 **Ubiquitous language** — The shared, precisely defined vocabulary used consistently across all directive files and by all agents. This glossary is the source of truth. Synonyms and informal restatements of defined terms are not permitted.
 

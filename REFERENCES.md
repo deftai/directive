@@ -99,7 +99,7 @@ Load as needed:
 - **[strategies/discuss.md](./strategies/discuss.md)** - Structured alignment phase with Feynman technique
 - **[strategies/map.md](./strategies/map.md)** - Codebase mapping for existing projects (stack, architecture, conventions, concerns)
 - **[strategies/research.md](./strategies/research.md)** - Structured research: Don't Hand-Roll + Common Pitfalls output
-- **[core/glossary.md](./core/glossary.md)** - Term definitions (release, feature, task, demo sentence, etc.)
+- **[core/glossary.md](./core/glossary.md)** - Authoritative vocabulary (release, feature, task, demo sentence, context rot, etc.)
 - Load: When planning features with multiple phases or gray areas
 
 ### When Working with Changes

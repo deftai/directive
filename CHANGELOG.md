@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Greptile P1 (PR #401)**: append `--exit-code` to all `madge --circular` invocations in `coding/hygiene.md`, `languages/typescript.md`, and `languages/javascript.md` so cycles fail CI rather than silently passing. (#642, PR #401)
 - **Greptile P2 (PR #401)**: add Python `Circular dependencies:` Hygiene subsection in `languages/python.md` referencing `pydeps`/`importlab` and pointing to `coding/hygiene.md` for resolution. (#642, PR #401)
+- **Greptile P1 fresh-review fix (PR #401)**: `core/glossary.md` `Rule ownership` definition no longer claims an ownership map lives in `REFERENCES.md` — the map was removed by the trim earlier in this PR (respawned as enforceable structural artifact via PR-A's rule-ownership-map vBRIEF under #635). (#642, PR #401)
+- **Greptile P2 fresh-review fix (PR #401)**: `REFERENCES.md` line 102 — secondary `core/glossary.md` entry under "When Planning Multi-Feature Work" updated from "Term definitions" to "Authoritative vocabulary" to match the primary entry. (#642, PR #401)
 
 ### Removed
 - **Trimmed PR #401 scope to hygiene + AXIOM**: deleted `docs/more-determinism.md` (transformed to vBRIEFs under #635 by PR-A); deleted `core/events.md` (transformed to event-wiring vBRIEFs under #635 by PR-A); removed Rule Ownership Map section and `core/events.md` pointer from `REFERENCES.md` (respawned as enforceable structural artifact via PR-A's rule-ownership-map vBRIEF); removed the `main.md` Decision Making event-pointer addition. Original determinism doc remains reachable via git commit `47034134`; original DDD content via commit `ba253a8`. (#642, PR #401)
