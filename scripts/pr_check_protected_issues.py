@@ -159,7 +159,13 @@ def _parse_protected(values: list[str]) -> list[int]:
             tok = tok.strip().lstrip("#")
             if not tok:
                 continue
-            if not tok.isdigit():
+            # ``isdecimal()`` (vs ``isdigit()``) ONLY matches base-10 digits 0-9.
+            # ``isdigit()`` returns True for Unicode digit characters such as
+            # superscript '\u00b2' that ``int()`` rejects, which would let a malformed
+            # token reach ``int(tok)`` below and surface Python's generic
+            # ``invalid literal for int()`` error instead of our custom
+            # ``Invalid protected issue token`` message (Greptile review #702).
+            if not tok.isdecimal():
                 raise ValueError(f"Invalid protected issue token: {tok!r}")
             out.add(int(tok))
     return sorted(out)

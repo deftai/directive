@@ -182,6 +182,15 @@ class TestParseProtected:
         with pytest.raises(ValueError):
             pr_check._parse_protected(["abc"])
 
+    def test_unicode_superscript_rejected_with_custom_error(self):
+        # Greptile P2: ``isdigit()`` returns True for Unicode digit characters
+        # such as superscript 2 ('\u00b2'), but ``int('\u00b2')`` raises.
+        # ``isdecimal()`` (the new guard) rejects the superscript with our
+        # custom message rather than letting Python's generic
+        # ``invalid literal for int()`` surface from int(tok).
+        with pytest.raises(ValueError, match="Invalid protected issue token"):
+            pr_check._parse_protected(["\u00b2"])
+
 
 # ---------------------------------------------------------------------------
 # main / CLI

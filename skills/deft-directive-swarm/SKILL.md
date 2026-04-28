@@ -381,13 +381,13 @@ Retry ONCE via an `@greptileai review` comment with a 10-minute cap. If the retr
 
 ! **Post-merge protected-issue reopen sweep (Layer 3, #701):** After every squash-merge of a PR that referenced any umbrella / staying-OPEN issue (`Refs #N` with N a protected issue), verify each protected issue's post-merge state and reopen on regression:
 
-```powershell
-foreach ($n in @(<protected-issue-numbers>)) {
-  $state = gh issue view $n --json state --jq .state
-  if ($state -ne "OPEN") {
-    gh issue reopen $n --comment "Reopened: closing-keyword Layer 3 false-positive on squash merge of PR #<N>; issue is umbrella for ongoing work. See #701."
-  }
-}
+```bash
+for n in <protected-issue-numbers>; do
+  state=$(gh issue view "$n" --json state --jq .state)
+  if [ "$state" != "OPEN" ]; then
+    gh issue reopen "$n" --comment "Reopened: closing-keyword Layer 3 false-positive on squash merge of PR #<N>; issue is umbrella for ongoing work. See #701."
+  fi
+done
 ```
 
 This is defense in depth -- run it even when the pre-merge inspection above passed, because a sidebar-attached link not visible to a body scan, or a missed protected issue in the protected-issue list, can still slip through. The reopen comment MUST cite #701 and the PR that triggered the false-positive so future operators tracing the closed-then-reopened churn can find the root cause.
