@@ -17,3 +17,10 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/validate-links.py"
+
+  rule-ownership:
+    desc: "Verify the Rule Ownership Map (conventions/rule-ownership.json) is in sync with its owner files (#635)"
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/rule_ownership_lint.py" --root "{{.DEFT_ROOT}}"
