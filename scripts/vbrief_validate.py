@@ -23,10 +23,33 @@ Story: #333 (RFC #309), #536 (validator CLI flags, schema-trusting D11),
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 import sys
 from pathlib import Path
+from typing import Any
+
+# Ensure sibling scripts (`_event_detect`) are importable when this file is
+# run directly. Mirrors the pattern in scripts/migrate_vbrief.py.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+
+# #635: Detection-bound emit helper -- lazy-imported so an import-time
+# failure in ``scripts/_event_detect.py`` cannot break the validator's
+# ability to load. The events surface MUST NOT break the wrapped CLI;
+# importing at module level would let an import-time exception in the
+# helper take down ``task check``'s vbrief:validate gate before the
+# call-site ``contextlib.suppress`` could intervene (Greptile P1 on PR
+# #707 -- mirrors the lazy pattern in ``run::_emit_event_safe``).
+# Filename is intentionally distinct from the sibling vBRIEF's
+# ``scripts/_events.py`` (behavioral events) to avoid file-level merge
+# conflicts; post-merge consolidation may unify them under one name.
+def _emit_event(name: str, payload: dict[str, Any]) -> None:
+    """Lazy-import scripts/_event_detect.emit and forward the call."""
+    from _event_detect import emit  # noqa: I001 -- intentional lazy import
+
+    emit(name, payload)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -879,6 +902,23 @@ def validate_all(
 
     # Render staleness check (#398)
     warnings.extend(check_render_staleness(vbrief_dir))
+
+    # #635: emit vbrief:invalid event when validation surfaced any issue.
+    # Existing CLI exit-code semantics are unchanged (handled by main()).
+    # Events surface MUST NOT break validation, so registry/IO failures
+    # are silently suppressed so existing CLIs remain stable.
+    if errors or warnings:
+        with contextlib.suppress(Exception):
+            _emit_event(
+                "vbrief:invalid",
+                {
+                    "vbrief_dir": str(vbrief_dir.resolve()),
+                    "error_count": len(errors),
+                    "warning_count": len(warnings),
+                    "errors": list(errors),
+                    "warnings": list(warnings),
+                },
+            )
 
     return errors, warnings, len(scope_files)
 

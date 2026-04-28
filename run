@@ -574,6 +574,30 @@ _UPGRADE_GATE_SKIP_COMMANDS = frozenset({
 })
 
 
+def _emit_event_safe(name: str, payload: dict) -> None:
+    """Lazy-import emit() and swallow all failures.
+
+    Keeps the events surface optional from `run`'s perspective:
+    `scripts/_event_detect.py` is imported only when actually emitting, and
+    any ImportError / OSError / EventEmissionError is silently dropped so
+    the CLI never breaks because of an event-surface bug. Per #635.
+    """
+    # Bare ``except Exception`` swallows every failure mode the events
+    # surface could surface (ImportError when the helper file is missing,
+    # OSError when DEFT_EVENT_LOG points at a read-only path,
+    # EventEmissionError when the registry rejects the name) without
+    # leaking any of them up to the CLI.
+    try:
+        scripts_dir = get_script_dir() / "scripts"
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+        # #635: detection-bound emit helper (distinct from behavioral sibling).
+        from _event_detect import emit  # type: ignore[import-not-found]
+        emit(name, payload)
+    except Exception:  # noqa: BLE001 -- non-fatal; events MUST NOT break CLI
+        return
+
+
 def _check_upgrade_gate(command: str) -> bool:
     """Warn (and prompt when interactive) on framework/project version drift.
 
@@ -594,6 +618,22 @@ def _check_upgrade_gate(command: str) -> bool:
     if recorded is not None:
         if recorded == VERSION:
             return True
+        # #635: emit version:drift before warning so consumers can react
+        # uniformly. Marker path resolution mirrors _read_version_marker's
+        # precedence rule (vbrief/.deft-version > .deft-version).
+        marker_path = next(
+            (str(p) for p in _version_marker_paths(project_root) if p.is_file()),
+            "",
+        )
+        _emit_event_safe(
+            "version:drift",
+            {
+                "project_root": str(project_root.resolve()),
+                "recorded_version": recorded,
+                "current_version": VERSION,
+                "marker_path": marker_path,
+            },
+        )
         warn(
             f"Deft has been updated from {recorded} to {VERSION}. "
             "Run `deft/run upgrade` or `task migrate:vbrief` to update your project files."
@@ -605,6 +645,16 @@ def _check_upgrade_gate(command: str) -> bool:
             # whose marker was never written, or not a deft-managed project.
             # Either way there is nothing actionable to gate on.
             return True
+        # #635: emit pre-cutover:detected before warning so consumers can
+        # react uniformly (skill, task, CI runner). Existing CLI warning
+        # text is preserved verbatim below.
+        _emit_event_safe(
+            "pre-cutover:detected",
+            {
+                "project_root": str(project_root.resolve()),
+                "legacy_files": list(legacy),
+            },
+        )
         # Legacy artifacts present (with or without vbrief/) -- this covers
         # both the canonical v0.19 consumer layout (no vbrief/ yet) and a
         # partially-migrated project that still has legacy copies.
@@ -613,6 +663,23 @@ def _check_upgrade_gate(command: str) -> bool:
             + ", ".join(legacy)
             + "). Run `task migrate:vbrief` to upgrade."
         )
+
+    # #635: AGENTS.md staleness is checked alongside version drift /
+    # pre-cutover so the upgrade gate emits a single coherent set of events
+    # for consumers that subscribe via DEFT_EVENT_LOG. No new CLI output --
+    # the existing QUICK-START.md prose flow is the user-visible surface;
+    # the event is purely structural.
+    try:
+        scripts_dir = get_script_dir() / "scripts"
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+        from _event_detect import detect_agents_md_stale  # type: ignore[import-not-found]
+        stale_payload = detect_agents_md_stale(project_root)
+        if stale_payload is not None:
+            _emit_event_safe("agents-md:stale", stale_payload)
+    except Exception:
+        # Detection MUST NOT break the gate.
+        pass
 
     # Non-interactive: warn and continue, never fatal.
     if not sys.stdin.isatty():
