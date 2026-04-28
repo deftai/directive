@@ -52,3 +52,11 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/release_publish.py" {{.CLI_ARGS}}
+
+  release:rollback:
+    desc: "State-aware release unwind (#716) -- task release:rollback -- <version> [--dry-run] [--allow-low-downloads N] [--allow-data-loss] [--force-strict-0]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/release_rollback.py" {{.CLI_ARGS}}
