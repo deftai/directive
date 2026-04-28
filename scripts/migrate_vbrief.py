@@ -1957,6 +1957,14 @@ def migrate(
                 prd_content, canonical_present, source_name="PRD.md"
             )
             if prd_legacy:
+                # Greptile #706 P1: pass ``flagged=True`` so the
+                # ``legacy:detected`` event payload carries
+                # ``flagged: true`` BEFORE emission, matching the
+                # ``events/behavioral.yaml`` contract for PRD.md hand-
+                # edit captures. The legacy stat-dict patch loop below
+                # is preserved as a defensive belt-and-suspenders for
+                # any downstream consumer that still inspects the
+                # returned stats list directly.
                 narrative, sidecars, stats = _emit_legacy_artifacts(
                     prd_legacy,
                     "PRD.md",
@@ -1964,6 +1972,7 @@ def migrate(
                     slugify_fn=_slugify_shared,
                     warning_prefix=_PRD_HAND_EDIT_WARNING,
                     event_emitter=_legacy_event_emitter,
+                    flagged=True,
                 )
                 for stat in stats:
                     stat["flagged"] = True

@@ -201,6 +201,36 @@ class TestSessionPairing:
         assert len(orphans) == 1
         assert orphans[0]["event"] == "session:resumed"
 
+    def test_double_resumed_against_one_interrupt_is_orphan(
+        self, event_log: Path
+    ) -> None:
+        """Greptile #706 P2: 1:1 pairing -- one interrupt id may satisfy at
+        most one ``session:resumed``. A double-emitted resumed referencing
+        the same ``interrupted_id`` is treated as orphan."""
+        opened = emit(
+            "session:interrupted",
+            {"session_id": "s1", "reason": "context-window-shift"},
+            log_path=event_log,
+        )
+        emit(
+            "session:resumed",
+            {"session_id": "s1", "interrupted_id": opened["id"]},
+            log_path=event_log,
+        )
+        # Second resumed referencing the same interrupted id -- MUST be
+        # flagged as orphan.
+        emit(
+            "session:resumed",
+            {"session_id": "s1", "interrupted_id": opened["id"]},
+            log_path=event_log,
+        )
+        orphans = validate_pairing(log_path=event_log)
+        assert len(orphans) == 1, (
+            "second session:resumed against the same interrupt id MUST be "
+            "orphan (1:1 pairing per Greptile #706 P2)"
+        )
+        assert orphans[0]["event"] == "session:resumed"
+
     def test_resumed_before_interrupted_is_orphan(
         self, event_log: Path
     ) -> None:
@@ -282,6 +312,60 @@ class TestLegacyDetectedEmission:
         assert all(name == "legacy:detected" for name, _ in events_seen)
         captured_titles = [payload["title"] for _, payload in events_seen]
         assert captured_titles == ["Dependency Graph", "Open Questions"]
+
+    def test_flagged_appears_in_event_payload_when_passed(
+        self, tmp_path: Path
+    ) -> None:
+        """Greptile #706 P1: when ``flagged=True`` is passed (PRD.md
+        hand-edit captures), the ``legacy:detected`` event payload MUST
+        carry ``flagged: True`` -- the migrator's prior post-hoc patch
+        landed AFTER emission and silently dropped the field."""
+        events_seen: list[tuple[str, dict]] = []
+
+        def _capture(name: str, payload: dict) -> None:
+            events_seen.append((name, payload))
+
+        sections = [("Open Questions", "what about X?", 50, 70)]
+        emit_legacy_artifacts(
+            sections,
+            "PRD.md",
+            tmp_path,
+            slugify_fn=_slugify_shared,
+            warning_prefix="warn",
+            event_emitter=_capture,
+            flagged=True,
+        )
+        assert len(events_seen) == 1
+        name, payload = events_seen[0]
+        assert name == "legacy:detected"
+        assert payload.get("flagged") is True, (
+            "flagged=True MUST land in the emitted payload BEFORE event "
+            "emission so the events/behavioral.yaml contract is honoured "
+            "(Greptile #706 P1)"
+        )
+
+    def test_flagged_default_false_omits_field_in_event_payload(
+        self, tmp_path: Path
+    ) -> None:
+        """Default ``flagged=False`` does NOT add the field to the payload
+        -- non-PRD captures emit a payload without the flag, matching the
+        registry's optional-field semantics."""
+        events_seen: list[tuple[str, dict]] = []
+
+        def _capture(name: str, payload: dict) -> None:
+            events_seen.append((name, payload))
+
+        sections = [("Dependency Graph", "phase-1 -> phase-2", 10, 12)]
+        emit_legacy_artifacts(
+            sections,
+            "SPECIFICATION.md",
+            tmp_path,
+            slugify_fn=_slugify_shared,
+            event_emitter=_capture,
+        )
+        assert len(events_seen) == 1
+        _, payload = events_seen[0]
+        assert "flagged" not in payload
 
     def test_emitter_failures_do_not_break_capture(
         self, tmp_path: Path

@@ -190,27 +190,34 @@ def validate_pairing(
     """Return the list of orphan ``session:resumed`` records.
 
     A ``session:resumed`` is an orphan if its ``interrupted_id`` does not
-    match the ``id`` of any prior ``session:interrupted`` in the same
-    log. The vBRIEF acceptance criterion (3) requires the test suite to
-    assert this returns ``[]`` for any well-formed event stream.
+    match the ``id`` of any prior, *unconsumed* ``session:interrupted``
+    in the same log. Each interrupt id satisfies at most one resumed
+    event -- a second ``session:resumed`` referencing the same
+    ``interrupted_id`` is treated as an orphan (1:1 pairing per the
+    vBRIEF "co-emitted" semantics, Greptile #706 P2).
 
     Pass ``events`` explicitly to validate an in-memory stream; otherwise
     the helper reads the configured log path.
     """
     if events is None:
         events = read_events(log_path=log_path)
-    interrupted_ids: set[str] = set()
+    open_interrupts: set[str] = set()
     orphans: list[dict[str, Any]] = []
     for record in events:
         name = record.get("event")
         if name == "session:interrupted":
             event_id = record.get("id")
             if isinstance(event_id, str):
-                interrupted_ids.add(event_id)
+                open_interrupts.add(event_id)
         elif name == "session:resumed":
             payload = record.get("payload") or {}
             ref = payload.get("interrupted_id")
-            if not isinstance(ref, str) or ref not in interrupted_ids:
+            if isinstance(ref, str) and ref in open_interrupts:
+                # 1:1 pairing: consume the interrupt id so a second
+                # session:resumed referencing the same id is reported
+                # as an orphan.
+                open_interrupts.discard(ref)
+            else:
                 orphans.append(record)
     return orphans
 

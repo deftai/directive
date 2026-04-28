@@ -287,6 +287,7 @@ def emit_legacy_artifacts(
     slugify_fn: Callable[[str], str],
     warning_prefix: str | None = None,
     event_emitter: Callable[[str, dict], None] | None = None,
+    flagged: bool = False,
 ) -> tuple[str, list[Path], list[dict]]:
     """Build the LegacyArtifacts narrative for one vBRIEF file.
 
@@ -308,9 +309,19 @@ def emit_legacy_artifacts(
     bit-for-bit identical when callers do not opt in -- existing tests
     and consumers continue to behave exactly as before.
 
+    ``flagged`` (default ``False``) marks every captured section's stat
+    dict with ``"flagged": True`` BEFORE the event is emitted so the
+    ``legacy:detected`` event payload accurately reflects the PRD.md
+    hand-edit provenance contract documented in
+    ``events/behavioral.yaml`` (Greptile #706 P1).  Callers that pass
+    ``warning_prefix`` for PRD.md hand-edit captures SHOULD also pass
+    ``flagged=True`` so the structural emission matches the warning
+    prefix in the narrative.
+
     Returns ``(narrative_str, sidecar_paths, stats)`` where ``stats`` is a
     list of per-section dicts with keys: ``title``, ``source``, ``range``,
     ``size_bytes``, ``inline`` (bool), ``sidecar`` (str | None),
+    ``flagged`` (bool, when ``flagged=True`` was passed),
     ``canonical_suggestion`` (str | None).
     """
     if not legacy_sections:
@@ -371,6 +382,15 @@ def emit_legacy_artifacts(
                 "inline": True,
                 "sidecar": None,
             })
+        # Apply the ``flagged`` annotation BEFORE emitting the event so
+        # the ``legacy:detected`` payload contract documented in
+        # ``events/behavioral.yaml`` is honoured for PRD.md hand-edit
+        # captures (Greptile #706 P1). Previously the migrator patched
+        # this field on the returned stats AFTER the function had
+        # already emitted, leaving every PRD.md event missing the
+        # ``flagged`` field.
+        if flagged:
+            stats[-1]["flagged"] = True
         narrative_parts.append(section_block)
         if event_emitter is not None:
             # Emit a structural ``legacy:detected`` framework event per
