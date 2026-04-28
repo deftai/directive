@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/deftai/directive/events/event-record.schema.json",
   "title": "Deft Event Record",
-  "description": "Schema for a single emitted event record produced by scripts/_events.py::emit(). The shape is uniform across detection-bound and behavioral events; the per-event payload contract is defined in events/registry.json.",
+  "description": "Schema for a single emitted event record produced by scripts/_event_detect.py::emit() (filename is intentionally distinct from the sibling vBRIEF's scripts/_events.py for behavioral events; merge-time consolidation may unify them). The shape is uniform across detection-bound and behavioral events; the per-event payload contract is defined in events/registry.json.",
   "type": "object",
   "required": ["event", "detected_at", "payload"],
   "additionalProperties": false,

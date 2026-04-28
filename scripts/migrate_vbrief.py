@@ -26,6 +26,7 @@ import subprocess
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlparse
 
 # Ensure the ``scripts/`` directory is on sys.path so sibling module
@@ -33,15 +34,28 @@ from urllib.parse import urlparse
 # imported from a test harness that appends the ``scripts/`` path.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# #635: Detection-bound emit helper. Filename is intentionally distinct
-# from the sibling vBRIEF's `scripts/_events.py` (behavioral events) to
-# avoid file-level merge conflicts; post-merge consolidation may unify
-# them under one name.
-from _event_detect import emit as _emit_event  # noqa: E402
-from _vbrief_build import (
-    EMITTED_VBRIEF_VERSION,  # noqa: E402 -- canonical emitted version per #533
-    create_scope_vbrief as _create_scope_vbrief_shared,  # noqa: E402
-    slugify as _slugify_shared,  # noqa: E402
+
+# #635: Detection-bound emit helper -- lazy-imported so an import-time
+# failure in ``scripts/_event_detect.py`` (e.g. syntax error in a future
+# change) cannot break the migrator's ability to load. The events surface
+# MUST NOT break the wrapped CLI; importing at module level would let an
+# import-time exception in the helper take down the migrator before the
+# call-site ``contextlib.suppress`` could intervene (Greptile P1 on PR
+# #707 -- mirrors the lazy pattern in ``run::_emit_event_safe``).
+# Filename is intentionally distinct from the sibling vBRIEF's
+# ``scripts/_events.py`` (behavioral events) to avoid file-level merge
+# conflicts; post-merge consolidation may unify them under one name.
+def _emit_event(name: str, payload: dict[str, Any]) -> None:
+    """Lazy-import scripts/_event_detect.emit and forward the call."""
+    from _event_detect import emit  # noqa: I001 -- intentional lazy import
+
+    emit(name, payload)
+
+
+from _vbrief_build import (  # noqa: E402 -- after sys.path mutate + lazy emit helper
+    EMITTED_VBRIEF_VERSION,  # canonical emitted version per #533
+    create_scope_vbrief as _create_scope_vbrief_shared,
+    slugify as _slugify_shared,
 )
 from _vbrief_validation import (  # noqa: E402
     finalize_migration,

@@ -578,10 +578,15 @@ def _emit_event_safe(name: str, payload: dict) -> None:
     """Lazy-import emit() and swallow all failures.
 
     Keeps the events surface optional from `run`'s perspective:
-    `scripts/_events.py` is imported only when actually emitting, and any
-    ImportError / OSError / EventEmissionError is silently dropped so the
-    CLI never breaks because of an event-surface bug. Per #635.
+    `scripts/_event_detect.py` is imported only when actually emitting, and
+    any ImportError / OSError / EventEmissionError is silently dropped so
+    the CLI never breaks because of an event-surface bug. Per #635.
     """
+    # Bare ``except Exception`` swallows every failure mode the events
+    # surface could surface (ImportError when the helper file is missing,
+    # OSError when DEFT_EVENT_LOG points at a read-only path,
+    # EventEmissionError when the registry rejects the name) without
+    # leaking any of them up to the CLI.
     try:
         scripts_dir = get_script_dir() / "scripts"
         if str(scripts_dir) not in sys.path:
@@ -589,8 +594,8 @@ def _emit_event_safe(name: str, payload: dict) -> None:
         # #635: detection-bound emit helper (distinct from behavioral sibling).
         from _event_detect import emit  # type: ignore[import-not-found]
         emit(name, payload)
-    except Exception:
-        pass
+    except Exception:  # noqa: BLE001 -- non-fatal; events MUST NOT break CLI
+        return
 
 
 def _check_upgrade_gate(command: str) -> bool:

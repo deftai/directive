@@ -28,16 +28,28 @@ import json
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 # Ensure sibling scripts (`_event_detect`) are importable when this file is
 # run directly. Mirrors the pattern in scripts/migrate_vbrief.py.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# #635: Detection-bound emit helper. Filename is intentionally distinct
-# from the sibling vBRIEF's `scripts/_events.py` (behavioral events) to
-# avoid file-level merge conflicts; post-merge consolidation may unify
-# them under one name.
-from _event_detect import emit as _emit_event  # noqa: E402 -- after sys.path mutate
+
+# #635: Detection-bound emit helper -- lazy-imported so an import-time
+# failure in ``scripts/_event_detect.py`` cannot break the validator's
+# ability to load. The events surface MUST NOT break the wrapped CLI;
+# importing at module level would let an import-time exception in the
+# helper take down ``task check``'s vbrief:validate gate before the
+# call-site ``contextlib.suppress`` could intervene (Greptile P1 on PR
+# #707 -- mirrors the lazy pattern in ``run::_emit_event_safe``).
+# Filename is intentionally distinct from the sibling vBRIEF's
+# ``scripts/_events.py`` (behavioral events) to avoid file-level merge
+# conflicts; post-merge consolidation may unify them under one name.
+def _emit_event(name: str, payload: dict[str, Any]) -> None:
+    """Lazy-import scripts/_event_detect.emit and forward the call."""
+    from _event_detect import emit  # noqa: I001 -- intentional lazy import
+
+    emit(name, payload)
 
 # ---------------------------------------------------------------------------
 # Constants
