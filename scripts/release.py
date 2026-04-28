@@ -38,6 +38,7 @@ Usage
     uv run python scripts/release.py 0.21.0 --skip-tag --skip-release
     uv run python scripts/release.py 0.21.0 --repo deftai/directive
     uv run python scripts/release.py 0.21.0 --allow-dirty
+    uv run python scripts/release.py 0.21.0 --no-draft  # rare direct-publish
 
 Exit codes
 ----------
@@ -47,8 +48,19 @@ Exit codes
     2 -- config / argument error (malformed version, repo unresolvable,
          CHANGELOG malformed, ...)
 
+Draft default (#716 safety hardening)
+-------------------------------------
+``gh release create`` is invoked with ``--draft`` by default so the
+*artifact production* phase (which fires release.yml CI and uploads
+binaries) is decoupled from the *consumer-visibility* phase. Pair this
+script with ``scripts/release_publish.py`` (``task release:publish --
+<version>``) to flip the draft to public after manual review of the
+binaries / notes / asset list. ``--no-draft`` opts back into the
+prior direct-publish behavior (only intended for automated security
+patches where there is no review gate).
+
 Refs #74, #233, #642, #635, #709 (Repair Authority [AXIOM]),
-#710 (data-file-conventions check follow-up).
+#710 (data-file-conventions check follow-up), #716 (safety hardening).
 """
 
 from __future__ import annotations
@@ -116,6 +128,10 @@ class ReleaseConfig:
     skip_tag: bool
     skip_release: bool
     allow_dirty: bool
+    # #716: default-draft so the GitHub release lands as an unpublished
+    # draft until ``task release:publish`` flips it. Operators can opt
+    # out via --no-draft (rare; e.g. automated security patches).
+    draft: bool = True
 
 
 # ---- argument parsing -------------------------------------------------------
@@ -153,6 +169,17 @@ def _build_parser() -> argparse.ArgumentParser:
         "--allow-dirty",
         action="store_true",
         help="Bypass the dirty-tree pre-flight (use only for rehearsals).",
+    )
+    # #716: default-draft. ``--no-draft`` opts out (rare; security patches).
+    parser.add_argument(
+        "--no-draft",
+        action="store_false",
+        dest="draft",
+        default=True,
+        help=(
+            "Publish the GitHub release immediately instead of creating a draft "
+            "(default: --draft, paired with `task release:publish -- <version>`)."
+        ),
     )
     parser.add_argument(
         "--repo",
@@ -575,8 +602,20 @@ def push_tag(project_root: Path, version: str) -> tuple[bool, str]:
 
 
 def create_github_release(
-    project_root: Path, version: str, repo: str, notes: str
+    project_root: Path,
+    version: str,
+    repo: str,
+    notes: str,
+    *,
+    draft: bool = True,
 ) -> tuple[bool, str]:
+    """Create the GitHub release tagged ``v<version>``.
+
+    ``draft`` defaults to True (#716 safety hardening): the release is
+    created in draft state so binaries upload via release.yml CI but the
+    artifact is not yet visible to consumers. ``task release:publish --
+    <version>`` flips the draft to public after manual review.
+    """
     if shutil.which("gh") is None:
         return False, "gh CLI not found on PATH"
     tag = f"v{version}"
@@ -585,6 +624,8 @@ def create_github_release(
         "--repo", repo,
         "--title", tag,
     ]
+    if draft:
+        cmd.append("--draft")
     if notes:
         cmd.extend(["--notes", notes])
     else:
@@ -602,7 +643,8 @@ def create_github_release(
         return False, "gh CLI not found on PATH"
     if result.returncode != 0:
         return False, f"gh release create failed: {result.stderr.strip()}"
-    return True, f"created GitHub release {tag}"
+    suffix = " (draft)" if draft else ""
+    return True, f"created GitHub release {tag}{suffix}"
 
 
 # ---- Pipeline orchestration ------------------------------------------------
@@ -778,18 +820,22 @@ def run_pipeline(config: ReleaseConfig) -> int:
             return EXIT_VIOLATION
 
     # Step 10: GitHub release.
-    label = f"GitHub release v{version}"
+    draft_suffix = " (draft)" if config.draft else " (PUBLIC)"
+    label = f"GitHub release v{version}{draft_suffix}"
     if config.skip_release:
         _emit(10, label, "SKIP (--skip-release)")
     elif config.dry_run:
+        draft_flag = " --draft" if config.draft else ""
         _emit(
             10,
             label,
-            f"DRYRUN (would run `gh release create v{version} --repo {config.repo} ...`)",
+            f"DRYRUN (would run `gh release create v{version} --repo {config.repo}{draft_flag} ...`)",
         )
     else:
         notes = _section_for_version(promoted_changelog, version)
-        ok, reason = create_github_release(project_root, version, config.repo, notes)
+        ok, reason = create_github_release(
+            project_root, version, config.repo, notes, draft=config.draft
+        )
         if ok:
             _emit(10, label, f"OK ({reason})")
         else:
@@ -830,6 +876,7 @@ def main(argv: list[str] | None = None) -> int:
         skip_tag=args.skip_tag,
         skip_release=args.skip_release,
         allow_dirty=args.allow_dirty,
+        draft=args.draft,
     )
     return run_pipeline(config)
 

@@ -860,6 +860,183 @@ class TestCommitReleaseArtifacts:
         )
 
 
+# ---------------------------------------------------------------------------
+# create_github_release -- default --draft + --no-draft opt-out (#716)
+# ---------------------------------------------------------------------------
+
+
+class TestCreateGithubReleaseDraftDefault:
+    """Coverage for the #716 safety hardening default-draft behavior.
+
+    `task release` MUST default to creating a draft GitHub release; the
+    operator opts back into direct-publish via ``--no-draft`` (rare;
+    intended only for automated security patches with no review gate).
+    The companion ``task release:publish -- <version>`` flips the draft
+    to public after manual review.
+    """
+
+    def test_default_passes_draft_flag(self, monkeypatch, tmp_path):
+        captured = {}
+
+        monkeypatch.setattr(release.shutil, "which", lambda _: "/usr/bin/gh")
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.create_github_release(
+            tmp_path, "0.21.0", "deftai/directive", ""
+        )
+        assert ok is True
+        assert "--draft" in captured["cmd"], (
+            "#716 safety hardening: gh release create MUST pass --draft by "
+            f"default; observed argv: {captured['cmd']}"
+        )
+        assert "(draft)" in reason
+
+    def test_explicit_draft_true_passes_draft_flag(self, monkeypatch, tmp_path):
+        captured = {}
+
+        monkeypatch.setattr(release.shutil, "which", lambda _: "/usr/bin/gh")
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.create_github_release(
+            tmp_path, "0.21.0", "deftai/directive", "", draft=True
+        )
+        assert ok is True
+        assert "--draft" in captured["cmd"]
+        assert "(draft)" in reason
+
+    def test_no_draft_suppresses_flag(self, monkeypatch, tmp_path):
+        captured = {}
+
+        monkeypatch.setattr(release.shutil, "which", lambda _: "/usr/bin/gh")
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.create_github_release(
+            tmp_path, "0.21.0", "deftai/directive", "", draft=False
+        )
+        assert ok is True
+        assert "--draft" not in captured["cmd"], (
+            "--no-draft opt-out: --draft MUST NOT appear in argv when "
+            f"draft=False; observed: {captured['cmd']}"
+        )
+        # Suffix is omitted when not draft (matches operator-readable status).
+        assert "(draft)" not in reason
+
+    def test_no_draft_argparse_flag_sets_config_draft_false(self, monkeypatch, tmp_path):
+        """Exercises the argparse wiring of --no-draft via main()."""
+        captured = {}
+
+        def fake_run_pipeline(config):
+            captured["draft"] = config.draft
+            return release.EXIT_OK
+
+        monkeypatch.setattr(release, "run_pipeline", fake_run_pipeline)
+        rc = release.main([
+            "0.21.0",
+            "--no-draft",
+            "--skip-tag",
+            "--skip-release",
+            "--repo",
+            "deftai/directive",
+            "--project-root",
+            str(tmp_path),
+        ])
+        assert rc == release.EXIT_OK
+        assert captured["draft"] is False, (
+            "--no-draft must set ReleaseConfig.draft=False"
+        )
+
+    def test_default_argparse_flag_sets_config_draft_true(self, monkeypatch, tmp_path):
+        """Without --no-draft, ReleaseConfig.draft defaults to True (#716)."""
+        captured = {}
+
+        def fake_run_pipeline(config):
+            captured["draft"] = config.draft
+            return release.EXIT_OK
+
+        monkeypatch.setattr(release, "run_pipeline", fake_run_pipeline)
+        rc = release.main([
+            "0.21.0",
+            "--skip-tag",
+            "--skip-release",
+            "--repo",
+            "deftai/directive",
+            "--project-root",
+            str(tmp_path),
+        ])
+        assert rc == release.EXIT_OK
+        assert captured["draft"] is True, (
+            "#716 safety hardening default: ReleaseConfig.draft must be True "
+            "when --no-draft is omitted"
+        )
+
+    def test_release_config_default_draft_is_true(self, tmp_path):
+        """Direct dataclass instantiation also defaults to draft=True (#716)."""
+        config = release.ReleaseConfig(
+            version="0.21.0",
+            repo="deftai/directive",
+            base_branch="master",
+            project_root=tmp_path,
+            dry_run=False,
+            skip_tag=False,
+            skip_release=False,
+            allow_dirty=False,
+        )
+        assert config.draft is True
+
+    def test_dry_run_label_reflects_draft_state(
+        self, temp_project, monkeypatch, capsys
+    ):
+        """The Step-10 dry-run label MUST surface the --draft flag (#716).
+
+        Step-10 only emits the DRYRUN body when skip_release is False;
+        when skip_release=True the SKIP label fires first and the
+        --draft argv preview is never rendered. Use skip_release=False
+        so the dry-run branch is exercised and the draft preview shows.
+        """
+        config = _make_config(
+            temp_project, dry_run=True, skip_tag=True, skip_release=False
+        )
+        rc = release.run_pipeline(config)
+        assert rc == release.EXIT_OK
+        captured = capsys.readouterr()
+        # Default config.draft=True; the Step-10 dry-run line MUST surface
+        # the (draft) suffix on the label AND --draft in the DRYRUN command.
+        assert "(draft)" in captured.err
+        assert "--draft" in captured.err
+
+    def test_dry_run_no_draft_label_reflects_public_state(
+        self, temp_project, capsys
+    ):
+        """With --no-draft the Step-10 label switches to (PUBLIC) and omits --draft."""
+        config = _make_config(
+            temp_project, dry_run=True, skip_tag=True, skip_release=False, draft=False
+        )
+        rc = release.run_pipeline(config)
+        assert rc == release.EXIT_OK
+        captured = capsys.readouterr()
+        assert "(PUBLIC)" in captured.err
+        # The Step-10 dry-run line MUST NOT include --draft when draft=False.
+        # We check the line specifically (other lines may mention draft).
+        step10_line = next(
+            (line for line in captured.err.splitlines() if "[10/10]" in line),
+            "",
+        )
+        assert step10_line, "Step 10 line missing from dry-run output"
+        assert "--draft" not in step10_line
+
+
 class TestPushRelease:
     def test_push_release_invokes_atomic_with_branch_and_tag(self, monkeypatch, tmp_path):
         captured = {}
