@@ -60,3 +60,11 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/release_rollback.py" {{.CLI_ARGS}}
+
+  release:e2e:
+    desc: "End-to-end release rehearsal against an auto-created+destroyed temp repo (#716) -- task release:e2e [-- --dry-run] [--owner OWNER] [--keep-repo]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/release_e2e.py" {{.CLI_ARGS}}
