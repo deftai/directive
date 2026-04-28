@@ -1,0 +1,34 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# release tasks -- consumer-safe CWD + script resolution (#535, #539, #540, #566).
+#
+# `task release -- <version>` automates the v0.X.Y release flow per #74:
+# pre-flight (clean tree + base branch) -> task ci:local (with task check
+# fallback for graceful degradation while #233 task-ci-local lands) ->
+# CHANGELOG promotion (## [Unreleased] -> ## [<version>] - <date>;
+# fresh empty Unreleased block; new compare-link footnote) -> ROADMAP
+# refresh (re-render via task roadmap:render -- the renderer already
+# aggregates pending/ + completed/ idempotently) -> task build -> git
+# tag -> git push origin <tag> -> gh release create.
+#
+# Per `conventions/task-caching.md` (#574): tasks that accept user-facing
+# recovery flags via {{.CLI_ARGS}} (here: --dry-run / --skip-tag /
+# --skip-release / --allow-dirty / --repo) MUST NOT declare
+# `sources:` / `generates:` -- the cached `cmds:` skip would silently
+# discard the recovery flag.
+#
+# Companion script: scripts/release.py
+# Companion test:   tests/cli/test_release.py
+# Refs #74, #233, #642, #635, #709, #710.
+
+tasks:
+  release:
+    desc: "Automate the v0.X.Y release flow (#74) -- task release -- <version> [--dry-run] [--skip-tag] [--skip-release]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/release.py" {{.CLI_ARGS}}

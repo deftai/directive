@@ -80,6 +80,9 @@ includes:
   pr:
     taskfile: ./tasks/pr.yml
     optional: true
+  release:
+    taskfile: ./tasks/release.yml
+    optional: true
 
 tasks:
   default:
