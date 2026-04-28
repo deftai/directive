@@ -87,6 +87,32 @@ class TestRegistry:
                 f"required-payload tuple for {name!r} must be non-empty"
             )
 
+    def test_required_payload_keys_match_known_events_exactly(self) -> None:
+        """Greptile #706 P2: enforce parity between the runtime-derived
+        ``KNOWN_EVENTS`` (from ``events/registry.json`` filtered by
+        ``category="behavioral"``) and the hard-coded
+        ``_REQUIRED_BEHAVIORAL_PAYLOAD`` source-of-truth dict in
+        ``scripts/_events.py``.
+
+        Without this test a future developer who adds a 5th behavioral
+        event to ``events/registry.json`` and forgets to add the matching
+        entry to ``_REQUIRED_BEHAVIORAL_PAYLOAD`` would land a registered
+        event whose ``REQUIRED_PAYLOAD.get(name, ())`` returns an empty
+        tuple -- silently accepting any payload without validation. The
+        ``test_required_payload_keys_present_for_every_event`` test above
+        iterates over the hardcoded ``EXPECTED_BEHAVIORAL_NAMES`` so it
+        does NOT catch the desync.
+        """
+        # Resolve both surfaces from the live module so a registry edit
+        # without the matching code edit fails immediately.
+        known = set(KNOWN_EVENTS)
+        required_keys = set(REQUIRED_PAYLOAD.keys())
+        assert known == required_keys, (
+            f"KNOWN_EVENTS / REQUIRED_PAYLOAD desync: "
+            f"in registry but not REQUIRED_PAYLOAD={known - required_keys}, "
+            f"in REQUIRED_PAYLOAD but not registry={required_keys - known}"
+        )
+
     def test_session_pair_required_payloads(self) -> None:
         """The pair MUST be co-emittable: resumed carries interrupted_id."""
         assert "session_id" in REQUIRED_PAYLOAD["session:interrupted"]
