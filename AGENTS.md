@@ -54,6 +54,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" → `skills/deft-directive-sync/SKILL.md`
 - "pre-pr" / "quality loop" / "rwldl" / "self-review" → `skills/deft-directive-pre-pr/SKILL.md`
 - "interview loop" / "q&a loop" / "run interview loop" → `skills/deft-directive-interview/SKILL.md`
+- "release" / "cut release" / "v0.X.Y" / "publish release" → `skills/deft-directive-release/SKILL.md` — operationalizes the `task release` / `task release:publish` / `task release:rollback` / `task release:e2e` surface (#74 + #716 safety hardening); re-uses the `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 5 Slack announcement template
 
 ## Development Process (always follow)
 
