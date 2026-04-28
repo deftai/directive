@@ -22,10 +22,13 @@ parse_top_level_sections(content)
 partition_sections(sections, mapping)
     Split parsed sections into canonical (matches known-mappings) and
     legacy (no match) buckets.
-emit_legacy_artifacts(legacy_sections, source_file, project_root, *, slugify_fn)
+emit_legacy_artifacts(legacy_sections, source_file, project_root, *, slugify_fn,
+                       warning_prefix=None, event_emitter=None)
     Build the LegacyArtifacts narrative string for one vBRIEF file, write
     any >6 KB sidecars under ``vbrief/legacy/``, and return
-    ``(narrative_str, sidecar_paths, stats)``.
+    ``(narrative_str, sidecar_paths, stats)``.  When ``event_emitter`` is
+    supplied, also emits one ``legacy:detected`` framework event per
+    captured section via the callback (#635 events behavioral wiring).
 emit_legacy_report(project_root, captures)
     Write ``vbrief/migration/LEGACY-REPORT.md`` per #505 Section 6.
 detect_prd_legacy(prd_content, canonical_specification_keys, *, source_name)
@@ -38,6 +41,7 @@ Issue: #505, #506 D5.  Shared with #495 via ``_vbrief_fidelity``.
 
 from __future__ import annotations
 
+import contextlib
 import re
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -282,6 +286,8 @@ def emit_legacy_artifacts(
     *,
     slugify_fn: Callable[[str], str],
     warning_prefix: str | None = None,
+    event_emitter: Callable[[str, dict], None] | None = None,
+    flagged: bool = False,
 ) -> tuple[str, list[Path], list[dict]]:
     """Build the LegacyArtifacts narrative for one vBRIEF file.
 
@@ -296,9 +302,27 @@ def emit_legacy_artifacts(
     ``warning_prefix`` optionally injects a warning block under each
     section header -- used for PRD.md hand-edit captures (#505 Section 5).
 
+    ``event_emitter`` is an optional ``(event_name, payload)`` callback
+    invoked once per captured section with ``event_name='legacy:detected'``
+    and the per-section stat dict as payload (#635 behavioral events
+    wiring).  Defaulting to ``None`` keeps the existing API surface
+    bit-for-bit identical when callers do not opt in -- existing tests
+    and consumers continue to behave exactly as before.
+
+    ``flagged`` (default ``False``) marks every captured section's stat
+    dict with ``"flagged": True`` BEFORE the event is emitted so the
+    ``legacy:detected`` event payload accurately reflects the PRD.md
+    hand-edit provenance contract documented in ``events/registry.json``
+    under ``category: "behavioral"`` (Greptile #706 P1, post-#706
+    unification per #709 / #710).  Callers that pass ``warning_prefix``
+    for PRD.md hand-edit captures SHOULD also pass ``flagged=True`` so
+    the structural emission matches the warning prefix in the
+    narrative.
+
     Returns ``(narrative_str, sidecar_paths, stats)`` where ``stats`` is a
     list of per-section dicts with keys: ``title``, ``source``, ``range``,
     ``size_bytes``, ``inline`` (bool), ``sidecar`` (str | None),
+    ``flagged`` (bool, when ``flagged=True`` was passed),
     ``canonical_suggestion`` (str | None).
     """
     if not legacy_sections:
@@ -359,7 +383,27 @@ def emit_legacy_artifacts(
                 "inline": True,
                 "sidecar": None,
             })
+        # Apply the ``flagged`` annotation BEFORE emitting the event so
+        # the ``legacy:detected`` payload contract documented in
+        # ``events/registry.json`` (``category: "behavioral"``) is
+        # honoured for PRD.md hand-edit captures (Greptile #706 P1,
+        # post-#706 unification per #709 / #710). Previously the
+        # migrator patched this field on the returned stats AFTER the
+        # function had already emitted, leaving every PRD.md event
+        # missing the ``flagged`` field.
+        if flagged:
+            stats[-1]["flagged"] = True
         narrative_parts.append(section_block)
+        if event_emitter is not None:
+            # Emit a structural ``legacy:detected`` framework event per
+            # captured section (#635 behavioral events wiring; the event
+            # contract lives in ``events/registry.json`` under
+            # ``category: "behavioral"`` post-#706 unification).
+            # Failures in the emitter MUST NOT break the migrator --
+            # legacy capture is the primary contract here, the event
+            # stream is an additive observability layer.
+            with contextlib.suppress(Exception):
+                event_emitter("legacy:detected", dict(stats[-1]))
 
     narrative = "\n\n".join(narrative_parts).rstrip() + "\n"
     return narrative, sidecar_paths, stats

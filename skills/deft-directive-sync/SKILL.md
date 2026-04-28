@@ -27,6 +27,14 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - Beginning of a new session where framework updates may be available
 - After a known upstream deft release
 
+## Framework Events Emitted Here
+
+! When this skill responds to a context-window shift or an explicit "are you using Deft?" probe (per AGENTS.md Deft Alignment Confirmation), emit the paired `session:interrupted` -> `session:resumed` framework events via `scripts/_events.py` so observability of agent-runtime state transitions is structural, not prose-only:
+
+- ! Before re-confirming alignment: `python -m scripts._events emit session:interrupted --session-id <id> --reason context-window-shift`
+- ! Immediately after the alignment confirmation line: `python -m scripts._events emit session:resumed --session-id <id> --interrupted-id <id-from-prior-emit>`
+- ⊗ Emit a `session:resumed` whose `interrupted_id` does not reference a prior `session:interrupted` -- such records are orphan and rejected by `scripts._events.validate_pairing` (#635 events behavioral wiring)
+
 ## Pre-Cutover Detection Guard
 
 ! Before proceeding with sync, detect whether the project uses the pre-v0.20 document model and report model state.

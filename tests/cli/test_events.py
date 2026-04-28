@@ -48,7 +48,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 import _event_detect as _events  # noqa: E402, I001 -- after sys.path mutate
 
 
-EXPECTED_EVENT_NAMES = frozenset(
+EXPECTED_DETECTION_BOUND_NAMES = frozenset(
     {
         "pre-cutover:detected",
         "vbrief:invalid",
@@ -56,6 +56,23 @@ EXPECTED_EVENT_NAMES = frozenset(
         "version:drift",
         "dirty-tree:detected",
     }
+)
+
+# Post-#706 unification: the registry also lists 4 behavioral events
+# (category="behavioral"). The detection-bound test surface here filters
+# to detection-bound entries; the behavioral-emission tests live in
+# tests/cli/test_behavioral_events.py.
+EXPECTED_BEHAVIORAL_NAMES = frozenset(
+    {
+        "session:interrupted",
+        "session:resumed",
+        "plan:approved",
+        "legacy:detected",
+    }
+)
+
+EXPECTED_EVENT_NAMES = (
+    EXPECTED_DETECTION_BOUND_NAMES | EXPECTED_BEHAVIORAL_NAMES
 )
 
 EVENT_NAME_RE = re.compile(r"^[a-z][a-z0-9-]*(:[a-z][a-z0-9-]*)+$")
@@ -83,8 +100,16 @@ class TestRegistryShape:
         assert len(detection_bound) == 5, (
             f"Expected exactly 5 detection-bound events, found {len(detection_bound)}"
         )
+        detection_names = {e["name"] for e in detection_bound}
+        assert detection_names == EXPECTED_DETECTION_BOUND_NAMES, (
+            "Detection-bound names mismatch: "
+            f"extra={detection_names - EXPECTED_DETECTION_BOUND_NAMES}, "
+            f"missing={EXPECTED_DETECTION_BOUND_NAMES - detection_names}"
+        )
 
     def test_registry_event_names_match_expected_set(self) -> None:
+        """Post-#706 unification: the registry includes both detection-bound
+        and behavioral events. The expected union is 5 + 4 = 9 names."""
         names = _events.registered_event_names()
         assert names == EXPECTED_EVENT_NAMES, (
             f"Registry name mismatch: extra={names - EXPECTED_EVENT_NAMES}, "
