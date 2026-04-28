@@ -85,6 +85,17 @@ _slug_fallback_id = slug_fallback_id
 # ``_vbrief_fidelity``.  Per #506 D2 #14 body routing is reconciled by Agent B;
 # this module FEEDS reconciliation by enriching spec_vbrief.plan.items with
 # the narratives parsed from raw SPECIFICATION.md content.
+# --- legacy-artifacts (Agent A, #505) ---
+# LegacyArtifacts narrative emission + 6KB sidecar overflow + LEGACY-REPORT.md
+# + stdout summary live in ``_vbrief_legacy``.  The known-mappings list is
+# shared with #495's canonical extraction path so both agree on what is
+# canonical vs non-canonical (#506 D5).
+# --- behavioral events (#635 events behavioral wiring) ---
+# Structural ``legacy:detected`` event emission. Each captured legacy
+# section produces one framework event alongside the existing
+# ``vbrief/migration/LEGACY-REPORT.md`` write (existing report behaviour
+# preserved). Handlers are deferred to follow-up work per the vBRIEF.
+from _events import emit as _emit_event  # noqa: E402
 from _vbrief_fidelity import (  # noqa: E402
     build_edges_from_tasks as _build_edges_from_tasks,
     build_requirements_narrative as _build_requirements_narrative,
@@ -95,11 +106,7 @@ from _vbrief_fidelity import (  # noqa: E402
     task_scope_narratives as _task_scope_narratives,
 )
 
-# --- legacy-artifacts (Agent A, #505) ---
-# LegacyArtifacts narrative emission + 6KB sidecar overflow + LEGACY-REPORT.md
-# + stdout summary live in ``_vbrief_legacy``.  The known-mappings list is
-# shared with #495's canonical extraction path so both agree on what is
-# canonical vs non-canonical (#506 D5).
+# --- end behavioral events ---
 from _vbrief_legacy import (  # noqa: E402
     CANONICAL_SPEC_KEYS as _CANONICAL_SPEC_KEYS,
     PRD_HAND_EDIT_WARNING as _PRD_HAND_EDIT_WARNING,
@@ -1816,6 +1823,23 @@ def migrate(
         "PROJECT-DEFINITION.vbrief.json -> LegacyArtifacts": [],
         "PRD.md content (flagged: hand-edited)": [],
     }
+
+    # Pin the event log to ``<project_root>/.deft/events.jsonl`` so the
+    # migrator's emissions stay scoped to the project being migrated --
+    # without this, ``_resolve_log_path`` would fall back to the agent's
+    # CWD and a test running ``migrate(tmp_path)`` from the repo root
+    # would write events into the deft repo's own ``.deft/`` directory.
+    _legacy_event_log = project_root / ".deft" / "events.jsonl"
+
+    def _legacy_event_emitter(event_name: str, payload: dict) -> None:
+        """Emit a ``legacy:detected`` framework event per captured section.
+
+        Wraps the shared :func:`scripts._events.emit` helper so the
+        migrator's emission stays out of the inner loop in
+        ``_vbrief_legacy.emit_legacy_artifacts``. Failures are swallowed
+        in the caller (#635 behavioral events wiring).
+        """
+        _emit_event(event_name, payload, log_path=_legacy_event_log)
     # #529: collect per-source Traces-stripping audit entries. Each entry
     # records the source file name and the list of task ids whose
     # ``**Traces**: ...`` line was stripped from the emitted LegacyArtifacts
@@ -1830,6 +1854,7 @@ def migrate(
                 "SPECIFICATION.md",
                 project_root,
                 slugify_fn=_slugify_shared,
+                event_emitter=_legacy_event_emitter,
             )
             if narrative:
                 narrative, stripped_ids = _strip_traces_from_narrative(narrative)
@@ -1894,6 +1919,7 @@ def migrate(
                     "PROJECT.md",
                     project_root,
                     slugify_fn=_slugify_shared,
+                    event_emitter=_legacy_event_emitter,
                 )
                 if narrative and proj_def_path.exists():
                     narrative, stripped_ids = _strip_traces_from_narrative(
@@ -1937,6 +1963,7 @@ def migrate(
                     project_root,
                     slugify_fn=_slugify_shared,
                     warning_prefix=_PRD_HAND_EDIT_WARNING,
+                    event_emitter=_legacy_event_emitter,
                 )
                 for stat in stats:
                     stat["flagged"] = True

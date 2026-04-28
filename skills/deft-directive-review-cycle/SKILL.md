@@ -241,6 +241,20 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
 
 ~ When MCP is unavailable (`start_agent` agents, cloud agents, `oz agent run`), `gh` CLI is sufficient as the sole interface. The dual-source requirement (MCP + `gh`) in Step 1 applies only when both are available -- agents without MCP access should use `gh pr view --comments` and `gh api` as their primary and only review detection surface.
 
+## Framework Events Emitted Here
+
+! When the user replies `yes` / `confirmed` / `approve` on a ready-to-merge PR thread (Phase 5 -> 6 gate per the canonical #642 workflow comment), emit a `plan:approved` framework event via `scripts/_events.py` so the approval is captured as a structural artifact rather than prose-only:
+
+```
+python -m scripts._events emit plan:approved \
+  --plan-ref https://github.com/<owner>/<repo>/pull/<N> \
+  --approver <github-login> \
+  --approval-phrase <yes|confirmed|approve> \
+  --pr-number <N>
+```
+
+? Downstream consumers of `plan:approved` (auto-merge bots, status updates, audit reporting) are explicitly deferred to follow-up work; this event currently emits a record only (#635 events behavioral wiring).
+
 ## Post-Merge Verification
 
 ! After a PR is squash-merged, verify that all referenced issues were actually closed. Squash merges can silently fail to process closing keywords (`Closes #N`, `Fixes #N`) from the PR body (#167).

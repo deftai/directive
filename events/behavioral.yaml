@@ -1,0 +1,223 @@
+# Behavioral framework events registry (#635 / #642 split)
+#
+# Structural artifact for the 3 behavioral framework events that lack a
+# detection-bound emitter. Encoded as data, not prose, per the "encoding
+# form" axiom in main.md (Rule Authority [AXIOM]) and the canonical #642
+# workflow comment locked decisions.
+#
+# Sibling registry to events/detection-bound.yaml (filed under the
+# detection-bound vBRIEF; not yet landed at split time -- see x-tracking
+# in vbrief/proposed/2026-04-27-635-events-behavioral-wiring.vbrief.json).
+# Both registries are intended to be consumed via scripts/_events.py.
+#
+# Behavioral events differ from detection-bound events: they cannot be
+# inferred from filesystem state alone and require either an agent-runtime
+# emission point (Alignment Confirmation, plan approval) or a
+# script-internal capture point (legacy artifact write).
+#
+# Handler policy for v0 of this surface: emit only. The vBRIEF defers
+# downstream consumer decisions (what plan:approved triggers, what action
+# legacy:detected drives) to follow-up work; this PR lands the contract
+# and the emission points only.
+
+version: "0.1"
+kind: "deft.events.registry"
+scope: "behavioral"
+references:
+  vbrief: "vbrief/proposed/2026-04-27-635-events-behavioral-wiring.vbrief.json"
+  epic: "https://github.com/deftai/directive/issues/635"
+  workflow: "https://github.com/deftai/directive/issues/642#issuecomment-4330742436"
+
+# Common envelope every emitted record carries (see scripts/_events.py
+# `emit`). The per-event ``payload`` fields below sit inside ``payload``
+# in the emitted record.
+envelope:
+  required:
+    - event        # one of the registered names below
+    - id           # ulid-like string assigned by emit()
+    - detected_at  # ISO 8601 UTC, e.g. 2026-04-27T22:25:52Z
+    - payload      # event-specific (see below)
+
+events:
+  # ---------------------------------------------------------------------
+  # session:interrupted + session:resumed (PAIRED)
+  # ---------------------------------------------------------------------
+  # Emitted by an agent when AGENTS.md "Deft Alignment Confirmation"
+  # detects a context-window shift (or is asked "are you using Deft?").
+  # The pair MUST be co-emitted: every ``session:resumed`` references the
+  # ``id`` of a previously emitted ``session:interrupted``. A
+  # ``session:resumed`` without a matching ``session:interrupted`` is
+  # invalid and is rejected by ``scripts/_events.py::validate_pairing``.
+  - name: "session:interrupted"
+    description: >-
+      Agent detected a session-state shift (context window pressure,
+      session resume, "are you using Deft?" probe) and is about to
+      re-confirm Deft alignment per AGENTS.md.
+    pair:
+      role: "open"
+      partner: "session:resumed"
+    emission:
+      surface: "agent-runtime"
+      trigger: "AGENTS.md Deft Alignment Confirmation rule fires"
+      consumer: "skills/deft-directive-sync/SKILL.md (Pre-Cutover Detection Guard)"
+    payload:
+      required:
+        - session_id
+        - reason
+      properties:
+        session_id:
+          type: string
+          description: >-
+            Stable identifier for the agent session being interrupted.
+            Agents SHOULD reuse a single session_id across the lifetime
+            of one logical conversation so multiple interrupt/resume
+            pairs share provenance.
+        reason:
+          type: string
+          enum:
+            - context-window-shift
+            - alignment-probe
+            - manual-resume
+            - other
+          description: >-
+            Why the interrupt fired. ``other`` is reserved for cases
+            outside the AGENTS.md alignment confirmation flow; agents
+            SHOULD prefer one of the named values.
+        detail:
+          type: string
+          description: Free-form one-liner. Optional.
+
+  - name: "session:resumed"
+    description: >-
+      Agent has finished re-confirming Deft alignment and is resuming
+      work. MUST reference a prior ``session:interrupted`` event id.
+    pair:
+      role: "close"
+      partner: "session:interrupted"
+    emission:
+      surface: "agent-runtime"
+      trigger: "Immediately after the agent emits the alignment confirmation line"
+      consumer: "skills/deft-directive-sync/SKILL.md (Pre-Cutover Detection Guard)"
+    payload:
+      required:
+        - session_id
+        - interrupted_id
+      properties:
+        session_id:
+          type: string
+          description: Same identifier used in the matching ``session:interrupted``.
+        interrupted_id:
+          type: string
+          description: >-
+            ``id`` of the matching ``session:interrupted`` event. Cross-
+            referenced by ``scripts/_events.py::validate_pairing`` -- a
+            resumed event whose interrupted_id does not exist in the
+            event log is treated as orphan and is invalid.
+        detail:
+          type: string
+          description: Free-form one-liner. Optional.
+
+  # ---------------------------------------------------------------------
+  # plan:approved
+  # ---------------------------------------------------------------------
+  # Emitted when the user types ``yes`` / ``confirmed`` / ``approve`` on a
+  # Phase 5 -> 6 merge gate per skills/deft-directive-review-cycle and the
+  # canonical #642 workflow comment ready-to-merge templates. Agent-side
+  # emission (the simpler design called out in the vBRIEF Action narrative).
+  - name: "plan:approved"
+    description: >-
+      User approved a plan reaching the Phase 5 -> 6 merge gate.
+      Downstream effects (auto-merge, status update, notifications) are
+      explicitly deferred to follow-up work; this event currently emits
+      a record only.
+    emission:
+      surface: "agent-runtime"
+      trigger: >-
+        Skill detects affirmative reply (yes / confirmed / approve) on a
+        ready-to-merge PR thread or equivalent gate.
+      consumer: "skills/deft-directive-review-cycle/SKILL.md (Phase 5 -> 6 gate)"
+    payload:
+      required:
+        - plan_ref
+        - approver
+      properties:
+        plan_ref:
+          type: string
+          description: >-
+            Pointer to the plan being approved. Format: GitHub PR URL
+            (preferred) or vBRIEF path. Agents SHOULD use the canonical
+            URL where one is available.
+        approver:
+          type: string
+          description: >-
+            Identifier of the approving user (GitHub login when
+            available, ``user`` otherwise).
+        approval_phrase:
+          type: string
+          enum:
+            - yes
+            - confirmed
+            - approve
+            - other
+          description: >-
+            The exact affirmative phrase the user used, normalised to
+            lowercase. ``other`` is reserved for non-canonical phrases
+            the skill chose to accept (e.g. ``ship it``); skills SHOULD
+            prefer one of the canonical phrases per the canonical #642
+            workflow comment.
+        pr_number:
+          type: integer
+          description: GitHub PR number, when applicable.
+
+  # ---------------------------------------------------------------------
+  # legacy:detected
+  # ---------------------------------------------------------------------
+  # Emitted by ``scripts/_vbrief_legacy.emit_legacy_artifacts`` when a
+  # non-canonical SPECIFICATION.md / PROJECT.md / PRD.md section is
+  # captured to vbrief/legacy/ during ``task migrate:vbrief`` (#505).
+  # The existing ``vbrief/migration/LEGACY-REPORT.md`` write is
+  # preserved -- this event is additive structural emission only. Action
+  # policy (warn vs auto-migrate vs block) is explicitly out of scope
+  # for this PR and is deferred to follow-up.
+  - name: "legacy:detected"
+    description: >-
+      Migrator captured a non-canonical section to vbrief/legacy/ or
+      inline LegacyArtifacts. Emitted once per captured section.
+    emission:
+      surface: "script-internal"
+      trigger: "scripts/_vbrief_legacy.emit_legacy_artifacts captures a section"
+      consumer: "(deferred -- no downstream handler in this PR)"
+    payload:
+      required:
+        - title
+        - source
+        - range
+        - size_bytes
+      properties:
+        title:
+          type: string
+          description: Original section heading (e.g. "Open Questions").
+        source:
+          type: string
+          description: >-
+            Source filename (e.g. SPECIFICATION.md, PROJECT.md, PRD.md).
+        range:
+          type: string
+          description: 1-indexed line range (e.g. "12-34" or "12").
+        size_bytes:
+          type: integer
+          description: UTF-8 byte size of the captured section body.
+        inline:
+          type: boolean
+          description: >-
+            ``true`` if the body fit inline; ``false`` if it overflowed
+            to a sidecar at vbrief/legacy/{stem}-{slug}.md.
+        sidecar:
+          type: string
+          description: >-
+            Sidecar relative path when ``inline`` is false; null/absent
+            otherwise.
+        flagged:
+          type: boolean
+          description: >-
+            True for PRD.md hand-edit captures (warning prefix applied).
