@@ -1,12 +1,15 @@
-"""test_behavioral_events.py -- end-to-end coverage for the 3 behavioral
-framework events (#635 events behavioral wiring).
+"""test_behavioral_events.py -- end-to-end coverage for the 4 behavioral
+framework events (#635 events behavioral wiring, post-#706 unification).
 
 Covers the vBRIEF acceptance criteria for
-``vbrief/proposed/2026-04-27-635-events-behavioral-wiring.vbrief.json``:
+``vbrief/proposed/2026-04-27-635-events-behavioral-wiring.vbrief.json``,
+adjusted for the unified ``events/registry.json`` data file (per the
+Repair Authority [AXIOM] proposal in #709 and the data-file-convention
+check follow-up in #710):
 
-  (1) Registry data file lists exactly the 3 behavioral events with
-      payload contracts. Mirrored by ``scripts/_events.KNOWN_EVENTS`` and
-      ``REQUIRED_PAYLOAD``.
+  (1) Unified registry data file lists exactly the 4 behavioral events
+      (``category: "behavioral"``) with payload contracts. Mirrored by
+      ``scripts/_events.KNOWN_EVENTS`` and ``REQUIRED_PAYLOAD``.
   (2) Each event has at least one synthetic emission point exercised
       end-to-end here (session pair via direct ``emit`` calls,
       ``plan:approved`` via the CLI, ``legacy:detected`` via
@@ -17,7 +20,15 @@ Covers the vBRIEF acceptance criteria for
   (4) Skill text references each event by name. Asserted via grep on the
       consuming SKILL.md files.
 
-Issue: #635 (epic), #642 (workflow umbrella).
+Unification additions:
+  (5) Every event in the unified registry carries a valid ``category``
+      value (``detection-bound`` or ``behavioral``).
+  (6) Every behavioral-category event matches the expected behavioral
+      semantics (4 known names; required-payload tuple non-empty;
+      consumers references at least one runtime emission surface).
+
+Issue: #635 (epic), #642 (workflow umbrella), #709 (Repair Authority
+[AXIOM]), #710 (data-file-convention check follow-up).
 """
 
 from __future__ import annotations
@@ -83,20 +94,123 @@ class TestRegistry:
         assert "session_id" in REQUIRED_PAYLOAD["session:resumed"]
         assert "interrupted_id" in REQUIRED_PAYLOAD["session:resumed"]
 
-    def test_registry_yaml_lists_the_three_behavioral_events(self) -> None:
-        """events/behavioral.yaml is the canonical contract; verify shape
-        without taking a YAML library dependency."""
-        registry = (REPO_ROOT / "events" / "behavioral.yaml").read_text(
-            encoding="utf-8"
-        )
-        for name in EXPECTED_BEHAVIORAL_NAMES:
-            assert f'name: "{name}"' in registry, (
-                f"events/behavioral.yaml missing event {name!r}"
+    def test_unified_registry_lists_the_four_behavioral_events(self) -> None:
+        """events/registry.json is the unified canonical contract -- the
+        prior events/behavioral.yaml has been folded in (#706 unification
+        per #709 / #710). Behavioral entries MUST carry
+        ``category: "behavioral"`` and the 4 expected names must match."""
+        registry = json.loads(
+            (REPO_ROOT / "events" / "registry.json").read_text(
+                encoding="utf-8"
             )
-        # The pair invariant is documented as a partner reference on each
-        # record; both directions must be present.
-        assert 'partner: "session:resumed"' in registry
-        assert 'partner: "session:interrupted"' in registry
+        )
+        behavioral = [
+            e for e in registry["events"]
+            if e.get("category") == "behavioral"
+        ]
+        names = {e["name"] for e in behavioral}
+        assert names == EXPECTED_BEHAVIORAL_NAMES, (
+            f"registry.json behavioral names mismatch: extra={names - EXPECTED_BEHAVIORAL_NAMES}, "
+            f"missing={EXPECTED_BEHAVIORAL_NAMES - names}"
+        )
+
+    def test_behavioral_yaml_is_dropped(self) -> None:
+        """events/behavioral.yaml MUST NOT exist post-unification -- the
+        file was folded into registry.json with a category enum partition.
+        A re-introduction would split the contract again, defeating the
+        unification."""
+        legacy_path = REPO_ROOT / "events" / "behavioral.yaml"
+        assert not legacy_path.exists(), (
+            "events/behavioral.yaml MUST be dropped post-#706 unification "
+            "(see registry.json `category` partition)"
+        )
+
+    def test_registry_schema_includes_category_enum(self) -> None:
+        """events/registry.schema.json MUST require the `category` field
+        on every event and constrain its enum to the two known categories
+        (detection-bound, behavioral). Future categories are additive
+        enum extensions per #710."""
+        schema = json.loads(
+            (REPO_ROOT / "events" / "registry.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        event_def = schema["$defs"]["Event"]
+        assert "category" in event_def["required"], (
+            "registry schema MUST require `category` on every event"
+        )
+        category_prop = event_def["properties"]["category"]
+        assert set(category_prop["enum"]) >= {"detection-bound", "behavioral"}
+
+
+class TestUnifiedRegistry:
+    """Unification additions (#706 per #709 / #710): assert the unified
+    registry surface invariants beyond the pre-existing behavioral
+    acceptance criteria."""
+
+    def test_every_event_has_valid_category(self) -> None:
+        """Acceptance criterion (5) addition: every entry in the unified
+        registry MUST carry a valid ``category`` value. Guards against a
+        future entry that forgets the field or uses a stale value
+        outside the schema enum."""
+        registry = json.loads(
+            (REPO_ROOT / "events" / "registry.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        valid_categories = {"detection-bound", "behavioral"}
+        for event in registry["events"]:
+            assert "category" in event, (
+                f"Event {event.get('name')!r} missing `category` field"
+            )
+            assert event["category"] in valid_categories, (
+                f"Event {event['name']!r} has invalid category "
+                f"{event['category']!r}; expected one of {valid_categories}"
+            )
+
+    def test_every_behavioral_event_has_runtime_emission_semantics(
+        self,
+    ) -> None:
+        """Acceptance criterion (6) addition: every behavioral entry MUST
+        match the expected behavioral semantics -- name in the known
+        4-tuple, non-empty required-payload contract via
+        ``REQUIRED_PAYLOAD``, at least one consumer pointer, and a
+        trigger string that names a runtime emission surface (the
+        ``scripts/_events.py`` helper or a callback wiring point).
+        Guards against a behavioral entry that drifts back into
+        detection-bound shape."""
+        registry = json.loads(
+            (REPO_ROOT / "events" / "registry.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        behavioral = [
+            e for e in registry["events"]
+            if e.get("category") == "behavioral"
+        ]
+        assert len(behavioral) == 4, (
+            f"Expected 4 behavioral events, found {len(behavioral)}"
+        )
+        for event in behavioral:
+            name = event["name"]
+            assert name in EXPECTED_BEHAVIORAL_NAMES, (
+                f"Unknown behavioral event {name!r}"
+            )
+            assert REQUIRED_PAYLOAD.get(name), (
+                f"Behavioral event {name!r} has no REQUIRED_PAYLOAD entry"
+            )
+            assert event.get("consumers"), (
+                f"Behavioral event {name!r} consumers list is empty"
+            )
+            trigger = event.get("trigger", "")
+            assert (
+                "scripts/_events.py" in trigger
+                or "scripts/_vbrief_legacy" in trigger
+                or "scripts/migrate_vbrief" in trigger
+            ), (
+                f"Behavioral event {name!r} trigger does not reference a "
+                f"runtime emission surface: {trigger!r}"
+            )
 
 
 # =============================================================================

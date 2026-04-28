@@ -95,7 +95,15 @@ _slug_fallback_id = slug_fallback_id
 # section produces one framework event alongside the existing
 # ``vbrief/migration/LEGACY-REPORT.md`` write (existing report behaviour
 # preserved). Handlers are deferred to follow-up work per the vBRIEF.
-from _events import emit as _emit_event  # noqa: E402
+#
+# Imported under the distinct ``_emit_behavioral_event`` name so it
+# does NOT shadow the detection-bound ``_emit_event`` lazy-import wrapper
+# defined above. The two helpers consume the same unified
+# ``events/registry.json`` post-#706 unification but enforce different
+# category boundaries: ``_emit_event`` (detection-bound) accepts any
+# registered event name; ``_emit_behavioral_event`` (this alias) only
+# accepts events whose registry entry carries ``category: "behavioral"``.
+from _events import emit as _emit_behavioral_event  # noqa: E402
 from _vbrief_fidelity import (  # noqa: E402
     build_edges_from_tasks as _build_edges_from_tasks,
     build_requirements_narrative as _build_requirements_narrative,
@@ -1834,12 +1842,15 @@ def migrate(
     def _legacy_event_emitter(event_name: str, payload: dict) -> None:
         """Emit a ``legacy:detected`` framework event per captured section.
 
-        Wraps the shared :func:`scripts._events.emit` helper so the
-        migrator's emission stays out of the inner loop in
+        Wraps the shared :func:`scripts._events.emit` helper (aliased here
+        as ``_emit_behavioral_event`` to avoid shadowing the
+        detection-bound ``_emit_event`` wrapper) so the migrator's
+        emission stays out of the inner loop in
         ``_vbrief_legacy.emit_legacy_artifacts``. Failures are swallowed
-        in the caller (#635 behavioral events wiring).
+        in the caller (#635 behavioral events wiring; post-#706
+        unification per #709 / #710).
         """
-        _emit_event(event_name, payload, log_path=_legacy_event_log)
+        _emit_behavioral_event(event_name, payload, log_path=_legacy_event_log)
     # #529: collect per-source Traces-stripping audit entries. Each entry
     # records the source file name and the list of task ids whose
     # ``**Traces**: ...`` line was stripped from the emitted LegacyArtifacts
@@ -1960,11 +1971,12 @@ def migrate(
                 # Greptile #706 P1: pass ``flagged=True`` so the
                 # ``legacy:detected`` event payload carries
                 # ``flagged: true`` BEFORE emission, matching the
-                # ``events/behavioral.yaml`` contract for PRD.md hand-
-                # edit captures. The legacy stat-dict patch loop below
-                # is preserved as a defensive belt-and-suspenders for
-                # any downstream consumer that still inspects the
-                # returned stats list directly.
+                # ``events/registry.json`` (``category: "behavioral"``)
+                # contract for PRD.md hand-edit captures (post-#706
+                # unification per #709 / #710). The legacy stat-dict
+                # patch loop below is preserved as a defensive belt-
+                # and-suspenders for any downstream consumer that
+                # still inspects the returned stats list directly.
                 narrative, sidecars, stats = _emit_legacy_artifacts(
                     prd_legacy,
                     "PRD.md",

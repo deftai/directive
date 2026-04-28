@@ -312,11 +312,12 @@ def emit_legacy_artifacts(
     ``flagged`` (default ``False``) marks every captured section's stat
     dict with ``"flagged": True`` BEFORE the event is emitted so the
     ``legacy:detected`` event payload accurately reflects the PRD.md
-    hand-edit provenance contract documented in
-    ``events/behavioral.yaml`` (Greptile #706 P1).  Callers that pass
-    ``warning_prefix`` for PRD.md hand-edit captures SHOULD also pass
-    ``flagged=True`` so the structural emission matches the warning
-    prefix in the narrative.
+    hand-edit provenance contract documented in ``events/registry.json``
+    under ``category: "behavioral"`` (Greptile #706 P1, post-#706
+    unification per #709 / #710).  Callers that pass ``warning_prefix``
+    for PRD.md hand-edit captures SHOULD also pass ``flagged=True`` so
+    the structural emission matches the warning prefix in the
+    narrative.
 
     Returns ``(narrative_str, sidecar_paths, stats)`` where ``stats`` is a
     list of per-section dicts with keys: ``title``, ``source``, ``range``,
@@ -394,10 +395,12 @@ def emit_legacy_artifacts(
         narrative_parts.append(section_block)
         if event_emitter is not None:
             # Emit a structural ``legacy:detected`` framework event per
-            # captured section (#635 behavioral events wiring).  Failures
-            # in the emitter MUST NOT break the migrator -- legacy
-            # capture is the primary contract here, the event stream is
-            # an additive observability layer.
+            # captured section (#635 behavioral events wiring; the event
+            # contract lives in ``events/registry.json`` under
+            # ``category: "behavioral"`` post-#706 unification).
+            # Failures in the emitter MUST NOT break the migrator --
+            # legacy capture is the primary contract here, the event
+            # stream is an additive observability layer.
             with contextlib.suppress(Exception):
                 event_emitter("legacy:detected", dict(stats[-1]))
 

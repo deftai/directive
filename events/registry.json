@@ -1,7 +1,7 @@
 {
   "$schema": "./registry.schema.json",
   "version": "1",
-  "description": "Deft framework event registry -- structural artifact listing detection-bound events whose detectors already exist. Wired under epic #635 per the canonical #642 workflow comment (events split into 5 detection-bound + 3 behavioral). Each entry pins an event name, payload contract, detector pointer, and consumer pointers. The shape of an emitted event record is governed by event-record.schema.json. See scripts/_event_detect.py for the emission helper (named distinctly from the sibling vBRIEF's scripts/_events.py for behavioral events; merge-time consolidation is a follow-up).",
+  "description": "Deft framework event registry -- unified structural artifact listing every framework event in a single data file, partitioned by the required `category` enum (`detection-bound` | `behavioral`). Wired under epic #635 per the canonical #642 workflow comment, unified per the Repair Authority [AXIOM] proposal (#709) and the data-file-convention check follow-up (#710); the prior `events/behavioral.yaml` registry has been folded into this file. Detection-bound events have detectors that already exist in the framework; behavioral events require runtime instrumentation (agent emission point or script-internal capture). Each entry pins an event name, category, payload contract, detector / emission pointer, and consumer pointers. The shape of an emitted event record is governed by event-record.schema.json. Two emission helpers consume this registry: scripts/_event_detect.py for detection-bound events (validates against the full registry) and scripts/_events.py for behavioral events (validates against the behavioral subset, manages 1:1 session-pair invariants, persists to a JSONL log).",
   "events": [
     {
       "name": "pre-cutover:detected",
@@ -77,6 +77,71 @@
       "consumers": [
         "tasks/migrate.yml migrate:vbrief -- the gate this event annotates",
         "skills/deft-directive-pre-pr/SKILL.md -- pre-PR loop already requires a clean tree before the lint phase"
+      ]
+    },
+    {
+      "name": "session:interrupted",
+      "category": "behavioral",
+      "description": "Agent detected a session-state shift (context window pressure, session resume, 'are you using Deft?' alignment probe) and is about to re-confirm Deft alignment per AGENTS.md. Paired with session:resumed -- every session:resumed MUST reference the id of a prior session:interrupted via payload.interrupted_id; orphan resumed records are surfaced by scripts/_events.py::validate_pairing.",
+      "trigger": "Agent runtime emission point: scripts/_events.py::emit when AGENTS.md 'Deft Alignment Confirmation' fires (context-window-shift, alignment-probe, manual-resume). Skills emit via `python -m scripts._events emit session:interrupted --session-id <id> --reason <enum>`.",
+      "payload": {
+        "session_id": "string -- stable identifier for the agent session being interrupted; agents SHOULD reuse a single session_id across the lifetime of one logical conversation so multiple interrupt/resume pairs share provenance",
+        "reason": "string enum -- one of context-window-shift | alignment-probe | manual-resume | other; agents SHOULD prefer the named values over 'other'",
+        "detail": "string (optional) -- free-form one-liner with additional context"
+      },
+      "consumers": [
+        "skills/deft-directive-sync/SKILL.md Framework Events Emitted Here -- emits the pair on every alignment confirmation",
+        "scripts/_events.py::validate_pairing -- enforces the 1:1 session:interrupted -> session:resumed invariant"
+      ]
+    },
+    {
+      "name": "session:resumed",
+      "category": "behavioral",
+      "description": "Agent has finished re-confirming Deft alignment after a session:interrupted and is resuming work. MUST reference a prior session:interrupted event id via payload.interrupted_id; one interrupted_id may satisfy at most one session:resumed (1:1 pairing per Greptile #706 P2). Orphan or double-resumed records are flagged by scripts/_events.py::validate_pairing.",
+      "trigger": "Agent runtime emission point: scripts/_events.py::emit immediately after the agent emits the alignment confirmation line. Skills emit via `python -m scripts._events emit session:resumed --session-id <id> --interrupted-id <id-from-prior-emit>`.",
+      "payload": {
+        "session_id": "string -- same identifier used in the matching session:interrupted",
+        "interrupted_id": "string -- id of the matching session:interrupted event; cross-referenced by scripts/_events.py::validate_pairing",
+        "detail": "string (optional) -- free-form one-liner with additional context"
+      },
+      "consumers": [
+        "skills/deft-directive-sync/SKILL.md Framework Events Emitted Here -- emits the pair on every alignment confirmation",
+        "scripts/_events.py::validate_pairing -- enforces the 1:1 session:interrupted -> session:resumed invariant"
+      ]
+    },
+    {
+      "name": "plan:approved",
+      "category": "behavioral",
+      "description": "User approved a plan reaching the Phase 5 -> 6 merge gate per skills/deft-directive-review-cycle and the canonical #642 workflow comment ready-to-merge templates. Emitted when the user types yes / confirmed / approve on a ready-to-merge PR thread or equivalent gate. Downstream effects (auto-merge, status update, notifications) are explicitly deferred to follow-up work; this event currently emits a record only.",
+      "trigger": "Agent runtime emission point: scripts/_events.py::emit when a skill detects an affirmative reply (yes / confirmed / approve) on a ready-to-merge PR thread. Skills emit via `python -m scripts._events emit plan:approved --plan-ref <pr-url> --approver <login> --approval-phrase <yes|confirmed|approve> --pr-number <N>`.",
+      "payload": {
+        "plan_ref": "string -- pointer to the plan being approved; format: GitHub PR URL (preferred) or vBRIEF path; agents SHOULD use the canonical URL when available",
+        "approver": "string -- identifier of the approving user (GitHub login when available, 'user' otherwise)",
+        "approval_phrase": "string enum (optional) -- one of yes | confirmed | approve | other; the exact affirmative phrase the user used, normalised to lowercase; skills SHOULD prefer one of the canonical phrases per the canonical #642 workflow comment",
+        "pr_number": "integer (optional) -- GitHub PR number, when applicable"
+      },
+      "consumers": [
+        "skills/deft-directive-review-cycle/SKILL.md Framework Events Emitted Here -- Phase 5 -> 6 merge gate emission",
+        "(deferred -- no downstream consumer in this PR; future auto-merge / status-update / audit handlers will subscribe by name)"
+      ]
+    },
+    {
+      "name": "legacy:detected",
+      "category": "behavioral",
+      "description": "Migrator captured a non-canonical pre-cutover section (SPECIFICATION.md / PROJECT.md / PRD.md hand-edit) to vbrief/legacy/ or an inline LegacyArtifacts narrative during task migrate:vbrief (#505). Emitted once per captured section; additive to the existing vbrief/migration/LEGACY-REPORT.md write -- this event is structural emission only. Action policy (warn vs auto-migrate vs block) is explicitly out of scope for this PR and is deferred to follow-up.",
+      "trigger": "Script-internal emission point: scripts/_vbrief_legacy.emit_legacy_artifacts invokes the event_emitter callback wired by scripts/migrate_vbrief.py once per captured section. Emission flows through scripts/_events.py::emit (the migrator wires a project-root-scoped emitter; failures are swallowed so legacy capture remains the primary contract).",
+      "payload": {
+        "title": "string -- original section heading (e.g. 'Open Questions')",
+        "source": "string -- source filename (e.g. SPECIFICATION.md, PROJECT.md, PRD.md)",
+        "range": "string -- 1-indexed line range (e.g. '12-34' or '12')",
+        "size_bytes": "integer -- UTF-8 byte size of the captured section body",
+        "inline": "boolean (optional) -- true if the body fit inline; false if it overflowed to a sidecar at vbrief/legacy/{stem}-{slug}.md",
+        "sidecar": "string (optional) -- sidecar relative path when inline is false; null/absent otherwise",
+        "flagged": "boolean (optional) -- true for PRD.md hand-edit captures (warning prefix applied)"
+      },
+      "consumers": [
+        "scripts/migrate_vbrief.py -- wires the emitter into all three _emit_legacy_artifacts call sites (SPECIFICATION / PROJECT / PRD captures)",
+        "(deferred -- no downstream handler in this PR; future migrate:vbrief audit reporting and consumer-facing legacy-handling skills will subscribe by name)"
       ]
     }
   ]

@@ -1,17 +1,20 @@
-"""_events.py -- shared structural emit helper for framework events (#635).
+"""_events.py -- behavioral-event emit helper for framework events (#635).
 
-Behavioral events vBRIEF
-(``vbrief/proposed/2026-04-27-635-events-behavioral-wiring.vbrief.json``)
-lands the 3 behavioral events: ``session:interrupted`` /
-``session:resumed`` (paired), ``plan:approved``, and ``legacy:detected``.
-The detection-bound sibling vBRIEF lands its 5 events on top of the same
-helper.
+Lands the 4 behavioral events from ``events/registry.json`` (the unified
+registry, post-#706 unification per the Repair Authority [AXIOM] proposal
+in #709 + the data-file-convention follow-up in #710): paired
+``session:interrupted`` / ``session:resumed``, ``plan:approved``, and
+``legacy:detected``. The 5 sibling detection-bound events live in the
+same registry under ``category: detection-bound`` and are emitted via
+``scripts/_event_detect.py`` instead -- both helpers consume the same
+data file but enforce different category boundaries so behavioral and
+detection-bound emission paths remain semantically distinct.
 
-Why this lives in ``scripts/_events.py``: per the canonical #642 workflow
-comment locked decisions, framework events are a STRUCTURAL artifact, not
-prose. The emit helper + JSONL append-only log are the deterministic
-encoding form; the registries under ``events/*.yaml`` describe the
-contract.
+Why a structural helper: per the canonical #642 workflow comment locked
+decisions and the Rule Authority [AXIOM] block in ``main.md``, framework
+events are a STRUCTURAL artifact, not prose. The emit helper + JSONL
+append-only log are the deterministic encoding form; ``events/registry.json``
+describes the contract.
 
 Storage
 -------
@@ -49,7 +52,9 @@ legacy:detected drives) to follow-up work. This module exposes
 ``read_events`` so consumers can be written in subsequent PRs without
 churning the emit contract.
 
-Issue: #635 (epic), #642 (workflow umbrella), #634 (determinism ladder).
+Issue: #635 (epic), #642 (workflow umbrella), #634 (determinism ladder),
+#709 (Repair Authority [AXIOM] -- the rule motivating the registry
+unification), #710 (data-file-convention check follow-up).
 """
 
 from __future__ import annotations
@@ -62,30 +67,155 @@ import sys
 import time
 from collections.abc import Iterable
 from datetime import UTC, datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 # Default event log location (project-local, gitignored).
 DEFAULT_EVENT_LOG: Path = Path(".deft") / "events.jsonl"
 
-# Registered event names. Kept in code so the helper can validate at emit
-# time without a YAML loader dependency. The canonical contract still
-# lives in ``events/behavioral.yaml`` (and the future
-# ``events/detection-bound.yaml`` from the sibling vBRIEF).
-KNOWN_EVENTS: frozenset[str] = frozenset({
-    "session:interrupted",
-    "session:resumed",
-    "plan:approved",
-    "legacy:detected",
-})
+# Path to the unified events registry (data file). Resolved relative to
+# this module so tests and direct script invocations both find it without
+# depending on cwd.
+_REGISTRY_PATH: Path = (
+    Path(__file__).resolve().parent.parent / "events" / "registry.json"
+)
 
-# Per-event required payload fields. Mirrors events/behavioral.yaml.
-REQUIRED_PAYLOAD: dict[str, tuple[str, ...]] = {
+# Behavioral event category enum value -- this helper only emits events
+# that carry ``category: "behavioral"`` in the unified registry. Sibling
+# detection-bound events are emitted via ``scripts/_event_detect.py``.
+_BEHAVIORAL_CATEGORY: str = "behavioral"
+
+
+@lru_cache(maxsize=1)
+def _load_behavioral_registry() -> tuple[
+    frozenset[str], dict[str, tuple[str, ...]]
+]:
+    """Return ``(KNOWN_EVENTS, REQUIRED_PAYLOAD)`` from the unified registry.
+
+    Reads ``events/registry.json`` once per process and filters to events
+    whose ``category`` matches ``_BEHAVIORAL_CATEGORY``. Required payload
+    fields are derived from a hard-coded contract (per-event tuples below)
+    rather than the registry's free-form payload-description map -- the
+    registry's payload field describes shape and intent for humans/schema
+    consumers, but the emit-time required-field gate is a code contract
+    that the unified registry's free-form descriptions don't encode
+    losslessly. The hard-coded ``_REQUIRED_BEHAVIORAL_PAYLOAD`` below is
+    the single source of truth for emit-time payload validation.
+    """
+    data = json.loads(_REGISTRY_PATH.read_text(encoding="utf-8"))
+    behavioral_names = frozenset(
+        event["name"]
+        for event in data.get("events", [])
+        if isinstance(event, dict)
+        and event.get("category") == _BEHAVIORAL_CATEGORY
+        and "name" in event
+    )
+    return behavioral_names, dict(_REQUIRED_BEHAVIORAL_PAYLOAD)
+
+
+# Per-event required payload fields. Single source of truth for the
+# emit-time required-field gate. Mirrors the canonical payload contracts
+# documented in events/registry.json under category=behavioral.
+_REQUIRED_BEHAVIORAL_PAYLOAD: dict[str, tuple[str, ...]] = {
     "session:interrupted": ("session_id", "reason"),
     "session:resumed": ("session_id", "interrupted_id"),
     "plan:approved": ("plan_ref", "approver"),
     "legacy:detected": ("title", "source", "range", "size_bytes"),
 }
+
+
+def _registered_behavioral_names() -> frozenset[str]:
+    return _load_behavioral_registry()[0]
+
+
+def _required_payload_map() -> dict[str, tuple[str, ...]]:
+    return _load_behavioral_registry()[1]
+
+
+def clear_registry_cache() -> None:
+    """Reset the in-process registry cache. Used by tests."""
+    _load_behavioral_registry.cache_clear()
+
+
+class _LazyKnownEvents:
+    """Lazy proxy for ``KNOWN_EVENTS`` that hits the unified registry.
+
+    Read-only ``frozenset``-compatible accessor so existing test code
+    using ``KNOWN_EVENTS == frozenset({...})`` and ``name in KNOWN_EVENTS``
+    continues to work unchanged. Resolves on every access so a test that
+    points the registry at a fixture path can still re-read after
+    ``clear_registry_cache()``.
+    """
+
+    def _resolved(self) -> frozenset[str]:
+        return _registered_behavioral_names()
+
+    def __contains__(self, item: object) -> bool:
+        return item in self._resolved()
+
+    def __iter__(self):
+        return iter(self._resolved())
+
+    def __len__(self) -> int:
+        return len(self._resolved())
+
+    def __eq__(self, other: object) -> bool:
+        return self._resolved() == other
+
+    def __hash__(self) -> int:
+        return hash(self._resolved())
+
+    def __repr__(self) -> str:
+        return repr(self._resolved())
+
+
+class _LazyRequiredPayload:
+    """Lazy proxy for ``REQUIRED_PAYLOAD`` -- behaves like a read-only dict."""
+
+    def _resolved(self) -> dict[str, tuple[str, ...]]:
+        return _required_payload_map()
+
+    def __contains__(self, item: object) -> bool:
+        return item in self._resolved()
+
+    def __getitem__(self, key: str) -> tuple[str, ...]:
+        return self._resolved()[key]
+
+    def get(
+        self, key: str, default: tuple[str, ...] = ()
+    ) -> tuple[str, ...]:
+        return self._resolved().get(key, default)
+
+    def __iter__(self):
+        return iter(self._resolved())
+
+    def __len__(self) -> int:
+        return len(self._resolved())
+
+    def items(self):
+        return self._resolved().items()
+
+    def keys(self):
+        return self._resolved().keys()
+
+    def values(self):
+        return self._resolved().values()
+
+    def __eq__(self, other: object) -> bool:
+        return self._resolved() == other
+
+    def __repr__(self) -> str:
+        return repr(self._resolved())
+
+
+# Public lazy module-level constants. Existing callers (tests, CLI, the
+# migrator's _legacy_event_emitter) keep their existing import shape:
+#   from _events import KNOWN_EVENTS, REQUIRED_PAYLOAD
+# but the values now resolve from events/registry.json on each access
+# rather than a hard-coded frozenset.
+KNOWN_EVENTS: _LazyKnownEvents = _LazyKnownEvents()
+REQUIRED_PAYLOAD: _LazyRequiredPayload = _LazyRequiredPayload()
 
 
 # ---------------------------------------------------------------------------
@@ -129,12 +259,13 @@ def emit(
     Raises ``ValueError`` for an unknown event name or a missing required
     payload field.
     """
-    if name not in KNOWN_EVENTS:
+    behavioral_names = _registered_behavioral_names()
+    if name not in behavioral_names:
         raise ValueError(
             f"unknown event {name!r}; expected one of "
-            f"{sorted(KNOWN_EVENTS)}"
+            f"{sorted(behavioral_names)}"
         )
-    required = REQUIRED_PAYLOAD.get(name, ())
+    required = _required_payload_map().get(name, ())
     missing = [k for k in required if k not in payload]
     if missing:
         raise ValueError(
@@ -276,7 +407,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     emit_p = sub.add_parser("emit", help="Append an event to the log.")
-    emit_p.add_argument("name", choices=sorted(KNOWN_EVENTS))
+    emit_p.add_argument("name", choices=sorted(_registered_behavioral_names()))
     emit_p.add_argument("--payload", help="JSON object with the payload.")
     emit_p.add_argument("--log", dest="log", help="Override event log path.")
     # Convenience flags. Using --range- on the dest avoids shadowing the
@@ -359,6 +490,7 @@ __all__ = [
     "DEFAULT_EVENT_LOG",
     "KNOWN_EVENTS",
     "REQUIRED_PAYLOAD",
+    "clear_registry_cache",
     "emit",
     "main",
     "read_events",
