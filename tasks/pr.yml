@@ -1,0 +1,28 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# pr:* tasks for PR-level merge-discipline checks.
+#
+# pr:check-protected-issues is the Taskfile-level encoding of the Layer 3
+# pre-merge protected-issue link inspection from
+# skills/deft-directive-swarm/SKILL.md Phase 6 Step 1 (#701). Per the Rule
+# Authority [AXIOM] block in main.md, deterministic and Taskfile encodings
+# rank above prose -- this target wraps the canonical
+#   gh pr view <N> --json closingIssuesReferences
+# query so a swarm monitor (or any operator) can verify in one command that
+# no protected (umbrella / staying-OPEN) issue is GitHub-side linked to the
+# PR before squash-merging.
+#
+# Companion script: scripts/pr_check_protected_issues.py
+# Companion test:   tests/cli/test_pr_check_protected_issues.py
+
+tasks:
+  check-protected-issues:
+    desc: "Verify NO protected (umbrella / staying-OPEN) issue is GitHub-side linked to a PR before squash merge (#701)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/pr_check_protected_issues.py" {{.CLI_ARGS}}

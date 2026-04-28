@@ -323,6 +323,16 @@ All PRs meet ALL of:
 
 ! **Idempotent pre-check pattern:** Before each action in the merge cascade, verify the current PR/branch state to ensure the action is still needed and safe to execute. Check: is this PR already merged (`gh pr view <number> --json state --jq .state`)? Is this branch already rebased onto the latest master? Has this issue already been closed? This makes recovery re-runs safe — a crash mid-cascade can resume from any point without duplicate actions or errors.
 
+! **Pre-merge protected-issue link inspection (Layer 3, #701):** Before any `gh pr merge` call where a referenced issue MUST remain OPEN (umbrella, anchor, follow-up tracker), inspect GitHub's persistent linked-issue list:
+
+```bash
+gh pr view <N> --repo <owner/repo> --json closingIssuesReferences --jq '.closingIssuesReferences[].number'
+```
+
+The optional `task pr:check-protected-issues -- <pr-number> --protected <N1,N2,...>` Taskfile target (`tasks/pr.yml`) wraps this inspection and exits non-zero if any protected issue is GitHub-side linked.
+
+If any protected (umbrella / staying-OPEN) issue number appears in the output, the link is persistent in GitHub's database from a prior PR body revision (or a manual sidebar attachment) and survives subsequent body edits; on squash merge, GitHub will close the issue regardless of the current PR body, commit messages, or explicit `--subject` / `--body-file` overrides. The merger MUST manually unlink via the PR's Development sidebar panel (web UI -> PR -> right-side Development section -> X next to the linked issue) before merging. The `gh` CLI does not expose a direct unlink mutation; the GraphQL surface (`disconnectPullRequestFromIssue` and friends) shifts over time -- the web UI is the reliable path. See `meta/lessons.md` `## GitHub Closing-Keyword False-Positive Layer 3` for the incident history (PR #700 closed #233; PR #401 closed #642).
+
 ! **Merge authority:** Monitor proposes merge order and executes merges; user approves before the first merge. Do not merge without explicit user approval.
 
 ! **Rebase cascade ownership:** Monitor owns rebase cascade sequencing. Swarm agents do not rebase -- by the time merges begin, swarm agents are idle or complete. The monitor fetches the updated configured base branch, rebases each remaining branch, resolves conflicts, and force-pushes.
@@ -368,6 +378,19 @@ Retry ONCE via an `@greptileai review` comment with a 10-minute cap. If the retr
 - ! Squash merge: `gh pr merge <number> --squash --delete-branch --admin` (if branch protection requires)
 - ! Use descriptive squash subject: `type(scope): description (#issues)`
 - ! After each merge, rebase remaining PRs onto the updated configured base branch before merging the next
+
+! **Post-merge protected-issue reopen sweep (Layer 3, #701):** After every squash-merge of a PR that referenced any umbrella / staying-OPEN issue (`Refs #N` with N a protected issue), verify each protected issue's post-merge state and reopen on regression:
+
+```bash
+for n in <protected-issue-numbers>; do
+  state=$(gh issue view "$n" --json state --jq .state)
+  if [ "$state" != "OPEN" ]; then
+    gh issue reopen "$n" --comment "Reopened: closing-keyword Layer 3 false-positive on squash merge of PR #<N>; issue is umbrella for ongoing work. See #701."
+  fi
+done
+```
+
+This is defense in depth -- run it even when the pre-merge inspection above passed, because a sidebar-attached link not visible to a body scan, or a missed protected issue in the protected-issue list, can still slip through. The reopen comment MUST cite #701 and the PR that triggered the false-positive so future operators tracing the closed-then-reopened churn can find the root cause.
 
 ### Step 2: Close Issues and Update Origins
 
@@ -537,3 +560,5 @@ CONSTRAINTS:
 - ⊗ Loop the monitor indefinitely on the Greptile-service-errored state or time out silently at the poll cap -- detect the "Greptile encountered an error" comment body, retry once via `@greptileai review` with a 10-minute cap, and on second error escalate to the user with the three-way choice (wait / empty retrigger commit / documented override) per Phase 6 Step 1 (#526)
 - ⊗ Merge a rebased PR on the basis of the NEUTRAL CheckRun alone when the Greptile comment body is the error sentinel -- the service-side failure is indistinguishable from a clean pass at the CheckRun level, and any merge taken must be recorded as a documented override in the merge commit body (#526)
 - ⊗ Omit override-merged PRs from the Phase 6 Step 5 Slack release announcement -- any merge that used the Greptile-service-errored override path MUST be called out with its one-line rationale so downstream readers can trace the documented override trail (#526)
+- ⊗ Run `gh pr merge` on a PR that has any protected (umbrella / staying-OPEN) issue listed in `gh pr view <N> --json closingIssuesReferences` -- the link is persistent in GitHub's database from a prior PR body revision (or sidebar attachment) and survives body edits, commit-message edits, and explicit `--subject` / `--body-file` overrides; manually unlink via the PR's Development sidebar panel before merging (Layer 3, #701)
+- ⊗ Skip the post-merge protected-issue reopen sweep for any squash merge that referenced an umbrella / staying-OPEN issue -- defense in depth catches Layer 3 false-positives the pre-merge inspection missed (#701)

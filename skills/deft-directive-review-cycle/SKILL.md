@@ -254,6 +254,7 @@ Choose whichever minimizes steps and maximizes clarity for the given task.
    gh issue close <N> --comment "Closed by #<PR> (squash merge — auto-close did not trigger)"
    ```
 3. ~ This step mirrors `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 2 and applies to ALL PR merges, not just swarm runs.
+4. ! For PRs that referenced any umbrella / staying-OPEN issue (`Refs #N`), the INVERSE check applies: any protected issue that auto-closed MUST be reopened with a comment citing #701 and the merged PR. See `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 protected-issue reopen sweep and `meta/lessons.md` `## GitHub Closing-Keyword False-Positive Layer 3` for the persistent `closingIssuesReferences` link case (Layer 3, #701).
 
 ## Anti-Patterns
 
