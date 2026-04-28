@@ -261,6 +261,29 @@ def _today_iso() -> str:
     return _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%d")
 
 
+# ---- gh CLI resolution (Windows PATHEXT fix, #721) -------------------------
+
+
+def _resolve_gh() -> str | None:
+    """Resolve the absolute path to the ``gh`` CLI binary.
+
+    On Windows, ``gh`` is installed as ``gh.cmd`` (a shell-launcher shim).
+    Python's ``subprocess.run(["gh", ...])`` does NOT honor PATHEXT when
+    resolving ``argv[0]`` via the OS's CreateProcess path, so the launcher
+    cannot be found even when ``gh`` works fine from the operator's
+    terminal. ``shutil.which`` DOES honor PATHEXT, so resolving once via
+    this helper and passing the absolute path as ``argv[0]`` (e.g.
+    ``C:\\Program Files\\GitHub CLI\\gh.cmd``) makes the four release
+    scripts work uniformly across Windows / macOS / Linux (#721).
+
+    Returns the absolute path string when ``gh`` is on PATH, or ``None``
+    when it is not -- callers MUST surface the canonical
+    ``"gh CLI not found on PATH"`` reason on ``None`` to keep error
+    messages stable for tests and operators.
+    """
+    return shutil.which("gh")
+
+
 # ---- Step 1/2 -- git pre-flight --------------------------------------------
 
 
@@ -616,11 +639,12 @@ def create_github_release(
     artifact is not yet visible to consumers. ``task release:publish --
     <version>`` flips the draft to public after manual review.
     """
-    if shutil.which("gh") is None:
+    gh_path = _resolve_gh()
+    if gh_path is None:
         return False, "gh CLI not found on PATH"
     tag = f"v{version}"
     cmd = [
-        "gh", "release", "create", tag,
+        gh_path, "release", "create", tag,
         "--repo", repo,
         "--title", tag,
     ]
@@ -638,6 +662,7 @@ def create_github_release(
             text=True,
             timeout=120,
             check=False,
+            env=os.environ.copy(),
         )
     except FileNotFoundError:
         return False, "gh CLI not found on PATH"

@@ -1,0 +1,78 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #721: release scripts (release.py / release_publish.py / release_rollback.py / release_e2e.py) cannot find the `gh` CLI on Windows because Python's subprocess.run does not honor PATHEXT for `gh.cmd` -- resolve to an absolute path via shutil.which once and pass that as argv[0], plus env=os.environ.copy() defense-in-depth.",
+    "created": "2026-04-28T21:50:29Z",
+    "updated": "2026-04-28T21:50:29Z"
+  },
+  "plan": {
+    "id": "721-release-subprocess-path",
+    "title": "Resolve gh absolute path before subprocess.run in release scripts (Windows PATHEXT fix)",
+    "status": "proposed",
+    "planRef": "#721",
+    "narratives": {
+      "Problem": "On Windows, `gh` is installed as `gh.cmd` (PowerShell launcher / Windows shell shim). Python's `subprocess.run([\"gh\", ...])` does NOT honor PATHEXT when resolving argv[0] via the OS's CreateProcess path, so the launcher cannot be found -- the four release-pipeline scripts (scripts/release.py, scripts/release_publish.py, scripts/release_rollback.py, scripts/release_e2e.py) emit FileNotFoundError or WinError 2 on Windows hosts even when `gh` is on PATH and works fine from the operator's terminal. The release pipeline (#74) and #716 safety hardening companions (publish/rollback/e2e) are platform-incomplete on the only host class where the maintainer runs them.",
+      "Overview": "Add a single shared helper `_resolve_gh() -> str | None` to scripts/release.py that returns `shutil.which(\"gh\")`. shutil.which DOES honor PATHEXT, so it returns the absolute path to `gh.cmd` on Windows and `/usr/bin/gh` (or similar) on POSIX. Refactor every gh subprocess invocation in the four release scripts to (1) resolve via the helper, (2) bail with the existing `gh CLI not found on PATH` message when None, (3) pass argv[0] = resolved absolute path, and (4) propagate `env=os.environ.copy()` to `subprocess.run` as defense-in-depth. release_publish / release_rollback / release_e2e re-use the helper via `release._resolve_gh()` since they already `import release`.",
+      "Background": "Issue #721 (Windows release-pipeline subprocess PATH bug) is the first defect found post #716's safety-hardening landing (#716 / PR #720). The four release scripts predate the discovery of the PATHEXT subprocess interaction; existing `if shutil.which(\"gh\") is None:` guards correctly probe presence but the subsequent `subprocess.run([\"gh\", ...])` invocations re-invoke OS path resolution which does not consult PATHEXT. Other gh callers in the repo (issue_ingest.py, reconcile_issues.py, pr_check_protected_issues.py, ...) exhibit the same defect but are out of scope for this PR -- this scope vBRIEF is laser-focused on the four release-pipeline scripts so the fix can land without blast-radius from refactoring unrelated CLI plumbing.",
+      "Constraint": "MUST preserve existing exit codes, return tuples, and error messages so test_release.py / test_release_publish.py / test_release_rollback.py / test_release_e2e.py keep passing. MUST NOT change CLI surface (no new flags, no behavioral change on POSIX). MUST NOT widen scope to non-release gh callers in the same PR -- those route to a separate follow-up issue.",
+      "Risk": "Existing tests monkeypatch `subprocess.run` with `def fake_run(cmd, **kwargs):` signatures, so adding `env=` propagation is backward compatible. Existing tests monkeypatch `shutil.which` on the module's `shutil` reference, which mutates the actual `shutil` module attribute -- so `release._resolve_gh()` (called from sibling scripts) sees the same patched `which` regardless of which module's `shutil` was monkeypatched. Net risk is low; the fix is mechanical.",
+      "Outcome": "Acceptance: (1) all four release-pipeline scripts resolve `gh` via `release._resolve_gh()` (no remaining bare `[\"gh\", ...]` argv); (2) all four scripts pass `env=os.environ.copy()` to `subprocess.run`; (3) `tests/cli/test_release_subprocess_path.py` covers the helper, the missing-binary fallback, the resolved-path argv[0], the env propagation, and the Windows `gh.cmd` PATHEXT case; (4) existing release-script tests keep passing unchanged; (5) `task check` and `task ci:local` pass.",
+      "Test": "Verification: tests/cli/test_release_subprocess_path.py asserts (a) _resolve_gh returns shutil.which result, (b) downstream callers surface 'gh CLI not found on PATH' when which returns None, (c) subprocess.run argv[0] equals the resolved absolute path (NOT bare 'gh') for view_release / gh_release_delete / create_github_release / provision_temp_repo, (d) env= kwarg present and equals os.environ.copy(), (e) when shutil.which returns r'C:\\Program Files\\GitHub CLI\\gh.cmd' the resolved path is used verbatim as argv[0]. Run via `task test` (uv run pytest tests/) and `task check` / `task ci:local`.",
+      "Action": "Swarm-scope leaf: independent of any other vBRIEF (touches only release-pipeline scripts + their tests + CHANGELOG); gated only on master. Closes #721 once merged; #716 hardening sweep continues to anchor follow-up release-script defects."
+    },
+    "items": [
+      {
+        "id": "release-resolve-gh-helper",
+        "title": "Add _resolve_gh helper in scripts/release.py and refactor all gh subprocess invocations across the four release scripts to use the resolved absolute path + env=os.environ.copy()",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add `def _resolve_gh() -> str | None: return shutil.which(\"gh\")` to scripts/release.py. In release.py / release_publish.py / release_rollback.py / release_e2e.py, replace every `if shutil.which(\"gh\") is None:` guard with the helper, and rewrite each `subprocess.run([\"gh\", ...], ...)` so argv is `[gh_path, ...rest]` and kwargs include `env=os.environ.copy()`. Existing return tuples / exit codes / log messages preserved verbatim.",
+          "Acceptance": "`grep -n 'subprocess.run(\\[\"gh\"' scripts/release*.py` returns zero matches after the refactor; every `subprocess.run` of a gh command in the four scripts has `env=os.environ.copy()` in its kwargs."
+        }
+      },
+      {
+        "id": "release-subprocess-path-tests",
+        "title": "Create tests/cli/test_release_subprocess_path.py covering _resolve_gh, the missing-binary fallback, resolved-path argv[0], env propagation, and the Windows PATHEXT (gh.cmd) case",
+        "status": "pending",
+        "narrative": {
+          "Action": "Tests monkeypatch `shutil.which` and `subprocess.run`; capture argv + kwargs; assert argv[0] equals the resolved absolute path and `env=` equals `os.environ.copy()`. Cover at minimum: release_publish.view_release, release_rollback.gh_release_delete, one release.py gh caller (create_github_release), and release_e2e.provision_temp_repo.",
+          "Acceptance": "test_release_subprocess_path.py passes alongside the existing four release tests under `task test`; coverage includes the literal `r'C:\\Program Files\\GitHub CLI\\gh.cmd'` PATHEXT case."
+        }
+      },
+      {
+        "id": "release-subprocess-path-changelog",
+        "title": "Add CHANGELOG.md [Unreleased]/Fixed entry and verify .github/PULL_REQUEST_TEMPLATE.md checklist",
+        "status": "pending",
+        "narrative": {
+          "Action": "CHANGELOG entry: 'Resolve `gh` to its absolute path before subprocess invocation in release scripts so Windows PATHEXT shims (`gh.cmd`) work; propagate `env=os.environ.copy()` for defense-in-depth (#721).'",
+          "Acceptance": "CHANGELOG.md [Unreleased]/Fixed contains the entry; PR body references #721 (Refs not Closes -- parent agent closes #721 separately after the rollback test)."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "swarm_ready": true,
+        "blocks": null,
+        "blocked_by": null,
+        "scope_authority": "deft-721-fix sub-agent dispatch (parent orchestrator's plan stages 1-4)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/721",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #721: release scripts fail on Windows because subprocess.run does not honor PATHEXT for gh.cmd"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/74",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #74: chore: automate release process and CI changelog enforcement (foundation -- introduced scripts/release.py)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/716",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #716: release safety hardening (added scripts/release_publish.py / release_rollback.py / release_e2e.py companion scripts which inherited the same subprocess PATH defect)"
+      }
+    ]
+  }
+}

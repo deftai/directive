@@ -39,7 +39,8 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
-import shutil
+import os
+import shutil  # noqa: F401  -- kept for tests that monkeypatch release_e2e.shutil.which
 import subprocess
 import sys
 import uuid
@@ -143,17 +144,23 @@ def provision_temp_repo(owner: str, slug: str) -> tuple[bool, str]:
     pipeline steps (clone, push, etc.) are responsible for populating
     it.
     """
-    if shutil.which("gh") is None:
+    gh_path = release._resolve_gh()
+    if gh_path is None:
         return False, "gh CLI not found on PATH"
     full = f"{owner}/{slug}"
     cmd = [
-        "gh", "repo", "create", full,
+        gh_path, "repo", "create", full,
         "--private",
         "--description", "Auto-generated release-rehearsal repo (deft #716); safe to delete.",
     ]
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=120, check=False
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+            env=os.environ.copy(),
         )
     except FileNotFoundError:
         return False, "gh CLI not found on PATH"
@@ -169,13 +176,19 @@ def destroy_temp_repo(owner: str, slug: str) -> tuple[bool, str]:
     the caller can surface a manual cleanup hint without crashing the
     overall pipeline.
     """
-    if shutil.which("gh") is None:
+    gh_path = release._resolve_gh()
+    if gh_path is None:
         return False, "gh CLI not found on PATH"
     full = f"{owner}/{slug}"
-    cmd = ["gh", "repo", "delete", full, "--yes"]
+    cmd = [gh_path, "repo", "delete", full, "--yes"]
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=120, check=False
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+            env=os.environ.copy(),
         )
     except FileNotFoundError:
         return False, "gh CLI not found on PATH"
@@ -199,13 +212,19 @@ def run_rehearsal(owner: str, slug: str) -> tuple[bool, str]:
     full pipeline (skip ``task ci:local`` to keep wall-clock under
     a minute), verify ``gh release view`` reports the draft.
     """
-    if shutil.which("gh") is None:
+    gh_path = release._resolve_gh()
+    if gh_path is None:
         return False, "gh CLI not found on PATH"
     full = f"{owner}/{slug}"
-    cmd = ["gh", "repo", "view", full, "--json", "name,visibility"]
+    cmd = [gh_path, "repo", "view", full, "--json", "name,visibility"]
     try:
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=60, check=False
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+            env=os.environ.copy(),
         )
     except FileNotFoundError:
         return False, "gh CLI not found on PATH"
