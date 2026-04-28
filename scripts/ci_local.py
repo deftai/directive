@@ -205,11 +205,24 @@ def _build_verify_available(root: Path) -> bool:
     Probes ``task --list`` and looks for a ``* build:verify`` line. When
     ``task`` itself is missing we return ``False`` -- the caller will
     print an informational skip message instead of failing.
+
+    When ``task --list`` exits non-zero for an unrelated reason (e.g. a
+    malformed ``Taskfile.yml``), we still return ``False`` but emit a
+    warning to stderr so the underlying error is not silently swallowed
+    behind the "build:verify not yet implemented" skip message (Greptile
+    P2 #713).
     """
     if not _has_executable("task"):
         return False
-    rc, stdout, _stderr = _run_command(["task", "--list"], cwd=root)
+    rc, stdout, stderr = _run_command(["task", "--list"], cwd=root)
     if rc != 0:
+        diagnostic = stderr.strip() or stdout.strip() or "(no output)"
+        print(
+            f"warning: `task --list` exited {rc} while probing for "
+            f"`build:verify`; treating as absent. Underlying error: "
+            f"{diagnostic}",
+            file=sys.stderr,
+        )
         return False
     for line in stdout.splitlines():
         stripped = line.strip()
@@ -584,10 +597,16 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=VALID_MATRIX_VALUES,
         default="host",
         help=(
-            "Which CI matrix slice to run. ``host`` (default) selects the "
-            "current platform's applicable steps; ``linux``/``macos``/"
-            "``windows`` force a specific slice (Windows-only steps still "
-            "require a Windows host); ``all`` runs every applicable step."
+            "Which CI matrix slice to run. ``host`` (default) maps to the "
+            "current platform via ``platform.system()``. NOTE: the flag's "
+            "only practical effect is gating the ``windows-task-dispatch`` "
+            "regression rows -- those run only when ``--matrix=windows`` (or "
+            "``all``) is supplied AND the host is Windows, because the "
+            "underlying steps shell out to PowerShell. The Python, Go, and "
+            "Taskfile-level rows always run on whatever toolchain is "
+            "available locally and are not platform-filtered (Greptile "
+            "P2 #713). ``linux`` / ``macos`` therefore behave equivalently "
+            "on a non-Windows host."
         ),
     )
     parser.add_argument(
@@ -670,7 +689,14 @@ def main(argv: list[str] | None = None) -> int:
         file=sys.stderr,
     )
     steps = build_pipeline(root, matrix=matrix, skip_build=args.skip_build)
-    if not steps:
+    # ``build_pipeline`` always returns at least the toolchain probe
+    # rows, so ``steps`` is rarely empty. The reachable failure mode is a
+    # pipeline composed entirely of skips -- that means no tool was
+    # installed and the runner would otherwise exit 0 with every step
+    # silently skipped, violating the three-state exit-code contract.
+    # ``not any(s.applies() for s in steps)`` covers both shapes (Greptile
+    # P1 #713).
+    if not steps or not any(s.applies() for s in steps):
         print(
             "Error: no CI steps applicable on this host. Install at least one of "
             "uv / go / task to run any portion of the pipeline locally.",

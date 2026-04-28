@@ -210,10 +210,18 @@ class TestBuildVerifyDetection:
         )
         assert ci_local._build_verify_available(tmp_path) is True
 
-    def test_returns_false_when_task_list_fails(self, monkeypatch, tmp_path):
+    def test_returns_false_when_task_list_fails(self, monkeypatch, tmp_path, capsys):
+        # Greptile P2 #713: when ``task --list`` fails (e.g. malformed
+        # Taskfile.yml) we must surface a warning so the underlying error
+        # isn't silently swallowed behind "build:verify not yet
+        # implemented".
         _patch_executables(monkeypatch, present={"task"})
         _stub_run(monkeypatch, returncode=2, stdout="", stderr="boom")
         assert ci_local._build_verify_available(tmp_path) is False
+        captured = capsys.readouterr()
+        assert "task --list" in captured.err
+        assert "exited 2" in captured.err
+        assert "boom" in captured.err
 
 
 # ---------------------------------------------------------------------------
@@ -469,11 +477,22 @@ class TestMain:
         assert rc == ci_local.EXIT_CONFIG_ERROR
 
     def test_main_no_applicable_tools_exits_2(self, monkeypatch, tmp_path, capsys):
+        # Greptile P1 #713: with zero tools on PATH every step constructor
+        # emits an applies()=False probe row, so ``build_pipeline`` is
+        # non-empty but every step skips. The runner used to exit 0 in
+        # this shape (every-step-skipped), violating the documented
+        # three-state exit-code contract; the fix is to also exit 2 when
+        # ``not any(s.applies() for s in steps)``. This test exercises the
+        # natural no-tools path rather than monkeypatching build_pipeline.
         _patch_executables(monkeypatch, present=set())
-        # Force every step constructor to emit applies()=False and the
-        # build_pipeline still returns probe entries -- but main() only
-        # exits 2 when build_pipeline returns an empty list. To exercise
-        # the empty path, monkeypatch build_pipeline directly.
+        rc = ci_local.main(["--root", str(tmp_path), "--matrix", "linux"])
+        assert rc == ci_local.EXIT_CONFIG_ERROR
+        captured = capsys.readouterr()
+        assert "no CI steps applicable" in captured.err
+
+    def test_main_empty_pipeline_exits_2(self, monkeypatch, tmp_path, capsys):
+        # Defensive coverage of the original ``not steps`` branch in case a
+        # future refactor removes the probe rows.
         monkeypatch.setattr(ci_local, "build_pipeline", lambda *a, **kw: [])
         rc = ci_local.main(["--root", str(tmp_path)])
         assert rc == ci_local.EXIT_CONFIG_ERROR
