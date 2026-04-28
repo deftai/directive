@@ -47,7 +47,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 task release -- <version> --dry-run --skip-tag --skip-release
 ```
 
-The dry-run prints `[N/10] <step>... DRYRUN (would <action>)` for every pipeline step. Capture the output and present it to the user, then wait for explicit confirmation before continuing.
+The dry-run prints `[N/11] <step>... DRYRUN (would <action>)` for every pipeline step (Step 11 is the post-create verify-isDraft gate added by #724). Capture the output and present it to the user, then wait for explicit confirmation before continuing.
 
 ! Wait for explicit user confirmation: `yes` / `back` / `quit`.
 - `yes` (or `confirmed` / `approve`) → proceed to Phase 3
@@ -80,9 +80,13 @@ task release -- <version>
 
 Per #716 default-draft hardening, this lands the release as a `--draft` on the real repo. Binaries upload via release.yml CI, but the artifact is NOT yet visible to consumers.
 
+! **Verify isDraft within 5 seconds; flip immediately if not (#724).** Immediately after `gh release create --draft` returns success, `scripts/release.py` Step 11 polls `gh release view v<version> --json isDraft` up to 5 times at 1-second intervals. If the release exists with `isDraft=false`, the pipeline auto-flips it via `gh release edit v<version> --draft=true` and emits a `WARNING: release landed as public; flipping to draft (defense-in-depth, see #724)` line. This closes the ~90-second public-exposure window observed during the v0.21.0 cut where a manual recovery created a public release before the operator noticed and flipped it. The verify gate is defense in depth even when `--draft` was passed correctly: it catches the case where `gh release create` partially succeeded (release record written, error returned) AND the operator-error variant where an alternate code path sent the release without `--draft`. A release-not-found-within-budget result emits a WARN and does NOT fail the pipeline (release.yml CI may still be processing).
+
 ! Wait for `task release` to exit 0 before continuing. A non-zero exit means the pipeline halted partway through; consult Phase 7's `task release:rollback` recovery before retrying.
 
 ⊗ Pass `--no-draft` here unless the operator has explicitly opted into direct-publish (e.g. automated security patch). The default-draft contract is the foundation of the safety hardening surface.
+
+⊗ Skip the post-create verify-isDraft gate -- the gate is the only reliable safety net against "create call exited 0 but the release somehow landed as public" variants (#724). If `task release` is invoked manually outside the canonical `scripts/release.py` flow, the operator MUST run `gh release view v<version> --json isDraft` followed by `gh release edit --draft=true` on `isDraft=false` BEFORE handing off to Phase 5.
 
 ## Phase 5 — Draft review gate (user-only authority)
 
@@ -197,3 +201,4 @@ Where `<one-line guidance>` is one of:
 - ⊗ Skip the Phase 7 Layer 3 reopen sweep -- protected umbrellas can auto-close on a release-merge squash even when the release notes use `Refs #N` only
 - ⊗ Post the Phase 8 Slack announcement directly from this skill -- the user owns the broadcast; the skill only generates the template
 - ⊗ Hardcode `master` as the base branch -- delegate to the configured base branch from `task release --base-branch <branch>`
+- ⊗ Skip the post-create verify-isDraft gate (#724) -- a successful `gh release create` exit code does NOT prove the release actually landed in draft state; the 5-second poll-and-flip gate in `scripts/release.py` Step 11 is the only safety net against operator-error variants and partial-success races, and any manual recovery path that bypasses `scripts/release.py` MUST run `gh release view --json isDraft` followed by `gh release edit --draft=true` on `isDraft=false` before handing off to Phase 5

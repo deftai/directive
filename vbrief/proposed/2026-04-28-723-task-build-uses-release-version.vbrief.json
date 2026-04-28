@@ -1,0 +1,63 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #723: task build artifact filename must match the release version, not the stale Taskfile.yml literal."
+  },
+  "plan": {
+    "title": "release: task build uses the actual release version (#723)",
+    "status": "proposed",
+    "narratives": {
+      "Overview": "task release -- 0.21.0 produced dist/deft-0.20.0.zip during the v0.21.0 cut because Taskfile.yml var VERSION is hard-coded to 0.20.0 and never updated as part of CHANGELOG promotion. This vBRIEF replaces the literal with a dynamic resolver (DEFT_RELEASE_VERSION env > git describe --tags --abbrev=0 stripped of v > 0.0.0-dev) and has scripts/release.py:run_build set DEFT_RELEASE_VERSION when invoking task build so the dist/deft-{version}.{zip,tar.gz} filename always matches the requested release version."
+    },
+    "items": [
+      {
+        "id": "resolve-version-script",
+        "title": "Add scripts/resolve_version.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Create a small Python helper that prints the resolved version. Priority: DEFT_RELEASE_VERSION env var > git describe --tags --abbrev=0 (stripped of leading v) > 0.0.0-dev fallback. Cross-platform; no third-party deps.",
+          "Acceptance": "Helper prints the env override when set, falls back to the latest annotated tag, and emits 0.0.0-dev when neither is available."
+        }
+      },
+      {
+        "id": "taskfile-dynamic-version",
+        "title": "Replace Taskfile.yml literal VERSION with sh: invocation of resolve_version.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Change `vars.VERSION: 0.20.0` to `vars.VERSION: { sh: uv run python \"{{.TASKFILE_DIR}}/scripts/resolve_version.py\" }` so every `task build` resolves VERSION at parse time from the canonical source.",
+          "Acceptance": "task build emits dist/deft-<resolved-version>.zip (or .tar.gz) and never references 0.20.0 unless that is the actual resolved version."
+        }
+      },
+      {
+        "id": "release-py-env-passthrough",
+        "title": "scripts/release.py:run_build sets DEFT_RELEASE_VERSION env",
+        "status": "pending",
+        "narrative": {
+          "Action": "Refactor run_build(project_root) → run_build(project_root, version) and propagate DEFT_RELEASE_VERSION=<version> via env when subprocess.run(['task', 'build']) so go-task's VERSION resolver picks up the in-flight release version.",
+          "Acceptance": "task release -- 0.21.0 invokes task build with DEFT_RELEASE_VERSION=0.21.0; produced artifact is dist/deft-0.21.0.{zip,tar.gz}."
+        }
+      },
+      {
+        "id": "regression-tests",
+        "title": "Tests for resolver + env propagation",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add tests/cli/test_resolve_version.py covering env override / git fallback / dev fallback. Augment tests/cli/test_release.py to assert run_build passes DEFT_RELEASE_VERSION through subprocess env.",
+          "Acceptance": "Tests assert the three resolver paths and the env-propagation contract."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/723",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #723: release: build artifact filename uses stale version (deft-0.20.0.zip during v0.21.0 cut)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/721",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #721: canonical recovery anchor for the v0.21.0 cut session"
+      }
+    ]
+  }
+}

@@ -2,7 +2,29 @@ version: '3'
 
 vars:
   PROJECT_NAME: deft
-  VERSION: 0.20.0
+  # VERSION is resolved dynamically (#723) so `task build` produces
+  # `dist/deft-{version}.{zip,tar.gz}` matching the in-flight release.
+  # Resolution priority (mirrors scripts/resolve_version.py):
+  #   1. $DEFT_RELEASE_VERSION env var (set by scripts/release.py:run_build
+  #      so `task release -- 0.21.0` builds dist/deft-0.21.0.zip).
+  #   2. `git describe --tags --abbrev=0` stripped of leading `v`.
+  #   3. `0.0.0-dev` fallback for fresh checkouts with no tags.
+  # The previous hard-coded literal (`VERSION: 0.20.0`) was the root cause
+  # of #723: every release after v0.20.0 produced a stale artifact name
+  # because nothing in the release pipeline updated the Taskfile literal.
+  # Inline POSIX sh (run by go-task's embedded mvdan/sh interpreter so the
+  # block is cross-platform on Windows / macOS / Linux without requiring
+  # uv/python at parse time -- the Python equivalent lives in
+  # scripts/resolve_version.py for Python callers + regression tests).
+  VERSION:
+    sh: |
+      if [ -n "$DEFT_RELEASE_VERSION" ]; then
+        printf '%s' "$DEFT_RELEASE_VERSION"
+      elif tag=$(git describe --tags --abbrev=0 2>/dev/null); then
+        printf '%s' "${tag#v}"
+      else
+        printf '0.0.0-dev'
+      fi
   # Each included sub-taskfile (tasks/*.yml) defines its own DEFT_ROOT as
   # `{{joinPath .TASKFILE_DIR ".."}}` so scripts can be dispatched via
   # `{{.DEFT_ROOT}}/scripts/...` on every platform (#566). `joinPath` is
