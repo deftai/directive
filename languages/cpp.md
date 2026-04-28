@@ -102,6 +102,7 @@ See [commands.md](./commands.md).
 - **I.13**: Don't pass arrays as single pointers (use `gsl::span<T>`)
 
 **Polymorphism**: ~ Abstract base classes OR concepts (C++20)
+
 ## Hygiene
 
 **Types:**
