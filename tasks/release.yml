@@ -12,23 +12,43 @@ vars:
 # fresh empty Unreleased block; new compare-link footnote) -> ROADMAP
 # refresh (re-render via task roadmap:render -- the renderer already
 # aggregates pending/ + completed/ idempotently) -> task build -> git
-# tag -> git push origin <tag> -> gh release create.
+# tag -> git push origin <tag> -> gh release create --draft.
+#
+# #716 safety hardening: the release lands as a draft. Use the companion
+# tasks below to flip it to public, unwind it, or rehearse end-to-end:
+#   - `task release:publish -- <version>` flips the draft to public
+#   - `task release:rollback -- <version>` state-aware unwind with a
+#     time-windowed download-count guard
+#   - `task release:e2e` rehearses the full pipeline against an
+#     auto-created+destroyed temp repo
 #
 # Per `conventions/task-caching.md` (#574): tasks that accept user-facing
 # recovery flags via {{.CLI_ARGS}} (here: --dry-run / --skip-tag /
-# --skip-release / --allow-dirty / --repo) MUST NOT declare
+# --skip-release / --allow-dirty / --repo / --no-draft) MUST NOT declare
 # `sources:` / `generates:` -- the cached `cmds:` skip would silently
 # discard the recovery flag.
 #
-# Companion script: scripts/release.py
-# Companion test:   tests/cli/test_release.py
-# Refs #74, #233, #642, #635, #709, #710.
+# Companion scripts: scripts/release.py, scripts/release_publish.py,
+#                    scripts/release_rollback.py, scripts/release_e2e.py
+# Companion tests:   tests/cli/test_release.py,
+#                    tests/cli/test_release_publish.py,
+#                    tests/cli/test_release_rollback.py,
+#                    tests/cli/test_release_e2e.py
+# Refs #74, #233, #642, #635, #709, #710, #716 (safety hardening).
 
 tasks:
   release:
-    desc: "Automate the v0.X.Y release flow (#74) -- task release -- <version> [--dry-run] [--skip-tag] [--skip-release]"
+    desc: "Automate the v0.X.Y release flow (#74) -- task release -- <version> [--dry-run] [--skip-tag] [--skip-release] [--no-draft]"
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/release.py" {{.CLI_ARGS}}
+
+  release:publish:
+    desc: "Flip a draft GitHub release to public (#716) -- task release:publish -- <version> [--dry-run] [--repo OWNER/REPO]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/release_publish.py" {{.CLI_ARGS}}
