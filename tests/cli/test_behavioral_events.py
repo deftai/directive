@@ -480,8 +480,9 @@ class TestLegacyDetectedEmission:
         assert name == "legacy:detected"
         assert payload.get("flagged") is True, (
             "flagged=True MUST land in the emitted payload BEFORE event "
-            "emission so the events/behavioral.yaml contract is honoured "
-            "(Greptile #706 P1)"
+            "emission so the events/registry.json contract "
+            '(category="behavioral") is honoured '
+            "(Greptile #706 P1, post-#706 unification per #709 / #710)"
         )
 
     def test_flagged_default_false_omits_field_in_event_payload(

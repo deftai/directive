@@ -385,11 +385,12 @@ def emit_legacy_artifacts(
             })
         # Apply the ``flagged`` annotation BEFORE emitting the event so
         # the ``legacy:detected`` payload contract documented in
-        # ``events/behavioral.yaml`` is honoured for PRD.md hand-edit
-        # captures (Greptile #706 P1). Previously the migrator patched
-        # this field on the returned stats AFTER the function had
-        # already emitted, leaving every PRD.md event missing the
-        # ``flagged`` field.
+        # ``events/registry.json`` (``category: "behavioral"``) is
+        # honoured for PRD.md hand-edit captures (Greptile #706 P1,
+        # post-#706 unification per #709 / #710). Previously the
+        # migrator patched this field on the returned stats AFTER the
+        # function had already emitted, leaving every PRD.md event
+        # missing the ``flagged`` field.
         if flagged:
             stats[-1]["flagged"] = True
         narrative_parts.append(section_block)
