@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/deftai/directive/events/event-record.schema.json",
+  "title": "Deft Event Record",
+  "description": "Schema for a single emitted event record produced by scripts/_events.py::emit(). The shape is uniform across detection-bound and behavioral events; the per-event payload contract is defined in events/registry.json.",
+  "type": "object",
+  "required": ["event", "detected_at", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "event": {
+      "type": "string",
+      "description": "Canonical event name; MUST match an entry in events/registry.json.",
+      "pattern": "^[a-z][a-z0-9-]*(:[a-z][a-z0-9-]*)+$"
+    },
+    "detected_at": {
+      "type": "string",
+      "description": "UTC ISO-8601 timestamp (seconds precision) when emit() was called. Format: YYYY-MM-DDTHH:MM:SSZ.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Per-event payload object. Keys/types defined in events/registry.json under the matching event's payload contract.",
+      "additionalProperties": true
+    }
+  }
+}

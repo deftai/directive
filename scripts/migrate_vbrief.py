@@ -19,6 +19,7 @@ Story: #312 (Phase 2 vBRIEF Architecture Cutover)
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 import subprocess
@@ -32,6 +33,11 @@ from urllib.parse import urlparse
 # imported from a test harness that appends the ``scripts/`` path.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# #635: Detection-bound emit helper. Filename is intentionally distinct
+# from the sibling vBRIEF's `scripts/_events.py` (behavioral events) to
+# avoid file-level merge conflicts; post-merge consolidation may unify
+# them under one name.
+from _event_detect import emit as _emit_event  # noqa: E402
 from _vbrief_build import (
     EMITTED_VBRIEF_VERSION,  # noqa: E402 -- canonical emitted version per #533
     create_scope_vbrief as _create_scope_vbrief_shared,  # noqa: E402
@@ -1167,6 +1173,16 @@ def migrate(
     # committing any pending edits. Pairing --force with --dry-run to preview
     # on an unfamiliar project would defeat the purpose of dry-run.
     if not force and not dry_run and is_tree_dirty(project_root):
+        # #635: emit dirty-tree event before returning the refusal so any
+        # consumer (skill, task, CI runner) can react uniformly. Existing
+        # CLI output (the canonical refusal message) is preserved. The
+        # events surface MUST NOT break the migrator, so registry/IO
+        # failures are silently suppressed.
+        with contextlib.suppress(Exception):
+            _emit_event(
+                "dirty-tree:detected",
+                {"project_root": str(project_root.resolve())},
+            )
         return False, [dirty_tree_refusal_message()]
 
     # Always-on backups (#497-1): copy every pre-cutover input to its

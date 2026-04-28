@@ -15,6 +15,11 @@ tasks:
       `task migrate:vbrief -- --force`, `task migrate:vbrief -- --rollback` (#497, #506 D7).
       Pass `task migrate:vbrief -- --strict` to fail the run on any SPEC/ROADMAP
       reconciliation conflict (#496, #506).
+      Emits framework events on guard trip: `dirty-tree:detected` (#497-3
+      dirty-tree guard) and `pre-cutover:detected` (when
+      run::_check_upgrade_gate is consulted by the CLI flow). See
+      events/registry.json for the payload contracts and `DEFT_EVENT_LOG` for
+      opt-in JSON-line capture (#635).
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
