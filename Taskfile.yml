@@ -80,8 +80,6 @@ includes:
   pr:
     taskfile: ./tasks/pr.yml
     optional: true
-  release:
-    taskfile: ./tasks/release.yml
   ci:
     taskfile: ./tasks/ci.yml
     optional: true
@@ -147,3 +145,66 @@ tasks:
     desc: Show framework statistics (alias for core:stats)
     cmds:
       - task: core:stats
+
+  # Release pipeline tasks (#74 + #716 safety hardening, namespace flatten #718).
+  #
+  # Defined inline at the root Taskfile rather than via `includes: release: ./tasks/release.yml`
+  # because go-task concatenates the namespace key with each inner task name -- so an inner
+  # task named `release:` under namespace `release:` would install as `task release:release`,
+  # not `task release` (the documented invocation in skills/deft-directive-release/SKILL.md
+  # and CHANGELOG entries from #74/#716). See #718 for the full root-cause analysis.
+  #
+  # Sibling pattern: tasks/pr.yml uses inner task name `check-protected-issues` (no `pr:`
+  # repeat) so the include-namespace mechanism produces `pr:check-protected-issues`. The
+  # release pipeline cannot use that pattern because it needs BOTH a top-level `release`
+  # name AND `release:e2e` / `release:publish` / `release:rollback` sub-names.
+  #
+  # Per `conventions/task-caching.md` (#574): tasks that accept user-facing recovery flags
+  # via {{.CLI_ARGS}} (here: --dry-run / --skip-tag / --skip-release / --allow-dirty /
+  # --repo / --no-draft / --allow-low-downloads / --allow-data-loss / --force-strict-0 /
+  # --owner / --keep-repo) MUST NOT declare `sources:` / `generates:` -- the cached `cmds:`
+  # skip would silently discard the recovery flag.
+  #
+  # Path resolution uses `{{.TASKFILE_DIR}}/scripts/<script>.py` directly because these
+  # tasks live in the root Taskfile.yml where `{{.TASKFILE_DIR}}` already resolves to the
+  # deft/ root (no per-subfile DEFT_ROOT joinPath dance is needed -- see Taskfile.yml
+  # header comment for why `DEFT_ROOT` is intentionally absent at the root level).
+  #
+  # Companion scripts: scripts/release.py, scripts/release_publish.py,
+  #                    scripts/release_rollback.py, scripts/release_e2e.py
+  # Companion tests:   tests/cli/test_release.py,
+  #                    tests/cli/test_release_publish.py,
+  #                    tests/cli/test_release_rollback.py,
+  #                    tests/cli/test_release_e2e.py
+  # Refs #74, #233, #642, #635, #709, #710, #716, #718.
+  release:
+    desc: "Automate the v0.X.Y release flow (#74) -- task release -- <version> [--dry-run] [--skip-tag] [--skip-release] [--no-draft]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.TASKFILE_DIR}}/scripts/release.py" {{.CLI_ARGS}}
+
+  release:publish:
+    desc: "Flip a draft GitHub release to public (#716) -- task release:publish -- <version> [--dry-run] [--repo OWNER/REPO]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.TASKFILE_DIR}}/scripts/release_publish.py" {{.CLI_ARGS}}
+
+  release:rollback:
+    desc: "State-aware release unwind (#716) -- task release:rollback -- <version> [--dry-run] [--allow-low-downloads N] [--allow-data-loss] [--force-strict-0]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.TASKFILE_DIR}}/scripts/release_rollback.py" {{.CLI_ARGS}}
+
+  release:e2e:
+    desc: "End-to-end release rehearsal against an auto-created+destroyed temp repo (#716) -- task release:e2e [-- --dry-run] [--owner OWNER] [--keep-repo]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.TASKFILE_DIR}}/scripts/release_e2e.py" {{.CLI_ARGS}}
