@@ -1441,6 +1441,42 @@ class TestRunBuildVersionEnv:
         assert "DEFT_RELEASE_VERSION" not in env
         assert "DEFT_RELEASE_VERSION" not in reason
 
+    def test_run_build_strips_inherited_env_when_version_none(
+        self, monkeypatch, tmp_path
+    ):
+        """version=None MUST strip any inherited DEFT_RELEASE_VERSION (#723 follow-up).
+
+        Without the explicit ``env.pop`` in ``run_build``, an inherited
+        ``DEFT_RELEASE_VERSION`` value (e.g. leaked from an interrupted
+        prior ``task release`` run that exported the var into the
+        operator's session) would silently re-introduce the exact
+        stale-version bug #723 just closed -- the contract for
+        ``version=None`` is "let the Taskfile resolver decide", not
+        "use whatever leaked from the parent shell".
+        """
+        captured = {}
+
+        monkeypatch.setenv("DEFT_RELEASE_VERSION", "stale-0.20.0")
+        monkeypatch.setattr(release, "task_binary_available", lambda: True)
+        monkeypatch.setattr(release, "task_has_target", lambda *_a, **_kw: True)
+
+        def fake_run(cmd, **kwargs):
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.run_build(tmp_path, version=None)
+        assert ok is True
+        env = captured["env"]
+        assert env is not None, "run_build must set env= for the subprocess"
+        assert "DEFT_RELEASE_VERSION" not in env, (
+            "#723 follow-up: run_build(version=None) MUST strip any inherited "
+            "DEFT_RELEASE_VERSION from the subprocess env so the Taskfile "
+            "resolver falls back to git describe -- otherwise stale parent-shell "
+            f"values silently re-leak. observed env value: {env.get('DEFT_RELEASE_VERSION')!r}"
+        )
+        assert "DEFT_RELEASE_VERSION" not in reason
+
     def test_run_build_skips_when_target_missing(self, monkeypatch, tmp_path):
         monkeypatch.setattr(release, "task_binary_available", lambda: True)
         monkeypatch.setattr(release, "task_has_target", lambda *_a, **_kw: False)

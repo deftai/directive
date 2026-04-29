@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
-"""resolve_version.py -- Resolve the deft framework version for build/dist tasks (#723).
+"""resolve_version.py -- Python mirror of the Taskfile VERSION resolver (#723).
 
-Used by ``Taskfile.yml`` ``vars: VERSION: { sh: ... }`` so ``task build``
-produces ``dist/deft-<version>.{zip,tar.gz}`` reflecting the actual
-release version rather than a stale Taskfile literal.
+This script is an INDEPENDENT Python mirror of the version-resolution
+priority chain that the canonical Taskfile-side resolver implements
+inline in ``Taskfile.yml`` ``vars: VERSION: { sh: ... }``. The Taskfile
+inline POSIX ``sh:`` block is the ACTUAL resolver consumed by
+``task build`` / ``task release`` (run via go-task's embedded
+mvdan/sh interpreter so it works cross-platform without requiring
+``uv`` / Python at parse time).
 
-Resolution priority (first match wins):
+This Python module is NOT invoked from ``Taskfile.yml``. It exists so
+Python callers (regression tests in ``tests/cli/test_resolve_version.py``,
+``scripts/release.py::run_build``, future scripts that need the
+version at import time, etc.) have a single source of truth for the
+same resolution priority -- avoiding silent drift between the Taskfile
+``sh:`` block and ad-hoc Python re-implementations.
+
+Resolution priority (first match wins -- mirrors the Taskfile sh block):
     1. ``$DEFT_RELEASE_VERSION`` -- set by ``scripts/release.py::run_build``
        so the in-flight release version (e.g. ``0.21.0``) becomes the
        build artifact filename during ``task release -- 0.21.0``. The
@@ -18,9 +29,13 @@ Resolution priority (first match wins):
        repositories where ``git`` is unavailable.
 
 The script writes the resolved version to stdout WITHOUT a trailing
-newline so go-task's ``sh:`` capture (which strips trailing whitespace
-in any case) yields a clean ``X.Y.Z`` string ready for template
-interpolation. ``stderr`` is intentionally silent on the happy path.
+newline so its output matches the Taskfile inline ``sh:`` block's
+``printf '%s'`` shape byte-for-byte (no trailing whitespace either
+way). ``stderr`` is intentionally silent on the happy path.
+
+If you change the priority chain here, you MUST also update the inline
+``sh:`` block in ``Taskfile.yml`` (and vice versa) -- the two are kept
+in lockstep by convention, not by code reuse.
 
 Refs #723, #74 (release foundation), #716 (safety hardening), #721
 (canonical recovery anchor for the v0.21.0 cut session).

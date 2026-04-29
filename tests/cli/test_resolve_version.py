@@ -1,5 +1,12 @@
 """test_resolve_version.py -- Tests for scripts/resolve_version.py (#723).
 
+``scripts/resolve_version.py`` is an INDEPENDENT Python mirror of the
+resolution priority chain implemented inline in ``Taskfile.yml``
+``vars: VERSION: { sh: ... }``. The Python module is NOT invoked from
+Taskfile.yml -- these tests pin the Python-side contract so callers
+(``scripts/release.py::run_build``, future Python entry-points) cannot
+silently drift from the canonical Taskfile sh: block.
+
 Covers the three resolution branches:
 - ``$DEFT_RELEASE_VERSION`` env override wins over git tag.
 - ``git describe --tags --abbrev=0`` fallback (stripped of leading ``v``).
@@ -158,7 +165,7 @@ class TestResolveVersion:
 
 
 # ---------------------------------------------------------------------------
-# main (stdout contract for go-task `sh:` capture)
+# main (stdout contract: byte-for-byte match with the Taskfile sh: block)
 # ---------------------------------------------------------------------------
 
 
@@ -170,9 +177,10 @@ class TestMain:
         rc = resolve_version.main([])
         assert rc == 0
         captured = capsys.readouterr()
-        # go-task strips trailing whitespace from `sh:` capture in any case,
-        # but emitting a clean string keeps stdout identical to the value
-        # callers receive when invoking resolve_version() directly.
+        # The no-trailing-newline contract matches the inline POSIX `sh:`
+        # block in Taskfile.yml (which uses `printf '%s'`) byte-for-byte.
+        # The Python module is NOT invoked from Taskfile.yml -- it mirrors
+        # the same shape so Python callers receive the identical string.
         assert captured.out == "0.21.0"
         assert "\n" not in captured.out
 

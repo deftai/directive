@@ -513,14 +513,29 @@ def refresh_roadmap(project_root: Path) -> tuple[bool, str]:
 def run_build(project_root: Path, version: str | None = None) -> tuple[bool, str]:
     """Run ``task build`` for the release, pinning the artifact version (#723).
 
-    The Taskfile resolves its ``VERSION`` variable via
-    ``scripts/resolve_version.py``, which honors ``DEFT_RELEASE_VERSION``
-    over the latest annotated git tag. Setting the env var here makes the
-    in-flight release version (e.g. ``0.21.0``) the canonical source for
-    the artifact filename so ``dist/deft-{version}.zip`` always matches
-    the requested release rather than a stale Taskfile literal or the
-    most-recent tag (which lags the in-flight tag during ``task release``).
-    ``version`` may be ``None`` for callers that want the resolver default.
+    The Taskfile resolves its ``VERSION`` variable via the inline POSIX
+    ``sh:`` block in ``Taskfile.yml`` ``vars: VERSION``, which honors
+    ``DEFT_RELEASE_VERSION`` over the latest annotated git tag (mirrored
+    in ``scripts/resolve_version.py`` for Python callers + tests).
+    Setting the env var here makes the in-flight release version (e.g.
+    ``0.21.0``) the canonical source for the artifact filename so
+    ``dist/deft-{version}.zip`` always matches the requested release
+    rather than a stale Taskfile literal or the most-recent tag (which
+    lags the in-flight tag during ``task release``).
+
+    ``version`` may be ``None`` for callers that want the resolver
+    default (git tag -> dev fallback). When ``version`` is falsy, any
+    inherited ``DEFT_RELEASE_VERSION`` value is explicitly stripped from
+    the subprocess env -- otherwise a stale value leaked from the parent
+    shell (e.g. an interrupted prior ``task release`` run that exported
+    the var into the operator's session) would silently re-introduce the
+    exact stale-version bug #723 just closed.
+
+    Contract:
+        - ``version`` truthy: subprocess env carries
+          ``DEFT_RELEASE_VERSION=<version>``.
+        - ``version`` falsy / ``None``: subprocess env carries NO
+          ``DEFT_RELEASE_VERSION`` (any inherited value is removed).
     """
     if not task_binary_available():
         return False, "task binary not found on PATH"
@@ -529,6 +544,11 @@ def run_build(project_root: Path, version: str | None = None) -> tuple[bool, str
     env = os.environ.copy()
     if version:
         env["DEFT_RELEASE_VERSION"] = version
+    else:
+        # Strip any inherited value so version=None means "let the
+        # Taskfile resolver decide" (git tag -> dev fallback) and never
+        # "use whatever leaked from the parent shell" -- see #723.
+        env.pop("DEFT_RELEASE_VERSION", None)
     try:
         result = subprocess.run(
             ["task", "build"],
