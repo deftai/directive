@@ -151,6 +151,11 @@ def _make_config(project: Path, **overrides):
     return release.ReleaseConfig(**defaults)
 
 
+# Note: tests for the #720 --skip-ci / --skip-build flags live in
+# tests/cli/test_release_skip_flags.py to keep this file under the
+# 1000-line MUST limit per AGENTS.md.
+
+
 # ---------------------------------------------------------------------------
 # _validate_version
 # ---------------------------------------------------------------------------

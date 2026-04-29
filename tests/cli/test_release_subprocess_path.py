@@ -166,9 +166,16 @@ class TestMissingBinaryFallback:
         assert ok is False
         assert reason == "gh CLI not found on PATH"
 
-    def test_release_e2e_run_rehearsal_surfaces_canonical_reason(self, monkeypatch):
+    def test_release_e2e_verify_draft_release_surfaces_canonical_reason(
+        self, monkeypatch
+    ):
+        """Post-#720 run_rehearsal is an orchestrator that calls helpers --
+        the gh CLI is exercised by ``verify_draft_release`` inside the
+        rehearsal pipeline, so this is the helper that must surface the
+        canonical "gh CLI not found on PATH" reason.
+        """
         self._no_subprocess(monkeypatch)
-        ok, reason = release_e2e.run_rehearsal("deftai", "x")
+        ok, reason = release_e2e.verify_draft_release("deftai", "x", "0.0.1")
         assert ok is False
         assert reason == "gh CLI not found on PATH"
 
@@ -353,11 +360,15 @@ class TestEnvPropagation:
         release_e2e.destroy_temp_repo("deftai", "x")
         self._assert_env_kwarg(captured)
 
-    def test_release_e2e_run_rehearsal_propagates_env(
+    def test_release_e2e_verify_draft_release_propagates_env(
         self, monkeypatch, patched_which
     ):
+        """Post-#720 run_rehearsal is an orchestrator -- ``verify_draft_release``
+        is the gh-using helper inside the rehearsal pipeline, so env
+        propagation is asserted there (the orchestrator just chains helpers).
+        """
         captured = self._capture_subprocess(monkeypatch)
-        release_e2e.run_rehearsal("deftai", "x")
+        release_e2e.verify_draft_release("deftai", "x", "0.0.1")
         self._assert_env_kwarg(captured)
 
 
