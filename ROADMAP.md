@@ -11,7 +11,6 @@
 - **#628** -- chore(sync): complete Phase 6c LegacyArtifacts review for v0.20.0 self-migration (120 sections deferred)
 - **#629** -- chore(conventions): document migration-artifact exclusion pattern for consumer content-linting tests
 - **#630** -- migrator: auto-invoke render tasks at end of task migrate:vbrief
-- **#642** -- tracking: framework maintainability, rule ownership, and determinism codification (PR #401)
 
 ## Phase 3 -- Documentation & Content Fixes
 
@@ -59,6 +58,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#100** -- [Compliance] Evidence collection automation hooks
 - **#12** -- Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)
 - **#140** -- Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)
+- **#233** -- More Determinism (remaining): Phase 0 spec scaffolding, task doctor, build:verify, change:archive, task ci:local, task release
 - **#46** -- Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)
 - **#52** -- Install into `.deft/` (hidden directory) instead of `deft/`
 - **#55** -- Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54
@@ -310,4 +310,8 @@ Larger feature work -- only after issues are resolved and content is stable.
 - Single entry point Go installer -- `[completed]`
 - v0.6.0 CHANGELOG entry -- `[completed]`
 - v0.6.0 content (PRs #16–20) -- `[completed]`
+- **#636** -- installer: Go installer must read templates/agents-entry.md instead of hardcoded agentsMDEntry const (follow-up to #358 Option 3) -- `[completed]`
+- **#638** -- refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion -- `[completed]`
+- **#639** -- issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6 -- `[completed]`
+- **#641** -- roadmap:render should sort Phase X sections numerically instead of preserving incidental file order -- `[completed]`
 
