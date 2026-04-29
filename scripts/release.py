@@ -135,6 +135,14 @@ class ReleaseConfig:
     # draft until ``task release:publish`` flips it. Operators can opt
     # out via --no-draft (rare; e.g. automated security patches).
     draft: bool = True
+    # #720: e2e-rehearsal escape hatches. ``--skip-ci`` skips Step 3
+    # (task ci:local / task check fallback) so the rehearsal does not
+    # re-run CI inside an auto-created temp repo (CI semantics are
+    # covered by the unit tests at every commit on master). ``--skip-build``
+    # skips Step 6 (task build) similarly. Defaults preserve pre-#720
+    # behaviour: both run unless the operator explicitly opts out.
+    skip_ci: bool = False
+    skip_build: bool = False
 
 
 # ---- argument parsing -------------------------------------------------------
@@ -172,6 +180,26 @@ def _build_parser() -> argparse.ArgumentParser:
         "--allow-dirty",
         action="store_true",
         help="Bypass the dirty-tree pre-flight (use only for rehearsals).",
+    )
+    # #720: e2e-rehearsal escape hatches.
+    parser.add_argument(
+        "--skip-ci",
+        action="store_true",
+        help=(
+            "Skip Step 3 (task ci:local / task check fallback). Used by "
+            "`task release:e2e` to keep wall-clock manageable inside the "
+            "auto-created temp repo (CI semantics are covered by the "
+            "unit-test suite, not the e2e rehearsal)."
+        ),
+    )
+    parser.add_argument(
+        "--skip-build",
+        action="store_true",
+        help=(
+            "Skip Step 6 (task build). Used by `task release:e2e` to keep "
+            "wall-clock manageable; build artefacts are not needed for the "
+            "draft-release verification step."
+        ),
     )
     # #716: default-draft. ``--no-draft`` opts out (rare; security patches).
     parser.add_argument(
@@ -949,7 +977,12 @@ def run_pipeline(config: ReleaseConfig) -> int:
 
     # Step 3: CI.
     label = "Pre-flight CI (task ci:local | fallback task check)"
-    if config.dry_run:
+    if config.skip_ci:
+        # #720: e2e rehearsal opts out -- CI is covered by the unit-test
+        # suite at every commit on master, not by re-running it inside
+        # the auto-created temp repo.
+        _emit(3, label, "SKIP (--skip-ci)")
+    elif config.dry_run:
         _emit(3, label, "DRYRUN (would run task ci:local with task check fallback)")
     else:
         ok, reason = run_ci(project_root)
@@ -997,9 +1030,13 @@ def run_pipeline(config: ReleaseConfig) -> int:
 
     # Step 6: build dist (#723: pin DEFT_RELEASE_VERSION so the artifact
     # filename matches the in-flight release version, not the stale
-    # Taskfile literal or the most-recent git tag).
+    # Taskfile literal or the most-recent git tag; #720: --skip-build
+    # opts out for e2e rehearsals where build artefacts are not needed
+    # for the draft-release verification step).
     label = f"Build dist (task build, DEFT_RELEASE_VERSION={version})"
-    if config.dry_run:
+    if config.skip_build:
+        _emit(6, label, "SKIP (--skip-build)")
+    elif config.dry_run:
         _emit(
             6,
             label,
@@ -1166,6 +1203,8 @@ def main(argv: list[str] | None = None) -> int:
         skip_release=args.skip_release,
         allow_dirty=args.allow_dirty,
         draft=args.draft,
+        skip_ci=args.skip_ci,
+        skip_build=args.skip_build,
     )
     return run_pipeline(config)
 

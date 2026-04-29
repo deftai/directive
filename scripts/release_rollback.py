@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""release_rollback.py -- State-aware release unwind (#716).
+"""release_rollback.py -- State-aware release unwind (#716, #725).
 
 Companion to ``scripts/release.py`` and ``scripts/release_publish.py``
 per the #716 safety hardening Q3 decision. ``task release:rollback --
@@ -9,15 +9,62 @@ of four detected post-release states:
 +----+----------------------------------------+--------------------------------------------+
 | #  | Detected state                          | Action                                     |
 +====+========================================+============================================+
-| 1  | Local commit + tag, no push            | git tag -d + git reset --hard HEAD~1       |
-| 2  | Tag pushed, no release                 | git push --delete origin v* + tag -d +     |
-|    |                                        | git push --force-with-lease origin <base>  |
-| 3  | Release published, downloads <= guard  | gh release delete --yes --cleanup-tag,     |
-|    |                                        | then unwind commit                         |
+| 1  | Local commit + tag, no push            | resolve release-prep SHA + git tag -d +    |
+|    |                                        | git revert <sha> --no-edit                 |
+| 2  | Tag pushed, no release                 | resolve release-prep SHA + git push        |
+|    |                                        | --delete origin v* + tag -d +              |
+|    |                                        | git revert <sha> --no-edit + git push      |
+|    |                                        | origin <base> (no force)                   |
+| 3  | Release published, downloads <= guard  | resolve release-prep SHA + gh release      |
+|    |                                        | delete --yes --cleanup-tag + git revert    |
+|    |                                        | <sha> --no-edit + git push origin <base>   |
+|    |                                        | (no force)                                 |
 | 4  | Release published, downloads > guard   | Refuse unless --allow-data-loss; recommend |
 |    |                                        | hot-fix-path (next patch with withdrawal   |
 |    |                                        | note)                                      |
 +----+----------------------------------------+--------------------------------------------+
+
+Forward-revert + normal push (#725)
+-----------------------------------
+Prior to #725 the unwind used ``git reset --hard HEAD~1`` and
+``git push --force-with-lease origin <base>``. Both were unsafe:
+
+- ``HEAD~1`` is the wrong target whenever ANY commit lands between
+  release-prep and the rollback invocation (a normal operational
+  scenario -- fix a release defect via PR, then decide to rollback).
+  Live demonstration: PR #722 merged on top of release-prep ``6573335``;
+  ``task release:rollback`` then reset master from ``94d1aa5`` ->
+  ``6573335``, unwinding PR #722 instead of release-prep.
+- ``--force-with-lease`` is rejected by GitHub branch-protection rules
+  that disallow force-push on ``master`` (the default for protected
+  branches), so the rollback aborts after ``gh release delete`` already
+  succeeded -- leaving the operator in a half-rolled-back state.
+
+#725 fix: resolve the actual release-prep commit SHA (``git rev-parse
+v<version>^{commit}`` first; ``git log --grep='^chore(release):
+v<version>'`` fallback) BEFORE the tag is deleted, then run ``git
+revert <sha> --no-edit`` (forward commit, branch-protection-compatible).
+Push is a normal ``git push origin <base>`` (no ``--force``).
+
+Manual recovery on revert conflict
+----------------------------------
+``git revert`` can conflict when an intervening commit touched a file
+the release-prep commit also touched (e.g. CHANGELOG.md / ROADMAP.md
+edited by an out-of-band hot-fix between release-prep and rollback).
+The script aborts the revert (``git revert --abort``) and refuses with
+an operator-readable diagnostic. Manual recovery::
+
+    1. git revert <release-prep-sha> --no-edit  # re-run, observe conflicts
+    2. Resolve conflicts in CHANGELOG.md / ROADMAP.md (or whatever).
+       - Restore the pre-release Unreleased section that the release
+         commit replaced (look for it on the parent commit).
+       - Drop the new ## [<version>] heading.
+    3. git add <resolved-files>
+    4. git revert --continue  # produces the revert commit
+    5. git push origin <base-branch>
+
+The SHA is logged via ``[rollback] Resolve release-prep SHA... OK
+(<sha>)`` so the operator can copy it out of the script's stderr.
 
 Time-windowed download-count guard (Q3)
 ---------------------------------------
@@ -52,8 +99,9 @@ Three-state exit codes
          or step-level failure (gh / git failure during unwind)
     2 -- config / argument error (malformed version, repo unresolvable, ...)
 
-Refs #716 (canonical spec; safety hardening Item 3 of 7),
-#74 (foundation), #233, #642, #635, #709, #710.
+Refs #725 (HEAD~1 + force-push fix), #716 (canonical spec; safety
+hardening Item 3 of 7), #722 (subprocess PATHEXT fix; release._resolve_gh
+helper), #74 (foundation), #233, #642, #635, #709, #710.
 """
 
 from __future__ import annotations
@@ -306,32 +354,143 @@ def git_delete_remote_tag(project_root: Path, version: str) -> tuple[bool, str]:
     return True, f"deleted remote tag {tag}"
 
 
-def git_reset_head_minus_one(project_root: Path) -> tuple[bool, str]:
-    """Unwind the local release commit via ``git reset --hard HEAD~1``.
+# Subject prefix for the auto-generated release-prep commit. Mirrors
+# `scripts/release.py::_release_commit_subject` but kept as a private
+# constant here so resolve_release_prep_sha does not have to import the
+# subject-builder helper at module scope (release.py is already imported
+# above for shared helpers; this avoids creating a tighter coupling).
+_RELEASE_COMMIT_SUBJECT_PREFIX = "chore(release): v"
 
-    ``--hard`` is intentional: the release commit only carries the
-    auto-promoted CHANGELOG / ROADMAP, which we want discarded so the
-    next release attempt starts from a clean Unreleased section. The
-    operator's personal/in-progress edits should never be staged into a
-    release commit (commit_release_artifacts only stages the canonical
-    artifacts), so reset --hard is safe in this context.
+
+def resolve_release_prep_sha(
+    project_root: Path, version: str
+) -> tuple[str, str]:
+    """Resolve the release-prep commit SHA for ``v<version>`` (#725).
+
+    Returns ``(sha, reason)``. ``sha`` is the empty string when neither
+    probe resolves; ``reason`` carries a one-line operator-readable
+    diagnostic (empty on success).
+
+    Probe order:
+
+    1. ``git rev-parse v<version>^{commit}`` -- works whenever the local
+       tag still points at the release-prep commit (states 1, 2, and 3
+       BEFORE ``gh release delete --cleanup-tag`` removes the remote
+       ref; callers MUST resolve before the tag is deleted).
+    2. ``git log --grep='^chore(release): v<version>' --format=%H -n 1``
+       -- fallback that walks back from HEAD looking for the canonical
+       release-commit subject. Useful when the tag is missing (e.g. the
+       operator deleted it manually before invoking the rollback).
+
+    The pre-#725 implementation used ``git reset --hard HEAD~1`` which
+    silently picked the wrong commit whenever ANY commit landed between
+    release-prep and rollback (a normal operational scenario). #725
+    replaces that with this resolved-SHA helper + a forward ``git
+    revert`` so the unwind targets the right commit regardless of
+    intervening history.
     """
-    result = release._run_git(project_root, "reset", "--hard", "HEAD~1")
-    if result.returncode != 0:
-        return False, f"git reset failed: {result.stderr.strip()}"
-    return True, "reset HEAD to HEAD~1 (release commit unwound)"
+    tag = f"v{version}"
+    rev_parse = release._run_git(
+        project_root, "rev-parse", f"{tag}^{{commit}}"
+    )
+    if rev_parse.returncode == 0:
+        sha = (rev_parse.stdout or "").strip()
+        if sha:
+            return sha, ""
+
+    # Fallback: --grep walks back from HEAD looking for the canonical
+    # release-commit subject (see scripts/release.py::_release_commit_subject).
+    grep_pattern = f"^{_RELEASE_COMMIT_SUBJECT_PREFIX}{version}"
+    grep = release._run_git(
+        project_root,
+        "log",
+        "--grep",
+        grep_pattern,
+        "--format=%H",
+        "-n",
+        "1",
+    )
+    if grep.returncode == 0:
+        # Single strip + splitlines; the pre-#720 form ran .strip() twice
+        # with diverging condition vs. value expressions which Greptile
+        # flagged as confusing on PR #728.
+        lines = (grep.stdout or "").strip().splitlines()
+        if lines:
+            sha = lines[0]
+            if sha:
+                return sha, ""
+
+    return "", (
+        f"could not resolve release-prep SHA for v{version} "
+        f"(tried `git rev-parse {tag}^{{commit}}` and "
+        f"`git log --grep={grep_pattern!r}`)"
+    )
 
 
-def git_force_push_base(
+def git_revert_release_commit(
+    project_root: Path, release_prep_sha: str
+) -> tuple[bool, str]:
+    """Forward-revert the release-prep commit (#725).
+
+    Runs ``git revert <release_prep_sha> --no-edit``. On conflict (revert
+    cannot apply cleanly because an intervening commit touched the same
+    files), runs ``git revert --abort`` to restore a clean working tree
+    and returns ``(False, manual-recovery hint)`` so the caller can
+    refuse the rollback rather than leave the operator in a half-applied
+    state. The hint points at the Manual recovery section in the module
+    docstring.
+
+    Replaces the pre-#725 ``git reset --hard HEAD~1`` flow which (a)
+    silently unwound the wrong commit when intervening commits existed
+    and (b) required a force-push to land on origin (rejected by GitHub
+    branch-protection rules disallowing force-push). The forward revert
+    is auditable, branch-protection-compatible, and safe across
+    intervening history.
+    """
+    result = release._run_git(
+        project_root, "revert", release_prep_sha, "--no-edit"
+    )
+    if result.returncode == 0:
+        return True, (
+            f"reverted release-prep commit {release_prep_sha[:12]} "
+            f"(forward revert; no force-push required)"
+        )
+    # Conflict path: abort the in-progress revert so the working tree is
+    # clean for the operator's manual recovery, then refuse with a
+    # diagnostic + pointer to the script docstring.
+    abort = release._run_git(project_root, "revert", "--abort")
+    abort_note = ""
+    if abort.returncode != 0:
+        abort_note = (
+            f" (additionally, `git revert --abort` failed: "
+            f"{abort.stderr.strip()})"
+        )
+    stderr = (result.stderr or "").strip()
+    return False, (
+        f"git revert {release_prep_sha[:12]} conflicted: {stderr}{abort_note}. "
+        f"Manual recovery: re-run `git revert {release_prep_sha} --no-edit`, "
+        f"resolve conflicts (typically CHANGELOG.md / ROADMAP.md), "
+        f"`git revert --continue`, then `git push origin <base-branch>`. "
+        f"See the Manual recovery section in scripts/release_rollback.py."
+    )
+
+
+def git_push_base(
     project_root: Path, base_branch: str
 ) -> tuple[bool, str]:
-    """Force-with-lease push the (now-unwound) base branch to origin."""
-    result = release._run_git(
-        project_root, "push", "--force-with-lease", "origin", base_branch
-    )
+    """Push the (revert-augmented) base branch to origin (#725).
+
+    Forward-only push: ``git push origin <base_branch>`` with NO
+    ``--force`` / ``--force-with-lease``. Compatible with GitHub
+    branch-protection rules that disallow force-push on ``master``
+    (the default for protected branches), so the rollback flow lands
+    end-to-end on a protected default branch instead of failing the
+    second-to-last step like the pre-#725 force-with-lease path did.
+    """
+    result = release._run_git(project_root, "push", "origin", base_branch)
     if result.returncode != 0:
-        return False, f"git push --force-with-lease failed: {result.stderr.strip()}"
-    return True, f"force-with-lease pushed {base_branch}"
+        return False, f"git push failed: {result.stderr.strip()}"
+    return True, f"pushed {base_branch} to origin (no force)"
 
 
 # ---- guard logic ------------------------------------------------------------
@@ -497,33 +656,75 @@ def _emit(label: str, status: str) -> None:
     print(f"[rollback] {label}... {status}", file=sys.stderr)
 
 
+def _resolve_prep_sha_or_emit(
+    config: RollbackConfig,
+) -> tuple[str, int | None]:
+    """Resolve the release-prep SHA and emit a status line.
+
+    Returns ``(sha, exit_code)``. ``exit_code`` is None on success (the
+    caller proceeds with the SHA); when the probe fails it is
+    ``EXIT_VIOLATION`` so the caller can ``return rc`` immediately
+    without a separate emit. Used by every unwind branch (states 1, 2,
+    3) to capture the SHA BEFORE any tag deletion (which would make
+    rev-parse fail) -- centralised here so the per-state code stays
+    short and the resolution-then-refuse semantics are consistent.
+    """
+    sha, reason = resolve_release_prep_sha(config.project_root, config.version)
+    if not sha:
+        _emit(f"Resolve release-prep SHA for v{config.version}", f"FAIL ({reason})")
+        return "", EXIT_VIOLATION
+    _emit(
+        f"Resolve release-prep SHA for v{config.version}",
+        f"OK ({sha})",
+    )
+    return sha, None
+
+
 def _unwind_local(config: RollbackConfig) -> int:
-    """State 1: local commit + tag, no push."""
+    """State 1: local commit + tag, no push.
+
+    Pre-#725 used ``git tag -d`` + ``git reset --hard HEAD~1``. #725
+    replaces the reset with a resolved-SHA forward revert so the
+    unwind targets the release-prep commit even when the operator made
+    additional local commits on top. No push is required (state 1
+    means nothing has been pushed).
+    """
     project_root = config.project_root
     version = config.version
     if config.dry_run:
         _emit(
             f"Unwind local v{version}",
-            f"DRYRUN (would run `git tag -d v{version}` + `git reset --hard HEAD~1`)",
+            (
+                f"DRYRUN (would resolve release-prep SHA + run "
+                f"`git tag -d v{version}` + `git revert <sha> --no-edit`)"
+            ),
         )
         return EXIT_OK
-    # Delete local tag first so a follow-up `git reset --hard HEAD~1` does
-    # not orphan the tag pointing at the unwound commit.
+    # Resolve BEFORE deleting the tag (rev-parse depends on the tag).
+    sha, refusal = _resolve_prep_sha_or_emit(config)
+    if refusal is not None:
+        return refusal
     ok, reason = git_delete_local_tag(project_root, version)
     if not ok:
         _emit(f"Delete local tag v{version}", f"FAIL ({reason})")
         return EXIT_VIOLATION
     _emit(f"Delete local tag v{version}", f"OK ({reason})")
-    ok, reason = git_reset_head_minus_one(project_root)
+    ok, reason = git_revert_release_commit(project_root, sha)
     if not ok:
-        _emit("Reset HEAD~1", f"FAIL ({reason})")
+        _emit(f"Revert release-prep commit {sha[:12]}", f"FAIL ({reason})")
         return EXIT_VIOLATION
-    _emit("Reset HEAD~1", f"OK ({reason})")
+    _emit(f"Revert release-prep commit {sha[:12]}", f"OK ({reason})")
     return EXIT_OK
 
 
 def _unwind_tag_pushed_no_release(config: RollbackConfig) -> int:
-    """State 2: tag pushed, no release."""
+    """State 2: tag pushed, no release.
+
+    Pre-#725 deleted both tag refs, reset --hard HEAD~1, and force-pushed.
+    #725 deletes both tag refs, runs a forward revert against the resolved
+    release-prep SHA, then pushes normally (no force) so the flow is safe
+    across intervening commits and compatible with branch protection.
+    """
     project_root = config.project_root
     version = config.version
     base_branch = config.base_branch
@@ -531,12 +732,18 @@ def _unwind_tag_pushed_no_release(config: RollbackConfig) -> int:
         _emit(
             f"Unwind pushed tag v{version}",
             (
-                f"DRYRUN (would run `git push --delete origin v{version}` + "
-                f"`git tag -d v{version}` + `git reset --hard HEAD~1` + "
-                f"`git push --force-with-lease origin {base_branch}`)"
+                f"DRYRUN (would resolve release-prep SHA + run "
+                f"`git push --delete origin v{version}` + "
+                f"`git tag -d v{version}` + `git revert <sha> --no-edit` + "
+                f"`git push origin {base_branch}` (no force))"
             ),
         )
         return EXIT_OK
+
+    # Resolve BEFORE deleting either tag ref (rev-parse depends on the tag).
+    sha, refusal = _resolve_prep_sha_or_emit(config)
+    if refusal is not None:
+        return refusal
 
     ok, reason = git_delete_remote_tag(project_root, version)
     if not ok:
@@ -551,22 +758,19 @@ def _unwind_tag_pushed_no_release(config: RollbackConfig) -> int:
             return EXIT_VIOLATION
         _emit(f"Delete local tag v{version}", f"OK ({reason})")
 
-    ok, reason = git_reset_head_minus_one(project_root)
+    ok, reason = git_revert_release_commit(project_root, sha)
     if not ok:
-        _emit("Reset HEAD~1", f"FAIL ({reason})")
+        _emit(f"Revert release-prep commit {sha[:12]}", f"FAIL ({reason})")
         return EXIT_VIOLATION
-    _emit("Reset HEAD~1", f"OK ({reason})")
+    _emit(f"Revert release-prep commit {sha[:12]}", f"OK ({reason})")
 
-    # Force-with-lease push so origin reflects the unwound base branch.
-    # `--force-with-lease` (rather than `--force`) refuses to overwrite
-    # remote work landed by other contributors after the operator started
-    # the rollback, defending against the rare case where someone pushed
-    # to master between the release tag and the rollback decision.
-    ok, reason = git_force_push_base(project_root, base_branch)
+    # Forward push (no --force / --force-with-lease). Compatible with GitHub
+    # branch-protection rules disallowing force-push (#725).
+    ok, reason = git_push_base(project_root, base_branch)
     if not ok:
-        _emit(f"Force-with-lease push {base_branch}", f"FAIL ({reason})")
+        _emit(f"Push {base_branch} to origin", f"FAIL ({reason})")
         return EXIT_VIOLATION
-    _emit(f"Force-with-lease push {base_branch}", f"OK ({reason})")
+    _emit(f"Push {base_branch} to origin", f"OK ({reason})")
     return EXIT_OK
 
 
@@ -608,10 +812,24 @@ def _unwind_released(
             f"DRYRUN (would run `gh release delete v{version} --yes --cleanup-tag`)",
         )
         _emit(
-            "Reset HEAD~1",
-            "DRYRUN (would run `git reset --hard HEAD~1`)",
+            f"Revert release-prep commit for v{version}",
+            (
+                f"DRYRUN (would resolve release-prep SHA + run "
+                f"`git revert <sha> --no-edit` + `git push origin "
+                f"{config.base_branch}` (no force))"
+            ),
         )
         return EXIT_OK
+
+    # Resolve the release-prep SHA BEFORE `gh release delete --cleanup-tag`
+    # removes the remote tag (rev-parse uses the local tag, which is still
+    # present at this point because the operator pushed but has not yet
+    # rolled back). Capturing here also defends against the local tag
+    # being inadvertently cleaned up by the gh call (some gh versions
+    # update local refs as well as remote).
+    sha, refusal = _resolve_prep_sha_or_emit(config)
+    if refusal is not None:
+        return refusal
 
     sleep_seconds = 0 if config.skip_sleep else _DOUBLE_READ_SLEEP_SECONDS
     ok, first_count, second_count, reason = double_read_downloads(
@@ -653,20 +871,19 @@ def _unwind_released(
         else:
             _emit(f"Delete local tag v{version}", f"OK ({reason})")
 
-    ok, reason = git_reset_head_minus_one(project_root)
+    ok, reason = git_revert_release_commit(project_root, sha)
     if not ok:
-        _emit("Reset HEAD~1", f"FAIL ({reason})")
+        _emit(f"Revert release-prep commit {sha[:12]}", f"FAIL ({reason})")
         return EXIT_VIOLATION
-    _emit("Reset HEAD~1", f"OK ({reason})")
+    _emit(f"Revert release-prep commit {sha[:12]}", f"OK ({reason})")
 
-    # Force-with-lease push so origin's base branch matches the unwound
-    # local state; without this, master/origin would still carry the
-    # release commit.
-    ok, reason = git_force_push_base(project_root, config.base_branch)
+    # Forward push (no --force / --force-with-lease). Compatible with GitHub
+    # branch-protection rules disallowing force-push (#725).
+    ok, reason = git_push_base(project_root, config.base_branch)
     if not ok:
-        _emit(f"Force-with-lease push {config.base_branch}", f"FAIL ({reason})")
+        _emit(f"Push {config.base_branch} to origin", f"FAIL ({reason})")
         return EXIT_VIOLATION
-    _emit(f"Force-with-lease push {config.base_branch}", f"OK ({reason})")
+    _emit(f"Push {config.base_branch} to origin", f"OK ({reason})")
 
     return EXIT_OK
 

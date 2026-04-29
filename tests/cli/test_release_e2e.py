@@ -1,17 +1,25 @@
-"""test_release_e2e.py -- Tests for scripts/release_e2e.py (#716).
+"""test_release_e2e.py -- Tests for scripts/release_e2e.py (#716, #720).
 
-The e2e harness provisions and destroys real GitHub repos. Tests
-mock both helpers so CI never hits real GitHub. Coverage:
-
+Coverage:
 - generate_repo_slug: produces deftai-release-test-<ts>-<uuid6>
-- provision_temp_repo / destroy_temp_repo / run_rehearsal: gh-CLI happy
-  + failure paths (mocked subprocess.run)
-- run_e2e: provision -> rehearse -> destroy ordering; cleanup runs
-  even when rehearsal fails; cleanup-failure warning does not flip
-  the exit code; --keep-repo skips cleanup; --dry-run invokes nothing
-- main: --help exits 0; empty --owner exits 2
+- provision_temp_repo / destroy_temp_repo: gh-CLI happy + failure paths
+- #720 rehearsal step helpers (each isolated for independent testing):
+  - clone_repo_to_temp: subprocess.run argv + success / failure paths
+  - set_origin_to_temp_repo: argv contains 'remote set-url' + temp URL
+  - push_mirror: argv carries explicit heads+tags refspecs (no --mirror; #728)
+  - dispatch_task_release: argv carries --skip-ci + --skip-build
+  - verify_draft_release: success path + isDraft=false refusal +
+    tagName mismatch refusal
+  - verify_tag: ls-remote presence / absence
+  - dispatch_task_release_rollback: argv shape
+- run_rehearsal: walks the seven steps in order; short-circuits on first
+  failure; passes the configured version through
+- run_e2e: provision -> rehearse -> destroy ordering; cleanup runs even
+  when rehearsal fails OR raises; cleanup-failure warning preserves
+  rehearsal exit code; --keep-repo skips destroy; --dry-run invokes nothing
+- main: --help exits 0; dry-run round-trip via main
 
-Refs #716, #74.
+Refs #716, #720, #74.
 """
 
 from __future__ import annotations
@@ -75,7 +83,6 @@ def _config(**overrides):
 class TestGenerateRepoSlug:
     def test_format_matches_pattern(self):
         slug = release_e2e.generate_repo_slug()
-        # Pattern: deftai-release-test-<14-digit-ts>-<6-hex>
         assert re.match(
             r"^deftai-release-test-\d{14}-[0-9a-f]{6}$", slug
         ), f"unexpected slug: {slug}"
@@ -88,7 +95,7 @@ class TestGenerateRepoSlug:
 
 
 # ---------------------------------------------------------------------------
-# provision_temp_repo
+# provision_temp_repo / destroy_temp_repo
 # ---------------------------------------------------------------------------
 
 
@@ -134,11 +141,6 @@ class TestProvisionTempRepo:
         assert "gh CLI not found" in reason
 
 
-# ---------------------------------------------------------------------------
-# destroy_temp_repo
-# ---------------------------------------------------------------------------
-
-
 class TestDestroyTempRepo:
     def test_happy_path_invokes_gh_repo_delete_yes(self, monkeypatch):
         captured = {}
@@ -175,40 +177,487 @@ class TestDestroyTempRepo:
 
 
 # ---------------------------------------------------------------------------
-# run_rehearsal
+# Rehearsal step helpers (#720)
 # ---------------------------------------------------------------------------
 
 
-class TestRunRehearsal:
-    def test_smoke_test_passes_when_repo_view_succeeds(self, monkeypatch):
-        monkeypatch.setattr(
-            release_e2e.shutil, "which", lambda _: "/usr/bin/gh"
+class TestCloneRepoToTemp:
+    def test_happy_path(self, monkeypatch, tmp_path):
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release_e2e.clone_repo_to_temp(
+            tmp_path / "src", tmp_path / "clone"
         )
+        assert ok is True
+        assert "clone" in captured["cmd"]
+        assert str(tmp_path / "src") in captured["cmd"]
+        assert str(tmp_path / "clone") in captured["cmd"]
+
+    def test_failure_surfaces_stderr(self, monkeypatch, tmp_path):
+        def fake_run(cmd, **kwargs):
+            return SimpleNamespace(
+                stdout="", stderr="not a git repository", returncode=128
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release_e2e.clone_repo_to_temp(
+            tmp_path / "src", tmp_path / "clone"
+        )
+        assert ok is False
+        assert "not a git repository" in reason
+
+    def test_pins_deft_project_root_to_target_dir(self, monkeypatch, tmp_path):
+        """#728 cycle 2 P1: subprocess env MUST pin DEFT_PROJECT_ROOT to
+        ``target_dir`` so an operator with that variable already
+        exported in their shell does not have downstream rehearsal
+        helpers resolve back to the real directive repo."""
+        monkeypatch.setenv("DEFT_PROJECT_ROOT", "/operator/real/repo")
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        target = tmp_path / "clone"
+        ok, _ = release_e2e.clone_repo_to_temp(tmp_path / "src", target)
+        assert ok is True
+        env = captured["env"]
+        assert env is not None, "subprocess env must be explicitly passed"
+        assert env.get("DEFT_PROJECT_ROOT") == str(target), (
+            "DEFT_PROJECT_ROOT must be pinned to target_dir, got "
+            f"{env.get('DEFT_PROJECT_ROOT')!r}"
+        )
+        assert env["DEFT_PROJECT_ROOT"] != "/operator/real/repo"
+
+
+class TestSetOriginToTempRepo:
+    def test_happy_path_uses_https_url(self, monkeypatch, tmp_path):
+        captured = {}
+
+        def fake_run_git(project_root, *args, check=False):
+            captured["args"] = args
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+        monkeypatch.setattr(release_e2e.release, "_run_git", fake_run_git)
+        ok, reason = release_e2e.set_origin_to_temp_repo(
+            tmp_path, "deftai", "deftai-release-test-X"
+        )
+        assert ok is True
+        assert "https://github.com/deftai/deftai-release-test-X.git" in reason
+        assert captured["args"] == (
+            "remote",
+            "set-url",
+            "origin",
+            "https://github.com/deftai/deftai-release-test-X.git",
+        )
+
+    def test_failure_surfaces_stderr(self, monkeypatch, tmp_path):
+        def fake_run_git(project_root, *args, check=False):
+            return SimpleNamespace(
+                returncode=128, stdout="", stderr="no such remote"
+            )
+
+        monkeypatch.setattr(release_e2e.release, "_run_git", fake_run_git)
+        ok, reason = release_e2e.set_origin_to_temp_repo(
+            tmp_path, "deftai", "x"
+        )
+        assert ok is False
+        assert "no such remote" in reason
+
+
+class TestPushMirror:
+    def test_happy_path_uses_explicit_refspecs(self, monkeypatch, tmp_path):
+        """#728 Greptile P1: push_mirror MUST use explicit heads+tags refspecs,
+        not ``git push --mirror``.
+
+        ``--mirror`` from a non-bare clone pushes ``refs/remotes/*`` to
+        the remote alongside real branches/tags. GitHub's receive-pack
+        rejects writes to that namespace, which would fail every real
+        ``task release:e2e`` invocation. Explicit refspecs cover the
+        two namespaces the rehearsal cares about (heads + tags) without
+        leaking remote-tracking refs.
+        """
+        captured = {}
+
+        def fake_run_git(project_root, *args, check=False):
+            captured["args"] = args
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+        monkeypatch.setattr(release_e2e.release, "_run_git", fake_run_git)
+        ok, reason = release_e2e.push_mirror(tmp_path)
+        assert ok is True
+        # Greptile P1 acceptance: argv MUST be the explicit-refspec form.
+        assert captured["args"] == (
+            "push",
+            "origin",
+            "refs/heads/*:refs/heads/*",
+            "refs/tags/*:refs/tags/*",
+        )
+        # The argv MUST NOT carry --mirror under any reordering.
+        assert "--mirror" not in captured["args"]
+        assert "heads + tags" in reason
+
+    def test_failure_surfaces_stderr(self, monkeypatch, tmp_path):
+        def fake_run_git(project_root, *args, check=False):
+            return SimpleNamespace(
+                returncode=1, stdout="", stderr="permission denied"
+            )
+
+        monkeypatch.setattr(release_e2e.release, "_run_git", fake_run_git)
+        ok, reason = release_e2e.push_mirror(tmp_path)
+        assert ok is False
+        assert "permission denied" in reason
+        # Diagnostic mentions the new push shape.
+        assert "heads+tags" in reason or "refspec" in reason.lower()
+
+
+class TestDispatchTaskRelease:
+    def test_argv_carries_skip_ci_and_skip_build(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _: "/usr/bin/task")
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, _ = release_e2e.dispatch_task_release(
+            tmp_path, "0.0.1", "deftai/temp-x"
+        )
+        assert ok is True
+        # #720 acceptance: --skip-ci AND --skip-build are passed through.
+        assert "--skip-ci" in captured["cmd"]
+        assert "--skip-build" in captured["cmd"]
+        assert captured["cmd"][0] == "task"
+        assert captured["cmd"][1] == "release"
+        assert "0.0.1" in captured["cmd"]
+        assert "deftai/temp-x" in captured["cmd"]
+
+    def test_pins_deft_project_root_to_clone_dir(self, monkeypatch, tmp_path):
+        """#728 cycle 2 P1: subprocess env MUST pin DEFT_PROJECT_ROOT to
+        ``clone_dir``. Without this, an operator with the variable
+        exported would have ``task release`` resolve to the real
+        directive repo and push spurious v0.0.1 artefacts to
+        ``deftai/directive``."""
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _: "/usr/bin/task")
+        monkeypatch.setenv("DEFT_PROJECT_ROOT", "/operator/real/repo")
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        clone_dir = tmp_path / "clone"
+        ok, _ = release_e2e.dispatch_task_release(
+            clone_dir, "0.0.1", "deftai/temp-x"
+        )
+        assert ok is True
+        env = captured["env"]
+        assert env is not None
+        assert env.get("DEFT_PROJECT_ROOT") == str(clone_dir), (
+            "DEFT_PROJECT_ROOT must be pinned to clone_dir, got "
+            f"{env.get('DEFT_PROJECT_ROOT')!r}"
+        )
+        assert env["DEFT_PROJECT_ROOT"] != "/operator/real/repo"
+
+    def test_task_missing_returns_false(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _: None)
+        ok, reason = release_e2e.dispatch_task_release(
+            tmp_path, "0.0.1", "deftai/x"
+        )
+        assert ok is False
+        assert "task binary not found" in reason
+
+    def test_failure_surfaces_stderr(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _: "/usr/bin/task")
 
         def fake_run(cmd, **kwargs):
             return SimpleNamespace(
-                stdout='{"name":"x","visibility":"PRIVATE"}',
+                stdout="", stderr="pipeline step failed", returncode=1
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release_e2e.dispatch_task_release(
+            tmp_path, "0.0.1", "deftai/x"
+        )
+        assert ok is False
+        assert "pipeline step failed" in reason
+
+
+class TestVerifyDraftRelease:
+    def test_happy_path_isdraft_true_and_tag_match(self, monkeypatch):
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _: "/usr/bin/gh")
+
+        def fake_run(cmd, **kwargs):
+            return SimpleNamespace(
+                stdout='{"isDraft": true, "tagName": "v0.0.1", "name": "v0.0.1", "url": "..."}',
                 stderr="",
                 returncode=0,
             )
 
         monkeypatch.setattr(subprocess, "run", fake_run)
-        ok, reason = release_e2e.run_rehearsal("deftai", "x")
-        assert ok is True
-        assert "exists" in reason
-
-    def test_failure_when_repo_view_fails(self, monkeypatch):
-        monkeypatch.setattr(
-            release_e2e.shutil, "which", lambda _: "/usr/bin/gh"
+        ok, reason = release_e2e.verify_draft_release(
+            "deftai", "x", "0.0.1"
         )
+        assert ok is True
+        assert "verified draft v0.0.1" in reason
+
+    def test_isdraft_false_refuses(self, monkeypatch):
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _: "/usr/bin/gh")
 
         def fake_run(cmd, **kwargs):
-            return SimpleNamespace(stdout="", stderr="not found", returncode=1)
+            return SimpleNamespace(
+                stdout='{"isDraft": false, "tagName": "v0.0.1"}',
+                stderr="",
+                returncode=0,
+            )
 
         monkeypatch.setattr(subprocess, "run", fake_run)
-        ok, reason = release_e2e.run_rehearsal("deftai", "x")
+        ok, reason = release_e2e.verify_draft_release(
+            "deftai", "x", "0.0.1"
+        )
+        assert ok is False
+        assert "isDraft=true" in reason
+
+    def test_tag_mismatch_refuses(self, monkeypatch):
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _: "/usr/bin/gh")
+
+        def fake_run(cmd, **kwargs):
+            return SimpleNamespace(
+                stdout='{"isDraft": true, "tagName": "v9.9.9"}',
+                stderr="",
+                returncode=0,
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release_e2e.verify_draft_release(
+            "deftai", "x", "0.0.1"
+        )
+        assert ok is False
+        assert "tagName" in reason
+        assert "v9.9.9" in reason
+
+    def test_gh_failure_returns_false(self, monkeypatch):
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _: "/usr/bin/gh")
+
+        def fake_run(cmd, **kwargs):
+            return SimpleNamespace(
+                stdout="", stderr="not found", returncode=1
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release_e2e.verify_draft_release(
+            "deftai", "x", "0.0.1"
+        )
         assert ok is False
         assert "not found" in reason
+
+
+class TestVerifyTag:
+    def test_present_succeeds(self, monkeypatch, tmp_path):
+        def fake_run_git(project_root, *args, check=False):
+            return SimpleNamespace(
+                returncode=0,
+                stdout="abc123\trefs/tags/v0.0.1\n",
+                stderr="",
+            )
+
+        monkeypatch.setattr(release_e2e.release, "_run_git", fake_run_git)
+        ok, _ = release_e2e.verify_tag(tmp_path, "0.0.1")
+        assert ok is True
+
+    def test_absent_refuses(self, monkeypatch, tmp_path):
+        def fake_run_git(project_root, *args, check=False):
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+        monkeypatch.setattr(release_e2e.release, "_run_git", fake_run_git)
+        ok, reason = release_e2e.verify_tag(tmp_path, "0.0.1")
+        assert ok is False
+        assert "not present" in reason
+
+
+class TestDispatchTaskReleaseRollback:
+    def test_argv_shape(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _: "/usr/bin/task")
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, _ = release_e2e.dispatch_task_release_rollback(
+            tmp_path, "0.0.1", "deftai/x"
+        )
+        assert ok is True
+        assert captured["cmd"][0] == "task"
+        assert captured["cmd"][1] == "release:rollback"
+        assert "0.0.1" in captured["cmd"]
+        assert "deftai/x" in captured["cmd"]
+
+    def test_pins_deft_project_root_to_clone_dir(self, monkeypatch, tmp_path):
+        """#728 cycle 2 P1: same env-pinning rationale as
+        dispatch_task_release. Without DEFT_PROJECT_ROOT pinned to
+        clone_dir, an operator with the variable exported would have
+        ``task release:rollback`` resolve to the real directive repo
+        and either fail with a false VIOLATION or mutate real history."""
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _: "/usr/bin/task")
+        monkeypatch.setenv("DEFT_PROJECT_ROOT", "/operator/real/repo")
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        clone_dir = tmp_path / "clone"
+        ok, _ = release_e2e.dispatch_task_release_rollback(
+            clone_dir, "0.0.1", "deftai/x"
+        )
+        assert ok is True
+        env = captured["env"]
+        assert env is not None
+        assert env.get("DEFT_PROJECT_ROOT") == str(clone_dir)
+        assert env["DEFT_PROJECT_ROOT"] != "/operator/real/repo"
+
+
+# ---------------------------------------------------------------------------
+# run_rehearsal (#720) -- pipeline-mirror orchestration
+# ---------------------------------------------------------------------------
+
+
+class TestRunRehearsal:
+    def _patch_all_steps(self, monkeypatch, *, fail_at=None):
+        """Patch every rehearsal helper to return (True, ...) by default;
+        if ``fail_at`` is set, the named helper returns (False, ...).
+        Captures the call order in a list and returns it for assertion.
+        """
+        order: list[str] = []
+
+        def make_helper(name, ok=True):
+            def helper(*args, **kwargs):
+                order.append(name)
+                if not ok:
+                    return False, f"{name} failed"
+                return True, f"{name} ok"
+            return helper
+
+        names = [
+            "clone_repo_to_temp",
+            "set_origin_to_temp_repo",
+            "push_mirror",
+            "dispatch_task_release",
+            "verify_draft_release",
+            "verify_tag",
+            "dispatch_task_release_rollback",
+        ]
+        for name in names:
+            monkeypatch.setattr(
+                release_e2e, name, make_helper(name, ok=(name != fail_at))
+            )
+        return order
+
+    def test_happy_path_walks_all_seven_steps_in_order(
+        self, monkeypatch, tmp_path
+    ):
+        order = self._patch_all_steps(monkeypatch)
+        ok, reason = release_e2e.run_rehearsal(
+            "deftai", "deftai-release-test-X", tmp_path
+        )
+        assert ok is True
+        assert "pipeline-mirror rehearsal succeeded" in reason
+        assert order == [
+            "clone_repo_to_temp",
+            "set_origin_to_temp_repo",
+            "push_mirror",
+            "dispatch_task_release",
+            "verify_draft_release",
+            "verify_tag",
+            "dispatch_task_release_rollback",
+        ]
+
+    def test_clone_failure_short_circuits(self, monkeypatch, tmp_path):
+        order = self._patch_all_steps(monkeypatch, fail_at="clone_repo_to_temp")
+        ok, reason = release_e2e.run_rehearsal(
+            "deftai", "x", tmp_path
+        )
+        assert ok is False
+        assert "clone" in reason
+        # Subsequent steps must NOT run.
+        assert order == ["clone_repo_to_temp"]
+
+    def test_task_release_failure_short_circuits_before_verify(
+        self, monkeypatch, tmp_path
+    ):
+        order = self._patch_all_steps(
+            monkeypatch, fail_at="dispatch_task_release"
+        )
+        ok, reason = release_e2e.run_rehearsal(
+            "deftai", "x", tmp_path
+        )
+        assert ok is False
+        assert "task release" in reason
+        # The verify steps must NOT run after task release fails.
+        assert "verify_draft_release" not in order
+        assert "verify_tag" not in order
+        assert "dispatch_task_release_rollback" not in order
+
+    def test_rollback_step_runs_last(self, monkeypatch, tmp_path):
+        order = self._patch_all_steps(monkeypatch)
+        release_e2e.run_rehearsal("deftai", "x", tmp_path)
+        assert order[-1] == "dispatch_task_release_rollback"
+
+    def test_passes_version_through_to_helpers(self, monkeypatch, tmp_path):
+        """The configured rehearsal version is forwarded to dispatch_task_release."""
+        captured = {}
+
+        def fake_dispatch(clone_dir, version, repo):
+            captured["version"] = version
+            captured["repo"] = repo
+            return True, "ok"
+
+        # Patch only the helpers we care about; the others are no-ops.
+        monkeypatch.setattr(
+            release_e2e, "clone_repo_to_temp",
+            lambda *a, **kw: (True, "ok"),
+        )
+        monkeypatch.setattr(
+            release_e2e, "set_origin_to_temp_repo",
+            lambda *a, **kw: (True, "ok"),
+        )
+        monkeypatch.setattr(
+            release_e2e, "push_mirror", lambda *a, **kw: (True, "ok")
+        )
+        monkeypatch.setattr(
+            release_e2e, "dispatch_task_release", fake_dispatch
+        )
+        monkeypatch.setattr(
+            release_e2e, "verify_draft_release",
+            lambda *a, **kw: (True, "ok"),
+        )
+        monkeypatch.setattr(
+            release_e2e, "verify_tag", lambda *a, **kw: (True, "ok")
+        )
+        monkeypatch.setattr(
+            release_e2e, "dispatch_task_release_rollback",
+            lambda *a, **kw: (True, "ok"),
+        )
+        ok, _ = release_e2e.run_rehearsal(
+            "deftai", "deftai-release-test-X", tmp_path, version="0.0.1"
+        )
+        assert ok is True
+        assert captured["version"] == "0.0.1"
+        assert captured["repo"] == "deftai/deftai-release-test-X"
 
 
 # ---------------------------------------------------------------------------
@@ -232,6 +681,8 @@ class TestRunE2E:
         assert "Provision temp repo" in captured.err
         assert "Rehearsal" in captured.err
         assert "Destroy temp repo" in captured.err
+        # #720: dry-run preview mentions the new pipeline-mirror semantics.
+        assert "pipeline-mirror" in captured.err
 
     def test_happy_path_provision_rehearse_destroy(self, monkeypatch):
         order: list[str] = []
@@ -240,7 +691,7 @@ class TestRunE2E:
             order.append("provision")
             return True, f"created {owner}/{slug}"
 
-        def fake_rehearsal(owner, slug):
+        def fake_rehearsal(owner, slug, project_root, version=None):
             order.append("rehearsal")
             return True, "ok"
 
@@ -283,9 +734,9 @@ class TestRunE2E:
             order.append("provision")
             return True, "created"
 
-        def fake_rehearsal(owner, slug):
+        def fake_rehearsal(owner, slug, project_root, version=None):
             order.append("rehearsal")
-            return False, "smoke test failed"
+            return False, "task release failed"
 
         def fake_destroy(owner, slug):
             order.append("destroy")
@@ -299,7 +750,33 @@ class TestRunE2E:
         # Cleanup MUST run even after rehearsal failure (try/finally).
         assert order == ["provision", "rehearsal", "destroy"]
         captured = capsys.readouterr()
-        assert "smoke test failed" in captured.err
+        assert "task release failed" in captured.err
+
+    def test_rehearsal_exception_still_destroys_repo(self, monkeypatch):
+        """Defence in depth: any exception during rehearsal must still
+        trigger destroy via the try/finally."""
+        order: list[str] = []
+
+        monkeypatch.setattr(
+            release_e2e,
+            "provision_temp_repo",
+            lambda owner, slug: (True, "created"),
+        )
+
+        def fake_rehearsal(owner, slug, project_root, version=None):
+            order.append("rehearsal")
+            raise RuntimeError("network blew up mid-clone")
+
+        def fake_destroy(owner, slug):
+            order.append("destroy")
+            return True, "deleted"
+
+        monkeypatch.setattr(release_e2e, "run_rehearsal", fake_rehearsal)
+        monkeypatch.setattr(release_e2e, "destroy_temp_repo", fake_destroy)
+        with pytest.raises(RuntimeError, match="network blew up"):
+            release_e2e.run_e2e(_config())
+        # Cleanup MUST have run even though the rehearsal raised.
+        assert order == ["rehearsal", "destroy"]
 
     def test_destroy_failure_warns_but_preserves_rehearsal_exit_code(
         self, monkeypatch, capsys
@@ -312,7 +789,7 @@ class TestRunE2E:
         monkeypatch.setattr(
             release_e2e,
             "run_rehearsal",
-            lambda owner, slug: (True, "ok"),
+            lambda owner, slug, project_root, version=None: (True, "ok"),
         )
         monkeypatch.setattr(
             release_e2e,
@@ -335,13 +812,11 @@ class TestRunE2E:
         monkeypatch.setattr(
             release_e2e,
             "run_rehearsal",
-            lambda owner, slug: (True, "ok"),
+            lambda owner, slug, project_root, version=None: (True, "ok"),
         )
 
         def boom(*_a, **_kw):  # pragma: no cover
-            raise AssertionError(
-                "--keep-repo MUST skip destroy_temp_repo"
-            )
+            raise AssertionError("--keep-repo MUST skip destroy_temp_repo")
 
         monkeypatch.setattr(release_e2e, "destroy_temp_repo", boom)
         rc = release_e2e.run_e2e(_config(keep_repo=True))
