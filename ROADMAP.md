@@ -37,7 +37,6 @@ Quick doc/content fixes that don't require code changes.
 ## Phase 4
 
 - **#128** -- CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)
-- **#163** -- Enforce USER.md gate in CLI path -- parity with agentic (skills) path
 - **#228** -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)
 
 ## Phase 5 -- Package Distribution & Install UX

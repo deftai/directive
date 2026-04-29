@@ -1,0 +1,24 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #734"
+  },
+  "plan": {
+    "title": "feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/734",
+      "Labels": "enhancement, skills, determinism, adoption-blocker, test-debt"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/734",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #734: feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py"
+      }
+    ],
+    "updated": "2026-04-29T19:31:20Z"
+  }
+}
