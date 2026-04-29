@@ -66,7 +66,6 @@ Refs #74, #233, #642, #635, #709 (Repair Authority [AXIOM]),
 from __future__ import annotations
 
 import argparse
-import contextlib
 import datetime as _dt
 import json
 import os
@@ -849,12 +848,12 @@ def verify_release_draft(
                 return True, f"flipped to draft ({reason})"
             return False, reason
         # not-found / error -- keep polling; sleep between attempts only
-        # while we still have budget. ``sleep_fn`` may be a no-op stub from
-        # tests that ignores its argument; ``contextlib.suppress`` keeps the
-        # call site terse without obscuring the intent.
+        # while we still have budget. ``sleep_fn`` is typed as
+        # ``Callable[[float], None]`` so callers (production: ``time.sleep``;
+        # tests: 1-arg stubs like ``lambda _s: None`` or
+        # ``lambda s: sleeps.append(s)``) all accept the interval argument.
         if attempt < max_attempts:
-            with contextlib.suppress(TypeError):
-                sleep_fn(interval)
+            sleep_fn(interval)
     if last_state == "not-found":
         print(
             f"WARNING: release v{version} not found within "

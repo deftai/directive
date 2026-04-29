@@ -24,7 +24,7 @@
         "title": "Replace Taskfile.yml literal VERSION with sh: invocation of resolve_version.py",
         "status": "pending",
         "narrative": {
-          "Action": "Change `vars.VERSION: 0.20.0` to `vars.VERSION: { sh: uv run python \"{{.TASKFILE_DIR}}/scripts/resolve_version.py\" }` so every `task build` resolves VERSION at parse time from the canonical source.",
+          "Action": "Change `vars.VERSION: 0.20.0` to an inline POSIX `sh:` block (run by go-task's embedded mvdan/sh interpreter so it works cross-platform on Windows/macOS/Linux without requiring uv/Python at parse time) that mirrors the resolver priority: $DEFT_RELEASE_VERSION env > `git describe --tags --abbrev=0` (stripped of leading v) > `0.0.0-dev` fallback. scripts/resolve_version.py mirrors the same priority for Python callers and regression tests; the Taskfile block does NOT invoke that script.",
           "Acceptance": "task build emits dist/deft-<resolved-version>.zip (or .tar.gz) and never references 0.20.0 unless that is the actual resolved version."
         }
       },
