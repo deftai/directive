@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **chore(vbrief): refinement session 2026-04-29** -- ran a bulk refinement pass. Ingested + activated 5 issues (#704, #733, #734, #737, #741), activated existing pending #163, closed #136 as resolved-upstream, closed #140 as superseded by #689 + `deft-directive-sync`, closed #151 via decomposition into #738/#739/#740, applied the `epic` label to #233, filed #742 as the ADR-001 tracking issue for the vBRIEF-as-master discussion (awaiting review; no follow-on issues filed), and re-rendered `ROADMAP.md` plus `vbrief/PROJECT-DEFINITION.vbrief.json`.
 
 ### Fixed
 

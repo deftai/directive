@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-04-29T18:19:22Z"
+    "updated": "2026-04-29T21:05:53Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -528,22 +528,6 @@
         }
       },
       {
-        "id": "2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic",
-        "title": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/163",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-23-194-user-facing-best-practices-guide-docs-best-practices-md",
         "title": "User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)",
         "status": "pending",
@@ -927,6 +911,22 @@
         }
       },
       {
+        "id": "2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic",
+        "title": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/163",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ",
         "title": "PR #401 trim tracker (hygiene merge anchor)",
         "status": "running",
@@ -963,6 +963,86 @@
               "uri": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
               "type": "x-vbrief/github-issue",
               "title": "Canonical workflow comment for PR #401 trim + framework maintainability arc (locked decisions, DP5 V4 block, halt-to-user templates, substantive-vs-mechanical bright line)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-704-readme-cleanup-pass-factual-errors-contradictions-and-post-v",
+        "title": "README cleanup pass: factual errors, contradictions, and post-v0.20 staleness",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-04-29-704-readme-cleanup-pass-factual-errors-contradictions-and-post-v.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/704",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #704: README cleanup pass: factual errors, contradictions, and post-v0.20 staleness"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-733-fixgithubworkflowsreleaseyml-release-job-auto-flips-draft-to",
+        "title": "fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-04-29-733-fixgithubworkflowsreleaseyml-release-job-auto-flips-draft-to.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/733",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #733: fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-734-featscriptsskills-vbrief-lifecycle-reconciliation-gate-at-ta",
+        "title": "feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-04-29-734-featscriptsskills-vbrief-lifecycle-reconciliation-gate-at-ta.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/734",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #734: feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-737-featscriptstasksskills-pre-pr-closing-keyword-negation-conte",
+        "title": "feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-04-29-737-featscriptstasksskills-pre-pr-closing-keyword-negation-conte.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/737",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #737: feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-741-fixscriptsreleasepy-bump-version-literal-in-run-during-relea",
+        "title": "fix(scripts/release.py): bump VERSION literal in run during release flow",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-04-29-741-fixscriptsreleasepy-bump-version-literal-in-run-during-relea.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/741",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #741: fix(scripts/release.py): bump VERSION literal in run during release flow"
             }
           ]
         }

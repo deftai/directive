@@ -1,0 +1,24 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #741"
+  },
+  "plan": {
+    "title": "fix(scripts/release.py): bump VERSION literal in run during release flow",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(scripts/release.py): bump VERSION literal in run during release flow",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/741",
+      "Labels": "bug, blocks-release-tag, ci-cd, operational, determinism, test-debt"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/741",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #741: fix(scripts/release.py): bump VERSION literal in run during release flow"
+      }
+    ],
+    "updated": "2026-04-29T19:59:57Z"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #733"
+  },
+  "plan": {
+    "title": "fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/733",
+      "Labels": "bug, determinism, adoption-blocker, test-debt"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/733",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #733: fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate"
+      }
+    ],
+    "updated": "2026-04-29T19:31:20Z"
+  }
+}

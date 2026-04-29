@@ -1,0 +1,24 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #737"
+  },
+  "plan": {
+    "title": "feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/737",
+      "Labels": "bug, determinism, adoption-blocker, test-debt"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/737",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #737: feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes"
+      }
+    ],
+    "updated": "2026-04-29T19:31:20Z"
+  }
+}
