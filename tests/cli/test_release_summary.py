@@ -235,6 +235,42 @@ class TestPromoteChangelogSummary:
                 summary="line one\r\nline two",
             )
 
+    def test_promote_changelog_summary_with_backslash_group_reference(self):
+        """P1 (#730 Greptile): summary containing ``\\1`` MUST NOT raise re.error.
+
+        Python's ``re`` module interprets ``\\1``-``\\9`` and
+        ``\\g<name>`` in the ``repl`` argument to ``re.sub``/``re.subn``
+        as group backreferences. Since ``_UNRELEASED_RE`` has no capture
+        groups, a literal-string repl containing ``\\1`` would raise
+        ``re.error: invalid group reference 1`` -- an uncaught exception
+        that bypasses the ValueError newline guard. The lambda repl in
+        ``promote_changelog`` returns the value verbatim and skips all
+        backslash interpretation. This test pins the fix.
+        """
+        # Three high-risk patterns that all trigger re.error under a
+        # literal-string repl:
+        # 1. Bare \1 -- group 1 backreference.
+        # 2. \g<name> -- named group reference.
+        # 3. \9 -- bare numeric backreference.
+        for risky in (
+            "See \\1 for details",
+            "See \\g<title> for details",
+            "See \\9 for details",
+        ):
+            out = release.promote_changelog(
+                SAMPLE_CHANGELOG,
+                "0.21.0",
+                "deftai/directive",
+                "2026-04-28",
+                summary=risky,
+            )
+            # The summary is preserved verbatim in the output (proves the
+            # backslash sequence was NOT interpreted as a group reference).
+            assert f"> {risky}" in out, (
+                f"P1 regression: backslash-bearing summary {risky!r} did not "
+                f"survive verbatim in the promoted CHANGELOG body"
+            )
+
 
 # ---------------------------------------------------------------------------
 # argparse / main wiring

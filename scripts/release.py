@@ -519,8 +519,17 @@ def promote_changelog(
         # blank line.
         promoted_heading = f"{promoted_heading}\n\n> {summary}\n"
     fresh_block = FRESH_UNRELEASED_BLOCK.rstrip() + "\n\n"
+    # P1 (#730 Greptile): use a callable replacement so Python's ``re``
+    # module does NOT interpret backslash sequences in the operator's
+    # summary as group backreferences (``\1``-``\9``, ``\g<name>``).
+    # ``_UNRELEASED_RE`` has no capture groups, so a literal-string
+    # replacement containing e.g. ``"\\1"`` would raise an uncaught
+    # ``re.error: invalid group reference`` -- ugly traceback that
+    # bypasses the ``ValueError`` newline guard. A lambda repl returns
+    # the value verbatim and skips all backslash interpretation.
+    replacement = fresh_block + promoted_heading
     new_body, count = _UNRELEASED_RE.subn(
-        fresh_block + promoted_heading,
+        lambda _match: replacement,
         body,
         count=1,
     )
@@ -1083,8 +1092,11 @@ def run_pipeline(config: ReleaseConfig) -> int:
     # (release-narrative-gap scope vBRIEF).
     if config.summary:
         truncated = config.summary[:60]
-        ellipsis = "..." if len(config.summary) > 60 else ""
-        summary_note = f' summary: "{truncated}{ellipsis}"'
+        # P2 (#730 Greptile): variable name ``ellipsis`` shadows the
+        # Python builtin (the type of ``...``). Rename to
+        # ``truncation_suffix`` to avoid the shadow.
+        truncation_suffix = "..." if len(config.summary) > 60 else ""
+        summary_note = f' summary: "{truncated}{truncation_suffix}"'
     else:
         summary_note = " no summary"
     if config.dry_run:
