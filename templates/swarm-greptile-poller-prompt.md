@@ -7,7 +7,8 @@ Used by parent monitor agents when delegating post-PR work via `start_agent`.
 The parent reads this file and applies Python `str.format(...)` to substitute
 five placeholders, then passes the formatted prompt to `start_agent`:
 
-    prompt = open("templates/swarm-greptile-poller-prompt.md").read().format(
+    from pathlib import Path
+    prompt = Path("templates/swarm-greptile-poller-prompt.md").read_text(encoding="utf-8").format(
         pr_number=N,
         repo="owner/repo",
         poll_interval_seconds=90,
@@ -199,6 +200,14 @@ Send:
 - ! Use Python scripts (single `run_shell_command` call) for the poll loop, NEVER shell `Start-Sleep` + repeated tool calls. The Python script handles `time.sleep({poll_interval_seconds})` between polls and exits when a terminal condition fires.
 - ! Always pass `do_not_summarize_output: true` semantics when fetching `gh pr view --comments` -- summarizers silently drop the Outside-Diff section.
 - ! Send a status message to `{parent_agent_id}` at start (acknowledging the task) and at every terminal exit (CLEAN / NEW P0/P1 FINDINGS escalation / ERRORED / TIMEOUT). Do NOT silently complete.
+
+## Implementation Notes
+
+Dogfood lessons captured during the #727 self-review cycle. The template body above already prescribes the correct behaviour; these notes record the specific micro-bugs prior poller scripts hit so future implementations can avoid them.
+
+- **Do NOT window-slice the Greptile body before searching for `Confidence Score:` or `Last reviewed commit:`.** Greptile places the confidence header near the TOP of its summary, while the `Last reviewed commit:` anchor is near the BOTTOM (typically ~5KB lower in real PRs). A naive optimization like `body[idx-200:idx+4000]` around the SHA anchor will silently miss the confidence score. Always run `re.search(...)` against the FULL `gh pr view --comments` output. (Captured during the #727 dogfood self-review where this exact micro-optimization caused the prior agent's poll script to miss the confidence parse; the template's prescribed full-body search is correct.)
+- **`Last reviewed commit:` regex is markdown-link aware.** The recommended pattern is `r"Last reviewed commit:\s*\[[^\]]*\]\(https?://github\.com/[^/]+/[^/]+/commit/(?P<sha>[0-9a-f]{{7,40}})"`. The naive inline-SHA form (`r"Last reviewed commit:\s*([0-9a-f]{{7,40}})"`) does NOT match Greptile's actual output -- Greptile emits `Last reviewed commit: [<subject>](<url>/commit/<sha>)` -- and is the bug Agent D's poll script hit (see #727 followup comments).
+- **P0/P1 detection uses badge tokens, not raw substring scans.** Use `body.count('<img alt="P0"')` and `body.count('<img alt="P1"')` -- these markers appear ONLY on actual findings. A `\b(P0|P1)\b` substring scan false-positives on the clean-summary phrase `No P0 or P1 issues found`. If a substring scan is unavoidable for some other poller, MUST guard against negation context (`No `, `Zero `, `0 `, lowercase `no `).
 
 ## Cross-references
 

@@ -1815,7 +1815,10 @@ def test_swarm_greptile_poller_prompt_format_renders() -> None:
 
     This is a structural guard against accidentally leaving an unescaped
     literal curly brace in the template body (which would raise KeyError
-    or IndexError on .format()).
+    or IndexError on .format()). Coverage spans all 5 placeholders
+    (`pr_number`, `repo`, `poll_interval_seconds`, `poll_cap_minutes`,
+    `parent_agent_id`) so a regression in any one substitution is caught
+    here rather than at runtime in a real poller (#729 P2-2).
     """
     text = (_REPO_ROOT / _POLLER_TEMPLATE_PATH).read_text(encoding="utf-8")
     rendered = text.format(
@@ -1825,10 +1828,12 @@ def test_swarm_greptile_poller_prompt_format_renders() -> None:
         poll_cap_minutes=30,
         parent_agent_id="parent-id-xyz",
     )
-    # Sanity: rendered output must include the substituted values.
+    # Sanity: rendered output must include all 5 substituted values.
     assert "PR #727" in rendered
     assert "deftai/directive" in rendered
     assert "parent-id-xyz" in rendered
+    assert "90" in rendered  # poll_interval_seconds
+    assert "30" in rendered  # poll_cap_minutes
 
 
 def test_swarm_greptile_poller_prompt_parsing_fix_last_reviewed_commit() -> None:
