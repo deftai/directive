@@ -1,7 +1,8 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #734"
+    "description": "Scope vBRIEF ingested from GitHub issue #734",
+    "updated": "2026-04-29T22:48:22Z"
   },
   "plan": {
     "title": "feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py",
@@ -11,7 +12,53 @@
       "Origin": "Ingested from https://github.com/deftai/directive/issues/734",
       "Labels": "enhancement, skills, determinism, adoption-blocker, test-debt"
     },
-    "items": [],
+    "items": [
+      {
+        "id": "apply-flag",
+        "title": "Add --apply-lifecycle-fixes flag to scripts/reconcile_issues.py with idempotent three-state contract",
+        "status": "pending",
+        "narrative": {
+          "Action": "Extend `scripts/reconcile_issues.py` with a new `--apply-lifecycle-fixes` flag (default False). When set, take Section (c) entries (vBRIEFs with NO matching open issue / referenced issue is CLOSED) and for each: read the vBRIEF JSON, set `plan.status = 'completed'`, stamp `vBRIEFInfo.updated` with current UTC ISO timestamp, write the file back, then `git mv <current-folder>/<filename> completed/<filename>`. Emit a per-file summary line plus a final `[N/M] vBRIEFs reconciled` count. Exit codes: 0 clean success, 1 partial failure (preserve as many successful moves as possible), 2 configuration error. Idempotent: a second run after the first SHOULD be a no-op. Mutually compatible with `--format=json` / `--format=markdown`. Do NOT auto-reverse-move (vBRIEFs in `completed/` whose issues reopened stay in completed/; reverse-mismatch is reported only).",
+          "Acceptance": "Flag implemented with the three-state exit contract and idempotent semantics. Accepts both legacy bare `github-issue` and canonical `x-vbrief/github-issue` reference shapes. No-issue-ref vBRIEFs (older 2026-04-14-* shape) silently skipped. Tests under `tests/cli/test_reconcile_issues_apply.py` cover apply-mode, idempotent re-run, mixed reference shapes, reverse-mismatch reporting, no-op default."
+        }
+      },
+      {
+        "id": "release-gate",
+        "title": "Add scripts/release.py::check_vbrief_lifecycle_sync helper wired as new pre-flight Step 3 with --allow-vbrief-drift escape hatch",
+        "status": "pending",
+        "narrative": {
+          "Action": "New helper `scripts/release.py::check_vbrief_lifecycle_sync(project_root, repo)` calling existing `reconcile_issues.scan_vbrief_dir` + `reconcile_issues.fetch_open_issues` + `reconcile_issues.reconcile()`. Reports any non-zero Section (c) count via `[N/M] Pre-flight vBRIEF lifecycle sync... FAIL (<count> mismatches; run task reconcile:issues -- --apply-lifecycle-fixes to fix)` and exits with `EXIT_VIOLATION` (1). On clean: emits `[N/M] Pre-flight vBRIEF lifecycle sync... OK (no mismatches)`. Wire as new pipeline step inserted between Step 2 (branch guard) and current Step 3 (CI); bump `_TOTAL_STEPS` 11 -> 12; current Step 3 (CI) shifts to Step 4. New `--allow-vbrief-drift` escape-hatch flag (default False) on `scripts/release.py` lets the operator override after explicit acknowledgment, analogous to `--allow-dirty`.",
+          "Acceptance": "Pre-flight gate fails the release pipeline on any Section (c) mismatch unless `--allow-vbrief-drift` is set. Tests under `tests/cli/test_release_vbrief_lifecycle.py` cover detection, clean-pass, escape-hatch, and pipeline step renumbering. `_TOTAL_STEPS` constant updated 11 -> 12."
+        }
+      },
+      {
+        "id": "skill-prose",
+        "title": "Update skills/deft-directive-release/SKILL.md Phase 1 with `!` rule + `⊗` anti-pattern citing the v0.21.0 cut as recurrence record",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add a `!` MUST rule in `skills/deft-directive-release/SKILL.md` Phase 1 (pre-flight): `Run task reconcile:issues -- --apply-lifecycle-fixes to clear any closed-issue / non-completed-folder vBRIEFs before invoking task release` with link to the new gate location. Add a corresponding `⊗` MUST NOT anti-pattern: `Skip the vBRIEF-lifecycle-sync check; the gate exists because operators consistently forget the manual move step (v0.21.0 cut surfaced 13 stranded vBRIEFs as the recurrence record)`.",
+          "Acceptance": "Skill prose updated. Cross-references the new helper and the lessons entry. Sibling content test (e.g. `tests/content/test_release_skill_lifecycle_rule.py`) asserts the rule and anti-pattern are present, mirroring existing skill-content guard patterns."
+        }
+      },
+      {
+        "id": "lessons-entry",
+        "title": "Append `## vBRIEF Lifecycle Drift on Release (2026-04)` to meta/lessons.md",
+        "status": "pending",
+        "narrative": {
+          "Action": "Append a short lesson entry to `meta/lessons.md` titled `## vBRIEF Lifecycle Drift on Release (2026-04)` citing the v0.21.0 cut as recurrence record (8 cycle-relevant + 5 historical residue = 13 stranded vBRIEFs surfaced post-publish). Cross-reference the new gate location in `scripts/release.py`.",
+          "Acceptance": "Lesson entry added. Existing lessons.md self-test (e.g. #703 pattern) extended if it asserts presence; otherwise a new sibling assertion confirms the entry exists."
+        }
+      },
+      {
+        "id": "tests",
+        "title": "Test coverage: tests/cli/test_reconcile_issues_apply.py + tests/cli/test_release_vbrief_lifecycle.py (>= 12 tests total)",
+        "status": "pending",
+        "narrative": {
+          "Action": "Net-new test files (per AGENTS.md 1000-line MUST). `test_reconcile_issues_apply.py` covers: --apply-lifecycle-fixes on synthetic vbrief tree with one Section (c) entry moves vBRIEF + sets status + stamps updated; idempotent re-run no-op; --apply-lifecycle-fixes default-off no-op; mixed reference shapes (legacy + canonical) both detected and moved; mismatch detection (proposed/ vBRIEF + CLOSED issue) reported; reverse mismatch (completed/ vBRIEF + OPEN issue) reported but NOT auto-moved; no-issue-ref vBRIEFs silently skipped. `test_release_vbrief_lifecycle.py` covers: mismatch -> EXIT_VIOLATION, clean -> proceeds to Step 4, --allow-vbrief-drift escape-hatch, _TOTAL_STEPS updated. Existing `test_reconcile_issues.py` regression: report-only behavior unchanged when --apply-lifecycle-fixes absent.",
+          "Acceptance": ">= 12 tests total across the two new test files. All green under `task check`. Existing reconcile-issues tests unchanged."
+        }
+      }
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/734",
@@ -19,6 +66,6 @@
         "title": "Issue #734: feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py"
       }
     ],
-    "updated": "2026-04-29T19:31:20Z"
+    "updated": "2026-04-29T22:48:22Z"
   }
 }
