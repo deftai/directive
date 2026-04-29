@@ -1747,3 +1747,165 @@ def test_deft_directive_swarm_phase6_slack_override_merge_callout() -> None:
         f"{_SWARM_PATH}: Phase 6 Step 5 populate rule must reference the "
         f"Greptile-service-errored override path (#526)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 39. #727 -- canonical poller template + Sub-Agent Role Separation rules
+# ---------------------------------------------------------------------------
+
+_POLLER_TEMPLATE_PATH = "templates/swarm-greptile-poller-prompt.md"
+
+_POLLER_TEMPLATE_PLACEHOLDERS = (
+    "{pr_number}",
+    "{repo}",
+    "{poll_interval_seconds}",
+    "{poll_cap_minutes}",
+    "{parent_agent_id}",
+)
+
+# Stable substring matches for the 5 ! MUST rules + 4 ⊗ anti-patterns added
+# to skills/deft-directive-swarm/SKILL.md Phase 6 Sub-Agent Role Separation.
+# Tokens are deliberately short and avoid full-text matches so the test
+# survives minor phrasing edits (per #727 acceptance criteria "stable token
+# matches, not full-text matches").
+_SWARM_727_MUST_RULES = (
+    # (1) Post-PR sub-agents embody review-cycle end-to-end as a single role.
+    "Post-PR sub-agents are review-cycle agents",
+    # (2) Post-PR monitoring runs in a fresh sub-agent via start_agent.
+    "Post-PR monitoring runs in a fresh sub-agent",
+    # (3) Canonical poller template usage.
+    "Canonical poller template",
+    # (4) Destructive commands run alone (no rm-chaining).
+    "Destructive commands run alone",
+    # (5) Commit-message temp file is leave-alone.
+    "Commit-message temp file is leave-alone",
+)
+
+_SWARM_727_ANTIPATTERNS = (
+    # (⊗ 1) Run a poll loop in the parent's own turn.
+    "Run a poll loop in the parent's own turn",
+    # (⊗ 2) Bundle watch/monitor instructions into impl agent prompt.
+    "Bundle \"watch for Greptile\" / \"monitor CI\" instructions",
+    # (⊗ 3) Spawn a pure poller for a PR with likely findings.
+    "Spawn a \"pure poller\" sub-agent for a PR that has likely findings",
+    # (⊗ 4) Chain rm with non-destructive commands.
+    "Chain `rm` (or any destructive command) with `git commit`",
+)
+
+
+def test_swarm_greptile_poller_prompt_template_exists() -> None:
+    """templates/swarm-greptile-poller-prompt.md must exist (#727 Tier 1)."""
+    assert (_REPO_ROOT / _POLLER_TEMPLATE_PATH).is_file(), (
+        f"Canonical poller template missing: {_POLLER_TEMPLATE_PATH} (#727)"
+    )
+
+
+@pytest.mark.parametrize("placeholder", _POLLER_TEMPLATE_PLACEHOLDERS)
+def test_swarm_greptile_poller_prompt_placeholders(placeholder: str) -> None:
+    """Template must contain all 5 .format()-style placeholders verbatim (#727)."""
+    text = (_REPO_ROOT / _POLLER_TEMPLATE_PATH).read_text(encoding="utf-8")
+    assert placeholder in text, (
+        f"{_POLLER_TEMPLATE_PATH}: missing placeholder {placeholder!r} -- the "
+        f"template MUST be parameterizable via prompt.format(...) (#727)"
+    )
+
+
+def test_swarm_greptile_poller_prompt_format_renders() -> None:
+    """Template must successfully render via str.format(...) with all 5 placeholders (#727).
+
+    This is a structural guard against accidentally leaving an unescaped
+    literal curly brace in the template body (which would raise KeyError
+    or IndexError on .format()). Coverage spans all 5 placeholders
+    (`pr_number`, `repo`, `poll_interval_seconds`, `poll_cap_minutes`,
+    `parent_agent_id`) so a regression in any one substitution is caught
+    here rather than at runtime in a real poller (#729 P2-2).
+    """
+    text = (_REPO_ROOT / _POLLER_TEMPLATE_PATH).read_text(encoding="utf-8")
+    rendered = text.format(
+        pr_number=727,
+        repo="deftai/directive",
+        poll_interval_seconds=90,
+        poll_cap_minutes=30,
+        parent_agent_id="parent-id-xyz",
+    )
+    # Sanity: rendered output must include all 5 substituted values.
+    assert "PR #727" in rendered
+    assert "deftai/directive" in rendered
+    assert "parent-id-xyz" in rendered
+    assert "90" in rendered  # poll_interval_seconds
+    assert "30" in rendered  # poll_cap_minutes
+
+
+def test_swarm_greptile_poller_prompt_parsing_fix_last_reviewed_commit() -> None:
+    """Template must encode the markdown-link form of `Last reviewed commit:` (#727 Bug 1)."""
+    text = (_REPO_ROOT / _POLLER_TEMPLATE_PATH).read_text(encoding="utf-8")
+    # Distinctive token from the recommended regex: the markdown-link form's
+    # named-group capture of the SHA after `commit/`. A regex assuming inline
+    # SHA after the literal `Last reviewed commit:` would NOT contain this
+    # construction.
+    assert "Last reviewed commit:" in text, (
+        f"{_POLLER_TEMPLATE_PATH}: missing `Last reviewed commit:` parsing rule (#727)"
+    )
+    assert "commit/(?P<sha>" in text, (
+        f"{_POLLER_TEMPLATE_PATH}: must encode the markdown-link form of "
+        f"`Last reviewed commit:` SHA extraction -- the regex MUST match the "
+        f"`[<title>](<commit-url>)` form Greptile actually emits (#727 comment 2 Bug 1)"
+    )
+
+
+def test_swarm_greptile_poller_prompt_parsing_fix_findings_detection() -> None:
+    """Template must encode badge-based / negation-aware P0/P1 detection (#727 Bug 2)."""
+    text = (_REPO_ROOT / _POLLER_TEMPLATE_PATH).read_text(encoding="utf-8")
+    # Badge-based detection: count `<img alt="P0"` / `<img alt="P1"` occurrences.
+    assert '<img alt="P1"' in text, (
+        f"{_POLLER_TEMPLATE_PATH}: must encode badge-based P1 detection -- "
+        f"`<img alt=\"P1\"` appears only on actual findings, not in clean summaries (#727 Bug 2)"
+    )
+    assert '<img alt="P0"' in text, (
+        f"{_POLLER_TEMPLATE_PATH}: must encode badge-based P0 detection (#727 Bug 2)"
+    )
+    # Negation guard: must explicitly call out the false-positive on `No P0 or P1`
+    # so any substring-scan fallback knows to negate-guard.
+    assert "No P0 or P1" in text, (
+        f"{_POLLER_TEMPLATE_PATH}: must call out the `No P0 or P1` negation "
+        f"false-positive that raw `\\b(P0|P1)\\b` substring scans hit on clean "
+        f"summaries (#727 Bug 2)"
+    )
+
+
+def test_swarm_skill_references_poller_template() -> None:
+    """swarm SKILL must reference the canonical poller template path at least once (#727)."""
+    text = _read_skill(_SWARM_PATH)
+    assert "templates/swarm-greptile-poller-prompt.md" in text, (
+        f"{_SWARM_PATH}: must reference the canonical poller template at "
+        f"templates/swarm-greptile-poller-prompt.md so agents know to use it (#727)"
+    )
+
+
+@pytest.mark.parametrize("token", _SWARM_727_MUST_RULES)
+def test_swarm_skill_role_separation_must_rules_present(token: str) -> None:
+    """Each of the 5 ! MUST rules from #727 must be present in the swarm SKILL."""
+    text = _read_skill(_SWARM_PATH)
+    assert token in text, (
+        f"{_SWARM_PATH}: missing #727 ! MUST rule with stable token {token!r} -- "
+        f"see Phase 6 Sub-Agent Role Separation"
+    )
+
+
+@pytest.mark.parametrize("token", _SWARM_727_ANTIPATTERNS)
+def test_swarm_skill_role_separation_antipatterns_present(token: str) -> None:
+    """Each of the 4 ⊗ anti-patterns from #727 must be present in the swarm SKILL."""
+    text = _read_skill(_SWARM_PATH)
+    assert token in text, (
+        f"{_SWARM_PATH}: missing #727 \u2297 anti-pattern with stable token {token!r} -- "
+        f"see Phase 6 Sub-Agent Role Separation"
+    )
+
+
+def test_swarm_skill_role_separation_subsection_heading() -> None:
+    """swarm SKILL must contain the Sub-Agent Role Separation sub-section heading (#727)."""
+    text = _read_skill(_SWARM_PATH)
+    assert "### Sub-Agent Role Separation" in text, (
+        f"{_SWARM_PATH}: must contain '### Sub-Agent Role Separation' sub-section "
+        f"under Phase 6 (#727)"
+    )
