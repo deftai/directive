@@ -3,7 +3,7 @@
     "version": "0.6",
     "description": "Scope vBRIEF: fix scripts/release.py::create_github_release so it materialises promoted CHANGELOG notes to a temp UTF-8 file and invokes `gh release create --notes-file <path>` instead of `--notes \"<text>\"`. Closes #731. Surfaced by the deepened `task release:e2e` harness (#720) during the v0.21.0 (#721) Phase 3 gate as `[10/11] FAIL (gh CLI not found on PATH)` -- the misleading message is the existing FileNotFoundError handler mapping Windows error code 206 (`ERROR_FILENAME_EXCED_RANGE`, command-line buffer overflow) to the canonical `\"gh CLI not found on PATH\"` reason. Per the `## Rule Authority [AXIOM]` block in `main.md` the deterministic tier (script + tests) is the canonical encoding; no skill prose change is required because `skills/deft-directive-release/SKILL.md` already documents the gh release create step at the abstract level.",
     "created": "2026-04-29T16:45:00Z",
-    "updated": "2026-04-29T18:06:43Z"
+    "updated": "2026-04-29T18:18:17Z"
   },
   "plan": {
     "id": "release-notes-file-windows-cmdline",
@@ -24,7 +24,7 @@
       {
         "id": "scripts-release-notes-file-switch",
         "title": "create_github_release writes notes to UTF-8 temp file and invokes --notes-file",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Replace `cmd.extend([\"--notes\", notes])` with `tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', newline='', suffix='.md', delete=False)` materialisation + `cmd.extend([\"--notes-file\", str(notes_path)])`. Cleanup the temp file in a `try/finally` block regardless of subprocess outcome (success, non-zero exit, FileNotFoundError, OtherException). Preserve the `--generate-notes` fallback when notes is empty.",
           "Acceptance": "argv contains `--notes-file <path>` for non-empty notes; argv contains `--generate-notes` for empty notes; temp file cleaned up on every exit path; tests (a)-(e), (h) pass."
@@ -33,7 +33,7 @@
       {
         "id": "scripts-release-winerror-206-handler",
         "title": "FileNotFoundError handler distinguishes winerror=206 from genuine missing-gh",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Inside the `except FileNotFoundError as exc:` block, inspect `getattr(exc, 'winerror', None)` and on `206` (`ERROR_FILENAME_EXCED_RANGE`) return `(False, \"gh release create command line exceeded Windows limit (winerror 206); use --notes-file path (this should be mitigated by the temp-file switch in this PR; see #731)\")`. All other `FileNotFoundError` cases keep the canonical `\"gh CLI not found on PATH\"` message.",
           "Acceptance": "Tests (f), (g) pass; existing tests asserting the canonical message continue to pass."
@@ -42,7 +42,7 @@
       {
         "id": "tests-cli-test-release-notes-file",
         "title": "Update + extend tests/cli/test_release.py::TestCreateGithubRelease",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Update existing 8 `TestCreateGithubRelease` tests to assert `--notes-file <path>` argv shape (replace `--notes <text>` assertion). Add 8 new tests (a)-(h) per the Test narrative. Use `tmp_path` pytest fixture for cleanup-verification tests so the temp file lives under a known prefix.",
           "Acceptance": "All 16 tests pass; existing 233 release tests do not regress; new file size stays under 1000 lines (test_release.py is currently the largest test file at 1521 lines but already exceeds the AGENTS.md MUST per #730 vBRIEF -- add to existing TestCreateGithubRelease class for now; sibling-file split is out-of-scope housekeeping)."
@@ -51,7 +51,7 @@
       {
         "id": "changelog-731-entry",
         "title": "CHANGELOG [Unreleased]/Fixed entry",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Append entry under `## [Unreleased] / ### Fixed` citing #731 (closes), #720 (e2e harness that surfaced this), #721 (cut session anchor), #722 (PATHEXT helper -- correct, not the bug). Mention the e2e-caught-pre-cut self-validation as another iteration of the rollback-as-test narrative from the prior cycle.",
           "Acceptance": "CHANGELOG.md `## [Unreleased] / ### Fixed` carries the new entry; existing entries unchanged."

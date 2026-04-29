@@ -324,5 +324,5 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#725** -- Replace HEAD~1 reset + force-push with resolved-SHA forward-revert + normal push in scripts/release_rollback.py -- `[completed]`
 - **#727** -- Codify orchestrator role-separation + canonical poller-prompt template (per [AXIOM]) -- `[completed]`
 - **#731** -- release.py uses --notes-file for gh release create; fixes Windows ERROR_FILENAME_EXCED_RANGE blocking v0.21.0 (#731) -- `[completed]`
-- **#74** -- Release CHANGELOG promotion accepts --summary blockquote (per [AXIOM] deterministic tier) -- `[completed]`
+- **#730** -- Release CHANGELOG promotion accepts --summary blockquote (per [AXIOM] deterministic tier) -- `[completed]`
 

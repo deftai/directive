@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-04-29T18:06:56Z"
+    "updated": "2026-04-29T18:19:22Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -5179,6 +5179,11 @@
           "source_path": "completed/2026-04-29-release-summary-blockquote.vbrief.json",
           "lifecycle_folder": "completed",
           "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/730",
+              "type": "x-vbrief/github-issue",
+              "title": "#730: feat(scripts,skills): release CHANGELOG promotion accepts --summary blockquote (closing PR for release-narrative-gap)"
+            },
             {
               "uri": "https://github.com/deftai/directive/issues/74",
               "type": "x-vbrief/github-issue",
