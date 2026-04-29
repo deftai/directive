@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **chore(deps): bump pytest 9.0.2 -> 9.0.3 and pygments 2.19.2 -> 2.20.0** (Dependabot alerts #4 and #3): Closes two open security alerts on `uv.lock`. (1) `pytest` GHSA-6w46-j5rx-g56g / CVE-2025-71176 (medium) -- vulnerable tmpdir handling on UNIX where pytest <9.0.3 relies on `/tmp/pytest-of-{user}` directories that allow local users to cause denial of service or possibly gain privileges; bump to 9.0.3 (first patched). (2) `pygments` GHSA-5239-wwwm-4pmq / CVE-2026-4539 (low) -- ReDoS in `AdlLexer` via inefficient regex in `pygments/lexers/archetype.py`; bump to 2.20.0 (first patched). Both are dev-group dependencies (pygments transitive via pytest); `task check` passes (3020 passed, 1 xfailed) post-upgrade.
 - **chore(vbrief): refinement session 2026-04-29** -- ran a bulk refinement pass. Ingested + activated 5 issues (#704, #733, #734, #737, #741), activated existing pending #163, closed #136 as resolved-upstream, closed #140 as superseded by #689 + `deft-directive-sync`, closed #151 via decomposition into #738/#739/#740, applied the `epic` label to #233, filed #742 as the ADR-001 tracking issue for the vBRIEF-as-master discussion (awaiting review; no follow-on issues filed), and re-rendered `ROADMAP.md` plus `vbrief/PROJECT-DEFINITION.vbrief.json`.
 
 ### Fixed
