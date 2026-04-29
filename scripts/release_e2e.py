@@ -8,12 +8,18 @@ provisions a private GitHub repo named
 pipeline against it, then destroys the repo via ``gh repo delete --yes``
 in a ``try/finally`` so cleanup runs even when the test fails.
 
-Pipeline (#720 deepening)
--------------------------
+Pipeline (#720 deepening) and env hygiene (#728 cycle 2)
+--------------------------------------------------------
 The rehearsal step was previously a smoke-test existence check
 (``gh repo view``); per #720 it now mirrors the directive repo into
 the temp remote and exercises the actual ``task release`` pipeline
-end-to-end:
+end-to-end. Per the #728 cycle-2 Greptile review, every subprocess
+that could resolve a project root (``clone_repo_to_temp``,
+``dispatch_task_release``, ``dispatch_task_release_rollback``) must
+also pin ``DEFT_PROJECT_ROOT=<clone_dir>`` so an operator with that
+environment variable already exported in their shell does NOT have
+``task release`` resolve back to the real directive repo and push
+spurious ``v0.0.1`` artefacts to ``deftai/directive``.
 
 1. Generate a unique repo slug (``deftai-release-test-<timestamp>-<uuid6>``)
 2. ``gh repo create --private deftai/<slug> --description "..."``
@@ -259,20 +265,34 @@ def destroy_temp_repo(owner: str, slug: str) -> tuple[bool, str]:
 def clone_repo_to_temp(
     project_root: Path, target_dir: Path
 ) -> tuple[bool, str]:
-    """Clone the local directive repo into ``target_dir`` (#720).
+    """Clone the local directive repo into ``target_dir`` (#720, #728).
 
     Uses ``git clone <project_root> <target_dir>`` so the rehearsal does
     not depend on network access during the clone step (the temp remote
     is populated via the explicit-refspec push in ``push_mirror``
-    afterwards).
+    afterwards). The clone produces a normal working tree with a
+    populated ``refs/remotes/origin/*``; that is intentional -- the
+    rehearsal needs a working tree to run ``task release`` against, and
+    the remote-tracking refs do NOT leak to the GitHub temp repo because
+    ``push_mirror`` uses explicit ``refs/heads/*`` + ``refs/tags/*``
+    refspecs (see ``push_mirror``'s docstring for the receive-pack
+    rationale).
+
+    Per #728 cycle 2 we also pin ``DEFT_PROJECT_ROOT=<target_dir>`` in
+    the subprocess env so an operator with that variable already
+    exported in their shell cannot accidentally cause helpers further
+    down the rehearsal pipeline to resolve back to the real directive
+    repo.
     """
+    env = os.environ.copy()
+    env["DEFT_PROJECT_ROOT"] = str(target_dir)
     result = subprocess.run(
         ["git", "clone", str(project_root), str(target_dir)],
         capture_output=True,
         text=True,
         timeout=300,
         check=False,
-        env=os.environ.copy(),
+        env=env,
     )
     if result.returncode != 0:
         return False, f"git clone failed: {result.stderr.strip()}"
@@ -333,12 +353,25 @@ def dispatch_task_release(
     clone_dir: Path, version: str, repo: str
 ) -> tuple[bool, str]:
     """Invoke ``task release -- <version> --repo <repo> --skip-ci --skip-build``
-    inside the clone (#720).
+    inside the clone (#720, #728).
 
     Skipping CI + build keeps the rehearsal wall-clock manageable; both
     are covered by the unit-test suite. The 10-step pipeline still
     exercises CHANGELOG promotion, ROADMAP refresh, commit, tag, atomic
     push, and ``gh release create --draft``.
+
+    #728 cycle 2: ``env["DEFT_PROJECT_ROOT"] = str(clone_dir)`` is
+    explicitly pinned BEFORE invoking ``task release``. The release CLI
+    resolves its repository root via ``DEFT_PROJECT_ROOT`` (when set) ->
+    ``--project-root`` -> the script's own parent. If the operator's
+    shell already exported ``DEFT_PROJECT_ROOT`` (a common pattern
+    when running deft itself out of a worktree), the rehearsal
+    subprocess would resolve back to the REAL directive repo and the
+    rest of the pipeline (CHANGELOG promotion, commit, tag, ``git push
+    --atomic origin master v0.0.1``) would mutate ``deftai/directive``
+    instead of the temp clone. Pinning the env var to ``clone_dir``
+    eliminates that ambient-state hazard regardless of the operator's
+    shell setup.
     """
     if shutil.which("task") is None:
         return False, "task binary not found on PATH"
@@ -349,6 +382,8 @@ def dispatch_task_release(
         "--skip-ci",
         "--skip-build",
     ]
+    env = os.environ.copy()
+    env["DEFT_PROJECT_ROOT"] = str(clone_dir)
     try:
         result = subprocess.run(
             cmd,
@@ -357,7 +392,7 @@ def dispatch_task_release(
             text=True,
             timeout=600,
             check=False,
-            env=os.environ.copy(),
+            env=env,
         )
     except FileNotFoundError:
         return False, "task binary not found on PATH"
@@ -439,11 +474,18 @@ def verify_tag(clone_dir: Path, version: str) -> tuple[bool, str]:
 def dispatch_task_release_rollback(
     clone_dir: Path, version: str, repo: str
 ) -> tuple[bool, str]:
-    """Invoke ``task release:rollback -- <version> --repo <repo>`` (#720).
+    """Invoke ``task release:rollback -- <version> --repo <repo>`` (#720, #728).
 
     Exercises the rollback path against the temp repo so a regression in
     the state-aware unwind (states 1-3) surfaces in the e2e job rather
     than during a real production rollback.
+
+    #728 cycle 2: same ``DEFT_PROJECT_ROOT`` pinning rationale as
+    ``dispatch_task_release`` -- without the override, an operator with
+    ``DEFT_PROJECT_ROOT`` exported in their shell would have the
+    rollback subprocess resolve to the real directive repo, producing
+    either a false VIOLATION (release-prep SHA cannot be resolved) or
+    -- worse -- mutating the real repo's history.
     """
     if shutil.which("task") is None:
         return False, "task binary not found on PATH"
@@ -452,6 +494,8 @@ def dispatch_task_release_rollback(
         "--", version,
         "--repo", repo,
     ]
+    env = os.environ.copy()
+    env["DEFT_PROJECT_ROOT"] = str(clone_dir)
     try:
         result = subprocess.run(
             cmd,
@@ -460,7 +504,7 @@ def dispatch_task_release_rollback(
             text=True,
             timeout=300,
             check=False,
-            env=os.environ.copy(),
+            env=env,
         )
     except FileNotFoundError:
         return False, "task binary not found on PATH"

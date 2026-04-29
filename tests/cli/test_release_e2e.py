@@ -187,6 +187,7 @@ class TestCloneRepoToTemp:
 
         def fake_run(cmd, **kwargs):
             captured["cmd"] = cmd
+            captured["env"] = kwargs.get("env")
             return SimpleNamespace(stdout="", stderr="", returncode=0)
 
         monkeypatch.setattr(subprocess, "run", fake_run)
@@ -210,6 +211,30 @@ class TestCloneRepoToTemp:
         )
         assert ok is False
         assert "not a git repository" in reason
+
+    def test_pins_deft_project_root_to_target_dir(self, monkeypatch, tmp_path):
+        """#728 cycle 2 P1: subprocess env MUST pin DEFT_PROJECT_ROOT to
+        ``target_dir`` so an operator with that variable already
+        exported in their shell does not have downstream rehearsal
+        helpers resolve back to the real directive repo."""
+        monkeypatch.setenv("DEFT_PROJECT_ROOT", "/operator/real/repo")
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        target = tmp_path / "clone"
+        ok, _ = release_e2e.clone_repo_to_temp(tmp_path / "src", target)
+        assert ok is True
+        env = captured["env"]
+        assert env is not None, "subprocess env must be explicitly passed"
+        assert env.get("DEFT_PROJECT_ROOT") == str(target), (
+            "DEFT_PROJECT_ROOT must be pinned to target_dir, got "
+            f"{env.get('DEFT_PROJECT_ROOT')!r}"
+        )
+        assert env["DEFT_PROJECT_ROOT"] != "/operator/real/repo"
 
 
 class TestSetOriginToTempRepo:
@@ -300,6 +325,7 @@ class TestDispatchTaskRelease:
 
         def fake_run(cmd, **kwargs):
             captured["cmd"] = cmd
+            captured["env"] = kwargs.get("env")
             return SimpleNamespace(stdout="", stderr="", returncode=0)
 
         monkeypatch.setattr(subprocess, "run", fake_run)
@@ -314,6 +340,34 @@ class TestDispatchTaskRelease:
         assert captured["cmd"][1] == "release"
         assert "0.0.1" in captured["cmd"]
         assert "deftai/temp-x" in captured["cmd"]
+
+    def test_pins_deft_project_root_to_clone_dir(self, monkeypatch, tmp_path):
+        """#728 cycle 2 P1: subprocess env MUST pin DEFT_PROJECT_ROOT to
+        ``clone_dir``. Without this, an operator with the variable
+        exported would have ``task release`` resolve to the real
+        directive repo and push spurious v0.0.1 artefacts to
+        ``deftai/directive``."""
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _: "/usr/bin/task")
+        monkeypatch.setenv("DEFT_PROJECT_ROOT", "/operator/real/repo")
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        clone_dir = tmp_path / "clone"
+        ok, _ = release_e2e.dispatch_task_release(
+            clone_dir, "0.0.1", "deftai/temp-x"
+        )
+        assert ok is True
+        env = captured["env"]
+        assert env is not None
+        assert env.get("DEFT_PROJECT_ROOT") == str(clone_dir), (
+            "DEFT_PROJECT_ROOT must be pinned to clone_dir, got "
+            f"{env.get('DEFT_PROJECT_ROOT')!r}"
+        )
+        assert env["DEFT_PROJECT_ROOT"] != "/operator/real/repo"
 
     def test_task_missing_returns_false(self, monkeypatch, tmp_path):
         monkeypatch.setattr(release_e2e.shutil, "which", lambda _: None)
@@ -438,6 +492,7 @@ class TestDispatchTaskReleaseRollback:
 
         def fake_run(cmd, **kwargs):
             captured["cmd"] = cmd
+            captured["env"] = kwargs.get("env")
             return SimpleNamespace(stdout="", stderr="", returncode=0)
 
         monkeypatch.setattr(subprocess, "run", fake_run)
@@ -449,6 +504,31 @@ class TestDispatchTaskReleaseRollback:
         assert captured["cmd"][1] == "release:rollback"
         assert "0.0.1" in captured["cmd"]
         assert "deftai/x" in captured["cmd"]
+
+    def test_pins_deft_project_root_to_clone_dir(self, monkeypatch, tmp_path):
+        """#728 cycle 2 P1: same env-pinning rationale as
+        dispatch_task_release. Without DEFT_PROJECT_ROOT pinned to
+        clone_dir, an operator with the variable exported would have
+        ``task release:rollback`` resolve to the real directive repo
+        and either fail with a false VIOLATION or mutate real history."""
+        monkeypatch.setattr(release_e2e.shutil, "which", lambda _: "/usr/bin/task")
+        monkeypatch.setenv("DEFT_PROJECT_ROOT", "/operator/real/repo")
+        captured = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        clone_dir = tmp_path / "clone"
+        ok, _ = release_e2e.dispatch_task_release_rollback(
+            clone_dir, "0.0.1", "deftai/x"
+        )
+        assert ok is True
+        env = captured["env"]
+        assert env is not None
+        assert env.get("DEFT_PROJECT_ROOT") == str(clone_dir)
+        assert env["DEFT_PROJECT_ROOT"] != "/operator/real/repo"
 
 
 # ---------------------------------------------------------------------------
