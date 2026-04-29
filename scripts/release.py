@@ -143,6 +143,14 @@ class ReleaseConfig:
     # behaviour: both run unless the operator explicitly opts out.
     skip_ci: bool = False
     skip_build: bool = False
+    # release-narrative-gap: optional one-line operator-authored summary
+    # injected as a Markdown blockquote at the top of the promoted
+    # CHANGELOG ``[<version>]`` section. None preserves pre-existing
+    # behaviour byte-for-byte. The same blockquote naturally flows
+    # through to the GitHub release body (via ``_section_for_version``)
+    # and is the canonical source for the Phase 8 Slack ``*Summary*:``
+    # slot per ``skills/deft-directive-release/SKILL.md``.
+    summary: str | None = None
 
 
 # ---- argument parsing -------------------------------------------------------
@@ -235,6 +243,17 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Repository root (default: $DEFT_PROJECT_ROOT or the parent of the scripts/ "
             "directory)."
+        ),
+    )
+    parser.add_argument(
+        "--summary",
+        default=None,
+        metavar="TEXT",
+        help=(
+            "Optional one-line summary to inject as a Markdown blockquote at "
+            "the top of the promoted CHANGELOG section. Flows through to the "
+            "GitHub release body and the Slack announcement template (Phase 8). "
+            "Recommended length 80-160 chars."
         ),
     )
     return parser
@@ -436,19 +455,69 @@ def _extract_previous_version(footer: str) -> str | None:
     return None
 
 
-def promote_changelog(text: str, version: str, repo: str, today: str) -> str:
+def promote_changelog(
+    text: str,
+    version: str,
+    repo: str,
+    today: str,
+    summary: str | None = None,
+) -> str:
     """Promote ``[Unreleased]`` to ``[<version>] - <today>`` and refresh the link footer.
 
     Raises ValueError when the input lacks an ``[Unreleased]`` heading or
     appears malformed.
+
+    When ``summary`` is a non-empty string, a one-line Markdown blockquote
+    (``> <summary>``) is injected directly after the new
+    ``## [<version>] - <today>`` heading and before the first sub-section
+    so the promoted block reads::
+
+        ## [<version>] - <date>
+
+        > <summary>
+
+        ### Added
+        - ...
+
+    The blockquote is sandwiched by blank lines for proper Keep-a-Changelog
+    rendering. The summary is treated as inline Markdown and preserved
+    verbatim (operators may include ``**bold**``, ``[link](url)``, etc.).
+    Newlines in the summary cause a ``ValueError`` -- the slot is
+    explicitly single-line per the release-narrative-gap scope vBRIEF.
+    Empty / ``None`` summary preserves pre-existing behaviour byte-for-byte
+    (no blockquote is emitted).
     """
     if not _UNRELEASED_RE.search(text):
         raise ValueError("CHANGELOG.md does not contain a '## [Unreleased]' heading.")
+
+    if summary is not None and ("\n" in summary or "\r" in summary):
+        raise ValueError(
+            "--summary is single-line; got embedded newline. "
+            "Author the blockquote on a single line."
+        )
 
     body, footer = _split_body_and_links(text)
 
     # Promote: rename heading + insert fresh empty Unreleased block above.
     promoted_heading = f"## [{version}] - {today}"
+    if summary:
+        # Sandwich the blockquote with blank lines so Keep-a-Changelog
+        # renders it as a real blockquote (a ``>`` line glued to the
+        # heading or the first sub-section can break Markdown rendering
+        # in some clients). Layout in the substitution result:
+        #
+        #   ## [<v>] - <d>\n     <- heading
+        #   \n                    <- blank line
+        #   > <summary>\n        <- blockquote line + newline
+        #   <next char from body, which is "\n### Added...">
+        #
+        # so the rendered shape is heading / blank / > summary / blank /
+        # ### Added. The trailing ``\n`` we append below combines with
+        # the single ``\n`` left in body after the regex (the
+        # ``_UNRELEASED_RE`` ``\s*`` greedy-then-backtrack consumes one
+        # of the two ``\n``s following ``## [Unreleased]``) to form the
+        # blank line.
+        promoted_heading = f"{promoted_heading}\n\n> {summary}\n"
     fresh_block = FRESH_UNRELEASED_BLOCK.rstrip() + "\n\n"
     new_body, count = _UNRELEASED_RE.subn(
         fresh_block + promoted_heading,
@@ -1000,21 +1069,35 @@ def run_pipeline(config: ReleaseConfig) -> int:
     original_changelog = changelog_path.read_text(encoding="utf-8")
     try:
         promoted_changelog = promote_changelog(
-            original_changelog, version, config.repo, today
+            original_changelog,
+            version,
+            config.repo,
+            today,
+            summary=config.summary,
         )
     except ValueError as exc:
         _emit(4, label, f"FAIL ({exc})")
         return EXIT_CONFIG_ERROR
+    # Surface whether a summary was supplied so operators can validate
+    # the wording during Phase 2 dry-run before any file is written
+    # (release-narrative-gap scope vBRIEF).
+    if config.summary:
+        truncated = config.summary[:60]
+        ellipsis = "..." if len(config.summary) > 60 else ""
+        summary_note = f' summary: "{truncated}{ellipsis}"'
+    else:
+        summary_note = " no summary"
     if config.dry_run:
         _emit(
             4,
             label,
             f"DRYRUN (would rewrite {changelog_path.name}: "
-            f"## [Unreleased] -> ## [{version}] - {today}; new compare link added)",
+            f"## [Unreleased] -> ## [{version}] - {today}; new compare link added;"
+            f"{summary_note})",
         )
     else:
         changelog_path.write_text(promoted_changelog, encoding="utf-8")
-        _emit(4, label, f"OK (## [{version}] - {today})")
+        _emit(4, label, f"OK (## [{version}] - {today};{summary_note})")
 
     # Step 5: ROADMAP refresh.
     label = "ROADMAP refresh (task roadmap:render)"
@@ -1205,6 +1288,7 @@ def main(argv: list[str] | None = None) -> int:
         draft=args.draft,
         skip_ci=args.skip_ci,
         skip_build=args.skip_build,
+        summary=args.summary,
     )
     return run_pipeline(config)
 

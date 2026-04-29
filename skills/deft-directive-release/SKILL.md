@@ -36,18 +36,21 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 3. ! Inspect `[Unreleased]` content vs the proposed version bump. If a breaking change appears in `### Changed` / `### Removed` but only a patch is proposed, surface the mismatch and ask the user to choose
 4. ! Verify `task ci:local` passes locally (or `task check` as the graceful-degradation fallback per `tasks/release.yml` line 9-10). The `task release` script will refuse to proceed otherwise -- but Phase 1 catches it earlier
 5. ! Verify `gh auth status` reports authenticated (`task release` will refuse otherwise)
+6. ~ Ask the operator for an optional one-line release **summary** (recommended 80-160 chars; can be skipped). The summary is the canonical narrative for THIS release across three audiences: (a) injected as a Markdown blockquote at the top of the promoted `CHANGELOG.md [<version>]` section, (b) auto-flowed into the GitHub release body via the existing `_section_for_version` pickup, and (c) populated VERBATIM into the Phase 8 Slack `*Summary*:` slot. Capture the wording once here; do NOT regenerate per-audience downstream
 
 ⊗ Skip the version-bump magnitude check -- a patch release that ships breaking changes is the kind of regression that Repair Authority [AXIOM] (#709) is designed to prevent.
 
+⊗ Hand-write a different one-line narrative for each of the three downstream surfaces (CHANGELOG / GitHub release / Slack) -- that drift is exactly the gap the `--summary` flag is designed to close. If the operator insists on per-audience tone, populate the canonical `--summary` ONCE here and document the deviation in the Phase 8 anti-pattern.
+
 ## Phase 2 — Dry-run review
 
-! Invoke `task release -- <version> --dry-run --skip-tag --skip-release` and present the plan to the user.
+! Invoke `task release -- <version> --dry-run --skip-tag --skip-release` and present the plan to the user. If Phase 1 collected an operator summary, also pass `--summary "<text>"` so the dry-run preview reflects the canonical narrative the operator just authored.
 
 ```
-task release -- <version> --dry-run --skip-tag --skip-release
+task release -- <version> --dry-run --skip-tag --skip-release --summary "<text>"
 ```
 
-The dry-run prints `[N/11] <step>... DRYRUN (would <action>)` for every pipeline step (Step 11 is the post-create verify-isDraft gate added by #724). Capture the output and present it to the user, then wait for explicit confirmation before continuing.
+The dry-run prints `[N/11] <step>... DRYRUN (would <action>)` for every pipeline step (Step 11 is the post-create verify-isDraft gate added by #724). Step 4 surfaces whether a summary was supplied (truncated to ~60 chars in the preview) so the operator can validate the wording before any file is written. Capture the output and present it to the user, then wait for explicit confirmation before continuing.
 
 ! Wait for explicit user confirmation: `yes` / `back` / `quit`.
 - `yes` (or `confirmed` / `approve`) → proceed to Phase 3
@@ -72,13 +75,13 @@ The harness provisions `deftai/deftai-release-test-<ts>-<uuid6>`, runs the smoke
 
 ## Phase 4 — Production draft
 
-! Invoke `task release -- <version>` (NO `--dry-run`, NO `--skip-tag`, NO `--skip-release`).
+! Invoke `task release -- <version>` (NO `--dry-run`, NO `--skip-tag`, NO `--skip-release`). If Phase 1 collected an operator summary, pass `--summary "<text>"` so the production cut writes the same blockquote the dry-run previewed.
 
 ```
-task release -- <version>
+task release -- <version> --summary "<text>"
 ```
 
-Per #716 default-draft hardening, this lands the release as a `--draft` on the real repo. Binaries upload via release.yml CI, but the artifact is NOT yet visible to consumers.
+Per #716 default-draft hardening, this lands the release as a `--draft` on the real repo. Binaries upload via release.yml CI, but the artifact is NOT yet visible to consumers. The operator-authored summary becomes part of the promoted `CHANGELOG.md [<version>]` section AND the GitHub release body (auto-pickup via `_section_for_version`). The same wording is the canonical source for the Phase 8 Slack `*Summary*:` slot.
 
 ! **Verify isDraft within 5 seconds; flip immediately if not (#724).** Immediately after `gh release create --draft` returns success, `scripts/release.py` Step 11 polls `gh release view v<version> --json isDraft` up to 5 times at 1-second intervals. If the release exists with `isDraft=false`, the pipeline auto-flips it via `gh release edit v<version> --draft=true` and emits a `WARNING: release landed as public; flipping to draft (defense-in-depth, see #724)` line. This closes the ~90-second public-exposure window observed during the v0.21.0 cut where a manual recovery created a public release before the operator noticed and flipped it. The verify gate is defense in depth even when `--draft` was passed correctly: it catches the case where `gh release create` partially succeeded (release record written, error returned) AND the operator-error variant where an alternate code path sent the release without `--draft`. A release-not-found-within-budget result emits a WARN and does NOT fail the pipeline (release.yml CI may still be processing).
 
@@ -172,6 +175,8 @@ The announcement block MUST include:
 
 ! Populate version from the freshly-published `gh release view v<version>` output. Populate release title from the CHANGELOG section heading (or the GitHub release title). Summarize key changes from the promoted `[Unreleased]` -> `[<version>]` CHANGELOG section (NOT raw commit messages). Populate stats from `git log v<previous>..v<version> --oneline | wc -l`.
 
+! Populate the `*Summary*:` slot VERBATIM from the operator-authored blockquote at the top of the CHANGELOG `[<version>]` section (the line beginning with `> ` immediately after the `## [<version>] - <date>` heading). The Phase 1 prompt + Phase 4 `--summary` flag exist precisely so this populate step is mechanical -- one canonical narrative authored once at Phase 1, propagated through Phase 4 promotion, and copy-pasted here without re-authoring. If the CHANGELOG section has no blockquote (operator skipped the Phase 1 prompt), generate a one-sentence summary from the `### Added` / `### Changed` bullets and surface to the operator that this is a regenerated narrative (NOT canonical) so they can decide whether to amend the CHANGELOG before publishing.
+
 ! Present the block as a code-fenced snippet the user can copy directly. Do NOT post to Slack from inside this skill -- the user owns the actual broadcast.
 
 ## Skill Completion
@@ -202,3 +207,4 @@ Where `<one-line guidance>` is one of:
 - ⊗ Post the Phase 8 Slack announcement directly from this skill -- the user owns the broadcast; the skill only generates the template
 - ⊗ Hardcode `master` as the base branch -- delegate to the configured base branch from `task release --base-branch <branch>`
 - ⊗ Skip the post-create verify-isDraft gate (#724) -- a successful `gh release create` exit code does NOT prove the release actually landed in draft state; the 5-second poll-and-flip gate in `scripts/release.py` Step 11 is the only safety net against operator-error variants and partial-success races, and any manual recovery path that bypasses `scripts/release.py` MUST run `gh release view --json isDraft` followed by `gh release edit --draft=true` on `isDraft=false` before handing off to Phase 5
+- ⊗ Manually rewrite the Phase 8 Slack `*Summary*:` line to deviate from the CHANGELOG `[<version>]` blockquote -- the canonical narrative is authored ONCE at Phase 1 via `--summary` and propagates verbatim across all three audiences (CHANGELOG / GitHub release body / Slack). Per-audience hand-edits create documentation drift that the deterministic `--summary` flow is designed to prevent. If the operator wants Slack-specific tone, fold it into the canonical Phase 1 wording before passing `--summary`, OR amend the CHANGELOG blockquote BEFORE Phase 8 so all three surfaces stay aligned

@@ -1,0 +1,96 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: extend the deterministic release pipeline so `task release -- <version>` (and `scripts/release.py`) accept an optional `--summary \"...\"` flag that injects a one-line Markdown blockquote at the top of the promoted CHANGELOG `[<version>]` section. The same blockquote flows into the GitHub release body (via the existing `_section_for_version` -> notes path) and is the canonical source for the Phase 8 Slack `*Summary*:` slot. Per-[AXIOM] (deterministic > Taskfile > vBRIEF > RFC2119 > prose) the implementation lands at the deterministic tier (script function + argparse + tests) with a thin skill-tier wrapper (`deft-directive-release` Phase 1 / 2 / 4 / 8 prose) covering the user-facing prompt + drift anti-pattern.",
+    "created": "2026-04-29T15:10:00Z",
+    "updated": "2026-04-29T15:10:00Z"
+  },
+  "plan": {
+    "id": "release-summary-blockquote",
+    "title": "Release CHANGELOG promotion accepts --summary blockquote (per [AXIOM] deterministic tier)",
+    "status": "proposed",
+    "planRef": "#release-narrative-gap",
+    "narratives": {
+      "Problem": "When cutting v0.X.Y the operator hand-writes the same one-line release narrative three separate times in three separate surfaces -- (1) the CHANGELOG `[<version>]` section (currently has no canonical place for it; the `### Added` bullet list is too granular), (2) the GitHub release body (currently picked up from the CHANGELOG section verbatim via `_section_for_version`, so inherits the gap), and (3) the Phase 8 Slack `*Summary*:` slot. Three transcriptions across three audiences is the kind of drift that the v0.21.0 re-cut prep discussion flagged: the GitHub release body and the Slack post diverged from the CHANGELOG section because nothing carried the operator's intended narrative as a single canonical artifact.",
+      "Overview": "Per the `## Rule Authority [AXIOM]` block in `main.md` the canonical encoding tier for a deterministic flow is the script + Taskfile, with prose tiers (skill / lessons) reserved for fallback. The proposed change therefore lands at: (Tier 1 primary) `scripts/release.py::promote_changelog` accepts a new `summary: str | None = None` keyword arg that, when truthy, injects two lines (`> <summary>\\n` + blank) directly after the `## [<version>] - <date>` heading and before the first sub-section so the promoted block reads `## [v] - d \\n\\n > summary \\n\\n ### Added \\n - ...`; `_section_for_version` already returns whatever sits between the heading and the next `## [` so the blockquote naturally flows into the GitHub release body without further plumbing; (Tier 1 secondary) `ReleaseConfig` gains a `summary: str | None = None` field; `_build_parser` adds `--summary TEXT` (recommended 80-160 chars; single-line; preserves inline Markdown verbatim); `run_pipeline` Step 4 threads `summary=config.summary` through `promote_changelog(...)` and reflects whether a summary was supplied in the dry-run preview message; `main` wires `args.summary` into the `ReleaseConfig` constructor; (Tier 4 secondary) `skills/deft-directive-release/SKILL.md` Phase 1 / Phase 2 / Phase 4 prose covers the user-facing operator prompt (collect once, present in dry-run, pass through to production) and Phase 8 covers the canonical `*Summary*:` populate rule + the drift anti-pattern (operator MUST NOT manually rewrite the summary in Slack to deviate from CHANGELOG).",
+      "Background": "v0.21.0 re-cut prep surfaced that the post-publish narrative is currently regenerated three times. The Phase 8 Slack template already has a `*Summary*:` slot but no upstream source -- operators were hand-writing it after the fact, so the GitHub release body (auto-pulled from the CHANGELOG section) and the Slack post diverged on every cut. The simplest deterministic fix is to add a single `--summary` flag at the top of the pipeline so the operator commits to one wording at Phase 1 and that wording propagates through Phase 4 promotion, Phase 4 release-body pickup (via `_section_for_version`), and Phase 8 Slack populate.",
+      "Constraint": "MUST stay backward-compatible: `summary=None` (or empty) preserves the existing promoted-section shape byte-for-byte (the existing `TestPromoteChangelog` battery must keep passing unchanged). MUST keep summary inline-Markdown verbatim (operators may include `**bold**`, `[link](url)` etc. -- no escaping). Newlines in the input MUST either be normalised to a single space OR cause a clear `ValueError` (pick the simpler implementation; document the choice in tests). MUST keep the deterministic preview path observable: the dry-run Step-4 message MUST surface whether a summary was supplied (truncated to ~60 chars to keep operator-readable). MUST NOT introduce drift between the Phase 8 Slack `*Summary*:` and the CHANGELOG blockquote -- the SKILL anti-pattern explicitly prohibits operator hand-rewriting in Slack to a different wording.",
+      "Risk": "Low. Additive at the framework level: new optional kwarg defaults to None, new optional `--summary` argparse flag, new `ReleaseConfig.summary` field defaulted to None, prose appended to the release skill's existing phases. No existing call sites change behaviour. The seven new tests in `tests/cli/test_release.py` exercise the new path (with-summary, without-summary regression, Markdown preservation, empty string == None, newline handling, argparse wiring, pipeline threading) so a future regression on the backward-compat contract surfaces immediately.",
+      "Outcome": "Acceptance: (1) `promote_changelog(text, version, repo, today, summary=None)` is backward-compatible AND emits a `> <summary>` blockquote between heading and first sub-section when summary is truthy; (2) `ReleaseConfig` carries `summary: str | None = None` defaulting to None; (3) `--summary TEXT` argparse flag with helptext citing 80-160 char recommendation, GitHub release body flow, and Slack template flow; (4) `run_pipeline` Step 4 threads summary through and reflects it in the dry-run preview; (5) `main` wires `args.summary` to `ReleaseConfig.summary`; (6) `skills/deft-directive-release/SKILL.md` Phase 1 + Phase 2 + Phase 4 prose covers the operator-prompt + dry-run-preview + production pass-through; Phase 8 carries the canonical populate rule + the drift anti-pattern; (7) `tests/cli/test_release.py` adds 7 new tests covering each surface; (8) `task check` and `task ci:local` pass green; (9) `CHANGELOG.md` `[Unreleased] / Added` carries an entry referencing this scope vBRIEF.",
+      "Test": "Verification: (a) `tests/cli/test_release.py::test_promote_changelog_with_summary` -- promoted section contains `\\n\\n> Test summary\\n` between heading and `### Added`; (b) `test_promote_changelog_without_summary` -- regression: backward-compat unchanged when summary omitted; (c) `test_promote_changelog_summary_with_markdown` -- `**bold**` / `[link](url)` preserved verbatim; (d) `test_promote_changelog_summary_empty_string` -- empty string behaves as None; (e) `test_promote_changelog_summary_with_newline` -- documents the chosen behaviour (normalise vs reject); (f) `test_main_summary_argparse` -- invoking `main([..., \"--summary\", \"Test\"])` lands `summary=\"Test\"` in `ReleaseConfig`; (g) `test_pipeline_summary_threaded` -- dry-run preview reflects the summary; (h) `task check` + `task ci:local` green.",
+      "Action": "Single review-cycle leaf: touches `scripts/release.py`, `tests/cli/test_release.py`, `skills/deft-directive-release/SKILL.md`, `CHANGELOG.md`, plus this scope vBRIEF. Optional: an additive paragraph in `scm/changelog.md` about the optional blockquote summary line if appropriate. No new GitHub issue at this time -- PR uses `Refs <discussion>` per parent's instructions; user may file a retroactive issue at their discretion."
+    },
+    "items": [
+      {
+        "id": "scripts-release-promote-changelog-summary",
+        "title": "promote_changelog accepts optional summary; emits Markdown blockquote line between heading and first sub-section",
+        "status": "pending",
+        "narrative": {
+          "Action": "Extend `scripts/release.py::promote_changelog` signature to `(text, version, repo, today, summary=None)`. When summary is None / empty, behavior is byte-identical to the existing implementation. When summary is non-empty, inject two lines (`> <summary>` + blank line) directly after the `## [<version>] - <date>` heading and before the first sub-section so the rendered block sandwiches the blockquote with blank lines for proper Keep-a-Changelog rendering. Preserve summary verbatim (no Markdown escaping). Treat newline-in-input as a clear `ValueError` (simpler than normalisation per the parent prompt's escape hatch).",
+          "Acceptance": "All seven new tests in `tests/cli/test_release.py` pass; existing `TestPromoteChangelog` battery passes unchanged."
+        }
+      },
+      {
+        "id": "scripts-release-config-summary-field",
+        "title": "ReleaseConfig.summary field; --summary argparse flag; pipeline thread + main wiring",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add `summary: str | None = None` to `ReleaseConfig` dataclass. Add `--summary TEXT` to `_build_parser` with metavar=\"TEXT\", default=None, helptext citing 80-160 char recommendation + GitHub release body flow + Phase 8 Slack template flow. `run_pipeline` Step 4 passes `summary=config.summary` to `promote_changelog(...)` and the dry-run preview message reflects whether a summary was supplied (truncated to ~60 chars). `main` wires `args.summary` into the `ReleaseConfig` constructor.",
+          "Acceptance": "argparse + pipeline + main tests pass; dry-run preview message surfaces summary state for operator validation."
+        }
+      },
+      {
+        "id": "skills-deft-directive-release-phases-update",
+        "title": "skills/deft-directive-release/SKILL.md Phase 1 + 2 + 4 + 8 update",
+        "status": "pending",
+        "narrative": {
+          "Action": "Phase 1 pre-flight: add a step asking the operator for the one-line summary (recommended 80-160 chars; can be skipped). Note that the summary will appear in: (1) `CHANGELOG.md [<version>]` blockquote; (2) GitHub release body (via existing `_section_for_version` pickup); (3) Phase 8 Slack `*Summary*:` slot. Phase 2 dry-run: when invoking `task release -- <version> --dry-run --skip-tag --skip-release`, also pass `--summary \"<text>\"` if Phase 1 collected one; the dry-run preview should show the operator the rendered blockquote (verifies the wording). Phase 4 production draft: pass `--summary \"<text>\"` to `task release -- <version>`. Phase 8 Slack: add a Populate rule stating the canonical `*Summary*:` is populated VERBATIM from the CHANGELOG `[<version>]` blockquote. Add a `\\u2297` anti-pattern: operator MUST NOT manually rewrite the summary in Slack to deviate from CHANGELOG (creates documentation drift across audiences).",
+          "Acceptance": "Phases 1, 2, 4, 8 carry the new prose; the drift anti-pattern is added to Phase 8's anti-patterns block; existing prose unchanged."
+        }
+      },
+      {
+        "id": "tests-cli-test-release-summary",
+        "title": "Add 7 tests in tests/cli/test_release.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add to `tests/cli/test_release.py` (mirroring existing `TestPromoteChangelog` patterns): (1) `test_promote_changelog_with_summary`; (2) `test_promote_changelog_without_summary`; (3) `test_promote_changelog_summary_with_markdown`; (4) `test_promote_changelog_summary_empty_string`; (5) `test_promote_changelog_summary_with_newline` (raises ValueError); (6) `test_main_summary_argparse`; (7) `test_pipeline_summary_threaded`.",
+          "Acceptance": "All 7 tests pass under `task check`; existing tests do not regress; total file remains < 1000 lines per AGENTS.md (current: 1521 lines -- already over 1000; this is a pre-existing condition tracked separately and the new tests add ~50-80 lines, well under the 2000-line worst-case ceiling). NOTE: AGENTS.md says files MUST be < 1000; pre-existing test file size will be flagged in the PR body so the gate keeper sees this is not introduced by this PR."
+        }
+      },
+      {
+        "id": "changelog-release-summary-blockquote",
+        "title": "CHANGELOG [Unreleased]/Added entry for the new feature",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add a substantial entry under `## [Unreleased] / ### Added` summarising the deterministic-tier change (script + argparse + skill phases + tests) and the three-surface flow (CHANGELOG / GitHub release / Slack `*Summary*:`). End with `Refs release-narrative-gap` rather than `Closes #N` since no issue was filed yet.",
+          "Acceptance": "CHANGELOG.md `## [Unreleased] / ### Added` carries the new entry; existing entries unchanged."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "swarm_ready": true,
+        "blocks": null,
+        "blocked_by": null,
+        "scope_authority": "release-summary-blockquote sub-agent (parent monitor's plan stages 1-7)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/74",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #74: chore: automate release process and CI changelog enforcement (parent of the release pipeline)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/716",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #716: release safety hardening (default-draft + Phase 8 template surface this feature integrates with)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/727",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #727: orchestrator role-separation (the canonical poller-prompt template this PR's review cycle uses)"
+      }
+    ]
+  }
+}
