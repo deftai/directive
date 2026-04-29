@@ -66,6 +66,7 @@ Refs #74, #233, #642, #635, #709 (Repair Authority [AXIOM]),
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as _dt
 import json
 import os
@@ -73,6 +74,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -783,6 +785,18 @@ def create_github_release(
     created in draft state so binaries upload via release.yml CI but the
     artifact is not yet visible to consumers. ``task release:publish --
     <version>`` flips the draft to public after manual review.
+
+    Notes-file path (#731): when ``notes`` is non-empty we materialise
+    it to a UTF-8 temp file and pass ``--notes-file <path>`` to ``gh``
+    rather than ``--notes "<text>"``. Inlining a multi-KB CHANGELOG
+    section as a single argv element overflows the Windows command-line
+    buffer (~32 KB) and surfaces from CreateProcess as
+    ``FileNotFoundError(winerror=206, ERROR_FILENAME_EXCED_RANGE)``. The
+    temp file is cleaned up in a ``try/finally`` regardless of
+    subprocess outcome (success, non-zero exit, FileNotFoundError, any
+    other exception). When ``notes`` is empty we fall through to
+    ``--generate-notes`` (gh-side auto-generation from PR titles since
+    the previous tag) so the release body is never blank.
     """
     gh_path = _resolve_gh()
     if gh_path is None:
@@ -795,26 +809,69 @@ def create_github_release(
     ]
     if draft:
         cmd.append("--draft")
+
+    # Materialise notes to a UTF-8 temp file when non-empty so the
+    # gh release create command line stays well under the OS argv cap
+    # (~32 KB on Windows; ARG_MAX 128 KB-2 MB elsewhere). The previous
+    # ``--notes <text>`` shape blew up on the v0.21.0 e2e cut against
+    # deft's own CHANGELOG (#731).
+    notes_file: Path | None = None
     if notes:
-        cmd.extend(["--notes", notes])
+        # delete=False because we close the handle BEFORE invoking gh:
+        # Windows holds an exclusive lock on a NamedTemporaryFile while
+        # it is open, which would prevent gh from reading the file.
+        # Cleanup happens in the finally block below.
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="",
+            suffix=".md",
+            delete=False,
+        ) as fh:
+            fh.write(notes)
+            notes_file = Path(fh.name)
+        cmd.extend(["--notes-file", str(notes_file)])
     else:
         cmd.append("--generate-notes")
+
     try:
-        result = subprocess.run(
-            cmd,
-            cwd=str(project_root),
-            capture_output=True,
-            text=True,
-            timeout=120,
-            check=False,
-            env=os.environ.copy(),
-        )
-    except FileNotFoundError:
-        return False, "gh CLI not found on PATH"
-    if result.returncode != 0:
-        return False, f"gh release create failed: {result.stderr.strip()}"
-    suffix = " (draft)" if draft else ""
-    return True, f"created GitHub release {tag}{suffix}"
+        try:
+            result = subprocess.run(
+                cmd,
+                cwd=str(project_root),
+                capture_output=True,
+                text=True,
+                timeout=120,
+                check=False,
+                env=os.environ.copy(),
+            )
+        except FileNotFoundError as exc:
+            # Windows error 206 (ERROR_FILENAME_EXCED_RANGE) surfaces as
+            # FileNotFoundError because Python's CreateProcess wrapper
+            # maps it that way. Distinguish the cmd-line-overflow case
+            # from a genuinely missing gh binary so operators see an
+            # accurate diagnostic instead of being mis-pointed at the
+            # #722 PATHEXT shim (#731).
+            if getattr(exc, "winerror", None) == 206:
+                return False, (
+                    "gh release create command line exceeded Windows "
+                    "limit (winerror 206, ERROR_FILENAME_EXCED_RANGE). "
+                    "This should be mitigated by the --notes-file "
+                    "switch landed in #731 -- if you still see this "
+                    "with notes already in a file, file a follow-up."
+                )
+            return False, "gh CLI not found on PATH"
+        if result.returncode != 0:
+            return False, f"gh release create failed: {result.stderr.strip()}"
+        suffix = " (draft)" if draft else ""
+        return True, f"created GitHub release {tag}{suffix}"
+    finally:
+        if notes_file is not None:
+            # Cleanup is best-effort; an undeleted temp file in the OS
+            # temp dir is a housekeeping issue, not a release-pipeline
+            # failure (ruff SIM105: contextlib.suppress over try/pass).
+            with contextlib.suppress(OSError):
+                notes_file.unlink(missing_ok=True)
 
 
 # ---- Step 11 -- post-create verify-isDraft gate (#724) ---------------------

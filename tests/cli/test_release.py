@@ -1042,6 +1042,237 @@ class TestCreateGithubReleaseDraftDefault:
         assert "--draft" not in step10_line
 
 
+# ---------------------------------------------------------------------------
+# create_github_release -- #731 notes-file switch + winerror=206 handler
+# ---------------------------------------------------------------------------
+
+
+class TestCreateGithubReleaseNotesFile731:
+    """Coverage for the #731 fix: ``--notes-file <path>`` instead of
+    ``--notes "<text>"`` so multi-KB CHANGELOG sections do not blow the
+    Windows command-line buffer (~32 KB) and surface as a misleading
+    ``FileNotFoundError(winerror=206, ERROR_FILENAME_EXCED_RANGE)``.
+
+    Surfaced by the deepened ``task release:e2e`` harness (#720) during
+    the v0.21.0 (#721) Phase 3 gate. The existing ``except
+    FileNotFoundError`` handler used to map ANY FileNotFoundError to the
+    canonical ``"gh CLI not found on PATH"`` diagnostic, which pointed
+    operators at the #722 PATHEXT shim instead of the cmd-line root
+    cause.
+    """
+
+    @staticmethod
+    def _patch_which(monkeypatch, gh_path: str = "/usr/bin/gh") -> None:
+        monkeypatch.setattr(release.shutil, "which", lambda _name: gh_path)
+
+    @staticmethod
+    def _capture_run(monkeypatch, *, returncode: int = 0):
+        """Stub subprocess.run; captures the cmd argv plus a snapshot of
+        the notes-file content + path AT THE TIME the subprocess would
+        have been invoked. Snapshot lets cleanup-on-success tests assert
+        the file was readable during the call (then deleted post-call)."""
+        captured: dict = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = list(cmd)
+            captured["kwargs"] = kwargs
+            # Snapshot the notes-file (if present) at call-time.
+            if "--notes-file" in cmd:
+                idx = cmd.index("--notes-file")
+                path = Path(cmd[idx + 1])
+                captured["notes_file_path"] = path
+                captured["notes_file_existed_during_call"] = path.is_file()
+                if path.is_file():
+                    captured["notes_file_content"] = path.read_text(
+                        encoding="utf-8"
+                    )
+            return SimpleNamespace(stdout="", stderr="", returncode=returncode)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        return captured
+
+    # --- (a) argv shape ----------------------------------------------------
+    def test_uses_notes_file_for_non_empty_notes(self, monkeypatch, tmp_path):
+        """argv contains --notes-file <path> and never --notes <text>."""
+        self._patch_which(monkeypatch)
+        captured = self._capture_run(monkeypatch)
+        notes = "## [0.21.0] - 2026-04-29\n\n### Added\n- one-liner\n"
+        ok, reason = release.create_github_release(
+            tmp_path, "0.21.0", "deftai/directive", notes
+        )
+        assert ok is True
+        assert "--notes-file" in captured["cmd"], (
+            f"#731 contract: --notes-file MUST appear in argv; got {captured['cmd']}"
+        )
+        assert "--notes" not in captured["cmd"], (
+            f"#731 regression guard: --notes (literal flag) MUST NOT appear in argv "
+            f"because that's the cmd-line-overflow shape; got {captured['cmd']}"
+        )
+        # The argv element after --notes-file should be a path, not the notes text.
+        idx = captured["cmd"].index("--notes-file")
+        assert idx + 1 < len(captured["cmd"])
+        assert notes not in captured["cmd"], (
+            "Notes content MUST NOT appear inline in argv"
+        )
+        assert "created GitHub release" in reason
+
+    # --- (b) notes file content matches input ------------------------------
+    def test_notes_file_content_matches_input_utf8(self, monkeypatch, tmp_path):
+        """The temp file content equals the notes argument verbatim, UTF-8 encoded."""
+        self._patch_which(monkeypatch)
+        captured = self._capture_run(monkeypatch)
+        # Include a non-ASCII character (em dash) to verify UTF-8 round-trip.
+        notes = "### Added\n- feat -- one-liner with em dash \u2014 done\n"
+        ok, _ = release.create_github_release(
+            tmp_path, "0.21.0", "deftai/directive", notes
+        )
+        assert ok is True
+        assert captured["notes_file_existed_during_call"] is True
+        assert captured["notes_file_content"] == notes
+        # Verify we wrote raw UTF-8 (no BOM) by checking the path on disk
+        # was readable as utf-8 with the literal em dash present.
+        assert "\u2014" in captured["notes_file_content"]
+
+    # --- (c) cleanup on success path ---------------------------------------
+    def test_notes_file_cleaned_up_on_success(self, monkeypatch, tmp_path):
+        """After the function returns OK, the temp notes file no longer exists."""
+        self._patch_which(monkeypatch)
+        captured = self._capture_run(monkeypatch)
+        ok, _ = release.create_github_release(
+            tmp_path, "0.21.0", "deftai/directive", "some notes\n"
+        )
+        assert ok is True
+        path = captured["notes_file_path"]
+        assert captured["notes_file_existed_during_call"] is True, (
+            "sanity: temp file MUST exist while gh is being invoked"
+        )
+        assert not path.exists(), (
+            f"#731: temp notes file MUST be cleaned up after success; "
+            f"still exists at {path}"
+        )
+
+    # --- (d) cleanup on non-zero exit path ---------------------------------
+    def test_notes_file_cleaned_up_on_non_zero_exit(self, monkeypatch, tmp_path):
+        """After the gh subprocess returns non-zero, the temp file is still cleaned up."""
+        self._patch_which(monkeypatch)
+        captured = self._capture_run(monkeypatch, returncode=1)
+
+        # Override the fake_run to inject a stderr value so the failure
+        # branch can format its reason without blowing up on missing keys.
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = list(cmd)
+            if "--notes-file" in cmd:
+                idx = cmd.index("--notes-file")
+                captured["notes_file_path"] = Path(cmd[idx + 1])
+            return SimpleNamespace(
+                stdout="", stderr="403 forbidden", returncode=1
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.create_github_release(
+            tmp_path, "0.21.0", "deftai/directive", "some notes\n"
+        )
+        assert ok is False
+        assert "403 forbidden" in reason
+        path = captured["notes_file_path"]
+        assert not path.exists(), (
+            "#731: temp notes file MUST be cleaned up even on non-zero exit"
+        )
+
+    # --- (e) cleanup on FileNotFoundError path -----------------------------
+    def test_notes_file_cleaned_up_on_filenotfound(self, monkeypatch, tmp_path):
+        """After subprocess.run raises FileNotFoundError, temp file is cleaned up."""
+        self._patch_which(monkeypatch)
+        captured: dict = {}
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = list(cmd)
+            if "--notes-file" in cmd:
+                idx = cmd.index("--notes-file")
+                captured["notes_file_path"] = Path(cmd[idx + 1])
+            raise FileNotFoundError(2, "No such file")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.create_github_release(
+            tmp_path, "0.21.0", "deftai/directive", "some notes\n"
+        )
+        assert ok is False
+        assert reason == "gh CLI not found on PATH"
+        path = captured["notes_file_path"]
+        assert not path.exists(), (
+            "#731: temp notes file MUST be cleaned up even when subprocess raises"
+        )
+
+    # --- (f) winerror=206 distinct diagnostic ------------------------------
+    def test_winerror_206_distinct_diagnostic(self, monkeypatch, tmp_path):
+        """winerror=206 MUST emit a cmdline-exceeded diagnostic.
+
+        FileNotFoundError(2, msg, None, 206, None) MUST surface the
+        distinct cmdline-too-long reason citing #731, NOT the canonical
+        gh-not-found message which would mis-point at #722.
+        """
+        self._patch_which(monkeypatch)
+
+        def fake_run(cmd, **kwargs):
+            # Construct the exact exception shape Python emits when
+            # CreateProcess returns ERROR_FILENAME_EXCED_RANGE on Windows:
+            # FileNotFoundError(2, 'The filename or extension is too long', None, 206, None).
+            raise FileNotFoundError(
+                2, "The filename or extension is too long", None, 206, None
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.create_github_release(
+            tmp_path, "0.21.0", "deftai/directive", "some notes\n"
+        )
+        assert ok is False
+        # The distinct diagnostic MUST identify the cmd-line root cause and
+        # cite #731 so operators are not mis-pointed at the #722 PATHEXT shim.
+        assert "command line exceeded Windows limit" in reason, (
+            f"#731: winerror=206 MUST surface the cmdline-too-long diagnostic; "
+            f"got {reason!r}"
+        )
+        assert "206" in reason
+        assert "#731" in reason
+        # Critically: the canonical gh-not-found message MUST NOT appear,
+        # because it would mis-point the operator at #722.
+        assert reason != "gh CLI not found on PATH"
+
+    # --- (g) other FileNotFoundError still surfaces canonical reason -------
+    def test_winerror_other_falls_through_to_canonical(self, monkeypatch, tmp_path):
+        """Plain FileNotFoundError (no winerror=206) keeps the canonical reason."""
+        self._patch_which(monkeypatch)
+
+        def fake_run(cmd, **kwargs):
+            # Plain ENOENT shape (no winerror, or winerror==2 etc.) -- this
+            # is what surfaces when gh is genuinely missing.
+            raise FileNotFoundError(2, "No such file or directory")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.create_github_release(
+            tmp_path, "0.21.0", "deftai/directive", "some notes\n"
+        )
+        assert ok is False
+        assert reason == "gh CLI not found on PATH", (
+            f"non-206 FileNotFoundError MUST keep the canonical reason; got {reason!r}"
+        )
+
+    # --- (h) empty notes still uses --generate-notes ----------------------
+    def test_empty_notes_keeps_generate_notes(self, monkeypatch, tmp_path):
+        """When notes="" the gh argv carries --generate-notes (not --notes-file)."""
+        self._patch_which(monkeypatch)
+        captured = self._capture_run(monkeypatch)
+        ok, _ = release.create_github_release(
+            tmp_path, "0.21.0", "deftai/directive", ""
+        )
+        assert ok is True
+        assert "--generate-notes" in captured["cmd"]
+        assert "--notes-file" not in captured["cmd"], (
+            "Empty notes MUST NOT cause an empty --notes-file to be passed"
+        )
+        assert "--notes" not in captured["cmd"]
+
+
 class TestPushRelease:
     def test_push_release_invokes_atomic_with_branch_and_tag(self, monkeypatch, tmp_path):
         captured = {}

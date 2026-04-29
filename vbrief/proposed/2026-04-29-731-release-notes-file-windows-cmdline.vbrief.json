@@ -1,0 +1,97 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: fix scripts/release.py::create_github_release so it materialises promoted CHANGELOG notes to a temp UTF-8 file and invokes `gh release create --notes-file <path>` instead of `--notes \"<text>\"`. Closes #731. Surfaced by the deepened `task release:e2e` harness (#720) during the v0.21.0 (#721) Phase 3 gate as `[10/11] FAIL (gh CLI not found on PATH)` -- the misleading message is the existing FileNotFoundError handler mapping Windows error code 206 (`ERROR_FILENAME_EXCED_RANGE`, command-line buffer overflow) to the canonical `\"gh CLI not found on PATH\"` reason. Per the `## Rule Authority [AXIOM]` block in `main.md` the deterministic tier (script + tests) is the canonical encoding; no skill prose change is required because `skills/deft-directive-release/SKILL.md` already documents the gh release create step at the abstract level.",
+    "created": "2026-04-29T16:45:00Z",
+    "updated": "2026-04-29T16:45:00Z"
+  },
+  "plan": {
+    "id": "release-notes-file-windows-cmdline",
+    "title": "release.py uses --notes-file for gh release create; fixes Windows ERROR_FILENAME_EXCED_RANGE blocking v0.21.0 (#731)",
+    "status": "proposed",
+    "planRef": "#731",
+    "narratives": {
+      "Problem": "On Windows hosts (any release tooling that runs through `task release` or `task release:e2e`), `scripts/release.py::create_github_release` invokes `gh release create v<version> --notes \"<promoted CHANGELOG section>\"` with the entire release notes inlined as a command-line argument. Once the promoted `[<version>]` section grows past the OS command-line buffer (~32 KB on Windows), `subprocess.run` raises `FileNotFoundError(2, 'The filename or extension is too long', None, 206, None)` because Python wraps Windows error code 206 (`ERROR_FILENAME_EXCED_RANGE`) as `FileNotFoundError`. The existing exception handler unconditionally maps any `FileNotFoundError` to the canonical `\"gh CLI not found on PATH\"` reason -- so the operator sees a completely misleading diagnostic that points at the #722 PATHEXT shim instead of the cmd-line length root cause. The defect blocks the v0.21.0 production cut because v0.21.0's promoted `[Unreleased] -> [0.21.0]` section is many KB (9+ feature/fix entries with verbose bodies). It also blocks every Windows consumer running the release SKILL on a sufficiently-large CHANGELOG. Cross-platform: the same defect would bite Linux/macOS once a release notes section grows past `ARG_MAX` (typically 128 KB-2 MB).",
+      "Overview": "Per the `## Rule Authority [AXIOM]` block in `main.md` the canonical fix tier is the deterministic script + tests. Two coordinated changes in `scripts/release.py::create_github_release`: (1) materialise the notes content to a UTF-8 temp file via `tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix='.md', delete=False)`, then pass `--notes-file <path>` to `gh release create` instead of `--notes \"<text>\"`. The `gh` CLI documents `--notes-file` as the canonical way to feed long-form notes from a file (https://cli.github.com/manual/gh_release_create). Cleanup the temp file in a `try/finally` regardless of subprocess outcome (success, non-zero exit, or any exception). (2) Tighten the `FileNotFoundError` handler so `winerror == 206` (`ERROR_FILENAME_EXCED_RANGE`) emits a distinct `\"gh release create command line exceeded Windows limit (winerror 206)\"` diagnostic with a hint at the `--notes-file` mitigation. All other `FileNotFoundError` instances (e.g. genuinely missing gh binary) keep the canonical `\"gh CLI not found on PATH\"` message so existing tests + operator expectations are stable. The `--notes` -> `--notes-file` switch is the primary fix; the FileNotFoundError handler tightening is defense-in-depth that catches future cmd-line-length regressions before they masquerade as PATH issues.",
+      "Background": "PR #720 (Closes #720) deepened `release_e2e.py::run_rehearsal` from existence-check to full pipeline mirror specifically so platform-specific defects that mocks cannot reach surface in the e2e gate before they bite production. The v0.21.0 (#721) re-cut Phase 3 gate exercised the deepened harness end-to-end and surfaced this defect at Step 10. Existing `tests/cli/test_release.py::TestCreateGithubRelease` mocks `subprocess.run`, so the cmd-line length never round-trips through `CreateProcess` -- the mock pattern is correct for unit tests but cannot catch this defect by definition. The e2e harness is working as designed.",
+      "Constraint": "MUST stay backward-compatible at the function signature level (existing callers + tests pass `notes` positionally; no new required parameters). MUST clean up the temp notes file on every exit path (success, non-zero exit, FileNotFoundError, OtherException, KeyboardInterrupt). MUST keep the canonical `\"gh CLI not found on PATH\"` reason for genuinely-missing-gh cases so existing tests + operator expectations are stable. MUST keep the `cmd[0]` resolution via `_resolve_gh()` from #722 (the helper is correct; Path-based gh resolution is unchanged). MUST emit the temp file as UTF-8 with no BOM so non-ASCII characters in the promoted CHANGELOG (em dashes, Unicode bullets, etc.) round-trip correctly into the GitHub release body. MUST NOT pass an empty notes file to gh -- when `notes` is empty (existing `--generate-notes` fallback), keep the existing behaviour (skip `--notes-file`, use `--generate-notes`). SHOULD include the temp file path in the diagnostic on the cmdline-exceeded branch so operators can inspect it during debugging. MUST NOT touch `release_publish.py`, `release_rollback.py`, `release_e2e.py` -- those use `gh release view/edit/delete` only and have no `--notes` argument carrying large text.",
+      "Risk": "Low. Localised to one function (`create_github_release` ~30 lines net change). No other release-pipeline scripts or call sites change. Existing 8 `TestCreateGithubRelease` tests in `tests/cli/test_release.py` need updating because they assert `cmd` argv contains `--notes <text>`; the assertion flips to `--notes-file <path>` plus a new assertion that the path's content matches the notes. New regression tests cover the cleanup + winerror=206 path. The `--notes-file` flag is supported by gh CLI v2.0+ (released 2021-08); deft's #722 PATHEXT shim already implies gh 2.x on the operator's path, so no version-gating is required. Defense-in-depth: the FileNotFoundError tightening is additive -- worst case is unchanged behaviour for non-206 cases.",
+      "Outcome": "Acceptance: (1) `gh release create` argv contains `--notes-file <path>` and never `--notes <text>` when notes is non-empty; (2) `--generate-notes` fallback preserved when notes is empty; (3) notes content lands in the temp file as UTF-8 (no BOM); (4) temp file is cleaned up on success path, non-zero exit path, and FileNotFoundError / OtherException paths; (5) `FileNotFoundError(2, msg, None, 206, None)` emits a distinct diagnostic mentioning the cmd-line limit + `--notes-file` mitigation, NOT `\"gh CLI not found on PATH\"`; (6) regular `FileNotFoundError(2, msg)` still maps to `\"gh CLI not found on PATH\"`; (7) existing 8 `TestCreateGithubRelease` tests updated for the new contract; (8) at least 6 new regression tests cover the cleanup contract + winerror=206 branch; (9) `task ci:local` green; (10) `task release:e2e` against a temp repo runs clean end-to-end; (11) CHANGELOG `[Unreleased] / Fixed` carries an entry referencing #731, #720, #721; (12) Closes #731 in the PR body and the squash-commit subject.",
+      "Test": "Verification (all in `tests/cli/test_release.py::TestCreateGithubRelease`): (a) `test_create_github_release_uses_notes_file` -- argv contains `--notes-file <path>` and never `--notes <text>` for non-empty notes; (b) `test_create_github_release_notes_file_contains_promoted_section` -- the temp file content equals the notes argument verbatim (UTF-8, no BOM); (c) `test_create_github_release_notes_file_cleaned_up_on_success` -- temp file does NOT exist after function returns success; (d) `test_create_github_release_notes_file_cleaned_up_on_failure` -- temp file does NOT exist after function returns non-zero exit; (e) `test_create_github_release_notes_file_cleaned_up_on_exception` -- temp file does NOT exist after FileNotFoundError or other exception; (f) `test_create_github_release_winerror_206_distinct_diagnostic` -- `FileNotFoundError(2, msg, None, 206, None)` returns a reason mentioning cmd-line limit / `--notes-file` mitigation, NOT the canonical `\"gh CLI not found on PATH\"` string; (g) `test_create_github_release_winerror_other_falls_through_to_canonical` -- `FileNotFoundError(2, msg)` (no winerror, or winerror=2) still returns `\"gh CLI not found on PATH\"`; (h) `test_create_github_release_empty_notes_keeps_generate_notes` -- when `notes=\"\"`, argv contains `--generate-notes` and NOT `--notes-file`; (i) existing 8 `TestCreateGithubRelease` tests updated to assert the new argv shape; (j) `task ci:local` green; (k) `task release:e2e` against a fresh temp repo runs clean (manual verification post-merge before resuming v0.21.0).",
+      "Action": "Single review-cycle leaf. Touches `scripts/release.py` (one function), `tests/cli/test_release.py` (update existing 8 + add 8 new tests), `CHANGELOG.md` (`[Unreleased] / Fixed` entry citing #731 + the e2e-caught-pre-cut narrative), this scope vBRIEF. Closes #731."
+    },
+    "items": [
+      {
+        "id": "scripts-release-notes-file-switch",
+        "title": "create_github_release writes notes to UTF-8 temp file and invokes --notes-file",
+        "status": "pending",
+        "narrative": {
+          "Action": "Replace `cmd.extend([\"--notes\", notes])` with `tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', newline='', suffix='.md', delete=False)` materialisation + `cmd.extend([\"--notes-file\", str(notes_path)])`. Cleanup the temp file in a `try/finally` block regardless of subprocess outcome (success, non-zero exit, FileNotFoundError, OtherException). Preserve the `--generate-notes` fallback when notes is empty.",
+          "Acceptance": "argv contains `--notes-file <path>` for non-empty notes; argv contains `--generate-notes` for empty notes; temp file cleaned up on every exit path; tests (a)-(e), (h) pass."
+        }
+      },
+      {
+        "id": "scripts-release-winerror-206-handler",
+        "title": "FileNotFoundError handler distinguishes winerror=206 from genuine missing-gh",
+        "status": "pending",
+        "narrative": {
+          "Action": "Inside the `except FileNotFoundError as exc:` block, inspect `getattr(exc, 'winerror', None)` and on `206` (`ERROR_FILENAME_EXCED_RANGE`) return `(False, \"gh release create command line exceeded Windows limit (winerror 206); use --notes-file path (this should be mitigated by the temp-file switch in this PR; see #731)\")`. All other `FileNotFoundError` cases keep the canonical `\"gh CLI not found on PATH\"` message.",
+          "Acceptance": "Tests (f), (g) pass; existing tests asserting the canonical message continue to pass."
+        }
+      },
+      {
+        "id": "tests-cli-test-release-notes-file",
+        "title": "Update + extend tests/cli/test_release.py::TestCreateGithubRelease",
+        "status": "pending",
+        "narrative": {
+          "Action": "Update existing 8 `TestCreateGithubRelease` tests to assert `--notes-file <path>` argv shape (replace `--notes <text>` assertion). Add 8 new tests (a)-(h) per the Test narrative. Use `tmp_path` pytest fixture for cleanup-verification tests so the temp file lives under a known prefix.",
+          "Acceptance": "All 16 tests pass; existing 233 release tests do not regress; new file size stays under 1000 lines (test_release.py is currently the largest test file at 1521 lines but already exceeds the AGENTS.md MUST per #730 vBRIEF -- add to existing TestCreateGithubRelease class for now; sibling-file split is out-of-scope housekeeping)."
+        }
+      },
+      {
+        "id": "changelog-731-entry",
+        "title": "CHANGELOG [Unreleased]/Fixed entry",
+        "status": "pending",
+        "narrative": {
+          "Action": "Append entry under `## [Unreleased] / ### Fixed` citing #731 (closes), #720 (e2e harness that surfaced this), #721 (cut session anchor), #722 (PATHEXT helper -- correct, not the bug). Mention the e2e-caught-pre-cut self-validation as another iteration of the rollback-as-test narrative from the prior cycle.",
+          "Acceptance": "CHANGELOG.md `## [Unreleased] / ### Fixed` carries the new entry; existing entries unchanged."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "swarm_ready": false,
+        "blocks": null,
+        "blocked_by": null,
+        "scope_authority": "v0.21.0 cut session prerequisite -- direct implementation"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/731",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #731: fix(scripts): release.py::create_github_release exceeds Windows command-line limit; FileNotFoundError(206) misreported as gh-not-found"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/720",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #720: deepen release_e2e.py from existence-check to full pipeline mirror (the harness that surfaced #731)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/722",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #722: gh PATHEXT subprocess fix (the helper that #731's misleading diagnostic falsely points at)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/74",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #74: chore: automate release process and CI changelog enforcement (parent of the release pipeline)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/716",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #716: release safety hardening (default-draft + Phase 8 template surface this PR integrates with)"
+      }
+    ]
+  }
+}
