@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #74: Automate release process"
+    "description": "Scope vBRIEF for #74: Automate release process",
+    "updated": "2026-04-29T18:06:43Z"
   },
   "plan": {
     "title": "Automate release process",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },

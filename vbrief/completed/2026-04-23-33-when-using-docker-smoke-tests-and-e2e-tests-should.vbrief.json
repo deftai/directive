@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #33: When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)"
+    "description": "Scope vBRIEF for #33: When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)",
+    "updated": "2026-04-29T18:06:43Z"
   },
   "plan": {
     "title": "When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },

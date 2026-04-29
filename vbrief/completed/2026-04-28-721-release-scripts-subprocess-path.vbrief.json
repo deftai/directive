@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Scope vBRIEF for #721: release scripts (release.py / release_publish.py / release_rollback.py / release_e2e.py) cannot find the `gh` CLI on Windows because Python's subprocess.run does not honor PATHEXT for `gh.cmd` -- resolve to an absolute path via shutil.which once and pass that as argv[0], plus env=os.environ.copy() defense-in-depth.",
     "created": "2026-04-28T21:50:29Z",
-    "updated": "2026-04-28T21:50:29Z"
+    "updated": "2026-04-29T18:18:17Z"
   },
   "plan": {
     "id": "721-release-subprocess-path",
     "title": "Resolve gh absolute path before subprocess.run in release scripts (Windows PATHEXT fix)",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "#721",
     "narratives": {
       "Problem": "On Windows, `gh` is installed as `gh.cmd` (PowerShell launcher / Windows shell shim). Python's `subprocess.run([\"gh\", ...])` does NOT honor PATHEXT when resolving argv[0] via the OS's CreateProcess path, so the launcher cannot be found -- the four release-pipeline scripts (scripts/release.py, scripts/release_publish.py, scripts/release_rollback.py, scripts/release_e2e.py) emit FileNotFoundError or WinError 2 on Windows hosts even when `gh` is on PATH and works fine from the operator's terminal. The release pipeline (#74) and #716 safety hardening companions (publish/rollback/e2e) are platform-incomplete on the only host class where the maintainer runs them.",
@@ -24,7 +24,7 @@
       {
         "id": "release-resolve-gh-helper",
         "title": "Add _resolve_gh helper in scripts/release.py and refactor all gh subprocess invocations across the four release scripts to use the resolved absolute path + env=os.environ.copy()",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Add `def _resolve_gh() -> str | None: return shutil.which(\"gh\")` to scripts/release.py. In release.py / release_publish.py / release_rollback.py / release_e2e.py, replace every `if shutil.which(\"gh\") is None:` guard with the helper, and rewrite each `subprocess.run([\"gh\", ...], ...)` so argv is `[gh_path, ...rest]` and kwargs include `env=os.environ.copy()`. Existing return tuples / exit codes / log messages preserved verbatim.",
           "Acceptance": "`grep -n 'subprocess.run(\\[\"gh\"' scripts/release*.py` returns zero matches after the refactor; every `subprocess.run` of a gh command in the four scripts has `env=os.environ.copy()` in its kwargs."
@@ -33,7 +33,7 @@
       {
         "id": "release-subprocess-path-tests",
         "title": "Create tests/cli/test_release_subprocess_path.py covering _resolve_gh, the missing-binary fallback, resolved-path argv[0], env propagation, and the Windows PATHEXT (gh.cmd) case",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Tests monkeypatch `shutil.which` and `subprocess.run`; capture argv + kwargs; assert argv[0] equals the resolved absolute path and `env=` equals `os.environ.copy()`. Cover at minimum: release_publish.view_release, release_rollback.gh_release_delete, one release.py gh caller (create_github_release), and release_e2e.provision_temp_repo.",
           "Acceptance": "test_release_subprocess_path.py passes alongside the existing four release tests under `task test`; coverage includes the literal `r'C:\\Program Files\\GitHub CLI\\gh.cmd'` PATHEXT case."
@@ -42,7 +42,7 @@
       {
         "id": "release-subprocess-path-changelog",
         "title": "Add CHANGELOG.md [Unreleased]/Fixed entry and verify .github/PULL_REQUEST_TEMPLATE.md checklist",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "CHANGELOG entry: 'Resolve `gh` to its absolute path before subprocess invocation in release scripts so Windows PATHEXT shims (`gh.cmd`) work; propagate `env=os.environ.copy()` for defense-in-depth (#721).'",
           "Acceptance": "CHANGELOG.md [Unreleased]/Fixed contains the entry; PR body references #721 (Refs not Closes -- parent agent closes #721 separately after the rollback test)."

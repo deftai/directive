@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-04-27T18:02:57Z"
+    "updated": "2026-04-29T18:19:22Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -22,38 +22,6 @@
     },
     "items": [
       {
-        "id": "2026-04-23-115-strengthen-spec-validation-gate-add-ci-freshness-check",
-        "title": "Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-115-strengthen-spec-validation-gate-add-ci-freshness-check.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/115",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #115: Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-160-consider-typescript-instead-of-python-for-run-cli",
-        "title": "Consider TypeScript instead of Python for `run` CLI -- architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-160-consider-typescript-instead-of-python-for-run-cli.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/160",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #160: Consider TypeScript instead of Python for `run` CLI -- architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118)"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-23-212-discussion-process-control-belongs-in-directive",
         "title": "discussion: Process control belongs in Directive -- universal process principles (review cycle, parallel work, batch-fix) as first-class Directive content; skills become tool-specific adapters; explicitly DO NOT IMPLEMENT until team decision reached (xrefs #89, #147, #194, #159)",
         "status": "proposed",
@@ -65,38 +33,6 @@
               "uri": "https://github.com/deftai/directive/issues/212",
               "type": "x-vbrief/github-issue",
               "title": "Issue #212: discussion: Process control belongs in Directive -- universal process principles (review cycle, parallel work, batch-fix) as first-class Directive content; skills become tool-specific adapters; explicitly DO NOT IMPLEMENT until team decision reached (xrefs #89, #147, #194, #159)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-233-more-determinism-full-initiative-phase-0-spec",
-        "title": "More Determinism: full initiative -- Phase 0 spec scaffolding (generated per-phase task gates), task doctor, and remaining deterministic enforcement tasks (build:verify, change:archive); tasks/ restructure, toolchain:check, verify:stubs, validate:links, changelog:check, change:init, commit:lint completed in v0.17.0; early-win subset #235 closed in v0.17.0",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/233",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #233: More Determinism: full initiative -- Phase 0 spec scaffolding (generated per-phase task gates), task doctor, and remaining deterministic enforcement tasks (build:verify, change:archive); tasks/ restructure, toolchain:check, verify:stubs, validate:links, changelog:check, change:init, commit:lint completed in v0.17.0; early-win subset #235 closed in v0.17.0"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-33-when-using-docker-smoke-tests-and-e2e-tests-should",
-        "title": "When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-33-when-using-docker-smoke-tests-and-e2e-tests-should.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/33",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #33: When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)"
             }
           ]
         }
@@ -308,6 +244,130 @@
         }
       },
       {
+        "id": "2026-04-27-635-events-behavioral-wiring",
+        "title": "Events: behavioral wiring (3 items: session interrupt/resume pair, plan:approved, legacy:detected)",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-04-27-635-events-behavioral-wiring.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/635",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/642",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this split)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/pull/401",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #401: hygiene/DDD/determinism (trim makes the events surface available for structural respawn under this vBRIEF)"
+            },
+            {
+              "uri": "proposed/2026-04-27-635-events-detection-bound-wiring.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Sibling vBRIEF: events detection-bound wiring (lands shared scripts/_events.py helper) -- related-plan, not parent/child, so no D4 back-link required"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-27-635-events-detection-bound-wiring",
+        "title": "Events: detection-bound wiring (5 events with existing detectors)",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-04-27-635-events-detection-bound-wiring.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/635",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism (umbrella for #75, #604, #607, #633, #634)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/642",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this split)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/pull/401",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #401: feat(coding): codebase hygiene, DDD framework structure, and determinism design (the trim makes core/events.md available to be respawned as a structural artifact under this vBRIEF)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/634",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #634: determinism-tier ladder (this vBRIEF's structural-artifact deliverable sits at T5/T6 on the 7-tier ladder)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-27-635-phase-0-spec-scaffolding-rfc",
+        "title": "RFC: Phase 0 spec scaffolding -- generated per-phase task gates (needs-discussion)",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-04-27-635-phase-0-spec-scaffolding-rfc.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/635",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/642",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this RFC split)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/233",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #233: More Determinism (this RFC settles the Phase 0 design question that gates the #233 phase-0-generated-per-phase-gates item)"
+            },
+            {
+              "uri": "pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "#233 (remaining 6) -- the phase-0-generated-per-phase-gates item references this RFC as its design gate (related-plan, not parent/child, so no D4 back-link required)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-27-635-rule-ownership-map-data-file-and-lint",
+        "title": "Rule Ownership Map: data file + lint enforcement (replaces REFERENCES.md prose section)",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-04-27-635-rule-ownership-map-data-file-and-lint.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/635",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/642",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this split + replaces descriptive prose with structural enforcement)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/pull/401",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #401: hygiene/DDD/determinism (trim removes the descriptive Rule Ownership Map prose from REFERENCES.md)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/634",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #634: determinism-tier ladder (this vBRIEF's lint deliverable sits at T5/T6 -- structural enforcement)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-23-100-compliance-evidence-collection-automation-hooks",
         "title": "[Compliance] Evidence collection automation hooks",
         "status": "pending",
@@ -319,22 +379,6 @@
               "uri": "https://github.com/deftai/directive/issues/100",
               "type": "x-vbrief/github-issue",
               "title": "Issue #100: [Compliance] Evidence collection automation hooks"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-103-standalone-brownfield-map-analysis-without-requiring",
-        "title": "Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-04-23-103-standalone-brownfield-map-analysis-without-requiring.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/103",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #103: Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)"
             }
           ]
         }
@@ -532,6 +576,37 @@
         }
       },
       {
+        "id": "2026-04-23-233-more-determinism-full-initiative-phase-0-spec",
+        "title": "More Determinism (remaining): Phase 0 spec scaffolding, task doctor, build:verify, change:archive, task ci:local, task release",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/233",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #233: More Determinism (remaining 6 tasks after v0.17.0 partial close)"
+            },
+            {
+              "uri": "completed/2026-04-23-233-partial-more-determinism-tasks-restructure-toolchain.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "#233 (partial) -- v0.17.0 done items: tasks/ restructure, toolchain:check, verify:stubs, verify:links, changelog:check, change:init, commit:lint, enhanced check (historical record of split; related-plan, not parent/child, so no D4 back-link required)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/635",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #635 (epic): skill-system maturity + framework-rule determinism -- anchors the Phase 0 spec scaffolding RFC vBRIEF that gates the first remaining item here"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/642",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #642: tracking umbrella for PR #401 trim arc (canonical workflow comment authorizes this done/pending split + lifecycle move)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-23-258-inventory-warp-drive-global-rules-used-for-deft",
         "title": "Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)",
         "status": "pending",
@@ -623,22 +698,6 @@
               "uri": "https://github.com/deftai/directive/issues/56",
               "type": "x-vbrief/github-issue",
               "title": "Issue #56: Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-74-automate-release-process",
-        "title": "Automate release process",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-04-23-74-automate-release-process.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/74",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #74: Automate release process"
             }
           ]
         }
@@ -869,7 +928,7 @@
       },
       {
         "id": "2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ",
-        "title": "tracking: framework maintainability, rule ownership, and determinism codification (PR #401)",
+        "title": "PR #401 trim tracker (hygiene merge anchor)",
         "status": "running",
         "metadata": {
           "source_path": "active/2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ.vbrief.json",
@@ -878,12 +937,32 @@
             {
               "uri": "https://github.com/deftai/directive/issues/642",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #642: tracking: framework maintainability, rule ownership, and determinism codification (PR #401)"
+              "title": "Issue #642: tracking: framework maintainability, rule ownership, and determinism codification (PR #401 trim tracker)"
             },
             {
               "uri": "https://github.com/deftai/directive/pull/401",
               "type": "x-vbrief/github-pr",
-              "title": "PR #401: feat(coding): codebase hygiene, DDD framework structure, and determinism design"
+              "title": "PR #401: feat(coding): codebase hygiene, DDD framework structure, and determinism design (trimmed)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/635",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #635 (epic): skill-system maturity + framework-rule determinism (umbrella for #75, #604, #607, #633, #634) -- anchors the 4 split children scaffolded by PR-A"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/634",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #634: codify determinism-tier ladder as governing rule for framework-level root-cause fixes (cross-referenced by main.md Rule Authority [AXIOM] block)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/233",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #233: More Determinism (refined in PR-A: done/pending split + lifecycle move proposed/ -> pending/)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
+              "type": "x-vbrief/github-issue",
+              "title": "Canonical workflow comment for PR #401 trim + framework maintainability arc (locked decisions, DP5 V4 block, halt-to-user templates, substantive-vs-mechanical bright line)"
             }
           ]
         }
@@ -2220,6 +2299,22 @@
         }
       },
       {
+        "id": "2026-04-23-103-standalone-brownfield-map-analysis-without-requiring",
+        "title": "Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-23-103-standalone-brownfield-map-analysis-without-requiring.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/103",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #103: Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-23-104-add-holzmann-power-of-10-rules-as-opt-in-coding-standard",
         "title": "Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)",
         "status": "completed",
@@ -2295,6 +2390,22 @@
               "uri": "https://github.com/deftai/directive/issues/108",
               "type": "x-vbrief/github-issue",
               "title": "Issue #108: Ask deployment platform before language"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-115-strengthen-spec-validation-gate-add-ci-freshness-check",
+        "title": "Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-23-115-strengthen-spec-validation-gate-add-ci-freshness-check.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/115",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #115: Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)"
             }
           ]
         }
@@ -2599,6 +2710,22 @@
               "uri": "https://github.com/deftai/directive/issues/159",
               "type": "x-vbrief/github-issue",
               "title": "Issue #159: meta/philosophy.md -- deterministic > probabilistic design principle: definition, rationale, examples, Phase 5 scope note"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-160-consider-typescript-instead-of-python-for-run-cli",
+        "title": "Consider TypeScript instead of Python for `run` CLI -- architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-23-160-consider-typescript-instead-of-python-for-run-cli.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/160",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #160: Consider TypeScript instead of Python for `run` CLI -- architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118)"
             }
           ]
         }
@@ -4046,6 +4173,22 @@
         }
       },
       {
+        "id": "2026-04-23-33-when-using-docker-smoke-tests-and-e2e-tests-should",
+        "title": "When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-23-33-when-using-docker-smoke-tests-and-e2e-tests-should.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/33",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #33: When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-23-331-story-p-ancillary-doc-updates-for-vbrief-centric-model",
         "title": "Story P: Ancillary doc updates for vBRIEF-centric model",
         "status": "completed",
@@ -4526,6 +4669,22 @@
         }
       },
       {
+        "id": "2026-04-23-74-automate-release-process",
+        "title": "Automate release process",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-23-74-automate-release-process.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/74",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #74: Automate release process"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-23-79-deft-setup-inference-boundary-guards",
         "title": "deft-setup inference boundary guards",
         "status": "completed",
@@ -4799,6 +4958,249 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-04-28-720-release-e2e-pipeline-mirror",
+        "title": "Deepen release_e2e rehearsal to a full task release + rollback mirror against an auto-created+destroyed temp repo",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-28-720-release-e2e-pipeline-mirror.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/720",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #720: release_e2e rehearsal is smoke-test only, not pipeline mirror"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/716",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #716: release safety hardening (canonical spec; e2e Q1 origin)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/722",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #722: subprocess PATHEXT fix (release._resolve_gh helper re-used here)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/74",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #74: task release foundation"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-28-721-release-scripts-subprocess-path",
+        "title": "Resolve gh absolute path before subprocess.run in release scripts (Windows PATHEXT fix)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-28-721-release-scripts-subprocess-path.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/721",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #721: release scripts fail on Windows because subprocess.run does not honor PATHEXT for gh.cmd"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/74",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #74: chore: automate release process and CI changelog enforcement (foundation -- introduced scripts/release.py)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/716",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #716: release safety hardening (added scripts/release_publish.py / release_rollback.py / release_e2e.py companion scripts which inherited the same subprocess PATH defect)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-28-723-task-build-uses-release-version",
+        "title": "release: task build uses the actual release version (#723)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-28-723-task-build-uses-release-version.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/723",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #723: release: build artifact filename uses stale version (deft-0.20.0.zip during v0.21.0 cut)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/721",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #721: canonical recovery anchor for the v0.21.0 cut session"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-28-724-release-verify-isdraft-within-5s-gate",
+        "title": "release: post-create verify-isDraft within 5s gate (#724)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-28-724-release-verify-isdraft-within-5s-gate.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/724",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #724: release: ~90s public-exposure window when gh release create errors mid-pipeline"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/721",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #721: canonical recovery anchor for the v0.21.0 cut session"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/716",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #716: default-draft contract being violated"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-28-725-release-rollback-revert-and-no-force-push",
+        "title": "Replace HEAD~1 reset + force-push with resolved-SHA forward-revert + normal push in scripts/release_rollback.py",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-28-725-release-rollback-revert-and-no-force-push.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/725",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #725: rollback script uses unsafe HEAD~1 reset + branch-protection-incompatible force-push"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/716",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #716: release safety hardening (canonical spec; rollback semantics origin)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/722",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #722: subprocess PATHEXT fix (introduces release._resolve_gh helper re-used here)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/721",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #721: rollback-as-test recovery anchor (full session transcript surfacing #725)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/74",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #74: task release foundation"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-727-orchestrator-role-separation",
+        "title": "Codify orchestrator role-separation + canonical poller-prompt template (per [AXIOM])",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-29-727-orchestrator-role-separation.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/727",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #727: swarm: codify orchestrator role-separation + canonical poller-prompt template (per [AXIOM])"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/701",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #701: canonical encoding precedent (skill rules + Taskfile + lessons cross-ref tiering)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/721",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #721: v0.21.0 cut session anchor (recurrence first observed)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/722",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #722: PR sub-agent prompt conflated impl + watch (worked by accident via time.sleep coincidence)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/726",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #726: PR sub-agent exited at succeeded lifecycle ~30s before Greptile posted; second occurrence"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-731-release-notes-file-windows-cmdline",
+        "title": "release.py uses --notes-file for gh release create; fixes Windows ERROR_FILENAME_EXCED_RANGE blocking v0.21.0 (#731)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-29-731-release-notes-file-windows-cmdline.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/731",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #731: fix(scripts): release.py::create_github_release exceeds Windows command-line limit; FileNotFoundError(206) misreported as gh-not-found"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/720",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #720: deepen release_e2e.py from existence-check to full pipeline mirror (the harness that surfaced #731)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/722",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #722: gh PATHEXT subprocess fix (the helper that #731's misleading diagnostic falsely points at)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/74",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #74: chore: automate release process and CI changelog enforcement (parent of the release pipeline)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/716",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #716: release safety hardening (default-draft + Phase 8 template surface this PR integrates with)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-release-summary-blockquote",
+        "title": "Release CHANGELOG promotion accepts --summary blockquote (per [AXIOM] deterministic tier)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-29-release-summary-blockquote.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/730",
+              "type": "x-vbrief/github-issue",
+              "title": "#730: feat(scripts,skills): release CHANGELOG promotion accepts --summary blockquote (closing PR for release-narrative-gap)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/74",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #74: chore: automate release process and CI changelog enforcement (parent of the release pipeline)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/716",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #716: release safety hardening (default-draft + Phase 8 template surface this feature integrates with)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/727",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #727: orchestrator role-separation (the canonical poller-prompt template this PR's review cycle uses)"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
@@ -4806,6 +5208,7 @@
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Project bootstrap: purge stale legacy path references across 42 files; add strategy stubs (rapid.md, enterprise.md); add docs/getting-started.md stub' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'SKILL.md platform entry point is entirely pre-cutover -- references old skill names and deprecated artifacts' shares topics (artifacts)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Stale cross-references to legacy paths' shares topics (legacy)",
+        "Narrative 'LegacyArtifacts' may be stale: completed scope 'Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'docs(readme): add \"Your Artifacts\" section documenting user-generated artifact locations' shares topics (artifacts)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'rollback: empty `vbrief/legacy/` directory left behind after --rollback' shares topics (legacy)",
