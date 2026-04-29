@@ -1,6 +1,6 @@
-"""test_release_rollback.py -- Tests for scripts/release_rollback.py (#716).
+"""test_release_rollback.py -- Tests for scripts/release_rollback.py (#716, #725).
 
-Coverage matrix per #716 acceptance criteria:
+Coverage matrix per #716 acceptance criteria + #725 acceptance criteria:
 
 - compute_threshold: < 5 min (0), 5-30 min (max(N, 10)), 30+ min (None),
   --force-strict-0 short-circuit, --allow-data-loss short-circuit
@@ -16,7 +16,15 @@ Coverage matrix per #716 acceptance criteria:
 - main: invalid version exits 2, --help exits 0, --allow-low-downloads
   negative exits 2
 
-Refs #716, #74.
+#725 coverage: resolve_release_prep_sha (rev-parse happy path, grep fallback,
+both-fail refusal); git_revert_release_commit (success, conflict + abort +
+manual-recovery hint); git_push_base (no --force / --force-with-lease in
+argv); each unwind branch resolves SHA BEFORE deleting tag and uses the
+resolved SHA (not HEAD~1) as the revert target; no force-push remains
+anywhere in the new pipeline; intervening-commit scenario asserts the
+resolved SHA is the revert target (not whatever HEAD~1 happens to be).
+
+Refs #716, #725, #74.
 """
 
 from __future__ import annotations
@@ -468,22 +476,43 @@ class TestRunRollback:
         assert called["payload"] is payload
 
 
+_INTERVENING_COMMIT_SHA = "94d1aa5deadbeef0000000000000000000aaaaa1"  # fake HEAD
+_RELEASE_PREP_SHA = "6573335cafef00d000000000000000000000bbbb"        # release-prep target
+
+
+def _patch_resolve_to(monkeypatch, sha):
+    monkeypatch.setattr(
+        release_rollback,
+        "resolve_release_prep_sha",
+        lambda root, version: (sha, "") if sha else ("", "resolution failed"),
+    )
+
+
 class TestUnwindLocal:
     def test_happy_path(self, monkeypatch, capsys):
+        _patch_resolve_to(monkeypatch, _RELEASE_PREP_SHA)
         monkeypatch.setattr(
             release_rollback,
             "git_delete_local_tag",
             lambda root, v: (True, f"deleted local tag v{v}"),
         )
+        captured_revert = {}
+
+        def fake_revert(root, sha):
+            captured_revert["sha"] = sha
+            return True, f"reverted {sha[:12]}"
+
         monkeypatch.setattr(
-            release_rollback,
-            "git_reset_head_minus_one",
-            lambda root: (True, "reset HEAD~1"),
+            release_rollback, "git_revert_release_commit", fake_revert
         )
         rc = release_rollback._unwind_local(_config())
         assert rc == release_rollback.EXIT_OK
+        # #725 acceptance: revert targets the RESOLVED release-prep SHA,
+        # NOT HEAD~1.
+        assert captured_revert["sha"] == _RELEASE_PREP_SHA
 
     def test_tag_delete_failure(self, monkeypatch):
+        _patch_resolve_to(monkeypatch, _RELEASE_PREP_SHA)
         monkeypatch.setattr(
             release_rollback,
             "git_delete_local_tag",
@@ -492,7 +521,8 @@ class TestUnwindLocal:
         rc = release_rollback._unwind_local(_config())
         assert rc == release_rollback.EXIT_VIOLATION
 
-    def test_reset_failure(self, monkeypatch):
+    def test_revert_failure_refuses_cleanly(self, monkeypatch, capsys):
+        _patch_resolve_to(monkeypatch, _RELEASE_PREP_SHA)
         monkeypatch.setattr(
             release_rollback,
             "git_delete_local_tag",
@@ -500,15 +530,73 @@ class TestUnwindLocal:
         )
         monkeypatch.setattr(
             release_rollback,
-            "git_reset_head_minus_one",
-            lambda root: (False, "merge conflict"),
+            "git_revert_release_commit",
+            lambda root, sha: (
+                False,
+                f"git revert {sha[:12]} conflicted: merge conflict in CHANGELOG.md. "
+                f"Manual recovery: re-run `git revert {sha} --no-edit`, ...",
+            ),
+        )
+        rc = release_rollback._unwind_local(_config())
+        assert rc == release_rollback.EXIT_VIOLATION
+        captured = capsys.readouterr()
+        # Manual recovery hint is surfaced via the emit on conflict.
+        assert "Manual recovery" in captured.err
+
+    def test_resolve_failure_short_circuits(self, monkeypatch):
+        _patch_resolve_to(monkeypatch, "")
+
+        def boom(*_a, **_kw):  # pragma: no cover
+            raise AssertionError(
+                "unwind MUST NOT proceed when resolve_release_prep_sha fails"
+            )
+
+        monkeypatch.setattr(release_rollback, "git_delete_local_tag", boom)
+        monkeypatch.setattr(
+            release_rollback, "git_revert_release_commit", boom
         )
         rc = release_rollback._unwind_local(_config())
         assert rc == release_rollback.EXIT_VIOLATION
 
+    def test_resolve_runs_before_tag_delete_intervening_commit(self, monkeypatch):
+        """#725 regression: with an intervening commit, unwind targets the
+        resolved release-prep SHA -- NOT whatever HEAD~1 happens to be.
+        """
+        _patch_resolve_to(monkeypatch, _RELEASE_PREP_SHA)
+        order: list[str] = []
+        captured = {}
+
+        def fake_delete(root, v):
+            order.append("delete-tag")
+            return True, f"deleted v{v}"
+
+        def fake_revert(root, sha):
+            order.append("revert")
+            captured["sha"] = sha
+            return True, f"reverted {sha[:12]}"
+
+        monkeypatch.setattr(
+            release_rollback, "git_delete_local_tag", fake_delete
+        )
+        monkeypatch.setattr(
+            release_rollback, "git_revert_release_commit", fake_revert
+        )
+        rc = release_rollback._unwind_local(_config())
+        assert rc == release_rollback.EXIT_OK
+        # Revert targets the resolved release-prep SHA, NOT the
+        # intervening HEAD~1 (which would have been _INTERVENING_COMMIT_SHA's
+        # parent in a real repo).
+        assert captured["sha"] == _RELEASE_PREP_SHA
+        assert captured["sha"] != _INTERVENING_COMMIT_SHA
+        # Resolve runs before delete (so rev-parse can use the tag), and
+        # delete runs before revert (so the tag does not orphan-point at
+        # the original release commit).
+        assert order == ["delete-tag", "revert"]
+
 
 class TestUnwindTagPushedNoRelease:
-    def test_happy_path(self, monkeypatch, capsys):
+    def _patch_happy_path(self, monkeypatch, captured_push):
+        _patch_resolve_to(monkeypatch, _RELEASE_PREP_SHA)
         monkeypatch.setattr(
             release_rollback,
             "git_delete_remote_tag",
@@ -524,18 +612,25 @@ class TestUnwindTagPushedNoRelease:
         )
         monkeypatch.setattr(
             release_rollback,
-            "git_reset_head_minus_one",
-            lambda root: (True, "reset HEAD~1"),
+            "git_revert_release_commit",
+            lambda root, sha: (True, f"reverted {sha[:12]}"),
         )
-        monkeypatch.setattr(
-            release_rollback,
-            "git_force_push_base",
-            lambda root, base: (True, f"pushed {base}"),
-        )
+
+        def fake_push(root, base):
+            captured_push["base"] = base
+            return True, f"pushed {base}"
+
+        monkeypatch.setattr(release_rollback, "git_push_base", fake_push)
+
+    def test_happy_path(self, monkeypatch, capsys):
+        captured = {}
+        self._patch_happy_path(monkeypatch, captured)
         rc = release_rollback._unwind_tag_pushed_no_release(_config())
         assert rc == release_rollback.EXIT_OK
+        assert captured["base"] == "master"
 
     def test_remote_delete_failure(self, monkeypatch):
+        _patch_resolve_to(monkeypatch, _RELEASE_PREP_SHA)
         monkeypatch.setattr(
             release_rollback,
             "git_delete_remote_tag",
@@ -543,6 +638,49 @@ class TestUnwindTagPushedNoRelease:
         )
         rc = release_rollback._unwind_tag_pushed_no_release(_config())
         assert rc == release_rollback.EXIT_VIOLATION
+
+    def test_resolve_failure_short_circuits(self, monkeypatch):
+        _patch_resolve_to(monkeypatch, "")
+
+        def boom(*_a, **_kw):  # pragma: no cover
+            raise AssertionError(
+                "tag-pushed unwind MUST NOT proceed when resolve fails"
+            )
+
+        monkeypatch.setattr(release_rollback, "git_delete_remote_tag", boom)
+        monkeypatch.setattr(release_rollback, "git_push_base", boom)
+        rc = release_rollback._unwind_tag_pushed_no_release(_config())
+        assert rc == release_rollback.EXIT_VIOLATION
+
+    def test_revert_conflict_aborts_pipeline(self, monkeypatch, capsys):
+        _patch_resolve_to(monkeypatch, _RELEASE_PREP_SHA)
+        monkeypatch.setattr(
+            release_rollback,
+            "git_delete_remote_tag",
+            lambda root, v: (True, "ok"),
+        )
+        monkeypatch.setattr(
+            release_rollback, "git_tag_exists_local", lambda root, v: False
+        )
+        monkeypatch.setattr(
+            release_rollback,
+            "git_revert_release_commit",
+            lambda root, sha: (
+                False,
+                f"git revert {sha[:12]} conflicted: ... Manual recovery: ...",
+            ),
+        )
+
+        def boom(*_a, **_kw):  # pragma: no cover
+            raise AssertionError(
+                "push MUST NOT run when revert conflicts"
+            )
+
+        monkeypatch.setattr(release_rollback, "git_push_base", boom)
+        rc = release_rollback._unwind_tag_pushed_no_release(_config())
+        assert rc == release_rollback.EXIT_VIOLATION
+        captured = capsys.readouterr()
+        assert "Manual recovery" in captured.err
 
 
 class TestUnwindReleased:
@@ -555,13 +693,12 @@ class TestUnwindReleased:
             "url": "https://example.com/r",
         }
 
-    def test_happy_path_under_5_min_zero_downloads(self, monkeypatch):
-        payload = self._payload(assets=[{"downloadCount": 0}], age_minutes=2)
-        monkeypatch.setattr(
-            release_rollback,
-            "double_read_downloads",
-            lambda v, r, sleep_seconds=0: (True, 0, 0, ""),
-        )
+    def _patch_unwind_helpers(self, monkeypatch, *, captured_revert=None,
+                              captured_push=None):
+        """Patch all post-guard helpers needed for a successful released-state
+        unwind; capture the SHA passed to revert and the base passed to push.
+        """
+        _patch_resolve_to(monkeypatch, _RELEASE_PREP_SHA)
         monkeypatch.setattr(
             release_rollback,
             "gh_release_delete",
@@ -570,21 +707,47 @@ class TestUnwindReleased:
         monkeypatch.setattr(
             release_rollback, "git_tag_exists_local", lambda root, v: False
         )
+
+        def fake_revert(root, sha):
+            if captured_revert is not None:
+                captured_revert["sha"] = sha
+            return True, f"reverted {sha[:12]}"
+
         monkeypatch.setattr(
-            release_rollback,
-            "git_reset_head_minus_one",
-            lambda root: (True, "reset HEAD~1"),
+            release_rollback, "git_revert_release_commit", fake_revert
         )
+
+        def fake_push(root, base):
+            if captured_push is not None:
+                captured_push["base"] = base
+            return True, f"pushed {base}"
+
+        monkeypatch.setattr(release_rollback, "git_push_base", fake_push)
+
+    def test_happy_path_under_5_min_zero_downloads(self, monkeypatch):
+        payload = self._payload(assets=[{"downloadCount": 0}], age_minutes=2)
         monkeypatch.setattr(
             release_rollback,
-            "git_force_push_base",
-            lambda root, base: (True, f"pushed {base}"),
+            "double_read_downloads",
+            lambda v, r, sleep_seconds=0: (True, 0, 0, ""),
+        )
+        captured_revert = {}
+        captured_push = {}
+        self._patch_unwind_helpers(
+            monkeypatch,
+            captured_revert=captured_revert,
+            captured_push=captured_push,
         )
         rc = release_rollback._unwind_released(_config(), payload)
         assert rc == release_rollback.EXIT_OK
+        # #725 acceptance: revert targets the resolved release-prep SHA, NOT
+        # HEAD~1; push targets the configured base branch (no force).
+        assert captured_revert["sha"] == _RELEASE_PREP_SHA
+        assert captured_push["base"] == "master"
 
     def test_under_5_min_with_one_download_refuses(self, monkeypatch, capsys):
         payload = self._payload(assets=[{"downloadCount": 1}], age_minutes=2)
+        _patch_resolve_to(monkeypatch, _RELEASE_PREP_SHA)
         monkeypatch.setattr(
             release_rollback,
             "double_read_downloads",
@@ -609,24 +772,7 @@ class TestUnwindReleased:
             "double_read_downloads",
             lambda v, r, sleep_seconds=0: (True, 5, 5, ""),
         )
-        monkeypatch.setattr(
-            release_rollback,
-            "gh_release_delete",
-            lambda v, r: (True, "ok"),
-        )
-        monkeypatch.setattr(
-            release_rollback, "git_tag_exists_local", lambda root, v: False
-        )
-        monkeypatch.setattr(
-            release_rollback,
-            "git_reset_head_minus_one",
-            lambda root: (True, "ok"),
-        )
-        monkeypatch.setattr(
-            release_rollback,
-            "git_force_push_base",
-            lambda root, base: (True, "ok"),
-        )
+        self._patch_unwind_helpers(monkeypatch)
         rc = release_rollback._unwind_released(_config(), payload)
         assert rc == release_rollback.EXIT_OK
 
@@ -639,6 +785,7 @@ class TestUnwindReleased:
             "double_read_downloads",
             lambda v, r, sleep_seconds=0: (True, 15, 15, ""),
         )
+        _patch_resolve_to(monkeypatch, _RELEASE_PREP_SHA)
         rc = release_rollback._unwind_released(_config(), payload)
         assert rc == release_rollback.EXIT_VIOLATION
 
@@ -651,24 +798,7 @@ class TestUnwindReleased:
             "double_read_downloads",
             lambda v, r, sleep_seconds=0: (True, 15, 15, ""),
         )
-        monkeypatch.setattr(
-            release_rollback,
-            "gh_release_delete",
-            lambda v, r: (True, "ok"),
-        )
-        monkeypatch.setattr(
-            release_rollback, "git_tag_exists_local", lambda root, v: False
-        )
-        monkeypatch.setattr(
-            release_rollback,
-            "git_reset_head_minus_one",
-            lambda root: (True, "ok"),
-        )
-        monkeypatch.setattr(
-            release_rollback,
-            "git_force_push_base",
-            lambda root, base: (True, "ok"),
-        )
+        self._patch_unwind_helpers(monkeypatch)
         rc = release_rollback._unwind_released(
             _config(allow_low_downloads=20), payload
         )
@@ -694,24 +824,7 @@ class TestUnwindReleased:
             "double_read_downloads",
             lambda v, r, sleep_seconds=0: (True, 100, 100, ""),
         )
-        monkeypatch.setattr(
-            release_rollback,
-            "gh_release_delete",
-            lambda v, r: (True, "ok"),
-        )
-        monkeypatch.setattr(
-            release_rollback, "git_tag_exists_local", lambda root, v: False
-        )
-        monkeypatch.setattr(
-            release_rollback,
-            "git_reset_head_minus_one",
-            lambda root: (True, "ok"),
-        )
-        monkeypatch.setattr(
-            release_rollback,
-            "git_force_push_base",
-            lambda root, base: (True, "ok"),
-        )
+        self._patch_unwind_helpers(monkeypatch)
         rc = release_rollback._unwind_released(
             _config(allow_data_loss=True), payload
         )
@@ -726,24 +839,7 @@ class TestUnwindReleased:
             "double_read_downloads",
             lambda v, r, sleep_seconds=0: (True, 0, 0, ""),
         )
-        monkeypatch.setattr(
-            release_rollback,
-            "gh_release_delete",
-            lambda v, r: (True, "ok"),
-        )
-        monkeypatch.setattr(
-            release_rollback, "git_tag_exists_local", lambda root, v: False
-        )
-        monkeypatch.setattr(
-            release_rollback,
-            "git_reset_head_minus_one",
-            lambda root: (True, "ok"),
-        )
-        monkeypatch.setattr(
-            release_rollback,
-            "git_force_push_base",
-            lambda root, base: (True, "ok"),
-        )
+        self._patch_unwind_helpers(monkeypatch)
         rc = release_rollback._unwind_released(
             _config(force_strict_0=True), payload
         )
@@ -751,6 +847,7 @@ class TestUnwindReleased:
 
     def test_race_detected_in_double_read_refuses(self, monkeypatch):
         payload = self._payload(assets=[{"downloadCount": 0}], age_minutes=2)
+        _patch_resolve_to(monkeypatch, _RELEASE_PREP_SHA)
         monkeypatch.setattr(
             release_rollback,
             "double_read_downloads",
@@ -778,18 +875,40 @@ class TestUnwindReleased:
         monkeypatch.setattr(release_rollback, "double_read_downloads", boom)
         monkeypatch.setattr(release_rollback, "gh_release_delete", boom)
         monkeypatch.setattr(
-            release_rollback, "git_reset_head_minus_one", boom
+            release_rollback, "git_revert_release_commit", boom
         )
-        monkeypatch.setattr(release_rollback, "git_force_push_base", boom)
+        monkeypatch.setattr(release_rollback, "git_push_base", boom)
         rc = release_rollback._unwind_released(_config(dry_run=True), payload)
         assert rc == release_rollback.EXIT_OK
         captured = capsys.readouterr()
         assert "DRYRUN" in captured.err
 
+    def test_resolve_failure_short_circuits_before_release_delete(
+        self, monkeypatch
+    ):
+        """#725: when resolve fails the release MUST NOT be deleted (we'd be
+        committed to an unwind we cannot complete).
+        """
+        payload = self._payload(assets=[{"downloadCount": 0}], age_minutes=2)
+        _patch_resolve_to(monkeypatch, "")
+
+        def boom(*_a, **_kw):  # pragma: no cover
+            raise AssertionError("unwind MUST NOT proceed when resolve fails")
+
+        monkeypatch.setattr(release_rollback, "gh_release_delete", boom)
+        monkeypatch.setattr(release_rollback, "double_read_downloads", boom)
+        rc = release_rollback._unwind_released(_config(), payload)
+        assert rc == release_rollback.EXIT_VIOLATION
+
 
 # ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
+#
+# Note: tests for the #725 helpers (resolve_release_prep_sha,
+# git_revert_release_commit, git_push_base) and the module-level
+# no-force-push invariant live in tests/cli/test_release_rollback_725.py
+# to keep this file under the 1000-line limit per AGENTS.md.
 
 
 class TestMain:
