@@ -317,6 +317,26 @@ All PRs meet ALL of:
 
 ## Phase 6 — Close
 
+### Sub-Agent Role Separation (#727)
+
+! **Post-PR sub-agents are review-cycle agents (#727):** Sub-agents addressing review findings, waiting for re-review, and iterating to clean MUST embody `skills/deft-directive-review-cycle/SKILL.md` end-to-end as a single coherent role. Do NOT split the review-cycle into separate "poll" and "fix" agents -- pollers that spawn separate fix agents create cross-agent state-handoff hazards and double the chance of an agent exiting at the wrong lifecycle boundary.
+
+! **Post-PR monitoring runs in a fresh sub-agent (#727):** Post-PR monitoring (Greptile, CI checks, downloadCount drift, lifecycle events, etc.) MUST be done by spawning a fresh short-lived sub-agent via `start_agent`. The parent yields with no tool calls and waits for the sub-agent's messages -- this preserves conversation steerability so the user can interrupt or redirect while the watch is pending. The only Warp runtime surface with a true async callback channel is `start_agent` + messaging; every Taskfile / shell-sleep / `time.sleep` / synchronous tool-call alternative blocks the parent's turn for the duration of the watch.
+
+! **Canonical poller template (#727):** When delegating to a poller / review-cycle sub-agent, MUST use the canonical poller-prompt template at `templates/swarm-greptile-poller-prompt.md` with placeholders (`{pr_number}`, `{repo}`, `{poll_interval_seconds}`, `{poll_cap_minutes}`, `{parent_agent_id}`) filled in. Do NOT hand-author per-watch prompts -- the template encodes parsing fixes (markdown-link `Last reviewed commit:` regex, badge-based / negation-aware P0/P1 detection) that hand-authored variants have repeatedly missed (Agent D, post-#721 swarm; #727 comment 2).
+
+! **Destructive commands run alone (#727):** Sub-agent prompts MUST instruct the agent to run destructive commands (`rm`, `Remove-Item`, `del`, `git clean`, etc.) in their OWN shell call, never chained with non-destructive commands. Chaining poisons Warp's `is_risky` classification on the entire pipeline and forces manual approval on every otherwise-safe operation -- a multi-commit branch hits the user N times per agent.
+
+! **Commit-message temp file is leave-alone (#727):** When using the canonical PowerShell UTF-8-safe commit-message pattern (`create_file <tmp>` -> `git commit -F <tmp>`), MUST NOT clean up the temp file in the same shell call. Leave it orphaned -- worktree teardown or `git clean -fd` reclaims it. The two-step value (separate cleanup) is not worth the per-commit approval prompt the chained `rm` triggers.
+
+⊗ Run a poll loop in the parent's own turn (via `task`, shell sleep, `time.sleep`, or any synchronous tool call). The conversation must remain user-steerable while watches are pending.
+
+⊗ Bundle "watch for Greptile" / "monitor CI" instructions into an implementation agent's `start_agent` prompt -- implementation agents exit at PR-open via the `succeeded` lifecycle, so any post-exit monitoring instruction is unreachable.
+
+⊗ Spawn a "pure poller" sub-agent for a PR that has likely findings. Pure pollers are appropriate ONLY when no fixes are expected (CI watch on known-good HEAD, post-merge state checks, lifecycle observers). Default for post-PR work is review-cycle, NOT poller.
+
+⊗ Chain `rm` (or any destructive command) with `git commit` / `git push` / any non-destructive command in a single shell pipeline.
+
 ### Step 1: Merge
 
 ! **Per-PR sub-agent identity gate:** Before acting on any PR (merge, force-push, status check), query the specific sub-agent responsible for that PR for live status. Do not infer a PR's status from a different agent's tab, from message timing, or from the absence of recent commits. If the responsible agent is unreachable, verify PR state directly via `gh pr view <number>` and `gh pr checks <number>` before proceeding.
