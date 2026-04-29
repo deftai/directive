@@ -149,10 +149,60 @@ jobs:
         run: lipo -info install-macos-universal | grep -q "x86_64 arm64"
 
   # -----------------------------------------------------------------------
-  # Create GitHub Release and attach the five final binaries
+  # Build-time CI assertion: `run`'s resolved VERSION matches the pushed tag.
+  #
+  # Closes the regression loop for #741: prior to that fix the literal
+  # `VERSION = "X.Y.Z"` in `run` could drift from the latest annotated tag
+  # without anything failing fast. Now that `run` resolves the version
+  # dynamically (env -> git describe -> 0.0.0-dev fallback), we still want
+  # CI to fail fast on a tag push if the priority chain disagrees with the
+  # tag we are about to release -- e.g. someone pushed a tag that does not
+  # match the latest annotated tag visible to `git describe` at this SHA.
+  # -----------------------------------------------------------------------
+  verify-run-version:
+    needs: smoke-test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need full tag history so `git describe --tags --abbrev=0`
+          # resolves to the just-pushed annotated tag, not a shallow stub.
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Resolve version from `run` and compare to pushed tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Strip leading `v` from the pushed tag (e.g. v0.21.0 -> 0.21.0).
+          tag="${GITHUB_REF_NAME#v}"
+          # Mirror scripts/resolve_version.py priority chain by importing
+          # `run` (the framework CLI) directly. Don't set
+          # DEFT_RELEASE_VERSION -- we want to exercise the git-describe
+          # branch on a tagged checkout so that drift surfaces here.
+          resolved=$(python -c "import sys; sys.path.insert(0, '.'); from run import VERSION; print(VERSION)")
+          echo "pushed tag (stripped): $tag"
+          echo "resolved by run:       $resolved"
+          if [ "$resolved" != "$tag" ]; then
+            echo "::error::run-resolved VERSION ($resolved) does not match pushed tag ($tag) -- see #741"
+            exit 1
+          fi
+
+  # -----------------------------------------------------------------------
+  # Create / update the GitHub Release as a DRAFT and attach binaries.
+  #
+  # Per #716 (Phase 5 user-only authority gate) and #733: this workflow
+  # MUST NOT auto-publish releases. Publish authority belongs exclusively
+  # to `task release:publish` (which runs `gh release edit --draft=false`
+  # under operator review). The `softprops/action-gh-release@v2` step
+  # therefore sets `draft: true` -- this preserves the draft state created
+  # by `task release` (which uses `gh release create --draft`) and never
+  # flips `isDraft: false` on its own.
   # -----------------------------------------------------------------------
   release:
-    needs: smoke-test
+    needs: [smoke-test, verify-run-version]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
@@ -161,9 +211,13 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
-      - name: Create release
+      - name: Upload binaries to draft release
         uses: softprops/action-gh-release@v2
         with:
+          # MUST be true -- see #733 / #716 above. Do NOT remove this key
+          # or set it to false; `task release:publish` is the only path
+          # authorised to flip draft -> public.
+          draft: true
           generate_release_notes: true
           files: |
             artifacts/install-windows-amd64.exe

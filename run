@@ -17,7 +17,73 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Optional
 
-VERSION = "0.20.0"
+# Dynamic VERSION resolution (#741, refs #723 -- the Taskfile-side
+# resolver that established the same priority chain via
+# scripts/resolve_version.py + Taskfile.yml inline `sh:`).
+#
+# The literal `VERSION = "X.Y.Z"` previously hard-coded into this file was
+# the root cause of #741: every release after v0.20.0 left the literal
+# stale because nothing in the release pipeline updated it. Following the
+# #723 pattern (Taskfile-side dynamic resolution), we mirror the same
+# priority chain inline here so that `python run --help` / every command
+# header always prints the correct version with no manual bump step.
+#
+# Resolution priority (first match wins -- mirrors
+# scripts/resolve_version.py and the Taskfile.yml inline `sh:` block):
+#   1. $DEFT_RELEASE_VERSION env var -- set by
+#      scripts/release.py::run_build so the in-flight release version
+#      pins what `run` reports during `task release -- 0.X.Y`.
+#   2. `git describe --tags --abbrev=0` (with leading `v` stripped) --
+#      reflects the latest annotated release tag for ordinary checkouts.
+#   3. `0.0.0-dev` -- fallback for fresh checkouts with no tags or
+#      repositories where `git` is unavailable.
+#
+# This logic is intentionally inlined (not a `from scripts.resolve_version
+# import resolve_version`) for two reasons:
+#   (a) `run` is the framework's bootstrap entry point; importing from
+#       `scripts/` at module load would couple bootstrap to that
+#       package's import-time behaviour (event surface, etc.).
+#   (b) The two implementations are kept in lockstep by convention; if
+#       you change one, change the other -- regression coverage in
+#       tests/cli/test_run_version.py and tests/cli/test_resolve_version.py
+#       pins both surfaces to the same chain.
+def _resolve_version() -> str:
+    """Resolve `run`'s VERSION using the documented priority chain.
+
+    Mirrors ``scripts/resolve_version.py::resolve_version()``. Each
+    branch is best-effort: a missing ``git`` binary, a fresh checkout
+    with no tags, or a malformed tag falls through to the next branch
+    rather than raising, so importing ``run`` never fails because of a
+    version-resolution edge case.
+    """
+    env_value = os.environ.get("DEFT_RELEASE_VERSION", "").strip()
+    if env_value:
+        return env_value
+    # Run `git describe` rooted at the directory containing this script
+    # so the lookup is independent of the operator's current working
+    # directory (which can be any consumer project when `run` is invoked
+    # via `./deft/run <command>`).
+    script_dir = str(Path(__file__).parent.absolute())
+    try:
+        result = subprocess.run(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+            cwd=script_dir,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return "0.0.0-dev"
+    if result.returncode != 0:
+        return "0.0.0-dev"
+    tag = (result.stdout or "").strip()
+    if tag.startswith("v"):
+        tag = tag[1:]
+    return tag or "0.0.0-dev"
+
+
+VERSION = _resolve_version()
 
 # vBRIEF lifecycle folders per RFC #309 D13.  Kept in sync with
 # scripts/project_render.py and scripts/vbrief_validate.py so the CLI path
