@@ -1,0 +1,59 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #724: Close the ~90s public-exposure window observed during v0.21.0 cut by adding a post-create verify-isDraft gate to scripts/release.py."
+  },
+  "plan": {
+    "title": "release: post-create verify-isDraft within 5s gate (#724)",
+    "status": "proposed",
+    "narratives": {
+      "Overview": "scripts/release.py Step 10 currently exits on a successful gh release create exit code without verifying that the release actually landed in draft state. During the v0.21.0 cut the manual recovery created a public release for ~90s before being flipped. This vBRIEF adds a polling verify gate (up to 5 attempts at 1s intervals) immediately after the create step that auto-flips a public-by-mistake release to draft via gh release edit --draft=true. Reuses the _resolve_gh() helper from #722."
+    },
+    "items": [
+      {
+        "id": "verify-gate-impl",
+        "title": "Add verify_release_draft() helper + Step 11 to scripts/release.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Implement verify_release_draft(project_root, version, repo, *, max_attempts=5, interval=1.0) using _resolve_gh; poll `gh release view v<ver> --json isDraft`; flip via `gh release edit v<ver> --draft=true` when isDraft is false; warn-only when release not found within budget.",
+          "Acceptance": "Function is invoked after a successful create_github_release call when config.draft is True; auto-flip emits a WARNING line citing #724; not-found within budget emits a WARNING line and does not fail the pipeline."
+        }
+      },
+      {
+        "id": "skill-phase4-rule",
+        "title": "Document the 5s verify gate in skills/deft-directive-release/SKILL.md Phase 4",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add a `!` MUST rule to Phase 4 stating the pipeline MUST verify isDraft within 5 seconds and flip immediately if not, plus a `⊗` anti-pattern against skipping the verify gate.",
+          "Acceptance": "Phase 4 prose explicitly references the 5s verify-isDraft gate and the auto-flip behaviour."
+        }
+      },
+      {
+        "id": "regression-tests",
+        "title": "Cover the three verify-gate paths in tests/cli/test_release.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Monkeypatch subprocess.run to simulate (a) happy path: isDraft=true on first poll → no flip; (b) defense path: isDraft=false → auto-flip is invoked; (c) timeout path: release-not-found across all attempts → WARNING emitted, exit 0.",
+          "Acceptance": "All three tests assert the correct argv shape (gh release view ...; gh release edit --draft=true) and the pipeline returns EXIT_OK."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/724",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #724: release: ~90s public-exposure window when gh release create errors mid-pipeline"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/721",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #721: canonical recovery anchor for the v0.21.0 cut session"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/716",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #716: default-draft contract being violated"
+      }
+    ]
+  }
+}

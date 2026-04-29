@@ -67,11 +67,14 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import json
 import os
 import re
 import shutil
 import subprocess
 import sys
+import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -507,22 +510,58 @@ def refresh_roadmap(project_root: Path) -> tuple[bool, str]:
 # ---- Step 6 -- build dist --------------------------------------------------
 
 
-def run_build(project_root: Path) -> tuple[bool, str]:
+def run_build(project_root: Path, version: str | None = None) -> tuple[bool, str]:
+    """Run ``task build`` for the release, pinning the artifact version (#723).
+
+    The Taskfile resolves its ``VERSION`` variable via the inline POSIX
+    ``sh:`` block in ``Taskfile.yml`` ``vars: VERSION``, which honors
+    ``DEFT_RELEASE_VERSION`` over the latest annotated git tag (mirrored
+    in ``scripts/resolve_version.py`` for Python callers + tests).
+    Setting the env var here makes the in-flight release version (e.g.
+    ``0.21.0``) the canonical source for the artifact filename so
+    ``dist/deft-{version}.zip`` always matches the requested release
+    rather than a stale Taskfile literal or the most-recent tag (which
+    lags the in-flight tag during ``task release``).
+
+    ``version`` may be ``None`` for callers that want the resolver
+    default (git tag -> dev fallback). When ``version`` is falsy, any
+    inherited ``DEFT_RELEASE_VERSION`` value is explicitly stripped from
+    the subprocess env -- otherwise a stale value leaked from the parent
+    shell (e.g. an interrupted prior ``task release`` run that exported
+    the var into the operator's session) would silently re-introduce the
+    exact stale-version bug #723 just closed.
+
+    Contract:
+        - ``version`` truthy: subprocess env carries
+          ``DEFT_RELEASE_VERSION=<version>``.
+        - ``version`` falsy / ``None``: subprocess env carries NO
+          ``DEFT_RELEASE_VERSION`` (any inherited value is removed).
+    """
     if not task_binary_available():
         return False, "task binary not found on PATH"
     if not task_has_target("build", cwd=project_root):
         return True, "task build not defined; skipping"
+    env = os.environ.copy()
+    if version:
+        env["DEFT_RELEASE_VERSION"] = version
+    else:
+        # Strip any inherited value so version=None means "let the
+        # Taskfile resolver decide" (git tag -> dev fallback) and never
+        # "use whatever leaked from the parent shell" -- see #723.
+        env.pop("DEFT_RELEASE_VERSION", None)
     try:
         result = subprocess.run(
             ["task", "build"],
             cwd=str(project_root),
+            env=env,
             check=False,
         )
     except FileNotFoundError:
         return False, "task binary not found on PATH"
     if result.returncode != 0:
         return False, f"task build failed (exit {result.returncode})"
-    return True, "task build ran clean"
+    suffix = f" (DEFT_RELEASE_VERSION={version})" if version else ""
+    return True, f"task build ran clean{suffix}"
 
 
 # ---- Step 7/8 -- commit + tag + push ---------------------------------------
@@ -672,10 +711,189 @@ def create_github_release(
     return True, f"created GitHub release {tag}{suffix}"
 
 
+# ---- Step 11 -- post-create verify-isDraft gate (#724) ---------------------
+
+
+VERIFY_DRAFT_MAX_ATTEMPTS = 5
+VERIFY_DRAFT_INTERVAL_SECONDS = 1.0
+
+
+def _gh_release_view_is_draft(
+    gh_path: str, version: str, repo: str, project_root: Path
+) -> tuple[str, str]:
+    """Return ``(state, detail)`` for a single isDraft probe.
+
+    ``state`` is one of:
+        - ``"draft"``: release exists with isDraft=true (verified safe).
+        - ``"public"``: release exists with isDraft=false (defense-in-depth
+          flip required).
+        - ``"not-found"``: gh reported the release does not exist yet.
+        - ``"error"``: gh failed for an unrelated reason; ``detail`` carries
+          the stderr line.
+    """
+    tag = f"v{version}"
+    cmd = [
+        gh_path, "release", "view", tag,
+        "--repo", repo,
+        "--json", "isDraft",
+    ]
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+            env=os.environ.copy(),
+        )
+    except FileNotFoundError:
+        return "error", "gh CLI not found on PATH"
+    except subprocess.TimeoutExpired:
+        return "error", "gh release view timed out"
+    if result.returncode != 0:
+        stderr = (result.stderr or "").strip()
+        # gh exits non-zero with a "release not found" / "not found"
+        # diagnostic when the tag has no release yet -- treat that as
+        # the not-found state so the verify gate can keep polling.
+        if "not found" in stderr.lower() or "release not found" in stderr.lower():
+            return "not-found", stderr
+        return "error", stderr
+    try:
+        payload = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError as exc:
+        return "error", f"unparseable gh JSON: {exc}"
+    is_draft = payload.get("isDraft")
+    if is_draft is True:
+        return "draft", ""
+    if is_draft is False:
+        return "public", ""
+    return "error", f"isDraft missing from gh response: {payload!r}"
+
+
+def _gh_release_flip_to_draft(
+    gh_path: str, version: str, repo: str, project_root: Path
+) -> tuple[bool, str]:
+    """Invoke ``gh release edit v<version> --draft=true``."""
+    tag = f"v{version}"
+    cmd = [
+        gh_path, "release", "edit", tag,
+        "--repo", repo,
+        "--draft=true",
+    ]
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+            env=os.environ.copy(),
+        )
+    except FileNotFoundError:
+        return False, "gh CLI not found on PATH"
+    except subprocess.TimeoutExpired:
+        return False, "gh release edit timed out"
+    if result.returncode != 0:
+        return False, f"gh release edit failed: {(result.stderr or '').strip()}"
+    return True, f"flipped {tag} to draft"
+
+
+def verify_release_draft(
+    project_root: Path,
+    version: str,
+    repo: str,
+    *,
+    max_attempts: int = VERIFY_DRAFT_MAX_ATTEMPTS,
+    interval: float = VERIFY_DRAFT_INTERVAL_SECONDS,
+    sleep: Callable[[float], None] | None = None,
+) -> tuple[bool, str]:
+    """Verify the freshly-created release actually landed in draft state (#724).
+
+    Polls ``gh release view v<version> --json isDraft`` up to
+    ``max_attempts`` times with ``interval`` seconds between attempts (5s
+    total budget by default). Three terminal states:
+
+    - ``"draft"``: release exists with ``isDraft=true``. Returns
+      ``(True, "verified draft")`` -- the happy path.
+    - ``"public"``: release exists with ``isDraft=false``. Immediately
+      invokes ``gh release edit --draft=true`` and emits a ``WARNING``
+      line citing #724. Returns ``(True, "flipped to draft (...)")`` on
+      successful flip; ``(False, ...)`` only if the flip itself fails.
+    - ``"not-found"`` after every poll: the release record has not
+      propagated yet (release.yml CI may still be processing). Returns
+      ``(True, "not found within budget; release.yml may still be
+      processing")`` -- emits a WARN line but does not fail the pipeline,
+      since the create call itself exited 0.
+
+    The auto-flip is defense-in-depth: it covers the case where the
+    create command exited 0 but the release somehow landed as public
+    (e.g. operator-error variant of #724 where an alternate code path
+    sent the release without ``--draft``). It is a no-op on the happy
+    path and never fires when the create call itself failed.
+    """
+    if max_attempts <= 0:
+        return True, "verify gate disabled (max_attempts <= 0)"
+    sleep_fn = sleep if sleep is not None else time.sleep
+    gh_path = _resolve_gh()
+    if gh_path is None:
+        # Surface a non-fatal warning -- the verify gate is best-effort
+        # defense-in-depth and the create call already exited 0.
+        print(
+            "WARNING: cannot verify draft state (gh CLI not found on PATH); "
+            "defense-in-depth gate skipped (see #724)",
+            file=sys.stderr,
+        )
+        return True, "gh CLI not found on PATH; verify gate skipped"
+    last_state = ""
+    last_detail = ""
+    for attempt in range(1, max_attempts + 1):
+        state, detail = _gh_release_view_is_draft(
+            gh_path, version, repo, project_root
+        )
+        last_state, last_detail = state, detail
+        if state == "draft":
+            return True, f"verified draft on attempt {attempt}/{max_attempts}"
+        if state == "public":
+            print(
+                f"WARNING: release v{version} landed as public; "
+                f"flipping to draft (defense-in-depth, see #724)",
+                file=sys.stderr,
+            )
+            ok, reason = _gh_release_flip_to_draft(
+                gh_path, version, repo, project_root
+            )
+            if ok:
+                return True, f"flipped to draft ({reason})"
+            return False, reason
+        # not-found / error -- keep polling; sleep between attempts only
+        # while we still have budget. ``sleep_fn`` is typed as
+        # ``Callable[[float], None]`` so callers (production: ``time.sleep``;
+        # tests: 1-arg stubs like ``lambda _s: None`` or
+        # ``lambda s: sleeps.append(s)``) all accept the interval argument.
+        if attempt < max_attempts:
+            sleep_fn(interval)
+    if last_state == "not-found":
+        print(
+            f"WARNING: release v{version} not found within "
+            f"{max_attempts}*{interval}s budget; release.yml CI may still "
+            f"be processing (see #724)",
+            file=sys.stderr,
+        )
+        return True, "not found within budget; verify gate inconclusive"
+    print(
+        f"WARNING: verify gate could not confirm draft state for v{version}: "
+        f"last state {last_state!r}; detail: {last_detail} (see #724)",
+        file=sys.stderr,
+    )
+    return True, f"inconclusive ({last_state}); verify gate skipped"
+
+
 # ---- Pipeline orchestration ------------------------------------------------
 
 
-_TOTAL_STEPS = 10
+_TOTAL_STEPS = 11
 
 
 def _emit(step: int, label: str, status: str, *, file=None) -> None:
@@ -777,12 +995,18 @@ def run_pipeline(config: ReleaseConfig) -> int:
             _emit(5, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 6: build dist.
-    label = "Build dist (task build)"
+    # Step 6: build dist (#723: pin DEFT_RELEASE_VERSION so the artifact
+    # filename matches the in-flight release version, not the stale
+    # Taskfile literal or the most-recent git tag).
+    label = f"Build dist (task build, DEFT_RELEASE_VERSION={version})"
     if config.dry_run:
-        _emit(6, label, "DRYRUN (would run task build)")
+        _emit(
+            6,
+            label,
+            f"DRYRUN (would run `task build` with DEFT_RELEASE_VERSION={version})",
+        )
     else:
-        ok, reason = run_build(project_root)
+        ok, reason = run_build(project_root, version)
         if ok:
             _emit(6, label, f"OK ({reason})")
         else:
@@ -847,6 +1071,7 @@ def run_pipeline(config: ReleaseConfig) -> int:
     # Step 10: GitHub release.
     draft_suffix = " (draft)" if config.draft else " (PUBLIC)"
     label = f"GitHub release v{version}{draft_suffix}"
+    create_succeeded = False
     if config.skip_release:
         _emit(10, label, "SKIP (--skip-release)")
     elif config.dry_run:
@@ -866,8 +1091,44 @@ def run_pipeline(config: ReleaseConfig) -> int:
         )
         if ok:
             _emit(10, label, f"OK ({reason})")
+            create_succeeded = True
         else:
             _emit(10, label, f"FAIL ({reason})")
+            return EXIT_VIOLATION
+
+    # Step 11: post-create verify-isDraft gate (#724). Defense in depth
+    # against the v0.21.0 incident where a manual recovery created a
+    # public release for ~90s before being flipped. Skipped when the
+    # create step itself was skipped, when the operator opted into a
+    # direct-publish via --no-draft, and during dry-run.
+    label = f"Verify draft state of v{version} (#724 defense-in-depth)"
+    if config.skip_release:
+        _emit(11, label, "SKIP (--skip-release)")
+    elif not config.draft:
+        _emit(11, label, "SKIP (--no-draft; intentional public release)")
+    elif config.dry_run:
+        _emit(
+            11,
+            label,
+            (
+                f"DRYRUN (would poll `gh release view v{version} --json isDraft`"
+                f" up to {VERIFY_DRAFT_MAX_ATTEMPTS}x at {VERIFY_DRAFT_INTERVAL_SECONDS}s"
+                " intervals; auto-flip via `gh release edit --draft=true` on isDraft=false)"
+            ),
+        )
+    elif not create_succeeded:
+        # Should be unreachable -- the create branch returns
+        # EXIT_VIOLATION on failure -- but guard explicitly for the
+        # benefit of unit-test stubs that bypass the early return.
+        _emit(11, label, "SKIP (release was not created in this run)")
+    else:
+        ok, reason = verify_release_draft(
+            project_root, version, config.repo
+        )
+        if ok:
+            _emit(11, label, f"OK ({reason})")
+        else:
+            _emit(11, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
     print(

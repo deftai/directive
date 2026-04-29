@@ -1030,7 +1030,7 @@ class TestCreateGithubReleaseDraftDefault:
         # The Step-10 dry-run line MUST NOT include --draft when draft=False.
         # We check the line specifically (other lines may mention draft).
         step10_line = next(
-            (line for line in captured.err.splitlines() if "[10/10]" in line),
+            (line for line in captured.err.splitlines() if "[10/11]" in line),
             "",
         )
         assert step10_line, "Step 10 line missing from dry-run output"
@@ -1097,3 +1097,420 @@ class TestSubprocessSmoke:
         assert result.returncode == 0
         assert "release" in result.stdout
         assert "--dry-run" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# verify_release_draft -- post-create defense-in-depth gate (#724)
+# ---------------------------------------------------------------------------
+
+
+class TestVerifyReleaseDraft:
+    """Coverage for the #724 post-create verify-isDraft gate.
+
+    The gate polls ``gh release view --json isDraft`` up to N times after
+    a successful ``gh release create`` and auto-flips the release back to
+    draft via ``gh release edit --draft=true`` if the release somehow
+    landed as public (operator-error / partial-success races). It must:
+
+    - return (True, "verified draft ...") when isDraft=true on first poll
+      WITHOUT invoking the flip command
+    - emit a WARNING and invoke the flip when isDraft=false, returning
+      (True, "flipped to draft ...") on success
+    - emit a WARNING but NOT fail when the release record never appears
+      within the budget (release.yml CI may still be processing)
+    """
+
+    def test_happy_path_no_flip_when_already_draft(self, monkeypatch, tmp_path, capsys):
+        """isDraft=true on first poll -> verified, no edit invocation."""
+        invocations: list[list[str]] = []
+
+        monkeypatch.setattr(release.shutil, "which", lambda _: "/usr/bin/gh")
+
+        def fake_run(cmd, **kwargs):
+            invocations.append(list(cmd))
+            assert "view" in cmd, (
+                "verify gate must NOT call `gh release edit` when isDraft=true; "
+                f"observed argv: {cmd}"
+            )
+            return SimpleNamespace(
+                stdout='{"isDraft": true}',
+                stderr="",
+                returncode=0,
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.verify_release_draft(
+            tmp_path, "0.21.0", "deftai/directive", sleep=lambda _s: None
+        )
+        assert ok is True
+        assert "verified draft" in reason
+        # Exactly one `gh release view` and zero `gh release edit` calls.
+        assert len(invocations) == 1
+        assert invocations[0][2] == "view"
+        # Operator-readable WARNING line MUST NOT fire on the happy path.
+        assert "WARNING" not in capsys.readouterr().err
+
+    def test_defense_in_depth_flip_when_landed_as_public(
+        self, monkeypatch, tmp_path, capsys
+    ):
+        """isDraft=false -> auto-flip via `gh release edit --draft=true` (#724)."""
+        invocations: list[list[str]] = []
+
+        monkeypatch.setattr(release.shutil, "which", lambda _: "/usr/bin/gh")
+
+        def fake_run(cmd, **kwargs):
+            invocations.append(list(cmd))
+            if "view" in cmd:
+                return SimpleNamespace(
+                    stdout='{"isDraft": false}',
+                    stderr="",
+                    returncode=0,
+                )
+            if "edit" in cmd:
+                return SimpleNamespace(stdout="", stderr="", returncode=0)
+            raise AssertionError(f"unexpected gh argv: {cmd}")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.verify_release_draft(
+            tmp_path, "0.21.0", "deftai/directive", sleep=lambda _s: None
+        )
+        assert ok is True
+        assert "flipped to draft" in reason
+        # Verify both view + edit were invoked, in that order, and that
+        # the edit call carries the `--draft=true` flag.
+        assert any("view" in cmd for cmd in invocations)
+        edit_calls = [cmd for cmd in invocations if "edit" in cmd]
+        assert len(edit_calls) == 1, f"observed: {invocations}"
+        assert "--draft=true" in edit_calls[0]
+        assert "v0.21.0" in edit_calls[0]
+        # Operator-readable WARNING line MUST surface citing #724.
+        captured = capsys.readouterr().err
+        assert "WARNING" in captured
+        assert "#724" in captured
+        assert "flipping to draft" in captured
+
+    def test_timeout_path_warns_but_does_not_fail(
+        self, monkeypatch, tmp_path, capsys
+    ):
+        """All polls return not-found -> WARN, return (True, ...)."""
+        invocations: list[list[str]] = []
+        sleeps: list[float] = []
+
+        monkeypatch.setattr(release.shutil, "which", lambda _: "/usr/bin/gh")
+
+        def fake_run(cmd, **kwargs):
+            invocations.append(list(cmd))
+            assert "view" in cmd, (
+                "verify gate must NOT call `gh release edit` on the timeout path; "
+                f"observed argv: {cmd}"
+            )
+            return SimpleNamespace(
+                stdout="",
+                stderr="release not found",
+                returncode=1,
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.verify_release_draft(
+            tmp_path,
+            "0.21.0",
+            "deftai/directive",
+            max_attempts=3,
+            interval=0.0,
+            sleep=lambda s: sleeps.append(s),
+        )
+        assert ok is True
+        assert "not found within budget" in reason
+        # All 3 polls fired and zero edit calls.
+        assert len(invocations) == 3
+        assert all("view" in cmd for cmd in invocations)
+        # Sleep was invoked between attempts (N-1 times).
+        assert len(sleeps) == 2
+        # Operator-readable WARNING line cites #724.
+        captured = capsys.readouterr().err
+        assert "WARNING" in captured
+        assert "#724" in captured
+        assert "not found within" in captured
+
+    def test_flip_failure_returns_false(self, monkeypatch, tmp_path, capsys):
+        """isDraft=false but the flip call itself fails -> (False, reason)."""
+        monkeypatch.setattr(release.shutil, "which", lambda _: "/usr/bin/gh")
+
+        def fake_run(cmd, **kwargs):
+            if "view" in cmd:
+                return SimpleNamespace(
+                    stdout='{"isDraft": false}',
+                    stderr="",
+                    returncode=0,
+                )
+            return SimpleNamespace(
+                stdout="", stderr="permission denied", returncode=1
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.verify_release_draft(
+            tmp_path, "0.21.0", "deftai/directive", sleep=lambda _s: None
+        )
+        assert ok is False
+        assert "permission denied" in reason
+
+    def test_gh_missing_emits_warning_but_does_not_fail(
+        self, monkeypatch, tmp_path, capsys
+    ):
+        """_resolve_gh returns None -> (True, ...) with a WARNING line."""
+        monkeypatch.setattr(release.shutil, "which", lambda _: None)
+
+        def boom(*_a, **_kw):  # pragma: no cover - asserted not called
+            raise AssertionError("subprocess.run must not fire when gh is missing")
+
+        monkeypatch.setattr(subprocess, "run", boom)
+        ok, reason = release.verify_release_draft(
+            tmp_path, "0.21.0", "deftai/directive", sleep=lambda _s: None
+        )
+        assert ok is True
+        assert "gh CLI not found" in reason
+        captured = capsys.readouterr().err
+        assert "WARNING" in captured
+        assert "#724" in captured
+
+    def test_max_attempts_zero_short_circuits(self, monkeypatch, tmp_path):
+        """max_attempts<=0 -> verify gate disabled, returns immediately."""
+        def boom(*_a, **_kw):  # pragma: no cover - asserted not called
+            raise AssertionError("verify gate must short-circuit at max_attempts=0")
+
+        monkeypatch.setattr(release.shutil, "which", boom)
+        monkeypatch.setattr(subprocess, "run", boom)
+        ok, reason = release.verify_release_draft(
+            tmp_path, "0.21.0", "deftai/directive", max_attempts=0
+        )
+        assert ok is True
+        assert "verify gate disabled" in reason
+
+
+# ---------------------------------------------------------------------------
+# Pipeline -- Step 11 verify gate wiring (#724)
+# ---------------------------------------------------------------------------
+
+
+class TestPipelineVerifyGate:
+    def test_step11_calls_verify_gate_after_create(
+        self, temp_project, monkeypatch, capsys
+    ):
+        """After create succeeds, run_pipeline MUST invoke verify_release_draft."""
+        invocations: list[str] = []
+
+        monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(
+            release, "commit_release_artifacts", lambda *_a, **_kw: (True, "stub")
+        )
+        monkeypatch.setattr(
+            release,
+            "create_github_release",
+            lambda *_a, **_kw: (True, "created GitHub release v0.21.0 (draft)"),
+        )
+
+        def fake_verify(project_root, version, repo, **_kw):
+            invocations.append(version)
+            return True, f"verified draft on attempt 1/{release.VERIFY_DRAFT_MAX_ATTEMPTS}"
+
+        monkeypatch.setattr(release, "verify_release_draft", fake_verify)
+        config = _make_config(
+            temp_project, skip_tag=True, skip_release=False, draft=True
+        )
+        rc = release.run_pipeline(config)
+        assert rc == release.EXIT_OK
+        assert invocations == ["0.21.0"], (
+            "Step 11 must call verify_release_draft exactly once with the "
+            f"in-flight version; observed: {invocations}"
+        )
+        captured = capsys.readouterr().err
+        # Step 11 line must be emitted with the verify-draft label.
+        assert "[11/11]" in captured
+        assert "Verify draft state" in captured
+        assert "#724" in captured
+
+    def test_step11_skipped_when_no_draft(
+        self, temp_project, monkeypatch, capsys
+    ):
+        """--no-draft -> Step 11 SKIPs without invoking verify_release_draft."""
+        def boom(*_a, **_kw):  # pragma: no cover - asserted not called
+            raise AssertionError(
+                "verify_release_draft must NOT fire when --no-draft is set"
+            )
+
+        monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(
+            release, "commit_release_artifacts", lambda *_a, **_kw: (True, "stub")
+        )
+        monkeypatch.setattr(
+            release, "create_github_release",
+            lambda *_a, **_kw: (True, "created GitHub release v0.21.0"),
+        )
+        monkeypatch.setattr(release, "verify_release_draft", boom)
+        config = _make_config(
+            temp_project, skip_tag=True, skip_release=False, draft=False
+        )
+        rc = release.run_pipeline(config)
+        assert rc == release.EXIT_OK
+        captured = capsys.readouterr().err
+        assert "SKIP (--no-draft" in captured
+
+    def test_step11_skipped_when_skip_release(
+        self, temp_project, monkeypatch, capsys
+    ):
+        """--skip-release -> Step 11 SKIPs."""
+        def boom(*_a, **_kw):  # pragma: no cover - asserted not called
+            raise AssertionError(
+                "verify_release_draft must NOT fire when --skip-release is set"
+            )
+
+        monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(
+            release, "commit_release_artifacts", lambda *_a, **_kw: (True, "stub")
+        )
+        monkeypatch.setattr(release, "verify_release_draft", boom)
+        config = _make_config(
+            temp_project, skip_tag=True, skip_release=True, draft=True
+        )
+        rc = release.run_pipeline(config)
+        assert rc == release.EXIT_OK
+        captured = capsys.readouterr().err
+        # Both Step 10 and Step 11 SKIP lines must surface.
+        assert "SKIP (--skip-release)" in captured
+
+
+# ---------------------------------------------------------------------------
+# run_build -- DEFT_RELEASE_VERSION env propagation (#723)
+# ---------------------------------------------------------------------------
+
+
+class TestRunBuildVersionEnv:
+    """Coverage for #723: run_build MUST pass DEFT_RELEASE_VERSION to task build.
+
+    Without env propagation the Taskfile resolver would fall back to the
+    latest annotated git tag, which lags the in-flight release tag during
+    `task release` (Step 6 builds before Step 8 creates the tag) -- the
+    exact root cause of `dist/deft-0.20.0.zip` during the v0.21.0 cut.
+    """
+
+    def test_run_build_passes_version_via_env(self, monkeypatch, tmp_path):
+        captured = {}
+
+        monkeypatch.setattr(release, "task_binary_available", lambda: True)
+        monkeypatch.setattr(release, "task_has_target", lambda *_a, **_kw: True)
+
+        def fake_run(cmd, **kwargs):
+            captured["cmd"] = list(cmd)
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.run_build(tmp_path, "0.21.0")
+        assert ok is True
+        assert captured["cmd"] == ["task", "build"]
+        env = captured["env"]
+        assert env is not None, "run_build must set env= for DEFT_RELEASE_VERSION"
+        assert env.get("DEFT_RELEASE_VERSION") == "0.21.0", (
+            "#723: run_build MUST propagate DEFT_RELEASE_VERSION to the "
+            f"task build subprocess; observed env: {env!r}"
+        )
+        assert "DEFT_RELEASE_VERSION=0.21.0" in reason
+
+    def test_run_build_omits_env_when_version_none(self, monkeypatch, tmp_path):
+        captured = {}
+
+        monkeypatch.setattr(release, "task_binary_available", lambda: True)
+        monkeypatch.setattr(release, "task_has_target", lambda *_a, **_kw: True)
+
+        def fake_run(cmd, **kwargs):
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.run_build(tmp_path, version=None)
+        assert ok is True
+        env = captured["env"]
+        # When version is None we still pass an env (os.environ.copy) but
+        # MUST NOT inject a stale/empty DEFT_RELEASE_VERSION key.
+        assert "DEFT_RELEASE_VERSION" not in env
+        assert "DEFT_RELEASE_VERSION" not in reason
+
+    def test_run_build_strips_inherited_env_when_version_none(
+        self, monkeypatch, tmp_path
+    ):
+        """version=None MUST strip any inherited DEFT_RELEASE_VERSION (#723 follow-up).
+
+        Without the explicit ``env.pop`` in ``run_build``, an inherited
+        ``DEFT_RELEASE_VERSION`` value (e.g. leaked from an interrupted
+        prior ``task release`` run that exported the var into the
+        operator's session) would silently re-introduce the exact
+        stale-version bug #723 just closed -- the contract for
+        ``version=None`` is "let the Taskfile resolver decide", not
+        "use whatever leaked from the parent shell".
+        """
+        captured = {}
+
+        monkeypatch.setenv("DEFT_RELEASE_VERSION", "stale-0.20.0")
+        monkeypatch.setattr(release, "task_binary_available", lambda: True)
+        monkeypatch.setattr(release, "task_has_target", lambda *_a, **_kw: True)
+
+        def fake_run(cmd, **kwargs):
+            captured["env"] = kwargs.get("env")
+            return SimpleNamespace(returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release.run_build(tmp_path, version=None)
+        assert ok is True
+        env = captured["env"]
+        assert env is not None, "run_build must set env= for the subprocess"
+        assert "DEFT_RELEASE_VERSION" not in env, (
+            "#723 follow-up: run_build(version=None) MUST strip any inherited "
+            "DEFT_RELEASE_VERSION from the subprocess env so the Taskfile "
+            "resolver falls back to git describe -- otherwise stale parent-shell "
+            f"values silently re-leak. observed env value: {env.get('DEFT_RELEASE_VERSION')!r}"
+        )
+        assert "DEFT_RELEASE_VERSION" not in reason
+
+    def test_run_build_skips_when_target_missing(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(release, "task_binary_available", lambda: True)
+        monkeypatch.setattr(release, "task_has_target", lambda *_a, **_kw: False)
+
+        def boom(*_a, **_kw):  # pragma: no cover - asserted not called
+            raise AssertionError("task must not be invoked when target is missing")
+
+        monkeypatch.setattr(subprocess, "run", boom)
+        ok, reason = release.run_build(tmp_path, "0.21.0")
+        assert ok is True
+        assert "not defined; skipping" in reason
+
+    def test_pipeline_step6_pins_version_env(
+        self, temp_project, monkeypatch, capsys
+    ):
+        """run_pipeline Step 6 MUST forward the in-flight version to run_build (#723)."""
+        captured = {}
+
+        def fake_build(project_root, version=None):
+            captured["version"] = version
+            return True, f"task build ran clean (DEFT_RELEASE_VERSION={version})"
+
+        monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "run_build", fake_build)
+        monkeypatch.setattr(
+            release, "commit_release_artifacts", lambda *_a, **_kw: (True, "stub")
+        )
+        config = _make_config(temp_project, skip_tag=True, skip_release=True)
+        rc = release.run_pipeline(config)
+        assert rc == release.EXIT_OK
+        assert captured["version"] == "0.21.0", (
+            "#723: run_pipeline Step 6 MUST forward config.version to run_build; "
+            f"observed: {captured!r}"
+        )
+        out = capsys.readouterr().err
+        assert "DEFT_RELEASE_VERSION=0.21.0" in out
