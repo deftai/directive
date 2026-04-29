@@ -1,7 +1,8 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #737"
+    "description": "Scope vBRIEF ingested from GitHub issue #737",
+    "updated": "2026-04-29T22:48:22Z"
   },
   "plan": {
     "title": "feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes",
@@ -11,7 +12,53 @@
       "Origin": "Ingested from https://github.com/deftai/directive/issues/737",
       "Labels": "bug, determinism, adoption-blocker, test-debt"
     },
-    "items": [],
+    "items": [
+      {
+        "id": "script",
+        "title": "New scripts/pr_check_closing_keywords.py scanning PR body + commit messages for negation/quotation/example/code-block contexts",
+        "status": "pending",
+        "narrative": {
+          "Action": "Create `scripts/pr_check_closing_keywords.py` that reads PR body (`gh pr view <N> --json body`) AND every commit message in the PR (`gh pr view <N> --json commits --jq '.commits[].messageBody'`); scans for closing-keyword tokens (`close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved`) followed by `#\\d+`, case-insensitive; for each hit, examines a +/-20 char window for negation markers (`not\\s+`, `n't\\s+`, `never\\s+`, `intentionally\\s+(not\\s+)?`, `does\\s+not`, `do\\s+not`, `won't\\s+`, `cannot\\s+`, `WITHOUT\\s+`, `EXCEPT\\s+`), quotation context (backticks, ASCII/curly quotes), example markers (`e.g.`, `i.e.`, `for example`, `like`, `such as`, `> ` blockquote prefix), and code-block context (triple-backtick fences). Three-state exit: 0 clean / 1 negation-context hits found / 2 config error. Supports `--pr <N>`, `--body-file <path>`, `--commits-file <path>`, `--allow-known-false-positives <issue-numbers>`.",
+          "Acceptance": "Script implemented with three-state exit. Pure stdlib + `gh` CLI. Documented usage. Covered by `tests/cli/test_pr_check_closing_keywords.py` (>= 10 tests covering each detection variant, the escape hatch, and exit codes)."
+        }
+      },
+      {
+        "id": "task-target",
+        "title": "Add task pr:check-closing-keywords entry to tasks/pr.yml (no sources/generates, per task-caching convention)",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add new task entry under `tasks/pr.yml`:\n```yaml\n  check-closing-keywords:\n    desc: \"Scan PR body + commit messages for closing-keyword substrings in negation/quotation/example contexts that would trigger Layer 0 false-positive auto-closes (#737)\"\n    cmds:\n      - uv run python \"{{.DEFT_ROOT}}/scripts/pr_check_closing_keywords.py\" {{.CLI_ARGS}}\n```\nPer `conventions/task-caching.md`: NO `sources:` / `generates:` because override flags MUST NOT be silently swallowed by go-task's incremental-build cache.",
+          "Acceptance": "Task entry exists, callable end-to-end (e.g. `task pr:check-closing-keywords -- --pr 735` reports the seeded false-positive on the #735 incident body). No incremental-cache `sources`/`generates` declaration."
+        }
+      },
+      {
+        "id": "skill-prose",
+        "title": "Update skills/deft-directive-pre-pr/SKILL.md Phase 4 (Diff) with `!` rule + `⊗` anti-pattern; cross-reference in skills/deft-directive-swarm/SKILL.md Phase 6 Step 1",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add to `skills/deft-directive-pre-pr/SKILL.md` Phase 4 (Diff) a `!` MUST rule: `Run task pr:check-closing-keywords -- --pr <N> (or pass --body-file / --commits-file for offline checking) before opening the PR; refuse to push if findings`. Add corresponding `⊗` MUST NOT anti-pattern citing the recurrence record (#697, #401/#700, #735). Add a short cross-reference in `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 pointing to the new gate alongside the existing `pr:check-protected-issues` rule, noting Layer 0 (prevention) vs Layer 3 (recovery).",
+          "Acceptance": "Both skills updated. Sibling content test guard (`tests/content/test_pre_pr_skill_closing_keyword_rule.py`) asserts the rule + anti-pattern + cross-reference are present per existing `tests/content/test_skills.py` patterns."
+        }
+      },
+      {
+        "id": "lessons-update",
+        "title": "Append #735 to existing meta/lessons.md `## GitHub Closing-Keyword False-Positive in Negation Context (2026-04)` entry",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add a third recurrence-record bullet to the existing `## GitHub Closing-Keyword False-Positive in Negation Context (2026-04)` entry in `meta/lessons.md` citing the #735 incident (PR squash body contained 'DOES NOT CLOSE #734'; auto-closed #734; manually reopened) and noting this issue's structural lint as the gap-closer.",
+          "Acceptance": "lessons.md entry updated. The existing #703-pattern self-test (or a new sibling) asserts presence of the third recurrence bullet."
+        }
+      },
+      {
+        "id": "tests",
+        "title": "Test coverage: tests/cli/test_pr_check_closing_keywords.py (>= 10 tests) + tests/content/test_pre_pr_skill_closing_keyword_rule.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Net-new test files. CLI tests cover: negation-context detection ('DOES NOT CLOSE #N'), negation variants ('intentionally not Closes', 'never Fixes', 'WITHOUT closing'), quotation context (backticked closing keywords), example context ('e.g. Closes #N'), code-block context (triple-backtick-fenced), true-positive control (real 'Closes #N' NOT flagged), --pr <N> end-to-end with stubbed gh, --body-file / --commits-file offline mode, --allow-known-false-positives escape hatch, three-state exit codes. Content guard test asserts pre-pr skill prose + swarm skill cross-reference present.",
+          "Acceptance": ">= 10 CLI tests + 1 content guard. All green under `task check`. CHANGELOG `[Unreleased] / ### Added` entry."
+        }
+      }
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/737",
@@ -19,6 +66,6 @@
         "title": "Issue #737: feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes"
       }
     ],
-    "updated": "2026-04-29T19:31:20Z"
+    "updated": "2026-04-29T22:48:22Z"
   }
 }

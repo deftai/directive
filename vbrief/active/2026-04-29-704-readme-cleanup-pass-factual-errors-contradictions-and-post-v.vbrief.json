@@ -1,7 +1,8 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #704"
+    "description": "Scope vBRIEF ingested from GitHub issue #704",
+    "updated": "2026-04-29T22:48:22Z"
   },
   "plan": {
     "title": "README cleanup pass: factual errors, contradictions, and post-v0.20 staleness",
@@ -11,7 +12,35 @@
       "Origin": "Ingested from https://github.com/deftai/directive/issues/704",
       "Labels": "documentation, adoption-blocker"
     },
-    "items": [],
+    "items": [
+      {
+        "id": "tier1-factual-fixes",
+        "title": "Resolve all 7 Tier-1 factual errors and contradictions in README.md",
+        "status": "pending",
+        "narrative": {
+          "Action": "Address each Tier-1 sub-item from issue #704: T1.1 stale 'Platform compatibility' note (replace with `deft/QUICK-START.md` pointer), T1.2 TL;DR identity claim (reframe away from 'SKILL.md'), T1.3 SKILL.md mislabeled as 'Entry point for AI agents' (annotate as one of two entry surfaces with AGENTS.md canonical), T1.4 coverage threshold contradiction (pick one threshold, likely 85%, apply consistently), T1.5 phantom directory tree references (remove `core/user.md`, disambiguate `glossary.md` location, mark deprecated files explicitly, reconcile RWLDL/swarm dual-source-of-truth), T1.6 stale `ideas.md` example (replace with not-yet-shipped example), T1.7 mermaid layer diagram missing `vbrief/` prefix.",
+          "Acceptance": "All 7 T1.x items resolved by direct README edits. No phantom file references remain. No internal contradictions. `task check` green; `task verify:links` (if present) green."
+        }
+      },
+      {
+        "id": "tier2-structural",
+        "title": "Resolve or explicitly defer all 7 Tier-2 conceptual / structural cleanups",
+        "status": "pending",
+        "narrative": {
+          "Action": "Address each Tier-2 sub-item from issue #704: T2.1 separate rules ladder from requirements/specs ladder, T2.2 consolidate three overlapping 'what is Deft' sections (TL;DR / From Vibe to Virtuoso / What is Deft?) and reorder so identity precedes Getting Started, T2.3 DRY duplicate manual-clone callouts, T2.4 move Notation Legend up to before first `!` use, T2.5 drop tautology line, T2.6 move niche-platforms (Atari 2600 + Unity) deeper or generalize, T2.7 split doc-tooling table by audience (Migration / Authoring / CI). Each item is either resolved by the PR or explicitly deferred with rationale recorded in the PR description.",
+          "Acceptance": "Each of T2.1-T2.7 is either implemented (with the diff visible in the PR) or explicitly deferred with one-line rationale. `task check` green."
+        }
+      },
+      {
+        "id": "tier3-decision-and-implementation",
+        "title": "Decision-then-implementation on Tier-3 README split (T3.1) and mermaid density (T3.2)",
+        "status": "pending",
+        "narrative": {
+          "Action": "HALT for explicit user decision before implementing T3.1: split README into `README.md` (TL;DR / Getting Started / pointers, ~150 lines) + `docs/ARCHITECTURE.md` + `docs/FILES.md` (or merged into ARCHITECTURE) + `docs/CONCEPTS.md`. T3.2 (mermaid density) resolves naturally if T3.1 accepted. If T3.1 declined, mark T3.1 + T3.2 as wontfix with rationale in the PR description and complete the PR with only Tier-1 + Tier-2 work. The agent MUST present the decision prompt and await explicit user direction before either implementing the split or marking wontfix.",
+          "Acceptance": "Either: (a) T3.1 implemented with docs/* files created, README.md trimmed to ~150 lines, all internal links updated, original content preserved in the new docs/* files; OR (b) T3.1 + T3.2 explicitly marked wontfix in the PR description with rationale, README left at original length post-Tier-1+2 edits. `task check` green either way."
+        }
+      }
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/704",
@@ -19,6 +48,6 @@
         "title": "Issue #704: README cleanup pass: factual errors, contradictions, and post-v0.20 staleness"
       }
     ],
-    "updated": "2026-04-29T19:31:20Z"
+    "updated": "2026-04-29T22:48:22Z"
   }
 }

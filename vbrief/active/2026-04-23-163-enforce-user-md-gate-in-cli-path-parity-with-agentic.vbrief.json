@@ -1,7 +1,8 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
+    "description": "Scope vBRIEF for #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
+    "updated": "2026-04-29T22:48:22Z"
   },
   "plan": {
     "title": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
@@ -9,7 +10,35 @@
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
-    "items": [],
+    "items": [
+      {
+        "id": "usermd-gate-cmd-spec",
+        "title": "Add USER.md presence check at cmd_spec entry; emit clear redirect to `run bootstrap` and exit non-zero on missing",
+        "status": "pending",
+        "narrative": {
+          "Action": "Mirror the agentic-path behavior in `deft-build` (USER.md gate). At `cmd_spec` entry, resolve USER.md per platform (`%APPDATA%\\deft\\USER.md` on Windows, `~/.config/deft/USER.md` on Unix; `$DEFT_USER_PATH` overrides). If missing, emit a clear message redirecting the user to `run bootstrap` and exit non-zero before any spec-generation work runs.",
+          "Acceptance": "`cmd_spec` exits with a helpful, actionable message when USER.md is absent; the message names the expected path and suggests `run bootstrap`. Existing happy-path behavior unchanged when USER.md is present."
+        }
+      },
+      {
+        "id": "usermd-gate-cmd-project",
+        "title": "Mirror the same USER.md gate at cmd_project entry",
+        "status": "pending",
+        "narrative": {
+          "Action": "Apply the same gate from item `usermd-gate-cmd-spec` at `cmd_project` entry. Identical resolution chain, identical message shape, identical non-zero exit on missing.",
+          "Acceptance": "`cmd_project` exits with a helpful, actionable message when USER.md is absent. Behavior identical to `cmd_spec` for parity. Existing happy-path behavior unchanged when USER.md is present."
+        }
+      },
+      {
+        "id": "usermd-gate-tests",
+        "title": "Tests cover missing-USER.md early-exit for both commands plus existing-happy-path regression",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add unit/integration tests under `tests/cli/` (or wherever existing CLI tests live) covering: (a) `cmd_spec` exits non-zero with the expected message when USER.md is absent, (b) `cmd_project` exits non-zero with the expected message when USER.md is absent, (c) both commands proceed normally when USER.md is present at the resolved path, (d) `$DEFT_USER_PATH` override is honored on both commands. Use a test fixture or temporary directory to avoid polluting the developer's actual USER.md.",
+          "Acceptance": "All four test cases pass for both commands. Existing tests unchanged. `task check` green."
+        }
+      }
+    ],
     "metadata": {
       "x-migrator": {
         "Phase": "Phase 4",
@@ -27,6 +56,6 @@
         "title": "Issue #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
       }
     ],
-    "updated": "2026-04-29T20:04:02Z"
+    "updated": "2026-04-29T22:48:22Z"
   }
 }

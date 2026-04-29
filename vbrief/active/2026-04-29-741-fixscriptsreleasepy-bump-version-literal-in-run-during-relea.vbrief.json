@@ -1,7 +1,8 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #741"
+    "description": "Scope vBRIEF ingested from GitHub issue #741",
+    "updated": "2026-04-29T22:48:22Z"
   },
   "plan": {
     "title": "fix(scripts/release.py): bump VERSION literal in run during release flow",
@@ -11,7 +12,44 @@
       "Origin": "Ingested from https://github.com/deftai/directive/issues/741",
       "Labels": "bug, blocks-release-tag, ci-cd, operational, determinism, test-debt"
     },
-    "items": [],
+    "items": [
+      {
+        "id": "implement-path-a",
+        "title": "Path A — remove the VERSION literal in `run`; resolve dynamically via the resolve_version.py priority chain",
+        "status": "pending",
+        "narrative": {
+          "Action": "Path A is locked in (per swarm-prep user direction; preferred per #723 symmetry). Remove the hard-coded `VERSION = \"X.Y.Z\"` literal in `run` (line ~20). Replace with dynamic resolution mirroring `scripts/resolve_version.py`'s priority chain: (1) `$DEFT_RELEASE_VERSION` env (set by `release.py::run_build`), (2) `git describe --tags --abbrev=0` stripped of leading 'v', (3) `0.0.0-dev` fallback. Eliminates the hand-bumped literal entirely; no drift surface remains.",
+          "Acceptance": "After `task release -- 0.X.Y` lands on master, `python run --help` (and every command header) prints `0.X.Y` without any explicit literal-bump step. The `VERSION = \"...\"` literal no longer exists in `run`."
+        }
+      },
+      {
+        "id": "ci-assertion",
+        "title": "CI assertion that run's resolved VERSION matches the latest annotated tag on master",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add a CI step (in `.github/workflows/release.yml` and/or `task ci:local`) that fails fast if `python run --help` (or equivalent invocation that exposes the resolved version) does not match the latest annotated tag on master. Closes the regression loop for future drift regardless of which fix path was taken.",
+          "Acceptance": "On master and on release branches, the CI step fails when the resolved version disagrees with the latest tag. Demonstrated by running CI on a synthetic mismatch fixture in tests."
+        }
+      },
+      {
+        "id": "regression-test",
+        "title": "Regression test in tests/cli/test_release.py asserts the resolved version matches the released version after `task release`",
+        "status": "pending",
+        "narrative": {
+          "Action": "Extend `tests/cli/test_release.py` with an assertion that, after running the release flow against a synthetic tag, `run --help` (or equivalent) reports the correct version. Test the full priority chain: env override, git-describe fallback, dev fallback when no tags exist.",
+          "Acceptance": "Test green. Existing release tests unchanged. Coverage gap closed (the regression that produced the v0.21.0 stale-VERSION incident is now caught at test time)."
+        }
+      },
+      {
+        "id": "changelog-entry",
+        "title": "CHANGELOG `[Unreleased] / ### Fixed` entry citing #741 and #723",
+        "status": "pending",
+        "narrative": {
+          "Action": "Single `### Fixed` line under `[Unreleased]` noting the dynamic-version resolution change in `run` and citing #741 (this issue) and #723 (sibling fix that established the dynamic-resolver pattern).",
+          "Acceptance": "CHANGELOG.md `[Unreleased]` updated. PR template checklist item satisfied."
+        }
+      }
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/741",
@@ -19,6 +57,6 @@
         "title": "Issue #741: fix(scripts/release.py): bump VERSION literal in run during release flow"
       }
     ],
-    "updated": "2026-04-29T19:59:57Z"
+    "updated": "2026-04-29T22:48:22Z"
   }
 }
