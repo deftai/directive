@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Scope vBRIEF for #720: scripts/release_e2e.py::run_rehearsal is currently a thin existence check (`gh repo view`); it does not actually exercise the release pipeline. Deepen it to a full pipeline mirror -- clone the directive repo into a temp dir, set the temp repo as origin, push --mirror, run `task release -- 0.0.1 --repo deftai/<temp-slug> --skip-ci --skip-build`, verify the draft release + tag exist, run `task release:rollback -- 0.0.1`, then cleanup. Adds --skip-ci / --skip-build flags to scripts/release.py so the rehearsal can exercise the pipeline end-to-end without burning minutes on `task ci:local` / `task build` (covered separately by unit tests).",
     "created": "2026-04-28T22:32:00Z",
-    "updated": "2026-04-28T22:32:00Z"
+    "updated": "2026-04-29T18:06:43Z"
   },
   "plan": {
     "id": "720-release-e2e-pipeline-mirror",
     "title": "Deepen release_e2e rehearsal to a full task release + rollback mirror against an auto-created+destroyed temp repo",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "#720",
     "narratives": {
       "Problem": "scripts/release_e2e.py::run_rehearsal is an existence check (verifies the temp repo via `gh repo view`); the SKILL.md Phase 3 prose claims it exercises the release pipeline end-to-end. The CLI surface confirms the gap (`release_e2e.py [--owner] [--dry-run] [--keep-repo] [--project-root]` -- no version/pipeline orchestration flags). Today's e2e catches `gh repo create` / `gh repo delete` regressions and nothing else; it does NOT catch `task release` pipeline regressions, `gh release create --draft` behaviour, `git push --atomic` against a fresh remote, CHANGELOG/ROADMAP commit-and-push lifecycle, or `gh release upload` asset attachment.",

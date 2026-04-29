@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #723: task build artifact filename must match the release version, not the stale Taskfile.yml literal."
+    "description": "Scope vBRIEF for #723: task build artifact filename must match the release version, not the stale Taskfile.yml literal.",
+    "updated": "2026-04-29T18:06:43Z"
   },
   "plan": {
     "title": "release: task build uses the actual release version (#723)",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Overview": "task release -- 0.21.0 produced dist/deft-0.20.0.zip during the v0.21.0 cut because Taskfile.yml var VERSION is hard-coded to 0.20.0 and never updated as part of CHANGELOG promotion. This vBRIEF replaces the literal with a dynamic resolver (DEFT_RELEASE_VERSION env > git describe --tags --abbrev=0 stripped of v > 0.0.0-dev) and has scripts/release.py:run_build set DEFT_RELEASE_VERSION when invoking task build so the dist/deft-{version}.{zip,tar.gz} filename always matches the requested release version."
     },

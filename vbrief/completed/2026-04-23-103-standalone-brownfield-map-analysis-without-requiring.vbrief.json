@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #103: Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)"
+    "description": "Scope vBRIEF for #103: Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)",
+    "updated": "2026-04-29T18:06:43Z"
   },
   "plan": {
     "title": "Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point)",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },

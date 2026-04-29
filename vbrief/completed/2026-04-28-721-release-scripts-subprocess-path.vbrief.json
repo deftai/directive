@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Scope vBRIEF for #721: release scripts (release.py / release_publish.py / release_rollback.py / release_e2e.py) cannot find the `gh` CLI on Windows because Python's subprocess.run does not honor PATHEXT for `gh.cmd` -- resolve to an absolute path via shutil.which once and pass that as argv[0], plus env=os.environ.copy() defense-in-depth.",
     "created": "2026-04-28T21:50:29Z",
-    "updated": "2026-04-28T21:50:29Z"
+    "updated": "2026-04-29T18:06:43Z"
   },
   "plan": {
     "id": "721-release-subprocess-path",
     "title": "Resolve gh absolute path before subprocess.run in release scripts (Windows PATHEXT fix)",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "#721",
     "narratives": {
       "Problem": "On Windows, `gh` is installed as `gh.cmd` (PowerShell launcher / Windows shell shim). Python's `subprocess.run([\"gh\", ...])` does NOT honor PATHEXT when resolving argv[0] via the OS's CreateProcess path, so the launcher cannot be found -- the four release-pipeline scripts (scripts/release.py, scripts/release_publish.py, scripts/release_rollback.py, scripts/release_e2e.py) emit FileNotFoundError or WinError 2 on Windows hosts even when `gh` is on PATH and works fine from the operator's terminal. The release pipeline (#74) and #716 safety hardening companions (publish/rollback/e2e) are platform-incomplete on the only host class where the maintainer runs them.",

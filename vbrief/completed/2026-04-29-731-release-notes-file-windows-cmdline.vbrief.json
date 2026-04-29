@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Scope vBRIEF: fix scripts/release.py::create_github_release so it materialises promoted CHANGELOG notes to a temp UTF-8 file and invokes `gh release create --notes-file <path>` instead of `--notes \"<text>\"`. Closes #731. Surfaced by the deepened `task release:e2e` harness (#720) during the v0.21.0 (#721) Phase 3 gate as `[10/11] FAIL (gh CLI not found on PATH)` -- the misleading message is the existing FileNotFoundError handler mapping Windows error code 206 (`ERROR_FILENAME_EXCED_RANGE`, command-line buffer overflow) to the canonical `\"gh CLI not found on PATH\"` reason. Per the `## Rule Authority [AXIOM]` block in `main.md` the deterministic tier (script + tests) is the canonical encoding; no skill prose change is required because `skills/deft-directive-release/SKILL.md` already documents the gh release create step at the abstract level.",
     "created": "2026-04-29T16:45:00Z",
-    "updated": "2026-04-29T16:45:00Z"
+    "updated": "2026-04-29T18:06:43Z"
   },
   "plan": {
     "id": "release-notes-file-windows-cmdline",
     "title": "release.py uses --notes-file for gh release create; fixes Windows ERROR_FILENAME_EXCED_RANGE blocking v0.21.0 (#731)",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "#731",
     "narratives": {
       "Problem": "On Windows hosts (any release tooling that runs through `task release` or `task release:e2e`), `scripts/release.py::create_github_release` invokes `gh release create v<version> --notes \"<promoted CHANGELOG section>\"` with the entire release notes inlined as a command-line argument. Once the promoted `[<version>]` section grows past the OS command-line buffer (~32 KB on Windows), `subprocess.run` raises `FileNotFoundError(2, 'The filename or extension is too long', None, 206, None)` because Python wraps Windows error code 206 (`ERROR_FILENAME_EXCED_RANGE`) as `FileNotFoundError`. The existing exception handler unconditionally maps any `FileNotFoundError` to the canonical `\"gh CLI not found on PATH\"` reason -- so the operator sees a completely misleading diagnostic that points at the #722 PATHEXT shim instead of the cmd-line length root cause. The defect blocks the v0.21.0 production cut because v0.21.0's promoted `[Unreleased] -> [0.21.0]` section is many KB (9+ feature/fix entries with verbose bodies). It also blocks every Windows consumer running the release SKILL on a sufficiently-large CHANGELOG. Cross-platform: the same defect would bite Linux/macOS once a release notes section grows past `ARG_MAX` (typically 128 KB-2 MB).",

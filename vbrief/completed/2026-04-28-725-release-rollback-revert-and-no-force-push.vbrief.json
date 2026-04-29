@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Scope vBRIEF for #725: scripts/release_rollback.py uses an unsafe `git reset --hard HEAD~1` (unwinds whatever happens to be at HEAD when commits land between release-prep and rollback) AND `git push --force-with-lease origin master` (rejected by GitHub branch protection rules disallowing force-push). Replace with a resolved-SHA forward `git revert` flow and a normal (non-force) push so rollback works end-to-end on a protected default branch.",
     "created": "2026-04-28T22:30:00Z",
-    "updated": "2026-04-28T22:30:00Z"
+    "updated": "2026-04-29T18:06:43Z"
   },
   "plan": {
     "id": "725-release-rollback-revert-and-no-force-push",
     "title": "Replace HEAD~1 reset + force-push with resolved-SHA forward-revert + normal push in scripts/release_rollback.py",
-    "status": "proposed",
+    "status": "completed",
     "planRef": "#725",
     "narratives": {
       "Problem": "scripts/release_rollback.py::git_reset_head_minus_one blindly resets to HEAD~1, assuming the release-prep commit is the latest commit. That assumption breaks the moment ANY commit lands between release-prep and the rollback invocation -- which is a normal operational scenario (fix a release defect via PR, then decide to rollback). Live demonstration: PR #722 merged on top of release-prep commit 6573335; `task release:rollback -- v0.21.0 --allow-data-loss` then reset master from 94d1aa5 -> 6573335, unwinding PR #722 instead of release-prep. Defect B coupled to A: scripts/release_rollback.py::git_force_push_base calls `git push --force-with-lease origin master`, which is rejected by GitHub branch-protection rules disallowing force-push (default config for protected master). The script aborts after gh release delete already succeeded, leaving master in a broken local-only state.",
