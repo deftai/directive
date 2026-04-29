@@ -24,8 +24,15 @@ end-to-end:
       (operates on the on-disk repo so we do not depend on network).
    b. ``git -C <tmpdir> remote set-url origin <temp-repo-url>`` -- point
       origin at the auto-created temp remote.
-   c. ``git -C <tmpdir> push --mirror`` -- populate the temp remote with
-      every ref from the local clone.
+   c. ``git -C <tmpdir> push origin refs/heads/*:refs/heads/*
+      refs/tags/*:refs/tags/*`` -- populate the temp remote with every
+      branch and tag using explicit refspecs. We deliberately avoid
+      ``git push --mirror`` here because ``--mirror`` also pushes
+      ``refs/remotes/*`` (the local clone's remote-tracking refs);
+      GitHub's receive-pack rejects writes to that namespace and the
+      whole rehearsal would fail at the push step. Explicit refspecs
+      cover the two namespaces we actually care about (heads + tags)
+      without leaking remote-tracking refs.
    d. ``task release -- 0.0.1 --repo deftai/<slug> --skip-ci --skip-build``
       -- run the full 10-step pipeline against the temp repo. ``--skip-ci``
       and ``--skip-build`` (#720, see ``scripts/release.py``) keep the
@@ -85,6 +92,7 @@ import subprocess
 import sys
 import tempfile
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -255,7 +263,8 @@ def clone_repo_to_temp(
 
     Uses ``git clone <project_root> <target_dir>`` so the rehearsal does
     not depend on network access during the clone step (the temp remote
-    is populated via ``push --mirror`` afterwards).
+    is populated via the explicit-refspec push in ``push_mirror``
+    afterwards).
     """
     result = subprocess.run(
         ["git", "clone", str(project_root), str(target_dir)],
@@ -289,17 +298,35 @@ def set_origin_to_temp_repo(
 
 
 def push_mirror(clone_dir: Path) -> tuple[bool, str]:
-    """Populate the temp remote with every ref from the clone (#720).
+    """Populate the temp remote with branches and tags from the clone (#720).
 
-    ``--mirror`` pushes every ref (branches, tags, refs/notes, ...) so
-    the temp repo carries an exact replica of the local clone -- which
-    is what makes the subsequent ``task release`` invocation behave as
-    if it were running against the real repo.
+    Pushes every branch and every tag from the local clone to the
+    auto-created temp remote using two explicit refspecs:
+    ``refs/heads/*:refs/heads/*`` and ``refs/tags/*:refs/tags/*``.
+
+    The function name retains the historical ``push_mirror`` label so
+    callers and tests stay stable, but the implementation deliberately
+    avoids ``git push --mirror``. ``--mirror`` is documented to push
+    every ref under ``refs/`` -- including ``refs/remotes/*``, the
+    local clone's remote-tracking refs. GitHub's receive-pack rejects
+    writes to that namespace, so a real ``--mirror`` push from a
+    non-bare clone (which is what we have here -- ``git clone
+    <project_root> <clone_dir>`` produces a normal working clone with
+    a populated ``refs/remotes/origin/*``) would fail every real
+    ``task release:e2e`` run at this step. Explicit refspecs cover
+    the two namespaces the subsequent rehearsal cares about (branches
+    + tags) without leaking remote-tracking refs.
     """
-    result = release._run_git(clone_dir, "push", "--mirror")
+    result = release._run_git(
+        clone_dir,
+        "push",
+        "origin",
+        "refs/heads/*:refs/heads/*",
+        "refs/tags/*:refs/tags/*",
+    )
     if result.returncode != 0:
-        return False, f"git push --mirror failed: {result.stderr.strip()}"
-    return True, "pushed all refs to temp origin"
+        return False, f"git push (heads+tags refspecs) failed: {result.stderr.strip()}"
+    return True, "pushed heads + tags to temp origin"
 
 
 def dispatch_task_release(
@@ -465,7 +492,7 @@ def run_rehearsal(
     repo_full = f"{owner}/{slug}"
     with tempfile.TemporaryDirectory(prefix="deft-e2e-") as tmpdir:
         clone_dir = Path(tmpdir) / "clone"
-        steps: list[tuple[str, callable]] = [
+        steps: list[tuple[str, Callable[[], tuple[bool, str]]]] = [
             ("clone", lambda: clone_repo_to_temp(project_root, clone_dir)),
             ("set-origin", lambda: set_origin_to_temp_repo(clone_dir, owner, slug)),
             ("push-mirror", lambda: push_mirror(clone_dir)),
@@ -484,7 +511,7 @@ def run_rehearsal(
                 return False, f"{label}: {reason}"
     return True, (
         f"pipeline-mirror rehearsal succeeded against {repo_full} "
-        f"(7 steps; clone -> push --mirror -> task release -> verify -> rollback)"
+        f"(7 steps; clone -> push heads+tags -> task release -> verify -> rollback)"
     )
 
 
@@ -513,7 +540,7 @@ def run_e2e(config: E2EConfig) -> int:
             "Rehearsal",
             (
                 "DRYRUN (would run pipeline-mirror rehearsal: clone -> "
-                "push --mirror -> task release -> verify draft + tag -> "
+                "push heads+tags -> task release -> verify draft + tag -> "
                 "task release:rollback against temp repo)"
             ),
         )

@@ -411,9 +411,14 @@ def resolve_release_prep_sha(
         "1",
     )
     if grep.returncode == 0:
-        sha = (grep.stdout or "").strip().splitlines()[0] if grep.stdout.strip() else ""
-        if sha:
-            return sha, ""
+        # Single strip + splitlines; the pre-#720 form ran .strip() twice
+        # with diverging condition vs. value expressions which Greptile
+        # flagged as confusing on PR #728.
+        lines = (grep.stdout or "").strip().splitlines()
+        if lines:
+            sha = lines[0]
+            if sha:
+                return sha, ""
 
     return "", (
         f"could not resolve release-prep SHA for v{version} "

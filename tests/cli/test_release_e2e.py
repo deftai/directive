@@ -6,7 +6,7 @@ Coverage:
 - #720 rehearsal step helpers (each isolated for independent testing):
   - clone_repo_to_temp: subprocess.run argv + success / failure paths
   - set_origin_to_temp_repo: argv contains 'remote set-url' + temp URL
-  - push_mirror: argv contains 'push --mirror'
+  - push_mirror: argv carries explicit heads+tags refspecs (no --mirror; #728)
   - dispatch_task_release: argv carries --skip-ci + --skip-build
   - verify_draft_release: success path + isDraft=false refusal +
     tagName mismatch refusal
@@ -248,7 +248,17 @@ class TestSetOriginToTempRepo:
 
 
 class TestPushMirror:
-    def test_happy_path_uses_mirror_flag(self, monkeypatch, tmp_path):
+    def test_happy_path_uses_explicit_refspecs(self, monkeypatch, tmp_path):
+        """#728 Greptile P1: push_mirror MUST use explicit heads+tags refspecs,
+        not ``git push --mirror``.
+
+        ``--mirror`` from a non-bare clone pushes ``refs/remotes/*`` to
+        the remote alongside real branches/tags. GitHub's receive-pack
+        rejects writes to that namespace, which would fail every real
+        ``task release:e2e`` invocation. Explicit refspecs cover the
+        two namespaces the rehearsal cares about (heads + tags) without
+        leaking remote-tracking refs.
+        """
         captured = {}
 
         def fake_run_git(project_root, *args, check=False):
@@ -256,9 +266,18 @@ class TestPushMirror:
             return SimpleNamespace(returncode=0, stdout="", stderr="")
 
         monkeypatch.setattr(release_e2e.release, "_run_git", fake_run_git)
-        ok, _ = release_e2e.push_mirror(tmp_path)
+        ok, reason = release_e2e.push_mirror(tmp_path)
         assert ok is True
-        assert captured["args"] == ("push", "--mirror")
+        # Greptile P1 acceptance: argv MUST be the explicit-refspec form.
+        assert captured["args"] == (
+            "push",
+            "origin",
+            "refs/heads/*:refs/heads/*",
+            "refs/tags/*:refs/tags/*",
+        )
+        # The argv MUST NOT carry --mirror under any reordering.
+        assert "--mirror" not in captured["args"]
+        assert "heads + tags" in reason
 
     def test_failure_surfaces_stderr(self, monkeypatch, tmp_path):
         def fake_run_git(project_root, *args, check=False):
@@ -270,6 +289,8 @@ class TestPushMirror:
         ok, reason = release_e2e.push_mirror(tmp_path)
         assert ok is False
         assert "permission denied" in reason
+        # Diagnostic mentions the new push shape.
+        assert "heads+tags" in reason or "refspec" in reason.lower()
 
 
 class TestDispatchTaskRelease:
