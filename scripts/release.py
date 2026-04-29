@@ -821,6 +821,12 @@ def create_github_release(
         # Windows holds an exclusive lock on a NamedTemporaryFile while
         # it is open, which would prevent gh from reading the file.
         # Cleanup happens in the finally block below.
+        #
+        # Greptile P2 (#732 review): assign ``notes_file`` BEFORE the
+        # write so the outer ``finally`` cleanup can still find the
+        # path if ``fh.write(notes)`` raises (e.g. disk-full OSError).
+        # The file already exists on disk at this point (delete=False),
+        # so leaving ``notes_file = None`` would orphan the temp file.
         with tempfile.NamedTemporaryFile(
             mode="w",
             encoding="utf-8",
@@ -828,8 +834,8 @@ def create_github_release(
             suffix=".md",
             delete=False,
         ) as fh:
-            fh.write(notes)
             notes_file = Path(fh.name)
+            fh.write(notes)
         cmd.extend(["--notes-file", str(notes_file)])
     else:
         cmd.append("--generate-notes")

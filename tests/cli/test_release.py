@@ -1207,19 +1207,38 @@ class TestCreateGithubReleaseNotesFile731:
     def test_winerror_206_distinct_diagnostic(self, monkeypatch, tmp_path):
         """winerror=206 MUST emit a cmdline-exceeded diagnostic.
 
-        FileNotFoundError(2, msg, None, 206, None) MUST surface the
-        distinct cmdline-too-long reason citing #731, NOT the canonical
+        FileNotFoundError with winerror=206 MUST surface the distinct
+        cmdline-too-long reason citing #731, NOT the canonical
         gh-not-found message which would mis-point at #722.
+
+        Cross-platform note: Python's ``OSError`` constructor ignores
+        the ``winerror`` argument on non-Windows builds (the
+        ``winerror`` attribute does not exist on Linux/macOS OSError
+        instances built via the 5-arg constructor). To exercise the
+        production handler's ``getattr(exc, "winerror", None) == 206``
+        check uniformly across platforms, we use a subclass that
+        carries ``winerror`` as a class attribute -- which
+        ``getattr`` resolves identically on every platform.
         """
         self._patch_which(monkeypatch)
 
+        class _Win206Error(FileNotFoundError):
+            """Cross-platform stand-in for the Windows-only error shape.
+
+            On Windows, ``CreateProcess`` returning
+            ``ERROR_FILENAME_EXCED_RANGE`` (206) gets wrapped by Python
+            as ``FileNotFoundError(2, 'The filename or extension is
+            too long', None, 206, None)`` with ``exc.winerror == 206``.
+            On Linux/macOS, the constructor ignores the winerror arg.
+            Defining ``winerror`` as a class attribute makes
+            ``getattr(exc, "winerror", None)`` resolve to 206 on every
+            platform without depending on the OS-specific constructor
+            semantics.
+            """
+            winerror = 206
+
         def fake_run(cmd, **kwargs):
-            # Construct the exact exception shape Python emits when
-            # CreateProcess returns ERROR_FILENAME_EXCED_RANGE on Windows:
-            # FileNotFoundError(2, 'The filename or extension is too long', None, 206, None).
-            raise FileNotFoundError(
-                2, "The filename or extension is too long", None, 206, None
-            )
+            raise _Win206Error(2, "The filename or extension is too long")
 
         monkeypatch.setattr(subprocess, "run", fake_run)
         ok, reason = release.create_github_release(
