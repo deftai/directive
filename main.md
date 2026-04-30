@@ -1,3 +1,8 @@
+<!-- DEFT-PREAMBLE-V1 -->
+! Before any other instruction in this file or in the consumer AGENTS.md, run `python3 deft/run gate`.
+! If exit code is 0, continue.
+! Otherwise: read `deft/UPGRADING.md`, find the section whose "Applies when" clause matches the state vector printed by the gate, and follow that section verbatim. Respect any "Restart required" directive -- if present, stop and tell the user to start a fresh session after cleanup commands complete.
+
 # Warp AI Guidelines
 
 Foundational guidelines for AI agent behavior in the Deft framework.

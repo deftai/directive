@@ -10,6 +10,17 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## From any pre-v0.20 version → v0.20.0
 
+- **Applies when:** `deft/run gate` reports `precutover=SPECIFICATION.md,PROJECT.md` (or any subset thereof) AND/OR `agents-md=missing`. The presence of legacy `SPECIFICATION.md` / `PROJECT.md` without the `<!-- deft:deprecated-redirect -->` sentinel is the canonical pre-cutover signal.
+- **Safe to auto-run:** No -- `task migrate:vbrief` rewrites `SPECIFICATION.md` and `PROJECT.md` into deprecation-redirect stubs and creates lifecycle folders; the operator must review the dry-run output and acknowledge the rewrite. `--dry-run` is recommended on any non-trivial project before the live run.
+- **Restart required:** Yes -- the agent's current session still holds stale rules from the previous `AGENTS.md`. After cleanup commands complete, stop the session and start a fresh one so the rewritten `AGENTS.md` and v0.20 skills are loaded from a clean context.
+- **Commands:**
+  - `task migrate:vbrief --dry-run` (preview)
+  - `task migrate:vbrief` (apply)
+  - `deft/run upgrade` (writes `vbrief/.deft-version` AND now refreshes the AGENTS.md managed section in one step per #768)
+  - `deft/run agents:refresh` (idempotent; runs implicitly via `deft/run upgrade` -- only invoke directly if you skipped that step)
+  - `task roadmap:render` / `task project:render` / `task prd:render -- --force` (regenerate exports)
+  - `task check` (verify)
+
 **What changed:** Deft moved from a flat document model (`SPECIFICATION.md`, `PROJECT.md`, `ROADMAP.md` as authoritative) to a **vBRIEF-centric model** with lifecycle folders. All skills were renamed from `deft-*` to `deft-directive-*`.
 
 ### One-paragraph summary

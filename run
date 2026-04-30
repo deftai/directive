@@ -721,6 +721,12 @@ _UPGRADE_GATE_SKIP_COMMANDS = frozenset({
     "help", "--help", "-h", "-help",
     "version", "--version", "-v",
     "upgrade",  # the upgrade command itself must run so users can resolve the gate
+    # #768: cmd_gate IS the upgrade gate -- if the agent invokes it from the
+    # AGENTS.md preamble, it must not recursively re-trigger the legacy CLI
+    # gate prompt. cmd_agents_refresh likewise must run unconditionally so the
+    # universal preamble's recovery path can call it.
+    "gate",
+    "agents:refresh",
 })
 
 
@@ -845,12 +851,416 @@ def _check_upgrade_gate(command: str) -> bool:
     return False
 
 
+# --- Universal upgrade gate (#768) -----------------------------------------
+#
+# `cmd_gate` is a read-only state-vector probe that any AGENTS.md / SKILL.md
+# preamble (`<!-- DEFT-PREAMBLE-V1 -->`) can call before doing anything else.
+# Output is one line on stdout in two shapes:
+#
+#   OK v<current>
+#   NEEDS-UPGRADE recorded=<recorded|unknown> current=<current> precutover=<csv|empty> agents-md=<current|stale|missing|absent>
+#
+# `--json` emits the same axes as a single JSON object on stdout. Exit code is
+# 0 for OK and 1 for NEEDS-UPGRADE. The probe never writes any markers, never
+# triggers any migration, and never commits anything: the agent reads the
+# state vector, then reads `deft/UPGRADING.md` for the matching section.
+#
+# `cmd_agents_refresh` is the Python reference implementation of the
+# AGENTS.md contract surfaced by `templates/agents-entry.md`. It handles four
+# states (`current`, `stale`, `missing`, `absent`) and exposes `--check` and
+# `--dry-run` so the gate (and tests) can interrogate it without writing.
+#
+# Both functions are intentionally side-effect-free apart from `print()` so
+# the test harness can capture stdout via the `run_command` fixture.
+
+_AGENTS_MANAGED_OPEN = "<!-- deft:managed-section v1 -->"
+_AGENTS_MANAGED_CLOSE = "<!-- /deft:managed-section -->"
+
+
+def _agents_template_path() -> Path:
+    """Return the absolute path to the canonical AGENTS.md template."""
+    return get_script_dir() / "templates" / "agents-entry.md"
+
+
+def _read_agents_template() -> Optional[str]:
+    """Return the AGENTS.md template text, or None when not readable.
+
+    The Go installer embeds the same file via `//go:embed` in
+    `templates/embed.go`; the Python rail reads it from disk at runtime so
+    `cmd_agents_refresh` works against the live framework checkout.
+    """
+    candidate = _agents_template_path()
+    if not candidate.is_file():
+        return None
+    try:
+        return candidate.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+
+def _render_managed_section(template_text: str) -> Optional[str]:
+    """Extract the `<!-- deft:managed-section v1 -->` block from the template.
+
+    Returns the byte sequence (newlines normalised to ``\n``) bracketed by
+    the open/close markers, INCLUSIVE. Returns None when either marker is
+    missing -- the contract test asserts the template carries both.
+
+    Placeholder substitution is intentionally a no-op in the v1 reference
+    implementation: the documented tokens (`{{UPSTREAM_SHA}}`, etc.) are
+    inherited from the webinstaller pin-marker contract and rendered there.
+    Leaving them as literal `{{TOKEN}}` text keeps `--check` byte-stable
+    when the framework is checked out without git metadata, and is the
+    documented behaviour in `templates/agents-entry.placeholders.md`.
+    """
+    normalised = template_text.replace("\r\n", "\n")
+    open_idx = normalised.find(_AGENTS_MANAGED_OPEN)
+    close_idx = normalised.find(_AGENTS_MANAGED_CLOSE)
+    if open_idx < 0 or close_idx < 0 or close_idx <= open_idx:
+        return None
+    end = close_idx + len(_AGENTS_MANAGED_CLOSE)
+    return normalised[open_idx:end]
+
+
+def _extract_managed_section(text: str) -> Optional[str]:
+    """Pull the managed-section block out of the consumer's AGENTS.md text.
+
+    Returns the bracketed block (normalised to LF) or None if either
+    marker is absent.
+    """
+    normalised = text.replace("\r\n", "\n")
+    open_idx = normalised.find(_AGENTS_MANAGED_OPEN)
+    close_idx = normalised.find(_AGENTS_MANAGED_CLOSE)
+    if open_idx < 0 or close_idx < 0 or close_idx <= open_idx:
+        return None
+    end = close_idx + len(_AGENTS_MANAGED_CLOSE)
+    return normalised[open_idx:end]
+
+
+def _classify_agents_md(project_root: Path) -> str:
+    """Return one of: `current`, `stale`, `missing`, `absent`.
+
+    - ``absent``  -> ./AGENTS.md does not exist
+    - ``missing`` -> ./AGENTS.md exists but has no managed-section markers
+    - ``stale``   -> markers present but bracketed bytes != current template render
+    - ``current`` -> bracketed bytes byte-identical to current template render
+
+    A missing or unreadable template falls through to ``current`` so the
+    gate never fires solely because the framework checkout itself is
+    incomplete.
+    """
+    agents_md = project_root / "AGENTS.md"
+    if not agents_md.is_file():
+        return "absent"
+    try:
+        existing = agents_md.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return "absent"
+    extracted = _extract_managed_section(existing)
+    if extracted is None:
+        return "missing"
+    template_text = _read_agents_template()
+    if template_text is None:
+        # Framework checkout incomplete -- err on the side of "current" so
+        # the universal gate doesn't refuse to start.
+        return "current"
+    rendered = _render_managed_section(template_text)
+    if rendered is None:
+        return "current"
+    return "current" if extracted == rendered else "stale"
+
+
+def _build_gate_state(project_root: Path) -> dict:
+    """Compute the full state vector consumed by both cmd_gate and the JSON
+    surface. Pure -- no I/O outside ``project_root`` and the framework
+    template. Reuses ``_read_version_marker`` (#410), ``_detect_pre_cutover_legacy``
+    (#410), ``_running_inside_deft_repo`` (#410), and the dynamic
+    ``VERSION`` (#741) so the gate inherits every existing detection rule.
+    """
+    recorded = _read_version_marker(project_root)
+    legacy = _detect_pre_cutover_legacy(project_root)
+    agents_md = _classify_agents_md(project_root)
+    inside_deft = _running_inside_deft_repo(project_root)
+    return {
+        "current": VERSION,
+        "recorded": recorded,
+        "precutover": list(legacy),
+        "agents-md": agents_md,
+        "inside_deft_repo": inside_deft,
+    }
+
+
+def _gate_state_is_ok(state: dict) -> bool:
+    """Return True iff the state vector indicates no upgrade work needed."""
+    if state.get("inside_deft_repo"):
+        # Maintainer working inside the deft repo itself -- the gate stays
+        # green so framework dev is never blocked by the consumer-facing
+        # upgrade flow.
+        return True
+    recorded = state.get("recorded")
+    current = state.get("current")
+    precutover = state.get("precutover") or []
+    agents_md = state.get("agents-md")
+    if precutover:
+        return False
+    if recorded is not None and recorded != current:
+        return False
+    if agents_md == "stale":
+        return False
+    if agents_md == "missing":
+        return False
+    # `agents-md=absent` on a project with no marker and no legacy artifacts
+    # is indistinguishable from "not a deft project"; we mirror
+    # `_check_upgrade_gate`'s heuristic and stay green in that case.
+    if recorded is None and not precutover and agents_md == "absent":
+        return True
+    return True
+
+
+def _format_gate_line(state: dict) -> str:
+    """Render the one-line text surface consumed by the AGENTS.md preamble."""
+    if _gate_state_is_ok(state):
+        return f"OK v{state['current']}"
+    recorded = state.get("recorded") or "unknown"
+    precutover = ",".join(state.get("precutover") or [])
+    agents_md = state.get("agents-md") or "absent"
+    return (
+        "NEEDS-UPGRADE "
+        f"recorded={recorded} "
+        f"current={state['current']} "
+        f"precutover={precutover} "
+        f"agents-md={agents_md}"
+    )
+
+
+def cmd_gate(args: List[str]):
+    """Read-only universal upgrade gate (#768).
+
+    Emits a single line (or a JSON object with ``--json``) describing the
+    consumer project's deft state vector. Exit code is 0 when no upgrade
+    work is needed, 1 otherwise. NEVER writes the marker, NEVER touches
+    AGENTS.md, NEVER runs migration -- it is a probe.
+
+    Output shapes::
+
+        OK v<current>
+        NEEDS-UPGRADE recorded=<recorded|unknown> current=<current> \
+            precutover=<csv|empty> agents-md=<current|stale|missing|absent>
+
+    The agent-readable preamble in `main.md`, `SKILL.md`, and the legacy
+    redirect stubs (`skills/deft-setup/SKILL.md`, `skills/deft-build/SKILL.md`)
+    runs this command before any other instruction; on a non-zero exit the
+    agent reads `deft/UPGRADING.md` and follows the section whose
+    "Applies when" clause matches the printed state vector.
+    """
+    json_mode = "--json" in args
+    project_root = Path.cwd()
+    state = _build_gate_state(project_root)
+    if json_mode:
+        payload = {
+            "status": "ok" if _gate_state_is_ok(state) else "needs-upgrade",
+            "current": state["current"],
+            "recorded": state["recorded"],
+            "precutover": state["precutover"],
+            "agents-md": state["agents-md"],
+            "inside_deft_repo": state["inside_deft_repo"],
+        }
+        print(json.dumps(payload, sort_keys=True))
+    else:
+        print(_format_gate_line(state))
+    return 0 if _gate_state_is_ok(state) else 1
+
+
+def _wrap_legacy_in_markers(existing: str, rendered: str) -> str:
+    """Produce the once-per-project legacy-to-marker migration body.
+
+    The consumer's existing pre-marker AGENTS.md content (often a hand-rolled
+    deft entry from a v0.19 install) is preserved verbatim ABOVE the new
+    managed section -- so user notes outside the deft block survive the
+    migration. The rendered managed-section block is appended (with a
+    blank-line separator) so subsequent ``current``/`stale` refreshes can
+    operate on the bracketed region in place.
+    """
+    body = existing.replace("\r\n", "\n").rstrip("\n")
+    if body:
+        return body + "\n\n" + rendered + "\n"
+    return rendered + "\n"
+
+
+def _agents_refresh_plan(project_root: Path) -> dict:
+    """Compute the plan ``cmd_agents_refresh`` would apply (no I/O)."""
+    template_text = _read_agents_template()
+    if template_text is None:
+        return {
+            "state": "template-missing",
+            "path": str(project_root / "AGENTS.md"),
+            "rendered": None,
+            "existing": None,
+            "new_content": None,
+        }
+    rendered = _render_managed_section(template_text)
+    if rendered is None:
+        return {
+            "state": "template-malformed",
+            "path": str(project_root / "AGENTS.md"),
+            "rendered": None,
+            "existing": None,
+            "new_content": None,
+        }
+    agents_md = project_root / "AGENTS.md"
+    if not agents_md.is_file():
+        return {
+            "state": "absent",
+            "path": str(agents_md),
+            "rendered": rendered,
+            "existing": None,
+            "new_content": rendered + "\n",
+        }
+    try:
+        existing = agents_md.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return {
+            "state": "unreadable",
+            "path": str(agents_md),
+            "rendered": rendered,
+            "existing": None,
+            "new_content": None,
+            "error": str(exc),
+        }
+    extracted = _extract_managed_section(existing)
+    normalised = existing.replace("\r\n", "\n")
+    if extracted is None:
+        # Legacy file with no markers -- one-time migration: wrap the
+        # existing content + render the managed-section beneath it.
+        new_content = _wrap_legacy_in_markers(normalised, rendered)
+        return {
+            "state": "missing",
+            "path": str(agents_md),
+            "rendered": rendered,
+            "existing": existing,
+            "new_content": new_content,
+        }
+    if extracted == rendered:
+        return {
+            "state": "current",
+            "path": str(agents_md),
+            "rendered": rendered,
+            "existing": existing,
+            "new_content": existing,
+        }
+    # Stale: byte-replace the bracketed block in place.
+    new_content = normalised.replace(extracted, rendered, 1)
+    return {
+        "state": "stale",
+        "path": str(agents_md),
+        "rendered": rendered,
+        "existing": existing,
+        "new_content": new_content,
+    }
+
+
+def cmd_agents_refresh(args: List[str]):
+    """Python reference implementation of the AGENTS.md contract (#768).
+
+    Modes:
+        ``--check``   -> exit 0 iff the consumer's managed section is
+                        byte-identical to the rendered template; non-zero
+                        otherwise. Never writes.
+        ``--dry-run`` -> print the planned change; never writes.
+        (default)     -> apply the planned change idempotently, handling
+                        the four states (`current`/`stale`/`missing`/`absent`).
+
+    The bracketed region is the SOLE byte sequence the framework owns.
+    Content above or below the markers is preserved verbatim, so consumer
+    notes survive every refresh.
+    """
+    check = "--check" in args
+    dry_run = "--dry-run" in args
+    project_root = Path.cwd()
+    plan = _agents_refresh_plan(project_root)
+    state = plan["state"]
+
+    if state == "template-missing":
+        if check:
+            return 1
+        error(
+            "AGENTS.md template not found at "
+            f"{_agents_template_path()} -- skipping refresh."
+        )
+        return 1
+    if state == "template-malformed":
+        if check:
+            return 1
+        error(
+            "AGENTS.md template is missing the deft:managed-section markers "
+            "-- skipping refresh."
+        )
+        return 1
+    if state == "unreadable":
+        if check:
+            return 1
+        error(f"AGENTS.md exists but is unreadable: {plan.get('error', '')}")
+        return 1
+
+    if check:
+        # `--check` only succeeds when the file already exists with the
+        # exact rendered managed-section bytes. `absent` and `missing`
+        # both need a write, so they fail the check.
+        return 0 if state == "current" else 1
+
+    if dry_run:
+        print(f"AGENTS.md state: {state}")
+        print(f"Path: {plan['path']}")
+        if state == "current":
+            print("Plan: no-op (managed section already current)")
+            return 0
+        if state == "absent":
+            print("Plan: create AGENTS.md from rendered template")
+        elif state == "missing":
+            print(
+                "Plan: wrap existing content above the new managed section "
+                "(one-time legacy migration)"
+            )
+        elif state == "stale":
+            print("Plan: byte-replace managed section with rendered template")
+        return 0
+
+    if state == "current":
+        # Idempotent no-op; align with cmd_upgrade's quiet success path.
+        info("AGENTS.md managed section already current.")
+        return 0
+
+    new_content = plan["new_content"]
+    target = Path(plan["path"])
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(new_content, encoding="utf-8")
+    except OSError as exc:
+        error(f"Could not write AGENTS.md: {exc}")
+        return 1
+
+    if state == "absent":
+        success(f"Created AGENTS.md from template at {target}.")
+    elif state == "missing":
+        success(
+            "Wrapped existing AGENTS.md content above the new managed "
+            "section (one-time legacy migration)."
+        )
+    elif state == "stale":
+        success("Refreshed AGENTS.md managed section to current template.")
+    return 0
+
+
 def cmd_upgrade(args: List[str]):
     """Acknowledge the framework upgrade and write the `.deft-version` marker.
 
     This command only records the framework version so the upgrade gate stops
     warning.  It delegates the heavy lifting (SPECIFICATION.md / PROJECT.md
     migration, lifecycle folder creation) to `task migrate:vbrief`.
+
+    #768: also calls ``cmd_agents_refresh`` so the AGENTS.md managed
+    section is brought to the current rendered template alongside the
+    marker write -- closes the stale-AGENTS.md adoption-blocker without
+    requiring a separate manual step.
     """
     print_header(f"Deft CLI v{VERSION} - Upgrade")
     print()
@@ -858,6 +1268,9 @@ def cmd_upgrade(args: List[str]):
     recorded = _read_version_marker(project_root)
     if recorded == VERSION:
         success(f"Project already at {VERSION}. Nothing to do.")
+        # Still refresh AGENTS.md in case the consumer's marker is current
+        # but the template moved -- byte-stable when already at the latest.
+        cmd_agents_refresh([])
         return 0
 
     legacy = _detect_pre_cutover_legacy(project_root)
@@ -882,6 +1295,8 @@ def cmd_upgrade(args: List[str]):
         "If legacy SPECIFICATION.md or PROJECT.md content remains, run "
         "`task migrate:vbrief` to complete the upgrade."
     )
+    # #768: bring AGENTS.md to the current template alongside the marker.
+    cmd_agents_refresh([])
     return 0
 
 
@@ -3609,6 +4024,9 @@ def main():
         'doctor': cmd_doctor,
         'update': cmd_update,
         'upgrade': cmd_upgrade,
+        # #768: universal upgrade gate + AGENTS.md contract surface.
+        'gate': cmd_gate,
+        'agents:refresh': cmd_agents_refresh,
         'help': lambda _: usage(),
         '--help': lambda _: usage(),
         'version': lambda _: print(f"Deft CLI v{VERSION}"),
