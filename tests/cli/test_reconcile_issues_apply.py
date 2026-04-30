@@ -404,3 +404,132 @@ class TestConflictHandling:
         assert any("target already exists" in f for f in failures), (
             f"expected conflict failure; got: {failures!r}"
         )
+
+
+# ---------------------------------------------------------------------------
+# #756 -- dedup vBRIEFs that reference multiple closed issues
+# ---------------------------------------------------------------------------
+
+
+class TestApplyDedupesMultiReferenceVbrief:
+    def test_apply_dedupes_multi_reference_vbrief(self, vbrief_dir):
+        """A single vBRIEF referencing N closed issues moves exactly once.
+
+        Synthetic report: one vBRIEF in three Section (c) entries (one
+        per closed issue it references). Without dedup the first move
+        succeeds and the next two fail with the misleading
+        ``vBRIEF file missing`` diagnostic, leaving ``failures != []``
+        and the apply-mode CLI exiting 1 even though the lifecycle move
+        itself was correct (#756).
+
+        Acceptance:
+          * ``moved == 1``
+          * ``failures == []``
+          * the file lands in ``completed/`` exactly once.
+        """
+        # Stage a single vBRIEF in proposed/.
+        src = _write_vbrief(
+            vbrief_dir,
+            "proposed",
+            "2026-04-30-multi-ref.vbrief.json",
+            issue_number=900,
+        )
+        rel_path = "proposed/2026-04-30-multi-ref.vbrief.json"
+
+        # Hand-build a Section (c) report that lists the same vBRIEF in
+        # three entries (one per closed issue). This mirrors the shape
+        # ``reconcile()`` produces when a single vBRIEF references three
+        # closed issues -- each ``no_open_issue`` entry carries the same
+        # ``vbrief_files`` path.
+        report = {
+            "no_open_issue": [
+                {
+                    "issue_number": 900,
+                    "vbrief_files": [rel_path],
+                    "note": "Issue is closed",
+                },
+                {
+                    "issue_number": 901,
+                    "vbrief_files": [rel_path],
+                    "note": "Issue is closed",
+                },
+                {
+                    "issue_number": 902,
+                    "vbrief_files": [rel_path],
+                    "note": "Issue is closed",
+                },
+            ],
+            "linked": [],
+            "summary": {
+                "linked_count": 0,
+                "vbriefs_no_open_issue_count": 3,
+            },
+        }
+
+        moved, skipped, failures = reconcile_issues.apply_lifecycle_fixes(
+            vbrief_dir, report
+        )
+
+        # Core assertions: dedup means exactly one move, zero spurious
+        # failures, no stranded inconsistent state.
+        assert moved == 1, (
+            "vBRIEF referencing N closed issues MUST move exactly once "
+            f"(got moved={moved})"
+        )
+        assert failures == [], (
+            "a vBRIEF referencing N closed issues MUST NOT generate "
+            f"spurious file-missing failures (got: {failures!r})"
+        )
+        # Source no longer in proposed/, lives in completed/ exactly once.
+        assert not src.is_file(), (
+            "source file MUST have been moved out of proposed/"
+        )
+        dst = vbrief_dir / "completed" / src.name
+        assert dst.is_file(), "file MUST land in completed/"
+        # Sanity: only one vBRIEF file with that name across all
+        # lifecycle folders (no orphan duplicate left in the source
+        # folder by a half-applied move).
+        matches = list(vbrief_dir.glob(f"*/{src.name}"))
+        assert len(matches) == 1, (
+            f"expected exactly one copy of {src.name} after dedup; "
+            f"got {len(matches)}: {matches!r}"
+        )
+        # ``skipped`` is incremented per pre-existing-completed entry; on
+        # a fresh proposed-folder vBRIEF it stays at 0.
+        assert skipped == 0
+
+    def test_apply_dedupes_includes_completed_skip_path(self, vbrief_dir):
+        """Dedup also collapses repeat already-in-completed/ entries.
+
+        Defence-in-depth: a multi-reference vBRIEF that already lives in
+        ``completed/`` should increment ``skipped`` exactly once, not
+        once per closed-issue entry. Catches the inverse of the primary
+        bug where the skipped counter would otherwise inflate.
+        """
+        # Pre-stage a vBRIEF in completed/.
+        _write_vbrief(
+            vbrief_dir,
+            "completed",
+            "2026-04-30-already-multi.vbrief.json",
+            issue_number=950,
+            status="completed",
+        )
+        rel_path = "completed/2026-04-30-already-multi.vbrief.json"
+        report = {
+            "no_open_issue": [
+                {"issue_number": 950, "vbrief_files": [rel_path], "note": ""},
+                {"issue_number": 951, "vbrief_files": [rel_path], "note": ""},
+            ],
+            "linked": [],
+            "summary": {"linked_count": 0, "vbriefs_no_open_issue_count": 2},
+        }
+        moved, skipped, failures = reconcile_issues.apply_lifecycle_fixes(
+            vbrief_dir, report
+        )
+        assert moved == 0
+        assert failures == []
+        assert skipped == 1, (
+            "a vBRIEF already in completed/ that surfaces N times in the "
+            "report MUST count as skipped exactly once after dedup "
+            f"(got skipped={skipped})"
+        )

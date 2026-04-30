@@ -98,15 +98,21 @@ def _validate_plan_item(
 # const "0.6"; this validator rejects every other version. Pre-existing
 # v0.5 vBRIEFs are automatically bumped to v0.6 during ``task
 # migrate:vbrief`` (#571); operators who see the error below should run
-# the migrator on the affected project.
+# the migrator on the affected project. The check below consults this
+# frozenset rather than an inline literal so the validator shares the
+# version-check pattern with ``scripts/vbrief_validate.py`` (#565,
+# Option B): future v0.7 introduction adds one entry here instead of
+# touching multiple inline string comparisons.
 VALID_VBRIEF_VERSIONS: frozenset[str] = frozenset({"0.6"})
 
 
 def _validate_schema(data: dict, path: str) -> list[str]:
     """Validate vBRIEF structural requirements (v0.6). Returns a list of errors.
 
-    Strictly requires ``vBRIEFInfo.version == "0.6"`` to match the canonical
-    v0.6 schema (#533). Any v0.5 vBRIEF must be migrated to v0.6.
+    Strictly requires ``vBRIEFInfo.version`` to be one of
+    ``VALID_VBRIEF_VERSIONS`` (currently ``{"0.6"}``) to match the
+    canonical v0.6 schema (#533). Any v0.5 vBRIEF must be migrated to
+    v0.6 via ``task migrate:vbrief``.
     """
     errors: list[str] = []
 
@@ -117,7 +123,7 @@ def _validate_schema(data: dict, path: str) -> list[str]:
         info = data["vBRIEFInfo"]
         if not isinstance(info, dict):
             errors.append("'vBRIEFInfo' must be an object")
-        elif info.get("version") != "0.6":
+        elif info.get("version") not in VALID_VBRIEF_VERSIONS:
             # #571: the previous wording pointed at a "migrator sweep"
             # that did not exist as a standalone command, leaving
             # operators with an unactionable error. The migrator now
@@ -125,6 +131,11 @@ def _validate_schema(data: dict, path: str) -> list[str]:
             # ``scripts/migrate_vbrief.py`` ``_ingest_spec_narratives``
             # path), so the actionable recovery command is just
             # ``task migrate:vbrief``.
+            #
+            # #565: the version comparison consults
+            # ``VALID_VBRIEF_VERSIONS`` rather than an inline ``"0.6"``
+            # literal so this validator matches the
+            # ``scripts/vbrief_validate.py`` pattern (Option B).
             errors.append(
                 f"'vBRIEFInfo.version' must be '0.6' (canonical v0.6 "
                 f"schema, #533), got {info.get('version')!r}. Run "
@@ -168,13 +179,16 @@ def _validate_schema(data: dict, path: str) -> list[str]:
                             continue
                         _validate_plan_item(item, "plan.items", errors)
 
-    # Detect legacy flat format
+    # Detect legacy flat format. Per #565, the migration target message
+    # advertises the canonical v0.6 envelope (the prior wording pointed
+    # at the retired v0.5 envelope after the strict v0.6 tightening in
+    # #533).
     legacy_keys = {"vbrief", "tasks", "overview", "architecture"}
     found_legacy = legacy_keys & set(data.keys())
     if found_legacy:
         errors.append(
             f"legacy flat-format keys found at top level: {sorted(found_legacy)}. "
-            "Migrate to vBRIEF v0.5 envelope (vBRIEFInfo + plan)"
+            "Migrate to vBRIEF v0.6 envelope (vBRIEFInfo + plan)"
         )
 
     return errors

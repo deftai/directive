@@ -193,3 +193,95 @@ def test_prd_render_footer(tmp_path: Path) -> None:
     content = output_path.read_text(encoding="utf-8")
     assert "auto-generated" in content.lower()
     assert "task prd:render" in content
+
+
+# ---------------------------------------------------------------------------
+# 8. #573 -- refuse-to-overwrite + --force recovery (regression)
+# ---------------------------------------------------------------------------
+#
+# Background: #539 added the refuse-to-overwrite safety check that exits
+# with code 2 when the target PRD.md lacks the auto-generated banner
+# (likely hand-authored). The error message advises
+# ``Re-run with --force to overwrite``. Issue #573 reported that
+# ``task prd:render -- --force`` silently no-op'd because go-task's
+# ``sources:`` / ``generates:`` cache layer short-circuited the task
+# before CLI_ARGS reached the script. #574 dropped sources/generates from
+# ``tasks/prd.yml``, restoring the recovery path. These tests pin the
+# end-to-end script-level behaviour so a future caching reintroduction
+# in ``tasks/prd.yml`` cannot silently regress the recovery contract.
+
+
+def test_prd_render_refuses_to_overwrite_without_force(tmp_path: Path) -> None:
+    """#539: refuse to overwrite a PRD.md that lacks the auto-generated banner.
+
+    Pre-stages a hand-authored PRD.md (no banner). Without ``--force`` the
+    script exits with code 2 and surfaces the canonical recovery hint.
+    """
+    spec_path = _write_spec(tmp_path, {"Overview": "Test"})
+    output_path = tmp_path / "PRD.md"
+    output_path.write_text(
+        "# Hand-authored PRD\n\nDo not clobber.\n", encoding="utf-8"
+    )
+
+    result = _run_prd_render(
+        "--spec", str(spec_path), "--output", str(output_path)
+    )
+    assert result.returncode == 2, (
+        f"expected exit 2 (refuse-to-overwrite); got {result.returncode}; "
+        f"stderr={result.stderr!r}"
+    )
+    assert "refusing to overwrite" in result.stderr.lower()
+    # Recovery hint MUST mention --force literally.
+    assert "--force" in result.stderr
+    # Hand-authored content MUST be preserved byte-for-byte.
+    preserved = output_path.read_text(encoding="utf-8")
+    assert "Hand-authored PRD" in preserved
+    assert "AUTO-GENERATED" not in preserved
+
+
+def test_prd_render_force_recovery_overwrites_prd(tmp_path: Path) -> None:
+    """#573: following the #539 recovery hint (``--force``) overwrites PRD.md.
+
+    Reproduces the original repro:
+      1. Stage a hand-authored PRD.md (no banner).
+      2. ``prd_render --spec ... --output ...`` -> exit 2 (refuse).
+      3. Follow the recovery hint LITERALLY: re-run with ``--force``.
+      4. Assert PRD.md is overwritten with a fresh auto-generated artifact.
+
+    The script-level ``--force`` flag is the canonical recovery surface;
+    when invoked directly (this test) or via the post-#574 Taskfile entry
+    (no caching) the rewrite must succeed. Pre-#574, ``task prd:render --
+    --force`` silently no-op'd at the go-task layer; that path is covered
+    by ``tests/content/test_taskfile_caching.py`` and the audit note in
+    the CHANGELOG entry for #573.
+    """
+    spec_path = _write_spec(tmp_path, {"Overview": "Replacement content"})
+    output_path = tmp_path / "PRD.md"
+    output_path.write_text(
+        "# Hand-authored PRD\n\nOriginal payload.\n", encoding="utf-8"
+    )
+
+    # Step 1: bare invocation refuses.
+    refused = _run_prd_render(
+        "--spec", str(spec_path), "--output", str(output_path)
+    )
+    assert refused.returncode == 2
+
+    # Step 2: follow the recovery hint literally with --force.
+    forced = _run_prd_render(
+        "--spec", str(spec_path), "--output", str(output_path), "--force"
+    )
+    assert forced.returncode == 0, (
+        "--force MUST overwrite a non-generated PRD per #573 recovery "
+        f"contract; got returncode={forced.returncode}; "
+        f"stderr={forced.stderr!r}"
+    )
+    # PRD.md is overwritten with the auto-generated banner + spec content.
+    overwritten = output_path.read_text(encoding="utf-8")
+    assert "AUTO-GENERATED" in overwritten, (
+        "after --force recovery PRD.md MUST carry the canonical "
+        "auto-generated banner (#572 / #573)"
+    )
+    assert "Replacement content" in overwritten
+    # Original hand-authored payload is gone (force overwrites).
+    assert "Original payload." not in overwritten

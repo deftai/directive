@@ -741,80 +741,104 @@ def apply_lifecycle_fixes(
 
     Returns ``(moved, skipped, failures)`` where ``failures`` is a list
     of human-readable failure descriptions (empty on the happy path).
+
+    #756: Section (c) entries are deduplicated by relative path BEFORE
+    the move loop runs. A single vBRIEF that references multiple closed
+    issues appears once per issue in the report; without dedup the
+    second-and-later iterations attempt to re-move the same file --
+    the first move succeeds, the rest fail with the spurious
+    ``vBRIEF file missing`` diagnostic and the function exits with
+    ``failures != []`` even though the lifecycle move itself was
+    correct. The pre-computed unique set preserves the surfacing order
+    of the report (each path is processed in first-seen order) so the
+    ``[N/M] vBRIEFs reconciled`` summary keeps stable output across
+    runs.
     """
     moved = 0
     skipped = 0
     failures: list[str] = []
     cwd = project_root if project_root is not None else vbrief_dir.parent
 
-    for entry in report.get("no_open_issue", []):
-        for rel_path in entry.get("vbrief_files", []):
-            try:
-                folder, filename = rel_path.split("/", 1)
-            except ValueError:
-                failures.append(
-                    f"unexpected vBRIEF path shape (no folder): {rel_path!r}"
-                )
-                continue
-            if folder == "completed":
-                # Already terminal; no-op.
-                skipped += 1
-                continue
+    # #756: pre-compute the unique candidate set in first-seen order so
+    # a vBRIEF that references multiple closed issues lands in
+    # ``completed/`` exactly once. ``dict.fromkeys`` preserves insertion
+    # order while collapsing duplicates without requiring an auxiliary
+    # set + list pair.
+    unique_rel_paths: list[str] = list(
+        dict.fromkeys(
+            rel_path
+            for entry in report.get("no_open_issue", [])
+            for rel_path in entry.get("vbrief_files", [])
+        )
+    )
 
-            src = vbrief_dir / folder / filename
-            dst = vbrief_dir / "completed" / filename
-            if not src.is_file():
-                failures.append(f"vBRIEF file missing: {rel_path}")
-                continue
+    for rel_path in unique_rel_paths:
+        try:
+            folder, filename = rel_path.split("/", 1)
+        except ValueError:
+            failures.append(
+                f"unexpected vBRIEF path shape (no folder): {rel_path!r}"
+            )
+            continue
+        if folder == "completed":
+            # Already terminal; no-op.
+            skipped += 1
+            continue
 
-            try:
-                data = json.loads(src.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError) as exc:
-                failures.append(f"failed to parse {rel_path}: {exc}")
-                continue
+        src = vbrief_dir / folder / filename
+        dst = vbrief_dir / "completed" / filename
+        if not src.is_file():
+            failures.append(f"vBRIEF file missing: {rel_path}")
+            continue
 
-            # Greptile P1: check for a destination conflict BEFORE
-            # mutating the source file on disk. Previously the
-            # write-back happened before ``dst.exists()`` so a
-            # collision left the source vBRIEF in an inconsistent
-            # half-completed state (``plan.status = "completed"``
-            # stamped on disk but the file still in its original
-            # lifecycle folder). Now the conflict guard fires before
-            # any write, so the source file stays byte-identical when
-            # the move cannot proceed.
-            (vbrief_dir / "completed").mkdir(parents=True, exist_ok=True)
-            if dst.exists():
-                failures.append(
-                    f"target already exists in completed/: {filename}"
-                )
-                continue
+        try:
+            data = json.loads(src.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            failures.append(f"failed to parse {rel_path}: {exc}")
+            continue
 
-            # Stamp status + updated.
-            plan = data.setdefault("plan", {})
-            plan["status"] = "completed"
-            stamp = _utc_now_iso()
-            info = data.setdefault("vBRIEFInfo", {})
-            info["updated"] = stamp
-            # Mirror the migrator pattern: also stamp ``plan.updated`` so
-            # downstream tooling that prefers the plan-level field stays
-            # current. Pre-existing files without the key gain it.
-            plan["updated"] = stamp
+        # Greptile P1: check for a destination conflict BEFORE
+        # mutating the source file on disk. Previously the
+        # write-back happened before ``dst.exists()`` so a
+        # collision left the source vBRIEF in an inconsistent
+        # half-completed state (``plan.status = "completed"``
+        # stamped on disk but the file still in its original
+        # lifecycle folder). Now the conflict guard fires before
+        # any write, so the source file stays byte-identical when
+        # the move cannot proceed.
+        (vbrief_dir / "completed").mkdir(parents=True, exist_ok=True)
+        if dst.exists():
+            failures.append(
+                f"target already exists in completed/: {filename}"
+            )
+            continue
 
-            # Write back (UTF-8, no BOM, trailing newline; matches the
-            # canonical writer style elsewhere in the script).
-            try:
-                src.write_text(
-                    json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-                    encoding="utf-8",
-                )
-            except OSError as exc:
-                failures.append(f"failed to write {rel_path}: {exc}")
-                continue
+        # Stamp status + updated.
+        plan = data.setdefault("plan", {})
+        plan["status"] = "completed"
+        stamp = _utc_now_iso()
+        info = data.setdefault("vBRIEFInfo", {})
+        info["updated"] = stamp
+        # Mirror the migrator pattern: also stamp ``plan.updated`` so
+        # downstream tooling that prefers the plan-level field stays
+        # current. Pre-existing files without the key gain it.
+        plan["updated"] = stamp
 
-            if not _git_mv(src, dst, cwd=cwd):
-                failures.append(f"failed to move {rel_path} -> completed/")
-                continue
-            moved += 1
+        # Write back (UTF-8, no BOM, trailing newline; matches the
+        # canonical writer style elsewhere in the script).
+        try:
+            src.write_text(
+                json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            failures.append(f"failed to write {rel_path}: {exc}")
+            continue
+
+        if not _git_mv(src, dst, cwd=cwd):
+            failures.append(f"failed to move {rel_path} -> completed/")
+            continue
+        moved += 1
 
     return moved, skipped, failures
 
@@ -968,10 +992,16 @@ def main() -> int:
 
     # #734: apply mode -- move Section (c) vBRIEFs to completed/.
     if args.apply_lifecycle_fixes:
+        # #756: dedupe by rel_path before counting candidates so the
+        # ``[N/M]`` summary line is consistent with apply_lifecycle_fixes,
+        # which now processes each unique path exactly once.
         candidates = sum(
             1
-            for entry in report.get("no_open_issue", [])
-            for rel in entry.get("vbrief_files", [])
+            for rel in dict.fromkeys(
+                rel
+                for entry in report.get("no_open_issue", [])
+                for rel in entry.get("vbrief_files", [])
+            )
             if not rel.startswith("completed/")
         )
         moved, skipped, failures = apply_lifecycle_fixes(

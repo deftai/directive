@@ -458,6 +458,70 @@ def test_validate_legacy_flat_format(validate_mod, tmp_path) -> None:
     assert "legacy" in msg
 
 
+def test_validate_legacy_flat_format_advertises_v06_envelope(
+    validate_mod, tmp_path
+) -> None:
+    """#565: legacy-flat-format error MUST advertise the v0.6 envelope.
+
+    The v0.6 strict tightening (#533) retired the v0.5 envelope; the
+    error message previously pointed operators at "vBRIEF v0.5 envelope"
+    which has not been a valid migration target since the strict
+    tightening. This regression-guards the corrected wording so a future
+    refactor cannot revert it silently.
+    """
+    spec_file = tmp_path / "spec.json"
+    _write_json(spec_file, {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {"title": "T", "status": "approved", "items": []},
+        "tasks": [],
+    })
+    ok, msg = validate_mod.validate_spec(str(spec_file))
+    assert ok is False
+    # Positive: target envelope is v0.6.
+    assert "v0.6 envelope" in msg, (
+        f"expected migration-target wording 'v0.6 envelope'; got: {msg!r}"
+    )
+    # Negative: the prior stale wording must not survive.
+    assert "v0.5 envelope" not in msg, (
+        "legacy-flat-format error must not point at the retired v0.5 "
+        f"envelope after the v0.6 tightening (#565); got: {msg!r}"
+    )
+
+
+def test_validate_valid_vbrief_versions_constant(validate_mod) -> None:
+    """#565: spec_validate exposes VALID_VBRIEF_VERSIONS frozenset.
+
+    Mirrors the ``scripts/vbrief_validate.py`` pattern (Option B). The
+    version check consults this set rather than an inline ``"0.6"``
+    literal, so a future v0.7 introduction adds one entry here instead
+    of touching multiple call sites.
+    """
+    valid = validate_mod.VALID_VBRIEF_VERSIONS
+    assert isinstance(valid, frozenset)
+    assert valid == frozenset({"0.6"})
+
+
+def test_validate_version_check_uses_valid_vbrief_versions(
+    validate_mod, tmp_path
+) -> None:
+    """#565: the version comparison consults VALID_VBRIEF_VERSIONS.
+
+    Behavioural guard: a vBRIEF carrying a non-0.6 version is rejected
+    with the canonical migration hint. Surfaces drift if a future patch
+    accidentally hard-codes ``"0.6"`` in the comparison again.
+    """
+    spec_file = tmp_path / "spec.json"
+    _write_json(spec_file, {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {"title": "T", "status": "approved", "items": []},
+    })
+    ok, msg = validate_mod.validate_spec(str(spec_file))
+    assert ok is False
+    assert "vBRIEFInfo.version" in msg
+    assert "0.6" in msg
+    assert "task migrate:vbrief" in msg
+
+
 def test_validate_plan_items_not_array(validate_mod, tmp_path) -> None:
     """validate_spec must fail when plan.items is not an array."""
     spec_file = tmp_path / "spec.json"
