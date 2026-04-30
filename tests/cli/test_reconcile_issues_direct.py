@@ -125,6 +125,24 @@ class TestFetchOpenIssues:
         assert result == payload
         assert "Warning" in capsys.readouterr().err
 
+    def test_issue_fetch_limit_floor(self):
+        """Regression guard (#764): ISSUE_FETCH_LIMIT must stay >=
+        DEFAULT_MAX_OPEN_ISSUES so `task issue:ingest --all` does not
+        silently truncate on repos with hundreds of open issues. The
+        deftai/directive repo crossed 200 open issues during the
+        2026-04-30 refinement cycle, which exposed that the prior 200
+        cap was lower than the documented `DEFAULT_MAX_OPEN_ISSUES`
+        ceiling. Pinning the floor to DEFAULT_MAX_OPEN_ISSUES couples
+        the two safety values so neither can drift below the other in
+        a future refactor.
+        """
+        assert (
+            reconcile.ISSUE_FETCH_LIMIT >= reconcile.DEFAULT_MAX_OPEN_ISSUES
+        ), (
+            "ISSUE_FETCH_LIMIT silently regressed below "
+            "DEFAULT_MAX_OPEN_ISSUES; bulk ingest will truncate."
+        )
+
 
 # ---------------------------------------------------------------------------
 # detect_repo

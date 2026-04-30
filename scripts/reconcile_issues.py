@@ -191,7 +191,7 @@ def scan_vbrief_dir(vbrief_dir: Path) -> dict[int, list[str]]:
 # ---------------------------------------------------------------------------
 
 
-ISSUE_FETCH_LIMIT = 200
+ISSUE_FETCH_LIMIT = 1000
 
 # #754: GraphQL aliased-node batch size for ``fetch_issue_states``. GitHub's
 # GraphQL ceiling is ~500 nodes per query; 200 keeps each query well under
