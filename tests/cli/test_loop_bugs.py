@@ -13,14 +13,14 @@ Author: Scott Adams (msadams) — 2026-03-24
 # ---------------------------------------------------------------------------
 
 def test_bootstrap_empty_strategies_defaults_to_interview(
-    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    run_command, mock_user_input, isolated_env_no_user, deft_run_module, monkeypatch
 ):
     """cmd_bootstrap completes without looping when strategies/ is empty."""
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
     # Return an empty list from get_available_strategies
     monkeypatch.setattr(deft_run_module, "get_available_strategies", list)
 
-    user_path = isolated_env / "USER.md"
+    user_path = isolated_env_no_user / "USER.md"
     mock_user_input([
         str(user_path),   # 1  output path
         "TestUser",        # 2  name

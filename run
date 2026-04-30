@@ -150,6 +150,70 @@ def get_default_paths() -> dict:
         'vbrief_proposed': os.environ.get('DEFT_VBRIEF_PROPOSED', './vbrief/proposed/'),
     }
 
+# ── USER.md presence gate (#163) ─────────────────────────────────────
+#
+# Mirrors the agentic-path USER.md gate documented in
+# skills/deft-directive-build/SKILL.md ("USER.md Gate" section). The CLI
+# entry points cmd_spec and cmd_project must refuse to do work when the
+# user has not yet bootstrapped their preferences -- otherwise the
+# generated scope vBRIEF / PROJECT-DEFINITION will lack the user-scoped
+# defaults (languages, coverage, strategy) that drive downstream
+# behavior. Resolution is platform-aware so that Windows and Unix users
+# both find their files at the conventional XDG-ish location, while
+# $DEFT_USER_PATH remains an explicit override for tests, CI, and users
+# who keep deft config outside the default tree.
+
+def _resolve_user_md_path() -> Path:
+    """Resolve the platform-appropriate path to USER.md (#163).
+
+    Resolution order (highest precedence first):
+        1. $DEFT_USER_PATH environment variable -- honored on any platform.
+        2. Windows: %APPDATA%\\deft\\USER.md
+           (falls back to ~/AppData/Roaming/deft/USER.md when APPDATA is unset).
+        3. Unix (macOS / Linux / *BSD): ~/.config/deft/USER.md
+
+    Returns:
+        Absolute Path to the resolved USER.md location. The file may or
+        may not exist; callers (e.g. _check_user_md_gate) decide whether
+        absence is fatal.
+    """
+    override = os.environ.get('DEFT_USER_PATH')
+    if override:
+        return resolve_path(override)
+    if sys.platform == 'win32':
+        appdata = os.environ.get('APPDATA')
+        if appdata:
+            return Path(appdata) / 'deft' / 'USER.md'
+        # Rare on stock Windows but possible in stripped containers / CI.
+        return Path.home() / 'AppData' / 'Roaming' / 'deft' / 'USER.md'
+    return Path.home() / '.config' / 'deft' / 'USER.md'
+
+
+def _check_user_md_gate() -> Optional[int]:
+    """Verify USER.md exists at the platform-appropriate path (#163).
+
+    Mirrors the agentic-path USER.md gate from
+    skills/deft-directive-build/SKILL.md. When USER.md is missing the
+    gate prints an actionable redirect (naming the resolved path and
+    suggesting `run bootstrap`) and returns a non-zero exit code so the
+    caller can propagate it via its own return value.
+
+    Returns:
+        None when USER.md exists at the resolved path -- the gate passes
+        and the caller should continue with its normal flow.
+        1 when USER.md is missing -- the caller MUST propagate this exit
+        code (i.e. `return _check_user_md_gate() or ...` or an explicit
+        early return) so the CLI exits non-zero before doing work that
+        depends on user preferences.
+    """
+    user_path = _resolve_user_md_path()
+    if user_path.exists():
+        return None
+    print_error(f"USER.md not found at {user_path}")
+    print_info("Run 'run bootstrap' to create your user preferences before continuing.")
+    print_info("Set $DEFT_USER_PATH to override the default location.")
+    return 1
+
 # ── Resume / atomic-write helpers (issue #8) ─────────────────────────
 
 def _progress_path(output_file: Path) -> Path:
@@ -1058,6 +1122,13 @@ for project-scoped settings (strategy, coverage, languages).
 
 def cmd_project(args: List[str]):
     """Project command - configure PROJECT-DEFINITION.vbrief.json"""
+    # USER.md gate (#163): mirror the agentic-path gate from
+    # skills/deft-directive-build/SKILL.md. Refuse to do work if the user
+    # has not yet bootstrapped their preferences -- the message names the
+    # resolved path (platform-aware) and redirects to `run bootstrap`.
+    gate_exit = _check_user_md_gate()
+    if gate_exit is not None:
+        return gate_exit
     print_header(f"Deft CLI v{VERSION} - Project Configuration")
     print()
     info("This command creates PROJECT-DEFINITION.vbrief.json, which defines YOUR project:")
@@ -1624,6 +1695,13 @@ def _slugify(text: str) -> str:
 
 def cmd_spec(args: List[str]):
     """Spec command - generate scope vBRIEF via interview"""
+    # USER.md gate (#163): mirror the agentic-path gate from
+    # skills/deft-directive-build/SKILL.md. Refuse to do work if the user
+    # has not yet bootstrapped their preferences -- the message names the
+    # resolved path (platform-aware) and redirects to `run bootstrap`.
+    gate_exit = _check_user_md_gate()
+    if gate_exit is not None:
+        return gate_exit
     print_header(f"Deft CLI v{VERSION} - Scope vBRIEF Generator")
     print()
     
