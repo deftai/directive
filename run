@@ -73,7 +73,9 @@ def _resolve_version() -> str:
             check=False,
             cwd=script_dir,
         )
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except (subprocess.TimeoutExpired, OSError):
+        # OSError covers FileNotFoundError (subclass) raised when `git`
+        # is not on PATH plus other unexpected I/O failures.
         return "0.0.0-dev"
     if result.returncode != 0:
         return "0.0.0-dev"

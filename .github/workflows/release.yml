@@ -174,14 +174,25 @@ jobs:
           python-version: "3.11"
       - name: Resolve version from `run` and compare to pushed tag
         shell: bash
+        # Force-unset DEFT_RELEASE_VERSION so the env-override branch of
+        # `_resolve_version()` cannot short-circuit the drift check. If a
+        # future workflow step (or an org-/repo-level Actions variable)
+        # populates the env var, the assertion would silently pass
+        # against the override value rather than testing the
+        # `git describe` branch this job is designed to exercise.
+        # `env:` at the step level wins over inherited environment so
+        # the assertion is self-enforcing regardless of CI configuration.
+        env:
+          DEFT_RELEASE_VERSION: ""
         run: |
           set -euo pipefail
           # Strip leading `v` from the pushed tag (e.g. v0.21.0 -> 0.21.0).
           tag="${GITHUB_REF_NAME#v}"
           # Mirror scripts/resolve_version.py priority chain by importing
-          # `run` (the framework CLI) directly. Don't set
-          # DEFT_RELEASE_VERSION -- we want to exercise the git-describe
-          # branch on a tagged checkout so that drift surfaces here.
+          # `run` (the framework CLI) directly. The empty
+          # DEFT_RELEASE_VERSION above falls through the env branch (the
+          # resolver treats empty values as unset), exercising the
+          # git-describe path so that drift surfaces here.
           resolved=$(python -c "import sys; sys.path.insert(0, '.'); from run import VERSION; print(VERSION)")
           echo "pushed tag (stripped): $tag"
           echo "resolved by run:       $resolved"
