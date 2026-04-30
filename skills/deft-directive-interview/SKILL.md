@@ -344,6 +344,156 @@ Enter confirm / b back / 0 discuss
 
 - ⊗ Omit `Back` (except on the first question) or `Discuss with agent` from any click-commit rendering -- the affordances survive the mode change even though the keystroke legend does not
 
+## IP Risk Probe (#738)
+
+! When the interview captures the project description (and any
+research-phase notes), the agent MUST run the IP-risk heuristic from
+[`references/ip-risk.md`](../../references/ip-risk.md) -- canonical
+implementation `scripts/ip_risk.py:detect_ip_terms` -- before generating
+the SPECIFICATION.
+
+The heuristic is permissive on purpose: recognizable IP names (Magic:
+The Gathering, Pokemon, etc.), fictional-universe terms (Hogwarts,
+Tatooine), branded characters (Mickey Mouse, Spider-Man), sports leagues
+(NFL, NBA), and trademarked products (iPhone, Xbox) all trigger a hit.
+
+! When `detect_ip_terms` returns at least one hit:
+
+1. ! Ask the explicit monetization-intent question (canonical wording in
+   `references/ip-risk.md` `## Question Script`). The user MUST choose
+   between **personal use only** and **commercial use** -- defaulting to
+   `commercial` when intent is unclear, because the stricter checklist is
+   the wrong-side-of-safe choice.
+2. ! Emit the plain-English risk summary from
+   `scripts/ip_risk.py:plain_risk_summary(hits, intent)` into the
+   interview output AND into an `IPRisk` narrative on the
+   `specification.vbrief.json` draft. The summary opens with `not legal
+   advice`, names the detected categories, and (for commercial intent)
+   states explicitly that lawyer consultation is **not optional output**
+   from this interview.
+3. ! Inject the three protection scope items from
+   `scripts/ip_risk.py:ip_risk_scope_items(intent)` into the spec
+   vBRIEF's `plan.items` array (disclaimer stub `IP-1`, API-only-asset
+   policy `IP-2`, hosting policy `IP-3`). The items flow naturally into
+   the rendered SPECIFICATION.md via the existing
+   `scripts/spec_render.py` pipeline -- no spec_render.py modification
+   is required.
+4. ! For commercial intent, the lawyer-consultation recommendation is
+   non-optional output -- the interview MUST surface it before the
+   confirmation gate.
+
+- ⊗ Skip the IP-risk probe when the project description references
+  third-party intellectual property -- the heuristic is the gate
+  whether or not the agent thinks the project is "obviously fine".
+- ⊗ Treat the absence of detected terms as proof that the project is
+  IP-free -- the heuristic only knows about the curated lists in
+  `scripts/ip_risk.py`. When the description is vague, the agent SHOULD
+  ask directly "is this based on a game / film / sports league /
+  brand?".
+- ⊗ Provide legal advice. Deft is not a law firm -- the only
+  recommendation it makes is **consult a lawyer**.
+
+## Plain-English UX (#740)
+
+! Every user-facing question, summary, and output line in this skill
+MUST follow the rules in
+[`references/plain-english-ux.md`](../../references/plain-english-ux.md):
+
+1. ! Every technical question MUST carry a one-line plain-English
+   context note as preamble above the structured-tool call. The
+   preamble explains the *consequence* of the choice in non-technical
+   terms.
+2. ! Every acronym MUST be defined inline on first use within a skill
+   session: `PRD (Product Requirements Document)`, `NFR (Non-Functional
+   Requirement)`, `FR (Functional Requirement)`, `SPEC (Specification)`,
+   `API (Application Programming Interface)`, `DB (Database)`, `CI
+   (Continuous Integration)`, `MVP (Minimum Viable Product)`. Subsequent
+   uses MAY drop the expansion.
+3. ! When a skill recommends a framework, library, language, or tool,
+   the recommendation MUST either explain the rationale in plain-English
+   terms the user actually cares about (cost, speed, hiring, hosting
+   compatibility, etc.) OR remove the rationale entirely and present it
+   as an overridable default. ⊗ Drop a framework name with a one-word
+   `industry-standard` / `modern` / `scalable` justification.
+
+- ⊗ Drop a technical question on the user without a plain-English
+  context note above it.
+- ⊗ Use an acronym for the first time without inlining `(full
+  expansion)`.
+- ⊗ Treat "the user can ask their other AI to translate" as an
+  acceptable mitigation for jargon.
+
+## Approval Menus After PRD and SPEC Review (#740, refs #767)
+
+! After every PRD review AND every SPECIFICATION review, the agent MUST
+present an explicit numbered approval menu using the canonical shapes
+from `references/plain-english-ux.md` `## Rule 4`. The menu replaces
+ambiguous buttons like `Accept / Refine / Edit` with action-shaped
+labels.
+
+Canonical PRD-review menu:
+
+```
+What would you like to do with the PRD (Product Requirements Document)?
+
+  1. Approve and continue (lock the PRD, generate the SPECIFICATION)
+  2. Suggest changes (you describe what to change; the agent rewrites)
+  3. Edit yourself (you edit the PRD directly; the agent waits)
+  4. Discuss
+  5. Back
+
+Enter confirm / b back / 0 discuss
+```
+
+Canonical SPECIFICATION-review menu:
+
+```
+What would you like to do with the SPECIFICATION?
+
+  1. Approve and continue (lock the SPEC, proceed to implementation)
+  2. Suggest changes (you describe what to change; the agent rewrites)
+  3. Edit yourself (you edit the SPEC directly; the agent waits)
+  4. Discuss
+  5. Back
+
+Enter confirm / b back / 0 discuss
+```
+
+! Every numbered approval menu MUST follow the #767 deterministic-
+question framework rule: the **final two numbered options MUST be
+`Discuss` and `Back`**, in that order. This is consistent with this
+skill's Rule 9 (back-navigation) and Rule 10 (slot-0 discuss-with-agent
+escape) and provides a uniform exit path on every menu. The framework
+rule itself is being landed by Agent 1 in #767; once
+`contracts/deterministic-questions.md` exists, this skill MUST defer to
+it for the canonical wording.
+
+- ⊗ Add a numbered approval menu where Discuss and Back are not the
+  final two options.
+- ⊗ Use plain `Accept / Refine / Edit` buttons without explanatory
+  parentheticals.
+
+## Diff-View Preface on PRD / SPEC Review (#740)
+
+! When a PRD or SPECIFICATION review surfaces a red/green diff, the
+agent MUST emit a one-line non-alarming preface ABOVE the diff that
+sets expectations -- red lines are removals, green lines are additions,
+NOT errors. Canonical preface:
+
+```
+Here's what changed since the previous draft. Red lines were removed,
+green lines were added. Nothing here is broken -- this is a normal
+review.
+```
+
+? Alternatively, the agent MAY hide the diff entirely on the first
+review pass and present a plain-English summary of changes instead;
+show the diff only on the second pass or when the user explicitly asks
+for it.
+
+- ⊗ Show a red/green diff at first review without a non-alarming
+  preface.
+
 ## Anti-Patterns
 
 - ⊗ Ask multiple questions in a single message -- one question per turn, always

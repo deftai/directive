@@ -301,6 +301,50 @@ Any remaining decisions deferred to implementation.
 - ! User has reviewed and approved PRD
 - ~ No blocking open questions remain
 
+### PRD Approval Menu (#740, refs #767)
+
+! After every PRD (Product Requirements Document) review, the agent MUST
+present the canonical numbered approval menu defined in
+[`../references/plain-english-ux.md`](../references/plain-english-ux.md)
+`## Rule 4`. The menu replaces ambiguous `Accept / Refine / Edit`
+buttons with action-shaped labels and follows the #767 framework rule
+for deterministic numbered menus -- the **final two numbered options
+MUST be `Discuss` and `Back`**, in that order.
+
+```
+What would you like to do with the PRD (Product Requirements Document)?
+
+  1. Approve and continue (lock the PRD, generate the SPECIFICATION)
+  2. Suggest changes (you describe what to change; the agent rewrites)
+  3. Edit yourself (you edit the PRD directly; the agent waits)
+  4. Discuss
+  5. Back
+
+Enter confirm / b back / 0 discuss
+```
+
+! When `contracts/deterministic-questions.md` lands (Agent 1, #767), this
+strategy MUST defer to that contract for canonical menu wording.
+
+! When the PRD review surfaces a red/green diff, the agent MUST emit a
+non-alarming preface above it (per `references/plain-english-ux.md` Rule 5):
+
+```
+Here's what changed since the previous draft. Red lines were removed,
+green lines were added. Nothing here is broken -- this is a normal
+review.
+```
+
+? Alternatively, the agent MAY hide the diff entirely on the first review
+pass and present a plain-English summary of changes; show the diff only
+on the second pass or when the user explicitly asks for it.
+
+- ⊗ Use plain `Accept / Refine / Edit` buttons without explanatory
+  parentheticals.
+- ⊗ Add a numbered approval menu where Discuss and Back are not the
+  final two options.
+- ⊗ Show a red/green diff at first review without a non-alarming preface.
+
 ### SPECIFICATION Structure (Full)
 
 ```markdown
@@ -384,6 +428,56 @@ options and wait for the user to choose.
    preparatory strategies or regenerate the spec.
 3. **Switch strategy** — return to the [Chaining Gate](#chaining-gate) to select
    a different spec-generating strategy (e.g., switch from interview to speckit)
+
+### SPECIFICATION Approval Menu (#740, refs #767)
+
+! In addition to the structured Accept / Revise / Switch options above,
+the agent MUST present the canonical numbered approval menu defined in
+[`../references/plain-english-ux.md`](../references/plain-english-ux.md)
+`## Rule 4`. The menu states what each choice will actually do, in
+plain-English action-shaped labels, and follows the #767 framework rule
+for deterministic numbered menus -- the **final two numbered options
+MUST be `Discuss` and `Back`**, in that order.
+
+```
+What would you like to do with the SPECIFICATION?
+
+  1. Approve and continue (lock the SPEC, proceed to implementation)
+  2. Suggest changes (you describe what to change; the agent rewrites)
+  3. Edit yourself (you edit the SPEC directly; the agent waits)
+  4. Discuss
+  5. Back
+
+Enter confirm / b back / 0 discuss
+```
+
+! Option 1 (`Approve and continue`) maps to the `Accept` option above
+(which then runs the toolchain verification). Option 2 (`Suggest
+changes`) and Option 3 (`Edit yourself`) both map to `Revise` (return to
+the Chaining Gate with prior context preserved). The numbered menu is
+the user-facing surface; the structured Accept / Revise / Switch above
+is the agent's internal contract.
+
+! When `contracts/deterministic-questions.md` lands (Agent 1, #767), this
+strategy MUST defer to that contract for canonical menu wording.
+
+! When the SPECIFICATION review surfaces a red/green diff, the agent
+MUST emit a non-alarming preface above it (per
+`references/plain-english-ux.md` Rule 5):
+
+```
+Here's what changed since the previous draft. Red lines were removed,
+green lines were added. Nothing here is broken -- this is a normal
+review.
+```
+
+? Alternatively, the agent MAY hide the diff entirely on the first
+review pass and present a plain-English summary of changes; show the
+diff only on the second pass or when the user explicitly asks for it.
+
+- ⊗ Add a numbered approval menu where Discuss and Back are not the
+  final two options.
+- ⊗ Show a red/green diff at first review without a non-alarming preface.
 
 ### Rejected Spec Archival
 

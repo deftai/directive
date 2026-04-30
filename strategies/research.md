@@ -62,6 +62,36 @@ Avoid: Use bcrypt/argon2, never store raw passwords
 Warning signs: No crypto import in auth module, password field stored as-is
 ```
 
+### `IPRisk` narrative (#738)
+
+! When the project description, the `Don't Hand-Roll` survey, or the
+research notes reference third-party intellectual property (IP), the
+research phase MUST run the IP-risk heuristic from
+[`../references/ip-risk.md`](../references/ip-risk.md) -- canonical
+implementation `scripts/ip_risk.py:detect_ip_terms` -- and persist a
+plain-English `IPRisk` narrative on the research vBRIEF.
+
+The heuristic is permissive on purpose: recognizable IP names (Magic:
+The Gathering, Pokemon, etc.), fictional-universe terms (Hogwarts,
+Tatooine), branded characters, sports leagues, and trademarked products
+all trigger a hit.
+
+- ! When `detect_ip_terms` returns at least one hit, the research output
+  MUST: (1) ask the explicit monetization-intent question (personal vs
+  commercial); (2) emit `plain_risk_summary(hits, intent)` into the
+  `IPRisk` narrative; (3) plan to inject the protection scope items
+  (`ip_risk_scope_items(intent)`) at SPECIFICATION-generation time.
+- ! On `commercial` intent, surface the **non-optional** lawyer-
+  consultation recommendation in the research output -- this carries
+  forward into the interview output and the SPECIFICATION via the
+  `IPRisk` narrative.
+- ⊗ Treat the absence of detected terms as proof that the project is
+  IP-free. The heuristic only knows about the curated lists; when the
+  research scope is vague, ask the user directly whether the project is
+  based on a game / film / sports league / brand.
+- ⊗ Provide legal advice -- Deft is not a law firm. The only
+  recommendation it makes is **consult a lawyer**.
+
 ---
 
 ## How Research Feeds Downstream
