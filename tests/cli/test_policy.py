@@ -281,3 +281,20 @@ def test_audit_log_creates_meta_dir(policy_module, tmp_path):
     assert "actor=x value=y" in content
     # Header on first write.
     assert "audit trail" in content
+
+
+def test_audit_log_uses_append_mode(policy_module, tmp_path):
+    """Multiple append_audit_log calls in sequence preserve every entry.
+
+    Greptile P2 review on PR #777 -- the previous read-modify-write
+    pattern raced under parallel writers. Append-mode `open(..., "a")` is
+    atomic on standard filesystems and exhibits the same "every entry
+    persists" property in a single-threaded test.
+    """
+    for i in range(5):
+        policy_module.append_audit_log(tmp_path, f"entry-{i}")
+    log = (tmp_path / "meta" / "policy-changes.log").read_text(encoding="utf-8")
+    for i in range(5):
+        assert f"entry-{i}" in log
+    # Header appears exactly once on the first write.
+    assert log.count("audit trail") == 1

@@ -155,7 +155,11 @@ def test_missing_project_def_default_returns_config_error(preflight, tmp_path, m
     _stub_branch(monkeypatch, preflight, "master")
     code, msg = preflight.evaluate(tmp_path)
     assert code == 2
-    assert "PROJECT-DEFINITION missing" in msg
+    # The fix-aware message says "cannot be resolved" with the underlying
+    # "not found" detail surfaced separately.
+    assert "cannot be resolved" in msg
+    assert "not found" in msg
+    assert "task setup" in msg
 
 
 def test_missing_project_def_with_bootstrap_flag_passes(preflight, tmp_path, monkeypatch):
@@ -212,3 +216,65 @@ def test_custom_default_branch_list(preflight, tmp_path, monkeypatch):
     _write_project_def(tmp_path, {"policy": {"allowDirectCommitsToMaster": False}})
     code, _ = preflight.evaluate(tmp_path, default_branches=frozenset({"trunk"}))
     assert code == 1
+
+
+# ---------------------------------------------------------------------------
+# Greptile P1 + P2 review fixes (#777)
+# ---------------------------------------------------------------------------
+
+
+def test_malformed_typed_field_returns_config_error(preflight, tmp_path, monkeypatch):
+    """Non-bool ``allowDirectCommitsToMaster`` MUST exit 2 (Greptile P1 #777).
+
+    Previously the gate misclassified malformed configs (typed field set to
+    a string, etc.) as exit 1 (policy block) with misleading recovery
+    guidance. The fix broadens the config-error branch beyond the
+    ``"not found" in error`` check.
+    """
+    monkeypatch.delenv(preflight.ENV_SETUP_EXEMPTION, raising=False)
+    monkeypatch.delenv("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT", raising=False)
+    _stub_branch(monkeypatch, preflight, "master")
+    _write_project_def(tmp_path, {"policy": {"allowDirectCommitsToMaster": "yes"}})
+    code, msg = preflight.evaluate(tmp_path)
+    assert code == 2
+    assert "PROJECT-DEFINITION cannot be resolved" in msg
+    assert "must be a boolean" in msg
+    # Recovery message tailored for malformed-config (NOT "run task setup").
+    assert "malformed PROJECT-DEFINITION" in msg
+
+
+def test_malformed_typed_field_with_bootstrap_flag_still_exits_2(
+    preflight, tmp_path, monkeypatch
+):
+    """`--allow-missing-project-definition` only short-circuits missing-file (Greptile P1 #777).
+
+    Malformed-config errors still exit 2 even with the bootstrap flag --
+    the operator MUST fix the malformed file before the gate can pass.
+    """
+    monkeypatch.delenv(preflight.ENV_SETUP_EXEMPTION, raising=False)
+    monkeypatch.delenv("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT", raising=False)
+    _stub_branch(monkeypatch, preflight, "master")
+    _write_project_def(tmp_path, {"policy": {"allowDirectCommitsToMaster": 42}})
+    code, msg = preflight.evaluate(tmp_path, allow_missing_project_definition=True)
+    assert code == 2
+    assert "must be a boolean" in msg
+
+
+def test_git_not_found_returns_config_error(preflight, tmp_path, monkeypatch):
+    """Missing ``git`` on PATH MUST exit 2 (Greptile P2 #777).
+
+    Previously this was silently treated as a detached HEAD and the gate
+    passed (exit 0). The fix raises :class:`GitNotFoundError` from
+    ``_current_branch`` and surfaces an actionable recovery message.
+    """
+    monkeypatch.delenv(preflight.ENV_SETUP_EXEMPTION, raising=False)
+    monkeypatch.delenv("DEFT_ALLOW_DEFAULT_BRANCH_COMMIT", raising=False)
+
+    def fake_git(_args, _root):
+        return 127, "", "git executable not found on PATH"
+
+    monkeypatch.setattr(preflight, "_git", fake_git)
+    code, msg = preflight.evaluate(tmp_path)
+    assert code == 2
+    assert "cannot determine current branch" in msg
+    assert "install git" in msg

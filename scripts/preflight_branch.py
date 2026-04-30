@@ -66,9 +66,21 @@ def _git(args: list[str], project_root: Path) -> tuple[int, str, str]:
     return proc.returncode, proc.stdout.strip(), proc.stderr.strip()
 
 
+class GitNotFoundError(RuntimeError):
+    """Raised when ``git`` is not on PATH (#777 Greptile P2 fix)."""
+
+
 def _current_branch(project_root: Path) -> tuple[str, bool]:
-    """Return (branch_name, is_detached). ``branch_name`` is empty when detached."""
-    rc, out, _ = _git(["symbolic-ref", "--quiet", "--short", "HEAD"], project_root)
+    """Return (branch_name, is_detached). ``branch_name`` is empty when detached.
+
+    Raises :class:`GitNotFoundError` when the ``git`` executable is not on
+    PATH -- previously this was silently treated as a detached HEAD,
+    which let the gate pass (exit 0) on environments where git itself was
+    missing (Greptile P2 review on PR #777).
+    """
+    rc, out, err = _git(["symbolic-ref", "--quiet", "--short", "HEAD"], project_root)
+    if rc == 127 and "git executable not found" in err:
+        raise GitNotFoundError(err)
     if rc == 0 and out:
         return out, False
     # Detached HEAD (e.g. CI checkout of a tag, mid-rebase) -- never blocked.
@@ -128,7 +140,15 @@ def evaluate(
             f"({ENV_SETUP_EXEMPTION}=1) -- proceeding without policy lookup."
         )
 
-    branch, detached = _current_branch(project_root)
+    try:
+        branch, detached = _current_branch(project_root)
+    except GitNotFoundError as exc:
+        return 2, (
+            "❌ deft branch-protection: cannot determine current branch -- "
+            f"{exc}\n"
+            "  Recovery: install git (https://git-scm.com/) or set DEFT_PYTHON "
+            "so the hook can dispatch correctly."
+        )
     if detached:
         return 0, (
             "✓ deft branch-protection: detached HEAD detected -- nothing to gate."
@@ -148,27 +168,41 @@ def evaluate(
         )
         return 0, msg
 
-    # Blocked. Disambiguate config-error vs policy-says-no.
-    if (
-        result.source == "default-fail-closed"
-        and result.error
-        and "not found" in result.error
-    ):
-        if allow_missing_project_definition:
+    # Blocked. Disambiguate config-error vs policy-says-no (Greptile P1 fix):
+    # ANY ``default-fail-closed`` source with a non-empty ``error`` is a
+    # config error (malformed JSON, non-bool typed field, plan-not-object,
+    # missing file, ...). The previous narrower ``"not found" in error``
+    # check misclassified malformed-config cases as policy blocks (exit 1)
+    # with a misleading "create a feature branch" message.
+    if result.source == "default-fail-closed" and result.error:
+        if allow_missing_project_definition and "not found" in result.error:
+            # Bootstrap shortcut: only the explicit missing-file case is
+            # treated as a setup-interview-state pass. Other config errors
+            # (malformed JSON, type mismatches) still fail loudly even
+            # under the bootstrap flag because they require human action.
             return 0, (
                 "✓ deft branch-protection: PROJECT-DEFINITION missing AND "
                 "--allow-missing-project-definition was passed -- treating as "
                 "bootstrap state (the setup interview will write the typed flag)."
             )
+        if "not found" in result.error:
+            recovery = (
+                "  Recovery: run `task setup` to create vbrief/"
+                "PROJECT-DEFINITION.vbrief.json, OR set the env-var bypass:\n"
+                f"      {ENV_BYPASS}=1\n"
+                "  Or pass --allow-missing-project-definition to this script "
+                "(setup-interview hook only)."
+            )
+        else:
+            recovery = (
+                "  Recovery: fix the malformed PROJECT-DEFINITION (e.g. ensure "
+                "`plan.policy.allowDirectCommitsToMaster` is a boolean and "
+                "`plan` is an object), then re-run."
+            )
         return 2, (
-            "❌ deft branch-protection: PROJECT-DEFINITION missing -- cannot "
-            "resolve policy.\n"
+            "❌ deft branch-protection: PROJECT-DEFINITION cannot be resolved.\n"
             f"  Detail: {result.error}\n"
-            "  Recovery: run `task setup` to create vbrief/PROJECT-DEFINITION."
-            "vbrief.json, OR set the env-var bypass:\n"
-            f"      {ENV_BYPASS}=1\n"
-            "  Or pass --allow-missing-project-definition to this script "
-            "(setup-interview hook only)."
+            f"{recovery}"
         )
 
     return 1, _build_block_message(branch, result)

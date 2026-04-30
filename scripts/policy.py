@@ -25,7 +25,6 @@ import os
 import re
 import sys
 from dataclasses import dataclass
-from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -210,7 +209,7 @@ def is_direct_commit_allowed(project_root: Path | None = None) -> bool:
 
 def _now_iso() -> str:
     """ISO-8601 UTC timestamp with seconds precision."""
-    from datetime import datetime
+    from datetime import UTC, datetime
 
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -218,21 +217,28 @@ def _now_iso() -> str:
 def append_audit_log(project_root: Path, entry: str) -> Path:
     """Append a one-line audit entry to ``meta/policy-changes.log``.
 
-    File is created (with a one-line header) if missing. Pure stdlib + utf-8
-    write to keep PowerShell 5.1 / Windows out of the round-trip path.
+    File is created (with a one-line header) if missing. Uses ``open(..., "a")``
+    so the append is atomic on standard filesystems and concurrent writers
+    cannot lose entries (#777 Greptile P2 review -- the previous
+    read-modify-write pattern raced under parallel ``task policy:*`` calls).
+    Pure stdlib + utf-8 write keeps PowerShell 5.1 / Windows out of the
+    round-trip path.
     """
     log_path = project_root / AUDIT_LOG_REL_PATH
     log_path.parent.mkdir(parents=True, exist_ok=True)
     line = f"{_now_iso()} {entry}\n"
+    # Header on first write only -- ``write_text`` is fine here because the
+    # file is being created from scratch and there is no concurrent writer
+    # to race with on the initial creation.
     if not log_path.exists():
         header = (
             "# meta/policy-changes.log -- audit trail for "
             "policy.allowDirectCommitsToMaster transitions (#746)\n"
         )
-        log_path.write_text(header + line, encoding="utf-8")
-    else:
-        existing = log_path.read_text(encoding="utf-8")
-        log_path.write_text(existing + line, encoding="utf-8")
+        log_path.write_text(header, encoding="utf-8")
+    # Subsequent writes use append mode for atomicity.
+    with open(log_path, "a", encoding="utf-8") as handle:
+        handle.write(line)
     return log_path
 
 
