@@ -174,7 +174,7 @@ flowchart TB
 
     subgraph Review ["🔍 Code Review"]
         direction TB
-        CR1["AI reads quality standards"] --> CR2["task quality"]
+        CR1["AI reads quality standards"] --> CR2["task check"]
         CR2 --> CR3["task test:coverage"]
         CR3 --> CR4["Check commits"]
         CR4 --> CR5["Update suggestions.md"]
@@ -235,14 +235,14 @@ sequenceDiagram
     participant Meta as suggestions.md
 
     AI->>Standards: Reference quality standards
-    AI->>Tasks: Run task quality
+    AI->>Tasks: Run task check
     AI->>Tasks: Run task test:coverage
     AI->>AI: Check Conventional Commits
     AI->>Meta: Log improvements
 ```
 
 1. AI references quality standards from language file
-2. AI runs `task quality` and `task test:coverage`
+2. AI runs `task check` and `task test:coverage`
 3. AI checks Conventional Commits compliance
 4. AI suggests improvements → adds to `meta/suggestions.md`
 
