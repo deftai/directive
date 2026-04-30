@@ -50,6 +50,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - "swarm" / "parallel agents" / "run agents" → `skills/deft-directive-swarm/SKILL.md` — chains to `deft-directive-review-cycle` at Phase 5
 - "refinement" / "reprioritize" / "refine" → `skills/deft-directive-refinement/SKILL.md` — chains to `deft-directive-review-cycle` at exit
 - "build" / "implement" / "implement spec" → `skills/deft-directive-build/SKILL.md`
+- "cost" / "budget" / "pre-build cost" / "how much will this cost" → `skills/deft-directive-cost/SKILL.md`
 - "setup" / "bootstrap" / "onboard" → `skills/deft-directive-setup/SKILL.md`
 - "sync" / "good morning" / "update deft" / "update vbrief" / "sync frameworks" → `skills/deft-directive-sync/SKILL.md`
 - "pre-pr" / "quality loop" / "rwldl" / "self-review" → `skills/deft-directive-pre-pr/SKILL.md`
