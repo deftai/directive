@@ -91,6 +91,9 @@
             "$ref": "#/$defs/PlanItem"
           }
         },
+        "policy": {
+          "$ref": "#/$defs/Policy"
+        },
         "narratives": {
           "type": "object",
           "properties": {
@@ -367,6 +370,17 @@
         "failed",
         "cancelled"
       ]
+    },
+    "Policy": {
+      "type": "object",
+      "description": "Project-level policy flags. Typed surface introduced by #746 (no-feature-branch opt-out) -- replaces the legacy free-form narrative key 'Allow direct commits to master'.",
+      "properties": {
+        "allowDirectCommitsToMaster": {
+          "type": "boolean",
+          "description": "When true, the project explicitly opts out of the deft branch-protection policy and allows direct commits to the default branch (master/main). Default: false (enforce feature branches)."
+        }
+      },
+      "additionalProperties": true
     },
     "Edge": {
       "type": "object",

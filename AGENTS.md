@@ -73,7 +73,12 @@ When user input matches a trigger keyword, read the corresponding skill:
 - Verify .github/PULL_REQUEST_TEMPLATE.md checklist items are satisfied
 
 **Branching:**
-- ! Always work on a feature branch — never commit directly to master/main unless the user explicitly instructs it or `PROJECT-DEFINITION.vbrief.json` narratives contain `Allow direct commits to master: true`
+- ! Always work on a feature branch — never commit directly to master/main unless the user explicitly instructs it or `PROJECT-DEFINITION.vbrief.json` has `plan.policy.allowDirectCommitsToMaster = true` (typed flag, #746). The legacy `Allow direct commits to master:` narrative key is recognised at read time with a deprecation warning; new writes go through the typed surface only.
+- ! Three enforcement surfaces back this rule (#747): (1) `.githooks/pre-commit` and `.githooks/pre-push` hooks call `scripts/preflight_branch.py`; install via `task setup` (idempotent `git config core.hooksPath .githooks`); verify via `task verify:hooks-installed`. (2) `task verify:branch` is wired into the `task check` aggregate so any pre-commit run flags a default-branch commit. (3) The `branch-gate` GH Actions workflow (`.github/workflows/branch-gate.yml`) refuses PRs whose `head_ref` equals `base_ref`. Override paths: `task policy:allow-direct-commits -- --confirm` writes the typed flag with a capability-cost disclosure; `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` is the emergency env-var bypass.
+
+**Branch Policy Disclosure (session start):**
+- ! When `plan.policy.allowDirectCommitsToMaster = true` on the active project's `vbrief/PROJECT-DEFINITION.vbrief.json`, the agent MUST surface the policy state at the start of any interactive session (alongside or after the Deft Directive alignment confirmation). Use the disclosure phrasing from `scripts/policy.py::disclosure_line` -- e.g. `[deft policy] Direct commits to the default branch are ENABLED (source: typed). Branch-protection policy is OFF.`
+- ⊗ Begin a session that will commit/push without surfacing the policy state when `allowDirectCommitsToMaster=true` -- the user needs visibility that the gate is OFF for this project
 
 **PR conventions:**
 - ROADMAP.md updates happen at release time — batch-move merged issues to Completed during the CHANGELOG promotion commit

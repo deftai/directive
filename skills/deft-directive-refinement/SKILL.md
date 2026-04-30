@@ -24,6 +24,10 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! This skill requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** to be installed and authenticated. Issue ingestion, origin freshness checks, and completion lifecycle all depend on `gh`.
 
+## Deterministic Questions Contract
+
+! Every numbered-menu prompt rendered in this skill (Phase 2 Evaluate per-item accept/reject, Phase 3 Reconcile flagged-item walk, Phase 4 Promote/Demote lifecycle gates, Phase 5 Prioritize reorder gates) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. Implicit resumption is forbidden.
+
 ## When to Use
 
 - User says "refinement", "reprioritize", "refine", "roadmap refresh", "refresh roadmap", or "triage" (legacy v0.19 terms -- deft-directive-refinement is the current skill name)

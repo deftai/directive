@@ -1,0 +1,31 @@
+name: branch-gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+# CI sanity check (#747 acceptance criterion E): refuse PRs whose head_ref
+# equals the base_ref. master->master PRs slip past every other layer (the
+# pre-commit hook can be bypassed locally; verify:branch only runs in
+# task check; the typed policy only governs *direct* commits) so this job
+# closes the loop at the merge surface.
+jobs:
+  head-ref-not-equal-base-ref:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse master->master PR
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -eu
+          echo "head_ref=$HEAD_REF"
+          echo "base_ref=$BASE_REF"
+          if [ "$HEAD_REF" = "$BASE_REF" ]; then
+            echo "::error title=Branch gate (#747)::head_ref ($HEAD_REF) equals base_ref ($BASE_REF). PRs from a branch to itself are refused. Open the PR from a feature branch instead." >&2
+            exit 1
+          fi
+          echo "✓ head_ref ($HEAD_REF) != base_ref ($BASE_REF)"

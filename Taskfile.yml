@@ -105,6 +105,9 @@ includes:
   ci:
     taskfile: ./tasks/ci.yml
     optional: true
+  policy:
+    taskfile: ./tasks/policy.yml
+    optional: true
 
 tasks:
   default:
@@ -124,6 +127,7 @@ tasks:
       - verify:stubs
       - verify:links
       - verify:rule-ownership
+      - verify:branch
       - vbrief:validate
     cmds:
       - echo "All checks passed"
@@ -167,6 +171,23 @@ tasks:
     desc: Show framework statistics (alias for core:stats)
     cmds:
       - task: core:stats
+
+  setup:
+    desc: "Idempotent local-dev setup: configure git hooks (#747). Sets core.hooksPath=.githooks so .githooks/pre-commit + .githooks/pre-push run."
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      # Inline POSIX-sh under go-task's mvdan/sh interpreter -- cross-platform.
+      # `git config core.hooksPath .githooks` is itself idempotent, but we
+      # detect the no-op so the task prints a friendly message rather than
+      # silently re-asserting on every invocation.
+      - |
+        configured=$(git config --get core.hooksPath || true)
+        if [ "$configured" = ".githooks" ]; then
+          echo "✓ core.hooksPath already set to .githooks (no change)."
+        else
+          git config core.hooksPath .githooks
+          echo "✓ core.hooksPath set to .githooks (#747 branch gate active)."
+        fi
 
   # Release pipeline tasks (#74 + #716 safety hardening, namespace flatten #718).
   #

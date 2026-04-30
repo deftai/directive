@@ -16,6 +16,20 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 > **Formerly `deft-rwldl`** -- renamed to clearly communicate the skill's purpose (iterative pre-PR quality loop).
 
+## Branch-Protection Policy Guard
+
+! Before entering Phase 1 (Read), run the skill-level branch-policy guard documented in `scripts/policy.py` / `scripts/preflight_branch.py` (#746 / #747). Halt before any state mutation (the Phase 2 Write phase, the Phase 3 Lint phase that may touch files) when the policy is unresolvable AND no env-var bypass is active:
+
+```
+uv run python scripts/preflight_branch.py --project-root . --quiet || exit 1
+```
+
+or invoke `task verify:branch`. Pre-PR is the last gate before push, so a stale / unresolvable policy here is the highest-leverage place to catch the bug before it reaches the bot reviewer.
+
+## Deterministic Questions Contract
+
+! Every numbered-menu prompt rendered in this skill (per-finding decision menus in Phase 4 Diff, the Phase 5 Loop restart-vs-exit gate) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- implicit resumption is forbidden.
+
 ## When to Use
 
 - ! Before pushing a branch for PR creation

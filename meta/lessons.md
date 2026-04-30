@@ -346,3 +346,21 @@ The existing post-merge verification rule (Lesson: PR Merge Hygiene #1, #167) wa
 **Generalizable heuristic:** whenever a gate cross-references a small subset against a large enumerable set, query the subset's state directly rather than fetching the full set and filtering. The query cost should scale by the property the gate cares about, not by an enumeration property the gate does not.
 
 **Reference:** `scripts/reconcile_issues.py::fetch_issue_states` (helper); `scripts/release.py::check_vbrief_lifecycle_sync` (consumer); #754 (issue + this fix).
+
+## Greptile Review Stall Detection (2026-04)
+
+**Source:** rc4 swarm cascade on PR #561 -- a Greptile check run sat in IN_PROGRESS for 21 minutes (~3x the upper bound of normal) on a single `commit.oid` while the polling loop continued silently with no escalation surface.
+
+**1. Stalls past 3x the expected window MUST escalate to the user, not auto-retrigger**
+
+Greptile reviews typically complete in 2-5 minutes (7 minutes is the upper bound of normal). When the check run remains IN_PROGRESS past 3x expected (~10 minutes) on the SAME `commit.oid`, the agent MUST stop polling silently and surface the situation to the user. The 21-minute observation on PR #561 was the recurrence record: the polling loop kept running, the user had no visibility, and the cycle effectively wasted the operator's attention budget. The Stall Detection Rubric in `skills/deft-directive-review-cycle/SKILL.md` Step 4 codifies the threshold and the deterministic escalation menu (Wait / Re-trigger / Skip / Cancel / Discuss / Back).
+
+**2. Auto-retrigger without explicit user approval is forbidden**
+
+The naive recovery -- pushing an empty commit, force-pushing, or auto-posting `@greptileai` -- is exactly the wrong move because it resets Greptile's review clock on a NEW SHA and erases the stall evidence. The agent MUST NOT auto-retrigger. The rubric's option-2 (manual `@greptileai` comment) is the only supported re-trigger path AND it requires the user to pick it from the escalation menu. Any user-approved override MUST be documented in a brief PR comment for auditability, so future agents resuming the cycle see why the clock reset.
+
+**3. `startedAt` resets MUST notify the user, not silently re-anchor the clock**
+
+Greptile occasionally drops its prior check run and starts a fresh one without any push from the agent (service-side restart, runner re-roll). The polling loop MUST detect a NEW `startedAt` on the same commit, reset its elapsed-time clock to the new `startedAt`, AND notify the user that an auto-restart was detected. Resetting the clock without notification is forbidden -- the user needs to know the cycle effectively re-started, otherwise a second 10-minute stall can hide behind a silent restart.
+
+**Cross-reference:** `skills/deft-directive-review-cycle/SKILL.md` -- `Stall Detection Rubric (#564)`.

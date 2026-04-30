@@ -98,6 +98,10 @@ Run these three checks, in order:
 ⊗ Offer `task migrate:vbrief` without also telling the user about `--dry-run` when they sound hesitant -- previewing is free and catches reconciliation surprises that would otherwise land in a commit.
 ⊗ Suggest `git reset --hard` or manual file deletion as a recovery path when `--rollback` would do the right thing more safely.
 
+## Deterministic Questions Contract
+
+! Every numbered-menu prompt rendered in this skill (Phase 1 depth question, Phase 2 project type / deployment / language / strategy / branching gates, Phase 3 onboarding question, end-of-phase transition prompts, post-interview confirmation gate) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal (re-asks original question, says `resume`/`continue`, or re-issues prior selection). Implicit resumption is forbidden. The phase-transition question shapes ("Yes / Not now / Discuss / Back") in this skill already comply.
+
 ## Platform Detection
 
 ! Before resolving any config paths, detect the host OS from your environment context:
@@ -356,13 +360,38 @@ apply here too. Do not combine questions. See `skills/deft-directive-interview/S
 - Step 6: Ask strategy (default to USER.md Defaults; ask if this project needs different — show Available Strategies numbered list with descriptions and recommended marker)
 - Step 7: Ask coverage (default to USER.md Defaults; ask if this project needs different)
 - Step 8: Ask for project-specific rules (optional, same one-per-line format as Phase 1 custom rules)
-- Step 9: Ask branching preference:
+- Step 9: Ask branching preference (typed `plan.policy.allowDirectCommitsToMaster` flag per #746):
+
+  ! Render this as a deterministic numbered menu. Default `1. Branch-based`. Final two options MUST be `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md):
+
   > "Do you prefer branch-based workflow (create a feature branch for every change) or
   > trunk-based (commit directly to master)? Branch-based is the default and recommended
   > for teams; trunk-based is common for solo projects."
-  > 1. Branch-based ★ (recommended — default)
-  > 2. Trunk-based (direct commits to master)
-  If trunk-based: add `Allow direct commits to master: true` to the PROJECT-DEFINITION narratives
+  > 1. Branch-based ★ (recommended -- default; enforces feature branches via the deft branch-protection policy)
+  > 2. Trunk-based (direct commits to master) -- see capability-cost disclosure below
+  > 3. Discuss
+  > 4. Back
+
+  ! **Capability-cost disclosure (#746):** When the user picks option 2 (trunk-based), the agent MUST present the capability-cost disclosure verbatim BEFORE writing the typed flag, then re-prompt for explicit confirmation:
+
+  > "Capability-cost disclosure -- enabling direct commits to the default branch turns OFF the deft branch-protection policy. The pre-commit + pre-push hooks will no longer block default-branch commits, `task verify:branch` will pass on the default branch, and the skill-level guards in deft-directive-{swarm,review-cycle,pre-pr,release} will not halt for default-branch work. The change is reversible (`task policy:enforce-branches`) and is recorded to meta/policy-changes.log for auditability. The CI sanity check (head_ref != base_ref) remains independent and will continue to flag master->master PRs. Are you sure?"
+  > 1. Yes, opt out -- write `plan.policy.allowDirectCommitsToMaster = true`
+  > 2. No, keep branch-protection enforced -- write `plan.policy.allowDirectCommitsToMaster = false`
+  > 3. Discuss
+  > 4. Back
+
+  ! Default to option 2 (enforce). Explicit affirmative on option 1 is required to opt out -- a broad `proceed` does NOT satisfy this gate. The same affirmative-only rule applies as in `/deft:change` (`yes`, `confirmed`, `approve`).
+
+  ! Write the answer to `plan.policy.allowDirectCommitsToMaster` (typed boolean) on the PROJECT-DEFINITION vBRIEF. Default `false` (enforce branches) when the user picks option 2 OR omits the question entirely. Writing this typed surface is what the framework reads going forward; agents MUST NOT write the legacy free-form `Allow direct commits to master:` narrative key (#746 part A migrates the legacy narrative away).
+
+  ! **Re-running the interview detects the existing flag (#746 part G2):** If `vbrief/PROJECT-DEFINITION.vbrief.json` already exists and has `plan.policy.allowDirectCommitsToMaster` set, the interview MUST surface the current value (e.g. "Current setting: `allowDirectCommitsToMaster=false` (branch-protection ON)") and ask whether to keep it or change it before re-prompting. Do not silently overwrite an existing typed value.
+
+  ! **Slash-command alternatives (#746 part G2):** Once the project is set up, the typed flag can also be flipped via slash commands wrapping `task policy:*`:
+  - `/deft:policy:show` -- display the current resolved policy and source
+  - `/deft:policy:enforce-branches` -- set `allowDirectCommitsToMaster=false`
+  - `/deft:policy:allow-direct-commits` -- set `allowDirectCommitsToMaster=true` (requires `--confirm` to apply)
+
+  Each transition is recorded to `meta/policy-changes.log` for auditability.
 
 **Track 2 (middle ground) — 4 steps:**
 - Step 1: Ask project name (infer from build files or directory name, confirm)

@@ -23,6 +23,20 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - A bot reviewer (Greptile) has posted findings on an open PR
 - Dispatching a cloud agent to monitor and resolve PR review findings
 
+## Branch-Protection Policy Guard
+
+! Before entering the review/fix loop, run the skill-level branch-policy guard documented in `scripts/policy.py` / `scripts/preflight_branch.py` (#746 / #747). Halt before any state mutation if the project's `plan.policy.allowDirectCommitsToMaster` is unresolvable AND the operator has not set `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`. Concretely:
+
+```
+uv run python scripts/preflight_branch.py --project-root . --quiet || exit 1
+```
+
+or invoke `task verify:branch`. The skill MUST NOT modify files, push, or comment on the PR until the guard passes -- this catches the case where a malformed PROJECT-DEFINITION quietly disabled the policy and the agent would have committed directly to master mid-review.
+
+## Deterministic Questions Contract
+
+! Every numbered-menu prompt rendered in this skill (Phase 1 audit gates, Phase 2 Step 4 monitoring approach selection, Phase 5->6 ready-to-merge gate, Step 6 exit-condition prompts) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal (re-asking the original question, saying `resume`/`continue`, or re-issuing the prior selection). Implicit resumption is forbidden.
+
 ## Pre-Flight Check
 
 ! Before entering the review/fix loop, verify the Greptile configuration supports it:
@@ -129,6 +143,31 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 ! After pushing, the agent MUST autonomously poll for review updates and continue the review cycle without stopping to ask the user. Do not pause for confirmation, do not ask "should I continue?", do not wait for user input between push and review completion. The review/fix loop is designed to run to the exit condition without human intervention.
 
 ⊗ Push any additional commits — including unrelated fixes, doc updates, or lessons — while waiting for the bot to finish reviewing the current head. Every push re-triggers Greptile and resets the review clock. If you discover additional work while waiting, stage it locally but do NOT push until the current review completes.
+
+### Stall Detection Rubric (#564)
+
+! Track per poll: `startedAt` (timestamp of the first observation of the IN_PROGRESS check run for the current commit) and `commit.oid` (head SHA being reviewed). Both fields MUST be re-recorded every time the head SHA changes -- the rubric measures elapsed time on a single commit, not across the whole review cycle.
+
+! Expected duration baseline -- Greptile reviews typically complete in 2-5 minutes, with 7 minutes as the upper bound of normal. The escalation threshold is **3x expected = ~10 minutes** of continuous IN_PROGRESS on the same `commit.oid`. The 21-minute stall observed during the rc4 swarm cascade on PR #561 is the recurrence record; see [`../../meta/lessons.md`](../../meta/lessons.md) `## Greptile Review Stall Detection (2026-04)`.
+
+! When elapsed time on the current `commit.oid` exceeds 10 minutes (3x expected) without the IN_PROGRESS check transitioning to a terminal state, the agent MUST escalate to the user. The escalation message MUST include: (1) the PR number; (2) the head SHA being reviewed; (3) the elapsed time since `startedAt`; (4) the four canonical user-decision options.
+
+! User-decision options at escalation -- render as a deterministic numbered menu per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) (final two options `Discuss` + `Back`):
+
+  1. Wait another N minutes (user picks N).
+  2. Manually re-trigger Greptile by commenting `@greptileai` on the PR (logs the override in a PR comment for auditability per the next rule).
+  3. Skip the bot review for this cycle and exit the loop with a documented reason.
+  4. Cancel the review cycle entirely.
+  5. Discuss.
+  6. Back.
+
+! Auto-restart detection -- when the polling loop observes a NEW `startedAt` (Greptile dropped its prior check run and started a fresh one without any push from the agent, e.g. service-side restart), the agent MUST reset its elapsed-time clock to the new `startedAt` AND notify the user that an auto-restart was detected. Resetting the clock without notifying is forbidden -- the user needs to know the cycle effectively re-started.
+
+⊗ Auto-retrigger Greptile (empty commits, force-pushes, agent-posted `@greptileai` comments, status-check rebuilds) without explicit user approval. The escalation menu's option 2 is the ONLY supported re-trigger path, and even that requires the user to pick it.
+
+! Document any user-approved override in a brief PR comment for auditability -- e.g. `Note: review-cycle stall detected at <SHA> after <N> min; user approved manual re-trigger via @greptileai per skills/deft-directive-review-cycle Stall Detection Rubric (#564).` This makes the override visible to humans reviewing the PR history and to future agents that resume the cycle.
+
+⊗ Treat a stall as silent -- if the elapsed clock crosses the 10-minute threshold the agent MUST surface the menu, even if the agent is mid-poll. Continuing to poll past the threshold without user input is forbidden.
 
 ### Review Monitoring
 

@@ -130,6 +130,34 @@ Rules cascade with precedence (highest first). This is the **how-the-AI-behaves*
 
 Note: project **requirements** (`vbrief/specification.vbrief.json` + scope vBRIEFs in `vbrief/{proposed,pending,active,completed,cancelled}/`) describe **what to build** and are deliberately kept on a separate ladder from the rule cascade above. `ROADMAP.md` is the rendered backlog view of those requirements.
 
+## 🌲 Branch policy
+
+Deft enforces a feature-branch policy by default (#746, #747): direct commits to `master`/`main` are blocked and PRs whose `head_ref` equals `base_ref` are refused at the CI gate. The policy is governed by a typed flag on `vbrief/PROJECT-DEFINITION.vbrief.json`:
+
+```json
+{
+  "plan": {
+    "policy": { "allowDirectCommitsToMaster": false }
+  }
+}
+```
+
+Three enforcement surfaces back the rule:
+
+1. **Git hooks** — `.githooks/pre-commit` and `.githooks/pre-push` invoke `scripts/preflight_branch.py`. Activate them with `task setup` (idempotent `git config core.hooksPath .githooks`); verify with `task verify:hooks-installed`.
+2. **Pre-commit gate** — `task verify:branch` is wired into the `task check` aggregate so any local pre-commit pass flags a default-branch commit before it lands.
+3. **CI** — `.github/workflows/branch-gate.yml` refuses PRs whose `head_ref` equals `base_ref` (catches `master->master` PRs that the local hooks cannot see).
+
+Reconfigure via deterministic tasks (audited to `meta/policy-changes.log`):
+
+- `task policy:show` — display the resolved policy and its source.
+- `task policy:enforce-branches` — set `allowDirectCommitsToMaster=false`.
+- `task policy:allow-direct-commits -- --confirm` — set the typed flag to `true` after the capability-cost disclosure (branch-protection turns OFF). The deft-directive-setup interview Phase 2 Step 9 elicits the same choice with the same disclosure.
+
+Emergency bypass: set `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the current shell. The legacy `Allow direct commits to master:` narrative key is recognised at read time with a deprecation warning and is migrated to the typed surface on the next `task policy:*` write.
+
+See [`glossary.md`](./glossary.md) (Branch-protection policy / Policy audit log entries) for the canonical vocabulary and `skills/deft-directive-setup/SKILL.md` Phase 2 Step 9 for the interview disclosure copy.
+
 ## ⚙️ Platform Requirements
 
 **GitHub** is the primary supported SCM platform. Skills that interact with issues and PRs (`deft-directive-sync`, `deft-directive-swarm`, `deft-directive-review-cycle`, `deft-directive-refinement`, `deft-directive-release`) require the [GitHub CLI (`gh`)](https://cli.github.com/) to be installed and authenticated. Core framework features (setup, build, rendering, validation) work independently of any SCM platform.

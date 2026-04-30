@@ -19,6 +19,20 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! This skill requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** to be installed and authenticated. Issue fetching, PR creation, and post-merge verification all depend on `gh`.
 
+## Branch-Protection Policy Guard
+
+! Before any state mutation (creating worktrees, dispatching sub-agents, opening PRs), run the skill-level branch-policy guard documented in `scripts/policy.py` / `scripts/preflight_branch.py` (#746 / #747). Halt with the actionable disclosure message when the project's `plan.policy.allowDirectCommitsToMaster` is unresolvable AND `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT` is unset:
+
+```
+uv run python scripts/preflight_branch.py --project-root . --quiet || exit 1
+```
+
+or invoke `task verify:branch`. The swarm skill creates branches per agent so the guard is mostly informational here, but a malformed PROJECT-DEFINITION (missing `plan.policy` block AND no legacy narrative) is a fail-closed signal worth surfacing before the swarm spawns N agents.
+
+## Deterministic Questions Contract
+
+! Every numbered-menu prompt rendered in this skill (Phase 0 Step 0/5 source/approval gates, Phase 1 Step 3 file-overlap audit gate, Phase 5->6 ready-to-merge gate) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. Implicit resumption is forbidden.
+
 ## When to Use
 
 - User says "run agents", "parallel agents", "swarm", or "launch N agents on stories"

@@ -1,0 +1,35 @@
+version: '3'
+
+# tasks/policy.yml -- reconfiguration surface for the typed branch policy
+# (#746) and the detection-bound gate (#747). Per `conventions/task-caching.md`,
+# tasks that accept user-facing recovery flags via `{{.CLI_ARGS}}` (here:
+# `--confirm`, `--note "<text>"`) MUST NOT declare `sources:` / `generates:`
+# -- the cached cmds: skip would silently discard the recovery flag.
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  show:
+    desc: "Show the resolved branch-commit policy (#746). Reads plan.policy.allowDirectCommitsToMaster from vbrief/PROJECT-DEFINITION.vbrief.json."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/policy.py" show
+
+  enforce-branches:
+    desc: "Set plan.policy.allowDirectCommitsToMaster=false (enforce feature branches). Audits to meta/policy-changes.log. (#746)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/policy_set.py" enforce-branches {{.CLI_ARGS}}
+
+  allow-direct-commits:
+    desc: "Set plan.policy.allowDirectCommitsToMaster=true (capability-cost: branch-protection OFF). Requires --confirm to apply. (#746)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/policy_set.py" allow-direct-commits {{.CLI_ARGS}}

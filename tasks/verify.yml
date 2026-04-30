@@ -24,3 +24,31 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/rule_ownership_lint.py" --root "{{.DEFT_ROOT}}"
+
+  branch:
+    desc: "Detection-bound branch-protection gate (#747). Reads plan.policy.allowDirectCommitsToMaster from PROJECT-DEFINITION."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      # `--allow-missing-project-definition` keeps the framework's own check
+      # green for fresh checkouts that have not yet run `task setup` (the
+      # bootstrap fallback path documented in #746 acceptance criterion E).
+      # Production projects with PROJECT-DEFINITION present will still get
+      # the full enforcement -- the flag is a no-op when the file exists.
+      - uv run python "{{.DEFT_ROOT}}/scripts/preflight_branch.py" --project-root "{{.USER_WORKING_DIR}}" --allow-missing-project-definition
+
+  hooks-installed:
+    desc: "Assert git core.hooksPath==.githooks (run `task setup` if this fails) (#747)."
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      # Inline POSIX-sh under go-task's mvdan/sh interpreter; cross-platform.
+      - |
+        configured=$(git config --get core.hooksPath || true)
+        if [ "$configured" = ".githooks" ]; then
+          echo "✓ core.hooksPath=.githooks"
+        else
+          echo "❌ hooks not installed; run task setup" >&2
+          echo "  (got core.hooksPath='$configured', expected '.githooks')" >&2
+          exit 1
+        fi

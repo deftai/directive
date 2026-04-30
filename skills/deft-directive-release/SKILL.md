@@ -21,6 +21,20 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! GitHub as the SCM platform; the **GitHub CLI (`gh`)** must be installed and authenticated. The full pipeline plus the rehearsal target (`task release:e2e`) all dispatch through `gh`.
 
+## Branch-Protection Policy Guard
+
+! Before any Phase 1 state mutation, run the skill-level branch-policy guard documented in `scripts/policy.py` / `scripts/preflight_branch.py` (#746 / #747). Releases run on the configured base branch (default `master`) so the operator MUST be on the explicit-opt-in side of the policy OR have set `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the release session. Concretely:
+
+```
+uv run python scripts/preflight_branch.py --project-root . --quiet || exit 1
+```
+
+or invoke `task verify:branch`. This is the canonical surface that surfaces the policy state to the operator before the pipeline starts writing files. The release pipeline's other safety surfaces (the dirty-tree guard, base-branch check, `task ci:local` gate) remain independent of this check.
+
+## Deterministic Questions Contract
+
+! Every numbered-menu prompt rendered in this skill (Phase 1 version-bump magnitude check, Phase 2 dry-run review `yes`/`back`/`quit`, Phase 5 `publish`/`rollback`/`defer`) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. Existing `back`/`quit` options remain valid; this contract simply adds `Discuss` as a peer alongside `Back`. The Discuss-pause semantic is documented verbatim in the contract -- implicit resumption is forbidden.
+
 ## When to Use
 
 - User says "release", "cut release", "v0.X.Y", "publish release", "ship a release"
