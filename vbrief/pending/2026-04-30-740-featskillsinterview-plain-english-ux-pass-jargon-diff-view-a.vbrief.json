@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #740"
+  },
+  "plan": {
+    "title": "feat(skills,interview): plain-English UX pass — jargon, diff view, approval actions, button labels",
+    "status": "pending",
+    "narratives": {
+      "Description": "feat(skills,interview): plain-English UX pass — jargon, diff view, approval actions, button labels",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/740",
+      "Labels": "documentation, skills, adoption-blocker"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/740",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #740: feat(skills,interview): plain-English UX pass — jargon, diff view, approval actions, button labels"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-04-30T18:27:09Z"
+  }
+}

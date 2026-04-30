@@ -5,6 +5,21 @@
 
 # Roadmap
 
+## Phase 1 -- Fix Now
+
+Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX.
+
+- **#564** -- review-cycle: add stall detection rubric, escalate to user after threshold
+- **#565** -- spec-validate: v0.6 envelope message + wire VALID_VBRIEF_VERSIONS into check (P2 cleanup)
+- **#573** -- prd:render: task -- --force silently no-ops because go-task cache layer wins before script --force reaches the code
+- **#736** -- fix(tasks/core.yml): task build cross-platform artifact parity defect (Windows zip lacks excludes; vestigial-vs-internal purpose unclear)
+- **#738** -- feat(skills,interview): IP/legal risk flagging during research/interview phase for projects built on third-party IP
+- **#739** -- feat(skills,build): pre-build cost & budget transparency phase between SPECIFICATION approval and build kickoff
+- **#740** -- feat(skills,interview): plain-English UX pass — jargon, diff view, approval actions, button labels
+- **#746** -- feat(setup,skills,policy): no-feature-branch opt-out — interview disclosure, skill-level guard, and reversible reconfiguration
+- **#747** -- feat(scripts,tasks,hooks): detection-bound branch gate — verify:branch + git hooks reading PROJECT-DEFINITION policy field
+- **#756** -- fix(scripts/reconcile_issues.py): apply_lifecycle_fixes does not dedupe vBRIEFs that reference multiple closed issues (spurious file-missing failures, misleading exit 1)
+
 ## Phase 2
 
 Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files.
@@ -347,4 +362,5 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#741** -- fix(scripts/release.py): bump VERSION literal in run during release flow -- `[completed]`
 - **#730** -- Release CHANGELOG promotion accepts --summary blockquote (per [AXIOM] deterministic tier) -- `[completed]`
 - **#754** -- fix(scripts/reconcile_issues.py, scripts/release.py): vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues -- `[completed]`
+- **#764** -- fix(scripts/reconcile_issues.py): bump ISSUE_FETCH_LIMIT 200 -> 1000 to clear truncation warning on 232-issue corpus -- `[completed]`
 

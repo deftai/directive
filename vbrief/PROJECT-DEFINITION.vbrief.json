@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-04-30T18:02:36Z"
+    "updated": "2026-04-30T18:27:20Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -847,6 +847,166 @@
               "uri": "https://github.com/deftai/directive/issues/480",
               "type": "x-vbrief/github-issue",
               "title": "Companion: #480 (agent trap defenses; same source paper as #481)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-30-564-review-cycle-add-stall-detection-rubric-escalate-to-user-aft",
+        "title": "review-cycle: add stall detection rubric, escalate to user after threshold",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-30-564-review-cycle-add-stall-detection-rubric-escalate-to-user-aft.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/564",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #564: review-cycle: add stall detection rubric, escalate to user after threshold"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-30-565-spec-validate-v06-envelope-message-wire-valid-vbrief-version",
+        "title": "spec-validate: v0.6 envelope message + wire VALID_VBRIEF_VERSIONS into check (P2 cleanup)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-30-565-spec-validate-v06-envelope-message-wire-valid-vbrief-version.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/565",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #565: spec-validate: v0.6 envelope message + wire VALID_VBRIEF_VERSIONS into check (P2 cleanup)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-30-573-prdrender-task-force-silently-no-ops-because-go-task-cache-l",
+        "title": "prd:render: task -- --force silently no-ops because go-task cache layer wins before script --force reaches the code",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-30-573-prdrender-task-force-silently-no-ops-because-go-task-cache-l.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/573",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #573: prd:render: task -- --force silently no-ops because go-task cache layer wins before script --force reaches the code"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-30-736-fixtaskscoreyml-task-build-cross-platform-artifact-parity-de",
+        "title": "fix(tasks/core.yml): task build cross-platform artifact parity defect (Windows zip lacks excludes; vestigial-vs-internal purpose unclear)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-30-736-fixtaskscoreyml-task-build-cross-platform-artifact-parity-de.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/736",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #736: fix(tasks/core.yml): task build cross-platform artifact parity defect (Windows zip lacks excludes; vestigial-vs-internal purpose unclear)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-30-738-featskillsinterview-iplegal-risk-flagging-during-researchint",
+        "title": "feat(skills,interview): IP/legal risk flagging during research/interview phase for projects built on third-party IP",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-30-738-featskillsinterview-iplegal-risk-flagging-during-researchint.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/738",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #738: feat(skills,interview): IP/legal risk flagging during research/interview phase for projects built on third-party IP"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-30-739-featskillsbuild-pre-build-cost-budget-transparency-phase-bet",
+        "title": "feat(skills,build): pre-build cost & budget transparency phase between SPECIFICATION approval and build kickoff",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-30-739-featskillsbuild-pre-build-cost-budget-transparency-phase-bet.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/739",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #739: feat(skills,build): pre-build cost & budget transparency phase between SPECIFICATION approval and build kickoff"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-30-740-featskillsinterview-plain-english-ux-pass-jargon-diff-view-a",
+        "title": "feat(skills,interview): plain-English UX pass — jargon, diff view, approval actions, button labels",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-30-740-featskillsinterview-plain-english-ux-pass-jargon-diff-view-a.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/740",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #740: feat(skills,interview): plain-English UX pass — jargon, diff view, approval actions, button labels"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-30-746-featsetupskillspolicy-no-feature-branch-opt-out-interview-di",
+        "title": "feat(setup,skills,policy): no-feature-branch opt-out — interview disclosure, skill-level guard, and reversible reconfiguration",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-30-746-featsetupskillspolicy-no-feature-branch-opt-out-interview-di.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/746",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #746: feat(setup,skills,policy): no-feature-branch opt-out — interview disclosure, skill-level guard, and reversible reconfiguration"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-30-747-featscriptstaskshooks-detection-bound-branch-gate-verifybran",
+        "title": "feat(scripts,tasks,hooks): detection-bound branch gate — verify:branch + git hooks reading PROJECT-DEFINITION policy field",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-30-747-featscriptstaskshooks-detection-bound-branch-gate-verifybran.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/747",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #747: feat(scripts,tasks,hooks): detection-bound branch gate — verify:branch + git hooks reading PROJECT-DEFINITION policy field"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-30-756-fixscriptsreconcile-issuespy-apply-lifecycle-fixes-does-not",
+        "title": "fix(scripts/reconcile_issues.py): apply_lifecycle_fixes does not dedupe vBRIEFs that reference multiple closed issues (spurious file-missing failures, misleading exit 1)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-30-756-fixscriptsreconcile-issuespy-apply-lifecycle-fixes-does-not.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/756",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #756: fix(scripts/reconcile_issues.py): apply_lifecycle_fixes does not dedupe vBRIEFs that reference multiple closed issues (spurious file-missing failures, misleading exit 1)"
             }
           ]
         }
@@ -5314,6 +5474,22 @@
               "uri": "https://github.com/deftai/directive/issues/720",
               "type": "x-vbrief/github-issue",
               "title": "Issue #720: e2e harness deepening (surfaced this defect during Decision A pre-release validation)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-30-764-fixscriptsreconcile-issuespy-bump-issue-fetch-limit-200-1000",
+        "title": "fix(scripts/reconcile_issues.py): bump ISSUE_FETCH_LIMIT 200 -> 1000 to clear truncation warning on 232-issue corpus",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-30-764-fixscriptsreconcile-issuespy-bump-issue-fetch-limit-200-1000.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/764",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #764: fix(scripts/reconcile_issues.py): bump ISSUE_FETCH_LIMIT 200 -> 1000 to clear truncation warning on 232-issue corpus"
             }
           ]
         }

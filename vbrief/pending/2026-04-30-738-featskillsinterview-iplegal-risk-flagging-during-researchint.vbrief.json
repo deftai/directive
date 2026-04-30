@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #738"
+  },
+  "plan": {
+    "title": "feat(skills,interview): IP/legal risk flagging during research/interview phase for projects built on third-party IP",
+    "status": "pending",
+    "narratives": {
+      "Description": "feat(skills,interview): IP/legal risk flagging during research/interview phase for projects built on third-party IP",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/738",
+      "Labels": "enhancement, skills, adoption-blocker"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/738",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #738: feat(skills,interview): IP/legal risk flagging during research/interview phase for projects built on third-party IP"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-04-30T18:27:09Z"
+  }
+}

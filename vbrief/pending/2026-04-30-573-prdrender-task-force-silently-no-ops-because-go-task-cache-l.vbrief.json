@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #573"
+  },
+  "plan": {
+    "title": "prd:render: task -- --force silently no-ops because go-task cache layer wins before script --force reaches the code",
+    "status": "pending",
+    "narratives": {
+      "Description": "prd:render: task -- --force silently no-ops because go-task cache layer wins before script --force reaches the code",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/573",
+      "Labels": "bug, rc3-feedback"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/573",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #573: prd:render: task -- --force silently no-ops because go-task cache layer wins before script --force reaches the code"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-04-30T18:27:08Z"
+  }
+}

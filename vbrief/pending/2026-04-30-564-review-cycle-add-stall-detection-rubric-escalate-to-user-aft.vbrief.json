@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #564"
+  },
+  "plan": {
+    "title": "review-cycle: add stall detection rubric, escalate to user after threshold",
+    "status": "pending",
+    "narratives": {
+      "Description": "review-cycle: add stall detection rubric, escalate to user after threshold",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/564",
+      "Labels": "bug"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/564",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #564: review-cycle: add stall detection rubric, escalate to user after threshold"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-04-30T18:27:07Z"
+  }
+}
