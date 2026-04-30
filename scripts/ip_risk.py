@@ -154,7 +154,10 @@ _MUSIC_AND_FILM: tuple[str, ...] = (
     "Beyonce",
     "Beyoncé",
     "Drake",
-    "BTS",
+    # NOTE: "BTS" was removed (Greptile P2 #775) -- it false-positives heavily
+    # on common software-industry uses (Build-Test-Ship, Behind-The-Scenes,
+    # bug-tracking systems). Re-add only with a K-pop-specific surrounding
+    # context check.
     "Spotify",
     "Netflix",
     "Hulu",
@@ -297,9 +300,13 @@ def ip_risk_scope_items(monetization_intent: str) -> list[dict[str, str]]:
 
     All three items are emitted regardless of monetization intent because
     even personal IP-adjacent projects can leak into commercial use over
-    time. The ``Acceptance`` narrative on each item is tightened when
-    ``monetization_intent == "commercial"`` to reflect the higher legal
-    bar (lawyer-confirmed terms, written license, etc.).
+    time. The ``Acceptance`` narrative on each item is tightened to the
+    commercial-level checklist (lawyer-confirmed terms, written license,
+    etc.) for **any intent other than ``"personal"``** -- the
+    wrong-side-of-safe policy means that ``"unknown"`` (interview hasn't
+    captured an explicit answer yet) inherits the stricter commercial
+    checklist. Only the explicit ``"personal"`` answer relaxes the
+    acceptance language.
 
     The returned items are plain dicts compatible with
     ``vBRIEF v0.6 PlanItem`` shape (``title``, ``status``, ``narrative``).
@@ -309,7 +316,14 @@ def ip_risk_scope_items(monetization_intent: str) -> list[dict[str, str]]:
     pipeline -- no spec_render.py modification is required.
     """
     intent = _validate_intent(monetization_intent)
-    commercial = intent == "commercial"
+    # Wrong-side-of-safe policy (Greptile P1 #775): treat anything other than
+    # the explicit `personal` answer as commercial-level. `unknown` (the
+    # interview is still asking the question) MUST inherit the stricter
+    # checklist so the spec carries lawyer-confirmed acceptance criteria
+    # by default. The interview MUST still resolve `unknown` -> `personal` /
+    # `commercial` before the confirmation gate; this is just the safe
+    # fallback for the scope-item shape if the call lands first.
+    commercial = intent != "personal"
 
     base_acceptance = (
         "Lawyer-confirmed wording before public release"

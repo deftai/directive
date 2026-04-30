@@ -59,7 +59,8 @@ research-phase notes) for terms in these categories:
 5. **Trademarked products** -- iPhone, Xbox, PlayStation, Lego, Coca-Cola,
    etc.
 6. **Music / film** -- artist names and platform names that are commonly
-   misappropriated (Taylor Swift, BTS, Spotify, Netflix, etc.).
+   misappropriated (Taylor Swift, Beyoncé, Drake, Spotify, Netflix, HBO,
+   etc.).
 
 ### Matching Rules
 
@@ -160,8 +161,12 @@ in `scripts/ip_risk.py` -- it returns the three items shaped for vBRIEF
 v0.6 PlanItem (`title`, `status`, `narrative`). All three items are
 emitted regardless of monetization intent because even personal
 IP-adjacent projects can leak into commercial use over time. The
-`Acceptance` narrative on each item is tightened when intent is
-`commercial` (lawyer-confirmed terms, written license, etc.).
+`Acceptance` narrative is tightened to the commercial-level checklist
+(lawyer-confirmed terms, written license, counsel-reviewed hosting) for
+**any intent other than `personal`** -- per the wrong-side-of-safe
+policy, `unknown` (interview hasn't captured an explicit answer yet)
+inherits the stricter checklist. Only the explicit `personal` answer
+relaxes the acceptance language.
 
 ### Item 1: Disclaimer Stub (`IP-1`)
 

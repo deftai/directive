@@ -106,11 +106,10 @@ class TestDetectIPTermsPositive:
 class TestDetectIPTermsNegative:
     """Generic / non-IP project descriptions MUST NOT trigger hits."""
 
-    def test_empty_string(self):
-        assert detect_ip_terms("") == []
-
-    def test_none_safe(self):
-        # Empty / falsy input must not crash.
+    def test_empty_string_safe(self):
+        # Empty input must not crash. The type annotation on detect_ip_terms
+        # is `text: str`, so callers MUST NOT pass `None`; the empty-string
+        # path is the falsy case the helper guards against.
         assert detect_ip_terms("") == []
 
     def test_generic_todo_app(self):
@@ -211,6 +210,31 @@ class TestScopeItemsBranching:
         # follow up to capture the explicit answer.
         items = ip_risk_scope_items("unknown")
         assert len(items) == 3
+
+    def test_unknown_intent_uses_commercial_level_criteria(self):
+        # Wrong-side-of-safe policy (Greptile P1 #775): when intent is
+        # ``unknown`` (interview hasn't resolved it yet), the protection
+        # scope items MUST carry the stricter commercial-level acceptance
+        # criteria so that an unresolved-intent path never produces a spec
+        # weaker than the policy mandates.
+        items = ip_risk_scope_items("unknown")
+        joined = " ".join(item["narrative"]["Acceptance"] for item in items)
+        lower = joined.lower()
+        # Lawyer / counsel review must appear at least once -- the
+        # personal-only acceptance language ("reviewed by the project owner",
+        # "self-hosted private use only") is forbidden under unknown intent.
+        assert "lawyer" in lower or "counsel" in lower, (
+            "unknown-intent acceptance criteria must inherit commercial-level "
+            "language (lawyer-confirmed / counsel-reviewed)"
+        )
+        # Personal-only hosting language must NOT be the only path.
+        hosting_item = next(
+            item for item in items if "hosting" in item["title"].lower()
+        )
+        assert "counsel" in hosting_item["narrative"]["Acceptance"].lower(), (
+            "unknown-intent hosting acceptance must require counsel review "
+            "(commercial-level), not self-hosted-private-use-only"
+        )
 
     def test_invalid_intent_raises(self):
         with pytest.raises(ValueError):
