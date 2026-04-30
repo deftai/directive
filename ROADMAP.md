@@ -20,12 +20,6 @@ Near-up structural priority -- post-cutover stabilization, structural unblockers
 - **#481** -- feat(patterns): add patterns/ directory and patterns/llm-app.md for LLM application standards
 - **#762** -- feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there
 
-## Phase 3
-
-- **#622** -- feat(skills): communication bridge filter for deft-directive-review-cycle (intent-aware finding triage)
-- **#623** -- feat(context): name and encode Context Rot as a first-class concept with mitigations
-- **#761** -- docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy
-
 ## Phase 3 -- Documentation & Content Fixes
 
 Quick doc/content fixes that don't require code changes.
@@ -47,6 +41,9 @@ Quick doc/content fixes that don't require code changes.
 
 - **#53** -- deft-install should bootstrap the current directory by default
 - **#77** -- Allow users to change technical rating (1/2/3) when starting a new project
+- **#622** -- feat(skills): communication bridge filter for deft-directive-review-cycle (intent-aware finding triage)
+- **#623** -- feat(context): name and encode Context Rot as a first-class concept with mitigations
+- **#761** -- docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy
 
 ## Phase 4
 

@@ -12,7 +12,7 @@
     "items": [],
     "metadata": {
       "x-migrator": {
-        "Phase": "Phase 3",
+        "Phase": "Phase 3 -- Documentation & Content Fixes",
         "Description": "Reframe install documentation around webinstaller (https://webinstaller.fly.dev/) + npm/pip (#11), demote Go binary installer to legacy. Supersedes the cancelled code-signing brief.",
         "Description_source": "chore/proposed-vbrief-cleanup discussion",
         "Status_source": "filed-during-cleanup"
