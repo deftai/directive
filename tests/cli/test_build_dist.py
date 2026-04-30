@@ -387,8 +387,10 @@ class TestExcludeExtra:
             f"--exclude-extra=secrets did not prune secrets/: "
             f"{[m for m in members if 'secrets' in m.split('/')]}"
         )
-        # Sanity: secret.txt at the root is NOT pruned by --exclude-extra
-        # (it only matches directory components, not bare filenames).
+        # Sanity: secret.txt at the root is NOT pruned by --exclude-extra=secrets
+        # because the exclude name ("secrets") does not match the file basename
+        # ("secret.txt"). File-level pruning applies EXACT basename matching, so
+        # partial-name overlap is NOT sufficient.
         assert "deft/secret.txt" in members
 
     def test_multiple_extras_split_on_comma(self, fake_project: Path):
