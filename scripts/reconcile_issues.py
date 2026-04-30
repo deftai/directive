@@ -466,6 +466,22 @@ def apply_lifecycle_fixes(
                 failures.append(f"failed to parse {rel_path}: {exc}")
                 continue
 
+            # Greptile P1: check for a destination conflict BEFORE
+            # mutating the source file on disk. Previously the
+            # write-back happened before ``dst.exists()`` so a
+            # collision left the source vBRIEF in an inconsistent
+            # half-completed state (``plan.status = "completed"``
+            # stamped on disk but the file still in its original
+            # lifecycle folder). Now the conflict guard fires before
+            # any write, so the source file stays byte-identical when
+            # the move cannot proceed.
+            (vbrief_dir / "completed").mkdir(parents=True, exist_ok=True)
+            if dst.exists():
+                failures.append(
+                    f"target already exists in completed/: {filename}"
+                )
+                continue
+
             # Stamp status + updated.
             plan = data.setdefault("plan", {})
             plan["status"] = "completed"
@@ -488,16 +504,6 @@ def apply_lifecycle_fixes(
                 failures.append(f"failed to write {rel_path}: {exc}")
                 continue
 
-            # Ensure target folder exists; then git mv.
-            (vbrief_dir / "completed").mkdir(parents=True, exist_ok=True)
-            if dst.exists():
-                # Conflict: a file with the same name already lives in
-                # completed/. Surface as a failure so the operator can
-                # disambiguate manually.
-                failures.append(
-                    f"target already exists in completed/: {filename}"
-                )
-                continue
             if not _git_mv(src, dst, cwd=cwd):
                 failures.append(f"failed to move {rel_path} -> completed/")
                 continue

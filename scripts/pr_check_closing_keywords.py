@@ -94,7 +94,11 @@ _NEGATION_MARKERS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\bnot\s+", re.IGNORECASE),
     re.compile(r"n't\s+", re.IGNORECASE),
     re.compile(r"\bnever\s+", re.IGNORECASE),
-    re.compile(r"\bintentionally\s+(?:not\s+)?", re.IGNORECASE),
+    # Greptile P2: the trailing ``?`` made ``not`` optional, so a literal
+    # ``intentionally Closes #N`` (author explicitly calling out a
+    # deliberate close) was mis-classified as a negation context. Drop
+    # the ``?`` so only ``intentionally not ...`` matches.
+    re.compile(r"\bintentionally\s+not\s+", re.IGNORECASE),
     re.compile(r"\bdoes\s+not\b", re.IGNORECASE),
     re.compile(r"\bdo\s+not\b", re.IGNORECASE),
     re.compile(r"\bwon't\b", re.IGNORECASE),
@@ -281,7 +285,13 @@ def fetch_pr_body(pr_number: int, repo: str | None = None) -> str | None:
     except json.JSONDecodeError as exc:
         print(f"Error: failed to parse gh CLI output: {exc}", file=sys.stderr)
         return None
-    body = payload.get("body", "")
+    # Greptile P1: GitHub returns ``{"body": null}`` for PRs without a
+    # description; ``payload.get("body", "")`` only substitutes ``""``
+    # when the key is ABSENT, so a present-but-null value would yield
+    # ``None`` and the isinstance guard below would fire, mis-mapping a
+    # valid empty body to ``EXIT_CONFIG_ERROR``. Coerce ``None`` to ``""``
+    # before the type guard so the empty-body case lints clean.
+    body = payload.get("body") or ""
     if not isinstance(body, str):
         print(
             f"Error: unexpected body shape: {type(body).__name__}",
