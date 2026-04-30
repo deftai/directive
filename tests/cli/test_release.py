@@ -146,6 +146,13 @@ def _make_config(project: Path, **overrides):
         "skip_tag": True,
         "skip_release": True,
         "allow_dirty": False,
+        # #734: existing pipeline tests pre-date the vBRIEF lifecycle
+        # gate and operate on a synthetic temp_project tree with no
+        # ``vbrief/`` folder. Default the override here so each test
+        # body remains focused on the step it is actually exercising;
+        # the dedicated tests for the gate live in
+        # ``tests/cli/test_release_vbrief_lifecycle.py``.
+        "allow_vbrief_drift": True,
     }
     defaults.update(overrides)
     return release.ReleaseConfig(**defaults)
@@ -1035,10 +1042,10 @@ class TestCreateGithubReleaseDraftDefault:
         # The Step-10 dry-run line MUST NOT include --draft when draft=False.
         # We check the line specifically (other lines may mention draft).
         step10_line = next(
-            (line for line in captured.err.splitlines() if "[10/11]" in line),
+            (line for line in captured.err.splitlines() if "[11/12]" in line),
             "",
         )
-        assert step10_line, "Step 10 line missing from dry-run output"
+        assert step10_line, "Step 11 (gh release) line missing from dry-run output"
         assert "--draft" not in step10_line
 
 
@@ -1581,8 +1588,10 @@ class TestPipelineVerifyGate:
             f"in-flight version; observed: {invocations}"
         )
         captured = capsys.readouterr().err
-        # Step 11 line must be emitted with the verify-draft label.
-        assert "[11/11]" in captured
+        # Step 12 line must be emitted with the verify-draft label
+        # (formerly Step 11; renumbered when the #734 lifecycle gate
+        # landed at Step 3 and bumped _TOTAL_STEPS 11 -> 12).
+        assert "[12/12]" in captured
         assert "Verify draft state" in captured
         assert "#724" in captured
 

@@ -358,33 +358,38 @@ class TestPipelineSummaryThreaded:
         # Step 4 dry-run line MUST surface a `summary:` token + the
         # supplied wording (truncated). The truncation is lenient -- we
         # assert the leading bytes are present.
-        step4_line = next(
-            (line for line in captured.err.splitlines() if "[4/11]" in line),
+        # CHANGELOG promotion is Step 5 after the #734 lifecycle gate
+        # was inserted at Step 3 (was Step 4 pre-#734).
+        step5_line = next(
+            (line for line in captured.err.splitlines() if "[5/12]" in line),
             "",
         )
-        assert step4_line, "Step 4 line missing from dry-run output"
-        assert "summary:" in step4_line.lower(), (
-            f"Step 4 dry-run line MUST surface the summary state; observed: {step4_line!r}"
+        assert step5_line, "CHANGELOG step line missing from dry-run output"
+        assert "summary:" in step5_line.lower(), (
+            "CHANGELOG step dry-run line MUST surface the summary state; "
+            f"observed: {step5_line!r}"
         )
         # The leading 30 chars of the wording must be present in the line
         # so operators can verify they didn't mis-type the canonical narrative.
-        assert "Lands the new --summary blockquote" in step4_line, (
-            f"Step 4 dry-run line MUST surface the supplied wording; observed: {step4_line!r}"
+        assert "Lands the new --summary blockquote" in step5_line, (
+            "CHANGELOG step dry-run line MUST surface the supplied wording; "
+            f"observed: {step5_line!r}"
         )
 
     def test_pipeline_no_summary_threaded(self, temp_project, capsys):
-        """Without summary, Step 4 dry-run line announces 'no summary'."""
+        """Without summary, CHANGELOG dry-run line announces 'no summary'."""
         config = _make_config(
             temp_project, dry_run=True, skip_tag=True, skip_release=True
         )
         rc = release.run_pipeline(config)
         assert rc == release.EXIT_OK
         captured = capsys.readouterr()
-        step4_line = next(
-            (line for line in captured.err.splitlines() if "[4/11]" in line),
+        step5_line = next(
+            (line for line in captured.err.splitlines() if "[5/12]" in line),
             "",
         )
-        assert step4_line
-        assert "no summary" in step4_line.lower(), (
-            f"Step 4 dry-run line MUST announce missing summary; observed: {step4_line!r}"
+        assert step5_line
+        assert "no summary" in step5_line.lower(), (
+            "CHANGELOG step dry-run line MUST announce missing summary; "
+            f"observed: {step5_line!r}"
         )

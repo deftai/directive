@@ -102,6 +102,8 @@ def _make_config(project: Path, **overrides):
         "skip_tag": True,
         "skip_release": True,
         "allow_dirty": False,
+        # #734: skip the new lifecycle gate (no vbrief/ folder in this fixture).
+        "allow_vbrief_drift": True,
     }
     defaults.update(overrides)
     return release.ReleaseConfig(**defaults)

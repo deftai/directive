@@ -153,6 +153,16 @@ class ReleaseConfig:
     # and is the canonical source for the Phase 8 Slack ``*Summary*:``
     # slot per ``skills/deft-directive-release/SKILL.md``.
     summary: str | None = None
+    # #734: vBRIEF-lifecycle reconciliation gate escape hatch. The
+    # pipeline runs ``check_vbrief_lifecycle_sync`` between Step 2
+    # (branch guard) and Step 4 (CI) so a release cannot ship with
+    # closed-issue vBRIEFs still living in proposed/ / pending/ /
+    # active/. The flag is the explicit-acknowledgment escape hatch
+    # (analogous to ``--allow-dirty`` for the dirty-tree gate) for
+    # cases where the operator has reviewed the drift and chooses to
+    # proceed -- e.g. a hot-fix release where the lifecycle reconcile
+    # is intentionally deferred to the next refinement pass.
+    allow_vbrief_drift: bool = False
 
 
 # ---- argument parsing -------------------------------------------------------
@@ -190,6 +200,19 @@ def _build_parser() -> argparse.ArgumentParser:
         "--allow-dirty",
         action="store_true",
         help="Bypass the dirty-tree pre-flight (use only for rehearsals).",
+    )
+    parser.add_argument(
+        "--allow-vbrief-drift",
+        action="store_true",
+        default=False,
+        help=(
+            "Bypass the vBRIEF-lifecycle sync pre-flight gate (#734). "
+            "Use only when the operator has reviewed the drift and "
+            "explicitly accepts that closed-issue vBRIEFs may still "
+            "live in non-completed/ folders. The clean path is to "
+            "run `task reconcile:issues -- --apply-lifecycle-fixes` "
+            "first."
+        ),
     )
     # #720: e2e-rehearsal escape hatches.
     parser.add_argument(
@@ -366,7 +389,76 @@ def current_branch(project_root: Path) -> str:
     return result.stdout.strip()
 
 
-# ---- Step 3 -- CI ----------------------------------------------------------
+# ---- Step 3 -- vBRIEF lifecycle sync (#734) --------------------------------
+
+
+def check_vbrief_lifecycle_sync(
+    project_root: Path, repo: str
+) -> tuple[bool, int, str]:
+    """Reconcile vBRIEF references against open GitHub issues (#734).
+
+    Wraps ``scripts/reconcile_issues.py`` so the release pipeline can
+    refuse to cut a release while there are closed-issue vBRIEFs still
+    living in non-``completed/`` lifecycle folders -- the v0.21.0 cut
+    surfaced 13 stranded vBRIEFs (8 cycle-relevant + 5 historical
+    residue) post-publish, the recurrence record this gate prevents.
+
+    Returns ``(ok, mismatch_count, reason)``:
+      - ``ok=True, mismatch_count=0`` -- clean (Section (c) is empty).
+      - ``ok=False, mismatch_count=N`` -- N closed-issue vBRIEFs are NOT
+        in ``completed/``; operator must run
+        ``task reconcile:issues -- --apply-lifecycle-fixes`` (or pass
+        ``--allow-vbrief-drift`` to override).
+      - ``ok=False, mismatch_count=-1`` -- configuration error (vbrief
+        directory missing, ``gh`` unavailable, etc.).
+
+    The function delegates to the existing ``reconcile_issues``
+    helpers so a single source of truth governs both the standalone
+    CLI and the pipeline gate.
+    """
+    # Local import to avoid pulling reconcile_issues + its transitive
+    # imports at module load time (fast unit-test startup matters in
+    # this codebase). The script-relative import path mirrors the
+    # convention used by the e2e harness and rollback helpers.
+    scripts_dir = Path(__file__).resolve().parent
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        import reconcile_issues  # type: ignore  # noqa: PLC0415
+    except ImportError as exc:
+        return False, -1, f"reconcile_issues import failed: {exc}"
+
+    vbrief_dir = project_root / "vbrief"
+    if not vbrief_dir.is_dir():
+        return False, -1, f"vbrief directory not found at {vbrief_dir}"
+
+    issue_to_vbriefs = reconcile_issues.scan_vbrief_dir(vbrief_dir)
+    open_issues = reconcile_issues.fetch_open_issues(repo, cwd=project_root)
+    if open_issues is None:
+        return False, -1, "failed to fetch open issues from gh"
+
+    report = reconcile_issues.reconcile(issue_to_vbriefs, open_issues)
+    # Section (c) entries that are NOT already in completed/ -- the
+    # apply-mode candidates. Reverse mismatches (issues that reopened
+    # after a vBRIEF landed in completed/) are intentionally NOT
+    # counted here per #734 (operator decision; report-only).
+    mismatches = [
+        rel
+        for entry in report.get("no_open_issue", [])
+        for rel in entry.get("vbrief_files", [])
+        if not rel.startswith("completed/")
+    ]
+    count = len(mismatches)
+    if count == 0:
+        return True, 0, "no mismatches"
+    return False, count, (
+        f"{count} closed-issue vBRIEF(s) not in completed/: "
+        f"{', '.join(mismatches[:5])}"
+        + (" ..." if count > 5 else "")
+    )
+
+
+# ---- Step 4 -- CI ----------------------------------------------------------
 
 
 def task_binary_available() -> bool:
@@ -1062,7 +1154,7 @@ def verify_release_draft(
 # ---- Pipeline orchestration ------------------------------------------------
 
 
-_TOTAL_STEPS = 11
+_TOTAL_STEPS = 12
 
 
 def _emit(step: int, label: str, status: str, *, file=None) -> None:
@@ -1116,27 +1208,59 @@ def run_pipeline(config: ReleaseConfig) -> int:
             )
             return EXIT_VIOLATION
 
-    # Step 3: CI.
+    # Step 3: vBRIEF lifecycle sync (#734).
+    label = "Pre-flight vBRIEF lifecycle sync"
+    if config.allow_vbrief_drift:
+        _emit(3, label, "SKIP (--allow-vbrief-drift)")
+    elif config.dry_run:
+        _emit(
+            3,
+            label,
+            "DRYRUN (would scan vbrief/ + gh open issues for closed-issue mismatches)",
+        )
+    else:
+        ok, mismatch_count, reason = check_vbrief_lifecycle_sync(
+            project_root, config.repo
+        )
+        if ok:
+            _emit(3, label, "OK (no mismatches)")
+        elif mismatch_count == -1:
+            _emit(3, label, f"FAIL ({reason})")
+            return EXIT_CONFIG_ERROR
+        else:
+            _emit(
+                3,
+                label,
+                (
+                    f"FAIL ({mismatch_count} mismatches; "
+                    "run task reconcile:issues -- --apply-lifecycle-fixes "
+                    "to fix, or pass --allow-vbrief-drift to override)"
+                ),
+            )
+            print(reason, file=sys.stderr)
+            return EXIT_VIOLATION
+
+    # Step 4: CI.
     label = "Pre-flight CI (task ci:local | fallback task check)"
     if config.skip_ci:
         # #720: e2e rehearsal opts out -- CI is covered by the unit-test
         # suite at every commit on master, not by re-running it inside
         # the auto-created temp repo.
-        _emit(3, label, "SKIP (--skip-ci)")
+        _emit(4, label, "SKIP (--skip-ci)")
     elif config.dry_run:
-        _emit(3, label, "DRYRUN (would run task ci:local with task check fallback)")
+        _emit(4, label, "DRYRUN (would run task ci:local with task check fallback)")
     else:
         ok, reason = run_ci(project_root)
         if ok:
-            _emit(3, label, f"OK ({reason})")
+            _emit(4, label, f"OK ({reason})")
         else:
-            _emit(3, label, f"FAIL ({reason})")
+            _emit(4, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 4: CHANGELOG promotion.
+    # Step 5: CHANGELOG promotion.
     label = "CHANGELOG promotion"
     if not changelog_path.is_file():
-        _emit(4, label, f"FAIL (CHANGELOG.md not found at {changelog_path})")
+        _emit(5, label, f"FAIL (CHANGELOG.md not found at {changelog_path})")
         return EXIT_CONFIG_ERROR
     original_changelog = changelog_path.read_text(encoding="utf-8")
     try:
@@ -1148,7 +1272,7 @@ def run_pipeline(config: ReleaseConfig) -> int:
             summary=config.summary,
         )
     except ValueError as exc:
-        _emit(4, label, f"FAIL ({exc})")
+        _emit(5, label, f"FAIL ({exc})")
         return EXIT_CONFIG_ERROR
     # Surface whether a summary was supplied so operators can validate
     # the wording during Phase 2 dry-run before any file is written
@@ -1164,7 +1288,7 @@ def run_pipeline(config: ReleaseConfig) -> int:
         summary_note = " no summary"
     if config.dry_run:
         _emit(
-            4,
+            5,
             label,
             f"DRYRUN (would rewrite {changelog_path.name}: "
             f"## [Unreleased] -> ## [{version}] - {today}; new compare link added;"
@@ -1172,53 +1296,53 @@ def run_pipeline(config: ReleaseConfig) -> int:
         )
     else:
         changelog_path.write_text(promoted_changelog, encoding="utf-8")
-        _emit(4, label, f"OK (## [{version}] - {today};{summary_note})")
+        _emit(5, label, f"OK (## [{version}] - {today};{summary_note})")
 
-    # Step 5: ROADMAP refresh.
+    # Step 6: ROADMAP refresh.
     label = "ROADMAP refresh (task roadmap:render)"
     if config.dry_run:
-        _emit(5, label, "DRYRUN (would run task roadmap:render)")
+        _emit(6, label, "DRYRUN (would run task roadmap:render)")
     else:
         ok, reason = refresh_roadmap(project_root)
-        if ok:
-            _emit(5, label, f"OK ({reason})")
-        else:
-            _emit(5, label, f"FAIL ({reason})")
-            return EXIT_VIOLATION
-
-    # Step 6: build dist (#723: pin DEFT_RELEASE_VERSION so the artifact
-    # filename matches the in-flight release version, not the stale
-    # Taskfile literal or the most-recent git tag; #720: --skip-build
-    # opts out for e2e rehearsals where build artefacts are not needed
-    # for the draft-release verification step).
-    label = f"Build dist (task build, DEFT_RELEASE_VERSION={version})"
-    if config.skip_build:
-        _emit(6, label, "SKIP (--skip-build)")
-    elif config.dry_run:
-        _emit(
-            6,
-            label,
-            f"DRYRUN (would run `task build` with DEFT_RELEASE_VERSION={version})",
-        )
-    else:
-        ok, reason = run_build(project_root, version)
         if ok:
             _emit(6, label, f"OK ({reason})")
         else:
             _emit(6, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 7: commit release artifacts (CHANGELOG + ROADMAP) before tagging
+    # Step 7: build dist (#723: pin DEFT_RELEASE_VERSION so the artifact
+    # filename matches the in-flight release version, not the stale
+    # Taskfile literal or the most-recent git tag; #720: --skip-build
+    # opts out for e2e rehearsals where build artefacts are not needed
+    # for the draft-release verification step).
+    label = f"Build dist (task build, DEFT_RELEASE_VERSION={version})"
+    if config.skip_build:
+        _emit(7, label, "SKIP (--skip-build)")
+    elif config.dry_run:
+        _emit(
+            7,
+            label,
+            f"DRYRUN (would run `task build` with DEFT_RELEASE_VERSION={version})",
+        )
+    else:
+        ok, reason = run_build(project_root, version)
+        if ok:
+            _emit(7, label, f"OK ({reason})")
+        else:
+            _emit(7, label, f"FAIL ({reason})")
+            return EXIT_VIOLATION
+
+    # Step 8: commit release artifacts (CHANGELOG + ROADMAP) before tagging
     # so the annotated tag and GitHub release anchor at the promoted commit
     # rather than the pre-release HEAD (#74 Greptile P1). Skipped together
     # with tagging when --skip-tag is set, since a committed-but-untagged
     # state would still leave the working tree dirty post-pipeline.
     label = f"Commit release artifacts ({', '.join(_RELEASE_ARTIFACTS)})"
     if config.skip_tag:
-        _emit(7, label, "SKIP (--skip-tag)")
+        _emit(8, label, "SKIP (--skip-tag)")
     elif config.dry_run:
         _emit(
-            7,
+            8,
             label,
             f"DRYRUN (would run `git add {' '.join(_RELEASE_ARTIFACTS)}` + "
             f"`git commit -m '{_release_commit_subject(version)}'`)",
@@ -1226,53 +1350,53 @@ def run_pipeline(config: ReleaseConfig) -> int:
     else:
         ok, reason = commit_release_artifacts(project_root, version)
         if ok:
-            _emit(7, label, f"OK ({reason})")
-        else:
-            _emit(7, label, f"FAIL ({reason})")
-            return EXIT_VIOLATION
-
-    # Step 8: git tag.
-    label = f"Tag v{version}"
-    if config.skip_tag:
-        _emit(8, label, "SKIP (--skip-tag)")
-    elif config.dry_run:
-        _emit(8, label, f"DRYRUN (would run `git tag -a v{version} -m 'Release v{version}'`)")
-    else:
-        ok, reason = create_tag(project_root, version)
-        if ok:
             _emit(8, label, f"OK ({reason})")
         else:
             _emit(8, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 9: push branch + tag atomically.
-    label = f"Push {config.base_branch} + v{version} to origin (atomic)"
+    # Step 9: git tag.
+    label = f"Tag v{version}"
     if config.skip_tag:
         _emit(9, label, "SKIP (--skip-tag)")
     elif config.dry_run:
-        _emit(
-            9,
-            label,
-            f"DRYRUN (would run `git push --atomic origin {config.base_branch} v{version}`)",
-        )
+        _emit(9, label, f"DRYRUN (would run `git tag -a v{version} -m 'Release v{version}'`)")
     else:
-        ok, reason = push_release(project_root, version, config.base_branch)
+        ok, reason = create_tag(project_root, version)
         if ok:
             _emit(9, label, f"OK ({reason})")
         else:
             _emit(9, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 10: GitHub release.
+    # Step 10: push branch + tag atomically.
+    label = f"Push {config.base_branch} + v{version} to origin (atomic)"
+    if config.skip_tag:
+        _emit(10, label, "SKIP (--skip-tag)")
+    elif config.dry_run:
+        _emit(
+            10,
+            label,
+            f"DRYRUN (would run `git push --atomic origin {config.base_branch} v{version}`)",
+        )
+    else:
+        ok, reason = push_release(project_root, version, config.base_branch)
+        if ok:
+            _emit(10, label, f"OK ({reason})")
+        else:
+            _emit(10, label, f"FAIL ({reason})")
+            return EXIT_VIOLATION
+
+    # Step 11: GitHub release.
     draft_suffix = " (draft)" if config.draft else " (PUBLIC)"
     label = f"GitHub release v{version}{draft_suffix}"
     create_succeeded = False
     if config.skip_release:
-        _emit(10, label, "SKIP (--skip-release)")
+        _emit(11, label, "SKIP (--skip-release)")
     elif config.dry_run:
         draft_flag = " --draft" if config.draft else ""
         _emit(
-            10,
+            11,
             label,
             (
                 f"DRYRUN (would run `gh release create v{version} "
@@ -1285,25 +1409,25 @@ def run_pipeline(config: ReleaseConfig) -> int:
             project_root, version, config.repo, notes, draft=config.draft
         )
         if ok:
-            _emit(10, label, f"OK ({reason})")
+            _emit(11, label, f"OK ({reason})")
             create_succeeded = True
         else:
-            _emit(10, label, f"FAIL ({reason})")
+            _emit(11, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 11: post-create verify-isDraft gate (#724). Defense in depth
+    # Step 12: post-create verify-isDraft gate (#724). Defense in depth
     # against the v0.21.0 incident where a manual recovery created a
     # public release for ~90s before being flipped. Skipped when the
     # create step itself was skipped, when the operator opted into a
     # direct-publish via --no-draft, and during dry-run.
     label = f"Verify draft state of v{version} (#724 defense-in-depth)"
     if config.skip_release:
-        _emit(11, label, "SKIP (--skip-release)")
+        _emit(12, label, "SKIP (--skip-release)")
     elif not config.draft:
-        _emit(11, label, "SKIP (--no-draft; intentional public release)")
+        _emit(12, label, "SKIP (--no-draft; intentional public release)")
     elif config.dry_run:
         _emit(
-            11,
+            12,
             label,
             (
                 f"DRYRUN (would poll `gh release view v{version} --json isDraft`"
@@ -1315,15 +1439,15 @@ def run_pipeline(config: ReleaseConfig) -> int:
         # Should be unreachable -- the create branch returns
         # EXIT_VIOLATION on failure -- but guard explicitly for the
         # benefit of unit-test stubs that bypass the early return.
-        _emit(11, label, "SKIP (release was not created in this run)")
+        _emit(12, label, "SKIP (release was not created in this run)")
     else:
         ok, reason = verify_release_draft(
             project_root, version, config.repo
         )
         if ok:
-            _emit(11, label, f"OK ({reason})")
+            _emit(12, label, f"OK ({reason})")
         else:
-            _emit(11, label, f"FAIL ({reason})")
+            _emit(12, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
     print(
@@ -1364,6 +1488,7 @@ def main(argv: list[str] | None = None) -> int:
         skip_ci=args.skip_ci,
         skip_build=args.skip_build,
         summary=args.summary,
+        allow_vbrief_drift=args.allow_vbrief_drift,
     )
     return run_pipeline(config)
 

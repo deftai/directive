@@ -26,3 +26,21 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/pr_check_protected_issues.py" {{.CLI_ARGS}}
+
+  # pr:check-closing-keywords -- Layer 0 (prevention) closing-keyword
+  # negation-context lint introduced by #737. Refuses to push when the
+  # PR body or any commit message contains a closing-keyword token in a
+  # negation / quotation / example / code-block context. Pairs with the
+  # existing Layer 3 (recovery) ``pr:check-protected-issues`` (#701).
+  #
+  # Per ``conventions/task-caching.md`` (#574): NO ``sources:`` /
+  # ``generates:`` because user-facing recovery flags (``--pr``,
+  # ``--body-file``, ``--commits-file``, ``--allow-known-false-positives``)
+  # MUST NOT be silently swallowed by go-task's incremental-build cache.
+  check-closing-keywords:
+    desc: "Scan PR body + commit messages for closing-keyword substrings in negation/quotation/example contexts that would trigger Layer 0 false-positive auto-closes (#737)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/pr_check_closing_keywords.py" {{.CLI_ARGS}}

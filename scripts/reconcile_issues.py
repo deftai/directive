@@ -6,9 +6,11 @@ Usage:
     uv run python scripts/reconcile_issues.py [options]
 
 Options:
-    --vbrief-dir DIR       Path to vbrief/ directory
-    --repo OWNER/REPO      GitHub repo
-    --format json|markdown Output format
+    --vbrief-dir DIR             Path to vbrief/ directory
+    --repo OWNER/REPO            GitHub repo
+    --format json|markdown       Output format
+    --apply-lifecycle-fixes      Move closed-issue vBRIEFs to completed/
+                                 (idempotent; #734)
 
 Reads all vBRIEF files in the lifecycle folders (proposed/, pending/, active/,
 completed/, cancelled/) and extracts github-issue references from the
@@ -19,16 +21,27 @@ Produces a structured report with three sections:
     (b) Open issues with NO matching vBRIEF (unlinked)
     (c) vBRIEFs with NO matching open issue (potentially resolved)
 
-Exit codes:
-    0 -- report generated successfully
-    1 -- error (missing dependencies, API failure, etc.)
-    2 -- usage error
+When ``--apply-lifecycle-fixes`` (#734) is passed, Section (c) entries that
+are not already in ``completed/`` are auto-resolved: the vBRIEF JSON gains
+``plan.status = "completed"``, ``vBRIEFInfo.updated`` is stamped with the
+current UTC ISO timestamp, and the file is ``git mv``\'d (or filesystem-
+moved) into ``completed/``. The flag is idempotent: a second run is a
+no-op once every closed-issue vBRIEF lives in ``completed/``. Reverse
+mismatches (vBRIEF in ``completed/`` whose issue was reopened) are
+report-only -- never auto-reverse-moved.
 
-Story #322, RFC #309.
+Exit codes:
+    0 -- report generated successfully (or apply-mode clean / all moves OK)
+    1 -- error (missing dependencies, API failure, partial apply failure)
+    2 -- usage / configuration error
+
+Story #322, RFC #309. Apply-mode: #734.
 """
 
+import datetime as _dt
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -340,6 +353,160 @@ def format_markdown(report: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Apply-mode helpers (#734 -- --apply-lifecycle-fixes)
+# ---------------------------------------------------------------------------
+
+
+def _utc_now_iso() -> str:
+    """Return the current UTC time as an ISO-8601 string with ``Z`` suffix.
+
+    The shape matches the existing migrator / refinement-skill stamp format
+    (``2026-04-29T22:48:22Z``). Seconds-precision is sufficient -- the
+    field is human-auditable, not a high-resolution timestamp.
+    """
+    return _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _git_mv(src: Path, dst: Path, *, cwd: Path | None = None) -> bool:
+    """Move ``src`` -> ``dst`` using ``git mv`` when possible.
+
+    Falls back to ``shutil.move`` when ``git`` is not on PATH or the
+    project is not a git repo (e.g. a synthetic test fixture). Returns
+    True on success. Raises no exception -- the caller maps a False
+    return to a per-file failure for the apply-mode summary.
+    """
+    if shutil.which("git") is None:
+        try:
+            shutil.move(str(src), str(dst))
+            return True
+        except OSError:
+            return False
+    try:
+        result = subprocess.run(
+            ["git", "mv", str(src), str(dst)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(cwd) if cwd is not None else None,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        try:
+            shutil.move(str(src), str(dst))
+            return True
+        except OSError:
+            return False
+    if result.returncode != 0:
+        # Fall back to filesystem move (synthetic fixtures / non-git
+        # trees). This keeps the apply-mode robust against partial
+        # repo layouts while still preferring git semantics when
+        # available.
+        try:
+            shutil.move(str(src), str(dst))
+            return True
+        except OSError:
+            return False
+    return True
+
+
+def apply_lifecycle_fixes(
+    vbrief_dir: Path,
+    report: dict,
+    *,
+    project_root: Path | None = None,
+) -> tuple[int, int, list[str]]:
+    """Move Section (c) entries to ``completed/`` and stamp status / updated.
+
+    Iterates ``report['no_open_issue']`` and for each vBRIEF file path
+    that is NOT already in ``completed/``:
+
+    1. Read the JSON.
+    2. Set ``plan.status = "completed"``.
+    3. Stamp ``vBRIEFInfo.updated`` with the current UTC ISO timestamp.
+    4. Write the file back (UTF-8, no BOM, trailing newline).
+    5. ``git mv`` (or filesystem-move) the file into ``completed/``.
+
+    The function is intentionally idempotent: a second call with a
+    fresh report (where every entry already lives in ``completed/``)
+    is a no-op. Reverse mismatches (vBRIEFs already in ``completed/``
+    whose issue was reopened) are skipped silently here -- they are
+    surfaced in the report's Section (a) / (c) split, but auto-reverse
+    is intentionally NOT performed (operator decision per #734).
+
+    Returns ``(moved, skipped, failures)`` where ``failures`` is a list
+    of human-readable failure descriptions (empty on the happy path).
+    """
+    moved = 0
+    skipped = 0
+    failures: list[str] = []
+    cwd = project_root if project_root is not None else vbrief_dir.parent
+
+    for entry in report.get("no_open_issue", []):
+        for rel_path in entry.get("vbrief_files", []):
+            try:
+                folder, filename = rel_path.split("/", 1)
+            except ValueError:
+                failures.append(
+                    f"unexpected vBRIEF path shape (no folder): {rel_path!r}"
+                )
+                continue
+            if folder == "completed":
+                # Already terminal; no-op.
+                skipped += 1
+                continue
+
+            src = vbrief_dir / folder / filename
+            dst = vbrief_dir / "completed" / filename
+            if not src.is_file():
+                failures.append(f"vBRIEF file missing: {rel_path}")
+                continue
+
+            try:
+                data = json.loads(src.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError) as exc:
+                failures.append(f"failed to parse {rel_path}: {exc}")
+                continue
+
+            # Stamp status + updated.
+            plan = data.setdefault("plan", {})
+            plan["status"] = "completed"
+            stamp = _utc_now_iso()
+            info = data.setdefault("vBRIEFInfo", {})
+            info["updated"] = stamp
+            # Mirror the migrator pattern: also stamp ``plan.updated`` so
+            # downstream tooling that prefers the plan-level field stays
+            # current. Pre-existing files without the key gain it.
+            plan["updated"] = stamp
+
+            # Write back (UTF-8, no BOM, trailing newline; matches the
+            # canonical writer style elsewhere in the script).
+            try:
+                src.write_text(
+                    json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+                    encoding="utf-8",
+                )
+            except OSError as exc:
+                failures.append(f"failed to write {rel_path}: {exc}")
+                continue
+
+            # Ensure target folder exists; then git mv.
+            (vbrief_dir / "completed").mkdir(parents=True, exist_ok=True)
+            if dst.exists():
+                # Conflict: a file with the same name already lives in
+                # completed/. Surface as a failure so the operator can
+                # disambiguate manually.
+                failures.append(
+                    f"target already exists in completed/: {filename}"
+                )
+                continue
+            if not _git_mv(src, dst, cwd=cwd):
+                failures.append(f"failed to move {rel_path} -> completed/")
+                continue
+            moved += 1
+
+    return moved, skipped, failures
+
+
+# ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
 
@@ -380,6 +547,18 @@ def main() -> int:
         choices=["json", "markdown"],
         default="markdown",
         help="Output format (default: markdown)",
+    )
+    parser.add_argument(
+        "--apply-lifecycle-fixes",
+        action="store_true",
+        default=False,
+        help=(
+            "Apply Section (c) fixes: move closed-issue vBRIEFs to "
+            "completed/, stamp plan.status=completed and "
+            "vBRIEFInfo.updated. Idempotent on re-run. Reverse "
+            "mismatches (completed/ vBRIEF + reopened issue) are "
+            "report-only -- never auto-reverse-moved. (#734)"
+        ),
     )
 
     args = parser.parse_args()
@@ -429,6 +608,31 @@ def main() -> int:
         print(format_json(report))
     else:
         print(format_markdown(report))
+
+    # #734: apply mode -- move Section (c) vBRIEFs to completed/.
+    if args.apply_lifecycle_fixes:
+        candidates = sum(
+            1
+            for entry in report.get("no_open_issue", [])
+            for rel in entry.get("vbrief_files", [])
+            if not rel.startswith("completed/")
+        )
+        moved, skipped, failures = apply_lifecycle_fixes(
+            vbrief_dir, report, project_root=project_root
+        )
+        total = moved + skipped + len(failures)
+        print(
+            f"[{moved}/{candidates}] vBRIEFs reconciled "
+            f"(moved={moved}, already-completed={skipped}, "
+            f"failures={len(failures)})",
+            file=sys.stderr,
+        )
+        for f in failures:
+            print(f"  -- FAIL: {f}", file=sys.stderr)
+        if failures:
+            return 1
+        # Suppress unused-name warning for ``total``; kept for log clarity.
+        del total
 
     return 0
 

@@ -283,7 +283,7 @@ When code like `migrate_vbrief.py::_is_user_customized()` decides preservation v
 
 ## GitHub Closing-Keyword False-Positive in Negation Context (2026-04)
 
-**Source:** PR #697 -- issue #642 (a tracking umbrella for PR #401) was auto-closed on squash merge despite the PR body intentionally avoiding closing keywords
+**Source:** PR #697 -- issue #642 (a tracking umbrella for PR #401) was auto-closed on squash merge despite the PR body intentionally avoiding closing keywords. Recurrence record extended in PR #735 (#737 deterministic encoding gap-closer); see the third bullet below.
 
 **1. GitHub's closing-keyword parser is substring-based -- the literal token `Closes #N` MUST NOT appear in the PR body even inside a negation, quotation, or example**
 
@@ -301,7 +301,9 @@ The PR body for #697 contained the parenthetical `` (Intentionally not `Closes #
 
 The existing post-merge verification rule (Lesson: PR Merge Hygiene #1, #167) was framed around closing-keyword failures (issues that should have closed but didn't). The opposite failure mode -- issues that should have stayed open but were auto-closed -- is just as real and is caught by the same check. After every squash merge, MUST verify the state of every issue mentioned in the PR body matches intent: closed if a closing keyword was used; open if only `Refs` was used. If an issue was closed in error, reopen it with a comment referencing the PR and explaining why it should remain open (e.g. tracking umbrella, partial scope). (#697)
 
-**Cross-reference:** existing lesson "PR Merge Hygiene" #1 (#167); `scm/github.md` PR conventions; `skills/deft-directive-review-cycle/SKILL.md` Post-Merge Verification.
+**3. Recurrence (#735): the squash-commit body for that PR contained a negation-context clause referencing #734 in a way that auto-closed it on merge despite intent (the issue was the parent for the in-flight #737 work and had to be reopened manually). #737 closes this gap structurally with a deterministic pre-PR lint (`scripts/pr_check_closing_keywords.py`, surfaced via `task pr:check-closing-keywords`) that scans both the PR body AND every commit message for closing-keyword tokens followed by `#\d+` in negation / quotation / example / code-block contexts and refuses to push when findings surface. The lint is wired into `skills/deft-directive-pre-pr/SKILL.md` Phase 4 (Diff) and cross-referenced from `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 as the Layer 0 (prevention) surface alongside the existing Layer 3 (recovery) `task pr:check-protected-issues` (#701).**
+
+**Cross-reference:** existing lesson "PR Merge Hygiene" #1 (#167); `scm/github.md` PR conventions; `skills/deft-directive-review-cycle/SKILL.md` Post-Merge Verification; `skills/deft-directive-pre-pr/SKILL.md` Phase 4 (Layer 0 prevention, #737); `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 1 (Layer 3 recovery, #701).
 
 ## GitHub Closing-Keyword False-Positive Layer 3 -- Persistent closingIssuesReferences Link (2026-04)
 
@@ -322,3 +324,13 @@ The existing post-merge verification rule (Lesson: PR Merge Hygiene #1, #167) wa
 **Why this is a short cross-reference, not a full prose rule:** per the Rule Authority [AXIOM] block in `main.md`, every rule MUST use the strongest applicable layer (deterministic > Taskfile > vBRIEF > RFC2119 > prose). This lessons entry exists for discoverability only -- the rule body lives in the swarm SKILL section above and the template artifact, with the content tests as the deterministic enforcement layer.
 
 **Cross-references:** `skills/deft-directive-swarm/SKILL.md` Phase 6 Sub-Agent Role Separation (primary encoding); `templates/swarm-greptile-poller-prompt.md` (template artifact); `skills/deft-directive-review-cycle/SKILL.md` (the skill the poller embodies end-to-end); precedent encoding pattern Layer 3 (#701); session anchor #721; recurrence PRs #722 / #726 / #727; this lesson (#727).
+
+## vBRIEF Lifecycle Drift on Release (2026-04)
+
+**Source:** v0.21.0 cut session -- post-publish reconciliation surfaced 13 stranded vBRIEFs (8 cycle-relevant + 5 historical residue) whose origin GitHub issues were closed but whose vBRIEF files still lived in `proposed/` / `pending/` / `active/`. Operators consistently forgot the manual `task scope:complete` move step between merge and release, so each cut accreted lifecycle drift the next release inherited.
+
+**Canonical encoding (strongest-applicable layer):** the operative `!` MUST rules and `⊗` MUST NOT anti-patterns live in `skills/deft-directive-release/SKILL.md` Phase 1 (pre-flight) and the deterministic gate at `scripts/release.py::check_vbrief_lifecycle_sync` wired as Step 3 (between branch guard at Step 2 and CI at Step 4) of the 12-step pipeline. The gate refuses the release with `EXIT_VIOLATION` (1) on any Section (c) mismatch (closed-issue vBRIEF in a non-`completed/` folder) unless the operator explicitly passes `--allow-vbrief-drift` (analogous to `--allow-dirty`). The clean recovery path is `task reconcile:issues -- --apply-lifecycle-fixes` (#734) which reads each Section (c) entry, sets `plan.status = "completed"`, stamps `vBRIEFInfo.updated`, and `git mv`'s the file into `completed/` -- idempotent on re-run, and tolerant of both legacy bare `github-issue` and canonical `x-vbrief/github-issue` reference shapes.
+
+**Why this is a short cross-reference, not a full prose rule:** per the Rule Authority [AXIOM] block in `main.md`, every rule MUST use the strongest applicable layer (deterministic > Taskfile > vBRIEF > RFC2119 > prose). The rule body lives in the deterministic gate (`scripts/release.py::check_vbrief_lifecycle_sync` + the apply-mode helpers in `scripts/reconcile_issues.py`); this lessons entry exists for discoverability + recurrence-record citation only.
+
+**Cross-references:** `skills/deft-directive-release/SKILL.md` Phase 1 (primary encoding); `scripts/release.py::check_vbrief_lifecycle_sync` (deterministic gate); `scripts/reconcile_issues.py::apply_lifecycle_fixes` (clean-recovery surface); `scripts/release.py::ReleaseConfig.allow_vbrief_drift` (escape hatch); v0.21.0 cut session anchor; this lesson (#734).
