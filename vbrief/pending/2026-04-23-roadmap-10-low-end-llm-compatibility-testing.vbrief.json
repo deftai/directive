@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Low-end LLM compatibility testing",
-    "status": "proposed",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -18,6 +18,14 @@
         "Status_source": "orphan: proposed default",
         "SourceConflict": "missing-from-spec"
       }
-    }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/759",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #759: testing: low-end / quantised LLM compatibility validation + min model size docs"
+      }
+    ],
+    "updated": "2026-04-30T15:44:28Z"
   }
 }

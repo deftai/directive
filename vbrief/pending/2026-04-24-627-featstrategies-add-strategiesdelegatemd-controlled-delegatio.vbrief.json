@@ -1,0 +1,46 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #627: add strategies/delegate.md plus wiring into interview.md / speckit.md exit conditions."
+  },
+  "plan": {
+    "title": "feat(strategies): add strategies/delegate.md -- controlled delegation framework for agent-driven implementation",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "Phase 2",
+      "Description": "Author strategies/delegate.md per #627 (controlled delegation model, atomicity test, interview exit condition, mandatory human-review categories, relationships to other strategies). Source: 'Professional Software Developers Don't Vibe, They Control' (arXiv 2512.14012, UCSD/Cornell field study, N=13 + N=99). Cross-cutting effect: shifts the exit condition of interview/speckit so this is NOT a single-file task in practice.",
+      "Acceptance": "strategies/delegate.md exists with the five sections from #627; strategies/interview.md and strategies/speckit.md gate completion on the atomicity test (no task forces an unresolved design decision); yolo.md/rapid.md note explicit opt-out from delegate.md; AGENTS.md routes the delegate keyword to the new strategy; implementation MUST get explicit user sign-off on the mandatory-human-review category list before they land as `!` rules.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/627",
+      "Scope": "Primary: new strategies/delegate.md. Secondary: small wiring edits to strategies/interview.md and strategies/speckit.md to gate on atomicity test. Optional: AGENTS.md routing trigger (/deft:run:delegate); cross-refs from interview.md/speckit.md/yolo.md/rapid.md."
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2",
+        "PhaseDescription": "Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files.",
+        "Description": "Add strategies/delegate.md and wire its atomicity test into interview/speckit exit conditions. Cross-cutting effect on every spec-generating workflow.",
+        "Description_source": "deftai/directive#627",
+        "Status_source": "filed-during-cleanup",
+        "Rationale": "Phase 2 (rather than Phase 3) because the atomicity test changes the interview/speckit exit condition -- knock-on effect across every spec-generating workflow. Discriminator from Phase 3 content additions (#622, #623): cross-cutting effect on multiple strategies, not bounded to a single file."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/627",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #627: feat(strategies): add strategies/delegate.md -- controlled delegation framework for agent-driven implementation"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/622",
+        "type": "x-vbrief/github-issue",
+        "title": "Companion: #622 (communication bridge filter; same theme of agent-handoff boundary)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/623",
+        "type": "x-vbrief/github-issue",
+        "title": "Companion: #623 (Context Rot; bounded sub-task decomposition aligns with atomicity test)"
+      }
+    ],
+    "updated": "2026-04-30T17:20:21Z"
+  }
+}

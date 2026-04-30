@@ -18,7 +18,8 @@
       "Risk": "(1) Without the discussion gate the swarm picks up an under-specified RFC and burns time on conflicting interpretations. (2) Backwards-compat with the existing speckit Phase 4 emission is non-trivial -- the RFC must not break the per-phase scope vBRIEF emission contract from #436. (3) Cross-skill coordination (build / interview) means the RFC's outcome affects multiple skill files; a multi-PR rollout is likely.",
       "Outcome": "Acceptance: (1) RFC discussion phase reaches close-out with the four open design questions settled; (2) plan.items[] in this vBRIEF are rewritten as concrete swarm-ready leaves post-discussion; (3) at least one leaf demonstrates a working `task spec:phase0` (or equivalent) for the deft repo's own spec; (4) the #233 vBRIEF item `phase-0-generated-per-phase-gates` references this RFC's outcome and unblocks; (5) `task check` passes with whatever new tasks land.",
       "Test": "Verification deferred to per-leaf items post-discussion. RFC validation: discussion notes appended to plan.narratives.Discussion; final plan.items[] reflect settled design.",
-      "Action": "Pre-swarm step: run skills/deft-directive-discuss/SKILL.md (or equivalent) on this vBRIEF before any implementation work. Once discussion closes, this vBRIEF moves to vbrief/pending/ via task scope:promote, and the new leaf items become harvestable."
+      "Action": "Pre-swarm step: run skills/deft-directive-discuss/SKILL.md (or equivalent) on this vBRIEF before any implementation work. Once discussion closes, this vBRIEF moves to vbrief/pending/ via task scope:promote, and the new leaf items become harvestable.",
+      "Urgency": "This RFC is the upstream gate for 3 of the 6 remaining items in the #233 More Determinism brief: HARD-blocks `phase-0-generated-per-phase-gates` and SOFT-blocks `task-ci-local` and `task-release`. Half of the #233 tail sits idle until the discussion phase runs. Running discussion is therefore a near-term priority distinct from this brief's lifecycle position (which stays in proposed/ until discussion concludes per its own self-gate)."
     },
     "items": [
       {
@@ -47,13 +48,21 @@
       }
     ],
     "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2",
+        "PhaseDescription": "Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files."
+      },
       "x-tracking": {
         "parent_epic": "#635",
         "split_authority": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
         "swarm_ready": false,
         "needs_discussion": true,
-        "blocks": "vbrief/pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.vbrief.json::phase-0-generated-per-phase-gates",
-        "blocked_by": "PR #401 trim merge (clears the determinism design surface so this RFC owns the topic)"
+        "blocks": [
+          "vbrief/pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.vbrief.json::phase-0-generated-per-phase-gates (HARD)",
+          "vbrief/pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.vbrief.json::task-ci-local (SOFT)",
+          "vbrief/pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.vbrief.json::task-release (SOFT)"
+        ],
+        "blocked_by": "PR #401 trim merge: CLEARED 2026-04-28 (determinism design surface freed). RFC stays in proposed/ per its own self-gate -- promotion to pending/ is gated on discussion phase concluding the 4 open design questions, NOT on any external dependency."
       }
     },
     "references": [

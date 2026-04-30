@@ -7,10 +7,24 @@
 
 ## Phase 2
 
+Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files.
+
 - **#624** -- feat(swarm): encode writes-single-threaded principle and named manager-child anti-patterns in deft-swarm
+- **#627** -- feat(strategies): add strategies/delegate.md -- controlled delegation framework for agent-driven implementation
 - **#628** -- chore(sync): complete Phase 6c LegacyArtifacts review for v0.20.0 self-migration (120 sections deferred)
 - **#629** -- chore(conventions): document migration-artifact exclusion pattern for consumer content-linting tests
 - **#630** -- migrator: auto-invoke render tasks at end of task migrate:vbrief
+- **#635** -- Events: behavioral wiring (3 items: session interrupt/resume pair, plan:approved, legacy:detected)
+- **#635** -- Events: detection-bound wiring (5 events with existing detectors)
+- **#635** -- Rule Ownership Map: data file + lint enforcement (replaces REFERENCES.md prose section)
+- **#481** -- feat(patterns): add patterns/ directory and patterns/llm-app.md for LLM application standards
+- **#762** -- feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there
+
+## Phase 3
+
+- **#622** -- feat(skills): communication bridge filter for deft-directive-review-cycle (intent-aware finding triage)
+- **#623** -- feat(context): name and encode Context Rot as a first-class concept with mitigations
+- **#761** -- docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy
 
 ## Phase 3 -- Documentation & Content Fixes
 
@@ -25,6 +39,7 @@ Quick doc/content fixes that don't require code changes.
 - **#194** -- User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
 - **#258** -- Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)
 - **#82** -- Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)
+- **#757** -- Update `strategies/interview.md` to probe language/tool choices through the contract lens -- when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)
 
 ### Philosophy & Positioning
 
@@ -37,6 +52,8 @@ Quick doc/content fixes that don't require code changes.
 
 - **#128** -- CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)
 - **#228** -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)
+- **#759** -- Low-end LLM compatibility testing
+- **#760** -- Upgrade GitHub Actions to Node.js 24
 
 ## Phase 5 -- Package Distribution & Install UX
 
@@ -63,6 +80,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#9** -- Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)
 - **#95** -- Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks
 - **#96** -- [Compliance] Config schema + compliance-aware constitution templates
+- **#758** -- **#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution
 
 ## Completed
 
@@ -317,6 +335,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#638** -- refinement: batch roadmap/project renders during multi-item triage instead of rerendering after every promotion -- `[completed]`
 - **#639** -- issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6 -- `[completed]`
 - **#641** -- roadmap:render should sort Phase X sections numerically instead of preserving incidental file order -- `[completed]`
+- **#642** -- PR #401 trim tracker (hygiene merge anchor) -- `[completed]`
 - **#720** -- Deepen release_e2e rehearsal to a full task release + rollback mirror against an auto-created+destroyed temp repo -- `[completed]`
 - **#721** -- Resolve gh absolute path before subprocess.run in release scripts (Windows PATHEXT fix) -- `[completed]`
 - **#723** -- release: task build uses the actual release version (#723) -- `[completed]`

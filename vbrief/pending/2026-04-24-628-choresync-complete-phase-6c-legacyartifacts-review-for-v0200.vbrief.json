@@ -14,7 +14,8 @@
     "items": [],
     "metadata": {
       "x-migrator": {
-        "Phase": "Phase 2"
+        "Phase": "Phase 2",
+        "PhaseDescription": "Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files."
       }
     },
     "references": [

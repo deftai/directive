@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "**#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution",
-    "status": "proposed",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -19,6 +19,14 @@
         "Status_source": "orphan: proposed default",
         "SourceConflict": "missing-from-spec"
       }
-    }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/758",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #758: teach: add teach strategy and lessons-evolution follow-up"
+      }
+    ],
+    "updated": "2026-04-30T15:32:06Z"
   }
 }

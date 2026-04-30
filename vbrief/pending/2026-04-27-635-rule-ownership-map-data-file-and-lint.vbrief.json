@@ -8,7 +8,7 @@
   "plan": {
     "id": "635-rule-ownership-map",
     "title": "Rule Ownership Map: data file + lint enforcement (replaces REFERENCES.md prose section)",
-    "status": "proposed",
+    "status": "pending",
     "planRef": "#635",
     "narratives": {
       "Problem": "PR #401 originally proposed a Rule Ownership Map as a descriptive prose section inside REFERENCES.md, mapping each framework rule (in main.md, AGENTS.md, SKILL.md prose) to its owning file and authority. Per canonical #642 workflow comment locked decisions, that prose section is being removed by Unit B during the trim because descriptive prose mapping decays under agent pressure -- agents move rules without updating the map, and there's no enforcement mechanism. The replacement: a structural data file consumed by a lint check that fails CI when a rule moves without a corresponding map update.",
@@ -47,12 +47,16 @@
       }
     ],
     "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2",
+        "PhaseDescription": "Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files."
+      },
       "x-tracking": {
         "parent_epic": "#635",
         "split_authority": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
         "swarm_ready": true,
         "blocks": null,
-        "blocked_by": "PR #401 trim merge (removes the descriptive Rule Ownership Map prose from REFERENCES.md so the data file becomes the source of truth)"
+        "blocked_by": "PR #401 trim merge: CLEARED 2026-04-28 (descriptive Rule Ownership Map prose removed from REFERENCES.md). Independent of the events siblings (different file surface)."
       }
     },
     "references": [

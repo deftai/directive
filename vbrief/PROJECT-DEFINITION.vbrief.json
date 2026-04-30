@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-04-29T21:05:53Z"
+    "updated": "2026-04-30T17:52:19Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -38,180 +38,6 @@
         }
       },
       {
-        "id": "2026-04-23-post-v020-roadmap-phase-restore",
-        "title": "Restore pre-v0.20 Phase 3-6 forward-plan structure in ROADMAP.md",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-post-v020-roadmap-phase-restore.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/commit/3925468",
-              "type": "x-vbrief/spec-section",
-              "title": "pre-migration ROADMAP.md at v0.20.0-pre-self-migration checkpoint"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-1-rename-purge-remaining-warping-references-from",
-        "title": "Rename: purge remaining \"Warping\" references from README.md, `warping.sh`, Taskfile.yml; reframe README per #89 resolution (#84 Phase 2, blocked on #89)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-1-rename-purge-remaining-warping-references-from.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-10-low-end-llm-compatibility-testing",
-        "title": "Low-end LLM compatibility testing",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-10-low-end-llm-compatibility-testing.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-11-upgrade-github-actions-to-node-js-24",
-        "title": "Upgrade GitHub Actions to Node.js 24",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-11-upgrade-github-actions-to-node-js-24.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-12-84-phase-3-deft-as-teacher-teach-strategy-lessons",
-        "title": "**#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-12-84-phase-3-deft-as-teacher-teach-strategy-lessons.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-13-llm-assisted-content-validation",
-        "title": "LLM-assisted content validation",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-13-llm-assisted-content-validation.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-14-self-upgrade-to-deft-directive-product-branding",
-        "title": "Self-upgrade to Deft Directive product (branding, public docs, distribution packaging)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-14-self-upgrade-to-deft-directive-product-branding.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-2-clean-leaked-personal-files",
-        "title": "Clean leaked personal files:",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-2-clean-leaked-personal-files.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-3-update-strategies-interview-md-to-probe-language",
-        "title": "Update `strategies/interview.md` to probe language/tool choices through the contract lens -- when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-3-update-strategies-interview-md-to-probe-language.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-4-create-meta-philosophy-md-full-contract-hierarchy",
-        "title": "Create `meta/philosophy.md` -- full contract hierarchy narrative for agent reference and direct user reading (#84 Phase 2)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-4-create-meta-philosophy-md-full-contract-hierarchy.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-5-port-any-remaining-skill-md-carry-forward-content",
-        "title": "Port any remaining `SKILL.md` carry-forward content from master",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-5-port-any-remaining-skill-md-carry-forward-content.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-6-write-remaining-changelog-entries-tracked-by-71",
-        "title": "~~Write remaining CHANGELOG entries~~ -- tracked by #71 (Phase 1)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-6-write-remaining-changelog-entries-tracked-by-71.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-7-cli-tests-for-remaining-commands-cmd-spec-cmd",
-        "title": "CLI tests for remaining commands: `cmd_spec`, `cmd_install`, `cmd_reset`, `cmd_update`",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-7-cli-tests-for-remaining-commands-cmd-spec-cmd.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-8-error-and-edge-case-testing-for-core-cli-commands",
-        "title": "Error and edge case testing for core CLI commands",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-8-error-and-edge-case-testing-for-core-cli-commands.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-23-roadmap-9-code-signing",
-        "title": "Code signing",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-23-roadmap-9-code-signing.vbrief.json",
-          "lifecycle_folder": "proposed"
-        }
-      },
-      {
-        "id": "2026-04-24-622-featskills-clean-context-reviewer-principle-and-communicatio",
-        "title": "feat(skills): clean-context reviewer principle and communication bridge filter for deft-review-cycle",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-24-622-featskills-clean-context-reviewer-principle-and-communicatio.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "type": "github-issue",
-              "id": "#622",
-              "url": "https://api.github.com/repos/deftai/directive/issues/622"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-24-623-featcontext-name-and-encode-context-rot-as-a-first-class-con",
-        "title": "feat(context): name and encode Context Rot as a first-class concept with mitigations",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-24-623-featcontext-name-and-encode-context-rot-as-a-first-class-con.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "type": "github-issue",
-              "id": "#623",
-              "url": "https://api.github.com/repos/deftai/directive/issues/623"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-24-625-featpatterns-generator-verifier-loop-and-capability-routing",
         "title": "feat(patterns): generator-verifier loop and capability routing as multi-agent architecture patterns",
         "status": "proposed",
@@ -223,84 +49,6 @@
               "type": "github-issue",
               "id": "#625",
               "url": "https://api.github.com/repos/deftai/directive/issues/625"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-24-627-featstrategies-add-strategiesdelegatemd-controlled-delegatio",
-        "title": "feat(strategies): add strategies/delegate.md — controlled delegation framework for agent-driven implementation",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-24-627-featstrategies-add-strategiesdelegatemd-controlled-delegatio.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "type": "github-issue",
-              "id": "#627",
-              "url": "https://api.github.com/repos/deftai/directive/issues/627"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-27-635-events-behavioral-wiring",
-        "title": "Events: behavioral wiring (3 items: session interrupt/resume pair, plan:approved, legacy:detected)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-27-635-events-behavioral-wiring.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/635",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/642",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this split)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/pull/401",
-              "type": "x-vbrief/github-pr",
-              "title": "PR #401: hygiene/DDD/determinism (trim makes the events surface available for structural respawn under this vBRIEF)"
-            },
-            {
-              "uri": "proposed/2026-04-27-635-events-detection-bound-wiring.vbrief.json",
-              "type": "x-vbrief/related-plan",
-              "title": "Sibling vBRIEF: events detection-bound wiring (lands shared scripts/_events.py helper) -- related-plan, not parent/child, so no D4 back-link required"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-27-635-events-detection-bound-wiring",
-        "title": "Events: detection-bound wiring (5 events with existing detectors)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-27-635-events-detection-bound-wiring.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/635",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism (umbrella for #75, #604, #607, #633, #634)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/642",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this split)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/pull/401",
-              "type": "x-vbrief/github-pr",
-              "title": "PR #401: feat(coding): codebase hygiene, DDD framework structure, and determinism design (the trim makes core/events.md available to be respawned as a structural artifact under this vBRIEF)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/634",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #634: determinism-tier ladder (this vBRIEF's structural-artifact deliverable sits at T5/T6 on the 7-tier ladder)"
             }
           ]
         }
@@ -332,37 +80,6 @@
               "uri": "pending/2026-04-23-233-more-determinism-full-initiative-phase-0-spec.vbrief.json",
               "type": "x-vbrief/related-plan",
               "title": "#233 (remaining 6) -- the phase-0-generated-per-phase-gates item references this RFC as its design gate (related-plan, not parent/child, so no D4 back-link required)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-27-635-rule-ownership-map-data-file-and-lint",
-        "title": "Rule Ownership Map: data file + lint enforcement (replaces REFERENCES.md prose section)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-04-27-635-rule-ownership-map-data-file-and-lint.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/635",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/642",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this split + replaces descriptive prose with structural enforcement)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/pull/401",
-              "type": "x-vbrief/github-pr",
-              "title": "PR #401: hygiene/DDD/determinism (trim removes the descriptive Rule Ownership Map prose from REFERENCES.md)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/634",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #634: determinism-tier ladder (this vBRIEF's lint deliverable sits at T5/T6 -- structural enforcement)"
             }
           ]
         }
@@ -491,38 +208,6 @@
               "uri": "https://github.com/deftai/directive/issues/136",
               "type": "x-vbrief/github-issue",
               "title": "Issue #136: Warp doesn't load deft's AGENTS.md by default"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-140-automatically-check-for-updates-to-cloned-repos-in-a",
-        "title": "Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-04-23-140-automatically-check-for-updates-to-cloned-repos-in-a.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/140",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #140: Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-151-playtest-feedback-first-time-non-technical-user-session",
-        "title": "[Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-04-23-151-playtest-feedback-first-time-non-technical-user-session.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/151",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #151: [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)"
             }
           ]
         }
@@ -847,6 +532,117 @@
         }
       },
       {
+        "id": "2026-04-23-roadmap-10-low-end-llm-compatibility-testing",
+        "title": "Low-end LLM compatibility testing",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-roadmap-10-low-end-llm-compatibility-testing.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/759",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #759: testing: low-end / quantised LLM compatibility validation + min model size docs"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-roadmap-11-upgrade-github-actions-to-node-js-24",
+        "title": "Upgrade GitHub Actions to Node.js 24",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-roadmap-11-upgrade-github-actions-to-node-js-24.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/760",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #760: ci: upgrade GitHub Actions to Node.js 24-compatible majors (checkout/upload-artifact/download-artifact)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-roadmap-12-84-phase-3-deft-as-teacher-teach-strategy-lessons",
+        "title": "**#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-roadmap-12-84-phase-3-deft-as-teacher-teach-strategy-lessons.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/758",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #758: teach: add teach strategy and lessons-evolution follow-up"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-roadmap-3-update-strategies-interview-md-to-probe-language",
+        "title": "Update `strategies/interview.md` to probe language/tool choices through the contract lens -- when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-roadmap-3-update-strategies-interview-md-to-probe-language.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/757",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #757: interview: probe language/tool choices through contract lens"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-622-featskills-clean-context-reviewer-principle-and-communicatio",
+        "title": "feat(skills): communication bridge filter for deft-directive-review-cycle (intent-aware finding triage)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-24-622-featskills-clean-context-reviewer-principle-and-communicatio.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/622",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #622: feat(skills): clean-context reviewer principle and communication bridge filter for deft-review-cycle (now scoped to Improvement 2 only)"
+            },
+            {
+              "uri": "https://github.com/deftai/slizard/issues/124",
+              "type": "x-vbrief/github-issue",
+              "title": "deftai/slizard#124: review: clean-context reviewer principle (Improvement 1 of #622, split out to slizard repo)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-623-featcontext-name-and-encode-context-rot-as-a-first-class-con",
+        "title": "feat(context): name and encode Context Rot as a first-class concept with mitigations",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-24-623-featcontext-name-and-encode-context-rot-as-a-first-class-con.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/623",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #623: feat(context): name and encode Context Rot as a first-class concept with mitigations"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/622",
+              "type": "x-vbrief/github-issue",
+              "title": "Companion: deftai/directive#622 (communication bridge filter)"
+            },
+            {
+              "uri": "https://github.com/deftai/slizard/issues/124",
+              "type": "x-vbrief/github-issue",
+              "title": "Companion: deftai/slizard#124 (clean-context reviewer)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-24-624-featswarm-encode-writes-single-threaded-principle-and-named",
         "title": "feat(swarm): encode writes-single-threaded principle and named manager-child anti-patterns in deft-swarm",
         "status": "pending",
@@ -858,6 +654,32 @@
               "type": "github-issue",
               "id": "#624",
               "url": "https://api.github.com/repos/deftai/directive/issues/624"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-24-627-featstrategies-add-strategiesdelegatemd-controlled-delegatio",
+        "title": "feat(strategies): add strategies/delegate.md -- controlled delegation framework for agent-driven implementation",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-24-627-featstrategies-add-strategiesdelegatemd-controlled-delegatio.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/627",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #627: feat(strategies): add strategies/delegate.md -- controlled delegation framework for agent-driven implementation"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/622",
+              "type": "x-vbrief/github-issue",
+              "title": "Companion: #622 (communication bridge filter; same theme of agent-handoff boundary)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/623",
+              "type": "x-vbrief/github-issue",
+              "title": "Companion: #623 (Context Rot; bounded sub-task decomposition aligns with atomicity test)"
             }
           ]
         }
@@ -911,138 +733,157 @@
         }
       },
       {
-        "id": "2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic",
-        "title": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
-        "status": "running",
+        "id": "2026-04-27-635-events-behavioral-wiring",
+        "title": "Events: behavioral wiring (3 items: session interrupt/resume pair, plan:approved, legacy:detected)",
+        "status": "pending",
         "metadata": {
-          "source_path": "active/2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic.vbrief.json",
-          "lifecycle_folder": "active",
+          "source_path": "pending/2026-04-27-635-events-behavioral-wiring.vbrief.json",
+          "lifecycle_folder": "pending",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/163",
+              "uri": "https://github.com/deftai/directive/issues/635",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ",
-        "title": "PR #401 trim tracker (hygiene merge anchor)",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
+              "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism"
+            },
             {
               "uri": "https://github.com/deftai/directive/issues/642",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #642: tracking: framework maintainability, rule ownership, and determinism codification (PR #401 trim tracker)"
+              "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this split)"
             },
             {
               "uri": "https://github.com/deftai/directive/pull/401",
               "type": "x-vbrief/github-pr",
-              "title": "PR #401: feat(coding): codebase hygiene, DDD framework structure, and determinism design (trimmed)"
+              "title": "PR #401: hygiene/DDD/determinism (trim makes the events surface available for structural respawn under this vBRIEF)"
             },
+            {
+              "uri": "proposed/2026-04-27-635-events-detection-bound-wiring.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Sibling vBRIEF: events detection-bound wiring (lands shared scripts/_events.py helper) -- related-plan, not parent/child, so no D4 back-link required"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-27-635-events-detection-bound-wiring",
+        "title": "Events: detection-bound wiring (5 events with existing detectors)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-27-635-events-detection-bound-wiring.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
             {
               "uri": "https://github.com/deftai/directive/issues/635",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #635 (epic): skill-system maturity + framework-rule determinism (umbrella for #75, #604, #607, #633, #634) -- anchors the 4 split children scaffolded by PR-A"
+              "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism (umbrella for #75, #604, #607, #633, #634)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/642",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this split)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/pull/401",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #401: feat(coding): codebase hygiene, DDD framework structure, and determinism design (the trim makes core/events.md available to be respawned as a structural artifact under this vBRIEF)"
             },
             {
               "uri": "https://github.com/deftai/directive/issues/634",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #634: codify determinism-tier ladder as governing rule for framework-level root-cause fixes (cross-referenced by main.md Rule Authority [AXIOM] block)"
+              "title": "Issue #634: determinism-tier ladder (this vBRIEF's structural-artifact deliverable sits at T5/T6 on the 7-tier ladder)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-27-635-rule-ownership-map-data-file-and-lint",
+        "title": "Rule Ownership Map: data file + lint enforcement (replaces REFERENCES.md prose section)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-27-635-rule-ownership-map-data-file-and-lint.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/635",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism"
             },
             {
-              "uri": "https://github.com/deftai/directive/issues/233",
+              "uri": "https://github.com/deftai/directive/issues/642",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #233: More Determinism (refined in PR-A: done/pending split + lifecycle move proposed/ -> pending/)"
+              "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this split + replaces descriptive prose with structural enforcement)"
             },
             {
-              "uri": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
+              "uri": "https://github.com/deftai/directive/pull/401",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #401: hygiene/DDD/determinism (trim removes the descriptive Rule Ownership Map prose from REFERENCES.md)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/634",
               "type": "x-vbrief/github-issue",
-              "title": "Canonical workflow comment for PR #401 trim + framework maintainability arc (locked decisions, DP5 V4 block, halt-to-user templates, substantive-vs-mechanical bright line)"
+              "title": "Issue #634: determinism-tier ladder (this vBRIEF's lint deliverable sits at T5/T6 -- structural enforcement)"
             }
           ]
         }
       },
       {
-        "id": "2026-04-29-704-readme-cleanup-pass-factual-errors-contradictions-and-post-v",
-        "title": "README cleanup pass: factual errors, contradictions, and post-v0.20 staleness",
-        "status": "running",
+        "id": "2026-04-30-481-patterns-directory-and-llm-app-standards",
+        "title": "feat(patterns): add patterns/ directory and patterns/llm-app.md for LLM application standards",
+        "status": "pending",
         "metadata": {
-          "source_path": "active/2026-04-29-704-readme-cleanup-pass-factual-errors-contradictions-and-post-v.vbrief.json",
-          "lifecycle_folder": "active",
+          "source_path": "pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json",
+          "lifecycle_folder": "pending",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/704",
+              "uri": "https://github.com/deftai/directive/issues/481",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #704: README cleanup pass: factual errors, contradictions, and post-v0.20 staleness"
+              "title": "Issue #481: feat(patterns): add patterns/ directory and patterns/llm-app.md for LLM application standards"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/482",
+              "type": "x-vbrief/github-issue",
+              "title": "Companion: #482 (move coding/holzmann.md -> patterns/safety-critical.md and swarm/swarm.md -> patterns/multi-agent.md)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/480",
+              "type": "x-vbrief/github-issue",
+              "title": "Companion: #480 (agent trap defenses; same source paper as #481)"
             }
           ]
         }
       },
       {
-        "id": "2026-04-29-733-fixgithubworkflowsreleaseyml-release-job-auto-flips-draft-to",
-        "title": "fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate",
-        "status": "running",
+        "id": "2026-04-30-761-install-paths-reframe-webinstaller-npm",
+        "title": "docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy",
+        "status": "pending",
         "metadata": {
-          "source_path": "active/2026-04-29-733-fixgithubworkflowsreleaseyml-release-job-auto-flips-draft-to.vbrief.json",
-          "lifecycle_folder": "active",
+          "source_path": "pending/2026-04-30-761-install-paths-reframe-webinstaller-npm.vbrief.json",
+          "lifecycle_folder": "pending",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/733",
+              "uri": "https://github.com/deftai/directive/issues/761",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #733: fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate"
+              "title": "Issue #761: docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/11",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #11: Proposal: Publish Deft as an NPM + PIP CLI (related; this brief leads with webinstaller and references #11)"
             }
           ]
         }
       },
       {
-        "id": "2026-04-29-734-featscriptsskills-vbrief-lifecycle-reconciliation-gate-at-ta",
-        "title": "feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py",
-        "status": "running",
+        "id": "2026-04-30-762-centralize-phase-taxonomy-in-project-definition",
+        "title": "feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there",
+        "status": "pending",
         "metadata": {
-          "source_path": "active/2026-04-29-734-featscriptsskills-vbrief-lifecycle-reconciliation-gate-at-ta.vbrief.json",
-          "lifecycle_folder": "active",
+          "source_path": "pending/2026-04-30-762-centralize-phase-taxonomy-in-project-definition.vbrief.json",
+          "lifecycle_folder": "pending",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/734",
+              "uri": "https://github.com/deftai/directive/issues/762",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #734: feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-29-737-featscriptstasksskills-pre-pr-closing-keyword-negation-conte",
-        "title": "feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-04-29-737-featscriptstasksskills-pre-pr-closing-keyword-negation-conte.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/737",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #737: feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-29-741-fixscriptsreleasepy-bump-version-literal-in-run-during-relea",
-        "title": "fix(scripts/release.py): bump VERSION literal in run during release flow",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-04-29-741-fixscriptsreleasepy-bump-version-literal-in-run-during-relea.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/741",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #741: fix(scripts/release.py): bump VERSION literal in run during release flow"
+              "title": "Issue #762: feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there"
             }
           ]
         }
@@ -2699,6 +2540,22 @@
         }
       },
       {
+        "id": "2026-04-23-140-automatically-check-for-updates-to-cloned-repos-in-a",
+        "title": "Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-23-140-automatically-check-for-updates-to-cloned-repos-in-a.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/140",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #140: Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-23-142-agents-md-onboarding-gate-blocks-headless-cloud-agents",
         "title": "AGENTS.md onboarding gate blocks headless/cloud agents -- headless bypass added",
         "status": "completed",
@@ -2779,6 +2636,22 @@
         }
       },
       {
+        "id": "2026-04-23-151-playtest-feedback-first-time-non-technical-user-session",
+        "title": "[Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-23-151-playtest-feedback-first-time-non-technical-user-session.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/151",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #151: [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-23-159-meta-philosophy-md-deterministic-probabilistic-design",
         "title": "meta/philosophy.md -- deterministic > probabilistic design principle: definition, rationale, examples, Phase 5 scope note",
         "status": "completed",
@@ -2806,6 +2679,22 @@
               "uri": "https://github.com/deftai/directive/issues/160",
               "type": "x-vbrief/github-issue",
               "title": "Issue #160: Consider TypeScript instead of Python for `run` CLI -- architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic",
+        "title": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/163",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
             }
           ]
         }
@@ -5040,6 +4929,47 @@
         }
       },
       {
+        "id": "2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ",
+        "title": "PR #401 trim tracker (hygiene merge anchor)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/642",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #642: tracking: framework maintainability, rule ownership, and determinism codification (PR #401 trim tracker)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/pull/401",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #401: feat(coding): codebase hygiene, DDD framework structure, and determinism design (trimmed)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/635",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #635 (epic): skill-system maturity + framework-rule determinism (umbrella for #75, #604, #607, #633, #634) -- anchors the 4 split children scaffolded by PR-A"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/634",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #634: codify determinism-tier ladder as governing rule for framework-level root-cause fixes (cross-referenced by main.md Rule Authority [AXIOM] block)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/233",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #233: More Determinism (refined in PR-A: done/pending split + lifecycle move proposed/ -> pending/)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
+              "type": "x-vbrief/github-issue",
+              "title": "Canonical workflow comment for PR #401 trim + framework maintainability arc (locked decisions, DP5 V4 block, halt-to-user templates, substantive-vs-mechanical bright line)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-28-720-release-e2e-pipeline-mirror",
         "title": "Deepen release_e2e rehearsal to a full task release + rollback mirror against an auto-created+destroyed temp repo",
         "status": "completed",
@@ -5180,6 +5110,22 @@
         }
       },
       {
+        "id": "2026-04-29-704-readme-cleanup-pass-factual-errors-contradictions-and-post-v",
+        "title": "README cleanup pass: factual errors, contradictions, and post-v0.20 staleness",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-29-704-readme-cleanup-pass-factual-errors-contradictions-and-post-v.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/704",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #704: README cleanup pass: factual errors, contradictions, and post-v0.20 staleness"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-29-727-orchestrator-role-separation",
         "title": "Codify orchestrator role-separation + canonical poller-prompt template (per [AXIOM])",
         "status": "completed",
@@ -5252,6 +5198,70 @@
         }
       },
       {
+        "id": "2026-04-29-733-fixgithubworkflowsreleaseyml-release-job-auto-flips-draft-to",
+        "title": "fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-29-733-fixgithubworkflowsreleaseyml-release-job-auto-flips-draft-to.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/733",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #733: fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-734-featscriptsskills-vbrief-lifecycle-reconciliation-gate-at-ta",
+        "title": "feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-29-734-featscriptsskills-vbrief-lifecycle-reconciliation-gate-at-ta.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/734",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #734: feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-737-featscriptstasksskills-pre-pr-closing-keyword-negation-conte",
+        "title": "feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-29-737-featscriptstasksskills-pre-pr-closing-keyword-negation-conte.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/737",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #737: feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-741-fixscriptsreleasepy-bump-version-literal-in-run-during-relea",
+        "title": "fix(scripts/release.py): bump VERSION literal in run during release flow",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-29-741-fixscriptsreleasepy-bump-version-literal-in-run-during-relea.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/741",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #741: fix(scripts/release.py): bump VERSION literal in run during release flow"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-29-release-summary-blockquote",
         "title": "Release CHANGELOG promotion accepts --summary blockquote (per [AXIOM] deterministic tier)",
         "status": "completed",
@@ -5281,6 +5291,32 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-04-30-754-vbrief-lifecycle-sync-gate-false-positives-on-large-repos",
+        "title": "fix(scripts/reconcile_issues.py, scripts/release.py): vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-30-754-vbrief-lifecycle-sync-gate-false-positives-on-large-repos.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/754",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #754: vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/734",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #734: vBRIEF-lifecycle reconciliation gate (apply-mode acceptance)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/720",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #720: e2e harness deepening (surfaced this defect during Decision A pre-release validation)"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
@@ -5296,7 +5332,9 @@
         "Narrative 'OpenQuestions' may be stale: completed scope '#233 (partial) -- More Determinism: tasks/ restructure, toolchain:check, verify:stubs, validate:links, spec:pipeline, changelog:check, change:init, commit:lint, enhanced check -- remaining items (Phase 0 generation, build:verify, change:archive, doctor) still open' shares topics (open)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'Deterministic questions (RC2): confirm step, back nav, escape hatch distinct from Other' shares topics (questions)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'Deterministic questions: instant number acceptance is disorienting' shares topics (questions)",
+        "Narrative 'OpenQuestions' may be stale: completed scope 'fix(scripts/reconcile_issues.py, scripts/release.py): vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues' shares topics (open)",
         "Narrative 'Overview' may be stale: completed scope 'fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key' shares topics (overview)",
+        "Narrative 'ProjectConfig' may be stale: completed scope 'Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Branching requirement too prescriptive -- context-aware solo-project qualifier' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Greptile Review status check blocks merge -- .greptile/config.json added with triggerOnUpdates, deft-review-cycle pre-flight check' shares topics (config)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Make /deft read-only (project-local layout)' shares topics (project)",
@@ -5317,15 +5355,19 @@
         "Narrative 'ProjectConfig' may be stale: completed scope 'scope: all `task scope:*` commands fail with file-not-found (path resolved from deft/ CWD, not project root)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'speckit Phase 1 creates project.md instead of writing Principles to PROJECT-DEFINITION.vbrief.json' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'strategies: no idempotency guard -- can silently overwrite approved specs and project narratives' shares topics (project)",
+        "Narrative 'UserStories' may be stale: completed scope 'Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'CLI bootstrap overwrites USER.md + input validation' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'Enforce USER.md gate (skills path)' shares topics (user)",
+        "Narrative 'UserStories' may be stale: completed scope 'Enforce USER.md gate in CLI path -- parity with agentic (skills) path' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'RFC: vBRIEF-centric document model for Deft Directive (D1-D18; 18 design decisions + 21 implementation stories)' shares topics (stories)",
         "Narrative 'UserStories' may be stale: completed scope 'Remove language defaults from USER.md' shares topics (user)",
+        "Narrative 'UserStories' may be stale: completed scope '[Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'deft-roadmap-refresh: ! rule confirming analysis comment post to user with issue number and link' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'deft-roadmap-refresh: Phase 4 PR & Review Cycle -- user confirmation gate, pre-flight before push, auto-chains to deft-review-cycle' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'deft-swarm mandatory analyze phase with user approval gate before launch' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'docs(readme): add \"Your Artifacts\" section documenting user-generated artifact locations' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'feat(setup): validate USER.md against current schema + artifact format versioning (deft_version field)' shares topics (user)",
+        "Narrative 'UserStories' may be stale: completed scope 'fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'fix(skill): deft-review-cycle Approach 2 capability detection gap -- add Approach 3 interactive blocking fallback with user warning' shares topics (user)",
         "Narrative 'tech stack' may be stale: completed scope 'migrate_vbrief: PROJECT-DEFINITION missing 'tech stack' narrative key -- validator D3 failure' shares topics (stack, tech)"
       ]

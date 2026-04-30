@@ -8,7 +8,7 @@
   "plan": {
     "id": "635-events-detection-bound",
     "title": "Events: detection-bound wiring (5 events with existing detectors)",
-    "status": "proposed",
+    "status": "pending",
     "planRef": "#635",
     "narratives": {
       "Problem": "PR #401's original DDD section introduced a domain-event vocabulary in core/events.md, but the prose-only encoding decays under agent pressure (the canonical #642 workflow comment's `Decisions locked` section calls this out as the root reason for splitting events into structural artifacts). Five of the proposed events are already detectable by existing scripts -- pre-cutover state, vBRIEF schema invalidity, AGENTS.md staleness, version drift, and dirty-tree -- but each detector emits in its own ad-hoc shape (warning lines, exit codes, in-script prints) rather than a uniform event record consumed by skills.",
@@ -47,12 +47,16 @@
       }
     ],
     "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2",
+        "PhaseDescription": "Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files."
+      },
       "x-tracking": {
         "parent_epic": "#635",
         "split_authority": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
         "swarm_ready": true,
         "blocks": null,
-        "blocked_by": "PR #401 trim merge (removes core/events.md so this work doesn't conflict)"
+        "blocked_by": "PR #401 trim merge: CLEARED 2026-04-28 (core/events.md removed). Foundational piece -- the events-behavioral-wiring sibling has a soft preference to land after this so the shared scripts/_events.py helper exists."
       }
     },
     "references": [

@@ -1,0 +1,45 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #481: add patterns/ directory and patterns/llm-app.md (LLM application standards). Structural unblocker for the patterns/ category."
+  },
+  "plan": {
+    "title": "feat(patterns): add patterns/ directory and patterns/llm-app.md for LLM application standards",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "Phase 2",
+      "Description": "Create a new top-level patterns/ directory for cross-language architectural patterns (how to architect this *kind* of system, orthogonal to languages/, interfaces/, platforms/, coding/). First file: patterns/llm-app.md covering prompt construction (delimiters, parameterized templates), explicit trust tiers (system > few-shot > user > retrieved > web), tool/function-call validation (confused-deputy mitigation), RAG hygiene (no LLM-write-back, provenance), output handling (schema validation, XSS sanitisation), multi-agent orchestration (sub-agent-output-is-untrusted), and LLM-specific observability. Add REFERENCES.md lazy-load trigger and a short coding/coding.md addendum. Source material: AI Agent Traps paper (docs/ssrn-6372438.pdf).",
+      "Acceptance": "patterns/ directory exists with patterns/llm-app.md authored per #481 body; REFERENCES.md gains a lazy-load trigger for patterns/llm-app.md when project uses LLM APIs; coding/coding.md carries a short addendum cross-linking patterns/llm-app.md; tools/telemetry.md gains an LLM-specific observability section.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/481"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2",
+        "PhaseDescription": "Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files.",
+        "Description": "Add patterns/ directory + patterns/llm-app.md (#481). Structural unblocker for ~22 dependent open issues with the patterns label.",
+        "Description_source": "deftai/directive#481",
+        "Status_source": "filed-during-cleanup",
+        "Rationale": "Promoted to Phase 2 (rather than Phase 3) because 22 open issues in the patterns/ category are blocked on this; placement in Phase 2 reflects structural priority rather than the kind of work."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/481",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #481: feat(patterns): add patterns/ directory and patterns/llm-app.md for LLM application standards"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/482",
+        "type": "x-vbrief/github-issue",
+        "title": "Companion: #482 (move coding/holzmann.md -> patterns/safety-critical.md and swarm/swarm.md -> patterns/multi-agent.md)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/480",
+        "type": "x-vbrief/github-issue",
+        "title": "Companion: #480 (agent trap defenses; same source paper as #481)"
+      }
+    ],
+    "updated": "2026-04-30T17:15:04Z"
+  }
+}

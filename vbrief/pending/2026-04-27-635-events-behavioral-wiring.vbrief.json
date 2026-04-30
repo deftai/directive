@@ -8,7 +8,7 @@
   "plan": {
     "id": "635-events-behavioral",
     "title": "Events: behavioral wiring (3 items: session interrupt/resume pair, plan:approved, legacy:detected)",
-    "status": "proposed",
+    "status": "pending",
     "planRef": "#635",
     "narratives": {
       "Problem": "PR #401's original DDD section also proposed behavioral events that capture agent and user actions in real time -- not just things deft can statically detect. Three of those have no existing detector and require new instrumentation: a paired session-lifecycle event (interrupted/resumed) for context-window shifts, a plan-approval event for the Phase 5->6 merge gate, and a legacy-detected event for legacy artifact captures during migration. Without structural emission these stay prose-only and decay under agent pressure (canonical #642 workflow comment, locked decisions).",
@@ -47,12 +47,16 @@
       }
     ],
     "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2",
+        "PhaseDescription": "Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files."
+      },
       "x-tracking": {
         "parent_epic": "#635",
         "split_authority": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
         "swarm_ready": true,
         "blocks": null,
-        "blocked_by": "PR #401 trim merge AND (preferably) the detection-bound events vBRIEF landing the shared `scripts/_events.py` helper first"
+        "blocked_by": "PR #401 trim merge: CLEARED 2026-04-28. Soft preference (not strict): land the sibling detection-bound events vBRIEF first so the shared scripts/_events.py helper exists before this brief consumes it."
       }
     },
     "references": [

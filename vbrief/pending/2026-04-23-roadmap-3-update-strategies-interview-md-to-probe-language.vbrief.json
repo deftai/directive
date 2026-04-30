@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Update `strategies/interview.md` to probe language/tool choices through the contract lens -- when user picks a language, prompt to consider habit vs. suitability (#84 Phase 2)",
-    "status": "proposed",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -20,6 +20,14 @@
         "Status_source": "orphan: proposed default",
         "SourceConflict": "missing-from-spec"
       }
-    }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/757",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #757: interview: probe language/tool choices through contract lens"
+      }
+    ],
+    "updated": "2026-04-30T15:32:06Z"
   }
 }

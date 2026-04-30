@@ -46,7 +46,6 @@ exclude = [
     "__pycache__",
     "run",        # extension-less CLI entry point — not linted in Phase 1
     "run.py",     # importlib shim for tests — inherent E402/I001
-    "warping.sh",
 ]
 
 [tool.ruff.lint]
