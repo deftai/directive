@@ -39,12 +39,28 @@ _MINIMAL_USER_MD = (
 )
 
 
-def _wire_env(tmp_project_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Mirror tests/conftest.py:isolated_env env-var wiring exactly.
+@pytest.fixture
+def isolated_env_no_user(
+    tmp_project_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> Path:
+    """Wire the standard CLI test env (DEFT_USER_PATH / DEFT_PROJECT_PATH /
+    DEFT_VBRIEF_PROPOSED + chdir) WITHOUT pre-creating USER.md.
 
-    Kept in sync with the parent fixture so this override stays a strict
-    superset of the base behavior -- env vars and chdir are identical;
-    only USER.md creation differs between the two variants.
+    This is the canonical env-wiring fixture in tests/cli/. The sibling
+    `isolated_env` builds on top of it by additionally writing a minimal
+    USER.md so cmd_spec / cmd_project happy-path tests don't trip the
+    #163 gate. Routing both paths through one wiring point eliminates
+    the dual-maintenance hazard Greptile P2 on PR #753 flagged: a future
+    env var addition only needs to happen here, not in two places.
+
+    Use `isolated_env_no_user` directly in tests that exercise the
+    USER.md presence gate (`tests/cli/test_usermd_gate.py`) or that
+    need to assert behavior when USER.md is absent
+    (`test_project_user_defaults.py::test_read_user_defaults_returns_none_when_missing`,
+    `test_project_user_defaults.py::test_project_blocks_when_user_md_missing`,
+    every `cmd_bootstrap` test in `test_bootstrap.py` / `test_resume.py` /
+    `test_loop_bugs.py` since cmd_bootstrap writes USER.md as its primary
+    behavior under test).
     """
     user_md = tmp_project_dir / "USER.md"
     project_json = tmp_project_dir / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
@@ -53,34 +69,24 @@ def _wire_env(tmp_project_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DEFT_PROJECT_PATH", str(project_json))
     monkeypatch.setenv("DEFT_VBRIEF_PROPOSED", str(vbrief_proposed))
     monkeypatch.chdir(tmp_project_dir)
+    return tmp_project_dir
 
 
 @pytest.fixture
-def isolated_env(tmp_project_dir: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def isolated_env(isolated_env_no_user: Path) -> Path:
     """CLI-scoped override that pre-creates USER.md to satisfy the #163 gate.
 
-    The base fixture in tests/conftest.py only wires env vars and chdir;
-    this override additionally writes a minimal USER.md at
-    `$DEFT_USER_PATH` so cmd_spec / cmd_project happy-path tests don't
-    trip the new presence gate. Tests that need USER.md absent should
-    use `isolated_env_no_user` instead.
+    Composes `isolated_env_no_user` (the canonical env-wiring fixture)
+    and writes a minimal USER.md at `$DEFT_USER_PATH`. The base fixture
+    in tests/conftest.py only wires env vars and chdir; this override
+    extends it so existing CLI tests (cmd_spec / cmd_project happy paths
+    in test_cmd_spec.py, test_project.py, test_spec_sizing.py,
+    test_loop_bugs.py::test_project_*, test_project_user_defaults.py)
+    keep passing without per-test edits.
+
+    Tests that need USER.md absent should use `isolated_env_no_user`
+    directly.
     """
-    _wire_env(tmp_project_dir, monkeypatch)
-    user_md = tmp_project_dir / "USER.md"
+    user_md = isolated_env_no_user / "USER.md"
     user_md.write_text(_MINIMAL_USER_MD, encoding="utf-8")
-    return tmp_project_dir
-
-
-@pytest.fixture
-def isolated_env_no_user(
-    tmp_project_dir: Path, monkeypatch: pytest.MonkeyPatch
-) -> Path:
-    """Variant of `isolated_env` that does NOT pre-create USER.md.
-
-    Use this in tests that exercise the #163 USER.md presence gate or
-    that need to assert behavior when USER.md is absent at the resolved
-    path. Env vars and chdir match the standard `isolated_env` fixture
-    so other path-resolution behavior is unchanged.
-    """
-    _wire_env(tmp_project_dir, monkeypatch)
-    return tmp_project_dir
+    return isolated_env_no_user

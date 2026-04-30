@@ -190,6 +190,14 @@ def test_cmd_project_blocks_when_user_md_missing(
     assert "USER.md" in combined
     assert str(user_md.resolve()) in combined
     assert "run bootstrap" in combined
+    # Symmetric with `test_cmd_spec_blocks_when_user_md_missing` -- both
+    # commands route through the same `_check_user_md_gate()`, so both
+    # tests assert the override-hint surface explicitly. Without this,
+    # the line could be silently stripped from the gate's output
+    # without failing the cmd_project test (Greptile P2 on PR #753).
+    assert "DEFT_USER_PATH" in combined, (
+        "Gate message must mention $DEFT_USER_PATH override hint"
+    )
 
 
 # ---------------------------------------------------------------------------

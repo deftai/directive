@@ -129,27 +129,6 @@ def resolve_path(path_str: str) -> Path:
     """
     return Path(path_str).expanduser().resolve()
 
-def get_default_paths() -> dict:
-    """Return default output paths for all generated files.
-    
-    Environment variables override built-in defaults:
-        DEFT_USER_PATH          default: ~/.config/deft/USER.md
-        DEFT_PROJECT_PATH       default: ./vbrief/PROJECT-DEFINITION.vbrief.json
-        DEFT_PRD_PATH           default: ./PRD.md
-        DEFT_SPECIFICATION_PATH default: ./SPECIFICATION.md
-        DEFT_VBRIEF_PROPOSED    default: ./vbrief/proposed/
-    
-    Returns:
-        dict with keys 'user', 'project', 'prd', 'specification', 'vbrief_proposed'
-    """
-    return {
-        'user': os.environ.get('DEFT_USER_PATH', '~/.config/deft/USER.md'),
-        'project': os.environ.get('DEFT_PROJECT_PATH', './vbrief/PROJECT-DEFINITION.vbrief.json'),
-        'prd': os.environ.get('DEFT_PRD_PATH', './PRD.md'),
-        'specification': os.environ.get('DEFT_SPECIFICATION_PATH', './SPECIFICATION.md'),
-        'vbrief_proposed': os.environ.get('DEFT_VBRIEF_PROPOSED', './vbrief/proposed/'),
-    }
-
 # ── USER.md presence gate (#163) ─────────────────────────────────────
 #
 # Mirrors the agentic-path USER.md gate documented in
@@ -162,6 +141,18 @@ def get_default_paths() -> dict:
 # both find their files at the conventional XDG-ish location, while
 # $DEFT_USER_PATH remains an explicit override for tests, CI, and users
 # who keep deft config outside the default tree.
+#
+# `_resolve_user_md_path()` is the SINGLE source of truth for the
+# USER.md location -- `get_default_paths()['user']` (used by
+# `cmd_bootstrap` / `cmd_project` / `cmd_reset` to decide where to
+# read or write USER.md) delegates to this helper so that the gate
+# checks the same path bootstrap writes. Greptile P1 on PR #753
+# surfaced the divergence: a Windows-aware gate paired with a
+# Unix-only `get_default_paths()` default would have trapped Windows
+# users in a `run bootstrap` redirect loop after a clean install
+# (bootstrap writes to `C:\\Users\\<name>\\.config\\deft\\USER.md`,
+# the gate then checks `%APPDATA%\\deft\\USER.md` -- different paths,
+# unsatisfiable gate).
 
 def _resolve_user_md_path() -> Path:
     """Resolve the platform-appropriate path to USER.md (#163).
@@ -187,6 +178,33 @@ def _resolve_user_md_path() -> Path:
         # Rare on stock Windows but possible in stripped containers / CI.
         return Path.home() / 'AppData' / 'Roaming' / 'deft' / 'USER.md'
     return Path.home() / '.config' / 'deft' / 'USER.md'
+
+
+def get_default_paths() -> dict:
+    """Return default output paths for all generated files.
+
+    Environment variables override built-in defaults:
+        DEFT_USER_PATH          default: platform-aware (Windows:
+                                %APPDATA%\\deft\\USER.md; Unix:
+                                ~/.config/deft/USER.md). Resolution
+                                delegates to `_resolve_user_md_path()`
+                                so the path stays in sync with the
+                                #163 gate -- see comment block above.
+        DEFT_PROJECT_PATH       default: ./vbrief/PROJECT-DEFINITION.vbrief.json
+        DEFT_PRD_PATH           default: ./PRD.md
+        DEFT_SPECIFICATION_PATH default: ./SPECIFICATION.md
+        DEFT_VBRIEF_PROPOSED    default: ./vbrief/proposed/
+
+    Returns:
+        dict with keys 'user', 'project', 'prd', 'specification', 'vbrief_proposed'
+    """
+    return {
+        'user': str(_resolve_user_md_path()),
+        'project': os.environ.get('DEFT_PROJECT_PATH', './vbrief/PROJECT-DEFINITION.vbrief.json'),
+        'prd': os.environ.get('DEFT_PRD_PATH', './PRD.md'),
+        'specification': os.environ.get('DEFT_SPECIFICATION_PATH', './SPECIFICATION.md'),
+        'vbrief_proposed': os.environ.get('DEFT_VBRIEF_PROPOSED', './vbrief/proposed/'),
+    }
 
 
 def _check_user_md_gate() -> Optional[int]:
