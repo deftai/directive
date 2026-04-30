@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+- **chore(vbrief): remove stale roadmap proposals whose work already shipped** -- deleted `vbrief/proposed/2026-04-23-roadmap-4-create-meta-philosophy-md-full-contract-hierarchy.vbrief.json` (the deliverable `meta/philosophy.md` already exists in-tree) and `vbrief/proposed/2026-04-23-roadmap-6-write-remaining-changelog-entries-tracked-by-71.vbrief.json` (#71 closed via PR #73 on 2026-03-18; brief title carried strikethrough indicating known-done). Both briefs were orphans (`SourceConflict: missing-from-spec`) that the v0.20 self-migration left in `proposed/` despite the underlying work having shipped. Cleanup pass on `vbrief/proposed/` lifecycle folder.
 
 ## [0.22.0] - 2026-04-30
 
