@@ -1,4 +1,4 @@
-"""test_resolve_version.py -- Tests for scripts/resolve_version.py (#723).
+"""test_resolve_version.py -- Tests for scripts/resolve_version.py (#723, #771).
 
 ``scripts/resolve_version.py`` is an INDEPENDENT Python mirror of the
 resolution priority chain implemented inline in ``Taskfile.yml``
@@ -12,6 +12,14 @@ Covers the three resolution branches:
 - ``git describe --tags --abbrev=0`` fallback (stripped of leading ``v``).
 - ``0.0.0-dev`` fallback when neither env nor git produce a value.
 - ``main()`` writes the resolved version to stdout WITHOUT a trailing newline.
+
+Also covers the canonical PEP 440 normalization helper added in #771:
+- ``to_pep440`` maps ``vX.Y.Z`` -> ``X.Y.Z`` and pre-release tokens
+  ``rc.N`` / ``alpha.N`` / ``beta.N`` -> PEP 440 compressed form ``rcN`` /
+  ``aN`` / ``bN``.
+- Non-publishable tags (``test.N``) raise ``NonPublishableVersionError``.
+- Malformed input raises generic ``ValueError`` (caught by
+  ``is_publishable`` as non-publishable).
 """
 
 from __future__ import annotations
@@ -21,6 +29,8 @@ import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -216,3 +226,199 @@ class TestSubprocessSmoke:
         )
         assert result.returncode == 0
         assert result.stdout == env_override
+
+
+# ---------------------------------------------------------------------------
+# to_pep440 (#771): canonical semver -> PEP 440 normalization helper
+# ---------------------------------------------------------------------------
+
+
+class TestToPep440Stable:
+    """Stable releases: ``vX.Y.Z`` -> ``"X.Y.Z"`` (or already-bare)."""
+
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("v0.22.0", "0.22.0"),
+            ("0.22.0", "0.22.0"),
+            ("v1.0.0", "1.0.0"),
+            ("v10.20.30", "10.20.30"),
+            ("v0.0.1", "0.0.1"),
+            ("V0.22.0", None),  # uppercase ``V`` is NOT accepted; expect parse error
+        ],
+    )
+    def test_stable_mappings(self, raw, expected):
+        if expected is None:
+            with pytest.raises(ValueError):
+                resolve_version.to_pep440(raw)
+        else:
+            assert resolve_version.to_pep440(raw) == expected
+
+    def test_v_prefix_optional(self):
+        # The leading ``v`` is optional so callers can pass either the
+        # raw tag or an already-stripped value (matching ``_from_git``).
+        assert resolve_version.to_pep440("v0.22.0") == resolve_version.to_pep440("0.22.0")
+
+    def test_strips_whitespace(self):
+        assert resolve_version.to_pep440("  v0.22.0  ") == "0.22.0"
+
+
+class TestToPep440PreRelease:
+    """Pre-release tag mapping (#771 acceptance criteria)."""
+
+    def test_rc_compressed(self):
+        # ``rc.3`` -> ``rc3`` (no separator) per PEP 440 normalization.
+        assert resolve_version.to_pep440("v0.20.0-rc.3") == "0.20.0rc3"
+
+    def test_beta_compressed_to_b(self):
+        # PEP 440 spells ``beta`` as ``b``.
+        assert resolve_version.to_pep440("v0.20.0-beta.2") == "0.20.0b2"
+
+    def test_alpha_compressed_to_a(self):
+        # PEP 440 spells ``alpha`` as ``a``.
+        assert resolve_version.to_pep440("v0.20.0-alpha.1") == "0.20.0a1"
+
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("v0.20.0-rc.0", "0.20.0rc0"),
+            ("v0.20.0-rc.10", "0.20.0rc10"),
+            ("v0.20.0-beta.0", "0.20.0b0"),
+            ("v0.20.0-beta.99", "0.20.0b99"),
+            ("v0.20.0-alpha.0", "0.20.0a0"),
+            ("v0.20.0-alpha.42", "0.20.0a42"),
+            # Without leading v, same mapping.
+            ("0.20.0-rc.3", "0.20.0rc3"),
+            ("0.20.0-beta.2", "0.20.0b2"),
+            ("0.20.0-alpha.1", "0.20.0a1"),
+        ],
+    )
+    def test_pre_release_mappings_parametrized(self, raw, expected):
+        assert resolve_version.to_pep440(raw) == expected
+
+
+class TestToPep440NonPublishable:
+    """Non-publishable / disposable tags raise NonPublishableVersionError."""
+
+    def test_test_tag_raises_non_publishable(self):
+        # The exact acceptance case from the #771 vBRIEF.
+        with pytest.raises(resolve_version.NonPublishableVersionError):
+            resolve_version.to_pep440("v0.0.0-test.1")
+
+    @pytest.mark.parametrize(
+        "raw",
+        [
+            "v0.0.0-test.1",
+            "v0.0.0-test.0",
+            "v0.0.0-test.99",
+            "v0.22.0-test.5",  # Non-publishable irrespective of the X.Y.Z value.
+            "0.0.0-test.1",  # Without leading v.
+        ],
+    )
+    def test_test_tag_variants_raise(self, raw):
+        with pytest.raises(resolve_version.NonPublishableVersionError):
+            resolve_version.to_pep440(raw)
+
+    def test_non_publishable_subclasses_value_error(self):
+        # Catch-blocks that already trap ``ValueError`` (e.g. argparse
+        # error reporting) MUST keep working post-#771.
+        assert issubclass(
+            resolve_version.NonPublishableVersionError, ValueError
+        )
+
+    def test_non_publishable_message_cites_tag(self):
+        # The pipeline embeds the exception message in the operator-readable
+        # Step 5 log line; the message MUST cite the tag verbatim and the
+        # ``test`` kind so operators can identify the skip cause.
+        with pytest.raises(
+            resolve_version.NonPublishableVersionError,
+            match=r"v0\.0\.0-test\.1.*test",
+        ):
+            resolve_version.to_pep440("v0.0.0-test.1")
+
+
+class TestToPep440Malformed:
+    """Generic ValueError for inputs that do not parse as semver-shaped."""
+
+    @pytest.mark.parametrize(
+        "raw",
+        [
+            "",  # empty
+            "   ",  # whitespace-only
+            "abc",  # garbage
+            "v0.22",  # only two parts
+            "v0.22.0.0",  # four parts
+            "0.22",  # only two parts, no v
+            "v0.22.0+build",  # build metadata not supported
+            "v0.22.0-rc",  # missing .N
+            "v0.22.0-rc.",  # trailing dot, no number
+            "v0.22.0-gamma.1",  # unknown kind token
+            "v0.22.0-RC.1",  # uppercase kind token (we are case-sensitive)
+            "vv0.22.0",  # double-v
+            "0.22.0-1",  # missing kind
+        ],
+    )
+    def test_malformed_raises_value_error(self, raw):
+        with pytest.raises(ValueError):
+            resolve_version.to_pep440(raw)
+
+    def test_non_string_input_raises(self):
+        with pytest.raises(ValueError):
+            resolve_version.to_pep440(None)  # type: ignore[arg-type]
+        with pytest.raises(ValueError):
+            resolve_version.to_pep440(0.22)  # type: ignore[arg-type]
+
+
+class TestIsPublishable:
+    """is_publishable returns False for both non-publishable + malformed."""
+
+    @pytest.mark.parametrize(
+        "raw",
+        [
+            "v0.22.0",
+            "v0.20.0-rc.3",
+            "v0.20.0-beta.2",
+            "v0.20.0-alpha.1",
+            "0.22.0",
+            "v1.0.0",
+        ],
+    )
+    def test_publishable_versions(self, raw):
+        assert resolve_version.is_publishable(raw) is True
+
+    @pytest.mark.parametrize(
+        "raw",
+        [
+            "v0.0.0-test.1",
+            "v0.22.0-test.5",
+            "",
+            "abc",
+            "v0.22",
+            "v0.22.0+build",
+        ],
+    )
+    def test_non_publishable_versions(self, raw):
+        assert resolve_version.is_publishable(raw) is False
+
+
+class TestPep440PhaseCExtensionHook:
+    """Documents the #771 Phase C contract: future pip packaging consumes
+    ``to_pep440`` rather than reimplementing the rule. The test below
+    exercises every documented mapping in a single round-trip so a
+    future change to the helper that breaks any of the canonical
+    mappings fails fast.
+    """
+
+    def test_canonical_acceptance_table(self):
+        cases = {
+            "v0.22.0": "0.22.0",
+            "v0.20.0-rc.3": "0.20.0rc3",
+            "v0.20.0-beta.2": "0.20.0b2",
+            "v0.20.0-alpha.1": "0.20.0a1",
+        }
+        for raw, expected in cases.items():
+            assert resolve_version.to_pep440(raw) == expected, (
+                f"#771 canonical mapping drift: {raw!r} -> {expected!r}"
+            )
+        with pytest.raises(resolve_version.NonPublishableVersionError):
+            resolve_version.to_pep440("v0.0.0-test.1")

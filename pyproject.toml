@@ -1,6 +1,10 @@
 [project]
 name = "deft-directive"
-version = "0.5.0"
+# version is kept in lockstep with the latest published release tag by
+# scripts/release.py Step 5 (#771). Manual edits here are overwritten on
+# every `task release -- X.Y.Z` and guarded by
+# tests/content/test_pyproject_version_freshness.py.
+version = "0.22.0"
 description = "A layered framework for AI-assisted development with consistent standards and workflows"
 requires-python = ">=3.11"
 
