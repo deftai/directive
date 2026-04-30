@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #128: CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)"
+    "description": "Scope vBRIEF for #128: CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)",
+    "updated": "2026-04-30T01:18:23Z"
   },
   "plan": {
     "title": "CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -27,6 +28,6 @@
         "title": "Issue #128: CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)"
       }
     ],
-    "updated": "2026-04-23T18:53:14Z"
+    "updated": "2026-04-30T01:18:23Z"
   }
 }

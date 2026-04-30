@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #55: Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54"
+    "description": "Scope vBRIEF for #55: Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54",
+    "updated": "2026-04-30T01:18:22Z"
   },
   "plan": {
     "title": "Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -28,6 +29,6 @@
         "title": "Issue #55: Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54"
       }
     ],
-    "updated": "2026-04-23T18:53:14Z"
+    "updated": "2026-04-30T01:18:22Z"
   }
 }

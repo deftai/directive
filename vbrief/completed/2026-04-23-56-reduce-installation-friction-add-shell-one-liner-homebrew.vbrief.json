@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #56: Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)"
+    "description": "Scope vBRIEF for #56: Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)",
+    "updated": "2026-04-30T01:18:22Z"
   },
   "plan": {
     "title": "Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -28,6 +29,6 @@
         "title": "Issue #56: Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)"
       }
     ],
-    "updated": "2026-04-23T18:53:14Z"
+    "updated": "2026-04-30T01:18:22Z"
   }
 }

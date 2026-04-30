@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #95: Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks"
+    "description": "Scope vBRIEF for #95: Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks",
+    "updated": "2026-04-30T01:18:22Z"
   },
   "plan": {
     "title": "Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -28,6 +29,6 @@
         "title": "Issue #95: Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks"
       }
     ],
-    "updated": "2026-04-23T18:53:16Z"
+    "updated": "2026-04-30T01:18:22Z"
   }
 }

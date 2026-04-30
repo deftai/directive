@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #52: Install into `.deft/` (hidden directory) instead of `deft/`"
+    "description": "Scope vBRIEF for #46: Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)",
+    "updated": "2026-04-30T01:18:22Z"
   },
   "plan": {
-    "title": "Install into `.deft/` (hidden directory) instead of `deft/`",
-    "status": "pending",
+    "title": "Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)",
+    "status": "completed",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -14,7 +15,7 @@
       "x-migrator": {
         "Phase": "Phase 6 -- CLI Overhaul & New Features",
         "PhaseDescription": "Larger feature work -- only after issues are resolved and content is stable.",
-        "Description": "Install into `.deft/` (hidden directory) instead of `deft/`",
+        "Description": "Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)",
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: proposed default",
         "SourceConflict": "missing-from-spec",
@@ -23,11 +24,11 @@
     },
     "references": [
       {
-        "uri": "https://github.com/deftai/directive/issues/52",
+        "uri": "https://github.com/deftai/directive/issues/46",
         "type": "x-vbrief/github-issue",
-        "title": "Issue #52: Install into `.deft/` (hidden directory) instead of `deft/`"
+        "title": "Issue #46: Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)"
       }
     ],
-    "updated": "2026-04-23T18:53:14Z"
+    "updated": "2026-04-30T01:18:22Z"
   }
 }

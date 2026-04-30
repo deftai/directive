@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #100"
+    "description": "Scope vBRIEF ingested from GitHub issue #100",
+    "updated": "2026-04-30T01:18:23Z"
   },
   "plan": {
     "title": "[Compliance] Evidence collection automation hooks",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "[Compliance] Evidence collection automation hooks",
       "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/100",
@@ -25,6 +26,6 @@
         "Phase_source": "pre-migration ROADMAP (commit 3925468)"
       }
     },
-    "updated": "2026-04-23T18:55:08Z"
+    "updated": "2026-04-30T01:18:23Z"
   }
 }

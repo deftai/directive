@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)"
+    "description": "Scope vBRIEF for #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+    "updated": "2026-04-30T01:18:22Z"
   },
   "plan": {
     "title": "NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -28,6 +29,6 @@
         "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)"
       }
     ],
-    "updated": "2026-04-23T18:53:14Z"
+    "updated": "2026-04-30T01:18:22Z"
   }
 }

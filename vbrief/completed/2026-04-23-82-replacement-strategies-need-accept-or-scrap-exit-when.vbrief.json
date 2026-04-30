@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #82: Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)"
+    "description": "Scope vBRIEF for #82: Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)",
+    "updated": "2026-04-30T01:18:22Z"
   },
   "plan": {
     "title": "Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -29,6 +30,6 @@
         "title": "Issue #82: Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)"
       }
     ],
-    "updated": "2026-04-23T18:53:10Z"
+    "updated": "2026-04-30T01:18:22Z"
   }
 }

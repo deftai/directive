@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #53: deft-install should bootstrap the current directory by default"
+    "description": "Scope vBRIEF for #53: deft-install should bootstrap the current directory by default",
+    "updated": "2026-04-30T01:18:22Z"
   },
   "plan": {
     "title": "deft-install should bootstrap the current directory by default",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -28,6 +29,6 @@
         "title": "Issue #53: deft-install should bootstrap the current directory by default"
       }
     ],
-    "updated": "2026-04-23T18:53:10Z"
+    "updated": "2026-04-30T01:18:22Z"
   }
 }

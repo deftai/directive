@@ -2,11 +2,11 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Scope vBRIEF ingested from GitHub issue #733",
-    "updated": "2026-04-29T22:48:22Z"
+    "updated": "2026-04-30T01:18:23Z"
   },
   "plan": {
     "title": "fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/733",
@@ -48,6 +48,6 @@
         "title": "Issue #733: fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate"
       }
     ],
-    "updated": "2026-04-29T22:48:22Z"
+    "updated": "2026-04-30T01:18:23Z"
   }
 }

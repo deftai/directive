@@ -2,11 +2,11 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Scope vBRIEF ingested from GitHub issue #737",
-    "updated": "2026-04-29T22:48:22Z"
+    "updated": "2026-04-30T01:18:23Z"
   },
   "plan": {
     "title": "feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/737",
@@ -66,6 +66,6 @@
         "title": "Issue #737: feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes"
       }
     ],
-    "updated": "2026-04-29T22:48:22Z"
+    "updated": "2026-04-30T01:18:23Z"
   }
 }
