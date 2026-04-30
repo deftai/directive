@@ -313,6 +313,59 @@ class TestBuildParity:
 # ---------------------------------------------------------------------------
 
 
+class TestFileLevelExclusion:
+    """Greptile P1 (PR #773): file-shaped excludes (e.g. ``.coverage``) MUST
+    be pruned. Prior behaviour only matched directory basenames during the
+    ``os.walk`` traversal, so a bare ``.coverage`` file at the repo root
+    leaked into the archive despite being in the canonical exclude list."""
+
+    def test_coverage_file_at_root_is_pruned(self, fake_project: Path):
+        """A regular ``.coverage`` file at the project root is excluded."""
+        coverage_marker = fake_project / ".coverage"
+        coverage_marker.write_bytes(b"COVERAGE-DATA-MUST-BE-EXCLUDED")
+        artifact = build_dist.build(fake_project, "0.22.0", "tar")
+        members = _list_archive_paths(artifact, "tar")
+        assert "deft/.coverage" not in members, (
+            f"DEFAULT_EXCLUDES contains .coverage but the file at the project "
+            f"root leaked into the archive (Greptile P1 #773). Members starting "
+            f"with 'deft/.': "
+            f"{[m for m in members if m.startswith('deft/.')]}"
+        )
+
+    def test_file_level_exclude_in_subdir(self, fake_project: Path):
+        """File-level excludes apply at any depth, not only the root."""
+        nested = fake_project / "scripts" / ".coverage"
+        nested.write_bytes(b"NESTED-COVERAGE")
+        artifact = build_dist.build(fake_project, "0.22.0", "tar")
+        members = _list_archive_paths(artifact, "tar")
+        assert "deft/scripts/.coverage" not in members, (
+            f"File-level .coverage exclude only fired at root, not inside "
+            f"subdirs. Affected members: {[m for m in members if '.coverage' in m]}"
+        )
+
+    def test_extra_file_excluded_via_argv(self, fake_project: Path):
+        """--exclude-extra also prunes file-shaped basenames at any depth."""
+        argv = [
+            "--version",
+            "0.22.0",
+            "--root",
+            str(fake_project),
+            "--format",
+            "tar",
+            "--exclude-extra",
+            "secret.txt",
+        ]
+        rc = build_dist.main(argv)
+        assert rc == build_dist.EXIT_OK
+        artifact = build_dist.output_path(fake_project, "0.22.0", "tar")
+        members = _list_archive_paths(artifact, "tar")
+        assert "deft/secret.txt" not in members, (
+            f"--exclude-extra=secret.txt did not prune the bare file. "
+            f"Members containing 'secret': "
+            f"{[m for m in members if 'secret' in m]}"
+        )
+
+
 class TestExcludeExtra:
     def test_extra_directory_excluded_via_argv(self, fake_project: Path):
         """``--exclude-extra secrets`` prunes the secrets/ directory."""
@@ -387,10 +440,15 @@ class TestCli:
         artifact = build_dist.output_path(fake_project, "0.22.0", "tar")
         assert artifact.is_file()
 
-    def test_missing_version_arg_exits_argparse(self, capsys):
+    def test_missing_version_arg_exits_argparse(self, tmp_path: Path, capsys):
         # argparse raises SystemExit(2) when a required arg is missing.
+        # We pass tmp_path as --root so the test stays portable across
+        # POSIX and Windows -- the literal /tmp path used previously
+        # doesn't exist on Windows, and even though argparse exits
+        # before --root is evaluated today, a future reordering would
+        # silently break on Windows. (Greptile P2 on PR #773.)
         with pytest.raises(SystemExit) as exc:
-            build_dist.main(["--root", "/tmp"])
+            build_dist.main(["--root", str(tmp_path)])
         assert exc.value.code == 2
 
     def test_missing_root_returns_config_error(self, tmp_path: Path):

@@ -102,15 +102,24 @@ def _iter_source_files(
 ) -> list[tuple[Path, str]]:
     """Return a sorted list of ``(absolute_path, archive_relative_posix)``.
 
-    Walks ``root`` skipping any directory whose basename matches an entry
-    in ``excludes``. Returns deterministic ordering so the produced
-    archive is reproducible across runs and across platforms (the task
-    contract ``test_idempotent_rerun`` depends on this).
+    Walks ``root`` skipping any directory or file whose basename matches
+    an entry in ``excludes``. Returns deterministic ordering so the
+    produced archive is reproducible across runs and across platforms
+    (the task contract ``test_idempotent_rerun`` depends on this).
 
-    The dist/ output dir is implicitly pruned by being in the canonical
-    exclude list, which delivers the idempotency guarantee called out in
-    the #736 acceptance criteria: re-running the helper does NOT ingest
-    the prior dist/ artifact into the new archive.
+    Two pruning paths apply:
+
+    1. Directory pruning -- ``dirnames`` is mutated in place so any
+       directory whose basename matches an exclude is skipped along with
+       its entire subtree. The dist/ output dir is implicitly pruned by
+       being in the canonical exclude list, which delivers the
+       idempotency guarantee called out in the #736 acceptance criteria.
+    2. File pruning -- bare filenames whose basename matches an exclude
+       (e.g. ``.coverage`` is written as a single regular file at the
+       repo root by coverage.py, NOT a directory) are skipped. Without
+       this branch the directory-only prune would silently fail to honor
+       the documented intent for file-shaped artifacts (Greptile P1
+       review on PR #773).
     """
     entries: list[tuple[Path, str]] = []
     for dirpath, dirnames, filenames in os.walk(root):
@@ -118,6 +127,11 @@ def _iter_source_files(
         # idiom. Sort for determinism.
         dirnames[:] = sorted(d for d in dirnames if d not in excludes)
         for fname in sorted(filenames):
+            if fname in excludes:
+                # File-level pruning -- catches single-file artifacts
+                # like .coverage that os.walk surfaces in `filenames`,
+                # not `dirnames`.
+                continue
             abs_path = Path(dirpath) / fname
             try:
                 rel = abs_path.relative_to(root)

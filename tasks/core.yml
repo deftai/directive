@@ -60,11 +60,18 @@ tasks:
       # simplification. Python's pathlib + shutil.rmtree handles the dist/
       # directory removal identically on POSIX and Windows, replacing the
       # prior rm -rf / Remove-Item duplication.
+      #
+      # The dist/ path is anchored at {{.DEFT_ROOT}} so `task clean` works
+      # the same way regardless of the operator's current working directory.
+      # The previous shape relied on `pathlib.Path('dist')` resolving against
+      # the inherited CWD, which silently no-ops when the operator runs
+      # `task -t tasks/core.yml clean` from a subdirectory (Greptile P2 on
+      # PR #773).
       - cmd: >-
           uv run python -c "import shutil, pathlib;
-          d = pathlib.Path('dist');
+          d = pathlib.Path(r'{{.DEFT_ROOT}}') / 'dist';
           shutil.rmtree(d) if d.exists() else None;
-          print('Cleaned artifacts')"
+          print(f'Cleaned {d}')"
 
   stats:
     desc: Show framework statistics
