@@ -270,3 +270,73 @@ class TestDryRun:
         assert "AGENTS.md state: stale" in result.stdout
         # File untouched
         assert (tmp_path / "AGENTS.md").read_text(encoding="utf-8") == before
+
+
+# ---------------------------------------------------------------------------
+# cmd_upgrade propagates cmd_agents_refresh failures (Greptile P1 #776)
+# ---------------------------------------------------------------------------
+
+
+class TestCmdUpgradePropagatesRefreshFailure:
+    """`cmd_upgrade` MUST propagate `cmd_agents_refresh`'s return code.
+
+    Greptile P1 review on PR #776 surfaced: when ``cmd_agents_refresh``
+    fails (e.g. AGENTS.md not writable), ``cmd_upgrade`` was discarding
+    the return value and exiting 0 -- the exact silent-partial-upgrade
+    failure mode this PR aims to close. These regression tests pin both
+    cmd_upgrade callsites so the bug cannot recur.
+    """
+
+    def test_already_at_current_version_propagates_refresh_failure(
+        self, tmp_path, run_command, deft_run_module, monkeypatch
+    ):
+        """`recorded == VERSION` branch propagates non-zero refresh."""
+        monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        monkeypatch.chdir(tmp_path)
+        # Stub _read_agents_template to return None -> template-missing
+        # state -> cmd_agents_refresh returns 1.
+        monkeypatch.setattr(deft_run_module, "_read_agents_template", lambda: None)
+        # Pre-write a current-version marker so cmd_upgrade takes the
+        # "Project already at VERSION" early-return branch.
+        (tmp_path / "vbrief").mkdir()
+        (tmp_path / "vbrief" / ".deft-version").write_text(
+            deft_run_module.VERSION + "\n", encoding="utf-8"
+        )
+
+        result = run_command("cmd_upgrade", [])
+
+        # cmd_agents_refresh returned 1; cmd_upgrade MUST propagate it.
+        assert result.return_code == 1
+
+    def test_first_upgrade_propagates_refresh_failure(
+        self, tmp_path, run_command, deft_run_module, monkeypatch
+    ):
+        """First-upgrade branch (recorded != VERSION) propagates refresh failure."""
+        monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        monkeypatch.chdir(tmp_path)
+        # Template missing -> cmd_agents_refresh returns 1.
+        monkeypatch.setattr(deft_run_module, "_read_agents_template", lambda: None)
+        # No marker -> takes the "first upgrade" branch that writes the
+        # marker and then refreshes AGENTS.md.
+
+        result = run_command("cmd_upgrade", [])
+
+        assert result.return_code == 1
+
+    def test_already_at_current_version_returns_zero_when_refresh_succeeds(
+        self, tmp_path, run_command, deft_run_module, monkeypatch
+    ):
+        """Happy path: refresh returns 0 -> cmd_upgrade returns 0."""
+        monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        monkeypatch.chdir(tmp_path)
+        _patch_template(monkeypatch, deft_run_module)
+        (tmp_path / "vbrief").mkdir()
+        (tmp_path / "vbrief" / ".deft-version").write_text(
+            deft_run_module.VERSION + "\n", encoding="utf-8"
+        )
+        # AGENTS.md current with managed section -> refresh is a no-op (rc=0).
+        (tmp_path / "AGENTS.md").write_text(_TEMPLATE_BODY, encoding="utf-8")
+
+        result = run_command("cmd_upgrade", [])
+
+        assert result.return_code == 0

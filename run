@@ -1008,11 +1008,11 @@ def _gate_state_is_ok(state: dict) -> bool:
         return False
     if agents_md == "missing":
         return False
-    # `agents-md=absent` on a project with no marker and no legacy artifacts
-    # is indistinguishable from "not a deft project"; we mirror
-    # `_check_upgrade_gate`'s heuristic and stay green in that case.
-    if recorded is None and not precutover and agents_md == "absent":
-        return True
+    # All other states pass: a marker that matches `current`, or no marker
+    # with no precutover artifacts and `agents-md=absent` (indistinguishable
+    # from "not a deft project" -- mirrors `_check_upgrade_gate`'s
+    # heuristic). Both branches converge here, so a single trailing
+    # `return True` covers them.
     return True
 
 
@@ -1270,8 +1270,10 @@ def cmd_upgrade(args: List[str]):
         success(f"Project already at {VERSION}. Nothing to do.")
         # Still refresh AGENTS.md in case the consumer's marker is current
         # but the template moved -- byte-stable when already at the latest.
-        cmd_agents_refresh([])
-        return 0
+        # Greptile P1: propagate the refresh return code so a failed AGENTS.md
+        # write surfaces as a non-zero `deft/run upgrade` exit instead of
+        # leaving the project partially upgraded with a silent success.
+        return cmd_agents_refresh([])
 
     legacy = _detect_pre_cutover_legacy(project_root)
     if legacy:
@@ -1296,8 +1298,10 @@ def cmd_upgrade(args: List[str]):
         "`task migrate:vbrief` to complete the upgrade."
     )
     # #768: bring AGENTS.md to the current template alongside the marker.
-    cmd_agents_refresh([])
-    return 0
+    # Greptile P1: propagate the refresh return code so a failed AGENTS.md
+    # write surfaces as a non-zero `deft/run upgrade` exit instead of
+    # leaving the project partially upgraded with a silent success.
+    return cmd_agents_refresh([])
 
 
 def cmd_bootstrap(args: List[str]):
