@@ -150,12 +150,15 @@ def _make_config(project: Path, **overrides):
 
 class TestCheckVbriefLifecycleSyncHelper:
     def test_clean_returns_ok_zero(self, temp_project_with_vbrief, monkeypatch):
-        """No vBRIEFs + no open issues -> (True, 0, 'no mismatches')."""
-        # Stub fetch_open_issues so the helper does not fire gh.
+        """No vBRIEFs + empty state map -> (True, 0, 'no mismatches')."""
+        # #754: gate uses fetch_issue_states (inverted lookup); stub it so
+        # the helper does not fire gh.
         import reconcile_issues  # type: ignore
 
         monkeypatch.setattr(
-            reconcile_issues, "fetch_open_issues", lambda _r, cwd=None: []
+            reconcile_issues,
+            "fetch_issue_states",
+            lambda _r, _ids, cwd=None: {},
         )
         ok, count, reason = release.check_vbrief_lifecycle_sync(
             temp_project_with_vbrief, "deftai/directive"
@@ -174,9 +177,11 @@ class TestCheckVbriefLifecycleSyncHelper:
         )
         import reconcile_issues  # type: ignore
 
-        # gh reports zero open issues -> #101 is closed.
+        # #754: gh reports #101 as CLOSED via the inverted state map.
         monkeypatch.setattr(
-            reconcile_issues, "fetch_open_issues", lambda _r, cwd=None: []
+            reconcile_issues,
+            "fetch_issue_states",
+            lambda _r, _ids, cwd=None: {101: "CLOSED"},
         )
         ok, count, reason = release.check_vbrief_lifecycle_sync(
             temp_project_with_vbrief, "deftai/directive"
@@ -197,8 +202,12 @@ class TestCheckVbriefLifecycleSyncHelper:
         )
         import reconcile_issues  # type: ignore
 
+        # #754: #102 is CLOSED but already lives in completed/, so the
+        # gate must exclude it from the mismatch count.
         monkeypatch.setattr(
-            reconcile_issues, "fetch_open_issues", lambda _r, cwd=None: []
+            reconcile_issues,
+            "fetch_issue_states",
+            lambda _r, _ids, cwd=None: {102: "CLOSED"},
         )
         ok, count, _reason = release.check_vbrief_lifecycle_sync(
             temp_project_with_vbrief, "deftai/directive"
@@ -225,8 +234,11 @@ class TestCheckVbriefLifecycleSyncHelper:
         """gh fetch returns None -> (False, -1, 'failed to fetch...')."""
         import reconcile_issues  # type: ignore
 
+        # #754: fetch_issue_states is the new gh entry point.
         monkeypatch.setattr(
-            reconcile_issues, "fetch_open_issues", lambda _r, cwd=None: None
+            reconcile_issues,
+            "fetch_issue_states",
+            lambda _r, _ids, cwd=None: None,
         )
         ok, count, reason = release.check_vbrief_lifecycle_sync(
             temp_project_with_vbrief, "deftai/directive"
@@ -234,6 +246,49 @@ class TestCheckVbriefLifecycleSyncHelper:
         assert ok is False
         assert count == -1
         assert "failed to fetch" in reason
+
+    def test_large_repo_no_false_positive_754(
+        self, temp_project_with_vbrief, monkeypatch
+    ):
+        """#754: 250+ vBRIEFs referencing OPEN issues -> 0 mismatches.
+
+        Regression guard for the v0.21.0 cut session, where the gate
+        false-positively flagged 32 "closed" mismatches because
+        ``fetch_open_issues`` capped at 200 -- tail issues that were
+        actually OPEN were silently treated as CLOSED. With the inverted
+        lookup (#754) the gate queries each referenced issue's state
+        directly, so 250 OPEN issues all classify cleanly regardless of
+        any historical 200-issue pagination cap.
+        """
+        import reconcile_issues  # type: ignore
+
+        # Stage 250 vBRIEFs in active/ each referencing a unique issue.
+        for n in range(1, 251):
+            _write_vbrief(
+                temp_project_with_vbrief / "vbrief",
+                "active",
+                f"2026-04-30-{n:03d}-open.vbrief.json",
+                issue_number=n,
+            )
+
+        captured: dict[str, set[int]] = {}
+
+        def fake_fetch(_repo, ids, cwd=None):
+            captured["ids"] = set(ids)
+            return dict.fromkeys(ids, "OPEN")
+
+        monkeypatch.setattr(
+            reconcile_issues, "fetch_issue_states", fake_fetch
+        )
+        ok, count, reason = release.check_vbrief_lifecycle_sync(
+            temp_project_with_vbrief, "deftai/directive"
+        )
+        assert ok is True
+        assert count == 0
+        assert "no mismatches" in reason
+        # The gate MUST request the entire vBRIEF-referenced subset --
+        # bounded by O(vBRIEF-count), not capped at any historical 200.
+        assert captured["ids"] == set(range(1, 251))
 
 
 # ---------------------------------------------------------------------------

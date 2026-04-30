@@ -127,7 +127,7 @@ class TestApplyLifecycleFixesHappy:
         )
         # gh reports zero open issues -> reconcile flags #100 as no_open_issue.
         issue_to_vbriefs = reconcile_issues.scan_vbrief_dir(vbrief_dir)
-        report = reconcile_issues.reconcile(issue_to_vbriefs, [])
+        report = reconcile_issues.reconcile_with_unlinked(issue_to_vbriefs, [])
         assert report["summary"]["vbriefs_no_open_issue_count"] == 1
 
         moved, skipped, failures = reconcile_issues.apply_lifecycle_fixes(
@@ -160,7 +160,7 @@ class TestApplyLifecycleFixesHappy:
             issue_number=200,
         )
         issue_to_vbriefs = reconcile_issues.scan_vbrief_dir(vbrief_dir)
-        report = reconcile_issues.reconcile(issue_to_vbriefs, [])
+        report = reconcile_issues.reconcile_with_unlinked(issue_to_vbriefs, [])
         moved1, _skipped1, failures1 = reconcile_issues.apply_lifecycle_fixes(
             vbrief_dir, report
         )
@@ -170,7 +170,7 @@ class TestApplyLifecycleFixesHappy:
         # Re-scan: file is now in completed/. The fresh report no longer has
         # a non-completed candidate; apply-mode is a no-op.
         issue_to_vbriefs2 = reconcile_issues.scan_vbrief_dir(vbrief_dir)
-        report2 = reconcile_issues.reconcile(issue_to_vbriefs2, [])
+        report2 = reconcile_issues.reconcile_with_unlinked(issue_to_vbriefs2, [])
         moved2, skipped2, failures2 = reconcile_issues.apply_lifecycle_fixes(
             vbrief_dir, report2
         )
@@ -208,7 +208,7 @@ class TestMixedReferenceShapes:
         assert 300 in issue_to_vbriefs
         assert 301 in issue_to_vbriefs
 
-        report = reconcile_issues.reconcile(issue_to_vbriefs, [])
+        report = reconcile_issues.reconcile_with_unlinked(issue_to_vbriefs, [])
         moved, _skipped, failures = reconcile_issues.apply_lifecycle_fixes(
             vbrief_dir, report
         )
@@ -250,7 +250,7 @@ class TestReverseMismatch:
         open_issues = [
             {"number": 400, "title": "Reopened", "url": "https://example/400", "labels": []}
         ]
-        report = reconcile_issues.reconcile(issue_to_vbriefs, open_issues)
+        report = reconcile_issues.reconcile_with_unlinked(issue_to_vbriefs, open_issues)
         # Report classifies as linked (matched via vBRIEF) -- but folder
         # is completed/, which is the reverse-mismatch shape.
         assert report["summary"]["linked_count"] == 1
@@ -278,7 +278,7 @@ class TestNoIssueRefVbriefs:
         issue_to_vbriefs = reconcile_issues.scan_vbrief_dir(vbrief_dir)
         # No issue numbers extracted -> no entries in the map.
         assert issue_to_vbriefs == {}
-        report = reconcile_issues.reconcile(issue_to_vbriefs, [])
+        report = reconcile_issues.reconcile_with_unlinked(issue_to_vbriefs, [])
         moved, _skipped, failures = reconcile_issues.apply_lifecycle_fixes(
             vbrief_dir, report
         )
@@ -297,9 +297,13 @@ class TestReportOnlyDefault:
             "2026-04-29-500-closed.vbrief.json",
             issue_number=500,
         )
-        # Stub fetch_open_issues + repo resolution so we don't fire gh.
+        # Stub fetch_issue_states + repo resolution so we don't fire gh.
+        # #754: default path is inverted lookup; an empty state map means
+        # every referenced issue is treated as NOT_FOUND (closed).
         monkeypatch.setattr(
-            reconcile_issues, "fetch_open_issues", lambda _r, cwd=None: []
+            reconcile_issues,
+            "fetch_issue_states",
+            lambda _r, _ids, cwd=None: {},
         )
         monkeypatch.setattr(
             reconcile_issues, "detect_repo", lambda: "deftai/directive"
@@ -336,8 +340,11 @@ class TestReportOnlyDefault:
             "2026-04-29-600-closed.vbrief.json",
             issue_number=600,
         )
+        # #754: default path uses fetch_issue_states (inverted lookup).
         monkeypatch.setattr(
-            reconcile_issues, "fetch_open_issues", lambda _r, cwd=None: []
+            reconcile_issues,
+            "fetch_issue_states",
+            lambda _r, _ids, cwd=None: {},
         )
         monkeypatch.setattr(
             reconcile_issues, "detect_repo", lambda: "deftai/directive"
@@ -389,7 +396,7 @@ class TestConflictHandling:
         )
 
         issue_to_vbriefs = reconcile_issues.scan_vbrief_dir(vbrief_dir)
-        report = reconcile_issues.reconcile(issue_to_vbriefs, [])
+        report = reconcile_issues.reconcile_with_unlinked(issue_to_vbriefs, [])
         moved, _skipped, failures = reconcile_issues.apply_lifecycle_fixes(
             vbrief_dir, report
         )

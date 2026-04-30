@@ -334,3 +334,15 @@ The existing post-merge verification rule (Lesson: PR Merge Hygiene #1, #167) wa
 **Why this is a short cross-reference, not a full prose rule:** per the Rule Authority [AXIOM] block in `main.md`, every rule MUST use the strongest applicable layer (deterministic > Taskfile > vBRIEF > RFC2119 > prose). The rule body lives in the deterministic gate (`scripts/release.py::check_vbrief_lifecycle_sync` + the apply-mode helpers in `scripts/reconcile_issues.py`); this lessons entry exists for discoverability + recurrence-record citation only.
 
 **Cross-references:** `skills/deft-directive-release/SKILL.md` Phase 1 (primary encoding); `scripts/release.py::check_vbrief_lifecycle_sync` (deterministic gate); `scripts/reconcile_issues.py::apply_lifecycle_fixes` (clean-recovery surface); `scripts/release.py::ReleaseConfig.allow_vbrief_drift` (escape hatch); v0.21.0 cut session anchor; this lesson (#734).
+
+## Inverted-lookup scaling pattern (#754)
+
+**Source:** v0.22.0 cut session 2026-04-30 -- the vBRIEF-lifecycle-sync release gate (#734) false-positively flagged 32 "closed" mismatches on `deftai/directive` once master crossed 200 open issues. Every flagged issue was OPEN on inspection.
+
+**Failure mode:** the gate fetched all open issues and filtered for the vBRIEF-referenced subset. `fetch_open_issues` capped at 200 (`--limit 200`); tail issues silently dropped were treated as CLOSED, producing apparent mismatches that did not exist. Cost scaled by O(repo-open-issue-count).
+
+**Fix:** invert the lookup direction. Extract the issue numbers referenced by vBRIEFs, then query just those issues' states via batched `gh api graphql` with aliased nodes (`i100: issue(number: 100) { state }`). Cost now scales by O(vBRIEF-referenced-issue-count); truncation impossible by construction. The Tier 2 truncation-guard surface from the original two-tier proposal is retired -- it was guarding against a problem the new approach cannot have.
+
+**Generalizable heuristic:** whenever a gate cross-references a small subset against a large enumerable set, query the subset's state directly rather than fetching the full set and filtering. The query cost should scale by the property the gate cares about, not by an enumeration property the gate does not.
+
+**Reference:** `scripts/reconcile_issues.py::fetch_issue_states` (helper); `scripts/release.py::check_vbrief_lifecycle_sync` (consumer); #754 (issue + this fix).

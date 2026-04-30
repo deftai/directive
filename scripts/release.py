@@ -403,6 +403,15 @@ def check_vbrief_lifecycle_sync(
     surfaced 13 stranded vBRIEFs (8 cycle-relevant + 5 historical
     residue) post-publish, the recurrence record this gate prevents.
 
+    Inverted-lookup direction (#754): the gate queries the state of
+    just the vBRIEF-referenced issues via ``fetch_issue_states``
+    (batched ``gh api graphql``) instead of fetching every open issue
+    in the repo and filtering. Cost scales by
+    ``O(vBRIEF-referenced-issue-count)`` rather than
+    ``O(repo-open-issue-count)``, retiring the prior 200-issue
+    pagination cap that produced false-positive mismatch floods on
+    repos with >200 open issues.
+
     Returns ``(ok, mismatch_count, reason)``:
       - ``ok=True, mismatch_count=0`` -- clean (Section (c) is empty).
       - ``ok=False, mismatch_count=N`` -- N closed-issue vBRIEFs are NOT
@@ -433,11 +442,16 @@ def check_vbrief_lifecycle_sync(
         return False, -1, f"vbrief directory not found at {vbrief_dir}"
 
     issue_to_vbriefs = reconcile_issues.scan_vbrief_dir(vbrief_dir)
-    open_issues = reconcile_issues.fetch_open_issues(repo, cwd=project_root)
-    if open_issues is None:
-        return False, -1, "failed to fetch open issues from gh"
+    # #754: inverted lookup -- query just the vBRIEF-referenced subset
+    # via batched GraphQL. Bounded by O(vBRIEF-count) regardless of
+    # repo open-issue count.
+    issue_state_map = reconcile_issues.fetch_issue_states(
+        repo, set(issue_to_vbriefs.keys()), cwd=project_root
+    )
+    if issue_state_map is None:
+        return False, -1, "failed to fetch issue states from gh"
 
-    report = reconcile_issues.reconcile(issue_to_vbriefs, open_issues)
+    report = reconcile_issues.reconcile(issue_to_vbriefs, issue_state_map)
     # Section (c) entries that are NOT already in completed/ -- the
     # apply-mode candidates. Reverse mismatches (issues that reopened
     # after a vBRIEF landed in completed/) are intentionally NOT

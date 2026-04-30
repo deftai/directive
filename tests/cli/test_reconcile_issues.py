@@ -21,7 +21,7 @@ from reconcile_issues import (  # noqa: E402, I001
     format_json,
     format_markdown,
     parse_issue_number,
-    reconcile,
+    reconcile_with_unlinked as reconcile,  # legacy three-section shape (#754)
     scan_vbrief_dir,
 )
 

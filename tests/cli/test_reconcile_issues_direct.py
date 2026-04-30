@@ -306,8 +306,10 @@ class TestMainCli:
     def test_fetch_failure_returns_1(self, tmp_path, monkeypatch):
         vbrief_dir = tmp_path / "vbrief"
         vbrief_dir.mkdir()
+        # #754: default path uses fetch_issue_states (inverted lookup).
         monkeypatch.setattr(
-            reconcile, "fetch_open_issues", lambda _r, cwd=None: None
+            reconcile, "fetch_issue_states",
+            lambda _r, _ids, cwd=None: None,
         )
         monkeypatch.setattr(
             sys, "argv",
@@ -323,9 +325,10 @@ class TestMainCli:
     def test_markdown_output(self, tmp_path, monkeypatch, capsys):
         vbrief_dir = tmp_path / "vbrief"
         vbrief_dir.mkdir()
+        # #754: empty vbrief dir -> empty issue set -> empty state map.
         monkeypatch.setattr(
-            reconcile, "fetch_open_issues",
-            lambda _r, cwd=None: [{"number": 1, "title": "T"}],
+            reconcile, "fetch_issue_states",
+            lambda _r, _ids, cwd=None: {},
         )
         monkeypatch.setattr(
             sys, "argv",
@@ -342,9 +345,11 @@ class TestMainCli:
     def test_json_output(self, tmp_path, monkeypatch, capsys):
         vbrief_dir = tmp_path / "vbrief"
         vbrief_dir.mkdir()
+        # #754: default path uses fetch_issue_states (inverted lookup);
+        # an empty vbrief tree yields an empty issue set / state map.
         monkeypatch.setattr(
-            reconcile, "fetch_open_issues",
-            lambda _r, cwd=None: [{"number": 1, "title": "T"}],
+            reconcile, "fetch_issue_states",
+            lambda _r, _ids, cwd=None: {},
         )
         monkeypatch.setattr(
             sys, "argv",
@@ -359,4 +364,7 @@ class TestMainCli:
         assert rc == 0
         out = capsys.readouterr().out
         parsed = json.loads(out)
-        assert parsed["summary"]["total_open_issues"] == 1
+        # Inverted-lookup summary shape (#754).
+        assert parsed["summary"]["linked_count"] == 0
+        assert parsed["summary"]["vbriefs_no_open_issue_count"] == 0
+        assert "unlinked" not in parsed

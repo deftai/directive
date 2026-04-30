@@ -1,0 +1,101 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #754 (release-blocker).",
+    "updated": "2026-04-30T02:16:05Z"
+  },
+  "plan": {
+    "title": "fix(scripts/reconcile_issues.py, scripts/release.py): vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues",
+    "status": "running",
+    "narratives": {
+      "Description": "vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues (200-issue pagination cap, no fail-closed on truncation).",
+      "Overview": "The `task release` Phase 1 vBRIEF-lifecycle-sync gate (`scripts/release.py::check_vbrief_lifecycle_sync`) and the underlying `scripts/reconcile_issues.py::fetch_open_issues` cap their open-issue fetch at 200 (`ISSUE_FETCH_LIMIT = 200`). Repos with >200 open issues silently treat tail issues as closed -- producing false-positive 'closed-issue vBRIEF not in completed/' flags that block the release pipeline. Discovered during the v0.22.0 cut session (2026-04-30) when master had 225 open issues and the e2e harness Step 3 reported 32 mismatches, all of which were OPEN on inspection. Blocks v0.22.0 and every subsequent release until fixed.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/754",
+      "Labels": "bug, blocks-release-tag, determinism, test-debt",
+      "Direction": "Per the issue's follow-up comment (2026-04-30T01:41:04Z, viewerDidAuthor=true) the original two-tier fix (raise limit / paginate + truncation guard) is architecturally wrong because it scales by O(repo-open-issue-count) when the gate only cares about O(vBRIEF-referenced-issue-count). The agreed fix is to invert the lookup direction: extract issue numbers referenced in vBRIEFs, then query just those issues' states via batched GraphQL (`gh api graphql` with aliased `issue(number: N) { state }` nodes, ~500 nodes per query). Cost scales by vBRIEF count, bounded by repo's vBRIEF count. Truncation impossible by construction -- Tier 2 retired."
+    },
+    "items": [
+      {
+        "id": "inverted-lookup-helper",
+        "title": "Add `fetch_issue_states(repo, issue_numbers)` GraphQL helper to scripts/reconcile_issues.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Implement `fetch_issue_states(repo: str, issue_numbers: set[int], cwd: Path | None = None) -> dict[int, str] | None` that uses `gh api graphql` to batch-query specific issue numbers. Build the GraphQL query dynamically with aliased nodes (`i100: issue(number: 100) { state }`), capped at <=500 nodes per query (GitHub GraphQL ceiling; pick a safe batch size like 200). Loop batches until all numbers resolved. Each call uses `gh api graphql -F owner=... -F repo=... -f query=<dynamic>`. Return dict mapping issue_number -> 'OPEN'|'CLOSED'. Return None on auth/network/parse error (consistent with `fetch_open_issues`). Handle the case where an issue number doesn't exist in the repo (GraphQL returns null for that alias) by treating it as a sentinel value the caller can detect (e.g. value 'NOT_FOUND' or omit from dict). Pass `cwd` to subprocess.run so gh resolves auth/config from the consumer project (#538 belt-and-suspenders).",
+          "Acceptance": "`fetch_issue_states` exists with the documented signature; returns correct state for any issue number subset of the repo regardless of total repo issue count; handles batches >500 by splitting into multiple GraphQL calls; no truncation possible; existing `fetch_open_issues` is retained but only used by the opt-in `--report-unlinked` path (see `paginated-fetch-all` item)."
+        }
+      },
+      {
+        "id": "reconcile-uses-inverted-lookup",
+        "title": "Switch `reconcile()` and `check_vbrief_lifecycle_sync()` to inverted lookup",
+        "status": "pending",
+        "narrative": {
+          "Action": "Refactor `reconcile_issues.reconcile()` so that, by default, it does NOT need a list of all open issues. Instead it accepts the `issue_to_vbriefs` map and an `issue_state_map: dict[int, str]` from `fetch_issue_states`. Reclassify the sections: (a) `linked` = issues referenced by vBRIEFs whose state is OPEN; (c) `no_open_issue` = issues referenced by vBRIEFs whose state is CLOSED (or NOT_FOUND). Drop section (b) `unlinked` from the default path -- without an all-issues fetch, it cannot be computed. Update `scripts/release.py::check_vbrief_lifecycle_sync` to call `fetch_issue_states(repo, set(issue_to_vbriefs.keys()), cwd=project_root)` instead of `fetch_open_issues`. The mismatch detection logic (Section (c) entries not in `completed/`) is unchanged.",
+          "Acceptance": "`task release:e2e` against `deftai/directive` (currently 226 open + ~310 closed) reaches Step 4 (CI) without false-positive Step 3 failure; the gate correctly identifies the 0 actual closed-issue-not-in-completed mismatches now that the v0.22.0 cleanup commit landed. Existing happy-path tests in `test_release_vbrief_lifecycle.py` continue to pass after refactor (mock the new helper instead of `fetch_open_issues`)."
+        }
+      },
+      {
+        "id": "report-unlinked-flag",
+        "title": "Add opt-in `--report-unlinked` flag with paginated fallback + `--max-open-issues` safety cap",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add CLI flag `--report-unlinked` to `scripts/reconcile_issues.py` main(). When set, run a properly paginated all-open-issues fetch (`gh api repos/{owner}/{repo}/issues?state=open&page=N&per_page=100` looped until exhausted, OR `gh issue list --limit 0`) and emit the legacy three-section report including `unlinked`. Add paired flag `--max-open-issues N` (default 1000) that aborts cleanly with a non-zero exit and a clear diagnostic ('Error: <count> open issues exceeds --max-open-issues=<N>; raise the cap or drop --report-unlinked') when the fetched count exceeds N. Default behavior (no flag) uses the inverted lookup and emits only sections (a) and (c). The release-pipeline gate (`check_vbrief_lifecycle_sync`) NEVER uses this opt-in path -- it's pure inverted lookup.",
+          "Acceptance": "`reconcile_issues.py --report-unlinked` (no cap raise) on a repo with <=1000 open issues emits the legacy three-section report; same command on a repo with >1000 aborts with the documented diagnostic and non-zero exit; `--report-unlinked --max-open-issues 5000` succeeds on a 4500-open repo; default invocation (no `--report-unlinked`) on a 15k-open-issue repo completes in O(vBRIEF-count) time with no truncation."
+        }
+      },
+      {
+        "id": "tests-cli-reconcile-graphql",
+        "title": "Add tests in `tests/cli/test_reconcile_issues_*.py` covering the inverted lookup",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add tests: (1) `test_fetch_issue_states_batches_above_500` -- mock subprocess so the helper splits a 600-issue input into multiple GraphQL calls, returns merged dict; (2) `test_fetch_issue_states_handles_closed_open_mix` -- mock returns OPEN/CLOSED pairs; assert classification correct; (3) `test_fetch_issue_states_returns_none_on_gh_error` -- mock non-zero exit; helper returns None; (4) `test_reconcile_no_unlinked_in_default_path` -- assert default invocation produces only sections linked + no_open_issue, no unlinked; (5) `test_check_vbrief_lifecycle_sync_uses_graphql_for_large_repo` -- inject 250+ vBRIEFs referencing OPEN issues; assert no false-positive even when total open > old 200 cap; (6) `test_report_unlinked_flag_paginates_and_caps` -- mock paginated fetch; assert --max-open-issues=N abort path works; (7) `test_report_unlinked_default_cap_1000` -- exit code + diagnostic message verified.",
+          "Acceptance": "All seven new tests pass; existing `test_reconcile_issues_direct.py` and `test_release_vbrief_lifecycle.py` happy paths continue to pass; the existing `test_release_vbrief_lifecycle.py::test_check_vbrief_lifecycle_sync` is updated to mock `fetch_issue_states` instead of `fetch_open_issues` (the swap is a refactor; semantics preserved)."
+        }
+      },
+      {
+        "id": "changelog-entry",
+        "title": "Add CHANGELOG.md entry under [Unreleased]/Fixed citing #754",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add a `### Fixed` bullet under the `## [Unreleased]` heading in CHANGELOG.md describing the inverted-lookup fix: 'fix(release): vBRIEF-lifecycle-sync gate now scales by vBRIEF-referenced-issue-count, not repo-open-issue-count -- inverted lookup via batched `gh api graphql` retires the 200-issue pagination cap and the Tier 2 truncation-guard surface (#754)'. Match the bullet style of existing [Unreleased] entries.",
+          "Acceptance": "CHANGELOG.md has the new bullet under `[Unreleased]/Fixed` citing #754; `task check` (or whatever lint covers CHANGELOG hygiene) passes."
+        }
+      },
+      {
+        "id": "lessons-md-note",
+        "title": "Add brief note to meta/lessons.md on the inverted-lookup pattern",
+        "status": "pending",
+        "narrative": {
+          "Action": "Append a short section to `meta/lessons.md` (after the existing Greptile / closing-keyword sections) titled 'Inverted-lookup scaling pattern (#754)' that captures: (a) the failure mode (gate scales by repo size when it only cares about referenced subset); (b) the fix (extract referenced IDs, query just those via batched GraphQL); (c) the heuristic (whenever a gate cross-references a small subset against a large set, query the subset's state directly rather than fetching the set and filtering); (d) reference to #754 + this PR. Keep to <=20 lines.",
+          "Acceptance": "`meta/lessons.md` has the new section; section cites #754 and the PR number; format matches surrounding sections."
+        }
+      },
+      {
+        "id": "e2e-validation",
+        "title": "Validate against the actual repo via `task release:e2e`",
+        "status": "pending",
+        "narrative": {
+          "Action": "After the unit-test suite is clean, run `task release:e2e` (or `task release -- 0.22.0 --dry-run --skip-tag --skip-release` if e2e is too heavy in the worktree) and verify Step 3 (Pre-flight vBRIEF lifecycle sync) reports OK or a small, accurate mismatch count -- not the previous 32-mismatch false-positive flood. NOTE: do not actually cut the release in this branch; this is validation only. The release CUT happens in a separate session per `skills/deft-directive-release/SKILL.md`.",
+          "Acceptance": "`task release -- 0.22.0 --dry-run --skip-tag --skip-release` (or `task release:e2e`) Step 3 either reports OK or reports an accurate, verifiable mismatch list (each mismatch has `gh issue view <N> --json state --jq .state` returning CLOSED). Output captured in the PR description as evidence."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/754",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #754: vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/734",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #734: vBRIEF-lifecycle reconciliation gate (apply-mode acceptance)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/720",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #720: e2e harness deepening (surfaced this defect during Decision A pre-release validation)"
+      }
+    ],
+    "updated": "2026-04-30T02:16:05Z"
+  }
+}

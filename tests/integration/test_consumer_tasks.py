@@ -313,19 +313,22 @@ def test_issue_ingest_fails_loudly_without_repo(
 def test_reconcile_issues_uses_consumer_repo(consumer_project: Path, monkeypatch) -> None:
     """reconcile_issues.main fetches for the consumer repo, not deft's own.
 
-    We stub ``fetch_open_issues`` and record the repo slug it receives.
+    We stub ``fetch_issue_states`` (the inverted-lookup gh entry point
+    landed in #754) and record the repo slug it receives. The behaviour
+    under test (#538) is unchanged: reconcile_issues MUST resolve to the
+    consumer repo, not deft's own origin.
     """
     reconcile = _load_module(
         "reconcile_issues_smoke", SCRIPTS_DIR / "reconcile_issues.py"
     )
     seen: dict[str, object] = {}
 
-    def fake_fetch(repo, cwd=None):
+    def fake_fetch(repo, ids, cwd=None):
         seen["repo"] = repo
         seen["cwd"] = cwd
-        return [{"number": 42, "title": "Consumer issue", "url": ""}]
+        return dict.fromkeys(ids, "OPEN")
 
-    monkeypatch.setattr(reconcile, "fetch_open_issues", fake_fetch)
+    monkeypatch.setattr(reconcile, "fetch_issue_states", fake_fetch)
     monkeypatch.setattr(
         sys,
         "argv",
