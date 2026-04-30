@@ -59,8 +59,7 @@ research-phase notes) for terms in these categories:
 5. **Trademarked products** -- iPhone, Xbox, PlayStation, Lego, Coca-Cola,
    etc.
 6. **Music / film** -- artist names and platform names that are commonly
-   misappropriated (Taylor Swift, Beyoncé, Drake, Spotify, Netflix, HBO,
-   etc.).
+   misappropriated (Taylor Swift, Beyoncé, Spotify, Netflix, HBO, etc.).
 
 ### Matching Rules
 

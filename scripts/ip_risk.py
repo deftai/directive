@@ -153,10 +153,11 @@ _MUSIC_AND_FILM: tuple[str, ...] = (
     "Taylor Swift",
     "Beyonce",
     "Beyoncé",
-    "Drake",
-    # NOTE: "BTS" was removed (Greptile P2 #775) -- it false-positives heavily
-    # on common software-industry uses (Build-Test-Ship, Behind-The-Scenes,
-    # bug-tracking systems). Re-add only with a K-pop-specific surrounding
+    # NOTE: "BTS" and "Drake" were removed (Greptile P2 #775) -- both
+    # false-positive heavily on common technical / proper-noun uses
+    # (BTS = Build-Test-Ship / Behind-The-Scenes / bug-tracking;
+    # Drake = the duck, the surname, Drake University, Sir Francis Drake,
+    # the Drake equation). Re-add only with a music-specific surrounding
     # context check.
     "Spotify",
     "Netflix",
@@ -406,6 +407,20 @@ def plain_risk_summary(
 
     Returns an empty string when *hits* is empty (no IP detected); the
     caller MUST NOT inject the summary in that case.
+
+    .. warning::
+
+        ``monetization_intent="unknown"`` produces a **transitional**
+        re-ask prompt -- a status message saying "the interview MUST
+        capture an explicit answer". It is NOT a terminal output and
+        does NOT carry the lawyer recommendation that
+        :func:`ip_risk_scope_items` injects under the wrong-side-of-safe
+        policy. Callers MUST loop back to the monetization-intent
+        question and re-call this function with ``personal`` or
+        ``commercial`` before treating the summary as final output --
+        otherwise the interview surface (no lawyer rec) and the
+        injected spec items (commercial-level acceptance language)
+        will mismatch (#775 P2).
     """
     if not hits:
         return ""
