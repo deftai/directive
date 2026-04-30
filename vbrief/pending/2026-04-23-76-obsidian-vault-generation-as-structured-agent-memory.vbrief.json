@@ -1,12 +1,11 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #76: Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)",
-    "updated": "2026-04-30T01:18:22Z"
+    "description": "Scope vBRIEF for #76: Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)"
   },
   "plan": {
     "title": "Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)",
-    "status": "completed",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -29,6 +28,6 @@
         "title": "Issue #76: Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)"
       }
     ],
-    "updated": "2026-04-30T01:18:22Z"
+    "updated": "2026-04-23T18:53:15Z"
   }
 }

@@ -1,12 +1,11 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #96",
-    "updated": "2026-04-30T01:18:22Z"
+    "description": "Scope vBRIEF ingested from GitHub issue #96"
   },
   "plan": {
     "title": "[Compliance] Config schema + compliance-aware constitution templates",
-    "status": "completed",
+    "status": "pending",
     "narratives": {
       "Description": "[Compliance] Config schema + compliance-aware constitution templates",
       "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/96",
@@ -26,6 +25,6 @@
         "Phase_source": "pre-migration ROADMAP (commit 3925468)"
       }
     },
-    "updated": "2026-04-30T01:18:22Z"
+    "updated": "2026-04-23T18:53:17Z"
   }
 }

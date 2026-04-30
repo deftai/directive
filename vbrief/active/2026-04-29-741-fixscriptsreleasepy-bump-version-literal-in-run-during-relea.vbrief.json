@@ -2,11 +2,11 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Scope vBRIEF ingested from GitHub issue #741",
-    "updated": "2026-04-30T01:18:23Z"
+    "updated": "2026-04-29T22:48:22Z"
   },
   "plan": {
     "title": "fix(scripts/release.py): bump VERSION literal in run during release flow",
-    "status": "completed",
+    "status": "running",
     "narratives": {
       "Description": "fix(scripts/release.py): bump VERSION literal in run during release flow",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/741",
@@ -57,6 +57,6 @@
         "title": "Issue #741: fix(scripts/release.py): bump VERSION literal in run during release flow"
       }
     ],
-    "updated": "2026-04-30T01:18:23Z"
+    "updated": "2026-04-29T22:48:22Z"
   }
 }

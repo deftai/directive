@@ -1,12 +1,11 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF for #9: Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)",
-    "updated": "2026-04-30T01:18:22Z"
+    "description": "Scope vBRIEF for #78: Bootstrap: offer to update user preferences when USER.md already exists"
   },
   "plan": {
-    "title": "Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)",
-    "status": "completed",
+    "title": "Bootstrap: offer to update user preferences when USER.md already exists",
+    "status": "pending",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -15,7 +14,7 @@
       "x-migrator": {
         "Phase": "Phase 6 -- CLI Overhaul & New Features",
         "PhaseDescription": "Larger feature work -- only after issues are resolved and content is stable.",
-        "Description": "Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)",
+        "Description": "Bootstrap: offer to update user preferences when USER.md already exists",
         "Description_source": "ROADMAP.md",
         "Status_source": "orphan: proposed default",
         "SourceConflict": "missing-from-spec",
@@ -24,11 +23,11 @@
     },
     "references": [
       {
-        "uri": "https://github.com/deftai/directive/issues/9",
+        "uri": "https://github.com/deftai/directive/issues/78",
         "type": "x-vbrief/github-issue",
-        "title": "Issue #9: Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)"
+        "title": "Issue #78: Bootstrap: offer to update user preferences when USER.md already exists"
       }
     ],
-    "updated": "2026-04-30T01:18:22Z"
+    "updated": "2026-04-23T18:53:15Z"
   }
 }

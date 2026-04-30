@@ -2,11 +2,11 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Scope vBRIEF for #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
-    "updated": "2026-04-30T01:18:23Z"
+    "updated": "2026-04-29T22:48:22Z"
   },
   "plan": {
     "title": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
-    "status": "completed",
+    "status": "running",
     "narratives": {
       "SourceSection": "ROADMAP active phase"
     },
@@ -56,6 +56,6 @@
         "title": "Issue #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
       }
     ],
-    "updated": "2026-04-30T01:18:23Z"
+    "updated": "2026-04-29T22:48:22Z"
   }
 }

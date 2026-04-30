@@ -18,19 +18,53 @@ Quick doc/content fixes that don't require code changes.
 
 ### Content & Doc Fixes
 
+- **#112** -- External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship
+- **#114** -- Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`
+- **#127** -- Improved support for Deft in existing repositories -- bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)
 - **#136** -- Warp doesn't load deft's AGENTS.md by default
+- **#151** -- [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)
 - **#194** -- User-facing best practices guide (`docs/best-practices.md`) -- Directive contract hierarchy usage, Warp swarming patterns, and user-oriented skill documentation; in-repo successor to premature PDF guide (#112); depends on #147 and #188 for stable content (xrefs #112, #84, #114)
 - **#258** -- Inventory Warp Drive global rules used for deft development and document in `CONTRIBUTING.md` under a Warp-specific section (spinoff of #114; blocked on #89 positioning resolution; with #136)
+- **#82** -- Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)
+
+### Philosophy & Positioning
+
+- **#89** -- Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)
+
+- **#53** -- deft-install should bootstrap the current directory by default
+- **#77** -- Allow users to change technical rating (1/2/3) when starting a new project
 
 ## Phase 4
 
+- **#128** -- CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)
 - **#228** -- Bring run CLI into test coverage measurement -- refactor run/run.py to separate pure logic from terminal I/O, add unit tests, remove pyproject.toml omit entries (confirm #160 disposition before implementing)
+
+## Phase 5 -- Package Distribution & Install UX
+
+Publish deft as NPM + PIP CLI packages for developer-audience install.
+Complements the Go installer (which targets novice/bare-machine users).
+
+- **#11** -- NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)
+- **#56** -- Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)
+- **#75** -- Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)
 
 ## Phase 6 -- CLI Overhaul & New Features
 
 Larger feature work -- only after issues are resolved and content is stable.
 
+- **#100** -- [Compliance] Evidence collection automation hooks
+- **#12** -- Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)
+- **#140** -- Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)
 - **#233** -- More Determinism (remaining): Phase 0 spec scaffolding, task doctor, build:verify, change:archive, task ci:local, task release
+- **#46** -- Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)
+- **#52** -- Install into `.deft/` (hidden directory) instead of `deft/`
+- **#55** -- Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54
+- **#76** -- Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)
+- **#78** -- Bootstrap: offer to update user preferences when USER.md already exists
+- **#86** -- Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest)
+- **#9** -- Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)
+- **#95** -- Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks
+- **#96** -- [Compliance] Config schema + compliance-aware constitution templates
 
 ## Completed
 
@@ -109,7 +143,6 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#526** -- fix(skill): deft-directive-swarm Phase 6 -- add Greptile-service-errored recovery procedure -- `[completed]`
 - **#572** -- unify AUTO-GENERATED banner contract across migrate:vbrief stubs, spec:render, prd:render, roadmap:render -- `[completed]`
 - **#10** -- AGENTS.md setup improvement in docs -- `[completed]`
-- **#100** -- [Compliance] Evidence collection automation hooks -- `[completed]`
 - **#102** -- Codify Mermaid gist-rendering best practices -- RFC2119 MUST/SHOULD rules + box/end pattern in `languages/mermaid.md`, regression tests added -- `[completed]`
 - **#103** -- Standalone brownfield/map analysis without requiring interview (allow `/deft:run:map` as independent entry point) -- `[completed]`
 - **#104** -- Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`) -- `[completed]`
@@ -117,19 +150,13 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#106** -- Add toolchain/environment validation gate (coding/toolchain.md, deft-build Step 2, strategies/interview.md Acceptance Gate, meta/lessons.md incident entry) -- `[completed]`
 - **#107** -- Remove language defaults from USER.md -- `[completed]`
 - **#108** -- Ask deployment platform before language -- `[completed]`
-- **#11** -- NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`) -- `[completed]`
-- **#112** -- External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship -- `[completed]`
-- **#114** -- Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md` -- `[completed]`
 - **#115** -- Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection) -- `[completed]`
 - **#116** -- Installer now creates all 6 skill thin pointers (deft-review-cycle, deft-roadmap-refresh, deft-swarm were missing) -- consistent ./deft/ paths, 3 new path consistency tests -- `[completed]`
 - **#117** -- Interview command loops in CLI -- `cmd_project` no longer re-runs questionnaire after `cmd_install` chains through `cmd_spec` -- `[completed]`
 - **#118** -- CLI code quality sweep -- `[completed]`
-- **#12** -- Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation) -- `[completed]`
 - **#123** -- Change lifecycle gate enforcement -- strengthened /deft:change rule -- `[completed]`
 - **#124** -- Warp context window improvements: behavioral rule for periodic context checkpointing and structured handoff notes -- `[completed]`
 - **#126** -- specification.vbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests -- `[completed]`
-- **#127** -- Improved support for Deft in existing repositories -- bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53) -- `[completed]`
-- **#128** -- CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57) -- `[completed]`
 - **#131** -- Mac installer post-install text -- `[completed]`
 - **#133** -- Generated vBRIEF files use invalid reference types -- upstream deftai/vBRIEF#2 resolved; cleanup tracked in #191 -- `[completed]`
 - **#134** -- Deft alignment confirmation rule -- AGENTS.md behavioral rule: confirm Deft Directive active at session start and after context resets -- `[completed]`
@@ -137,16 +164,13 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#137** -- README: move startup instructions higher, clarify installer location -- `[completed]`
 - **#138** -- Branching requirement too prescriptive -- context-aware solo-project qualifier -- `[completed]`
 - **#139** -- Agent skips vbrief source step -- ⊗ rule added to main.md and deft-build SKILL.md -- `[completed]`
-- **#140** -- Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling) -- `[completed]`
 - **#142** -- AGENTS.md onboarding gate blocks headless/cloud agents -- headless bypass added -- `[completed]`
 - **#144** -- vBRIEF wrong narrative type (object) + wrong child key (`items` vs `subItems`) -- fixed in agent guidance + spec_validate.py (with #126) -- `[completed]`
 - **#145** -- deft-review-cycle Greptile issue comment as primary review signal -- `[completed]`
 - **#146** -- skills/deft-sync/SKILL.md -- session-start framework sync: pre-flight, submodule update, vBRIEF validation, AGENTS.md freshness, new skills listing -- `[completed]`
 - **#147** -- Skills undiscoverable -- keyword->skill routing table added to AGENTS.md, 3 missing skills added to README -- `[completed]`
-- **#151** -- [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136) -- `[completed]`
 - **#159** -- meta/philosophy.md -- deterministic > probabilistic design principle: definition, rationale, examples, Phase 5 scope note -- `[completed]`
 - **#160** -- Consider TypeScript instead of Python for `run` CLI -- architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118) -- `[completed]`
-- **#163** -- Enforce USER.md gate in CLI path -- parity with agentic (skills) path -- `[completed]`
 - **#166** -- Greptile Review status check blocks merge -- .greptile/config.json added with triggerOnUpdates, deft-review-cycle pre-flight check -- `[completed]`
 - **#167** -- PR merge hygiene: squash-merge issue-close verification -- PR template, deft-review-cycle Post-Merge Verification, AGENTS.md convention, meta/lessons.md root cause -- `[completed]`
 - **#168** -- deft-roadmap-refresh: ! rule confirming analysis comment post to user with issue number and link -- `[completed]`
@@ -249,17 +273,12 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#4** -- Make /deft read-only (project-local layout) -- `[completed]`
 - **#44** -- CLI bootstrap overwrites USER.md + input validation -- `[completed]`
 - **#45** -- Bootstrap parity -- `[completed]`
-- **#46** -- Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.) -- `[completed]`
 - **#47** -- PROJECT.md defaults + input validation -- `[completed]`
 - **#49** -- All CLI commands display version on startup -- `[completed]`
 - **#5** -- SDD should focus on intent first -- `[completed]`
 - **#50** -- Strategies redundant old names -- brownfield.md redirect, default.md deleted -- `[completed]`
 - **#51** -- Project bootstrap: purge stale legacy path references across 42 files; add strategy stubs (rapid.md, enterprise.md); add docs/getting-started.md stub -- `[completed]`
-- **#52** -- Install into `.deft/` (hidden directory) instead of `deft/` -- `[completed]`
-- **#53** -- deft-install should bootstrap the current directory by default -- `[completed]`
 - **#54** -- AGENTS.md provides no actionable onboarding -- `[completed]`
-- **#55** -- Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54 -- `[completed]`
-- **#56** -- Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes) -- `[completed]`
 - **#57** -- GitHub Actions CI workflow -- Python (ruff, mypy, pytest+cov) + Go (test + 3-platform build); pyproject.toml fail_under raised to 85% -- `[completed]`
 - **#58** -- Stale cross-references to legacy paths -- `[completed]`
 - **#59** -- history/changes/ directory created with README.md -- `[completed]`
@@ -275,24 +294,14 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#71** -- CHANGELOG catch-up -- `[completed]`
 - **#72** -- vBRIEF files still invalid on master -- five-component generation chain fix (CONVENTIONS.md root cause, validator, renderer, data migration, templates, 7 new tests, minimal CI) -- `[completed]`
 - **#74** -- Automate release process -- `[completed]`
-- **#75** -- Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.) -- `[completed]`
-- **#76** -- Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes) -- `[completed]`
-- **#77** -- Allow users to change technical rating (1/2/3) when starting a new project -- `[completed]`
-- **#78** -- Bootstrap: offer to update user preferences when USER.md already exists -- `[completed]`
 - **#79** -- deft-setup inference boundary guards -- `[completed]`
 - **#8** -- Don't commit until questionnaires finished -- `[completed]`
 - **#80** -- deft-setup project name fallback -- `[completed]`
 - **#81** -- BDD/acceptance-test-first strategy -- strategies/bdd.md with 6-step Given/When/Then workflow and chaining gate integration -- `[completed]`
-- **#82** -- Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate) -- `[completed]`
 - #84 Phase 1 -- Deft as teacher Phase 1 complete: contracts/hierarchy.md (v0.10.0), adaptive teaching main.md (v0.10.0), State WHY rule interview.md (v0.12.1) -- `[completed]`
-- **#86** -- Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest) -- `[completed]`
-- **#89** -- Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates) -- `[completed]`
-- **#9** -- Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP) -- `[completed]`
 - **#91** -- run bootstrap goes in a loop -- `[completed]`
 - **#92** -- Strategy selection infinite loop when strategies/ empty -- `[completed]`
 - **#94** -- Agent auto-alignment on startup: thin skill pointer + change lifecycle rule -- `[completed]`
-- **#95** -- Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks -- `[completed]`
-- **#96** -- [Compliance] Config schema + compliance-aware constitution templates -- `[completed]`
 - Add `strategies/discuss.md` to README table -- `[completed]`
 - Agent-driven skills (deft-setup + deft-build) -- `[completed]`
 - Convert to TDD mode -- `[completed]`
@@ -312,12 +321,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#723** -- release: task build uses the actual release version (#723) -- `[completed]`
 - **#724** -- release: post-create verify-isDraft within 5s gate (#724) -- `[completed]`
 - **#725** -- Replace HEAD~1 reset + force-push with resolved-SHA forward-revert + normal push in scripts/release_rollback.py -- `[completed]`
-- **#704** -- README cleanup pass: factual errors, contradictions, and post-v0.20 staleness -- `[completed]`
 - **#727** -- Codify orchestrator role-separation + canonical poller-prompt template (per [AXIOM]) -- `[completed]`
 - **#731** -- release.py uses --notes-file for gh release create; fixes Windows ERROR_FILENAME_EXCED_RANGE blocking v0.21.0 (#731) -- `[completed]`
-- **#733** -- fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate -- `[completed]`
-- **#734** -- feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py -- `[completed]`
-- **#737** -- feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes -- `[completed]`
-- **#741** -- fix(scripts/release.py): bump VERSION literal in run during release flow -- `[completed]`
 - **#730** -- Release CHANGELOG promotion accepts --summary blockquote (per [AXIOM] deterministic tier) -- `[completed]`
 

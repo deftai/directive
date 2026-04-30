@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-04-30T01:20:07Z"
+    "updated": "2026-04-29T21:05:53Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -368,6 +368,118 @@
         }
       },
       {
+        "id": "2026-04-23-100-compliance-evidence-collection-automation-hooks",
+        "title": "[Compliance] Evidence collection automation hooks",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-100-compliance-evidence-collection-automation-hooks.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/100",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #100: [Compliance] Evidence collection automation hooks"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx",
+        "title": "NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/11",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-112-external-deft-directive-pdf-is-premature-describes-post",
+        "title": "External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-112-external-deft-directive-pdf-is-premature-describes-post.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/112",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #112: External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-114-document-all-global-warp-rules-used-for-deft-development",
+        "title": "Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-114-document-all-global-warp-rules-used-for-deft-development.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/114",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #114: Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-12-deft-bootstrap-cli-with-tui-typer-textual-strategy-aware",
+        "title": "Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-12-deft-bootstrap-cli-with-tui-typer-textual-strategy-aware.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/12",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #12: Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-127-improved-support-for-deft-in-existing-repositories",
+        "title": "Improved support for Deft in existing repositories -- bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-127-improved-support-for-deft-in-existing-repositories.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/127",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #127: Improved support for Deft in existing repositories -- bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-128-ci-vbrief-schema-sync-check-fetch-upstream-vbrief-core",
+        "title": "CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-128-ci-vbrief-schema-sync-check-fetch-upstream-vbrief-core.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/128",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #128: CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-23-136-warp-doesn-t-load-deft-s-agents-md-by-default",
         "title": "Warp doesn't load deft's AGENTS.md by default",
         "status": "pending",
@@ -379,6 +491,38 @@
               "uri": "https://github.com/deftai/directive/issues/136",
               "type": "x-vbrief/github-issue",
               "title": "Issue #136: Warp doesn't load deft's AGENTS.md by default"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-140-automatically-check-for-updates-to-cloned-repos-in-a",
+        "title": "Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-140-automatically-check-for-updates-to-cloned-repos-in-a.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/140",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #140: Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-151-playtest-feedback-first-time-non-technical-user-session",
+        "title": "[Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-151-playtest-feedback-first-time-non-technical-user-session.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/151",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #151: [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)"
             }
           ]
         }
@@ -463,6 +607,246 @@
         }
       },
       {
+        "id": "2026-04-23-46-provide-a-way-for-users-to-update-meta-md-files-soul",
+        "title": "Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-46-provide-a-way-for-users-to-update-meta-md-files-soul.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/46",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #46: Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-52-install-into-deft-hidden-directory-instead-of-deft",
+        "title": "Install into `.deft/` (hidden directory) instead of `deft/`",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-52-install-into-deft-hidden-directory-instead-of-deft.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/52",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #52: Install into `.deft/` (hidden directory) instead of `deft/`"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-53-deft-install-should-bootstrap-the-current-directory-by",
+        "title": "deft-install should bootstrap the current directory by default",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-53-deft-install-should-bootstrap-the-current-directory-by.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/53",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #53: deft-install should bootstrap the current directory by default"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-55-register-deft-commands-as-native-agent-slash-commands",
+        "title": "Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-55-register-deft-commands-as-native-agent-slash-commands.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/55",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #55: Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-56-reduce-installation-friction-add-shell-one-liner-homebrew",
+        "title": "Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-56-reduce-installation-friction-add-shell-one-liner-homebrew.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/56",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #56: Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-75-skill-auto-discovery-make-deft-skills-work-in-both-user",
+        "title": "Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-75-skill-auto-discovery-make-deft-skills-work-in-both-user.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/75",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #75: Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-76-obsidian-vault-generation-as-structured-agent-memory",
+        "title": "Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-76-obsidian-vault-generation-as-structured-agent-memory.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/76",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #76: Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-77-allow-users-to-change-technical-rating-1-2-3-when",
+        "title": "Allow users to change technical rating (1/2/3) when starting a new project",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-77-allow-users-to-change-technical-rating-1-2-3-when.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/77",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #77: Allow users to change technical rating (1/2/3) when starting a new project"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-78-bootstrap-offer-to-update-user-preferences-when-user-md",
+        "title": "Bootstrap: offer to update user preferences when USER.md already exists",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-78-bootstrap-offer-to-update-user-preferences-when-user-md.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/78",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #78: Bootstrap: offer to update user preferences when USER.md already exists"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-82-replacement-strategies-need-accept-or-scrap-exit-when",
+        "title": "Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-82-replacement-strategies-need-accept-or-scrap-exit-when.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/82",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #82: Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-86-artifact-branch-binding-and-complete-audit-trail-for-sdd",
+        "title": "Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-86-artifact-branch-binding-and-complete-audit-trail-for-sdd.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/86",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #86: Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-89-deft-identity-and-positioning-resolve-naming-before",
+        "title": "Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-89-deft-identity-and-positioning-resolve-naming-before.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/89",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #89: Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-9-issue-tracking-system-integration-github-issues-jira-asana",
+        "title": "Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-9-issue-tracking-system-integration-github-issues-jira-asana.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/9",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #9: Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-95-compliance-aligned-constitution-templates-readiness",
+        "title": "Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-95-compliance-aligned-constitution-templates-readiness.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/95",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #95: Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-23-96-compliance-config-schema-compliance-aware-constitution-templ",
+        "title": "[Compliance] Config schema + compliance-aware constitution templates",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-04-23-96-compliance-config-schema-compliance-aware-constitution-templ.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/96",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #96: [Compliance] Config schema + compliance-aware constitution templates"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-24-624-featswarm-encode-writes-single-threaded-principle-and-named",
         "title": "feat(swarm): encode writes-single-threaded principle and named manager-child anti-patterns in deft-swarm",
         "status": "pending",
@@ -527,6 +911,22 @@
         }
       },
       {
+        "id": "2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic",
+        "title": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/163",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-24-642-tracking-framework-maintainability-rule-ownership-and-determ",
         "title": "PR #401 trim tracker (hygiene merge anchor)",
         "status": "running",
@@ -563,6 +963,86 @@
               "uri": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
               "type": "x-vbrief/github-issue",
               "title": "Canonical workflow comment for PR #401 trim + framework maintainability arc (locked decisions, DP5 V4 block, halt-to-user templates, substantive-vs-mechanical bright line)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-704-readme-cleanup-pass-factual-errors-contradictions-and-post-v",
+        "title": "README cleanup pass: factual errors, contradictions, and post-v0.20 staleness",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-04-29-704-readme-cleanup-pass-factual-errors-contradictions-and-post-v.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/704",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #704: README cleanup pass: factual errors, contradictions, and post-v0.20 staleness"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-733-fixgithubworkflowsreleaseyml-release-job-auto-flips-draft-to",
+        "title": "fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-04-29-733-fixgithubworkflowsreleaseyml-release-job-auto-flips-draft-to.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/733",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #733: fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-734-featscriptsskills-vbrief-lifecycle-reconciliation-gate-at-ta",
+        "title": "feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-04-29-734-featscriptsskills-vbrief-lifecycle-reconciliation-gate-at-ta.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/734",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #734: feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-737-featscriptstasksskills-pre-pr-closing-keyword-negation-conte",
+        "title": "feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-04-29-737-featscriptstasksskills-pre-pr-closing-keyword-negation-conte.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/737",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #737: feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-04-29-741-fixscriptsreleasepy-bump-version-literal-in-run-during-relea",
+        "title": "fix(scripts/release.py): bump VERSION literal in run during release flow",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-04-29-741-fixscriptsreleasepy-bump-version-literal-in-run-during-relea.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/741",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #741: fix(scripts/release.py): bump VERSION literal in run during release flow"
             }
           ]
         }
@@ -1883,22 +2363,6 @@
         }
       },
       {
-        "id": "2026-04-23-100-compliance-evidence-collection-automation-hooks",
-        "title": "[Compliance] Evidence collection automation hooks",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-100-compliance-evidence-collection-automation-hooks.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/100",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #100: [Compliance] Evidence collection automation hooks"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-23-102-codify-mermaid-gist-rendering-best-practices-rfc2119",
         "title": "Codify Mermaid gist-rendering best practices -- RFC2119 MUST/SHOULD rules + box/end pattern in `languages/mermaid.md`, regression tests added",
         "status": "completed",
@@ -2011,54 +2475,6 @@
         }
       },
       {
-        "id": "2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx",
-        "title": "NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-11-npm-pip-cli-distribution-npm-i-g-deftai-directive-pipx.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/11",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-112-external-deft-directive-pdf-is-premature-describes-post",
-        "title": "External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-112-external-deft-directive-pdf-is-premature-describes-post.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/112",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #112: External “Deft Directive” PDF is premature -- describes post-Phase-1-3 state; defer distribution or add known-issues caveat; incorporate as `docs/getting-started.md` after Phases 1–3 ship"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-114-document-all-global-warp-rules-used-for-deft-development",
-        "title": "Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-114-document-all-global-warp-rules-used-for-deft-development.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/114",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #114: Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-23-115-strengthen-spec-validation-gate-add-ci-freshness-check",
         "title": "Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)",
         "status": "completed",
@@ -2123,22 +2539,6 @@
         }
       },
       {
-        "id": "2026-04-23-12-deft-bootstrap-cli-with-tui-typer-textual-strategy-aware",
-        "title": "Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-12-deft-bootstrap-cli-with-tui-typer-textual-strategy-aware.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/12",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #12: Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-23-123-change-lifecycle-gate-enforcement-strengthened-deft",
         "title": "Change lifecycle gate enforcement -- strengthened /deft:change rule",
         "status": "completed",
@@ -2182,38 +2582,6 @@
               "uri": "https://github.com/deftai/directive/issues/126",
               "type": "x-vbrief/github-issue",
               "title": "Issue #126: specification.vbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-127-improved-support-for-deft-in-existing-repositories",
-        "title": "Improved support for Deft in existing repositories -- bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-127-improved-support-for-deft-in-existing-repositories.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/127",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #127: Improved support for Deft in existing repositories -- bootstrap should detect existing code and offer brownfield/map analysis path instead of greenfield-only questionnaire (related to #103; CLI integration in Phase 4 with #53)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-128-ci-vbrief-schema-sync-check-fetch-upstream-vbrief-core",
-        "title": "CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-128-ci-vbrief-schema-sync-check-fetch-upstream-vbrief-core.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/128",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #128: CI vBRIEF schema sync check: fetch upstream `vbrief-core.schema.json` from `deftai/vBRIEF`, diff against vendored copy, fail on divergence (depends on #57)"
             }
           ]
         }
@@ -2331,22 +2699,6 @@
         }
       },
       {
-        "id": "2026-04-23-140-automatically-check-for-updates-to-cloned-repos-in-a",
-        "title": "Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-140-automatically-check-for-updates-to-cloned-repos-in-a.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/140",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #140: Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-23-142-agents-md-onboarding-gate-blocks-headless-cloud-agents",
         "title": "AGENTS.md onboarding gate blocks headless/cloud agents -- headless bypass added",
         "status": "completed",
@@ -2427,22 +2779,6 @@
         }
       },
       {
-        "id": "2026-04-23-151-playtest-feedback-first-time-non-technical-user-session",
-        "title": "[Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-151-playtest-feedback-first-time-non-technical-user-session.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/151",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #151: [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-23-159-meta-philosophy-md-deterministic-probabilistic-design",
         "title": "meta/philosophy.md -- deterministic > probabilistic design principle: definition, rationale, examples, Phase 5 scope note",
         "status": "completed",
@@ -2470,22 +2806,6 @@
               "uri": "https://github.com/deftai/directive/issues/160",
               "type": "x-vbrief/github-issue",
               "title": "Issue #160: Consider TypeScript instead of Python for `run` CLI -- architectural decision for CLI overhaul; decide before #11 and #12 (xrefs #118)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic",
-        "title": "Enforce USER.md gate in CLI path -- parity with agentic (skills) path",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-163-enforce-user-md-gate-in-cli-path-parity-with-agentic.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/163",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #163: Enforce USER.md gate in CLI path -- parity with agentic (skills) path"
             }
           ]
         }
@@ -4109,22 +4429,6 @@
         }
       },
       {
-        "id": "2026-04-23-46-provide-a-way-for-users-to-update-meta-md-files-soul",
-        "title": "Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-46-provide-a-way-for-users-to-update-meta-md-files-soul.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/46",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #46: Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-23-47-project-md-defaults-input-validation",
         "title": "PROJECT.md defaults + input validation",
         "status": "completed",
@@ -4205,38 +4509,6 @@
         }
       },
       {
-        "id": "2026-04-23-52-install-into-deft-hidden-directory-instead-of-deft",
-        "title": "Install into `.deft/` (hidden directory) instead of `deft/`",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-52-install-into-deft-hidden-directory-instead-of-deft.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/52",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #52: Install into `.deft/` (hidden directory) instead of `deft/`"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-53-deft-install-should-bootstrap-the-current-directory-by",
-        "title": "deft-install should bootstrap the current directory by default",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-53-deft-install-should-bootstrap-the-current-directory-by.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/53",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #53: deft-install should bootstrap the current directory by default"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-23-54-agents-md-provides-no-actionable-onboarding",
         "title": "AGENTS.md provides no actionable onboarding",
         "status": "completed",
@@ -4248,38 +4520,6 @@
               "uri": "https://github.com/deftai/directive/issues/54",
               "type": "x-vbrief/github-issue",
               "title": "Issue #54: AGENTS.md provides no actionable onboarding"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-55-register-deft-commands-as-native-agent-slash-commands",
-        "title": "Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-55-register-deft-commands-as-native-agent-slash-commands.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/55",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #55: Register Deft commands as native agent slash commands (Claude Code, Copilot, Gemini, etc.) -- also absorbs slash-command registration scope from #54"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-56-reduce-installation-friction-add-shell-one-liner-homebrew",
-        "title": "Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-56-reduce-installation-friction-add-shell-one-liner-homebrew.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/56",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #56: Reduce installation friction -- add shell one-liner, Homebrew, and platform package managers (absorbed #101: decide whether manual clone path stays or goes)"
             }
           ]
         }
@@ -4525,70 +4765,6 @@
         }
       },
       {
-        "id": "2026-04-23-75-skill-auto-discovery-make-deft-skills-work-in-both-user",
-        "title": "Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-75-skill-auto-discovery-make-deft-skills-work-in-both-user.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/75",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #75: Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-76-obsidian-vault-generation-as-structured-agent-memory",
-        "title": "Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-76-obsidian-vault-generation-as-structured-agent-memory.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/76",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #76: Obsidian Vault generation as structured agent memory (interlinked markdown notes, per-agent knowledge scopes)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-77-allow-users-to-change-technical-rating-1-2-3-when",
-        "title": "Allow users to change technical rating (1/2/3) when starting a new project",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-77-allow-users-to-change-technical-rating-1-2-3-when.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/77",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #77: Allow users to change technical rating (1/2/3) when starting a new project"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-78-bootstrap-offer-to-update-user-preferences-when-user-md",
-        "title": "Bootstrap: offer to update user preferences when USER.md already exists",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-78-bootstrap-offer-to-update-user-preferences-when-user-md.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/78",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #78: Bootstrap: offer to update user preferences when USER.md already exists"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-23-79-deft-setup-inference-boundary-guards",
         "title": "deft-setup inference boundary guards",
         "status": "completed",
@@ -4653,76 +4829,12 @@
         }
       },
       {
-        "id": "2026-04-23-82-replacement-strategies-need-accept-or-scrap-exit-when",
-        "title": "Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-82-replacement-strategies-need-accept-or-scrap-exit-when.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/82",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #82: Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-23-84-phase-1-deft-as-teacher-phase-1-complete-contracts",
         "title": "#84 Phase 1 -- Deft as teacher Phase 1 complete: contracts/hierarchy.md (v0.10.0), adaptive teaching main.md (v0.10.0), State WHY rule interview.md (v0.12.1)",
         "status": "completed",
         "metadata": {
           "source_path": "completed/2026-04-23-84-phase-1-deft-as-teacher-phase-1-complete-contracts.vbrief.json",
           "lifecycle_folder": "completed"
-        }
-      },
-      {
-        "id": "2026-04-23-86-artifact-branch-binding-and-complete-audit-trail-for-sdd",
-        "title": "Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-86-artifact-branch-binding-and-complete-audit-trail-for-sdd.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/86",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #86: Artifact-branch binding and complete audit trail for SDD (dual-format persistence, branch lifecycle hooks, artifact manifest)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-89-deft-identity-and-positioning-resolve-naming-before",
-        "title": "Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-89-deft-identity-and-positioning-resolve-naming-before.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/89",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #89: Deft identity and positioning: resolve naming before README reframe (blocks #84 Phase 2 README reframe, `meta/philosophy.md`, interview strategy updates)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-9-issue-tracking-system-integration-github-issues-jira-asana",
-        "title": "Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-9-issue-tracking-system-integration-github-issues-jira-asana.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/9",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #9: Issue tracking system integration (GitHub Issues, Jira, Asana -- optional, via MCP)"
-            }
-          ]
         }
       },
       {
@@ -4769,38 +4881,6 @@
               "uri": "https://github.com/deftai/directive/issues/94",
               "type": "x-vbrief/github-issue",
               "title": "Issue #94: Agent auto-alignment on startup: thin skill pointer + change lifecycle rule"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-95-compliance-aligned-constitution-templates-readiness",
-        "title": "Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-95-compliance-aligned-constitution-templates-readiness.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/95",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #95: Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-23-96-compliance-config-schema-compliance-aware-constitution-templ",
-        "title": "[Compliance] Config schema + compliance-aware constitution templates",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-23-96-compliance-config-schema-compliance-aware-constitution-templ.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/96",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #96: [Compliance] Config schema + compliance-aware constitution templates"
             }
           ]
         }
@@ -5100,22 +5180,6 @@
         }
       },
       {
-        "id": "2026-04-29-704-readme-cleanup-pass-factual-errors-contradictions-and-post-v",
-        "title": "README cleanup pass: factual errors, contradictions, and post-v0.20 staleness",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-29-704-readme-cleanup-pass-factual-errors-contradictions-and-post-v.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/704",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #704: README cleanup pass: factual errors, contradictions, and post-v0.20 staleness"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-29-727-orchestrator-role-separation",
         "title": "Codify orchestrator role-separation + canonical poller-prompt template (per [AXIOM])",
         "status": "completed",
@@ -5188,70 +5252,6 @@
         }
       },
       {
-        "id": "2026-04-29-733-fixgithubworkflowsreleaseyml-release-job-auto-flips-draft-to",
-        "title": "fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-29-733-fixgithubworkflowsreleaseyml-release-job-auto-flips-draft-to.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/733",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #733: fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-29-734-featscriptsskills-vbrief-lifecycle-reconciliation-gate-at-ta",
-        "title": "feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-29-734-featscriptsskills-vbrief-lifecycle-reconciliation-gate-at-ta.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/734",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #734: feat(scripts,skills): vBRIEF-lifecycle reconciliation -- gate at task release Phase 1 + --apply-lifecycle-fixes on reconcile_issues.py"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-29-737-featscriptstasksskills-pre-pr-closing-keyword-negation-conte",
-        "title": "feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-29-737-featscriptstasksskills-pre-pr-closing-keyword-negation-conte.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/737",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #737: feat(scripts,tasks,skills): pre-PR closing-keyword negation-context lint to prevent Layer 0 false-positive auto-closes"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-04-29-741-fixscriptsreleasepy-bump-version-literal-in-run-during-relea",
-        "title": "fix(scripts/release.py): bump VERSION literal in run during release flow",
-        "status": "completed",
-        "metadata": {
-          "source_path": "completed/2026-04-29-741-fixscriptsreleasepy-bump-version-literal-in-run-during-relea.vbrief.json",
-          "lifecycle_folder": "completed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/741",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #741: fix(scripts/release.py): bump VERSION literal in run during release flow"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-29-release-summary-blockquote",
         "title": "Release CHANGELOG promotion accepts --summary blockquote (per [AXIOM] deterministic tier)",
         "status": "completed",
@@ -5286,7 +5286,6 @@
     "metadata": {
       "staleness_flags": [
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Project bootstrap: purge stale legacy path references across 42 files; add strategy stubs (rapid.md, enterprise.md); add docs/getting-started.md stub' shares topics (legacy)",
-        "Narrative 'LegacyArtifacts' may be stale: completed scope 'Replacement strategies need accept-or-scrap exit when plan artifacts already exist (design: artifact awareness for chaining gate)' shares topics (artifacts)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'SKILL.md platform entry point is entirely pre-cutover -- references old skill names and deprecated artifacts' shares topics (artifacts)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Stale cross-references to legacy paths' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)' shares topics (legacy)",
@@ -5298,12 +5297,7 @@
         "Narrative 'OpenQuestions' may be stale: completed scope 'Deterministic questions (RC2): confirm step, back nav, escape hatch distinct from Other' shares topics (questions)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'Deterministic questions: instant number acceptance is disorienting' shares topics (questions)",
         "Narrative 'Overview' may be stale: completed scope 'fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key' shares topics (overview)",
-        "Narrative 'ProjectConfig' may be stale: completed scope 'Allow users to change technical rating (1/2/3) when starting a new project' shares topics (project)",
-        "Narrative 'ProjectConfig' may be stale: completed scope 'Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Branching requirement too prescriptive -- context-aware solo-project qualifier' shares topics (project)",
-        "Narrative 'ProjectConfig' may be stale: completed scope 'Compliance-aligned constitution templates + readiness scanners (SOC 2, ISO 27001, HIPAA, HiTrust); sub-issues #96–#100 cover config schema, control mapping registry, scoring, evidence gap analysis, and automation hooks' shares topics (config)",
-        "Narrative 'ProjectConfig' may be stale: completed scope 'Deft Bootstrap CLI with TUI (Typer + Textual, strategy-aware feature branching, agent config generation)' shares topics (config)",
-        "Narrative 'ProjectConfig' may be stale: completed scope 'Document all global Warp rules used for deft development; migrate project-scope rules to `AGENTS.md`/`CONVENTIONS.md`; inventory remaining global-only rules in `CONTRIBUTING.md`' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Greptile Review status check blocks merge -- .greptile/config.json added with triggerOnUpdates, deft-review-cycle pre-flight check' shares topics (config)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Make /deft read-only (project-local layout)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'No direct-to-master agent commits -- ⊗ gate + PROJECT.md trunk-based opt-in, full agentic + CLI parity' shares topics (project)",
@@ -5314,7 +5308,6 @@
         "Narrative 'ProjectConfig' may be stale: completed scope 'Story C: Migration script (task migrate:vbrief) -- SPECIFICATION.md/PROJECT.md deprecation redirects, lifecycle folder creation' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Story N: PROJECT-DEFINITION regeneration tool (task project:render)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Write SPECIFICATION.md and proper PROJECT.md for the deft project itself' shares topics (project)",
-        "Narrative 'ProjectConfig' may be stale: completed scope '[Compliance] Config schema + compliance-aware constitution templates' shares topics (config)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'deft-setup project name fallback' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'fix(cli): run project should create vbrief lifecycle subdirectories' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key' shares topics (project)",
@@ -5324,22 +5317,15 @@
         "Narrative 'ProjectConfig' may be stale: completed scope 'scope: all `task scope:*` commands fail with file-not-found (path resolved from deft/ CWD, not project root)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'speckit Phase 1 creates project.md instead of writing Principles to PROJECT-DEFINITION.vbrief.json' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'strategies: no idempotency guard -- can silently overwrite approved specs and project narratives' shares topics (project)",
-        "Narrative 'UserStories' may be stale: completed scope 'Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)' shares topics (user)",
-        "Narrative 'UserStories' may be stale: completed scope 'Bootstrap: offer to update user preferences when USER.md already exists' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'CLI bootstrap overwrites USER.md + input validation' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'Enforce USER.md gate (skills path)' shares topics (user)",
-        "Narrative 'UserStories' may be stale: completed scope 'Enforce USER.md gate in CLI path -- parity with agentic (skills) path' shares topics (user)",
-        "Narrative 'UserStories' may be stale: completed scope 'Provide a way for users to update meta MD files (SOUL, MORALS, CODE-FIELD, USER, etc.)' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'RFC: vBRIEF-centric document model for Deft Directive (D1-D18; 18 design decisions + 21 implementation stories)' shares topics (stories)",
         "Narrative 'UserStories' may be stale: completed scope 'Remove language defaults from USER.md' shares topics (user)",
-        "Narrative 'UserStories' may be stale: completed scope 'Skill auto-discovery: make deft skills work in both user projects and deft development (symlinks/copies to `.agents/skills/`, `.claude/skills/`, etc.)' shares topics (user)",
-        "Narrative 'UserStories' may be stale: completed scope '[Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'deft-roadmap-refresh: ! rule confirming analysis comment post to user with issue number and link' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'deft-roadmap-refresh: Phase 4 PR & Review Cycle -- user confirmation gate, pre-flight before push, auto-chains to deft-review-cycle' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'deft-swarm mandatory analyze phase with user approval gate before launch' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'docs(readme): add \"Your Artifacts\" section documenting user-generated artifact locations' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'feat(setup): validate USER.md against current schema + artifact format versioning (deft_version field)' shares topics (user)",
-        "Narrative 'UserStories' may be stale: completed scope 'fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'fix(skill): deft-review-cycle Approach 2 capability detection gap -- add Approach 3 interactive blocking fallback with user warning' shares topics (user)",
         "Narrative 'tech stack' may be stale: completed scope 'migrate_vbrief: PROJECT-DEFINITION missing 'tech stack' narrative key -- validator D3 failure' shares topics (stack, tech)"
       ]

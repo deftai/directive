@@ -2,11 +2,11 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Scope vBRIEF ingested from GitHub issue #704",
-    "updated": "2026-04-30T01:18:23Z"
+    "updated": "2026-04-29T22:48:22Z"
   },
   "plan": {
     "title": "README cleanup pass: factual errors, contradictions, and post-v0.20 staleness",
-    "status": "completed",
+    "status": "running",
     "narratives": {
       "Description": "README cleanup pass: factual errors, contradictions, and post-v0.20 staleness",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/704",
@@ -48,6 +48,6 @@
         "title": "Issue #704: README cleanup pass: factual errors, contradictions, and post-v0.20 staleness"
       }
     ],
-    "updated": "2026-04-30T01:18:23Z"
+    "updated": "2026-04-29T22:48:22Z"
   }
 }
