@@ -152,12 +152,27 @@ def test_cost_skill_kickoff_menu_discuss_back_final_two_options() -> None:
         f"{_COST_SKILL_PATH}: kickoff menu must place Discuss + Back as the final "
         f"two consecutive numbered options (got Discuss={discuss_n}, Back={back_n}) (#767)"
     )
-    # No numbered option after Back.
-    later_options = re.findall(r"^(\d+)\.\s+\w+", text, flags=re.MULTILINE)
+    # No numbered option after Back -- WITHIN THE MENU BLOCK ONLY. The scan
+    # is scoped to the fence-delimited code block surrounding `Discuss` /
+    # `Back` so an unrelated numbered list elsewhere in the SKILL (e.g. a
+    # 7-item anti-pattern enumeration in the future) does not cause a
+    # spurious failure on a structurally correct menu (Greptile P2 #772).
+    fence_pattern = re.compile(r"```[^\n]*\n(.*?)```", flags=re.DOTALL)
+    menu_blocks = [
+        block for block in fence_pattern.findall(text)
+        if "Discuss" in block and "Back" in block
+    ]
+    assert menu_blocks, (
+        f"{_COST_SKILL_PATH}: could not locate the fence-delimited kickoff menu "
+        f"block containing both 'Discuss' and 'Back' (#767)"
+    )
+    # Pick the menu block (first match) and assert no later numbered option.
+    menu_block = menu_blocks[0]
+    later_options = re.findall(r"^(\d+)\.\s+\w+", menu_block, flags=re.MULTILINE)
     later_options_int = [int(n) for n in later_options]
     assert back_n == max(later_options_int), (
         f"{_COST_SKILL_PATH}: 'Back' must be the FINAL numbered option in the kickoff "
-        f"menu (#767) -- found a higher-numbered option after Back"
+        f"menu block (#767) -- found a higher-numbered option after Back"
     )
 
 

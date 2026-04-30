@@ -132,8 +132,8 @@ This is your project's cost estimate. Pick one.
   that the artifact's existence is auditable). The reason field is
   optional for `build`.
 - ! On `Rescope`, return the user to spec edits (chain back to
-  `skills/deft-directive-setup/SKILL.md` or the interview), then
-  re-run this skill from Phase 1.
+  `skills/deft-directive-refinement/SKILL.md` to pull spec scope back,
+  or the interview), then re-run this skill from Phase 1.
 - ! On `No-build`, write the decision to `COST-ESTIMATE.md`, mark the
   spec scope vBRIEF accordingly, exit, and do NOT chain into the build
   skill.
@@ -187,7 +187,8 @@ in `COST-ESTIMATE.md`:
 - ! Confirm exit explicitly: `deft-directive-cost complete -- exiting skill.`
 - ! State the next step based on the decision:
   - `Build` or `Skip` -> chain into `skills/deft-directive-build/SKILL.md`
-  - `Rescope` -> chain back to spec edits, then re-run this skill
+  - `Rescope` -> chain into `skills/deft-directive-refinement/SKILL.md`
+    for targeted spec edits, then re-run this skill
   - `No-build` -> exit; do NOT chain into build
   - `Discuss` -> remain in this skill until the user picks 1-4
   - `Back` -> chain back to the previous skill (spec / setup)

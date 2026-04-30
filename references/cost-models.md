@@ -116,7 +116,10 @@ Rules:
 
 ## Decision Point
 
-Every cost estimate ends with an explicit, three-way decision:
+Every cost estimate ends with an explicit, four-way decision. All four
+options are first-class outcomes; the build skill's Cost Phase Gate
+treats each one as a recorded decision (a `skip` with no reason is the
+same as no decision and the gate refuses kickoff).
 
 1. **Build** -- user accepts the cost and proceeds to the build phase.
 2. **Rescope** -- user wants to keep building but reduce cost (drop a
@@ -124,11 +127,10 @@ Every cost estimate ends with an explicit, three-way decision:
    spec edits, then re-runs the cost phase.
 3. **No-build** -- user stops the project at this stage. Recorded
    explicitly so the deft project history shows the decision.
-
-A fourth option, **Skip**, exists as an explicit escape hatch (e.g.
-hobby project where cost is irrelevant, or a follow-up project where
-cost was already estimated for the parent). The skip MUST record a
-short skip reason so the artifact's existence is auditable.
+4. **Skip** -- explicit escape hatch (e.g. hobby project where cost is
+   irrelevant, or a follow-up project where cost was already estimated
+   for the parent project). The skip MUST record a short skip reason so
+   the artifact's existence is auditable.
 
 ## Plain-English Voice
 

@@ -98,8 +98,9 @@ signal.
 
 - ! On a `build` or `skip` decision: continue with File Reading below.
 - ! On a `rescope` decision: stop and redirect the user back to spec edits
-  (chain to `skills/deft-directive-setup/SKILL.md` or the interview), then
-  re-run `skills/deft-directive-cost/SKILL.md` before re-attempting build.
+  (chain to `skills/deft-directive-refinement/SKILL.md` to pull spec scope
+  back, or the interview), then re-run `skills/deft-directive-cost/SKILL.md`
+  before re-attempting build.
 - ! On a `no-build` decision: stop and exit; do NOT proceed to File Reading.
   The user has explicitly stopped the project at the cost phase.
 - ⊗ Proceed to File Reading or any subsequent phase when `COST-ESTIMATE.md` is
