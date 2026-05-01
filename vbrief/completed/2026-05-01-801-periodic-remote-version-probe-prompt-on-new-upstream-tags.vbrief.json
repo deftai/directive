@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Adoption blocker: directive has zero awareness of upstream releases. Add a periodic, read-only remote-version probe that runs `git ls-remote --tags` against the deft submodule's upstream, throttled to 24h per remote tag, and surfaces a single warn line when the local checkout is behind. Never auto-mutates project state -- write paths stay in cmd_upgrade / sync skill / task migrate:vbrief.",
     "created": "2026-05-01T19:04:00Z",
-    "updated": "2026-05-01T20:00:00Z"
+    "updated": "2026-05-01T23:35:54Z"
   },
   "plan": {
     "id": "801-periodic-remote-version-probe",
     "title": "Periodic remote-version probe: occasionally check upstream for new directive tags and prompt the user to update",
-    "status": "pending",
+    "status": "completed",
     "planRef": "#801",
     "narratives": {
       "Problem": "Directive currently has zero awareness of upstream releases. `_resolve_version()` (run lines 50-88) reads only local refs via `git describe --tags --abbrev=0`; `cmd_update` (run line 2614) is a stub that prints 'not yet implemented'; the upgrade gate in `_check_upgrade_gate` (#410) compares the project's vbrief/.deft-version marker against the in-process VERSION only -- it never asks 'is VERSION itself behind the remote?'; and the universal gate `cmd_gate` (#768) is intentionally read-only and offline. The deft submodule is only refreshed when the user explicitly runs skills/deft-directive-sync/SKILL.md Phase 2 (`git submodule update --remote --merge deft`), which most users will run rarely or never. Net effect: a consumer can sit at v0.18 indefinitely while v0.23 ships fixes (e.g. #768 stale-AGENTS.md), with no signal in any session that an upstream release exists. The recorded-vs-current gate cannot fire because both numbers are local. Velocity check (last 30 days, this repo): 6 minor releases in 8 days (v0.20.0, v0.20.1, v0.20.2, v0.21.0, v0.22.0, v0.23.0); commits per active day median around 9. A weekly notification cadence would silently swallow 3-5 release notifications per sprint -- justifying a 24h notification floor.",
@@ -176,6 +176,7 @@
         "type": "x-vbrief/related-doc",
         "title": "Sync skill Phase 2 -- the existing user-triggered remote refresh that this probe complements"
       }
-    ]
+    ],
+    "updated": "2026-05-01T23:35:54Z"
   }
 }

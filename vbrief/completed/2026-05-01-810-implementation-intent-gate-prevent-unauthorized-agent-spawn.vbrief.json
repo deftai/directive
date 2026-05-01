@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Bug: agents reading AGENTS.md infer implementation intent from lifecycle/branching/PR-process language and spawn code-writing sub-agents without explicit action-verb authorization. Fix is two layered changes: (1) structural enforcement via scripts/preflight_implementation.py + task vbrief:activate, requiring vBRIEFs to live in vbrief/active/ with status running before any implementation agent can spawn; (2) Implementation Intent Gate block in templates/agents-entry.md (managed-section, propagated by cmd_agents_refresh) plus repo-level AGENTS.md mirror.",
     "created": "2026-05-01T20:04:00Z",
-    "updated": "2026-05-01T20:04:00Z"
+    "updated": "2026-05-01T23:35:54Z"
   },
   "plan": {
     "id": "810-implementation-intent-gate",
     "title": "Implementation-intent inference is non-deterministic: enforce action-verb gate via preflight + AGENTS.md anti-pattern",
-    "status": "pending",
+    "status": "completed",
     "planRef": "#810",
     "narratives": {
       "Problem": "Agents reading AGENTS.md infer implementation intent from lifecycle, branching, or PR-process language and spawn code-writing sub-agents without explicit action-verb authorization. Reproduced in the #801 session: user said 'do full pr process to get it into master use poller agents not local loops' -- intent was scoping / scheduling guidance, but the orchestrator parsed 'full PR process' + 'poller agents' + 'not local loops' as authorization to invoke start_agent for implementation. None of the documented skill-routing keywords (build, implement, swarm, run agents) appeared in the user's message; the agent inferred them from workflow-shape vocabulary. Three enforcement-seam gaps make this honor-system: (1) AGENTS.md skill-routing is a positive grammar -- it lists trigger keywords for skills but does NOT codify 'absence of these keywords forbids implementation'; (2) Lifecycle folders carry semantic meaning (proposed -> pending -> active) but only skills/deft-directive-swarm/SKILL.md enforces the active/-required gate at Phase 0 Step 1; skills/deft-directive-build/SKILL.md does not refuse to operate against a pending/ vBRIEF; (3) plan.status enum has 'running' for 'in flight' but no gate logic refuses start_agent when status is 'pending'. Net failure mode: wasted sub-agent budget on unauthorized implementation, plus lifecycle-skip drift where pending/ items get implemented before the activation handoff that the swarm allocation contract expects.",
@@ -191,6 +191,7 @@
         "type": "x-vbrief/related-doc",
         "title": "Swarm skill -- Phase 0 Step 1 deduplicated against the new helper"
       }
-    ]
+    ],
+    "updated": "2026-05-01T23:35:54Z"
   }
 }
