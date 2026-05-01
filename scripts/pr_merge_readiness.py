@@ -154,8 +154,17 @@ def parse_greptile_body(body: str) -> GreptileVerdict:
 
     errored = body.strip().startswith(_GREPTILE_ERRORED_SENTINEL)
 
-    sha_match = _LAST_REVIEWED_RE.search(body)
-    last_reviewed_sha = sha_match.group("sha") if sha_match else None
+    # Take the LAST `Last reviewed commit:` match, not the first. Greptile
+    # may quote suggestion code (test fixtures, prior comment text) that
+    # contains the same `Last reviewed commit: [x](.../commit/<sha>)`
+    # pattern -- those quotes appear earlier in the body. The actual
+    # ground-truth SHA Greptile records lives in the trailing `<sub>` block
+    # ("Reviews (N): Last reviewed commit: [...](.../commit/<sha>) | ...").
+    # Self-dogfood on PR #797 surfaced this: my own test fixtures were
+    # quoted in Greptile's P2 #3 suggestion and the parser picked their
+    # `bbbbbbb` SHA over the real HEAD.
+    sha_matches = list(_LAST_REVIEWED_RE.finditer(body))
+    last_reviewed_sha = sha_matches[-1].group("sha") if sha_matches else None
 
     conf_match = _CONFIDENCE_RE.search(body)
     confidence = int(conf_match.group("score")) if conf_match else None
@@ -165,10 +174,18 @@ def parse_greptile_body(body: str) -> GreptileVerdict:
     p1_count = body.count(_P1_BADGE)
     p2_count = body.count('<img alt="P2"')
 
-    # Structured-section fallback -- only consulted if BOTH badge counts are
-    # zero. This avoids double-counting when Greptile renders both badges
-    # AND headings.
-    if p0_count == 0 and p1_count == 0 and p2_count == 0:
+    # Structured-section fallback -- only consulted if BOTH P0 AND P1 badge
+    # counts are zero (the gate-blocking severities). The previous
+    # `p2_count == 0` condition silently bypassed the fallback whenever
+    # Greptile rendered ANY P2 badge inline alongside `### P1 findings (N)`
+    # / `### P0 findings (N)` headings -- a real mixed-format body shape
+    # observed on the PR #797 self-dogfood (Greptile P1 finding). Drop p2
+    # from the guard so heading-based P0/P1 counts are merged in regardless
+    # of whether P2 badges are present. The fallback intentionally only
+    # writes severities that came in at zero from the badge pass, so a
+    # body with both badges AND headings double-counts only the
+    # heading-only severities (P2 in this case stays at its badge count).
+    if p0_count == 0 and p1_count == 0:
         for match in _SECTION_RE.finditer(body):
             sev = match.group("sev").upper()
             count = int(match.group("count"))
@@ -176,7 +193,9 @@ def parse_greptile_body(body: str) -> GreptileVerdict:
                 p0_count = count
             elif sev == "P1":
                 p1_count = count
-            elif sev == "P2":
+            elif sev == "P2" and p2_count == 0:
+                # Only override P2 from heading if the badge pass found none
+                # -- preserves badge-source-of-truth when both surfaces emit.
                 p2_count = count
 
     return GreptileVerdict(

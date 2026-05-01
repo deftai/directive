@@ -173,6 +173,38 @@ class TestParseGreptileBody:
         v = merge_readiness.parse_greptile_body(body)
         assert v.last_reviewed_sha is None
 
+    def test_sha_takes_last_match_not_first(self):
+        # Self-dogfood on PR #797: Greptile may quote suggestion code
+        # containing the same `Last reviewed commit:` pattern (e.g. test
+        # fixtures referenced in a P2 finding). The actual ground-truth
+        # SHA lives in the trailing `<sub>` block.
+        body = (
+            "### Issue 3\n"
+            "```python\n"
+            'body_mixed = "Last reviewed commit: [x]'
+            "(https://github.com/o/r/commit/bbbbbbb)\"\n"
+            "```\n"
+            "**Confidence Score: 4/5**\n\n"
+            "<sub>Reviews (3): Last reviewed commit: "
+            "[real](https://github.com/deftai/directive/commit/d65eb9f41c2bfd8c)\n"
+        )
+        v = merge_readiness.parse_greptile_body(body)
+        assert v.last_reviewed_sha == "d65eb9f41c2bfd8c"
+
+    def test_mixed_format_p2_badge_with_p1_section_heading(self):
+        # PR #797 Greptile P1: a body with P2 badges inline AND P1 section
+        # heading must still surface the P1 count via the heading fallback.
+        body = (
+            '<img alt="P2" src="..."> Style nit.\n'
+            "### P1 findings (1)\n\n"
+            "**Confidence Score: 4/5**\n\n"
+            "Last reviewed commit: [x]"
+            "(https://github.com/deftai/directive/commit/abc1234)\n"
+        )
+        v = merge_readiness.parse_greptile_body(body)
+        assert v.p1_count == 1, "P1 heading must merge in despite P2 badge presence"
+        assert v.p2_count == 1, "P2 badge count preserved"
+
 
 # ---------------------------------------------------------------------------
 # evaluate_gates
