@@ -3,8 +3,9 @@
 Asserts that:
 
 - ``skills/deft-directive-build/SKILL.md`` contains a `!` line that
-  references ``scripts/preflight_implementation.py`` AND a line that
-  references ``task vbrief:activate``.
+  references ``task vbrief:preflight`` (the Taskfile wrapper around
+  ``scripts/preflight_implementation.py``) AND a line that references
+  ``task vbrief:activate``.
 - ``skills/deft-directive-swarm/SKILL.md`` contains the same two lines.
 
 Failure messages name the file and the missing pattern so that future
@@ -13,6 +14,15 @@ test.
 
 Pinning the regex (not exact wording) lets both skills evolve their
 prose without breaking the contract.
+
+Why ``task vbrief:preflight`` and not the underlying script path:
+the Greptile P2 finding on PR #812 surfaced that hard-coding
+``scripts/preflight_implementation.py`` in the skills is wrong for
+consumer-installed contexts where the script lives at
+``deft/scripts/preflight_implementation.py``. The Taskfile target
+``vbrief:preflight`` resolves the correct path in both contexts via
+``{{.DEFT_ROOT}}``, so the contract is now "cite the task wrapper"
+rather than "cite the script".
 """
 
 from __future__ import annotations
@@ -27,10 +37,13 @@ _BUILD_SKILL = _REPO_ROOT / "skills" / "deft-directive-build" / "SKILL.md"
 _SWARM_SKILL = _REPO_ROOT / "skills" / "deft-directive-swarm" / "SKILL.md"
 
 # A line carrying the `!` (RFC2119 MUST) marker that references the
-# helper. Matches "- ! ..." (Anti-Patterns / Step bullets) AND "! ..."
-# (top-level prose) variants.
+# Taskfile wrapper. Matches "- ! ..." (Anti-Patterns / Step bullets)
+# AND "! ..." (top-level prose) variants. The wrapper resolves to the
+# right script path in both framework-internal and consumer-installed
+# contexts (PR #812 fixup), so pinning the wrapper here -- not the
+# underlying script path -- is the correct contract.
 _PREFLIGHT_HELPER_RE = re.compile(
-    r"!.*scripts/preflight_implementation\.py"
+    r"!.*task\s+vbrief:preflight"
 )
 
 # Any line referencing ``task vbrief:activate`` -- the actionable
@@ -44,7 +57,7 @@ _ACTIVATE_TASK_RE = re.compile(r"task\s+vbrief:activate")
     ids=["deft-directive-build", "deft-directive-swarm"],
 )
 def test_skill_references_preflight_helper_with_must_marker(skill_path: Path) -> None:
-    """Skill MUST contain a `!` line citing scripts/preflight_implementation.py."""
+    """Skill MUST contain a `!` line citing `task vbrief:preflight`."""
     assert skill_path.is_file(), (
         f"Skill file missing at {skill_path} -- cannot run #810 contract test."
     )
@@ -52,8 +65,11 @@ def test_skill_references_preflight_helper_with_must_marker(skill_path: Path) ->
     matches = [line for line in text.splitlines() if _PREFLIGHT_HELPER_RE.search(line)]
     assert matches, (
         f"{skill_path.relative_to(_REPO_ROOT)}: missing `!` line referencing "
-        f"`scripts/preflight_implementation.py` (#810). The skill MUST cite the "
-        f"helper as a MUST rule before any code-writing tool call."
+        f"`task vbrief:preflight` (#810 / PR #812 fixup). The skill MUST cite "
+        f"the Taskfile wrapper as a MUST rule before any code-writing tool "
+        f"call -- the wrapper is path-prefix-agnostic between framework-"
+        f"internal (`scripts/...`) and consumer-installed (`deft/scripts/...`) "
+        f"contexts, while the underlying script path is not."
     )
 
 

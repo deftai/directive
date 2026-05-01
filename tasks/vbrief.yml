@@ -12,20 +12,64 @@ tasks:
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/vbrief_validate.py" --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief"
 
+  preflight:
+    # Implementation-intent preflight wrapper (#810 / PR #812 fixup).
+    # Skill files (skills/deft-directive-build/SKILL.md Step 0,
+    # skills/deft-directive-swarm/SKILL.md Phase 0 Step 1) and the
+    # AGENTS.md template (templates/agents-entry.md Implementation Intent
+    # Gate block) reference THIS task rather than the underlying Python
+    # script directly so the skills are path-prefix-agnostic between
+    # framework-internal (`scripts/...`) and consumer-installed
+    # (`deft/scripts/...`) contexts. `{{.DEFT_ROOT}}` resolves correctly
+    # in both cases via the shared joinPath idiom (see header of this
+    # file).
+    #
+    # The task bakes `--vbrief-path` so callers pass only the vBRIEF
+    # path: `task vbrief:preflight -- <path>`.
+    #
+    # CLI_ARGS forwarding (#577): bare ``{{.CLI_ARGS}}`` -- DO NOT wrap
+    # in Taskfile-level double quotes. go-task already shell-escapes
+    # CLI_ARGS with single quotes, so wrapping in double quotes yields
+    # ``"'path'"`` at dispatch time on Windows (pwsh/cmd preserve nested
+    # quotes verbatim) and Python's argv receives a literal
+    # single-quote-prefixed filename that fails to open. This matches
+    # the convention enforced by tests/content/test_taskfile_cli_args.py
+    # and used in tasks/scope.yml / migrate.yml / prd.yml / etc.
+    # (Greptile P2 suggestion to quote was a false-positive against this
+    # project's established convention.)
+    #
+    # NOTE: NO ``sources:`` / ``generates:`` per ``conventions/task-caching.md``
+    # because the vBRIEF path is a user-facing argument forwarded via
+    # {{.CLI_ARGS}} and a cached cmds skip would silently swallow it.
+    desc: "Preflight an implementation-intent gate (#810): exits 0 only when vBRIEF is in vbrief/active/ AND plan.status == 'running'."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/preflight_implementation.py" --vbrief-path {{.CLI_ARGS}}
+
   activate:
     # Implementation-intent activation gate companion (#810). Idempotent:
     # already-active vBRIEFs print a no-op message and exit 0; pending/
     # vBRIEFs flip plan.status pending|approved -> running, stamp
     # vBRIEFInfo.updated to current ISO8601 UTC, and atomically move to
     # vbrief/active/. Any other source folder is rejected with an
-    # actionable message. Pairs with `scripts/preflight_implementation.py`:
-    # this task is the ONLY supported way to satisfy that gate.
+    # actionable message. Pairs with `scripts/preflight_implementation.py`
+    # (also reachable via `task vbrief:preflight`): this task is the ONLY
+    # supported way to satisfy that gate.
     #
     # Dispatched via `{{.DEFT_ROOT}}/scripts/vbrief_activate.py` mirroring
     # the `tasks/scope.yml` pattern (scope_lifecycle.py) so the JSON edit
     # + atomic move logic is testable. The companion test lives at
     # `tests/cli/test_vbrief_activate.py` to satisfy the forward-coverage
     # rule from main.md.
+    #
+    # CLI_ARGS forwarding (#577): bare ``{{.CLI_ARGS}}`` -- DO NOT wrap
+    # in Taskfile-level double quotes. See the preflight task above for
+    # the full rationale; the short version is that go-task already
+    # shell-escapes CLI_ARGS with single quotes, and double-wrapping it
+    # breaks Windows argv. Spaces in paths survive correctly through
+    # bare interpolation.
     #
     # NOTE: NO ``sources:`` / ``generates:`` per ``conventions/task-caching.md``
     # because the vBRIEF path is a user-facing argument forwarded via

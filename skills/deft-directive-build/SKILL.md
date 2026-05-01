@@ -21,7 +21,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Step 0 -- Implementation Preflight (#810)
 
-- ! Before any code-writing tool call -- the first scaffold edit, the first `task` invocation that mutates files, or any `start_agent` dispatch that will implement scope -- MUST run `uv run python scripts/preflight_implementation.py --vbrief-path <path>` (the structural intent gate).
+- ! Before any code-writing tool call -- the first scaffold edit, the first `task` invocation that mutates files, or any `start_agent` dispatch that will implement scope -- MUST run `task vbrief:preflight -- <path>` (the structural intent gate; wraps `scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory).
 
 The gate exits 0 only when the candidate vBRIEF lives in `vbrief/active/` AND `plan.status == "running"`. Any other state (pending/, proposed/, completed/, active/-with-non-running-status, malformed JSON, missing keys) exits 1 with an actionable redirect to `task vbrief:activate <path>`.
 
@@ -264,7 +264,7 @@ feat(phase-2): add REST API endpoints with integration tests
 - ⊗ Move to next phase before current passes checks
 - ⊗ Make commits without running `task check`
 - ⊗ Proceed without USER.md -- always run the USER.md Gate first
-- ⊗ Spawn an implementation agent or invoke a code-writing tool against a vBRIEF that has not passed `scripts/preflight_implementation.py` -- always run the Step 0 Implementation Preflight (#810) first; satisfy via `task vbrief:activate <path>`
+- ⊗ Spawn an implementation agent or invoke a code-writing tool against a vBRIEF that has not passed `task vbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- always run the Step 0 Implementation Preflight (#810) first; satisfy via `task vbrief:activate <path>`
 - ⊗ Proceed without `COST-ESTIMATE.md` and a recorded build / rescope / no-build / skip(+reason) decision -- always run the Cost Phase Gate (#739) first
 - ⊗ Proceed with implementation when the build or test toolchain is unavailable -- always run the Toolchain Gate (Step 2) first
 - ⊗ Proceed to next task or phase without tests passing -- testing is a hard gate, not a cleanup step

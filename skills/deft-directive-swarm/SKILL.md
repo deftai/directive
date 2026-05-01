@@ -83,12 +83,12 @@ Ask the user: **"Are work items already in `vbrief/active/` as vBRIEFs, or shoul
 ### Step 1: Read Project State
 
 - ! Scan `vbrief/active/` for all story-level vBRIEFs (files matching `*.vbrief.json`)
-- ! For each candidate vBRIEF, MUST run `uv run python scripts/preflight_implementation.py --vbrief-path <path>` (the structural intent gate, #810) to validate eligibility before any allocation work. Skip any vBRIEF that exits non-zero -- the helper's stderr message is the actionable redirect (`task vbrief:activate <path>`). Surface the exit message in the Phase 0 Step 4 analysis so the user can route the lifecycle move; do NOT attempt to allocate, dispatch, or implement against a vBRIEF that fails the preflight.
+- ! For each candidate vBRIEF, MUST run `task vbrief:preflight -- <path>` (the structural intent gate, #810; wraps `scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory) to validate eligibility before any allocation work. Skip any vBRIEF that exits non-zero -- the helper's stderr message is the actionable redirect (`task vbrief:activate <path>`). Surface the exit message in the Phase 0 Step 4 analysis so the user can route the lifecycle move; do NOT attempt to allocate, dispatch, or implement against a vBRIEF that fails the preflight.
 - ! Read each vBRIEF's `plan.title`, `plan.status`, `plan.items`, `references`, and `planRef` (for epic linkage)
 - ! Read `vbrief/PROJECT-DEFINITION.vbrief.json` for project-wide context (narratives, scope registry)
 - ! Cross-reference: every candidate vBRIEF should have acceptance criteria in its `plan.items`
 - ! Determine the base branch: ask the user which branch to target for worktree creation, PR targets, and rebase cascade (default: `master`). Record this as the **configured base branch** for all subsequent phases.
-- ⊗ Spawn an implementation agent (via `start_agent`, `oz agent run`, Warp tab dispatch, or any other path) for a vBRIEF that has not passed `scripts/preflight_implementation.py` -- the gate is the only authorization signal; affirmative continuation phrases and workflow-shape vocabulary are NOT (#810).
+- ⊗ Spawn an implementation agent (via `start_agent`, `oz agent run`, Warp tab dispatch, or any other path) for a vBRIEF that has not passed `task vbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- the gate is the only authorization signal; affirmative continuation phrases and workflow-shape vocabulary are NOT (#810).
 
 ### Step 2: Surface Blockers
 
@@ -111,7 +111,7 @@ Ask the user: **"Are work items already in `vbrief/active/` as vBRIEFs, or shoul
 ! Present a summary to the user containing:
 
 - **Candidate vBRIEFs**: story-level vBRIEFs eligible for assignment (with titles, statuses, and origin references)
-- **Preflight rejections (#810)**: any vBRIEFs that failed `scripts/preflight_implementation.py` in Step 1 -- include the file path AND the helper's exit message verbatim so the user can route the appropriate `task vbrief:activate <path>` move. These vBRIEFs MUST NOT be allocated until they pass the preflight on a re-run.
+- **Preflight rejections (#810)**: any vBRIEFs that failed `task vbrief:preflight` (wraps `scripts/preflight_implementation.py`) in Step 1 -- include the file path AND the helper's exit message verbatim so the user can route the appropriate `task vbrief:activate <path>` move. These vBRIEFs MUST NOT be allocated until they pass the preflight on a re-run.
 - **Blockers found**: blocked vBRIEFs, unresolved dependencies, items requiring design decisions
 - **Incomplete vBRIEFs**: stories with missing or empty acceptance criteria
 - **Allocation plan**: which agent gets which vBRIEF(s), with reasoning for batching decisions
