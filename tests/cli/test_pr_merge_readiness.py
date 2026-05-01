@@ -181,15 +181,15 @@ class TestParseGreptileBody:
 
 class TestEvaluateGates:
     def _verdict(self, **overrides):
-        defaults = dict(
-            found=True,
-            errored=False,
-            last_reviewed_sha="abc1234567890def1234567890abcdef12345678",
-            confidence=5,
-            p0_count=0,
-            p1_count=0,
-            p2_count=0,
-        )
+        defaults = {
+            "found": True,
+            "errored": False,
+            "last_reviewed_sha": "abc1234567890def1234567890abcdef12345678",
+            "confidence": 5,
+            "p0_count": 0,
+            "p1_count": 0,
+            "p2_count": 0,
+        }
         defaults.update(overrides)
         return merge_readiness.GreptileVerdict(**defaults)
 
@@ -268,7 +268,13 @@ class TestEvaluateGates:
 
 
 class TestMain:
-    def _patch_gh(self, monkeypatch, head_sha: str, comment_body: str, repo: str = "deftai/directive"):
+    def _patch_gh(
+        self,
+        monkeypatch,
+        head_sha: str,
+        comment_body: str,
+        repo: str = "deftai/directive",
+    ):
         """Patch subprocess.run to fake gh outputs for the three calls main() makes."""
         calls = []
 

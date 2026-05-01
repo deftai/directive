@@ -53,7 +53,7 @@ import json
 import re
 import subprocess
 import sys
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 # Make sibling scripts importable both when run as __main__ and when imported by tests.
@@ -216,7 +216,10 @@ def fetch_pr_head_sha(pr_number: int, repo: str | None) -> str | None:
         cmd.extend(["--repo", repo])
     rc, out, err = _run_gh(cmd)
     if rc != 0:
-        print(f"Error: gh failed fetching PR #{pr_number} headRefOid: {err.strip()}", file=sys.stderr)
+        print(
+            f"Error: gh failed fetching PR #{pr_number} headRefOid: {err.strip()}",
+            file=sys.stderr,
+        )
         return None
     sha = out.strip()
     return sha or None
@@ -231,13 +234,21 @@ def fetch_greptile_comment_body(pr_number: int, repo: str | None) -> str | None:
     """
     if not repo:
         # Resolve repo from current checkout if the caller did not pass it.
-        rc, out, err = _run_gh(["gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"])
+        rc, out, err = _run_gh(
+            ["gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"]
+        )
         if rc != 0:
-            print(f"Error: could not resolve --repo from cwd: {err.strip()}", file=sys.stderr)
+            print(
+                f"Error: could not resolve --repo from cwd: {err.strip()}",
+                file=sys.stderr,
+            )
             return None
         repo = out.strip()
         if not repo:
-            print("Error: empty repo from gh repo view (specify --repo OWNER/REPO).", file=sys.stderr)
+            print(
+                "Error: empty repo from gh repo view (specify --repo OWNER/REPO).",
+                file=sys.stderr,
+            )
             return None
 
     cmd = [
@@ -248,7 +259,10 @@ def fetch_greptile_comment_body(pr_number: int, repo: str | None) -> str | None:
     ]
     rc, out, err = _run_gh(cmd)
     if rc != 0:
-        print(f"Error: gh failed fetching comments for PR #{pr_number}: {err.strip()}", file=sys.stderr)
+        print(
+            f"Error: gh failed fetching comments for PR #{pr_number}: {err.strip()}",
+            file=sys.stderr,
+        )
         return None
     return out  # may be empty string when no Greptile comment exists yet
 
@@ -304,7 +318,10 @@ def evaluate_gates(pr_number: int, head_sha: str | None, verdict: GreptileVerdic
             "Could not parse `Last reviewed commit:` from Greptile body. "
             "The comment may be malformed or Greptile may still be writing it -- re-fetch."
         )
-    elif head_sha and not head_sha.startswith(verdict.last_reviewed_sha) and not verdict.last_reviewed_sha.startswith(head_sha):
+    elif head_sha and not (
+        head_sha.startswith(verdict.last_reviewed_sha)
+        or verdict.last_reviewed_sha.startswith(head_sha)
+    ):
         failures.append(
             f"Greptile last reviewed {verdict.last_reviewed_sha} but PR HEAD is {head_sha}. "
             "Review is stale -- wait for Greptile to re-review the latest commit."
@@ -324,8 +341,8 @@ def evaluate_gates(pr_number: int, head_sha: str | None, verdict: GreptileVerdic
 
     if verdict.p0_count > 0 or verdict.p1_count > 0:
         failures.append(
-            f"Greptile reports {verdict.p0_count} P0 and {verdict.p1_count} P1 findings on the current HEAD. "
-            "All P0 / P1 findings MUST be addressed before merge "
+            f"Greptile reports {verdict.p0_count} P0 and {verdict.p1_count} P1 findings "
+            "on the current HEAD. All P0 / P1 findings MUST be addressed before merge "
             "(P2 findings are non-blocking)."
         )
 
@@ -384,8 +401,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"PR #{args.pr_number} merge-readiness check")
         print(f"  HEAD SHA:           {head_sha or '<unknown>'}")
         print(f"  Greptile reviewed:  {verdict.last_reviewed_sha or '<not parsed>'}")
-        print(f"  Confidence:         {verdict.confidence if verdict.confidence is not None else '<not parsed>'}/5")
-        print(f"  Findings:           P0={verdict.p0_count}  P1={verdict.p1_count}  P2={verdict.p2_count}")
+        confidence_str = (
+            str(verdict.confidence) if verdict.confidence is not None else "<not parsed>"
+        )
+        print(f"  Confidence:         {confidence_str}/5")
+        print(
+            f"  Findings:           P0={verdict.p0_count}  "
+            f"P1={verdict.p1_count}  P2={verdict.p2_count}"
+        )
         print(f"  Errored sentinel:   {verdict.errored}")
         if result.merge_ready:
             print("\nResult: MERGE-READY")
