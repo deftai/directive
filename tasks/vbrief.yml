@@ -11,3 +11,28 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/vbrief_validate.py" --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief"
+
+  activate:
+    # Implementation-intent activation gate companion (#810). Idempotent:
+    # already-active vBRIEFs print a no-op message and exit 0; pending/
+    # vBRIEFs flip plan.status pending|approved -> running, stamp
+    # vBRIEFInfo.updated to current ISO8601 UTC, and atomically move to
+    # vbrief/active/. Any other source folder is rejected with an
+    # actionable message. Pairs with `scripts/preflight_implementation.py`:
+    # this task is the ONLY supported way to satisfy that gate.
+    #
+    # Dispatched via `{{.DEFT_ROOT}}/scripts/vbrief_activate.py` mirroring
+    # the `tasks/scope.yml` pattern (scope_lifecycle.py) so the JSON edit
+    # + atomic move logic is testable. The companion test lives at
+    # `tests/cli/test_vbrief_activate.py` to satisfy the forward-coverage
+    # rule from main.md.
+    #
+    # NOTE: NO ``sources:`` / ``generates:`` per ``conventions/task-caching.md``
+    # because the vBRIEF path is a user-facing argument forwarded via
+    # {{.CLI_ARGS}} and a cached cmds skip would silently swallow it.
+    desc: "Activate a vBRIEF: pending/ -> active/ (status: running). Idempotent. (#810)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/vbrief_activate.py" {{.CLI_ARGS}}

@@ -19,6 +19,17 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - User says "build this", "implement the spec", or "start building"
 - Resuming a partially-built project that has story vBRIEFs in `vbrief/active/`
 
+## Step 0 -- Implementation Preflight (#810)
+
+- ! Before any code-writing tool call -- the first scaffold edit, the first `task` invocation that mutates files, or any `start_agent` dispatch that will implement scope -- MUST run `uv run python scripts/preflight_implementation.py --vbrief-path <path>` (the structural intent gate).
+
+The gate exits 0 only when the candidate vBRIEF lives in `vbrief/active/` AND `plan.status == "running"`. Any other state (pending/, proposed/, completed/, active/-with-non-running-status, malformed JSON, missing keys) exits 1 with an actionable redirect to `task vbrief:activate <path>`.
+
+- ! A non-zero exit MUST halt the skill. Surface the helper's stderr message verbatim to the user; do NOT proceed to USER.md Gate, File Reading, or any later phase.
+- ! The ONLY supported way to satisfy this gate is `task vbrief:activate <path>` (idempotent; flips `plan.status` pending/approved -> running, atomically moves the vBRIEF to `vbrief/active/`, stamps `vBRIEFInfo.updated`). Manual lifecycle moves bypass the activation contract -- use the task.
+- ⊗ Infer implementation intent from lifecycle vocabulary ("do the full PR process", "start the work", "poller agents"), branching language, or workflow shape. Workflow-shape vocabulary is NOT authorization to spawn an implementation agent (#810 surfacing event).
+- ⊗ Skip this preflight because the user said "yes", "go", or "proceed" -- affirmative continuation phrases are NOT implementation authorization unless the prior turn explicitly proposed implementation. When intent is ambiguous, ask one targeted question before invoking the gate.
+
 ## Platform Detection
 
 ! Before resolving any config paths, detect the host OS from your environment context:
@@ -253,6 +264,7 @@ feat(phase-2): add REST API endpoints with integration tests
 - ⊗ Move to next phase before current passes checks
 - ⊗ Make commits without running `task check`
 - ⊗ Proceed without USER.md -- always run the USER.md Gate first
+- ⊗ Spawn an implementation agent or invoke a code-writing tool against a vBRIEF that has not passed `scripts/preflight_implementation.py` -- always run the Step 0 Implementation Preflight (#810) first; satisfy via `task vbrief:activate <path>`
 - ⊗ Proceed without `COST-ESTIMATE.md` and a recorded build / rescope / no-build / skip(+reason) decision -- always run the Cost Phase Gate (#739) first
 - ⊗ Proceed with implementation when the build or test toolchain is unavailable -- always run the Toolchain Gate (Step 2) first
 - ⊗ Proceed to next task or phase without tests passing -- testing is a hard gate, not a cleanup step

@@ -59,6 +59,13 @@ When user input matches a trigger keyword, read the corresponding skill:
 
 ## Development Process (always follow)
 
+### Implementation Intent Gate (#810)
+
+- ! Run `uv run python scripts/preflight_implementation.py --vbrief-path <path>` before any code-writing tool call or `start_agent` dispatch -- the gate exits 0 only when the candidate vBRIEF lives in `vbrief/active/` AND `plan.status == "running"`. The ONLY supported way to satisfy a non-zero exit is `task vbrief:activate <path>` (idempotent).
+- ! Require an explicit action-verb directive (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) from the user before invoking the preflight gate or `start_agent` for implementation. When intent is ambiguous, ask one targeted question instead of inferring.
+- ⊗ Infer implementation intent from lifecycle vocabulary ("do the full PR process", "start the work", "poller agents"), branching language, or workflow shape. Workflow-shape vocabulary is NOT authorization to spawn an implementation agent.
+- ⊗ Treat affirmative continuation phrases (`yes`, `go`, `proceed`, `do it`) as implementation authorization unless the prior turn explicitly proposed implementation. Broad approval is not a substitute for an explicit action-verb directive.
+
 **Before code changes:**
 - ! Check `./vbrief/` lifecycle folders for existing scope vBRIEF coverage of the issue being fixed
 - ! If no scope vBRIEF exists for the work, create one in `./vbrief/proposed/` before implementing

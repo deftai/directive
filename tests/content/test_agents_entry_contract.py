@@ -138,3 +138,90 @@ def test_render_is_byte_stable(deft_run_module) -> None:
     first = deft_run_module._render_managed_section(template)
     second = deft_run_module._render_managed_section(template)
     assert first == second
+
+
+# ---------------------------------------------------------------------------
+# Implementation Intent Gate (#810)
+# ---------------------------------------------------------------------------
+
+
+def _managed_section_text() -> str:
+    """Slice the managed-section bytes inclusive of the markers."""
+    text = _read_template()
+    start = text.index(_OPEN_MARKER)
+    end = text.index(_CLOSE_MARKER) + len(_CLOSE_MARKER)
+    return text[start:end]
+
+
+def test_managed_section_contains_implementation_intent_gate_anchor() -> None:
+    """The managed section MUST surface the Implementation Intent Gate block (#810).
+
+    Pinning the literal anchor 'Implementation Intent Gate' (and not the
+    surrounding prose) lets the bullets evolve while keeping the section
+    discoverable by future agents searching for it.
+    """
+    section = _managed_section_text()
+    assert "Implementation Intent Gate" in section, (
+        "templates/agents-entry.md managed section MUST contain the "
+        "'Implementation Intent Gate' anchor (#810). The block is the "
+        "prompt-side guardrail propagated by cmd_agents_refresh."
+    )
+
+
+def test_managed_section_implementation_intent_gate_has_four_bullets() -> None:
+    """The Implementation Intent Gate block MUST contain at least four bullets.
+
+    Counts list items starting with `- ` between the gate's heading and
+    the next `## ` (or end of managed section). Pinning the count, not
+    exact wording, lets future copy-edits adjust phrasing without
+    breaking the contract (#810).
+    """
+    section = _managed_section_text()
+    # Locate the gate region: from the anchor heading to the next `## `
+    # heading or close marker.
+    anchor_idx = section.index("Implementation Intent Gate")
+    rest = section[anchor_idx:]
+    # Next top-level section starts with `\n## ` (two hashes, space).
+    next_section = re.search(r"\n## ", rest)
+    region = rest[: next_section.start()] if next_section else rest
+    bullets = [line for line in region.splitlines() if line.lstrip().startswith("- ")]
+    assert len(bullets) >= 4, (
+        f"Implementation Intent Gate block MUST contain at least 4 bullets "
+        f"(found {len(bullets)}). Refs #810."
+    )
+
+
+def test_managed_section_implementation_intent_gate_uses_required_tokens() -> None:
+    """The Implementation Intent Gate block MUST mix `!` and `⊗` prefix tokens.
+
+    Per #810: at least 2 bullets carry the `!` (MUST) prefix and at
+    least 2 carry the `⊗` (MUST NOT) prefix. Pinning token counts (not
+    exact wording) preserves the prohibition / requirement balance
+    while letting copy-edits land freely.
+    """
+    section = _managed_section_text()
+    anchor_idx = section.index("Implementation Intent Gate")
+    rest = section[anchor_idx:]
+    next_section = re.search(r"\n## ", rest)
+    region = rest[: next_section.start()] if next_section else rest
+
+    must_count = 0
+    forbid_count = 0
+    for line in region.splitlines():
+        stripped = line.lstrip()
+        if not stripped.startswith("- "):
+            continue
+        body = stripped[2:].lstrip()
+        if body.startswith("! "):
+            must_count += 1
+        elif body.startswith("\u2297 "):
+            forbid_count += 1
+
+    assert must_count >= 2, (
+        f"Implementation Intent Gate MUST have at least 2 `!` bullets "
+        f"(found {must_count}). Refs #810."
+    )
+    assert forbid_count >= 2, (
+        f"Implementation Intent Gate MUST have at least 2 `⊗` bullets "
+        f"(found {forbid_count}). Refs #810."
+    )
