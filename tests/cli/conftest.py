@@ -90,3 +90,55 @@ def isolated_env(isolated_env_no_user: Path) -> Path:
     user_md = isolated_env_no_user / "USER.md"
     user_md.write_text(_MINIMAL_USER_MD, encoding="utf-8")
     return isolated_env_no_user
+
+
+# ---------------------------------------------------------------------------
+# #801: disable the periodic remote-version probe in CLI tests by default.
+# ---------------------------------------------------------------------------
+#
+# The probe (run::_maybe_emit_remote_drift_warning) shells out to `git
+# ls-remote --tags --refs <upstream>` against the framework's upstream
+# remote. That is the correct behavior in production, but during the test
+# suite it would (a) introduce a real network round-trip per `_check_upgrade_gate`
+# call site that traverses past the early returns, and (b) potentially
+# emit `framework:remote-drift` events in test runs that did not opt in.
+# This autouse fixture replaces the helper with a no-op for every CLI test
+# unless the test explicitly monkeypatches it back. The dedicated #801
+# tests (`test_cmd_check_updates.py`, `test_remote_probe_throttle.py`,
+# `test_upgrade_gate_remote_drift.py`) call the probe primitives
+# (`_run_remote_probe`, `_maybe_emit_remote_drift_warning`) directly with
+# their own `subprocess.run` mocks and are unaffected by this default.
+@pytest.fixture(autouse=True)
+def _disable_remote_probe(
+    deft_run_module, monkeypatch: pytest.MonkeyPatch  # noqa: ANN001
+) -> None:
+    """Replace `_maybe_emit_remote_drift_warning` with a no-op by default.
+
+    Tests that need the real helper restore it via
+    ``monkeypatch.setattr(deft_run_module, "_maybe_emit_remote_drift_warning",
+    deft_run_module._real_maybe_emit_remote_drift_warning)``. The original
+    function is captured once on the first invocation and stashed on the
+    module under ``_real_maybe_emit_remote_drift_warning`` so the
+    monkeypatch loop does not lose it across tests.
+
+    The session-level dedup flag ``_PROBE_NOTIFIED_THIS_SESSION`` is also
+    reset to ``False`` so each test starts with a clean session-dedup
+    state.
+    """
+    if not hasattr(deft_run_module, "_real_maybe_emit_remote_drift_warning"):
+        # Capture the genuine implementation BEFORE monkeypatch replaces it.
+        deft_run_module._real_maybe_emit_remote_drift_warning = (
+            deft_run_module._maybe_emit_remote_drift_warning
+        )
+    monkeypatch.setattr(
+        deft_run_module,
+        "_maybe_emit_remote_drift_warning",
+        lambda project_root: None,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        deft_run_module,
+        "_PROBE_NOTIFIED_THIS_SESSION",
+        False,
+        raising=False,
+    )

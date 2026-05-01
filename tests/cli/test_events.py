@@ -55,6 +55,10 @@ EXPECTED_DETECTION_BOUND_NAMES = frozenset(
         "agents-md:stale",
         "version:drift",
         "dirty-tree:detected",
+        # #801: periodic remote-version probe -- emitted by
+        # run::_maybe_emit_remote_drift_warning when the read-only
+        # `git ls-remote --tags --refs <upstream>` probe returns BEHIND.
+        "framework:remote-drift",
     }
 )
 
@@ -93,12 +97,14 @@ class TestRegistryShape:
         assert registry.get("version") == "1"
         assert isinstance(registry.get("events"), list)
 
-    def test_registry_lists_five_detection_bound_events(self) -> None:
+    def test_registry_lists_six_detection_bound_events(self) -> None:
+        """Post-#801: registry now lists 6 detection-bound events (the 5 from
+        #635 plus ``framework:remote-drift``)."""
         registry = _events.load_registry()
         events = registry["events"]
         detection_bound = [e for e in events if e.get("category") == "detection-bound"]
-        assert len(detection_bound) == 5, (
-            f"Expected exactly 5 detection-bound events, found {len(detection_bound)}"
+        assert len(detection_bound) == 6, (
+            f"Expected exactly 6 detection-bound events, found {len(detection_bound)}"
         )
         detection_names = {e["name"] for e in detection_bound}
         assert detection_names == EXPECTED_DETECTION_BOUND_NAMES, (
@@ -109,7 +115,7 @@ class TestRegistryShape:
 
     def test_registry_event_names_match_expected_set(self) -> None:
         """Post-#706 unification: the registry includes both detection-bound
-        and behavioral events. The expected union is 5 + 4 = 9 names."""
+        and behavioral events. Post-#801 the expected union is 6 + 4 = 10 names."""
         names = _events.registered_event_names()
         assert names == EXPECTED_EVENT_NAMES, (
             f"Registry name mismatch: extra={names - EXPECTED_EVENT_NAMES}, "
