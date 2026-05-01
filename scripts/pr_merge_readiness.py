@@ -174,18 +174,27 @@ def parse_greptile_body(body: str) -> GreptileVerdict:
     p1_count = body.count(_P1_BADGE)
     p2_count = body.count('<img alt="P2"')
 
-    # Structured-section fallback -- only consulted if BOTH P0 AND P1 badge
-    # counts are zero (the gate-blocking severities). The previous
-    # `p2_count == 0` condition silently bypassed the fallback whenever
-    # Greptile rendered ANY P2 badge inline alongside `### P1 findings (N)`
-    # / `### P0 findings (N)` headings -- a real mixed-format body shape
-    # observed on the PR #797 self-dogfood (Greptile P1 finding). Drop p2
-    # from the guard so heading-based P0/P1 counts are merged in regardless
-    # of whether P2 badges are present. The fallback intentionally only
-    # writes severities that came in at zero from the badge pass, so a
-    # body with both badges AND headings double-counts only the
-    # heading-only severities (P2 in this case stays at its badge count).
-    if p0_count == 0 and p1_count == 0:
+    # Structured-section fallback -- only consulted when the body lacks
+    # the rich-format `<details>` collapsible. Greptile's modern review
+    # format ALWAYS uses HTML severity badges (`<img alt="P0" ...>`) and
+    # wraps findings in `<details><summary>...</summary>...</details>`
+    # collapsibles. When the body contains `<details>`, the badge counts
+    # are authoritative -- a `### P1 findings (N)` heading appearing in
+    # such a body is almost certainly Greptile QUOTING reviewer-suggested
+    # code (test fixtures, prior P2 suggestions) rather than an actual
+    # finding-section heading. The PR #797 self-dogfood surfaced this:
+    # Greptile's clean review of HEAD `85c0b1d` quoted the new
+    # `test_mixed_format_p2_badge_with_p1_section_heading` test fixture,
+    # which contains the literal `### P1 findings (1)` string -- and the
+    # naive fallback false-positived a P1 count.
+    #
+    # Heuristic: the legacy heading-only format never used `<details>`,
+    # so its absence is the trigger for the fallback. This keeps the
+    # fallback for hypothetical legacy bodies without sacrificing
+    # correctness on the modern format. Badge-count primary remains the
+    # source of truth for any body Greptile actually emits today.
+    has_details_format = "<details>" in body
+    if not has_details_format and p0_count == 0 and p1_count == 0:
         for match in _SECTION_RE.finditer(body):
             sev = match.group("sev").upper()
             count = int(match.group("count"))

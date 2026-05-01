@@ -192,8 +192,9 @@ class TestParseGreptileBody:
         assert v.last_reviewed_sha == "d65eb9f41c2bfd8c"
 
     def test_mixed_format_p2_badge_with_p1_section_heading(self):
-        # PR #797 Greptile P1: a body with P2 badges inline AND P1 section
-        # heading must still surface the P1 count via the heading fallback.
+        # PR #797 Greptile P1: a legacy-format body (no <details>) with P2
+        # badges inline AND P1 section heading must still surface the P1
+        # count via the heading fallback.
         body = (
             '<img alt="P2" src="..."> Style nit.\n'
             "### P1 findings (1)\n\n"
@@ -204,6 +205,34 @@ class TestParseGreptileBody:
         v = merge_readiness.parse_greptile_body(body)
         assert v.p1_count == 1, "P1 heading must merge in despite P2 badge presence"
         assert v.p2_count == 1, "P2 badge count preserved"
+
+    def test_rich_format_details_body_skips_heading_fallback(self):
+        # PR #797 self-dogfood (post-85c0b1d): Greptile's clean rich-format
+        # review used <details> collapsibles and quoted the new test
+        # fixture's `### P1 findings (1)` literal in its summary. The
+        # heading-fallback must NOT trip on quoted strings inside the
+        # modern <details>-wrapped format. Badge counts are authoritative
+        # whenever <details> is present.
+        body = (
+            "<details><summary><h3>Greptile Summary</h3></summary>\n\n"
+            "This PR introduces a programmatic gate. "
+            "No P0 or P1 issues found.\n\n"
+            "```python\n"
+            '# quoted from test fixture\n'
+            'body = "### P1 findings (1)\\n"\n'
+            "```\n\n"
+            "**Confidence Score: 5/5**\n\n"
+            "</details>\n\n"
+            "<sub>Last reviewed commit: "
+            "[fix](https://github.com/deftai/directive/commit/85c0b1de994a)</sub>\n"
+        )
+        v = merge_readiness.parse_greptile_body(body)
+        assert v.p0_count == 0
+        assert v.p1_count == 0, (
+            "<details> body must skip heading-fallback to avoid quoted-fixture false positives"
+        )
+        assert v.confidence == 5
+        assert v.last_reviewed_sha == "85c0b1de994a"
 
 
 # ---------------------------------------------------------------------------
