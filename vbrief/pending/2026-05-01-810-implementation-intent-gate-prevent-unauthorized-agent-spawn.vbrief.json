@@ -1,0 +1,196 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Bug: agents reading AGENTS.md infer implementation intent from lifecycle/branching/PR-process language and spawn code-writing sub-agents without explicit action-verb authorization. Fix is two layered changes: (1) structural enforcement via scripts/preflight_implementation.py + task vbrief:activate, requiring vBRIEFs to live in vbrief/active/ with status running before any implementation agent can spawn; (2) Implementation Intent Gate block in templates/agents-entry.md (managed-section, propagated by cmd_agents_refresh) plus repo-level AGENTS.md mirror.",
+    "created": "2026-05-01T20:04:00Z",
+    "updated": "2026-05-01T20:04:00Z"
+  },
+  "plan": {
+    "id": "810-implementation-intent-gate",
+    "title": "Implementation-intent inference is non-deterministic: enforce action-verb gate via preflight + AGENTS.md anti-pattern",
+    "status": "pending",
+    "planRef": "#810",
+    "narratives": {
+      "Problem": "Agents reading AGENTS.md infer implementation intent from lifecycle, branching, or PR-process language and spawn code-writing sub-agents without explicit action-verb authorization. Reproduced in the #801 session: user said 'do full pr process to get it into master use poller agents not local loops' -- intent was scoping / scheduling guidance, but the orchestrator parsed 'full PR process' + 'poller agents' + 'not local loops' as authorization to invoke start_agent for implementation. None of the documented skill-routing keywords (build, implement, swarm, run agents) appeared in the user's message; the agent inferred them from workflow-shape vocabulary. Three enforcement-seam gaps make this honor-system: (1) AGENTS.md skill-routing is a positive grammar -- it lists trigger keywords for skills but does NOT codify 'absence of these keywords forbids implementation'; (2) Lifecycle folders carry semantic meaning (proposed -> pending -> active) but only skills/deft-directive-swarm/SKILL.md enforces the active/-required gate at Phase 0 Step 1; skills/deft-directive-build/SKILL.md does not refuse to operate against a pending/ vBRIEF; (3) plan.status enum has 'running' for 'in flight' but no gate logic refuses start_agent when status is 'pending'. Net failure mode: wasted sub-agent budget on unauthorized implementation, plus lifecycle-skip drift where pending/ items get implemented before the activation handoff that the swarm allocation contract expects.",
+      "Overview": "Two coordinated changes, layered for belt-and-suspenders determinism. Change 1 -- structural enforcement: NEW scripts/preflight_implementation.py (mirrors scripts/preflight_branch.py from #747) takes a vBRIEF path, asserts folder is vbrief/active/ AND plan.status == 'running', exits non-zero with actionable message 'Run task vbrief:activate <file> before spawning an implementation agent.' otherwise. NEW Taskfile entry vbrief:activate atomically validates source is in pending/, flips plan.status from pending/approved to running, moves to active/, updates vBRIEFInfo.updated. Both deft-directive-build and deft-directive-swarm skills require the preflight call as a '!' rule before any code-writing tool call. Change 2 -- prompt-side guardrail: append 'Implementation Intent Gate' block to templates/agents-entry.md inside the existing <!-- deft:managed-section v1 --> markers (so cmd_agents_refresh #768 propagates it on next refresh) AND repo-level AGENTS.md, with four bullets: (a) ⊗ infer implementation intent from lifecycle/branching/PR-process language; (b) ! require explicit build/implement/ship/swarm/run-agents/start-agent directive before start_agent; (c) ! ask one targeted question on ambiguity; (d) ⊗ treat affirmative continuation phrases (yes/go/proceed) as implementation authorization unless the prior turn explicitly proposed implementation.",
+      "Background": "#747 introduced scripts/preflight_branch.py + .githooks integration as the precedent for a Python preflight helper called from Taskfile aggregates and skill steps. #768 introduced cmd_agents_refresh + the <!-- deft:managed-section v1 --> markers in templates/agents-entry.md, which is the propagation surface for the AGENTS.md edit. #801 (in-flight as of this filing) is the surfacing event -- the PR-process inference happened during that session's refinement-to-implementation handoff; not a causal dependency, just the observation that triggered this issue.",
+      "Constraint": "MUST be backwards-compatible: existing pending/ vBRIEFs (e.g. the one for #801) MUST remain consumable by skills that do not yet call the preflight. The preflight is a forward gate -- skills that adopt it gain the protection; skills that have not yet are unchanged. MUST NOT auto-move vBRIEFs between folders (preserves the deft-directive-sync skill's 'report only; never auto-move' contract from Phase 4). The vbrief:activate task MUST be idempotent: running it against an already-active vBRIEF MUST exit zero with a 'no-op' message, not an error. The preflight helper MUST swallow malformed-JSON exceptions and exit non-zero with a useful message, never raise an unhandled traceback to the calling skill. The AGENTS.md edit MUST land inside the existing managed-section markers so cmd_agents_refresh propagates it without colliding with consumer-owned content above/below the markers.",
+      "Risk": "Low. The structural gate is preflight-only -- a non-zero exit before any code-writing tool runs, so worst case is an actionable error message that points at task vbrief:activate. The AGENTS.md edit is text-only inside an existing managed-section. Two failure modes worth pinning in tests: (a) a vBRIEF with malformed JSON MUST not crash the preflight; (b) a vBRIEF with 'plan' missing or 'plan.status' missing MUST exit non-zero with a useful message, not a KeyError traceback.",
+      "Outcome": "Acceptance: (1) Running scripts/preflight_implementation.py against a vBRIEF in proposed/, pending/, or active/-with-non-running-status exits non-zero with the documented message; against active/ + status running exits zero. (2) task vbrief:activate <file>: validates pending source, flips status, moves file, idempotent against already-active. (3) skills/deft-directive-build/SKILL.md has a Step 0 'Implementation Preflight' section requiring the helper call. (4) skills/deft-directive-swarm/SKILL.md Phase 0 Step 1 is updated to call the same helper (deduplicating the inline check). (5) templates/agents-entry.md and repo-level AGENTS.md both contain the Implementation Intent Gate block inside the managed-section markers. (6) tests/cli/test_preflight_implementation.py covers all reject/accept paths including malformed-JSON and missing-key edge cases. (7) tests/content/test_skills_preflight_call.py asserts both skills reference the preflight helper as a '!' rule. (8) tests/content/test_agents_entry_contract.py asserts the new subsection with the right prefix tokens (! and ⊗). (9) CHANGELOG.md [Unreleased] / Fixed entry. (10) meta/lessons.md entry capturing the inference anti-pattern and the structural gate as its mitigation.",
+      "Test": "tests/cli/test_preflight_implementation.py: parametrize the (folder, status) matrix -- proposed/draft, proposed/proposed, pending/approved, pending/pending, active/running (the only accept), active/blocked, active/completed; cover nonexistent path, malformed JSON, plan missing, plan.status missing; assert exit codes and stdout messages. tests/content/test_skills_preflight_call.py: read deft-directive-build and deft-directive-swarm SKILL.md, assert each contains a '!' line referencing scripts/preflight_implementation.py and the actionable redirect to task vbrief:activate. tests/content/test_agents_entry_contract.py: extend existing test (#768 origin) to assert the Implementation Intent Gate subsection exists with all four bullets and the correct prefix tokens.",
+      "Action": "1. Implement scripts/preflight_implementation.py with --vbrief-path arg, --json variant, exit codes 0/1, swallow malformed JSON. 2. Add tasks/vbrief.yml entry vbrief:activate (or extend existing) with idempotent activate logic. 3. Update skills/deft-directive-build/SKILL.md adding Step 0 Implementation Preflight section. 4. Update skills/deft-directive-swarm/SKILL.md Phase 0 Step 1 to call the helper. 5. Edit templates/agents-entry.md inside <!-- deft:managed-section v1 --> markers; mirror in repo-level AGENTS.md. 6. Land three new test files. 7. CHANGELOG entry under [Unreleased] / Fixed. 8. meta/lessons.md entry. 9. Run task check. 10. Run skills/deft-directive-pre-pr/SKILL.md RWLDL. 11. Open PR with Closes #810. 12. Run skills/deft-directive-review-cycle/SKILL.md.",
+      "Urgency": "Adoption blocker for autonomous agent operation: every session that does not exhibit perfect intent disambiguation risks burning sub-agent budget on unauthorized implementations. The bug self-replicates -- new agent versions trained on AGENTS.md inherit the inference failure mode. Structural fix has compounding value because it converts an honor-system rule into a preflight that fails closed."
+    },
+    "items": [
+      {
+        "id": "810-preflight-impl",
+        "title": "NEW scripts/preflight_implementation.py: vBRIEF path -> assert active/ + status running, exit 0/1 with actionable message, swallow malformed JSON / missing keys",
+        "status": "pending",
+        "narrative": {
+          "Action": "Mirror scripts/preflight_branch.py shape from #747. CLI args: --vbrief-path <path> (required), --json (optional). Read JSON; on JSONDecodeError or OSError, print 'Could not read vBRIEF at <path>: <err>' to stderr and exit 1. Resolve folder via Path(path).parent.name; assert it equals 'active'; on mismatch print 'vBRIEF is in <folder>/ -- run `task vbrief:activate <path>` before spawning an implementation agent.' and exit 1. Read plan.status via dict.get chain so missing keys print 'vBRIEF lacks plan.status -- malformed.' and exit 1. Assert status == 'running'; on mismatch print 'plan.status is <status> -- only running is eligible for implementation; run task vbrief:activate.' and exit 1. On success print 'OK <path> -- ready for implementation.' or JSON equivalent and exit 0."
+        }
+      },
+      {
+        "id": "810-task-vbrief-activate",
+        "title": "NEW Taskfile entry vbrief:activate: pending -> active idempotent move + status flip",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add tasks/vbrief.yml entry (or extend existing). Behavior: takes <file> arg; if already in active/ with status running, print 'No-op: <file> already active.' and exit 0. Otherwise: validate source is in pending/; load JSON; flip plan.status from pending/approved to running; update vBRIEFInfo.updated to current ISO8601 UTC; atomically move to vbrief/active/. Use Python via uv run for the JSON edit + move (mirrors existing task patterns). Surface in `task --list`."
+        }
+      },
+      {
+        "id": "810-build-skill-preflight",
+        "title": "skills/deft-directive-build/SKILL.md: add Step 0 Implementation Preflight requiring scripts/preflight_implementation.py call",
+        "status": "pending",
+        "narrative": {
+          "Action": "Insert a new 'Step 0 -- Implementation Preflight' section near the top of the skill, before any Read/Plan/Write phase. Content: '! Before any code-writing tool call, run `uv run python scripts/preflight_implementation.py --vbrief-path <path>`. Non-zero exit MUST halt the skill with the actionable message; do NOT proceed to implementation.' Use the legend tokens consistent with the rest of the skill (!, ⊗)."
+        }
+      },
+      {
+        "id": "810-swarm-skill-preflight",
+        "title": "skills/deft-directive-swarm/SKILL.md Phase 0 Step 1: replace inline active/-only check with preflight helper call",
+        "status": "pending",
+        "narrative": {
+          "Action": "Locate the Phase 0 Step 1 'Read Project State' section. Replace the inline 'Scan vbrief/active/ for all story-level vBRIEFs' assertion with a delegation: '! For each candidate vBRIEF, run uv run python scripts/preflight_implementation.py --vbrief-path <path>. Skip any vBRIEF that exits non-zero; surface the exit message in the Phase 0 Step 4 analysis.' Keep the existing reading behavior; only the validation moves to the helper."
+        }
+      },
+      {
+        "id": "810-agents-template-block",
+        "title": "templates/agents-entry.md: append Implementation Intent Gate block inside <!-- deft:managed-section v1 --> markers",
+        "status": "pending",
+        "narrative": {
+          "Action": "Open templates/agents-entry.md; locate the managed-section markers. Append the four-bullet Implementation Intent Gate block to the Development Process subsection (or insert as a new subsection if cleaner). Preserve marker integrity -- the cmd_agents_refresh contract test (test_agents_entry_contract.py) MUST continue to pass byte-stably."
+        }
+      },
+      {
+        "id": "810-repo-agents-mirror",
+        "title": "Repo-level AGENTS.md: mirror the Implementation Intent Gate block",
+        "status": "pending",
+        "narrative": {
+          "Action": "Open AGENTS.md at repo root; insert the same four-bullet block in the Development Process section (the framework dogfoods its own template). Keep heading levels consistent with the rest of AGENTS.md."
+        }
+      },
+      {
+        "id": "810-test-preflight",
+        "title": "NEW tests/cli/test_preflight_implementation.py: cover (folder, status) matrix + edge cases",
+        "status": "pending",
+        "narrative": {
+          "Action": "pytest parametrize over (folder, status, expected_exit_code, expected_stdout_match): proposed/draft, proposed/proposed, pending/approved, pending/pending, active/running (only accept), active/blocked, active/completed, active/cancelled. Plus standalone cases: nonexistent path, malformed JSON (file with '{ not json'), missing plan key, missing plan.status. Use tmp_path fixtures to seed each case. Also assert --json output schema. Pin all stdout messages."
+        }
+      },
+      {
+        "id": "810-test-skills-preflight",
+        "title": "NEW tests/content/test_skills_preflight_call.py: assert build and swarm skills reference the preflight helper as a '!' rule",
+        "status": "pending",
+        "narrative": {
+          "Action": "Read skills/deft-directive-build/SKILL.md and skills/deft-directive-swarm/SKILL.md as text. Use a regex per file asserting a line matching '!.*scripts/preflight_implementation\\.py' and a line referencing 'task vbrief:activate'. Pin test failure messages to point at the file + missing pattern."
+        }
+      },
+      {
+        "id": "810-test-agents-contract",
+        "title": "Extend tests/content/test_agents_entry_contract.py: assert Implementation Intent Gate subsection exists with correct prefix tokens",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add an assertion to the existing test that the rendered managed-section text contains the heading 'Implementation Intent Gate' (or equivalent stable anchor) and four bullets, with at least two using ⊗ prefix and at least two using ! prefix. Do NOT pin exact wording -- pin structure and tokens so future copy-edits don't break the test."
+        }
+      },
+      {
+        "id": "810-changelog",
+        "title": "CHANGELOG.md [Unreleased] / Fixed entry referencing #810",
+        "status": "pending",
+        "narrative": {
+          "Action": "Two-bullet entry: 'fix(skills,scripts): structural preflight gate prevents unauthorized implementation-agent spawn (#810)' and 'fix(templates,agents): Implementation Intent Gate documented in AGENTS.md managed-section, propagated by cmd_agents_refresh (#810)'."
+        }
+      },
+      {
+        "id": "810-lessons",
+        "title": "meta/lessons.md entry: codify the implementation-intent inference anti-pattern",
+        "status": "pending",
+        "narrative": {
+          "Action": "One-paragraph addition to meta/lessons.md (the framework's running lessons-learned doc, modifiable without prior approval per the dogfooded WARP guidelines). Heading: 'Implementation-intent inference is a documented anti-pattern (#810).' Body: state the failure mode, the trigger phrases, the fix (preflight + AGENTS.md gate), and the takeaway (workflow-shape vocabulary is not authorization)."
+        }
+      },
+      {
+        "id": "810-task-check",
+        "title": "Run task check and confirm clean",
+        "status": "pending",
+        "narrative": {
+          "Action": "Pre-PR gate. Three new test files satisfy the forward-coverage rule from main.md (new source paths require new tests in the same PR). The new scripts/preflight_implementation.py is a new source file -- the matching test in tests/cli/test_preflight_implementation.py is its forward-coverage."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#801",
+          "#791",
+          "#792",
+          "#793",
+          "#794"
+        ],
+        "estimated_size": "M (1 new script + 1 Taskfile edit + 2 skill edits + 2 doc edits + 3 new tests + CHANGELOG + lessons)",
+        "blocks": [],
+        "blocked_by": [],
+        "related_to": "#747 (preflight_branch.py precedent for the helper shape), #768 (managed-section markers in templates/agents-entry.md -- propagation surface for the AGENTS.md edit), #801 (surfacing event -- not a causal dependency)"
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Self-contained, low-risk, preflight-only feature with clear single-PR boundary. The skill-edit phase is text-only; the new script is a strict mirror of #747's pattern. Parallelizable with #801 because the file surfaces are disjoint -- #801 touches run/run.py + scripts/_event_detect.py + events/registry.json; #810 touches scripts/preflight_implementation.py + skills/*.md + templates/agents-entry.md + AGENTS.md + tasks/vbrief.yml + tests/cli/test_preflight_implementation.py + tests/content/test_skills_preflight_call.py + tests/content/test_agents_entry_contract.py. Zero overlap on touched files; CHANGELOG.md is the only shared file and append-only.",
+        "files_to_touch": [
+          "scripts/preflight_implementation.py",
+          "tasks/vbrief.yml",
+          "skills/deft-directive-build/SKILL.md",
+          "skills/deft-directive-swarm/SKILL.md",
+          "templates/agents-entry.md",
+          "AGENTS.md",
+          "tests/cli/test_preflight_implementation.py",
+          "tests/content/test_skills_preflight_call.py",
+          "tests/content/test_agents_entry_contract.py",
+          "CHANGELOG.md",
+          "meta/lessons.md"
+        ],
+        "branch_name_suggestion": "feat/810-implementation-intent-gate",
+        "pr_title_suggestion": "fix(skills,scripts,templates): implementation-intent preflight gate + AGENTS.md anti-pattern (#810)",
+        "coordination_notes": "Branch already created and pushed: feat/810-implementation-intent-gate at C:\\repos\\Deft\\worktrees\\810-impl-intent-gate. Worktree is isolated from #801's directive\\ checkout. CHANGELOG.md is the only file potentially edited concurrently with #801 -- add the [Unreleased] / Fixed bullet appended to the existing list, do not edit existing #801 entries. If the test_agents_entry_contract.py extension touches the same file as #801's hypothetical edits there (unlikely; #801 does not edit it), coordinate via inbox."
+      },
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/810",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #810: Implementation-intent inference is non-deterministic"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/747",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #747: scripts/preflight_branch.py precedent for the preflight helper shape"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/768",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #768: cmd_agents_refresh + managed-section markers -- propagation surface for the AGENTS.md edit"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/801",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #801: surfacing event -- the in-flight session that exhibited the inference failure"
+      },
+      {
+        "uri": "skills/deft-directive-build/SKILL.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Build skill -- gains a Step 0 preflight"
+      },
+      {
+        "uri": "skills/deft-directive-swarm/SKILL.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Swarm skill -- Phase 0 Step 1 deduplicated against the new helper"
+      }
+    ]
+  }
+}
