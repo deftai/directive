@@ -129,8 +129,19 @@ def parse_greptile_body(body: str) -> GreptileVerdict:
     Mirrors the per-poll detection block in
     ``templates/swarm-greptile-poller-prompt.md`` so this script and the
     poller agree on the same interpretation of any given comment.
+
+    The whitespace-aware ``not body.strip()`` guard accounts for ``gh api
+    --jq`` raw-output behaviour (Greptile review P2 #1, PR #797): in raw
+    mode jq emits a trailing newline for every output value, including
+    the empty-string fallback ``// ""``. With ``--paginate`` jq runs
+    per-page, so a no-comment PR with N pages of issue comments produces
+    ``"\\n" * N``. A bare ``not body`` guard treats that as truthy and
+    falls through to the SHA / confidence parsers, producing the less
+    useful "Could not parse ..." diagnostics instead of the intended
+    "No Greptile rolling-summary comment found" message. Stripping first
+    routes the empty-jq case through the right diagnostic.
     """
-    if not body:
+    if not body or not body.strip():
         return GreptileVerdict(
             found=False,
             errored=False,

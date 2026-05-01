@@ -100,6 +100,30 @@ class TestParseGreptileBody:
         assert v.confidence is None
         assert v.p0_count == 0 and v.p1_count == 0
 
+    @pytest.mark.parametrize(
+        "whitespace_body",
+        [
+            "\n",          # gh api --jq single-page no-comment (P2 #2 from PR #797)
+            "\n\n",        # 2-page paginated no-comment
+            "\n\n\n\n",    # N-page paginated no-comment (P2 #3 from PR #797)
+            "   ",         # bare spaces
+            "\t",          # tab only
+            " \n \t \n ",  # mixed whitespace
+        ],
+        ids=["single-newline", "two-newlines", "four-newlines", "spaces", "tab", "mixed"],
+    )
+    def test_whitespace_only_body_returns_not_found(self, whitespace_body):
+        # Regression: gh api --jq raw mode emits trailing newlines for empty
+        # outputs, including the `// ""` empty-string fallback. With
+        # `--paginate` jq runs per-page, so a no-comment PR with N pages
+        # produces N newlines. The whitespace-aware guard MUST route these
+        # through the not-found path so the gate emits the intended
+        # "No Greptile rolling-summary comment found" diagnostic.
+        v = merge_readiness.parse_greptile_body(whitespace_body)
+        assert v.found is False
+        assert v.last_reviewed_sha is None
+        assert v.confidence is None
+
     def test_clean_body_parses_all_fields(self):
         sha = "deadbeef1234567890deadbeef1234567890abcd"
         v = merge_readiness.parse_greptile_body(_clean_body(sha=sha, confidence=5))
@@ -283,6 +307,24 @@ class TestMain:
         self._patch_gh(monkeypatch, sha, "")
         rc = merge_readiness.main(["1", "--repo", "deftai/directive"])
         assert rc == merge_readiness.EXIT_MERGE_BLOCKED
+
+    def test_no_greptile_comment_production_newline_exits_1(self, monkeypatch, capsys):
+        # Production parity: `gh api --jq '... // ""'` (raw mode) emits `\n`
+        # for an empty-string fallback, not an empty stdout. With
+        # `--paginate` jq runs per-page, so the output is `\n` * page_count.
+        # The CLI must still route to MERGE-BLOCKED with the
+        # "No Greptile rolling-summary comment found" diagnostic, NOT
+        # the misleading "Could not parse SHA" / "Could not parse confidence"
+        # diagnostics that the pre-fix code emitted (PR #797 Greptile P2).
+        sha = "abc1234567890def1234567890abcdef12345678"
+        self._patch_gh(monkeypatch, sha, "\n\n\n")  # 3-page paginated empty
+        rc = merge_readiness.main(["1", "--repo", "deftai/directive"])
+        assert rc == merge_readiness.EXIT_MERGE_BLOCKED
+        out = capsys.readouterr().out
+        assert "No Greptile rolling-summary" in out
+        # Negative assertion: must NOT emit the parser-failure diagnostics.
+        assert "Could not parse `Last reviewed commit:`" not in out
+        assert "Could not parse `Confidence Score:" not in out
 
     def test_gh_failure_exits_2(self, monkeypatch):
         def fake_run(*_a, **_kw):
