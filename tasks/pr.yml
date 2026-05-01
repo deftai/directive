@@ -44,3 +44,20 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/pr_check_closing_keywords.py" {{.CLI_ARGS}}
+
+  # pr:merge-ready -- programmatic Greptile-body verdict gate. Closes the
+  # SUCCESS-with-findings blind spot in the Phase 5 -> 6 merge-readiness
+  # checklist. Parses the Greptile rolling-summary comment body (NOT the
+  # CheckRun status) for confidence, P0/P1 findings, errored sentinel
+  # (#526), and HEAD-SHA freshness. Companion to the swarm SKILL Phase 6
+  # Step 1 prose rule. PR #652 incident motivated this gap-closer.
+  #
+  # Companion script: scripts/pr_merge_readiness.py
+  # Companion test:   tests/cli/test_pr_merge_readiness.py
+  merge-ready:
+    desc: "Verify a PR's Greptile review body satisfies the merge exit condition (confidence >3, no P0/P1, HEAD-SHA fresh, not errored)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/pr_merge_readiness.py" {{.CLI_ARGS}}
