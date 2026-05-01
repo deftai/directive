@@ -163,7 +163,19 @@ def to_pep440(version: str) -> str:
             f"tag {kind!r}.{match.group('num')} -- release pipeline MUST "
             f"skip pyproject.toml [project].version sync for this tag."
         )
-    pep_kind = _PRE_KIND_MAP[kind]
+    # Greptile advisory (#774): defensive .get() guard so a future regex
+    # extension that adds a kind without registering a mapping raises a
+    # clean ValueError instead of a bare KeyError. _PEP440_TAG_RE and
+    # _PRE_KIND_MAP / _NON_PUBLISHABLE_KINDS are kept in lockstep by
+    # convention; this guard converts a contract drift into an actionable
+    # diagnostic for the next maintainer.
+    pep_kind = _PRE_KIND_MAP.get(kind)
+    if pep_kind is None:
+        raise ValueError(
+            f"Unmapped pre-release kind {kind!r} for version {candidate!r}; "
+            "add it to _PRE_KIND_MAP or _NON_PUBLISHABLE_KINDS to keep "
+            "_PEP440_TAG_RE in lockstep with the publishability classifier."
+        )
     pep_num = int(match.group("num"))
     return f"{base}{pep_kind}{pep_num}"
 

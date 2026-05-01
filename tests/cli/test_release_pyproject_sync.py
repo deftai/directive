@@ -36,6 +36,7 @@ Regression scope (#771).
 from __future__ import annotations
 
 import importlib.util
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -547,3 +548,265 @@ class TestReleaseArtifactsConstant:
         assert "CHANGELOG.md" in names.stdout
         assert "ROADMAP.md" in names.stdout
         assert "pyproject.toml" in names.stdout
+
+
+# ---------------------------------------------------------------------------
+# uv.lock regeneration (#774 Greptile P1)
+# ---------------------------------------------------------------------------
+
+
+# A minimal uv.lock fixture: only the [[package]] entry for the root project
+# carries a ``version = "..."`` line we can compare to pyproject.toml. Real
+# uv.lock files are ~hundreds of KB but the rewrite-to-match-pyproject
+# behaviour is identical, and a fixture this small keeps the test fast.
+SAMPLE_UV_LOCK = """\
+version = 1
+requires-python = ">=3.11"
+
+[[package]]
+name = "deft-directive"
+version = "0.5.0"
+source = { editable = "." }
+"""
+
+
+def _stub_uv_lock_writer(version: str):
+    """Build a stub for ``release.run_uv_lock`` that rewrites uv.lock.
+
+    The real ``uv lock`` invocation rewrites the lockfile so the root
+    project's ``[[package]]`` ``version`` matches pyproject.toml. The
+    stub mimics that single observable side effect so the regression
+    test can assert pyproject.toml and uv.lock end up at the same
+    version after a synthetic release flow -- without requiring the
+    ``uv`` binary at test time (CI may not have a Python toolchain
+    installed in every environment, and even when it does the real
+    ``uv lock`` resolves the full dependency graph, which is several
+    seconds of wall clock per test).
+    """
+
+    def _stub(project_root):
+        lockfile = project_root / "uv.lock"
+        if not lockfile.is_file():
+            return True, "uv.lock unchanged (no lockfile present)"
+        text = lockfile.read_text(encoding="utf-8")
+        # Rewrite the FIRST version line (the root [[package]] entry --
+        # transitive dep entries come later in real lockfiles, but the
+        # SAMPLE_UV_LOCK fixture has only one ``version = "..."``).
+        rewritten = re.sub(
+            r'^version = "[^"]*"',
+            f'version = "{version}"',
+            text,
+            count=1,
+            flags=re.MULTILINE,
+        )
+        lockfile.write_text(rewritten, encoding="utf-8")
+        return True, "uv.lock regenerated"
+
+    return _stub
+
+
+class TestUvLockReleaseIntegration:
+    """#774 Greptile P1: uv.lock MUST be staged + regenerated."""
+
+    def test_uv_lock_in_release_artifacts(self):
+        """uv.lock MUST appear in _RELEASE_ARTIFACTS so commit step stages it."""
+        assert "uv.lock" in release._RELEASE_ARTIFACTS, (
+            "#774: uv.lock MUST be in _RELEASE_ARTIFACTS so the commit step "
+            "stages the freshly-regenerated lockfile in the release commit "
+            "-- otherwise pyproject.toml and uv.lock versions diverge in "
+            "the released tag and `uv lock --check` fails post-pipeline."
+        )
+
+    def test_pipeline_versions_match_after_release(
+        self, temp_project, monkeypatch, capsys
+    ):
+        """Synthetic release flow: uv.lock + pyproject.toml MUST agree.
+
+        This is the regression assertion for #774: every run of the
+        release pipeline against a project with both ``pyproject.toml``
+        and ``uv.lock`` MUST end up with the lockfile recording the
+        same ``version`` as pyproject.toml. Without the ``uv lock``
+        invocation in Step 5 (#774 fix) the pyproject would advance to
+        ``0.21.0`` while uv.lock stayed at ``0.5.0``.
+        """
+        # Drop a uv.lock fixture next to pyproject.toml.
+        lock_path = temp_project / "uv.lock"
+        lock_path.write_text(SAMPLE_UV_LOCK, encoding="utf-8")
+        subprocess.run(
+            ["git", "-C", str(temp_project), "add", "uv.lock"], check=True
+        )
+        subprocess.run(
+            ["git", "-C", str(temp_project), "commit", "-q", "-m", "add uv.lock"],
+            check=True,
+        )
+
+        monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(
+            release, "commit_release_artifacts", lambda *_a, **_kw: (True, "stub")
+        )
+        # Stub run_uv_lock so the test does not depend on a uv binary or
+        # a resolvable dependency graph -- the stub mimics the single
+        # observable side effect (lockfile version = pyproject version).
+        monkeypatch.setattr(release, "run_uv_lock", _stub_uv_lock_writer("0.21.0"))
+
+        config = _make_config(temp_project)
+        rc = release.run_pipeline(config)
+        assert rc == release.EXIT_OK
+
+        # The PRIMARY regression assertion: pyproject.toml and uv.lock
+        # MUST record the same version after a synthetic release flow.
+        pyproject_text = (temp_project / "pyproject.toml").read_text(encoding="utf-8")
+        uv_lock_text = lock_path.read_text(encoding="utf-8")
+        assert 'version = "0.21.0"' in pyproject_text, (
+            "pyproject.toml [project].version MUST advance to 0.21.0"
+        )
+        assert 'version = "0.21.0"' in uv_lock_text, (
+            "#774: uv.lock root [[package]] version MUST match pyproject.toml "
+            "(0.21.0) after the release pipeline runs -- the bug Greptile "
+            "P1 caught was that uv.lock stayed at the old version and "
+            "`uv lock --check` failed on every released tag."
+        )
+        # Sanity: the OLD version is gone from the lockfile too.
+        assert 'version = "0.5.0"' not in uv_lock_text
+
+        # Step 5 OK line surfaces the uv.lock outcome.
+        out = capsys.readouterr().err
+        assert "uv.lock regenerated" in out
+
+    def test_pipeline_skips_uv_lock_when_pyproject_unchanged(
+        self, temp_project, monkeypatch, capsys
+    ):
+        """Idempotent path: pyproject already at target -> no uv lock invocation.
+
+        When the pyproject sync is a no-op (already at the target version),
+        running ``uv lock`` would only churn -- the lockfile is already
+        consistent. Skipping the call keeps the pipeline fast and avoids
+        unnecessary network resolution on idempotent re-runs.
+        """
+        # Pre-set pyproject at the target version so the sync is a no-op.
+        (temp_project / "pyproject.toml").write_text(
+            SAMPLE_PYPROJECT.replace('version = "0.5.0"', 'version = "0.21.0"'),
+            encoding="utf-8",
+        )
+        # Drop a uv.lock fixture too so the no-op path can be observed.
+        lock_path = temp_project / "uv.lock"
+        lock_path.write_text(
+            SAMPLE_UV_LOCK.replace('version = "0.5.0"', 'version = "0.21.0"'),
+            encoding="utf-8",
+        )
+        subprocess.run(
+            ["git", "-C", str(temp_project), "add", "-A"], check=True
+        )
+        subprocess.run(
+            [
+                "git",
+                "-C",
+                str(temp_project),
+                "commit",
+                "-q",
+                "-m",
+                "pre-sync at target",
+            ],
+            check=True,
+        )
+
+        called = {"count": 0}
+
+        def _spy(*_a, **_kw):  # pragma: no cover - asserted not called
+            called["count"] += 1
+            return True, "uv.lock regenerated"
+
+        monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(
+            release, "commit_release_artifacts", lambda *_a, **_kw: (True, "stub")
+        )
+        monkeypatch.setattr(release, "run_uv_lock", _spy)
+
+        config = _make_config(temp_project)
+        rc = release.run_pipeline(config)
+        assert rc == release.EXIT_OK
+        assert called["count"] == 0, (
+            "run_uv_lock MUST NOT be called when pyproject.toml is already "
+            "at the target version -- the lockfile is already consistent."
+        )
+
+        out = capsys.readouterr().err
+        assert "pyproject already at 0.21.0" in out
+        assert "uv.lock unchanged" in out
+
+    def test_pipeline_fails_when_uv_lock_errors(
+        self, temp_project, monkeypatch, capsys
+    ):
+        """`uv lock` non-zero exit MUST halt the pipeline with EXIT_VIOLATION."""
+        lock_path = temp_project / "uv.lock"
+        lock_path.write_text(SAMPLE_UV_LOCK, encoding="utf-8")
+        subprocess.run(
+            ["git", "-C", str(temp_project), "add", "uv.lock"], check=True
+        )
+        subprocess.run(
+            ["git", "-C", str(temp_project), "commit", "-q", "-m", "add uv.lock"],
+            check=True,
+        )
+
+        monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
+        monkeypatch.setattr(
+            release, "commit_release_artifacts", lambda *_a, **_kw: (True, "stub")
+        )
+        monkeypatch.setattr(
+            release,
+            "run_uv_lock",
+            lambda *_a, **_kw: (False, "uv lock failed (exit 1): conflict"),
+        )
+
+        config = _make_config(temp_project)
+        rc = release.run_pipeline(config)
+        assert rc == release.EXIT_VIOLATION
+        out = capsys.readouterr().err
+        assert "FAIL" in out
+        assert "uv lock failed" in out
+
+
+class TestRunUvLock:
+    """Direct-call coverage for ``release.run_uv_lock`` (#774)."""
+
+    def test_skips_when_no_pyproject(self, tmp_path: Path):
+        ok, reason = release.run_uv_lock(tmp_path)
+        assert ok is True
+        assert "no pyproject.toml" in reason
+
+    def test_skips_when_uv_not_on_path(self, tmp_path: Path, monkeypatch, capsys):
+        (tmp_path / "pyproject.toml").write_text(SAMPLE_PYPROJECT, encoding="utf-8")
+        monkeypatch.setattr(release.shutil, "which", lambda _name: None)
+        ok, reason = release.run_uv_lock(tmp_path)
+        assert ok is True, (
+            "missing uv binary is a non-fatal skip; the pyproject sync "
+            "already landed and the operator can run uv lock manually"
+        )
+        assert "uv binary not on PATH" in reason
+        # Warning is surfaced on stderr so operators see the skip.
+        out = capsys.readouterr().err
+        assert "WARNING" in out
+        assert "uv.lock" in out
+
+    def test_returns_failure_on_non_zero_exit(self, tmp_path: Path, monkeypatch):
+        (tmp_path / "pyproject.toml").write_text(SAMPLE_PYPROJECT, encoding="utf-8")
+        monkeypatch.setattr(release.shutil, "which", lambda _name: "/fake/uv")
+
+        class _CompletedProcess:
+            returncode = 1
+            stderr = "resolution failed"
+            stdout = ""
+
+        monkeypatch.setattr(
+            release.subprocess, "run", lambda *_a, **_kw: _CompletedProcess()
+        )
+        ok, reason = release.run_uv_lock(tmp_path)
+        assert ok is False
+        assert "uv lock failed" in reason
+        assert "exit 1" in reason

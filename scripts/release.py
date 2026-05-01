@@ -856,7 +856,14 @@ def update_pyproject_version(text: str, version: str) -> str:
 # normalized via ``scripts.resolve_version.to_pep440``). The helper
 # below stages it conditionally on existence so projects without a
 # pyproject (the synthetic test fixtures) keep working unchanged.
-_RELEASE_ARTIFACTS = ("CHANGELOG.md", "ROADMAP.md", "pyproject.toml")
+#
+# ``uv.lock`` joins the set in #774 (Greptile P1) because Step 5 now
+# also runs ``uv lock`` to regenerate the lockfile after the pyproject
+# version write -- without staging it the released tag would record a
+# pyproject at the new version and a uv.lock still pinning the old
+# version, causing every subsequent ``uv lock --check`` (and any
+# downstream ``uv sync --frozen`` consumer) to fail post-pipeline.
+_RELEASE_ARTIFACTS = ("CHANGELOG.md", "ROADMAP.md", "pyproject.toml", "uv.lock")
 
 
 def _release_commit_subject(version: str) -> str:
@@ -1237,6 +1244,62 @@ def verify_release_draft(
     return True, f"inconclusive ({last_state}); verify gate skipped"
 
 
+# ---- Step 5 -- uv.lock regeneration (#774) ---------------------------------
+
+
+def run_uv_lock(project_root: Path) -> tuple[bool, str]:
+    """Regenerate ``uv.lock`` after the pyproject ``[project].version`` sync.
+
+    The release pipeline rewrites ``[project].version`` in pyproject.toml
+    in Step 5 (#771). Without a matching ``uv lock`` invocation, the
+    lockfile would still record the OLD version while pyproject records
+    the NEW one -- producing a release commit + annotated tag where
+    ``uv lock --check`` (and any ``uv sync --frozen`` consumer) fails
+    post-pipeline. Greptile P1 from #774 surfaced this gap.
+
+    Contract:
+      - No pyproject.toml present -- clean skip (no lockfile to keep in
+        sync with a missing root metadata file).
+      - ``uv`` binary not on PATH -- clean skip with a non-fatal warning;
+        the pipeline cannot regenerate a lockfile without the tool, but
+        the pyproject sync itself already landed and a downstream
+        operator can run ``uv lock`` manually before pushing the tag.
+      - ``uv lock`` non-zero exit -- terminal failure; the operator must
+        resolve the lock conflict before the release can ship.
+      - Happy path -- returns ``(True, "uv.lock regenerated")``; the
+        commit step then stages uv.lock alongside the other release
+        artifacts (#774 _RELEASE_ARTIFACTS).
+    """
+    if not (project_root / "pyproject.toml").is_file():
+        return True, "no pyproject.toml; skipping uv lock"
+    uv_path = shutil.which("uv")
+    if uv_path is None:
+        # Best-effort: surface a warning but do not fail. The pyproject
+        # sync already succeeded; an operator running the release on a
+        # host without uv can regenerate the lockfile manually.
+        print(
+            "WARNING: uv binary not on PATH; skipping uv.lock regeneration "
+            "(see #774). Run `uv lock` manually before pushing the release tag.",
+            file=sys.stderr,
+        )
+        return True, "uv binary not on PATH; skipping uv lock"
+    try:
+        result = subprocess.run(
+            [uv_path, "lock"],
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=300,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        return False, f"uv lock failed: {exc}"
+    if result.returncode != 0:
+        stderr = (result.stderr or "").strip()
+        return False, f"uv lock failed (exit {result.returncode}): {stderr}"
+    return True, "uv.lock regenerated"
+
+
 # ---- Step 5 -- pyproject sync helper (#771) --------------------------------
 
 
@@ -1459,16 +1522,28 @@ def run_pipeline(config: ReleaseConfig) -> int:
             label,
             f"DRYRUN (would rewrite {changelog_path.name}: "
             f"## [Unreleased] -> ## [{version}] - {today}; new compare link added;"
-            f"{summary_note}; {pyproject_note})",
+            f"{summary_note}; {pyproject_note}; "
+            f"would run `uv lock` to refresh uv.lock to {version})",
         )
     else:
         changelog_path.write_text(promoted_changelog, encoding="utf-8")
+        uv_lock_note = "uv.lock unchanged (pyproject not modified)"
         if promoted_pyproject is not None:
             pyproject_path.write_text(promoted_pyproject, encoding="utf-8")
+            # #774: pyproject [project].version was rewritten -- regenerate
+            # uv.lock so the lockfile records the same version. Without
+            # this every future ``task release`` produces a release
+            # commit + tag where pyproject and uv.lock disagree and
+            # downstream ``uv lock --check`` fails.
+            uv_ok, uv_lock_note = run_uv_lock(project_root)
+            if not uv_ok:
+                _emit(5, label, f"FAIL ({uv_lock_note})")
+                return EXIT_VIOLATION
         _emit(
             5,
             label,
-            f"OK (## [{version}] - {today};{summary_note}; {pyproject_note})",
+            f"OK (## [{version}] - {today};{summary_note}; "
+            f"{pyproject_note}; {uv_lock_note})",
         )
 
     # Step 6: ROADMAP refresh.
