@@ -96,3 +96,17 @@ Read and follow `../AGENTS.md`. This starts the normal first-session flow (user 
 **Brownfield pointer:** For users retrofitting Deft onto an existing project (existing code, existing docs, or pre-v0.20 Deft layout), the authoritative adoption guide is [docs/BROWNFIELD.md](./docs/BROWNFIELD.md). It covers install options, migration, post-migration checks, and troubleshooting in more depth than the Case H flow above.
 
 **Upgrade pointer:** Users moving between framework versions should also read [UPGRADING.md](./UPGRADING.md) in the repo root for the version-by-version guide.
+
+## Update notifications
+
+After a Deft project is set up, the CLI runs a periodic, read-only remote-version probe (issue #801) so you find out when the upstream framework ships a new release. The probe shells out to `git ls-remote --tags --refs <upstream>` against the deft submodule's `origin` remote at most once every 24 hours, parses the highest semver tag, and -- if your local checkout is behind -- prints a single informational warn line below the existing recorded-vs-current message:
+
+```
+⚠ Upstream directive v0.24.0 is available (you are on v0.23.0). Run `task framework:check-updates` for details; follow `skills/deft-directive-sync/SKILL.md` Phase 2 to update.
+```
+
+The banner is informational only: it never blocks CI, never prompts in non-interactive sessions, and never triggers a second `Continue anyway?` prompt on top of the existing #410 marker-drift gate. Re-notification cadence is per-tag -- once you dismiss `v0.24.0` the banner stays silent for 24 hours, but a fresh `v0.24.1` re-notifies immediately. State is persisted to `vbrief/.deft-remote-probe.json`; per-`run`-invocation dedup prevents the same banner from stacking when chained commands (e.g. `cmd_install -> cmd_project -> cmd_spec`) all hit the gate.
+
+For a synchronous interactive probe -- handy when you want to verify your update path before pushing -- run `task framework:check-updates`. Pass `-- --force` to bypass the 24-hour throttle and `-- --json` to get a machine-parseable payload (useful in CI dashboards). Exit code is `1` only when the probe positively reports BEHIND; every other status (`OK` / `NO-UPSTREAM` / `NO-TAGS` / `ERROR` / `SKIPPED`) returns `0`.
+
+Air-gapped or strict-egress environments can opt out of the probe entirely by setting `DEFT_NO_NETWORK=1` in the calling shell -- the probe short-circuits before any subprocess call, the gate emits no banner, and no `framework:remote-drift` event is recorded. The subprocess timeout (default 5 seconds) is overridable via `DEFT_REMOTE_PROBE_TIMEOUT` for slow upstream remotes.
