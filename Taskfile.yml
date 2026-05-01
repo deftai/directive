@@ -108,6 +108,9 @@ includes:
   policy:
     taskfile: ./tasks/policy.yml
     optional: true
+  framework:
+    taskfile: ./tasks/framework.yml
+    optional: true
 
 tasks:
   default:

@@ -239,11 +239,59 @@ def detect_agents_md_stale(
     }
 
 
+# ---------------------------------------------------------------------------
+# detect_remote_drift -- payload builder for run::cmd_check_updates (#801)
+# ---------------------------------------------------------------------------
+
+
+def detect_remote_drift(
+    project_root: Path,
+    *,
+    probe_result: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Build a ``framework:remote-drift`` payload from a probe result.
+
+    Mirrors :func:`detect_agents_md_stale` in shape: returns ``None`` when no
+    drift is observed, returns the structured payload when ``probe_result``
+    indicates BEHIND. The actual ``git ls-remote`` probe lives in
+    ``run::_run_remote_probe`` (kept there so the bootstrap entry point is
+    not coupled to the events surface at import time, mirroring why
+    ``run::_emit_event_safe`` lazy-imports ``emit`` rather than depending on
+    it directly). This helper is the structural payload constructor: tests
+    can pass canned probe results to assert the registry-conformant shape
+    without monkeypatching subprocess.
+
+    Returns the canonical payload dict::
+
+        {
+            "project_root": <abs>,
+            "current_version": <run.VERSION>,
+            "remote_version": <vX.Y.Z tag>,
+            "upstream_url": <git-remote-url>,
+            "commits_behind": <int|null>,
+        }
+
+    when ``probe_result.get("status") == "behind"``; otherwise returns None.
+    """
+    if probe_result is None:
+        return None
+    if probe_result.get("status") != "behind":
+        return None
+    return {
+        "project_root": str(Path(project_root).resolve()),
+        "current_version": probe_result.get("current"),
+        "remote_version": probe_result.get("remote"),
+        "upstream_url": probe_result.get("upstream_url", ""),
+        "commits_behind": probe_result.get("commits_behind", None),
+    }
+
+
 __all__ = [
     "DEPRECATED_SKILL_REDIRECT_SENTINEL",
     "EventEmissionError",
     "clear_registry_cache",
     "detect_agents_md_stale",
+    "detect_remote_drift",
     "emit",
     "load_registry",
     "now_utc_iso",
