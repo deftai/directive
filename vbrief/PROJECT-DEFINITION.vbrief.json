@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-01T16:23:28Z"
+    "updated": "2026-05-01T16:57:31Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -235,6 +235,42 @@
               "uri": "QUICK-START.md",
               "type": "x-vbrief/related-doc",
               "title": "Case G: agent-prescriptive coverage of the same scenario; cross-link target"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-01-798-detect-ps-51-non-ascii-round-trip-corruption-in-pre-commit-t",
+        "title": "Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (deterministic tier per [AXIOM])",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-05-01-798-detect-ps-51-non-ascii-round-trip-corruption-in-pre-commit-t.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/798",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #798: Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (4th recurrence)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/pull/795",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #795 -- 4th recurrence record (CHANGELOG.md mojibake during P2 batch fix)"
+            },
+            {
+              "uri": "AGENTS.md",
+              "type": "x-vbrief/related-doc",
+              "title": "PowerShell section: the prose tier rule this proposal elevates to deterministic"
+            },
+            {
+              "uri": "main.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Rule Authority [AXIOM] -- the hierarchy this proposal climbs"
+            },
+            {
+              "uri": "scripts/preflight_branch.py",
+              "type": "x-vbrief/related-doc",
+              "title": "Sibling deterministic gate (#747) -- shape model for the new scripts/verify_encoding.py"
             }
           ]
         }

@@ -83,7 +83,11 @@
       "x-tracking": {
         "swarm_ready": true,
         "needs_discussion": false,
-        "parallelizable_with": ["#791", "#793", "#794"],
+        "parallelizable_with": [
+          "#791",
+          "#793",
+          "#794"
+        ],
         "estimated_size": "M (1 file edit + 2 new tests + CHANGELOG)",
         "blocks": [],
         "blocked_by": [],
@@ -92,9 +96,18 @@
       "x-swarm-guidance": {
         "primary_skill": "skills/deft-directive-build/SKILL.md",
         "rationale": "Standalone bug fix with clear single-PR boundary. The uv-detection helper added here can be reused by #793; agents picking up #792 and #793 should coordinate via inbox if both run in parallel to avoid duplicating the helper.",
-        "files_to_touch": ["run", "tests/cli/test_doctor_uv.py", "tests/cli/test_doctor_dirs.py", "CHANGELOG.md"],
+        "files_to_touch": [
+          "run",
+          "tests/cli/test_doctor_uv.py",
+          "tests/cli/test_doctor_dirs.py",
+          "CHANGELOG.md"
+        ],
         "branch_name_suggestion": "fix/792-cmd-doctor-uv-and-dirs",
         "pr_title_suggestion": "fix(doctor): add uv check; refresh expected_dirs to v0.20+ layout (#792)"
+      },
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
       }
     },
     "references": [

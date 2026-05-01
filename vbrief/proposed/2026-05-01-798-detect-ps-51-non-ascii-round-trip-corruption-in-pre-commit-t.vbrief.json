@@ -1,0 +1,140 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Adoption blocker: PowerShell 5.1 silently corrupts non-ASCII content during read+write round-trips. Four prior recurrences without deterministic enforcement. Encode the rule at the deterministic tier per main.md Rule Authority [AXIOM]: new task verify:encoding + pre-commit hook + AGENTS.md root-cause rule.",
+    "created": "2026-05-01T00:00:00Z",
+    "updated": "2026-05-01T00:00:00Z"
+  },
+  "plan": {
+    "id": "798-ps51-encoding-gate",
+    "title": "Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (deterministic tier per [AXIOM])",
+    "status": "proposed",
+    "planRef": "#798",
+    "narratives": {
+      "Problem": "PowerShell 5.1 (the default Windows PowerShell shipped on every Win10/11 install) silently corrupts non-ASCII content during read+write round-trips even when the write side specifies UTF-8 explicitly. Get-Content -Raw decodes via the active codepage (typically CP1252) on the READ side; the corruption is introduced before any 'safe write' can preserve the bytes. Three prior recurrences are recorded (#236 t1.11.1, #240 t1.11.2, #283 t1.20.1) and a fourth happened on PR #795 (CHANGELOG.md mojibake during P2 batch fix). The rule is encoded at the prose tier (personal rule + AGENTS.md PowerShell section + lessons.md cross-references) but per main.md Rule Authority [AXIOM] (deterministic > Taskfile > vBRIEF > RFC2119 > prose) the recurrence pattern most likely to bite a Windows consumer in their first session is at the WEAKEST tier with NO deterministic gate.",
+      "Overview": "Elevate the rule to the deterministic tier. New scripts/verify_encoding.py scans staged or working-tree files for U+FFFD replacement chars, the known CP1252-as-UTF-8 mojibake bigram set, and unexpected UTF-8 BOMs on file types where BOM is non-canonical. Three-state exit codes per scripts/preflight_branch.py / scripts/rule_ownership_lint.py convention. Wire as task verify:encoding (in tasks/verify.yml) and as a dep of task check, plus a .githooks/pre-commit step alongside preflight_branch. Strengthen AGENTS.md PowerShell section with a root-cause rule (read-side decoding) and add a meta/lessons.md cross-reference per [AXIOM] (lesson is fallback only, not rule body).",
+      "Background": "Recurrence chain: (1) #236 / t1.11.1 added Get-Content -Raw + BOM-safe write rules to scm/github.md (PR-prep only); (2) #240 / t1.11.2 added Warp multi-line PS here-string rule to scm/github.md; (3) #283 / t1.20.1 added 'use New-Object System.Text.UTF8Encoding $false' rule to AGENTS.md PowerShell section; (4) PR #795 / 2026-05-01: a maintainer with all three rules loaded ran Get-Content -Raw | -replace | [System.IO.File]::WriteAllText (UTF-8 explicit) on CHANGELOG.md and corrupted 132 lines. The personal rule on -replace did not catch it because the write side was UTF-8 explicit; corruption happened on the read side. The AGENTS.md rule on writes did not catch it because the rule names a smell (Set-Content / Out-File without UTF8Encoding) not the root cause (PS 5.1 default codepage decode on Get-Content -Raw).",
+      "Constraint": "MUST NOT regress legitimate intentional non-UTF-8 fixtures (test fixtures that exercise mojibake detection itself). MUST honor an --allow-list <path> flag for documented exceptions. MUST be fast enough to run in pre-commit without operator complaint (target: <1s on the deftai/directive repo's working tree of ~330 vbrief files + 200 markdown). MUST not block on legitimate U+FFFD usage in Unicode test fixtures (allow-list path). The detection MUST cover both the U+FFFD signature (universal) AND the CP1252-as-UTF-8 bigram set (PS 5.1 specific) -- a U+FFFD-only check would miss the CHANGELOG.md/PR #795 case because those bytes were valid UTF-8 sequences for the wrong codepoints (e.g. C2 A7 = U+00C2 'Â' + U+00A7 '§' instead of the original single byte for U+00A7).",
+      "Risk": "Low-medium. The script is stdlib-only Python (mirrors verify_stubs.py shape) and inherently safe -- it scans, never modifies. The risk is overly-broad bigram patterns triggering false positives on legitimate prose mentioning these byte sequences (e.g. a doc about encoding pitfalls that quotes 'Â§'). Mitigation: --allow-list flag for documented exceptions; per-finding line-number diagnostic so operators can audit specific hits; bigram set is conservative (only the most common PS 5.1 corruptions, not every theoretically possible CP1252-as-UTF-8 sequence).",
+      "Outcome": "Acceptance: (1) scripts/verify_encoding.py exists with three-state exit codes and --staged / --all / --allow-list flags; (2) task verify:encoding wired into task check aggregate; (3) .githooks/pre-commit invokes verify_encoding.py --staged; (4) AGENTS.md PowerShell section rewritten with root-cause rule; (5) meta/lessons.md cross-reference added (NOT a rule-body duplication); (6) tests covering U+FFFD detection, each known-mojibake bigram (parametrized), BOM-on-non-BOM-file detection, allow-list bypass, three-state exit codes, --staged mode against synthetic git index; (7) tests/fixtures/encoding/ regression fixtures exercising real mojibake bytes end-to-end; (8) test_taskfile_paths.py extended to assert verify:encoding is a task check dep.",
+      "Test": "tests/cli/test_verify_encoding.py -- parametrized over the bigram set (one test per known mojibake pattern); U+FFFD detection on a synthetic file; BOM-on-.md / BOM-on-.json positive cases; BOM-on-existing-BOM-file (e.g. .ps1 with explicit BOM) negative case; allow-list bypass; three-state exit codes (clean / corruption with diagnostic / config error); --staged mode using a tmp_path git repo. tests/content/test_taskfile_paths.py -- assert tasks/verify.yml declares encoding subcommand and Taskfile.yml::check has verify:encoding in deps. tests/fixtures/encoding/ -- synthetic regression fixtures with real mojibake bytes (committed deliberately so the scanner is exercised against actual byte sequences, not Python-computed approximations). End-to-end smoke: run 'task verify:encoding -- --all' against a known-clean repo state and assert exit 0.",
+      "Action": "1. Author scripts/verify_encoding.py with the U+FFFD scan + bigram set + BOM check + three-state exit + flags. 2. Add tasks/verify.yml::encoding task. 3. Wire verify:encoding into Taskfile.yml::check deps list. 4. Extend .githooks/pre-commit with the --staged invocation after preflight_branch. 5. Rewrite AGENTS.md ## PowerShell with root-cause rule. 6. Add meta/lessons.md cross-reference entry. 7. Add tests + fixtures. 8. Run task check (gate must remain green; the new gate must not flag the existing repo). 9. CHANGELOG entry under [Unreleased] / Added.",
+      "Urgency": "Phase 1 -- Fix Now. This is the recurrence pattern most likely to bite Windows consumers in their first session. Three prior records did not prevent the fourth recurrence; the fourth was caught only by chance. Without deterministic enforcement, the next recurrence is a matter of when, not whether."
+    },
+    "items": [
+      {
+        "id": "798-add-verify-encoding-script",
+        "title": "Add scripts/verify_encoding.py with U+FFFD + mojibake bigram + BOM scans",
+        "status": "pending",
+        "narrative": {
+          "Action": "Stdlib-only Python (mirrors scripts/verify_stubs.py / scripts/preflight_branch.py shape). Three-state exit codes (0 clean / 1 corruption / 2 config error). Flags: --staged (default in pre-commit) reads `git diff --cached --name-only`; --all (default in task check) walks the working tree; --allow-list <path> skips files matching documented allow-list. Detection scope: U+FFFD replacement chars; the curated CP1252-as-UTF-8 bigram set (Â§, Â­, Â°, Â´, â€\\\", â€\\\", â€¦, â€˜/â€™/â€œ, â†', â†', â—, â€¢); unexpected UTF-8 BOM on .md/.json/.yml/.yaml/.txt. Per-hit diagnostic prints filename + line number + matched byte sequence."
+        }
+      },
+      {
+        "id": "798-add-verify-encoding-task",
+        "title": "Add tasks/verify.yml::encoding task; wire into Taskfile.yml::check deps",
+        "status": "pending",
+        "narrative": {
+          "Action": "New `encoding:` task in tasks/verify.yml mirroring the existing verify:stubs / verify:links shape (dir USER_WORKING_DIR, env PYTHONUTF8=1, cmd `uv run python {{.DEFT_ROOT}}/scripts/verify_encoding.py {{.CLI_ARGS}}`). Add `verify:encoding` to the `check:` deps list in root Taskfile.yml so it runs alongside verify:stubs / verify:links / verify:branch / vbrief:validate. Per conventions/task-caching.md: NO sources:/generates: because user-facing flags (--staged / --all / --allow-list) MUST NOT be silently swallowed by go-task's incremental-build cache."
+        }
+      },
+      {
+        "id": "798-wire-pre-commit-hook",
+        "title": "Wire scripts/verify_encoding.py --staged into .githooks/pre-commit",
+        "status": "pending",
+        "narrative": {
+          "Action": "Append a hook step after the existing preflight_branch invocation (per #747). The step calls `${DEFT_PYTHON:-python3} scripts/verify_encoding.py --staged` (mirrors the python-discovery fallback in the existing hook). Three-state exit propagates: 0 allowed / 1 blocked with diagnostic / 2 config-error with recovery hint. This catches corruption at commit time, not just at PR review time."
+        }
+      },
+      {
+        "id": "798-rewrite-agentsmd-powershell",
+        "title": "Rewrite AGENTS.md ## PowerShell section with root-cause rule + recurrence record",
+        "status": "pending",
+        "narrative": {
+          "Action": "Replace the current single-rule (Set-Content / Out-File UTF8Encoding $false) with a root-cause rule covering both reads and writes: 'On PS 5.1, ANY modification of a file containing non-ASCII MUST go through Python pathlib.Path.read_text(encoding=utf-8) / write_text(text, encoding=utf-8). Get-Content -Raw decodes via the active codepage (typically CP1252) on the READ side; corruption is introduced before any safe write can preserve the bytes. PS 7+ (pwsh), bash, and zsh handle UTF-8 correctly and are exempt.' Cite the four-recurrence record (#236, #240, #283, PR #795) and cross-reference task verify:encoding (this issue #798) as the deterministic tier per main.md Rule Authority [AXIOM]."
+        }
+      },
+      {
+        "id": "798-lessons-md-crossref",
+        "title": "Add meta/lessons.md cross-reference (NOT a rule-body duplication)",
+        "status": "pending",
+        "narrative": {
+          "Action": "Per main.md Rule Authority [AXIOM] prose is fallback only -- the lessons entry is a cross-reference, not a rule-body duplicate. Short entry pointing at the deterministic gate (task verify:encoding), the AGENTS.md rule, and the four-recurrence record. Title: '## PS 5.1 Non-ASCII Round-Trip Corruption (4th recurrence, deterministic gate landed) (2026-05)'."
+        }
+      },
+      {
+        "id": "798-tests",
+        "title": "Add tests/cli/test_verify_encoding.py + tests/fixtures/encoding/ + extend test_taskfile_paths.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Parametrized cases over each bigram in the curated set (one test per pattern); U+FFFD detection on a synthetic file; BOM-on-.md / BOM-on-.json positive cases; allow-list bypass; three-state exit codes; --staged mode using a tmp_path git repo. tests/fixtures/encoding/ contains hand-crafted files with real mojibake bytes (committed deliberately, allow-listed in the scanner via --allow-list pointing at tests/fixtures/encoding/.allow-list) so the scanner is exercised against actual byte sequences. tests/content/test_taskfile_paths.py extended to assert tasks/verify.yml declares encoding and Taskfile.yml::check includes verify:encoding."
+        }
+      },
+      {
+        "id": "798-changelog",
+        "title": "Add CHANGELOG.md entry under [Unreleased] / Added",
+        "status": "pending",
+        "narrative": {
+          "Action": "'feat(scripts,tasks,hooks,docs): deterministic gate against PS 5.1 non-ASCII round-trip corruption (#798) -- 4th recurrence. New scripts/verify_encoding.py + task verify:encoding + .githooks/pre-commit step + AGENTS.md root-cause rule. Per main.md Rule Authority [AXIOM] elevates the rule from prose tier (where the prior three recurrences left it) to deterministic tier.'"
+        }
+      },
+      {
+        "id": "798-task-check",
+        "title": "Run task check; verify the new gate is green on the existing repo",
+        "status": "pending",
+        "narrative": {
+          "Action": "Pre-PR gate. The new verify:encoding step MUST be green on the existing working tree (otherwise the gate is broken / patterns too broad). If pre-existing corruption surfaces, document each finding in the PR body and either fix in this batch or open a follow-up issue. forward-coverage: new test file exists per main.md test-with-code rule."
+        }
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": ["#791", "#792", "#793", "#794"],
+        "estimated_size": "M-L (1 new script + 1 new task + hook update + AGENTS.md + lessons.md + tests + fixtures + CHANGELOG)",
+        "blocks": [],
+        "blocked_by": [],
+        "recurrence_chain": ["#236 t1.11.1", "#240 t1.11.2", "#283 t1.20.1", "PR #795 (2026-05-01)"]
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Cross-cutting but well-bounded: 1 new script, 1 new task, 1 hook update, 1 AGENTS.md rewrite, 1 lessons cross-ref, tests + fixtures. The new gate MUST be green on the existing working tree before merge -- if it surfaces pre-existing corruption, surface in PR body and either fix in batch or open follow-up. Agent should write the bigram set conservatively (only PS 5.1 corruptions known-observed in the four recurrences) to avoid false positives on legitimate prose. Use Python pathlib for ALL file I/O -- this scope of work MUST NOT touch files via PowerShell on Windows agents (that would be ironic).",
+        "files_to_touch": ["scripts/verify_encoding.py (new)", "tasks/verify.yml", "Taskfile.yml", ".githooks/pre-commit", "AGENTS.md", "meta/lessons.md", "tests/cli/test_verify_encoding.py (new)", "tests/content/test_taskfile_paths.py", "tests/fixtures/encoding/ (new)", "CHANGELOG.md"],
+        "branch_name_suggestion": "feat/798-ps51-encoding-gate",
+        "pr_title_suggestion": "feat(scripts,tasks,hooks): deterministic gate against PS 5.1 non-ASCII round-trip corruption (#798)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/798",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #798: Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (4th recurrence)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/795",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #795 -- 4th recurrence record (CHANGELOG.md mojibake during P2 batch fix)"
+      },
+      {
+        "uri": "AGENTS.md",
+        "type": "x-vbrief/related-doc",
+        "title": "PowerShell section: the prose tier rule this proposal elevates to deterministic"
+      },
+      {
+        "uri": "main.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Rule Authority [AXIOM] -- the hierarchy this proposal climbs"
+      },
+      {
+        "uri": "scripts/preflight_branch.py",
+        "type": "x-vbrief/related-doc",
+        "title": "Sibling deterministic gate (#747) -- shape model for the new scripts/verify_encoding.py"
+      }
+    ]
+  }
+}

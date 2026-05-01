@@ -91,7 +91,11 @@
       "x-tracking": {
         "swarm_ready": true,
         "needs_discussion": false,
-        "parallelizable_with": ["#791", "#792", "#794"],
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#794"
+        ],
         "estimated_size": "M-L (new task + new script + skill + main.md + tests + CHANGELOG)",
         "blocks": [],
         "blocked_by": [],
@@ -100,9 +104,20 @@
       "x-swarm-guidance": {
         "primary_skill": "skills/deft-directive-build/SKILL.md",
         "rationale": "Cross-cutting but well-bounded: 1 new task, 1 new script, 1 skill update, 1 docs cross-link, 1 test file. Agent should coordinate with the #792 worker via inbox if running in parallel to avoid duplicating uv-detection. If #792 has already landed, import its helper.",
-        "files_to_touch": ["scripts/migrate_preflight.py (new)", "tasks/migrate.yml", "skills/deft-directive-setup/SKILL.md", "main.md", "tests/cli/test_migrate_preflight.py (new)", "CHANGELOG.md"],
+        "files_to_touch": [
+          "scripts/migrate_preflight.py (new)",
+          "tasks/migrate.yml",
+          "skills/deft-directive-setup/SKILL.md",
+          "main.md",
+          "tests/cli/test_migrate_preflight.py (new)",
+          "CHANGELOG.md"
+        ],
         "branch_name_suggestion": "feat/793-task-migrate-preflight",
         "pr_title_suggestion": "feat(migrate): add task migrate:preflight; migrate:vbrief self-invokes it (#793)"
+      },
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
       }
     },
     "references": [

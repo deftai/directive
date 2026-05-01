@@ -59,7 +59,11 @@
       "x-tracking": {
         "swarm_ready": true,
         "needs_discussion": false,
-        "parallelizable_with": ["#792", "#793", "#794"],
+        "parallelizable_with": [
+          "#792",
+          "#793",
+          "#794"
+        ],
         "estimated_size": "S (1 file edit + 1 new test + CHANGELOG)",
         "blocks": [],
         "blocked_by": []
@@ -67,9 +71,17 @@
       "x-swarm-guidance": {
         "primary_skill": "skills/deft-directive-build/SKILL.md",
         "rationale": "Standalone bug fix with a clear single-PR boundary. No design questions. Agent should branch, edit run.bat, add the test, run task check, commit, push, open PR.",
-        "files_to_touch": ["run.bat", "tests/cli/test_run_bat_path.py", "CHANGELOG.md"],
+        "files_to_touch": [
+          "run.bat",
+          "tests/cli/test_run_bat_path.py",
+          "CHANGELOG.md"
+        ],
         "branch_name_suggestion": "fix/791-runbat-cwd-resolution",
         "pr_title_suggestion": "fix(run): resolve run entry point against %~dp0 in run.bat (#791)"
+      },
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
       }
     },
     "references": [

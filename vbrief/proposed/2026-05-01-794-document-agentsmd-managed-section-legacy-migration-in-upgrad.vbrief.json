@@ -75,7 +75,11 @@
       "x-tracking": {
         "swarm_ready": true,
         "needs_discussion": false,
-        "parallelizable_with": ["#791", "#792", "#793"],
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#793"
+        ],
         "estimated_size": "S (1 docs section + 1 diagnostic line + 1 cross-link + 1 test + CHANGELOG)",
         "blocks": [],
         "blocked_by": []
@@ -83,9 +87,19 @@
       "x-swarm-guidance": {
         "primary_skill": "skills/deft-directive-build/SKILL.md",
         "rationale": "Docs-heavy with a small code touch (one print line) and a contract test. Fully independent of #791-#793. Single-PR scope. Agent should preview UPGRADING.md and QUICK-START.md side-by-side before writing to ensure the cross-link wording stays symmetrical.",
-        "files_to_touch": ["UPGRADING.md", "run", "QUICK-START.md", "tests/cli/test_agents_md_legacy_migration.py (new)", "CHANGELOG.md"],
+        "files_to_touch": [
+          "UPGRADING.md",
+          "run",
+          "QUICK-START.md",
+          "tests/cli/test_agents_md_legacy_migration.py (new)",
+          "CHANGELOG.md"
+        ],
         "branch_name_suggestion": "docs/794-agents-md-legacy-migration-contract",
         "pr_title_suggestion": "docs(upgrading): document AGENTS.md managed-section legacy migration (#794)"
+      },
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
       }
     },
     "references": [
