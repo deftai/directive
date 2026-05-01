@@ -212,15 +212,19 @@ class TestNotificationCadence:
     def test_same_tag_within_24h_skips_notification(
         self, tmp_path, deft_run_module, monkeypatch, capsys
     ):
+        # Greptile P2 (PR #811): seed last_probed_at to >24h ago so the probe
+        # cadence check passes and we ACTUALLY reach the per-tag notification
+        # cadence guard. Setting last_probed_at within 24h would short-circuit
+        # at the probe-floor check and never exercise the same_tag_within_floor
+        # branch this test claims to cover.
         _enable_real_helper(deft_run_module, monkeypatch)
-        # Force the probe to ALWAYS run (probe_floor bypass via env).
-        monkeypatch.setenv("DEFT_FORCE_REMOTE_PROBE", "1")
         now = datetime(2026, 5, 1, 12, 0, 0, tzinfo=UTC)
-        recent = now - timedelta(hours=12)
+        recent = now - timedelta(hours=12)  # within 24h notify floor
+        old = now - timedelta(hours=25)  # past 24h probe floor
         deft_run_module._write_remote_probe_state(
             tmp_path,
             {
-                "last_probed_at": recent.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "last_probed_at": old.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "last_notified_at": recent.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "last_notified_tag": "v99.0.0",
             },
@@ -231,9 +235,9 @@ class TestNotificationCadence:
         # Per-session dedup must not pre-empt the cadence assertion.
         monkeypatch.setattr(deft_run_module, "_PROBE_NOTIFIED_THIS_SESSION", False)
 
-        # Without DEFT_FORCE_REMOTE_PROBE the same-tag-within-24h check fires.
-        # With force, it bypasses entirely (test below covers force separately).
-        # For this test, unset force so we exercise the per-tag floor.
+        # No DEFT_FORCE_REMOTE_PROBE -- the same-tag-within-24h notification
+        # cadence guard is what should suppress the banner here, not the
+        # probe-floor check.
         monkeypatch.delenv("DEFT_FORCE_REMOTE_PROBE", raising=False)
         deft_run_module._maybe_emit_remote_drift_warning(tmp_path)
         captured = capsys.readouterr()

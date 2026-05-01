@@ -904,17 +904,31 @@ def _max_semver_tag(tags: List[str]) -> Optional[str]:
     return parsed[-1][1]
 
 
-def _resolve_upstream_url(project_root: Path) -> Optional[str]:
+def _resolve_upstream_url(
+    project_root: Path,
+    *,
+    timeout: Optional[float] = None,
+) -> Optional[str]:
     """Resolve the directive framework's upstream remote URL.
 
     Resolution priority:
         1. ``./deft`` submodule's ``origin`` remote (consumer projects)
         2. ``origin`` remote of the run-rooted repo (framework checkout)
 
+    ``timeout`` -- subprocess timeout in seconds for each ``git remote
+    get-url origin`` call. Defaults to ``DEFT_REMOTE_PROBE_TIMEOUT``
+    (resolved via :func:`_resolve_probe_timeout`) when ``None`` so the
+    env-var override applies to URL resolution and ``ls-remote`` alike
+    -- a slow-remote environment that bumps the env to e.g. ``30`` gets
+    a uniform 30 s budget across both subprocess calls instead of being
+    silently capped at 5 s here. Greptile P2 on PR #811.
+
     Returns None when neither candidate yields a remote URL -- callers
     surface this as a ``no-upstream`` status rather than treating it as
     an error.
     """
+    if timeout is None:
+        timeout = _resolve_probe_timeout()
     candidates: List[Path] = []
     deft_dir = project_root / "deft"
     if deft_dir.is_dir():
@@ -926,7 +940,7 @@ def _resolve_upstream_url(project_root: Path) -> Optional[str]:
                 ["git", "remote", "get-url", "origin"],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=timeout,
                 check=False,
                 cwd=str(candidate),
             )
@@ -1007,7 +1021,7 @@ def _run_remote_probe(project_root: Path) -> dict:
             "current": VERSION,
         }
     timeout = _resolve_probe_timeout()
-    upstream_url = _resolve_upstream_url(project_root)
+    upstream_url = _resolve_upstream_url(project_root, timeout=timeout)
     if not upstream_url:
         return {"status": "no-upstream", "current": VERSION}
     try:
