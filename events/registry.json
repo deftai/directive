@@ -80,6 +80,24 @@
       ]
     },
     {
+      "name": "framework:remote-drift",
+      "category": "detection-bound",
+      "description": "The directive framework's upstream remote ships a higher semver tag than the run::VERSION currently executing in the consumer's project. Indicates the consumer's `./deft` submodule (or framework checkout) is behind upstream and a `task sync` / `git submodule update --remote --merge deft` would pull a new release. Emitted by run::_maybe_emit_remote_drift_warning (#801) only when the read-only `git ls-remote --tags --refs <upstream>` probe returns BEHIND, throttled per-tag at 24h via vbrief/.deft-remote-probe.json.",
+      "trigger": "run::_maybe_emit_remote_drift_warning runs the probe via _run_remote_probe (which shells out to `git ls-remote --tags --refs <upstream>` once per 24h, parses the highest semver tag, and compares it to VERSION). Emits when result.status == 'behind' AND the per-tag notification cadence allows. Honors DEFT_NO_NETWORK=1 (silent skip) and DEFT_FORCE_REMOTE_PROBE=1 (bypass throttle).",
+      "payload": {
+        "project_root": "string -- absolute path of the consumer project root scanned",
+        "current_version": "string -- run.VERSION currently executing",
+        "remote_version": "string -- highest semver tag visible on the upstream remote (with leading `v` preserved)",
+        "upstream_url": "string -- upstream remote URL the probe consulted (origin of ./deft submodule, or origin of the run-rooted repo)",
+        "commits_behind": "integer | null -- number of commits the consumer is behind upstream when computable, null when the probe cannot determine it without a fetch"
+      },
+      "consumers": [
+        "run::_check_upgrade_gate -- emits the warn line and event from the gate-integration site",
+        "skills/deft-directive-sync/SKILL.md Phase 2 -- the user-triggered remote refresh that resolves the drift",
+        "tasks/framework.yml framework:check-updates -- the synchronous interactive surface that reuses the same probe"
+      ]
+    },
+    {
       "name": "session:interrupted",
       "category": "behavioral",
       "description": "Agent detected a session-state shift (context window pressure, session resume, 'are you using Deft?' alignment probe) and is about to re-confirm Deft alignment per AGENTS.md. Paired with session:resumed -- every session:resumed MUST reference the id of a prior session:interrupted via payload.interrupted_id; orphan resumed records are surfaced by scripts/_events.py::validate_pairing.",

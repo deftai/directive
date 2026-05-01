@@ -21,6 +21,17 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
   - `task roadmap:render` / `task project:render` / `task prd:render -- --force` (regenerate exports)
   - `task check` (verify)
 
+### Remote probe (#801)
+
+- **Applies when:** the periodic remote-version probe (added in this section's source release) prints a `⚠ Upstream directive v<N> is available (you are on v<M>)` warn line below the existing recorded-vs-current banner, OR `task framework:check-updates` exits non-zero (status `BEHIND`).
+- **Safe to auto-run:** Yes for the probe itself (read-only `git ls-remote --tags --refs <upstream>`, never mutates project state, throttled 24h per tag, opt-out via `DEFT_NO_NETWORK=1`). The remediation -- pulling the upstream submodule -- is NOT auto-run; the operator decides when to update.
+- **Restart required:** No for the probe. Once you actually update the framework (refresh the `./deft` submodule), the standard "start a new agent session" rule from the recorded-vs-current upgrade flow applies.
+- **Commands:**
+  - `task framework:check-updates` (synchronous probe, exit 1 on BEHIND; pass `-- --force` to bypass the 24h throttle and `-- --json` for machine-parseable output)
+  - `git submodule update --remote --merge deft && git add deft && git commit -m "chore(deft): bump submodule"` (canonical update path -- mirrors `skills/deft-directive-sync/SKILL.md` Phase 2)
+  - `deft/run upgrade` (after the bump, to record the new framework version in `vbrief/.deft-version` and refresh the AGENTS.md managed section)
+  - `DEFT_NO_NETWORK=1 task <anything>` (CI / air-gapped opt-out: probe short-circuits before any subprocess call)
+
 **What changed:** Deft moved from a flat document model (`SPECIFICATION.md`, `PROJECT.md`, `ROADMAP.md` as authoritative) to a **vBRIEF-centric model** with lifecycle folders. All skills were renamed from `deft-*` to `deft-directive-*`.
 
 ### One-paragraph summary

@@ -14,7 +14,7 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 # Dynamic VERSION resolution (#741, refs #723 -- the Taskfile-side
@@ -727,6 +727,10 @@ _UPGRADE_GATE_SKIP_COMMANDS = frozenset({
     # universal preamble's recovery path can call it.
     "gate",
     "agents:refresh",
+    # #801: cmd_check_updates is the probe surface the upgrade gate calls
+    # internally; invoking it from the CLI must not recursively re-trigger
+    # the gate (which would itself call the probe).
+    "check-updates",
 })
 
 
@@ -754,12 +758,413 @@ def _emit_event_safe(name: str, payload: dict) -> None:
         return
 
 
+# --- Periodic remote-version probe (#801) ---------------------------------
+#
+# A read-only `git ls-remote --tags --refs <upstream>` probe lets the upgrade
+# gate surface upstream releases the consumer has not yet pulled. The probe is
+# opt-out (DEFT_NO_NETWORK=1), throttled (24h between probes / 24h between
+# notifications, per-tag re-notification on a fresh release), and never
+# auto-mutates project state -- write paths still flow through cmd_upgrade,
+# the sync skill, or `task migrate:vbrief`.  Implementation lives below the
+# event helpers so it can use _emit_event_safe; it is intentionally placed
+# above _check_upgrade_gate so the gate can call _maybe_emit_remote_drift_warning.
+
+# Module-level dedup: at most one probe-driven banner per `run` invocation
+# chain so chained commands (e.g. cmd_install -> cmd_project -> cmd_spec) do
+# not stack three identical warn lines.
+_PROBE_NOTIFIED_THIS_SESSION = False
+
+# Filename for the throttle file under vbrief/.
+_REMOTE_PROBE_STATE_FILENAME = ".deft-remote-probe.json"
+
+# Default cadence floors. Both probe and notification respect a 24h floor so
+# six minor releases in eight days do not produce six banners; per-tag
+# re-notification is handled separately so a fresh release re-notifies even
+# if the prior tag was just dismissed.
+_REMOTE_PROBE_CADENCE_HOURS = 24
+_REMOTE_NOTIFY_CADENCE_HOURS = 24
+
+# Default subprocess timeout for `git ls-remote` -- intentionally tight so
+# offline consumers do not hang on the gate. Override via
+# DEFT_REMOTE_PROBE_TIMEOUT env var (float seconds; non-positive falls back).
+_REMOTE_PROBE_DEFAULT_TIMEOUT = 5.0
+
+
+def _remote_probe_state_path(project_root: Path) -> Path:
+    """Return the throttle file path for the given project root."""
+    return project_root / "vbrief" / _REMOTE_PROBE_STATE_FILENAME
+
+
+def _read_remote_probe_state(project_root: Path) -> dict:
+    """Best-effort read of the throttle file. Returns ``{}`` on any failure.
+
+    Failures (missing file, malformed JSON, OSError on read-only filesystems)
+    silently degrade to an empty state so detection never blocks the gate.
+    """
+    path = _remote_probe_state_path(project_root)
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _write_remote_probe_state(project_root: Path, state: dict) -> None:
+    """Best-effort write of the throttle file (never raises).
+
+    Mirrors ``_write_version_marker`` so a read-only filesystem (CI cache,
+    container layer) silently degrades rather than crashing the gate.
+    """
+    path = _remote_probe_state_path(project_root)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(state, sort_keys=True, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+
+def _now_utc() -> datetime:
+    """Return UTC-aware ``datetime.now`` (split out for test monkeypatching)."""
+    return datetime.now(timezone.utc)
+
+
+def _now_utc_iso() -> str:
+    """UTC ISO-8601 timestamp at seconds precision."""
+    return _now_utc().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _parse_iso_utc(ts: str) -> Optional[datetime]:
+    """Parse an ISO-8601 timestamp emitted by ``_now_utc_iso``.
+
+    Accepts trailing ``Z`` and offsets; returns None on malformed input so
+    callers treat a corrupt throttle file as "never probed".
+    """
+    if not ts:
+        return None
+    candidate = ts.strip()
+    if candidate.endswith("Z"):
+        candidate = candidate[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(candidate)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+_SEMVER_TAG_RE = re.compile(
+    r"^v?(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)"
+    r"(?P<pre>-[\w][\w.-]*)?$"
+)
+
+
+def _parse_semver_tag(tag: str) -> Optional[tuple]:
+    """Parse a tag like ``v1.2.3`` or ``v1.2.3-rc.1`` into a comparison key.
+
+    Returns ``(major, minor, patch, is_release, prerelease_str)``. Stable
+    releases sort above prereleases of the same triple via the
+    ``is_release`` axis (``1`` > ``0``). Returns None for malformed input so
+    the caller can skip and continue.
+    """
+    if not tag:
+        return None
+    match = _SEMVER_TAG_RE.match(tag.strip())
+    if not match:
+        return None
+    pre = match.group("pre") or ""
+    return (
+        int(match.group("major")),
+        int(match.group("minor")),
+        int(match.group("patch")),
+        0 if pre else 1,
+        pre.lstrip("-"),
+    )
+
+
+def _max_semver_tag(tags: List[str]) -> Optional[str]:
+    """Return the highest semver tag in ``tags``, or None if no tag parses.
+
+    Malformed tags are skipped (not raised) so a single junk ref name on the
+    upstream does not break the probe.
+    """
+    parsed: list = []
+    for tag in tags:
+        key = _parse_semver_tag(tag)
+        if key is not None:
+            parsed.append((key, tag))
+    if not parsed:
+        return None
+    parsed.sort(key=lambda item: item[0])
+    return parsed[-1][1]
+
+
+def _resolve_upstream_url(
+    project_root: Path,
+    *,
+    timeout: Optional[float] = None,
+) -> Optional[str]:
+    """Resolve the directive framework's upstream remote URL.
+
+    Resolution priority:
+        1. ``./deft`` submodule's ``origin`` remote (consumer projects)
+        2. ``origin`` remote of the run-rooted repo (framework checkout)
+
+    ``timeout`` -- subprocess timeout in seconds for each ``git remote
+    get-url origin`` call. Defaults to ``DEFT_REMOTE_PROBE_TIMEOUT``
+    (resolved via :func:`_resolve_probe_timeout`) when ``None`` so the
+    env-var override applies to URL resolution and ``ls-remote`` alike
+    -- a slow-remote environment that bumps the env to e.g. ``30`` gets
+    a uniform 30 s budget across both subprocess calls instead of being
+    silently capped at 5 s here. Greptile P2 on PR #811.
+
+    Returns None when neither candidate yields a remote URL -- callers
+    surface this as a ``no-upstream`` status rather than treating it as
+    an error.
+    """
+    if timeout is None:
+        timeout = _resolve_probe_timeout()
+    candidates: List[Path] = []
+    deft_dir = project_root / "deft"
+    if deft_dir.is_dir():
+        candidates.append(deft_dir)
+    candidates.append(get_script_dir())
+    for candidate in candidates:
+        try:
+            result = subprocess.run(
+                ["git", "remote", "get-url", "origin"],
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+                cwd=str(candidate),
+            )
+        except (subprocess.TimeoutExpired, OSError):
+            continue
+        if result.returncode != 0:
+            continue
+        url = (result.stdout or "").strip()
+        if url:
+            return url
+    return None
+
+
+def _ls_remote_tags(upstream_url: str, timeout: float) -> List[str]:
+    """Run ``git ls-remote --tags --refs <upstream>`` and return tag names.
+
+    Raises ``subprocess.TimeoutExpired`` or ``OSError`` (FileNotFoundError
+    when ``git`` is absent) so the caller can categorise the failure mode
+    in its return shape.
+    """
+    result = subprocess.run(
+        ["git", "ls-remote", "--tags", "--refs", upstream_url],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=False,
+    )
+    if result.returncode != 0:
+        return []
+    tags: List[str] = []
+    for line in (result.stdout or "").splitlines():
+        # Expected line shape: "<sha>\trefs/tags/<tag>"
+        if "\trefs/tags/" not in line:
+            continue
+        tag = line.split("\trefs/tags/", 1)[1].strip()
+        if tag:
+            tags.append(tag)
+    return tags
+
+
+def _resolve_probe_timeout() -> float:
+    """Return the subprocess timeout for the probe (env-overridable)."""
+    raw = os.environ.get("DEFT_REMOTE_PROBE_TIMEOUT", "").strip()
+    if not raw:
+        return _REMOTE_PROBE_DEFAULT_TIMEOUT
+    try:
+        value = float(raw)
+    except ValueError:
+        return _REMOTE_PROBE_DEFAULT_TIMEOUT
+    return value if value > 0 else _REMOTE_PROBE_DEFAULT_TIMEOUT
+
+
+def _no_network_active() -> bool:
+    """Return True when DEFT_NO_NETWORK=1 (silent skip semantics)."""
+    return os.environ.get("DEFT_NO_NETWORK", "").strip() == "1"
+
+
+def _force_remote_probe_active() -> bool:
+    """Return True when DEFT_FORCE_REMOTE_PROBE=1 (bypass throttle)."""
+    return os.environ.get("DEFT_FORCE_REMOTE_PROBE", "").strip() == "1"
+
+
+def _run_remote_probe(project_root: Path) -> dict:
+    """Internal probe -- returns a structured status dict; never prints.
+
+    Status values:
+        ``ok``          -- upstream resolved, remote tag <= current VERSION
+        ``behind``      -- upstream resolved, remote tag > current VERSION
+        ``skipped``     -- DEFT_NO_NETWORK=1 short-circuit
+        ``no-upstream`` -- could not resolve an upstream remote
+        ``no-tags``     -- upstream resolved but produced no semver tags
+        ``error``       -- subprocess timeout / git missing / other I/O
+    """
+    if _no_network_active():
+        return {
+            "status": "skipped",
+            "reason": "DEFT_NO_NETWORK=1",
+            "current": VERSION,
+        }
+    timeout = _resolve_probe_timeout()
+    upstream_url = _resolve_upstream_url(project_root, timeout=timeout)
+    if not upstream_url:
+        return {"status": "no-upstream", "current": VERSION}
+    try:
+        tags = _ls_remote_tags(upstream_url, timeout)
+    except subprocess.TimeoutExpired:
+        return {
+            "status": "error",
+            "current": VERSION,
+            "upstream_url": upstream_url,
+            "error": "timeout",
+        }
+    except OSError as exc:
+        return {
+            "status": "error",
+            "current": VERSION,
+            "upstream_url": upstream_url,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+    remote_tag = _max_semver_tag(tags)
+    if remote_tag is None:
+        return {
+            "status": "no-tags",
+            "current": VERSION,
+            "upstream_url": upstream_url,
+        }
+    remote_key = _parse_semver_tag(remote_tag)
+    current_key = _parse_semver_tag(VERSION)
+    if (
+        current_key is not None
+        and remote_key is not None
+        and remote_key > current_key
+    ):
+        return {
+            "status": "behind",
+            "current": VERSION,
+            "remote": remote_tag,
+            "upstream_url": upstream_url,
+        }
+    return {
+        "status": "ok",
+        "current": VERSION,
+        "remote": remote_tag,
+        "upstream_url": upstream_url,
+    }
+
+
+def _maybe_emit_remote_drift_warning(project_root: Path) -> None:
+    """Throttled probe + warn-line emission for the upgrade gate (#801).
+
+    Best-effort: every failure mode is swallowed so the gate never breaks
+    because of the probe. Emits one informational warn line on positive
+    BEHIND, one ``framework:remote-drift`` event, and updates the throttle
+    file in ``vbrief/.deft-remote-probe.json``. Throttle keys (24h probe /
+    24h notification, per-tag re-notification) are honored; per-session
+    dedup is enforced via ``_PROBE_NOTIFIED_THIS_SESSION``.
+    """
+    global _PROBE_NOTIFIED_THIS_SESSION
+    try:
+        if _PROBE_NOTIFIED_THIS_SESSION:
+            return
+        force = _force_remote_probe_active()
+        state = _read_remote_probe_state(project_root)
+        now = _now_utc()
+        last_probed = _parse_iso_utc(state.get("last_probed_at", ""))
+        probe_floor = timedelta(hours=_REMOTE_PROBE_CADENCE_HOURS)
+        if (
+            not force
+            and last_probed is not None
+            and (now - last_probed) < probe_floor
+        ):
+            return  # too soon to probe again
+
+        result = _run_remote_probe(project_root)
+        new_state = dict(state)
+        new_state["last_probed_at"] = _now_utc_iso()
+        if result.get("status") == "behind":
+            new_state["last_seen_remote"] = result["remote"]
+        # Persist the probe timestamp regardless of outcome so the cadence
+        # also throttles ``no-upstream`` / ``error`` paths -- otherwise a
+        # detached HEAD probe would re-shell `git ls-remote` on every
+        # gate invocation.
+        _write_remote_probe_state(project_root, new_state)
+
+        if result.get("status") != "behind":
+            return
+
+        remote_tag = result["remote"]
+        last_notified_tag = state.get("last_notified_tag", "")
+        last_notified_at = _parse_iso_utc(state.get("last_notified_at", ""))
+        notify_floor = timedelta(hours=_REMOTE_NOTIFY_CADENCE_HOURS)
+        same_tag_within_floor = (
+            last_notified_tag == remote_tag
+            and last_notified_at is not None
+            and (now - last_notified_at) < notify_floor
+        )
+        if not force and same_tag_within_floor:
+            return
+
+        warn(
+            f"Upstream directive {remote_tag} is available "
+            f"(you are on v{VERSION}). Run "
+            "`task framework:check-updates` for details; follow "
+            "`skills/deft-directive-sync/SKILL.md` Phase 2 to update."
+        )
+        _emit_event_safe(
+            "framework:remote-drift",
+            {
+                "project_root": str(project_root.resolve()),
+                "current_version": VERSION,
+                "remote_version": remote_tag,
+                "upstream_url": result.get("upstream_url", ""),
+                "commits_behind": None,
+            },
+        )
+        new_state["last_notified_at"] = _now_utc_iso()
+        new_state["last_notified_tag"] = remote_tag
+        _write_remote_probe_state(project_root, new_state)
+        _PROBE_NOTIFIED_THIS_SESSION = True
+    except Exception:  # noqa: BLE001 -- detection MUST NOT break the gate
+        return
+
+
 def _check_upgrade_gate(command: str) -> bool:
     """Warn (and prompt when interactive) on framework/project version drift.
 
     Returns True if the caller should proceed, False only when the user
     explicitly declines in an interactive session.  Never fatal otherwise --
     in non-interactive environments (CI, cloud agents) we warn and continue.
+
+    Output ordering on the unhappy path (drift / legacy):
+        1. version:drift OR pre-cutover:detected event + warn line (#410, #635)
+        2. agents-md:stale event (silent, structural only) (#635, #768)
+        3. framework:remote-drift event + warn line on positive BEHIND (#801)
+        4. interactive prompt OR non-interactive pass-through
+
+    Output ordering on the happy path (marker matches VERSION, or no
+    marker + no legacy artifacts):
+        1. agents-md:stale event (silent)
+        2. framework:remote-drift event + warn line on positive BEHIND (#801)
+           -- the probe is the only signal a current-marker consumer has
+           that an upstream release is available, so it MUST run on the
+           happy path. Throttled (24h cadence + per-tag re-notification +
+           per-session dedup) so the cost of running it always is bounded.
     """
     if command in _UPGRADE_GATE_SKIP_COMMANDS:
         return True
@@ -769,56 +1174,58 @@ def _check_upgrade_gate(command: str) -> bool:
         return True
 
     recorded = _read_version_marker(project_root)
-    vbrief_dir = project_root / "vbrief"
+    needs_prompt = False  # #410: True iff the gate has surfaced an actionable
+    # local-drift signal (recorded-vs-current OR pre-cutover artifacts) that
+    # warrants a `Continue anyway?` prompt in interactive sessions. The
+    # remote-drift probe (#801) is informational only and never sets this
+    # flag -- a fresh upstream release should not block the consumer's CI.
 
     if recorded is not None:
-        if recorded == VERSION:
-            return True
-        # #635: emit version:drift before warning so consumers can react
-        # uniformly. Marker path resolution mirrors _read_version_marker's
-        # precedence rule (vbrief/.deft-version > .deft-version).
-        marker_path = next(
-            (str(p) for p in _version_marker_paths(project_root) if p.is_file()),
-            "",
-        )
-        _emit_event_safe(
-            "version:drift",
-            {
-                "project_root": str(project_root.resolve()),
-                "recorded_version": recorded,
-                "current_version": VERSION,
-                "marker_path": marker_path,
-            },
-        )
-        warn(
-            f"Deft has been updated from {recorded} to {VERSION}. "
-            "Run `deft/run upgrade` or `task migrate:vbrief` to update your project files."
-        )
+        if recorded != VERSION:
+            # #635: emit version:drift before warning so consumers can react
+            # uniformly. Marker path resolution mirrors _read_version_marker's
+            # precedence rule (vbrief/.deft-version > .deft-version).
+            marker_path = next(
+                (str(p) for p in _version_marker_paths(project_root) if p.is_file()),
+                "",
+            )
+            _emit_event_safe(
+                "version:drift",
+                {
+                    "project_root": str(project_root.resolve()),
+                    "recorded_version": recorded,
+                    "current_version": VERSION,
+                    "marker_path": marker_path,
+                },
+            )
+            warn(
+                f"Deft has been updated from {recorded} to {VERSION}. "
+                "Run `deft/run upgrade` or `task migrate:vbrief` to update your project files."
+            )
+            needs_prompt = True
     else:
         legacy = _detect_pre_cutover_legacy(project_root)
-        if not legacy:
-            # No marker, no legacy artifacts -- either a fully-migrated project
-            # whose marker was never written, or not a deft-managed project.
-            # Either way there is nothing actionable to gate on.
-            return True
-        # #635: emit pre-cutover:detected before warning so consumers can
-        # react uniformly (skill, task, CI runner). Existing CLI warning
-        # text is preserved verbatim below.
-        _emit_event_safe(
-            "pre-cutover:detected",
-            {
-                "project_root": str(project_root.resolve()),
-                "legacy_files": list(legacy),
-            },
-        )
-        # Legacy artifacts present (with or without vbrief/) -- this covers
-        # both the canonical v0.19 consumer layout (no vbrief/ yet) and a
-        # partially-migrated project that still has legacy copies.
-        warn(
-            "Pre-v0.20 document model detected ("
-            + ", ".join(legacy)
-            + "). Run `task migrate:vbrief` to upgrade."
-        )
+        if legacy:
+            # #635: emit pre-cutover:detected before warning so consumers can
+            # react uniformly (skill, task, CI runner). Existing CLI warning
+            # text is preserved verbatim below.
+            _emit_event_safe(
+                "pre-cutover:detected",
+                {
+                    "project_root": str(project_root.resolve()),
+                    "legacy_files": list(legacy),
+                },
+            )
+            # Legacy artifacts present (with or without vbrief/) -- this
+            # covers both the canonical v0.19 consumer layout (no vbrief/
+            # yet) and a partially-migrated project that still has legacy
+            # copies.
+            warn(
+                "Pre-v0.20 document model detected ("
+                + ", ".join(legacy)
+                + "). Run `task migrate:vbrief` to upgrade."
+            )
+            needs_prompt = True
 
     # #635: AGENTS.md staleness is checked alongside version drift /
     # pre-cutover so the upgrade gate emits a single coherent set of events
@@ -836,6 +1243,21 @@ def _check_upgrade_gate(command: str) -> bool:
     except Exception:
         # Detection MUST NOT break the gate.
         pass
+
+    # #801: periodic remote-version probe. The helper is best-effort and
+    # already swallows every failure mode internally; the outer try/except
+    # is belt-and-suspenders so even a future bug in the helper signature
+    # cannot break the gate.
+    try:
+        _maybe_emit_remote_drift_warning(project_root)
+    except Exception:
+        pass
+
+    # On the happy path (no local drift, no legacy artifacts), there is no
+    # actionable prompt to surface even if the remote probe emitted a banner
+    # -- remote drift is informational, not blocking.
+    if not needs_prompt:
+        return True
 
     # Non-interactive: warn and continue, never fatal.
     if not sys.stdin.isatty():
@@ -1248,6 +1670,78 @@ def cmd_agents_refresh(args: List[str]):
     elif state == "stale":
         success("Refreshed AGENTS.md managed section to current template.")
     return 0
+
+
+def cmd_check_updates(args: List[str]):
+    """Read-only periodic remote-version probe (#801).
+
+    Runs ``git ls-remote --tags --refs <upstream>`` against the framework's
+    upstream remote (resolved from the consumer's ``./deft`` submodule, or
+    the run-rooted repo when invoked from the framework checkout itself)
+    and compares the highest semver tag to the in-process ``VERSION``.
+
+    Output shapes (text mode)::
+
+        OK upstream=<tag>
+        BEHIND upstream=<tag> current=v<version> commits-behind=unknown
+        NO-UPSTREAM current=v<version>
+        NO-TAGS current=v<version> upstream=<url>
+        ERROR current=v<version> upstream=<url> error=<msg>
+        SKIPPED reason=DEFT_NO_NETWORK current=v<version>
+
+    ``--json`` emits the same axes as a single JSON object on stdout.
+    Exit code is 1 only on the BEHIND status (so ``task
+    framework:check-updates`` returns non-zero when an upstream release is
+    available); every other status returns 0 because the probe itself
+    succeeded -- the consumer can choose to treat ``no-upstream`` /
+    ``error`` as informational.
+
+    Honors:
+        DEFT_NO_NETWORK=1            -- silent skip, exit 0
+        DEFT_REMOTE_PROBE_TIMEOUT    -- subprocess timeout (default 5s)
+        DEFT_FORCE_REMOTE_PROBE=1    -- bypass throttle (used by
+                                        ``task framework:check-updates -- --force``)
+
+    NEVER writes; NEVER runs ``git fetch``. The throttle file at
+    ``vbrief/.deft-remote-probe.json`` is updated only when the probe is
+    invoked through the upgrade gate (``_maybe_emit_remote_drift_warning``);
+    the CLI surface is intentionally idempotent so consumers can call it
+    on demand without poisoning the cadence.
+    """
+    json_mode = "--json" in args
+    project_root = Path.cwd()
+    result = _run_remote_probe(project_root)
+    status = result.get("status", "error")
+    if json_mode:
+        print(json.dumps(result, sort_keys=True))
+    else:
+        if status == "ok":
+            print(f"OK upstream={result['remote']}")
+        elif status == "behind":
+            print(
+                f"BEHIND upstream={result['remote']} "
+                f"current=v{result['current']} "
+                "commits-behind=unknown"
+            )
+        elif status == "skipped":
+            print(
+                f"SKIPPED reason=DEFT_NO_NETWORK "
+                f"current=v{result['current']}"
+            )
+        elif status == "no-upstream":
+            print(f"NO-UPSTREAM current=v{result['current']}")
+        elif status == "no-tags":
+            print(
+                f"NO-TAGS current=v{result['current']} "
+                f"upstream={result.get('upstream_url', '')}"
+            )
+        else:  # error
+            print(
+                f"ERROR current=v{result['current']} "
+                f"upstream={result.get('upstream_url', '')} "
+                f"error={result.get('error', 'unknown')}"
+            )
+    return 1 if status == "behind" else 0
 
 
 def cmd_upgrade(args: List[str]):
@@ -4031,6 +4525,8 @@ def main():
         # #768: universal upgrade gate + AGENTS.md contract surface.
         'gate': cmd_gate,
         'agents:refresh': cmd_agents_refresh,
+        # #801: read-only remote-version probe.
+        'check-updates': cmd_check_updates,
         'help': lambda _: usage(),
         '--help': lambda _: usage(),
         'version': lambda _: print(f"Deft CLI v{VERSION}"),
