@@ -91,11 +91,11 @@
       "x-tracking": {
         "swarm_ready": true,
         "needs_discussion": false,
-        "parallelizable_with": ["#791", "#794"],
+        "parallelizable_with": ["#791", "#792", "#794"],
         "estimated_size": "M-L (new task + new script + skill + main.md + tests + CHANGELOG)",
         "blocks": [],
         "blocked_by": [],
-        "soft_dep_on": "#792 (if it lands first, share its uv-detection helper)"
+        "soft_dep_on": "#792 (parallelizable, but if #792 lands first share its uv-detection helper instead of re-implementing)"
       },
       "x-swarm-guidance": {
         "primary_skill": "skills/deft-directive-build/SKILL.md",
