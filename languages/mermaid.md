@@ -4,14 +4,33 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 **⚠️ See also**: [markdown.md](./markdown.md) | [main.md](../main.md)
 
+## Two-Color Foundation
+
+Every directive Mermaid diagram is defined by exactly two colors:
+
+- **`bg`** = `#ffffff` (white background)
+- **`fg`** = `#000000` (black foreground)
+
+All other values are mechanically derived between these two poles. The init directive values below are not arbitrary constants — they are specific points on the bg→fg gradient:
+
+| Element | Value | Derivation |
+|---|---|---|
+| Text (all labels) | `#000000` | fg at 100% |
+| Lines, connectors, signals | `#404040` | fg at ~75% |
+| Primary nodes, note backgrounds | `#909090` | fg at ~56% |
+| Secondary nodes, actor backgrounds | `#808080` | fg at ~50% |
+| Tertiary nodes | `#707070` | fg at ~44% |
+
+To change the palette, change `bg` and `fg` — all values shift consistently. The grayscale-on-white requirement is an instance of this model with `bg=#ffffff` and `fg=#000000`.
+
 ## Standards
 
 - ! Include `%%{init:...}%%` theme directive at the start of every Mermaid block
-- ! Use the `base` theme with explicit grayscale overrides (not built-in themes)
+- ! Use the `base` theme with the standard grayscale init directive derived from the two-color model (not built-in themes)
 - ! For `sequenceDiagram` readability on GitHub/Gist renderers, do not rely on `init.background` or `themeCSS` alone
 - ! For `sequenceDiagram` readability on GitHub/Gist renderers, place participant declarations inside a grey `box ... end` block
 - ! When using `box` in `sequenceDiagram`, place only participant declarations inside the block; message lines and notes must remain outside
-- ! Use black text with grayscale fills for documentation diagrams
+- ! Use black text with grayscale fills for documentation diagrams (bg=white, fg=black)
 - ~ Keep diagrams focused: one concept per diagram
 - ~ Provide a text description or caption alongside every diagram
 - ~ Validate Mermaid rendering fixes with a closed-loop workflow: minimal gist, Playwright render, screenshot inspection
@@ -20,14 +39,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ≉ Create diagrams with more than 20 nodes in one block; split into focused diagrams
 - ⊗ Rely solely on color to convey meaning (use labels and shapes too)
 - ⊗ Ship low-contrast diagrams (for example, missing init theme or light-on-light text)
-
-## Color Palette
-
-- `#909090` (medium gray) - primary nodes, note backgrounds - black text
-- `#808080` (darker gray) - secondary nodes, actor backgrounds - black text
-- `#707070` (darkest gray) - tertiary nodes - black text
-- `#404040` (near-black) - lines, connectors, actor lines, signals
-- `#000000` - all text labels on grayscale backgrounds
+- ⊗ Set individual theme variable values without reference to the two-color derivation table above
 
 ## Init Directive (Required)
 

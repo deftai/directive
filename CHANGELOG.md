@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.19.0] - 2026-04-13
+### Changed
+- **Mermaid two-color theming model** (#826): Formalized `languages/mermaid.md` around a two-color foundation (`bg=#ffffff`, `fg=#000000`). Added Two-Color Foundation section with derivation table showing all theme variable values as mechanical gradients between `bg` and `fg`. Replaced opaque Color Palette hex list with principle-grounded derivation. Added `⊗` rule prohibiting setting individual theme variables without reference to the derivation table. Init directive values unchanged — they are the correct derived values for the grayscale-on-white instance of the model.
+
+## [0.19.0]
 
 ### Added
 - **Regression tests for deft-setup Phase 1/2 deft-interview references** (#304, t1.29.1): Added `test_deft_setup_phase1_references_deft_interview` and `test_deft_setup_phase2_references_deft_interview` to `tests/content/test_skills.py` verifying both phases reference deft-interview
