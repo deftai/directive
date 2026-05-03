@@ -26,6 +26,7 @@ import importlib.util
 import itertools
 import json
 import sys
+from contextlib import contextmanager as contextlib_contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -324,6 +325,70 @@ def test_idempotent_reject_is_no_op(fake_log, gh_calls):
     # No additional gh calls and no additional audit entries.
     assert len(gh_calls) == 2
     assert len(fake_log._entries) == 1
+
+
+def test_rollback_acquires_candidates_log_lock(
+    fake_log, monkeypatch, audit_log_path: Path
+):
+    """Greptile #879 P1 regression: rollback path MUST hold the candidates_log
+    advisory lock while it reads + filters + rewrites the JSONL, otherwise a
+    concurrent ``candidates_log.append`` from Story 4 bulk ops can land bytes
+    that we silently clobber. The fake log carries an ``_append_lock`` shim
+    we count entries against; the test asserts (a) the lock context is
+    actually entered and (b) it is exited before ``_rollback_audit_entry``
+    returns so a follow-up appender can proceed.
+    """
+    lock_events: list[str] = []
+
+    @contextlib_contextmanager
+    def _fake_lock(_path):
+        lock_events.append("acquire")
+        try:
+            yield
+        finally:
+            lock_events.append("release")
+
+    fake_log._append_lock = _fake_lock  # type: ignore[attr-defined]
+
+    def _fail(args):
+        raise triage_actions.UpstreamCloseError(
+            f"gh {' '.join(args)} failed: HTTP 500"
+        )
+
+    monkeypatch.setattr(triage_actions, "_run_gh", _fail)
+    with pytest.raises(triage_actions.UpstreamCloseError):
+        triage_actions.reject(845, REPO, "test", actor="msadams")
+
+    # Lock must have been acquired AND released exactly once during rollback.
+    assert lock_events == ["acquire", "release"], lock_events
+    # And the audit entry must be gone after rollback.
+    assert fake_log.latest_decision(845, REPO) is None
+
+
+def test_needs_ac_surfaces_gh_failure_to_stderr(
+    fake_log, monkeypatch, capsys
+):
+    """Greptile #879 P2 regression: when ``gh issue comment`` fails the
+    audit entry MUST persist (best-effort upstream post) AND the operator
+    MUST see a stderr message naming the issue. The prior
+    ``contextlib.suppress`` swallowed the failure entirely, contradicting
+    the docstring's "logged" claim.
+    """
+    def _fail(args):
+        raise triage_actions.UpstreamCloseError(
+            f"gh {' '.join(args)} failed: HTTP 403"
+        )
+
+    monkeypatch.setattr(triage_actions, "_run_gh", _fail)
+    decision_id = triage_actions.needs_ac(845, REPO, actor="msadams")
+    assert decision_id
+    captured = capsys.readouterr()
+    assert "#845" in captured.err
+    assert "needs-ac comment not posted" in captured.err
+    # Audit entry persists (best-effort -- gh failure does not roll back).
+    latest = fake_log.latest_decision(845, REPO)
+    assert latest is not None
+    assert latest["decision"] == "needs-ac"
 
 
 # Sanity-check coverage of the reset edge case explicitly named in the

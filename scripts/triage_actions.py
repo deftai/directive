@@ -186,30 +186,50 @@ def _rollback_audit_entry(decision_id: str, project_root: Path | None = None) ->
     Story 2 documents an append-only contract for the normal flow; the
     rollback path is the explicit exceptional surface defined by the Story 3
     vBRIEF Constraint narrative ("On reject upstream-close failure, ROLL
-    BACK the audit entry"). Returns True if a line was removed.
+    BACK the audit entry").
+
+    The read+filter+rewrite cycle MUST be serialised against
+    ``candidates_log.append`` -- otherwise a concurrent appender (e.g.
+    Story 4 bulk ops) that commits between our ``open("r")`` and our
+    ``write_text`` is silently clobbered, breaking the append-only
+    guarantee for unrelated entries (Greptile #879 P1). We therefore
+    acquire Story 2's own advisory lock primitive
+    (``candidates_log._append_lock``) for the duration of the rewrite.
+    The leading underscore is acknowledged: the alternative -- recreating
+    the lock-file + msvcrt / fcntl dance from scratch here -- duplicates
+    the cross-platform code path that Story 2 already encodes correctly.
+
+    Returns True if a line was removed.
     """
     path = _audit_log_path(project_root)
     if not path.is_file():
         return False
+
+    if candidates_log is not None and hasattr(candidates_log, "_append_lock"):
+        lock_ctx = candidates_log._append_lock(path)
+    else:
+        lock_ctx = contextlib.nullcontext()
+
     kept: list[str] = []
     removed = False
-    with path.open("r", encoding="utf-8") as fh:
-        for raw in fh:
-            stripped = raw.strip()
-            if not stripped:
-                continue
-            try:
-                entry = json.loads(stripped)
-            except json.JSONDecodeError:
-                # Preserve malformed lines verbatim (Story 2 read tolerates them).
+    with lock_ctx:
+        with path.open("r", encoding="utf-8") as fh:
+            for raw in fh:
+                stripped = raw.strip()
+                if not stripped:
+                    continue
+                try:
+                    entry = json.loads(stripped)
+                except json.JSONDecodeError:
+                    # Preserve malformed lines verbatim (Story 2 read tolerates them).
+                    kept.append(raw if raw.endswith("\n") else raw + "\n")
+                    continue
+                if not removed and entry.get("decision_id") == decision_id:
+                    removed = True
+                    continue
                 kept.append(raw if raw.endswith("\n") else raw + "\n")
-                continue
-            if not removed and entry.get("decision_id") == decision_id:
-                removed = True
-                continue
-            kept.append(raw if raw.endswith("\n") else raw + "\n")
-    if removed:
-        path.write_text("".join(kept), encoding="utf-8")
+        if removed:
+            path.write_text("".join(kept), encoding="utf-8")
     return removed
 
 
@@ -379,9 +399,19 @@ def needs_ac(
     entry = _build_entry("needs-ac", n, repo, actor=_resolve_actor(actor), reason=body)
     decision_id = str(log.append(entry))
     # Best-effort -- the audit entry is the source of truth; a failed
-    # upstream comment is logged but does not roll back the local trail.
-    with contextlib.suppress(UpstreamCloseError):
+    # upstream comment is surfaced on stderr but does NOT roll back the
+    # local trail. Greptile #879 P2: the prior `contextlib.suppress` here
+    # contradicted this docstring's "logged" claim by silencing the error
+    # entirely; the operator now sees the failure even when we keep the
+    # audit entry.
+    try:
         _run_gh(["issue", "comment", str(n), "--repo", repo, "--body", body])
+    except UpstreamCloseError as exc:
+        print(
+            f"triage_actions: needs-ac comment not posted for #{n} "
+            f"({repo}): {exc}",
+            file=sys.stderr,
+        )
     return decision_id
 
 
