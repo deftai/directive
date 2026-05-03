@@ -1,0 +1,91 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story 4 of #845 triage v1: bulk filter operations + pre-swarm freshness gate. Owner: Agent A4 (wave 3, depends on A3 actions).",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T16:15:00Z"
+  },
+  "plan": {
+    "id": "845-story-4-triage-bulk-and-freshness",
+    "title": "feat(scripts,tasks): triage bulk ops + pre-swarm freshness gate",
+    "status": "running",
+    "planRef": "#845",
+    "narratives": {
+      "Problem": "Per-issue triage is too slow for ~200-issue corpora. Need bulk ops with filter flags. Separately, swarm Phase 0 currently reads `vbrief/active/` without reconciling against upstream — drift can sneak in. Need a pre-swarm freshness gate.",
+      "Overview": "Implement `scripts/triage_bulk.py` exposing `triage:bulk-accept|bulk-reject|bulk-defer|bulk-needs-ac` with --label, --author, --age-days, --cluster filter flags. Implement `scripts/triage_refresh.py` exposing `triage:refresh-active`: refreshes cache for all issues referenced by `vbrief/active/*.vbrief.json` and surfaces drifted items with a three-way prompt (proceed-with-stale / refresh-and-update-local / defer-from-this-batch).",
+      "Constraint": "Bulk ops MUST loop through Story 3 single-issue actions (no parallel surface). Filter flags MUST be combinable (AND semantics). Freshness gate MUST be safe under empty `vbrief/active/`. Drift detection compares cached `updatedAt` to live `gh issue view <N> --json updatedAt`.",
+      "Outcome": "Tests cover: bulk-* with each filter flag; combined filters; freshness gate detects drift; freshness gate three-way prompt logic (mock user input).",
+      "Test": "pytest tests/test_triage_bulk.py + tests/test_triage_refresh.py covering: (1) bulk-accept with --label fixture; (2) combined --label --age-days filters; (3) zero-match returns clean exit; (4) freshness gate empty active is no-op; (5) freshness gate single-drift surfaces three-way prompt; (6) freshness gate proceed-with-stale records audit annotation.",
+      "Action": "Implement scripts/triage_bulk.py and scripts/triage_refresh.py. Wire tasks/triage-bulk.yml STANDALONE fragment exposing both bulk:* and refresh:* targets. Imports Story 3 actions."
+    },
+    "items": [
+      {
+        "id": "845-s4-ac-1-bulk-script",
+        "title": "scripts/triage_bulk.py implements 4 bulk-* actions with combinable filter flags",
+        "status": "running"
+      },
+      {
+        "id": "845-s4-ac-2-refresh-script",
+        "title": "scripts/triage_refresh.py implements freshness gate with three-way prompt on drift",
+        "status": "running"
+      },
+      {
+        "id": "845-s4-ac-3-taskfile-fragment",
+        "title": "tasks/triage-bulk.yml exposes triage:bulk-* + triage:refresh-active targets (standalone)",
+        "status": "running"
+      },
+      {
+        "id": "845-s4-ac-4-tests",
+        "title": "tests/test_triage_bulk.py + tests/test_triage_refresh.py cover all 6 cases per Test narrative",
+        "status": "running"
+      },
+      {
+        "id": "845-s4-ac-5-changelog",
+        "title": "CHANGELOG.md [Unreleased] entry: feat(triage): bulk ops + freshness gate (#845 Story 4)",
+        "status": "running"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "epic_vbrief": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "parent_issue": "#845",
+        "agent": "A4",
+        "wave": 3,
+        "depends_on_stories": ["Story 3 (actions)"],
+        "files_owned": [
+          "scripts/triage_bulk.py",
+          "scripts/triage_refresh.py",
+          "tasks/triage-bulk.yml",
+          "tests/test_triage_bulk.py",
+          "tests/test_triage_refresh.py",
+          "CHANGELOG.md (append under [Unreleased])"
+        ],
+        "files_must_not_touch": [
+          "scripts/triage_cache.py (Agent A1; import only)",
+          "scripts/candidates_log.py (Agent A2; import only)",
+          "scripts/triage_actions.py (Agent A3; import only)",
+          "scripts/triage_bootstrap.py (Agent A6)",
+          "skills/deft-directive-refinement/SKILL.md (Agent A5)",
+          "tasks/Taskfile.yml (Agent A6)"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/845",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #845 (parent epic)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/868",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #868: lock-comment protocol (consumes this story's freshness primitive)"
+      },
+      {
+        "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
+      }
+    ]
+  }
+}

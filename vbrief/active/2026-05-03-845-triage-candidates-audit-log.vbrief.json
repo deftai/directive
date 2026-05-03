@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story 2 of #845 triage v1: append-only audit log at `vbrief/.eval/candidates.jsonl` + frozen JSON schema. Owner: Agent A2 (wave 1, parallel with A1). Independent of cache content; consumed by Story 3 (triage actions) and Story 4 (bulk + freshness).",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T16:15:00Z"
+  },
+  "plan": {
+    "id": "845-story-2-triage-candidates-audit-log",
+    "title": "feat(scripts,vbrief/schemas): triage candidates.jsonl audit log + JSON schema",
+    "status": "running",
+    "planRef": "#845",
+    "narratives": {
+      "Problem": "Triage decisions need a reversible audit trail. Without it, `task triage:reset <N>` and `task triage:history <N>` (Story 3) cannot be implemented. Sidecar JSONL chosen over vBRIEF schema extension to decouple from ADR-001 outcome.",
+      "Overview": "Implement `scripts/candidates_log.py` providing append/read/scan operations on `vbrief/.eval/candidates.jsonl`. Each line is a JSON object validated against `vbrief/schemas/candidates.schema.json`. Schema fields (frozen interface for downstream agents): `decision_id` (uuid), `timestamp` (ISO-8601 UTC), `repo` (owner/name), `issue_number` (int), `decision` (enum: accept|reject|defer|needs-ac|mark-duplicate|reset), `actor` (string: user identity or `agent:<name>`), `reason` (string, optional), `linked_to` (int, only for mark-duplicate), `prior_decision_id` (uuid, only for reset).",
+      "Constraint": "Append-only: writer MUST NOT rewrite existing lines. Reader MUST be tolerant of malformed lines (skip + warn, don't crash). Schema MUST validate via standard JSON Schema 2020-12 draft. File MUST be created with parent directory if missing. Concurrent appends across process boundaries safe via `with portalocker.Lock(...)` or equivalent advisory lock.",
+      "Outcome": "Module `scripts/candidates_log.py` exposes `append(entry: dict) -> str`, `read_all(repo: str | None = None) -> list[dict]`, `find_by_issue(issue_number: int, repo: str) -> list[dict]`, `latest_decision(issue_number: int, repo: str) -> dict | None`. Schema validates all writer output. Tests cover: (1) append + read round-trip; (2) malformed-line tolerance; (3) concurrent append safety; (4) schema-rejection of invalid entries; (5) reset-references-prior contract.",
+      "Test": "pytest tests/test_candidates_log.py covering: (1) append+read; (2) skip malformed line; (3) concurrent append from threads; (4) schema rejection on missing required fields; (5) latest_decision returns most recent by timestamp.",
+      "Action": "Implement scripts/candidates_log.py public surface above. Author vbrief/schemas/candidates.schema.json (JSON Schema 2020-12). NO Taskfile fragment in this story — triage actions (Story 3) wire the user-facing tasks. Provide a programmatic library only."
+    },
+    "items": [
+      {
+        "id": "845-s2-ac-1-schema",
+        "title": "vbrief/schemas/candidates.schema.json with all 9 fields per Overview, JSON Schema 2020-12 draft",
+        "status": "running"
+      },
+      {
+        "id": "845-s2-ac-2-script",
+        "title": "scripts/candidates_log.py with append/read_all/find_by_issue/latest_decision public surface",
+        "status": "running"
+      },
+      {
+        "id": "845-s2-ac-3-locking",
+        "title": "Concurrent-append safety via advisory lock (portalocker or equivalent stdlib path)",
+        "status": "running"
+      },
+      {
+        "id": "845-s2-ac-4-tests",
+        "title": "tests/test_candidates_log.py covers all 5 test cases per Test narrative",
+        "status": "running"
+      },
+      {
+        "id": "845-s2-ac-5-changelog",
+        "title": "CHANGELOG.md [Unreleased] entry: feat(triage): candidates.jsonl audit log + schema (#845 Story 2)",
+        "status": "running"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "epic_vbrief": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "parent_issue": "#845",
+        "agent": "A2",
+        "wave": 1,
+        "files_owned": [
+          "scripts/candidates_log.py",
+          "vbrief/schemas/candidates.schema.json",
+          "tests/test_candidates_log.py",
+          "CHANGELOG.md (append under [Unreleased])"
+        ],
+        "files_must_not_touch": [
+          "scripts/triage_cache.py (Agent A1)",
+          "scripts/quarantine_ext.py (Agent A1)",
+          "scripts/triage_actions.py (Agent A3)",
+          "scripts/triage_bulk.py (Agent A4)",
+          "scripts/triage_refresh.py (Agent A4)",
+          "scripts/triage_bootstrap.py (Agent A6)",
+          "skills/deft-directive-refinement/SKILL.md (Agent A5)",
+          "tasks/* (no Taskfile changes in this story)"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/845",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #845 (parent epic)"
+      },
+      {
+        "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
+      }
+    ]
+  }
+}

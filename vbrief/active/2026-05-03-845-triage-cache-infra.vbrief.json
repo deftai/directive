@@ -1,0 +1,99 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story 1 of #845 triage v1: cache infra + #583 injection quarantine. Implements `.deft-cache/issues/<repo>/<N>.{json,md}` local mirror, `task triage:cache` (populate), `task triage:show` (inspect), gitcrawl install/wrapper. Owner: Agent A1 (wave 1, parallel with A2).",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T16:15:00Z"
+  },
+  "plan": {
+    "id": "845-story-1-triage-cache-infra",
+    "title": "feat(scripts,tasks): triage cache infra + #583 quarantine on cache path",
+    "status": "running",
+    "planRef": "#845",
+    "narratives": {
+      "Problem": "Refinement currently calls `gh issue view <N>` per item per evaluation pass. Token cost is O(N) per pass and rate-limited. Need a local cache so subsequent passes are O(1). #583 documents an injection-quarantine requirement that has not been implemented on the cache path.",
+      "Overview": "Implement a sidecar issue cache at `.deft-cache/issues/<owner>-<repo>/<N>.json` (raw API response) and `.deft-cache/issues/<owner>-<repo>/<N>.md` (rendered, quarantined body). `task triage:cache` populates from `gh issue list --state open` (or `gitcrawl` if available); `task triage:show <N>` prints the cached body. Quarantine wraps any inline content that could be parsed as agent instructions (per #583).",
+      "Constraint": "MUST NOT depend on other story scopes for v1 ship. Tests run standalone via `pytest tests/test_triage_cache.py`. Cache directory MUST be added to `.gitignore`. gitcrawl is OPTIONAL (auto-install via `task triage:cache --install-gitcrawl` flag); fallback to `gh issue list` when not present.",
+      "Outcome": "Running `task triage:cache --repo deftai/directive` populates `.deft-cache/issues/deftai-directive/*.json` + `.md` for all open issues. Running `task triage:show 845` prints the rendered quarantined body. Tests cover: happy-path populate, idempotent re-populate, stale-cache detection (mtime + ETag), quarantine of injection-shaped content (instructions in code fences), gitcrawl-not-installed fallback, --repo arg validation.",
+      "Test": "pytest tests/test_triage_cache.py covering: (1) populate from gh fixture; (2) re-populate is idempotent (mtime preserved on no-change); (3) quarantine wraps suspicious content per #583 spec (any markdown heading containing 'STEP' / 'TASK:' / similar imperative tokens gets fenced into ```quarantined blocks); (4) gitcrawl absent -> graceful fallback to gh; (5) malformed --repo string -> friendly error.",
+      "Action": "Implement scripts/triage_cache.py with public functions: `populate(repo: str, force: bool=False) -> int`; `show(issue_number: int, repo: str) -> str`; `is_stale(path: Path, ttl_seconds: int) -> bool`. Implement scripts/quarantine_ext.py with `quarantine_body(raw_md: str) -> str`. Wire tasks/triage-cache.yml as a STANDALONE Taskfile fragment (not yet wired into parent Taskfile.yml; that wiring is owned by Story 6). Add `.deft-cache/` line to .gitignore."
+    },
+    "items": [
+      {
+        "id": "845-s1-ac-1-script-cache",
+        "title": "scripts/triage_cache.py implements populate/show/is_stale public surface",
+        "status": "running"
+      },
+      {
+        "id": "845-s1-ac-2-script-quarantine",
+        "title": "scripts/quarantine_ext.py implements quarantine_body() per #583 spec",
+        "status": "running"
+      },
+      {
+        "id": "845-s1-ac-3-taskfile-fragment",
+        "title": "tasks/triage-cache.yml exposes triage:cache + triage:show targets (standalone; not yet wired into parent Taskfile)",
+        "status": "running"
+      },
+      {
+        "id": "845-s1-ac-4-gitignore",
+        "title": ".gitignore appended with `.deft-cache/` entry",
+        "status": "running"
+      },
+      {
+        "id": "845-s1-ac-5-tests",
+        "title": "tests/test_triage_cache.py covers populate/idempotent/stale/quarantine/fallback/arg-validation",
+        "status": "running"
+      },
+      {
+        "id": "845-s1-ac-6-changelog",
+        "title": "CHANGELOG.md [Unreleased] entry: feat(triage): local issue cache + #583 quarantine (#845 Story 1)",
+        "status": "running"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "epic_vbrief": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "parent_issue": "#845",
+        "agent": "A1",
+        "wave": 1,
+        "files_owned": [
+          "scripts/triage_cache.py",
+          "scripts/quarantine_ext.py",
+          "tasks/triage-cache.yml",
+          ".gitignore (append `.deft-cache/`)",
+          "tests/test_triage_cache.py",
+          "CHANGELOG.md (append under [Unreleased])"
+        ],
+        "files_must_not_touch": [
+          "scripts/candidates_log.py (Agent A2)",
+          "scripts/triage_actions.py (Agent A3)",
+          "scripts/triage_bulk.py (Agent A4)",
+          "scripts/triage_refresh.py (Agent A4)",
+          "scripts/triage_bootstrap.py (Agent A6)",
+          "skills/deft-directive-refinement/SKILL.md (Agent A5)",
+          "tasks/Taskfile.yml (Agent A6 wires fragment includes)",
+          "UPGRADING.md (Agent A6)",
+          "docs/quarantine-spec.md (Agent A6)",
+          "docs/privacy-nfr.md (Agent A6)"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/845",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #845 (parent epic)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/583",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #583: injection-quarantine spec"
+      },
+      {
+        "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
+      }
+    ]
+  }
+}

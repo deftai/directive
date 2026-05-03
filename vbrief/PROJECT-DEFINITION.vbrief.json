@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-03T04:38:25Z"
+    "updated": "2026-05-03T16:21:36Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -131,6 +131,47 @@
               "uri": "https://github.com/deftai/deft-agent-bench",
               "type": "x-vbrief/related-repo",
               "title": "deft-agent-bench (internal): bench infrastructure for this validation effort"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-845-pre-ingest-triage-workflow-epic",
+        "title": "feat(triage,cache,refinement): pre-ingest triage workflow with sidecar issue cache",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/845",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #845: feat(triage,cache,refinement): pre-ingest triage workflow with sidecar issue cache (refs #583 #788 #789 #815 #522)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/583",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #583: injection-quarantine for ingested origin content (security blocker absorbed)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/788",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #788: token-cost as first-class constraint (cost framework)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/789",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #789: pr-triage-stack (prior art / tooling: ghreplica, gitcrawl, pr-search-cli)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/815",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #815: refinement-state forcing function (visibility integration)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/868",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #868: bidirectional implementation-lock comment protocol (stacks on top of this work)"
             }
           ]
         }
@@ -888,6 +929,152 @@
               "uri": "https://github.com/deftai/directive/issues/762",
               "type": "x-vbrief/github-issue",
               "title": "Issue #762: feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-845-triage-actions",
+        "title": "feat(scripts,tasks): triage action commands (accept/reject/defer/needs-ac/mark-duplicate/status/reset/history)",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-03-845-triage-actions.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/845",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #845 (parent epic)"
+            },
+            {
+              "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-845-triage-bootstrap-and-docs",
+        "title": "feat(scripts,tasks,docs): triage bootstrap + UPGRADING.md + parent Taskfile wiring + quarantine spec + privacy NFR",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-03-845-triage-bootstrap-and-docs.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/845",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #845 (parent epic)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/583",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #583: injection-quarantine spec (formalized in this story)"
+            },
+            {
+              "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-845-triage-bulk-and-freshness",
+        "title": "feat(scripts,tasks): triage bulk ops + pre-swarm freshness gate",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-03-845-triage-bulk-and-freshness.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/845",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #845 (parent epic)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/868",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #868: lock-comment protocol (consumes this story's freshness primitive)"
+            },
+            {
+              "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-845-triage-cache-infra",
+        "title": "feat(scripts,tasks): triage cache infra + #583 quarantine on cache path",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-03-845-triage-cache-infra.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/845",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #845 (parent epic)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/583",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #583: injection-quarantine spec"
+            },
+            {
+              "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-845-triage-candidates-audit-log",
+        "title": "feat(scripts,vbrief/schemas): triage candidates.jsonl audit log + JSON schema",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-03-845-triage-candidates-audit-log.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/845",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #845 (parent epic)"
+            },
+            {
+              "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-845-triage-refinement-phase-0",
+        "title": "feat(skills): extend deft-directive-refinement with Phase 0 (cache + triage)",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-03-845-triage-refinement-phase-0.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/845",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #845 (parent epic)"
+            },
+            {
+              "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
+            },
+            {
+              "uri": "contracts/deterministic-questions.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Deterministic-questions contract (gate compliance)"
             }
           ]
         }

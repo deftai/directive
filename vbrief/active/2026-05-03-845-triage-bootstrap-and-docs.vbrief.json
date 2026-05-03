@@ -1,0 +1,113 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story 6 of #845 triage v1: idempotent bootstrap + UPGRADING.md migration section + quarantine spec + privacy NFR + parent Taskfile.yml `includes:` wiring for the four fragment files. Owner: Agent A6 (LAST in cascade).",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T16:15:00Z"
+  },
+  "plan": {
+    "id": "845-story-6-triage-bootstrap-and-docs",
+    "title": "feat(scripts,tasks,docs): triage bootstrap + UPGRADING.md + parent Taskfile wiring + quarantine spec + privacy NFR",
+    "status": "running",
+    "planRef": "#845",
+    "narratives": {
+      "Problem": "Consumer projects need a single command to opt into triage v1, with documented migration impact + privacy considerations. Standalone fragments from Stories 1-4 are not yet reachable via the parent Taskfile; this story wires them.",
+      "Overview": "Implement `scripts/triage_bootstrap.py` exposing `task triage:bootstrap`: (1) populate cache for all open upstream issues; (2) backfill `candidates.jsonl` with `accepted` entries for items already in `proposed/`/`pending/`/`active/` (preserves audit trail; skips `cancelled/`); (3) add `.deft-cache/` to `.gitignore` if absent; (4) install gitcrawl if missing; (5) idempotent + reversible. Wire parent `tasks/Taskfile.yml` to include the four fragment files (triage-cache, triage-actions, triage-bulk, triage-bootstrap). Author UPGRADING.md \"Migration to triage v1\" section. Author docs/quarantine-spec.md and docs/privacy-nfr.md.",
+      "Constraint": "Merges LAST in the cascade so the parent-Taskfile wiring sees all four fragment files already on master. Bootstrap MUST NOT modify existing vBRIEFs' metadata. Bootstrap MUST be safe to run repeatedly (each step idempotent). Documentation MUST cover the privacy implication of caching private-repo body content locally.",
+      "Outcome": "Running `task triage:bootstrap` on a fresh consumer project yields a fully-functional triage workflow in ≤5 minutes. UPGRADING.md describes additive nature + opt-in path. docs/quarantine-spec.md formalizes the #583 quarantine algorithm consumed by Story 1. docs/privacy-nfr.md formalizes the gitignore-default + opt-in-commit-cache contract. Parent Taskfile lists all four fragment includes; `task --list` shows triage:* targets after bootstrap.",
+      "Test": "pytest tests/test_triage_bootstrap.py covering: (1) fresh-project bootstrap end-to-end; (2) re-run idempotent (no duplicate audit entries); (3) backfill respects existing lifecycle folders; (4) cancelled/ skipped (no reanimation); (5) gitcrawl-already-installed no-op; (6) Taskfile includes wired correctly (parse + grep).",
+      "Action": "Implement scripts/triage_bootstrap.py. Wire tasks/Taskfile.yml `includes:` block to reference the four fragments (triage-cache.yml, triage-actions.yml, triage-bulk.yml, triage-bootstrap.yml). Author UPGRADING.md migration section + docs/quarantine-spec.md + docs/privacy-nfr.md."
+    },
+    "items": [
+      {
+        "id": "845-s6-ac-1-bootstrap-script",
+        "title": "scripts/triage_bootstrap.py implements 5-step idempotent bootstrap",
+        "status": "running"
+      },
+      {
+        "id": "845-s6-ac-2-bootstrap-fragment",
+        "title": "tasks/triage-bootstrap.yml exposes triage:bootstrap target (standalone fragment)",
+        "status": "running"
+      },
+      {
+        "id": "845-s6-ac-3-parent-taskfile",
+        "title": "tasks/Taskfile.yml wires `includes:` for triage-cache, triage-actions, triage-bulk, triage-bootstrap",
+        "status": "running"
+      },
+      {
+        "id": "845-s6-ac-4-upgrading",
+        "title": "UPGRADING.md: \"Migration to triage v1\" section (additive nature, opt-in path, ~5 min)",
+        "status": "running"
+      },
+      {
+        "id": "845-s6-ac-5-quarantine-spec",
+        "title": "docs/quarantine-spec.md formalizes the #583 quarantine algorithm",
+        "status": "running"
+      },
+      {
+        "id": "845-s6-ac-6-privacy-nfr",
+        "title": "docs/privacy-nfr.md formalizes gitignore-default + opt-in-commit-cache",
+        "status": "running"
+      },
+      {
+        "id": "845-s6-ac-7-tests",
+        "title": "tests/test_triage_bootstrap.py covers all 6 cases per Test narrative",
+        "status": "running"
+      },
+      {
+        "id": "845-s6-ac-8-changelog",
+        "title": "CHANGELOG.md [Unreleased] entry: feat(triage): bootstrap + docs + Taskfile wiring (#845 Story 6)",
+        "status": "running"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "epic_vbrief": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "parent_issue": "#845",
+        "agent": "A6",
+        "wave": "last",
+        "depends_on_stories": ["Story 1", "Story 2", "Story 3", "Story 4", "Story 5"],
+        "files_owned": [
+          "scripts/triage_bootstrap.py",
+          "tasks/triage-bootstrap.yml",
+          "tasks/Taskfile.yml (wires fragment includes)",
+          "UPGRADING.md (append section)",
+          "docs/quarantine-spec.md",
+          "docs/privacy-nfr.md",
+          "tests/test_triage_bootstrap.py",
+          "CHANGELOG.md (append under [Unreleased])"
+        ],
+        "files_must_not_touch": [
+          "scripts/triage_cache.py (Agent A1)",
+          "scripts/quarantine_ext.py (Agent A1)",
+          "scripts/candidates_log.py (Agent A2)",
+          "vbrief/schemas/candidates.schema.json (Agent A2)",
+          "scripts/triage_actions.py (Agent A3)",
+          "scripts/triage_bulk.py (Agent A4)",
+          "scripts/triage_refresh.py (Agent A4)",
+          "skills/deft-directive-refinement/SKILL.md (Agent A5)",
+          "tasks/triage-cache.yml (Agent A1)",
+          "tasks/triage-actions.yml (Agent A3)",
+          "tasks/triage-bulk.yml (Agent A4)"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/845",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #845 (parent epic)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/583",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #583: injection-quarantine spec (formalized in this story)"
+      },
+      {
+        "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
+      }
+    ]
+  }
+}
