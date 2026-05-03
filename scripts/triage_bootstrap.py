@@ -231,11 +231,25 @@ def step_populate_cache(project_root: Path, repo: str | None) -> StepOutcome:
     try:
         count = populate(repo=repo, force=False)
     except Exception as exc:  # noqa: BLE001 -- forward exception text verbatim
+        # Graceful degradation: cache populate is best-effort. If Story 1's
+        # populate fails (e.g. ``gh`` CLI not on PATH, network down, repo
+        # access denied) the bootstrap should still succeed -- the gitignore
+        # + audit-log + gitcrawl steps are independent of cache content,
+        # and the operator can re-run ``task triage-cache:cache`` after
+        # fixing the underlying environment. Returning ok=True with a
+        # deferred-action message preserves bootstrap exit code 0 (per
+        # the module docstring's ``re-runnable`` contract) while still
+        # surfacing the failure cause in the recap.
         return StepOutcome(
             name="populate_cache",
-            ok=False,
-            message=f"populate raised {type(exc).__name__}",
+            ok=True,
+            message=(
+                f"deferred -- populate raised {type(exc).__name__} "
+                "(re-run after the underlying issue is resolved; "
+                "see error for detail)"
+            ),
             error=str(exc),
+            details={"deferred": "populate-error"},
         )
 
     return StepOutcome(
@@ -252,7 +266,16 @@ def step_populate_cache(project_root: Path, repo: str | None) -> StepOutcome:
 
 
 def _now_iso() -> str:
-    """Return current time as ISO 8601 UTC (microseconds dropped).
+    """Return current time as ISO-8601 UTC with the literal ``Z`` suffix.
+
+    The Story 2 audit-log schema (``vbrief/schemas/candidates.schema.json``)
+    pins the ``timestamp`` field to the ``Z``-suffix UTC form -- the
+    pattern is ``^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$``.
+    Python's ``datetime.isoformat()`` emits ``+00:00`` for ``tz=UTC``,
+    which matches the schema's ``format: date-time`` annotation but FAILS
+    the Z-anchored ``pattern``. Story 2's ``candidates_log.append()``
+    enforces the pattern (Greptile #876 P1 fix-batch) so a non-Z form is
+    rejected with ``CandidatesLogError``.
 
     Uses ``datetime.timezone.utc`` rather than the ``datetime.UTC`` alias
     (Python 3.11+) for maximum portability and ecosystem compatibility:
@@ -266,7 +289,7 @@ def _now_iso() -> str:
     return (
         _dt.datetime.now(tz=_dt.timezone.utc)  # noqa: UP017
         .replace(microsecond=0)
-        .isoformat()
+        .strftime("%Y-%m-%dT%H:%M:%SZ")
     )
 
 
@@ -451,7 +474,14 @@ def step_backfill_audit_log(project_root: Path, repo: str | None) -> StepOutcome
             entry = _build_audit_entry(repo, issue_number, folder_name)
             try:
                 if story2_append is not None:
-                    story2_append(entry)
+                    # Pass path=audit_path explicitly so Story 2 writes to
+                    # the consumer's project-root audit log rather than
+                    # ``DEFAULT_LOG_PATH`` (which is anchored to the repo
+                    # housing ``scripts/candidates_log.py``). Without this,
+                    # bootstrap invocations from a different ``--project-root``
+                    # (and pytest tmp_path fixtures) silently leak entries
+                    # into the deft-directive repo's own audit log.
+                    story2_append(entry, path=audit_path)
                 else:
                     _append_audit_entry(audit_path, entry)
             except Exception as exc:  # noqa: BLE001
