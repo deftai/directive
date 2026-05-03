@@ -5,20 +5,6 @@
 
 # Roadmap
 
-## Phase 1 -- Fix Now
-
-Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX.
-
-- **#791** -- run.bat: resolve `run` against %~dp0 instead of CWD (Windows)
-- **#792** -- cmd_doctor: add uv check; replace pre-v0.20 expected_dirs with v0.20+ layout
-- **#793** -- Add task migrate:preflight; have migrate:vbrief self-invoke it
-- **#794** -- Document AGENTS.md managed-section legacy migration in UPGRADING.md
-- **#798** -- Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (deterministic tier per [AXIOM])
-- **#784** -- fix(scripts/release.py): pre-flight should verify release tag is available before state mutation
-- **#796** -- Review-cycle dual-source fetch can miss late-arriving bot reviews
-- **#800** -- swarm SKILL: prohibit `git checkout` in a worktree another agent owns (post-merge cleanup overreach)
-- **#814** -- scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) -- blocks every commit
-
 ## Phase 2
 
 Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files.
@@ -375,6 +361,15 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#767** -- feat(framework,skills): add Discuss + Back as canonical numbered options in all deterministic-mode questions -- `[completed]`
 - **#768** -- Universal upgrade gate: stale-AGENTS.md consumers silently follow obsolete instructions -- `[completed]`
 - **#771** -- release-core: keep pyproject version truthful and define semver -> PEP 440 normalization -- `[completed]`
+- **#791** -- run.bat: resolve `run` against %~dp0 instead of CWD (Windows) -- `[completed]`
+- **#792** -- cmd_doctor: add uv check; replace pre-v0.20 expected_dirs with v0.20+ layout -- `[completed]`
+- **#793** -- Add task migrate:preflight; have migrate:vbrief self-invoke it -- `[completed]`
+- **#794** -- Document AGENTS.md managed-section legacy migration in UPGRADING.md -- `[completed]`
+- **#798** -- Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (deterministic tier per [AXIOM]) -- `[completed]`
 - **#801** -- Periodic remote-version probe: occasionally check upstream for new directive tags and prompt the user to update -- `[completed]`
 - **#810** -- Implementation-intent inference is non-deterministic: enforce action-verb gate via preflight + AGENTS.md anti-pattern -- `[completed]`
+- **#784** -- fix(scripts/release.py): pre-flight should verify release tag is available before state mutation -- `[completed]`
+- **#796** -- Review-cycle dual-source fetch can miss late-arriving bot reviews -- `[completed]`
+- **#800** -- swarm SKILL: prohibit `git checkout` in a worktree another agent owns (post-merge cleanup overreach) -- `[completed]`
+- **#814** -- scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) -- blocks every commit -- `[completed]`
 

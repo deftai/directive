@@ -7,7 +7,7 @@
   },
   "plan": {
     "title": "Review-cycle dual-source fetch can miss late-arriving bot reviews",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Problem": "Phase 2 Step 1 of the review-cycle skill mandates dual-source fetching (`gh pr view --comments` + MCP `get_review_comments` or `gh api` fallback) and `do_not_summarize_output: true` to catch the 'Comments Outside Diff' section. Both correct. The gap: if the agent's first fetch lands BEFORE the bot has posted (e.g. T+30s after PR creation; Greptile lands at T+3-7min), both sources return zero findings. The Step 6 exit condition then evaluates against an empty review and declares 'no P0/P1 remaining' even though the bot review is still in flight. The Step 4 polling loop covers any cycle that includes a push, but the cold-start case (first review-cycle invocation on a freshly-opened PR with no fixes yet) is uncovered.",
       "Overview": "Add a `~` SHOULD rule to Phase 2 Step 1 mandating a re-fetch after a ~60s delay when the initial dual-source pass returns no bot review on the current HEAD SHA, before the Step 6 exit condition can be evaluated. Companion `⊗` MUST NOT rule against declaring exit on a single empty fetch.",
@@ -126,7 +126,7 @@
         "pr_title_suggestion": "fix(skills/review-cycle): re-fetch on cold-start to catch late-arriving bot reviews (#796)"
       }
     },
-    "updated": "2026-05-03T01:53:52Z",
+    "updated": "2026-05-03T04:38:16Z",
     "id": "796-review-cycle-late-arriving-bot-reviews",
     "planRef": "#796"
   }

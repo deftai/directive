@@ -70,7 +70,8 @@ def _phase6_step3_block(text: str) -> str:
 # contract while preserving the rule's intent.
 _STEP3_NO_CHECKOUT_TOKENS = (
     # The MUST NOT marker MUST be the canonical U+2297 glyph, not the cp1252
-    # mojibake 'Γèù' (#796 / #800 pre-PR fix-up trail).
+    # mojibake form (encoded here as escape sequences to keep this file
+    # encoding-gate clean per #798).
     "\u2297",
     # Action prohibited.
     "git checkout",
@@ -122,10 +123,12 @@ def test_swarm_phase6_step3_no_checkout_rule_present(token: str) -> None:
 def test_swarm_phase6_step3_no_checkout_rule_uses_canonical_glyph() -> None:
     """The MUST NOT marker MUST be U+2297 (\u2297), not the cp1252 mojibake."""
     block = _phase6_step3_block(_read_swarm())
-    # Defence-in-depth: the cp1252 round-trip mojibake of \u2297 ('\u0393\u00e8\u00f9'
-    # = 'Γèù') would have shipped if a swarm agent followed the corrupted
-    # vbrief verbatim. This pre-PR fix-up trail is documented in the
-    # CHANGELOG entry referencing #796 / #800.
+    # Defence-in-depth: the cp1252 round-trip mojibake of \u2297 (the
+    # three-codepoint sequence \u0393\u00e8\u00f9) would have shipped if a
+    # swarm agent followed the corrupted vbrief verbatim. This pre-PR
+    # fix-up trail is documented in the CHANGELOG entry referencing
+    # #796 / #800. The literal mojibake form is intentionally NOT written
+    # here to keep this file clean against the #798 encoding gate.
     assert "\u0393\u00e8\u00f9" not in block, (
         f"{_SWARM_PATH}: Phase 6 Step 3 contains cp1252 mojibake "
         f"('\u0393\u00e8\u00f9') instead of canonical \u2297 (U+2297)"

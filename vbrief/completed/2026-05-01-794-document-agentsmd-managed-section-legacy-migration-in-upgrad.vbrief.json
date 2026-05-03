@@ -8,7 +8,7 @@
   "plan": {
     "id": "794-upgrading-md-agents-md-legacy-contract",
     "title": "Document AGENTS.md managed-section legacy migration in UPGRADING.md",
-    "status": "running",
+    "status": "completed",
     "planRef": "#794",
     "narratives": {
       "Problem": "When a consumer's AGENTS.md predates the <!-- deft:managed-section v1 --> markers, deft/run upgrade performs a one-time legacy migration (run::_wrap_legacy_in_markers, line ~1073; run::_agents_refresh_plan state=='missing' branch, line ~1131): existing content is preserved verbatim above the rendered managed section. Subsequent upgrades then become sentinel-only byte-replaces. The behavior is correct, but it is not documented in any user-facing surface. Risk-averse consumers reviewing the upgrade flow before running it cannot find the contract for what `run upgrade` will and will not modify. QUICK-START Case G covers the same scenario in agent-prescriptive terms but not as a long-term human-readable contract.",
@@ -124,6 +124,6 @@
         "title": "Case G: agent-prescriptive coverage of the same scenario; cross-link target"
       }
     ],
-    "updated": "2026-05-03T01:41:28Z"
+    "updated": "2026-05-03T04:38:15Z"
   }
 }

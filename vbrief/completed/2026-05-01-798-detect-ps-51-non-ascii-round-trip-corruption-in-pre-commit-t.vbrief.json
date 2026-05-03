@@ -8,7 +8,7 @@
   "plan": {
     "id": "798-ps51-encoding-gate",
     "title": "Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (deterministic tier per [AXIOM])",
-    "status": "running",
+    "status": "completed",
     "planRef": "#798",
     "narratives": {
       "Problem": "PowerShell 5.1 (the default Windows PowerShell shipped on every Win10/11 install) silently corrupts non-ASCII content during read+write round-trips even when the write side specifies UTF-8 explicitly. Get-Content -Raw decodes via the active codepage (typically CP1252) on the READ side; the corruption is introduced before any 'safe write' can preserve the bytes. Three prior recurrences are recorded (#236 t1.11.1, #240 t1.11.2, #283 t1.20.1) and a fourth happened on PR #795 (CHANGELOG.md mojibake during P2 batch fix). The rule is encoded at the prose tier (personal rule + AGENTS.md PowerShell section + lessons.md cross-references) but per main.md Rule Authority [AXIOM] (deterministic > Taskfile > vBRIEF > RFC2119 > prose) the recurrence pattern most likely to bite a Windows consumer in their first session is at the WEAKEST tier with NO deterministic gate.",
@@ -161,6 +161,6 @@
         "title": "Sibling deterministic gate (#747) -- shape model for the new scripts/verify_encoding.py"
       }
     ],
-    "updated": "2026-05-03T01:41:28Z"
+    "updated": "2026-05-03T04:38:17Z"
   }
 }

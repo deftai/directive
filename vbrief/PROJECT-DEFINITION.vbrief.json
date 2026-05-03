@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-03T02:25:07Z"
+    "updated": "2026-05-03T04:38:25Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -888,275 +888,6 @@
               "uri": "https://github.com/deftai/directive/issues/762",
               "type": "x-vbrief/github-issue",
               "title": "Issue #762: feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-01-791-runbat-resolves-un-against-cwd-instead-of-dp0-windows-path-b",
-        "title": "run.bat: resolve `run` against %~dp0 instead of CWD (Windows)",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-05-01-791-runbat-resolves-un-against-cwd-instead-of-dp0-windows-path-b.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/791",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #791: run.bat resolves `run` against CWD instead of %~dp0 (Windows path bug)"
-            },
-            {
-              "uri": "main.md#publishing-deft-tasks-in-your-project-root",
-              "type": "x-vbrief/related-doc",
-              "title": "Related: same class of framework-relative path resolution that the consumer Taskfile include solves (already documented)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-01-792-cmd-doctor-missing-uv-check-expected-dirs-lists-pre-v020-dir",
-        "title": "cmd_doctor: add uv check; replace pre-v0.20 expected_dirs with v0.20+ layout",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-05-01-792-cmd-doctor-missing-uv-check-expected-dirs-lists-pre-v020-dir.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/792",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #792: cmd_doctor missing uv check; expected_dirs lists pre-v0.20 directories"
-            },
-            {
-              "uri": "skills/deft-directive-setup/SKILL.md",
-              "type": "x-vbrief/related-doc",
-              "title": "Environment Preflight: the agent-side uv check to mirror"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/793",
-              "type": "x-vbrief/related-issue",
-              "title": "Issue #793 (related): task migrate:preflight should consume the same uv-detection helper introduced here"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-01-793-add-task-migratepreflight-aggregate-have-migratevbrief-self",
-        "title": "Add task migrate:preflight; have migrate:vbrief self-invoke it",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-05-01-793-add-task-migratepreflight-aggregate-have-migratevbrief-self.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/793",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #793: Add task migrate:preflight aggregate; have migrate:vbrief self-invoke it"
-            },
-            {
-              "uri": "skills/deft-directive-setup/SKILL.md",
-              "type": "x-vbrief/related-doc",
-              "title": "Environment Preflight: the agent-side preflight contract this task reifies"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/792",
-              "type": "x-vbrief/related-issue",
-              "title": "Issue #792 (soft-dep): cmd_doctor uv check; share uv-detection helper if #792 lands first"
-            },
-            {
-              "uri": "tasks/migrate.yml",
-              "type": "x-vbrief/related-doc",
-              "title": "The Taskfile surface to extend"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-01-794-document-agentsmd-managed-section-legacy-migration-in-upgrad",
-        "title": "Document AGENTS.md managed-section legacy migration in UPGRADING.md",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-05-01-794-document-agentsmd-managed-section-legacy-migration-in-upgrad.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/794",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #794: Document AGENTS.md managed-section legacy migration in UPGRADING.md"
-            },
-            {
-              "uri": "templates/agents-entry.md",
-              "type": "x-vbrief/related-doc",
-              "title": "The rendered managed-section template (preview link target)"
-            },
-            {
-              "uri": "QUICK-START.md",
-              "type": "x-vbrief/related-doc",
-              "title": "Case G: agent-prescriptive coverage of the same scenario; cross-link target"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-01-798-detect-ps-51-non-ascii-round-trip-corruption-in-pre-commit-t",
-        "title": "Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (deterministic tier per [AXIOM])",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-05-01-798-detect-ps-51-non-ascii-round-trip-corruption-in-pre-commit-t.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/798",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #798: Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (4th recurrence)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/pull/795",
-              "type": "x-vbrief/github-pr",
-              "title": "PR #795 -- 4th recurrence record (CHANGELOG.md mojibake during P2 batch fix)"
-            },
-            {
-              "uri": "AGENTS.md",
-              "type": "x-vbrief/related-doc",
-              "title": "PowerShell section: the prose tier rule this proposal elevates to deterministic"
-            },
-            {
-              "uri": "main.md",
-              "type": "x-vbrief/related-doc",
-              "title": "Rule Authority [AXIOM] -- the hierarchy this proposal climbs"
-            },
-            {
-              "uri": "scripts/preflight_branch.py",
-              "type": "x-vbrief/related-doc",
-              "title": "Sibling deterministic gate (#747) -- shape model for the new scripts/verify_encoding.py"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-03-784-fixscriptsreleasepy-pre-flight-should-verify-release-tag-is",
-        "title": "fix(scripts/release.py): pre-flight should verify release tag is available before state mutation",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-05-03-784-fixscriptsreleasepy-pre-flight-should-verify-release-tag-is.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/784",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #784: fix(scripts/release.py): pre-flight should verify release tag is available before state mutation"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/734",
-              "type": "x-vbrief/related-issue",
-              "title": "Issue #734 (sibling pattern): vBRIEF lifecycle sync gate -- precedent for adding a pre-flight step that refuses before state mutation"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/716",
-              "type": "x-vbrief/related-issue",
-              "title": "Issue #716: release safety hardening (default-draft, verify-isDraft) -- companion publish-side gate"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/74",
-              "type": "x-vbrief/related-issue",
-              "title": "Issue #74: release pipeline parent"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-03-796-review-cycle-dual-source-fetch-can-miss-late-arriving-bot-re",
-        "title": "Review-cycle dual-source fetch can miss late-arriving bot reviews",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-05-03-796-review-cycle-dual-source-fetch-can-miss-late-arriving-bot-re.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/796",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #796: Review-cycle dual-source fetch can miss late-arriving bot reviews"
-            },
-            {
-              "uri": "skills/deft-directive-review-cycle/SKILL.md",
-              "type": "x-vbrief/related-doc",
-              "title": "Phase 2 Step 1 (Fetch ALL bot comments) -- the surface this PR extends"
-            },
-            {
-              "uri": "templates/swarm-greptile-poller-prompt.md",
-              "type": "x-vbrief/related-doc",
-              "title": "Poller template -- already handles the late-arrival case in its loop body; no-op for this work"
-            },
-            {
-              "uri": "meta/lessons.md",
-              "type": "x-vbrief/related-doc",
-              "title": "PR Review Process (2026-03) -- precedent lesson on dual-source fetching + Comments Outside Diff"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-03-800-swarm-skill-prohibit-git-checkout-in-a-worktree-another-agen",
-        "title": "swarm SKILL: prohibit `git checkout` in a worktree another agent owns (post-merge cleanup overreach)",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-05-03-800-swarm-skill-prohibit-git-checkout-in-a-worktree-another-agen.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/800",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #800: swarm SKILL prohibit git checkout in a worktree another agent owns (post-merge cleanup overreach)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/727",
-              "type": "x-vbrief/related-issue",
-              "title": "Issue #727 (companion): Sub-Agent Role Separation -- this work extends the same boundary discipline to worktree HEAD operations"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/pull/797",
-              "type": "x-vbrief/github-pr",
-              "title": "PR #797 -- recurrence record (Agent B's post-merge `cd ...; git checkout master --quiet` against Agent A's worktree)"
-            },
-            {
-              "uri": "skills/deft-directive-swarm/SKILL.md",
-              "type": "x-vbrief/related-doc",
-              "title": "Phase 6 Step 3 (Update Master) -- the surface this PR extends"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-03-814-scriptspreflight-branchpy-crashes-with-unicodeencodeerror-on",
-        "title": "scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) -- blocks every commit",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-05-03-814-scriptspreflight-branchpy-crashes-with-unicodeencodeerror-on.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/814",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #814: scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) when printing the success glyph -- blocks every commit"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/747",
-              "type": "x-vbrief/related-issue",
-              "title": "Issue #747: detection-bound branch gate -- the surface this affects"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/810",
-              "type": "x-vbrief/related-issue",
-              "title": "Issue #810: implementation-intent gate -- the session that surfaced this; the chore commit was blocked until PYTHONIOENCODING=utf-8 was applied"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/768",
-              "type": "x-vbrief/related-issue",
-              "title": "Issue #768: cmd_agents_refresh -- another deft-managed surface that prints non-ASCII; audit Change 2 should include it"
-            },
-            {
-              "uri": "scripts/preflight_branch.py",
-              "type": "x-vbrief/related-doc",
-              "title": "The script to fix"
             }
           ]
         }
@@ -5863,6 +5594,146 @@
         }
       },
       {
+        "id": "2026-05-01-791-runbat-resolves-un-against-cwd-instead-of-dp0-windows-path-b",
+        "title": "run.bat: resolve `run` against %~dp0 instead of CWD (Windows)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-01-791-runbat-resolves-un-against-cwd-instead-of-dp0-windows-path-b.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/791",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #791: run.bat resolves `run` against CWD instead of %~dp0 (Windows path bug)"
+            },
+            {
+              "uri": "main.md#publishing-deft-tasks-in-your-project-root",
+              "type": "x-vbrief/related-doc",
+              "title": "Related: same class of framework-relative path resolution that the consumer Taskfile include solves (already documented)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-01-792-cmd-doctor-missing-uv-check-expected-dirs-lists-pre-v020-dir",
+        "title": "cmd_doctor: add uv check; replace pre-v0.20 expected_dirs with v0.20+ layout",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-01-792-cmd-doctor-missing-uv-check-expected-dirs-lists-pre-v020-dir.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/792",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #792: cmd_doctor missing uv check; expected_dirs lists pre-v0.20 directories"
+            },
+            {
+              "uri": "skills/deft-directive-setup/SKILL.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Environment Preflight: the agent-side uv check to mirror"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/793",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #793 (related): task migrate:preflight should consume the same uv-detection helper introduced here"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-01-793-add-task-migratepreflight-aggregate-have-migratevbrief-self",
+        "title": "Add task migrate:preflight; have migrate:vbrief self-invoke it",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-01-793-add-task-migratepreflight-aggregate-have-migratevbrief-self.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/793",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #793: Add task migrate:preflight aggregate; have migrate:vbrief self-invoke it"
+            },
+            {
+              "uri": "skills/deft-directive-setup/SKILL.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Environment Preflight: the agent-side preflight contract this task reifies"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/792",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #792 (soft-dep): cmd_doctor uv check; share uv-detection helper if #792 lands first"
+            },
+            {
+              "uri": "tasks/migrate.yml",
+              "type": "x-vbrief/related-doc",
+              "title": "The Taskfile surface to extend"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-01-794-document-agentsmd-managed-section-legacy-migration-in-upgrad",
+        "title": "Document AGENTS.md managed-section legacy migration in UPGRADING.md",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-01-794-document-agentsmd-managed-section-legacy-migration-in-upgrad.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/794",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #794: Document AGENTS.md managed-section legacy migration in UPGRADING.md"
+            },
+            {
+              "uri": "templates/agents-entry.md",
+              "type": "x-vbrief/related-doc",
+              "title": "The rendered managed-section template (preview link target)"
+            },
+            {
+              "uri": "QUICK-START.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Case G: agent-prescriptive coverage of the same scenario; cross-link target"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-01-798-detect-ps-51-non-ascii-round-trip-corruption-in-pre-commit-t",
+        "title": "Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (deterministic tier per [AXIOM])",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-01-798-detect-ps-51-non-ascii-round-trip-corruption-in-pre-commit-t.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/798",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #798: Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (4th recurrence)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/pull/795",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #795 -- 4th recurrence record (CHANGELOG.md mojibake during P2 batch fix)"
+            },
+            {
+              "uri": "AGENTS.md",
+              "type": "x-vbrief/related-doc",
+              "title": "PowerShell section: the prose tier rule this proposal elevates to deterministic"
+            },
+            {
+              "uri": "main.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Rule Authority [AXIOM] -- the hierarchy this proposal climbs"
+            },
+            {
+              "uri": "scripts/preflight_branch.py",
+              "type": "x-vbrief/related-doc",
+              "title": "Sibling deterministic gate (#747) -- shape model for the new scripts/verify_encoding.py"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-05-01-801-periodic-remote-version-probe-prompt-on-new-upstream-tags",
         "title": "Periodic remote-version probe: occasionally check upstream for new directive tags and prompt the user to update",
         "status": "completed",
@@ -5938,10 +5809,140 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-05-03-784-fixscriptsreleasepy-pre-flight-should-verify-release-tag-is",
+        "title": "fix(scripts/release.py): pre-flight should verify release tag is available before state mutation",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-03-784-fixscriptsreleasepy-pre-flight-should-verify-release-tag-is.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/784",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #784: fix(scripts/release.py): pre-flight should verify release tag is available before state mutation"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/734",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #734 (sibling pattern): vBRIEF lifecycle sync gate -- precedent for adding a pre-flight step that refuses before state mutation"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/716",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #716: release safety hardening (default-draft, verify-isDraft) -- companion publish-side gate"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/74",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #74: release pipeline parent"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-796-review-cycle-dual-source-fetch-can-miss-late-arriving-bot-re",
+        "title": "Review-cycle dual-source fetch can miss late-arriving bot reviews",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-03-796-review-cycle-dual-source-fetch-can-miss-late-arriving-bot-re.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/796",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #796: Review-cycle dual-source fetch can miss late-arriving bot reviews"
+            },
+            {
+              "uri": "skills/deft-directive-review-cycle/SKILL.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Phase 2 Step 1 (Fetch ALL bot comments) -- the surface this PR extends"
+            },
+            {
+              "uri": "templates/swarm-greptile-poller-prompt.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Poller template -- already handles the late-arrival case in its loop body; no-op for this work"
+            },
+            {
+              "uri": "meta/lessons.md",
+              "type": "x-vbrief/related-doc",
+              "title": "PR Review Process (2026-03) -- precedent lesson on dual-source fetching + Comments Outside Diff"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-800-swarm-skill-prohibit-git-checkout-in-a-worktree-another-agen",
+        "title": "swarm SKILL: prohibit `git checkout` in a worktree another agent owns (post-merge cleanup overreach)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-03-800-swarm-skill-prohibit-git-checkout-in-a-worktree-another-agen.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/800",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #800: swarm SKILL prohibit git checkout in a worktree another agent owns (post-merge cleanup overreach)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/727",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #727 (companion): Sub-Agent Role Separation -- this work extends the same boundary discipline to worktree HEAD operations"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/pull/797",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #797 -- recurrence record (Agent B's post-merge `cd ...; git checkout master --quiet` against Agent A's worktree)"
+            },
+            {
+              "uri": "skills/deft-directive-swarm/SKILL.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Phase 6 Step 3 (Update Master) -- the surface this PR extends"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-814-scriptspreflight-branchpy-crashes-with-unicodeencodeerror-on",
+        "title": "scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) -- blocks every commit",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-03-814-scriptspreflight-branchpy-crashes-with-unicodeencodeerror-on.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/814",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #814: scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) when printing the success glyph -- blocks every commit"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/747",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #747: detection-bound branch gate -- the surface this affects"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/810",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #810: implementation-intent gate -- the session that surfaced this; the chore commit was blocked until PYTHONIOENCODING=utf-8 was applied"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/768",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #768: cmd_agents_refresh -- another deft-managed surface that prints non-ASCII; audit Change 2 should include it"
+            },
+            {
+              "uri": "scripts/preflight_branch.py",
+              "type": "x-vbrief/related-doc",
+              "title": "The script to fix"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
       "staleness_flags": [
+        "Narrative 'LegacyArtifacts' may be stale: completed scope 'Document AGENTS.md managed-section legacy migration in UPGRADING.md' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Project bootstrap: purge stale legacy path references across 42 files; add strategy stubs (rapid.md, enterprise.md); add docs/getting-started.md stub' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'SKILL.md platform entry point is entirely pre-cutover -- references old skill names and deprecated artifacts' shares topics (artifacts)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Stale cross-references to legacy paths' shares topics (legacy)",

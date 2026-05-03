@@ -8,7 +8,7 @@
   "plan": {
     "id": "793-task-migrate-preflight-aggregate",
     "title": "Add task migrate:preflight; have migrate:vbrief self-invoke it",
-    "status": "running",
+    "status": "completed",
     "planRef": "#793",
     "narratives": {
       "Problem": "The pre-cutover migration preflight (task resolvability, uv on PATH, migrate_vbrief.py present) is currently prescribed only on the agent-driven path (QUICK-START.md Step H.2; skills/deft-directive-setup/SKILL.md Environment Preflight). A user who follows main.md Migrating from pre-v0.20 and runs `task migrate:vbrief` directly gets none of those checks: failures surface as raw subprocess errors (uv not found, FileNotFoundError) with no remediation pointer. This is an adoption blocker for any non-agent entry path (CI runs, scripted upgrades, ops engineers).",
@@ -147,6 +147,6 @@
         "title": "The Taskfile surface to extend"
       }
     ],
-    "updated": "2026-05-03T01:41:28Z"
+    "updated": "2026-05-03T04:38:17Z"
   }
 }
