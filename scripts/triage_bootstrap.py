@@ -149,12 +149,35 @@ class BootstrapResult:
         if self.exit_code == 0:
             lines.append("")
             lines.append("Next steps:")
-            lines.append("  task triage:cache              # refresh the cache")
-            lines.append("  task triage:show <N>           # inspect issue N")
-            lines.append("  task triage:accept <N>         # accept issue N")
-            lines.append("  task triage:reject <N> --reason 'why'")
-            lines.append("  task triage:bulk-accept --label adoption-blocker")
-            lines.append("  task triage:refresh-active     # pre-swarm freshness gate")
+            # IMPORTANT: every command printed here MUST exist on master at the
+            # time the bootstrap recap fires (Greptile P1 PR #877 review). Story
+            # 6 wires only the top-level `task triage:bootstrap` alias; every
+            # other surface ships under the include namespace key for its
+            # owning fragment (`triage-cache:`, `triage-actions:`,
+            # `triage-bulk:`). The shorthand `task triage:cache` /
+            # `task triage:accept <N>` forms are intentionally NOT wired in
+            # Story 6 (go-task v3 cannot share an `includes:` namespace key
+            # across multiple files); a follow-up cleanup PR will consolidate
+            # `task triage:*` aliases once the four-fragment cascade has fully
+            # landed and inner task names are stable. Until then, the recap
+            # uses the namespaced forms so a user who copy-pastes a line gets
+            # a working invocation.
+            lines.append("  task triage-cache:cache             # refresh the cache (Story 1)")
+            lines.append("  task triage-cache:show <N>          # inspect issue N (Story 1)")
+            lines.append("  task triage-actions:accept <N>      # accept issue N (Story 3)")
+            lines.append("  task triage-actions:reject <N> -- --reason 'why' (Story 3)")
+            lines.append("  task triage-bulk:bulk-accept -- --label adoption-blocker (Story 4)")
+            lines.append(
+                "  task triage-bulk:refresh-active     # pre-swarm freshness (Story 4)"
+            )
+            lines.append("")
+            lines.append(
+                "Note: shorthand `task triage:<verb>` aliases are deferred to a follow-up"
+            )
+            lines.append(
+                "cleanup PR after the cascade fully lands. See UPGRADING.md "
+                "`Migration to triage v1` for details."
+            )
         return "\n".join(lines)
 
 

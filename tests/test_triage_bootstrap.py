@@ -362,6 +362,109 @@ class TestIsCommentedGitignoreLine:
 
 
 # ---------------------------------------------------------------------------
+# Recap regression -- Greptile P1 on PR #877: don't print non-existent aliases
+# ---------------------------------------------------------------------------
+
+
+class TestRecapNamespacedForms:
+    """Pin the BootstrapResult.summary() recap to namespaced forms.
+
+    Greptile flagged a P1 on PR #877 because the original recap printed
+    `task triage:cache`, `task triage:show <N>`, etc. -- shorthand forms
+    that are NOT wired by Story 6 (only `task triage:bootstrap` is wired
+    as a top-level alias; the rest live under their fragment include
+    namespace). A user copy-pasting from the recap would have hit
+    `task: No such task "triage:cache"`. The recap was updated to use
+    the namespaced forms (`task triage-cache:cache`, etc.) plus an
+    explicit deferral note. These tests pin both the positive (namespaced
+    forms present) and the negative (shorthand forms absent) so a future
+    well-meaning revert cannot regress the user surface.
+    """
+
+    def _ok_recap(self, bootstrap):
+        """Construct a successful BootstrapResult for assertion."""
+        result = bootstrap.BootstrapResult(
+            project_root=Path("."),
+            repo="deftai/directive",
+        )
+        result.steps.append(
+            bootstrap.StepOutcome(
+                name="populate_cache", ok=True, message="stub"
+            )
+        )
+        result.steps.append(
+            bootstrap.StepOutcome(
+                name="backfill_audit_log", ok=True, message="stub"
+            )
+        )
+        result.steps.append(
+            bootstrap.StepOutcome(
+                name="ensure_gitignore_entry", ok=True, message="stub"
+            )
+        )
+        result.steps.append(
+            bootstrap.StepOutcome(
+                name="ensure_gitcrawl", ok=True, message="stub"
+            )
+        )
+        result.exit_code = 0
+        return result.summary()
+
+    @pytest.mark.parametrize(
+        "namespaced_form",
+        [
+            "task triage-cache:cache",
+            "task triage-cache:show <N>",
+            "task triage-actions:accept <N>",
+            "task triage-actions:reject <N>",
+            "task triage-bulk:bulk-accept",
+            "task triage-bulk:refresh-active",
+        ],
+    )
+    def test_namespaced_forms_present(self, bootstrap, namespaced_form: str) -> None:
+        """Every documented next-step command MUST use the namespaced form."""
+        recap = self._ok_recap(bootstrap)
+        assert namespaced_form in recap, (
+            f"Recap missing the namespaced form {namespaced_form!r}; the "
+            "shorthand `task triage:<verb>` aliases are NOT wired by "
+            "Story 6."
+        )
+
+    @pytest.mark.parametrize(
+        "shorthand",
+        [
+            "task triage:cache ",
+            "task triage:show ",
+            "task triage:accept ",
+            "task triage:reject ",
+            "task triage:bulk-accept ",
+            "task triage:refresh-active",
+        ],
+    )
+    def test_shorthand_forms_not_advertised(
+        self, bootstrap, shorthand: str
+    ) -> None:
+        """Shorthand `task triage:<verb>` forms MUST NOT appear in the recap.
+
+        Story 6 only wires `task triage:bootstrap`; the other shorthand
+        forms are deferred to a follow-up cleanup PR. The recap MUST NOT
+        advertise commands that don't exist.
+        """
+        recap = self._ok_recap(bootstrap)
+        assert shorthand not in recap, (
+            f"Recap advertises non-existent command {shorthand!r}; "
+            "only `task triage:bootstrap` is wired by Story 6, all "
+            "other forms must use the `task <namespace>:<task>` shape."
+        )
+
+    def test_recap_carries_deferral_note(self, bootstrap) -> None:
+        """Recap MUST include the deferral note pointing at UPGRADING.md."""
+        recap = self._ok_recap(bootstrap)
+        assert "shorthand" in recap.lower()
+        assert "UPGRADING.md" in recap
+
+
+# ---------------------------------------------------------------------------
 # Case 6 -- Taskfile includes wired correctly
 # ---------------------------------------------------------------------------
 
