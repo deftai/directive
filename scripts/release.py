@@ -476,7 +476,127 @@ def check_vbrief_lifecycle_sync(
     )
 
 
-# ---- Step 4 -- CI ----------------------------------------------------------
+# ---- Step 4 -- tag availability pre-flight (#784) --------------------------
+
+
+def check_tag_available(
+    version: str, repo: str, project_root: Path
+) -> tuple[bool, str]:
+    """Refuse early when v<version> already exists locally, on origin, or as a GitHub release.
+
+    Read-only check -- safe on every dry-run; no network mutation.
+    Three failure surfaces, each producing a distinct actionable reason
+    so the operator can target the recovery (the most common cause is a
+    typo of the prior release version):
+
+      1. **Local tag** -- ``git tag -l v<version>`` lists the tag. ``git
+         tag`` at the legacy Step 9 would fail; the operator would already
+         have an unpushed wrong-version commit + orphaned dist artifact.
+      2. **Remote tag on origin** -- ``git ls-remote --tags origin
+         refs/tags/v<version>`` returns the ref. ``git push --atomic`` at
+         the legacy Step 10 would fail.
+      3. **Published GitHub release** -- ``gh release view v<version>``
+         exits 0. Tag may have been created via ``gh release create``
+         directly without a corresponding ref under ``refs/tags/``.
+
+    Surfaced 2026-05-01 during the v0.23.0 release attempt where the
+    operator typed ``0.22.0`` (the prior release from 12 hours earlier);
+    the legacy pipeline ran 8 steps before failing at git tag, requiring
+    ``git reset --hard`` recovery.
+
+    ``gh`` not on PATH is intentionally NOT a failure: the helper passes
+    with a UNVERIFIED caveat in the reason (parallel to the
+    ``verify_release_draft`` (#724) gh-missing path). Local + remote git
+    surfaces still gate the gate, so the most common typo case remains
+    caught even on gh-less hosts.
+
+    Refs #784, #74 (release pipeline parent), #734 (sibling pre-flight
+    gate -- vBRIEF lifecycle sync).
+    """
+    tag = f"v{version}"
+
+    # 1. Local tag -- git tag -l <tag> prints the tag name on a hit.
+    local = _run_git(project_root, "tag", "-l", tag)
+    if local.returncode != 0:
+        return False, f"git tag -l failed: {local.stderr.strip()}"
+    if local.stdout.strip() == tag:
+        return False, (
+            f"local tag {tag} already exists; choose a different version "
+            f"(operator typo of a prior release is the most likely cause)"
+        )
+
+    # 2. Remote tag on origin -- ls-remote prints `<sha>\trefs/tags/<tag>` on a hit.
+    # ls-remote can fail for non-conflict reasons (no origin remote configured,
+    # network down, auth failure). Treat any non-zero exit as UNVERIFIED rather
+    # than a hard FAIL -- mirrors the gh-not-found carve-out below. The local
+    # tag check is the primary surface; remote / gh are defense-in-depth, so a
+    # "could not check this surface" outcome SHOULD warn-and-continue rather
+    # than block the release. (The dirty-tree gate at Step 1 and branch gate
+    # at Step 2 will have already caught the more catastrophic
+    # not-a-git-repository case before we get here.)
+    remote = _run_git(
+        project_root, "ls-remote", "--tags", "origin", f"refs/tags/{tag}"
+    )
+    remote_unverified_note = ""
+    if remote.returncode != 0:
+        stderr = (remote.stderr or "").strip()
+        remote_unverified_note = (
+            f" (remote UNVERIFIED -- git ls-remote failed: "
+            f"{stderr.splitlines()[0] if stderr else 'no stderr'})"
+        )
+    elif f"refs/tags/{tag}" in remote.stdout:
+        return False, (
+            f"remote tag {tag} already exists on origin; "
+            f"choose a different version"
+        )
+
+    # 3. Published GitHub release (defense in depth).
+    gh_path = _resolve_gh()
+    if gh_path is None:
+        return True, (
+            f"local clean{remote_unverified_note} (gh CLI not on PATH; "
+            f"GitHub release surface UNVERIFIED -- install gh or pass "
+            f"--skip-release to suppress this caveat)"
+        )
+    try:
+        gh = subprocess.run(
+            [
+                gh_path,
+                "release",
+                "view",
+                tag,
+                "--repo",
+                repo,
+                "--json",
+                "tagName",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
+        # gh CLI vanished between the which() probe and the invocation
+        # (or hung). Treat as UNVERIFIED rather than a release-exists
+        # false positive: the issue body's "gh-CLI not-found != release-
+        # exists" carve-out applies here too.
+        return True, (
+            f"local clean{remote_unverified_note} (gh probe failed: {exc}; "
+            f"GitHub release surface UNVERIFIED)"
+        )
+    if gh.returncode == 0:
+        return False, (
+            f"GitHub release {tag} already exists on {repo}; "
+            f"choose a different version"
+        )
+    # Non-zero rc on a missing release is the OK path.
+    return (
+        True,
+        f"local clean{remote_unverified_note}; no GitHub release {tag} on {repo}",
+    )
+
+
+# ---- Step 5 -- CI ----------------------------------------------------------
 
 
 def task_binary_available() -> bool:
@@ -1366,7 +1486,7 @@ def _sync_pyproject_for_release(
 # ---- Pipeline orchestration ------------------------------------------------
 
 
-_TOTAL_STEPS = 12
+_TOTAL_STEPS = 13
 
 
 def _emit(step: int, label: str, status: str, *, file=None) -> None:
@@ -1452,27 +1572,48 @@ def run_pipeline(config: ReleaseConfig) -> int:
             print(reason, file=sys.stderr)
             return EXIT_VIOLATION
 
-    # Step 4: CI.
-    label = "Pre-flight CI (task ci:local | fallback task check)"
-    if config.skip_ci:
-        # #720: e2e rehearsal opts out -- CI is covered by the unit-test
-        # suite at every commit on master, not by re-running it inside
-        # the auto-created temp repo.
-        _emit(4, label, "SKIP (--skip-ci)")
-    elif config.dry_run:
-        _emit(4, label, "DRYRUN (would run task ci:local with task check fallback)")
+    # Step 4: tag availability pre-flight (#784) -- refuse early before any
+    # state mutation when v<version> already exists locally, on origin, or
+    # as a published GitHub release. Read-only; safe on every dry-run.
+    label = "Pre-flight tag availability"
+    if config.dry_run:
+        _emit(
+            4,
+            label,
+            (
+                f"DRYRUN (would verify v{version} tag not present locally / "
+                f"on origin / as GitHub release on {config.repo})"
+            ),
+        )
     else:
-        ok, reason = run_ci(project_root)
+        ok, reason = check_tag_available(version, config.repo, project_root)
         if ok:
             _emit(4, label, f"OK ({reason})")
         else:
             _emit(4, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 5: CHANGELOG promotion.
+    # Step 5: CI.
+    label = "Pre-flight CI (task ci:local | fallback task check)"
+    if config.skip_ci:
+        # #720: e2e rehearsal opts out -- CI is covered by the unit-test
+        # suite at every commit on master, not by re-running it inside
+        # the auto-created temp repo.
+        _emit(5, label, "SKIP (--skip-ci)")
+    elif config.dry_run:
+        _emit(5, label, "DRYRUN (would run task ci:local with task check fallback)")
+    else:
+        ok, reason = run_ci(project_root)
+        if ok:
+            _emit(5, label, f"OK ({reason})")
+        else:
+            _emit(5, label, f"FAIL ({reason})")
+            return EXIT_VIOLATION
+
+    # Step 6: CHANGELOG promotion.
     label = "CHANGELOG promotion"
     if not changelog_path.is_file():
-        _emit(5, label, f"FAIL (CHANGELOG.md not found at {changelog_path})")
+        _emit(6, label, f"FAIL (CHANGELOG.md not found at {changelog_path})")
         return EXIT_CONFIG_ERROR
     original_changelog = changelog_path.read_text(encoding="utf-8")
     try:
@@ -1484,7 +1625,7 @@ def run_pipeline(config: ReleaseConfig) -> int:
             summary=config.summary,
         )
     except ValueError as exc:
-        _emit(5, label, f"FAIL ({exc})")
+        _emit(6, label, f"FAIL ({exc})")
         return EXIT_CONFIG_ERROR
     # Surface whether a summary was supplied so operators can validate
     # the wording during Phase 2 dry-run before any file is written
@@ -1504,21 +1645,22 @@ def run_pipeline(config: ReleaseConfig) -> int:
     # (``test.N``) raise ``NonPublishableVersionError`` and the sync is
     # explicitly skipped so PyPI / consumer-visible metadata is not
     # polluted with throwaway versions. The pyproject sync is bundled
-    # into Step 5 (rather than a new step) so the existing pipeline-
-    # step labels (``[5/12]`` ... ``[12/12]``) keep their identifiers
-    # for backward-compatible test assertions; the operator-readable
-    # status string surfaces the pyproject-side outcome inline.
+    # into the CHANGELOG-promotion step (rather than a new step) so the
+    # operator-readable status string surfaces the pyproject-side
+    # outcome inline. The step number was 5 pre-#784 and is now 6 after
+    # the new tag-availability pre-flight gate (Step 4) bumped
+    # _TOTAL_STEPS 12 -> 13.
     pyproject_path = project_root / "pyproject.toml"
     pyproject_note, promoted_pyproject = _sync_pyproject_for_release(
         pyproject_path, version, dry_run=config.dry_run
     )
     if pyproject_note.startswith("FAIL"):
-        _emit(5, label, pyproject_note)
+        _emit(6, label, pyproject_note)
         return EXIT_CONFIG_ERROR
 
     if config.dry_run:
         _emit(
-            5,
+            6,
             label,
             f"DRYRUN (would rewrite {changelog_path.name}: "
             f"## [Unreleased] -> ## [{version}] - {today}; new compare link added;"
@@ -1537,60 +1679,60 @@ def run_pipeline(config: ReleaseConfig) -> int:
             # downstream ``uv lock --check`` fails.
             uv_ok, uv_lock_note = run_uv_lock(project_root)
             if not uv_ok:
-                _emit(5, label, f"FAIL ({uv_lock_note})")
+                _emit(6, label, f"FAIL ({uv_lock_note})")
                 return EXIT_VIOLATION
         _emit(
-            5,
+            6,
             label,
             f"OK (## [{version}] - {today};{summary_note}; "
             f"{pyproject_note}; {uv_lock_note})",
         )
 
-    # Step 6: ROADMAP refresh.
+    # Step 7: ROADMAP refresh.
     label = "ROADMAP refresh (task roadmap:render)"
     if config.dry_run:
-        _emit(6, label, "DRYRUN (would run task roadmap:render)")
+        _emit(7, label, "DRYRUN (would run task roadmap:render)")
     else:
         ok, reason = refresh_roadmap(project_root)
-        if ok:
-            _emit(6, label, f"OK ({reason})")
-        else:
-            _emit(6, label, f"FAIL ({reason})")
-            return EXIT_VIOLATION
-
-    # Step 7: build dist (#723: pin DEFT_RELEASE_VERSION so the artifact
-    # filename matches the in-flight release version, not the stale
-    # Taskfile literal or the most-recent git tag; #720: --skip-build
-    # opts out for e2e rehearsals where build artefacts are not needed
-    # for the draft-release verification step).
-    label = f"Build dist (task build, DEFT_RELEASE_VERSION={version})"
-    if config.skip_build:
-        _emit(7, label, "SKIP (--skip-build)")
-    elif config.dry_run:
-        _emit(
-            7,
-            label,
-            f"DRYRUN (would run `task build` with DEFT_RELEASE_VERSION={version})",
-        )
-    else:
-        ok, reason = run_build(project_root, version)
         if ok:
             _emit(7, label, f"OK ({reason})")
         else:
             _emit(7, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 8: commit release artifacts (CHANGELOG + ROADMAP) before tagging
+    # Step 8: build dist (#723: pin DEFT_RELEASE_VERSION so the artifact
+    # filename matches the in-flight release version, not the stale
+    # Taskfile literal or the most-recent git tag; #720: --skip-build
+    # opts out for e2e rehearsals where build artefacts are not needed
+    # for the draft-release verification step).
+    label = f"Build dist (task build, DEFT_RELEASE_VERSION={version})"
+    if config.skip_build:
+        _emit(8, label, "SKIP (--skip-build)")
+    elif config.dry_run:
+        _emit(
+            8,
+            label,
+            f"DRYRUN (would run `task build` with DEFT_RELEASE_VERSION={version})",
+        )
+    else:
+        ok, reason = run_build(project_root, version)
+        if ok:
+            _emit(8, label, f"OK ({reason})")
+        else:
+            _emit(8, label, f"FAIL ({reason})")
+            return EXIT_VIOLATION
+
+    # Step 9: commit release artifacts (CHANGELOG + ROADMAP) before tagging
     # so the annotated tag and GitHub release anchor at the promoted commit
     # rather than the pre-release HEAD (#74 Greptile P1). Skipped together
     # with tagging when --skip-tag is set, since a committed-but-untagged
     # state would still leave the working tree dirty post-pipeline.
     label = f"Commit release artifacts ({', '.join(_RELEASE_ARTIFACTS)})"
     if config.skip_tag:
-        _emit(8, label, "SKIP (--skip-tag)")
+        _emit(9, label, "SKIP (--skip-tag)")
     elif config.dry_run:
         _emit(
-            8,
+            9,
             label,
             f"DRYRUN (would run `git add {' '.join(_RELEASE_ARTIFACTS)}` + "
             f"`git commit -m '{_release_commit_subject(version)}'`)",
@@ -1598,53 +1740,53 @@ def run_pipeline(config: ReleaseConfig) -> int:
     else:
         ok, reason = commit_release_artifacts(project_root, version)
         if ok:
-            _emit(8, label, f"OK ({reason})")
-        else:
-            _emit(8, label, f"FAIL ({reason})")
-            return EXIT_VIOLATION
-
-    # Step 9: git tag.
-    label = f"Tag v{version}"
-    if config.skip_tag:
-        _emit(9, label, "SKIP (--skip-tag)")
-    elif config.dry_run:
-        _emit(9, label, f"DRYRUN (would run `git tag -a v{version} -m 'Release v{version}'`)")
-    else:
-        ok, reason = create_tag(project_root, version)
-        if ok:
             _emit(9, label, f"OK ({reason})")
         else:
             _emit(9, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 10: push branch + tag atomically.
-    label = f"Push {config.base_branch} + v{version} to origin (atomic)"
+    # Step 10: git tag.
+    label = f"Tag v{version}"
     if config.skip_tag:
         _emit(10, label, "SKIP (--skip-tag)")
     elif config.dry_run:
-        _emit(
-            10,
-            label,
-            f"DRYRUN (would run `git push --atomic origin {config.base_branch} v{version}`)",
-        )
+        _emit(10, label, f"DRYRUN (would run `git tag -a v{version} -m 'Release v{version}'`)")
     else:
-        ok, reason = push_release(project_root, version, config.base_branch)
+        ok, reason = create_tag(project_root, version)
         if ok:
             _emit(10, label, f"OK ({reason})")
         else:
             _emit(10, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 11: GitHub release.
+    # Step 11: push branch + tag atomically.
+    label = f"Push {config.base_branch} + v{version} to origin (atomic)"
+    if config.skip_tag:
+        _emit(11, label, "SKIP (--skip-tag)")
+    elif config.dry_run:
+        _emit(
+            11,
+            label,
+            f"DRYRUN (would run `git push --atomic origin {config.base_branch} v{version}`)",
+        )
+    else:
+        ok, reason = push_release(project_root, version, config.base_branch)
+        if ok:
+            _emit(11, label, f"OK ({reason})")
+        else:
+            _emit(11, label, f"FAIL ({reason})")
+            return EXIT_VIOLATION
+
+    # Step 12: GitHub release.
     draft_suffix = " (draft)" if config.draft else " (PUBLIC)"
     label = f"GitHub release v{version}{draft_suffix}"
     create_succeeded = False
     if config.skip_release:
-        _emit(11, label, "SKIP (--skip-release)")
+        _emit(12, label, "SKIP (--skip-release)")
     elif config.dry_run:
         draft_flag = " --draft" if config.draft else ""
         _emit(
-            11,
+            12,
             label,
             (
                 f"DRYRUN (would run `gh release create v{version} "
@@ -1657,25 +1799,25 @@ def run_pipeline(config: ReleaseConfig) -> int:
             project_root, version, config.repo, notes, draft=config.draft
         )
         if ok:
-            _emit(11, label, f"OK ({reason})")
+            _emit(12, label, f"OK ({reason})")
             create_succeeded = True
         else:
-            _emit(11, label, f"FAIL ({reason})")
+            _emit(12, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
-    # Step 12: post-create verify-isDraft gate (#724). Defense in depth
+    # Step 13: post-create verify-isDraft gate (#724). Defense in depth
     # against the v0.21.0 incident where a manual recovery created a
     # public release for ~90s before being flipped. Skipped when the
     # create step itself was skipped, when the operator opted into a
     # direct-publish via --no-draft, and during dry-run.
     label = f"Verify draft state of v{version} (#724 defense-in-depth)"
     if config.skip_release:
-        _emit(12, label, "SKIP (--skip-release)")
+        _emit(13, label, "SKIP (--skip-release)")
     elif not config.draft:
-        _emit(12, label, "SKIP (--no-draft; intentional public release)")
+        _emit(13, label, "SKIP (--no-draft; intentional public release)")
     elif config.dry_run:
         _emit(
-            12,
+            13,
             label,
             (
                 f"DRYRUN (would poll `gh release view v{version} --json isDraft`"
@@ -1687,15 +1829,15 @@ def run_pipeline(config: ReleaseConfig) -> int:
         # Should be unreachable -- the create branch returns
         # EXIT_VIOLATION on failure -- but guard explicitly for the
         # benefit of unit-test stubs that bypass the early return.
-        _emit(12, label, "SKIP (release was not created in this run)")
+        _emit(13, label, "SKIP (release was not created in this run)")
     else:
         ok, reason = verify_release_draft(
             project_root, version, config.repo
         )
         if ok:
-            _emit(12, label, f"OK ({reason})")
+            _emit(13, label, f"OK ({reason})")
         else:
-            _emit(12, label, f"FAIL ({reason})")
+            _emit(13, label, f"FAIL ({reason})")
             return EXIT_VIOLATION
 
     print(

@@ -516,6 +516,11 @@ class TestPipeline:
     ):
         (temp_project / "dirty.txt").write_text("dirty", encoding="utf-8")
         # Stub everything beyond the dirty-tree check.
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -537,6 +542,11 @@ class TestPipeline:
     def test_skip_tag_suppresses_git_invocations(
         self, temp_project, monkeypatch, capsys
     ):
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -566,6 +576,11 @@ class TestPipeline:
     def test_skip_release_suppresses_gh(
         self, temp_project, monkeypatch, capsys
     ):
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -604,6 +619,11 @@ class TestPipeline:
             ["git", "-C", str(temp_project), "commit", "-q", "-m", "remove changelog"],
             check=True,
         )
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         config = _make_config(temp_project)
         rc = release.run_pipeline(config)
@@ -624,6 +644,11 @@ class TestPipeline:
             ["git", "-C", str(temp_project), "commit", "-q", "-m", "remove unreleased"],
             check=True,
         )
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         config = _make_config(temp_project)
         rc = release.run_pipeline(config)
@@ -632,6 +657,11 @@ class TestPipeline:
     def test_changelog_promoted_after_pipeline_writes(
         self, temp_project, monkeypatch
     ):
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -702,6 +732,11 @@ class TestPipeline:
             order.append("push")
             return True, f"pushed {base_branch} + v{version}"
 
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -1042,10 +1077,10 @@ class TestCreateGithubReleaseDraftDefault:
         # The Step-10 dry-run line MUST NOT include --draft when draft=False.
         # We check the line specifically (other lines may mention draft).
         step10_line = next(
-            (line for line in captured.err.splitlines() if "[11/12]" in line),
+            (line for line in captured.err.splitlines() if "[12/13]" in line),
             "",
         )
-        assert step10_line, "Step 11 (gh release) line missing from dry-run output"
+        assert step10_line, "Step 12 (gh release) line missing from dry-run output"
         assert "--draft" not in step10_line
 
 
@@ -1561,6 +1596,11 @@ class TestPipelineVerifyGate:
         """After create succeeds, run_pipeline MUST invoke verify_release_draft."""
         invocations: list[str] = []
 
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -1588,10 +1628,12 @@ class TestPipelineVerifyGate:
             f"in-flight version; observed: {invocations}"
         )
         captured = capsys.readouterr().err
-        # Step 12 line must be emitted with the verify-draft label
+        # Step 13 line must be emitted with the verify-draft label
         # (formerly Step 11; renumbered when the #734 lifecycle gate
-        # landed at Step 3 and bumped _TOTAL_STEPS 11 -> 12).
-        assert "[12/12]" in captured
+        # landed at Step 3 and bumped _TOTAL_STEPS 11 -> 12, then again
+        # when the #784 tag-availability gate landed at Step 4 and
+        # bumped _TOTAL_STEPS 12 -> 13).
+        assert "[13/13]" in captured
         assert "Verify draft state" in captured
         assert "#724" in captured
 
@@ -1604,6 +1646,11 @@ class TestPipelineVerifyGate:
                 "verify_release_draft must NOT fire when --no-draft is set"
             )
 
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -1632,6 +1679,11 @@ class TestPipelineVerifyGate:
                 "verify_release_draft must NOT fire when --skip-release is set"
             )
 
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -1763,6 +1815,11 @@ class TestRunBuildVersionEnv:
             captured["version"] = version
             return True, f"task build ran clean (DEFT_RELEASE_VERSION={version})"
 
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", fake_build)

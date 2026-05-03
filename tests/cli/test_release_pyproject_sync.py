@@ -323,6 +323,11 @@ class TestPipelineStep5PyprojectIntegration:
         self, temp_project, monkeypatch, capsys
     ):
         """Step 5 writes pyproject.toml [project].version when present."""
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -381,6 +386,11 @@ class TestPipelineStep5PyprojectIntegration:
             check=True,
         )
 
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -423,6 +433,11 @@ class TestPipelineStep5PyprojectIntegration:
             ["git", "-C", str(project), "commit", "-q", "-m", "init"], check=True
         )
 
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -457,6 +472,11 @@ class TestPipelineStep5PyprojectIntegration:
                 "malformed pyproject",
             ],
             check=True,
+        )
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
         )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
@@ -640,6 +660,11 @@ class TestUvLockReleaseIntegration:
             check=True,
         )
 
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -718,6 +743,11 @@ class TestUvLockReleaseIntegration:
             called["count"] += 1
             return True, "uv.lock regenerated"
 
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))
@@ -752,6 +782,11 @@ class TestUvLockReleaseIntegration:
             check=True,
         )
 
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(release, "run_build", lambda *_a, **_kw: (True, "stub"))

@@ -14,7 +14,9 @@ plus the ``--allow-vbrief-drift`` escape hatch (analogous to
   the canonical fail line; SKIP under ``--allow-vbrief-drift``.
 - ``--allow-vbrief-drift`` flag wires through ``main()`` to
   ``ReleaseConfig.allow_vbrief_drift``.
-- ``_TOTAL_STEPS`` constant equals 12 (was 11 pre-#734).
+- ``_TOTAL_STEPS`` constant equals 13 (was 12 post-#734, 11 pre-#734;
+  bumped again to 13 by #784 when the new tag-availability pre-flight
+  gate landed at Step 4).
 
 Story: #734.
 """
@@ -307,6 +309,11 @@ class TestPipelineStep3:
             "check_vbrief_lifecycle_sync",
             lambda *_a, **_kw: (True, 0, "no mismatches"),
         )
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(
             release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub")
@@ -315,14 +322,24 @@ class TestPipelineStep3:
         monkeypatch.setattr(
             release, "commit_release_artifacts", lambda *_a, **_kw: (True, "stub")
         )
+        # #784: stub the new Step 4 (Pre-flight tag availability) so the
+        # pipeline can reach Step 5 without invoking gh against a
+        # synthetic temp repo.
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "local + remote clean; no GitHub release"),
+        )
         config = _make_config(temp_project_with_vbrief, skip_tag=True, skip_release=True)
         rc = release.run_pipeline(config)
         assert rc == release.EXIT_OK
         out = capsys.readouterr().err
         # Step 3 line emits the canonical OK token.
-        assert "[3/12] Pre-flight vBRIEF lifecycle sync... OK" in out
-        # Step 4 (CI) ran (proves we did not bail at Step 3).
-        assert "[4/12]" in out
+        assert "[3/13] Pre-flight vBRIEF lifecycle sync... OK" in out
+        # Step 5 (CI) ran (proves we did not bail at Step 3).
+        # CI moved from Step 4 -> Step 5 when the #784 tag-availability
+        # gate landed at Step 4.
+        assert "[5/13]" in out
 
     def test_mismatch_returns_violation(
         self, temp_project_with_vbrief, monkeypatch, capsys
@@ -349,7 +366,7 @@ class TestPipelineStep3:
         rc = release.run_pipeline(config)
         assert rc == release.EXIT_VIOLATION
         out = capsys.readouterr().err
-        assert "[3/12] Pre-flight vBRIEF lifecycle sync... FAIL" in out
+        assert "[3/13] Pre-flight vBRIEF lifecycle sync... FAIL" in out
         # Operator-actionable: the canonical recovery command MUST appear.
         assert "task reconcile:issues -- --apply-lifecycle-fixes" in out
         assert "--allow-vbrief-drift" in out
@@ -380,6 +397,11 @@ class TestPipelineStep3:
             )
 
         monkeypatch.setattr(release, "check_vbrief_lifecycle_sync", boom)
+        monkeypatch.setattr(
+            release,
+            "check_tag_available",
+            lambda *_a, **_kw: (True, "stub"),
+        )
         monkeypatch.setattr(release, "run_ci", lambda *_a, **_kw: (True, "stub"))
         monkeypatch.setattr(
             release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub")
@@ -394,7 +416,12 @@ class TestPipelineStep3:
         rc = release.run_pipeline(config)
         assert rc == release.EXIT_OK
         out = capsys.readouterr().err
-        assert "[3/12] Pre-flight vBRIEF lifecycle sync... SKIP (--allow-vbrief-drift)" in out
+        # #784: stub the new Step 4 (Pre-flight tag availability) so the
+        # pipeline can reach Step 5 without invoking gh against a
+        # synthetic temp repo.
+        # (No-op here -- the SKIP path on Step 3 short-circuits to Step 4
+        # which would still try to hit gh; stub it for safety.)
+        assert "[3/13] Pre-flight vBRIEF lifecycle sync... SKIP (--allow-vbrief-drift)" in out
 
     def test_dry_run_emits_step3_dryrun_label(
         self, temp_project_with_vbrief, capsys
@@ -404,7 +431,7 @@ class TestPipelineStep3:
         rc = release.run_pipeline(config)
         assert rc == release.EXIT_OK
         out = capsys.readouterr().err
-        assert "[3/12] Pre-flight vBRIEF lifecycle sync... DRYRUN" in out
+        assert "[3/13] Pre-flight vBRIEF lifecycle sync... DRYRUN" in out
 
 
 # ---------------------------------------------------------------------------
@@ -413,9 +440,13 @@ class TestPipelineStep3:
 
 
 class TestArgparseAndConstants:
-    def test_total_steps_constant_is_12(self):
-        """_TOTAL_STEPS bumped from 11 to 12 for the new lifecycle gate."""
-        assert release._TOTAL_STEPS == 12
+    def test_total_steps_constant_is_13(self):
+        """_TOTAL_STEPS bumped from 12 to 13 for the #784 tag-availability gate.
+
+        History: 11 (pre-#734) -> 12 (post-#734 lifecycle gate) ->
+        13 (post-#784 tag-availability gate).
+        """
+        assert release._TOTAL_STEPS == 13
 
     def test_allow_vbrief_drift_flag_lands_in_config(self, monkeypatch, tmp_path):
         captured = {}

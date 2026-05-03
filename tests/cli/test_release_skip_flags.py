@@ -123,6 +123,12 @@ class TestSkipCiAndSkipBuildFlags:
         monkeypatch.setattr(release, "run_ci", boom)
         # Stub out everything past Step 3 so the pipeline runs end-to-end
         # without touching real CI / build / git.
+        # #784: also stub the new Step 4 tag-availability gate so the
+        # synthetic temp_project (no origin remote, real-world version)
+        # does not hit the real gh / origin and produce a false FAIL.
+        monkeypatch.setattr(
+            release, "check_tag_available", lambda *_a, **_kw: (True, "stub")
+        )
         monkeypatch.setattr(
             release, "refresh_roadmap", lambda *_a, **_kw: (True, "stub")
         )
@@ -150,6 +156,12 @@ class TestSkipCiAndSkipBuildFlags:
             )
 
         monkeypatch.setattr(release, "run_build", boom)
+        # #784: stub the new Step 4 tag-availability gate so the synthetic
+        # temp_project (no origin remote, real-world version) does not
+        # hit the real gh / origin and produce a false FAIL.
+        monkeypatch.setattr(
+            release, "check_tag_available", lambda *_a, **_kw: (True, "stub")
+        )
         monkeypatch.setattr(
             release, "run_ci", lambda *_a, **_kw: (True, "stub")
         )

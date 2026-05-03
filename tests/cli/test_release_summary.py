@@ -330,15 +330,15 @@ class TestSummaryArgparse:
 
 
 # ---------------------------------------------------------------------------
-# Pipeline -- Step 4 summary thread-through (dry-run preview)
+# Pipeline -- CHANGELOG-step summary thread-through (dry-run preview)
 # ---------------------------------------------------------------------------
 
 
 class TestPipelineSummaryThreaded:
-    """Step 4 dry-run preview reflects the supplied summary."""
+    """CHANGELOG-promotion-step dry-run preview reflects the supplied summary."""
 
     def test_pipeline_summary_threaded(self, temp_project, capsys):
-        """Dry-run Step 4 line surfaces the summary so Phase 2 validation works.
+        """Dry-run CHANGELOG line surfaces the summary so Phase 2 validation works.
 
         Operator validation requires the dry-run to actually print the
         wording (truncated to ~60 chars) -- the deterministic preview
@@ -355,25 +355,26 @@ class TestPipelineSummaryThreaded:
         rc = release.run_pipeline(config)
         assert rc == release.EXIT_OK
         captured = capsys.readouterr()
-        # Step 4 dry-run line MUST surface a `summary:` token + the
+        # CHANGELOG dry-run line MUST surface a `summary:` token + the
         # supplied wording (truncated). The truncation is lenient -- we
         # assert the leading bytes are present.
-        # CHANGELOG promotion is Step 5 after the #734 lifecycle gate
-        # was inserted at Step 3 (was Step 4 pre-#734).
-        step5_line = next(
-            (line for line in captured.err.splitlines() if "[5/12]" in line),
+        # CHANGELOG promotion is Step 6 after the #784 tag-availability
+        # gate was inserted at Step 4 (was Step 5 post-#734, was Step 4
+        # pre-#734).
+        changelog_line = next(
+            (line for line in captured.err.splitlines() if "[6/13]" in line),
             "",
         )
-        assert step5_line, "CHANGELOG step line missing from dry-run output"
-        assert "summary:" in step5_line.lower(), (
+        assert changelog_line, "CHANGELOG step line missing from dry-run output"
+        assert "summary:" in changelog_line.lower(), (
             "CHANGELOG step dry-run line MUST surface the summary state; "
-            f"observed: {step5_line!r}"
+            f"observed: {changelog_line!r}"
         )
         # The leading 30 chars of the wording must be present in the line
         # so operators can verify they didn't mis-type the canonical narrative.
-        assert "Lands the new --summary blockquote" in step5_line, (
+        assert "Lands the new --summary blockquote" in changelog_line, (
             "CHANGELOG step dry-run line MUST surface the supplied wording; "
-            f"observed: {step5_line!r}"
+            f"observed: {changelog_line!r}"
         )
 
     def test_pipeline_no_summary_threaded(self, temp_project, capsys):
@@ -384,12 +385,12 @@ class TestPipelineSummaryThreaded:
         rc = release.run_pipeline(config)
         assert rc == release.EXIT_OK
         captured = capsys.readouterr()
-        step5_line = next(
-            (line for line in captured.err.splitlines() if "[5/12]" in line),
+        changelog_line = next(
+            (line for line in captured.err.splitlines() if "[6/13]" in line),
             "",
         )
-        assert step5_line
-        assert "no summary" in step5_line.lower(), (
+        assert changelog_line
+        assert "no summary" in changelog_line.lower(), (
             "CHANGELOG step dry-run line MUST announce missing summary; "
-            f"observed: {step5_line!r}"
+            f"observed: {changelog_line!r}"
         )
