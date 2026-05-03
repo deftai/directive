@@ -365,14 +365,46 @@ def _resolve_gh() -> str | None:
 
 # ---- Step 1/2 -- git pre-flight --------------------------------------------
 
+#: Programmatic use of the #747 branch-protection env-var bypass (#867).
+#: The release pipeline is the canonical authorised commit-on-master path
+#: (Steps 9/10/11 commit + tag + push release artifacts on master by
+#: design); the #747 detection-bound gate has no carve-out for it. The
+#: documented operator-side emergency-escape hatch
+#: (``DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`` per ``scripts/policy.py::ENV_BYPASS``)
+#: is reused programmatically in the subprocess env -- this is NOT a new
+#: bypass, just scoped use of the existing approved escape hatch. The
+#: parent-process ``os.environ`` is intentionally NEVER mutated; the
+#: env-var lives only in the subprocess env passed via ``env=`` so a
+#: stale value cannot leak into a subsequent operator shell session.
+_BRANCH_GATE_BYPASS_ENV = "DEFT_ALLOW_DEFAULT_BRANCH_COMMIT"
 
-def _run_git(project_root: Path, *args: str, check: bool = False) -> subprocess.CompletedProcess:
+
+def _release_subprocess_env() -> dict[str, str]:
+    """Return a copy of ``os.environ`` with the #747 branch-gate bypass set (#867).
+
+    The returned dict is suitable for passing as ``env=`` to
+    ``subprocess.run``/``_run_git`` for the release-pipeline mutations on
+    master (commit + tag + push). The parent-process environment is left
+    untouched so the bypass cannot leak to subsequent operator commands.
+    """
+    env = os.environ.copy()
+    env[_BRANCH_GATE_BYPASS_ENV] = "1"
+    return env
+
+
+def _run_git(
+    project_root: Path,
+    *args: str,
+    check: bool = False,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["git", "-C", str(project_root), *args],
         capture_output=True,
         text=True,
         timeout=30,
         check=check,
+        env=env,
     )
 
 
@@ -1026,7 +1058,12 @@ def commit_release_artifacts(
         return True, "release artifacts already up-to-date; no commit needed"
 
     subject = _release_commit_subject(version)
-    commit = _run_git(project_root, "commit", "-m", subject)
+    # #867: pass DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 in subprocess env so the
+    # #747 pre-commit hook recognises the release pipeline as the canonical
+    # authorised commit-on-master path; parent os.environ is left untouched.
+    commit = _run_git(
+        project_root, "commit", "-m", subject, env=_release_subprocess_env()
+    )
     if commit.returncode != 0:
         return False, f"git commit failed: {commit.stderr.strip()}"
     return True, f"committed release artifacts ({subject})"
@@ -1034,7 +1071,17 @@ def commit_release_artifacts(
 
 def create_tag(project_root: Path, version: str) -> tuple[bool, str]:
     tag = f"v{version}"
-    result = _run_git(project_root, "tag", "-a", tag, "-m", f"Release {tag}")
+    # #867: pass DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 -- defence-in-depth in case
+    # a future tag-side hook is wired into the #747 enforcement surface.
+    result = _run_git(
+        project_root,
+        "tag",
+        "-a",
+        tag,
+        "-m",
+        f"Release {tag}",
+        env=_release_subprocess_env(),
+    )
     if result.returncode != 0:
         return False, f"git tag failed: {result.stderr.strip()}"
     return True, f"created tag {tag}"
@@ -1052,8 +1099,17 @@ def push_release(
     `git describe` for downstream consumers.
     """
     tag = f"v{version}"
+    # #867: pass DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1 in subprocess env so the
+    # #747 pre-push hook recognises the release pipeline as the canonical
+    # authorised push-from-master path; parent os.environ is left untouched.
     result = _run_git(
-        project_root, "push", "--atomic", "origin", base_branch, tag
+        project_root,
+        "push",
+        "--atomic",
+        "origin",
+        base_branch,
+        tag,
+        env=_release_subprocess_env(),
     )
     if result.returncode != 0:
         return False, f"git push failed: {result.stderr.strip()}"
