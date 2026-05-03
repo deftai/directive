@@ -16,8 +16,8 @@ Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs
 - **#798** -- Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (deterministic tier per [AXIOM])
 - **#784** -- fix(scripts/release.py): pre-flight should verify release tag is available before state mutation
 - **#796** -- Review-cycle dual-source fetch can miss late-arriving bot reviews
-- **#800** -- swarm SKILL: prohibit git checkout in a worktree another agent owns (post-merge cleanup overreach)
-- **#814** -- scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) when printing the success glyph -- blocks every commit
+- **#800** -- swarm SKILL: prohibit `git checkout` in a worktree another agent owns (post-merge cleanup overreach)
+- **#814** -- scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) -- blocks every commit
 
 ## Phase 2
 
