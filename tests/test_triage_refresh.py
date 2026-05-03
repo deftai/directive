@@ -301,6 +301,97 @@ def test_freshness_gate_skip_warning_uses_pair_count_denominator(
     ]
 
 
+def test_record_audit_annotation_degrades_on_schema_rejection() -> None:
+    """Greptile P1 second pass (PR #875): when Story 2's ``candidates_log`` is
+    co-installed and rejects a ``freshness-annotation`` entry (the decision
+    is not in the frozen enum), ``_record_audit_annotation`` MUST degrade to
+    a stderr WARN line rather than propagate the ``ValueError`` and crash
+    the CLI on every ``proceed-with-stale`` choice.
+
+    Pre-rebase the upstream module was stubbed; post-rebase Story 2 is real
+    on master and ``_validate_entry`` raises ``CandidatesLogError`` (a
+    ``ValueError`` subclass) for both the unknown ``decision`` value and a
+    missing ``decision_id``. This test pins the defensive contract.
+    """
+    captured: list[dict] = []
+
+    class _FakeLog:
+        @staticmethod
+        def append(entry: dict) -> str:
+            captured.append(entry)
+            # Mimic the real candidates_log.CandidatesLogError
+            # (a ValueError subclass) by raising its parent class.
+            raise ValueError(
+                "decision must be one of ['accept', 'defer', 'mark-duplicate', "
+                "'needs-ac', 'reject', 'reset'], got 'freshness-annotation'"
+            )
+
+        @staticmethod
+        def new_decision_id() -> str:
+            return "00000000-0000-4000-8000-000000000000"
+
+    sink = io.StringIO()
+    # MUST NOT raise -- the schema rejection is logged, not propagated.
+    triage_refresh._record_audit_annotation(
+        "deftai/directive",
+        868,
+        "proceed-with-stale: cached=A live=B",
+        log_module=_FakeLog,
+        out=sink,
+    )
+
+    # The append call DID happen with a syntactically-complete entry --
+    # decision_id was sourced from new_decision_id, the schema rejection
+    # is purely an enum mismatch the operator can fix in a follow-up.
+    assert len(captured) == 1
+    assert captured[0]["decision_id"] == "00000000-0000-4000-8000-000000000000"
+    assert captured[0]["decision"] == "freshness-annotation"
+    assert captured[0]["repo"] == "deftai/directive"
+    assert captured[0]["issue_number"] == 868
+
+    rendered = sink.getvalue()
+    assert "WARN" in rendered
+    assert "audit annotation" in rendered
+    assert "deftai/directive#868" in rendered
+    assert "not persisted" in rendered
+
+
+def test_record_audit_annotation_uses_uuid_fallback_when_helper_missing() -> None:
+    """Greptile P1 (PR #875): when Story 2 does not expose ``new_decision_id``
+    (e.g. an older candidates_log build), the helper falls back to
+    ``uuid.uuid4()`` so the entry still satisfies the required-fields portion
+    of the schema (the decision-enum mismatch is the only remaining barrier).
+    """
+    captured: list[dict] = []
+
+    class _FakeLogNoHelper:
+        @staticmethod
+        def append(entry: dict) -> str:
+            captured.append(entry)
+            return entry["decision_id"]
+
+    sink = io.StringIO()
+    triage_refresh._record_audit_annotation(
+        "deftai/directive",
+        845,
+        "annotation",
+        log_module=_FakeLogNoHelper,
+        out=sink,
+    )
+
+    assert len(captured) == 1
+    decision_id = captured[0]["decision_id"]
+    # UUID4 v4 shape: 8-4-4-4-12 hex with version nibble '4'.
+    import re as _re
+
+    assert _re.match(
+        r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        decision_id,
+    )
+    # No WARN -- append succeeded.
+    assert sink.getvalue() == ""
+
+
 def test_extract_issue_refs_only_returns_github_issue_type(tmp_path: Path) -> None:
     """Refs of unrelated types must NOT show up in the drift detector."""
     active_dir = tmp_path / "vbrief" / "active"

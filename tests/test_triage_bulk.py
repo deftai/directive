@@ -19,6 +19,7 @@ import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -223,9 +224,13 @@ def test_invoke_action_tolerates_signature_mismatch_in_call_site(
     captured: list[tuple[int, str, str | None]] = []
     call_log: list[str] = []
 
-    def _smart_reject(*args: object, **kwargs: object) -> None:
+    def _smart_reject(*args: Any, **kwargs: Any) -> None:
         # First call raises the canonical kwarg-unsupported signature
         # ``TypeError``; the fallback positional call then succeeds.
+        # ``*args: Any`` (rather than ``object``) is required so mypy
+        # admits ``int(args[0])`` / ``str(args[1])`` -- the ``object``
+        # annotation has no overload for ``int(...)`` (Python CI mypy
+        # call-overload regression on PR #875 post-rebase).
         if kwargs:
             call_log.append("kwarg")
             raise TypeError("got an unexpected keyword argument 'reason'")

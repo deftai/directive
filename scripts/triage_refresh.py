@@ -26,6 +26,7 @@ import json
 import re
 import subprocess
 import sys
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -299,13 +300,38 @@ def _record_audit_annotation(
     *,
     actor: str = "agent:freshness-gate",
     log_module: Any | None = None,
+    out: Any | None = None,
 ) -> None:
     """Append a ``freshness-annotation`` entry via Story 2's ``candidates_log``.
 
     No-op if Story 2 isn't on the import path (the surrounding stdout line is
     still the user-visible signal).
+
+    Story 2 (``candidates_log``) ships a FROZEN decision vocabulary --
+    ``{accept, reject, defer, needs-ac, mark-duplicate, reset}`` -- and a
+    hand-rolled ``_validate_entry`` that raises ``CandidatesLogError`` (a
+    ``ValueError`` subclass) when an entry's ``decision`` falls outside that
+    set or required fields are missing. ``freshness-annotation`` is a
+    deliberate Story 4 extension that Story 2 does not yet recognize. Pre-
+    rebase this code stubbed ``candidates_log`` so the schema mismatch never
+    surfaced; post-rebase the real Story 2 module catches it and would
+    propagate the exception through ``refresh_active`` and crash the CLI on
+    every ``proceed-with-stale`` choice (Greptile P1, PR #875).
+
+    Defensive contract:
+
+    - Generate a UUID4 ``decision_id`` (using Story 2's ``new_decision_id`` if
+      exposed) so the entry satisfies the required-fields portion of the
+      schema even when the decision-enum portion will reject it.
+    - Wrap ``append`` in ``try/except`` catching ``ValueError`` (the parent of
+      ``CandidatesLogError``) so a schema mismatch degrades to a stderr
+      warning rather than a fatal exception. The user-visible stdout line in
+      :func:`refresh_active` (``proceed-with-stale (audit recorded)``) is
+      still emitted by the caller; the operator now sees a clear ``WARN``
+      explaining the annotation was not persisted.
     """
 
+    sink = out or sys.stderr
     if log_module is None:
         for candidate in ("candidates_log", "scripts.candidates_log"):
             try:
@@ -318,16 +344,37 @@ def _record_audit_annotation(
     append = getattr(log_module, "append", None)
     if not callable(append):
         return
-    append(
-        {
-            "decision": "freshness-annotation",
-            "repo": repo,
-            "issue_number": issue_number,
-            "actor": actor,
-            "reason": annotation,
-            "timestamp": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        }
-    )
+
+    new_id = getattr(log_module, "new_decision_id", None)
+    decision_id = str(new_id()) if callable(new_id) else str(uuid.uuid4())
+
+    entry = {
+        "decision_id": decision_id,
+        "decision": "freshness-annotation",
+        "repo": repo,
+        "issue_number": issue_number,
+        "actor": actor,
+        "reason": annotation,
+        "timestamp": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    try:
+        append(entry)
+    except ValueError as exc:
+        # ``candidates_log.CandidatesLogError`` is a ``ValueError`` subclass.
+        # Catching the parent class keeps us decoupled from importing the
+        # exception type and survives a future enum extension that drops the
+        # subclass alias.
+        print(
+            (
+                f"[triage:refresh-active] WARN: audit annotation for "
+                f"{repo}#{issue_number} not persisted -- candidates_log "
+                f"rejected the entry ({type(exc).__name__}: {exc}). The "
+                f"proceed-with-stale choice has been logged to stdout but "
+                f"the JSONL trail does not yet recognize 'freshness-"
+                f"annotation'; extend the Story 2 schema to capture it."
+            ),
+            file=sink,
+        )
 
 
 # ---------------------------------------------------------------------------
