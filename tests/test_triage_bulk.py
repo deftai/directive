@@ -1,0 +1,174 @@
+"""Tests for scripts/triage_bulk.py (#845 Story 4 AC #4 -- bulk cases).
+
+Covers Test narrative items (1)-(3) from the Story 4 vBRIEF:
+
+- (1) bulk-accept with --label fixture
+- (2) combined --label --age-days filters
+- (3) zero-match returns clean exit
+
+Story 3's ``triage_actions`` module may not yet be on the import path. Tests
+inject a stub via the ``actions_module`` parameter to keep the suite hermetic.
+"""
+
+from __future__ import annotations
+
+import importlib
+import io
+import sys
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+# Surface scripts/ on sys.path so we can import triage_bulk by short name; this
+# matches how the production Taskfile target dispatches the script (`uv run
+# python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" ...`).
+_SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+triage_bulk = importlib.import_module("triage_bulk")
+
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
+
+
+def _issue(
+    number: int,
+    *,
+    labels: list[str] | None = None,
+    author: str = "octocat",
+    days_old: int = 0,
+) -> dict[str, object]:
+    """Build a minimal ``gh issue list --json`` shaped record."""
+    created = datetime.now(UTC) - timedelta(days=days_old)
+    return {
+        "number": number,
+        "title": f"Issue {number}",
+        "labels": [{"name": name} for name in (labels or [])],
+        "author": {"login": author},
+        "createdAt": created.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "updatedAt": created.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+
+
+@pytest.fixture
+def stub_actions_module() -> SimpleNamespace:
+    """A namespace-shaped stub of Story 3's ``triage_actions``.
+
+    Each callable records every (action, n, repo, kwargs) invocation onto the
+    ``calls`` list so tests can assert per-action loop semantics.
+    """
+    calls: list[tuple[str, int, str, dict[str, object]]] = []
+
+    def _record(name: str):
+        def _fn(n: int, repo: str, **kwargs: object) -> None:
+            calls.append((name, n, repo, kwargs))
+
+        return _fn
+
+    return SimpleNamespace(
+        accept=_record("accept"),
+        reject=_record("reject"),
+        defer=_record("defer"),
+        needs_ac=_record("needs-ac"),
+        calls=calls,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+
+def test_bulk_accept_filters_by_label(stub_actions_module: SimpleNamespace) -> None:
+    """(1) bulk-accept --label fixture loops Story 3.accept only over matched."""
+    issues = [
+        _issue(101, labels=["triage", "bug"]),
+        _issue(102, labels=["enhancement"]),
+        _issue(103, labels=["bug"]),
+    ]
+    out = io.StringIO()
+
+    actioned = triage_bulk.bulk_action(
+        "accept",
+        "deftai/directive",
+        label="bug",
+        actions_module=stub_actions_module,
+        issues_provider=lambda _repo: issues,
+        out=out,
+    )
+
+    assert actioned == 2
+    actioned_numbers = sorted(call[1] for call in stub_actions_module.calls)
+    assert actioned_numbers == [101, 103]
+    # Every recorded call goes through accept (no other Story 3 fn invoked).
+    assert {call[0] for call in stub_actions_module.calls} == {"accept"}
+    # User-visible total line emitted.
+    assert "[triage:bulk-accept] total: 2" in out.getvalue()
+
+
+def test_bulk_accept_combined_label_and_age_days(
+    stub_actions_module: SimpleNamespace,
+) -> None:
+    """(2) Combined --label --age-days filters apply with AND semantics."""
+    issues = [
+        _issue(201, labels=["bug"], days_old=10),  # matches both -> ACTION
+        _issue(202, labels=["bug"], days_old=2),  # too fresh -> SKIP
+        _issue(203, labels=["docs"], days_old=30),  # wrong label -> SKIP
+        _issue(204, labels=["bug", "p0"], days_old=15),  # matches both -> ACTION
+    ]
+    out = io.StringIO()
+
+    actioned = triage_bulk.bulk_action(
+        "accept",
+        "deftai/directive",
+        label="bug",
+        age_days=7,
+        actions_module=stub_actions_module,
+        issues_provider=lambda _repo: issues,
+        out=out,
+    )
+
+    assert actioned == 2
+    actioned_numbers = sorted(call[1] for call in stub_actions_module.calls)
+    assert actioned_numbers == [201, 204]
+
+
+def test_bulk_action_zero_match_clean_exit(
+    stub_actions_module: SimpleNamespace,
+) -> None:
+    """(3) Zero-match exits cleanly with status 0 + single summary line."""
+    issues = [_issue(301, labels=["docs"])]
+    out = io.StringIO()
+
+    actioned = triage_bulk.bulk_action(
+        "accept",
+        "deftai/directive",
+        label="nonexistent-label",
+        actions_module=stub_actions_module,
+        issues_provider=lambda _repo: issues,
+        out=out,
+    )
+
+    assert actioned == 0
+    assert stub_actions_module.calls == []
+    rendered = out.getvalue()
+    assert "[triage:bulk-accept] zero matches for given filters" in rendered
+    # No per-issue "actioned" lines emitted on the zero-match path.
+    assert "actioned" not in rendered.replace("zero matches", "")
+
+
+def test_main_zero_match_exits_zero(
+    stub_actions_module: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The CLI ``main`` returns 0 on zero-match per Story 4 Constraint."""
+    monkeypatch.setitem(sys.modules, "triage_actions", stub_actions_module)
+    monkeypatch.setattr(triage_bulk, "_list_open_issues", lambda _repo: [])
+
+    rc = triage_bulk.main(["accept", "--repo", "deftai/directive", "--label", "anything"])
+    assert rc == 0

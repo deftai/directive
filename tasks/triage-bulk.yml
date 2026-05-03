@@ -1,0 +1,62 @@
+version: '3'
+
+# tasks/triage-bulk.yml -- Story 4 of #845.
+#
+# STANDALONE Taskfile fragment. NOT yet wired into the parent ../Taskfile.yml
+# `includes:` block -- the cross-cutting wiring is owned by Story 6 (Agent A6,
+# scripts/triage_bootstrap.py + tasks/triage-bootstrap.yml). This file
+# documents the user-facing surface so Story 6 can ingest it verbatim.
+#
+# Per `conventions/task-caching.md` (#574): every target here accepts user
+# flags via `{{.CLI_ARGS}}` (--label, --author, --age-days, --cluster,
+# --reason, --repo) so MUST NOT declare `sources:` / `generates:` -- the
+# cached cmds: skip would silently swallow the recovery flag.
+#
+# Path resolution mirrors the convention from tasks/issue.yml + tasks/policy.yml:
+# `DEFT_ROOT` is defined locally via `joinPath .TASKFILE_DIR ".."` so
+# `uv run python "{{.DEFT_ROOT}}/scripts/<name>.py"` resolves cleanly on
+# Windows under go-task's mvdan/sh interpreter (#566).
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  bulk-accept:
+    desc: "Bulk accept candidates (#845 Story 4) -- task triage:bulk-accept -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" accept {{.CLI_ARGS}}
+
+  bulk-reject:
+    desc: "Bulk reject candidates (#845 Story 4) -- task triage:bulk-reject -- --repo OWNER/NAME --reason 'why' [--label L] [--author A] [--age-days N] [--cluster C]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" reject {{.CLI_ARGS}}
+
+  bulk-defer:
+    desc: "Bulk defer candidates (#845 Story 4) -- task triage:bulk-defer -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" defer {{.CLI_ARGS}}
+
+  bulk-needs-ac:
+    desc: "Bulk needs-ac candidates (#845 Story 4) -- task triage:bulk-needs-ac -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" needs-ac {{.CLI_ARGS}}
+
+  refresh-active:
+    desc: "Pre-swarm freshness gate (#845 Story 4) -- detects drift between cached and live `gh issue view` for every issue referenced in vbrief/active/*.vbrief.json"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_refresh.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

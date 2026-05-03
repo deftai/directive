@@ -1,0 +1,237 @@
+"""Tests for scripts/triage_refresh.py (#845 Story 4 AC #4 -- freshness cases).
+
+Covers Test narrative items (4)-(6) from the Story 4 vBRIEF:
+
+- (4) freshness gate empty active is no-op
+- (5) freshness gate single-drift surfaces three-way prompt (mock user input)
+- (6) freshness gate proceed-with-stale records audit annotation
+
+The Story 1 cache loader and Story 2 audit log are stubbed by passing
+explicit ``cache_loader`` / ``audit_writer`` callables to ``refresh_active``,
+keeping the suite hermetic against the upstream module landing order.
+"""
+
+from __future__ import annotations
+
+import importlib
+import io
+import json
+import sys
+from collections import deque
+from pathlib import Path
+
+# Surface scripts/ on sys.path so we can import triage_refresh by short name;
+# matches how the production Taskfile target dispatches the script.
+_SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+triage_refresh = importlib.import_module("triage_refresh")
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _write_active_vbrief(
+    active_dir: Path,
+    *,
+    name: str,
+    repo: str,
+    issue_number: int,
+) -> Path:
+    """Write a minimal v0.6 active vBRIEF that references a single issue."""
+    active_dir.mkdir(parents=True, exist_ok=True)
+    path = active_dir / name
+    payload = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {
+            "title": f"Test scope -- {repo}#{issue_number}",
+            "status": "running",
+            "items": [],
+            "references": [
+                {
+                    "type": "x-vbrief/github-issue",
+                    "uri": f"https://github.com/{repo}/issues/{issue_number}",
+                    "title": f"Issue #{issue_number}",
+                }
+            ],
+        },
+    }
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return path
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+
+def test_freshness_gate_empty_active_is_noop(tmp_path: Path) -> None:
+    """(4) Empty vbrief/active/ exits cleanly without any drift detection."""
+    project_root = tmp_path
+    active_dir = project_root / "vbrief" / "active"
+    active_dir.mkdir(parents=True)
+
+    # Sentinels: any call MUST NOT happen -- raise on touch.
+    def _explode_fetch(_repo: str, _n: int) -> str:
+        raise AssertionError("fetch_live MUST NOT be called on empty active/")
+
+    def _explode_cache(_repo: str, _n: int, _root: Path) -> str | None:
+        raise AssertionError("cache_loader MUST NOT be called on empty active/")
+
+    out = io.StringIO()
+    summary = triage_refresh.refresh_active(
+        project_root,
+        fetch_live=_explode_fetch,
+        cache_loader=_explode_cache,
+        out=out,
+    )
+
+    assert summary.total_active == 0
+    assert summary.drifts_detected == 0
+    assert summary.proceeded == []
+    assert summary.refreshed == []
+    assert summary.deferred == []
+    assert "no-op" in out.getvalue()
+
+
+def test_freshness_gate_single_drift_three_way_prompt_defer(
+    tmp_path: Path,
+) -> None:
+    """(5) Single drift surfaces the three-way prompt; defer routes correctly."""
+    project_root = tmp_path
+    active_dir = project_root / "vbrief" / "active"
+    _write_active_vbrief(
+        active_dir,
+        name="2026-05-03-foo.vbrief.json",
+        repo="deftai/directive",
+        issue_number=845,
+    )
+
+    fetch_calls: list[tuple[str, int]] = []
+
+    def _fake_fetch(repo: str, n: int) -> str:
+        fetch_calls.append((repo, n))
+        return "2026-05-03T20:00:00Z"  # live drift vs cached "T16"
+
+    def _fake_cache(_repo: str, _n: int, _root: Path) -> str | None:
+        return "2026-05-03T16:00:00Z"
+
+    prompt_calls: list[str] = []
+
+    def _input_fn(prompt: str) -> str:
+        prompt_calls.append(prompt)
+        return "3"  # defer-from-this-batch
+
+    out = io.StringIO()
+    summary = triage_refresh.refresh_active(
+        project_root,
+        fetch_live=_fake_fetch,
+        cache_loader=_fake_cache,
+        input_fn=_input_fn,
+        out=out,
+    )
+
+    # Drift was detected exactly once (one issue ref).
+    assert fetch_calls == [("deftai/directive", 845)]
+    assert summary.drifts_detected == 1
+    # Prompt was actually surfaced to the user.
+    assert prompt_calls and "1/2/3" in prompt_calls[0]
+    # User chose defer -> routed correctly.
+    assert summary.deferred == [("deftai/directive", 845)]
+    assert summary.proceeded == []
+    assert summary.refreshed == []
+    rendered = out.getvalue()
+    # All three options were rendered to the user.
+    for option in ("proceed-with-stale", "refresh-and-update-local", "defer-from-this-batch"):
+        assert option in rendered
+
+
+def test_freshness_gate_proceed_with_stale_records_audit_annotation(
+    tmp_path: Path,
+) -> None:
+    """(6) ``proceed-with-stale`` invokes audit_writer with cached/live values."""
+    project_root = tmp_path
+    active_dir = project_root / "vbrief" / "active"
+    _write_active_vbrief(
+        active_dir,
+        name="2026-05-03-bar.vbrief.json",
+        repo="deftai/directive",
+        issue_number=868,
+    )
+
+    audit_calls: list[tuple[str, int, str]] = []
+    refresh_calls: list[tuple[str, int, Path]] = []
+
+    def _fake_fetch(_repo: str, _n: int) -> str:
+        return "2026-05-03T20:00:00Z"
+
+    def _fake_cache(_repo: str, _n: int, _root: Path) -> str | None:
+        return "2026-05-03T16:00:00Z"
+
+    def _audit(repo: str, issue_number: int, annotation: str) -> None:
+        audit_calls.append((repo, issue_number, annotation))
+
+    def _refresh(repo: str, issue_number: int, root: Path) -> None:
+        refresh_calls.append((repo, issue_number, root))
+
+    # Queue: choose proceed-with-stale on first prompt.
+    responses: deque[str] = deque(["1"])
+
+    def _input_fn(_prompt: str) -> str:
+        return responses.popleft()
+
+    out = io.StringIO()
+    summary = triage_refresh.refresh_active(
+        project_root,
+        fetch_live=_fake_fetch,
+        cache_loader=_fake_cache,
+        input_fn=_input_fn,
+        audit_writer=_audit,
+        refresh_local=_refresh,
+        out=out,
+    )
+
+    # Audit annotation written exactly once with cached + live in the body.
+    assert len(audit_calls) == 1
+    repo, num, annotation = audit_calls[0]
+    assert (repo, num) == ("deftai/directive", 868)
+    assert "proceed-with-stale" in annotation
+    assert "2026-05-03T16:00:00Z" in annotation  # cached
+    assert "2026-05-03T20:00:00Z" in annotation  # live
+    # No refresh side-effect on the proceed path.
+    assert refresh_calls == []
+    # Summary records the proceeded item.
+    assert summary.proceeded == [("deftai/directive", 868)]
+    assert "audit recorded" in out.getvalue()
+
+
+def test_extract_issue_refs_only_returns_github_issue_type(tmp_path: Path) -> None:
+    """Refs of unrelated types must NOT show up in the drift detector."""
+    active_dir = tmp_path / "vbrief" / "active"
+    active_dir.mkdir(parents=True)
+    payload = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {
+            "title": "Mixed refs",
+            "status": "running",
+            "items": [],
+            "references": [
+                {
+                    "type": "x-vbrief/related-plan",
+                    "uri": "https://github.com/deftai/directive/issues/999",
+                },
+                {
+                    "type": "x-vbrief/github-issue",
+                    "uri": "https://github.com/deftai/directive/issues/845",
+                },
+            ],
+        },
+    }
+    path = active_dir / "2026-05-03-mixed.vbrief.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    refs = triage_refresh.extract_issue_refs(path)
+    assert refs == [("deftai/directive", 845)]
