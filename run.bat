@@ -22,7 +22,11 @@ if %MAJOR% LSS 3 goto :need_upgrade
 if %MAJOR% EQU 3 if %MINOR% LSS 13 goto :need_upgrade
 
 REM Run with all passed arguments
-python.exe run %*
+REM Resolve `run` against the directory of this batch file (%~dp0, trailing
+REM backslash) so `..\deft\run.bat <cmd>` works from any consumer CWD; the
+REM bare token resolves against the caller's CWD on Windows and broke the
+REM documented `..\deft\run upgrade` flow (#791).
+python.exe "%~dp0run" %*
 exit /b %errorlevel%
 
 :need_upgrade
