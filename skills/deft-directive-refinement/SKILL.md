@@ -20,13 +20,15 @@ Conversational refinement session -- ingest, evaluate, reconcile, and prioritize
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
+**See also**: [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) (canonical numbered-menu rule used by every Phase 0 / Phase 2-5 gate below) | `task triage:cache` / `task triage:bootstrap` / `task triage:accept` / `task triage:reject` / `task triage:defer` / `task triage:needs-ac` / `task triage:mark-duplicate` / `task triage:bulk` / `task triage:refresh` (Phase 0 task surface introduced under #845).
+
 ## Platform Requirements
 
 ! This skill requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** to be installed and authenticated. Issue ingestion, origin freshness checks, and completion lifecycle all depend on `gh`.
 
 ## Deterministic Questions Contract
 
-! Every numbered-menu prompt rendered in this skill (Phase 2 Evaluate per-item accept/reject, Phase 3 Reconcile flagged-item walk, Phase 4 Promote/Demote lifecycle gates, Phase 5 Prioritize reorder gates) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. Implicit resumption is forbidden.
+! Every numbered-menu prompt rendered in this skill (Phase 0 Triage action menu, Phase 2 Evaluate per-item accept/reject, Phase 3 Reconcile flagged-item walk, Phase 4 Promote/Demote lifecycle gates, Phase 5 Prioritize reorder gates) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. Implicit resumption is forbidden.
 
 ## When to Use
 
@@ -34,6 +36,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - New issues have accumulated since the last refinement session
 - Periodic maintenance pass (e.g. weekly or after a batch of user feedback)
 - User wants to review and organize the backlog
+
+! **Entry point (#845).** Phase 0 -- Triage (cache + action menu) is the new canonical entry point for any refinement that begins from a populated `.deft-cache/issues/` mirror or a non-empty `vbrief/.eval/candidates.jsonl` audit log. Phase 0 routes each cached candidate through `task triage:accept|reject|defer|needs-ac|mark-duplicate` so that **only accepted items reach `vbrief/proposed/`**, eliminating the pre-#845 "ingest-everything-then-evaluate" drift in `proposed/`. Phase 0 ! MUST chain into Phase 1 -- Ingest after the action menu is exhausted (or auto-skip when the cache is empty -- see Phase 0 below). Phase 1+ semantics are unchanged.
 
 ## Prerequisites
 
@@ -45,6 +49,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 Refinement is a **conversational loop**, not a batch job. The user directs the flow:
 
+- "Triage" / "action menu" / "work the cache" / "pre-ingest" -> Phase 0 (Triage -- cache + action menu, #845)
 - "Pull in issues" / "ingest" -> Phase 1 (Ingest)
 - "Show proposed" / "evaluate" -> Phase 2 (Evaluate)
 - "Check origins" / "reconcile" -> Phase 3 (Reconcile)
@@ -55,13 +60,88 @@ Refinement is a **conversational loop**, not a batch job. The user directs the f
 
 The agent may suggest the next phase, but the user decides. Phases can be entered in any order and repeated.
 
-## Phase 0 -- Branch Setup
+## Branch Setup (Preflight)
 
-! Before making any changes, ensure you are working on a feature branch.
+! Before making any changes, ensure you are working on a feature branch. This preflight runs before Phase 0 and again before Phase 1 if Phase 0 is auto-skipped.
 
 1. ! Check if the working tree has uncommitted changes that would conflict -- stop and ask the user to resolve them first
 2. ! Create or switch to a refinement branch (e.g. `refinement/YYYY-MM-DD`) if not already on one
 3. ! Confirm the branch and working directory to the user before proceeding
+
+## Phase 0 -- Triage (Cache + Action Menu)
+
+! Phase 0 is the canonical pre-ingest entry point introduced under #845. It operates on the **three-tier inventory model** so that `vbrief/proposed/` only ever contains items the user has explicitly accepted. Phase 0 ! MUST chain into Phase 1 -- Ingest on completion (or auto-skip into Phase 1 when the cache is empty -- see Step 1 below). Numbered prompts in Phase 0 ! MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) -- the final two numbered options are `Discuss` and `Back`, in that order, and the Discuss-pause semantic from the contract applies verbatim.
+
+### Three-Tier Inventory Model
+
+Phase 0 reads and writes three distinct tiers; ! MUST NOT collapse any pair into a single store:
+
+- **Tier 1 -- `.deft-cache/issues/` (local mirror).** Full-fidelity local cache of fetched issue bodies/labels/state, populated by `task triage:cache` (and refreshed by `task triage:refresh` ahead of swarm dispatch). Mirror is gitignored; #583 quarantine rules apply on the cache path. This is the **read** surface for Phase 0 -- the agent works from the cache, not from live `gh` calls, so triage decisions are reproducible across re-runs.
+- **Tier 2 -- `vbrief/.eval/candidates.jsonl` (audit log).** Append-only JSONL recording every candidate the user has ever seen plus the action taken (`accept | reject | defer | needs-ac | mark-duplicate`) and timestamp. Frozen schema lives at `vbrief/schemas/candidates.schema.json`. This is the **memory** surface -- a re-run of Phase 0 against the same cache short-circuits items that already have a terminal entry in the log.
+- **Tier 3 -- `vbrief/proposed/` (accepted-only).** Standard scope-vBRIEF lifecycle folder. Phase 0 only writes here on `accept`; everything else stays out of `proposed/` so the folder's semantic is once again "backlog the user has agreed to consider." `task triage:accept` is the canonical write path -- it delegates the actual vBRIEF authoring to `task issue:ingest` so slug/reference/schema rules stay in one place (#537).
+
+! MUST NOT bypass Tier 1 by triaging directly off `gh issue list` output -- the cache is the source of truth for Phase 0; reading live exposes the agent to mid-triage drift the audit log cannot reconstruct.
+! MUST NOT bypass Tier 2 by writing accepted items to `proposed/` without first appending the corresponding `accept` record to `vbrief/.eval/candidates.jsonl` -- the audit log is the only durable record of decline/defer decisions; proposed/ alone cannot answer "why didn't this candidate make it in?".
+
+### Trigger Conditions
+
+Phase 0 is entered when **any** of the following hold:
+
+- The user types one of the trigger phrases ("triage", "action menu", "work the cache", "pre-ingest")
+- The skill is entered via the standard refinement triggers AND `.deft-cache/issues/` is non-empty OR `vbrief/.eval/candidates.jsonl` contains at least one candidate without a terminal action
+- The user explicitly invokes `task triage:bootstrap` (which seeds the cache) prior to entering refinement
+
+### Step 1: Auto-Skip Probe
+
+! Before any user prompt, the agent MUST probe the cache state and decide whether Phase 0 has any work to do:
+
+1. ! Check whether `.deft-cache/issues/` exists AND contains at least one cached issue file.
+2. ! Check whether `vbrief/.eval/candidates.jsonl` exists AND contains at least one record without a terminal action (`accept | reject | mark-duplicate`); `defer` and `needs-ac` are non-terminal and DO count as outstanding work.
+3. ! If BOTH probes return empty (cache missing/empty AND audit log missing/empty-of-non-terminals), Phase 0 ! MUST emit the verbatim informational message and ! MUST chain directly into Phase 1 without prompting:
+
+   ```
+   triage cache empty -- skipping Phase 0; opt in via `task triage:bootstrap`
+   ```
+
+4. ! Otherwise, surface a one-line summary (e.g. `triage cache: {N} cached issues, {M} outstanding candidates`) and proceed to Step 2.
+
+⊗ Prompt the user with the action menu when the auto-skip condition is met -- the message above is the only user-visible output before chaining into Phase 1.
+⊗ Treat `defer` or `needs-ac` records as terminal during the auto-skip probe -- those statuses mean "come back to this later" and MUST keep Phase 0 alive on the next re-entry.
+
+### Step 2: Refresh the Cache (Optional)
+
+~ When the user wants to start from a known-fresh state (e.g. immediately before a swarm dispatch), run `task triage:refresh` to re-sync the cache from `gh` and update the candidate log. The refresh task is idempotent and respects the #583 quarantine rules on the cache path. Skip this step on subsequent passes within the same session unless the user explicitly asks for it.
+
+### Step 3: Walk Each Candidate -- Action Menu
+
+! For each cached candidate without a terminal entry in `vbrief/.eval/candidates.jsonl`, present the candidate to the user (title, origin URL, labels, body excerpt) and render the canonical numbered action menu. The menu ! MUST be rendered exactly in the order below so the deterministic-questions contract is satisfied (`Discuss` and `Back` are the final two options):
+
+```
+What would you like to do with this candidate?
+  1. Accept       -- delegate to `task triage:accept <issue>` (writes proposed/ vBRIEF + audit-log entry)
+  2. Reject       -- delegate to `task triage:reject <issue>` (audit-log entry only; nothing written to proposed/)
+  3. Defer        -- delegate to `task triage:defer <issue>` (non-terminal; resurfaces on the next Phase 0 pass)
+  4. Needs-AC     -- delegate to `task triage:needs-ac <issue>` (non-terminal; flags missing acceptance criteria for follow-up)
+  5. Mark duplicate -- delegate to `task triage:mark-duplicate <issue> <of-issue>` (terminal; cross-links the duplicate target)
+  6. Discuss
+  7. Back
+```
+
+- ! Each action option ! MUST route to the corresponding `task triage:*` command introduced under Stories 1-4 of #845. Skills MUST NOT reimplement the audit-log append, schema validation, or `proposed/` write inline -- the tasks are the canonical implementation (mirrors the #537 ingest-task discipline).
+- ! On `Discuss`, halt the action menu sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal per the deterministic-questions contract. ⊗ Implicit resumption.
+- ! On `Back`, treat the prior candidate's action as un-answered and re-render its action menu (this lets the user undo a misclick without re-running the entire triage pass).
+- ~ Bulk operations: when the user has a clear pattern (e.g. "reject every `wontfix`-labelled candidate"), use `task triage:bulk -- --action reject --label wontfix` (Story 4) instead of walking the menu N times. Bulk results still flow through the audit log so the action history stays coherent.
+
+### Step 4: Pre-Phase-1 Handoff
+
+! When the action menu is exhausted (every cached candidate has a terminal action OR the user opts to stop), Phase 0 ! MUST:
+
+1. ! Surface a session summary (`{accepted}/{rejected}/{deferred}/{needs-ac}/{duplicates} of {total} candidates`) so the user can see what landed in `proposed/`.
+2. ! Chain into Phase 1 -- Ingest, which now runs against `vbrief/proposed/` containing only user-accepted items. Phase 1 dedup against existing references is unchanged; the dedup surface is just smaller because rejected/deferred candidates never wrote a vBRIEF.
+3. ! If the user opts out of Phase 1 (e.g. "that's it for today"), exit gracefully and surface the EXIT confirmation per `## EXIT`. Outstanding `defer` / `needs-ac` candidates remain in the audit log for the next Phase 0 entry.
+
+⊗ Skip Phase 1 silently after Phase 0 -- always render the chaining decision so the user knows the entry point shifted.
+⊗ Mutate `vbrief/proposed/` directly during Phase 0 -- only `task triage:accept` (which itself delegates to `task issue:ingest`) is allowed to write there.
 
 ## Phase 1 -- Ingest
 
@@ -276,6 +356,9 @@ After all refinement work is complete:
 
 ## Anti-Patterns
 
+- ⊗ Bypass Phase 0 by triaging directly off `gh issue list` -- the `.deft-cache/issues/` mirror is the source of truth (#845)
+- ⊗ Write accepted Phase 0 items to `vbrief/proposed/` without first appending the corresponding `accept` record to `vbrief/.eval/candidates.jsonl` (#845)
+- ⊗ Skip Phase 1 silently after Phase 0 -- always render the chaining decision so the user knows the entry point shifted (#845)
 - ⊗ Auto-accept or auto-reject proposed items without user review
 - ⊗ Create vBRIEFs without origin provenance (`references` linking to the source)
 - ⊗ Ingest items without deduplicating against existing vBRIEF references first
