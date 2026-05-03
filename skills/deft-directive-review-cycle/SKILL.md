@@ -99,6 +99,12 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 ⊗ Report "all comments resolved" without verifying both sources.
 ⊗ Skip the second review source without probing for MCP capability and documenting the fallback used.
 
+~ **Late-arriving bot review re-check:** If the initial dual-source fetch returns no bot review on the current HEAD SHA, wait ~60s and re-fetch before evaluating the Step 6 exit condition. Bot reviewers (Greptile) typically land within 3-7 min of PR creation/push; an empty first pass is more likely "review pending" than "review clean".
+
+⊗ Declare the exit condition met based on a single fetch that returned no bot review — re-fetch at least once after a ~60s delay first.
+
+~ This codifies a user-rule precedent on late-arriving bot reviews into the deft-internal deterministic tier. The [`templates/swarm-greptile-poller-prompt.md`](../../templates/swarm-greptile-poller-prompt.md) loop body already handles the same case for push-driven cycles via its per-poll fetch -- the rule above closes the orthogonal cold-start path where the one-shot review-cycle entry runs on a freshly-opened PR before any fix push has triggered the Step 4 polling loop.
+
 ### Step 2: Analyze ALL findings before changing anything
 
 ! Before making any changes:
