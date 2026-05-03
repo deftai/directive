@@ -450,7 +450,10 @@ This is defense in depth -- run it even when the pre-merge inspection above pass
 
 ### Step 3: Update Master
 
-- ! Pull merged changes: `git pull origin <configured-base-branch>`
+- ! Pull merged changes: `git pull origin <configured-base-branch>` from the merger's OWN worktree only.
+- ⊗ Run `git checkout` (any branch) in a worktree the merging agent does not own. Post-merge `git pull origin <base-branch>` semantics MUST be performed via `git fetch origin <base-branch>` from the merger's own worktree, OR by leaving the master update entirely to the human operator. NEVER touch HEAD of a sibling worktree another agent is using.
+- ! After a successful squash merge, the merger MAY remove its own worktree via `git worktree remove <path>` and delete the now-orphaned local feature branch via `git branch -D <branch>`. The merger MUST NOT alter any other worktree's HEAD or branch state.
+- ! **Worktree-boundary discipline (#800, companion to #727):** the `⊗` rule above extends the same boundary discipline as the `### Sub-Agent Role Separation (#727)` companion rules earlier in Phase 6 -- #727 codifies sub-agent spawn shape; #800 codifies worktree HEAD operations. Recurrence record: PR #797 merge session (2026-05-01) -- Agent B (the merger) ran `cd C:\repos\Deft\directive; git checkout master --quiet` against Agent A's sibling worktree after merging its own PR; HEAD detached on Agent A's branch and was retroactively restored. No work was lost (Agent A had pushed) but recovery was incident-driven, not preventative.
 
 ### Step 4: Clean Up
 
@@ -610,3 +613,4 @@ CONSTRAINTS:
 - ⊗ Run `gh pr merge` on a PR that has any protected (umbrella / staying-OPEN) issue listed in `gh pr view <N> --json closingIssuesReferences` -- the link is persistent in GitHub's database from a prior PR body revision (or sidebar attachment) and survives body edits, commit-message edits, and explicit `--subject` / `--body-file` overrides; manually unlink via the PR's Development sidebar panel before merging (Layer 3, #701)
 - ⊗ Skip the post-merge protected-issue reopen sweep for any squash merge that referenced an umbrella / staying-OPEN issue -- defense in depth catches Layer 3 false-positives the pre-merge inspection missed (#701)
 - ⊗ Merge on the basis of a SUCCESS Greptile CheckRun alone -- the CheckRun signals review **completion**, not review **approval** (PR #652 incident; symmetric blind spot to the NEUTRAL CheckRun #526 case). Always run `task pr:merge-ready -- <N>` before `gh pr merge` to parse the comment body for confidence + P0 / P1 findings
+- ⊗ Run `git checkout` (any branch) -- including the brief `cd <other-worktree>; git checkout master --quiet` shape -- in a worktree the merging agent does not own during Phase 6 Step 3 (Update Master) or Step 4 (Clean Up). Post-merge state-update semantics MUST be performed via `git fetch origin <base-branch>` from the merger's OWN worktree, never by switching HEAD on a sibling worktree another agent is actively using. Recurrence record: PR #797 merge session (2026-05-01); companion to the Sub-Agent Role Separation rules (#727) -- this anti-pattern extends the same boundary discipline from sub-agent spawn shape to worktree HEAD operations (#800)
