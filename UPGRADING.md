@@ -8,6 +8,43 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
+## From pre-#768 AGENTS.md → managed-section AGENTS.md
+
+- **Applies when:** `./AGENTS.md` exists at your project root AND does **not** contain the `<!-- deft:managed-section v1 -->` and `<!-- /deft:managed-section -->` sentinel markers. This is the canonical pre-#768 state -- the file pre-dates the Deft-managed-section contract added in v0.20.0 (#768) -- and is reported as `agents-md=missing` by `deft/run gate`. (Distinct from `agents-md=absent`, which means no `AGENTS.md` exists at all.)
+- **Safe to auto-run:** Yes. `deft/run agents:refresh` performs a **one-time legacy migration**: your existing `AGENTS.md` content is preserved verbatim ABOVE the rendered managed-section block (separated by one blank line). The framework only ever owns the bytes between the two sentinel markers; content outside that bracketed region is never modified. Run `deft/run agents:refresh --dry-run` first to preview the planned change, or `deft/run agents:refresh --check` to interrogate the current state without writing.
+- **Restart required:** Yes -- after the managed section is appended, the agent's current session still holds the pre-#768 `AGENTS.md` in context. Start a new agent session so the refreshed `AGENTS.md` (Implementation Intent Gate, Branch Policy Disclosure, Pre-Cutover Check, etc.) is loaded from a clean context.
+- **Commands:**
+  - `python deft/run agents:refresh --dry-run` (preview; never writes)
+  - `python deft/run agents:refresh` (apply -- one-time append for state=`missing`, byte-replace for state=`stale`, no-op for state=`current`, fresh write for state=`absent`)
+  - `python deft/run upgrade` (records the framework version in `vbrief/.deft-version` AND chains into `agents:refresh` -- equivalent end state to running both above)
+
+### What `agents:refresh` does on a pre-#768 file
+
+The gate (`deft/run gate`) classifies every project's `AGENTS.md` into one of four states; pre-#768 files land in `missing`:
+
+- `current` -- markers present and bracketed bytes match the rendered template. No-op.
+- `stale` -- markers present but bracketed bytes have drifted from the rendered template. Byte-replace the bracketed region in place.
+- `missing` -- file exists but no markers (pre-#768 legacy file). **One-time append** of the rendered managed section, preserving existing content verbatim above the markers.
+- `absent` -- file does not exist. Create from the rendered template.
+
+### Long-term contract: sentinel-only rewrite
+
+After the one-time legacy migration, every subsequent `deft/run agents:refresh` against the same project follows a **sentinel-only-rewrite** contract: the framework reads only the bytes between `<!-- deft:managed-section v1 -->` and `<!-- /deft:managed-section -->`, replaces them in place when the rendered template drifts (`stale` state), and never touches content above or below those markers. Hand-authored notes, custom rules, project-specific gates, and any text that lived in your `AGENTS.md` before the one-time append survive every future framework upgrade verbatim.
+
+The contract is byte-stable by construction:
+
+- `agents:refresh --check` exits 0 only when the bracketed bytes match the rendered template byte-for-byte; this is the regression guard against silent drift.
+- The bracketed region is the SOLE byte sequence the framework owns. Edits inside the markers are not preserved across upgrades; edit the consumer-section above or below the markers instead.
+- The migration is idempotent: re-running `deft/run agents:refresh` against an already-migrated file is a no-op.
+
+### References
+
+- [`templates/agents-entry.md`](./templates/agents-entry.md) -- the canonical rendered managed-section template; this is the source of the bytes that `deft/run agents:refresh` writes between the sentinel markers.
+- [`QUICK-START.md`](./QUICK-START.md) Case G -- agent-prescriptive coverage of the same scenario for agents that read `QUICK-START.md` (rather than invoking `deft/run agents:refresh` directly).
+- [#768](https://github.com/deftai/directive/issues/768) -- the universal upgrade gate that introduced the managed-section markers and the `agents:refresh` reference implementation.
+
+---
+
 ## From any pre-v0.20 version → v0.20.0
 
 - **Applies when:** `deft/run gate` reports `precutover=SPECIFICATION.md,PROJECT.md` (or any subset thereof) AND/OR `agents-md=missing`. The presence of legacy `SPECIFICATION.md` / `PROJECT.md` without the `<!-- deft:deprecated-redirect -->` sentinel is the canonical pre-cutover signal.

@@ -87,3 +87,52 @@ def test_every_section_has_four_field_header() -> None:
         + "\n".join(failures)
         + "\n(#768)"
     )
+
+
+def test_managed_section_legacy_migration_section_present() -> None:
+    """UPGRADING.md MUST document the AGENTS.md managed-section legacy
+    migration contract introduced in v0.20.0 (#768).
+
+    The section documents the one-time append behavior for pre-#768
+    `AGENTS.md` files (state=`missing`) and the long-term
+    sentinel-only-rewrite contract for subsequent upgrades. Risk-averse
+    consumers MUST be able to read the contract before running
+    `deft/run agents:refresh`. Story: #794.
+    """
+    text = _UPGRADING.read_text(encoding="utf-8")
+    sections = _split_sections(text)
+    matching = [
+        (heading, body)
+        for heading, body in sections
+        if "#768" in heading or "managed-section" in heading.lower()
+    ]
+    assert matching, (
+        "UPGRADING.md must contain a `## From <pre-#768> -> <managed-section>` "
+        "section documenting the AGENTS.md managed-section legacy migration "
+        "contract (#794)."
+    )
+    # Pin the canonical contract surface area: detection rule, one-time
+    # append, sentinel-only rewrite, and cross-references to the rendered
+    # template + QUICK-START Case G. Each phrase / token is the minimum
+    # contract the docs MUST surface so risk-averse consumers can decide
+    # whether to run `deft/run agents:refresh` before doing so.
+    required_tokens = (
+        "<!-- deft:managed-section v1 -->",
+        "agents-md=missing",
+        "deft/run agents:refresh",
+        "one-time",
+        "sentinel-only",
+        "templates/agents-entry.md",
+        "QUICK-START.md",
+        "Case G",
+    )
+    heading, body = matching[0]
+    missing_tokens = [tok for tok in required_tokens if tok not in body]
+    assert not missing_tokens, (
+        f"UPGRADING.md section {heading.strip()!r} is missing required "
+        f"contract tokens: {missing_tokens}. The section MUST cover the "
+        f"detection rule (`<!-- deft:managed-section v1 -->` markers absent), "
+        f"the one-time append behavior, the sentinel-only-rewrite contract, "
+        f"and cross-link `templates/agents-entry.md` plus `QUICK-START.md` "
+        f"Case G (#794)."
+    )
