@@ -1,0 +1,58 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #784"
+  },
+  "plan": {
+    "title": "fix(scripts/release.py): pre-flight should verify release tag is available before state mutation",
+    "status": "pending",
+    "narratives": {
+      "Description": "fix(scripts/release.py): pre-flight should verify release tag is available before state mutation",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/784",
+      "Labels": "bug, determinism"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/784",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #784: fix(scripts/release.py): pre-flight should verify release tag is available before state mutation"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#793",
+          "#794",
+          "#798",
+          "#796",
+          "#800",
+          "#814"
+        ],
+        "blocks": [],
+        "blocked_by": [],
+        "estimated_size": "S (1 helper + 1 wiring point + tests + CHANGELOG)"
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Pre-flight gate fix in scripts/release.py to fail fast when the target release tag already exists upstream, before any state mutation (CHANGELOG promotion, ROADMAP rewrite, branch/tag work). Single-PR boundary; pure stdlib + gh.",
+        "files_to_touch": [
+          "scripts/release.py",
+          "tests/cli/test_release.py",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "fix/784-release-preflight-tag-availability",
+        "pr_title_suggestion": "fix(scripts/release.py): verify release tag is available before state mutation (#784)"
+      }
+    },
+    "updated": "2026-05-03T01:41:28Z"
+  }
+}

@@ -8,7 +8,7 @@
   "plan": {
     "id": "798-ps51-encoding-gate",
     "title": "Detect PS 5.1 non-ASCII round-trip corruption in pre-commit + task check (deterministic tier per [AXIOM])",
-    "status": "proposed",
+    "status": "pending",
     "planRef": "#798",
     "narratives": {
       "Problem": "PowerShell 5.1 (the default Windows PowerShell shipped on every Win10/11 install) silently corrupts non-ASCII content during read+write round-trips even when the write side specifies UTF-8 explicitly. Get-Content -Raw decodes via the active codepage (typically CP1252) on the READ side; the corruption is introduced before any 'safe write' can preserve the bytes. Three prior recurrences are recorded (#236 t1.11.1, #240 t1.11.2, #283 t1.20.1) and a fourth happened on PR #795 (CHANGELOG.md mojibake during P2 batch fix). The rule is encoded at the prose tier (personal rule + AGENTS.md PowerShell section + lessons.md cross-references) but per main.md Rule Authority [AXIOM] (deterministic > Taskfile > vBRIEF > RFC2119 > prose) the recurrence pattern most likely to bite a Windows consumer in their first session is at the WEAKEST tier with NO deterministic gate.",
@@ -95,16 +95,41 @@
       "x-tracking": {
         "swarm_ready": true,
         "needs_discussion": false,
-        "parallelizable_with": ["#791", "#792", "#793", "#794"],
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#793",
+          "#794",
+          "#784",
+          "#796",
+          "#800",
+          "#814"
+        ],
         "estimated_size": "M-L (1 new script + 1 new task + hook update + AGENTS.md + lessons.md + tests + fixtures + CHANGELOG)",
         "blocks": [],
         "blocked_by": [],
-        "recurrence_chain": ["#236 t1.11.1", "#240 t1.11.2", "#283 t1.20.1", "PR #795 (2026-05-01)"]
+        "recurrence_chain": [
+          "#236 t1.11.1",
+          "#240 t1.11.2",
+          "#283 t1.20.1",
+          "PR #795 (2026-05-01)"
+        ]
       },
       "x-swarm-guidance": {
         "primary_skill": "skills/deft-directive-build/SKILL.md",
         "rationale": "Cross-cutting but well-bounded: 1 new script, 1 new task, 1 hook update, 1 AGENTS.md rewrite, 1 lessons cross-ref, tests + fixtures. The new gate MUST be green on the existing working tree before merge -- if it surfaces pre-existing corruption, surface in PR body and either fix in batch or open follow-up. Agent should write the bigram set conservatively (only PS 5.1 corruptions known-observed in the four recurrences) to avoid false positives on legitimate prose. Use Python pathlib for ALL file I/O -- this scope of work MUST NOT touch files via PowerShell on Windows agents (that would be ironic).",
-        "files_to_touch": ["scripts/verify_encoding.py (new)", "tasks/verify.yml", "Taskfile.yml", ".githooks/pre-commit", "AGENTS.md", "meta/lessons.md", "tests/cli/test_verify_encoding.py (new)", "tests/content/test_taskfile_paths.py", "tests/fixtures/encoding/ (new)", "CHANGELOG.md"],
+        "files_to_touch": [
+          "scripts/verify_encoding.py (new)",
+          "tasks/verify.yml",
+          "Taskfile.yml",
+          ".githooks/pre-commit",
+          "AGENTS.md",
+          "meta/lessons.md",
+          "tests/cli/test_verify_encoding.py (new)",
+          "tests/content/test_taskfile_paths.py",
+          "tests/fixtures/encoding/ (new)",
+          "CHANGELOG.md"
+        ],
         "branch_name_suggestion": "feat/798-ps51-encoding-gate",
         "pr_title_suggestion": "feat(scripts,tasks,hooks): deterministic gate against PS 5.1 non-ASCII round-trip corruption (#798)"
       }
@@ -135,6 +160,7 @@
         "type": "x-vbrief/related-doc",
         "title": "Sibling deterministic gate (#747) -- shape model for the new scripts/verify_encoding.py"
       }
-    ]
+    ],
+    "updated": "2026-05-03T01:41:28Z"
   }
 }

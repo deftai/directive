@@ -1,0 +1,58 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #800"
+  },
+  "plan": {
+    "title": "swarm SKILL: prohibit git checkout in a worktree another agent owns (post-merge cleanup overreach)",
+    "status": "pending",
+    "narratives": {
+      "Description": "swarm SKILL: prohibit git checkout in a worktree another agent owns (post-merge cleanup overreach)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/800",
+      "Labels": "bug, skills"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/800",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #800: swarm SKILL: prohibit git checkout in a worktree another agent owns (post-merge cleanup overreach)"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#793",
+          "#794",
+          "#798",
+          "#784",
+          "#796",
+          "#814"
+        ],
+        "blocks": [],
+        "blocked_by": [],
+        "estimated_size": "S (skill prose + content test + CHANGELOG)"
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Swarm SKILL post-merge cleanup currently allows agents to run `git checkout` inside a worktree another agent still owns, which can corrupt that agent's working state. Add a `!` MUST rule + `⊗` MUST NOT anti-pattern; verify with content test.",
+        "files_to_touch": [
+          "skills/deft-directive-swarm/SKILL.md",
+          "tests/content/test_swarm_skill.py",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "fix/800-swarm-no-checkout-in-others-worktree",
+        "pr_title_suggestion": "fix(skills/swarm): prohibit git checkout in another agent's worktree (#800)"
+      }
+    },
+    "updated": "2026-05-03T01:41:29Z"
+  }
+}

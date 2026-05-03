@@ -1,0 +1,58 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #796"
+  },
+  "plan": {
+    "title": "Review-cycle dual-source fetch can miss late-arriving bot reviews",
+    "status": "pending",
+    "narratives": {
+      "Description": "Review-cycle dual-source fetch can miss late-arriving bot reviews",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/796",
+      "Labels": "bug, skills"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/796",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #796: Review-cycle dual-source fetch can miss late-arriving bot reviews"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#793",
+          "#794",
+          "#798",
+          "#784",
+          "#800",
+          "#814"
+        ],
+        "blocks": [],
+        "blocked_by": [],
+        "estimated_size": "S (skill section + content test + CHANGELOG)"
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Review-cycle skill fetches PR review comments via two sources (GitHub MCP + gh pr view) but the dedup/collation can miss late-arriving bot reviews if the second probe lands before the bot finishes posting. Add a re-poll window for bot reviewers (Greptile, etc.) and codify in skills/deft-directive-review-cycle/SKILL.md.",
+        "files_to_touch": [
+          "skills/deft-directive-review-cycle/SKILL.md",
+          "tests/content/test_review_cycle_skill.py",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "fix/796-review-cycle-late-bot-reviews",
+        "pr_title_suggestion": "fix(skills/review-cycle): re-poll for late-arriving bot reviews (#796)"
+      }
+    },
+    "updated": "2026-05-03T01:41:29Z"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #814"
+  },
+  "plan": {
+    "title": "scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) when printing the success glyph -- blocks every commit",
+    "status": "pending",
+    "narratives": {
+      "Description": "scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) when printing the success glyph -- blocks every commit",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/814",
+      "Labels": "bug, adoption-blocker"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/814",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #814: scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) when printing the success glyph -- blocks every commit"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#793",
+          "#794",
+          "#798",
+          "#784",
+          "#796",
+          "#800"
+        ],
+        "blocks": [],
+        "blocked_by": [],
+        "estimated_size": "S (1 print site + tests + CHANGELOG); priority HOT -- blocks every commit"
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Hot adoption blocker: scripts/preflight_branch.py prints a Unicode success glyph that crashes on Windows cp1252 stdout, breaking every commit on a default Windows shell. Replace with ASCII-safe output OR force UTF-8 stream encoding at script entry. Pure stdlib fix.",
+        "files_to_touch": [
+          "scripts/preflight_branch.py",
+          "tests/cli/test_preflight_branch.py",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "fix/814-preflight-branch-cp1252-glyph",
+        "pr_title_suggestion": "fix(scripts/preflight_branch.py): ASCII-safe success output on Windows cp1252 (#814)"
+      }
+    },
+    "updated": "2026-05-03T01:41:29Z"
+  }
+}
