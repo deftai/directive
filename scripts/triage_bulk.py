@@ -70,13 +70,29 @@ def _load_triage_actions() -> Any:
     )
 
 
-def _list_open_issues(repo: str) -> list[dict[str, Any]]:
+#: Default ceiling for ``gh issue list --limit``. Must stay aligned with
+#: ``DEFAULT_MAX_OPEN_ISSUES`` in ``scripts/reconcile_issues.py`` (#764).
+#: Operators with larger backlogs can override via the ``--limit`` CLI flag
+#: or ``DEFT_TRIAGE_BULK_LIMIT`` env-var.
+DEFAULT_ISSUE_LIST_LIMIT = 1000
+
+
+def _list_open_issues(
+    repo: str,
+    *,
+    limit: int = DEFAULT_ISSUE_LIST_LIMIT,
+    out: Any | None = None,
+) -> list[dict[str, Any]]:
     """List open issues via ``gh issue list``.
 
     Returns the parsed JSON array. Errors propagate to the caller so the
-    Taskfile target surfaces the failure.
+    Taskfile target surfaces the failure. When the returned count meets the
+    requested ``limit`` an explicit warning is emitted on ``out`` so silent
+    truncation cannot masquerade as a complete bulk operation (Greptile P2
+    on PR #875).
     """
 
+    sink = out or sys.stderr
     cmd = [
         "gh",
         "issue",
@@ -86,7 +102,7 @@ def _list_open_issues(repo: str) -> list[dict[str, Any]]:
         "--state",
         "open",
         "--limit",
-        "1000",
+        str(limit),
         "--json",
         "number,title,labels,author,createdAt,updatedAt",
     ]
@@ -95,7 +111,18 @@ def _list_open_issues(repo: str) -> list[dict[str, Any]]:
     parsed = json.loads(payload)
     if not isinstance(parsed, list):
         return []
-    return [item for item in parsed if isinstance(item, dict)]
+    issues = [item for item in parsed if isinstance(item, dict)]
+    if len(issues) >= limit:
+        print(
+            (
+                f"[triage:bulk] WARN: gh issue list returned {len(issues)} "
+                f"issue(s) -- equal to --limit {limit}. The bulk action will "
+                f"only operate on this slice; re-run with --limit <N> "
+                f"(N > {limit}) to widen the window."
+            ),
+            file=sink,
+        )
+    return issues
 
 
 def _filter_issues(
@@ -157,6 +184,26 @@ def _resolve_action(actions_module: Any, action_key: str) -> Callable[..., Any]:
     return fn  # type: ignore[no-any-return]
 
 
+#: ``TypeError`` substrings that indicate the call site (not the body) is at
+#: fault -- i.e. Story 3's ``reject`` does not yet accept the kwarg shape we
+#: tried first. We narrow the fallback path so a real ``TypeError`` raised
+#: inside Story 3 propagates to the operator (Greptile P2 on PR #875).
+_SIGNATURE_TYPEERROR_TOKENS = (
+    "unexpected keyword argument",
+    "got multiple values for",
+    "missing 1 required positional argument",
+    "takes 2 positional arguments",
+    "takes 3 positional arguments",
+)
+
+
+def _is_signature_mismatch(exc: TypeError) -> bool:
+    """True if a ``TypeError`` looks like it came from the *call site*."""
+
+    msg = str(exc)
+    return any(token in msg for token in _SIGNATURE_TYPEERROR_TOKENS)
+
+
 def _invoke_action(
     fn: Callable[..., Any],
     issue_number: int,
@@ -165,15 +212,23 @@ def _invoke_action(
     action_key: str,
     reason: str | None,
 ) -> None:
-    """Call a Story 3 single-issue action with kwargs, falling back to positional."""
+    """Call a Story 3 single-issue action with kwargs, falling back to positional.
+
+    The fallback path is gated by :func:`_is_signature_mismatch` so a
+    ``TypeError`` raised *inside* Story 3 propagates to the operator instead
+    of being silently swallowed (Greptile P2 on PR #875).
+    """
 
     kwargs: dict[str, Any] = {}
     if action_key == "reject" and reason is not None:
         kwargs["reason"] = reason
     try:
         fn(issue_number, repo, **kwargs)
-    except TypeError:
-        # Tolerate Story 3 signature variation (positional reason).
+    except TypeError as exc:
+        if not _is_signature_mismatch(exc):
+            raise
+        # Tolerate Story 3 signature variation (positional reason) only
+        # when the failure is clearly at the call surface.
         if action_key == "reject" and reason is not None:
             fn(issue_number, repo, reason)
         else:

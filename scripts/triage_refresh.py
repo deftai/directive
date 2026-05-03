@@ -156,15 +156,24 @@ def detect_drift(
     *,
     fetch_live: FetchLive | None = None,
     cache_loader: CacheLoader | None = None,
+    skipped_out: list[tuple[str, int, str]] | None = None,
+    out: Any | None = None,
 ) -> list[DriftRecord]:
     """Walk active vBRIEFs and return drifted (repo, issue) records.
 
     Repo+issue pairs are deduplicated -- the same issue referenced from two
     vBRIEFs surfaces only once (the first encountered ``vbrief_path`` wins).
+
+    Live-fetch failures (network / auth / malformed gh response) DO NOT
+    silently disappear: every skip is logged to ``out`` and (when supplied)
+    appended to ``skipped_out`` as ``(repo, issue, reason)``. This closes the
+    Greptile P1 on PR #875 where a wholesale fetch outage masqueraded as
+    ``all N fresh``.
     """
 
     fetch_live = fetch_live or _fetch_live_updated_at
     cache_loader = cache_loader or _load_cached_updated_at
+    sink = out or sys.stderr
 
     drifts: list[DriftRecord] = []
     seen: set[tuple[str, int]] = set()
@@ -178,9 +187,19 @@ def detect_drift(
             cached = cache_loader(repo, num, project_root)
             try:
                 live = fetch_live(repo, num)
-            except (subprocess.CalledProcessError, json.JSONDecodeError, OSError):
-                # Surfacing an unreachable issue as a drift would be misleading.
-                # The user can re-run after fixing the gh auth/network issue.
+            except (subprocess.CalledProcessError, json.JSONDecodeError, OSError) as exc:
+                # Surface the skip explicitly -- a silent skip would let a
+                # wholesale outage masquerade as freshness (Greptile P1).
+                reason = f"{type(exc).__name__}: {exc}"
+                print(
+                    (
+                        f"[triage:refresh-active] WARN: live fetch skipped for "
+                        f"{repo}#{num} ({reason})"
+                    ),
+                    file=sink,
+                )
+                if skipped_out is not None:
+                    skipped_out.append((repo, num, reason))
                 continue
             if cached != live:
                 drifts.append(
@@ -308,13 +327,20 @@ def _record_audit_annotation(
 
 @dataclass
 class FreshnessSummary:
-    """Aggregate result of a ``refresh_active`` call."""
+    """Aggregate result of a ``refresh_active`` call.
+
+    ``skipped`` (added per Greptile review on PR #875): records every (repo,
+    issue) pair whose live ``gh issue view`` fetch errored out. Surfacing the
+    count prevents the false ``all N fresh`` signal that would otherwise fire
+    when a network/auth outage zeroes out the drift list.
+    """
 
     total_active: int
     drifts_detected: int
     proceeded: list[tuple[str, int]] = field(default_factory=list)
     refreshed: list[tuple[str, int]] = field(default_factory=list)
     deferred: list[tuple[str, int]] = field(default_factory=list)
+    skipped: list[tuple[str, int]] = field(default_factory=list)
 
 
 RefreshLocal = Callable[[str, int, Path], None]
@@ -349,20 +375,39 @@ def refresh_active(
         print("[triage:refresh-active] vbrief/active/ is empty -- no-op", file=sink)
         return FreshnessSummary(0, 0)
 
+    skipped_records: list[tuple[str, int, str]] = []
     drifts = detect_drift(
         active_dir,
         project_root,
         fetch_live=fetch_live,
         cache_loader=cache_loader,
+        skipped_out=skipped_records,
+        out=sink,
     )
+    skipped_pairs = [(repo, num) for (repo, num, _reason) in skipped_records]
     if not drifts:
-        print(
-            f"[triage:refresh-active] all {len(active_files)} active vBRIEFs fresh",
-            file=sink,
-        )
-        return FreshnessSummary(len(active_files), 0)
+        if skipped_pairs:
+            # Greptile P1 fix on PR #875: never claim ``all fresh`` when one
+            # or more live fetches errored -- the cached state is unverified.
+            print(
+                (
+                    f"[triage:refresh-active] WARN: no drift detected, but "
+                    f"{len(skipped_pairs)} of {len(active_files)} fetch(es) "
+                    f"were skipped (treat freshness signal as unverified)"
+                ),
+                file=sink,
+            )
+        else:
+            print(
+                f"[triage:refresh-active] all {len(active_files)} active vBRIEFs fresh",
+                file=sink,
+            )
+        summary = FreshnessSummary(len(active_files), 0)
+        summary.skipped = skipped_pairs
+        return summary
 
     summary = FreshnessSummary(len(active_files), len(drifts))
+    summary.skipped = skipped_pairs
     for drift in drifts:
         choice = _prompt_user(drift, input_fn=input_fn, out=sink)
         if choice == "proceed-with-stale":

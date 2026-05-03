@@ -208,6 +208,42 @@ def test_freshness_gate_proceed_with_stale_records_audit_annotation(
     assert "audit recorded" in out.getvalue()
 
 
+def test_freshness_gate_silent_skip_does_not_falsely_report_all_fresh(
+    tmp_path: Path,
+) -> None:
+    """Greptile P1 (PR #875): a wholesale fetch outage MUST NOT masquerade as
+    ``all N fresh`` -- the WARN line and the FreshnessSummary.skipped list
+    expose every dropped check.
+    """
+    project_root = tmp_path
+    active_dir = project_root / "vbrief" / "active"
+    _write_active_vbrief(
+        active_dir,
+        name="2026-05-03-outage.vbrief.json",
+        repo="deftai/directive",
+        issue_number=845,
+    )
+
+    def _explode_fetch(_repo: str, _n: int) -> str:
+        raise OSError("network unreachable")
+
+    out = io.StringIO()
+    summary = triage_refresh.refresh_active(
+        project_root,
+        fetch_live=_explode_fetch,
+        cache_loader=lambda _repo, _n, _root: "2026-05-03T16:00:00Z",
+        out=out,
+    )
+
+    rendered = out.getvalue()
+    assert "all 1 active vBRIEFs fresh" not in rendered
+    assert "WARN" in rendered
+    assert "skipped for deftai/directive#845" in rendered
+    assert "unverified" in rendered
+    assert summary.skipped == [("deftai/directive", 845)]
+    assert summary.drifts_detected == 0
+
+
 def test_extract_issue_refs_only_returns_github_issue_type(tmp_path: Path) -> None:
     """Refs of unrelated types must NOT show up in the drift detector."""
     active_dir = tmp_path / "vbrief" / "active"

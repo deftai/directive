@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import importlib
 import io
+import json
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -160,6 +161,103 @@ def test_bulk_action_zero_match_clean_exit(
     assert "[triage:bulk-accept] zero matches for given filters" in rendered
     # No per-issue "actioned" lines emitted on the zero-match path.
     assert "actioned" not in rendered.replace("zero matches", "")
+
+
+def test_list_open_issues_warns_when_at_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Greptile P2 (PR #875): emit an explicit truncation warning when the
+    returned issue count meets ``--limit`` -- silent truncation is forbidden.
+    """
+    payload_issues = [{"number": i, "labels": [], "author": {}} for i in range(5)]
+
+    class _Fake:
+        stdout = json.dumps(payload_issues)
+
+    def _fake_run(_cmd, **_kwargs):
+        return _Fake()
+
+    monkeypatch.setattr(triage_bulk.subprocess, "run", _fake_run)
+    sink = io.StringIO()
+
+    issues = triage_bulk._list_open_issues("deftai/directive", limit=5, out=sink)
+
+    assert len(issues) == 5
+    rendered = sink.getvalue()
+    assert "WARN" in rendered
+    assert "--limit 5" in rendered
+
+
+def test_invoke_action_propagates_typeerror_from_action_body(
+    stub_actions_module: SimpleNamespace,
+) -> None:
+    """Greptile P2 (PR #875): a ``TypeError`` raised *inside* a Story 3 action
+    MUST surface to the operator instead of being swallowed by the
+    signature-mismatch fallback.
+    """
+
+    def _broken_accept(_n: int, _repo: str, **_kwargs: object) -> None:
+        # Genuine bug inside Story 3 -- not a call-site signature issue.
+        raise TypeError("unsupported operand type(s) for +: 'int' and 'str'")
+
+    stub_actions_module.accept = _broken_accept
+    issues = [{"number": 1, "labels": [{"name": "bug"}], "author": {}}]
+
+    with pytest.raises(TypeError, match="unsupported operand"):
+        triage_bulk.bulk_action(
+            "accept",
+            "deftai/directive",
+            label="bug",
+            actions_module=stub_actions_module,
+            issues_provider=lambda _repo: issues,
+            out=io.StringIO(),
+        )
+
+
+def test_invoke_action_tolerates_signature_mismatch_in_call_site(
+    stub_actions_module: SimpleNamespace,
+) -> None:
+    """Companion to the above: a real signature mismatch (kwarg unsupported)
+    still falls back to the positional shape.
+    """
+    captured: list[tuple[int, str, str | None]] = []
+
+    def _positional_only_reject(n: int, repo: str, reason: str | None = None) -> None:
+        # No **kwargs -- ``reason=...`` raises the call-site signature error.
+        if "reason" in {"reason"} and reason is None and len(captured) > 0:
+            pass
+        captured.append((n, repo, reason))
+
+    def _outer_reject(n: int, repo: str) -> None:
+        # First attempt with kwargs raises the signature TypeError:
+        raise TypeError("got an unexpected keyword argument 'reason'")
+
+    # First call raises kwarg-unsupported, fallback then succeeds positionally.
+    call_log: list[str] = []
+
+    def _smart_reject(*args: object, **kwargs: object) -> None:
+        if kwargs:
+            call_log.append("kwarg")
+            raise TypeError("got an unexpected keyword argument 'reason'")
+        call_log.append("positional")
+        captured.append((int(args[0]), str(args[1]), str(args[2]) if len(args) > 2 else None))
+
+    stub_actions_module.reject = _smart_reject
+    issues = [{"number": 7, "labels": [{"name": "bug"}], "author": {}}]
+
+    actioned = triage_bulk.bulk_action(
+        "reject",
+        "deftai/directive",
+        label="bug",
+        reason="obsolete",
+        actions_module=stub_actions_module,
+        issues_provider=lambda _repo: issues,
+        out=io.StringIO(),
+    )
+
+    assert actioned == 1
+    assert call_log == ["kwarg", "positional"]
+    assert captured == [(7, "deftai/directive", "obsolete")]
 
 
 def test_main_zero_match_exits_zero(
