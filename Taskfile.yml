@@ -191,6 +191,43 @@ tasks:
           git config core.hooksPath .githooks
           echo "✓ core.hooksPath set to .githooks (#747 branch gate active)."
         fi
+      # #814: Detect a Python interpreter whose stdout defaults to a
+      # non-UTF-8 Windows code page (cp1252 / cp437). Informational only --
+      # the deft hook scripts themselves self-reconfigure to UTF-8 at
+      # main() entry, so this warning surfaces a fact about the user's
+      # environment, not a defect that blocks setup. We do NOT auto-set
+      # PYTHONIOENCODING because mutating the user's environment would
+      # surprise other tooling (out-of-scope per the issue body).
+      - |
+        python_bin="${DEFT_PYTHON:-}"
+        if [ -z "$python_bin" ]; then
+          if command -v python3 >/dev/null 2>&1; then
+            python_bin=python3
+          elif command -v python >/dev/null 2>&1; then
+            python_bin=python
+          fi
+        fi
+        if [ -n "$python_bin" ]; then
+          # NOTE: we explicitly unset PYTHONUTF8 / PYTHONIOENCODING in the
+          # subshell so the probe measures what Python would do under git's
+          # hook environment (which inherits the user's shell, NOT the
+          # Taskfile root env: block). Without the unset, the root-level
+          # `env: PYTHONUTF8: "1"` (#540) masks cp1252 here and the warning
+          # would never surface even when the user actually has the bug.
+          enc=$(unset PYTHONUTF8 PYTHONIOENCODING; "$python_bin" -c "import sys; print((sys.stdout.encoding or '').lower())" 2>/dev/null || true)
+          case "$enc" in
+            cp1252|cp437|charmap)
+              echo ""
+              echo "WARN: Detected Python stdout encoding '$enc' (Windows default). Deft hooks"
+              echo "print non-ASCII glyphs and may crash without UTF-8 stdout. Either:"
+              echo "  (a) set the user-environment variable PYTHONIOENCODING=utf-8 (one-time,"
+              echo "      via System Properties > Environment Variables), OR"
+              echo "  (b) add \$env:PYTHONIOENCODING='utf-8' to your PowerShell profile."
+              echo "The deft hook scripts also self-reconfigure as of #814, so this"
+              echo "warning is informational on current versions."
+              ;;
+          esac
+        fi
 
   # Release pipeline tasks (#74 + #716 safety hardening, namespace flatten #718).
   #

@@ -250,6 +250,22 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # #814: Force UTF-8 stdout/stderr at hook-script entry. Windows Python
+    # defaults stdout/stderr to cp1252 (or cp437) when the hook is invoked
+    # by git, neither of which has a glyph for the U+2713 success marker.
+    # Without this reconfigure, the gate prints its OK message AFTER the
+    # check has already passed and crashes with UnicodeEncodeError, aborting
+    # an otherwise-valid commit. Guarded by hasattr because reconfigure
+    # only exists on TextIOWrapper streams (3.7+); when stdout is captured
+    # to a non-TextIOWrapper PIPE the call is a no-op. errors='replace'
+    # is a belt-and-suspenders fallback so the rare environment that still
+    # cannot render UTF-8 sees a printable replacement char rather than an
+    # unhandled traceback. See tests/cli/test_hooks_encoding.py.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
     parser = _build_parser()
     args = parser.parse_args(argv)
     project_root = Path(args.project_root).resolve()
