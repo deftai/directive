@@ -3054,6 +3054,30 @@ def cmd_validate(args: List[str]):
         error(f"Validation failed with {errors} error(s).")
         return 1
 
+# ── #792: shared uv detection helper ──────────────────────────────────
+#
+# Every deft task script runs via `uv run python ...`, so `uv` is a hard
+# runtime dependency. cmd_doctor (#792) and the migrate:preflight task
+# (#793) both need a way to detect it. Exposed as a module-level private
+# helper so #793 can import it later without duplicating the
+# `shutil.which` lookup. Mirrors the agent-side check documented in
+# `skills/deft-directive-setup/SKILL.md` § Environment Preflight (the
+# `uv on PATH` bullet) including the canonical install URL.
+
+UV_INSTALL_URL = "https://docs.astral.sh/uv/"
+
+
+def _check_uv_available() -> bool:
+    """Return True if `uv` is resolvable on PATH.
+
+    Thin wrapper around :func:`shutil.which` so callers (cmd_doctor,
+    migrate:preflight per #793) share a single detection point. Kept
+    private to `run` -- if a second consumer lands, promote it to a
+    public name in a follow-up.
+    """
+    return shutil.which("uv") is not None
+
+
 def cmd_doctor(args: List[str]):
     """Doctor command - check system dependencies"""
     print_header(f"Deft CLI v{VERSION} - Doctor")
@@ -3061,33 +3085,66 @@ def cmd_doctor(args: List[str]):
     info("Checking system dependencies...")
     print()
     
+    errors = 0
     warnings = 0
     
-    # Check for required tools
-    def check_command(cmd: str, name: str, required: bool = False):
-        nonlocal warnings
+    # Check for required tools.  Errors and warnings are tracked
+    # separately (#792) so a missing required tool surfaces above
+    # optional-tool warnings in the summary and forces a non-zero
+    # return code.
+    def check_command(cmd: str, name: str, required: bool = False,
+                       install_url: str = ""):
+        nonlocal errors, warnings
         if shutil.which(cmd):
             success(f"{name} is installed")
+            return
+        url_hint = f" - install: {install_url}" if install_url else ""
+        if required:
+            error(f"{name} not found - required{url_hint}")
+            errors += 1
+            return
+        if cmd == "task":
+            warn(f"{name} not found - install from https://taskfile.dev")
         else:
-            if required:
-                error(f"{name} not found - required")
-            else:
-                warn(f"{name} not found - install from https://taskfile.dev" if cmd == "task" 
-                     else f"{name} not found")
-                warnings += 1
+            warn(f"{name} not found{url_hint}")
+        warnings += 1
     
+    # uv is required: every deft task script invokes `uv run python ...`,
+    # so a green doctor on a machine without uv would mask an adoption
+    # blocker (#792).  Surface it before optional tools so the error is
+    # the first thing a fresh-machine user sees.
+    check_command(
+        "uv",
+        "uv (Astral Python runner)",
+        required=True,
+        install_url=UV_INSTALL_URL,
+    )
     check_command("task", "task (Taskfile)")
     check_command("git", "git", required=True)
     check_command("python3", "python3")
     check_command("go", "go")
     check_command("node", "node")
     
-    # Check directory structure
+    # Check directory structure.  Updated to the v0.20+ canonical
+    # layout (#792); pre-v0.20 entries (core, interfaces, tools, swarm,
+    # meta) were dropped because they no longer reflect the framework's
+    # current top-level layout and produced spurious 'Missing directory'
+    # warnings on every clean checkout.  Cross-referenced with
+    # `skills/deft-directive-setup/SKILL.md` § Environment Preflight
+    # (vbrief lifecycle requirement) and the project tree on master.
     print()
     info("Checking Deft structure...")
     
     script_dir = get_script_dir()
-    expected_dirs = ["core", "languages", "interfaces", "tools", "swarm", "templates", "meta"]
+    expected_dirs = [
+        "languages",
+        "strategies",
+        "skills",
+        "templates",
+        "tasks",
+        "scripts",
+        "vbrief",
+    ]
     
     for dir_name in expected_dirs:
         dir_path = script_dir / dir_name
@@ -3098,11 +3155,19 @@ def cmd_doctor(args: List[str]):
             warnings += 1
     
     print()
-    if warnings == 0:
+    if errors == 0 and warnings == 0:
         success("System check passed!")
-    else:
-        warn(f"System check completed with {warnings} warning(s).")
-    
+        return 0
+    if errors:
+        # Errors first so missing-uv (or git) is not buried under
+        # optional-tool warnings.
+        error(
+            f"System check failed with {errors} error(s)"
+            + (f" and {warnings} warning(s)" if warnings else "")
+            + "."
+        )
+        return 1
+    warn(f"System check completed with {warnings} warning(s).")
     return 0
 
 def cmd_update(args: List[str]):
