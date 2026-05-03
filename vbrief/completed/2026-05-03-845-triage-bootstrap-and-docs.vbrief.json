@@ -62,7 +62,7 @@
     ],
     "metadata": {
       "x-tracking": {
-        "epic_vbrief": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "epic_vbrief": "completed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
         "parent_issue": "#845",
         "agent": "A6",
         "wave": "last",
@@ -110,7 +110,7 @@
         "title": "Issue #583: injection-quarantine spec (formalized in this story)"
       },
       {
-        "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "uri": "completed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
         "type": "x-vbrief/related-plan",
         "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
       }
