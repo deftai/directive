@@ -178,6 +178,25 @@ class Finding:
         return f"  {self.path}:{self.line} [{self.label}] {ctx}"
 
 
+def _blank_block(match: re.Match[str]) -> str:
+    """Replace a fenced code block with the same number of newlines.
+
+    Greptile P1 (PR #862): the prior implementation used
+    ``_MD_FENCED_BLOCK.sub("", text)`` which removed the newlines that lived
+    INSIDE the matched fence. After substitution every line that followed in
+    ``scan_text`` shifted upward by the number of consumed newlines, so a
+    mojibake hit AFTER a fenced block was reported at the wrong line number
+    with the wrong context (and the true line was not reported at all). The
+    gate still exited 1 -- corruption did not silently pass -- but the
+    diagnostic was misleading.
+
+    Replacing with ``\n`` * count preserves line-count alignment between
+    ``original_lines`` and ``stripped_lines`` so the zip in :func:`scan_file`
+    pairs each original line with its stripped counterpart at the same index.
+    """
+    return "\n" * match.group(0).count("\n")
+
+
 def _strip_markdown_quotes(text: str) -> str:
     """Strip fenced code blocks and inline-code spans from markdown content.
 
@@ -189,9 +208,11 @@ def _strip_markdown_quotes(text: str) -> str:
     is much lower outside markdown prose.
 
     Order matters: fenced blocks are stripped first (they may contain
-    backticks themselves), then inline spans.
+    backticks themselves), then inline spans. Fenced blocks are replaced
+    with newline-preserving blanks (see :func:`_blank_block`) so post-fence
+    line numbers stay aligned with the original file.
     """
-    text = _MD_FENCED_BLOCK.sub("", text)
+    text = _MD_FENCED_BLOCK.sub(_blank_block, text)
     return _MD_INLINE_CODE.sub("", text)
 
 
@@ -346,18 +367,28 @@ def _filter_scannable(
     project_root: Path,
     allow_globs: Iterable[str],
 ) -> list[tuple[str, Path]]:
-    """Filter rel paths to existing scannable files, applying allow-list."""
+    """Filter rel paths to existing scannable files, applying allow-list.
+
+    SLizard P1 (PR #862): an earlier draft used
+    ``str(full).startswith(str(project_root.resolve()))`` as a fallback for
+    the path-containment check. That string-based comparison is vulnerable
+    to substring path-traversal (e.g. ``project_root=/a/b`` would match a
+    sibling ``/a/b-evil/file.txt`` because ``/a/b`` is a string prefix of
+    ``/a/b-evil``). The current implementation uses
+    :meth:`Path.is_relative_to` exclusively (Python 3.9+; this project
+    targets 3.12+) which does proper path-segment containment and rejects
+    the substring-match attack class by construction. A non-relative path
+    is dropped silently because it cannot represent a tracked file under
+    the working tree the gate is scanning.
+    """
     out: list[tuple[str, Path]] = []
     allow_globs = list(allow_globs)
+    project_root_resolved = project_root.resolve()
     for rel in rel_paths:
         # Normalize to POSIX form for glob matching (git output already is).
         posix = rel.replace("\\", "/")
         full = (project_root / rel).resolve()
-        try:
-            in_root = full.is_relative_to(project_root.resolve())
-        except (ValueError, AttributeError):
-            in_root = str(full).startswith(str(project_root.resolve()))
-        if not in_root:
+        if not full.is_relative_to(project_root_resolved):
             continue
         if not full.is_file():
             continue

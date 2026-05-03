@@ -234,6 +234,55 @@ def test_markdown_bare_mojibake_outside_backticks_still_flagged(tmp_path: Path) 
     assert any(f.label.startswith("U+2297") for f in findings)
 
 
+def test_markdown_mojibake_after_fenced_block_reports_correct_line(
+    tmp_path: Path,
+) -> None:
+    """Greptile P1 regression (PR #862): mojibake AFTER a fenced code block
+    must report the true line number with the true context.
+
+    The prior implementation used ``_MD_FENCED_BLOCK.sub("")`` which removed
+    the newlines INSIDE the matched fence, shifting every post-fence line
+    upward in ``stripped_lines`` relative to ``original_lines``. This test
+    pins the alignment-preserving fix (see
+    :func:`verify_encoding._blank_block`).
+
+    The fixture has a fence on lines 3-5 and a real mojibake hit on line 7.
+    Without the fix, the bug would either (a) report the hit at line 3 with
+    context from a fence-interior line, or (b) miss the hit entirely if
+    padding-with-empty-strings landed at the right index. Either way, the
+    post-fix expectation is: line 7, context contains the bare mojibake.
+    """
+    _init_git_repo(tmp_path)
+    (tmp_path / "after_fence.md").write_text(
+        "# Title\n"            # line 1
+        "\n"                   # line 2
+        "```\n"                # line 3 (fence open)
+        "safe content here\n"  # line 4 (inside fence; not scanned)
+        "```\n"                # line 5 (fence close)
+        "\n"                   # line 6
+        "Real corruption \u0393\u00e8\u00f9 here.\n"  # line 7
+        "\n"                   # line 8
+        "Tail.\n",             # line 9
+        encoding="utf-8",
+    )
+    _git_add(tmp_path, "after_fence.md")
+    _git_commit(tmp_path)
+
+    code, findings, msg = verify_encoding.evaluate(tmp_path, mode="all")
+    assert code == 1, msg
+    u2297_findings = [f for f in findings if f.label.startswith("U+2297")]
+    assert u2297_findings, f"expected U+2297 finding; got {[f.label for f in findings]}"
+    hit = u2297_findings[0]
+    assert hit.line == 7, (
+        f"fenced-block alignment bug: expected line 7, got {hit.line}. "
+        f"context={hit.context!r}"
+    )
+    assert "\u0393\u00e8\u00f9" in hit.context, (
+        f"context should be the original bare-mojibake line, not a "
+        f"fence-interior line. got: {hit.context!r}"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Allow-list (custom + built-in).
 # ---------------------------------------------------------------------------
