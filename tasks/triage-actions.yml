@@ -1,0 +1,89 @@
+version: '3'
+
+# tasks/triage-actions.yml -- per-issue triage commands (#845 Story 3).
+#
+# STANDALONE Taskfile fragment: NOT yet wired into the parent Taskfile.yml
+# `includes:` block. Story 6 (#845 bootstrap) owns the integration step --
+# this fragment only declares the triage:* targets so consumers can dispatch
+# `task -t tasks/triage-actions.yml triage:accept --issue 845 --repo ...`
+# (or use the standard include syntax once Story 6 lands).
+#
+# Per `conventions/task-caching.md`: NO `sources:` / `generates:` because every
+# target accepts user-facing flags via `{{.CLI_ARGS}}` (--issue, --repo,
+# --reason, --of, --comment, --actor) -- the cached `cmds:` skip would
+# silently swallow recovery flags. Same rationale that gated `task release`
+# (#74), `task pr:check-protected-issues` (#702), and `task verify:encoding`
+# (#798).
+#
+# Companion script: scripts/triage_actions.py
+# Companion tests:  tests/test_triage_actions.py
+# Upstream contracts (frozen): scripts/candidates_log.py (Story 2),
+#                              scripts/triage_cache.py    (Story 1).
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  triage:accept:
+    desc: "Accept an issue for triage. Records an audit entry. (#845 Story 3)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" accept {{.CLI_ARGS}}
+
+  triage:reject:
+    desc: "Reject an issue. Closes upstream via gh + applies triage-rejected label; rolls audit back on gh failure. (#845 Story 3)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" reject {{.CLI_ARGS}}
+
+  triage:defer:
+    desc: "Defer an issue. Records an audit entry. (#845 Story 3)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" defer {{.CLI_ARGS}}
+
+  triage:needs-ac:
+    desc: "Mark an issue as needing acceptance criteria + post AC-request comment upstream. (#845 Story 3)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" needs-ac {{.CLI_ARGS}}
+
+  triage:mark-duplicate:
+    desc: "Link an issue as a duplicate of another (validated against Story 1 cache). (#845 Story 3)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" mark-duplicate {{.CLI_ARGS}}
+
+  triage:status:
+    desc: "Print the latest triage decision for an issue. Read-only. (#845 Story 3)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" status {{.CLI_ARGS}}
+
+  triage:reset:
+    desc: "Reset an issue's triage state. Appends a reset audit entry referencing prior; does NOT delete history. (#845 Story 3)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" reset {{.CLI_ARGS}}
+
+  triage:history:
+    desc: "Print the full triage timeline for an issue, ordered by timestamp. Read-only. (#845 Story 3)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" history {{.CLI_ARGS}}
