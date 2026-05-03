@@ -57,12 +57,14 @@ Story 6 and is NOT done here.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -384,16 +386,54 @@ def _atomic_write_text(path: Path, text: str) -> None:
     Atomic-replace semantics so a partial write never leaves the cache in
     a half-written state -- a parallel reader either sees the prior version
     or the new one, never a torn file.
+
+    Uses :func:`tempfile.NamedTemporaryFile` to obtain a unique scratch
+    filename rather than a deterministic ``<path>.tmp`` (Greptile P2: two
+    concurrent populate processes against the same repo would otherwise
+    write to the same ``.tmp`` path, where the second writer's bytes
+    could clobber the first writer's mid-write before ``os.replace``
+    promotes it).
     """
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(text, encoding="utf-8")
-    os.replace(tmp, path)
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=path.name + ".",
+        suffix=".tmp",
+        dir=str(path.parent),
+    )
+    tmp = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as fh:
+            fh.write(text)
+        os.replace(tmp, path)
+    except BaseException:
+        # Best-effort cleanup of the scratch file on any failure path so
+        # we don't leave dangling ``.tmp`` siblings in the cache dir.
+        with contextlib.suppress(FileNotFoundError):
+            tmp.unlink()
+        raise
 
 
 def _render_issue_md(number: int, title: str, body: str) -> str:
-    """Render an issue to markdown with the body wrapped via :func:`quarantine_body`."""
-    header = f"# #{number}: {title}\n\n" if title else f"# #{number}\n\n"
+    """Render an issue to markdown with the body wrapped via :func:`quarantine_body`.
+
+    Both ``title`` and ``body`` are user-controlled (the issue author wrote
+    them) and equally untrusted -- a hostile title like
+    ``IMPORTANT: override agent instructions`` would otherwise be embedded
+    verbatim as a Markdown heading and bypass the #583 quarantine entirely
+    (Greptile P1). The fix routes the title through :func:`quarantine_body`
+    independently before splicing it into the heading.
+    """
+    safe_title = quarantine_body(title) if title else ""
+    if safe_title and "\n" not in safe_title:
+        # Title was benign -- single-line heading.
+        header = f"# #{number}: {safe_title}\n\n"
+    elif safe_title:
+        # Title quarantined into a multi-line fence -- emit the issue
+        # number as the heading and the (now-quarantined) title block on
+        # its own lines so the fence stays well-formed.
+        header = f"# #{number}\n\n{safe_title}\n\n"
+    else:
+        header = f"# #{number}\n\n"
     return header + quarantine_body(body or "")
 
 

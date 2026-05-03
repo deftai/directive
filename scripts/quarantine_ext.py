@@ -154,12 +154,17 @@ def quarantine_body(raw_md: str) -> str:
         line = lines[i]
 
         # Track existing fenced code blocks so we don't re-wrap them.
+        # ``in_fence`` records the opening delimiter; we only close on a
+        # matching delimiter (Greptile P1: previously closed on the
+        # current line's delim, which let a ``~~~`` line close an open
+        # ``\`\`\`` fence and reopen a new one, leaving suspicious headings
+        # after that point unquarantined).
         fence_match = _FENCE_RE.match(line)
         if fence_match:
             delim = fence_match.group(1)
             if in_fence is None:
                 in_fence = delim
-            elif line.startswith(delim):
+            elif line.startswith(in_fence):
                 in_fence = None
             out.append(line)
             i += 1
@@ -179,9 +184,12 @@ def quarantine_body(raw_md: str) -> str:
                 nxt = lines[section_end]
                 if _FENCE_RE.match(nxt):
                     # do not split a quarantined block across an unbalanced
-                    # fence -- consume the entire interior
+                    # fence -- consume the entire interior. Both ``\`\`\``
+                    # and ``~~~`` are 3-char delimiters; we slice the same
+                    # prefix length and match the literal opener (Greptile
+                    # P3: dead-conditional cleanup).
                     section_end += 1
-                    nested = nxt[:3] if nxt.startswith("```") else nxt[:3]
+                    nested = nxt[:3]
                     while section_end < len(lines) and not lines[
                         section_end
                     ].startswith(nested):
