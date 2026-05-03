@@ -276,6 +276,92 @@ def test_gitcrawl_already_installed_is_noop(bootstrap, tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Greptile P2 regression guard -- _is_commented_gitignore_line tightening
+# ---------------------------------------------------------------------------
+
+
+class TestIsCommentedGitignoreLine:
+    """Regression coverage for the NFR-2 opt-in detection (#877 Greptile P2).
+
+    The original implementation used a loose substring check
+    (``GITIGNORE_LINE in raw``), which would silently treat *any* comment
+    that mentioned ``.deft-cache/`` -- e.g. a documentation note --
+    as the consumer's explicit opt-in to commit the cache. That would
+    suppress the bootstrap's gitignore append and silently leave the
+    cache unprotected. The tightened helper anchors on the literal
+    commented-out form. These tests pin both the accept set and the
+    reject set so a future loosening cannot regress the behaviour.
+    """
+
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("# .deft-cache/", True),
+            ("#.deft-cache/", True),
+            ("  # .deft-cache/  ", True),
+            ("\t# .deft-cache/\t", True),
+            ("## .deft-cache/", True),
+            ("### .deft-cache/", True),
+            (".deft-cache/", False),
+            ("# Do not track files under .deft-cache/ here", False),
+            ("# anything-else.deft-cache/", False),
+            ("# .deft-cache/something", False),
+            ("", False),
+            ("   ", False),
+            ("# unrelated comment", False),
+            ("node_modules/", False),
+        ],
+    )
+    def test_match_set(self, bootstrap, raw: str, expected: bool) -> None:
+        assert (
+            bootstrap._is_commented_gitignore_line(raw, ".deft-cache/")
+            is expected
+        ), f"Expected {expected} for {raw!r}"
+
+    def test_loose_mention_does_not_trigger_optin(
+        self, bootstrap, tmp_path: Path
+    ) -> None:
+        """A comment that merely mentions the cache must NOT be treated as opt-in.
+
+        End-to-end through the gitignore step: a .gitignore that contains a
+        documentation comment mentioning .deft-cache/ but no active rule
+        and no commented-out form MUST result in the bootstrap appending
+        the active line (NFR-1 default-on remains in force).
+        """
+        gitignore = tmp_path / ".gitignore"
+        gitignore.write_text(
+            "# Do not track files under .deft-cache/ here.\n"
+            "node_modules/\n",
+            encoding="utf-8",
+        )
+        outcome = bootstrap.step_ensure_gitignore_entry(tmp_path)
+        assert outcome.ok
+        assert outcome.details["appended"] is True, (
+            "Loose mention of .deft-cache/ in a comment must not be "
+            "treated as the NFR-2 opt-in; the active rule must be added."
+        )
+        assert "\n.deft-cache/\n" in gitignore.read_text(encoding="utf-8")
+
+    def test_literal_commented_out_form_is_optin(
+        self, bootstrap, tmp_path: Path
+    ) -> None:
+        """The exact `# .deft-cache/` form IS the NFR-2 opt-in."""
+        gitignore = tmp_path / ".gitignore"
+        gitignore.write_text(
+            "node_modules/\n# .deft-cache/\n", encoding="utf-8"
+        )
+        outcome = bootstrap.step_ensure_gitignore_entry(tmp_path)
+        assert outcome.ok
+        assert outcome.details.get("opt_in_commit_cache") is True
+        assert outcome.details["appended"] is False
+        # The active rule MUST NOT be appended in this case.
+        assert (
+            "\n.deft-cache/\n"
+            not in gitignore.read_text(encoding="utf-8")
+        )
+
+
+# ---------------------------------------------------------------------------
 # Case 6 -- Taskfile includes wired correctly
 # ---------------------------------------------------------------------------
 

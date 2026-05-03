@@ -31,7 +31,11 @@ Steps (in order):
    Skipped entirely when ``gitcrawl`` is already on PATH.
 
 5. ``recap`` -- print a summary of the actions taken and the canonical next
-   commands (``task triage:show <N>``, ``task triage:cache``, etc.).
+   commands (``task triage:show <N>``, ``task triage:cache``, etc.). The
+   recap is rendered by :meth:`BootstrapResult.summary` and printed in
+   :func:`main` rather than dispatched as a separate ``StepOutcome``;
+   :func:`run_bootstrap` therefore appends four step outcomes (1-4) and
+   the recap closes the run via the printed summary.
 
 Exit codes (three-state, mirrors ``scripts/preflight_branch.py``):
 
@@ -225,8 +229,22 @@ def step_populate_cache(project_root: Path, repo: str | None) -> StepOutcome:
 
 
 def _now_iso() -> str:
-    """Return current time as ISO 8601 UTC (microseconds dropped)."""
-    return _dt.datetime.now(tz=_dt.UTC).replace(microsecond=0).isoformat()
+    """Return current time as ISO 8601 UTC (microseconds dropped).
+
+    Uses ``datetime.timezone.utc`` rather than the ``datetime.UTC`` alias
+    (Python 3.11+) for maximum portability and ecosystem compatibility:
+    even though the project's ``requires-python`` is ``>=3.11`` (see
+    ``pyproject.toml``), the ``timezone.utc`` form is unambiguous, works
+    on every Python 3.x release, and removes a foot-gun for downstream
+    consumers that vendor or copy this module. The trailing
+    ``# noqa: UP017`` keeps ruff's ``Use datetime.UTC alias`` rule from
+    re-flipping the form on auto-fix.
+    """
+    return (
+        _dt.datetime.now(tz=_dt.timezone.utc)  # noqa: UP017
+        .replace(microsecond=0)
+        .isoformat()
+    )
 
 
 def _extract_issue_number(vbrief_data: dict[str, Any]) -> int | None:
@@ -466,6 +484,41 @@ def _gitignore_already_covers(gitignore_text: str, line: str) -> bool:
     return any(raw.strip() == target for raw in gitignore_text.splitlines())
 
 
+def _is_commented_gitignore_line(raw: str, gitignore_line: str) -> bool:
+    """Return True when ``raw`` is exactly the commented-out form of ``gitignore_line``.
+
+    Recognized shapes (NFR-2 opt-in markers):
+
+    - ``# .deft-cache/``
+    - ``#.deft-cache/``           (no space)
+    - ``  # .deft-cache/  ``      (surrounding whitespace)
+    - ``## .deft-cache/``         (double-hash for visual emphasis)
+
+    Rejected:
+
+    - ``.deft-cache/`` (active rule -- handled by ``_gitignore_already_covers``)
+    - ``# Do not track files under .deft-cache/ here`` (mere mention)
+    - ``# anything-else.deft-cache/`` (substring would match; literal-form
+      anchoring rejects it)
+
+    The check strips leading/trailing whitespace, requires the line to
+    start with ``#``, then peels successive ``#`` characters and at most one
+    space before comparing the remainder to ``gitignore_line`` exactly. This
+    is tighter than a substring scan (Greptile P2 on PR #877) while still
+    accepting reasonable hand-written variants of the documented opt-in
+    pattern.
+    """
+    stripped = raw.strip()
+    if not stripped.startswith("#"):
+        return False
+    # Peel off all leading '#' characters (allows ``##`` etc.) plus at most
+    # one optional space, then compare the remainder to the active-rule form.
+    body = stripped.lstrip("#")
+    if body.startswith(" "):
+        body = body[1:]
+    return body == gitignore_line
+
+
 def step_ensure_gitignore_entry(project_root: Path) -> StepOutcome:
     """Append ``.deft-cache/`` to ``.gitignore`` when absent.
 
@@ -506,9 +559,15 @@ def step_ensure_gitignore_entry(project_root: Path) -> StepOutcome:
     # Check for either the active line OR a commented-out form (NFR-2 opt-in).
     # If commented out, we treat that as "consumer has opted in to commit the
     # cache" and respect that decision.
+    #
+    # The match is tightened to the exact `# .deft-cache/` form (with optional
+    # leading/trailing whitespace and an optional second `#` for double-hash
+    # comments) so a comment that merely *mentions* the cache directory --
+    # e.g. `# Do not track files under .deft-cache/ here` -- does NOT trigger
+    # the opt-in detection. Only a literal commented-out form counts as the
+    # NFR-2 opt-in (Greptile P2 review on PR #877).
     has_commented_form = any(
-        raw.strip().startswith("#") and GITIGNORE_LINE in raw
-        for raw in existing.splitlines()
+        _is_commented_gitignore_line(raw, GITIGNORE_LINE) for raw in existing.splitlines()
     )
 
     if _gitignore_already_covers(existing, GITIGNORE_LINE):
@@ -661,10 +720,19 @@ def run_bootstrap(
     *,
     skip_gitcrawl: bool = False,
 ) -> BootstrapResult:
-    """Run all 5 bootstrap steps in order, returning the aggregate result.
+    """Run the bootstrap pipeline, returning the aggregate result.
 
-    Separated from :func:`main` so tests drive the function directly without
-    argparse plumbing.
+    Dispatches the four mutating steps documented in the module docstring
+    (populate_cache, backfill_audit_log, ensure_gitignore_entry,
+    ensure_gitcrawl) and appends one ``StepOutcome`` per step. The fifth
+    documented step (``recap``) is rendered by
+    :meth:`BootstrapResult.summary` and printed in :func:`main` rather
+    than dispatched as a separate ``StepOutcome``; the recap therefore
+    produces no entry in ``result.steps``. ``len(result.steps) == 4`` is
+    the expected post-condition.
+
+    Separated from :func:`main` so tests drive the function directly
+    without argparse plumbing.
     """
     result = BootstrapResult(project_root=project_root, repo=repo)
 
