@@ -3,11 +3,11 @@
     "version": "0.6",
     "description": "HOT adoption blocker: scripts/preflight_branch.py prints a U+2713 check mark on its success path. On Windows where Python's stdout defaults to cp1252, this raises UnicodeEncodeError after the gate has already approved the commit, blocking every commit on a default Windows install. Fix: force UTF-8 stdout reconfigure at script entry; audit every hook-invoked deft script for the same shape; warn at task setup time when cp1252 is detected.",
     "created": "2026-05-03T01:53:52Z",
-    "updated": "2026-05-03T01:53:52Z"
+    "updated": "2026-05-03T02:37:44Z"
   },
   "plan": {
     "title": "scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) -- blocks every commit",
-    "status": "pending",
+    "status": "running",
     "narratives": {
       "Problem": "scripts/preflight_branch.py (the pre-commit branch-protection hook installed by `task setup`, #747) prints `\\u2713` on its success path. On Windows, Python's stdout default is cp1252 (or cp437 depending on console host), neither of which has a glyph for U+2713. `codecs.charmap_encode` raises UnicodeEncodeError; the hook exits non-zero with a traceback; git aborts the commit. Crucially: the gate has ALREADY APPROVED the commit before the print fails, so the user sees a Python traceback after a successful check, which is maximally confusing. Workaround (`PYTHONIOENCODING=utf-8 git commit ...`) is undiscoverable. Reproduction captured during the #810 fixup chore commit on this Windows session.",
       "Overview": "Three coordinated changes per the issue. Change 1: force UTF-8 stdout/stderr reconfigure at the top of scripts/preflight_branch.py main() with errors='replace' as a belt-and-suspenders fallback. Change 2: audit every scripts/*.py referenced from .githooks/ and apply the same fix; pin via a NEW tests/cli/test_hooks_encoding.py contract test that wraps stdout in a cp1252 BytesIO TextIOWrapper and verifies non-ASCII print succeeds. Change 3: task setup detects cp1252 stdout at install time and warns the user with the actionable PYTHONIOENCODING fix (informational on current versions because the hooks self-reconfigure).",
