@@ -221,21 +221,11 @@ def test_invoke_action_tolerates_signature_mismatch_in_call_site(
     still falls back to the positional shape.
     """
     captured: list[tuple[int, str, str | None]] = []
-
-    def _positional_only_reject(n: int, repo: str, reason: str | None = None) -> None:
-        # No **kwargs -- ``reason=...`` raises the call-site signature error.
-        if "reason" in {"reason"} and reason is None and len(captured) > 0:
-            pass
-        captured.append((n, repo, reason))
-
-    def _outer_reject(n: int, repo: str) -> None:
-        # First attempt with kwargs raises the signature TypeError:
-        raise TypeError("got an unexpected keyword argument 'reason'")
-
-    # First call raises kwarg-unsupported, fallback then succeeds positionally.
     call_log: list[str] = []
 
     def _smart_reject(*args: object, **kwargs: object) -> None:
+        # First call raises the canonical kwarg-unsupported signature
+        # ``TypeError``; the fallback positional call then succeeds.
         if kwargs:
             call_log.append("kwarg")
             raise TypeError("got an unexpected keyword argument 'reason'")
@@ -260,13 +250,51 @@ def test_invoke_action_tolerates_signature_mismatch_in_call_site(
     assert captured == [(7, "deftai/directive", "obsolete")]
 
 
+def test_resolve_limit_prefers_cli_then_env_then_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Greptile P1 (PR #875): the documented ``--limit`` / env-var overrides
+    MUST resolve in CLI > env-var > default order, with malformed env-var
+    values falling back to the default.
+    """
+    monkeypatch.delenv(triage_bulk.LIMIT_ENV_VAR, raising=False)
+    assert triage_bulk._resolve_limit(None) == triage_bulk.DEFAULT_ISSUE_LIST_LIMIT
+    assert triage_bulk._resolve_limit(2500) == 2500
+
+    monkeypatch.setenv(triage_bulk.LIMIT_ENV_VAR, "3000")
+    assert triage_bulk._resolve_limit(None) == 3000
+    # CLI still wins over env when both are present.
+    assert triage_bulk._resolve_limit(500) == 500
+
+    # Malformed env-var value -> default fallback (defensive parse).
+    monkeypatch.setenv(triage_bulk.LIMIT_ENV_VAR, "not-an-int")
+    assert triage_bulk._resolve_limit(None) == triage_bulk.DEFAULT_ISSUE_LIST_LIMIT
+
+
+def test_argparse_accepts_limit_flag(
+    stub_actions_module: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Greptile P1 (PR #875): ``--limit N`` parses cleanly through argparse
+    -- it MUST NOT raise ``unrecognized arguments``.
+    """
+    monkeypatch.setitem(sys.modules, "triage_actions", stub_actions_module)
+    monkeypatch.setattr(triage_bulk, "_list_open_issues", lambda *_args, **_kw: [])
+
+    rc = triage_bulk.main(
+        ["accept", "--repo", "deftai/directive", "--label", "bug", "--limit", "50"]
+    )
+    assert rc == 0
+
+
 def test_main_zero_match_exits_zero(
     stub_actions_module: SimpleNamespace,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The CLI ``main`` returns 0 on zero-match per Story 4 Constraint."""
     monkeypatch.setitem(sys.modules, "triage_actions", stub_actions_module)
-    monkeypatch.setattr(triage_bulk, "_list_open_issues", lambda _repo: [])
+    # Stub matches the post-PR-#875 signature (`limit` + `out` kwargs).
+    monkeypatch.setattr(triage_bulk, "_list_open_issues", lambda *_a, **_k: [])
 
     rc = triage_bulk.main(["accept", "--repo", "deftai/directive", "--label", "anything"])
     assert rc == 0

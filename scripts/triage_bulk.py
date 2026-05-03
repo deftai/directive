@@ -33,6 +33,7 @@ import argparse
 import contextlib
 import importlib
 import json
+import os
 import subprocess
 import sys
 from collections.abc import Callable, Iterable
@@ -73,8 +74,34 @@ def _load_triage_actions() -> Any:
 #: Default ceiling for ``gh issue list --limit``. Must stay aligned with
 #: ``DEFAULT_MAX_OPEN_ISSUES`` in ``scripts/reconcile_issues.py`` (#764).
 #: Operators with larger backlogs can override via the ``--limit`` CLI flag
-#: or ``DEFT_TRIAGE_BULK_LIMIT`` env-var.
+#: or the ``DEFT_TRIAGE_BULK_LIMIT`` env-var; both surfaces are wired below
+#: (see ``_build_parser`` and ``_resolve_limit``).
 DEFAULT_ISSUE_LIST_LIMIT = 1000
+
+#: Env-var override for ``DEFAULT_ISSUE_LIST_LIMIT`` consumed by
+#: :func:`_resolve_limit` when no explicit ``--limit`` flag is passed.
+LIMIT_ENV_VAR = "DEFT_TRIAGE_BULK_LIMIT"
+
+
+def _resolve_limit(cli_value: int | None) -> int:
+    """Pick the effective limit -- CLI > env-var > module default.
+
+    Returns ``DEFAULT_ISSUE_LIST_LIMIT`` if the env-var is set to a value
+    that does not parse as a positive integer; this matches the
+    ``DEFT_NO_NETWORK`` / ``DEFT_REMOTE_PROBE_TIMEOUT`` defensive style in
+    ``run`` (#801).
+    """
+
+    if cli_value is not None:
+        return max(1, int(cli_value))
+    raw = os.environ.get(LIMIT_ENV_VAR, "").strip()
+    if not raw:
+        return DEFAULT_ISSUE_LIST_LIMIT
+    try:
+        parsed = int(raw)
+    except ValueError:
+        return DEFAULT_ISSUE_LIST_LIMIT
+    return max(1, parsed)
 
 
 def _list_open_issues(
@@ -118,7 +145,7 @@ def _list_open_issues(
                 f"[triage:bulk] WARN: gh issue list returned {len(issues)} "
                 f"issue(s) -- equal to --limit {limit}. The bulk action will "
                 f"only operate on this slice; re-run with --limit <N> "
-                f"(N > {limit}) to widen the window."
+                f"(N > {limit}) or set {LIMIT_ENV_VAR}=<N> to widen the window."
             ),
             file=sink,
         )
@@ -244,6 +271,7 @@ def bulk_action(
     age_days: int | None = None,
     cluster: str | None = None,
     reason: str | None = None,
+    limit: int | None = None,
     actions_module: Any | None = None,
     issues_provider: Callable[[str], list[dict[str, Any]]] | None = None,
     now: datetime | None = None,
@@ -262,7 +290,16 @@ def bulk_action(
         raise ValueError(f"Unknown bulk action: {action_key!r}")
 
     sink = out or sys.stdout
-    fetch = issues_provider or _list_open_issues
+    if issues_provider is not None:
+        fetch = issues_provider
+    else:
+        # Forward ``sink`` so the truncation warning lands on the caller's
+        # output stream (Greptile P2 on PR #875). The lambda preserves the
+        # sentinel-default semantics of ``_list_open_issues``.
+        effective_limit = _resolve_limit(limit)
+        fetch = lambda repo_arg: _list_open_issues(  # noqa: E731
+            repo_arg, limit=effective_limit, out=sink
+        )
     issues = fetch(repo)
     matched = _filter_issues(
         issues,
@@ -329,6 +366,16 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="reject only: reason recorded in audit log + upstream issue close comment",
     )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help=(
+            "override the gh issue list --limit ceiling (default "
+            f"{DEFAULT_ISSUE_LIST_LIMIT}; env-var {LIMIT_ENV_VAR} is honored "
+            "when --limit is not passed)"
+        ),
+    )
     return parser
 
 
@@ -356,6 +403,7 @@ def main(argv: list[str] | None = None) -> int:
         age_days=args.age_days,
         cluster=args.cluster,
         reason=args.reason,
+        limit=args.limit,
     )
     # Zero-match is a clean exit per #845 Story 4 Constraint.
     return 0

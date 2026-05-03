@@ -157,6 +157,7 @@ def detect_drift(
     fetch_live: FetchLive | None = None,
     cache_loader: CacheLoader | None = None,
     skipped_out: list[tuple[str, int, str]] | None = None,
+    checked_out: list[tuple[str, int]] | None = None,
     out: Any | None = None,
 ) -> list[DriftRecord]:
     """Walk active vBRIEFs and return drifted (repo, issue) records.
@@ -169,6 +170,13 @@ def detect_drift(
     appended to ``skipped_out`` as ``(repo, issue, reason)``. This closes the
     Greptile P1 on PR #875 where a wholesale fetch outage masqueraded as
     ``all N fresh``.
+
+    When ``checked_out`` is supplied, every unique ``(repo, issue)`` pair the
+    detector visited is appended to it. Callers use this to denominate the
+    skipped-fetch warning in ``(issue-pairs, issue-pairs)`` units rather than
+    against the vBRIEF file count -- the latter would render nonsensical
+    fractions when one vBRIEF carries multiple issue references (Greptile P1
+    on PR #875 second pass).
     """
 
     fetch_live = fetch_live or _fetch_live_updated_at
@@ -184,6 +192,8 @@ def detect_drift(
             if key in seen:
                 continue
             seen.add(key)
+            if checked_out is not None:
+                checked_out.append(key)
             cached = cache_loader(repo, num, project_root)
             try:
                 live = fetch_live(repo, num)
@@ -376,12 +386,14 @@ def refresh_active(
         return FreshnessSummary(0, 0)
 
     skipped_records: list[tuple[str, int, str]] = []
+    checked_pairs: list[tuple[str, int]] = []
     drifts = detect_drift(
         active_dir,
         project_root,
         fetch_live=fetch_live,
         cache_loader=cache_loader,
         skipped_out=skipped_records,
+        checked_out=checked_pairs,
         out=sink,
     )
     skipped_pairs = [(repo, num) for (repo, num, _reason) in skipped_records]
@@ -389,11 +401,16 @@ def refresh_active(
         if skipped_pairs:
             # Greptile P1 fix on PR #875: never claim ``all fresh`` when one
             # or more live fetches errored -- the cached state is unverified.
+            # Greptile P1 second pass: denominate against checked (repo, issue)
+            # pair count, NOT vBRIEF file count, so a single vBRIEF with three
+            # failing refs reads as ``3 of 3 ... skipped`` instead of the
+            # nonsensical ``3 of 1``.
             print(
                 (
                     f"[triage:refresh-active] WARN: no drift detected, but "
-                    f"{len(skipped_pairs)} of {len(active_files)} fetch(es) "
-                    f"were skipped (treat freshness signal as unverified)"
+                    f"{len(skipped_pairs)} of {len(checked_pairs)} "
+                    f"(repo, issue) fetch(es) were skipped (treat freshness "
+                    f"signal as unverified)"
                 ),
                 file=sink,
             )

@@ -244,6 +244,63 @@ def test_freshness_gate_silent_skip_does_not_falsely_report_all_fresh(
     assert summary.drifts_detected == 0
 
 
+def test_freshness_gate_skip_warning_uses_pair_count_denominator(
+    tmp_path: Path,
+) -> None:
+    """Greptile P1 second pass (PR #875): a vBRIEF with multiple issue refs
+    that all fail live fetch MUST render ``M of N (repo, issue) fetch(es)``
+    where N is the checked pair count, NOT ``M of 1`` (vBRIEF file count).
+    """
+    project_root = tmp_path
+    active_dir = project_root / "vbrief" / "active"
+    active_dir.mkdir(parents=True)
+    # Single vBRIEF carrying THREE issue refs.
+    payload = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {
+            "title": "Multi-ref scope",
+            "status": "running",
+            "items": [],
+            "references": [
+                {
+                    "type": "x-vbrief/github-issue",
+                    "uri": "https://github.com/deftai/directive/issues/100",
+                },
+                {
+                    "type": "x-vbrief/github-issue",
+                    "uri": "https://github.com/deftai/directive/issues/200",
+                },
+                {
+                    "type": "x-vbrief/github-issue",
+                    "uri": "https://github.com/deftai/directive/issues/300",
+                },
+            ],
+        },
+    }
+    (active_dir / "2026-05-03-multi.vbrief.json").write_text(json.dumps(payload), encoding="utf-8")
+
+    def _all_fail(_repo: str, _n: int) -> str:
+        raise OSError("network unreachable")
+
+    out = io.StringIO()
+    summary = triage_refresh.refresh_active(
+        project_root,
+        fetch_live=_all_fail,
+        cache_loader=lambda _r, _n, _root: "cached",
+        out=out,
+    )
+
+    rendered = out.getvalue()
+    # Correct denominator (3 of 3), NOT the nonsensical (3 of 1) shape.
+    assert "3 of 3 (repo, issue) fetch(es)" in rendered
+    assert "3 of 1" not in rendered
+    assert summary.skipped == [
+        ("deftai/directive", 100),
+        ("deftai/directive", 200),
+        ("deftai/directive", 300),
+    ]
+
+
 def test_extract_issue_refs_only_returns_github_issue_type(tmp_path: Path) -> None:
     """Refs of unrelated types must NOT show up in the drift detector."""
     active_dir = tmp_path / "vbrief" / "active"
