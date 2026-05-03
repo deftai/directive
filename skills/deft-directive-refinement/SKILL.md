@@ -12,6 +12,9 @@ triggers:
   - roadmap refresh
   - refresh roadmap
   - triage
+  - action menu
+  - work the cache
+  - pre-ingest
 ---
 
 # Deft Directive Refinement
@@ -138,10 +141,20 @@ What would you like to do with this candidate?
 
 1. ! Surface a session summary (`{accepted}/{rejected}/{deferred}/{needs-ac}/{duplicates} of {total} candidates`) so the user can see what landed in `proposed/`.
 2. ! Chain into Phase 1 -- Ingest, which now runs against `vbrief/proposed/` containing only user-accepted items. Phase 1 dedup against existing references is unchanged; the dedup surface is just smaller because rejected/deferred candidates never wrote a vBRIEF.
-3. ! If the user opts out of Phase 1 (e.g. "that's it for today"), exit gracefully and surface the EXIT confirmation per the `### EXIT` block under `## PR & Review Cycle`. Outstanding `defer` / `needs-ac` candidates remain in the audit log for the next Phase 0 entry.
+3. ! If the user opts out of Phase 1 (e.g. "that's it for today"), exit via the **Phase 0 mid-session exit surface** below -- ! MUST NOT route to the `### EXIT` block under `## PR & Review Cycle` because that block is the post-PR-creation exit path and every chaining instruction it contains references `PR #{N}`, but no PR exists at this point in the flow.
+
+#### Phase 0 mid-session exit surface
+
+! When the user opts out of Phase 1 after completing (or partially completing) Phase 0 triage, perform exactly these steps -- ! MUST NOT mention any PR number, since none has been created yet:
+
+1. ! Surface the outstanding-work tally: `{deferred} candidate(s) deferred, {needs_ac} flagged Needs-AC -- these will resurface on the next Phase 0 entry.`
+2. ! Note the audit-log location verbatim: `Audit log preserved at `vbrief/.eval/candidates.jsonl`.`
+3. ! Confirm skill exit with the canonical phrasing: `deft-directive-refinement complete -- exiting skill.`
+4. ! Provide the Phase-0-appropriate chaining instruction: `Resume with `task triage:bootstrap` (refresh cache) followed by re-entering the refinement skill when ready to continue triage.` Do NOT reference a PR, a review cycle, or a monitor agent.
 
 ⊗ Skip Phase 1 silently after Phase 0 -- always render the chaining decision so the user knows the entry point shifted.
 ⊗ Mutate `vbrief/proposed/` directly during Phase 0 -- only `task triage:accept` (which itself delegates to `task issue:ingest`) is allowed to write there.
+⊗ Route Phase 0 mid-session opt-out to the post-PR `### EXIT` block under `## PR & Review Cycle` -- that block surfaces a non-existent `PR #{N}` and confuses the user.
 
 ## Phase 1 -- Ingest
 
