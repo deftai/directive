@@ -3,11 +3,11 @@
     "version": "0.6",
     "description": "Adoption blocker: scripts/release.py only checks tag availability at Step 9 of a 12-step pipeline, after Steps 1-8 have already promoted CHANGELOG, rendered ROADMAP, built dist artifacts, and made a release commit locally. A duplicate-tag failure at Step 9 strands the operator with manual recovery via git reset --hard.",
     "created": "2026-05-03T01:53:52Z",
-    "updated": "2026-05-03T01:53:52Z"
+    "updated": "2026-05-03T03:00:45Z"
   },
   "plan": {
     "title": "fix(scripts/release.py): pre-flight should verify release tag is available before state mutation",
-    "status": "pending",
+    "status": "running",
     "narratives": {
       "Problem": "scripts/release.py invokes `git tag v<version>` at Step 9 of a 12-step pipeline. By that point Steps 1-8 have already mutated state: CHANGELOG promoted to `[<version>]`, ROADMAP regenerated, pyproject.toml + uv.lock synced to the new version, dist/deft-<version>.zip built, and a `chore(release): v<version>` commit made locally. A duplicate-tag failure at Step 9 leaves an unpushed wrong-version commit on master with orphaned build artifacts; recovery requires `git reset --hard` (which AGENTS.md SCM rules forbid without explicit permission). Surfaced 2026-05-01 during the v0.23.0 release attempt where the operator typed `0.22.0` (the 12-hour-old prior release) and the pipeline ran 8 steps before failing.",
       "Overview": "Add a new `[X/N] Pre-flight tag availability` step to release.py Phase 1 (pre-flight), placed before any state mutation. Check three surfaces: local tag (`git tag -l`), remote tag (`git ls-remote --tags origin`), and GitHub release (`gh release view --repo`). Read-only; safe on dry-run; produces actionable recovery message naming the conflict source.",
