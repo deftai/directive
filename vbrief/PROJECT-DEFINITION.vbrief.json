@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-01T16:57:31Z"
+    "updated": "2026-05-03T01:33:45Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -271,6 +271,70 @@
               "uri": "scripts/preflight_branch.py",
               "type": "x-vbrief/related-doc",
               "title": "Sibling deterministic gate (#747) -- shape model for the new scripts/verify_encoding.py"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-784-fixscriptsreleasepy-pre-flight-should-verify-release-tag-is",
+        "title": "fix(scripts/release.py): pre-flight should verify release tag is available before state mutation",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-05-03-784-fixscriptsreleasepy-pre-flight-should-verify-release-tag-is.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/784",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #784: fix(scripts/release.py): pre-flight should verify release tag is available before state mutation"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-796-review-cycle-dual-source-fetch-can-miss-late-arriving-bot-re",
+        "title": "Review-cycle dual-source fetch can miss late-arriving bot reviews",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-05-03-796-review-cycle-dual-source-fetch-can-miss-late-arriving-bot-re.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/796",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #796: Review-cycle dual-source fetch can miss late-arriving bot reviews"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-800-swarm-skill-prohibit-git-checkout-in-a-worktree-another-agen",
+        "title": "swarm SKILL: prohibit git checkout in a worktree another agent owns (post-merge cleanup overreach)",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-05-03-800-swarm-skill-prohibit-git-checkout-in-a-worktree-another-agen.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/800",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #800: swarm SKILL: prohibit git checkout in a worktree another agent owns (post-merge cleanup overreach)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-03-814-scriptspreflight-branchpy-crashes-with-unicodeencodeerror-on",
+        "title": "scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) when printing the success glyph -- blocks every commit",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-05-03-814-scriptspreflight-branchpy-crashes-with-unicodeencodeerror-on.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/814",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #814: scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) when printing the success glyph -- blocks every commit"
             }
           ]
         }
@@ -5732,6 +5796,83 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-05-01-801-periodic-remote-version-probe-prompt-on-new-upstream-tags",
+        "title": "Periodic remote-version probe: occasionally check upstream for new directive tags and prompt the user to update",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-01-801-periodic-remote-version-probe-prompt-on-new-upstream-tags.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/801",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #801: Periodic remote-version probe: occasionally check upstream for new directive tags and prompt the user to update"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/410",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #410: CLI upgrade gate (local marker drift) -- direct integration site for the new probe"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/768",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #768: Universal upgrade gate / cmd_gate -- shares the read-only, no-mutation contract"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/635",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #635: Events behavioral wiring -- framework:remote-drift mirrors the version:drift / pre-cutover:detected pattern"
+            },
+            {
+              "uri": "skills/deft-directive-sync/SKILL.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Sync skill Phase 2 -- the existing user-triggered remote refresh that this probe complements"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-01-810-implementation-intent-gate-prevent-unauthorized-agent-spawn",
+        "title": "Implementation-intent inference is non-deterministic: enforce action-verb gate via preflight + AGENTS.md anti-pattern",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-01-810-implementation-intent-gate-prevent-unauthorized-agent-spawn.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/810",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #810: Implementation-intent inference is non-deterministic"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/747",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #747: scripts/preflight_branch.py precedent for the preflight helper shape"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/768",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #768: cmd_agents_refresh + managed-section markers -- propagation surface for the AGENTS.md edit"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/801",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #801: surfacing event -- the in-flight session that exhibited the inference failure"
+            },
+            {
+              "uri": "skills/deft-directive-build/SKILL.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Build skill -- gains a Step 0 preflight"
+            },
+            {
+              "uri": "skills/deft-directive-swarm/SKILL.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Swarm skill -- Phase 0 Step 1 deduplicated against the new helper"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
@@ -5776,6 +5917,7 @@
         "Narrative 'UserStories' may be stale: completed scope 'CLI bootstrap overwrites USER.md + input validation' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'Enforce USER.md gate (skills path)' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'Enforce USER.md gate in CLI path -- parity with agentic (skills) path' shares topics (user)",
+        "Narrative 'UserStories' may be stale: completed scope 'Periodic remote-version probe: occasionally check upstream for new directive tags and prompt the user to update' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope 'RFC: vBRIEF-centric document model for Deft Directive (D1-D18; 18 design decisions + 21 implementation stories)' shares topics (stories)",
         "Narrative 'UserStories' may be stale: completed scope 'Remove language defaults from USER.md' shares topics (user)",
         "Narrative 'UserStories' may be stale: completed scope '[Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)' shares topics (user)",

@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #814"
+  },
+  "plan": {
+    "title": "scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) when printing the success glyph -- blocks every commit",
+    "status": "proposed",
+    "narratives": {
+      "Description": "scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) when printing the success glyph -- blocks every commit",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/814",
+      "Labels": "bug, adoption-blocker"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/814",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #814: scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) when printing the success glyph -- blocks every commit"
+      }
+    ]
+  }
+}

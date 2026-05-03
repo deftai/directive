@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #796"
+  },
+  "plan": {
+    "title": "Review-cycle dual-source fetch can miss late-arriving bot reviews",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Review-cycle dual-source fetch can miss late-arriving bot reviews",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/796",
+      "Labels": "bug, skills"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/796",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #796: Review-cycle dual-source fetch can miss late-arriving bot reviews"
+      }
+    ]
+  }
+}
