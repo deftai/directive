@@ -49,9 +49,16 @@ tasks:
       # non-zero exit from the preflight task aborts this task before any
       # `cmds:` line runs. Operator-supplied `{{.CLI_ARGS}}` (e.g.
       # `--dry-run`, `--force`, `--rollback`, `--strict`) belong to the
-      # migrator -- they are NOT forwarded to the preflight task; the
-      # preflight surface is parameter-free at this dispatch site.
+      # migrator and are NOT valid migrate_preflight.py flags. go-task
+      # forwards parent CLI_ARGS into dependency tasks by default, so we
+      # explicitly clear CLI_ARGS here; otherwise `task migrate:vbrief --
+      # --dry-run` reaches the preflight argparse surface as
+      # `migrate:preflight -- --dry-run` and exits 2 (`unrecognized
+      # arguments: --dry-run`) before the migrator runs. This bug was
+      # caught by the Windows task-dispatch regression job on PR #860.
       - task: preflight
+        vars:
+          CLI_ARGS: ""
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
