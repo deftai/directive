@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import subprocess
 import sys
 from pathlib import Path
 
@@ -58,6 +59,22 @@ HOOK_SCRIPTS: list[tuple[str, str, list[str], dict[str, str]]] = [
         # the policy lookup so the test does not need a real PROJECT-DEFINITION.
         ["--project-root", "{tmp_path}"],
         {"DEFT_SETUP_INTERVIEW": "1"},
+    ),
+    (
+        # #798: deterministic-tier PS 5.1 non-ASCII corruption gate. Invoked
+        # from .githooks/pre-commit AFTER preflight_branch via
+        # ``verify_encoding.py --staged``. Pinned to the same UTF-8 self-
+        # reconfigure contract; sibling regression coverage in
+        # tests/cli/test_verify_encoding.py exercises evaluate() and the
+        # full main() exit-code matrix beyond what this audit asserts.
+        # The fixture ``_init_git_repo`` flag below tells the parametrized
+        # test to ``git init`` ``{tmp_path}`` before invoking main(), so
+        # ``git ls-files`` (the --all dispatch) returns an empty clean set
+        # and the script prints its U+2713 success glyph the contract pins.
+        "verify_encoding",
+        "scripts/verify_encoding.py",
+        ["--all", "--project-root", "{tmp_path}"],
+        {"_init_git_repo": "1"},
     ),
 ]
 
@@ -170,6 +187,26 @@ def test_hook_script_self_reconfigures_stdout_to_utf8(
     err_buf, fake_stderr = _make_cp1252_wrapper()
     monkeypatch.setattr(sys, "stdout", fake_stdout)
     monkeypatch.setattr(sys, "stderr", fake_stderr)
+
+    # Pseudo-env keys (prefixed with ``_``) are fixture directives, not real
+    # env vars. ``_init_git_repo`` initializes a minimal git working tree at
+    # ``{tmp_path}`` so scripts that shell out to ``git ls-files`` /
+    # ``git diff --cached`` (e.g. #798's verify_encoding.py) traverse a real
+    # repo. Real env entries pass through to monkeypatch unchanged.
+    needs_git_repo = env.pop("_init_git_repo", "") == "1"
+    if needs_git_repo:
+        subprocess.run(
+            ["git", "init", "--quiet", "--initial-branch=main", str(tmp_path)],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "config", "user.email", "test@example.com"],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "config", "user.name", "Test"],
+            check=True,
+        )
     for key, value in env.items():
         monkeypatch.setenv(key, value)
 

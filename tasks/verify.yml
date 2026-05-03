@@ -52,3 +52,17 @@ tasks:
           echo "  (got core.hooksPath='$configured', expected '.githooks')" >&2
           exit 1
         fi
+
+  encoding:
+    desc: "Detect PS 5.1 non-ASCII round-trip corruption (#798). Scans tracked text files for U+FFFD, CP1252/CP437-as-UTF-8 mojibake, and unexpected BOM. Defaults to --all; pass --staged for the pre-commit invocation."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because
+    # user-facing flags (--staged / --all / --allow-list <path>) MUST NOT be
+    # silently swallowed by go-task's incremental-build cache. The same
+    # rationale that gated `task release` (#74) and `task pr:check-protected-issues`
+    # (#702) applies here -- the gate accepts recovery flags that the cache
+    # layer would otherwise discard.
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/verify_encoding.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

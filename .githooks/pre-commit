@@ -30,4 +30,11 @@ if [ -z "$PYTHON_BIN" ]; then
     fi
 fi
 
-exec "$PYTHON_BIN" "$REPO_ROOT/scripts/preflight_branch.py" --project-root "$REPO_ROOT"
+# Step 1: branch-protection gate (#747).
+"$PYTHON_BIN" "$REPO_ROOT/scripts/preflight_branch.py" --project-root "$REPO_ROOT" || exit $?
+
+# Step 2: PS 5.1 non-ASCII round-trip corruption gate (#798). Scans staged
+# files for U+FFFD, CP1252/CP437-as-UTF-8 mojibake, and unexpected BOM.
+# Three-state exit propagates: 0 allowed / 1 corruption blocked with diagnostic
+# / 2 config error. Recurrence chain documented in scripts/verify_encoding.py.
+exec "$PYTHON_BIN" "$REPO_ROOT/scripts/verify_encoding.py" --project-root "$REPO_ROOT" --staged

@@ -131,6 +131,7 @@ tasks:
       - verify:links
       - verify:rule-ownership
       - verify:branch
+      - verify:encoding
       - vbrief:validate
     cmds:
       - echo "All checks passed"
