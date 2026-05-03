@@ -60,3 +60,8 @@ vbrief/*.premigrate.*
 # deft/main.md § Safety flags for the post-commit recovery path.
 *.premigrate.md
 *.premigrate.vbrief.json
+
+# Local triage / refinement issue cache (#845 Story 1). Sidecar mirror of
+# `gh issue list` populated by `task triage:cache`; never versioned. See
+# scripts/triage_cache.py for the layout (.deft-cache/issues/<owner>-<repo>/).
+.deft-cache/

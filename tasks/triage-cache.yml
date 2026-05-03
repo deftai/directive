@@ -1,0 +1,38 @@
+version: '3'
+
+# Standalone Taskfile fragment for #845 Story 1 -- the triage cache surface.
+#
+# Wave-1 owner: Agent A1 (this PR). The parent ``Taskfile.yml`` ``includes:``
+# wiring is owned by Story 6 (Agent A6) and intentionally NOT performed here.
+# To exercise these tasks before the wiring lands, run them directly via
+# ``task --taskfile tasks/triage-cache.yml triage:cache -- --repo owner/repo``.
+#
+# Per ``conventions/task-caching.md`` (#574), tasks that accept user-facing
+# recovery flags via ``{{.CLI_ARGS}}`` (here: ``--repo`` / ``--force`` /
+# ``--use-gitcrawl`` / ``--ttl-seconds`` / ``--issue``) MUST NOT declare
+# ``sources:`` / ``generates:`` -- the cached cmds skip would silently
+# discard the recovery flag.
+
+vars:
+  # Each included sub-taskfile defines its own DEFT_ROOT mirror so scripts
+  # can be dispatched via {{.DEFT_ROOT}}/scripts/<name>.py on every platform
+  # (#566). joinPath is evaluated eagerly by go-task templating and yields
+  # a native-separator absolute path that uv run python can open on Windows.
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  cache:
+    desc: "Populate the local issue cache (.deft-cache/issues/<owner>-<repo>/) -- task triage:cache -- --repo owner/repo [--force] [--use-gitcrawl]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_cache.py" populate {{.CLI_ARGS}}
+
+  show:
+    desc: "Print the cached, quarantined .md body for an issue -- task triage:show -- --repo owner/repo --issue 845"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_cache.py" show {{.CLI_ARGS}}
