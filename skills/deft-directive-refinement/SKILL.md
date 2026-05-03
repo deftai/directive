@@ -50,7 +50,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 Refinement is a **conversational loop**, not a batch job. The user directs the flow:
 
 - "Triage" / "action menu" / "work the cache" / "pre-ingest" -> Phase 0 (Triage -- cache + action menu, #845)
-- "Pull in issues" / "ingest" -> Phase 1 (Ingest)
+- "Pull in issues" / "ingest" -> Phase 0 FIRST when `.deft-cache/issues/` is non-empty OR `vbrief/.eval/candidates.jsonl` has non-terminal candidates (Phase 0 then chains into Phase 1); Phase 1 directly only when the Phase 0 auto-skip condition is met (#845)
 - "Show proposed" / "evaluate" -> Phase 2 (Evaluate)
 - "Check origins" / "reconcile" -> Phase 3 (Reconcile)
 - "Accept these" / "reject that" / "promote" / "demote" -> Phase 4 (Promote/Demote)
@@ -88,7 +88,7 @@ Phase 0 reads and writes three distinct tiers; ! MUST NOT collapse any pair into
 Phase 0 is entered when **any** of the following hold:
 
 - The user types one of the trigger phrases ("triage", "action menu", "work the cache", "pre-ingest")
-- The skill is entered via the standard refinement triggers AND `.deft-cache/issues/` is non-empty OR `vbrief/.eval/candidates.jsonl` contains at least one candidate without a terminal action
+- The skill is entered via the standard refinement triggers AND (`.deft-cache/issues/` is non-empty OR `vbrief/.eval/candidates.jsonl` contains at least one candidate without a terminal action) -- the parenthesised disjunction binds tighter than the leading AND so Phase 0 only fires when the skill was actually invoked via a refinement trigger AND there is something to triage
 - The user explicitly invokes `task triage:bootstrap` (which seeds the cache) prior to entering refinement
 
 ### Step 1: Auto-Skip Probe
@@ -129,7 +129,7 @@ What would you like to do with this candidate?
 
 - ! Each action option ! MUST route to the corresponding `task triage:*` command introduced under Stories 1-4 of #845. Skills MUST NOT reimplement the audit-log append, schema validation, or `proposed/` write inline -- the tasks are the canonical implementation (mirrors the #537 ingest-task discipline).
 - ! On `Discuss`, halt the action menu sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal per the deterministic-questions contract. ⊗ Implicit resumption.
-- ! On `Back`, treat the prior candidate's action as un-answered and re-render its action menu (this lets the user undo a misclick without re-running the entire triage pass).
+- ! On `Back`, treat the prior candidate's action as un-answered and re-render its action menu (this lets the user undo a misclick without re-running the entire triage pass). When the user selects `Back` on the **very first** candidate of the pass (no prior candidate exists), follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) Back semantic: surface `Nothing earlier to go back to` and re-render the current candidate's action menu -- do NOT bounce back to Step 2 (refresh) or to the Session Model entry, since the calling-skill entry point for Phase 0 is the Branch Setup preflight, not a question that can be re-asked.
 - ~ Bulk operations: when the user has a clear pattern (e.g. "reject every `wontfix`-labelled candidate"), use `task triage:bulk -- --action reject --label wontfix` (Story 4) instead of walking the menu N times. Bulk results still flow through the audit log so the action history stays coherent.
 
 ### Step 4: Pre-Phase-1 Handoff
@@ -138,7 +138,7 @@ What would you like to do with this candidate?
 
 1. ! Surface a session summary (`{accepted}/{rejected}/{deferred}/{needs-ac}/{duplicates} of {total} candidates`) so the user can see what landed in `proposed/`.
 2. ! Chain into Phase 1 -- Ingest, which now runs against `vbrief/proposed/` containing only user-accepted items. Phase 1 dedup against existing references is unchanged; the dedup surface is just smaller because rejected/deferred candidates never wrote a vBRIEF.
-3. ! If the user opts out of Phase 1 (e.g. "that's it for today"), exit gracefully and surface the EXIT confirmation per `## EXIT`. Outstanding `defer` / `needs-ac` candidates remain in the audit log for the next Phase 0 entry.
+3. ! If the user opts out of Phase 1 (e.g. "that's it for today"), exit gracefully and surface the EXIT confirmation per the `### EXIT` block under `## PR & Review Cycle`. Outstanding `defer` / `needs-ac` candidates remain in the audit log for the next Phase 0 entry.
 
 ⊗ Skip Phase 1 silently after Phase 0 -- always render the chaining decision so the user knows the entry point shifted.
 ⊗ Mutate `vbrief/proposed/` directly during Phase 0 -- only `task triage:accept` (which itself delegates to `task issue:ingest`) is allowed to write there.
