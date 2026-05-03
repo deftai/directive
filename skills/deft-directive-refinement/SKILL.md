@@ -148,9 +148,9 @@ What would you like to do with this candidate?
 ! When the user opts out of Phase 1 after completing (or partially completing) Phase 0 triage, perform exactly these steps -- ! MUST NOT mention any PR number, since none has been created yet:
 
 1. ! Surface the outstanding-work tally: `{deferred} candidate(s) deferred, {needs_ac} flagged Needs-AC -- these will resurface on the next Phase 0 entry.`
-2. ! Note the audit-log location verbatim: `Audit log preserved at `vbrief/.eval/candidates.jsonl`.`
+2. ! Note the audit-log location verbatim using double-backtick fencing so the inner path renders correctly: ``Audit log preserved at `vbrief/.eval/candidates.jsonl`.``
 3. ! Confirm skill exit with the canonical phrasing: `deft-directive-refinement complete -- exiting skill.`
-4. ! Provide the Phase-0-appropriate chaining instruction: `Resume with `task triage:bootstrap` (refresh cache) followed by re-entering the refinement skill when ready to continue triage.` Do NOT reference a PR, a review cycle, or a monitor agent.
+4. ! Provide the Phase-0-appropriate chaining instruction: ``Resume with `task triage:refresh` (re-sync the existing cache) followed by re-entering the refinement skill when ready to continue triage.`` Use `task triage:refresh` for an already-populated cache; `task triage:bootstrap` is the first-time seed and ! MUST NOT be used here because re-seeding can overwrite the deferred/needs-ac audit-log state just created. Do NOT reference a PR, a review cycle, or a monitor agent.
 
 ⊗ Skip Phase 1 silently after Phase 0 -- always render the chaining decision so the user knows the entry point shifted.
 ⊗ Mutate `vbrief/proposed/` directly during Phase 0 -- only `task triage:accept` (which itself delegates to `task issue:ingest`) is allowed to write there.
