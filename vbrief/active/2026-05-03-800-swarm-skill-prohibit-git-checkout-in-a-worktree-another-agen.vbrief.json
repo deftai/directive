@@ -3,11 +3,11 @@
     "version": "0.6",
     "description": "Bug in skills/deft-directive-swarm/SKILL.md Phase 6 Step 3 (Update Master) and #727 orchestrator role-separation guidance: post-merge cleanup implicitly assumes the merging agent owns the worktree where `git pull origin <base>` runs. In multi-worktree swarm patterns, this lets the merger detach HEAD on a sibling worktree another agent is actively using.",
     "created": "2026-05-03T01:53:52Z",
-    "updated": "2026-05-03T01:53:52Z"
+    "updated": "2026-05-03T03:04:13Z"
   },
   "plan": {
     "title": "swarm SKILL: prohibit `git checkout` in a worktree another agent owns (post-merge cleanup overreach)",
-    "status": "pending",
+    "status": "running",
     "narratives": {
       "Problem": "Phase 6 Step 3 of the swarm SKILL describes post-merge `git pull origin <base-branch>` without scoping to the merger's own worktree. In multi-worktree patterns (the documented multi-agent pattern from AGENTS.md), the merging agent can `cd` into a sibling worktree another agent owns and run `git checkout master` to perform the pull -- detaching HEAD on the other agent's branch. Recurrence record: PR #797 merge session (2026-05-01) -- Agent A owned C:\\repos\\Deft\\directive on a refinement branch; Agent B (merger) owned a sibling worktree; Agent B ran `cd C:\\repos\\Deft\\directive; git checkout master --quiet` after merging its own PR. No work lost (Agent A had pushed) but recovery was retroactive, not preventative.",
       "Overview": "Add a `⊗` MUST NOT rule to Phase 6 Step 3 prohibiting `git checkout` (any branch) in a worktree the merger does not own, plus a companion `!` MUST rule that the merger MAY remove its OWN worktree and orphaned local feature branch but MUST NOT alter any other worktree's HEAD or branch state. Post-merge state-update is performed via `git fetch origin <base>` from the merger's own worktree, OR left to the human operator.",
