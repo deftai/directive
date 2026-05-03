@@ -14,13 +14,12 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - **Safe to auto-run:** Yes. `task triage:bootstrap` is idempotent and reversible -- a second run is a no-op, and the entire opt-in can be undone by deleting `.deft-cache/` and removing the `.deft-cache/` line from `.gitignore`. The bootstrap performs five steps: (1) populate the local issue cache for all open upstream issues; (2) backfill `vbrief/.eval/candidates.jsonl` with `accepted` audit entries for items already in `vbrief/proposed/`, `vbrief/pending/`, or `vbrief/active/` (preserves audit trail; intentionally skips `vbrief/cancelled/` to avoid reanimating rejected items); (3) add `.deft-cache/` to `.gitignore` if absent; (4) install `gitcrawl` if missing (skipped if already on PATH); (5) print a recap of the actions taken.
 - **Restart required:** No. Triage v1 is a new opt-in surface; existing agent sessions continue to work without any awareness of the cache. Future sessions will see the new `task triage:*` targets in `task --list` once the parent `Taskfile.yml` `includes:` block resolves the four fragment files.
 - **Commands:**
-  - `task triage:bootstrap` (one-time install, ~5 min for ~200 open issues -- mostly the cache populate step)
-  - `task triage:cache` (refresh the cache; idempotent)
-  - `task triage:show <N>` (inspect a single cached issue)
-  - `task triage:accept <N>` / `task triage:reject <N> --reason <r>` / `task triage:defer <N>` / `task triage:needs-ac <N>` (per-issue actions)
-  - `task triage:status <N>` / `task triage:history <N>` (read-only)
-  - `task triage:bulk-accept` / `task triage:bulk-reject` / etc. (bulk ops with `--label` / `--author` / `--age-days` filters)
-  - `task triage:refresh-active` (pre-swarm freshness gate against `vbrief/active/`)
+  - `task triage:bootstrap` (one-time install, ~5 min for ~200 open issues -- mostly the cache populate step). The `triage:bootstrap` colon-form is wired as a top-level alias by Story 6 and works immediately after this PR merges.
+  - The remaining commands ship as **namespaced** targets via the parent Taskfile `includes:` block. Use the `<namespace>:<task>` form against the include key:
+    - `task triage-cache:cache` / `task triage-cache:show <N>` (Story 1)
+    - `task triage-actions:accept <N>` / `task triage-actions:reject <N> -- --reason <r>` / `task triage-actions:defer <N>` / `task triage-actions:needs-ac <N>` / `task triage-actions:status <N>` / `task triage-actions:history <N>` (Story 3)
+    - `task triage-bulk:bulk-accept` / `task triage-bulk:bulk-reject` / `task triage-bulk:refresh-active` etc. with `--label` / `--author` / `--age-days` filters (Story 4)
+  - The shorthand `task triage:cache` / `task triage:accept <N>` / etc. forms are intentionally NOT wired in Story 6 because go-task v3 cannot share an `includes:` namespace key across multiple files; consolidating top-level aliases into a single `triage:*` surface is tracked as a follow-up cleanup PR after the four-fragment cascade has fully landed and the inner task names are stable on master. Use the namespaced forms above until that follow-up ships.
 
 ### What changes for consumers
 

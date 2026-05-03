@@ -62,9 +62,17 @@ the canonical imperative-token set:
   not the literal word `User` in normal prose)
 
 ! Token matching MUST be word-boundary-scoped to avoid false positives on
-unrelated words (e.g. `STEPS BACK FROM` should match because `STEP` is the
-word; `STEPHEN` should not match). Implementations MAY use a simple
-`re.search(rf"\b{token}\b", heading, re.IGNORECASE)` for each token.
+unrelated words. Examples:
+
+- ``STEP UP`` SHOULD match ``STEP`` (the token is a complete word).
+- ``STEPS BACK FROM`` SHOULD NOT match ``STEP`` (the trailing ``S`` defeats
+  the word-boundary on the right; ``STEPS`` is not the same word as ``STEP``).
+- ``STEPHEN`` SHOULD NOT match ``STEP`` (substring without boundary).
+
+Implementations MAY use a simple
+``re.search(rf"\b{token}\b", heading, re.IGNORECASE)`` for each token; the
+``\b`` anchors on either side ensure the token is a standalone word rather
+than a prefix of a larger word.
 
 ! The heading text after the `#`-prefix is the match surface. The `#`
 characters themselves are not part of the match.
