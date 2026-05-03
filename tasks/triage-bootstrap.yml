@@ -1,0 +1,46 @@
+version: '3'
+
+# Triage v1 bootstrap fragment (#845 Story 6).
+#
+# Standalone fragment: this file is wired into the parent Taskfile.yml via the
+# `includes:` block (see Taskfile.yml `## triage v1 fragment includes` comment).
+# When included under namespace key `triage-bootstrap`, the inner task
+# `bootstrap` is reachable as `task triage-bootstrap:bootstrap`. The parent
+# Taskfile.yml additionally exposes the user-facing alias `task triage:bootstrap`
+# which delegates here.
+#
+# Companion files in the four-fragment cluster (#845):
+#   tasks/triage-cache.yml      (Story 1 -- cache populate + show)
+#   tasks/triage-actions.yml    (Story 3 -- accept/reject/defer/...)
+#   tasks/triage-bulk.yml       (Story 4 -- bulk ops + freshness)
+#   tasks/triage-bootstrap.yml  (Story 6 -- this file)
+#
+# Companion script: scripts/triage_bootstrap.py
+# Companion test:   tests/test_triage_bootstrap.py
+#
+# Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+# declarations on this task because user-facing recovery flags
+# (`--repo`, `--skip-gitcrawl`, `--json`) are forwarded via {{.CLI_ARGS}} and
+# go-task's incremental-build cache layer would silently swallow them.
+
+vars:
+  # Resolve the deft framework root from this fragment's directory. The
+  # joinPath idiom mirrors the existing convention documented in the root
+  # Taskfile.yml header (#566): `{{.TASKFILE_DIR}}/..` evaluated by go-task's
+  # eager templating yields a native-separator absolute path that
+  # `uv run python` can open on Windows / macOS / Linux.
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  bootstrap:
+    desc: "Idempotent triage v1 installer (#845): populate cache, backfill audit log, gitignore, gitcrawl. Re-runnable. -- task triage:bootstrap [-- --repo OWNER/NAME] [--skip-gitcrawl] [--json]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      # PYTHONUTF8=1 is set at the root Taskfile.yml level (#540) and
+      # propagates here via go-task's include semantics; this belt-and-
+      # suspenders re-declaration keeps the fragment runnable directly via
+      # `task --taskfile tasks/triage-bootstrap.yml bootstrap` without
+      # inheriting from a parent.
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bootstrap.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

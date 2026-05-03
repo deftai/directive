@@ -111,6 +111,36 @@ includes:
   framework:
     taskfile: ./tasks/framework.yml
     optional: true
+  # Triage v1 fragment includes (#845 epic, Story 6 wiring).
+  #
+  # Four standalone fragments authored by stories A1, A3, A4, and A6
+  # respectively. Each is `optional: true` so the parent Taskfile parses
+  # cleanly during the rolling cascade -- earlier consumers of any single
+  # `task <namespace>:*` target still work even if a sibling fragment
+  # has not landed yet.
+  #
+  # Namespacing: go-task v3 prefixes inner task names with the include
+  # key (e.g. `triage-cache:cache` for inner task `cache` under key
+  # `triage-cache`). Two includes cannot share a single namespace key,
+  # so the four fragments use unique keys derived from the file basename.
+  # The user-facing `task triage:cache` / `task triage:bootstrap` /
+  # etc. forms are exposed via top-level alias tasks below.
+  #
+  # Cascade order (#845): A1 cache infra + #583 quarantine -> A2 audit
+  # log -> A3 actions -> A4 bulk + freshness -> A5 refinement Phase 0
+  # -> A6 bootstrap + this includes wiring + UPGRADING.md + docs (LAST).
+  triage-cache:
+    taskfile: ./tasks/triage-cache.yml
+    optional: true
+  triage-actions:
+    taskfile: ./tasks/triage-actions.yml
+    optional: true
+  triage-bulk:
+    taskfile: ./tasks/triage-bulk.yml
+    optional: true
+  triage-bootstrap:
+    taskfile: ./tasks/triage-bootstrap.yml
+    optional: true
 
 tasks:
   default:
@@ -292,3 +322,26 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.TASKFILE_DIR}}/scripts/release_e2e.py" {{.CLI_ARGS}}
+
+  # ------------------------------------------------------------------
+  # Triage v1 user-facing alias tasks (#845).
+  #
+  # The four triage fragments are namespaced under their unique include
+  # keys (`triage-cache`, `triage-actions`, `triage-bulk`,
+  # `triage-bootstrap`). The aliases below provide the documented
+  # `task triage:<verb>` user-facing surface that vBRIEFs and UPGRADING.md
+  # describe. Each alias delegates to the underlying namespaced task and
+  # forwards `{{.CLI_ARGS}}` so flags (`--repo`, `--reason`, etc.) reach
+  # the script. Aliases are inline at the root Taskfile rather than in a
+  # separate fragment because they cross include namespaces and must
+  # exist regardless of which fragments are present (the underlying
+  # `task: <name>` reference is itself a no-op when the include is
+  # `optional: true` and absent, but tests pin the aliases so consumers
+  # see consistent help text).
+  # ------------------------------------------------------------------
+  triage:bootstrap:
+    desc: "Run the triage v1 idempotent installer (#845 Story 6)."
+    cmds:
+      - task: triage-bootstrap:bootstrap
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
