@@ -23,8 +23,8 @@
     "timestamp": {
       "type": "string",
       "format": "date-time",
-      "description": "ISO-8601 UTC timestamp (e.g. 2026-05-03T16:32:54Z) when the decision was recorded.",
-      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:?\\d{2})$"
+      "description": "ISO-8601 UTC timestamp with the literal Z suffix (e.g. 2026-05-03T16:32:54Z) when the decision was recorded. Non-UTC offsets are intentionally rejected because latest_decision() sorts by lexicographic timestamp comparison, which is correct only when every entry is anchored to the same zone.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
     },
     "repo": {
       "type": "string",

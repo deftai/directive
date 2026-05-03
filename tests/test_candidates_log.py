@@ -192,6 +192,11 @@ def test_schema_rejection_on_invalid_entry(tmp_path: Path) -> None:
     with pytest.raises(CandidatesLogError, match="linked_to.*mark-duplicate"):
         append(_entry(linked_to=12), path=log)
 
+    # (8b) prior_decision_id forbidden when not reset (symmetric guard for
+    # the conditional surface; Greptile #876 P2 pinned the gap).
+    with pytest.raises(CandidatesLogError, match="prior_decision_id.*reset"):
+        append(_entry(prior_decision_id=str(uuid.uuid4())), path=log)
+
     # (9) unknown extra field
     with pytest.raises(CandidatesLogError, match="unknown field"):
         append(_entry(rogue_key="nope"), path=log)
@@ -201,6 +206,14 @@ def test_schema_rejection_on_invalid_entry(tmp_path: Path) -> None:
         append(_entry(issue_number=True), path=log)
     with pytest.raises(CandidatesLogError, match="issue_number"):
         append(_entry(issue_number=0), path=log)
+
+    # (11) timestamp must use the Z (UTC) suffix -- non-UTC offsets are
+    # rejected at the validator boundary so latest_decision()'s lexicographic
+    # sort cannot be silently broken by mixed-zone entries (Greptile #876 P1).
+    with pytest.raises(CandidatesLogError, match="ISO-8601 UTC"):
+        append(_entry(timestamp="2026-05-03T00:00:00+05:30"), path=log)
+    with pytest.raises(CandidatesLogError, match="ISO-8601 UTC"):
+        append(_entry(timestamp="2026-05-03T00:00:00-08:00"), path=log)
 
     # No invalid bytes leaked to disk -- file must not exist (or be empty
     # if the platform created it ahead of an aborted write).

@@ -73,8 +73,13 @@ _UUID_RE = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 )
 _REPO_RE = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
+# UTC-only on purpose: ``latest_decision`` sorts entries by lexicographic
+# timestamp comparison, which is correct only when every timestamp uses the
+# canonical ``Z`` (UTC) suffix. An offset like ``+05:30`` would represent the
+# same instant as a Z-suffixed timestamp at a different wall-clock string and
+# silently invert the chronological order (Greptile #876 P1).
 _ISO8601_RE = re.compile(
-    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})$"
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$"
 )
 
 _thread_lock = threading.Lock()
@@ -116,8 +121,8 @@ def _validate_entry(entry: Any) -> None:
     timestamp = entry["timestamp"]
     if not isinstance(timestamp, str) or not _ISO8601_RE.match(timestamp):
         raise CandidatesLogError(
-            f"timestamp must be ISO-8601 (e.g. 2026-05-03T16:32:54Z), "
-            f"got {timestamp!r}"
+            f"timestamp must be ISO-8601 UTC with Z suffix "
+            f"(e.g. 2026-05-03T16:32:54Z), got {timestamp!r}"
         )
 
     repo = entry["repo"]
@@ -216,11 +221,18 @@ def _append_lock(log_path: Path) -> Iterator[None]:
             import msvcrt
 
             # Spin on LK_NBLCK -- the LK_LOCK retry loop is fixed at 10x
-            # 1s and would block the test suite on bursty contention.
+            # 1s and would block the test suite on bursty contention. The
+            # acquire spin is INTENTIONALLY outside the post-acquire try/
+            # finally so a deadline-driven raise does NOT trigger the
+            # release path on a never-acquired lock; the explicit
+            # ``acquired`` flag makes that invariant load-bearing for
+            # future readers (Slizard #876 P2).
+            acquired = False
             deadline = time.monotonic() + 30.0
             while True:
                 try:
                     msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+                    acquired = True
                     break
                 except OSError:
                     if time.monotonic() > deadline:
@@ -229,11 +241,12 @@ def _append_lock(log_path: Path) -> Iterator[None]:
             try:
                 yield
             finally:
-                fh.seek(0)
-                # Best-effort release: the lock may already be gone if the
-                # process is mid-shutdown; that is not an error.
-                with suppress(OSError):
-                    msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+                if acquired:
+                    fh.seek(0)
+                    # Best-effort release: the lock may already be gone if
+                    # the process is mid-shutdown; that is not an error.
+                    with suppress(OSError):
+                        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
         else:
             import fcntl
 
