@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Adoption blocker: run.bat resolves the `run` Python entry point against the caller's CWD instead of %~dp0, breaking the documented `..\\deft\\run upgrade` flow on Windows.",
     "created": "2026-05-01T00:00:00Z",
-    "updated": "2026-05-01T00:00:00Z"
+    "updated": "2026-05-03T03:02:05Z"
   },
   "plan": {
     "id": "791-runbat-cwd-resolution-bug",
     "title": "run.bat: resolve `run` against %~dp0 instead of CWD (Windows)",
-    "status": "pending",
+    "status": "running",
     "planRef": "#791",
     "narratives": {
       "Problem": "run.bat:25 reads `python.exe run %*`. The `run` token is an unqualified relative path; Windows resolves it against the current working directory of the caller, not the directory of run.bat. Consumers who install deft as `./deft/` and follow the documented `..\\deft\\run upgrade` invocation from their project root therefore see python.exe fail to find a script named `run`. Workaround in field use: `python.exe \"<full path>\\deft\\run\" upgrade`.",
