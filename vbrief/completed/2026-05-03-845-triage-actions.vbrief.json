@@ -8,7 +8,7 @@
   "plan": {
     "id": "845-story-3-triage-actions",
     "title": "feat(scripts,tasks): triage action commands (accept/reject/defer/needs-ac/mark-duplicate/status/reset/history)",
-    "status": "running",
+    "status": "completed",
     "planRef": "#845",
     "narratives": {
       "Problem": "Triage decisions need a clear command surface. The reject path must close the upstream GitHub issue with a reason + label and record the decision reversibly.",
@@ -56,7 +56,10 @@
         "parent_issue": "#845",
         "agent": "A3",
         "wave": 2,
-        "depends_on_stories": ["Story 1 (cache)", "Story 2 (audit log)"],
+        "depends_on_stories": [
+          "Story 1 (cache)",
+          "Story 2 (audit log)"
+        ],
         "files_owned": [
           "scripts/triage_actions.py",
           "tasks/triage-actions.yml",
@@ -85,6 +88,7 @@
         "type": "x-vbrief/related-plan",
         "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
       }
-    ]
+    ],
+    "updated": "2026-05-03T20:47:54Z"
   }
 }

@@ -8,7 +8,7 @@
   "plan": {
     "id": "845-story-1-triage-cache-infra",
     "title": "feat(scripts,tasks): triage cache infra + #583 quarantine on cache path",
-    "status": "running",
+    "status": "completed",
     "planRef": "#845",
     "narratives": {
       "Problem": "Refinement currently calls `gh issue view <N>` per item per evaluation pass. Token cost is O(N) per pass and rate-limited. Need a local cache so subsequent passes are O(1). #583 documents an injection-quarantine requirement that has not been implemented on the cache path.",
@@ -94,6 +94,7 @@
         "type": "x-vbrief/related-plan",
         "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
       }
-    ]
+    ],
+    "updated": "2026-05-03T20:47:55Z"
   }
 }

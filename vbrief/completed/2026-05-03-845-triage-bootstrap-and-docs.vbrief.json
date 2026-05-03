@@ -8,7 +8,7 @@
   "plan": {
     "id": "845-story-6-triage-bootstrap-and-docs",
     "title": "feat(scripts,tasks,docs): triage bootstrap + UPGRADING.md + parent Taskfile wiring + quarantine spec + privacy NFR",
-    "status": "running",
+    "status": "completed",
     "planRef": "#845",
     "narratives": {
       "Problem": "Consumer projects need a single command to opt into triage v1, with documented migration impact + privacy considerations. Standalone fragments from Stories 1-4 are not yet reachable via the parent Taskfile; this story wires them.",
@@ -66,7 +66,13 @@
         "parent_issue": "#845",
         "agent": "A6",
         "wave": "last",
-        "depends_on_stories": ["Story 1", "Story 2", "Story 3", "Story 4", "Story 5"],
+        "depends_on_stories": [
+          "Story 1",
+          "Story 2",
+          "Story 3",
+          "Story 4",
+          "Story 5"
+        ],
         "files_owned": [
           "scripts/triage_bootstrap.py",
           "tasks/triage-bootstrap.yml",
@@ -108,6 +114,7 @@
         "type": "x-vbrief/related-plan",
         "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
       }
-    ]
+    ],
+    "updated": "2026-05-03T20:47:54Z"
   }
 }

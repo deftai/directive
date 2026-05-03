@@ -8,7 +8,7 @@
   "plan": {
     "id": "845-story-5-triage-refinement-phase-0",
     "title": "feat(skills): extend deft-directive-refinement with Phase 0 (cache + triage)",
-    "status": "running",
+    "status": "completed",
     "planRef": "#845",
     "narratives": {
       "Problem": "The current refinement skill ingests every candidate to `proposed/` first, then evaluates. This is the root cause of `proposed/` semantic drift and the wasted-regen problem (#845).",
@@ -81,6 +81,7 @@
         "type": "x-vbrief/related-doc",
         "title": "Deterministic-questions contract (gate compliance)"
       }
-    ]
+    ],
+    "updated": "2026-05-03T20:47:57Z"
   }
 }

@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Epic vBRIEF for issue #845: pre-ingest triage workflow with sidecar issue cache + decision audit log + accept/reject/defer/needs-AC state machine. Decomposed into 6 story-level vBRIEFs for parallel swarm implementation.",
     "created": "2026-05-03T16:15:00Z",
-    "updated": "2026-05-03T16:15:00Z"
+    "updated": "2026-05-03T20:48:27Z"
   },
   "plan": {
     "id": "845-pre-ingest-triage-workflow-epic",
     "title": "feat(triage,cache,refinement): pre-ingest triage workflow with sidecar issue cache",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Overview": "Three-tier inventory model: (1) `.deft-cache/issues/<repo>/<N>.{json,md}` local mirror with injection quarantine; (2) `vbrief/.eval/candidates.jsonl` append-only audit log of triage decisions; (3) `vbrief/proposed/` reserved for items the user/agent has accepted as worth tracking. Triage actions: accept / reject / defer / needs-AC / mark-duplicate. Reject closes upstream issue with reason + label. Refinement skill gains a Phase 0 that operates on the cache and routes decisions; existing Phase 1 operates on accepted-only.",
       "Problem": "Current refinement skill ingests every candidate to `proposed/` first, then evaluates. Reject path costs 2 vBRIEFs (proposed -> cancelled) plus 2 PROJECT-DEFINITION regens. `proposed/` semantics drift: items there were not actually proposed by the maintainer. Per-item `gh issue view` calls during evaluation are operationally expensive (token + rate-limit, see #788). Backlog visibility is qualitative (\"the proposed/ folder has stuff in it\") instead of quantitative.",
