@@ -55,15 +55,35 @@ const (
 
 // refreshPathFromRegistry reads the persistent PATH values from the system
 // (HKLM) and user (HKCU) registry hives, merges them with system entries
-// first, de-duplicates while preserving order, and updates the running
-// process's PATH environment variable so subsequent exec.LookPath calls see
-// recently-installed binaries.
+// first, then folds the existing in-process PATH in as a third
+// lowest-priority tier, de-duplicates while preserving order, and updates
+// the running process's PATH environment variable so subsequent
+// exec.LookPath calls see recently-installed binaries without losing any
+// session-level PATH additions that exist outside the registry.
 //
 // This is the compensating control for the stale-PATH bug behind issue #899:
 // the silent Git-for-Windows installer mutates the registry PATH but the
 // running deft-install process keeps its startup PATH snapshot, so the
 // post-install gitAvailable() probe always failed on a clean Windows box
 // without this refresh.
+//
+// Three-tier merge ordering (#907 cycle 2):
+//
+//  1. HKLM (system) registry PATH -- highest priority, ensures system
+//     binaries resolve from canonical OS-managed locations.
+//  2. HKCU (user) registry PATH -- per-user persistent additions.
+//  3. os.Getenv("PATH") -- the existing in-process PATH, captured BEFORE
+//     this call. Folding tier 3 in matters because CI runners (e.g.
+//     GitHub Actions) and shell sessions routinely add tool directories
+//     to PATH outside the registry; replacing the process PATH with only
+//     registry tiers would silently drop those entries and break
+//     subsequent exec.LookPath calls for any binary whose only PATH entry
+//     is a session-level addition.
+//
+// mergePaths is case-insensitive first-seen-wins, so a session-level entry
+// that duplicates a registry entry is dropped from tier 3 (i.e. registry
+// tiers always win on ordering for shadowable security-relevant
+// directories like C:\Windows\System32).
 func refreshPathFromRegistry() error {
 	systemPath, sysErr := readRegistryString(hkeyLocalMachine, systemEnvSubKey, pathValueName)
 	userPath, usrErr := readRegistryString(hkeyCurrentUser, userEnvSubKey, pathValueName)
@@ -76,7 +96,10 @@ func refreshPathFromRegistry() error {
 		return fmt.Errorf("read system PATH: %v; read user PATH: %v", sysErr, usrErr)
 	}
 
-	merged := mergePaths(systemPath, userPath)
+	// Fold the existing in-process PATH in as the third (lowest-priority)
+	// tier so non-registry session-level additions survive the refresh.
+	processPath := os.Getenv("PATH")
+	merged := mergePaths(mergePaths(systemPath, userPath), processPath)
 	if merged == "" {
 		return nil
 	}

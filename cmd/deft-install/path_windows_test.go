@@ -170,6 +170,45 @@ func TestRefreshPathFromRegistry_OnLiveSystem(t *testing.T) {
 	}
 }
 
+// TestRefreshPathFromRegistry_PreservesProcessPathAdditions pins the
+// #907 cycle-2 P1 contract: a session-level PATH addition (not present
+// in either registry hive) MUST survive the refresh as a tier-3 entry
+// rather than being silently dropped. Without this guarantee, CI
+// runners (e.g. GitHub Actions) and shell sessions that add tool
+// directories to PATH outside the registry lose those entries on the
+// first refreshPathFunc() call, breaking subsequent exec.LookPath
+// resolution for any binary whose only PATH entry is session-level.
+func TestRefreshPathFromRegistry_PreservesProcessPathAdditions(t *testing.T) {
+	original := os.Getenv("PATH")
+	defer os.Setenv("PATH", original)
+
+	// Pick a clearly synthetic directory unlikely to ever appear in
+	// HKLM\...\Environment\Path or HKCU\Environment\Path.
+	sentinel := `C:\__deft_test_sentinel_only_in_session_path__\bin`
+	newPath := original + string(os.PathListSeparator) + sentinel
+	if err := os.Setenv("PATH", newPath); err != nil {
+		t.Fatalf("os.Setenv(PATH): %v", err)
+	}
+
+	if err := refreshPathFromRegistry(); err != nil {
+		t.Fatalf("refreshPathFromRegistry: %v", err)
+	}
+
+	got := os.Getenv("PATH")
+	parts := strings.Split(got, string(os.PathListSeparator))
+	found := false
+	for _, p := range parts {
+		if strings.EqualFold(p, sentinel) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("session-level PATH entry %q was dropped by refreshPathFromRegistry; tier-3 fold-in must preserve it (full PATH: %q)",
+			sentinel, got)
+	}
+}
+
 // TestReadRegistryString_SystemPath verifies the helper can read the
 // canonical system-PATH registry value end-to-end. This is a defence-
 // in-depth probe that catches calling-convention regressions in the
