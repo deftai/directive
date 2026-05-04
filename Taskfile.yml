@@ -141,6 +141,13 @@ includes:
   triage-bootstrap:
     taskfile: ./tasks/triage-bootstrap.yml
     optional: true
+  # Windows maintainer onboarding fragment (#902). Exposes the inner task
+  # `toolchain` as `task setup:toolchain`. Note: the root-level `setup` task
+  # below (git-hooks bootstrap) coexists with `setup:toolchain` because
+  # go-task treats them as distinct task names.
+  setup:
+    taskfile: ./tasks/setup.yml
+    optional: true
 
 tasks:
   default:

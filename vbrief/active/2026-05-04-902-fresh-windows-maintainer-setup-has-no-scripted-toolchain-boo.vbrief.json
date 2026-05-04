@@ -2,11 +2,11 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Scope vBRIEF ingested from GitHub issue #902",
-    "updated": "2026-05-04T21:35:21Z"
+    "updated": "2026-05-04T22:00:09Z"
   },
   "plan": {
     "title": "Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper",
-    "status": "pending",
+    "status": "running",
     "narratives": {
       "Description": "Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/902",
