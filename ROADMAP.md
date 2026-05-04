@@ -5,6 +5,15 @@
 
 # Roadmap
 
+## Phase 1 -- Fix Now
+
+Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX.
+
+- **#899** -- Installer fails on a clean Windows machine: reinstalls git, then exits without completing
+- **#900** -- task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache
+- **#901** -- task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback
+- **#902** -- Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper
+
 ## Phase 2
 
 Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files.
