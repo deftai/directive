@@ -788,16 +788,131 @@ def step_ensure_gitignore_entry(project_root: Path) -> StepOutcome:
 # Step 4 -- ensure gitcrawl is installed (best-effort)
 # ---------------------------------------------------------------------------
 
+#: Fields ``gitcrawl`` exposes that the ``gh`` CLI fallback path does NOT.
+#: When the bootstrap defers gitcrawl installation, the consumer's triage
+#: surface degrades to a ``gh``-only fetch path and these fields are no
+#: longer available -- the structured outcome surfaces the gap so the user
+#: knows what they are missing in the gh-only mode (see
+#: ``docs/gitcrawl-fallback.md`` for the user-facing explanation).
+GITCRAWL_ONLY_FIELDS = ("body_html", "reactions", "comments_full")
+
+#: Canonical install hint surfaced in the deferred ``StepOutcome.details``
+#: and the user-visible status line. ``uv`` is the preferred path because it
+#: is already a deft requirement (#901); ``pipx`` is the historical fallback.
+GITCRAWL_INSTALL_HINT = (
+    "Install manually: uv tool install gitcrawl  OR  pipx install gitcrawl"
+)
+
+#: Canonical name for the gh-only fallback mode surfaced via
+#: ``StepOutcome.details['falling_back_to']``.
+GITCRAWL_FALLBACK_MODE = "gh-only"
+
+
+def _gitcrawl_deferred_outcome(
+    *,
+    action: str,
+    reason: str,
+    error: str | None = None,
+    uv_attempted: bool = False,
+    pipx_attempted: bool = False,
+) -> StepOutcome:
+    """Build the canonical structured deferred outcome for ``step_ensure_gitcrawl``.
+
+    Centralised so every deferred branch (no installer / install raised /
+    install exited non-zero) emits the same user-visible status line shape
+    AND the same ``details`` payload (#901). The payload is consumed by
+    downstream tooling and tests, so the keys are intentionally stable.
+
+    Args:
+        action: Sub-state key (``deferred-no-pipx`` / ``deferred-no-installer``
+            / ``deferred-install-failed``) used by tests and the
+            ``--json`` emitter to distinguish branches without re-parsing
+            the message.
+        reason: Short branch-specific reason fragment spliced into the
+            user-visible status line (e.g. ``"neither uv nor pipx on PATH"``).
+        error: Optional captured stderr / exception text for the
+            ``StepOutcome.error`` field (truncated by the caller).
+        uv_attempted: True when the bootstrap reached the ``uv`` install
+            subprocess (regardless of outcome).
+        pipx_attempted: True when the bootstrap reached the ``pipx`` install
+            subprocess (regardless of outcome).
+    """
+    missing_fields = list(GITCRAWL_ONLY_FIELDS)
+    message = (
+        f"deferred -- gitcrawl unavailable on this platform ({reason}); "
+        f"falling back to {GITCRAWL_FALLBACK_MODE} mode for triage "
+        f"(missing: {', '.join(missing_fields)}). "
+        f"{GITCRAWL_INSTALL_HINT}"
+    )
+    return StepOutcome(
+        name="ensure_gitcrawl",
+        ok=True,
+        message=message,
+        error=error,
+        details={
+            "installed": False,
+            "action": action,
+            "falling_back_to": GITCRAWL_FALLBACK_MODE,
+            "missing_fields": missing_fields,
+            "install_hint": GITCRAWL_INSTALL_HINT,
+            "uv_attempted": uv_attempted,
+            "pipx_attempted": pipx_attempted,
+        },
+    )
+
+
+def _try_install_gitcrawl(installer: str, argv: list[str]) -> tuple[bool, str | None]:
+    """Run ``argv`` to install gitcrawl; return (success, error_text).
+
+    Returns ``(True, None)`` on a clean success. On any failure (subprocess
+    error or non-zero exit) returns ``(False, <captured error text>)`` so
+    the caller can decide whether to fall through to the next installer.
+    The ``installer`` arg is only used to label the captured error text
+    (e.g. ``uv: ...`` / ``pipx: ...``).
+    """
+    try:
+        proc = subprocess.run(  # noqa: S603 -- explicit args, no shell
+            argv,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=120,
+        )
+    except (subprocess.SubprocessError, OSError) as exc:
+        return False, f"{installer}: {type(exc).__name__}: {exc}"
+    if proc.returncode == 0:
+        return True, None
+    captured = (proc.stderr or proc.stdout or "").strip()[:512]
+    return False, f"{installer}: exit {proc.returncode} {captured}".strip()
+
 
 def step_ensure_gitcrawl(skip: bool = False) -> StepOutcome:
     """Install ``gitcrawl`` when missing.
 
     ``gitcrawl`` is the GitHub-aware crawler Story 1 prefers when populating
     the cache (with a fallback to ``gh issue list`` when absent). The bootstrap
-    tries ``pipx install gitcrawl`` and falls back to a print-only diagnostic
-    when neither pipx nor gitcrawl can be detected. Installation is best-effort:
-    the bootstrap does NOT fail if gitcrawl can't be installed because Story 1
-    has a documented fallback.
+    tries ``uv tool install gitcrawl`` FIRST (#901 -- ``uv`` is already a
+    deft requirement), and only falls back to ``pipx install gitcrawl`` when
+    ``uv`` is unavailable or the ``uv`` install fails. When BOTH installers
+    fail (or neither is on PATH), the step defers with a structured
+    :class:`StepOutcome` whose ``details`` payload surfaces:
+
+    - ``falling_back_to``: the canonical fallback mode (``"gh-only"``).
+    - ``missing_fields``: the list of fields the ``gh``-only path cannot
+      provide that ``gitcrawl`` would (``body_html``, ``reactions``,
+      ``comments_full``).
+    - ``install_hint``: a one-line manual-install hint for the operator.
+
+    The deferred status line is intentionally part of the recap stdout (not
+    a ``--verbose``-only diagnostic) so a Windows consumer who hits this
+    path on first ``task triage:bootstrap`` SEES that the gitcrawl install
+    deferred AND knows what fields they are missing in the gh-only fallback.
+    See ``docs/gitcrawl-fallback.md`` for the user-facing explanation of
+    the gh-only field gap.
+
+    Installation is best-effort: the bootstrap does NOT fail if gitcrawl
+    can't be installed because Story 1 has a documented ``gh issue list``
+    fallback.
 
     The ``skip`` flag is a test-only escape hatch; CLI consumers should not
     pass it.
@@ -818,56 +933,92 @@ def step_ensure_gitcrawl(skip: bool = False) -> StepOutcome:
             details={"installed": True, "action": "noop"},
         )
 
+    # ---- Phase 1: try ``uv tool install gitcrawl`` ------------------------
+    # uv is preferred over pipx because it is already a deft requirement;
+    # asking the user to also install pipx is a needless second hurdle on
+    # Windows where pipx is rarely pre-installed (#901).
+    uv = shutil.which("uv")
+    uv_attempted = False
+    uv_error: str | None = None
+    if uv is not None:
+        uv_attempted = True
+        ok, uv_error = _try_install_gitcrawl("uv", [uv, "tool", "install", "gitcrawl"])
+        if ok:
+            return StepOutcome(
+                name="ensure_gitcrawl",
+                ok=True,
+                message="installed via uv tool install",
+                details={
+                    "installed": True,
+                    "action": "uv-install",
+                    "uv_attempted": True,
+                    "pipx_attempted": False,
+                },
+            )
+
+    # ---- Phase 2: fall back to ``pipx install gitcrawl`` ------------------
     pipx = shutil.which("pipx")
-    if pipx is None:
-        return StepOutcome(
-            name="ensure_gitcrawl",
-            ok=True,
-            message=(
-                "deferred -- pipx not on PATH; install gitcrawl manually if "
-                "you want gh-API-free cache populates "
-                "(Story 1 falls back to 'gh issue list')"
-            ),
-            details={"installed": False, "action": "deferred-no-pipx"},
+    pipx_attempted = False
+    pipx_error: str | None = None
+    if pipx is not None:
+        pipx_attempted = True
+        ok, pipx_error = _try_install_gitcrawl("pipx", [pipx, "install", "gitcrawl"])
+        if ok:
+            return StepOutcome(
+                name="ensure_gitcrawl",
+                ok=True,
+                message=(
+                    "installed via pipx"
+                    + (" (uv attempt failed; see error)" if uv_attempted else "")
+                ),
+                error=uv_error if uv_attempted else None,
+                details={
+                    "installed": True,
+                    "action": "pipx-install",
+                    "uv_attempted": uv_attempted,
+                    "pipx_attempted": True,
+                },
+            )
+
+    # ---- Phase 3: defer with a structured outcome -------------------------
+    # Branch A: neither installer was on PATH. Preserve the historical
+    # ``deferred-no-pipx`` action key so existing consumers that pin on it
+    # keep working; the new structured fields (``falling_back_to`` /
+    # ``missing_fields`` / ``install_hint``) ride alongside.
+    if not uv_attempted and not pipx_attempted:
+        return _gitcrawl_deferred_outcome(
+            action="deferred-no-pipx",
+            reason="neither uv nor pipx on PATH",
+            uv_attempted=False,
+            pipx_attempted=False,
         )
 
-    try:
-        proc = subprocess.run(  # noqa: S603 -- explicit args, no shell
-            [pipx, "install", "gitcrawl"],
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=120,
-        )
-    except (subprocess.SubprocessError, OSError) as exc:
-        return StepOutcome(
-            name="ensure_gitcrawl",
-            ok=True,
-            message=(
-                f"deferred -- pipx install raised {type(exc).__name__} "
-                "(Story 1 has a 'gh issue list' fallback)"
-            ),
-            error=str(exc),
-            details={"installed": False, "action": "deferred-error"},
-        )
+    # Branch B: at least one installer was attempted and failed. Surface
+    # the captured error text(s) so the operator can diagnose without
+    # re-running with --verbose.
+    error_parts: list[str] = []
+    if uv_error:
+        error_parts.append(uv_error)
+    if pipx_error:
+        error_parts.append(pipx_error)
+    combined_error = " | ".join(error_parts)[:1024] or None
 
-    if proc.returncode == 0:
-        return StepOutcome(
-            name="ensure_gitcrawl",
-            ok=True,
-            message="installed via pipx",
-            details={"installed": True, "action": "pipx-install"},
-        )
+    if uv_attempted and not pipx_attempted:
+        # uv failed; pipx not available to retry.
+        reason = "uv install failed and pipx not on PATH"
+    elif not uv_attempted and pipx_attempted:
+        # uv missing; pipx was tried and failed (matches the legacy
+        # pre-#901 single-installer failure path).
+        reason = "pipx install failed and uv not on PATH"
+    else:
+        reason = "both uv and pipx install attempts failed"
 
-    return StepOutcome(
-        name="ensure_gitcrawl",
-        ok=True,
-        message=(
-            f"deferred -- pipx install exited {proc.returncode} "
-            "(Story 1 has a 'gh issue list' fallback)"
-        ),
-        error=(proc.stderr or proc.stdout or "").strip()[:512],
-        details={"installed": False, "action": "deferred-pipx-fail"},
+    return _gitcrawl_deferred_outcome(
+        action="deferred-install-failed",
+        reason=reason,
+        error=combined_error,
+        uv_attempted=uv_attempted,
+        pipx_attempted=pipx_attempted,
     )
 
 

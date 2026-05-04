@@ -276,6 +276,285 @@ def test_gitcrawl_already_installed_is_noop(bootstrap, tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# #901 -- step_ensure_gitcrawl: try uv before pipx + structured deferred outcome
+# ---------------------------------------------------------------------------
+
+
+class _FakeCompletedProcess:
+    """Minimal stand-in for ``subprocess.CompletedProcess`` used by tests."""
+
+    def __init__(self, returncode: int, stdout: str = "", stderr: str = "") -> None:
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+def _which_factory(*available: str):
+    """Return a ``shutil.which`` replacement that resolves only the named bins.
+
+    Each name in ``available`` is mapped to a fake absolute path so the
+    bootstrap's ``shutil.which(<bin>)`` checks return truthy for it. Every
+    other lookup returns ``None``. The test suite uses this to drive the
+    uv-first / pipx-fallback / both-missing branches deterministically.
+    """
+    table = {name: f"/usr/local/bin/{name}" for name in available}
+
+    def _which(cmd: str) -> str | None:
+        return table.get(cmd)
+
+    return _which
+
+
+def test_step_ensure_gitcrawl_uv_first_pipx_fallback(bootstrap, monkeypatch) -> None:
+    """uv MUST be tried before pipx; on uv success, pipx MUST NOT be invoked.
+
+    Drives the new #901 install order: when ``uv`` is on PATH and ``uv tool
+    install gitcrawl`` exits 0, the step returns the ``uv-install`` action
+    and never spawns the pipx subprocess. This pins the ordering so a
+    future refactor cannot silently revert to pipx-first.
+    """
+    monkeypatch.setattr(bootstrap.shutil, "which", _which_factory("uv", "pipx"))
+
+    calls: list[list[str]] = []
+
+    def _fake_run(argv, **_kwargs):
+        calls.append(list(argv))
+        # uv install succeeds; if pipx is ever invoked the test will see it
+        # in `calls` and fail the ordering assertion below.
+        return _FakeCompletedProcess(returncode=0, stdout="installed", stderr="")
+
+    monkeypatch.setattr(bootstrap.subprocess, "run", _fake_run)
+
+    outcome = bootstrap.step_ensure_gitcrawl(skip=False)
+
+    assert outcome.ok
+    assert outcome.details.get("installed") is True
+    assert outcome.details.get("action") == "uv-install"
+    assert outcome.details.get("uv_attempted") is True
+    assert outcome.details.get("pipx_attempted") is False
+    # Exactly one subprocess call -- uv tool install gitcrawl. pipx MUST NOT
+    # have been invoked once uv succeeded.
+    assert len(calls) == 1, f"expected single subprocess call, got: {calls}"
+    argv = calls[0]
+    assert argv[1:] == ["tool", "install", "gitcrawl"], (
+        f"first subprocess call must be `uv tool install gitcrawl`; got {argv}"
+    )
+    # Defence-in-depth: ensure no pipx subprocess hid in the calls list.
+    assert not any("pipx" in part for part in argv), (
+        "pipx must not be invoked on the uv-success path"
+    )
+
+
+def test_step_ensure_gitcrawl_uv_failure_falls_back_to_pipx(
+    bootstrap, monkeypatch
+) -> None:
+    """On uv install failure, pipx MUST be tried as the fallback."""
+    monkeypatch.setattr(bootstrap.shutil, "which", _which_factory("uv", "pipx"))
+
+    calls: list[list[str]] = []
+
+    def _fake_run(argv, **_kwargs):
+        calls.append(list(argv))
+        # uv exits non-zero; pipx exits zero.
+        if argv[0].endswith("uv") or argv[0] == "uv" or "uv" in argv[0]:
+            return _FakeCompletedProcess(returncode=1, stderr="uv failed")
+        return _FakeCompletedProcess(returncode=0, stdout="installed via pipx")
+
+    monkeypatch.setattr(bootstrap.subprocess, "run", _fake_run)
+
+    outcome = bootstrap.step_ensure_gitcrawl(skip=False)
+
+    assert outcome.ok
+    assert outcome.details.get("installed") is True
+    assert outcome.details.get("action") == "pipx-install"
+    assert outcome.details.get("uv_attempted") is True
+    assert outcome.details.get("pipx_attempted") is True
+    # Two subprocess calls -- uv first, pipx second.
+    assert len(calls) == 2, f"expected uv then pipx; got: {calls}"
+    assert calls[0][1:] == ["tool", "install", "gitcrawl"], (
+        f"first call must be uv; got {calls[0]}"
+    )
+    assert calls[1][1:] == ["install", "gitcrawl"], (
+        f"second call must be pipx; got {calls[1]}"
+    )
+
+
+def test_step_ensure_gitcrawl_defers_with_structured_outcome(
+    bootstrap, monkeypatch
+) -> None:
+    """When BOTH uv and pipx are missing, the step MUST defer with structured details.
+
+    The deferred ``StepOutcome.details`` MUST carry the canonical
+    ``falling_back_to`` / ``missing_fields`` / ``install_hint`` keys so
+    downstream tooling and the user-facing recap can surface the gh-only
+    fallback state without re-parsing the message string.
+    """
+    monkeypatch.setattr(bootstrap.shutil, "which", _which_factory())  # nothing on PATH
+
+    def _fake_run(argv, **_kwargs):  # pragma: no cover -- must not be called
+        raise AssertionError(
+            f"subprocess.run must NOT be called when neither uv nor pipx is "
+            f"on PATH; got argv={argv!r}"
+        )
+
+    monkeypatch.setattr(bootstrap.subprocess, "run", _fake_run)
+
+    outcome = bootstrap.step_ensure_gitcrawl(skip=False)
+
+    assert outcome.ok, "deferral MUST keep ok=True so bootstrap exit code stays 0"
+    assert outcome.details.get("installed") is False
+    assert outcome.details.get("falling_back_to") == "gh-only"
+    missing = outcome.details.get("missing_fields")
+    assert isinstance(missing, list)
+    # The acceptance-criteria minimum is body_html + reactions; we ship
+    # comments_full as well. Pin the canonical set so a future loosening
+    # is caught.
+    assert set(missing) >= {"body_html", "reactions"}, (
+        f"missing_fields must include at least body_html and reactions; got {missing}"
+    )
+    assert "comments_full" in missing, (
+        "comments_full is part of the canonical gitcrawl-only field set"
+    )
+    install_hint = outcome.details.get("install_hint")
+    assert isinstance(install_hint, str) and install_hint
+    assert "uv tool install gitcrawl" in install_hint
+    assert "pipx install gitcrawl" in install_hint
+    # Backwards-compat action key when neither installer was attempted.
+    assert outcome.details.get("action") == "deferred-no-pipx"
+    assert outcome.details.get("uv_attempted") is False
+    assert outcome.details.get("pipx_attempted") is False
+
+
+def test_step_ensure_gitcrawl_defers_when_both_installers_fail(
+    bootstrap, monkeypatch
+) -> None:
+    """Both installers present but BOTH fail -> structured deferred outcome."""
+    monkeypatch.setattr(bootstrap.shutil, "which", _which_factory("uv", "pipx"))
+
+    def _fake_run(argv, **_kwargs):
+        # Both installers exit non-zero.
+        return _FakeCompletedProcess(
+            returncode=2,
+            stdout="",
+            stderr=f"{argv[0]} simulated failure",
+        )
+
+    monkeypatch.setattr(bootstrap.subprocess, "run", _fake_run)
+
+    outcome = bootstrap.step_ensure_gitcrawl(skip=False)
+
+    assert outcome.ok, "deferral on install failure MUST keep ok=True"
+    assert outcome.details.get("installed") is False
+    assert outcome.details.get("action") == "deferred-install-failed"
+    assert outcome.details.get("falling_back_to") == "gh-only"
+    assert outcome.details.get("uv_attempted") is True
+    assert outcome.details.get("pipx_attempted") is True
+    assert isinstance(outcome.details.get("missing_fields"), list)
+    assert outcome.error is not None and "uv" in outcome.error
+
+
+def test_step_ensure_gitcrawl_status_line_visible(bootstrap, monkeypatch) -> None:
+    """The deferred status line MUST be in the user-visible recap stdout.
+
+    Acceptance criterion 1c: the status line that reports the gh-only
+    fallback MUST be visible in normal ``task triage:bootstrap`` stdout,
+    not buried in --verbose-only output. We render the recap via
+    :meth:`BootstrapResult.summary` and assert the canonical fallback
+    tokens land in it.
+    """
+    monkeypatch.setattr(bootstrap.shutil, "which", _which_factory())
+
+    def _fake_run(argv, **_kwargs):  # pragma: no cover -- must not be called
+        raise AssertionError(f"unexpected subprocess.run call: {argv!r}")
+
+    monkeypatch.setattr(bootstrap.subprocess, "run", _fake_run)
+
+    outcome = bootstrap.step_ensure_gitcrawl(skip=False)
+
+    # The message body itself must surface the canonical user-visible tokens.
+    msg = outcome.message
+    assert "gh-only" in msg, f"status line missing gh-only mode marker: {msg!r}"
+    assert "falling back" in msg.lower(), (
+        f"status line must say we are falling back: {msg!r}"
+    )
+    assert "gitcrawl" in msg.lower()
+    # The install hint MUST be in the user-visible status line so a copy-paste
+    # gives the user a working command.
+    assert "uv tool install gitcrawl" in msg
+    assert "pipx install gitcrawl" in msg
+
+    # End-to-end: render the same outcome through the bootstrap recap and
+    # confirm the tokens reach the recap stdout (not just the StepOutcome).
+    result = bootstrap.BootstrapResult(
+        project_root=Path("."), repo="deftai/directive"
+    )
+    # Pad with passing entries for the other three steps so the success-path
+    # "Next steps" block also renders -- a regression guard against any future
+    # change that demotes the gitcrawl status line into the failure-only path.
+    for name in ("populate_cache", "backfill_audit_log", "ensure_gitignore_entry"):
+        result.steps.append(
+            bootstrap.StepOutcome(name=name, ok=True, message="stub")
+        )
+    result.steps.append(outcome)
+    recap = result.summary()
+    assert "ensure_gitcrawl:" in recap
+    assert "gh-only" in recap, (
+        "recap stdout MUST surface the gh-only fallback marker -- the status "
+        "line cannot be buried in --verbose-only output (acceptance 1c)"
+    )
+    assert "falling back" in recap.lower()
+    assert "uv tool install gitcrawl" in recap
+
+
+def test_step_ensure_gitcrawl_uv_only_install_succeeds_without_pipx(
+    bootstrap, monkeypatch
+) -> None:
+    """When only uv is on PATH (no pipx), uv MUST still be tried first.
+
+    Pins the path that motivates #901: a Windows consumer who has uv (deft
+    requirement) but no pipx still gets gitcrawl installed via uv, without
+    being forced to install pipx as a second hurdle.
+    """
+    monkeypatch.setattr(bootstrap.shutil, "which", _which_factory("uv"))
+
+    calls: list[list[str]] = []
+
+    def _fake_run(argv, **_kwargs):
+        calls.append(list(argv))
+        return _FakeCompletedProcess(returncode=0, stdout="installed")
+
+    monkeypatch.setattr(bootstrap.subprocess, "run", _fake_run)
+
+    outcome = bootstrap.step_ensure_gitcrawl(skip=False)
+
+    assert outcome.ok
+    assert outcome.details.get("action") == "uv-install"
+    assert len(calls) == 1
+    assert calls[0][1:] == ["tool", "install", "gitcrawl"]
+
+
+def test_step_ensure_gitcrawl_uv_failure_pipx_missing_defers(
+    bootstrap, monkeypatch
+) -> None:
+    """uv attempted and failed; pipx not on PATH -> deferred-install-failed."""
+    monkeypatch.setattr(bootstrap.shutil, "which", _which_factory("uv"))
+
+    def _fake_run(argv, **_kwargs):
+        return _FakeCompletedProcess(returncode=1, stderr="uv broke")
+
+    monkeypatch.setattr(bootstrap.subprocess, "run", _fake_run)
+
+    outcome = bootstrap.step_ensure_gitcrawl(skip=False)
+
+    assert outcome.ok
+    assert outcome.details.get("action") == "deferred-install-failed"
+    assert outcome.details.get("falling_back_to") == "gh-only"
+    assert outcome.details.get("uv_attempted") is True
+    assert outcome.details.get("pipx_attempted") is False
+    assert outcome.error is not None and "uv" in outcome.error
+
+
+# ---------------------------------------------------------------------------
 # Greptile P2 regression guard -- _is_commented_gitignore_line tightening
 # ---------------------------------------------------------------------------
 

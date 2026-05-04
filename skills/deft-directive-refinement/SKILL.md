@@ -76,6 +76,8 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 
 ! Phase 0 is the canonical pre-ingest entry point introduced under #845. It operates on the **three-tier inventory model** so that `vbrief/proposed/` only ever contains items the user has explicitly accepted. Phase 0 ! MUST chain into Phase 1 -- Ingest on completion (or auto-skip into Phase 1 when the cache is empty -- see Step 1 below). Numbered prompts in Phase 0 ! MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) -- the final two numbered options are `Discuss` and `Back`, in that order, and the Discuss-pause semantic from the contract applies verbatim.
 
+**See also (#901): [`../../docs/gitcrawl-fallback.md`](../../docs/gitcrawl-fallback.md)** -- when `task triage:bootstrap` defers the gitcrawl install (e.g. on Windows without `uv` or `pipx` on PATH), Phase 0 still runs but the cache is populated via the `gh`-only path and is missing `body_html` / `reactions` / `comments_full`. The doc explains the gh-only field gap, lists the manual install commands (`uv tool install gitcrawl` or `pipx install gitcrawl`), and describes the expected behavior on the gh-only fallback path.
+
 ### Three-Tier Inventory Model
 
 Phase 0 reads and writes three distinct tiers; ! MUST NOT collapse any pair into a single store:
