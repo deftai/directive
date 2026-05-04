@@ -30,18 +30,21 @@ $script:SetupWindowsScript = Join-Path $script:RepoRoot 'scripts\setup_windows.p
 # overwrite $env:PATH from the host registry, which we revert immediately.
 $script:OriginalPath = $env:PATH
 
-function Import-DeftRefreshPathHelpers {
-    $previousPath = $env:PATH
-    . $script:RefreshPathScript
-    $env:PATH = $previousPath
-}
-
-function Import-DeftSetupWindowsHelpers {
-    . $script:SetupWindowsScript
-}
+# Pester 5 promotes symbols defined in `BeforeAll` (including dot-sourced
+# functions) to the surrounding Describe block's scope, but only when the dot-
+# source runs DIRECTLY inside BeforeAll. Wrapping the dot-source in a regular
+# function scopes the imported symbols to that function's local scope; they
+# vanish when the wrapper returns and every `It` block calling them throws
+# `is not recognized as the name of a cmdlet`. Dot-source bare inside each
+# BeforeAll instead. For refresh-path.ps1 the auto-run block at the bottom of
+# the file mutates $env:PATH, so save and restore around the dot-source.
 
 Describe 'refresh-path.ps1: Merge-DeftPathStrings dedup' {
-    BeforeAll { Import-DeftRefreshPathHelpers }
+    BeforeAll {
+        $previousPath = $env:PATH
+        . $script:RefreshPathScript
+        $env:PATH = $previousPath
+    }
 
     It 'preserves first-occurrence order when entries repeat' {
         $merged = Merge-DeftPathStrings -SystemPath 'C:\a;C:\b;C:\a' -UserPath 'C:\b;C:\c'
@@ -65,7 +68,11 @@ Describe 'refresh-path.ps1: Merge-DeftPathStrings dedup' {
 }
 
 Describe 'refresh-path.ps1: system+user precedence ordering' {
-    BeforeAll { Import-DeftRefreshPathHelpers }
+    BeforeAll {
+        $previousPath = $env:PATH
+        . $script:RefreshPathScript
+        $env:PATH = $previousPath
+    }
 
     It 'places system entries before user entries' {
         $merged = Merge-DeftPathStrings -SystemPath 'C:\sys1;C:\sys2' -UserPath 'C:\usr1;C:\usr2'
@@ -86,7 +93,7 @@ Describe 'refresh-path.ps1: system+user precedence ordering' {
 }
 
 Describe 'setup_windows.ps1: idempotence when all tools are present' {
-    BeforeAll { Import-DeftSetupWindowsHelpers }
+    BeforeAll { . $script:SetupWindowsScript }
 
     It 'reports no installs when every probe resolves on PATH' {
         # Rely on the live Get-Command probe; the suite assumes the test host
@@ -120,7 +127,7 @@ Describe 'setup_windows.ps1: idempotence when all tools are present' {
 }
 
 Describe 'setup_windows.ps1: Test-DeftWindowsAppsStub' {
-    BeforeAll { Import-DeftSetupWindowsHelpers }
+    BeforeAll { . $script:SetupWindowsScript }
 
     It 'flags a Source under \WindowsApps\ as a stub (python.exe)' {
         $stub = [pscustomobject]@{
@@ -145,7 +152,7 @@ Describe 'setup_windows.ps1: Test-DeftWindowsAppsStub' {
 }
 
 Describe 'setup_windows.ps1: probe-before-install (Get-Command guard)' {
-    BeforeAll { Import-DeftSetupWindowsHelpers }
+    BeforeAll { . $script:SetupWindowsScript }
 
     It 'invokes the install scriptblock once per missing tool' {
         $installCalls = New-Object System.Collections.ArrayList
@@ -199,7 +206,7 @@ Describe 'setup_windows.ps1: probe-before-install (Get-Command guard)' {
 }
 
 Describe 'setup_windows.ps1: WhatIfOnly mode' {
-    BeforeAll { Import-DeftSetupWindowsHelpers }
+    BeforeAll { . $script:SetupWindowsScript }
 
     It 'never invokes the install scriptblock under -WhatIfOnly' {
         $installCalls = New-Object System.Collections.ArrayList
