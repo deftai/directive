@@ -52,6 +52,25 @@ $DeftWindowsTools = @(
     [pscustomobject]@{ Name = 'gh';     Probe = 'gh';     WingetId = 'GitHub.cli' }
 )
 
+function Test-DeftWindowsAppsStub {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)]
+        [AllowNull()]
+        [object] $Command
+    )
+    # Windows App Installer ships %LOCALAPPDATA%\Microsoft\WindowsApps\<name>.exe
+    # stubs (notably python.exe) that redirect to the Microsoft Store rather
+    # than launching a real interpreter. Get-Command resolves these stubs, so
+    # a naive presence check causes `winget install` to be skipped silently.
+    # Treat any binary whose Source path is anchored under WindowsApps as a
+    # stub so the install branch fires on stock Windows 10/11 hosts.
+    if ($null -eq $Command) { return $false }
+    if (-not $Command.Source) { return $false }
+    return ($Command.Source -match '\\WindowsApps\\')
+}
+
 function Test-DeftToolPresent {
     [CmdletBinding()]
     [OutputType([bool])]
@@ -63,7 +82,9 @@ function Test-DeftToolPresent {
     )
     if ($ForceMissing -contains $Probe) { return $false }
     $cmd = Get-Command -Name $Probe -ErrorAction SilentlyContinue
-    return ($null -ne $cmd)
+    if ($null -eq $cmd) { return $false }
+    if (Test-DeftWindowsAppsStub -Command $cmd) { return $false }
+    return $true
 }
 
 function Invoke-DeftWingetInstall {

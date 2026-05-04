@@ -119,6 +119,31 @@ Describe 'setup_windows.ps1: idempotence when all tools are present' {
     }
 }
 
+Describe 'setup_windows.ps1: Test-DeftWindowsAppsStub' {
+    BeforeAll { Import-DeftSetupWindowsHelpers }
+
+    It 'flags a Source under \WindowsApps\ as a stub (python.exe)' {
+        $stub = [pscustomobject]@{
+            Source = 'C:\Users\foo\AppData\Local\Microsoft\WindowsApps\python.exe'
+        }
+        Test-DeftWindowsAppsStub -Command $stub | Should -Be $true
+    }
+
+    It 'does NOT flag a real interpreter Source path' {
+        $real = [pscustomobject]@{ Source = 'C:\Program Files\Python312\python.exe' }
+        Test-DeftWindowsAppsStub -Command $real | Should -Be $false
+    }
+
+    It 'returns false for a $null command (no resolution)' {
+        Test-DeftWindowsAppsStub -Command $null | Should -Be $false
+    }
+
+    It 'returns false for a command without a Source property' {
+        $bare = [pscustomobject]@{ Name = 'python' }
+        Test-DeftWindowsAppsStub -Command $bare | Should -Be $false
+    }
+}
+
 Describe 'setup_windows.ps1: probe-before-install (Get-Command guard)' {
     BeforeAll { Import-DeftSetupWindowsHelpers }
 
