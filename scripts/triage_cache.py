@@ -499,20 +499,30 @@ def populate(
 
     Raises:
         InvalidRepoError: ``repo`` is not ``owner/repo``-shaped and could
-            not be inferred from origin.
-        TriageCacheError: Backend command failed or emitted unparseable JSON.
+            not be inferred from origin. Reserved exclusively for
+            repo-resolution failures (Greptile #908 P1 contract fix).
+        TriageCacheError: Backend command failed, emitted unparseable
+            JSON, or the populate request itself was malformed (invalid
+            ``state`` / non-positive ``limit``). State/limit validation
+            errors are populate-request errors, not repo-resolution
+            failures, so they raise the triage-domain umbrella class
+            rather than ``InvalidRepoError`` (Greptile #908 P1).
     """
     repo = _resolve_repo(repo)
     owner, name = _parse_repo(repo)
     base = cache_dir(repo, cache_root=cache_root)
     base.mkdir(parents=True, exist_ok=True)
 
+    # Greptile #908 P1 fix: state/limit validation errors are populate
+    # request-validation failures, not repo-resolution failures, so
+    # surface them as TriageCacheError to keep InvalidRepoError reserved
+    # for the (different) "could not resolve owner/repo" contract.
     if state not in _ALLOWED_STATES:
-        raise InvalidRepoError(
+        raise TriageCacheError(
             f"invalid state {state!r}: expected one of {_ALLOWED_STATES}."
         )
     if limit is not None and (not isinstance(limit, int) or limit <= 0):
-        raise InvalidRepoError(
+        raise TriageCacheError(
             f"limit must be a positive int or None (got {limit!r})."
         )
 

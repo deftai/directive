@@ -878,14 +878,38 @@ class TestPopulatePassThroughGh900:
         assert "--label" not in captured["cmd"]
 
     def test_populate_rejects_invalid_state(self, tmp_path: Path):
-        with pytest.raises(InvalidRepoError, match="invalid state"):
+        # Greptile #908 P1 contract fix: state validation is a populate
+        # request error, not a repo-resolution error -- it now raises
+        # TriageCacheError (the triage-domain umbrella) so InvalidRepoError
+        # remains reserved for owner/repo-shape failures.
+        with pytest.raises(TriageCacheError, match="invalid state"):
             populate("owner/repo", cache_root=tmp_path, state="bogus")
 
     def test_populate_rejects_non_positive_limit(self, tmp_path: Path):
-        with pytest.raises(InvalidRepoError, match="positive int"):
+        # Greptile #908 P1 contract fix: limit validation is a populate
+        # request error, not a repo-resolution error -- raises
+        # TriageCacheError, matching the rest of the populate-validation
+        # surface.
+        with pytest.raises(TriageCacheError, match="positive int"):
             populate("owner/repo", cache_root=tmp_path, limit=0)
-        with pytest.raises(InvalidRepoError, match="positive int"):
+        with pytest.raises(TriageCacheError, match="positive int"):
             populate("owner/repo", cache_root=tmp_path, limit=-3)
+
+    def test_populate_repo_resolution_failure_still_raises_invalid_repo_error(
+        self, tmp_path: Path
+    ):
+        """Repo-resolution failures continue to raise InvalidRepoError unchanged.
+
+        Greptile #908 P1 regression guard: the contract narrowing for
+        state/limit validation MUST NOT change the error type for the
+        repo-resolution path. Pin both halves of the contract here so a
+        future revert can't quietly re-merge them.
+        """
+        with (
+            mock.patch("triage_cache._infer_repo_from_git", return_value=None),
+            pytest.raises(InvalidRepoError, match="could not be inferred"),
+        ):
+            populate(None, cache_root=tmp_path)
 
 
 class TestCliPopulate900:

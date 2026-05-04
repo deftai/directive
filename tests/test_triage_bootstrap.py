@@ -715,17 +715,36 @@ class TestRunBootstrap900:
     def test_run_bootstrap_no_repo_inference_failure_skips_with_ok(
         self, bootstrap, tmp_path: Path
     ):
-        """When repo=None and populate raises, the step degrades to skip-with-OK.
+        """When repo=None and populate raises InvalidRepoError, the step degrades to skip-with-OK.
 
         This preserves the historic pre-#900 contract that the bootstrap
         does not hard-fail when --repo is missing.
+
+        Greptile #908 P1 fix: bind the *real* :class:`InvalidRepoError`
+        onto the mocked ``triage_cache`` module BEFORE entering the
+        ``mock.patch.dict`` context. Previously, ``_fake_populate``
+        re-imported the symbol from the patched module and got back a
+        ``MagicMock`` attribute -- ``raise <MagicMock>(...)`` produced
+        ``TypeError: exceptions must derive from BaseException``, which
+        the broad ``except Exception`` in ``step_populate_cache``
+        coincidentally swallowed. The assertions passed for the wrong
+        reason; the inference-failure code path was never exercised.
+        Binding the real class restores the intended coverage and keeps
+        the test honest after the companion fix narrows the catch to
+        ``except InvalidRepoError``.
         """
+        from triage_cache import InvalidRepoError  # noqa: PLC0415
+
         fake_module = mock.MagicMock()
+        # Bind the real exception class onto the mock so isinstance /
+        # raise semantics behave correctly inside _fake_populate.
+        fake_module.InvalidRepoError = InvalidRepoError
+        raised: dict[str, type[BaseException]] = {}
 
         def _fake_populate(repo=None, force=False, **kwargs):
-            from triage_cache import InvalidRepoError  # noqa: PLC0415
-
-            raise InvalidRepoError("could not be inferred")
+            err = InvalidRepoError("could not be inferred")
+            raised["type"] = type(err)
+            raise err
 
         fake_module.populate = _fake_populate
 
@@ -744,6 +763,10 @@ class TestRunBootstrap900:
         assert populate_step.ok
         assert populate_step.details.get("skipped") == "no-repo"
         assert result.exit_code == 0
+        # Confirm the InvalidRepoError code path (not the Exception
+        # fallback) is the one that fired -- this is what the original
+        # test was meant to assert before the mocked-import defect.
+        assert raised["type"] is InvalidRepoError
 
 
 class TestPopulateStep900:

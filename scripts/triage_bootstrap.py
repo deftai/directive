@@ -186,6 +186,19 @@ class BootstrapResult:
 # ---------------------------------------------------------------------------
 
 
+class _NeverRaised(BaseException):
+    """Sentinel exception that is intentionally never raised.
+
+    Used as a defensive fallback when looking up
+    :class:`triage_cache.InvalidRepoError`; if the symbol is missing
+    (e.g. an extremely old version of ``triage_cache``), the narrowed
+    ``except`` clause still parses without accidentally widening the
+    catch -- the broader ``except Exception`` below will handle the
+    error, preserving the no-repo-deferral semantics for the only path
+    we actually care about (#908 P1 narrowing).
+    """
+
+
 def step_populate_cache(
     project_root: Path,
     repo: str | None,
@@ -246,11 +259,33 @@ def step_populate_cache(
 
     if repo is None:
         # No explicit repo -- let triage_cache.populate try the
-        # `git remote get-url origin` inference path (#900). If it fails
-        # we'll catch InvalidRepoError below and surface a clear message.
+        # `git remote get-url origin` inference path (#900). If repo
+        # resolution fails we surface a friendly skip-with-OK; any
+        # OTHER error is left to the broader except below (which treats
+        # it as a deferred-action environment failure).
+        #
+        # Greptile #908 P1 fix: catching InvalidRepoError specifically
+        # (rather than a blanket ``except Exception``) makes the
+        # skip-with-OK path reachable ONLY when the repo could not be
+        # resolved -- successful-inference errors propagate to the
+        # broader except below and surface as deferred-action.
+        # ``_NeverRaised`` is a sentinel that the except clause is
+        # syntactically valid even on the (defensive) path where
+        # ``triage_cache`` lacks the symbol; in that case the broader
+        # except still catches the error.
+        invalid_repo_error = getattr(
+            triage_cache, "InvalidRepoError", _NeverRaised
+        )
         try:
             count = populate(**populate_kwargs)
-        except Exception as exc:  # noqa: BLE001 -- forward exception text verbatim
+        except invalid_repo_error as exc:  # type: ignore[misc]
+            # Greptile #908 P1 fix: narrow this catch from
+            # ``except Exception`` to ``except InvalidRepoError`` so
+            # successful-inference errors (e.g. TriageCacheError raised
+            # after inference resolved a real slug) no longer surface
+            # as a misleading "could not infer" message. Only true
+            # repo-resolution failures take the no-repo skip path.
+            #
             # Match the historic pre-#900 "no-repo" skip-with-OK contract:
             # when repo can be neither passed nor inferred, the bootstrap
             # treats this as a graceful skip rather than a hard failure --
@@ -265,6 +300,23 @@ def step_populate_cache(
                 ),
                 error=str(exc),
                 details={"skipped": "no-repo"},
+            )
+        except Exception as exc:  # noqa: BLE001 -- forward exception text verbatim
+            # Inference succeeded but populate() failed for some other
+            # reason (gh CLI missing, network down, TriageCacheError,
+            # etc.). Mirror the explicit-repo branch's deferred-action
+            # handling rather than the misleading "could not infer"
+            # message -- the repo WAS inferred; populate failed.
+            return StepOutcome(
+                name="populate_cache",
+                ok=True,
+                message=(
+                    f"deferred -- populate raised {type(exc).__name__} "
+                    "after repo inference (re-run after the underlying "
+                    "issue is resolved; see error for detail)"
+                ),
+                error=str(exc),
+                details={"deferred": "populate-error"},
             )
         return StepOutcome(
             name="populate_cache",
