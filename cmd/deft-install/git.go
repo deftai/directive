@@ -17,6 +17,7 @@ var (
 	lookPathFunc             = exec.LookPath
 	runCmdFunc               = defaultRunCmd
 	downloadGitInstallerFunc = downloadGitInstaller
+	refreshPathFunc          = refreshPathFromRegistry
 )
 
 func defaultRunCmd(out io.Writer, name string, args ...string) error {
@@ -28,6 +29,18 @@ func defaultRunCmd(out io.Writer, name string, args ...string) error {
 
 // EnsureGit checks for git and installs it if missing.
 func EnsureGit(w *Wizard) error {
+	// Refresh PATH from the persistent registry hives BEFORE the initial
+	// probe (#899). exec.LookPath resolves against os.Getenv("PATH") which
+	// is the process startup snapshot; on Windows the registry PATH may
+	// already include git from a prior install that this process has not
+	// picked up. Errors are best-effort: a registry read failure leaves
+	// the in-process PATH unchanged and we fall back to the existing probe
+	// behaviour. This is a no-op on non-Windows platforms (see
+	// path_other.go).
+	if err := refreshPathFunc(); err != nil && w.debug {
+		w.printf("[debug] refreshPathFromRegistry (pre-probe) failed: %v\n", err)
+	}
+
 	if gitAvailable() {
 		if w.debug {
 			path, _ := lookPathFunc("git")
@@ -54,6 +67,16 @@ func EnsureGit(w *Wizard) error {
 
 	if err != nil {
 		return err
+	}
+
+	// Refresh PATH from the persistent registry hives AFTER a successful
+	// install but BEFORE the re-check (#899). The silent Git-for-Windows
+	// installer mutates the registry PATH but the running deft-install
+	// process keeps its startup PATH snapshot; without this refresh the
+	// re-check below always fails on a clean Windows box. No-op on
+	// non-Windows.
+	if err := refreshPathFunc(); err != nil && w.debug {
+		w.printf("[debug] refreshPathFromRegistry (post-install) failed: %v\n", err)
 	}
 
 	// Re-check after install.
