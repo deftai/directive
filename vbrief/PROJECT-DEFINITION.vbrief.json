@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-03T20:48:28Z"
+    "updated": "2026-05-04T21:08:37Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -131,6 +131,70 @@
               "uri": "https://github.com/deftai/deft-agent-bench",
               "type": "x-vbrief/related-repo",
               "title": "deft-agent-bench (internal): bench infrastructure for this validation effort"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-04-899-installer-fails-on-a-clean-windows-machine-reinstalls-git-th",
+        "title": "Installer fails on a clean Windows machine: reinstalls git, then exits without completing",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-05-04-899-installer-fails-on-a-clean-windows-machine-reinstalls-git-th.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/899",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #899: Installer fails on a clean Windows machine: reinstalls git, then exits without completing"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-04-900-task-triagebootstrap-and-task-triagecache-populate-cannot-sc",
+        "title": "task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-05-04-900-task-triagebootstrap-and-task-triagecache-populate-cannot-sc.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/900",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #900: task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-04-901-task-triagebootstrap-step-ensure-gitcrawl-defers-silently-on",
+        "title": "task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-05-04-901-task-triagebootstrap-step-ensure-gitcrawl-defers-silently-on.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/901",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #901: task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-04-902-fresh-windows-maintainer-setup-has-no-scripted-toolchain-boo",
+        "title": "Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-05-04-902-fresh-windows-maintainer-setup-has-no-scripted-toolchain-boo.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/902",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #902: Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper"
             }
           ]
         }
@@ -5994,7 +6058,7 @@
               "title": "Issue #845 (parent epic)"
             },
             {
-              "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+              "uri": "completed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
               "type": "x-vbrief/related-plan",
               "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
             }
@@ -6020,7 +6084,7 @@
               "title": "Issue #583: injection-quarantine spec (formalized in this story)"
             },
             {
-              "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+              "uri": "completed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
               "type": "x-vbrief/related-plan",
               "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
             }
@@ -6046,7 +6110,7 @@
               "title": "Issue #868: lock-comment protocol (consumes this story's freshness primitive)"
             },
             {
-              "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+              "uri": "completed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
               "type": "x-vbrief/related-plan",
               "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
             }
@@ -6072,7 +6136,7 @@
               "title": "Issue #583: injection-quarantine spec"
             },
             {
-              "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+              "uri": "completed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
               "type": "x-vbrief/related-plan",
               "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
             }
@@ -6093,7 +6157,7 @@
               "title": "Issue #845 (parent epic)"
             },
             {
-              "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+              "uri": "completed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
               "type": "x-vbrief/related-plan",
               "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
             }
@@ -6114,7 +6178,7 @@
               "title": "Issue #845 (parent epic)"
             },
             {
-              "uri": "proposed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+              "uri": "completed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
               "type": "x-vbrief/related-plan",
               "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
             },

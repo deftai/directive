@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #902"
+  },
+  "plan": {
+    "title": "Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/902",
+      "Labels": "bug"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/902",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #902: Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper"
+      }
+    ]
+  }
+}
