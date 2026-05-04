@@ -186,26 +186,34 @@ class BootstrapResult:
 # ---------------------------------------------------------------------------
 
 
-def step_populate_cache(project_root: Path, repo: str | None) -> StepOutcome:
-    """Populate the local issue cache for all open upstream issues.
+def step_populate_cache(
+    project_root: Path,
+    repo: str | None,
+    *,
+    limit: int | None = None,
+    state: str | None = None,
+    labels: tuple[str, ...] | list[str] | None = None,
+) -> StepOutcome:
+    """Populate the local issue cache for upstream issues.
 
-    Delegates to Story 1's ``scripts.triage_cache.populate(repo, force=False)``
+    Delegates to Story 1's ``scripts.triage_cache.populate(repo, force=False, ...)``
     when the module is importable. When Story 1 has not yet merged onto the
     consumer's branch, the step degrades to a deferred-action warning -- the
     bootstrap as a whole still succeeds because (a) the script is designed to
     be re-runnable, and (b) the gitignore + backfill steps are independent of
     cache content.
-    """
-    if repo is None:
-        return StepOutcome(
-            name="populate_cache",
-            ok=True,
-            message=(
-                "skipped (no --repo provided; pass --repo OWNER/NAME to populate)"
-            ),
-            details={"skipped": "no-repo"},
-        )
 
+    The ``limit`` / ``state`` / ``labels`` kwargs (#900) are forwarded to
+    :func:`triage_cache.populate` when provided so a maintainer with a
+    real-sized backlog can scope or filter the first-run populate (omitting
+    them preserves the pre-#900 behaviour). ``repo`` may be ``None`` when
+    the operator wants triage_cache to infer it from
+    ``git remote get-url origin`` -- the inference happens inside
+    ``triage_cache.populate``; this step only short-circuits to the
+    no-repo skip-with-OK message when both ``repo`` is ``None`` AND no
+    inference can succeed (the inner populate raises
+    ``InvalidRepoError`` and we surface its message in the deferred recap).
+    """
     try:
         import triage_cache  # type: ignore[import-not-found]
     except ImportError:
@@ -228,8 +236,51 @@ def step_populate_cache(project_root: Path, repo: str | None) -> StepOutcome:
             error="Story 1 surface drift: populate() not exposed",
         )
 
+    populate_kwargs: dict[str, Any] = {"force": False}
+    if limit is not None:
+        populate_kwargs["limit"] = limit
+    if state is not None:
+        populate_kwargs["state"] = state
+    if labels:
+        populate_kwargs["labels"] = tuple(labels)
+
+    if repo is None:
+        # No explicit repo -- let triage_cache.populate try the
+        # `git remote get-url origin` inference path (#900). If it fails
+        # we'll catch InvalidRepoError below and surface a clear message.
+        try:
+            count = populate(**populate_kwargs)
+        except Exception as exc:  # noqa: BLE001 -- forward exception text verbatim
+            # Match the historic pre-#900 "no-repo" skip-with-OK contract:
+            # when repo can be neither passed nor inferred, the bootstrap
+            # treats this as a graceful skip rather than a hard failure --
+            # the gitignore / audit-log / gitcrawl steps are still useful
+            # without a repo.
+            return StepOutcome(
+                name="populate_cache",
+                ok=True,
+                message=(
+                    "skipped (no --repo provided and could not infer from "
+                    "`git remote get-url origin`; pass --repo OWNER/NAME)"
+                ),
+                error=str(exc),
+                details={"skipped": "no-repo"},
+            )
+        return StepOutcome(
+            name="populate_cache",
+            ok=True,
+            message=f"cached {count} issues into {CACHE_DIR_NAME}/issues/ (repo inferred)",
+            details={
+                "count": count,
+                "repo": None,
+                "limit": limit,
+                "state": state,
+                "labels": list(labels) if labels else None,
+            },
+        )
+
     try:
-        count = populate(repo=repo, force=False)
+        count = populate(repo=repo, **populate_kwargs)
     except Exception as exc:  # noqa: BLE001 -- forward exception text verbatim
         # Graceful degradation: cache populate is best-effort. If Story 1's
         # populate fails (e.g. ``gh`` CLI not on PATH, network down, repo
@@ -256,7 +307,13 @@ def step_populate_cache(project_root: Path, repo: str | None) -> StepOutcome:
         name="populate_cache",
         ok=True,
         message=f"cached {count} issues into {CACHE_DIR_NAME}/issues/",
-        details={"count": count, "repo": repo},
+        details={
+            "count": count,
+            "repo": repo,
+            "limit": limit,
+            "state": state,
+            "labels": list(labels) if labels else None,
+        },
     )
 
 
@@ -772,6 +829,9 @@ def run_bootstrap(
     repo: str | None,
     *,
     skip_gitcrawl: bool = False,
+    limit: int | None = None,
+    state: str | None = None,
+    labels: tuple[str, ...] | list[str] | None = None,
 ) -> BootstrapResult:
     """Run the bootstrap pipeline, returning the aggregate result.
 
@@ -786,10 +846,24 @@ def run_bootstrap(
 
     Separated from :func:`main` so tests drive the function directly
     without argparse plumbing.
+
+    The ``limit`` / ``state`` / ``labels`` kwargs (#900) are pass-through
+    to the populate step so the bootstrap shares the same scope-or-filter
+    surface as :func:`triage_cache.populate`. ``repo=None`` triggers
+    inference from ``git remote get-url origin`` inside the populate
+    delegate (the ``--repo`` flag stays optional for the same reason).
     """
     result = BootstrapResult(project_root=project_root, repo=repo)
 
-    result.steps.append(step_populate_cache(project_root, repo))
+    result.steps.append(
+        step_populate_cache(
+            project_root,
+            repo,
+            limit=limit,
+            state=state,
+            labels=labels,
+        )
+    )
     result.steps.append(step_backfill_audit_log(project_root, repo))
     result.steps.append(step_ensure_gitignore_entry(project_root))
     result.steps.append(step_ensure_gitcrawl(skip=skip_gitcrawl))
@@ -821,9 +895,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--repo",
         default=os.environ.get("DEFT_TRIAGE_REPO"),
         help=(
-            "Upstream repo slug 'owner/name'. Required for cache populate + "
-            "audit-log backfill steps. Bootstrap is partial when omitted "
-            "(gitignore + gitcrawl steps still run)."
+            "Upstream repo slug 'owner/name'. Resolution precedence (#900): "
+            "(1) this explicit flag; (2) the DEFT_TRIAGE_REPO env var; "
+            "(3) inferred from `git remote get-url origin` inside the "
+            "populate step. Bootstrap remains partial only when all three "
+            "surfaces fail to resolve a slug."
         ),
     )
     parser.add_argument(
@@ -832,6 +908,36 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Skip step 4 (gitcrawl install). Mainly for test fixtures that "
             "shouldn't shell out to pipx."
+        ),
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help=(
+            "Cap on the number of issues fetched in the populate step "
+            "(#900). Forwarded to triage_cache.populate(limit=...). Omit "
+            "for the documented gh page-size cap."
+        ),
+    )
+    parser.add_argument(
+        "--state",
+        default=None,
+        choices=["open", "closed", "all"],
+        help=(
+            "Issue state filter forwarded to triage_cache.populate (#900). "
+            "Defaults to triage_cache's default ('open')."
+        ),
+    )
+    parser.add_argument(
+        "--label",
+        action="append",
+        default=None,
+        dest="labels",
+        help=(
+            "Filter to issues carrying this label (#900). Repeatable -- "
+            "each occurrence is forwarded as a separate `--label <name>` "
+            "flag, which gh treats as logical AND across repeated flags."
         ),
     )
     parser.add_argument(
@@ -883,6 +989,9 @@ def main(argv: list[str] | None = None) -> int:
         project_root=project_root,
         repo=args.repo,
         skip_gitcrawl=args.skip_gitcrawl,
+        limit=args.limit,
+        state=args.state,
+        labels=tuple(args.labels) if args.labels else None,
     )
 
     if args.emit_json:

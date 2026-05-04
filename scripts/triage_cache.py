@@ -112,6 +112,13 @@ _GH_FIELDS: tuple[str, ...] = (
 #: ``gh issue list`` page size cap. The CLI's documented maximum is 1000.
 _GH_PAGE_LIMIT: int = 1000
 
+#: Allowed ``--state`` values for populate. Mirrors ``gh issue list --state``.
+_ALLOWED_STATES: tuple[str, ...] = ("open", "closed", "all")
+
+#: Default state when ``--state`` is omitted. Pre-#900 behaviour was always
+#: "open"; that remains the default so existing call sites keep working.
+DEFAULT_STATE: str = "open"
+
 
 # ---------------------------------------------------------------------------
 # Errors
@@ -205,18 +212,122 @@ def _gitcrawl_available() -> bool:
     return shutil.which("gitcrawl") is not None
 
 
-def _fetch_via_gh(repo: str, *, limit: int = _GH_PAGE_LIMIT) -> list[dict[str, Any]]:
-    """Fetch open issues for ``repo`` via ``gh issue list``.
+#: Regex mapping a ``git remote get-url origin`` value to ``(owner, repo)``.
+#: Recognises both HTTPS (``https://github.com/owner/repo[.git]``) and SSH
+#: (``git@github.com:owner/repo[.git]``) shapes; trailing ``.git`` is
+#: optional. Anchored on a GitHub host prefix so unrelated URLs (e.g.
+#: ``file:///tmp/...`` or ``git+ssh://internal-host/path``) do NOT match
+#: and the caller surfaces the friendly ``--repo not provided`` error.
+_GIT_ORIGIN_RE = re.compile(
+    r"^(?:https?://(?:[^@/]+@)?github\.com/|git@github\.com:|ssh://git@github\.com[:/])"
+    r"(?P<owner>[A-Za-z0-9][A-Za-z0-9._-]*)/"
+    r"(?P<repo>[A-Za-z0-9][A-Za-z0-9._-]*?)(?:\.git)?/?\s*$"
+)
 
-    Uses ``--state open`` and the canonical JSON field set. Returns the
-    parsed list. Raises :class:`TriageCacheError` on subprocess or JSON
-    failure (so the caller's error path is uniform regardless of fetch
-    backend).
+
+def _infer_repo_from_git(cwd: Path | None = None) -> str | None:
+    """Infer ``owner/repo`` from ``git remote get-url origin``.
+
+    Returns the canonical ``owner/repo`` slug when origin is a recognisable
+    GitHub URL; returns ``None`` when git is missing, the working directory
+    is not a git repo, no ``origin`` remote is configured, or the URL does
+    not parse. Callers are expected to handle ``None`` by raising a
+    friendly error; the inference step is intentionally non-fatal so a
+    missing origin does not crash a script that was about to surface a
+    clearer message.
+    """
+    if shutil.which("git") is None:
+        return None
+    cmd = ["git", "remote", "get-url", "origin"]
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=str(cwd) if cwd is not None else None,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    url = (proc.stdout or "").strip()
+    if not url:
+        return None
+    m = _GIT_ORIGIN_RE.search(url)
+    if not m:
+        return None
+    return f"{m.group('owner')}/{m.group('repo')}"
+
+
+def _resolve_repo(repo: str | None, *, cwd: Path | None = None) -> str:
+    """Resolve the effective ``owner/repo`` slug.
+
+    Precedence:
+
+    1. Explicit ``--repo`` argument (validated via :func:`_parse_repo`).
+    2. Inference from ``git remote get-url origin`` in the current working
+       directory (or ``cwd`` when given).
+
+    Raises :class:`InvalidRepoError` when neither path resolves -- the
+    error message names both surfaces so the operator knows whether to
+    pass ``--repo`` or to point the inference at a git-tracked directory.
+    """
+    if repo is not None:
+        # Validate the explicit form eagerly so a malformed slug fails the
+        # same way regardless of inference state. The legacy contract
+        # treats `repo=""` as an InvalidRepoError (caller passed an
+        # explicit empty string -- intent is unambiguous), so we do NOT
+        # fall through to inference on empty input.
+        _parse_repo(repo)
+        return repo
+    inferred = _infer_repo_from_git(cwd=cwd)
+    if inferred is not None:
+        # Validate the inferred form too; the regex above is permissive.
+        _parse_repo(inferred)
+        return inferred
+    raise InvalidRepoError(
+        "--repo not provided and could not be inferred from "
+        "`git remote get-url origin` (no git repo, no origin remote, or "
+        "unrecognised URL). Pass --repo OWNER/NAME explicitly."
+    )
+
+
+def _fetch_via_gh(
+    repo: str,
+    *,
+    limit: int = _GH_PAGE_LIMIT,
+    state: str = DEFAULT_STATE,
+    labels: tuple[str, ...] | list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Fetch issues for ``repo`` via ``gh issue list``.
+
+    Args:
+        repo: ``owner/repo`` slug (caller-validated).
+        limit: ``gh issue list --limit`` value. Defaults to the page-size
+            cap so the pre-#900 behaviour (all open issues, capped at the
+            documented gh max) is preserved when no caller passes an
+            explicit limit.
+        state: ``gh issue list --state``. One of ``open`` / ``closed`` /
+            ``all`` (validated by the CLI / caller). Defaults to
+            :data:`DEFAULT_STATE`.
+        labels: Optional iterable of label names. Each label is forwarded
+            as a separate ``--label <name>`` flag so gh's repeated-flag
+            semantic (logical AND) drives the filter set; an empty / None
+            iterable means "no label filter".
+
+    Returns the parsed list. Raises :class:`TriageCacheError` on
+    subprocess or JSON failure (so the caller's error path is uniform
+    regardless of fetch backend).
     """
     if not _gh_available():
         raise TriageCacheError(
             "gh CLI not found on PATH. Install GitHub CLI "
             "(https://cli.github.com/) or pass --use-gitcrawl."
+        )
+    if state not in _ALLOWED_STATES:
+        raise TriageCacheError(
+            f"invalid --state {state!r}: expected one of {_ALLOWED_STATES}."
         )
     fields = ",".join(_GH_FIELDS)
     cmd = [
@@ -226,12 +337,16 @@ def _fetch_via_gh(repo: str, *, limit: int = _GH_PAGE_LIMIT) -> list[dict[str, A
         "--repo",
         repo,
         "--state",
-        "open",
+        state,
         "--limit",
         str(limit),
         "--json",
         fields,
     ]
+    for label in labels or ():
+        if not isinstance(label, str) or not label.strip():
+            continue
+        cmd.extend(["--label", label])
     try:
         proc = subprocess.run(
             cmd,
@@ -256,19 +371,42 @@ def _fetch_via_gh(repo: str, *, limit: int = _GH_PAGE_LIMIT) -> list[dict[str, A
     return data
 
 
-def _fetch_via_gitcrawl(repo: str) -> list[dict[str, Any]]:
-    """Fetch open issues via the optional ``gitcrawl`` backend.
+def _fetch_via_gitcrawl(
+    repo: str,
+    *,
+    limit: int | None = None,
+    state: str = DEFAULT_STATE,
+    labels: tuple[str, ...] | list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Fetch issues via the optional ``gitcrawl`` backend.
 
     The gitcrawl JSON contract is documented at the gitcrawl repo; for our
     purposes we require each item to carry at least ``number``, ``title``,
     and ``body``. Missing fields fall back to empty values.
+
+    Args mirror :func:`_fetch_via_gh`. ``limit`` is forwarded as
+    ``--limit <N>`` when present; ``state`` and each label are forwarded
+    as their own flags. Unknown gitcrawl flag support is best-effort --
+    if the local gitcrawl rejects the flag, the resulting non-zero exit
+    surfaces as a :class:`TriageCacheError` with the gitcrawl stderr
+    untouched so the operator can see what was rejected.
     """
     if not _gitcrawl_available():
         raise TriageCacheError(
             "gitcrawl not found on PATH (the optional richer fetch backend). "
             "Either install gitcrawl or omit --use-gitcrawl to fall back to gh."
         )
-    cmd = ["gitcrawl", "issues", "--repo", repo, "--state", "open", "--json"]
+    if state not in _ALLOWED_STATES:
+        raise TriageCacheError(
+            f"invalid --state {state!r}: expected one of {_ALLOWED_STATES}."
+        )
+    cmd = ["gitcrawl", "issues", "--repo", repo, "--state", state, "--json"]
+    if limit is not None:
+        cmd.extend(["--limit", str(limit)])
+    for label in labels or ():
+        if not isinstance(label, str) or not label.strip():
+            continue
+        cmd.extend(["--label", label])
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
     except FileNotFoundError as exc:
@@ -307,17 +445,24 @@ def _select_backend(use_gitcrawl: bool | None) -> str:
 
 
 def populate(
-    repo: str,
+    repo: str | None = None,
     force: bool = False,
     *,
     cache_root: Path | None = None,
     use_gitcrawl: bool | None = None,
     ttl_seconds: int = DEFAULT_TTL_SECONDS,
+    limit: int | None = None,
+    state: str = DEFAULT_STATE,
+    labels: tuple[str, ...] | list[str] | None = None,
 ) -> int:
     """Populate the local issue cache for ``repo``.
 
     Args:
-        repo: ``owner/repo`` slug. Validated via :func:`_parse_repo`.
+        repo: ``owner/repo`` slug. Validated via :func:`_parse_repo`. When
+            ``None`` or empty, :func:`_resolve_repo` infers the slug from
+            ``git remote get-url origin`` in the current working directory;
+            an :class:`InvalidRepoError` is raised when neither surface
+            yields a valid slug.
         force: If True, re-write all entries even when the cached ``.json``
             file exists and is younger than ``ttl_seconds``. If False
             (default), entries with a fresh ``.json`` file are skipped --
@@ -331,6 +476,20 @@ def populate(
             should pass ``None`` rather than ``True``).
         ttl_seconds: Idempotency threshold. Defaults to
             :data:`DEFAULT_TTL_SECONDS` (24h).
+        limit: Optional cap on the number of issues fetched (#900). When
+            ``None`` (default), the page-size cap :data:`_GH_PAGE_LIMIT`
+            applies for the gh backend and gitcrawl receives no
+            ``--limit`` flag. Pass an explicit positive int to scope the
+            first-run populate on large backlogs.
+        state: ``gh issue list --state`` value (#900). One of
+            ``open`` / ``closed`` / ``all``; defaults to
+            :data:`DEFAULT_STATE` (``open``) so pre-#900 callers see no
+            behaviour change.
+        labels: Optional iterable of label names (#900). Each label is
+            forwarded as a separate ``--label <name>`` flag (gh's
+            documented AND-semantic across repeated flags) so the
+            operator can scope the populate to ``adoption-blocker`` /
+            ``bug`` / etc. without pulling the full backlog.
 
     Returns:
         Number of issues processed (cached + skipped). The combined count
@@ -339,16 +498,32 @@ def populate(
         but not returned.
 
     Raises:
-        InvalidRepoError: ``repo`` is not ``owner/repo``-shaped.
+        InvalidRepoError: ``repo`` is not ``owner/repo``-shaped and could
+            not be inferred from origin.
         TriageCacheError: Backend command failed or emitted unparseable JSON.
     """
+    repo = _resolve_repo(repo)
     owner, name = _parse_repo(repo)
     base = cache_dir(repo, cache_root=cache_root)
     base.mkdir(parents=True, exist_ok=True)
 
+    if state not in _ALLOWED_STATES:
+        raise InvalidRepoError(
+            f"invalid state {state!r}: expected one of {_ALLOWED_STATES}."
+        )
+    if limit is not None and (not isinstance(limit, int) or limit <= 0):
+        raise InvalidRepoError(
+            f"limit must be a positive int or None (got {limit!r})."
+        )
+
     backend = _select_backend(use_gitcrawl)
+    fetch_kwargs: dict[str, Any] = {"state": state, "labels": labels}
+    if limit is not None:
+        fetch_kwargs["limit"] = limit
     issues = (
-        _fetch_via_gitcrawl(repo) if backend == "gitcrawl" else _fetch_via_gh(repo)
+        _fetch_via_gitcrawl(repo, **fetch_kwargs)
+        if backend == "gitcrawl"
+        else _fetch_via_gh(repo, **fetch_kwargs)
     )
 
     cached = 0
@@ -477,7 +652,16 @@ def _build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_pop = sub.add_parser("populate", help="Populate the cache from gh / gitcrawl.")
-    p_pop.add_argument("--repo", required=True, help="owner/repo slug.")
+    p_pop.add_argument(
+        "--repo",
+        default=None,
+        help=(
+            "owner/repo slug (#900). Resolution precedence: (1) this "
+            "explicit flag; (2) inferred from `git remote get-url origin` "
+            "in the current working directory. Pass explicitly to override "
+            "the inferred value; omit to fall through to inference."
+        ),
+    )
     p_pop.add_argument(
         "--force",
         action="store_true",
@@ -494,9 +678,48 @@ def _build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_TTL_SECONDS,
         help=f"Freshness window in seconds (default {DEFAULT_TTL_SECONDS}).",
     )
+    p_pop.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help=(
+            "Cap on the number of issues fetched (#900). Forwarded to "
+            "`gh issue list --limit`. Omit for the documented gh page-size "
+            "cap. Pass an explicit small value (e.g. 50) to scope the "
+            "first-run populate on a large backlog."
+        ),
+    )
+    p_pop.add_argument(
+        "--state",
+        default=DEFAULT_STATE,
+        choices=list(_ALLOWED_STATES),
+        help=(
+            "Issue state filter forwarded to `gh issue list --state` "
+            f"(#900). Defaults to {DEFAULT_STATE!r}."
+        ),
+    )
+    p_pop.add_argument(
+        "--label",
+        action="append",
+        default=None,
+        dest="labels",
+        help=(
+            "Filter to issues carrying this label (#900). Repeatable -- "
+            "each occurrence is forwarded as a separate `--label <name>` "
+            "flag, which gh treats as logical AND across repeated flags."
+        ),
+    )
 
     p_show = sub.add_parser("show", help="Print the cached .md body for an issue.")
-    p_show.add_argument("--repo", required=True, help="owner/repo slug.")
+    p_show.add_argument(
+        "--repo",
+        default=None,
+        help=(
+            "owner/repo slug (#900). Resolution precedence: (1) this "
+            "explicit flag; (2) inferred from `git remote get-url origin` "
+            "in the current working directory."
+        ),
+    )
     p_show.add_argument("--issue", type=int, required=True, help="Issue number.")
 
     return parser
@@ -519,10 +742,14 @@ def main(argv: list[str] | None = None) -> int:
                 force=args.force,
                 use_gitcrawl=args.use_gitcrawl,
                 ttl_seconds=args.ttl_seconds,
+                limit=args.limit,
+                state=args.state,
+                labels=tuple(args.labels) if args.labels else None,
             )
             return 0
         if args.cmd == "show":
-            sys.stdout.write(show(args.issue, args.repo))
+            resolved = _resolve_repo(args.repo)
+            sys.stdout.write(show(args.issue, resolved))
             return 0
     except InvalidRepoError as exc:
         print(f"error: {exc}", file=sys.stderr)

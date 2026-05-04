@@ -38,8 +38,12 @@ from quarantine_ext import (  # noqa: E402  -- intentional sys.path tweak  # iso
     quarantine_body,
 )
 from triage_cache import (  # noqa: E402  # isort: skip
+    DEFAULT_STATE,
     InvalidRepoError,
     TriageCacheError,
+    _build_parser,
+    _infer_repo_from_git,
+    _resolve_repo,
     cache_dir,
     is_stale,
     issue_paths,
@@ -350,8 +354,14 @@ class TestArgValidation:
             "owner repo/x",
             "x/y/z",
             "owner/repo with spaces",
-            None,  # type: ignore[list-item]
             123,  # type: ignore[list-item]
+            # NOTE: ``None`` was historically in this parametrize set when
+            # ``populate(repo: str)`` had no inference path. Under #900,
+            # ``populate(None)`` legitimately triggers the
+            # ``git remote get-url origin`` inference; rejection of the
+            # no-repo case is covered by
+            # ``TestRepoInference900::test_repo_inference_populate_raises_when_no_repo``
+            # against an explicitly-mocked-empty inference instead.
         ],
     )
     def test_populate_rejects_malformed_repo(self, tmp_path: Path, bad_repo):
@@ -553,7 +563,7 @@ class TestAtomicWriteUniqueScratch:
         leftover = list(target.parent.glob("*.tmp"))
         assert leftover == []
 
-    def test_atomic_write_uses_unique_scratch_name(
+    def test_atomic_write_uses_unique_scratch_name_900_marker(
         self, tmp_path: Path, monkeypatch
     ):
         # Patch tempfile.mkstemp to capture the scratch path used; assert
@@ -582,3 +592,348 @@ class TestAtomicWriteUniqueScratch:
         # randomness). The fix injects a tempfile-randomised infix.
         assert captured["name"] != str(target) + ".tmp"
         assert captured["name"].endswith(".tmp")
+
+
+# ---------------------------------------------------------------------------
+# 8. #900 -- --limit / --state / --label flag surface + --repo inference
+# ---------------------------------------------------------------------------
+
+
+class TestParserFilterFlags900:
+    """Argparse exposes --limit / --state / --label / --repo (#900).
+
+    The parser is the user-facing contract -- if these flags disappear or
+    change shape, every operator workflow that relies on them silently
+    breaks. Pin the surface explicitly.
+    """
+
+    def test_parser_filter_flags_populate_accepts_limit(self):
+        parser = _build_parser()
+        ns = parser.parse_args(["populate", "--repo", "o/r", "--limit", "50"])
+        assert ns.limit == 50
+
+    def test_parser_filter_flags_populate_accepts_state(self):
+        parser = _build_parser()
+        for state in ("open", "closed", "all"):
+            ns = parser.parse_args(
+                ["populate", "--repo", "o/r", "--state", state]
+            )
+            assert ns.state == state
+
+    def test_parser_filter_flags_populate_rejects_invalid_state(self, capsys):
+        parser = _build_parser()
+        with pytest.raises(SystemExit):
+            parser.parse_args(
+                ["populate", "--repo", "o/r", "--state", "bogus"]
+            )
+        captured = capsys.readouterr()
+        assert "bogus" in captured.err.lower() or "invalid" in captured.err.lower()
+
+    def test_parser_filter_flags_populate_state_default_is_open(self):
+        parser = _build_parser()
+        ns = parser.parse_args(["populate", "--repo", "o/r"])
+        assert ns.state == DEFAULT_STATE == "open"
+
+    def test_parser_filter_flags_populate_label_is_repeatable(self):
+        parser = _build_parser()
+        ns = parser.parse_args(
+            [
+                "populate",
+                "--repo",
+                "o/r",
+                "--label",
+                "adoption-blocker",
+                "--label",
+                "bug",
+            ]
+        )
+        assert ns.labels == ["adoption-blocker", "bug"]
+
+    def test_parser_filter_flags_populate_label_default_is_none(self):
+        parser = _build_parser()
+        ns = parser.parse_args(["populate", "--repo", "o/r"])
+        assert ns.labels is None
+
+    def test_parser_filter_flags_populate_repo_is_optional(self):
+        """--repo is now optional -- inference path takes over when omitted."""
+        parser = _build_parser()
+        ns = parser.parse_args(["populate"])
+        assert ns.repo is None
+
+    def test_parser_filter_flags_show_repo_is_optional(self):
+        parser = _build_parser()
+        ns = parser.parse_args(["show", "--issue", "42"])
+        assert ns.repo is None
+
+
+class TestRepoInference900:
+    """--repo inference precedence: explicit flag > git origin > error (#900)."""
+
+    def test_repo_inference_explicit_repo_wins(self):
+        """Explicit `--repo` must beat any inferred value."""
+        with mock.patch(
+            "triage_cache._infer_repo_from_git",
+            return_value="inferred/wrong",
+        ):
+            assert _resolve_repo("explicit/right") == "explicit/right"
+
+    def test_repo_inference_https_origin(self, monkeypatch):
+        def _fake_run(cmd, **kwargs):
+            assert cmd[:3] == ["git", "remote", "get-url"]
+            completed = mock.MagicMock()
+            completed.returncode = 0
+            completed.stdout = "https://github.com/deftai/directive.git\n"
+            completed.stderr = ""
+            return completed
+
+        with (
+            mock.patch("triage_cache.shutil.which", return_value="/usr/bin/git"),
+            mock.patch("triage_cache.subprocess.run", side_effect=_fake_run),
+        ):
+            assert _infer_repo_from_git() == "deftai/directive"
+
+    def test_repo_inference_https_origin_without_dot_git(self):
+        def _fake_run(cmd, **kwargs):
+            completed = mock.MagicMock()
+            completed.returncode = 0
+            completed.stdout = "https://github.com/deftai/directive\n"
+            return completed
+
+        with (
+            mock.patch("triage_cache.shutil.which", return_value="/usr/bin/git"),
+            mock.patch("triage_cache.subprocess.run", side_effect=_fake_run),
+        ):
+            assert _infer_repo_from_git() == "deftai/directive"
+
+    def test_repo_inference_ssh_origin(self):
+        def _fake_run(cmd, **kwargs):
+            completed = mock.MagicMock()
+            completed.returncode = 0
+            completed.stdout = "git@github.com:deftai/directive.git\n"
+            return completed
+
+        with (
+            mock.patch("triage_cache.shutil.which", return_value="/usr/bin/git"),
+            mock.patch("triage_cache.subprocess.run", side_effect=_fake_run),
+        ):
+            assert _infer_repo_from_git() == "deftai/directive"
+
+    def test_repo_inference_returns_none_when_git_missing(self):
+        with mock.patch("triage_cache.shutil.which", return_value=None):
+            assert _infer_repo_from_git() is None
+
+    def test_repo_inference_returns_none_when_no_origin(self):
+        def _fake_run(cmd, **kwargs):
+            completed = mock.MagicMock()
+            completed.returncode = 128
+            completed.stdout = ""
+            completed.stderr = "fatal: No such remote 'origin'\n"
+            return completed
+
+        with (
+            mock.patch("triage_cache.shutil.which", return_value="/usr/bin/git"),
+            mock.patch("triage_cache.subprocess.run", side_effect=_fake_run),
+        ):
+            assert _infer_repo_from_git() is None
+
+    def test_repo_inference_returns_none_for_unrecognised_url(self):
+        def _fake_run(cmd, **kwargs):
+            completed = mock.MagicMock()
+            completed.returncode = 0
+            completed.stdout = "file:///tmp/random-thing\n"
+            return completed
+
+        with (
+            mock.patch("triage_cache.shutil.which", return_value="/usr/bin/git"),
+            mock.patch("triage_cache.subprocess.run", side_effect=_fake_run),
+        ):
+            assert _infer_repo_from_git() is None
+
+    def test_repo_inference_resolve_falls_back_to_inferred(self):
+        with mock.patch(
+            "triage_cache._infer_repo_from_git",
+            return_value="deftai/directive",
+        ):
+            assert _resolve_repo(None) == "deftai/directive"
+
+    def test_repo_inference_resolve_raises_when_neither_resolves(self):
+        with (
+            mock.patch("triage_cache._infer_repo_from_git", return_value=None),
+            pytest.raises(InvalidRepoError, match="could not be inferred"),
+        ):
+            _resolve_repo(None)
+
+    def test_repo_inference_populate_uses_inference(
+        self, tmp_path: Path, gh_subprocess_ok
+    ):
+        """populate(repo=None) walks through the inference path."""
+        with mock.patch(
+            "triage_cache._infer_repo_from_git", return_value="owner/repo"
+        ):
+            count = populate(None, cache_root=tmp_path)
+        assert count > 0
+        assert (tmp_path / "owner-repo").is_dir()
+
+    def test_repo_inference_populate_raises_when_no_repo(self, tmp_path: Path):
+        with (
+            mock.patch("triage_cache._infer_repo_from_git", return_value=None),
+            pytest.raises(InvalidRepoError, match="could not be inferred"),
+        ):
+            populate(None, cache_root=tmp_path)
+
+
+class TestPopulatePassThroughGh900:
+    """populate() forwards --limit / --state / --label to gh issue list (#900)."""
+
+    def test_populate_passthrough_limit(self, tmp_path: Path):
+        captured: dict[str, list[str]] = {}
+
+        def _fake_run(cmd, **kwargs):
+            captured["cmd"] = list(cmd)
+            completed = mock.MagicMock()
+            completed.returncode = 0
+            completed.stdout = "[]"
+            completed.stderr = ""
+            return completed
+
+        with (
+            mock.patch("triage_cache._gh_available", return_value=True),
+            mock.patch("triage_cache.subprocess.run", side_effect=_fake_run),
+        ):
+            populate("owner/repo", cache_root=tmp_path, limit=42)
+
+        cmd = captured["cmd"]
+        assert "--limit" in cmd
+        idx = cmd.index("--limit")
+        assert cmd[idx + 1] == "42"
+
+    def test_populate_passthrough_state(self, tmp_path: Path):
+        captured: dict[str, list[str]] = {}
+
+        def _fake_run(cmd, **kwargs):
+            captured["cmd"] = list(cmd)
+            completed = mock.MagicMock()
+            completed.returncode = 0
+            completed.stdout = "[]"
+            return completed
+
+        with (
+            mock.patch("triage_cache._gh_available", return_value=True),
+            mock.patch("triage_cache.subprocess.run", side_effect=_fake_run),
+        ):
+            populate("owner/repo", cache_root=tmp_path, state="closed")
+
+        cmd = captured["cmd"]
+        assert "--state" in cmd
+        idx = cmd.index("--state")
+        assert cmd[idx + 1] == "closed"
+
+    def test_populate_passthrough_labels_repeated(self, tmp_path: Path):
+        captured: dict[str, list[str]] = {}
+
+        def _fake_run(cmd, **kwargs):
+            captured["cmd"] = list(cmd)
+            completed = mock.MagicMock()
+            completed.returncode = 0
+            completed.stdout = "[]"
+            return completed
+
+        with (
+            mock.patch("triage_cache._gh_available", return_value=True),
+            mock.patch("triage_cache.subprocess.run", side_effect=_fake_run),
+        ):
+            populate(
+                "owner/repo",
+                cache_root=tmp_path,
+                labels=("adoption-blocker", "bug"),
+            )
+
+        cmd = captured["cmd"]
+        # Each label is forwarded as a separate `--label <name>` flag pair.
+        assert cmd.count("--label") == 2
+        # Order is preserved.
+        first = cmd.index("--label")
+        assert cmd[first + 1] == "adoption-blocker"
+        second = cmd.index("--label", first + 1)
+        assert cmd[second + 1] == "bug"
+
+    def test_populate_passthrough_no_label_flag_when_labels_none(
+        self, tmp_path: Path
+    ):
+        captured: dict[str, list[str]] = {}
+
+        def _fake_run(cmd, **kwargs):
+            captured["cmd"] = list(cmd)
+            completed = mock.MagicMock()
+            completed.returncode = 0
+            completed.stdout = "[]"
+            return completed
+
+        with (
+            mock.patch("triage_cache._gh_available", return_value=True),
+            mock.patch("triage_cache.subprocess.run", side_effect=_fake_run),
+        ):
+            populate("owner/repo", cache_root=tmp_path)
+
+        assert "--label" not in captured["cmd"]
+
+    def test_populate_rejects_invalid_state(self, tmp_path: Path):
+        with pytest.raises(InvalidRepoError, match="invalid state"):
+            populate("owner/repo", cache_root=tmp_path, state="bogus")
+
+    def test_populate_rejects_non_positive_limit(self, tmp_path: Path):
+        with pytest.raises(InvalidRepoError, match="positive int"):
+            populate("owner/repo", cache_root=tmp_path, limit=0)
+        with pytest.raises(InvalidRepoError, match="positive int"):
+            populate("owner/repo", cache_root=tmp_path, limit=-3)
+
+
+class TestCliPopulate900:
+    """main() routes the argparse Namespace through to populate() (#900)."""
+
+    def test_populate_cli_forwards_limit_state_label(
+        self, tmp_path: Path, monkeypatch
+    ):
+        captured: dict[str, Any] = {}
+
+        def _fake_populate(*args, **kwargs):
+            captured["args"] = args
+            captured["kwargs"] = kwargs
+            return 0
+
+        monkeypatch.setattr("triage_cache.populate", _fake_populate)
+        rc = main(
+            [
+                "populate",
+                "--repo",
+                "o/r",
+                "--limit",
+                "7",
+                "--state",
+                "all",
+                "--label",
+                "a",
+                "--label",
+                "b",
+            ]
+        )
+        assert rc == 0
+        assert captured["kwargs"]["limit"] == 7
+        assert captured["kwargs"]["state"] == "all"
+        assert captured["kwargs"]["labels"] == ("a", "b")
+
+    def test_populate_cli_works_without_repo_when_inference_succeeds(
+        self, tmp_path: Path, monkeypatch
+    ):
+        """`triage_cache populate` (no --repo) reaches populate(repo=None)."""
+        captured: dict[str, Any] = {}
+
+        def _fake_populate(repo=None, **kwargs):
+            captured["repo"] = repo
+            captured["kwargs"] = kwargs
+            return 0
+
+        monkeypatch.setattr("triage_cache.populate", _fake_populate)
+        rc = main(["populate"])
+        assert rc == 0
+        assert captured["repo"] is None

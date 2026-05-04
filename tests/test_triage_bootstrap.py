@@ -555,3 +555,231 @@ def test_taskfile_includes_wired_for_four_fragments() -> None:
     assert re.search(r"^\s*bootstrap:", fragment_text, re.MULTILINE), (
         "triage-bootstrap.yml must define an inner `bootstrap:` task."
     )
+
+
+# ---------------------------------------------------------------------------
+# #900 -- --limit / --state / --label / --repo flag pass-through
+# ---------------------------------------------------------------------------
+
+
+class TestParser900:
+    """_build_parser() exposes the new #900 flag surface."""
+
+    def test_parser_accepts_limit(self, bootstrap):
+        parser = bootstrap._build_parser()
+        ns = parser.parse_args(["--limit", "50"])
+        assert ns.limit == 50
+
+    def test_parser_accepts_state_open_closed_all(self, bootstrap):
+        parser = bootstrap._build_parser()
+        for state in ("open", "closed", "all"):
+            ns = parser.parse_args(["--state", state])
+            assert ns.state == state
+
+    def test_parser_rejects_invalid_state(self, bootstrap):
+        parser = bootstrap._build_parser()
+        with pytest.raises(SystemExit):
+            parser.parse_args(["--state", "bogus"])
+
+    def test_parser_state_default_is_none(self, bootstrap):
+        """Bootstrap defaults to None so triage_cache picks its own default."""
+        parser = bootstrap._build_parser()
+        ns = parser.parse_args([])
+        assert ns.state is None
+
+    def test_parser_label_is_repeatable(self, bootstrap):
+        parser = bootstrap._build_parser()
+        ns = parser.parse_args(
+            ["--label", "adoption-blocker", "--label", "bug"]
+        )
+        assert ns.labels == ["adoption-blocker", "bug"]
+
+    def test_parser_repo_default_is_none_or_env(self, bootstrap, monkeypatch):
+        monkeypatch.delenv("DEFT_TRIAGE_REPO", raising=False)
+        parser = bootstrap._build_parser()
+        ns = parser.parse_args([])
+        assert ns.repo is None
+
+    def test_parser_repo_explicit_overrides_env(self, bootstrap, monkeypatch):
+        monkeypatch.setenv("DEFT_TRIAGE_REPO", "env/repo")
+        parser = bootstrap._build_parser()
+        ns = parser.parse_args(["--repo", "explicit/repo"])
+        assert ns.repo == "explicit/repo"
+
+
+class TestRunBootstrap900:
+    """run_bootstrap forwards --limit / --state / --label to step_populate_cache (#900)."""
+
+    def test_run_bootstrap_forwards_filter_kwargs_to_populate(
+        self, bootstrap, tmp_path: Path
+    ):
+        """populate() is called with the limit/state/labels kwargs run_bootstrap received."""
+        captured: dict[str, Any] = {}
+
+        # Inject a fake triage_cache module so step_populate_cache's lazy
+        # import resolves to our recorder.
+        fake_module = mock.MagicMock()
+
+        def _fake_populate(repo=None, force=False, **kwargs):
+            captured["repo"] = repo
+            captured["force"] = force
+            captured["kwargs"] = kwargs
+            return 7
+
+        fake_module.populate = _fake_populate
+
+        with (
+            mock.patch.dict(sys.modules, {"triage_cache": fake_module}),
+            mock.patch.object(bootstrap.shutil, "which", return_value=None),
+        ):
+            result = bootstrap.run_bootstrap(
+                project_root=tmp_path,
+                repo="owner/repo",
+                skip_gitcrawl=True,
+                limit=42,
+                state="closed",
+                labels=("adoption-blocker", "bug"),
+            )
+
+        assert result.exit_code == 0
+        assert captured["repo"] == "owner/repo"
+        assert captured["kwargs"].get("limit") == 42
+        assert captured["kwargs"].get("state") == "closed"
+        assert captured["kwargs"].get("labels") == ("adoption-blocker", "bug")
+
+    def test_run_bootstrap_omits_filter_kwargs_when_unset(
+        self, bootstrap, tmp_path: Path
+    ):
+        """When no flags are passed, populate() receives only force=False.
+
+        Pre-#900 behaviour preservation: populate's defaults handle the
+        rest, so the bootstrap MUST NOT inject explicit None values.
+        """
+        captured: dict[str, Any] = {}
+
+        fake_module = mock.MagicMock()
+
+        def _fake_populate(repo=None, force=False, **kwargs):
+            captured["repo"] = repo
+            captured["kwargs"] = kwargs
+            return 0
+
+        fake_module.populate = _fake_populate
+
+        with (
+            mock.patch.dict(sys.modules, {"triage_cache": fake_module}),
+            mock.patch.object(bootstrap.shutil, "which", return_value=None),
+        ):
+            bootstrap.run_bootstrap(
+                project_root=tmp_path,
+                repo="owner/repo",
+                skip_gitcrawl=True,
+            )
+
+        # Filter kwargs MUST NOT be injected when bootstrap caller didn't
+        # ask for them -- preserves pre-#900 populate() default handling.
+        assert "limit" not in captured["kwargs"]
+        assert "state" not in captured["kwargs"]
+        assert "labels" not in captured["kwargs"]
+
+    def test_run_bootstrap_forwards_repo_none_for_inference(
+        self, bootstrap, tmp_path: Path
+    ):
+        """repo=None is passed through so populate() can run the inference path."""
+        captured: dict[str, Any] = {}
+
+        fake_module = mock.MagicMock()
+
+        def _fake_populate(repo=None, force=False, **kwargs):
+            captured["repo"] = repo
+            return 3
+
+        fake_module.populate = _fake_populate
+
+        with (
+            mock.patch.dict(sys.modules, {"triage_cache": fake_module}),
+            mock.patch.object(bootstrap.shutil, "which", return_value=None),
+        ):
+            result = bootstrap.run_bootstrap(
+                project_root=tmp_path,
+                repo=None,
+                skip_gitcrawl=True,
+            )
+
+        # populate() should have been invoked WITHOUT repo set (repo not in
+        # populate_kwargs in the no-explicit-repo branch -- the call uses
+        # populate(**kwargs) with no `repo` key).
+        assert captured.get("repo") is None
+        assert result.exit_code == 0
+
+    def test_run_bootstrap_no_repo_inference_failure_skips_with_ok(
+        self, bootstrap, tmp_path: Path
+    ):
+        """When repo=None and populate raises, the step degrades to skip-with-OK.
+
+        This preserves the historic pre-#900 contract that the bootstrap
+        does not hard-fail when --repo is missing.
+        """
+        fake_module = mock.MagicMock()
+
+        def _fake_populate(repo=None, force=False, **kwargs):
+            from triage_cache import InvalidRepoError  # noqa: PLC0415
+
+            raise InvalidRepoError("could not be inferred")
+
+        fake_module.populate = _fake_populate
+
+        with (
+            mock.patch.dict(sys.modules, {"triage_cache": fake_module}),
+            mock.patch.object(bootstrap.shutil, "which", return_value=None),
+        ):
+            result = bootstrap.run_bootstrap(
+                project_root=tmp_path,
+                repo=None,
+                skip_gitcrawl=True,
+            )
+
+        # populate_cache step is the first step.
+        populate_step = result.steps[0]
+        assert populate_step.ok
+        assert populate_step.details.get("skipped") == "no-repo"
+        assert result.exit_code == 0
+
+
+class TestPopulateStep900:
+    """step_populate_cache forwards #900 kwargs and surfaces them in details."""
+
+    def test_populate_step_records_filter_details_on_success(
+        self, bootstrap, tmp_path: Path
+    ):
+        fake_module = mock.MagicMock()
+        fake_module.populate = lambda repo=None, force=False, **kwargs: 5
+
+        with mock.patch.dict(sys.modules, {"triage_cache": fake_module}):
+            outcome = bootstrap.step_populate_cache(
+                tmp_path,
+                "owner/repo",
+                limit=10,
+                state="all",
+                labels=("bug",),
+            )
+
+        assert outcome.ok
+        assert outcome.details["count"] == 5
+        assert outcome.details["limit"] == 10
+        assert outcome.details["state"] == "all"
+        assert outcome.details["labels"] == ["bug"]
+
+    def test_populate_step_inferred_repo_message(
+        self, bootstrap, tmp_path: Path
+    ):
+        fake_module = mock.MagicMock()
+        fake_module.populate = lambda repo=None, force=False, **kwargs: 12
+
+        with mock.patch.dict(sys.modules, {"triage_cache": fake_module}):
+            outcome = bootstrap.step_populate_cache(tmp_path, None, limit=12)
+
+        assert outcome.ok
+        assert "repo inferred" in outcome.message
+        assert outcome.details["count"] == 12
+        assert outcome.details["repo"] is None
