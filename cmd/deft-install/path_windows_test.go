@@ -4,7 +4,9 @@ package main
 
 import (
 	"os"
+	"regexp"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -179,5 +181,188 @@ func TestReadRegistryString_SystemPath(t *testing.T) {
 	}
 	if got == "" {
 		t.Errorf("system PATH read came back empty -- registry should always populate this on Windows")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// #907 P1 -- REG_EXPAND_SZ values must be expanded before being written to
+// the process PATH. ExpandEnvironmentStringsW is the only correct way to
+// resolve %SystemRoot% / %SYSTEMROOT% / etc. tokens against the current
+// process environment. Without this expansion, exec.LookPath fails on
+// every binary whose registry PATH entry uses a percent-variable.
+// ---------------------------------------------------------------------------
+
+// utf16Of helps test inputs read like the buffer shape that
+// readRegistryString hands to expandEnvStringsW: NUL-terminated UTF-16.
+func utf16Of(t *testing.T, s string) []uint16 {
+	t.Helper()
+	if s == "" {
+		return nil
+	}
+	u, err := syscall.UTF16FromString(s)
+	if err != nil {
+		t.Fatalf("UTF16FromString(%q): %v", s, err)
+	}
+	return u
+}
+
+// withEnv sets an env var for the duration of the test and restores the
+// previous value (or unsets the var if it was previously absent) on
+// cleanup. Tests that depend on a deterministic env var value MUST go
+// through this helper.
+func withEnv(t *testing.T, key, value string) {
+	t.Helper()
+	prev, had := os.LookupEnv(key)
+	if err := os.Setenv(key, value); err != nil {
+		t.Fatalf("os.Setenv(%q): %v", key, err)
+	}
+	t.Cleanup(func() {
+		if had {
+			_ = os.Setenv(key, prev)
+		} else {
+			_ = os.Unsetenv(key)
+		}
+	})
+}
+
+// TestExpandEnvStringsW_TableDriven covers the expansion contract that
+// readRegistryString relies on for REG_EXPAND_SZ values. These cases are
+// the documented Win32 ExpandEnvironmentStringsW behaviours; we pin
+// them here so a future Go upgrade or DLL change cannot silently regress
+// us back to the literal-percent bug from #907.
+func TestExpandEnvStringsW_TableDriven(t *testing.T) {
+	// Make %DEFT_TEST_TOKEN% resolve to a known fixed value for the
+	// duration of these tests so we are not depending on the host's
+	// SystemRoot value (which differs across machines).
+	withEnv(t, "DEFT_TEST_TOKEN", `C:\fixed\value`)
+
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{
+			name: "empty input",
+			in:   "",
+			want: "",
+		},
+		{
+			name: "no tokens passes through unchanged",
+			in:   `C:\Program Files\Git\cmd`,
+			want: `C:\Program Files\Git\cmd`,
+		},
+		{
+			name: "single token expands",
+			in:   `%DEFT_TEST_TOKEN%\bin`,
+			want: `C:\fixed\value\bin`,
+		},
+		{
+			name: "multiple tokens in PATH-like string",
+			in:   `%DEFT_TEST_TOKEN%\system32;%DEFT_TEST_TOKEN%\Wbem`,
+			want: `C:\fixed\value\system32;C:\fixed\value\Wbem`,
+		},
+		{
+			name: "unmatched single percent left in place",
+			in:   `100%% literal`,
+			want: `100%% literal`,
+		},
+		{
+			name: "unknown token left in place (Win32 contract)",
+			in:   `%THIS_VAR_DOES_NOT_EXIST_12345%\x`,
+			want: `%THIS_VAR_DOES_NOT_EXIST_12345%\x`,
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("expandEnvStringsW panicked on input %q: %v", tc.in, r)
+				}
+			}()
+			got, err := expandEnvStringsW(utf16Of(t, tc.in))
+			if err != nil {
+				t.Fatalf("expandEnvStringsW(%q) error: %v", tc.in, err)
+			}
+			if got != tc.want {
+				t.Errorf("expandEnvStringsW(%q) = %q, want %q", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestExpandEnvStringsW_SystemRootResolves verifies the canonical case
+// the #907 P1 fix targets: a registry-style REG_EXPAND_SZ value
+// containing %SystemRoot% MUST be expanded against the live env so the
+// resulting PATH segment is something exec.LookPath can resolve.
+func TestExpandEnvStringsW_SystemRootResolves(t *testing.T) {
+	sysRoot := os.Getenv("SystemRoot")
+	if sysRoot == "" {
+		t.Skip("SystemRoot is not set on this host; skipping live-env expansion check")
+	}
+	in := `%SystemRoot%\system32`
+	got, err := expandEnvStringsW(utf16Of(t, in))
+	if err != nil {
+		t.Fatalf("expandEnvStringsW(%q): %v", in, err)
+	}
+	if strings.Contains(got, "%") {
+		t.Errorf("expanded value still contains %%: %q", got)
+	}
+	if !strings.HasSuffix(strings.ToLower(got), `\system32`) {
+		t.Errorf("expanded value %q does not look like a System32 path", got)
+	}
+}
+
+// TestRefreshPathFromRegistry_NoLiteralPercentTokens is the top-level
+// sentinel for the #907 P1 fix: after refreshPathFromRegistry() runs,
+// the process PATH MUST NOT contain any literal `%LETTER...` token in
+// the system-PATH segment. exec.LookPath does not expand percent-
+// variables, so any leftover token is a regression.
+//
+// Detection regex: a `%` immediately followed by an ASCII letter and
+// at least one more identifier character (so `100%%` literal-percent
+// pairs collapsed to `%%` are NOT flagged, while real env-var refs
+// like `%SystemRoot%` ARE).
+func TestRefreshPathFromRegistry_NoLiteralPercentTokens(t *testing.T) {
+	original := os.Getenv("PATH")
+	defer os.Setenv("PATH", original)
+
+	if err := refreshPathFromRegistry(); err != nil {
+		t.Fatalf("refreshPathFromRegistry returned error: %v", err)
+	}
+
+	got := os.Getenv("PATH")
+	if got == "" {
+		t.Fatalf("PATH is empty after refresh; expected populated PATH on Windows host")
+	}
+
+	// Match a percent followed by an env-var-like identifier (letter,
+	// then more identifier chars). REG_EXPAND_SZ tokens are always of
+	// this shape (e.g. %SystemRoot%, %SYSTEMROOT%, %ProgramFiles%).
+	percentToken := regexp.MustCompile(`%[A-Za-z][A-Za-z0-9_]*%?`)
+	if loc := percentToken.FindStringIndex(got); loc != nil {
+		t.Errorf("refreshed PATH contains an unexpanded %%TOKEN%% reference at offset %d: %q (full PATH: %q)",
+			loc[0], got[loc[0]:loc[1]], got)
+	}
+}
+
+// TestReadRegistryString_SystemPathExpanded combines the live registry
+// read with the post-expansion contract: HKLM Path is REG_EXPAND_SZ on
+// virtually every real Windows install, so the value returned by
+// readRegistryString MUST already be expanded -- not literal
+// %SystemRoot%.
+func TestReadRegistryString_SystemPathExpanded(t *testing.T) {
+	got, err := readRegistryString(hkeyLocalMachine, systemEnvSubKey, pathValueName)
+	if err != nil {
+		t.Fatalf("readRegistryString HKLM %s\\Path: %v", systemEnvSubKey, err)
+	}
+	if got == "" {
+		t.Skip("system PATH is empty on this host; nothing to assert about expansion")
+	}
+	percentToken := regexp.MustCompile(`%[A-Za-z][A-Za-z0-9_]*%`)
+	if tok := percentToken.FindString(got); tok != "" {
+		t.Errorf("system PATH from registry still contains literal token %q after readRegistryString: %q",
+			tok, got)
 	}
 }

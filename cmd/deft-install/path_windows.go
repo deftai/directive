@@ -34,6 +34,11 @@ var (
 	procRegOpenKeyExW    = advapi32.NewProc("RegOpenKeyExW")
 	procRegQueryValueExW = advapi32.NewProc("RegQueryValueExW")
 	procRegCloseKey      = advapi32.NewProc("RegCloseKey")
+
+	// kernel32 is declared in drives_windows.go (same package) -- reuse
+	// that LazyDLL handle so we don't double-load the DLL. We only need
+	// our own NewProc binding for ExpandEnvironmentStringsW.
+	procExpandEnvironmentStringsW = kernel32.NewProc("ExpandEnvironmentStringsW")
 )
 
 // systemEnvSubKey and userEnvSubKey are the registry subkeys that hold the
@@ -178,5 +183,60 @@ func readRegistryString(hkey syscall.Handle, subKey, valueName string) (string, 
 	if r0 != errorSuccess {
 		return "", fmt.Errorf("RegQueryValueEx read %s\\%s: error %d", subKey, valueName, r0)
 	}
+
+	// REG_EXPAND_SZ values store literal %TOKEN% references that the
+	// caller must expand before consuming. The HKLM system PATH hive is
+	// almost universally stored as REG_EXPAND_SZ on real Windows hosts
+	// and contains tokens like %SystemRoot%\system32; without expansion
+	// the merged PATH we hand to os.Setenv contains literal %VAR%
+	// strings and exec.LookPath fails to resolve any binary whose
+	// registry PATH entry uses an env-var reference (#907 P1).
+	if valType == regExpandSZ {
+		return expandEnvStringsW(buf)
+	}
 	return syscall.UTF16ToString(buf), nil
+}
+
+// expandEnvStringsW wraps the Win32 ExpandEnvironmentStringsW API. It
+// takes a UTF-16 buffer (typically the raw bytes returned by
+// RegQueryValueExW for a REG_EXPAND_SZ value) and returns the string
+// with %VAR% tokens expanded against the current process environment.
+//
+// Behaviour notes (matching Win32 documented semantics):
+//
+//   - An empty input returns an empty string with no error.
+//   - A string with no %VAR% tokens is returned unchanged.
+//   - Unmatched / unknown %VAR% tokens are left in place rather than
+//     causing an error. ExpandEnvironmentStringsW does not raise on
+//     these.
+//   - The returned size from the first (size-query) call includes the
+//     terminating NUL; the second call writes a NUL-terminated buffer
+//     and syscall.UTF16ToString stops at the first NUL.
+func expandEnvStringsW(src []uint16) (string, error) {
+	if len(src) == 0 || src[0] == 0 {
+		return "", nil
+	}
+
+	// First call: ask for the required destination buffer size in
+	// WCHARs (including the trailing NUL). A return of 0 indicates a
+	// genuine API failure.
+	n, _, callErr := procExpandEnvironmentStringsW.Call(
+		uintptr(unsafe.Pointer(&src[0])),
+		0,
+		0,
+	)
+	if n == 0 {
+		return "", fmt.Errorf("ExpandEnvironmentStringsW size query failed: %v", callErr)
+	}
+
+	dst := make([]uint16, n)
+	n2, _, callErr := procExpandEnvironmentStringsW.Call(
+		uintptr(unsafe.Pointer(&src[0])),
+		uintptr(unsafe.Pointer(&dst[0])),
+		uintptr(n),
+	)
+	if n2 == 0 {
+		return "", fmt.Errorf("ExpandEnvironmentStringsW expand failed: %v", callErr)
+	}
+	return syscall.UTF16ToString(dst), nil
 }
