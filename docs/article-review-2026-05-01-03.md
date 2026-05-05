@@ -9,7 +9,7 @@ visionik/vBRIEF. Merged PR #827 (two-color Mermaid model). Confirmed ADR-001 (#7
 
 | # | Source | Type | Weight |
 |---|---|---|---|
-| 1 | [Karpathy AI Ascent talk transcript](https://raw.githubusercontent.com/deftai/directive/main/docs/articles/karpathy-talk-agentic-engineering.txt) | Practitioner interview | High |
+| 1 | Karpathy AI Ascent talk transcript (external source -- transcript not vendored in this repo) | Practitioner interview | High |
 | 2 | [@aerockrose tweet summary of AutoResearch / tight loops](https://x.com/aerockrose/status/2049839995452534820) | Practitioner summary | Medium |
 | 3 | ["Extracting Signal from the Noise"](https://huggingface.co/spaces/huggingface/open-source-agent-contributions) — Burtenshaw, Smith, Solmaz (HuggingFace + OpenClaw, April 2026) | Research paper, empirical | High |
 | 4 | [ADR-001 Empirical Validation](https://github.com/deftai/section-31/blob/main/strategy/2026-05-01-adr-001-empirical-validation.md) — internal | Strategic briefing | N/A (internal) |

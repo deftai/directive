@@ -17,7 +17,7 @@ Every action, every tool output, every intermediate idea ends up stored in the m
 Nothing is ever forgotten. The logic is that the more context there is, the better.
 No way !!!!
 It leads to excessive noise, slows down retrieval, and ultimately leads to retrieving obsolete information in place of relevant new data.
-python
+```python
 #This is what naive memory accumulation looks like
 #No scoring, no eviction, no expiry. Just growth.
 
@@ -31,6 +31,7 @@ def store_memory(event):
     })
 
 #10,000 interactions later, retrieval is slow and half the memories are stale or wrong
+```
 Vectors do not have expiry. Embeddings keep on accumulating infinitely, while older embeddings get further away from being relevant.
 Retrieval time will increase linearly with the size of the vector store, particularly when performing long-running multiple-step agent workloads.
 Outdated information does not simply lie dormant. Instead, it comes to light through query embeddings that inadvertently retrieve stale information, corrupting present-day inference processes.
@@ -40,7 +41,7 @@ It often happens with us that we start making notes from the very first lecture 
 Later on during exams, when we search for the right note, we struggle finding it, this is a classical example of uncontrolled memory in agents, the context starts to rot and finding appropriate answers from the context pool becomes difficult.
 False Memory Propagation (FMP)
 The FMP approach is more sophisticated and actually more frightening. First, there is one piece of information that is simply false. Perhaps the machine imagined some result from a tool call operation. Perhaps a user entered erroneous input. Perhaps the API provided bad data. For whatever reason, this false fact is recorded in memory. On the next recall, it comes out. It is used to reason about other things. The entire process is saved in memory.
-python
+```python
 #Agent retrieves memory and trusts it blindly
 
 def answer_with_memory(query, memory_store):
@@ -54,6 +55,7 @@ def answer_with_memory(query, memory_store):
     memory_store.append({"content": response})  
 #stores the output too
     return response
+```
 The Chain of Thought paper  shows that reasoning chains dramatically improve accuracy. But there's a flip side nobody talks about. 
 If the initial stage of the process chain was incorrectly formed and this stage turns out to be a part of memory, all subsequent processes will inevitably include the mistake. CoT acts as a power magnifier both for right and for wrong logic.
 It is not failure in appearance for FMP. The agent is certain, consistent, and totally wrong.
@@ -71,7 +73,7 @@ RL as a Fix for FMP
 This is a dimension that is often overlooked by most individuals. In the case where FMP is a reinforcement problem, perhaps the solution to the problem can also be approached from the perspective of a reinforcement problem. In this regard, it will be possible to approach the validation of memories as a reward signal.
 When the agent uses a memory and applies it in a step in the reasoning process, the result of the step becomes the feedback to indicate the validity of the memory used. When the step results in the production of verifiable results, the agent increases the confidence score of the memory.
 However, when the step fails, the memory receives penalties and may be deleted.
-python
+```python
 # Pseudocode: RL-style memory confidence scoring ( somewhat like reward and penalty system - as an extensive pipeline if done )
 
 def update_memory_confidence(memory_id, outcome):
@@ -86,6 +88,7 @@ def update_memory_confidence(memory_id, outcome):
         memory_store.delete(memory_id)  # evict low-trust memories
 
     memory_store.update(memory_id, memory)
+```
 The InstructGPT paper laid out the RLHF framework for aligning model outputs with human preferences through reward modeling. The same logic extends naturally here. You're not scoring model outputs, you're scoring memory entries based on how reliable they prove to be over time.
 Reward signal is obtained from successful completion of the task, corrections made by the user, or verification of results with a known source.
 Memories with low confidence ratings are not used for recall or are even deleted, interrupting the feedback cycle.
@@ -93,7 +96,7 @@ This system demands that each memory be uniquely identifiable and assessable, so
 File-Based Memory as a Starting Point
 Before getting into building the full graph memory system, it is useful to implement a file based memory system first. The logic here is rather straightforward. While vector appending will do fine in the case of raw memories, adding structured memories to files that contain meta-information can be more beneficial. In particular, the metadata includes a timestamp, the importance of the memories, its source, and the level of certainty.
 As an example of how well it works in practice, the Generative Agents paper can be referenced. Namely, the memory stream they used included an importance score for the memories based on their relative importance according to the agent's perspective. Recall was then performed using the parameters of recency, importance, and relevance.
-python
+```python
 # File-based memory with recency and confidence scoring
 
 import json, time
@@ -118,6 +121,7 @@ def retrieve_memory(query_embedding, top_k=5):
             0.3 * m["confidence"]
         )
     return sorted(memories, key=lambda x: x["score"], reverse=True)[:top_k]
+```
 Metadata aware retrieval lets you filter out old or low-confidence memories before they even enter the ranking stage.
 JSONL format keeps it auditable. You can inspect, debug, and manually correct memory entries, something you can't easily do with a black box vector store.
 The access count field lets you track which memories are being retrieved most, which is a proxy for influence on agent behavior.
