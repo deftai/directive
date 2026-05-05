@@ -7,7 +7,7 @@
   },
   "plan": {
     "title": "task: triage v1 fragment-include task names don't match documented triage:* surface",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "Rename includes-block + inner task names (and add root-level alias tasks where namespace collisions block a single triage: include) so task -l exposes only the documented triage:* surface. The four fragment files keep their inner logic and are reached via internal-marked include namespaces; the root Taskfile.yml owns the user-facing triage:* aliases that delegate to those internal tasks. Mirrors the established #718 release-pipeline flatten precedent (release: tasks defined inline at the root Taskfile so go-task does not double-prefix them).",
       "Action": "1) tasks/triage-cache.yml: add internal: true to cache and show. 2) tasks/triage-actions.yml: drop the triage: prefix from inner task names (accept, reject, defer, needs-ac, mark-duplicate, status, reset, history) and add internal: true so the doubled prefix bug disappears. 3) tasks/triage-bulk.yml: add internal: true to bulk-accept, bulk-reject, bulk-defer, bulk-needs-ac, refresh-active (do not touch the disable-gate cmds). 4) tasks/triage-bootstrap.yml: add internal: true to bootstrap. 5) Taskfile.yml: replace the single triage:bootstrap alias with the full 16-alias surface (triage:cache, triage:show, triage:accept|reject|defer|needs-ac|mark-duplicate|status|reset|history, triage:bulk-accept|bulk-reject|bulk-defer|bulk-needs-ac|refresh-active, triage:bootstrap), each delegating to the underlying include-namespace task and forwarding CLI_ARGS. 6) CHANGELOG.md [Unreleased] / Fixed bullet citing #913.",
@@ -58,6 +58,6 @@
         "title": "Issue #718: release task name doubled-prefix bug (precedent for inline-flatten pattern)"
       }
     ],
-    "updated": "2026-05-05T15:20:57Z"
+    "updated": "2026-05-05T15:45:34Z"
   }
 }
