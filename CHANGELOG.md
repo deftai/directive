@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **fix(triage): disable `task triage:bulk-*` tasks at the Taskfile layer pending v0.25.2 (#915)** -- bulk operations as shipped in v0.25.0/v0.25.1 bypass the .deft-cache contract and silently poison `vbrief/.eval/candidates.jsonl`; gating the user-facing surface is a low-cost protective measure until the cache-walk rewrite ships. The four bulk-* tasks (`bulk-accept`, `bulk-reject`, `bulk-defer`, `bulk-needs-ac`) in `tasks/triage-bulk.yml` now exit 2 with an ASCII-only error pointer to #915 and the single-issue alternatives (`task triage:accept` / `triage:reject` / `triage:defer` / `triage:needs-ac`); each `desc:` is prefixed with `[DISABLED v0.25.x]` so `task -l` surfaces the disabled state. `task triage-bulk:refresh-active` is intentionally untouched (does not bypass the cache contract) and `scripts/triage_bulk.py` is intentionally untouched (the cache-walk rewrite is owned by the v0.25.2 fix). Refs #915.
 
 ### Removed
 
