@@ -8,7 +8,7 @@
   "plan": {
     "id": "883-deft-cache-quarantine-v1",
     "title": "feat(cache,quarantine): unified content cache + quarantine layer (v1 / triage migration)",
-    "status": "proposed",
+    "status": "pending",
     "planRef": "#883",
     "narratives": {
       "Problem": "Triage v1 (#845) shipped with a P0 cache-bypass + audit-log-poisoning bug (#915, fixed in v0.25.2) plus three companion bugs (#913, #914, #916). The root cause was a triage-specific cache implementation that drifted from its stated contract. Building on top of that ad-hoc design produces more drift; #883 establishes a single, content-agnostic cache and quarantine layer that triage v1 (and later #610 wiki-llm, URL ingestion, etc.) consume rather than reimplement.",
@@ -33,7 +33,7 @@
         "title": "Cache infrastructure (scripts/cache.py, 5 commands) + scanner v2 (3 categories baseline-on)",
         "status": "proposed",
         "narrative": {
-          "Action": "Owner: Agent A2 (Wave 2; depends on Story 1's scm:issue:view interface). Files owned: scripts/cache.py (NEW), scripts/cache_scanner.py (NEW), tasks/cache.yml (NEW), tasks/Taskfile.yml (includes wiring only), vbrief/schemas/cache-meta.schema.json (NEW), tests/test_cache.py (NEW), tests/test_cache_scanner.py (NEW), tests/integration/test_cache_quarantine.py (NEW). Storage layout: .deft-cache/github-issue/<owner>/<repo>/<N>/{raw.json, content.md, meta.json} + .deft-cache/quarantine-audit.jsonl. Cache surface: cache:put, cache:get, cache:invalidate, cache:fetch-all, cache:prune (5 commands). Hard-coded TTL: github-issue = 7 days. Rate-limit handling on cache:fetch-all (M1): --batch-size N (default 10), --delay-ms N (default 500), 429 response retry with Retry-After header parsing. Idempotency on cache:fetch-all (M2): skip already-cached entries fresh-per-TTL; on partial failure exit with structured count of {succeeded, failed, skipped}; persisted entries survive partial failure. Scanner v2 categories: (A) injection-heading -- reuse 14-token list from quarantine_ext.py, fence-and-pass severity; (B) credentials -- curated regex list (gh*_, sk-*, sk-ant-*, xox[bp]-*, AKIA*, PEM private key headers, Bearer tokens, JWT shape), hard-fail severity; (C) invisible-unicode -- codepoint membership test (U+200B-200F, U+202A-202E, U+2060, U+2066-2069, U+FEFF, U+E0000-E007F), strip-and-pass severity. Scanner version constant at module top; meta.json records {scanner_version, scan_result.passed, scan_result.flags[]}; quarantine-audit.jsonl gets one append per cache:put regardless of scan outcome."
+          "Action": "Owner: Agent A2 (Wave 2; depends on Story 1's scm:issue:view interface). Files owned: scripts/cache.py (NEW), scripts/cache_scanner.py (NEW), tasks/cache.yml (NEW), tasks/Taskfile.yml (includes wiring only), vbrief/schemas/cache-meta.schema.json (NEW), tests/test_cache.py (NEW), tests/test_cache_scanner.py (NEW), tests/integration/test_cache_quarantine.py (NEW). Storage layout: .deft-cache/github-issue/<owner>/<repo>/<N>/{raw.json, content.md, meta.json} + .deft-cache/quarantine-audit.jsonl. Cache surface: cache:put, cache:get, cache:invalidate, cache:fetch-all, cache:prune (5 commands). Hard-coded TTL: github-issue = 7 days. Rate-limit handling on cache:fetch-all (M1): --batch-size N (default 10), --delay-ms N (default 500), 429 response retry with Retry-After header parsing. Idempotency on cache:fetch-all (M2): skip already-cached entries fresh-per-TTL; on partial failure exit with structured count of {succeeded, failed, skipped}; persisted entries survive partial failure. Scanner v2 categories: (A) injection-heading -- reuse 14-token list from quarantine_ext.py, fence-and-pass severity; (B) credentials -- curated regex list (gh*_, sk-*, sk-ant-*, xox[bp]-*, AKIA*, PEM private key headers, Bearer tokens, JWT shape), hard-fail severity; (C) invisible-unicode -- codepoint membership test (U+200B-200F, U+202A-202E, U+2060, U+2066-2069, U+FEFF, U+E0000-E007F), strip-and-pass severity. Scanner version constant at module top. meta.json records the full per-entry field set per visionik design doc: {source, key, fetched_at, ttl_seconds, expires_at, scan_result: {passed, scanned_at, scanner_version, flags[]}, size_bytes, stale}; etag is reserved (deferred from v1 ETag work). The schema in vbrief/schemas/cache-meta.schema.json validates this full shape on read AND write so a corrupt or version-incompatible meta.json fails closed (M4). fetched_at is consumed by Story 3 triage_refresh.py for staleness detection; stale is the v1 substitute for the deferred cache:check command. quarantine-audit.jsonl gets one append per cache:put regardless of scan outcome."
         }
       },
       {
@@ -73,10 +73,27 @@
           "#884 ghx adoption recommendation (this epic uses ghx-or-gh fallback in scm:*)"
         ],
         "v1_scope": {
-          "source_types": ["github-issue"],
-          "scm_stub_commands": ["scm:issue:list", "scm:issue:view", "scm:issue:close", "scm:issue:edit"],
-          "cache_commands": ["cache:put", "cache:get", "cache:invalidate", "cache:fetch-all", "cache:prune"],
-          "scanner_categories_baseline_on": ["injection-heading", "credentials", "invisible-unicode"],
+          "source_types": [
+            "github-issue"
+          ],
+          "scm_stub_commands": [
+            "scm:issue:list",
+            "scm:issue:view",
+            "scm:issue:close",
+            "scm:issue:edit"
+          ],
+          "cache_commands": [
+            "cache:put",
+            "cache:get",
+            "cache:invalidate",
+            "cache:fetch-all",
+            "cache:prune"
+          ],
+          "scanner_categories_baseline_on": [
+            "injection-heading",
+            "credentials",
+            "invisible-unicode"
+          ],
           "ttl_strategy": "hard-coded per source (github-issue=7d)"
         },
         "deferred_to_v2": [
@@ -176,6 +193,7 @@
         "type": "x-vbrief/github-pr",
         "title": "PR #925 (merged): docs: import unsynced documentation -- landed visionik's design doc and 11 reference docs"
       }
-    ]
+    ],
+    "updated": "2026-05-05T23:27:50Z"
   }
 }

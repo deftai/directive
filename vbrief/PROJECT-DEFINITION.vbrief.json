@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-04T21:35:32Z"
+    "updated": "2026-05-05T23:28:05Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -893,65 +893,211 @@
         }
       },
       {
-        "id": "2026-05-04-899-installer-fails-on-a-clean-windows-machine-reinstalls-git-th",
-        "title": "Installer fails on a clean Windows machine: reinstalls git, then exits without completing",
+        "id": "2026-05-05-883-deft-cache-quarantine-v1",
+        "title": "feat(cache,quarantine): unified content cache + quarantine layer (v1 / triage migration)",
         "status": "pending",
         "metadata": {
-          "source_path": "pending/2026-05-04-899-installer-fails-on-a-clean-windows-machine-reinstalls-git-th.vbrief.json",
+          "source_path": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
           "lifecycle_folder": "pending",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/899",
+              "uri": "https://github.com/deftai/directive/issues/883",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #899: Installer fails on a clean Windows machine: reinstalls git, then exits without completing"
+              "title": "Issue #883 (parent epic): feat(processes): deft-cache -- unified content cache and quarantine layer (blocks #845, #610)"
+            },
+            {
+              "uri": "docs/design-deft-cache-quarantine.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Design: Unified Content Cache and Quarantine Layer (visionik, landed via #925 2026-05-05)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/845",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #845: pre-ingest triage workflow (active triage v1 umbrella; closes when v0.26.0 ships and triage v1 is migrated; this epic continues #845's intent and replaces its cache surface)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/915",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #915 (P0): triage_bulk.py bypasses Tier-1 cache and Tier-2 audit log (fixed in v0.25.2; proves the design-drift cost the unified layer is meant to prevent)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/pull/916",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #916 (merged): fix(triage): disable bulk-* tasks pending v0.25.2 (#915) -- hot-fix gate that protected master between bug discovery and v0.25.2 ship"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/583",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #583: name governance pattern + injection-quarantine directive umbrella (this epic extends the injection-quarantine half to scanner v2; #583's name-governance scope is independent and out of scope here)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/835",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #835: memory write security scan (sibling consumer of the unified scanner; visionik's design doc lists this as a related issue alongside #845 and #583)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/788",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #788: token-cost framework (the original cost motivation that #845 cited; the cache layer's persistence + ETag refresh hooks are the v2 mechanisms that satisfy #788's O(1)-per-pass goal)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/881",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #881: scm:* task namespace (this epic's Story 1 ships a minimal stub; full namespace generalization deferred to #881)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/610",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #610: wiki-llm knowledge base (downstream consumer of v2 url/email source types)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/884",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #884: ghx as standard gh proxy (this epic's scm:* stub uses ghx-or-gh fallback)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/pull/925",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #925 (merged): docs: import unsynced documentation -- landed visionik's design doc and 11 reference docs"
             }
           ]
         }
       },
       {
-        "id": "2026-05-04-900-task-triagebootstrap-and-task-triagecache-populate-cannot-sc",
-        "title": "task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache",
+        "id": "2026-05-05-883-story-1-scm-stub",
+        "title": "feat(scm): minimal stub (4 commands) for #883 v1 cache layer",
         "status": "pending",
         "metadata": {
-          "source_path": "pending/2026-05-04-900-task-triagebootstrap-and-task-triagecache-populate-cannot-sc.vbrief.json",
+          "source_path": "pending/2026-05-05-883-story-1-scm-stub.vbrief.json",
           "lifecycle_folder": "pending",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/900",
+              "uri": "https://github.com/deftai/directive/issues/883",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #900: task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache"
+              "title": "Issue #883 (parent epic): feat(processes): deft-cache -- unified content cache and quarantine layer"
+            },
+            {
+              "uri": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Epic vBRIEF for #883 v1 (parent decomposition; this story is item 1 of 4)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/881",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #881: scm:* task namespace (full namespace; this stub is replaced wholesale when #881 lands)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/884",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #884: ghx as standard gh proxy (this stub uses ghx-or-gh fallback)"
             }
           ]
         }
       },
       {
-        "id": "2026-05-04-901-task-triagebootstrap-step-ensure-gitcrawl-defers-silently-on",
-        "title": "task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback",
+        "id": "2026-05-05-883-story-2-cache-infrastructure",
+        "title": "feat(cache,quarantine): unified cache + scanner v2 baseline (#883 Story 2)",
         "status": "pending",
         "metadata": {
-          "source_path": "pending/2026-05-04-901-task-triagebootstrap-step-ensure-gitcrawl-defers-silently-on.vbrief.json",
+          "source_path": "pending/2026-05-05-883-story-2-cache-infrastructure.vbrief.json",
           "lifecycle_folder": "pending",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/901",
+              "uri": "https://github.com/deftai/directive/issues/883",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #901: task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback"
+              "title": "Issue #883 (parent epic): feat(processes): deft-cache -- unified content cache and quarantine layer"
+            },
+            {
+              "uri": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Epic vBRIEF for #883 v1 (parent decomposition; this story is item 2 of 4)"
+            },
+            {
+              "uri": "docs/design-deft-cache-quarantine.md",
+              "type": "x-vbrief/related-doc",
+              "title": "Design: Unified Content Cache and Quarantine Layer (visionik; canonical meta.json field set is here)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/583",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #583: name governance pattern + injection-quarantine directive (this story extends the injection-quarantine half to scanner v2)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/835",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #835: memory write security scan (sibling consumer of the unified scanner)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/788",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #788: token-cost framework (cache persistence is a v2 mechanism toward O(1)-per-pass goal)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/845",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #845: pre-ingest triage workflow (predecessor cache surface that this story replaces)"
             }
           ]
         }
       },
       {
-        "id": "2026-05-04-902-fresh-windows-maintainer-setup-has-no-scripted-toolchain-boo",
-        "title": "Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper",
+        "id": "2026-05-05-883-story-3-triage-rebind",
+        "title": "refactor(triage): rebind v1 surface onto cache:* (#883 Story 3)",
         "status": "pending",
         "metadata": {
-          "source_path": "pending/2026-05-04-902-fresh-windows-maintainer-setup-has-no-scripted-toolchain-boo.vbrief.json",
+          "source_path": "pending/2026-05-05-883-story-3-triage-rebind.vbrief.json",
           "lifecycle_folder": "pending",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/902",
+              "uri": "https://github.com/deftai/directive/issues/883",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #902: Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper"
+              "title": "Issue #883 (parent epic): feat(processes): deft-cache -- unified content cache and quarantine layer"
+            },
+            {
+              "uri": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Epic vBRIEF for #883 v1 (parent decomposition; this story is item 3 of 4)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/845",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #845: pre-ingest triage workflow (this story replaces #845's cache surface; the actions/audit-log surfaces stay)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/915",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #915 (P0): triage_bulk.py bypasses Tier-1 cache (root-cause for the rebind; this story removes the drift surface entirely)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-05-883-story-4-migration-docs-release",
+        "title": "feat(release): v0.26.0 migration docs + cache layer release dispatch (#883 Story 4)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-05-05-883-story-4-migration-docs-release.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/883",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #883 (parent epic): feat(processes): deft-cache -- unified content cache and quarantine layer"
+            },
+            {
+              "uri": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Epic vBRIEF for #883 v1 (parent decomposition; this story is item 4 of 4 -- final wave)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/74",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #74: task release pipeline (this story dispatches release via deft-directive-release skill)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/716",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #716: release safety hardening (e2e rehearsal, draft authority gate; release skill consumes these)"
             }
           ]
         }
@@ -6186,6 +6332,144 @@
               "uri": "contracts/deterministic-questions.md",
               "type": "x-vbrief/related-doc",
               "title": "Deterministic-questions contract (gate compliance)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-04-899-installer-fails-on-a-clean-windows-machine-reinstalls-git-th",
+        "title": "Installer fails on a clean Windows machine: reinstalls git, then exits without completing",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-04-899-installer-fails-on-a-clean-windows-machine-reinstalls-git-th.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/899",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #899: Installer fails on a clean Windows machine: reinstalls git, then exits without completing"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-04-900-task-triagebootstrap-and-task-triagecache-populate-cannot-sc",
+        "title": "task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-04-900-task-triagebootstrap-and-task-triagecache-populate-cannot-sc.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/900",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #900: task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-04-901-task-triagebootstrap-step-ensure-gitcrawl-defers-silently-on",
+        "title": "task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-04-901-task-triagebootstrap-step-ensure-gitcrawl-defers-silently-on.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/901",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #901: task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-04-902-fresh-windows-maintainer-setup-has-no-scripted-toolchain-boo",
+        "title": "Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-04-902-fresh-windows-maintainer-setup-has-no-scripted-toolchain-boo.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/902",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #902: Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-05-913-fix-triage-task-aliases",
+        "title": "task: triage v1 fragment-include task names don't match documented triage:* surface",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-05-913-fix-triage-task-aliases.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/913",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #913: task: triage v1 fragment-include task names don't match documented triage:* surface"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/845",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #845 (parent epic): pre-ingest triage workflow + sidecar issue cache"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/718",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #718: release task name doubled-prefix bug (precedent for inline-flatten pattern)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-05-914-fix-bootstrap-flag-passthrough",
+        "title": "task: triage:bootstrap doesn't pass --limit / --state / --label through to populate (#900)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-05-914-fix-bootstrap-flag-passthrough.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/914",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #914: task: triage:bootstrap doesn't pass --limit / --state / --label through to populate (#900)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-05-915-fix-triage-cache-bypass",
+        "title": "P0: triage_bulk.py bypasses Tier-1 cache and Tier-2 audit log -- iterates live gh issue list (#845 Story 4)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-05-915-fix-triage-cache-bypass.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/915",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #915: P0 -- bulk operations bypass cache"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-05-915-hotfix-disable-triage-bulk",
+        "title": "fix(triage): disable bulk-* tasks pending v0.25.2 (#915 hot-fix)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-05-915-hotfix-disable-triage-bulk.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/915",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #915: scripts/triage_bulk.py bypasses .deft-cache contract and poisons vbrief/.eval/candidates.jsonl"
             }
           ]
         }
