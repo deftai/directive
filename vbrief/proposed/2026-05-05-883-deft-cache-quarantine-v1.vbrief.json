@@ -137,7 +137,7 @@
         "title": "Issue #915 (P0): triage_bulk.py bypasses Tier-1 cache and Tier-2 audit log (fixed in v0.25.2; proves the design-drift cost the unified layer is meant to prevent)"
       },
       {
-        "uri": "https://github.com/deftai/directive/issues/916",
+        "uri": "https://github.com/deftai/directive/pull/916",
         "type": "x-vbrief/github-pr",
         "title": "PR #916 (merged): fix(triage): disable bulk-* tasks pending v0.25.2 (#915) -- hot-fix gate that protected master between bug discovery and v0.25.2 ship"
       },
@@ -172,7 +172,7 @@
         "title": "Issue #884: ghx as standard gh proxy (this epic's scm:* stub uses ghx-or-gh fallback)"
       },
       {
-        "uri": "https://github.com/deftai/directive/issues/925",
+        "uri": "https://github.com/deftai/directive/pull/925",
         "type": "x-vbrief/github-pr",
         "title": "PR #925 (merged): docs: import unsynced documentation -- landed visionik's design doc and 11 reference docs"
       }
