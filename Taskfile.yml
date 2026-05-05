@@ -430,28 +430,28 @@ tasks:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
   triage:bulk-accept:
-    desc: "[DISABLED v0.25.x] Bulk accept is gated pending v0.25.2 (#915). Use task triage:accept per issue."
+    desc: "Bulk accept cached candidates -- task triage:bulk-accept -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action] (#845 Story 4 / #915)"
     cmds:
       - task: triage-bulk:bulk-accept
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
   triage:bulk-reject:
-    desc: "[DISABLED v0.25.x] Bulk reject is gated pending v0.25.2 (#915). Use task triage:reject per issue."
+    desc: "Bulk reject cached candidates -- task triage:bulk-reject -- --repo OWNER/NAME --reason 'why' [--label L] [--author A] [--age-days N] [--cluster C] [--re-action] (#845 Story 4 / #915)"
     cmds:
       - task: triage-bulk:bulk-reject
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
   triage:bulk-defer:
-    desc: "[DISABLED v0.25.x] Bulk defer is gated pending v0.25.2 (#915). Use task triage:defer per issue."
+    desc: "Bulk defer cached candidates -- task triage:bulk-defer -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action] (#845 Story 4 / #915)"
     cmds:
       - task: triage-bulk:bulk-defer
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
   triage:bulk-needs-ac:
-    desc: "[DISABLED v0.25.x] Bulk needs-ac is gated pending v0.25.2 (#915). Use task triage:needs-ac per issue."
+    desc: "Bulk needs-ac cached candidates -- task triage:bulk-needs-ac -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action] (#845 Story 4 / #915)"
     cmds:
       - task: triage-bulk:bulk-needs-ac
         vars:

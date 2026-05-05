@@ -1,13 +1,22 @@
-"""Tests for scripts/triage_bulk.py (#845 Story 4 AC #4 -- bulk cases).
+"""Tests for scripts/triage_bulk.py (#845 Story 4 + #915 cache-walk fix).
 
-Covers Test narrative items (1)-(3) from the Story 4 vBRIEF:
+Covers Test narrative items (1)-(3) from the Story 4 vBRIEF AND the
+#915 hardening:
 
 - (1) bulk-accept with --label fixture
 - (2) combined --label --age-days filters
 - (3) zero-match returns clean exit
+- (#915) cache-walk source: ``_list_cached_candidates`` parses sidecars,
+  tolerates malformed JSON, returns ``[]`` on missing dir
+- (#915) audit-log skip: terminal records ALWAYS short-circuit; in-progress
+  records short-circuit unless ``re_action=True``
+- (#915) empty-cache hard-fail: ``bulk_action`` raises ``CacheEmptyError``;
+  ``main`` translates to exit 2 with the canonical stderr message
 
 Story 3's ``triage_actions`` module may not yet be on the import path. Tests
 inject a stub via the ``actions_module`` parameter to keep the suite hermetic.
+``candidates_log_module`` is also injected so tests do not depend on the
+ambient ``vbrief/.eval/candidates.jsonl`` file.
 """
 
 from __future__ import annotations
@@ -45,15 +54,18 @@ def _issue(
     author: str = "octocat",
     days_old: int = 0,
 ) -> dict[str, object]:
-    """Build a minimal ``gh issue list --json`` shaped record."""
+    """Build a minimal cached-issue payload (matches ``triage_cache._GH_FIELDS``)."""
     created = datetime.now(UTC) - timedelta(days=days_old)
     return {
         "number": number,
         "title": f"Issue {number}",
+        "body": "",
+        "state": "open",
         "labels": [{"name": name} for name in (labels or [])],
         "author": {"login": author},
         "createdAt": created.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "updatedAt": created.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "url": f"https://github.com/deftai/directive/issues/{number}",
     }
 
 
@@ -81,12 +93,43 @@ def stub_actions_module() -> SimpleNamespace:
     )
 
 
+@pytest.fixture
+def empty_audit_log() -> SimpleNamespace:
+    """A namespace stub of ``candidates_log`` with an empty ``read_all``."""
+    return SimpleNamespace(read_all=lambda **_kw: [])
+
+
+def _audit_log_with(*entries: dict[str, Any]) -> SimpleNamespace:
+    """Build a ``candidates_log`` stub whose ``read_all`` yields the entries."""
+    return SimpleNamespace(read_all=lambda **_kw: list(entries))
+
+
+def _audit_entry(
+    issue_number: int,
+    decision: str,
+    *,
+    timestamp: str = "2026-05-05T10:00:00Z",
+    repo: str = "deftai/directive",
+) -> dict[str, Any]:
+    """Build a minimal audit-log entry of the shape ``read_all`` yields."""
+    return {
+        "decision_id": "00000000-0000-0000-0000-000000000000",
+        "timestamp": timestamp,
+        "repo": repo,
+        "issue_number": issue_number,
+        "decision": decision,
+        "actor": "agent:test",
+    }
+
+
 # ---------------------------------------------------------------------------
-# Tests
+# Tests -- filter semantics (Story 4 AC #4 narrative items 1-3)
 # ---------------------------------------------------------------------------
 
 
-def test_bulk_accept_filters_by_label(stub_actions_module: SimpleNamespace) -> None:
+def test_bulk_accept_filters_by_label(
+    stub_actions_module: SimpleNamespace, empty_audit_log: SimpleNamespace
+) -> None:
     """(1) bulk-accept --label fixture loops Story 3.accept only over matched."""
     issues = [
         _issue(101, labels=["triage", "bug"]),
@@ -100,6 +143,7 @@ def test_bulk_accept_filters_by_label(stub_actions_module: SimpleNamespace) -> N
         "deftai/directive",
         label="bug",
         actions_module=stub_actions_module,
+        candidates_log_module=empty_audit_log,
         issues_provider=lambda _repo: issues,
         out=out,
     )
@@ -114,7 +158,7 @@ def test_bulk_accept_filters_by_label(stub_actions_module: SimpleNamespace) -> N
 
 
 def test_bulk_accept_combined_label_and_age_days(
-    stub_actions_module: SimpleNamespace,
+    stub_actions_module: SimpleNamespace, empty_audit_log: SimpleNamespace
 ) -> None:
     """(2) Combined --label --age-days filters apply with AND semantics."""
     issues = [
@@ -131,6 +175,7 @@ def test_bulk_accept_combined_label_and_age_days(
         label="bug",
         age_days=7,
         actions_module=stub_actions_module,
+        candidates_log_module=empty_audit_log,
         issues_provider=lambda _repo: issues,
         out=out,
     )
@@ -141,7 +186,7 @@ def test_bulk_accept_combined_label_and_age_days(
 
 
 def test_bulk_action_zero_match_clean_exit(
-    stub_actions_module: SimpleNamespace,
+    stub_actions_module: SimpleNamespace, empty_audit_log: SimpleNamespace
 ) -> None:
     """(3) Zero-match exits cleanly with status 0 + single summary line."""
     issues = [_issue(301, labels=["docs"])]
@@ -152,6 +197,7 @@ def test_bulk_action_zero_match_clean_exit(
         "deftai/directive",
         label="nonexistent-label",
         actions_module=stub_actions_module,
+        candidates_log_module=empty_audit_log,
         issues_provider=lambda _repo: issues,
         out=out,
     )
@@ -164,45 +210,252 @@ def test_bulk_action_zero_match_clean_exit(
     assert "actioned" not in rendered.replace("zero matches", "")
 
 
-def test_list_open_issues_warns_when_at_limit(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Greptile P2 (PR #875): emit an explicit truncation warning when the
-    returned issue count meets ``--limit`` -- silent truncation is forbidden.
-    """
-    payload_issues = [{"number": i, "labels": [], "author": {}} for i in range(5)]
+# ---------------------------------------------------------------------------
+# Tests -- _list_cached_candidates contract (#915)
+# ---------------------------------------------------------------------------
 
-    class _Fake:
-        stdout = json.dumps(payload_issues)
 
-    def _fake_run(_cmd, **_kwargs):
-        return _Fake()
+def test_list_cached_candidates_returns_empty_on_missing_dir(tmp_path: Path) -> None:
+    """Missing cache dir -> empty list (caller translates to hard-fail)."""
+    sink = io.StringIO()
+    out = triage_bulk._list_cached_candidates(
+        "deftai/directive",
+        cache_root=tmp_path / "nonexistent",
+        out=sink,
+    )
+    assert out == []
 
-    monkeypatch.setattr(triage_bulk.subprocess, "run", _fake_run)
+
+def test_list_cached_candidates_parses_sidecars(tmp_path: Path) -> None:
+    """Populated cache -> returns the parsed JSON payloads."""
+    cache_root = tmp_path / "issues"
+    repo_dir = cache_root / "deftai-directive"
+    repo_dir.mkdir(parents=True)
+    payload_a = _issue(11, labels=["bug"])
+    payload_b = _issue(22, labels=["docs"])
+    (repo_dir / "11.json").write_text(json.dumps(payload_a), encoding="utf-8")
+    (repo_dir / "22.json").write_text(json.dumps(payload_b), encoding="utf-8")
     sink = io.StringIO()
 
-    issues = triage_bulk._list_open_issues("deftai/directive", limit=5, out=sink)
+    out = triage_bulk._list_cached_candidates(
+        "deftai/directive", cache_root=cache_root, out=sink
+    )
 
-    assert len(issues) == 5
+    assert sorted(item["number"] for item in out) == [11, 22]
+    # No warnings emitted for clean files.
+    assert "WARN" not in sink.getvalue()
+
+
+def test_list_cached_candidates_tolerates_invalid_json(tmp_path: Path) -> None:
+    """A malformed sidecar is logged and skipped; valid entries still surface."""
+    cache_root = tmp_path / "issues"
+    repo_dir = cache_root / "deftai-directive"
+    repo_dir.mkdir(parents=True)
+    (repo_dir / "1.json").write_text(json.dumps(_issue(1)), encoding="utf-8")
+    (repo_dir / "2.json").write_text("{not valid json", encoding="utf-8")
+    (repo_dir / "3.json").write_text("[1, 2, 3]", encoding="utf-8")  # not a dict
+    (repo_dir / "4.json").write_text(json.dumps(_issue(4)), encoding="utf-8")
+    sink = io.StringIO()
+
+    out = triage_bulk._list_cached_candidates(
+        "deftai/directive", cache_root=cache_root, out=sink
+    )
+
+    assert sorted(item["number"] for item in out) == [1, 4]
     rendered = sink.getvalue()
+    assert "2.json" in rendered  # malformed file flagged
+    assert "3.json" in rendered  # non-dict file flagged
     assert "WARN" in rendered
-    assert "--limit 5" in rendered
+
+
+# ---------------------------------------------------------------------------
+# Tests -- empty cache hard-fail (#915)
+# ---------------------------------------------------------------------------
+
+
+def test_bulk_action_raises_cache_empty_on_no_candidates(
+    stub_actions_module: SimpleNamespace, empty_audit_log: SimpleNamespace
+) -> None:
+    """``bulk_action`` raises ``CacheEmptyError`` when the candidate set is empty."""
+    with pytest.raises(triage_bulk.CacheEmptyError, match="cache is empty for deftai/directive"):
+        triage_bulk.bulk_action(
+            "defer",
+            "deftai/directive",
+            actions_module=stub_actions_module,
+            candidates_log_module=empty_audit_log,
+            issues_provider=lambda _repo: [],
+        )
+
+
+def test_main_empty_cache_returns_exit_2(
+    stub_actions_module: SimpleNamespace,
+    empty_audit_log: SimpleNamespace,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``main`` translates ``CacheEmptyError`` into exit 2 + canonical stderr."""
+    monkeypatch.setitem(sys.modules, "triage_actions", stub_actions_module)
+    monkeypatch.setitem(sys.modules, "candidates_log", empty_audit_log)
+    # Force the cache walk to return empty regardless of fs state.
+    monkeypatch.setattr(
+        triage_bulk, "_list_cached_candidates", lambda *_a, **_kw: []
+    )
+
+    rc = triage_bulk.main(["defer", "--repo", "deftai/directive"])
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "cache is empty for deftai/directive" in captured.err
+    assert "task triage:bootstrap" in captured.err
+
+
+# ---------------------------------------------------------------------------
+# Tests -- audit-log skip semantics (#915)
+# ---------------------------------------------------------------------------
+
+
+def test_bulk_skips_issues_with_terminal_audit_records(
+    stub_actions_module: SimpleNamespace,
+) -> None:
+    """Terminal decisions (accept/reject/mark-duplicate) ALWAYS short-circuit."""
+    issues = [_issue(401), _issue(402), _issue(403)]
+    audit = _audit_log_with(
+        _audit_entry(401, "accept"),
+        _audit_entry(402, "reject"),
+    )
+    out = io.StringIO()
+
+    actioned = triage_bulk.bulk_action(
+        "defer",
+        "deftai/directive",
+        actions_module=stub_actions_module,
+        candidates_log_module=audit,
+        issues_provider=lambda _repo: issues,
+        out=out,
+    )
+
+    assert actioned == 1
+    actioned_numbers = sorted(call[1] for call in stub_actions_module.calls)
+    assert actioned_numbers == [403]
+    rendered = out.getvalue()
+    assert "skipped 2 candidate(s) with prior audit-log records" in rendered
+
+
+def test_bulk_skips_in_progress_records_without_re_action(
+    stub_actions_module: SimpleNamespace,
+) -> None:
+    """defer/needs-ac records short-circuit when ``re_action`` is False."""
+    issues = [_issue(501), _issue(502), _issue(503)]
+    audit = _audit_log_with(
+        _audit_entry(501, "defer"),
+        _audit_entry(502, "needs-ac"),
+    )
+    out = io.StringIO()
+
+    actioned = triage_bulk.bulk_action(
+        "defer",
+        "deftai/directive",
+        actions_module=stub_actions_module,
+        candidates_log_module=audit,
+        issues_provider=lambda _repo: issues,
+        out=out,
+    )
+
+    assert actioned == 1
+    assert sorted(call[1] for call in stub_actions_module.calls) == [503]
+    assert "pass --re-action to override defer/needs-ac records" in out.getvalue()
+
+
+def test_bulk_re_action_overrides_in_progress_but_not_terminal(
+    stub_actions_module: SimpleNamespace,
+) -> None:
+    """``re_action=True`` re-actions defer/needs-ac but still skips terminal."""
+    issues = [_issue(601), _issue(602), _issue(603), _issue(604)]
+    audit = _audit_log_with(
+        _audit_entry(601, "defer"),
+        _audit_entry(602, "needs-ac"),
+        _audit_entry(603, "accept"),  # terminal -- still skipped
+    )
+
+    actioned = triage_bulk.bulk_action(
+        "defer",
+        "deftai/directive",
+        re_action=True,
+        actions_module=stub_actions_module,
+        candidates_log_module=audit,
+        issues_provider=lambda _repo: issues,
+        out=io.StringIO(),
+    )
+
+    assert actioned == 3
+    actioned_numbers = sorted(call[1] for call in stub_actions_module.calls)
+    assert actioned_numbers == [601, 602, 604]
+
+
+def test_bulk_uses_latest_audit_entry_per_issue(
+    stub_actions_module: SimpleNamespace,
+) -> None:
+    """When multiple records exist for an issue, the latest timestamp wins."""
+    issues = [_issue(701)]
+    audit = _audit_log_with(
+        # First defer, then reset -> latest is reset (non-skipping).
+        _audit_entry(701, "defer", timestamp="2026-05-01T10:00:00Z"),
+        {
+            "decision_id": "11111111-1111-1111-1111-111111111111",
+            "timestamp": "2026-05-02T10:00:00Z",
+            "repo": "deftai/directive",
+            "issue_number": 701,
+            "decision": "reset",
+            "actor": "agent:test",
+            "prior_decision_id": "00000000-0000-0000-0000-000000000000",
+        },
+    )
+
+    actioned = triage_bulk.bulk_action(
+        "defer",
+        "deftai/directive",
+        actions_module=stub_actions_module,
+        candidates_log_module=audit,
+        issues_provider=lambda _repo: issues,
+        out=io.StringIO(),
+    )
+
+    assert actioned == 1
+    assert sorted(call[1] for call in stub_actions_module.calls) == [701]
+
+
+# ---------------------------------------------------------------------------
+# Tests -- argparse + signature-mismatch fallback
+# ---------------------------------------------------------------------------
+
+
+def test_argparse_accepts_re_action_flag(
+    stub_actions_module: SimpleNamespace,
+    empty_audit_log: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``--re-action`` parses cleanly through argparse and forwards to bulk_action."""
+    monkeypatch.setitem(sys.modules, "triage_actions", stub_actions_module)
+    monkeypatch.setitem(sys.modules, "candidates_log", empty_audit_log)
+    monkeypatch.setattr(
+        triage_bulk, "_list_cached_candidates", lambda *_a, **_kw: [_issue(1, labels=["bug"])]
+    )
+
+    rc = triage_bulk.main(
+        ["defer", "--repo", "deftai/directive", "--label", "bug", "--re-action"]
+    )
+    assert rc == 0
 
 
 def test_invoke_action_propagates_typeerror_from_action_body(
-    stub_actions_module: SimpleNamespace,
+    stub_actions_module: SimpleNamespace, empty_audit_log: SimpleNamespace
 ) -> None:
-    """Greptile P2 (PR #875): a ``TypeError`` raised *inside* a Story 3 action
-    MUST surface to the operator instead of being swallowed by the
-    signature-mismatch fallback.
-    """
+    """A ``TypeError`` raised *inside* a Story 3 action MUST surface."""
 
     def _broken_accept(_n: int, _repo: str, **_kwargs: object) -> None:
-        # Genuine bug inside Story 3 -- not a call-site signature issue.
         raise TypeError("unsupported operand type(s) for +: 'int' and 'str'")
 
     stub_actions_module.accept = _broken_accept
-    issues = [{"number": 1, "labels": [{"name": "bug"}], "author": {}}]
+    issues = [_issue(1, labels=["bug"])]
 
     with pytest.raises(TypeError, match="unsupported operand"):
         triage_bulk.bulk_action(
@@ -210,27 +463,20 @@ def test_invoke_action_propagates_typeerror_from_action_body(
             "deftai/directive",
             label="bug",
             actions_module=stub_actions_module,
+            candidates_log_module=empty_audit_log,
             issues_provider=lambda _repo: issues,
             out=io.StringIO(),
         )
 
 
 def test_invoke_action_tolerates_signature_mismatch_in_call_site(
-    stub_actions_module: SimpleNamespace,
+    stub_actions_module: SimpleNamespace, empty_audit_log: SimpleNamespace
 ) -> None:
-    """Companion to the above: a real signature mismatch (kwarg unsupported)
-    still falls back to the positional shape.
-    """
+    """Companion: a real signature mismatch falls back to the positional shape."""
     captured: list[tuple[int, str, str | None]] = []
     call_log: list[str] = []
 
     def _smart_reject(*args: Any, **kwargs: Any) -> None:
-        # First call raises the canonical kwarg-unsupported signature
-        # ``TypeError``; the fallback positional call then succeeds.
-        # ``*args: Any`` (rather than ``object``) is required so mypy
-        # admits ``int(args[0])`` / ``str(args[1])`` -- the ``object``
-        # annotation has no overload for ``int(...)`` (Python CI mypy
-        # call-overload regression on PR #875 post-rebase).
         if kwargs:
             call_log.append("kwarg")
             raise TypeError("got an unexpected keyword argument 'reason'")
@@ -238,7 +484,7 @@ def test_invoke_action_tolerates_signature_mismatch_in_call_site(
         captured.append((int(args[0]), str(args[1]), str(args[2]) if len(args) > 2 else None))
 
     stub_actions_module.reject = _smart_reject
-    issues = [{"number": 7, "labels": [{"name": "bug"}], "author": {}}]
+    issues = [_issue(7, labels=["bug"])]
 
     actioned = triage_bulk.bulk_action(
         "reject",
@@ -246,6 +492,7 @@ def test_invoke_action_tolerates_signature_mismatch_in_call_site(
         label="bug",
         reason="obsolete",
         actions_module=stub_actions_module,
+        candidates_log_module=empty_audit_log,
         issues_provider=lambda _repo: issues,
         out=io.StringIO(),
     )
@@ -255,51 +502,18 @@ def test_invoke_action_tolerates_signature_mismatch_in_call_site(
     assert captured == [(7, "deftai/directive", "obsolete")]
 
 
-def test_resolve_limit_prefers_cli_then_env_then_default(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Greptile P1 (PR #875): the documented ``--limit`` / env-var overrides
-    MUST resolve in CLI > env-var > default order, with malformed env-var
-    values falling back to the default.
-    """
-    monkeypatch.delenv(triage_bulk.LIMIT_ENV_VAR, raising=False)
-    assert triage_bulk._resolve_limit(None) == triage_bulk.DEFAULT_ISSUE_LIST_LIMIT
-    assert triage_bulk._resolve_limit(2500) == 2500
-
-    monkeypatch.setenv(triage_bulk.LIMIT_ENV_VAR, "3000")
-    assert triage_bulk._resolve_limit(None) == 3000
-    # CLI still wins over env when both are present.
-    assert triage_bulk._resolve_limit(500) == 500
-
-    # Malformed env-var value -> default fallback (defensive parse).
-    monkeypatch.setenv(triage_bulk.LIMIT_ENV_VAR, "not-an-int")
-    assert triage_bulk._resolve_limit(None) == triage_bulk.DEFAULT_ISSUE_LIST_LIMIT
+# ---------------------------------------------------------------------------
+# Tests -- skip-set helper (pure function)
+# ---------------------------------------------------------------------------
 
 
-def test_argparse_accepts_limit_flag(
-    stub_actions_module: SimpleNamespace,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Greptile P1 (PR #875): ``--limit N`` parses cleanly through argparse
-    -- it MUST NOT raise ``unrecognized arguments``.
-    """
-    monkeypatch.setitem(sys.modules, "triage_actions", stub_actions_module)
-    monkeypatch.setattr(triage_bulk, "_list_open_issues", lambda *_args, **_kw: [])
-
-    rc = triage_bulk.main(
-        ["accept", "--repo", "deftai/directive", "--label", "bug", "--limit", "50"]
-    )
-    assert rc == 0
+def test_build_skip_set_default_includes_terminal_and_in_progress() -> None:
+    skip = triage_bulk._build_skip_set(False)
+    assert skip == {"accept", "reject", "mark-duplicate", "defer", "needs-ac"}
 
 
-def test_main_zero_match_exits_zero(
-    stub_actions_module: SimpleNamespace,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """The CLI ``main`` returns 0 on zero-match per Story 4 Constraint."""
-    monkeypatch.setitem(sys.modules, "triage_actions", stub_actions_module)
-    # Stub matches the post-PR-#875 signature (`limit` + `out` kwargs).
-    monkeypatch.setattr(triage_bulk, "_list_open_issues", lambda *_a, **_k: [])
-
-    rc = triage_bulk.main(["accept", "--repo", "deftai/directive", "--label", "anything"])
-    assert rc == 0
+def test_build_skip_set_re_action_excludes_in_progress() -> None:
+    skip = triage_bulk._build_skip_set(True)
+    assert skip == {"accept", "reject", "mark-duplicate"}
+    assert "defer" not in skip
+    assert "needs-ac" not in skip

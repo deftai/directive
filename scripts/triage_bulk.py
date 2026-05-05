@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""triage_bulk.py -- Story 4 bulk triage ops over filtered candidates (#845).
+"""triage_bulk.py -- Story 4 bulk triage ops over cached candidates (#845).
 
 Public surface:
 
@@ -20,11 +20,45 @@ Filter flags (combinable, AND semantics):
 - ``--age-days <N>``  match issues whose ``createdAt`` is older than ``now - N days``.
 - ``--cluster <slug>`` match a ``cluster:<slug>`` (or bare ``<slug>``) label.
 
-Zero-match exits cleanly with status 0 and a single stdout line so this script
-is safe to run inside a swarm pipeline.
+Cache contract (#915 fix)
+-------------------------
 
-Looping over Story 3 (``triage_actions``) is intentional; bulk MUST NOT expose
-its own parallel surface (#845 Story 4 Constraint).
+The candidate universe is the local Tier-1 cache: ``.deft-cache/issues/<owner>-<repo>/*.json``
+(written by Story 1's :func:`triage_cache.populate`). Live ``gh issue list``
+calls are forbidden in this module -- the cache is the read surface for the
+triage workflow and bypassing it violates the contract documented in
+``skills/deft-directive-refinement/SKILL.md`` and the #845 epic vBRIEF.
+
+When the per-repo cache directory is missing or empty, :func:`bulk_action`
+raises :class:`CacheEmptyError` and :func:`main` exits with status ``2`` and
+the canonical message::
+
+    triage_bulk: cache is empty for {repo}; run `task triage:bootstrap` first.
+
+Audit-log short-circuit (#915 fix)
+----------------------------------
+
+Before applying the chosen action, the cached candidate set is intersected
+with Story 2's append-only audit log (:mod:`candidates_log`). For each
+candidate, the LATEST recorded decision (by ``timestamp``) determines
+whether the candidate is skipped:
+
+- **Terminal decisions** (``accept``, ``reject``, ``mark-duplicate``) are
+  ALWAYS skipped -- a re-run never repeats a terminal action.
+- **In-progress decisions** (``defer``, ``needs-ac``) are skipped UNLESS
+  the operator passes ``--re-action`` (CLI) / ``re_action=True`` (Python).
+- ``reset`` is non-skipping by design (the operator explicitly wiped the
+  prior verdict; the candidate is back in scope).
+
+The intersection prevents the append-only log from being poisoned by
+repeated bulk-defer / bulk-needs-ac runs and makes ``bulk_action``
+idempotent on a steady cache.
+
+Zero-match exits cleanly with status 0 and a single stdout line so this
+script is safe to run inside a swarm pipeline.
+
+Looping over Story 3 (``triage_actions``) is intentional; bulk MUST NOT
+expose its own parallel surface (#845 Story 4 Constraint).
 """
 
 from __future__ import annotations
@@ -33,12 +67,16 @@ import argparse
 import contextlib
 import importlib
 import json
-import os
-import subprocess
 import sys
 from collections.abc import Callable, Iterable
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
+
+# Surface sibling ``scripts`` modules so the cache walk and audit-log read
+# resolve when this file is invoked via ``python scripts/triage_bulk.py``
+# from a Taskfile dispatch (mirrors the pattern in triage_bootstrap.py).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # Mapping from CLI sub-action keyword to the ``triage_actions`` module attribute
 # resolved at runtime. Story 3's contracted public surface is documented in
@@ -49,6 +87,25 @@ ACTION_FN_NAMES: dict[str, str] = {
     "defer": "defer",
     "needs-ac": "needs_ac",
 }
+
+#: Audit-log decisions that ALWAYS short-circuit a bulk action. A bulk run
+#: that re-applies a terminal verdict is the audit-log poisoning class the
+#: #915 fix exists to prevent.
+TERMINAL_DECISIONS: frozenset[str] = frozenset({"accept", "reject", "mark-duplicate"})
+
+#: Audit-log decisions that short-circuit a bulk action UNLESS the operator
+#: opts in via ``--re-action``. ``defer`` / ``needs-ac`` are non-terminal but
+#: are still in-progress -- a second pass should not silently re-defer them.
+IN_PROGRESS_DECISIONS: frozenset[str] = frozenset({"defer", "needs-ac"})
+
+
+class CacheEmptyError(RuntimeError):
+    """Raised by :func:`bulk_action` when the per-repo cache is missing/empty.
+
+    :func:`main` translates this into an exit-2 with the canonical stderr
+    message; programmatic callers that want a different recovery path can
+    catch the exception directly.
+    """
 
 
 def _load_triage_actions() -> Any:
@@ -71,85 +128,117 @@ def _load_triage_actions() -> Any:
     )
 
 
-#: Default ceiling for ``gh issue list --limit``. Must stay aligned with
-#: ``DEFAULT_MAX_OPEN_ISSUES`` in ``scripts/reconcile_issues.py`` (#764).
-#: Operators with larger backlogs can override via the ``--limit`` CLI flag
-#: or the ``DEFT_TRIAGE_BULK_LIMIT`` env-var; both surfaces are wired below
-#: (see ``_build_parser`` and ``_resolve_limit``).
-DEFAULT_ISSUE_LIST_LIMIT = 1000
+def _load_triage_cache() -> Any:
+    """Lazy-import Story 1's :mod:`triage_cache` (for ``cache_dir``)."""
 
-#: Env-var override for ``DEFAULT_ISSUE_LIST_LIMIT`` consumed by
-#: :func:`_resolve_limit` when no explicit ``--limit`` flag is passed.
-LIMIT_ENV_VAR = "DEFT_TRIAGE_BULK_LIMIT"
-
-
-def _resolve_limit(cli_value: int | None) -> int:
-    """Pick the effective limit -- CLI > env-var > module default.
-
-    Returns ``DEFAULT_ISSUE_LIST_LIMIT`` if the env-var is set to a value
-    that does not parse as a positive integer; this matches the
-    ``DEFT_NO_NETWORK`` / ``DEFT_REMOTE_PROBE_TIMEOUT`` defensive style in
-    ``run`` (#801).
-    """
-
-    if cli_value is not None:
-        return max(1, int(cli_value))
-    raw = os.environ.get(LIMIT_ENV_VAR, "").strip()
-    if not raw:
-        return DEFAULT_ISSUE_LIST_LIMIT
-    try:
-        parsed = int(raw)
-    except ValueError:
-        return DEFAULT_ISSUE_LIST_LIMIT
-    return max(1, parsed)
+    for candidate in ("triage_cache", "scripts.triage_cache"):
+        try:
+            return importlib.import_module(candidate)
+        except ModuleNotFoundError:
+            continue
+    raise RuntimeError(
+        "triage_cache module not available -- Story 1 has not landed in this "
+        "checkout. Cannot walk the cache without it."
+    )
 
 
-def _list_open_issues(
+def _load_candidates_log() -> Any:
+    """Lazy-import Story 2's :mod:`candidates_log` (for ``read_all``)."""
+
+    for candidate in ("candidates_log", "scripts.candidates_log"):
+        try:
+            return importlib.import_module(candidate)
+        except ModuleNotFoundError:
+            continue
+    raise RuntimeError(
+        "candidates_log module not available -- Story 2 has not landed in "
+        "this checkout. Cannot intersect the cached candidate set with the "
+        "audit log."
+    )
+
+
+def _resolve_cache_dir(
     repo: str,
     *,
-    limit: int = DEFAULT_ISSUE_LIST_LIMIT,
+    cache_root: Path | None = None,
+    triage_cache_module: Any | None = None,
+) -> Path:
+    """Return the per-repo cache directory ``<cache_root>/<owner>-<repo>/``.
+
+    Delegates to :func:`triage_cache.cache_dir` so the layout stays in
+    lockstep with Story 1 (flattened ``owner-repo`` for Windows path-length
+    safety). The ``triage_cache_module`` hook keeps this unit-testable
+    without forking a real Python import.
+    """
+
+    module = triage_cache_module if triage_cache_module is not None else _load_triage_cache()
+    cache_dir_fn = getattr(module, "cache_dir", None)
+    if not callable(cache_dir_fn):
+        raise RuntimeError("triage_cache.cache_dir not callable (Story 1 contract violated)")
+    return Path(cache_dir_fn(repo, cache_root=cache_root))
+
+
+def _list_cached_candidates(
+    repo: str,
+    *,
+    cache_root: Path | None = None,
+    triage_cache_module: Any | None = None,
     out: Any | None = None,
 ) -> list[dict[str, Any]]:
-    """List open issues via ``gh issue list``.
+    """Walk the per-repo cache and return parsed issue payloads.
 
-    Returns the parsed JSON array. Errors propagate to the caller so the
-    Taskfile target surfaces the failure. When the returned count meets the
-    requested ``limit`` an explicit warning is emitted on ``out`` so silent
-    truncation cannot masquerade as a complete bulk operation (Greptile P2
-    on PR #875).
+    Reads every ``<cache_root>/<owner>-<repo>/*.json`` sidecar (the JSON
+    file written by :func:`triage_cache.populate`) and returns a list of
+    dicts in the same shape ``_filter_issues`` expects -- the cached
+    payload already carries ``number``, ``title``, ``labels``, ``author``,
+    ``createdAt``, ``updatedAt`` per ``triage_cache._GH_FIELDS``.
+
+    Tolerance contract: a malformed JSON sidecar (truncated write, manual
+    edit, encoding glitch) is logged on ``out`` and skipped -- the rest of
+    the cache is still surfaced. The bulk operation never aborts mid-walk
+    on a single bad file.
+
+    Returns an empty list when the cache directory is missing or empty.
+    Callers translate that into the canonical empty-cache hard-fail.
     """
 
     sink = out or sys.stderr
-    cmd = [
-        "gh",
-        "issue",
-        "list",
-        "--repo",
-        repo,
-        "--state",
-        "open",
-        "--limit",
-        str(limit),
-        "--json",
-        "number,title,labels,author,createdAt,updatedAt",
-    ]
-    completed = subprocess.run(cmd, capture_output=True, text=True, check=True)  # noqa: S603
-    payload = completed.stdout or "[]"
-    parsed = json.loads(payload)
-    if not isinstance(parsed, list):
+    cache_path = _resolve_cache_dir(
+        repo, cache_root=cache_root, triage_cache_module=triage_cache_module
+    )
+
+    if not cache_path.exists() or not cache_path.is_dir():
         return []
-    issues = [item for item in parsed if isinstance(item, dict)]
-    if len(issues) >= limit:
-        print(
-            (
-                f"[triage:bulk] WARN: gh issue list returned {len(issues)} "
-                f"issue(s) -- equal to --limit {limit}. The bulk action will "
-                f"only operate on this slice; re-run with --limit <N> "
-                f"(N > {limit}) or set {LIMIT_ENV_VAR}=<N> to widen the window."
-            ),
-            file=sink,
-        )
-    return issues
+
+    candidates: list[dict[str, Any]] = []
+    for json_path in sorted(cache_path.glob("*.json")):
+        try:
+            raw = json_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            print(
+                f"[triage:bulk] WARN: skipping unreadable cache file "
+                f"{json_path.name}: {type(exc).__name__}: {exc}",
+                file=sink,
+            )
+            continue
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            print(
+                f"[triage:bulk] WARN: skipping malformed cache file "
+                f"{json_path.name}: {exc}",
+                file=sink,
+            )
+            continue
+        if not isinstance(payload, dict):
+            print(
+                f"[triage:bulk] WARN: skipping non-object cache file "
+                f"{json_path.name} (got {type(payload).__name__})",
+                file=sink,
+            )
+            continue
+        candidates.append(payload)
+    return candidates
 
 
 def _filter_issues(
@@ -201,6 +290,98 @@ def _filter_issues(
 
         matched.append(issue)
     return matched
+
+
+def _build_skip_set(re_action: bool) -> frozenset[str]:
+    """Return the set of latest-decision values that disqualify a candidate.
+
+    Terminal decisions (``accept``, ``reject``, ``mark-duplicate``) ALWAYS
+    skip. In-progress decisions (``defer``, ``needs-ac``) skip unless
+    ``re_action`` is True -- the explicit opt-in path for re-running a
+    bulk-defer / bulk-needs-ac on a backlog the operator already touched.
+    """
+
+    if re_action:
+        return TERMINAL_DECISIONS
+    return TERMINAL_DECISIONS | IN_PROGRESS_DECISIONS
+
+
+def _latest_decision_by_issue(
+    repo: str, *, candidates_log_module: Any | None = None
+) -> dict[int, dict[str, Any]]:
+    """Return ``{issue_number: latest-entry-dict}`` for ``repo``.
+
+    Sorted by ISO-8601 ``timestamp`` lexicographic order (Story 2's
+    candidates_log enforces UTC-Z suffixes so this is chronologically
+    correct). Issues with no audit history are absent from the map.
+    """
+
+    module = (
+        candidates_log_module if candidates_log_module is not None else _load_candidates_log()
+    )
+    read_all = getattr(module, "read_all", None)
+    if not callable(read_all):
+        raise RuntimeError("candidates_log.read_all not callable (Story 2 contract violated)")
+
+    latest: dict[int, dict[str, Any]] = {}
+    for entry in read_all(repo=repo):
+        if not isinstance(entry, dict):
+            continue
+        n = entry.get("issue_number")
+        if not isinstance(n, int) or isinstance(n, bool):
+            continue
+        ts = str(entry.get("timestamp", ""))
+        prior = latest.get(n)
+        if prior is None or ts > str(prior.get("timestamp", "")):
+            latest[n] = entry
+    return latest
+
+
+def _exclude_logged(
+    candidates: Iterable[dict[str, Any]],
+    *,
+    repo: str,
+    re_action: bool,
+    candidates_log_module: Any | None = None,
+    out: Any | None = None,
+) -> list[dict[str, Any]]:
+    """Drop candidates whose latest audit decision is in the skip set.
+
+    See :func:`_build_skip_set` for the skip-set rules. Emits a single-line
+    summary on ``out`` so the operator sees how many candidates were
+    short-circuited by Tier-2 -- silent drops would mask the audit-log
+    contract.
+    """
+
+    skip_set = _build_skip_set(re_action)
+    latest = _latest_decision_by_issue(
+        repo, candidates_log_module=candidates_log_module
+    )
+
+    kept: list[dict[str, Any]] = []
+    skipped = 0
+    for issue in candidates:
+        try:
+            n = int(issue["number"])
+        except (KeyError, TypeError, ValueError):
+            # Malformed cache record -- the per-action loop will report it.
+            kept.append(issue)
+            continue
+        prior = latest.get(n)
+        if prior is None:
+            kept.append(issue)
+            continue
+        if str(prior.get("decision", "")) in skip_set:
+            skipped += 1
+            continue
+        kept.append(issue)
+
+    if skipped and out is not None:
+        msg = f"[triage:bulk] skipped {skipped} candidate(s) with prior audit-log records"
+        if not re_action:
+            msg += " (pass --re-action to override defer/needs-ac records)"
+        print(msg, file=out)
+    return kept
 
 
 def _resolve_action(actions_module: Any, action_key: str) -> Callable[..., Any]:
@@ -271,19 +452,30 @@ def bulk_action(
     age_days: int | None = None,
     cluster: str | None = None,
     reason: str | None = None,
-    limit: int | None = None,
+    re_action: bool = False,
+    cache_root: Path | None = None,
     actions_module: Any | None = None,
+    triage_cache_module: Any | None = None,
+    candidates_log_module: Any | None = None,
     issues_provider: Callable[[str], list[dict[str, Any]]] | None = None,
     now: datetime | None = None,
     out: Any | None = None,
 ) -> int:
     """Execute ``action_key`` over the filtered candidate set.
 
-    Returns the count of issues actioned. Zero matches returns ``0`` and emits
-    a single-line summary -- the caller MUST treat this as a clean exit.
+    Returns the count of issues actioned. Zero matches returns ``0`` and
+    emits a single-line summary -- the caller MUST treat this as a clean
+    exit.
 
-    Dependency-injection hooks keep this surface unit-testable without forking
-    a real ``gh`` subprocess or importing a not-yet-landed Story 3 module.
+    Raises :class:`CacheEmptyError` when the per-repo cache directory is
+    missing or empty -- the empty-cache hard-fail required by the #915 fix.
+    Callers (CLI ``main``) translate this into an exit-2 with the canonical
+    stderr message. Programmatic callers that want a degraded recovery path
+    can catch :class:`CacheEmptyError` directly.
+
+    Dependency-injection hooks keep this surface unit-testable without
+    forking a real ``gh`` subprocess or importing not-yet-landed sibling
+    modules.
     """
 
     if action_key not in ACTION_FN_NAMES:
@@ -291,23 +483,36 @@ def bulk_action(
 
     sink = out or sys.stdout
     if issues_provider is not None:
-        fetch = issues_provider
+        candidates = issues_provider(repo)
     else:
-        # Forward ``sink`` so the truncation warning lands on the caller's
-        # output stream (Greptile P2 on PR #875). The lambda preserves the
-        # sentinel-default semantics of ``_list_open_issues``.
-        effective_limit = _resolve_limit(limit)
-        fetch = lambda repo_arg: _list_open_issues(  # noqa: E731
-            repo_arg, limit=effective_limit, out=sink
+        candidates = _list_cached_candidates(
+            repo,
+            cache_root=cache_root,
+            triage_cache_module=triage_cache_module,
+            out=sink,
         )
-    issues = fetch(repo)
+
+    if not candidates:
+        raise CacheEmptyError(
+            f"triage_bulk: cache is empty for {repo}; "
+            "run `task triage:bootstrap` first."
+        )
+
     matched = _filter_issues(
-        issues,
+        candidates,
         label=label,
         author=author,
         age_days=age_days,
         cluster=cluster,
         now=now,
+    )
+
+    matched = _exclude_logged(
+        matched,
+        repo=repo,
+        re_action=re_action,
+        candidates_log_module=candidates_log_module,
+        out=sink,
     )
 
     if not matched:
@@ -338,7 +543,7 @@ def bulk_action(
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="triage_bulk",
-        description="Bulk triage operations over filtered candidate sets (#845 Story 4)",
+        description="Bulk triage operations over cached candidate sets (#845 Story 4 / #915)",
     )
     parser.add_argument(
         "action",
@@ -367,13 +572,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="reject only: reason recorded in audit log + upstream issue close comment",
     )
     parser.add_argument(
-        "--limit",
-        type=int,
-        default=None,
+        "--re-action",
+        action="store_true",
+        dest="re_action",
         help=(
-            "override the gh issue list --limit ceiling (default "
-            f"{DEFAULT_ISSUE_LIST_LIMIT}; env-var {LIMIT_ENV_VAR} is honored "
-            "when --limit is not passed)"
+            "Re-action candidates whose LATEST audit-log record is `defer` or "
+            "`needs-ac` (#915). Without this flag, in-progress records "
+            "short-circuit the bulk run; terminal records "
+            "(accept|reject|mark-duplicate) ALWAYS short-circuit regardless."
         ),
     )
     return parser
@@ -395,16 +601,20 @@ def _reconfigure_utf8() -> None:
 def main(argv: list[str] | None = None) -> int:
     _reconfigure_utf8()
     args = _build_parser().parse_args(argv)
-    bulk_action(
-        args.action,
-        args.repo,
-        label=args.label,
-        author=args.author,
-        age_days=args.age_days,
-        cluster=args.cluster,
-        reason=args.reason,
-        limit=args.limit,
-    )
+    try:
+        bulk_action(
+            args.action,
+            args.repo,
+            label=args.label,
+            author=args.author,
+            age_days=args.age_days,
+            cluster=args.cluster,
+            reason=args.reason,
+            re_action=args.re_action,
+        )
+    except CacheEmptyError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     # Zero-match is a clean exit per #845 Story 4 Constraint.
     return 0
 

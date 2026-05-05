@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **triage: vbrief/.eval/ added to .gitignore; bootstrap ensures the line idempotently for upgrading projects (#915).**
+- **tests: integration test for triage v1 cache contract (tests/integration/test_triage_smoke.py); regression coverage for the #915 cache-bypass class.**
 
 ### Changed
 
@@ -15,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **fix(triage): rename fragment-include task names so the documented `triage:*` surface (`task triage:cache`, `task triage:accept`, `task triage:bulk-defer`, etc.) is reachable verbatim (#913)**
 - **fix(triage): pass --limit / --state / --label / --force / --use-gitcrawl / --ttl-seconds through from `task triage:bootstrap` to the underlying populate step (#914, #900).**
 - **fix(triage): disable `task triage:bulk-*` tasks at the Taskfile layer pending v0.25.2 (#915)**
+- **triage: bulk operations now read from .deft-cache/issues/ (source of truth) and skip issues with terminal audit-log records; restores Tier-1 / Tier-2 contracts described in #845 epic (#915).**
+- **triage: re-enable task triage:bulk-* (gated in v0.25.1+1 / PR #916 pending the cache-walk rewrite).**
 
 ### Removed
 

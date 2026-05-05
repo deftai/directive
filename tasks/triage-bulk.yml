@@ -1,6 +1,6 @@
 version: '3'
 
-# tasks/triage-bulk.yml -- Story 4 of #845.
+# tasks/triage-bulk.yml -- Story 4 of #845 + #915 cache-walk re-enable.
 #
 # Wired into the parent ../Taskfile.yml `includes:` block under namespace
 # key `triage-bulk` (#845 Story 6). The user-facing `task triage:bulk-accept`
@@ -8,15 +8,20 @@ version: '3'
 # `triage:refresh-active` surface lives as root-level alias tasks in
 # Taskfile.yml that delegate here (#913); inner tasks below are
 # `internal: true` so the fragment-namespace forms (`triage-bulk:bulk-*`)
-# are hidden from `task -l`. The disable-gate `cmds:` blocks for
-# `bulk-accept` / `bulk-reject` / `bulk-defer` / `bulk-needs-ac` (#915) are
-# unchanged: invoking either via the alias or via the namespaced form
-# still exits 2 with the ASCII-only pointer to the single-issue alternatives.
+# are hidden from `task -l`.
+#
+# The disable-gate `cmds:` blocks introduced by PR #916 (#915 hot-fix) were
+# REVERSED here once scripts/triage_bulk.py was rewritten to walk
+# .deft-cache/issues/<owner>-<repo>/ instead of live `gh issue list`. The
+# four `bulk-*` targets now invoke triage_bulk.py directly again, exactly
+# as before #916. The cache-empty hard-fail (exit 2) and Tier-2 audit-log
+# short-circuit are enforced inside triage_bulk.py itself (#915 fix).
 #
 # Per `conventions/task-caching.md` (#574): every target here accepts user
 # flags via `{{.CLI_ARGS}}` (--label, --author, --age-days, --cluster,
-# --reason, --repo) so MUST NOT declare `sources:` / `generates:` -- the
-# cached cmds: skip would silently swallow the recovery flag.
+# --reason, --repo, --re-action) so MUST NOT declare `sources:` /
+# `generates:` -- the cached cmds: skip would silently swallow the
+# recovery flag.
 #
 # Path resolution mirrors the convention from tasks/issue.yml + tasks/policy.yml:
 # `DEFT_ROOT` is defined locally via `joinPath .TASKFILE_DIR ".."` so
@@ -28,52 +33,40 @@ vars:
 
 tasks:
   bulk-accept:
-    desc: "[DISABLED v0.25.x] Bulk accept is gated pending v0.25.2 (#915). Use task triage:accept per issue."
+    desc: "Bulk accept candidates (#845 Story 4) -- task triage:bulk-accept -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
     internal: true
     dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - |
-        echo "ERROR: task triage:bulk-accept is disabled in v0.25.0/v0.25.1 (#915)."
-        echo "  bulk-* bypasses the .deft-cache contract and poisons vbrief/.eval/candidates.jsonl."
-        echo "  Use single-issue actions until v0.25.2 ships:"
-        echo "    task triage:accept -- --repo OWNER/NAME --issue N"
-        exit 2
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" accept {{.CLI_ARGS}}
 
   bulk-reject:
-    desc: "[DISABLED v0.25.x] Bulk reject is gated pending v0.25.2 (#915). Use task triage:reject per issue."
+    desc: "Bulk reject candidates (#845 Story 4) -- task triage:bulk-reject -- --repo OWNER/NAME --reason 'why' [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
     internal: true
     dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - |
-        echo "ERROR: task triage:bulk-reject is disabled in v0.25.0/v0.25.1 (#915)."
-        echo "  bulk-* bypasses the .deft-cache contract and poisons vbrief/.eval/candidates.jsonl."
-        echo "  Use single-issue actions until v0.25.2 ships:"
-        echo "    task triage:reject -- --repo OWNER/NAME --issue N --reason 'why'"
-        exit 2
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" reject {{.CLI_ARGS}}
 
   bulk-defer:
-    desc: "[DISABLED v0.25.x] Bulk defer is gated pending v0.25.2 (#915). Use task triage:defer per issue."
+    desc: "Bulk defer candidates (#845 Story 4) -- task triage:bulk-defer -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
     internal: true
     dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - |
-        echo "ERROR: task triage:bulk-defer is disabled in v0.25.0/v0.25.1 (#915)."
-        echo "  bulk-* bypasses the .deft-cache contract and poisons vbrief/.eval/candidates.jsonl."
-        echo "  Use single-issue actions until v0.25.2 ships:"
-        echo "    task triage:defer -- --repo OWNER/NAME --issue N"
-        exit 2
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" defer {{.CLI_ARGS}}
 
   bulk-needs-ac:
-    desc: "[DISABLED v0.25.x] Bulk needs-ac is gated pending v0.25.2 (#915). Use task triage:needs-ac per issue."
+    desc: "Bulk needs-ac candidates (#845 Story 4) -- task triage:bulk-needs-ac -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
     internal: true
     dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - |
-        echo "ERROR: task triage:bulk-needs-ac is disabled in v0.25.0/v0.25.1 (#915)."
-        echo "  bulk-* bypasses the .deft-cache contract and poisons vbrief/.eval/candidates.jsonl."
-        echo "  Use single-issue actions until v0.25.2 ships:"
-        echo "    task triage:needs-ac -- --repo OWNER/NAME --issue N"
-        exit 2
+      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" needs-ac {{.CLI_ARGS}}
 
   refresh-active:
     desc: "Pre-swarm freshness gate (#845 Story 4) -- detects drift between cached and live `gh issue view` for every issue referenced in vbrief/active/*.vbrief.json"

@@ -90,6 +90,14 @@ CACHE_DIR_NAME = ".deft-cache"
 #: existing ``.gitignore`` (e.g. ``dist/``, ``backup/``, ``.deft/``).
 GITIGNORE_LINE = ".deft-cache/"
 
+#: Canonical gitignore line for the per-machine triage audit / eval scratch
+#: directory (#915). Story 2's ``candidates_log`` writes
+#: ``vbrief/.eval/candidates.jsonl`` inside the project tree; we never want
+#: it versioned (operator state, leaks triage timing/identity). The bootstrap
+#: ensures the line is present on a re-run for projects that pre-date the
+#: v0.25.2 ``.gitignore`` shipped with #915.
+GITIGNORE_EVAL_LINE = "vbrief/.eval/"
+
 #: Canonical audit-log path relative to the project root. Story 2 writes
 #: append-only JSONL here; Story 6's bootstrap backfills ``accepted`` entries
 #: for items that have already been triaged into a lifecycle folder.
@@ -802,6 +810,107 @@ def step_ensure_gitignore_entry(project_root: Path) -> StepOutcome:
 
 
 # ---------------------------------------------------------------------------
+# Step 3b -- ensure vbrief/.eval/ is gitignored (#915)
+# ---------------------------------------------------------------------------
+
+
+def step_ensure_gitignore_eval_dir(project_root: Path) -> StepOutcome:
+    """Append ``vbrief/.eval/`` to ``.gitignore`` when absent (#915).
+
+    Companion to :func:`step_ensure_gitignore_entry`: ensures the
+    triage audit / eval scratch directory is git-ignored on projects that
+    pre-date the v0.25.2 ``.gitignore`` shipped with #915. Idempotent --
+    a re-run is a no-op when the line is already present (active or
+    commented-out per the NFR-2 opt-in convention used for ``.deft-cache/``).
+
+    Sequenced AFTER :func:`step_ensure_gitignore_entry` so on a greenfield
+    project the parent step has already created ``.gitignore`` with at
+    least the ``.deft-cache/`` line; we then append the eval-dir entry to
+    the same file. On an upgrading project (``.gitignore`` exists, neither
+    line present) both steps still land their own entry.
+    """
+    gitignore_path = project_root / ".gitignore"
+    if not gitignore_path.exists():
+        # The companion step is supposed to create .gitignore on a greenfield
+        # project; if we still see no file here, surface that rather than
+        # silently writing a fresh single-line file (which would trample any
+        # parallel write).
+        return StepOutcome(
+            name="ensure_gitignore_eval_dir",
+            ok=True,
+            message=(
+                "skipped (.gitignore not present after ensure_gitignore_entry; "
+                "re-run bootstrap to retry)"
+            ),
+            details={"created": False, "appended": False, "skipped": "no-gitignore"},
+        )
+
+    try:
+        existing = gitignore_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        return StepOutcome(
+            name="ensure_gitignore_eval_dir",
+            ok=False,
+            message="could not read .gitignore",
+            error=str(exc),
+        )
+
+    has_commented_form = any(
+        _is_commented_gitignore_line(raw, GITIGNORE_EVAL_LINE) for raw in existing.splitlines()
+    )
+
+    if _gitignore_already_covers(existing, GITIGNORE_EVAL_LINE):
+        return StepOutcome(
+            name="ensure_gitignore_eval_dir",
+            ok=True,
+            message=f"{GITIGNORE_EVAL_LINE} already in .gitignore (no-op)",
+            details={"created": False, "appended": False, "already_present": True},
+        )
+
+    if has_commented_form:
+        return StepOutcome(
+            name="ensure_gitignore_eval_dir",
+            ok=True,
+            message=(
+                f"{GITIGNORE_EVAL_LINE} is commented out (operator opt-in to "
+                "commit triage audit/eval scratch; not re-adding)"
+            ),
+            details={
+                "created": False,
+                "appended": False,
+                "opt_in_commit_eval": True,
+            },
+        )
+
+    suffix = "" if existing.endswith("\n") or existing == "" else "\n"
+    new_content = (
+        existing
+        + suffix
+        + "\n# Triage v1 audit/eval scratch (#915). Holds candidates.jsonl + transient\n"
+        + "# evaluation artefacts written by triage actions. Per-machine operator state;\n"
+        + "# never versioned (would leak triage timing/identity). Comment this line out\n"
+        + "# to opt in to committing the audit log.\n"
+        + GITIGNORE_EVAL_LINE
+        + "\n"
+    )
+    try:
+        gitignore_path.write_text(new_content, encoding="utf-8")
+    except OSError as exc:
+        return StepOutcome(
+            name="ensure_gitignore_eval_dir",
+            ok=False,
+            message="could not write .gitignore",
+            error=str(exc),
+        )
+    return StepOutcome(
+        name="ensure_gitignore_eval_dir",
+        ok=True,
+        message=f"appended {GITIGNORE_EVAL_LINE} to .gitignore",
+        details={"created": False, "appended": True},
+    )
+
+
+# ---------------------------------------------------------------------------
 # Step 4 -- ensure gitcrawl is installed (best-effort)
 # ---------------------------------------------------------------------------
 
@@ -1058,14 +1167,15 @@ def run_bootstrap(
 ) -> BootstrapResult:
     """Run the bootstrap pipeline, returning the aggregate result.
 
-    Dispatches the four mutating steps documented in the module docstring
+    Dispatches the five mutating steps documented in the module docstring
     (populate_cache, backfill_audit_log, ensure_gitignore_entry,
-    ensure_gitcrawl) and appends one ``StepOutcome`` per step. The fifth
-    documented step (``recap``) is rendered by
-    :meth:`BootstrapResult.summary` and printed in :func:`main` rather
-    than dispatched as a separate ``StepOutcome``; the recap therefore
-    produces no entry in ``result.steps``. ``len(result.steps) == 4`` is
-    the expected post-condition.
+    ensure_gitignore_eval_dir, ensure_gitcrawl) and appends one
+    ``StepOutcome`` per step. The recap (``BootstrapResult.summary``)
+    renders in :func:`main` rather than as a separate ``StepOutcome``;
+    ``len(result.steps) == 5`` is the expected post-condition. Pre-#915
+    callers that asserted four entries must update -- the new
+    ``ensure_gitignore_eval_dir`` step is sequenced between
+    ``ensure_gitignore_entry`` and ``ensure_gitcrawl``.
 
     Separated from :func:`main` so tests drive the function directly
     without argparse plumbing.
@@ -1093,6 +1203,7 @@ def run_bootstrap(
     )
     result.steps.append(step_backfill_audit_log(project_root, repo))
     result.steps.append(step_ensure_gitignore_entry(project_root))
+    result.steps.append(step_ensure_gitignore_eval_dir(project_root))
     result.steps.append(step_ensure_gitcrawl(skip=skip_gitcrawl))
 
     # Aggregate exit code: any step with ok=False sets exit 1.

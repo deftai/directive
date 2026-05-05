@@ -122,6 +122,7 @@ def test_fresh_project_end_to_end(bootstrap, tmp_path: Path) -> None:
         "populate_cache",
         "backfill_audit_log",
         "ensure_gitignore_entry",
+        "ensure_gitignore_eval_dir",
         "ensure_gitcrawl",
     ]
     # Steps without --repo should skip-with-OK.
@@ -129,12 +130,18 @@ def test_fresh_project_end_to_end(bootstrap, tmp_path: Path) -> None:
     assert populate.ok and populate.details.get("skipped") == "no-repo"
     backfill = result.steps[1]
     assert backfill.ok and backfill.details.get("skipped") == "no-repo"
-    # Gitignore created.
+    # Gitignore created with both lines (#915).
     gitignore = tmp_path / ".gitignore"
     assert gitignore.exists()
-    assert ".deft-cache/" in gitignore.read_text(encoding="utf-8")
-    # Gitcrawl deferred.
-    gitcrawl = result.steps[3]
+    gitignore_text = gitignore.read_text(encoding="utf-8")
+    assert ".deft-cache/" in gitignore_text
+    assert "vbrief/.eval/" in gitignore_text
+    # ensure_gitignore_eval_dir landed an append on the freshly-created file.
+    eval_step = result.steps[3]
+    assert eval_step.ok
+    assert eval_step.details.get("appended") is True
+    # Gitcrawl deferred (now at index 4 after the new eval-dir step).
+    gitcrawl = result.steps[4]
     assert gitcrawl.ok
     assert gitcrawl.details.get("action") == "deferred-no-pipx"
 
