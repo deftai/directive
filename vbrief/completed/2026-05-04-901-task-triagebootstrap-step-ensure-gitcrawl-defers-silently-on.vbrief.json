@@ -2,11 +2,11 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Scope vBRIEF ingested from GitHub issue #901",
-    "updated": "2026-05-04T21:59:05Z"
+    "updated": "2026-05-05T01:36:03Z"
   },
   "plan": {
     "title": "task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/901",
@@ -20,7 +20,7 @@
         "title": "Issue #901: task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback"
       }
     ],
-    "updated": "2026-05-04T21:34:14Z",
+    "updated": "2026-05-05T01:36:03Z",
     "metadata": {
       "x-migrator": {
         "Phase": "Phase 1 -- Fix Now",

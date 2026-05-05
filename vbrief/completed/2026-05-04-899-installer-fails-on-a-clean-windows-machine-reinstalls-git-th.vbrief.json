@@ -2,11 +2,11 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Scope vBRIEF ingested from GitHub issue #899",
-    "updated": "2026-05-04T21:57:44Z"
+    "updated": "2026-05-05T01:36:02Z"
   },
   "plan": {
     "title": "Installer fails on a clean Windows machine: reinstalls git, then exits without completing",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Installer fails on a clean Windows machine: reinstalls git, then exits without completing",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/899",
@@ -20,7 +20,7 @@
         "title": "Issue #899: Installer fails on a clean Windows machine: reinstalls git, then exits without completing"
       }
     ],
-    "updated": "2026-05-04T21:34:14Z",
+    "updated": "2026-05-05T01:36:02Z",
     "metadata": {
       "x-migrator": {
         "Phase": "Phase 1 -- Fix Now",

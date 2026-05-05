@@ -2,11 +2,11 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Scope vBRIEF ingested from GitHub issue #900",
-    "updated": "2026-05-04T21:58:21Z"
+    "updated": "2026-05-05T01:36:03Z"
   },
   "plan": {
     "title": "task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/900",
@@ -20,7 +20,7 @@
         "title": "Issue #900: task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache"
       }
     ],
-    "updated": "2026-05-04T21:34:14Z",
+    "updated": "2026-05-05T01:36:03Z",
     "metadata": {
       "x-migrator": {
         "Phase": "Phase 1 -- Fix Now",
