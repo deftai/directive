@@ -232,6 +232,88 @@ Describe 'setup_windows.ps1: WhatIfOnly mode' {
     }
 }
 
+Describe 'setup_windows.ps1: dot-source does not leak ErrorActionPreference (#909)' {
+    BeforeAll {
+        # Capture the parent-scope ErrorActionPreference before AND after
+        # the dot-source. The pre-fix code mutated it via a top-level
+        # `$ErrorActionPreference = 'Stop'` assignment that ran before the
+        # `if ($MyInvocation.InvocationName -ne '.')` guard. The fix moves
+        # that assignment INTO Invoke-DeftWindowsSetup so the dot-source
+        # leaves the caller's preference unchanged.
+        $script:eapBefore = $ErrorActionPreference
+        . $script:SetupWindowsScript
+        $script:eapAfter = $ErrorActionPreference
+    }
+
+    It 'preserves the caller-scope $ErrorActionPreference across dot-source' {
+        $script:eapAfter | Should -Be $script:eapBefore
+    }
+}
+
+Describe 'setup_windows.ps1: refresh-path.ps1 path is anchored to script directory (#909)' {
+    BeforeAll { . $script:SetupWindowsScript }
+
+    It 'captures $PSScriptRoot at script load time into $script:DeftSetupScriptRoot' {
+        # The fix captures $PSScriptRoot into a script-scope variable at
+        # the top of the file (before any function definitions) so the
+        # refresh-path.ps1 lookup remains correct when Invoke-DeftWindowsSetup
+        # is called from a dot-sourced context where bare $PSScriptRoot
+        # would resolve to the caller's directory.
+        $expected = (Resolve-Path (Join-Path $script:RepoRoot 'scripts')).Path
+        $script:DeftSetupScriptRoot | Should -Be $expected
+    }
+
+    It 'Invoke-DeftWindowsSetup resolves refresh-path.ps1 relative to the script directory, not the caller cwd' {
+        # Force one tool missing, override the install to a no-op, and run
+        # WITHOUT -SkipRefresh from a foreign cwd. With the fix, the
+        # Join-Path uses $script:DeftSetupScriptRoot and refresh-path.ps1 is
+        # found and dot-sourced. Without the fix (bare $PSScriptRoot),
+        # the path would point at the foreign cwd and Test-Path would fail,
+        # emitting the "refresh-path.ps1 not found at <path>" warning.
+        $tempDir = Join-Path $env:TEMP ('deft-test-' + [guid]::NewGuid().Guid)
+        New-Item -ItemType Directory -Path $tempDir | Out-Null
+        $previousPath = $env:PATH
+        try {
+            Push-Location -LiteralPath $tempDir
+            try {
+                $override = { param($id) }  # no-op install
+                $warnings = New-Object System.Collections.ArrayList
+                $result = Invoke-DeftWindowsSetup `
+                    -ForceMissing @('go') `
+                    -InstallOverride $override `
+                    -WarningVariable +warnings
+                $result.Installed | Should -Contain 'go'
+                $missingWarning = $warnings | Where-Object { $_.Message -match 'refresh-path\.ps1 not found' }
+                $missingWarning | Should -BeNullOrEmpty
+            } finally {
+                Pop-Location
+            }
+        } finally {
+            $env:PATH = $previousPath
+            Remove-Item -LiteralPath $tempDir -Force -Recurse -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+Describe 'setup_windows.ps1: auto-run block is gated by the dot-source guard (#909)' {
+    It 'does not emit bootstrap output when the file is dot-sourced' {
+        # The auto-run block at the bottom of the file is wrapped in
+        # `if ($MyInvocation.InvocationName -ne '.')`. Dot-sourcing must
+        # therefore load the helper functions without triggering the
+        # foreach loop that emits "[setup_windows] <tool>: ..." lines.
+        # Capture every output stream during a fresh dot-source and assert
+        # no bootstrap-shaped emission appears.
+        $captured = & {
+            . $script:SetupWindowsScript
+        } *>&1
+        $bootstrapLines = $captured | Where-Object {
+            ($_ -is [string] -and $_ -match '\[setup_windows\]') -or
+            ($_.PSObject.Properties['Message'] -and $_.Message -match '\[setup_windows\]')
+        }
+        $bootstrapLines | Should -BeNullOrEmpty
+    }
+}
+
 # Restore $env:PATH after the suite finishes so a CI step run after this
 # Pester invocation in the same session sees the original value.
 $env:PATH = $script:OriginalPath

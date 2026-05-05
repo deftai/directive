@@ -39,7 +39,17 @@ param(
     [switch] $SkipRefresh
 )
 
-$ErrorActionPreference = 'Stop'
+# NOTE: $ErrorActionPreference is set INSIDE Invoke-DeftWindowsSetup so it
+# scopes to the function body and never leaks into a dot-source caller's
+# scope (e.g. the Pester Describe blocks that dot-source this file via
+# BeforeAll). See #909 cycle-3 P1 finding.
+
+# Capture $PSScriptRoot at script load time (before any function definitions)
+# so the refresh-path.ps1 lookup inside Invoke-DeftWindowsSetup remains
+# correct when the script is dot-sourced from a different directory. The
+# $script: scope qualifier ensures the value persists across the function-
+# definition / function-call boundary. See #909 cycle-3 P1 finding.
+$script:DeftSetupScriptRoot = $PSScriptRoot
 
 # Tool registry. Each entry maps a probe command (the binary name resolved
 # via Get-Command) to its canonical winget package id. The id list is the
@@ -117,6 +127,10 @@ function Invoke-DeftWindowsSetup {
         [switch] $SkipRefresh
     )
 
+    # Scope $ErrorActionPreference to the function body so it does not
+    # mutate the caller's scope when this file is dot-sourced. See #909.
+    $ErrorActionPreference = 'Stop'
+
     $installed = New-Object System.Collections.ArrayList
     $alreadyPresent = New-Object System.Collections.ArrayList
     $failed = New-Object System.Collections.ArrayList
@@ -149,7 +163,10 @@ function Invoke-DeftWindowsSetup {
     }
 
     if (-not $SkipRefresh -and -not $WhatIfOnly -and $installed.Count -gt 0) {
-        $refreshScript = Join-Path $PSScriptRoot 'refresh-path.ps1'
+        # Use the script-scope variable captured at dot-source time. Bare
+        # $PSScriptRoot here would resolve to the caller's directory when
+        # this function is invoked from a dot-sourced context. See #909.
+        $refreshScript = Join-Path $script:DeftSetupScriptRoot 'refresh-path.ps1'
         if (Test-Path -LiteralPath $refreshScript) {
             . $refreshScript
         } else {
