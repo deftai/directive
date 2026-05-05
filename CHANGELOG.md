@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **fix(triage): rename fragment-include task names so the documented `triage:*` surface (`task triage:cache`, `task triage:accept`, `task triage:bulk-defer`, etc.) is reachable verbatim (#913)**
+- **fix(triage): pass --limit / --state / --label / --force / --use-gitcrawl / --ttl-seconds through from `task triage:bootstrap` to the underlying populate step (#914, #900).**
 - **fix(triage): disable `task triage:bulk-*` tasks at the Taskfile layer pending v0.25.2 (#915)**
 
 ### Removed

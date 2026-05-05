@@ -206,6 +206,9 @@ def step_populate_cache(
     limit: int | None = None,
     state: str | None = None,
     labels: tuple[str, ...] | list[str] | None = None,
+    force: bool = False,
+    use_gitcrawl: bool | None = None,
+    ttl_seconds: int | None = None,
 ) -> StepOutcome:
     """Populate the local issue cache for upstream issues.
 
@@ -216,11 +219,12 @@ def step_populate_cache(
     be re-runnable, and (b) the gitignore + backfill steps are independent of
     cache content.
 
-    The ``limit`` / ``state`` / ``labels`` kwargs (#900) are forwarded to
+    The ``limit`` / ``state`` / ``labels`` kwargs (#900) and the ``force`` /
+    ``use_gitcrawl`` / ``ttl_seconds`` kwargs (#914) are forwarded to
     :func:`triage_cache.populate` when provided so a maintainer with a
     real-sized backlog can scope or filter the first-run populate (omitting
-    them preserves the pre-#900 behaviour). ``repo`` may be ``None`` when
-    the operator wants triage_cache to infer it from
+    them preserves the pre-#900 / pre-#914 behaviour). ``repo`` may be
+    ``None`` when the operator wants triage_cache to infer it from
     ``git remote get-url origin`` -- the inference happens inside
     ``triage_cache.populate``; this step only short-circuits to the
     no-repo skip-with-OK message when both ``repo`` is ``None`` AND no
@@ -249,13 +253,26 @@ def step_populate_cache(
             error="Story 1 surface drift: populate() not exposed",
         )
 
-    populate_kwargs: dict[str, Any] = {"force": False}
+    # ``force`` is the only populate-side flag whose default differs from
+    # "omit and let triage_cache pick its own default". The pre-#914 contract
+    # always passed ``force=False`` (the bootstrap is designed to be cheap
+    # and re-runnable); we preserve that as the bootstrap default and only
+    # override it when the operator explicitly asks for ``--force``.
+    populate_kwargs: dict[str, Any] = {"force": bool(force)}
     if limit is not None:
         populate_kwargs["limit"] = limit
     if state is not None:
         populate_kwargs["state"] = state
     if labels:
         populate_kwargs["labels"] = tuple(labels)
+    # ``use_gitcrawl`` / ``ttl_seconds`` (#914): mirror the limit/state/labels
+    # rule -- only inject the kwarg when the bootstrap caller actually set it,
+    # so triage_cache.populate's own defaults remain authoritative for the
+    # bare invocation path.
+    if use_gitcrawl is not None:
+        populate_kwargs["use_gitcrawl"] = use_gitcrawl
+    if ttl_seconds is not None:
+        populate_kwargs["ttl_seconds"] = ttl_seconds
 
     if repo is None:
         # No explicit repo -- let triage_cache.populate try the
@@ -1035,6 +1052,9 @@ def run_bootstrap(
     limit: int | None = None,
     state: str | None = None,
     labels: tuple[str, ...] | list[str] | None = None,
+    force: bool = False,
+    use_gitcrawl: bool | None = None,
+    ttl_seconds: int | None = None,
 ) -> BootstrapResult:
     """Run the bootstrap pipeline, returning the aggregate result.
 
@@ -1050,7 +1070,8 @@ def run_bootstrap(
     Separated from :func:`main` so tests drive the function directly
     without argparse plumbing.
 
-    The ``limit`` / ``state`` / ``labels`` kwargs (#900) are pass-through
+    The ``limit`` / ``state`` / ``labels`` kwargs (#900) and the ``force`` /
+    ``use_gitcrawl`` / ``ttl_seconds`` kwargs (#914) are pass-through
     to the populate step so the bootstrap shares the same scope-or-filter
     surface as :func:`triage_cache.populate`. ``repo=None`` triggers
     inference from ``git remote get-url origin`` inside the populate
@@ -1065,6 +1086,9 @@ def run_bootstrap(
             limit=limit,
             state=state,
             labels=labels,
+            force=force,
+            use_gitcrawl=use_gitcrawl,
+            ttl_seconds=ttl_seconds,
         )
     )
     result.steps.append(step_backfill_audit_log(project_root, repo))
@@ -1144,6 +1168,38 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--force",
+        action="store_true",
+        help=(
+            "Re-write all cached entries even when fresh (#914). Forwarded "
+            "to triage_cache.populate(force=True). Without this flag the "
+            "populate step is cheap and idempotent: entries younger than "
+            "--ttl-seconds are skipped."
+        ),
+    )
+    parser.add_argument(
+        "--use-gitcrawl",
+        action="store_true",
+        dest="use_gitcrawl",
+        help=(
+            "Use the gitcrawl backend for the populate fetch instead of "
+            "the default gh CLI (#914). Forwarded to "
+            "triage_cache.populate(use_gitcrawl=True); errors loudly when "
+            "gitcrawl is not on PATH."
+        ),
+    )
+    parser.add_argument(
+        "--ttl-seconds",
+        type=int,
+        default=None,
+        dest="ttl_seconds",
+        help=(
+            "Freshness window for the populate step in seconds (#914). "
+            "Forwarded to triage_cache.populate(ttl_seconds=...); omit "
+            "for triage_cache's default (24h)."
+        ),
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         dest="emit_json",
@@ -1195,6 +1251,13 @@ def main(argv: list[str] | None = None) -> int:
         limit=args.limit,
         state=args.state,
         labels=tuple(args.labels) if args.labels else None,
+        force=args.force,
+        # ``--use-gitcrawl`` is a store_true flag, but we forward ``None`` to
+        # populate when the operator didn't pass it so triage_cache's own
+        # default (gh backend) stays authoritative. Pre-#914 callers see no
+        # behaviour change.
+        use_gitcrawl=True if args.use_gitcrawl else None,
+        ttl_seconds=args.ttl_seconds,
     )
 
     if args.emit_json:

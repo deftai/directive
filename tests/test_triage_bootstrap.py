@@ -1048,6 +1048,158 @@ class TestRunBootstrap900:
         assert raised["type"] is InvalidRepoError
 
 
+# ---------------------------------------------------------------------------
+# #914 -- CLI-driven flag passthrough (--limit / --state / --label / bare)
+#
+# These cases exercise the bootstrap's argparse-CLI surface end-to-end via
+# ``main(argv=[...])`` so a regression that drops a flag from `_build_parser`
+# OR fails to forward it to ``triage_cache.populate`` is caught at the same
+# layer the user invokes (`task triage:bootstrap -- --limit 50 ...`).
+# ---------------------------------------------------------------------------
+
+
+class TestBootstrapCLIFlagPassthrough914:
+    """main(argv=...) forwards #900 / #914 populate flags through to triage_cache.populate."""
+
+    @staticmethod
+    def _install_fake_populate(
+        bootstrap, captured: dict[str, Any]
+    ) -> mock.MagicMock:
+        """Install a fake ``triage_cache`` module that records populate kwargs.
+
+        Returns the fake module so the caller can patch it into ``sys.modules``
+        for the duration of the test. The fake's ``populate`` records every
+        positional / keyword arg it received into ``captured`` so the test
+        can assert on the forwarding surface.
+        """
+        fake_module = mock.MagicMock()
+
+        def _fake_populate(repo=None, force=False, **kwargs):
+            captured["repo"] = repo
+            captured["force"] = force
+            captured["kwargs"] = kwargs
+            return 0
+
+        fake_module.populate = _fake_populate
+        return fake_module
+
+    def test_bootstrap_forwards_limit(self, bootstrap, tmp_path: Path) -> None:
+        """`bootstrap --limit 5` forwards limit=5 to triage_cache.populate."""
+        captured: dict[str, Any] = {}
+        fake_module = self._install_fake_populate(bootstrap, captured)
+
+        with (
+            mock.patch.dict(sys.modules, {"triage_cache": fake_module}),
+            mock.patch.object(bootstrap.shutil, "which", return_value=None),
+        ):
+            exit_code = bootstrap.main(
+                [
+                    "--project-root", str(tmp_path),
+                    "--repo", "owner/repo",
+                    "--skip-gitcrawl",
+                    "--limit", "5",
+                ]
+            )
+
+        assert exit_code == 0
+        assert captured["repo"] == "owner/repo"
+        assert captured["kwargs"].get("limit") == 5, (
+            "--limit must be forwarded to triage_cache.populate(limit=...) "
+            "so the skill's recommended scoped first-run incantation works."
+        )
+
+    def test_bootstrap_forwards_state_closed(
+        self, bootstrap, tmp_path: Path
+    ) -> None:
+        """`bootstrap --state closed` forwards state='closed' to populate."""
+        captured: dict[str, Any] = {}
+        fake_module = self._install_fake_populate(bootstrap, captured)
+
+        with (
+            mock.patch.dict(sys.modules, {"triage_cache": fake_module}),
+            mock.patch.object(bootstrap.shutil, "which", return_value=None),
+        ):
+            exit_code = bootstrap.main(
+                [
+                    "--project-root", str(tmp_path),
+                    "--repo", "owner/repo",
+                    "--skip-gitcrawl",
+                    "--state", "closed",
+                ]
+            )
+
+        assert exit_code == 0
+        assert captured["kwargs"].get("state") == "closed", (
+            "--state must be forwarded verbatim to triage_cache.populate."
+        )
+
+    def test_bootstrap_forwards_label_repeatable(
+        self, bootstrap, tmp_path: Path
+    ) -> None:
+        """Repeated `--label foo --label bar` forwards labels=('foo', 'bar')."""
+        captured: dict[str, Any] = {}
+        fake_module = self._install_fake_populate(bootstrap, captured)
+
+        with (
+            mock.patch.dict(sys.modules, {"triage_cache": fake_module}),
+            mock.patch.object(bootstrap.shutil, "which", return_value=None),
+        ):
+            exit_code = bootstrap.main(
+                [
+                    "--project-root", str(tmp_path),
+                    "--repo", "owner/repo",
+                    "--skip-gitcrawl",
+                    "--label", "foo",
+                    "--label", "bar",
+                ]
+            )
+
+        assert exit_code == 0
+        assert captured["kwargs"].get("labels") == ("foo", "bar"), (
+            "--label must be repeatable and forwarded as a tuple in argv "
+            "order so gh's repeated-flag AND-semantic drives the filter."
+        )
+
+    def test_bootstrap_no_flag_default_unchanged(
+        self, bootstrap, tmp_path: Path
+    ) -> None:
+        """Bare `bootstrap` invocation preserves pre-#914 populate defaults.
+
+        The bootstrap MUST NOT inject explicit None / default values for
+        flags the operator did not pass; populate's own defaults stay
+        authoritative. This is the backwards-compat acceptance criterion
+        from issue #914 ('Existing no-flag invocation [...] keeps the
+        current unbounded-open-issues behaviour').
+        """
+        captured: dict[str, Any] = {}
+        fake_module = self._install_fake_populate(bootstrap, captured)
+
+        with (
+            mock.patch.dict(sys.modules, {"triage_cache": fake_module}),
+            mock.patch.object(bootstrap.shutil, "which", return_value=None),
+        ):
+            exit_code = bootstrap.main(
+                [
+                    "--project-root", str(tmp_path),
+                    "--repo", "owner/repo",
+                    "--skip-gitcrawl",
+                ]
+            )
+
+        assert exit_code == 0
+        # ``force`` is the only kwarg the bootstrap eagerly sets (default
+        # False, mirroring the pre-#914 hard-coded contract); every other
+        # populate-side flag MUST be omitted so triage_cache's own defaults
+        # apply.
+        assert captured["force"] is False
+        for omitted in ("limit", "state", "labels", "use_gitcrawl", "ttl_seconds"):
+            assert omitted not in captured["kwargs"], (
+                f"Bare bootstrap MUST NOT inject {omitted!r} into populate "
+                "kwargs -- triage_cache's defaults must remain authoritative "
+                "for the no-flag path (#914 backwards-compat)."
+            )
+
+
 class TestPopulateStep900:
     """step_populate_cache forwards #900 kwargs and surfaces them in details."""
 
