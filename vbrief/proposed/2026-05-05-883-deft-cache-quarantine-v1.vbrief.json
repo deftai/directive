@@ -129,7 +129,7 @@
       {
         "uri": "https://github.com/deftai/directive/issues/845",
         "type": "x-vbrief/github-issue",
-        "title": "Issue #845: pre-ingest triage workflow (predecessor; this epic absorbs and replaces its cache surface)"
+        "title": "Issue #845: pre-ingest triage workflow (active triage v1 umbrella; closes when v0.26.0 ships and triage v1 is migrated; this epic continues #845's intent and replaces its cache surface)"
       },
       {
         "uri": "https://github.com/deftai/directive/issues/915",
@@ -137,9 +137,24 @@
         "title": "Issue #915 (P0): triage_bulk.py bypasses Tier-1 cache and Tier-2 audit log (fixed in v0.25.2; proves the design-drift cost the unified layer is meant to prevent)"
       },
       {
+        "uri": "https://github.com/deftai/directive/issues/916",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #916 (merged): fix(triage): disable bulk-* tasks pending v0.25.2 (#915) -- hot-fix gate that protected master between bug discovery and v0.25.2 ship"
+      },
+      {
         "uri": "https://github.com/deftai/directive/issues/583",
         "type": "x-vbrief/github-issue",
-        "title": "Issue #583: injection-quarantine for ingested origin content (existing scanner v1; this epic extends to scanner v2)"
+        "title": "Issue #583: name governance pattern + injection-quarantine directive umbrella (this epic extends the injection-quarantine half to scanner v2; #583's name-governance scope is independent and out of scope here)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/835",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #835: memory write security scan (sibling consumer of the unified scanner; visionik's design doc lists this as a related issue alongside #845 and #583)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/788",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #788: token-cost framework (the original cost motivation that #845 cited; the cache layer's persistence + ETag refresh hooks are the v2 mechanisms that satisfy #788's O(1)-per-pass goal)"
       },
       {
         "uri": "https://github.com/deftai/directive/issues/881",
