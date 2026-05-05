@@ -3,11 +3,11 @@
     "version": "0.6",
     "description": "Hot-fix: gate the user-facing `task triage:bulk-*` surface at the Taskfile layer pending the v0.25.2 cache-walk rewrite of scripts/triage_bulk.py (#915). Bulk operations as shipped in v0.25.0 / v0.25.1 bypass the .deft-cache contract and silently poison vbrief/.eval/candidates.jsonl; gating the four bulk-* tasks (bulk-accept / bulk-reject / bulk-defer / bulk-needs-ac) is a low-cost protective measure until the proper fix ships.",
     "created": "2026-05-05T14:35:06Z",
-    "updated": "2026-05-05T14:37:30Z"
+    "updated": "2026-05-05T18:14:38Z"
   },
   "plan": {
     "title": "fix(triage): disable bulk-* tasks pending v0.25.2 (#915 hot-fix)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Problem": "scripts/triage_bulk.py bypasses the .deft-cache contract and poisons vbrief/.eval/candidates.jsonl on every bulk-* invocation (#915). The proper fix is the cache-walk rewrite slated for v0.25.2; until it ships, every operator who runs `task triage:bulk-accept` / `bulk-reject` / `bulk-defer` / `bulk-needs-ac` against v0.25.0 or v0.25.1 corrupts the audit log. Single-issue triage actions (`task triage:accept` / `triage:reject` / `triage:defer` / `triage:needs-ac`) and the freshness gate (`task triage-bulk:refresh-active`) are NOT affected and remain the supported path.",
       "Action": "Gate the four bulk-* tasks at the Taskfile layer. Replace each cmds: block in tasks/triage-bulk.yml with a multi-line shell that prints an ASCII-only error message (citing #915 + pointing at the single-issue alternative) and exits 2. Update each task's `desc:` to begin with `[DISABLED v0.25.x]` so `task -l` surfaces the disabled state. Drop the per-task `env: PYTHONUTF8: \"1\"` block since python is no longer invoked. The refresh-active task is intentionally untouched -- it does not bypass the cache contract and remains the canonical pre-swarm freshness gate. scripts/triage_bulk.py itself is intentionally untouched -- the cache-walk rewrite is owned by the v0.25.2 fix.",
@@ -47,6 +47,6 @@
         "title": "Issue #915: scripts/triage_bulk.py bypasses .deft-cache contract and poisons vbrief/.eval/candidates.jsonl"
       }
     ],
-    "updated": "2026-05-05T14:37:25Z"
+    "updated": "2026-05-05T18:14:38Z"
   }
 }

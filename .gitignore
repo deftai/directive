@@ -71,3 +71,6 @@ vbrief/*.premigrate.*
 # transient evaluation artefacts. Never versioned -- the log is per-machine
 # operator state and would leak triage timing/identity if shared.
 vbrief/.eval/
+
+# Monitor scratch (poller scripts, banner-edit helpers, etc.)
+.swarm/

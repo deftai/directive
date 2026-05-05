@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **chore(vbrief,gitignore): post-v0.25.2 housekeeping** -- moves the two trailing v0.25.2-cohort vBRIEFs from `vbrief/active/` to `vbrief/completed/` (#914 bootstrap flag passthrough; #916 hot-fix gate) via `task reconcile:issues -- --apply-lifecycle-fixes`. The v0.25.2 cut shipped with `--allow-vbrief-drift` because the lifecycle reconcile was deferred to this housekeeping pass; the moves close the drift retroactively. Also adds `.swarm/` to `.gitignore` so monitor-scratch (poller scripts, banner-edit / pin-issue helpers, install-go-clean.ps1, etc.) does not pollute the working tree on future swarm sessions. Refs #915, #734.
 
 ### Fixed
 

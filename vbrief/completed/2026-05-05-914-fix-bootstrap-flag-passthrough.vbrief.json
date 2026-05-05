@@ -1,11 +1,11 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "updated": "2026-05-05T15:38:42Z"
+    "updated": "2026-05-05T18:14:38Z"
   },
   "plan": {
     "title": "task: triage:bootstrap doesn't pass --limit / --state / --label through to populate (#900)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "Fix scripts/triage_bootstrap.py argparse to accept the full set of populate-side flags (--limit, --state, --label, --force, --use-gitcrawl, --ttl-seconds) and forward them to triage_cache.populate(...). The bootstrap is documented as a transparent wrapper but currently narrows the populate flag surface; #914 closes that gap so the skill's recommended scoped first-run incantation works verbatim."
     },
@@ -48,6 +48,6 @@
         "title": "Issue #914: task: triage:bootstrap doesn't pass --limit / --state / --label through to populate (#900)"
       }
     ],
-    "updated": "2026-05-05T15:18:04Z"
+    "updated": "2026-05-05T18:14:38Z"
   }
 }
