@@ -34,6 +34,7 @@ vars:
 tasks:
   bootstrap:
     desc: "Idempotent triage v1 installer (#845): populate cache, backfill audit log, gitignore, gitcrawl. Re-runnable. -- task triage:bootstrap [-- --repo OWNER/NAME] [--skip-gitcrawl] [--json]"
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:
       # PYTHONUTF8=1 is set at the root Taskfile.yml level (#540) and

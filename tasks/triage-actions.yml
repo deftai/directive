@@ -2,11 +2,16 @@ version: '3'
 
 # tasks/triage-actions.yml -- per-issue triage commands (#845 Story 3).
 #
-# STANDALONE Taskfile fragment: NOT yet wired into the parent Taskfile.yml
-# `includes:` block. Story 6 (#845 bootstrap) owns the integration step --
-# this fragment only declares the triage:* targets so consumers can dispatch
-# `task -t tasks/triage-actions.yml triage:accept --issue 845 --repo ...`
-# (or use the standard include syntax once Story 6 lands).
+# Wired into the parent Taskfile.yml `includes:` block under namespace key
+# `triage-actions` (#845 Story 6). Inner task names below dropped the
+# `triage:` prefix in #913 -- the prior names produced a doubled prefix
+# (`triage-actions:triage:accept`) under go-task's include-namespace
+# concatenation. Combined with `internal: true` the fragment-namespace
+# forms (`triage-actions:accept` / `triage-actions:reject` / ...) are
+# hidden from `task -l`; the documented `task triage:accept` / `triage:reject`
+# / `triage:defer` / `triage:needs-ac` / `triage:mark-duplicate` /
+# `triage:status` / `triage:reset` / `triage:history` surface lives as
+# root-level alias tasks in Taskfile.yml that delegate here.
 #
 # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because every
 # target accepts user-facing flags via `{{.CLI_ARGS}}` (--issue, --repo,
@@ -24,64 +29,72 @@ vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 tasks:
-  triage:accept:
+  accept:
     desc: "Accept an issue for triage. Records an audit entry. (#845 Story 3)"
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" accept {{.CLI_ARGS}}
 
-  triage:reject:
+  reject:
     desc: "Reject an issue. Closes upstream via gh + applies triage-rejected label; rolls audit back on gh failure. (#845 Story 3)"
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" reject {{.CLI_ARGS}}
 
-  triage:defer:
+  defer:
     desc: "Defer an issue. Records an audit entry. (#845 Story 3)"
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" defer {{.CLI_ARGS}}
 
-  triage:needs-ac:
+  needs-ac:
     desc: "Mark an issue as needing acceptance criteria + post AC-request comment upstream. (#845 Story 3)"
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" needs-ac {{.CLI_ARGS}}
 
-  triage:mark-duplicate:
+  mark-duplicate:
     desc: "Link an issue as a duplicate of another (validated against Story 1 cache). (#845 Story 3)"
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" mark-duplicate {{.CLI_ARGS}}
 
-  triage:status:
+  status:
     desc: "Print the latest triage decision for an issue. Read-only. (#845 Story 3)"
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" status {{.CLI_ARGS}}
 
-  triage:reset:
+  reset:
     desc: "Reset an issue's triage state. Appends a reset audit entry referencing prior; does NOT delete history. (#845 Story 3)"
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
       - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" reset {{.CLI_ARGS}}
 
-  triage:history:
+  history:
     desc: "Print the full triage timeline for an issue, ordered by timestamp. Read-only. (#845 Story 3)"
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"

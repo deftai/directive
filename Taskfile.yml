@@ -331,21 +331,139 @@ tasks:
       - uv run python "{{.TASKFILE_DIR}}/scripts/release_e2e.py" {{.CLI_ARGS}}
 
   # ------------------------------------------------------------------
-  # Triage v1 user-facing alias tasks (#845).
+  # Triage v1 user-facing alias tasks (#845, #913).
   #
   # The four triage fragments are namespaced under their unique include
   # keys (`triage-cache`, `triage-actions`, `triage-bulk`,
-  # `triage-bootstrap`). The aliases below provide the documented
-  # `task triage:<verb>` user-facing surface that vBRIEFs and UPGRADING.md
-  # describe. Each alias delegates to the underlying namespaced task and
-  # forwards `{{.CLI_ARGS}}` so flags (`--repo`, `--reason`, etc.) reach
-  # the script. Aliases are inline at the root Taskfile rather than in a
-  # separate fragment because they cross include namespaces and must
-  # exist regardless of which fragments are present (the underlying
-  # `task: <name>` reference is itself a no-op when the include is
-  # `optional: true` and absent, but tests pin the aliases so consumers
-  # see consistent help text).
+  # `triage-bootstrap`) -- a single shared `triage:` include namespace
+  # is not supported by go-task v3 (two includes cannot share a key).
+  # The aliases below provide the documented `task triage:<verb>`
+  # user-facing surface that vBRIEFs / UPGRADING.md / scripts/triage_*.py
+  # describe. Each alias delegates to the underlying namespaced task
+  # and forwards `{{.CLI_ARGS}}` so flags (`--repo`, `--reason`, etc.)
+  # reach the script. The inner tasks in each fragment are
+  # `internal: true` so the fragment-namespace forms
+  # (`triage-cache:cache`, `triage-actions:accept`, `triage-bulk:bulk-defer`,
+  # `triage-bootstrap:bootstrap`) drop out of `task -l`; only the
+  # documented `triage:*` aliases below appear in the listing. The
+  # internal tasks remain CALLABLE for legacy invocations (e.g. recap
+  # text in `scripts/triage_bootstrap.py` still prints the namespaced
+  # forms, which continue to dispatch correctly via the fragment
+  # include).
+  #
+  # Aliases are inline at the root Taskfile rather than in a separate
+  # fragment because they cross include namespaces and must exist
+  # regardless of which fragments are present.
+  #
+  # Mirrors the established #718 release-pipeline flatten precedent
+  # (release: tasks defined inline at the root Taskfile so go-task
+  # does not double-prefix them).
   # ------------------------------------------------------------------
+  triage:cache:
+    desc: "Populate the local issue cache (.deft-cache/issues/<owner>-<repo>/) -- task triage:cache -- --repo owner/repo [--force] [--use-gitcrawl]"
+    cmds:
+      - task: triage-cache:cache
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:show:
+    desc: "Print the cached, quarantined .md body for an issue -- task triage:show -- --repo owner/repo --issue 845"
+    cmds:
+      - task: triage-cache:show
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:accept:
+    desc: "Accept an issue for triage. Records an audit entry. (#845 Story 3)"
+    cmds:
+      - task: triage-actions:accept
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:reject:
+    desc: "Reject an issue. Closes upstream via gh + applies triage-rejected label; rolls audit back on gh failure. (#845 Story 3)"
+    cmds:
+      - task: triage-actions:reject
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:defer:
+    desc: "Defer an issue. Records an audit entry. (#845 Story 3)"
+    cmds:
+      - task: triage-actions:defer
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:needs-ac:
+    desc: "Mark an issue as needing acceptance criteria + post AC-request comment upstream. (#845 Story 3)"
+    cmds:
+      - task: triage-actions:needs-ac
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:mark-duplicate:
+    desc: "Link an issue as a duplicate of another (validated against Story 1 cache). (#845 Story 3)"
+    cmds:
+      - task: triage-actions:mark-duplicate
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:status:
+    desc: "Print the latest triage decision for an issue. Read-only. (#845 Story 3)"
+    cmds:
+      - task: triage-actions:status
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:reset:
+    desc: "Reset an issue's triage state. Appends a reset audit entry referencing prior; does NOT delete history. (#845 Story 3)"
+    cmds:
+      - task: triage-actions:reset
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:history:
+    desc: "Print the full triage timeline for an issue, ordered by timestamp. Read-only. (#845 Story 3)"
+    cmds:
+      - task: triage-actions:history
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:bulk-accept:
+    desc: "[DISABLED v0.25.x] Bulk accept is gated pending v0.25.2 (#915). Use task triage:accept per issue."
+    cmds:
+      - task: triage-bulk:bulk-accept
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:bulk-reject:
+    desc: "[DISABLED v0.25.x] Bulk reject is gated pending v0.25.2 (#915). Use task triage:reject per issue."
+    cmds:
+      - task: triage-bulk:bulk-reject
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:bulk-defer:
+    desc: "[DISABLED v0.25.x] Bulk defer is gated pending v0.25.2 (#915). Use task triage:defer per issue."
+    cmds:
+      - task: triage-bulk:bulk-defer
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:bulk-needs-ac:
+    desc: "[DISABLED v0.25.x] Bulk needs-ac is gated pending v0.25.2 (#915). Use task triage:needs-ac per issue."
+    cmds:
+      - task: triage-bulk:bulk-needs-ac
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:refresh-active:
+    desc: "Pre-swarm freshness gate (#845 Story 4) -- detects drift between cached and live `gh issue view` for every issue referenced in vbrief/active/*.vbrief.json"
+    cmds:
+      - task: triage-bulk:refresh-active
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
   triage:bootstrap:
     desc: "Run the triage v1 idempotent installer (#845 Story 6)."
     cmds:

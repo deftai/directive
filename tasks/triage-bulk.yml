@@ -2,10 +2,16 @@ version: '3'
 
 # tasks/triage-bulk.yml -- Story 4 of #845.
 #
-# STANDALONE Taskfile fragment. NOT yet wired into the parent ../Taskfile.yml
-# `includes:` block -- the cross-cutting wiring is owned by Story 6 (Agent A6,
-# scripts/triage_bootstrap.py + tasks/triage-bootstrap.yml). This file
-# documents the user-facing surface so Story 6 can ingest it verbatim.
+# Wired into the parent ../Taskfile.yml `includes:` block under namespace
+# key `triage-bulk` (#845 Story 6). The user-facing `task triage:bulk-accept`
+# / `triage:bulk-reject` / `triage:bulk-defer` / `triage:bulk-needs-ac` /
+# `triage:refresh-active` surface lives as root-level alias tasks in
+# Taskfile.yml that delegate here (#913); inner tasks below are
+# `internal: true` so the fragment-namespace forms (`triage-bulk:bulk-*`)
+# are hidden from `task -l`. The disable-gate `cmds:` blocks for
+# `bulk-accept` / `bulk-reject` / `bulk-defer` / `bulk-needs-ac` (#915) are
+# unchanged: invoking either via the alias or via the namespaced form
+# still exits 2 with the ASCII-only pointer to the single-issue alternatives.
 #
 # Per `conventions/task-caching.md` (#574): every target here accepts user
 # flags via `{{.CLI_ARGS}}` (--label, --author, --age-days, --cluster,
@@ -23,6 +29,7 @@ vars:
 tasks:
   bulk-accept:
     desc: "[DISABLED v0.25.x] Bulk accept is gated pending v0.25.2 (#915). Use task triage:accept per issue."
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - |
@@ -34,6 +41,7 @@ tasks:
 
   bulk-reject:
     desc: "[DISABLED v0.25.x] Bulk reject is gated pending v0.25.2 (#915). Use task triage:reject per issue."
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - |
@@ -45,6 +53,7 @@ tasks:
 
   bulk-defer:
     desc: "[DISABLED v0.25.x] Bulk defer is gated pending v0.25.2 (#915). Use task triage:defer per issue."
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - |
@@ -56,6 +65,7 @@ tasks:
 
   bulk-needs-ac:
     desc: "[DISABLED v0.25.x] Bulk needs-ac is gated pending v0.25.2 (#915). Use task triage:needs-ac per issue."
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - |
@@ -67,6 +77,7 @@ tasks:
 
   refresh-active:
     desc: "Pre-swarm freshness gate (#845 Story 4) -- detects drift between cached and live `gh issue view` for every issue referenced in vbrief/active/*.vbrief.json"
+    internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
