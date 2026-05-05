@@ -30,6 +30,7 @@ import stat
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -52,7 +53,7 @@ REPO_DIR_NAME = "deftai-directive"
 # ---------------------------------------------------------------------------
 
 
-def _cached_issue(number: int, *, label: str = "triage") -> dict[str, object]:
+def _cached_issue(number: int, *, label: str = "triage") -> dict[str, Any]:
     """Build a sidecar payload mirroring ``triage_cache._GH_FIELDS``."""
     created = (datetime.now(UTC) - timedelta(days=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
     return {
@@ -154,11 +155,11 @@ def _populate_cache(cache_root: Path, count: int = 5) -> list[int]:
     return numbers
 
 
-def _read_audit_records(audit_log: Path) -> list[dict[str, object]]:
+def _read_audit_records(audit_log: Path) -> list[dict[str, Any]]:
     """Return the list of audit records currently on disk (or [])."""
     if not audit_log.exists():
         return []
-    records: list[dict[str, object]] = []
+    records: list[dict[str, Any]] = []
     for raw in audit_log.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line:
