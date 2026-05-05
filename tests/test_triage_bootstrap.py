@@ -1160,6 +1160,89 @@ class TestBootstrapCLIFlagPassthrough914:
             "order so gh's repeated-flag AND-semantic drives the filter."
         )
 
+    def test_bootstrap_forwards_force(self, bootstrap, tmp_path: Path) -> None:
+        """`bootstrap --force` forwards force=True to triage_cache.populate.
+
+        Greptile review of the original #914 PR (#917) flagged that the
+        new flags introduced by this PR (`--force`, `--use-gitcrawl`,
+        `--ttl-seconds`) had no positive-path CLI->populate tests, leaving
+        the exact additions of the PR unverified end-to-end. This test
+        closes the gap for `--force`.
+        """
+        captured: dict[str, Any] = {}
+        fake_module = self._install_fake_populate(bootstrap, captured)
+
+        with (
+            mock.patch.dict(sys.modules, {"triage_cache": fake_module}),
+            mock.patch.object(bootstrap.shutil, "which", return_value=None),
+        ):
+            exit_code = bootstrap.main(
+                [
+                    "--project-root", str(tmp_path),
+                    "--repo", "owner/repo",
+                    "--skip-gitcrawl",
+                    "--force",
+                ]
+            )
+
+        assert exit_code == 0
+        assert captured["force"] is True, (
+            "--force must flip force=True on the populate call so a re-run "
+            "actually re-writes cached entries."
+        )
+
+    def test_bootstrap_forwards_use_gitcrawl(
+        self, bootstrap, tmp_path: Path
+    ) -> None:
+        """`bootstrap --use-gitcrawl` forwards use_gitcrawl=True to populate."""
+        captured: dict[str, Any] = {}
+        fake_module = self._install_fake_populate(bootstrap, captured)
+
+        with (
+            mock.patch.dict(sys.modules, {"triage_cache": fake_module}),
+            mock.patch.object(bootstrap.shutil, "which", return_value=None),
+        ):
+            exit_code = bootstrap.main(
+                [
+                    "--project-root", str(tmp_path),
+                    "--repo", "owner/repo",
+                    "--skip-gitcrawl",
+                    "--use-gitcrawl",
+                ]
+            )
+
+        assert exit_code == 0
+        assert captured["kwargs"].get("use_gitcrawl") is True, (
+            "--use-gitcrawl must be forwarded as use_gitcrawl=True so "
+            "triage_cache.populate selects the gitcrawl backend."
+        )
+
+    def test_bootstrap_forwards_ttl_seconds(
+        self, bootstrap, tmp_path: Path
+    ) -> None:
+        """`bootstrap --ttl-seconds 3600` forwards ttl_seconds=3600 to populate."""
+        captured: dict[str, Any] = {}
+        fake_module = self._install_fake_populate(bootstrap, captured)
+
+        with (
+            mock.patch.dict(sys.modules, {"triage_cache": fake_module}),
+            mock.patch.object(bootstrap.shutil, "which", return_value=None),
+        ):
+            exit_code = bootstrap.main(
+                [
+                    "--project-root", str(tmp_path),
+                    "--repo", "owner/repo",
+                    "--skip-gitcrawl",
+                    "--ttl-seconds", "3600",
+                ]
+            )
+
+        assert exit_code == 0
+        assert captured["kwargs"].get("ttl_seconds") == 3600, (
+            "--ttl-seconds must be parsed as int and forwarded so populate "
+            "can scope the freshness window."
+        )
+
     def test_bootstrap_no_flag_default_unchanged(
         self, bootstrap, tmp_path: Path
     ) -> None:
