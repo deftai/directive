@@ -232,6 +232,30 @@ Describe 'setup_windows.ps1: WhatIfOnly mode' {
     }
 }
 
+Describe 'setup_windows.ps1: Test-DeftWingetSuccess winget exit code policy (#909)' {
+    BeforeAll { . $script:SetupWindowsScript }
+
+    It 'treats exit code 0 as success' {
+        Test-DeftWingetSuccess -ExitCode 0 | Should -Be $true
+    }
+
+    It 'treats exit code 3010 (ERROR_SUCCESS_REBOOT_REQUIRED) as success' {
+        # Python's MSI, Go's installer, and other Windows installers
+        # propagate 3010 via winget when the install succeeded but a
+        # reboot is needed. Treating it as a failure causes a clean-machine
+        # bootstrap to misreport every install as failed.
+        Test-DeftWingetSuccess -ExitCode 3010 | Should -Be $true
+    }
+
+    It 'treats exit code 1 as failure' {
+        Test-DeftWingetSuccess -ExitCode 1 | Should -Be $false
+    }
+
+    It 'treats exit code 1603 (generic MSI install failure) as failure' {
+        Test-DeftWingetSuccess -ExitCode 1603 | Should -Be $false
+    }
+}
+
 Describe 'setup_windows.ps1: dot-source does not leak ErrorActionPreference (#909)' {
     BeforeAll {
         # Capture the parent-scope ErrorActionPreference before AND after

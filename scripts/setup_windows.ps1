@@ -97,6 +97,24 @@ function Test-DeftToolPresent {
     return $true
 }
 
+function Test-DeftWingetSuccess {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)]
+        [int] $ExitCode
+    )
+    # 3010 = ERROR_SUCCESS_REBOOT_REQUIRED -- the install succeeded but a
+    # reboot is needed (Python's MSI, Go's installer, etc. propagate this
+    # via winget). Treating it as a failure causes the script to add the
+    # tool to $failed and exit 1 even though the binary is installed --
+    # which means a fresh-machine bootstrap visibly "fails" on first run.
+    # The downstream PATH refresh handles the session PATH; an actual
+    # reboot is only required for kernel-level changes that this toolchain
+    # does not produce. See #909 cycle-4 P1 finding.
+    return ($ExitCode -eq 0 -or $ExitCode -eq 3010)
+}
+
 function Invoke-DeftWingetInstall {
     [CmdletBinding()]
     param(
@@ -112,7 +130,7 @@ function Invoke-DeftWingetInstall {
         '--accept-package-agreements'
     )
     & winget @wingetArgs
-    if ($LASTEXITCODE -ne 0) {
+    if (-not (Test-DeftWingetSuccess -ExitCode $LASTEXITCODE)) {
         throw ("winget install --id {0} exited with code {1}" -f $WingetId, $LASTEXITCODE)
     }
 }
