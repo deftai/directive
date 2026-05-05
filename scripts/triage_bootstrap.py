@@ -832,16 +832,19 @@ def step_ensure_gitignore_eval_dir(project_root: Path) -> StepOutcome:
     gitignore_path = project_root / ".gitignore"
     if not gitignore_path.exists():
         # The companion step is supposed to create .gitignore on a greenfield
-        # project; if we still see no file here, surface that rather than
-        # silently writing a fresh single-line file (which would trample any
-        # parallel write).
+        # project; if we still see no file here, surface ok=False so callers
+        # inspecting result.steps[3].ok directly see the step did not achieve
+        # its goal -- the prior step's ok=False already drives the aggregate
+        # exit code, but a direct caller (or future event consumer) that pins
+        # on per-step ok needs an honest signal here.
         return StepOutcome(
             name="ensure_gitignore_eval_dir",
-            ok=True,
+            ok=False,
             message=(
-                "skipped (.gitignore not present after ensure_gitignore_entry; "
-                "re-run bootstrap to retry)"
+                ".gitignore not present after ensure_gitignore_entry; "
+                f"{GITIGNORE_EVAL_LINE} not written -- re-run bootstrap to retry"
             ),
+            error="prior ensure_gitignore_entry step did not create .gitignore",
             details={"created": False, "appended": False, "skipped": "no-gitignore"},
         )
 

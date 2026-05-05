@@ -107,9 +107,13 @@ def isolated_runtime(
             encoding="utf-8",
         )
     else:
+        # Use the full absolute interpreter path in the shebang -- a versioned
+        # `python3.12` form via env(1) can be unresolvable on UV-managed Python
+        # installations or stripped CI images, which would mask the canary's
+        # regression-detection role with a silent exec error (Greptile #920).
         sh_helper = fake_path / "gh"
         sh_helper.write_text(
-            f"#!/usr/bin/env {Path(sys.executable).name}\n{_FAKE_GH_PY}",
+            f"#!{sys.executable}\n{_FAKE_GH_PY}",
             encoding="utf-8",
         )
         sh_helper.chmod(sh_helper.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)

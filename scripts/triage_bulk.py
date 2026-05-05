@@ -376,11 +376,16 @@ def _exclude_logged(
             continue
         kept.append(issue)
 
-    if skipped and out is not None:
+    if skipped:
         msg = f"[triage:bulk] skipped {skipped} candidate(s) with prior audit-log records"
         if not re_action:
             msg += " (pass --re-action to override defer/needs-ac records)"
-        print(msg, file=out)
+        # Default to stderr when callers invoke `_exclude_logged` directly with
+        # out=None -- the prior `if out is not None` short-circuit was dead
+        # code under bulk_action (which always passes a non-None sink) AND
+        # silently dropped the diagnostic for direct callers (Greptile #920).
+        sink = out if out is not None else sys.stderr
+        print(msg, file=sink)
     return kept
 
 
