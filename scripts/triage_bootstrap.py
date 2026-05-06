@@ -175,29 +175,32 @@ def _emit_progress(
         pass
 
 
+#: Sentinel separating "func() returned None" from "runner thread died
+#: before assigning result" (Greptile P1 cleanup for #955).
+_RUNNER_UNSET: Any = object()
+
+
 def _run_with_timeout(
     func: Callable[[], Any],
     timeout_s: float,
 ) -> tuple[bool, Any, Exception | None]:
     """Run ``func()`` in a daemon thread; return ``(completed, result, exc)``.
 
-    ``completed`` is False when ``timeout_s`` elapsed before ``func``
-    returned -- the daemon thread is left running (best-effort; Python
-    cannot reliably interrupt a thread blocked in ``subprocess.run``).
-    The orchestrator returns control to its caller regardless, which is
-    the load-bearing property for #952: the bootstrap MUST exit even
-    when an underlying ``task scm:issue:view`` is wedged.
+    ``completed`` is False when ``timeout_s`` elapsed; the daemon thread
+    is left running (load-bearing property for #952). Non-positive
+    ``timeout_s`` disables the watchdog (legacy unbounded behavior).
 
-    A non-positive ``timeout_s`` means "no watchdog" (legacy unbounded
-    behavior) and is honored as a literal infinite wait.
-
-    Only :class:`Exception` subclasses are captured and forwarded --
-    ``KeyboardInterrupt`` / ``SystemExit`` / other ``BaseException``
-    descendants intentionally propagate so an operator-issued Ctrl+C
-    or interpreter shutdown is not silently swallowed by the watchdog
-    runner thread (CodeQL py/catch-base-exception, P2 cleanup for #955).
+    Only :class:`Exception` is captured into ``box["exc"]``. A
+    :class:`BaseException` raised inside the daemon thread (``SystemExit`` /
+    ``MemoryError`` / ...) terminates the runner silently -- Python
+    threading does not propagate ``BaseException`` to the joining thread.
+    To stop that masquerading as ``ok=True`` with ``succeeded=None``,
+    ``box["result"]`` starts as a sentinel; a thread that joins without
+    setting either slot synthesizes a :class:`RuntimeError` so
+    :func:`step_populate_cache` reports ``ok=False`` (Greptile P1
+    cleanup for #955). Operator-issued Ctrl+C is unaffected.
     """
-    box: dict[str, Any] = {"result": None, "exc": None}
+    box: dict[str, Any] = {"result": _RUNNER_UNSET, "exc": None}
 
     def _runner() -> None:
         try:
@@ -212,7 +215,14 @@ def _run_with_timeout(
     thread.join(timeout_s if timeout_s and timeout_s > 0 else None)
     if thread.is_alive():
         return False, None, None
-    return True, box["result"], box["exc"]
+    if box["result"] is _RUNNER_UNSET and box["exc"] is None:
+        # Thread joined without result OR exc -- unhandled BaseException.
+        return True, None, RuntimeError(
+            "worker thread terminated without completing "
+            "(unhandled BaseException not propagated by Python threading)"
+        )
+    result = None if box["result"] is _RUNNER_UNSET else box["result"]
+    return True, result, box["exc"]
 
 
 @dataclass

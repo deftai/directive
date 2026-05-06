@@ -44,6 +44,7 @@ import importlib
 import io
 import json
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -409,6 +410,65 @@ def test_run_bootstrap_watchdog_emits_timeout_progress_and_structured_exit(
     # ``partial bootstrap`` invariant from the #952 fix is broken.
     assert result.steps[2].ok is True  # ensure_gitignore_entry
     assert result.steps[3].ok is True  # ensure_gitignore_eval_dir
+
+
+# ---------------------------------------------------------------------------
+# Test 3c -- silent BaseException in daemon thread (Greptile P1 #955)
+# ---------------------------------------------------------------------------
+#
+# A ``BaseException`` subclass (e.g. ``SystemExit`` from a nested
+# ``sys.exit()`` inside ``cache_fetch_all``) terminates the watchdog's
+# daemon thread without populating ``box["exc"]`` -- Python threading
+# does not propagate ``BaseException`` to the joining thread. Without
+# the sentinel guard in ``_run_with_timeout``, the function would fall
+# through to the success branch with ``report=None``, returning ok=True
+# with ``succeeded=None``. This test pins the synthesized RuntimeError
+# path so a regression that drops the sentinel guard is caught.
+
+
+def test_run_with_timeout_synthesizes_error_on_silent_thread_death(
+    tmp_path: Path,
+) -> None:
+    """BaseException in the daemon thread surfaces as ok=False, not silent ok=True."""
+
+    def _suicide(**_kwargs: Any) -> Any:
+        # SystemExit is a BaseException, not Exception, so the runner's
+        # except-Exception guard does NOT catch it; the daemon thread
+        # terminates silently. The sentinel-based guard added under the
+        # P1 cleanup synthesizes a RuntimeError so the populate step
+        # reports ok=False instead of falling through to ok=True with
+        # succeeded=None.
+        raise SystemExit("simulated nested sys.exit inside fetch_all")
+
+    fake_cache_module = mock.Mock()
+    fake_cache_module.cache_fetch_all = _suicide
+
+    # Silence the threading.excepthook noise that SystemExit-in-thread
+    # produces. The synthesized RuntimeError is the load-bearing
+    # observable; the excepthook traceback is just stderr clutter.
+    original_hook = threading.excepthook
+    threading.excepthook = lambda _args: None
+    try:
+        outcome = triage_bootstrap.step_populate_cache(
+            tmp_path,
+            repo=REPO,
+            cache_module=fake_cache_module,
+            fetch_timeout_s=5.0,
+        )
+    finally:
+        threading.excepthook = original_hook
+
+    assert outcome.ok is False, (
+        "a BaseException raised inside the daemon thread MUST surface as "
+        "ok=False; the silent-thread-death gap was a Greptile P1 finding"
+    )
+    assert outcome.details.get("failed") == "fetch-all-error"
+    assert outcome.details.get("exc_type") == "RuntimeError"
+    assert outcome.error is not None
+    assert "BaseException" in outcome.error or "thread" in outcome.error.lower()
+    # The watchdog timeout slot MUST NOT be set -- this is an exception
+    # path, not a timeout path.
+    assert outcome.details.get("timed_out") is None
 
 
 # ---------------------------------------------------------------------------
