@@ -117,6 +117,16 @@ When user input matches a trigger keyword, read the corresponding skill:
 
 **Deterministic-tier enforcement (#798):** `scripts/verify_encoding.py` scans tracked text files for U+FFFD replacement chars, the curated CP1252/CP437-as-UTF-8 mojibake bigram set, and unexpected UTF-8 BOM on .md/.json/.yml/.yaml/.txt. Wired into `task check` via `task verify:encoding` and into `.githooks/pre-commit` via `--staged`. Three-state exit (0 clean / 1 corruption / 2 config error). Per `main.md` Rule Authority [AXIOM] this elevates the rule from prose tier to deterministic tier -- the gate is the rule body; this AGENTS.md section is a cross-reference, not a duplicate. Document an exception via `task verify:encoding -- --allow-list <path>` (newline-separated glob patterns).
 
+## SCM tooling -- prefer ghx (#884)
+
+**Why this rule exists:** the deft `scm:*` task surface (and the multi-agent swarm flows that consume it) make many read-only `gh` calls per session. Without a cache proxy, large swarms can saturate the unauthenticated `gh` rate limit (5,000 req/hr/user) within minutes -- the failure mode is silent stalls or 403s mid-cascade, not a clean error. `ghx` ([brunoborges/ghx](https://github.com/brunoborges/ghx)) is a drop-in caching proxy for `gh` that coalesces concurrent identical requests and serves cached read-only responses; v0.26.0 `scripts/scm.py` already prefers `ghx` over `gh` at runtime via the `_BINARY_PREFERENCE` ladder when `ghx` is on PATH (see `scripts/scm.py::resolve_binary`).
+
+- ! When you need to invoke the GitHub CLI (`gh issue view`, `gh pr list`, `gh api`, ...) and `ghx` is on PATH, prefer `ghx` over `gh` -- the surface is identical and the cached responses are 10x faster on repeated calls
+- ! Fall back to `gh` transparently when `ghx` is not on PATH; do NOT fail or warn -- this mirrors the `scripts/scm.py` runtime ladder and keeps the rule additive for consumers who have not yet opted in
+- ~ Maintainers SHOULD run `task setup` (which invokes `scripts/setup_ghx.py`) to install `ghx`; the install is consent-gated and never auto-runs by default. Pass `--yes` for non-interactive (CI / scripted) approval
+- ⊗ Auto-install `ghx` without explicit operator consent -- `task setup` MUST prompt before invoking the upstream installer; the only non-interactive paths are `--yes` (explicit approval) or `DEFT_SETUP_GHX_SKIP=1` (explicit opt-out)
+- ? Power users MAY install `ghx` manually via the upstream `install.ps1` (Windows) or `install.sh` (macOS / Linux); the `task setup` prompt is a convenience, not a gate
+
 Note: paths here are root-relative — this repo IS the deft directory.
 Install-generated AGENTS.md uses deft/-prefixed paths.
 

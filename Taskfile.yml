@@ -227,8 +227,10 @@ tasks:
       - task: core:stats
 
   setup:
-    desc: "Idempotent local-dev setup: configure git hooks (#747). Sets core.hooksPath=.githooks so .githooks/pre-commit + .githooks/pre-push run."
+    desc: "Idempotent local-dev setup: configure git hooks (#747); detect-and-prompt ghx (#884). Sets core.hooksPath=.githooks so .githooks/pre-commit + .githooks/pre-push run."
     dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
     cmds:
       # Inline POSIX-sh under go-task's mvdan/sh interpreter -- cross-platform.
       # `git config core.hooksPath .githooks` is itself idempotent, but we
@@ -279,6 +281,26 @@ tasks:
               ;;
           esac
         fi
+      # #884: ghx adoption -- consent-gated install of the brunoborges/ghx
+      # GitHub CLI cache proxy. Default invocation here passes --check so
+      # `task setup` never prompts on a clean re-run; operators wanting to
+      # opt in run `task setup:ghx` (defined below) which is the
+      # interactive entry point. The script is pure-stdlib so it works
+      # before `uv sync` has run on a fresh worktree; `uv run` is still
+      # the canonical dispatcher to keep the python interpreter consistent
+      # with every other Taskfile-dispatched script.
+      - uv run python "{{.TASKFILE_DIR}}/scripts/setup_ghx.py" --check
+
+  setup:ghx:
+    desc: "Consent-gated ghx (brunoborges/ghx) installer (#884) -- task setup:ghx [-- --yes]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # Per `conventions/task-caching.md` (#574): no `sources:` / `generates:`
+    # because the script forwards user-facing flags via {{.CLI_ARGS}}
+    # (notably --yes for non-interactive CI / scripted approval).
+    cmds:
+      - uv run python "{{.TASKFILE_DIR}}/scripts/setup_ghx.py" {{.CLI_ARGS}}
 
   # Release pipeline tasks (#74 + #716 safety hardening, namespace flatten #718).
   #

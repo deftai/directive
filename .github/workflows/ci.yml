@@ -8,6 +8,15 @@ on:
 permissions:
   contents: read
 
+env:
+  # Pinned ghx version (#884). Bump in lockstep with
+  # `scripts/setup_ghx.py::GHX_VERSION` so the consent-gated installer
+  # and the CI pre-install step never disagree on which release the
+  # project recommends. v1.5.1 (2026-04-17) is the first release
+  # carrying the Windows install.ps1 + agent-plugin shim contract
+  # documented in the upstream README.
+  GHX_VERSION: v1.5.1
+
 jobs:
   python:
     name: Python (lint + type-check + test)
@@ -21,6 +30,34 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
+
+      # #884: idempotent ghx pre-install. Linux runner -> upstream
+      # install.sh fetched via curl|bash and pinned to GHX_VERSION via
+      # the upstream installer's `GHX_VERSION` env hook. The step
+      # short-circuits when ghx is already on PATH so re-runs of the
+      # same workflow do not re-download the binary. Network failures
+      # are non-fatal: the `scm:*` runtime ladder falls back to `gh`
+      # transparently when ghx is missing. See AGENTS.md `## SCM tooling
+      # -- prefer ghx (#884)` for the prefer-ghx rule consumed here.
+      - name: Install ghx (cache proxy for gh) -- #884
+        shell: bash
+        run: |
+          if command -v ghx >/dev/null 2>&1; then
+            echo "ghx already on PATH at $(command -v ghx); skipping install."
+            exit 0
+          fi
+          # `GHX_VERSION` is honoured by the upstream install.sh's
+          # version-resolution branch (filters out plugin-v* tags by
+          # default; an explicit env value pins to that release tag).
+          export GHX_VERSION="${GHX_VERSION}"
+          curl -fsSL https://raw.githubusercontent.com/brunoborges/ghx/main/install.sh | bash || {
+            echo "::warning title=ghx install (#884)::install.sh exited non-zero; gh fallback remains in effect."
+          }
+          # Confirm the install (non-fatal: a soft-warn keeps the
+          # workflow green if upstream is transiently unavailable).
+          if command -v ghx >/dev/null 2>&1; then
+            ghx --version || true
+          fi
 
       - name: Install dependencies
         run: uv sync
@@ -88,6 +125,30 @@ jobs:
         uses: arduino/setup-task@v2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # #884: idempotent ghx pre-install. Windows runner -> upstream
+      # install.ps1 invoked via the documented `irm | iex` trampoline.
+      # Mirrors the Linux step above (same GHX_VERSION pin, same
+      # already-on-PATH short-circuit, same soft-warn-on-failure
+      # contract). Both branches MUST stay in sync; a future ghx
+      # security advisory only requires bumping the workflow-level
+      # `env.GHX_VERSION` and `scripts/setup_ghx.py::GHX_VERSION`.
+      - name: Install ghx (cache proxy for gh) -- #884
+        shell: pwsh
+        run: |
+          if (Get-Command ghx -ErrorAction SilentlyContinue) {
+            Write-Host "ghx already on PATH at $((Get-Command ghx).Source); skipping install."
+            exit 0
+          }
+          $env:GHX_VERSION = $env:GHX_VERSION
+          try {
+            Invoke-RestMethod https://raw.githubusercontent.com/brunoborges/ghx/main/install.ps1 | Invoke-Expression
+          } catch {
+            Write-Host "::warning title=ghx install (#884)::install.ps1 raised: $($_.Exception.Message); gh fallback remains in effect."
+          }
+          if (Get-Command ghx -ErrorAction SilentlyContinue) {
+            ghx --version 2>$null
+          }
 
       - name: Install dependencies
         run: uv sync
