@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Story 3 of #883 v1: rebind triage v1 surface onto cache:*. Delete task triage:cache + triage:show (hard cutover, no shims). Rewrite 4 triage scripts to consume cache:get. Rewrite refinement skill Phase 0 prose. External surface unchanged for kept tasks. Wave 3; depends on Story 2's cache:get + meta.json schema.",
     "created": "2026-05-05T23:20:00Z",
-    "updated": "2026-05-05T23:20:00Z"
+    "updated": "2026-05-06T02:26:08Z"
   },
   "plan": {
     "id": "883-story-3-triage-rebind",
     "title": "refactor(triage): rebind v1 surface onto cache:* (#883 Story 3)",
-    "status": "pending",
+    "status": "running",
     "planRef": "#883",
     "narratives": {
       "Problem": "Triage v1 (#845) ships its own scripts/triage_cache.py and tasks/triage-cache.yml that mirror upstream issue bodies into a triage-specific layout. After Story 2 lands, the unified cache:* surface owns all content mirroring; triage v1's cache surface becomes redundant + drift-prone (#915 root cause was exactly this drift). Story 3 deletes the redundant triage-side cache and rebinds the 13 kept triage:* tasks (accept, reject, defer, needs-ac, mark-duplicate, bulk-*, status, reset, history, refresh-active, bootstrap) onto cache:get. Phase 0 of the refinement skill is rewritten so its three-tier inventory model points at cache:* for Tier 1.",
