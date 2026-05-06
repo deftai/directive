@@ -8,6 +8,41 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
+<!-- 883-story-4: v0.25.x -> v0.26.0 migration BEGIN -->
+## From v0.25.x → v0.26.0 (deft-cache unified layer; breaking)
+
+- **Applies when:** any project on deft v0.25.0, v0.25.1, or v0.25.2 that has run `task triage:bootstrap` (i.e. has a populated `.deft-cache/issues/<owner>-<repo>/<N>.{json,md}` flat-sidecar layout). Detection: `Test-Path .deft-cache/issues/` returns `True` AND `Test-Path .deft-cache/github-issue/` returns `False`. Pure-additive opt-out projects (no `.deft-cache/`) skip this section -- they pick up the v0.26.0 surface on first `task triage:bootstrap`.
+- **Safe to auto-run:** No. The on-disk layout changed; the legacy `.deft-cache/issues/` tree is NOT migrated in place. Operators MUST delete the legacy tree and re-populate via `task cache:fetch-all` (one-shot; mirrors the v0.25.x bootstrap-populate timing). The audit log at `vbrief/.eval/candidates.jsonl` is preserved verbatim across the migration -- accept/reject/defer history is untouched.
+- **Restart required:** Yes. The agent's current session still holds stale skill prose pointing at `task triage:cache` / `task triage:show`. After the cache re-populate completes, start a new agent session so the refreshed `skills/deft-directive-refinement/SKILL.md` Phase 0 (rebound onto `cache:*`) loads from a clean context.
+- **Commands:**
+  - `Remove-Item -Recurse -Force .deft-cache/issues/` (PowerShell) or `rm -rf .deft-cache/issues/` (bash) -- drop the legacy flat-sidecar layout.
+  - `task cache:fetch-all -- --source=github-issue --repo=OWNER/NAME` -- re-populate under the new `.deft-cache/<source>/<key>/{raw.json,content.md,meta.json}` layout (~5 min for a ~200-issue corpus; idempotent on re-run via TTL skip-fresh).
+  - `task cache:get -- github-issue <owner>/<repo>/<N>` -- per-issue read replacing the removed `task triage:show <N>` form.
+  - `task triage:bootstrap` -- still works; now delegates to `cache:fetch-all` end-to-end.
+
+### Surface changes
+
+- **`task triage:cache` REMOVED.** Replaced by `task cache:fetch-all --source=github-issue --repo=OWNER/NAME`. The unified surface is the canonical entry point for all cache populates (github-issue today; URL / email / file deferred to v2).
+- **`task triage:show` REMOVED.** Replaced by `task cache:get github-issue <owner>/<repo>/<N>`. Returns the schema-validated `meta.json` envelope plus the path to `content.md` (or a structured stale-with-flag response when `expires_at` has elapsed; pass `--no-stale` to fail closed instead).
+- **On-disk layout changed.** Old: `.deft-cache/issues/<owner>-<repo>/<N>.{json,md}` (flat sidecar). New: `.deft-cache/<source>/<key>/{raw.json,content.md,meta.json}` (per-entry directory; schema-validated meta envelope). `cache:get` validates `meta.json` against `vbrief/schemas/cache-meta.schema.json` on every read so a corrupt or version-incompatible file fails closed.
+- **Audit log UNCHANGED.** `vbrief/.eval/candidates.jsonl` preserves accept / reject / defer / needs-ac / mark-duplicate / reset records across the migration. The Story 3 Tier-2 short-circuit (terminal-decision skip on bulk-* re-runs) operates on the same file.
+- **All other `triage:*` actions UNCHANGED.** `triage:accept` / `triage:reject` / `triage:defer` / `triage:needs-ac` / `triage:mark-duplicate` / `triage:bulk-accept` / `triage:bulk-reject` / `triage:bulk-defer` / `triage:bulk-needs-ac` / `triage:status` / `triage:reset` / `triage:history` / `triage:refresh-active` / `triage:bootstrap` keep their v0.25.x surface byte-for-byte. The rebind onto `cache:get` is internal.
+
+### Rollback
+
+The migration is one-way; v0.26.0 ships no shim back to the flat-sidecar layout. To revert to v0.25.2 behaviour, pin `deft/` to the v0.25.2 tag, delete `.deft-cache/`, and re-run `task triage:bootstrap` against the v0.25.2 surface. The audit log at `vbrief/.eval/candidates.jsonl` is forward / backward compatible -- v0.25.x and v0.26.0 read the same JSONL schema.
+
+### References
+
+- [#883](https://github.com/deftai/directive/issues/883) -- deft-cache unified content cache + quarantine epic (this migration is the v1 cutover).
+- [`vbrief/schemas/cache-meta.schema.json`](./vbrief/schemas/cache-meta.schema.json) -- frozen JSON Schema 2020-12 contract for `meta.json` (validated on read AND write).
+- [`docs/quarantine-spec.md`](./docs/quarantine-spec.md) -- formal spec for the #583 injection-quarantine algorithm consumed by `cache:put`.
+- [`docs/privacy-nfr.md`](./docs/privacy-nfr.md) -- privacy contract for `.deft-cache/` (gitignore default; opt-in commit path; private-repo body treatment).
+
+---
+<!-- 883-story-4: v0.25.x -> v0.26.0 migration END -->
+
+
 ## Migration to triage v1
 
 - **Applies when:** any project on deft v0.24.0 or later that wants to opt in to the pre-ingest triage workflow (#845). Triage v1 is **purely additive** -- existing skills (`deft-directive-refinement`, `deft-directive-swarm`, `deft-directive-build`, etc.) keep working byte-identically when the triage surfaces are absent. Detection: run `task triage:bootstrap` and observe whether `.deft-cache/` exists at the project root. If not, you have not opted in yet.
