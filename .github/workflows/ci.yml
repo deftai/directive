@@ -139,8 +139,22 @@ jobs:
       # sync; a future ghx security advisory only requires bumping the
       # workflow-level `env.GHX_VERSION` and
       # `scripts/setup_ghx.py::GHX_VERSION`.
+      #
+      # `continue-on-error: true` (closes Greptile #950 iteration-2 P1):
+      # PowerShell `try/catch` only intercepts terminating exceptions --
+      # a bare `exit N` inside `Invoke-Expression` (which is exactly
+      # what install.ps1 calls on a network/permission failure) bypasses
+      # the catch and terminates the PowerShell process with the non-zero
+      # exit code. Without `continue-on-error`, that propagates to the
+      # job and fails the Windows CI run, breaking parity with the Linux
+      # step's `|| { echo "::warning::" }` soft-warn fallback. Per the
+      # documented #884 contract the ghx pre-install MUST be best-effort
+      # (the `gh` fallback through scripts/scm.py keeps everything
+      # working), so `continue-on-error: true` is the GitHub-Actions
+      # native equivalent of the Linux pipe-fallthrough.
       - name: Install ghx (cache proxy for gh) -- #884
         shell: pwsh
+        continue-on-error: true
         run: |
           if (Get-Command ghx -ErrorAction SilentlyContinue) {
             Write-Host "ghx already on PATH at $((Get-Command ghx).Source); skipping install."
