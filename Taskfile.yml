@@ -120,6 +120,16 @@ includes:
   scm:
     taskfile: ./tasks/scm.yml
     optional: true
+  # #883 Story 2 cache + quarantine layer. Five-command surface
+  # (cache:put / cache:get / cache:invalidate / cache:fetch-all /
+  # cache:prune) under the canonical `cache:` namespace via the include
+  # key. Forward-compat: future v2 cache surfaces (cache:check /
+  # cache:refresh / cache:doctor / cache:stats / quarantine:scan) are
+  # deferred per the epic deferred_to_v2 list and land here when v2
+  # ships.
+  cache:
+    taskfile: ./tasks/cache.yml
+    optional: true
   # Triage v1 fragment includes (#845 epic, Story 6 wiring).
   #
   # Four standalone fragments authored by stories A1, A3, A4, and A6

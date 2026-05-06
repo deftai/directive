@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vbrief.dev/schemas/cache-meta-1.0.schema.json",
+  "title": "Deft Cache Entry meta.json",
+  "description": "Per-entry metadata file for the unified content cache (#883 v1). Validates on read AND write so a corrupt or version-incompatible meta.json fails closed (epic v1_must_include M4). Layout: .deft-cache/<source>/<key>/meta.json -- one file per cache entry, sibling to raw.json (always present) and content.md (only present when scan_result.passed=true OR scanner severity is fence-and-pass / strip-and-pass).",
+  "type": "object",
+  "required": [
+    "source",
+    "key",
+    "fetched_at",
+    "ttl_seconds",
+    "expires_at",
+    "scan_result",
+    "size_bytes",
+    "stale"
+  ],
+  "properties": {
+    "source": {
+      "type": "string",
+      "description": "Cache source type. v1 ships 'github-issue' only; 5 additional types (github-pr, github-review, url, email, file) are deferred to v2 per the epic deferred_to_v2 list. The schema constrains the enum so a typo or premature v2 source fails closed at write time.",
+      "enum": ["github-issue"]
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source-specific lookup key. For github-issue: '<owner>/<repo>/<N>' (e.g. 'deftai/directive/883'). The cache.py CLI normalises and validates the shape per source before write."
+    },
+    "fetched_at": {
+      "$ref": "#/$defs/dateTime",
+      "description": "ISO-8601 UTC timestamp at which raw.json was retrieved from upstream. Consumed by triage_refresh.py (Story 3) for staleness detection."
+    },
+    "ttl_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Source-specific TTL in seconds (github-issue=604800 / 7d in v1). Hard-coded per source by cache.py; persisted here so future TTL bumps do not silently re-classify pre-existing entries."
+    },
+    "expires_at": {
+      "$ref": "#/$defs/dateTime",
+      "description": "ISO-8601 UTC timestamp at which this entry should be considered stale. Computed at write time as fetched_at + ttl_seconds; pinned in meta.json so the staleness check is a simple time comparison without re-derivation."
+    },
+    "etag": {
+      "type": "string",
+      "description": "Reserved for v2 ETag-based conditional refresh. Deferred from v1 (gh CLI does not expose ETag at the JSON layer). Optional; omit on write in v1 callers."
+    },
+    "scan_result": {
+      "$ref": "#/$defs/ScanResult"
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Byte length of raw.json on disk at write time. Audit-only -- consumed by cache:stats / cache:doctor (deferred to v2) for sanity checks; v1 callers persist the value but do not act on it."
+    },
+    "stale": {
+      "type": "boolean",
+      "description": "Frozen at write time as 'false'. The runtime staleness check on cache:get re-computes from current time vs expires_at; this field exists so a downstream consumer reading meta.json directly (without invoking cache:get) sees a defined value. v1 substitute for the deferred cache:check command per the epic deferred_to_v2 list."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ScanResult": {
+      "type": "object",
+      "required": [
+        "passed",
+        "scanned_at",
+        "scanner_version",
+        "flags"
+      ],
+      "description": "Quarantine scan outcome (#583 / scanner v2). passed=false means the credentials category fired (hard-fail severity); fence-and-pass / strip-and-pass severities still record flags but passed remains true and content.md is written.",
+      "properties": {
+        "passed": {
+          "type": "boolean",
+          "description": "Whether the entry's content.md was safe to write. False only when at least one flag carries severity hard-fail (credentials category)."
+        },
+        "scanned_at": {
+          "$ref": "#/$defs/dateTime",
+          "description": "ISO-8601 UTC timestamp at which the scan ran. Distinct from fetched_at because a future cache:doctor --rescan can update scan_result without re-fetching."
+        },
+        "scanner_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Scanner SemVer (e.g. '2.0.0') as reported by scripts/cache_scanner.SCANNER_VERSION. Documented bump rule in the scanner module: patch=patterns, minor=categories, major=semantic rewrites."
+        },
+        "flags": {
+          "type": "array",
+          "description": "Per-flag findings. Empty array means a clean pass with no scanner action; non-empty does not by itself imply passed=false (only hard-fail severity does).",
+          "items": {
+            "$ref": "#/$defs/ScanFlag"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ScanFlag": {
+      "type": "object",
+      "required": [
+        "category",
+        "severity",
+        "detail"
+      ],
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "injection-heading",
+            "credentials",
+            "invisible-unicode"
+          ],
+          "description": "Scanner v2 category. v1 baseline ships these three; shell-cmd-injection and exfiltration-patterns are deferred to v2."
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "fence-and-pass",
+            "hard-fail",
+            "strip-and-pass"
+          ],
+          "description": "Per-category severity. injection-heading=fence-and-pass; credentials=hard-fail; invisible-unicode=strip-and-pass. Per-category severity is a documented epic departure from the design doc's uniform hard-fail (rationale: hard-fail-on-injection-headings would break legitimate '## STEP' template headings)."
+        },
+        "detail": {
+          "type": "string",
+          "description": "Human-readable summary of what was matched (e.g. 'matched credential pattern: ghp_<32 chars>' or 'stripped 3 invisible unicode codepoints'). Detail strings MUST NOT include the matched secret itself for the credentials category -- emit a redacted descriptor only."
+        },
+        "match_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of distinct matches for this flag. Useful for invisible-unicode strip-and-pass where the meaningful number is the codepoint count, not a string excerpt."
+        }
+      },
+      "additionalProperties": false
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "(Z|[+-]\\d{2}:\\d{2})$"
+    }
+  }
+}

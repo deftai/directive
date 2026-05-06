@@ -1,0 +1,69 @@
+version: '3'
+
+# ---------------------------------------------------------------------------
+# cache.yml -- unified content cache + quarantine layer (#883 Story 2).
+#
+# Five-command surface (per the v1_scope.cache_commands list in
+# vbrief/active/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json):
+#
+#   - cache:put         (cache one (source, key) entry from a raw JSON file)
+#   - cache:get         (print content.md path + meta.json contents)
+#   - cache:invalidate  (delete the entry directory + append audit)
+#   - cache:fetch-all   (orchestrate scm:* to bulk-populate a repo)
+#   - cache:prune       (drop entries older than the threshold)
+#
+# Storage layout: .deft-cache/<source>/<key>/{raw.json, content.md, meta.json}
+# plus the global .deft-cache/quarantine-audit.jsonl audit log. v1 ships
+# the github-issue source only; 5 additional sources (github-pr,
+# github-review, url, email, file) are deferred to v2 per the epic
+# deferred_to_v2 list.
+#
+# Per `conventions/task-caching.md` (#574): every task here forwards
+# `{{.CLI_ARGS}}` to a Python script, so NONE may declare `sources:` /
+# `generates:` -- a go-task short-circuit would silently drop user-facing
+# recovery flags (--force, --dry-run, --no-stale, etc.).
+# ---------------------------------------------------------------------------
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  put:
+    desc: "Cache an entry -- task cache:put -- <source> <key> --raw-file PATH [--ttl-seconds N]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/cache.py" put {{.CLI_ARGS}}
+
+  get:
+    desc: "Read an entry -- task cache:get -- <source> <key> [--allow-stale | --no-stale]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/cache.py" get {{.CLI_ARGS}}
+
+  invalidate:
+    desc: "Drop an entry -- task cache:invalidate -- <source> <key> [--reason TEXT]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/cache.py" invalidate {{.CLI_ARGS}}
+
+  fetch-all:
+    desc: "Bulk populate -- task cache:fetch-all -- --source github-issue --repo OWNER/NAME [--batch-size N] [--delay-ms N] [--ttl-seconds N]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/cache.py" fetch-all {{.CLI_ARGS}}
+
+  prune:
+    desc: "Drop expired -- task cache:prune -- [--older-than-days 30] [--source github-issue] [--dry-run]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/cache.py" prune {{.CLI_ARGS}}
