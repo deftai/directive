@@ -577,7 +577,12 @@ def cache_prune(
         src_root = Path(root) / src
         if not src_root.exists():
             continue
-        for meta_path in src_root.rglob("meta.json"):
+        # Materialize the iterator before mutating the tree: shutil.rmtree()
+        # below removes entry directories while rglob() lazily walks them on
+        # POSIX, raising FileNotFoundError on the next scandir() (#883). Tests
+        # passed on Windows due to a different walk order; CI on Linux caught
+        # it. list(...) snapshots the matches up-front so deletions are safe.
+        for meta_path in list(src_root.rglob("meta.json")):
             edir = meta_path.parent
             try:
                 meta = json.loads(meta_path.read_text(encoding="utf-8"))
