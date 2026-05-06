@@ -20,8 +20,10 @@ version: '3'
 #
 # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
 # declarations on this task because user-facing recovery flags
-# (`--repo`, `--skip-gitcrawl`, `--json`) are forwarded via {{.CLI_ARGS}} and
-# go-task's incremental-build cache layer would silently swallow them.
+# (`--repo`, `--fetch-timeout-s`, `--json`, `--quiet`) are forwarded via
+# {{.CLI_ARGS}} and go-task's incremental-build cache layer would silently
+# swallow them. The Story 3 rebind dropped the v0.25.x `--skip-gitcrawl`
+# install path entirely (#951): the script's argparse never accepted it.
 
 vars:
   # Resolve the deft framework root from this fragment's directory. The
@@ -33,7 +35,7 @@ vars:
 
 tasks:
   bootstrap:
-    desc: "Idempotent triage v1 installer (#845): populate cache, backfill audit log, gitignore, gitcrawl. Re-runnable. -- task triage:bootstrap [-- --repo OWNER/NAME] [--skip-gitcrawl] [--json]"
+    desc: "Idempotent triage v1 installer (#845): populate cache, backfill audit log, ensure gitignore for .deft-cache/ and vbrief/.eval/. Re-runnable; per-step progress on stderr; cache:fetch-all wall-clock cap (#952). -- task triage:bootstrap [-- --repo OWNER/NAME] [--limit N] [--state open|closed|all] [--fetch-timeout-s N] [--quiet] [--json]"
     internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:
