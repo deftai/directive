@@ -443,6 +443,13 @@ def cache_get(
             f"expires_at={meta['expires_at']} (pass --allow-stale to override)"
         )
 
+    # Mirror the computed staleness onto the in-memory meta dict so callers
+    # that inspect GetResult.meta["stale"] see the runtime truth (the on-disk
+    # meta.json is always written with stale=False because staleness is a
+    # read-time concept; without this the field is misleading on cache hits
+    # against TTL-expired entries). #883 Story 2 P2 cleanup.
+    meta["stale"] = is_stale
+
     content_path = edir / "content.md"
     return GetResult(
         source=source,

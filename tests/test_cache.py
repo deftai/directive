@@ -462,6 +462,46 @@ class TestCacheGet:
         assert result.content_path is None
         assert result.meta["scan_result"]["passed"] is False
 
+    def test_meta_stale_mirrors_get_result_stale_fresh(self, tmp_path: Path) -> None:
+        # Regression for #883 Story 2 P2: GetResult.meta["stale"] used to be
+        # always False (the on-disk meta.json default), independent of the
+        # actual TTL state. cache_get now mirrors the computed staleness
+        # onto the in-memory meta dict so meta["stale"] == result.stale.
+        cache.cache_put(
+            "github-issue",
+            "deftai/directive/105",
+            _good_raw(number=105),
+            cache_root=tmp_path,
+        )
+        result = cache.cache_get(
+            "github-issue", "deftai/directive/105", cache_root=tmp_path
+        )
+        assert result.stale is False
+        assert result.meta["stale"] is False
+
+    def test_meta_stale_mirrors_get_result_stale_expired(
+        self, tmp_path: Path
+    ) -> None:
+        # Regression for #883 Story 2 P2: an entry past its TTL must surface
+        # meta["stale"] == True (matching GetResult.stale), not the False
+        # value persisted in meta.json at write time.
+        cache.cache_put(
+            "github-issue",
+            "deftai/directive/106",
+            _good_raw(number=106),
+            ttl_seconds=0,
+            cache_root=tmp_path,
+            fetched_at=datetime.now(UTC) - timedelta(days=1),
+        )
+        result = cache.cache_get(
+            "github-issue",
+            "deftai/directive/106",
+            allow_stale=True,
+            cache_root=tmp_path,
+        )
+        assert result.stale is True
+        assert result.meta["stale"] is True
+
 
 # ---------------------------------------------------------------------------
 # cache.cache_invalidate
