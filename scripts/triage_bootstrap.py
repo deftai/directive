@@ -452,18 +452,28 @@ def step_populate_cache(
         )
 
     if exc is not None:
+        # cache_fetch_all raised; report the failure honestly so callers
+        # (and the orchestrator's recap) see a non-OK populate step. The
+        # bootstrap is partial -- ``run_bootstrap`` continues to the
+        # remaining (cache-independent) steps and surfaces ``exit_code=1``
+        # via the aggregate ``any(not step.ok)`` rule (P1 cleanup for
+        # #955; SLizard finding ``step_populate_cache misreports ok=True
+        # on exception``). Re-run after the underlying issue is resolved.
         return StepOutcome(
             name="populate_cache",
-            ok=True,
+            ok=False,
             message=(
-                f"deferred -- cache:fetch-all raised {type(exc).__name__} "
-                "(re-run after the underlying issue is resolved; see error for detail)"
+                f"cache:fetch-all raised {type(exc).__name__} for repo="
+                f"{effective_repo} (re-run after the underlying issue is "
+                "resolved; see error for detail)"
             ),
             error=str(exc),
             details={
-                "deferred": "fetch-all-error",
+                "failed": "fetch-all-error",
+                "exc_type": type(exc).__name__,
                 "repo": effective_repo,
                 "elapsed_s": round(elapsed, 3),
+                "fetch_timeout_s": effective_timeout,
             },
         )
 

@@ -130,7 +130,18 @@ def test_populate_cache_defers_when_cache_module_missing(tmp_path: Path) -> None
     assert outcome.name == "populate_cache"
 
 
-def test_populate_cache_defers_on_fetch_all_error(tmp_path: Path) -> None:
+def test_populate_cache_reports_failure_on_fetch_all_error(tmp_path: Path) -> None:
+    """A raising cache_fetch_all surfaces as ok=False (P1 cleanup for #955).
+
+    The previous behavior returned ``ok=True`` with a ``deferred``
+    marker; SLizard flagged the misreporting because the step's
+    documented goal (populate the cache) was not met. The orchestrator's
+    partial-bootstrap semantic is preserved by ``run_bootstrap``: it
+    appends the failed StepOutcome and continues to the remaining
+    steps. The aggregate ``exit_code`` becomes 1 via the
+    ``any(not step.ok)`` rule.
+    """
+
     def _raising_fetch(**_kw: Any) -> Any:
         raise RuntimeError("rate limit hit")
 
@@ -142,10 +153,16 @@ def test_populate_cache_defers_on_fetch_all_error(tmp_path: Path) -> None:
         cache_module=cache,
     )
 
-    assert outcome.ok is True  # deferred-action stays ok
+    assert outcome.ok is False, (
+        "a raised exception from cache_fetch_all MUST surface as ok=False; "
+        "the populate goal was not achieved (P1 cleanup for #955)"
+    )
     assert outcome.error is not None
     assert "rate limit" in outcome.error
-    assert outcome.details.get("deferred") == "fetch-all-error"
+    assert outcome.details.get("failed") == "fetch-all-error"
+    assert outcome.details.get("exc_type") == "RuntimeError"
+    # The legacy deferred marker MUST NOT survive the cleanup.
+    assert "deferred" not in outcome.details
 
 
 # ---------------------------------------------------------------------------
