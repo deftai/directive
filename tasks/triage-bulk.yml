@@ -11,11 +11,13 @@ version: '3'
 # are hidden from `task -l`.
 #
 # The disable-gate `cmds:` blocks introduced by PR #916 (#915 hot-fix) were
-# REVERSED here once scripts/triage_bulk.py was rewritten to walk
-# .deft-cache/issues/<owner>-<repo>/ instead of live `gh issue list`. The
-# four `bulk-*` targets now invoke triage_bulk.py directly again, exactly
-# as before #916. The cache-empty hard-fail (exit 2) and Tier-2 audit-log
-# short-circuit are enforced inside triage_bulk.py itself (#915 fix).
+# REVERSED once scripts/triage_bulk.py was rewritten to walk the local
+# cache instead of live `gh issue list`. As of #883 Story 3 the cache walk
+# consumes the unified `cache:get` surface
+# (`.deft-cache/github-issue/<owner>/<repo>/<N>/`); the four `bulk-*`
+# targets continue to invoke triage_bulk.py directly. The cache-empty
+# hard-fail (exit 2) and Tier-2 audit-log short-circuit are enforced
+# inside triage_bulk.py itself (#915 fix).
 #
 # Per `conventions/task-caching.md` (#574): every target here accepts user
 # flags via `{{.CLI_ARGS}}` (--label, --author, --age-days, --cluster,

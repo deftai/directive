@@ -1,57 +1,46 @@
 #!/usr/bin/env python3
-"""triage_bootstrap.py -- idempotent 5-step triage v1 installer (#845 Story 6).
+"""triage_bootstrap.py -- idempotent triage v1 installer (#883 Story 3 rebind).
 
-Single-command opt-in for triage v1 (#845). Wires the consumer's project for
-the pre-ingest triage workflow without touching any existing vBRIEF, scope, or
-skill state. Designed to be re-runnable: every step is idempotent and a second
-invocation is a no-op.
+Single-command opt-in for triage v1. Wires the consumer's project for
+the pre-ingest triage workflow without touching any existing vBRIEF,
+scope, or skill state. Designed to be re-runnable: every step is
+idempotent and a second invocation is a no-op.
 
 Steps (in order):
 
-1. ``populate_cache`` -- populate ``.deft-cache/issues/<owner>-<repo>/`` for
-   every open upstream issue. Delegates to Story 1's
-   ``scripts.triage_cache.populate``. Gracefully degrades to a deferred-action
-   warning when Story 1 has not yet merged on the consumer's branch.
+1. ``populate_cache`` -- delegates to :func:`scripts.cache.cache_fetch_all`
+   with ``--source=github-issue`` to mirror upstream issues into
+   ``.deft-cache/github-issue/<owner>/<repo>/<N>/``. Gracefully degrades
+   to a deferred-action message when ``--repo`` is neither passed nor
+   inferable from ``git remote get-url origin`` and when the cache
+   module has not yet landed on the consumer's branch.
 
-2. ``backfill_audit_log`` -- write an ``accepted`` audit entry to
-   ``vbrief/.eval/candidates.jsonl`` for every scope vBRIEF currently in
-   ``vbrief/proposed/``, ``vbrief/pending/``, or ``vbrief/active/``. Skips
-   ``vbrief/cancelled/`` so rejected items are NOT reanimated. Skips
-   ``vbrief/completed/`` because completed work is not in the triage funnel.
-   Delegates to Story 2's ``scripts.candidates_log.append`` when present;
-   falls back to a self-contained JSONL append when Story 2 has not merged.
+2. ``backfill_audit_log`` -- writes one ``accept`` audit entry per
+   scope vBRIEF currently in ``vbrief/proposed/``, ``vbrief/pending/``,
+   or ``vbrief/active/``. Skips ``vbrief/cancelled/`` so rejected items
+   are NOT reanimated. Skips ``vbrief/completed/`` because completed
+   work is not in the triage funnel. Delegates to
+   :func:`scripts.candidates_log.append` when present; falls back to a
+   self-contained JSONL append when not.
 
-3. ``ensure_gitignore_entry`` -- append ``.deft-cache/`` to ``.gitignore``
-   when absent. Idempotent: the line is already present in this repo's
-   ``.gitignore`` (Story 1 may also add it), so this step is typically a
-   no-op.
+3. ``ensure_gitignore_entry`` -- append ``.deft-cache/`` to
+   ``.gitignore`` when absent.
 
-4. ``ensure_gitcrawl`` -- install ``gitcrawl`` via the project's documented
-   path (``pipx install gitcrawl`` if available, else a print-only diagnostic).
-   Skipped entirely when ``gitcrawl`` is already on PATH.
-
-5. ``recap`` -- print a summary of the actions taken and the canonical next
-   commands (``task triage:show <N>``, ``task triage:cache``, etc.). The
-   recap is rendered by :meth:`BootstrapResult.summary` and printed in
-   :func:`main` rather than dispatched as a separate ``StepOutcome``;
-   :func:`run_bootstrap` therefore appends four step outcomes (1-4) and
-   the recap closes the run via the printed summary.
+4. ``ensure_gitignore_eval_dir`` -- append ``vbrief/.eval/`` to
+   ``.gitignore`` when absent (#915 audit-log scratch directory).
 
 Exit codes (three-state, mirrors ``scripts/preflight_branch.py``):
 
 - ``0`` -- bootstrap completed (or all steps were no-ops on a re-run).
-- ``1`` -- bootstrap failed at a runtime step (e.g. ``gh issue list`` returned
-  non-zero, ``vbrief/`` missing, etc.). The error message names the failing
-  step.
-- ``2`` -- config error: ``--project-root`` doesn't exist or isn't a directory.
+- ``1`` -- bootstrap failed at a runtime step.
+- ``2`` -- config error: ``--project-root`` doesn't exist or isn't a
+  directory.
 
 Refs:
 
-- #845 (parent epic).
-- #583 (consumed by Story 1's quarantine; this bootstrap doesn't touch
-  quarantine directly).
+- #883 (parent epic for the unified cache rebind).
+- #845 (the pre-ingest triage workflow this script orchestrates).
 - ``docs/privacy-nfr.md`` -- privacy contract for ``.deft-cache/``.
-- ``docs/quarantine-spec.md`` -- companion algorithm spec.
 """
 
 from __future__ import annotations
@@ -59,8 +48,10 @@ from __future__ import annotations
 import argparse
 import contextlib
 import datetime as _dt
+import importlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -69,66 +60,50 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-# Make sibling ``scripts`` modules importable when the consumer invokes this
-# script via ``python scripts/triage_bootstrap.py`` from the project root.
+# Make sibling ``scripts`` modules importable when the consumer invokes
+# this script via ``python scripts/triage_bootstrap.py`` from the
+# project root.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# UTF-8 self-reconfigure (mirrors #814 fix). The Windows cp1252 default would
-# crash on the ✓ / ⚠ glyphs we print in the recap.
+# UTF-8 self-reconfigure (mirrors #814 fix). The Windows cp1252 default
+# would crash on the ✓ / ⚠ glyphs we print in the recap.
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         with contextlib.suppress(AttributeError, ValueError):
             _stream.reconfigure(encoding="utf-8", errors="replace")
 
 
-#: Canonical cache-directory name. The Story 1 cache writes to
-#: ``.deft-cache/issues/<owner>-<repo>/<N>.{json,md}``; the gitignore step
-#: protects the same root.
+#: Canonical cache-directory name. The unified cache writes to
+#: ``.deft-cache/github-issue/<owner>/<repo>/<N>/`` under #883 Story 2.
 CACHE_DIR_NAME = ".deft-cache"
 
-#: Canonical gitignore line. Trailing slash matches the convention in the
-#: existing ``.gitignore`` (e.g. ``dist/``, ``backup/``, ``.deft/``).
+#: Canonical gitignore line. Trailing slash matches the convention in
+#: the existing ``.gitignore`` (e.g. ``dist/``, ``.deft/``).
 GITIGNORE_LINE = ".deft-cache/"
 
-#: Canonical gitignore line for the per-machine triage audit / eval scratch
-#: directory (#915). Story 2's ``candidates_log`` writes
-#: ``vbrief/.eval/candidates.jsonl`` inside the project tree; we never want
-#: it versioned (operator state, leaks triage timing/identity). The bootstrap
-#: ensures the line is present on a re-run for projects that pre-date the
-#: v0.25.2 ``.gitignore`` shipped with #915.
+#: Canonical gitignore line for the per-machine triage audit / eval
+#: scratch directory (#915).
 GITIGNORE_EVAL_LINE = "vbrief/.eval/"
 
-#: Canonical audit-log path relative to the project root. Story 2 writes
-#: append-only JSONL here; Story 6's bootstrap backfills ``accepted`` entries
-#: for items that have already been triaged into a lifecycle folder.
+#: Canonical audit-log path relative to the project root.
 AUDIT_LOG_RELPATH = Path("vbrief") / ".eval" / "candidates.jsonl"
 
-#: Lifecycle folders whose contents are backfilled with ``accepted`` entries.
-#: ``cancelled/`` is intentionally excluded so the bootstrap does not
-#: reanimate rejected items. ``completed/`` is excluded because completed
-#: work is no longer in the triage funnel; recording an ``accepted`` decision
-#: would imply the item is awaiting evaluation.
+#: Lifecycle folders whose contents are backfilled with ``accept``
+#: entries. ``cancelled/`` is excluded so rejected items are not
+#: reanimated; ``completed/`` is excluded because completed work is no
+#: longer in the triage funnel.
 BACKFILL_FOLDERS = ("proposed", "pending", "active")
 
-#: Canonical actor for the bootstrap-emitted backfill entries. The audit
-#: schema defined by Story 2 expects a string of the form ``agent:<name>`` or
-#: a user identity. ``agent:bootstrap`` is unambiguous.
+#: Canonical actor for bootstrap-emitted backfill entries.
 BOOTSTRAP_ACTOR = "agent:bootstrap"
+
+#: Cache source consumed by triage v1 (only github-issue is supported).
+_CACHE_SOURCE: str = "github-issue"
 
 
 @dataclass
 class StepOutcome:
-    """Per-step result captured by the dispatcher.
-
-    Attributes:
-        name: The canonical step name (matches the function name without the
-            ``step_`` prefix).
-        ok: True when the step completed without raising or detecting a hard
-            error. A no-op step (e.g. gitignore line already present) is OK.
-        message: Human-readable status line printed by the recap.
-        error: Optional captured exception message when ``ok`` is False.
-        details: Free-form structured info for tests (e.g. counts, paths).
-    """
+    """Per-step result captured by the dispatcher."""
 
     name: str
     ok: bool
@@ -147,7 +122,8 @@ class BootstrapResult:
     exit_code: int = 0
 
     def summary(self) -> str:
-        """Render a recap table the operator sees at the end of bootstrap."""
+        """Render a recap the operator sees at the end of bootstrap."""
+
         lines = ["", "Triage v1 bootstrap recap:"]
         for step in self.steps:
             mark = "✓" if step.ok else "✗"
@@ -157,269 +133,209 @@ class BootstrapResult:
         if self.exit_code == 0:
             lines.append("")
             lines.append("Next steps:")
-            # IMPORTANT: every command printed here MUST exist on master at the
-            # time the bootstrap recap fires (Greptile P1 PR #877 review). Story
-            # 6 wires only the top-level `task triage:bootstrap` alias; every
-            # other surface ships under the include namespace key for its
-            # owning fragment (`triage-cache:`, `triage-actions:`,
-            # `triage-bulk:`). The shorthand `task triage:cache` /
-            # `task triage:accept <N>` forms are intentionally NOT wired in
-            # Story 6 (go-task v3 cannot share an `includes:` namespace key
-            # across multiple files); a follow-up cleanup PR will consolidate
-            # `task triage:*` aliases once the four-fragment cascade has fully
-            # landed and inner task names are stable. Until then, the recap
-            # uses the namespaced forms so a user who copy-pastes a line gets
-            # a working invocation.
-            lines.append("  task triage-cache:cache             # refresh the cache (Story 1)")
-            lines.append("  task triage-cache:show <N>          # inspect issue N (Story 1)")
-            lines.append("  task triage-actions:accept <N>      # accept issue N (Story 3)")
-            lines.append("  task triage-actions:reject <N> -- --reason 'why' (Story 3)")
-            lines.append("  task triage-bulk:bulk-accept -- --label adoption-blocker (Story 4)")
             lines.append(
-                "  task triage-bulk:refresh-active     # pre-swarm freshness (Story 4)"
-            )
-            lines.append("")
-            lines.append(
-                "Note: shorthand `task triage:<verb>` aliases are deferred to a follow-up"
+                "  task cache:fetch-all -- --source=github-issue "
+                "--repo OWNER/NAME   # refresh the cache (#883 Story 2)"
             )
             lines.append(
-                "cleanup PR after the cascade fully lands. See UPGRADING.md "
-                "`Migration to triage v1` for details."
+                "  task cache:get -- github-issue OWNER/NAME/<N>            "
+                "# inspect cached issue N"
+            )
+            lines.append(
+                "  task triage:accept -- --issue <N> --repo OWNER/NAME      "
+                "# accept issue N (#845 Story 3)"
+            )
+            lines.append(
+                "  task triage:reject -- --issue <N> --repo OWNER/NAME --reason 'why' "
+                "# reject issue N"
+            )
+            lines.append(
+                "  task triage:bulk-accept -- --repo OWNER/NAME --label adoption-blocker "
+                "# bulk accept"
+            )
+            lines.append(
+                "  task triage:refresh-active                              "
+                "# pre-swarm freshness gate"
             )
         return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
-# Step 1 -- populate cache
+# Repo resolution
+# ---------------------------------------------------------------------------
+
+#: Regex mapping a ``git remote get-url origin`` value to ``(owner, repo)``.
+_GIT_ORIGIN_RE = re.compile(
+    r"^(?:https?://(?:[^@/]+@)?github\.com/|git@github\.com:|ssh://git@github\.com[:/])"
+    r"(?P<owner>[A-Za-z0-9][A-Za-z0-9._-]*)/"
+    r"(?P<repo>[A-Za-z0-9][A-Za-z0-9._-]*?)(?:\.git)?/?\s*$"
+)
+_REPO_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def _infer_repo_from_git(cwd: Path | None = None) -> str | None:
+    """Infer ``owner/repo`` from ``git remote get-url origin``."""
+
+    if shutil.which("git") is None:
+        return None
+    try:
+        proc = subprocess.run(  # noqa: S603
+            ["git", "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=str(cwd) if cwd is not None else None,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    url = (proc.stdout or "").strip()
+    if not url:
+        return None
+    m = _GIT_ORIGIN_RE.search(url)
+    if not m:
+        return None
+    return f"{m.group('owner')}/{m.group('repo')}"
+
+
+# ---------------------------------------------------------------------------
+# Step 1 -- populate cache via cache:fetch-all
 # ---------------------------------------------------------------------------
 
 
-class _NeverRaised(BaseException):
-    """Sentinel exception that is intentionally never raised.
+def _load_cache_module() -> Any | None:
+    """Return the unified cache module, or ``None`` if not importable."""
 
-    Used as a defensive fallback when looking up
-    :class:`triage_cache.InvalidRepoError`; if the symbol is missing
-    (e.g. an extremely old version of ``triage_cache``), the narrowed
-    ``except`` clause still parses without accidentally widening the
-    catch -- the broader ``except Exception`` below will handle the
-    error, preserving the no-repo-deferral semantics for the only path
-    we actually care about (#908 P1 narrowing).
-    """
+    for candidate in ("cache", "scripts.cache"):
+        try:
+            return importlib.import_module(candidate)
+        except ModuleNotFoundError:
+            continue
+    return None
 
 
 def step_populate_cache(
     project_root: Path,
     repo: str | None,
     *,
-    limit: int | None = None,
+    cache_module: Any | None = None,
+    batch_size: int | None = None,
+    delay_ms: int | None = None,
     state: str | None = None,
-    labels: tuple[str, ...] | list[str] | None = None,
-    force: bool = False,
-    use_gitcrawl: bool | None = None,
-    ttl_seconds: int | None = None,
+    limit: int | None = None,
 ) -> StepOutcome:
-    """Populate the local issue cache for upstream issues.
+    """Mirror upstream issues for ``repo`` via :func:`cache_fetch_all`.
 
-    Delegates to Story 1's ``scripts.triage_cache.populate(repo, force=False, ...)``
-    when the module is importable. When Story 1 has not yet merged onto the
-    consumer's branch, the step degrades to a deferred-action warning -- the
-    bootstrap as a whole still succeeds because (a) the script is designed to
-    be re-runnable, and (b) the gitignore + backfill steps are independent of
-    cache content.
+    Resolution precedence for ``repo``:
 
-    The ``limit`` / ``state`` / ``labels`` kwargs (#900) and the ``force`` /
-    ``use_gitcrawl`` / ``ttl_seconds`` kwargs (#914) are forwarded to
-    :func:`triage_cache.populate` when provided so a maintainer with a
-    real-sized backlog can scope or filter the first-run populate (omitting
-    them preserves the pre-#900 / pre-#914 behaviour). ``repo`` may be
-    ``None`` when the operator wants triage_cache to infer it from
-    ``git remote get-url origin`` -- the inference happens inside
-    ``triage_cache.populate``; this step only short-circuits to the
-    no-repo skip-with-OK message when both ``repo`` is ``None`` AND no
-    inference can succeed (the inner populate raises
-    ``InvalidRepoError`` and we surface its message in the deferred recap).
+    1. Explicit argument (kwargs / ``--repo`` flag / ``DEFT_TRIAGE_REPO`` env).
+    2. Inference from ``git remote get-url origin`` inside ``project_root``.
+
+    When neither resolves, the step returns ``ok=True`` with a friendly
+    skip message -- the gitignore + audit-log steps are still useful
+    without a repo. When the cache module is missing on the branch the
+    step degrades to a deferred-action message so the bootstrap exit
+    code stays 0 (per the re-runnable contract).
     """
-    try:
-        import triage_cache  # type: ignore[import-not-found]
-    except ImportError:
+
+    effective_repo = repo
+    if effective_repo is None:
+        effective_repo = _infer_repo_from_git(cwd=project_root)
+    if effective_repo is None:
         return StepOutcome(
             name="populate_cache",
             ok=True,
             message=(
-                "deferred (Story 1 surface scripts/triage_cache.py not present "
-                "on this branch; re-run after rebase to populate)"
+                "skipped (no --repo provided and could not infer from "
+                "`git remote get-url origin`; pass --repo OWNER/NAME)"
             ),
-            details={"deferred": "story-1-missing"},
+            details={"skipped": "no-repo"},
         )
-
-    populate = getattr(triage_cache, "populate", None)
-    if populate is None or not callable(populate):
+    if not _REPO_RE.match(effective_repo):
         return StepOutcome(
             name="populate_cache",
             ok=False,
-            message="triage_cache.populate is not callable",
-            error="Story 1 surface drift: populate() not exposed",
+            message=f"invalid --repo {effective_repo!r}",
+            error="repo must be 'owner/name' (alphanumerics, '.', '_', '-' only)",
         )
 
-    # ``force`` is the only populate-side flag whose default differs from
-    # "omit and let triage_cache pick its own default". The pre-#914 contract
-    # always passed ``force=False`` (the bootstrap is designed to be cheap
-    # and re-runnable); we preserve that as the bootstrap default and only
-    # override it when the operator explicitly asks for ``--force``.
-    populate_kwargs: dict[str, Any] = {"force": bool(force)}
-    if limit is not None:
-        populate_kwargs["limit"] = limit
-    if state is not None:
-        populate_kwargs["state"] = state
-    if labels:
-        populate_kwargs["labels"] = tuple(labels)
-    # ``use_gitcrawl`` / ``ttl_seconds`` (#914): mirror the limit/state/labels
-    # rule -- only inject the kwarg when the bootstrap caller actually set it,
-    # so triage_cache.populate's own defaults remain authoritative for the
-    # bare invocation path.
-    if use_gitcrawl is not None:
-        populate_kwargs["use_gitcrawl"] = use_gitcrawl
-    if ttl_seconds is not None:
-        populate_kwargs["ttl_seconds"] = ttl_seconds
-
-    if repo is None:
-        # No explicit repo -- let triage_cache.populate try the
-        # `git remote get-url origin` inference path (#900). If repo
-        # resolution fails we surface a friendly skip-with-OK; any
-        # OTHER error is left to the broader except below (which treats
-        # it as a deferred-action environment failure).
-        #
-        # Greptile #908 P1 fix: catching InvalidRepoError specifically
-        # (rather than a blanket ``except Exception``) makes the
-        # skip-with-OK path reachable ONLY when the repo could not be
-        # resolved -- successful-inference errors propagate to the
-        # broader except below and surface as deferred-action.
-        # ``_NeverRaised`` is a sentinel that the except clause is
-        # syntactically valid even on the (defensive) path where
-        # ``triage_cache`` lacks the symbol; in that case the broader
-        # except still catches the error.
-        invalid_repo_error = getattr(
-            triage_cache, "InvalidRepoError", _NeverRaised
-        )
-        try:
-            count = populate(**populate_kwargs)
-        except invalid_repo_error as exc:  # type: ignore[misc]
-            # Greptile #908 P1 fix: narrow this catch from
-            # ``except Exception`` to ``except InvalidRepoError`` so
-            # successful-inference errors (e.g. TriageCacheError raised
-            # after inference resolved a real slug) no longer surface
-            # as a misleading "could not infer" message. Only true
-            # repo-resolution failures take the no-repo skip path.
-            #
-            # Match the historic pre-#900 "no-repo" skip-with-OK contract:
-            # when repo can be neither passed nor inferred, the bootstrap
-            # treats this as a graceful skip rather than a hard failure --
-            # the gitignore / audit-log / gitcrawl steps are still useful
-            # without a repo.
-            return StepOutcome(
-                name="populate_cache",
-                ok=True,
-                message=(
-                    "skipped (no --repo provided and could not infer from "
-                    "`git remote get-url origin`; pass --repo OWNER/NAME)"
-                ),
-                error=str(exc),
-                details={"skipped": "no-repo"},
-            )
-        except Exception as exc:  # noqa: BLE001 -- forward exception text verbatim
-            # Inference succeeded but populate() failed for some other
-            # reason (gh CLI missing, network down, TriageCacheError,
-            # etc.). Mirror the explicit-repo branch's deferred-action
-            # handling rather than the misleading "could not infer"
-            # message -- the repo WAS inferred; populate failed.
-            return StepOutcome(
-                name="populate_cache",
-                ok=True,
-                message=(
-                    f"deferred -- populate raised {type(exc).__name__} "
-                    "after repo inference (re-run after the underlying "
-                    "issue is resolved; see error for detail)"
-                ),
-                error=str(exc),
-                details={"deferred": "populate-error"},
-            )
-        return StepOutcome(
-            name="populate_cache",
-            ok=True,
-            message=f"cached {count} issues into {CACHE_DIR_NAME}/issues/ (repo inferred)",
-            details={
-                "count": count,
-                "repo": None,
-                "limit": limit,
-                "state": state,
-                "labels": list(labels) if labels else None,
-            },
-        )
-
-    try:
-        count = populate(repo=repo, **populate_kwargs)
-    except Exception as exc:  # noqa: BLE001 -- forward exception text verbatim
-        # Graceful degradation: cache populate is best-effort. If Story 1's
-        # populate fails (e.g. ``gh`` CLI not on PATH, network down, repo
-        # access denied) the bootstrap should still succeed -- the gitignore
-        # + audit-log + gitcrawl steps are independent of cache content,
-        # and the operator can re-run ``task triage-cache:cache`` after
-        # fixing the underlying environment. Returning ok=True with a
-        # deferred-action message preserves bootstrap exit code 0 (per
-        # the module docstring's ``re-runnable`` contract) while still
-        # surfacing the failure cause in the recap.
+    cache_mod = cache_module if cache_module is not None else _load_cache_module()
+    if cache_mod is None:
         return StepOutcome(
             name="populate_cache",
             ok=True,
             message=(
-                f"deferred -- populate raised {type(exc).__name__} "
-                "(re-run after the underlying issue is resolved; "
-                "see error for detail)"
+                "deferred (scripts/cache.py not present on this branch; "
+                "re-run after rebase to populate via task cache:fetch-all)"
             ),
-            error=str(exc),
-            details={"deferred": "populate-error"},
+            details={"deferred": "cache-module-missing", "repo": effective_repo},
+        )
+    fetch_all = getattr(cache_mod, "cache_fetch_all", None)
+    if not callable(fetch_all):
+        return StepOutcome(
+            name="populate_cache",
+            ok=False,
+            message="cache_fetch_all is not callable",
+            error="#883 Story 2 contract violated: cache_fetch_all() not exposed",
         )
 
+    kwargs: dict[str, Any] = {
+        "source": _CACHE_SOURCE,
+        "repo": effective_repo,
+        "cache_root": project_root / CACHE_DIR_NAME,
+    }
+    if batch_size is not None:
+        kwargs["batch_size"] = batch_size
+    if delay_ms is not None:
+        kwargs["delay_ms"] = delay_ms
+    if state is not None:
+        kwargs["state"] = state
+    if limit is not None:
+        kwargs["limit"] = limit
+
+    try:
+        report = fetch_all(**kwargs)
+    except Exception as exc:  # noqa: BLE001 -- forward exception text verbatim
+        return StepOutcome(
+            name="populate_cache",
+            ok=True,
+            message=(
+                f"deferred -- cache:fetch-all raised {type(exc).__name__} "
+                "(re-run after the underlying issue is resolved; see error for detail)"
+            ),
+            error=str(exc),
+            details={"deferred": "fetch-all-error", "repo": effective_repo},
+        )
+
+    succeeded = getattr(report, "succeeded", None)
+    failed = getattr(report, "failed", None)
+    skipped = getattr(report, "skipped", None)
     return StepOutcome(
         name="populate_cache",
         ok=True,
-        message=f"cached {count} issues into {CACHE_DIR_NAME}/issues/",
+        message=(
+            f"cache:fetch-all source={_CACHE_SOURCE} repo={effective_repo} "
+            f"succeeded={succeeded} failed={failed} skipped={skipped}"
+        ),
         details={
-            "count": count,
-            "repo": repo,
-            "limit": limit,
-            "state": state,
-            "labels": list(labels) if labels else None,
+            "repo": effective_repo,
+            "source": _CACHE_SOURCE,
+            "succeeded": succeeded,
+            "failed": failed,
+            "skipped": skipped,
         },
     )
 
 
 # ---------------------------------------------------------------------------
-# Step 2 -- backfill audit log with `accepted` entries
+# Step 2 -- backfill audit log with `accept` entries
 # ---------------------------------------------------------------------------
 
 
 def _now_iso() -> str:
-    """Return current time as ISO-8601 UTC with the literal ``Z`` suffix.
+    """Return current time as ISO-8601 UTC with the literal ``Z`` suffix."""
 
-    The Story 2 audit-log schema (``vbrief/schemas/candidates.schema.json``)
-    pins the ``timestamp`` field to the ``Z``-suffix UTC form -- the
-    pattern is ``^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$``.
-    Python's ``datetime.isoformat()`` emits ``+00:00`` for ``tz=UTC``,
-    which matches the schema's ``format: date-time`` annotation but FAILS
-    the Z-anchored ``pattern``. Story 2's ``candidates_log.append()``
-    enforces the pattern (Greptile #876 P1 fix-batch) so a non-Z form is
-    rejected with ``CandidatesLogError``.
-
-    Uses ``datetime.timezone.utc`` rather than the ``datetime.UTC`` alias
-    (Python 3.11+) for maximum portability and ecosystem compatibility:
-    even though the project's ``requires-python`` is ``>=3.11`` (see
-    ``pyproject.toml``), the ``timezone.utc`` form is unambiguous, works
-    on every Python 3.x release, and removes a foot-gun for downstream
-    consumers that vendor or copy this module. The trailing
-    ``# noqa: UP017`` keeps ruff's ``Use datetime.UTC alias`` rule from
-    re-flipping the form on auto-fix.
-    """
     return (
         _dt.datetime.now(tz=_dt.timezone.utc)  # noqa: UP017
         .replace(microsecond=0)
@@ -428,13 +344,8 @@ def _now_iso() -> str:
 
 
 def _extract_issue_number(vbrief_data: dict[str, Any]) -> int | None:
-    """Pull the issue number from a scope vBRIEF's references[] block.
+    """Pull the issue number from a scope vBRIEF's references[] block."""
 
-    vBRIEFs ingested via ``task issue:ingest`` carry an
-    ``x-vbrief/github-issue`` reference whose URI ends with the issue number.
-    Returns None for vBRIEFs without such a reference (e.g. user-authored
-    plans that don't trace to an upstream issue).
-    """
     plan = vbrief_data.get("plan")
     if not isinstance(plan, dict):
         return None
@@ -449,7 +360,6 @@ def _extract_issue_number(vbrief_data: dict[str, Any]) -> int | None:
         uri = ref.get("uri", "")
         if not isinstance(uri, str):
             continue
-        # URIs look like "https://github.com/owner/repo/issues/845"
         tail = uri.rstrip("/").rsplit("/", 1)[-1]
         if tail.isdigit():
             return int(tail)
@@ -457,12 +367,8 @@ def _extract_issue_number(vbrief_data: dict[str, Any]) -> int | None:
 
 
 def _scan_lifecycle_folder(folder: Path) -> list[tuple[int, Path]]:
-    """Walk a lifecycle folder, returning (issue_number, vbrief_path) tuples.
+    """Walk a lifecycle folder, returning (issue_number, vbrief_path) tuples."""
 
-    vBRIEFs without a parseable issue-number reference are skipped silently
-    -- the bootstrap only backfills items that have an upstream origin to
-    record against.
-    """
     results: list[tuple[int, Path]] = []
     if not folder.exists() or not folder.is_dir():
         return results
@@ -470,8 +376,6 @@ def _scan_lifecycle_folder(folder: Path) -> list[tuple[int, Path]]:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError, UnicodeDecodeError):
-            # Defensive: a malformed vBRIEF should not block bootstrap. The
-            # standard `task vbrief:validate` gate will surface it elsewhere.
             continue
         if not isinstance(data, dict):
             continue
@@ -483,23 +387,19 @@ def _scan_lifecycle_folder(folder: Path) -> list[tuple[int, Path]]:
 
 
 def _existing_audit_issue_numbers(audit_path: Path) -> set[int]:
-    """Read the audit log and return the set of issue numbers already logged.
+    """Read the audit log and return the set of issue numbers already logged."""
 
-    Used to make the backfill idempotent: a re-run does NOT append a duplicate
-    entry for an issue that already has any decision recorded.
-    """
     if not audit_path.exists():
         return set()
     seen: set[int] = set()
     try:
         for line in audit_path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line:
+            stripped = line.strip()
+            if not stripped:
                 continue
             try:
-                entry = json.loads(line)
+                entry = json.loads(stripped)
             except json.JSONDecodeError:
-                # Malformed lines are skipped (Story 2's reader does the same).
                 continue
             if not isinstance(entry, dict):
                 continue
@@ -507,14 +407,13 @@ def _existing_audit_issue_numbers(audit_path: Path) -> set[int]:
             if isinstance(n, int):
                 seen.add(n)
     except (OSError, UnicodeDecodeError):
-        # If we can't read the file, assume nothing logged. The append step
-        # will surface any write-side IO error.
         return set()
     return seen
 
 
 def _build_audit_entry(repo: str, issue_number: int, source_folder: str) -> dict[str, Any]:
-    """Compose a single ``accepted`` audit entry per Story 2's schema."""
+    """Compose a single ``accept`` audit entry per Story 2's schema."""
+
     return {
         "decision_id": str(uuid.uuid4()),
         "timestamp": _now_iso(),
@@ -523,20 +422,15 @@ def _build_audit_entry(repo: str, issue_number: int, source_folder: str) -> dict
         "decision": "accept",
         "actor": BOOTSTRAP_ACTOR,
         "reason": (
-            f"bootstrap backfill: vBRIEF already in vbrief/{source_folder}/ at "
-            f"opt-in time"
+            f"bootstrap backfill: vBRIEF already in vbrief/{source_folder}/ "
+            "at opt-in time"
         ),
     }
 
 
 def _append_audit_entry(audit_path: Path, entry: dict[str, Any]) -> None:
-    """Self-contained JSONL append used when Story 2 hasn't merged yet.
+    """Self-contained JSONL append used when Story 2 hasn't merged yet."""
 
-    Mirrors the schema Story 2 prescribes (UUID + ISO-8601 + repo +
-    issue_number + decision + actor + reason). Story 2's ``append`` provides
-    advisory locking; the bootstrap path does not because this step is run
-    once at opt-in and does not race with other writers.
-    """
     audit_path.parent.mkdir(parents=True, exist_ok=True)
     serialized = json.dumps(entry, ensure_ascii=False, sort_keys=True)
     with audit_path.open("a", encoding="utf-8") as fh:
@@ -545,15 +439,8 @@ def _append_audit_entry(audit_path: Path, entry: dict[str, Any]) -> None:
 
 
 def step_backfill_audit_log(project_root: Path, repo: str | None) -> StepOutcome:
-    """Backfill ``accepted`` audit entries for items already in lifecycle folders.
+    """Backfill ``accept`` audit entries for items already in lifecycle folders."""
 
-    Idempotent: items whose issue number already appears in the audit log are
-    skipped, regardless of which decision was recorded. The first-write-wins
-    semantic preserves any pre-existing audit history (e.g. an issue that was
-    accepted, then rejected, then re-accepted before bootstrap was first run).
-
-    Skips ``vbrief/cancelled/`` so rejected items are not reanimated.
-    """
     if repo is None:
         return StepOutcome(
             name="backfill_audit_log",
@@ -576,25 +463,18 @@ def step_backfill_audit_log(project_root: Path, repo: str | None) -> StepOutcome
     audit_path = project_root / AUDIT_LOG_RELPATH
     already_logged = _existing_audit_issue_numbers(audit_path)
 
-    # Detect Story 2's append() if available -- prefer it so the advisory
-    # lock is honored on contended writes (defence-in-depth even though the
-    # bootstrap is single-writer).
     try:
-        import candidates_log  # type: ignore[import-not-found]
-
+        candidates_log = importlib.import_module("candidates_log")
         story2_append = getattr(candidates_log, "append", None)
         if not callable(story2_append):
             story2_append = None
-    except ImportError:
+    except ModuleNotFoundError:
         story2_append = None
 
     appended = 0
     skipped_existing = 0
     skipped_cancelled = 0
 
-    # Count cancelled items only for diagnostic transparency. We do NOT log
-    # them; the count tells the operator how many would be reanimated if the
-    # bootstrap incorrectly included cancelled/.
     cancelled_dir = vbrief_root / "cancelled"
     if cancelled_dir.exists():
         skipped_cancelled = len(_scan_lifecycle_folder(cancelled_dir))
@@ -608,13 +488,6 @@ def step_backfill_audit_log(project_root: Path, repo: str | None) -> StepOutcome
             entry = _build_audit_entry(repo, issue_number, folder_name)
             try:
                 if story2_append is not None:
-                    # Pass path=audit_path explicitly so Story 2 writes to
-                    # the consumer's project-root audit log rather than
-                    # ``DEFAULT_LOG_PATH`` (which is anchored to the repo
-                    # housing ``scripts/candidates_log.py``). Without this,
-                    # bootstrap invocations from a different ``--project-root``
-                    # (and pytest tmp_path fixtures) silently leak entries
-                    # into the deft-directive repo's own audit log.
                     story2_append(entry, path=audit_path)
                 else:
                     _append_audit_entry(audit_path, entry)
@@ -654,82 +527,65 @@ def step_backfill_audit_log(project_root: Path, repo: str | None) -> StepOutcome
 
 
 # ---------------------------------------------------------------------------
-# Step 3 -- ensure .deft-cache/ is gitignored
+# Step 3 -- ensure .deft-cache/ and vbrief/.eval/ are gitignored
 # ---------------------------------------------------------------------------
 
 
 def _gitignore_already_covers(gitignore_text: str, line: str) -> bool:
-    """Return True when ``gitignore_text`` already includes ``line``.
+    """Return True when ``gitignore_text`` already includes ``line``."""
 
-    Match is line-exact (after stripping trailing whitespace) so commented-out
-    forms like ``# .deft-cache/`` do NOT count as coverage. This is consistent
-    with NFR-2 in ``docs/privacy-nfr.md``: the consumer's commented-out form
-    is the explicit opt-in to commit the cache, and the bootstrap MUST NOT
-    re-add the active rule without operator intent.
-    """
     target = line.strip()
     return any(raw.strip() == target for raw in gitignore_text.splitlines())
 
 
 def _is_commented_gitignore_line(raw: str, gitignore_line: str) -> bool:
-    """Return True when ``raw`` is exactly the commented-out form of ``gitignore_line``.
+    """Return True when ``raw`` is exactly the commented-out form of ``gitignore_line``."""
 
-    Recognized shapes (NFR-2 opt-in markers):
-
-    - ``# .deft-cache/``
-    - ``#.deft-cache/``           (no space)
-    - ``  # .deft-cache/  ``      (surrounding whitespace)
-    - ``## .deft-cache/``         (double-hash for visual emphasis)
-
-    Rejected:
-
-    - ``.deft-cache/`` (active rule -- handled by ``_gitignore_already_covers``)
-    - ``# Do not track files under .deft-cache/ here`` (mere mention)
-    - ``# anything-else.deft-cache/`` (substring would match; literal-form
-      anchoring rejects it)
-
-    The check strips leading/trailing whitespace, requires the line to
-    start with ``#``, then peels successive ``#`` characters and at most one
-    space before comparing the remainder to ``gitignore_line`` exactly. This
-    is tighter than a substring scan (Greptile P2 on PR #877) while still
-    accepting reasonable hand-written variants of the documented opt-in
-    pattern.
-    """
     stripped = raw.strip()
     if not stripped.startswith("#"):
         return False
-    # Peel off all leading '#' characters (allows ``##`` etc.) plus at most
-    # one optional space, then compare the remainder to the active-rule form.
     body = stripped.lstrip("#")
     if body.startswith(" "):
         body = body[1:]
     return body == gitignore_line
 
 
-def step_ensure_gitignore_entry(project_root: Path) -> StepOutcome:
-    """Append ``.deft-cache/`` to ``.gitignore`` when absent.
+def _ensure_gitignore_line(
+    gitignore_path: Path,
+    line: str,
+    *,
+    step_name: str,
+    create_if_missing: bool,
+    rationale_block: str,
+    opt_in_message: str,
+) -> StepOutcome:
+    """Ensure ``line`` is present in ``.gitignore``; idempotent."""
 
-    Idempotent: a re-run is a no-op when the line is present (or when the
-    consumer has commented it out as the explicit opt-in to commit the
-    cache, per NFR-2 in ``docs/privacy-nfr.md``).
-    """
-    gitignore_path = project_root / ".gitignore"
     if not gitignore_path.exists():
-        # Greenfield project. Create a minimal .gitignore with just the
-        # cache line so the bootstrap is still self-contained.
+        if not create_if_missing:
+            return StepOutcome(
+                name=step_name,
+                ok=False,
+                message=(
+                    f".gitignore not present after the prior gitignore step; "
+                    f"{line} not written -- re-run bootstrap to retry"
+                ),
+                error="prior gitignore step did not create .gitignore",
+                details={"created": False, "appended": False, "skipped": "no-gitignore"},
+            )
         try:
-            gitignore_path.write_text(GITIGNORE_LINE + "\n", encoding="utf-8")
+            gitignore_path.write_text(line + "\n", encoding="utf-8")
         except OSError as exc:
             return StepOutcome(
-                name="ensure_gitignore_entry",
+                name=step_name,
                 ok=False,
                 message="could not create .gitignore",
                 error=str(exc),
             )
         return StepOutcome(
-            name="ensure_gitignore_entry",
+            name=step_name,
             ok=True,
-            message=f"created .gitignore with {GITIGNORE_LINE} line",
+            message=f"created .gitignore with {line} line",
             details={"created": True, "appended": False},
         )
 
@@ -737,417 +593,94 @@ def step_ensure_gitignore_entry(project_root: Path) -> StepOutcome:
         existing = gitignore_path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
         return StepOutcome(
-            name="ensure_gitignore_entry",
+            name=step_name,
             ok=False,
             message="could not read .gitignore",
             error=str(exc),
         )
 
-    # Check for either the active line OR a commented-out form (NFR-2 opt-in).
-    # If commented out, we treat that as "consumer has opted in to commit the
-    # cache" and respect that decision.
-    #
-    # The match is tightened to the exact `# .deft-cache/` form (with optional
-    # leading/trailing whitespace and an optional second `#` for double-hash
-    # comments) so a comment that merely *mentions* the cache directory --
-    # e.g. `# Do not track files under .deft-cache/ here` -- does NOT trigger
-    # the opt-in detection. Only a literal commented-out form counts as the
-    # NFR-2 opt-in (Greptile P2 review on PR #877).
     has_commented_form = any(
-        _is_commented_gitignore_line(raw, GITIGNORE_LINE) for raw in existing.splitlines()
+        _is_commented_gitignore_line(raw, line) for raw in existing.splitlines()
     )
 
-    if _gitignore_already_covers(existing, GITIGNORE_LINE):
+    if _gitignore_already_covers(existing, line):
         return StepOutcome(
-            name="ensure_gitignore_entry",
+            name=step_name,
             ok=True,
-            message=f"{GITIGNORE_LINE} already in .gitignore (no-op)",
+            message=f"{line} already in .gitignore (no-op)",
             details={"created": False, "appended": False, "already_present": True},
         )
 
     if has_commented_form:
         return StepOutcome(
-            name="ensure_gitignore_entry",
+            name=step_name,
             ok=True,
-            message=(
-                f"{GITIGNORE_LINE} is commented out (operator has opted in to "
-                "commit the cache per docs/privacy-nfr.md NFR-2; not re-adding)"
-            ),
-            details={
-                "created": False,
-                "appended": False,
-                "opt_in_commit_cache": True,
-            },
+            message=opt_in_message,
+            details={"created": False, "appended": False, "opt_in_commit": True},
         )
 
-    # Append the line. Ensure we land on a fresh line even if the existing
-    # file lacks a trailing newline.
     suffix = "" if existing.endswith("\n") or existing == "" else "\n"
-    new_content = (
-        existing
-        + suffix
-        + "\n# Triage v1 local issue cache (#845).\n"
-        + "# See docs/privacy-nfr.md for the gitignore-default + opt-in-commit-cache\n"
-        + "# contract. Comment this line out to opt in to committing the cache.\n"
-        + GITIGNORE_LINE
-        + "\n"
-    )
+    new_content = existing + suffix + rationale_block + line + "\n"
     try:
         gitignore_path.write_text(new_content, encoding="utf-8")
     except OSError as exc:
         return StepOutcome(
-            name="ensure_gitignore_entry",
+            name=step_name,
             ok=False,
             message="could not write .gitignore",
             error=str(exc),
         )
     return StepOutcome(
-        name="ensure_gitignore_entry",
+        name=step_name,
         ok=True,
-        message=f"appended {GITIGNORE_LINE} to .gitignore",
+        message=f"appended {line} to .gitignore",
         details={"created": False, "appended": True},
     )
 
 
-# ---------------------------------------------------------------------------
-# Step 3b -- ensure vbrief/.eval/ is gitignored (#915)
-# ---------------------------------------------------------------------------
+_DEFT_CACHE_RATIONALE = (
+    "\n# Triage v1 local content cache (#845, #883). Mirrors upstream\n"
+    "# issues into .deft-cache/github-issue/<owner>/<repo>/<N>/. See\n"
+    "# docs/privacy-nfr.md for the gitignore-default + opt-in-commit-cache\n"
+    "# contract. Comment this line out to opt in to committing the cache.\n"
+)
+_EVAL_DIR_RATIONALE = (
+    "\n# Triage v1 audit/eval scratch (#915). Holds candidates.jsonl + transient\n"
+    "# evaluation artefacts written by triage actions. Per-machine operator state;\n"
+    "# never versioned (would leak triage timing/identity). Comment this line out\n"
+    "# to opt in to committing the audit log.\n"
+)
+
+
+def step_ensure_gitignore_entry(project_root: Path) -> StepOutcome:
+    """Append ``.deft-cache/`` to ``.gitignore`` when absent."""
+
+    return _ensure_gitignore_line(
+        project_root / ".gitignore",
+        GITIGNORE_LINE,
+        step_name="ensure_gitignore_entry",
+        create_if_missing=True,
+        rationale_block=_DEFT_CACHE_RATIONALE,
+        opt_in_message=(
+            f"{GITIGNORE_LINE} is commented out (operator has opted in to "
+            "commit the cache per docs/privacy-nfr.md NFR-2; not re-adding)"
+        ),
+    )
 
 
 def step_ensure_gitignore_eval_dir(project_root: Path) -> StepOutcome:
-    """Append ``vbrief/.eval/`` to ``.gitignore`` when absent (#915).
+    """Append ``vbrief/.eval/`` to ``.gitignore`` when absent (#915)."""
 
-    Companion to :func:`step_ensure_gitignore_entry`: ensures the
-    triage audit / eval scratch directory is git-ignored on projects that
-    pre-date the v0.25.2 ``.gitignore`` shipped with #915. Idempotent --
-    a re-run is a no-op when the line is already present (active or
-    commented-out per the NFR-2 opt-in convention used for ``.deft-cache/``).
-
-    Sequenced AFTER :func:`step_ensure_gitignore_entry` so on a greenfield
-    project the parent step has already created ``.gitignore`` with at
-    least the ``.deft-cache/`` line; we then append the eval-dir entry to
-    the same file. On an upgrading project (``.gitignore`` exists, neither
-    line present) both steps still land their own entry.
-    """
-    gitignore_path = project_root / ".gitignore"
-    if not gitignore_path.exists():
-        # The companion step is supposed to create .gitignore on a greenfield
-        # project; if we still see no file here, surface ok=False so callers
-        # inspecting result.steps[3].ok directly see the step did not achieve
-        # its goal -- the prior step's ok=False already drives the aggregate
-        # exit code, but a direct caller (or future event consumer) that pins
-        # on per-step ok needs an honest signal here.
-        return StepOutcome(
-            name="ensure_gitignore_eval_dir",
-            ok=False,
-            message=(
-                ".gitignore not present after ensure_gitignore_entry; "
-                f"{GITIGNORE_EVAL_LINE} not written -- re-run bootstrap to retry"
-            ),
-            error="prior ensure_gitignore_entry step did not create .gitignore",
-            details={"created": False, "appended": False, "skipped": "no-gitignore"},
-        )
-
-    try:
-        existing = gitignore_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as exc:
-        return StepOutcome(
-            name="ensure_gitignore_eval_dir",
-            ok=False,
-            message="could not read .gitignore",
-            error=str(exc),
-        )
-
-    has_commented_form = any(
-        _is_commented_gitignore_line(raw, GITIGNORE_EVAL_LINE) for raw in existing.splitlines()
-    )
-
-    if _gitignore_already_covers(existing, GITIGNORE_EVAL_LINE):
-        return StepOutcome(
-            name="ensure_gitignore_eval_dir",
-            ok=True,
-            message=f"{GITIGNORE_EVAL_LINE} already in .gitignore (no-op)",
-            details={"created": False, "appended": False, "already_present": True},
-        )
-
-    if has_commented_form:
-        return StepOutcome(
-            name="ensure_gitignore_eval_dir",
-            ok=True,
-            message=(
-                f"{GITIGNORE_EVAL_LINE} is commented out (operator opt-in to "
-                "commit triage audit/eval scratch; not re-adding)"
-            ),
-            details={
-                "created": False,
-                "appended": False,
-                "opt_in_commit_eval": True,
-            },
-        )
-
-    suffix = "" if existing.endswith("\n") or existing == "" else "\n"
-    new_content = (
-        existing
-        + suffix
-        + "\n# Triage v1 audit/eval scratch (#915). Holds candidates.jsonl + transient\n"
-        + "# evaluation artefacts written by triage actions. Per-machine operator state;\n"
-        + "# never versioned (would leak triage timing/identity). Comment this line out\n"
-        + "# to opt in to committing the audit log.\n"
-        + GITIGNORE_EVAL_LINE
-        + "\n"
-    )
-    try:
-        gitignore_path.write_text(new_content, encoding="utf-8")
-    except OSError as exc:
-        return StepOutcome(
-            name="ensure_gitignore_eval_dir",
-            ok=False,
-            message="could not write .gitignore",
-            error=str(exc),
-        )
-    return StepOutcome(
-        name="ensure_gitignore_eval_dir",
-        ok=True,
-        message=f"appended {GITIGNORE_EVAL_LINE} to .gitignore",
-        details={"created": False, "appended": True},
-    )
-
-
-# ---------------------------------------------------------------------------
-# Step 4 -- ensure gitcrawl is installed (best-effort)
-# ---------------------------------------------------------------------------
-
-#: Fields ``gitcrawl`` exposes that the ``gh`` CLI fallback path does NOT.
-#: When the bootstrap defers gitcrawl installation, the consumer's triage
-#: surface degrades to a ``gh``-only fetch path and these fields are no
-#: longer available -- the structured outcome surfaces the gap so the user
-#: knows what they are missing in the gh-only mode (see
-#: ``docs/gitcrawl-fallback.md`` for the user-facing explanation).
-GITCRAWL_ONLY_FIELDS = ("body_html", "reactions", "comments_full")
-
-#: Canonical install hint surfaced in the deferred ``StepOutcome.details``
-#: and the user-visible status line. ``uv`` is the preferred path because it
-#: is already a deft requirement (#901); ``pipx`` is the historical fallback.
-GITCRAWL_INSTALL_HINT = (
-    "Install manually: uv tool install gitcrawl  OR  pipx install gitcrawl"
-)
-
-#: Canonical name for the gh-only fallback mode surfaced via
-#: ``StepOutcome.details['falling_back_to']``.
-GITCRAWL_FALLBACK_MODE = "gh-only"
-
-
-def _gitcrawl_deferred_outcome(
-    *,
-    action: str,
-    reason: str,
-    error: str | None = None,
-    uv_attempted: bool = False,
-    pipx_attempted: bool = False,
-) -> StepOutcome:
-    """Build the canonical structured deferred outcome for ``step_ensure_gitcrawl``.
-
-    Centralised so every deferred branch (no installer / install raised /
-    install exited non-zero) emits the same user-visible status line shape
-    AND the same ``details`` payload (#901). The payload is consumed by
-    downstream tooling and tests, so the keys are intentionally stable.
-
-    Args:
-        action: Sub-state key (``deferred-no-pipx`` / ``deferred-no-installer``
-            / ``deferred-install-failed``) used by tests and the
-            ``--json`` emitter to distinguish branches without re-parsing
-            the message.
-        reason: Short branch-specific reason fragment spliced into the
-            user-visible status line (e.g. ``"neither uv nor pipx on PATH"``).
-        error: Optional captured stderr / exception text for the
-            ``StepOutcome.error`` field (truncated by the caller).
-        uv_attempted: True when the bootstrap reached the ``uv`` install
-            subprocess (regardless of outcome).
-        pipx_attempted: True when the bootstrap reached the ``pipx`` install
-            subprocess (regardless of outcome).
-    """
-    missing_fields = list(GITCRAWL_ONLY_FIELDS)
-    message = (
-        f"deferred -- gitcrawl unavailable on this platform ({reason}); "
-        f"falling back to {GITCRAWL_FALLBACK_MODE} mode for triage "
-        f"(missing: {', '.join(missing_fields)}). "
-        f"{GITCRAWL_INSTALL_HINT}"
-    )
-    return StepOutcome(
-        name="ensure_gitcrawl",
-        ok=True,
-        message=message,
-        error=error,
-        details={
-            "installed": False,
-            "action": action,
-            "falling_back_to": GITCRAWL_FALLBACK_MODE,
-            "missing_fields": missing_fields,
-            "install_hint": GITCRAWL_INSTALL_HINT,
-            "uv_attempted": uv_attempted,
-            "pipx_attempted": pipx_attempted,
-        },
-    )
-
-
-def _try_install_gitcrawl(installer: str, argv: list[str]) -> tuple[bool, str | None]:
-    """Run ``argv`` to install gitcrawl; return (success, error_text).
-
-    Returns ``(True, None)`` on a clean success. On any failure (subprocess
-    error or non-zero exit) returns ``(False, <captured error text>)`` so
-    the caller can decide whether to fall through to the next installer.
-    The ``installer`` arg is only used to label the captured error text
-    (e.g. ``uv: ...`` / ``pipx: ...``).
-    """
-    try:
-        proc = subprocess.run(  # noqa: S603 -- explicit args, no shell
-            argv,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=120,
-        )
-    except (subprocess.SubprocessError, OSError) as exc:
-        return False, f"{installer}: {type(exc).__name__}: {exc}"
-    if proc.returncode == 0:
-        return True, None
-    captured = (proc.stderr or proc.stdout or "").strip()[:512]
-    return False, f"{installer}: exit {proc.returncode} {captured}".strip()
-
-
-def step_ensure_gitcrawl(skip: bool = False) -> StepOutcome:
-    """Install ``gitcrawl`` when missing.
-
-    ``gitcrawl`` is the GitHub-aware crawler Story 1 prefers when populating
-    the cache (with a fallback to ``gh issue list`` when absent). The bootstrap
-    tries ``uv tool install gitcrawl`` FIRST (#901 -- ``uv`` is already a
-    deft requirement), and only falls back to ``pipx install gitcrawl`` when
-    ``uv`` is unavailable or the ``uv`` install fails. When BOTH installers
-    fail (or neither is on PATH), the step defers with a structured
-    :class:`StepOutcome` whose ``details`` payload surfaces:
-
-    - ``falling_back_to``: the canonical fallback mode (``"gh-only"``).
-    - ``missing_fields``: the list of fields the ``gh``-only path cannot
-      provide that ``gitcrawl`` would (``body_html``, ``reactions``,
-      ``comments_full``).
-    - ``install_hint``: a one-line manual-install hint for the operator.
-
-    The deferred status line is intentionally part of the recap stdout (not
-    a ``--verbose``-only diagnostic) so a Windows consumer who hits this
-    path on first ``task triage:bootstrap`` SEES that the gitcrawl install
-    deferred AND knows what fields they are missing in the gh-only fallback.
-    See ``docs/gitcrawl-fallback.md`` for the user-facing explanation of
-    the gh-only field gap.
-
-    Installation is best-effort: the bootstrap does NOT fail if gitcrawl
-    can't be installed because Story 1 has a documented ``gh issue list``
-    fallback.
-
-    The ``skip`` flag is a test-only escape hatch; CLI consumers should not
-    pass it.
-    """
-    if skip:
-        return StepOutcome(
-            name="ensure_gitcrawl",
-            ok=True,
-            message="skipped (--skip-gitcrawl flag set)",
-            details={"skipped": "flag"},
-        )
-
-    if shutil.which("gitcrawl") is not None:
-        return StepOutcome(
-            name="ensure_gitcrawl",
-            ok=True,
-            message="already on PATH (no-op)",
-            details={"installed": True, "action": "noop"},
-        )
-
-    # ---- Phase 1: try ``uv tool install gitcrawl`` ------------------------
-    # uv is preferred over pipx because it is already a deft requirement;
-    # asking the user to also install pipx is a needless second hurdle on
-    # Windows where pipx is rarely pre-installed (#901).
-    uv = shutil.which("uv")
-    uv_attempted = False
-    uv_error: str | None = None
-    if uv is not None:
-        uv_attempted = True
-        ok, uv_error = _try_install_gitcrawl("uv", [uv, "tool", "install", "gitcrawl"])
-        if ok:
-            return StepOutcome(
-                name="ensure_gitcrawl",
-                ok=True,
-                message="installed via uv tool install",
-                details={
-                    "installed": True,
-                    "action": "uv-install",
-                    "uv_attempted": True,
-                    "pipx_attempted": False,
-                },
-            )
-
-    # ---- Phase 2: fall back to ``pipx install gitcrawl`` ------------------
-    pipx = shutil.which("pipx")
-    pipx_attempted = False
-    pipx_error: str | None = None
-    if pipx is not None:
-        pipx_attempted = True
-        ok, pipx_error = _try_install_gitcrawl("pipx", [pipx, "install", "gitcrawl"])
-        if ok:
-            return StepOutcome(
-                name="ensure_gitcrawl",
-                ok=True,
-                message=(
-                    "installed via pipx"
-                    + (" (uv attempt failed; see error)" if uv_attempted else "")
-                ),
-                error=uv_error if uv_attempted else None,
-                details={
-                    "installed": True,
-                    "action": "pipx-install",
-                    "uv_attempted": uv_attempted,
-                    "pipx_attempted": True,
-                },
-            )
-
-    # ---- Phase 3: defer with a structured outcome -------------------------
-    # Branch A: neither installer was on PATH. Preserve the historical
-    # ``deferred-no-pipx`` action key so existing consumers that pin on it
-    # keep working; the new structured fields (``falling_back_to`` /
-    # ``missing_fields`` / ``install_hint``) ride alongside.
-    if not uv_attempted and not pipx_attempted:
-        return _gitcrawl_deferred_outcome(
-            action="deferred-no-pipx",
-            reason="neither uv nor pipx on PATH",
-            uv_attempted=False,
-            pipx_attempted=False,
-        )
-
-    # Branch B: at least one installer was attempted and failed. Surface
-    # the captured error text(s) so the operator can diagnose without
-    # re-running with --verbose.
-    error_parts: list[str] = []
-    if uv_error:
-        error_parts.append(uv_error)
-    if pipx_error:
-        error_parts.append(pipx_error)
-    combined_error = " | ".join(error_parts)[:1024] or None
-
-    if uv_attempted and not pipx_attempted:
-        # uv failed; pipx not available to retry.
-        reason = "uv install failed and pipx not on PATH"
-    elif not uv_attempted and pipx_attempted:
-        # uv missing; pipx was tried and failed (matches the legacy
-        # pre-#901 single-installer failure path).
-        reason = "pipx install failed and uv not on PATH"
-    else:
-        reason = "both uv and pipx install attempts failed"
-
-    return _gitcrawl_deferred_outcome(
-        action="deferred-install-failed",
-        reason=reason,
-        error=combined_error,
-        uv_attempted=uv_attempted,
-        pipx_attempted=pipx_attempted,
+    return _ensure_gitignore_line(
+        project_root / ".gitignore",
+        GITIGNORE_EVAL_LINE,
+        step_name="ensure_gitignore_eval_dir",
+        create_if_missing=False,
+        rationale_block=_EVAL_DIR_RATIONALE,
+        opt_in_message=(
+            f"{GITIGNORE_EVAL_LINE} is commented out (operator opt-in to "
+            "commit triage audit/eval scratch; not re-adding)"
+        ),
     )
 
 
@@ -1160,56 +693,38 @@ def run_bootstrap(
     project_root: Path,
     repo: str | None,
     *,
-    skip_gitcrawl: bool = False,
-    limit: int | None = None,
+    cache_module: Any | None = None,
+    batch_size: int | None = None,
+    delay_ms: int | None = None,
     state: str | None = None,
-    labels: tuple[str, ...] | list[str] | None = None,
-    force: bool = False,
-    use_gitcrawl: bool | None = None,
-    ttl_seconds: int | None = None,
+    limit: int | None = None,
 ) -> BootstrapResult:
     """Run the bootstrap pipeline, returning the aggregate result.
 
-    Dispatches the five mutating steps documented in the module docstring
-    (populate_cache, backfill_audit_log, ensure_gitignore_entry,
-    ensure_gitignore_eval_dir, ensure_gitcrawl) and appends one
-    ``StepOutcome`` per step. The recap (``BootstrapResult.summary``)
-    renders in :func:`main` rather than as a separate ``StepOutcome``;
-    ``len(result.steps) == 5`` is the expected post-condition. Pre-#915
-    callers that asserted four entries must update -- the new
-    ``ensure_gitignore_eval_dir`` step is sequenced between
-    ``ensure_gitignore_entry`` and ``ensure_gitcrawl``.
-
-    Separated from :func:`main` so tests drive the function directly
-    without argparse plumbing.
-
-    The ``limit`` / ``state`` / ``labels`` kwargs (#900) and the ``force`` /
-    ``use_gitcrawl`` / ``ttl_seconds`` kwargs (#914) are pass-through
-    to the populate step so the bootstrap shares the same scope-or-filter
-    surface as :func:`triage_cache.populate`. ``repo=None`` triggers
-    inference from ``git remote get-url origin`` inside the populate
-    delegate (the ``--repo`` flag stays optional for the same reason).
+    Dispatches the four mutating steps documented in the module
+    docstring (populate_cache, backfill_audit_log,
+    ensure_gitignore_entry, ensure_gitignore_eval_dir) and appends one
+    :class:`StepOutcome` per step. ``len(result.steps) == 4`` is the
+    expected post-condition.
     """
+
     result = BootstrapResult(project_root=project_root, repo=repo)
 
     result.steps.append(
         step_populate_cache(
             project_root,
             repo,
-            limit=limit,
+            cache_module=cache_module,
+            batch_size=batch_size,
+            delay_ms=delay_ms,
             state=state,
-            labels=labels,
-            force=force,
-            use_gitcrawl=use_gitcrawl,
-            ttl_seconds=ttl_seconds,
+            limit=limit,
         )
     )
     result.steps.append(step_backfill_audit_log(project_root, repo))
     result.steps.append(step_ensure_gitignore_entry(project_root))
     result.steps.append(step_ensure_gitignore_eval_dir(project_root))
-    result.steps.append(step_ensure_gitcrawl(skip=skip_gitcrawl))
 
-    # Aggregate exit code: any step with ok=False sets exit 1.
     if any(not step.ok for step in result.steps):
         result.exit_code = 1
     return result
@@ -1219,9 +734,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="triage_bootstrap.py",
         description=(
-            "Idempotent 5-step triage v1 installer (#845 Story 6). Re-runnable "
-            "by design; reversible via `rm -rf .deft-cache/ vbrief/.eval/` and "
-            "removing the .deft-cache/ line from .gitignore."
+            "Idempotent triage v1 installer (#883 Story 3 rebind). "
+            "Re-runnable by design; reversible via "
+            "`rm -rf .deft-cache/ vbrief/.eval/` and removing the "
+            ".deft-cache/ + vbrief/.eval/ lines from .gitignore."
         ),
     )
     parser.add_argument(
@@ -1236,19 +752,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--repo",
         default=os.environ.get("DEFT_TRIAGE_REPO"),
         help=(
-            "Upstream repo slug 'owner/name'. Resolution precedence (#900): "
+            "Upstream repo slug 'owner/name'. Resolution precedence: "
             "(1) this explicit flag; (2) the DEFT_TRIAGE_REPO env var; "
-            "(3) inferred from `git remote get-url origin` inside the "
-            "populate step. Bootstrap remains partial only when all three "
-            "surfaces fail to resolve a slug."
-        ),
-    )
-    parser.add_argument(
-        "--skip-gitcrawl",
-        action="store_true",
-        help=(
-            "Skip step 4 (gitcrawl install). Mainly for test fixtures that "
-            "shouldn't shell out to pipx."
+            "(3) inferred from `git remote get-url origin` inside the populate "
+            "step. Bootstrap remains partial only when all three surfaces "
+            "fail to resolve a slug."
         ),
     )
     parser.add_argument(
@@ -1256,62 +764,29 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help=(
-            "Cap on the number of issues fetched in the populate step "
-            "(#900). Forwarded to triage_cache.populate(limit=...). Omit "
-            "for the documented gh page-size cap."
+            "Cap on the number of issues fetched (forwarded to "
+            "cache:fetch-all --limit)."
         ),
     )
     parser.add_argument(
         "--state",
         default=None,
         choices=["open", "closed", "all"],
-        help=(
-            "Issue state filter forwarded to triage_cache.populate (#900). "
-            "Defaults to triage_cache's default ('open')."
-        ),
+        help="Issue state filter forwarded to cache:fetch-all --state.",
     )
     parser.add_argument(
-        "--label",
-        action="append",
-        default=None,
-        dest="labels",
-        help=(
-            "Filter to issues carrying this label (#900). Repeatable -- "
-            "each occurrence is forwarded as a separate `--label <name>` "
-            "flag, which gh treats as logical AND across repeated flags."
-        ),
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help=(
-            "Re-write all cached entries even when fresh (#914). Forwarded "
-            "to triage_cache.populate(force=True). Without this flag the "
-            "populate step is cheap and idempotent: entries younger than "
-            "--ttl-seconds are skipped."
-        ),
-    )
-    parser.add_argument(
-        "--use-gitcrawl",
-        action="store_true",
-        dest="use_gitcrawl",
-        help=(
-            "Use the gitcrawl backend for the populate fetch instead of "
-            "the default gh CLI (#914). Forwarded to "
-            "triage_cache.populate(use_gitcrawl=True); errors loudly when "
-            "gitcrawl is not on PATH."
-        ),
-    )
-    parser.add_argument(
-        "--ttl-seconds",
+        "--batch-size",
         type=int,
         default=None,
-        dest="ttl_seconds",
-        help=(
-            "Freshness window for the populate step in seconds (#914). "
-            "Forwarded to triage_cache.populate(ttl_seconds=...); omit "
-            "for triage_cache's default (24h)."
-        ),
+        dest="batch_size",
+        help="Forwarded to cache:fetch-all --batch-size.",
+    )
+    parser.add_argument(
+        "--delay-ms",
+        type=int,
+        default=None,
+        dest="delay_ms",
+        help="Forwarded to cache:fetch-all --delay-ms.",
     )
     parser.add_argument(
         "--json",
@@ -1326,7 +801,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _emit_json(result: BootstrapResult) -> str:
-    """Render the structured ``--json`` payload (pinned by tests)."""
+    """Render the structured ``--json`` payload."""
+
     payload = {
         "project_root": str(result.project_root),
         "repo": result.repo,
@@ -1361,17 +837,10 @@ def main(argv: list[str] | None = None) -> int:
     result = run_bootstrap(
         project_root=project_root,
         repo=args.repo,
-        skip_gitcrawl=args.skip_gitcrawl,
-        limit=args.limit,
+        batch_size=args.batch_size,
+        delay_ms=args.delay_ms,
         state=args.state,
-        labels=tuple(args.labels) if args.labels else None,
-        force=args.force,
-        # ``--use-gitcrawl`` is a store_true flag, but we forward ``None`` to
-        # populate when the operator didn't pass it so triage_cache's own
-        # default (gh backend) stays authoritative. Pre-#914 callers see no
-        # behaviour change.
-        use_gitcrawl=True if args.use_gitcrawl else None,
-        ttl_seconds=args.ttl_seconds,
+        limit=args.limit,
     )
 
     if args.emit_json:

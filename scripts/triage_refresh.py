@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-"""triage_refresh.py -- Story 4 pre-swarm freshness gate (#845).
+"""triage_refresh.py -- Story 4 pre-swarm freshness gate (#883 Story 3 rebind).
 
 Implements ``task triage:refresh-active``:
 
-1. Walks ``vbrief/active/*.vbrief.json`` and extracts ``x-vbrief/github-issue``
-   references.
-2. For every (repo, issue) pair, compares the cached ``updatedAt`` (Story 1
-   ``triage_cache``) against a live ``gh issue view <N> --json updatedAt``.
+1. Walks ``vbrief/active/*.vbrief.json`` and extracts
+   ``x-vbrief/github-issue`` references.
+2. For every (repo, issue) pair, reads the cached ``meta.json.fetched_at``
+   via :func:`scripts.cache.cache_get` (#883 Story 2) and compares it to a
+   live ``gh issue view <N> --json updatedAt``. Drift exists when the
+   upstream ``updatedAt`` is newer than the cached ``fetched_at`` (the
+   issue moved after we mirrored it) OR when the cache has no entry for
+   the issue at all.
 3. Surfaces drifted items via a three-way prompt:
 
    - ``proceed-with-stale``       -- record an audit annotation via Story 2.
-   - ``refresh-and-update-local`` -- call Story 1 ``populate`` for the issue.
+   - ``refresh-and-update-local`` -- call ``cache_put`` with a fresh
+     ``gh issue view`` payload to re-cache the issue.
    - ``defer-from-this-batch``    -- skip the issue; caller decides later.
 
 Empty ``vbrief/active/`` is a no-op (clean exit). The freshness primitive
@@ -33,12 +38,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-# Pre-compiled regex used for both repo + issue extraction. ``re.IGNORECASE``
-# tolerates camelcase URIs that occasionally show up in older vBRIEFs.
+# Pre-compiled regex used for both repo + issue extraction.
 _ISSUE_URL_RE = re.compile(
     r"github\.com/(?P<repo>[^/]+/[^/]+)/issues/(?P<num>\d+)",
     re.IGNORECASE,
 )
+
+#: Cache source consumed by triage v1 (only github-issue is supported).
+_CACHE_SOURCE: str = "github-issue"
 
 
 # ---------------------------------------------------------------------------
@@ -55,12 +62,7 @@ def _iter_active_vbriefs(active_dir: Path) -> list[Path]:
 
 
 def _extract_issue_refs(vbrief_path: Path) -> list[tuple[str, int]]:
-    """Return ``(repo, issue_number)`` tuples extracted from references.
-
-    Only ``x-vbrief/github-issue`` references whose ``uri`` parses as a
-    GitHub issue URL are emitted; everything else is silently ignored so a
-    malformed vBRIEF does not stall the gate.
-    """
+    """Return ``(repo, issue_number)`` tuples extracted from references."""
 
     try:
         data = json.loads(vbrief_path.read_text(encoding="utf-8"))
@@ -88,8 +90,19 @@ def _extract_issue_refs(vbrief_path: Path) -> list[tuple[str, int]]:
 
 
 # ---------------------------------------------------------------------------
-# Drift detection
+# Cache module loader + drift primitives
 # ---------------------------------------------------------------------------
+
+
+def _load_cache_module() -> Any | None:
+    """Return the unified cache module, or ``None`` if not importable."""
+
+    for candidate in ("cache", "scripts.cache"):
+        try:
+            return importlib.import_module(candidate)
+        except ModuleNotFoundError:
+            continue
+    return None
 
 
 @dataclass(frozen=True)
@@ -98,7 +111,7 @@ class DriftRecord:
 
     repo: str
     issue_number: int
-    cached_updated_at: str | None
+    cached_fetched_at: str | None
     live_updated_at: str
     vbrief_path: Path
 
@@ -116,39 +129,76 @@ def _fetch_live_updated_at(repo: str, issue_number: int) -> str:
         "--json",
         "updatedAt",
     ]
-    completed = subprocess.run(cmd, capture_output=True, text=True, check=True)  # noqa: S603
+    completed = subprocess.run(  # noqa: S603
+        cmd, capture_output=True, text=True, check=True
+    )
     payload = json.loads(completed.stdout or "{}")
     return str(payload.get("updatedAt") or "")
 
 
-def _load_cached_updated_at(
+def _load_cached_fetched_at(
     repo: str,
     issue_number: int,
     project_root: Path,
+    *,
+    cache_module: Any | None = None,
 ) -> str | None:
-    """Read cached ``updatedAt`` from the Story 1 cache layout.
+    """Read cached ``meta.json.fetched_at`` via :func:`scripts.cache.cache_get`.
 
-    Story 1 writes ``.deft-cache/issues/<owner>-<repo>/<N>.json`` -- mirrored
-    here so this gate can run before Story 1's reader API stabilises.
-    Returns ``None`` if the cache file is missing or unreadable.
+    Returns ``None`` when the cache entry is missing, when the cache module
+    is not importable, or when the entry's meta.json fails schema
+    validation. Callers treat ``None`` as "drift" (the cache cannot vouch
+    for the issue's current state).
     """
 
-    owner_repo = repo.replace("/", "-")
-    cache_path = project_root / ".deft-cache" / "issues" / owner_repo / f"{issue_number}.json"
-    if not cache_path.is_file():
+    cache_mod = cache_module if cache_module is not None else _load_cache_module()
+    if cache_mod is None:
         return None
+    cache_get = getattr(cache_mod, "cache_get", None)
+    if not callable(cache_get):
+        return None
+    not_found_exc = getattr(cache_mod, "CacheNotFoundError", LookupError)
+    validation_exc = getattr(cache_mod, "CacheValidationError", ValueError)
+    cache_error_exc = getattr(cache_mod, "CacheError", RuntimeError)
+    key = f"{repo}/{int(issue_number)}"
     try:
-        data = json.loads(cache_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        result = cache_get(
+            _CACHE_SOURCE,
+            key,
+            cache_root=project_root / ".deft-cache",
+            allow_stale=True,
+        )
+    except not_found_exc:  # type: ignore[misc]
         return None
-    if not isinstance(data, dict):
+    except (validation_exc, cache_error_exc):  # type: ignore[misc]
         return None
-    value = data.get("updatedAt")
+    meta = getattr(result, "meta", None)
+    if not isinstance(meta, dict):
+        return None
+    value = meta.get("fetched_at")
     return str(value) if value is not None else None
 
 
 FetchLive = Callable[[str, int], str]
 CacheLoader = Callable[[str, int, Path], str | None]
+
+
+def _is_drift(cached_fetched_at: str | None, live_updated_at: str) -> bool:
+    """Return True iff the live timestamp postdates the cached fetch.
+
+    Missing-cache (``cached_fetched_at`` is None) is always drift -- the
+    cache has nothing to vouch for. Empty live timestamps short-circuit to
+    no-drift so a malformed gh response cannot fabricate a drift signal.
+    """
+
+    if not live_updated_at:
+        return False
+    if cached_fetched_at is None:
+        return True
+    # ISO-8601 strings sort lexicographically when both carry the canonical
+    # ``Z`` suffix. cache.py's ``_utc_iso`` and gh's ``updatedAt`` both emit
+    # the Z form, so a string comparison is correct.
+    return live_updated_at > cached_fetched_at
 
 
 def detect_drift(
@@ -163,25 +213,16 @@ def detect_drift(
 ) -> list[DriftRecord]:
     """Walk active vBRIEFs and return drifted (repo, issue) records.
 
-    Repo+issue pairs are deduplicated -- the same issue referenced from two
-    vBRIEFs surfaces only once (the first encountered ``vbrief_path`` wins).
-
-    Live-fetch failures (network / auth / malformed gh response) DO NOT
-    silently disappear: every skip is logged to ``out`` and (when supplied)
-    appended to ``skipped_out`` as ``(repo, issue, reason)``. This closes the
-    Greptile P1 on PR #875 where a wholesale fetch outage masqueraded as
-    ``all N fresh``.
-
-    When ``checked_out`` is supplied, every unique ``(repo, issue)`` pair the
-    detector visited is appended to it. Callers use this to denominate the
-    skipped-fetch warning in ``(issue-pairs, issue-pairs)`` units rather than
-    against the vBRIEF file count -- the latter would render nonsensical
-    fractions when one vBRIEF carries multiple issue references (Greptile P1
-    on PR #875 second pass).
+    Drift is computed against ``meta.json.fetched_at`` -- the issue's
+    upstream ``updatedAt`` is compared against the cache's record of when
+    we last mirrored it. A live-fetch failure (network / auth / malformed
+    gh response) is logged on ``out`` and recorded in ``skipped_out``;
+    callers treat skips as ``unverified`` rather than ``fresh`` so an
+    outage cannot masquerade as freshness.
     """
 
     fetch_live = fetch_live or _fetch_live_updated_at
-    cache_loader = cache_loader or _load_cached_updated_at
+    cache_loader = cache_loader or _load_cached_fetched_at
     sink = out or sys.stderr
 
     drifts: list[DriftRecord] = []
@@ -199,25 +240,21 @@ def detect_drift(
             try:
                 live = fetch_live(repo, num)
             except (subprocess.CalledProcessError, json.JSONDecodeError, OSError) as exc:
-                # Surface the skip explicitly -- a silent skip would let a
-                # wholesale outage masquerade as freshness (Greptile P1).
                 reason = f"{type(exc).__name__}: {exc}"
                 print(
-                    (
-                        f"[triage:refresh-active] WARN: live fetch skipped for "
-                        f"{repo}#{num} ({reason})"
-                    ),
+                    f"[triage:refresh-active] WARN: live fetch skipped for "
+                    f"{repo}#{num} ({reason})",
                     file=sink,
                 )
                 if skipped_out is not None:
                     skipped_out.append((repo, num, reason))
                 continue
-            if cached != live:
+            if _is_drift(cached, live):
                 drifts.append(
                     DriftRecord(
                         repo=repo,
                         issue_number=num,
-                        cached_updated_at=cached,
+                        cached_fetched_at=cached,
                         live_updated_at=live,
                         vbrief_path=vbrief,
                     )
@@ -247,8 +284,8 @@ def _prompt_user(
 
     sink = out or sys.stdout
     print(f"\nDrift detected for {drift.repo}#{drift.issue_number}:", file=sink)
-    print(f"  cached updatedAt: {drift.cached_updated_at!r}", file=sink)
-    print(f"  live   updatedAt: {drift.live_updated_at!r}", file=sink)
+    print(f"  cached fetched_at: {drift.cached_fetched_at!r}", file=sink)
+    print(f"  live   updatedAt:  {drift.live_updated_at!r}", file=sink)
     print(f"  vBRIEF: {drift.vbrief_path}", file=sink)
     print("  1) proceed-with-stale", file=sink)
     print("  2) refresh-and-update-local", file=sink)
@@ -261,36 +298,60 @@ def _refresh_and_update_local(
     repo: str,
     issue_number: int,
     project_root: Path,
+    *,
+    cache_module: Any | None = None,
 ) -> None:
-    """Invoke Story 1 ``triage_cache.populate`` for a single issue.
+    """Re-cache ``repo#issue_number`` via :func:`scripts.cache.cache_put`.
 
-    Tolerates an absent module (Story 1 not yet landed); the caller logs the
-    refreshed status from the surrounding context.
+    Fetches a fresh ``gh issue view`` payload and writes it through the
+    unified cache so the next freshness pass observes the up-to-date
+    ``meta.json.fetched_at``. Tolerates an absent cache module (Story 2
+    not yet on the branch); the caller logs the refreshed status from
+    the surrounding context.
     """
 
-    cache_mod: Any | None = None
-    for candidate in ("triage_cache", "scripts.triage_cache"):
-        try:
-            cache_mod = importlib.import_module(candidate)
-            break
-        except ModuleNotFoundError:
-            continue
+    cache_mod = cache_module if cache_module is not None else _load_cache_module()
     if cache_mod is None:
         return
-    populate = getattr(cache_mod, "populate", None)
-    if not callable(populate):
+    cache_put = getattr(cache_mod, "cache_put", None)
+    if not callable(cache_put):
         return
-    # Story 1 contracted signature is ``populate(repo, force=False)`` -- this
-    # call narrows to a single issue via kwargs. If the signature is stricter,
-    # fall back to a whole-repo refresh so the operator gets *some* freshness
-    # signal rather than a silent failure.
+
+    cmd = [
+        "gh",
+        "issue",
+        "view",
+        str(issue_number),
+        "--repo",
+        repo,
+        "--json",
+        "number,title,body,state,labels,author,createdAt,updatedAt,url",
+    ]
     try:
-        populate(repo, issue_number=issue_number, project_root=project_root)
-    except TypeError:
-        try:
-            populate(repo, force=True)
-        except TypeError:
-            populate(repo)
+        completed = subprocess.run(  # noqa: S603
+            cmd, capture_output=True, text=True, check=True
+        )
+    except (subprocess.SubprocessError, OSError):
+        return
+    try:
+        raw = json.loads(completed.stdout or "{}")
+    except json.JSONDecodeError:
+        return
+    if not isinstance(raw, dict):
+        return
+    if "number" not in raw or not isinstance(raw["number"], int):
+        raw["number"] = int(issue_number)
+
+    key = f"{repo}/{int(issue_number)}"
+    try:
+        cache_put(
+            _CACHE_SOURCE,
+            key,
+            raw,
+            cache_root=project_root / ".deft-cache",
+        )
+    except Exception:  # noqa: BLE001 -- best-effort refresh
+        return
 
 
 def _record_audit_annotation(
@@ -304,31 +365,10 @@ def _record_audit_annotation(
 ) -> None:
     """Append a ``freshness-annotation`` entry via Story 2's ``candidates_log``.
 
-    No-op if Story 2 isn't on the import path (the surrounding stdout line is
-    still the user-visible signal).
-
-    Story 2 (``candidates_log``) ships a FROZEN decision vocabulary --
-    ``{accept, reject, defer, needs-ac, mark-duplicate, reset}`` -- and a
-    hand-rolled ``_validate_entry`` that raises ``CandidatesLogError`` (a
-    ``ValueError`` subclass) when an entry's ``decision`` falls outside that
-    set or required fields are missing. ``freshness-annotation`` is a
-    deliberate Story 4 extension that Story 2 does not yet recognize. Pre-
-    rebase this code stubbed ``candidates_log`` so the schema mismatch never
-    surfaced; post-rebase the real Story 2 module catches it and would
-    propagate the exception through ``refresh_active`` and crash the CLI on
-    every ``proceed-with-stale`` choice (Greptile P1, PR #875).
-
-    Defensive contract:
-
-    - Generate a UUID4 ``decision_id`` (using Story 2's ``new_decision_id`` if
-      exposed) so the entry satisfies the required-fields portion of the
-      schema even when the decision-enum portion will reject it.
-    - Wrap ``append`` in ``try/except`` catching ``ValueError`` (the parent of
-      ``CandidatesLogError``) so a schema mismatch degrades to a stderr
-      warning rather than a fatal exception. The user-visible stdout line in
-      :func:`refresh_active` (``proceed-with-stale (audit recorded)``) is
-      still emitted by the caller; the operator now sees a clear ``WARN``
-      explaining the annotation was not persisted.
+    No-op if Story 2 isn't on the import path. Story 2 ships a FROZEN
+    decision vocabulary so the schema rejects the ``freshness-annotation``
+    decision; the rejection is degraded to a stderr WARN rather than a
+    fatal exception (Greptile P1, PR #875).
     """
 
     sink = out or sys.stderr
@@ -360,19 +400,13 @@ def _record_audit_annotation(
     try:
         append(entry)
     except ValueError as exc:
-        # ``candidates_log.CandidatesLogError`` is a ``ValueError`` subclass.
-        # Catching the parent class keeps us decoupled from importing the
-        # exception type and survives a future enum extension that drops the
-        # subclass alias.
         print(
-            (
-                f"[triage:refresh-active] WARN: audit annotation for "
-                f"{repo}#{issue_number} not persisted -- candidates_log "
-                f"rejected the entry ({type(exc).__name__}: {exc}). The "
-                f"proceed-with-stale choice has been logged to stdout but "
-                f"the JSONL trail does not yet recognize 'freshness-"
-                f"annotation'; extend the Story 2 schema to capture it."
-            ),
+            f"[triage:refresh-active] WARN: audit annotation for "
+            f"{repo}#{issue_number} not persisted -- candidates_log "
+            f"rejected the entry ({type(exc).__name__}: {exc}). The "
+            f"proceed-with-stale choice has been logged to stdout but "
+            f"the JSONL trail does not yet recognize 'freshness-"
+            f"annotation'; extend the Story 2 schema to capture it.",
             file=sink,
         )
 
@@ -384,13 +418,7 @@ def _record_audit_annotation(
 
 @dataclass
 class FreshnessSummary:
-    """Aggregate result of a ``refresh_active`` call.
-
-    ``skipped`` (added per Greptile review on PR #875): records every (repo,
-    issue) pair whose live ``gh issue view`` fetch errored out. Surfacing the
-    count prevents the false ``all N fresh`` signal that would otherwise fire
-    when a network/auth outage zeroes out the drift list.
-    """
+    """Aggregate result of a ``refresh_active`` call."""
 
     total_active: int
     drifts_detected: int
@@ -415,12 +443,7 @@ def refresh_active(
     audit_writer: AuditWriter | None = None,
     out: Any | None = None,
 ) -> FreshnessSummary:
-    """Run the freshness gate end-to-end. Returns a :class:`FreshnessSummary`.
-
-    Empty ``vbrief/active/`` is a no-op. Each drift surface routes through the
-    three-way prompt; ``proceed-with-stale`` records an audit annotation via
-    Story 2.
-    """
+    """Run the freshness gate end-to-end. Returns a :class:`FreshnessSummary`."""
 
     sink = out or sys.stdout
     active_dir = active_dir or (project_root / "vbrief" / "active")
@@ -446,19 +469,11 @@ def refresh_active(
     skipped_pairs = [(repo, num) for (repo, num, _reason) in skipped_records]
     if not drifts:
         if skipped_pairs:
-            # Greptile P1 fix on PR #875: never claim ``all fresh`` when one
-            # or more live fetches errored -- the cached state is unverified.
-            # Greptile P1 second pass: denominate against checked (repo, issue)
-            # pair count, NOT vBRIEF file count, so a single vBRIEF with three
-            # failing refs reads as ``3 of 3 ... skipped`` instead of the
-            # nonsensical ``3 of 1``.
             print(
-                (
-                    f"[triage:refresh-active] WARN: no drift detected, but "
-                    f"{len(skipped_pairs)} of {len(checked_pairs)} "
-                    f"(repo, issue) fetch(es) were skipped (treat freshness "
-                    f"signal as unverified)"
-                ),
+                f"[triage:refresh-active] WARN: no drift detected, but "
+                f"{len(skipped_pairs)} of {len(checked_pairs)} "
+                f"(repo, issue) fetch(es) were skipped (treat freshness "
+                f"signal as unverified)",
                 file=sink,
             )
         else:
@@ -478,36 +493,28 @@ def refresh_active(
             audit_writer(
                 drift.repo,
                 drift.issue_number,
-                (
-                    f"proceed-with-stale: cached={drift.cached_updated_at} "
-                    f"live={drift.live_updated_at}"
-                ),
+                f"proceed-with-stale: cached_fetched_at={drift.cached_fetched_at} "
+                f"live_updated_at={drift.live_updated_at}",
             )
             summary.proceeded.append((drift.repo, drift.issue_number))
             print(
-                (
-                    f"[triage:refresh-active] {drift.repo}#{drift.issue_number} "
-                    "proceed-with-stale (audit recorded)"
-                ),
+                f"[triage:refresh-active] {drift.repo}#{drift.issue_number} "
+                "proceed-with-stale (audit recorded)",
                 file=sink,
             )
         elif choice == "refresh-and-update-local":
             refresh_local(drift.repo, drift.issue_number, project_root)
             summary.refreshed.append((drift.repo, drift.issue_number))
             print(
-                (
-                    f"[triage:refresh-active] {drift.repo}#{drift.issue_number} "
-                    "refreshed-and-updated-local"
-                ),
+                f"[triage:refresh-active] {drift.repo}#{drift.issue_number} "
+                "refreshed-and-updated-local",
                 file=sink,
             )
         else:
             summary.deferred.append((drift.repo, drift.issue_number))
             print(
-                (
-                    f"[triage:refresh-active] {drift.repo}#{drift.issue_number} "
-                    "deferred-from-this-batch"
-                ),
+                f"[triage:refresh-active] {drift.repo}#{drift.issue_number} "
+                "deferred-from-this-batch",
                 file=sink,
             )
     return summary
@@ -521,7 +528,10 @@ def refresh_active(
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="triage_refresh",
-        description="Pre-swarm freshness gate for vbrief/active/ (#845 Story 4)",
+        description=(
+            "Pre-swarm freshness gate for vbrief/active/ "
+            "(#845 Story 4 / #883 Story 3 rebind)"
+        ),
     )
     parser.add_argument(
         "--project-root",
@@ -556,13 +566,12 @@ def main(argv: list[str] | None = None) -> int:
 # reaching into private names. They are intentionally identifier-only -- the
 # implementations live above.
 fetch_live_updated_at: FetchLive = _fetch_live_updated_at
-load_cached_updated_at: CacheLoader = _load_cached_updated_at
+load_cached_fetched_at: CacheLoader = _load_cached_fetched_at
 iter_active_vbriefs: Callable[[Path], list[Path]] = _iter_active_vbriefs
 extract_issue_refs: Callable[[Path], list[tuple[str, int]]] = _extract_issue_refs
 record_audit_annotation: Callable[..., None] = _record_audit_annotation
 
 
-# Avoid the "unused import" warning for re-exported types in static analysers.
 __all__ = [
     "DriftRecord",
     "FreshnessSummary",
@@ -571,7 +580,7 @@ __all__ = [
     "extract_issue_refs",
     "fetch_live_updated_at",
     "iter_active_vbriefs",
-    "load_cached_updated_at",
+    "load_cached_fetched_at",
     "main",
     "record_audit_annotation",
     "refresh_active",

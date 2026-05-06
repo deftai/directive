@@ -1,24 +1,22 @@
-"""tests/integration/test_triage_smoke.py -- end-to-end smoke for #915.
+"""tests/integration/test_triage_smoke.py -- end-to-end smoke for #883 Story 3.
 
-Regression coverage for the v1 cache contract bugfix shipped with #915.
+Regression coverage for the rebind onto the unified `cache:*` surface:
 
-Covers three scenarios end-to-end through ``triage_bulk.main``:
-
-1. ``test_bulk_defer_actions_only_cached`` -- with 5 cached issues AND a
-   fake-gh shim on PATH that would return 50 different live issues, the
-   bulk-defer run actions ONLY the 5 cached issues. The fake-gh shim
-   never executes (the rewritten triage_bulk.py is cache-only), but its
-   presence on PATH proves no live-gh fallback survived the rewrite.
-2. ``test_bulk_defer_idempotent`` -- a second run of bulk-defer over the
-   same cache appends ZERO new audit records (the Tier-2 short-circuit
-   honours the prior `defer` records).
+1. ``test_bulk_defer_actions_only_cached`` -- with N issues populated
+   under ``.deft-cache/github-issue/<owner>/<repo>/<N>/`` AND a fake-gh
+   shim on PATH that would return 50 different live issues, the
+   bulk-defer run actions ONLY the cached issues. The fake-gh shim never
+   executes (the rewritten triage_bulk.py is cache-only), but its
+   presence on PATH proves no live-gh fallback survived the rebind.
+2. ``test_bulk_defer_idempotent`` -- a second run appends ZERO new
+   audit records (the Tier-2 short-circuit honours the prior `defer`
+   records).
 3. ``test_empty_cache_hard_fails`` -- bulk-defer against an empty cache
-   exits 2 with the canonical stderr message ``cache is empty for {repo}``
-   and never appends audit records.
-
-The audit log is redirected to the test's tmp directory by monkeypatching
-``candidates_log.DEFAULT_LOG_PATH`` and the cache root is redirected via
-``triage_cache.DEFAULT_CACHE_ROOT``. No live network calls; deterministic.
+   exits 2 with the canonical stderr message ``cache is empty for {repo}``.
+4. ``test_skill_phase0_references_cache_star`` -- Phase 0 prose
+   references ``cache:*`` (the rebind), references no longer mention the
+   removed ``triage:cache`` task, and the three-tier inventory model is
+   intact.
 """
 
 from __future__ import annotations
@@ -28,7 +26,6 @@ import json
 import os
 import stat
 import sys
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -40,22 +37,20 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 triage_bulk = importlib.import_module("triage_bulk")
-triage_cache = importlib.import_module("triage_cache")
 candidates_log = importlib.import_module("candidates_log")
+cache = importlib.import_module("cache")
 
 
 REPO = "deftai/directive"
-REPO_DIR_NAME = "deftai-directive"
+SKILL = REPO_ROOT / "skills" / "deft-directive-refinement" / "SKILL.md"
 
 
 # ---------------------------------------------------------------------------
-# Fixtures
+# Cache-walk fixtures (unified layout)
 # ---------------------------------------------------------------------------
 
 
 def _cached_issue(number: int, *, label: str = "triage") -> dict[str, Any]:
-    """Build a sidecar payload mirroring ``triage_cache._GH_FIELDS``."""
-    created = (datetime.now(UTC) - timedelta(days=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
     return {
         "number": number,
         "title": f"Cached issue {number}",
@@ -63,42 +58,74 @@ def _cached_issue(number: int, *, label: str = "triage") -> dict[str, Any]:
         "state": "open",
         "labels": [{"name": label}],
         "author": {"login": "octocat"},
-        "createdAt": created,
-        "updatedAt": created,
+        "createdAt": "2026-04-25T00:00:00Z",
+        "updatedAt": "2026-04-25T00:00:00Z",
         "url": f"https://github.com/{REPO}/issues/{number}",
     }
+
+
+def _populate_cache_layout(
+    cache_root: Path, repo: str, issue_numbers: list[int]
+) -> None:
+    """Write the unified-cache layout + meta.json for each issue."""
+
+    owner, name = repo.split("/", 1)
+    base = cache_root / "github-issue" / owner / name
+    base.mkdir(parents=True, exist_ok=True)
+    for n in issue_numbers:
+        edir = base / str(n)
+        edir.mkdir(parents=True, exist_ok=True)
+        payload = _cached_issue(n)
+        (edir / "raw.json").write_text(json.dumps(payload), encoding="utf-8")
+        meta = {
+            "source": "github-issue",
+            "key": f"{repo}/{n}",
+            "fetched_at": "2026-05-05T00:00:00Z",
+            "ttl_seconds": 7 * 24 * 60 * 60,
+            "expires_at": "2099-01-01T00:00:00Z",
+            "scan_result": {
+                "passed": True,
+                "scanned_at": "2026-05-05T00:00:00Z",
+                "scanner_version": "2.0.0",
+                "flags": [],
+            },
+            "size_bytes": len(json.dumps(payload)),
+            "stale": False,
+        }
+        (edir / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
 
 
 @pytest.fixture
 def isolated_runtime(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> tuple[Path, Path]:
-    """Redirect cache root + audit log into ``tmp_path`` for the duration.
+    """Redirect cache root + audit log into ``tmp_path``."""
 
-    Returns ``(cache_root, audit_log_path)`` so the test can assert against
-    the redirected locations. Also installs a fake ``gh`` shim on PATH that
-    would crash with a clear marker if any live-gh call survived the
-    rewrite.
-    """
-    cache_root = tmp_path / ".deft-cache" / "issues"
+    cache_root = tmp_path / ".deft-cache"
     audit_log = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
 
-    monkeypatch.setattr(triage_cache, "DEFAULT_CACHE_ROOT", cache_root)
+    # Redirect the unified cache's default root to tmp.
+    monkeypatch.setattr(cache, "DEFAULT_CACHE_ROOT", cache_root)
     monkeypatch.setattr(candidates_log, "DEFAULT_LOG_PATH", audit_log)
 
-    # Fake-gh shim on PATH: any subprocess call to `gh` from triage_bulk.py
-    # would invoke this and SHOULD never happen post-#915. The shim writes
-    # 50 distinct issue payloads to stdout to mimic a populated remote and
-    # exits 0 -- so a regression that re-introduced the live-gh fallback
-    # would silently action 50 issues and the assertion in the calling
-    # test would fail loudly.
+    # Wrap triage_bulk's list_cached_candidates to read from tmp_path. The
+    # bulk_action() caller passes ``cache_root=None`` (from ``main``), and
+    # ``setdefault`` would leave that None in place; force-set instead.
+    original = triage_bulk.list_cached_candidates
+
+    def _scoped_list(repo: str, **kwargs: Any) -> list[dict[str, Any]]:
+        if kwargs.get("cache_root") is None:
+            kwargs["cache_root"] = cache_root
+        return original(repo, **kwargs)
+
+    monkeypatch.setattr(triage_bulk, "list_cached_candidates", _scoped_list)
+
+    # Fake-gh shim on PATH: presence-only canary. A regression that
+    # re-introduced a live-gh fallback would invoke this and surface 50
+    # extra issues into the audit log, making test failures loud.
     fake_path = tmp_path / "fake-bin"
     fake_path.mkdir()
     if sys.platform == "win32":
-        # Windows resolves PATH lookups via PATHEXT; ship both a .cmd
-        # wrapper (covers the bare ``gh`` invocation) and a python script
-        # the .cmd dispatches to, so the canary works regardless of the
-        # subprocess shell argv expansion.
         py_helper = fake_path / "_fake_gh.py"
         py_helper.write_text(_FAKE_GH_PY, encoding="utf-8")
         cmd_wrapper = fake_path / "gh.cmd"
@@ -107,27 +134,24 @@ def isolated_runtime(
             encoding="utf-8",
         )
     else:
-        # Use the full absolute interpreter path in the shebang -- a versioned
-        # `python3.12` form via env(1) can be unresolvable on UV-managed Python
-        # installations or stripped CI images, which would mask the canary's
-        # regression-detection role with a silent exec error (Greptile #920).
         sh_helper = fake_path / "gh"
         sh_helper.write_text(
             f"#!{sys.executable}\n{_FAKE_GH_PY}",
             encoding="utf-8",
         )
-        sh_helper.chmod(sh_helper.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+        sh_helper.chmod(
+            sh_helper.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
+        )
 
-    monkeypatch.setenv("PATH", str(fake_path) + os.pathsep + os.environ.get("PATH", ""))
+    monkeypatch.setenv(
+        "PATH", str(fake_path) + os.pathsep + os.environ.get("PATH", "")
+    )
     return cache_root, audit_log
 
 
 _FAKE_GH_PY = '''import json
 import sys
 
-# Emit 50 distinct "live" issues if anyone actually calls us. The numbers
-# are intentionally disjoint from the test cache (1..5) so any contamination
-# would be obvious in test failures.
 payload = [
     {
         "number": n,
@@ -147,33 +171,18 @@ sys.exit(0)
 '''
 
 
-def _populate_cache(cache_root: Path, count: int = 5) -> list[int]:
-    """Create ``count`` issue sidecars under ``cache_root/<owner-repo>/``."""
-    repo_dir = cache_root / REPO_DIR_NAME
-    repo_dir.mkdir(parents=True, exist_ok=True)
-    numbers = list(range(1, count + 1))
-    for n in numbers:
-        (repo_dir / f"{n}.json").write_text(
-            json.dumps(_cached_issue(n)), encoding="utf-8"
-        )
-    return numbers
-
-
 def _read_audit_records(audit_log: Path) -> list[dict[str, Any]]:
-    """Return the list of audit records currently on disk (or [])."""
     if not audit_log.exists():
         return []
-    records: list[dict[str, Any]] = []
-    for raw in audit_log.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line:
-            continue
-        records.append(json.loads(line))
-    return records
+    return [
+        json.loads(raw)
+        for raw in audit_log.read_text(encoding="utf-8").splitlines()
+        if raw.strip()
+    ]
 
 
 # ---------------------------------------------------------------------------
-# Tests
+# Bulk-defer cache-only invariants
 # ---------------------------------------------------------------------------
 
 
@@ -181,9 +190,9 @@ def test_bulk_defer_actions_only_cached(
     isolated_runtime: tuple[Path, Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """5 cached + 50 fake-live -> exactly 5 actioned, fake-gh never consulted."""
     cache_root, audit_log = isolated_runtime
-    cached_numbers = _populate_cache(cache_root, count=5)
+    cached_numbers = [1, 2, 3, 4, 5]
+    _populate_cache_layout(cache_root, REPO, cached_numbers)
 
     rc = triage_bulk.main(["defer", "--repo", REPO])
     assert rc == 0, capsys.readouterr().err
@@ -194,9 +203,9 @@ def test_bulk_defer_actions_only_cached(
         f"bulk-defer must only action cached issues; got {actioned}, "
         f"expected {cached_numbers}"
     )
-    # Defensive: no record should reference a fake-live issue number (100-149).
+    # Defensive: no record references a fake-live issue number (100-149).
     assert not any(100 <= int(r["issue_number"]) < 150 for r in records), (
-        "fake-gh issues leaked into the audit log -- live-gh fallback regressed"
+        "fake-gh issues leaked into audit log -- live-gh fallback regressed"
     )
     assert all(r["decision"] == "defer" for r in records)
 
@@ -205,9 +214,8 @@ def test_bulk_defer_idempotent(
     isolated_runtime: tuple[Path, Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """Second bulk-defer run produces ZERO new audit records."""
     cache_root, audit_log = isolated_runtime
-    _populate_cache(cache_root, count=5)
+    _populate_cache_layout(cache_root, REPO, [1, 2, 3, 4, 5])
 
     rc1 = triage_bulk.main(["defer", "--repo", REPO])
     assert rc1 == 0, capsys.readouterr().err
@@ -227,9 +235,7 @@ def test_empty_cache_hard_fails(
     isolated_runtime: tuple[Path, Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """Empty cache -> exit 2 + canonical stderr; no audit records appended."""
     _cache_root, audit_log = isolated_runtime
-    # Deliberately do NOT populate the cache.
 
     rc = triage_bulk.main(["defer", "--repo", REPO])
     assert rc == 2
@@ -239,3 +245,76 @@ def test_empty_cache_hard_fails(
     assert "task triage:bootstrap" in captured.err
 
     assert _read_audit_records(audit_log) == []
+
+
+# ---------------------------------------------------------------------------
+# Content tests for the rewritten Phase 0 prose
+# ---------------------------------------------------------------------------
+
+
+def _skill_text() -> str:
+    return SKILL.read_text(encoding="utf-8")
+
+
+def test_skill_phase0_references_cache_star() -> None:
+    """Phase 0 prose now references the unified `cache:*` surface."""
+
+    text = _skill_text()
+    assert "task cache:fetch-all" in text, (
+        "Phase 0 must point at the unified cache:fetch-all surface"
+    )
+    assert "task cache:get" in text, (
+        "Phase 0 must point at the unified cache:get surface"
+    )
+    assert ".deft-cache/github-issue/" in text, (
+        "Phase 0 must describe the unified cache layout"
+    )
+
+
+def test_skill_phase0_does_not_advertise_removed_tasks() -> None:
+    """Removed task aliases must not appear as live recommendations.
+
+    The migration paragraph noting that ``task triage:cache`` and
+    ``task triage:show`` were removed under #883 Story 3 is permitted
+    (and tested for explicitly below). What this guard rejects is any
+    invocation form that prescribes the removed command as the next
+    step the operator should run -- e.g. ``task triage:cache populate``
+    with arguments or ``-- --repo`` flag forms.
+    """
+
+    text = _skill_text()
+    # Concrete invocations of the removed surface MUST NOT appear.
+    assert "`task triage:cache populate`" not in text
+    assert "`task triage:cache --" not in text
+    assert "`task triage:show --" not in text
+    # The skill MUST NOT recommend ``task triage:refresh`` -- it has been
+    # superseded by ``task cache:fetch-all`` for re-population.
+    assert "`task triage:refresh`" not in text
+    # The skill MUST explicitly cite the removal so operators know not to
+    # reach for the legacy commands in v0.26.0+.
+    assert "removed in #883 Story 3" in text
+
+
+def test_skill_phase0_three_tier_inventory_model_preserved() -> None:
+    """The three-tier inventory model (Tier 1 / Tier 2 / Tier 3) survives."""
+
+    text = _skill_text()
+    assert "Tier 1 --" in text and "Tier 2 --" in text and "Tier 3 --" in text
+    assert "vbrief/.eval/candidates.jsonl" in text
+    assert "vbrief/proposed/" in text
+
+
+def test_skill_phase0_action_menu_intact() -> None:
+    """The canonical numbered action menu and its 7 options survive verbatim."""
+
+    text = _skill_text()
+    for opt in (
+        "1. Accept",
+        "2. Reject",
+        "3. Defer",
+        "4. Needs-AC",
+        "5. Mark duplicate",
+        "6. Discuss",
+        "7. Back",
+    ):
+        assert opt in text, f"action-menu option missing: {opt}"

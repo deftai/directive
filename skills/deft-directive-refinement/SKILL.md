@@ -23,7 +23,7 @@ Conversational refinement session -- ingest, evaluate, reconcile, and prioritize
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**See also**: [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) (canonical numbered-menu rule used by every Phase 0 / Phase 2-5 gate below) | `task triage:cache` / `task triage:bootstrap` / `task triage:accept` / `task triage:reject` / `task triage:defer` / `task triage:needs-ac` / `task triage:mark-duplicate` / `task triage:bulk` / `task triage:refresh` (Phase 0 task surface introduced under #845).
+**See also**: [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) (canonical numbered-menu rule used by every Phase 0 / Phase 2-5 gate below) | `task cache:fetch-all` / `task cache:get` (Tier 1 unified content cache, #883 Story 2) | `task triage:bootstrap` / `task triage:accept` / `task triage:reject` / `task triage:defer` / `task triage:needs-ac` / `task triage:mark-duplicate` / `task triage:bulk-*` / `task triage:refresh-active` (Phase 0 action surface, #845 + #883 Story 3 rebind).
 
 ## Platform Requirements
 
@@ -41,7 +41,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - Periodic maintenance pass (e.g. weekly or after a batch of user feedback)
 - User wants to review and organize the backlog
 
-! **Entry point (#845).** Phase 0 -- Triage (cache + action menu) is the new canonical entry point for any refinement that begins from a populated `.deft-cache/issues/` mirror or a non-empty `vbrief/.eval/candidates.jsonl` audit log. Phase 0 routes each cached candidate through `task triage:accept|reject|defer|needs-ac|mark-duplicate` so that **only accepted items reach `vbrief/proposed/`**, eliminating the pre-#845 "ingest-everything-then-evaluate" drift in `proposed/`. Phase 0 ! MUST chain into Phase 1 -- Ingest after the action menu is exhausted (or auto-skip when the cache is empty -- see Phase 0 below). Phase 1+ semantics are unchanged.
+! **Entry point (#845, #883).** Phase 0 -- Triage (cache + action menu) is the canonical entry point for any refinement that begins from a populated `.deft-cache/github-issue/` mirror or a non-empty `vbrief/.eval/candidates.jsonl` audit log. Phase 0 routes each cached candidate through `task triage:accept|reject|defer|needs-ac|mark-duplicate` so that **only accepted items reach `vbrief/proposed/`**, eliminating the pre-#845 "ingest-everything-then-evaluate" drift in `proposed/`. Phase 0 ! MUST chain into Phase 1 -- Ingest after the action menu is exhausted (or auto-skip when the cache is empty -- see Phase 0 below). Phase 1+ semantics are unchanged.
 
 ## Prerequisites
 
@@ -54,7 +54,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 Refinement is a **conversational loop**, not a batch job. The user directs the flow:
 
 - "Triage" / "action menu" / "work the cache" / "pre-ingest" -> Phase 0 (Triage -- cache + action menu, #845)
-- "Pull in issues" / "ingest" -> Phase 0 FIRST when `.deft-cache/issues/` is non-empty OR `vbrief/.eval/candidates.jsonl` has non-terminal candidates (Phase 0 then chains into Phase 1); Phase 1 directly only when the Phase 0 auto-skip condition is met (#845)
+- "Pull in issues" / "ingest" -> Phase 0 FIRST when `.deft-cache/github-issue/` is non-empty OR `vbrief/.eval/candidates.jsonl` has non-terminal candidates (Phase 0 then chains into Phase 1); Phase 1 directly only when the Phase 0 auto-skip condition is met (#845, #883)
 - "Show proposed" / "evaluate" -> Phase 2 (Evaluate)
 - "Check origins" / "reconcile" -> Phase 3 (Reconcile)
 - "Accept these" / "reject that" / "promote" / "demote" -> Phase 4 (Promote/Demote)
@@ -74,19 +74,19 @@ The agent may suggest the next phase, but the user decides. Phases can be entere
 
 ## Phase 0 -- Triage (Cache + Action Menu)
 
-! Phase 0 is the canonical pre-ingest entry point introduced under #845. It operates on the **three-tier inventory model** so that `vbrief/proposed/` only ever contains items the user has explicitly accepted. Phase 0 ! MUST chain into Phase 1 -- Ingest on completion (or auto-skip into Phase 1 when the cache is empty -- see Step 1 below). Numbered prompts in Phase 0 ! MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) -- the final two numbered options are `Discuss` and `Back`, in that order, and the Discuss-pause semantic from the contract applies verbatim.
+! Phase 0 is the canonical pre-ingest entry point introduced under #845 and rebound onto the unified cache surface under #883 Story 3. It operates on the **three-tier inventory model** so that `vbrief/proposed/` only ever contains items the user has explicitly accepted. Phase 0 ! MUST chain into Phase 1 -- Ingest on completion (or auto-skip into Phase 1 when the cache is empty -- see Step 1 below). Numbered prompts in Phase 0 ! MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) -- the final two numbered options are `Discuss` and `Back`, in that order, and the Discuss-pause semantic from the contract applies verbatim.
 
-**See also (#901): [`../../docs/gitcrawl-fallback.md`](../../docs/gitcrawl-fallback.md)** -- when `task triage:bootstrap` defers the gitcrawl install (e.g. on Windows without `uv` or `pipx` on PATH), Phase 0 still runs but the cache is populated via the `gh`-only path and is missing `body_html` / `reactions` / `comments_full`. The doc explains the gh-only field gap, lists the manual install commands (`uv tool install gitcrawl` or `pipx install gitcrawl`), and describes the expected behavior on the gh-only fallback path.
+**See also (#883 Story 2):** the unified cache (`task cache:fetch-all --source=github-issue --repo OWNER/NAME`) is the sole content-mirroring surface in v0.26.0+. Tier 1 reads MUST go through `task cache:get -- github-issue OWNER/NAME/<N>`; legacy `task triage:cache` / `task triage:show` were removed in #883 Story 3 (see UPGRADING.md `v0.25.x -> v0.26.0`).
 
 ### Three-Tier Inventory Model
 
 Phase 0 reads and writes three distinct tiers; ! MUST NOT collapse any pair into a single store:
 
-- **Tier 1 -- `.deft-cache/issues/` (local mirror).** Full-fidelity local cache of fetched issue bodies/labels/state, populated by `task triage:cache` (and refreshed by `task triage:refresh` ahead of swarm dispatch). Mirror is gitignored; #583 quarantine rules apply on the cache path. This is the **read** surface for Phase 0 -- the agent works from the cache, not from live `gh` calls, so triage decisions are reproducible across re-runs.
+- **Tier 1 -- `.deft-cache/github-issue/<owner>/<repo>/<N>/` (unified content cache).** Full-fidelity local cache of fetched issue bodies/labels/state, populated by `task cache:fetch-all -- --source=github-issue --repo OWNER/NAME` and read via `task cache:get -- github-issue OWNER/NAME/<N>` (#883 Story 2). Mirror is gitignored; the #883 Story 2 scanner v2 (injection-heading fence-and-pass / credentials hard-fail / invisible-unicode strip-and-pass) runs on every `cache:put` so quarantine rules apply uniformly to every cached source. Freshness is exposed via the cache entry's `meta.json.fetched_at`; `task triage:refresh-active` consumes it ahead of swarm dispatch. This is the **read** surface for Phase 0 -- the agent works from the cache, not from live `gh` calls, so triage decisions are reproducible across re-runs.
 - **Tier 2 -- `vbrief/.eval/candidates.jsonl` (audit log).** Append-only JSONL recording every candidate the user has ever seen plus the action taken (`accept | reject | defer | needs-ac | mark-duplicate`) and timestamp. Frozen schema lives at `vbrief/schemas/candidates.schema.json`. This is the **memory** surface -- a re-run of Phase 0 against the same cache short-circuits items that already have a terminal entry in the log.
 - **Tier 3 -- `vbrief/proposed/` (accepted-only).** Standard scope-vBRIEF lifecycle folder. Phase 0 only writes here on `accept`; everything else stays out of `proposed/` so the folder's semantic is once again "backlog the user has agreed to consider." `task triage:accept` is the canonical write path -- it delegates the actual vBRIEF authoring to `task issue:ingest` so slug/reference/schema rules stay in one place (#537).
 
-! MUST NOT bypass Tier 1 by triaging directly off `gh issue list` output -- the cache is the source of truth for Phase 0; reading live exposes the agent to mid-triage drift the audit log cannot reconstruct.
+! MUST NOT bypass Tier 1 by triaging directly off `gh issue list` output or by reading the legacy `.deft-cache/issues/` layout -- the unified `.deft-cache/github-issue/` cache (read via `task cache:get`) is the source of truth for Phase 0; reading live exposes the agent to mid-triage drift the audit log cannot reconstruct.
 ! MUST NOT bypass Tier 2 by writing accepted items to `proposed/` without first appending the corresponding `accept` record to `vbrief/.eval/candidates.jsonl` -- the audit log is the only durable record of decline/defer decisions; proposed/ alone cannot answer "why didn't this candidate make it in?".
 
 ### Trigger Conditions
@@ -94,14 +94,14 @@ Phase 0 reads and writes three distinct tiers; ! MUST NOT collapse any pair into
 Phase 0 is entered when **any** of the following hold:
 
 - The user types one of the trigger phrases ("triage", "action menu", "work the cache", "pre-ingest")
-- The skill is entered via the standard refinement triggers AND (`.deft-cache/issues/` is non-empty OR `vbrief/.eval/candidates.jsonl` contains at least one candidate without a terminal action) -- the parenthesised disjunction binds tighter than the leading AND so Phase 0 only fires when the skill was actually invoked via a refinement trigger AND there is something to triage
+- The skill is entered via the standard refinement triggers AND (`.deft-cache/github-issue/` is non-empty OR `vbrief/.eval/candidates.jsonl` contains at least one candidate without a terminal action) -- the parenthesised disjunction binds tighter than the leading AND so Phase 0 only fires when the skill was actually invoked via a refinement trigger AND there is something to triage
 - The user explicitly invokes `task triage:bootstrap` (which seeds the cache) prior to entering refinement
 
 ### Step 1: Auto-Skip Probe
 
 ! Before any user prompt, the agent MUST probe the cache state and decide whether Phase 0 has any work to do:
 
-1. ! Check whether `.deft-cache/issues/` exists AND contains at least one cached issue file.
+1. ! Check whether `.deft-cache/github-issue/<owner>/<repo>/` exists AND contains at least one cached issue directory (each cached issue lives at `.deft-cache/github-issue/<owner>/<repo>/<N>/raw.json`).
 2. ! Check whether `vbrief/.eval/candidates.jsonl` exists AND contains at least one record without a terminal action (`accept | reject | mark-duplicate`); `defer` and `needs-ac` are non-terminal and DO count as outstanding work.
 3. ! If BOTH probes return empty (cache missing/empty AND audit log missing/empty-of-non-terminals), Phase 0 ! MUST emit the verbatim informational message and ! MUST chain directly into Phase 1 without prompting:
 
@@ -109,15 +109,15 @@ Phase 0 is entered when **any** of the following hold:
    triage cache empty -- skipping Phase 0; opt in via `task triage:bootstrap`
    ```
 
-   **First-run scope and filter flags (#900):** on a real-sized backlog the unbounded first-run populate is unusable for new maintainers, so both `task triage:bootstrap` and `task triage:cache populate` accept the same scope-or-filter surface: `--limit <N>` caps the number of issues fetched, `--state {open|closed|all}` selects the issue state (defaults to `open`), and `--label <name>` (repeatable -- gh treats repeated `--label` flags as logical AND) narrows the populate to a label slice such as `--label adoption-blocker --label bug`. `--repo OWNER/NAME` remains optional; when omitted the populate step infers the slug from `git remote get-url origin` in the current working directory and falls back to the no-repo skip-with-OK only when neither surface yields a valid slug. ~ When pointing a new maintainer at the bootstrap, recommend a scoped first-run such as `task triage:bootstrap -- --limit 50 --label adoption-blocker` so the cache lands in seconds rather than minutes; the unbounded populate is fine on a small backlog and remains the no-flag default. ⊗ Tell users to wait through an unbounded first-run populate when one of the new flags would have scoped the work to the relevant slice.
+   **First-run scope and rate-limit flags (#883 Story 2):** on a real-sized backlog the unbounded first-run populate is unusable, so both `task triage:bootstrap` and `task cache:fetch-all` accept a shared scope-or-rate surface: `--limit <N>` caps the number of issues fetched, `--state {open|closed|all}` selects the issue state (defaults to `open`), `--batch-size <N>` (default 10) caps the per-page fetch, and `--delay-ms <N>` (default 500) inserts a sleep between batches so a populate against a large repo does not trip the GitHub rate limiter (a 429 retries automatically with the upstream `Retry-After` header). `--repo OWNER/NAME` remains optional on the bootstrap; when omitted, the bootstrap infers the slug from `git remote get-url origin` and falls back to the no-repo skip-with-OK only when neither surface yields a valid slug. ~ When pointing a new maintainer at the bootstrap, recommend a scoped first-run such as `task triage:bootstrap -- --limit 50` so the cache lands in seconds rather than minutes; the unbounded populate is fine on a small backlog and remains the no-flag default. ⊗ Tell users to wait through an unbounded first-run populate when `--limit` would have scoped the work to the relevant slice.
 
 4. ! If the **cache is empty BUT the audit log holds non-terminal records** (e.g. the cache was deleted by `git clean` or manual housekeeping after a prior triage session that left `defer` / `needs-ac` records behind), Phase 0 ! MUST NOT walk an empty cache and produce a misleading `0/0/0/0/0 of 0` summary. Instead the agent ! MUST emit the verbatim recovery message and ! MUST chain directly into Phase 1 without entering the action menu:
 
    ```
-   triage cache absent but audit log has {M} outstanding defer/needs-ac records -- run `task triage:refresh` (re-sync the existing cache) before re-entering Phase 0 if you want to revisit them; chaining into Phase 1 now
+   triage cache absent but audit log has {M} outstanding defer/needs-ac records -- run `task cache:fetch-all -- --source=github-issue --repo OWNER/NAME` (re-populate the unified cache) before re-entering Phase 0 if you want to revisit them; chaining into Phase 1 now
    ```
 
-   The recovery message ! MUST surface the outstanding `{M}` count so the user knows what is being deferred again, and ! MUST point at `task triage:refresh` (re-sync) -- ! MUST NOT point at `task triage:bootstrap` because re-bootstrapping can overwrite the existing audit-log records.
+   The recovery message ! MUST surface the outstanding `{M}` count so the user knows what is being deferred again, and ! MUST point at `task cache:fetch-all` (re-populate the unified cache) -- ! MUST NOT point at `task triage:bootstrap` because re-bootstrapping can overwrite the existing audit-log records.
 
 5. ! Otherwise (cache non-empty), surface a one-line summary (e.g. `triage cache: {N} cached issues, {M} outstanding candidates`) and proceed to Step 2.
 6. ! Record the current ISO 8601 UTC timestamp as `phase0_entry_ts` (in-memory only, no disk write) -- this value is consumed by the Step 4 audit-log cross-check as the cutoff for filtering `defer` / `needs-ac` records created during the current Phase 0 entry. ! MUST be captured here at Step 1 (immediately after the proceed-to-Step-2 branch) so it represents the entry time, not Step 4's invocation time.
@@ -127,7 +127,7 @@ Phase 0 is entered when **any** of the following hold:
 
 ### Step 2: Refresh the Cache (Optional)
 
-~ When the user wants to start from a known-fresh state (e.g. immediately before a swarm dispatch), run `task triage:refresh` to re-sync the cache from `gh` and update the candidate log. The refresh task is idempotent and respects the #583 quarantine rules on the cache path. Skip this step on subsequent passes within the same session unless the user explicitly asks for it.
+~ When the user wants to start from a known-fresh state (e.g. immediately before a swarm dispatch), run `task cache:fetch-all -- --source=github-issue --repo OWNER/NAME` to re-populate the unified cache from `gh`. The fetch is idempotent (entries within their TTL are skipped) and the per-entry scanner v2 (#883 Story 2) re-applies the quarantine rules on every `cache:put`. Skip this step on subsequent passes within the same session unless the user explicitly asks for it. ~ For a freshness audit against `vbrief/active/*.vbrief.json`, run `task triage:refresh-active` -- it compares each cached `meta.json.fetched_at` to a live `gh issue view --json updatedAt` and surfaces drift via the three-way prompt (proceed-with-stale / refresh-and-update-local / defer-from-this-batch).
 
 ### Step 3: Walk Each Candidate -- Action Menu
 
@@ -148,7 +148,7 @@ What would you like to do with this candidate?
 - ! On `Discuss`, halt the action menu sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal per the deterministic-questions contract. ⊗ Implicit resumption. **Buffer behaviour during a Discuss halt:** the buffered action for the prior candidate ! MUST be held intact through the halt and dispatched only when the user resumes AND commits a non-`Discuss`, non-`Back` forward action at the current candidate -- a Discuss halt by itself is neither a forward commit nor a stop and ! MUST NOT trigger any `task triage:*` dispatch.
 - ! On `Back`, treat the prior candidate's action as un-answered and re-render its action menu (this lets the user undo a misclick without re-running the entire triage pass). When the user selects `Back` on the **very first** candidate of the pass (no prior candidate exists), follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) Back semantic: surface `Nothing earlier to go back to` and re-render the current candidate's action menu -- do NOT bounce back to Step 2 (refresh) or to the Session Model entry, since the calling-skill entry point for Phase 0 is the Branch Setup preflight, not a question that can be re-asked.
 - ! **Back is permitted ONLY before the action has been dispatched to a `task triage:*` command** -- once a `task triage:*` command has run for the prior candidate (its audit-log record is appended AND its `proposed/` write, if any, has landed), the action is committed and `Back` ! MUST NOT be offered as an option to revoke it. **Dispatch timing (precise):** the action chosen for candidate N is **buffered** when the user makes the selection; the buffered action is **dispatched only when the user commits a forward action at candidate N+1** (i.e. when the user advances from N+1 to N+2 OR the pass terminates). "Pass terminates" covers BOTH normal completion (all candidates have a chosen action) AND user-initiated mid-pass stop ("that's enough for today"); in both cases the **last buffered action is dispatched** before Step 4 runs, so a partial pass never leaves an Accept silently un-written to `proposed/`. Concretely: after the user picks an action at N, the agent presents N+1's menu but ! MUST NOT call any `task triage:*` command for N yet; if the user picks `Back` at N+1, the still-buffered action for N is discarded and N's menu is re-rendered. If the user picks a forward action at N+1, N's buffered action dispatches immediately and N+1's selection enters the buffer. If the user opts to stop at any point (mid-pass or end-of-pass), the currently-buffered action ! MUST dispatch before transitioning to Step 4 -- ! MUST NOT discard a buffered action on stop; the user's most recent selection is binding. If the user wants to change an already-committed (dispatched) decision, they ! MUST re-enter Phase 0 in a fresh session and use `task triage:bulk` (Story 4) or a re-issue of the action against the same issue ID -- the canonical task suite owns the supersession contract; this skill does not duplicate it. The audit log remains append-only with no inline supersession semantic.
-- ~ Bulk operations: when the user has a clear pattern (e.g. "reject every `wontfix`-labelled candidate"), use `task triage:bulk -- --action reject --label wontfix` (Story 4) instead of walking the menu N times. Bulk results still flow through the audit log so the action history stays coherent.
+- ~ Bulk operations: when the user has a clear pattern (e.g. "reject every `wontfix`-labelled candidate"), use `task triage:bulk-reject -- --repo OWNER/NAME --reason 'why' --label wontfix` (or the matching `bulk-accept` / `bulk-defer` / `bulk-needs-ac` verb, #845 Story 4) instead of walking the menu N times. Bulk results still flow through the audit log so the action history stays coherent.
 
 ### Step 4: Pre-Phase-1 Handoff
 
@@ -165,7 +165,7 @@ What would you like to do with this candidate?
 1. ! Surface the outstanding-work tally: `{deferred} candidate(s) deferred, {needs_ac} flagged Needs-AC -- these will resurface on the next Phase 0 entry.`
 2. ! Note the audit-log location verbatim using double-backtick fencing so the inner path renders correctly: ``Audit log preserved at `vbrief/.eval/candidates.jsonl`.``
 3. ! Confirm skill exit with the canonical phrasing: `deft-directive-refinement complete -- exiting skill.`
-4. ! Provide the Phase-0-appropriate chaining instruction: ``Resume with `task triage:refresh` (re-sync the existing cache) followed by re-entering the refinement skill when ready to continue triage.`` Use `task triage:refresh` for an already-populated cache; `task triage:bootstrap` is the first-time seed and ! MUST NOT be used here because re-seeding can overwrite the deferred/needs-ac audit-log state just created. Do NOT reference a PR, a review cycle, or a monitor agent.
+4. ! Provide the Phase-0-appropriate chaining instruction: ``Resume with `task cache:fetch-all -- --source=github-issue --repo OWNER/NAME` (re-populate the unified cache) followed by re-entering the refinement skill when ready to continue triage.`` Use `task cache:fetch-all` for an already-bootstrapped project; `task triage:bootstrap` is the first-time seed and ! MUST NOT be used here because re-seeding can overwrite the deferred/needs-ac audit-log state just created. Do NOT reference a PR, a review cycle, or a monitor agent.
 
 ⊗ Skip Phase 1 silently after Phase 0 -- always render the chaining decision so the user knows the entry point shifted.
 ⊗ Mutate `vbrief/proposed/` directly during Phase 0 -- only `task triage:accept` (which itself delegates to `task issue:ingest`) is allowed to write there.
@@ -384,7 +384,7 @@ After all refinement work is complete:
 
 ## Anti-Patterns
 
-- ⊗ Bypass Phase 0 by triaging directly off `gh issue list` -- the `.deft-cache/issues/` mirror is the source of truth (#845)
+- ⊗ Bypass Phase 0 by triaging directly off `gh issue list` -- the unified `.deft-cache/github-issue/` cache (read via `task cache:get`) is the source of truth (#845, #883)
 - ⊗ Write accepted Phase 0 items to `vbrief/proposed/` without first appending the corresponding `accept` record to `vbrief/.eval/candidates.jsonl` (#845)
 - ⊗ Skip Phase 1 silently after Phase 0 -- always render the chaining decision so the user knows the entry point shifted (#845)
 - ⊗ Auto-accept or auto-reject proposed items without user review

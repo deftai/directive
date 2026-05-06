@@ -24,17 +24,20 @@ All actions are idempotent on already-final state: invoking ``reject`` on an
 already-rejected issue is a no-op (returns the existing ``decision_id``) and
 does NOT re-call ``gh issue close`` nor re-write the audit log.
 
-Upstream contracts (frozen public surfaces of Story 1 + Story 2):
+Upstream contracts (frozen public surfaces of Story 2 + #883 Story 2):
 
 - ``scripts.candidates_log.append(entry: dict) -> str`` (decision_id)
 - ``scripts.candidates_log.latest_decision(issue_number: int, repo: str) -> dict | None``
 - ``scripts.candidates_log.find_by_issue(issue_number: int, repo: str) -> list[dict]``
-- ``scripts.triage_cache.show(issue_number: int, repo: str) -> str``
+- ``scripts.cache.cache_get(source: str, key: str, *, allow_stale=True) -> GetResult``
+  -- the unified cache replaces the legacy triage_cache.show(...) seam under
+  #883 Story 3.
 
-Story 1 + Story 2 PRs may not be merged when this script lands. Module-level
-``candidates_log`` and ``triage_cache`` references are therefore guarded with
+The upstream PRs may not be merged when this script lands. Module-level
+``candidates_log`` and ``cache`` references are therefore guarded with
 ``try / except ImportError`` so the module imports cleanly. Tests substitute
-fakes via ``monkeypatch.setattr(triage_actions, "candidates_log", ...)``.
+fakes via ``monkeypatch.setattr(triage_actions, "candidates_log", ...)`` and
+``monkeypatch.setattr(triage_actions, "cache", ...)``.
 
 Per ``conventions/task-caching.md`` the Taskfile fragment must NOT cache the
 ``cmds:`` block: every action accepts user-facing flags via ``{{.CLI_ARGS}}``.
@@ -58,19 +61,20 @@ from typing import Any
 # ``scripts/policy_set.py`` so we can do ``import candidates_log``.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# Public, frozen interfaces from Story 1 + Story 2. These imports may fail in
-# this PR's branch because Story 1 / Story 2 may not be merged yet -- the
-# module attributes are then ``None`` and tests substitute a fake. Production
-# bootstrap (Story 6) lands all three together so the runtime path is intact.
+# Public, frozen interfaces from #845 Story 2 (audit log) + #883 Story 2
+# (unified cache). These imports may fail when an upstream PR has not yet
+# merged onto the consumer's branch -- the module attributes are then
+# ``None`` and tests substitute a fake. Production bootstrap lands all
+# pieces together so the runtime path is intact.
 try:  # pragma: no cover -- exercised once Story 2 lands.
     import candidates_log  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover
     candidates_log = None  # type: ignore[assignment]
 
-try:  # pragma: no cover -- exercised once Story 1 lands.
-    import triage_cache  # type: ignore[import-not-found]
+try:  # pragma: no cover -- exercised once #883 Story 2 lands.
+    import cache  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover
-    triage_cache = None  # type: ignore[assignment]
+    cache = None  # type: ignore[assignment]
 
 
 # Public constants ----------------------------------------------------------
@@ -152,13 +156,13 @@ def _require_log() -> Any:
 
 
 def _require_cache() -> Any:
-    """Return the live ``triage_cache`` module or raise if Story 1 is missing."""
-    if triage_cache is None:
+    """Return the live ``cache`` module or raise if #883 Story 2 is missing."""
+    if cache is None:
         raise TriageError(
-            "scripts/triage_cache.py is not available in this checkout. "
-            "Story 1 (#845) must land or this PR must be rebased onto master."
+            "scripts/cache.py is not available in this checkout. "
+            "#883 Story 2 must land or this PR must be rebased onto master."
         )
-    return triage_cache
+    return cache
 
 
 def _run_gh(args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -423,12 +427,20 @@ def mark_duplicate(
     actor: str | None = None,
     project_root: Path | None = None,
 ) -> str:
-    """Validate target exists in cache + record mark-duplicate audit entry."""
+    """Validate target exists in unified cache + record mark-duplicate audit entry.
+
+    Reads the target via :func:`scripts.cache.cache_get` (#883 Story 3 rebind
+    onto cache:*). The ``allow_stale=True`` flag lets the validation succeed
+    against an entry whose TTL has expired -- a stale-but-cached duplicate
+    target is still an acceptable cross-link reference; the operator can
+    refresh the entry later via ``task cache:fetch-all``.
+    """
     if int(of_n) == int(n):
         raise TriageError(f"mark-duplicate target #{of_n} cannot equal source #{n}")
-    cache = _require_cache()
+    cache_mod = _require_cache()
+    key = f"{repo}/{int(of_n)}"
     try:
-        cache.show(int(of_n), repo)
+        cache_mod.cache_get("github-issue", key, allow_stale=True)
     except Exception as exc:  # noqa: BLE001 -- cache may raise any error type
         raise TriageError(
             f"mark-duplicate target #{of_n} not found in cache for {repo}: {exc}"

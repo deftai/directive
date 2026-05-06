@@ -22,8 +22,8 @@ version: '3'
 #
 # Companion script: scripts/triage_actions.py
 # Companion tests:  tests/test_triage_actions.py
-# Upstream contracts (frozen): scripts/candidates_log.py (Story 2),
-#                              scripts/triage_cache.py    (Story 1).
+# Upstream contracts (frozen): scripts/candidates_log.py (#845 Story 2 audit log),
+#                              scripts/cache.py          (#883 Story 2 unified cache).
 
 vars:
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'

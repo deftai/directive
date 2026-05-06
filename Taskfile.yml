@@ -130,27 +130,21 @@ includes:
   cache:
     taskfile: ./tasks/cache.yml
     optional: true
-  # Triage v1 fragment includes (#845 epic, Story 6 wiring).
+  # Triage v1 fragment includes (#845 epic, #883 Story 3 rebind onto cache:*).
   #
-  # Four standalone fragments authored by stories A1, A3, A4, and A6
-  # respectively. Each is `optional: true` so the parent Taskfile parses
-  # cleanly during the rolling cascade -- earlier consumers of any single
-  # `task <namespace>:*` target still work even if a sibling fragment
-  # has not landed yet.
+  # Three standalone fragments authored by stories A3, A4, and A6
+  # respectively (the legacy A1 `triage-cache` fragment was deleted in
+  # #883 Story 3 -- the unified `cache:*` surface above is the
+  # single content-mirroring layer). Each fragment is `optional: true`
+  # so the parent Taskfile parses cleanly even when a sibling fragment
+  # has not yet landed.
   #
   # Namespacing: go-task v3 prefixes inner task names with the include
-  # key (e.g. `triage-cache:cache` for inner task `cache` under key
-  # `triage-cache`). Two includes cannot share a single namespace key,
-  # so the four fragments use unique keys derived from the file basename.
-  # The user-facing `task triage:cache` / `task triage:bootstrap` /
-  # etc. forms are exposed via top-level alias tasks below.
-  #
-  # Cascade order (#845): A1 cache infra + #583 quarantine -> A2 audit
-  # log -> A3 actions -> A4 bulk + freshness -> A5 refinement Phase 0
-  # -> A6 bootstrap + this includes wiring + UPGRADING.md + docs (LAST).
-  triage-cache:
-    taskfile: ./tasks/triage-cache.yml
-    optional: true
+  # key. Two includes cannot share a single namespace key, so the
+  # fragments use unique keys derived from the file basename. The
+  # user-facing `task triage:bootstrap` / `task triage:accept` /
+  # `task triage:bulk-*` etc. forms are exposed via top-level alias
+  # tasks below.
   triage-actions:
     taskfile: ./tasks/triage-actions.yml
     optional: true
@@ -378,19 +372,9 @@ tasks:
   # (release: tasks defined inline at the root Taskfile so go-task
   # does not double-prefix them).
   # ------------------------------------------------------------------
-  triage:cache:
-    desc: "Populate the local issue cache (.deft-cache/issues/<owner>-<repo>/) -- task triage:cache -- --repo owner/repo [--force] [--use-gitcrawl]"
-    cmds:
-      - task: triage-cache:cache
-        vars:
-          CLI_ARGS: "{{.CLI_ARGS}}"
-
-  triage:show:
-    desc: "Print the cached, quarantined .md body for an issue -- task triage:show -- --repo owner/repo --issue 845"
-    cmds:
-      - task: triage-cache:show
-        vars:
-          CLI_ARGS: "{{.CLI_ARGS}}"
+  # task triage:cache and task triage:show were removed in #883 Story 3.
+  # The unified cache:* surface (cache:fetch-all, cache:get) is the
+  # canonical replacement; see UPGRADING.md for migration text.
 
   triage:accept:
     desc: "Accept an issue for triage. Records an audit entry. (#845 Story 3)"
