@@ -66,6 +66,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _cache_fetch import (  # noqa: E402  -- intentional sys.path tweak
+    CacheFetchError,
     FetchAllReport,
     run_fetch_all,
 )
@@ -679,7 +680,12 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         return _DISPATCH[args.cmd](args)
-    except CacheError as exc:
+    except (CacheError, CacheFetchError) as exc:
+        # CacheFetchError is a sibling of CacheError (extends RuntimeError
+        # directly to avoid a circular import in _cache_fetch). It surfaces
+        # from the scm:issue:list enumeration phase before the per-issue
+        # batch loop's try/except wraps anything; catching it here gives a
+        # clean ``cache: error: ...`` exit instead of a raw traceback.
         print(f"cache: error: {exc}", file=sys.stderr)
         return 1
     except CacheValidationError as exc:

@@ -887,6 +887,40 @@ class TestCLI:
         rc = cache.main(["invalidate", "github-issue", "deftai/directive/9999"])
         assert rc == 0
 
+    def test_fetch_all_list_failure_returns_clean_error(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        """CacheFetchError from the scm:issue:list enumeration phase must surface
+        as ``cache: error: ...`` with exit-code 1, not as a raw Python traceback.
+
+        ``CacheFetchError`` extends ``RuntimeError`` directly (sibling of
+        ``CacheError``, not subclass) to keep ``_cache_fetch.py`` free of a
+        circular import. ``main()`` catches both so a ``task scm:issue:list``
+        failure -- network down, ``task`` not on PATH, non-JSON output --
+        produces the same clean exit shape every other failure path emits.
+        Regression for the Greptile P1 finding on a480d88 (#883 Story 2).
+        """
+        monkeypatch.chdir(tmp_path)
+
+        def fake_run(cmd: list[str], **_: object) -> mock.Mock:
+            if "scm:issue:list" in cmd:
+                return _fake_proc("", stderr="task: not found", returncode=127)
+            return _fake_proc("", returncode=1)
+
+        monkeypatch.setattr(_cache_fetch, "_run_subprocess", fake_run)
+        monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
+        rc = cache.main(
+            ["fetch-all", "--source", "github-issue", "--repo", "deftai/directive"]
+        )
+        assert rc == 1
+        captured = capsys.readouterr()
+        assert "cache: error:" in captured.err
+        assert "scm:issue:list" in captured.err
+        assert "Traceback" not in captured.err
+
 
 # ---------------------------------------------------------------------------
 # Schema-file vs in-module validator alignment
