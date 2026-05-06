@@ -153,6 +153,20 @@ class TestBuildInstallCommand:
         with pytest.raises(RuntimeError, match="no upstream ghx installer"):
             setup_ghx.build_install_command("plan9")
 
+    def test_installer_urls_pinned_to_ghx_version_tag(self, setup_ghx: Any) -> None:
+        # Greptile #950 P2 regression guard: the installer URL itself MUST be
+        # pinned to GHX_VERSION (not the unpinned `main` branch) so a future
+        # upstream regression on `main` cannot flow into either trampoline.
+        # If a refactor swaps the URL pin back to `main`, this assertion
+        # fails loudly rather than silently widening the trust surface.
+        assert f"/{setup_ghx.GHX_VERSION}/" in setup_ghx.INSTALL_PS1_URL
+        assert f"/{setup_ghx.GHX_VERSION}/" in setup_ghx.INSTALL_SH_URL
+        # Defence in depth: the literal token `/main/` must NOT appear in
+        # either URL -- a regression to the unpinned default branch is the
+        # exact failure mode #950 P2 surfaced.
+        assert "/main/" not in setup_ghx.INSTALL_PS1_URL
+        assert "/main/" not in setup_ghx.INSTALL_SH_URL
+
 
 class TestInstallGhx:
     """``install_ghx`` is a thin wrapper over ``subprocess.run``."""
@@ -179,6 +193,50 @@ class TestInstallGhx:
             return subprocess.CompletedProcess(args=cmd, returncode=42)
 
         assert setup_ghx.install_ghx("linux", runner=fake_runner) == 42
+
+    def test_install_injects_ghx_version_into_subprocess_env(
+        self, setup_ghx: Any
+    ) -> None:
+        # Greptile #950 P1 regression guard: the upstream installer scripts
+        # honour ${GHX_VERSION} as the version-pin hook. Without explicit
+        # injection into the subprocess env, the operator-side `task setup:ghx`
+        # could install a different binary version than the CI pre-install
+        # step despite the documented lockstep contract. This test asserts
+        # both that an `env=` kwarg is passed AND that the value carries
+        # the canonical GHX_VERSION from the module.
+        captured: dict[str, Any] = {}
+
+        def fake_runner(cmd: list[str], check: bool = False, **kwargs: object) -> Any:
+            captured["env"] = kwargs.get("env")
+            return subprocess.CompletedProcess(args=cmd, returncode=0)
+
+        rc = setup_ghx.install_ghx("linux", runner=fake_runner)
+        assert rc == 0
+        assert captured["env"] is not None, (
+            "install_ghx MUST pass env= to subprocess.run so GHX_VERSION reaches "
+            "the upstream installer (Greptile #950 P1)"
+        )
+        assert captured["env"].get("GHX_VERSION") == setup_ghx.GHX_VERSION
+
+    def test_install_env_inherits_parent_environment(
+        self, setup_ghx: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The injected env MUST be a copy of os.environ + GHX_VERSION; we
+        # cannot replace the parent env with a single-key dict because the
+        # upstream installers also read PATH, HOME, USER, etc. The merge
+        # via `{**os.environ, "GHX_VERSION": GHX_VERSION}` is the documented
+        # idiom; this test asserts a sentinel parent-env entry survives the
+        # merge.
+        monkeypatch.setenv("DEFT_TEST_SENTINEL", "sentinel-value")
+        captured: dict[str, Any] = {}
+
+        def fake_runner(cmd: list[str], check: bool = False, **kwargs: object) -> Any:
+            captured["env"] = kwargs.get("env")
+            return subprocess.CompletedProcess(args=cmd, returncode=0)
+
+        setup_ghx.install_ghx("linux", runner=fake_runner)
+        assert captured["env"]["DEFT_TEST_SENTINEL"] == "sentinel-value"
+        assert captured["env"]["GHX_VERSION"] == setup_ghx.GHX_VERSION
 
 
 # ---------------------------------------------------------------------------

@@ -64,14 +64,23 @@ from collections.abc import Sequence
 #: lockstep so a future ghx security advisory only requires one edit.
 GHX_VERSION: str = "v1.5.1"
 
-#: Upstream installer URLs. The PowerShell installer drops binaries under
-#: ``%LOCALAPPDATA%\\ghx\\bin`` and adds it to the user PATH; the bash
+#: Upstream installer URLs, pinned to :data:`GHX_VERSION` so the script the
+#: pipe-trampoline executes is the script as it existed at the pinned tag
+#: (closes Greptile #950 P2). The PowerShell installer drops binaries under
+#: ``%LOCALAPPDATA%\\ghx\\bin`` and adds them to the user PATH; the bash
 #: installer drops them under ``/usr/local/bin`` (override via
-#: ``INSTALL_DIR=...``). Both honour the latest non-plugin release tag --
-#: explicit version pinning would require forking the upstream installers,
-#: which is out of scope for #884.
-INSTALL_PS1_URL: str = "https://raw.githubusercontent.com/brunoborges/ghx/main/install.ps1"
-INSTALL_SH_URL: str = "https://raw.githubusercontent.com/brunoborges/ghx/main/install.sh"
+#: ``INSTALL_DIR=...``). Pinning the URL by tag rather than ``main``
+#: prevents an upstream regression -- or a hypothetical compromise of the
+#: default branch between when CI runs and when an operator runs
+#: ``task setup:ghx`` -- from silently feeding altered shell into either
+#: trampoline. Bump in lockstep with ``.github/workflows/ci.yml``
+#: ``env.GHX_VERSION`` and the URLs under each ``Install ghx`` step.
+INSTALL_PS1_URL: str = (
+    f"https://raw.githubusercontent.com/brunoborges/ghx/{GHX_VERSION}/install.ps1"
+)
+INSTALL_SH_URL: str = (
+    f"https://raw.githubusercontent.com/brunoborges/ghx/{GHX_VERSION}/install.sh"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -200,11 +209,20 @@ def install_ghx(host: str, *, runner: object | None = None) -> int:
 
     Returns:
         The installer's exit code (0 on success).
+
+    Closes Greptile #950 P1: ``GHX_VERSION`` MUST be injected into the
+    subprocess environment because the upstream ``install.sh`` /
+    ``install.ps1`` honour ``${GHX_VERSION}`` as the version-pin hook.
+    Without this, the version constant in this module was a no-op at
+    install time -- the operator-side ``task setup:ghx`` could install a
+    different binary version than the CI pre-install step despite the
+    documented lockstep contract.
     """
     cmd = build_install_command(host)
     run = runner if runner is not None else subprocess.run
     print(f"[setup_ghx] Invoking upstream installer: {' '.join(cmd)}", file=sys.stderr)
-    proc = run(cmd, check=False)
+    install_env = {**os.environ, "GHX_VERSION": GHX_VERSION}
+    proc = run(cmd, check=False, env=install_env)
     return int(getattr(proc, "returncode", 1))
 
 

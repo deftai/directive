@@ -32,13 +32,17 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       # #884: idempotent ghx pre-install. Linux runner -> upstream
-      # install.sh fetched via curl|bash and pinned to GHX_VERSION via
-      # the upstream installer's `GHX_VERSION` env hook. The step
-      # short-circuits when ghx is already on PATH so re-runs of the
-      # same workflow do not re-download the binary. Network failures
-      # are non-fatal: the `scm:*` runtime ladder falls back to `gh`
-      # transparently when ghx is missing. See AGENTS.md `## SCM tooling
-      # -- prefer ghx (#884)` for the prefer-ghx rule consumed here.
+      # install.sh fetched via curl|bash. Both the BINARY and the
+      # INSTALLER SCRIPT itself are pinned to ${GHX_VERSION} (closes
+      # Greptile #950 P2): the binary via the upstream installer's
+      # `GHX_VERSION` env hook, the installer URL by tagref so an
+      # accidental upstream regression on `main` does not flow into a
+      # past CI run. The step short-circuits when ghx is already on PATH
+      # so re-runs of the same workflow do not re-download. Network
+      # failures are non-fatal: the `scm:*` runtime ladder falls back
+      # to `gh` transparently when ghx is missing. See AGENTS.md
+      # `## SCM tooling -- prefer ghx (#884)` for the prefer-ghx rule
+      # consumed here.
       - name: Install ghx (cache proxy for gh) -- #884
         shell: bash
         run: |
@@ -50,7 +54,7 @@ jobs:
           # version-resolution branch (filters out plugin-v* tags by
           # default; an explicit env value pins to that release tag).
           export GHX_VERSION="${GHX_VERSION}"
-          curl -fsSL https://raw.githubusercontent.com/brunoborges/ghx/main/install.sh | bash || {
+          curl -fsSL "https://raw.githubusercontent.com/brunoborges/ghx/${GHX_VERSION}/install.sh" | bash || {
             echo "::warning title=ghx install (#884)::install.sh exited non-zero; gh fallback remains in effect."
           }
           # Confirm the install (non-fatal: a soft-warn keeps the
@@ -128,11 +132,13 @@ jobs:
 
       # #884: idempotent ghx pre-install. Windows runner -> upstream
       # install.ps1 invoked via the documented `irm | iex` trampoline.
-      # Mirrors the Linux step above (same GHX_VERSION pin, same
-      # already-on-PATH short-circuit, same soft-warn-on-failure
-      # contract). Both branches MUST stay in sync; a future ghx
-      # security advisory only requires bumping the workflow-level
-      # `env.GHX_VERSION` and `scripts/setup_ghx.py::GHX_VERSION`.
+      # Both the BINARY and the INSTALLER SCRIPT itself are pinned to
+      # ${GHX_VERSION} (closes Greptile #950 P2). Mirrors the Linux step
+      # above (same GHX_VERSION pin, same already-on-PATH short-circuit,
+      # same soft-warn-on-failure contract). Both branches MUST stay in
+      # sync; a future ghx security advisory only requires bumping the
+      # workflow-level `env.GHX_VERSION` and
+      # `scripts/setup_ghx.py::GHX_VERSION`.
       - name: Install ghx (cache proxy for gh) -- #884
         shell: pwsh
         run: |
@@ -141,8 +147,9 @@ jobs:
             exit 0
           }
           $env:GHX_VERSION = $env:GHX_VERSION
+          $installerUrl = "https://raw.githubusercontent.com/brunoborges/ghx/$env:GHX_VERSION/install.ps1"
           try {
-            Invoke-RestMethod https://raw.githubusercontent.com/brunoborges/ghx/main/install.ps1 | Invoke-Expression
+            Invoke-RestMethod $installerUrl | Invoke-Expression
           } catch {
             Write-Host "::warning title=ghx install (#884)::install.ps1 raised: $($_.Exception.Message); gh fallback remains in effect."
           }
