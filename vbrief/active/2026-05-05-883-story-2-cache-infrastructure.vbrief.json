@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Story 2 of #883 v1: cache infrastructure (scripts/cache.py, 5 commands) + scanner v2 (3 categories baseline-on) for the github-issue source. Wave 2; depends on Story 1's scm:issue:view interface; provides the cache:get interface that Story 3 rebinds onto.",
     "created": "2026-05-05T23:20:00Z",
-    "updated": "2026-05-05T23:20:00Z"
+    "updated": "2026-05-06T01:27:03Z"
   },
   "plan": {
     "id": "883-story-2-cache-infrastructure",
     "title": "feat(cache,quarantine): unified cache + scanner v2 baseline (#883 Story 2)",
-    "status": "pending",
+    "status": "running",
     "planRef": "#883",
     "narratives": {
       "Problem": "Triage v1 (#845) shipped a triage-specific cache that drifted from its stated contract (#915 P0). #883 v1 replaces it with a content-agnostic cache and quarantine layer that future consumers (wiki-llm #610, URL/email/file ingestion) can reuse without reimplementing. The v1 trim limits scope to one source type (github-issue) and three scanner categories so the foundation ships fast and clean.",
