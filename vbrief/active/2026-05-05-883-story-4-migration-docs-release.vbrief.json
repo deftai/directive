@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Story 4 of #883 v1: migration docs + end-to-end integration test + v0.26.0 release dispatch. Wave 4; depends on Stories 1-3 having all merged. UPGRADING.md ## v0.25.x -> v0.26.0 section, CHANGELOG ### Breaking framing, integration test parallel to v0.25.2's, and deft-directive-release skill invocation.",
     "created": "2026-05-05T23:20:00Z",
-    "updated": "2026-05-05T23:20:00Z"
+    "updated": "2026-05-06T03:16:23Z"
   },
   "plan": {
     "id": "883-story-4-migration-docs-release",
     "title": "feat(release): v0.26.0 migration docs + cache layer release dispatch (#883 Story 4)",
-    "status": "pending",
+    "status": "running",
     "planRef": "#883",
     "narratives": {
       "Problem": "Stories 1-3 ship the unified cache layer + triage rebind, but consumers upgrading from v0.25.x have no documented migration path; the on-disk cache layout changed (.deft-cache/issues/<owner>-<repo>/<N>.{json,md} -> .deft-cache/<source>/<key>/{raw.json,content.md,meta.json}); two task names disappeared (triage:cache, triage:show); CHANGELOG framing matters because the surface change is a breaking change pre-1.0. Story 4 closes the migration loop and ships v0.26.0.",
