@@ -178,7 +178,7 @@ def _emit_progress(
 def _run_with_timeout(
     func: Callable[[], Any],
     timeout_s: float,
-) -> tuple[bool, Any, BaseException | None]:
+) -> tuple[bool, Any, Exception | None]:
     """Run ``func()`` in a daemon thread; return ``(completed, result, exc)``.
 
     ``completed`` is False when ``timeout_s`` elapsed before ``func``
@@ -190,13 +190,19 @@ def _run_with_timeout(
 
     A non-positive ``timeout_s`` means "no watchdog" (legacy unbounded
     behavior) and is honored as a literal infinite wait.
+
+    Only :class:`Exception` subclasses are captured and forwarded --
+    ``KeyboardInterrupt`` / ``SystemExit`` / other ``BaseException``
+    descendants intentionally propagate so an operator-issued Ctrl+C
+    or interpreter shutdown is not silently swallowed by the watchdog
+    runner thread (CodeQL py/catch-base-exception, P2 cleanup for #955).
     """
     box: dict[str, Any] = {"result": None, "exc": None}
 
     def _runner() -> None:
         try:
             box["result"] = func()
-        except BaseException as exc:  # noqa: BLE001 -- forward verbatim
+        except Exception as exc:  # noqa: BLE001 -- forward verbatim
             box["exc"] = exc
 
     thread = threading.Thread(

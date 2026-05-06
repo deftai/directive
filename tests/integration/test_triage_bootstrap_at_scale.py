@@ -303,6 +303,115 @@ def test_run_bootstrap_watchdog_fires_when_fetch_hangs(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Test 3b -- run_bootstrap end-to-end watchdog (P2 cleanup for #955)
+# ---------------------------------------------------------------------------
+#
+# Test 3 above exercises ``step_populate_cache`` directly, which leaves
+# the ``run_bootstrap`` ``timeout`` progress-emit branch (the
+# ``populate_phase = "timeout"`` selector at scripts/triage_bootstrap.py
+# around the populate-step emit) untested. The watchdog contract is
+# only meaningful at the orchestrator level: the operator runs
+# ``task triage:bootstrap``, not ``step_populate_cache`` in isolation.
+# This test drives ``run_bootstrap`` end-to-end with a hung fetch and
+# asserts the three load-bearing properties:
+#
+#   (a) the watchdog actually fires (populate_cache.ok=False +
+#       details["timed_out"]=True);
+#   (b) the structured ``starting`` and ``timeout`` progress lines
+#       both land on the supplied sink so a future operator can see
+#       which step wedged from stderr alone;
+#   (c) the orchestrator returns the structured failure exit per the
+#       watchdog contract (``exit_code == 1`` with the remaining
+#       non-fetch steps still attempted -- the bootstrap is partial,
+#       not aborted).
+
+
+def test_run_bootstrap_watchdog_emits_timeout_progress_and_structured_exit(
+    tmp_path: Path,
+) -> None:
+    """run_bootstrap drives the timeout progress-emit branch end-to-end."""
+
+    def _hanging_fetch_all(**_kwargs: Any) -> Any:
+        # Sleep well past the test's timeout. Never return.
+        time.sleep(60.0)
+        raise AssertionError("watchdog failed: hanging fetch returned")
+
+    fake_cache_module = mock.Mock()
+    fake_cache_module.cache_fetch_all = _hanging_fetch_all
+
+    sink = io.StringIO()
+    started = time.monotonic()
+    result = triage_bootstrap.run_bootstrap(
+        project_root=tmp_path,
+        repo=REPO,
+        cache_module=fake_cache_module,
+        fetch_timeout_s=0.5,
+        progress=sink,
+    )
+    elapsed = time.monotonic() - started
+
+    # (a) Watchdog fired on the populate step.
+    assert len(result.steps) == 4, (
+        f"orchestrator must continue past the wedged fetch and run all four "
+        f"steps; got {[(s.name, s.ok) for s in result.steps]}"
+    )
+    populate = result.steps[0]
+    assert populate.name == "populate_cache"
+    assert populate.ok is False
+    assert populate.details.get("timed_out") is True, (
+        f"watchdog must flag timed_out on a wedged fetch via run_bootstrap; "
+        f"details={populate.details!r}"
+    )
+    assert populate.details["fetch_timeout_s"] == 0.5
+    assert populate.error is not None and "fetch_timeout_s" in populate.error
+
+    # The orchestrator must return inside ~timeout window even though
+    # the underlying fetch is still wedged in its daemon thread; allow
+    # generous slack for slow CI runners.
+    assert elapsed < 10.0, (
+        f"run_bootstrap must surrender control near the deadline; "
+        f"actual elapsed={elapsed:.2f}s, timeout=0.5s"
+    )
+
+    # (b) The ``starting`` and ``timeout`` progress lines for step 1/4
+    # both land on the sink. This is the regression-bearing assertion:
+    # the ``timeout`` phase was previously unreachable through any
+    # test, so a refactor that flipped the populate_phase selector to
+    # ``error`` (or dropped the timeout branch entirely) would have
+    # gone unnoticed.
+    lines = [ln for ln in sink.getvalue().splitlines() if ln.strip()]
+    assert any(
+        ln.startswith("triage:bootstrap step 1/4 populate_cache -- starting")
+        for ln in lines
+    ), f"missing starting line; emitted={lines!r}"
+    timeout_lines = [
+        ln for ln in lines
+        if ln.startswith("triage:bootstrap step 1/4 populate_cache -- timeout")
+    ]
+    assert timeout_lines, (
+        f"orchestrator must emit a ``timeout`` progress line for the wedged "
+        f"populate_cache step; emitted={lines!r}"
+    )
+    # The non-fetch steps still emit their own progress; this confirms
+    # the orchestrator did not bail out at the watchdog.
+    assert any(
+        ln.startswith("triage:bootstrap step 3/4 ensure_gitignore_entry -- done")
+        for ln in lines
+    ), f"post-watchdog steps must still run; emitted={lines!r}"
+
+    # (c) Structured failure exit per the watchdog contract.
+    assert result.exit_code == 1, (
+        f"a failed populate_cache step must surface as exit_code=1; "
+        f"got {result.exit_code}; steps={[(s.name, s.ok) for s in result.steps]}"
+    )
+    # The non-fetch steps are independent of the cache layer and must
+    # still succeed (gitignore is purely local); otherwise the
+    # ``partial bootstrap`` invariant from the #952 fix is broken.
+    assert result.steps[2].ok is True  # ensure_gitignore_entry
+    assert result.steps[3].ok is True  # ensure_gitignore_eval_dir
+
+
+# ---------------------------------------------------------------------------
 # Test 4 -- watchdog disable (legacy unbounded behavior)
 # ---------------------------------------------------------------------------
 
