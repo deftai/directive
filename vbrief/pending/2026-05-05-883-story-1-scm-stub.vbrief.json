@@ -3,7 +3,7 @@
     "version": "0.6",
     "description": "Story 1 of #883 v1: minimal scm:* stub (4 commands) with strong forward-compat marker pointing at #881. Wave 1 of the linear cohort; ships first; provides the scm:issue:view interface that Story 2 cache:fetch-all consumes.",
     "created": "2026-05-05T23:20:00Z",
-    "updated": "2026-05-05T23:20:00Z"
+    "updated": "2026-05-06T00:00:01Z"
   },
   "plan": {
     "id": "883-story-1-scm-stub",
@@ -15,7 +15,7 @@
       "Overview": "Ship `tasks/scm.yml` exposing 4 scm:* commands as thin ghx-or-gh fallback wrappers: scm:issue:list, scm:issue:view, scm:issue:close, scm:issue:edit. Strong forward-compat marker at file top points at #881 for the full namespace. Each command emits JSON via --json. PR commands (scm:pr:list/view/merge/close) deferred to v2.",
       "Constraint": "DO NOT EXTEND beyond the 4 commands without coordinating with #881. ghx-or-gh fallback uses shutil.which probe pattern. Output JSON shape must be stable enough for Story 2's cache:fetch-all to parse without per-version conditionals. Tests MUST be hermetic (mock subprocess); the single integration smoke test is the only exception and must skip on DEFT_NO_NETWORK=1.",
       "Outcome": "task scm:issue:list / view / close / edit functional via ghx (when on PATH) or gh (fallback). task -l shows the 4 commands cleanly. Forward-compat marker visible at top of tasks/scm.yml. Story 2 can call `task scm:issue:view --json title,number,...` and parse the result. Adoption blocker for Story 2 cleared.",
-      "Test": "Unit tests on JSON shape (mock subprocess; per-command argv assertions; ghx-then-gh fallback path verified via shutil.which mock; --json flag forwarded). 1 integration smoke test exercising real `gh issue view 1 --repo deftai/directive --json title,number` asserting non-empty JSON body; skipped under DEFT_NO_NETWORK. ~50 LOC unit + ~20 LOC integration.",
+      "Test": "Unit tests on JSON shape (mock subprocess; per-command argv assertions; ghx-then-gh fallback path verified via shutil.which mock; --json flag forwarded). 1 integration smoke test exercising real `gh issue view 1 --repo deftai/directive --json title,number` asserting non-empty JSON body; skipped under DEFT_NO_NETWORK. ~50 LOC unit + ~20 LOC integration. Contract-test fixture obligation: tests/fixtures/scm_issue_view.json (NEW) is owned by Story 1 and reused verbatim by Story 2's cache:fetch-all unit tests; the JSON-shape contract pinned in tests/test_scm_contract.py is the Story 1→2 handoff guard.",
       "Action": "Create tasks/scm.yml with 4 thin wrapper tasks. Wire into parent tasks/Taskfile.yml includes block. Add unit tests + 1 integration smoke. Ship single PR. Run review-cycle. Merge. Story 2 dispatch unblocks."
     },
     "items": [
@@ -45,12 +45,17 @@
         "status": "proposed"
       },
       {
-        "id": "883-s1-ac-6-task-check-green",
+        "id": "883-s1-ac-6-contract-test",
+        "title": "tests/test_scm_contract.py (or extension to tests/test_scm_stub.py): JSON-shape contract test pinning the exact field set Story 2's cache:fetch-all consumes from scm:issue:view and scm:issue:list. MUST assert presence and types on `scm:issue:view --json` output for at minimum: number, title, body, state, author, createdAt, updatedAt, labels, comments; AND on `scm:issue:list --json` output for at minimum: number, title, state, updatedAt. Test fixture lives at tests/fixtures/scm_issue_view.json and is referenced by both Story 1's contract test AND will be reused verbatim by Story 2's cache:fetch-all unit tests. Rationale: prevents Story 1→2 contract drift; the prior #845 6-parallel swarm produced 4 integration bugs at composition time; this contract pin is the v1 mitigation for the linear-wave handoff.",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s1-ac-7-task-check-green",
         "title": "task check passes (validate + lint + test + verify:encoding + verify:branch); no regressions",
         "status": "proposed"
       },
       {
-        "id": "883-s1-ac-7-changelog",
+        "id": "883-s1-ac-8-changelog",
         "title": "CHANGELOG.md [Unreleased] -> ### Added: feat(scm): minimal stub for #883 v1 (4 commands; ghx-or-gh fallback; #883 Story 1)",
         "status": "proposed"
       }
@@ -62,7 +67,7 @@
         "wave": 1,
         "depends_on_stories": [],
         "blocks_stories": [
-          "Story 2 (cache infra; needs scm:issue:view interface)"
+          "Story 2 (cache infra; needs scm:issue:view interface; reuses tests/fixtures/scm_issue_view.json contract fixture from Story 1)"
         ],
         "swarm_ready": true,
         "files_owned": [
@@ -70,7 +75,8 @@
           "tasks/Taskfile.yml (includes wiring only)",
           "tests/test_scm_stub.py (NEW)",
           "tests/integration/test_scm_smoke.py (NEW)",
-          "CHANGELOG.md (one bullet under [Unreleased] ### Added)"
+          "CHANGELOG.md (one bullet under [Unreleased] ### Added)",
+          "tests/fixtures/scm_issue_view.json (NEW)"
         ],
         "files_must_not_touch": [
           "scripts/cache.py (Story 2)",
@@ -112,6 +118,6 @@
         "title": "Issue #884: ghx as standard gh proxy (this stub uses ghx-or-gh fallback)"
       }
     ],
-    "updated": "2026-05-05T23:27:50Z"
+    "updated": "2026-05-06T00:00:01Z"
   }
 }
