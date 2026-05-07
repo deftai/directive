@@ -421,3 +421,73 @@ Greptile occasionally drops its prior check run and starts a fresh one without a
 **Why this is a short cross-reference, not a full prose rule:** per the Rule Authority [AXIOM] block in `main.md`, every rule MUST use the strongest applicable layer (deterministic > Taskfile > vBRIEF > RFC2119 > prose). The rule body lives in the deterministic gate + the AGENTS.md root-cause cross-reference; this lessons entry exists for discoverability + recurrence-record citation only.
 
 **Cross-references:** `scripts/verify_encoding.py` (deterministic gate); `tasks/verify.yml::encoding` + `Taskfile.yml::check` (Taskfile surface); `.githooks/pre-commit` (commit-time enforcement); `AGENTS.md` `## PowerShell` (root-cause rule, project-side mirror of personal rule `3MieNBQjwlObZM1If060iy`); `tests/cli/test_verify_encoding.py` (regression coverage); existing Windows File Editing #2 / #4 (write-side prose-tier rules this gate elevates); existing #814 lesson (sibling PS 5.1 cp1252 stdout fix); recurrence record (#236 / #240 / #283 / PR #795); this lesson (#798).
+
+## gh CLI GraphQL Bucket Exhaustion + REST Fallback + UTF-8 Payload Pattern (2026-05)
+
+**Source:** mid-session 2026-05-07 — `gh issue create` against `deftai/webinstaller` returned `GraphQL: API rate limit already exceeded for user ID ...` while `gh api rate_limit` reported `core: 4996/5000 remaining`, `graphql: 0/5000 remaining`. The same operation completed instantly via `gh api repos/<owner>/<repo>/issues --method POST --input <payload.json>`. Same identity drove both surfaces; the rate-limit failure was bucket-specific, not global.
+
+**1. Many `gh` subcommands route through GraphQL — the `core` REST bucket is independent**
+
+`gh issue create`, `gh issue close`, `gh issue comment`, `gh pr ready`, `gh pr merge`, and most other write operations issue a GraphQL mutation, billing the `graphql` bucket (5000 points/hr per user). The `gh api ...` family (default REST) bills the `core` REST bucket (5000 calls/hr per user). The two are independent. When `graphql` is exhausted, `gh issue ...` fails hard but `gh api repos/<owner>/<repo>/issues --method POST/PATCH/GET ...` continues to work. MUST inspect `gh api rate_limit` per-bucket `remaining` rather than treating the failure message as a global rate-limit signal.
+
+**2. REST fallback for issue mutations**
+
+When the `graphql` bucket is contended (parallel agents on shared identity, swarm-shaped polling, etc.) MUST prefer REST equivalents:
+- Create issue: `gh api repos/<owner>/<repo>/issues --method POST --input <payload.json>`
+- Post comment: `gh api repos/<owner>/<repo>/issues/<N>/comments --method POST --input <payload.json>`
+- Close issue: `gh api repos/<owner>/<repo>/issues/<N> --method PATCH -f state=closed -f state_reason=completed`
+- Open PR: `gh api repos/<owner>/<repo>/pulls --method POST --input <payload.json>` with `{title, head, base, body}`
+
+Closing-keyword auto-close on PR squash merge runs server-side and is unaffected by the agent's bucket choice.
+
+**3. UTF-8 safe `gh api --input` payload pattern on PS 5.1**
+
+`gh api --input <file>` reads a JSON file; building that file via PS 5.1 inline string operations corrupts non-ASCII content (em dashes, arrows, smart quotes — see existing PS 5.1 lessons #236 / #240 / #283 / PR #795 / #798). The canonical UTF-8 safe pattern is:
+
+(a) Write the markdown body to a temp file via the `create_file` tool OR Python `pathlib.Path(p).write_text(text, encoding='utf-8')`.
+(b) Build the JSON wrapper via Python: `import json, pathlib; pathlib.Path(payload).write_text(json.dumps({'body': pathlib.Path(body).read_text(encoding='utf-8')}), encoding='utf-8')`.
+(c) Invoke `gh api ... --input <payload>`.
+
+MUST NOT round-trip non-ASCII content through PS 5.1 `Get-Content` / `Set-Content` / `-replace` / backtick-n interpolation as the JSON wrapper.
+
+**Cross-references:** `scripts/verify_encoding.py` (sibling deterministic gate, #798); existing #236 / #240 / #283 / PR #795 / #798 PS 5.1 chain; existing `## Windows File Editing` #2 / #4 (write-side prose-tier rules); 2026-05-07 mid-session surfacing (deftai/webinstaller#171 filing + deftai/directive#884 closeout via REST).
+
+## Cross-Machine Parallel Agents + Single-Agent Swarm Pattern (2026-05)
+
+**Source:** 2026-05-07 session running #884 closeout in parallel with another agent's #947 cache-cap implementation on a different machine. Both agents authenticated as the same GitHub identity. The closeout used `skills/deft-directive-swarm/SKILL.md` with N=1 sub-agent — not the multi-agent vBRIEF allocation the skill was designed for, but the orchestrator-yields pattern and the REST-only sub-agent dispatch worked cleanly.
+
+**1. Cross-machine parallel agents share API quota when they share identity**
+
+Two agents on different machines but the same GitHub user share the `core` (5000/hr) and `graphql` (5000pts/hr) buckets at the personal-account level. Local file overlap is impossible (different filesystems), but API contention is real — the closeout session's `graphql` exhaustion was plausibly driven by the other agent's polling on the other machine. MUST treat shared-identity multi-machine agents as competing for the same API quota, even though file and branch isolation are automatic. SHOULD prefer GraphQL-light paths (REST mutations, ghx-cached reads, longer poll intervals) when running concurrent shared-identity sessions, and SHOULD agree explicit ownership of shared append-only files (CHANGELOG.md `[Unreleased]`) before launching the parallel work.
+
+**2. Single-agent swarm-skill use is a legitimate steerability primitive**
+
+`skills/deft-directive-swarm/SKILL.md` is documented as "parallel local agent orchestration" and the Phase 0–6 ladder is sized for N≥2. But the Phase 6 Sub-Agent Role Separation pattern (#727) — parent dispatches a fresh sub-agent via `start_agent`, parent yields with no tool calls, sub-agent reports back via messaging — works as a general orchestration primitive even at N=1, because it preserves the parent's steerability while the sub-agent runs the API-bound work. The Phase 0–3 implementation ladder is skipped when the sub-agent's task is non-code (administrative closeout, polling, observation). MAY use single-agent dispatch under this skill when the user explicitly directs it; the swarm-vs-direct decision is about steerability and conversation isolation, not parallelism.
+
+**3. Non-code sub-agents do not require the implementation preflight gate (#810)**
+
+The implementation preflight gate (`scripts/preflight_implementation.py`, surfaced via `task vbrief:preflight`) is documented as a precondition for "code-writing tool calls or `start_agent` dispatch for implementation". Administrative closeout sub-agents (post comment + PATCH state, run smoke commands, verify deliverables, file follow-up issues) are not implementation — they write no repo files, branch nothing, open no PR. MUST NOT require a scope vBRIEF for a non-code sub-agent. MUST still require an explicit action-verb directive from the user before dispatching a non-code sub-agent that has potential side effects on shared state (issue mutations, force-pushes, deletions, branch deletes).
+
+**4. Constrain sub-agent prompts with `⊗` MUST-NOT lines around scope expansion**
+
+A closeout sub-agent given freedom to "expand scope as appropriate" can drift into an adjacent issue's territory (broader migration, related cache work, unrelated polish) if the prompt does not name the boundaries. MUST encode the boundaries as explicit `⊗` MUST NOT lines in the dispatch prompt: which files NOT to touch, which adjacent issues are out of scope, which CHANGELOG/branch surfaces are off-limits, and a halt-on-deliverable-missing rule that surfaces the gap to the parent rather than improvising a fix. Explicit constraints are cheaper than retroactive rebasing or scope-creep cleanup.
+
+**Cross-references:** `skills/deft-directive-swarm/SKILL.md` Phase 6 Sub-Agent Role Separation (#727 primary encoding); `scripts/preflight_implementation.py` (#810 implementation gate); 2026-05-07 #884 closeout sub-agent (REST-only, comment + PATCH, halt-on-deliverable-missing pattern); 2026-05-07 #947 sibling implementation on second machine (shared-identity coordination via explicit CHANGELOG ownership disclaim).
+
+## ghx Within-Session Cache vs deft-cache Cross-Session Persistence (2026-05)
+
+**Source:** #884 (ghx adoption) and #883 (deft-cache) both shipped at v0.26.0; #884 closeout 2026-05-07 surfaced confusion about whether the two layers are redundant.
+
+**1. ghx and deft-cache target orthogonal failure modes**
+
+`ghx` (brunoborges/ghx, adopted via #884) is a `gh` proxy that adds in-memory read cache + singleflight coalescing + auto-invalidation on mutations. State lives only for the life of the daemon; no persistence; no quarantine. It saves the same-process / multi-agent polling case (5 swarm agents calling `gh pr checks` on the same PR collapse to 1 API call). It does NOT save a single mutation's GraphQL cost, since mutations invalidate cache entries rather than consume them.
+
+`deft-cache` (designed in #883, completed at v0.26.0) is a cross-session on-disk cache + quarantine layer. Each entry is split into `raw.json` (immutable audit, never LLM-fed) and `content.md` (post-quarantine, LLM-safe). ETag refresh; mutation-triggered invalidation; versioned scanner with append-only `quarantine-audit.jsonl`. Saves the cross-session re-fetch cost AND provides a uniform security-quarantine surface for ingested content.
+
+The two layers stack: `scm:*` tasks (#881) → `ghx` (within-session dedup) → `cache:put` (cross-session persistence + quarantine) → consumers (`candidates.jsonl` from triage #845, wiki pages from #610, etc.). MUST NOT treat `ghx` as a substitute for deft-cache or vice versa — they share zero failure modes.
+
+**2. ghx does not save the rate-limit-during-mutation case**
+
+The 2026-05-07 session surfaced the `graphql` bucket exhaustion failure mode for `gh issue create`. `ghx` would not have prevented it, because `ghx` caches reads and invalidates on writes — a single mutation is on the cost path of `ghx`, not the cache-hit path. The right reflex for graphql-bucket exhaustion is REST fallback (see `## gh CLI GraphQL Bucket Exhaustion + REST Fallback + UTF-8 Payload Pattern (2026-05)`), not `ghx` adoption. MUST treat `ghx` adoption as an optimization for the polling / read-heavy case (swarm monitoring, status checks, repeated `pr view` / `pr checks` / `issue view` calls), not a rate-limit panacea.
+
+**Cross-references:** #884 (ghx adoption — AGENTS.md prefer rule + `task setup` install + CI install pinned to `v1.5.1`); #883 (deft-cache design + completion at v0.26.0); #881 (`scm:*` task namespace, the consumer of both layers); existing `## gh CLI GraphQL Bucket Exhaustion + REST Fallback + UTF-8 Payload Pattern (2026-05)` (sibling lesson on the orthogonal mutation-cost failure mode); brunoborges/ghx (upstream).
