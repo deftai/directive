@@ -299,15 +299,76 @@ class TestEvictLru:
                 mtime=mt,
             )
         caps = _cache_quota.CacheCaps(max_bytes=500, max_entries=0)
+        seen: list[tuple[str, str]] = []
+        _cache_quota.evict_lru(
+            tmp_path,
+            sources=cache.ALLOWED_SOURCES,
+            caps=caps,
+            on_evict=lambda v, reason, _c: seen.append((v.key, reason)),
+        )
+        # Two oldest entries had to go to drop the total to 400 < 500.
+        # Reason for each is precisely "size_cap" (only bytes cap is set),
+        # not the configured-cap union.
+        assert seen == [("a/b/0", "size_cap"), ("a/b/1", "size_cap")]
+
+    def test_evict_reason_reflects_actual_breach_under_both_caps(
+        self, tmp_path: Path
+    ) -> None:
+        # Both caps configured. Bytes cap is generous (no breach), entries cap
+        # tight (breach). Reason MUST be 'entry_cap', NOT 'size_cap+entry_cap'.
+        # Regression for the iter-1 P1 finding: prior behavior tagged every
+        # eviction with the union of configured caps under the defaults.
+        for i, mt in enumerate([10.0, 20.0, 30.0]):
+            _write_entry(
+                tmp_path,
+                source="github-issue",
+                key=f"a/b/{i}",
+                size_bytes=10,
+                mtime=mt,
+            )
+        caps = _cache_quota.CacheCaps(max_bytes=10**9, max_entries=2)
         seen: list[str] = []
         _cache_quota.evict_lru(
             tmp_path,
             sources=cache.ALLOWED_SOURCES,
             caps=caps,
-            on_evict=lambda v, _c, _ib: seen.append(v.key),
+            on_evict=lambda _v, reason, _c: seen.append(reason),
         )
-        # Two oldest entries had to go to drop the total to 400 < 500.
-        assert seen == ["a/b/0", "a/b/1"]
+        # One eviction needed (3 entries down to 2). Only entries cap drove it.
+        assert seen == ["entry_cap"]
+
+    def test_evict_lru_single_scan_invocation(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Regression for the iter-1 P2 finding: the original loop called
+        # scan_usage() once per eviction, giving an O(n^2) drain. The
+        # restructured implementation does ONE up-front scan plus running
+        # totals; verify scan_usage is called exactly once even when the
+        # eviction set has many entries.
+        for i, mt in enumerate([10.0 + i for i in range(10)]):  # noqa: B023
+            _write_entry(
+                tmp_path,
+                source="github-issue",
+                key=f"a/b/{i}",
+                size_bytes=100,
+                mtime=mt,
+            )
+        caps = _cache_quota.CacheCaps(max_bytes=200, max_entries=0)
+        call_count = {"n": 0}
+        real_scan = _cache_quota.scan_usage
+
+        def counting_scan(*args, **kwargs):
+            call_count["n"] += 1
+            return real_scan(*args, **kwargs)
+
+        monkeypatch.setattr(_cache_quota, "scan_usage", counting_scan)
+        evicted = _cache_quota.evict_lru(
+            tmp_path, sources=cache.ALLOWED_SOURCES, caps=caps
+        )
+        # 10 entries x 100 bytes = 1000 total; cap = 200; need to evict 8.
+        assert len(evicted) == 8
+        # Single scan_usage call regardless of eviction count.
+        assert call_count["n"] == 1
 
     def test_disabled_caps_short_circuit(self, tmp_path: Path) -> None:
         _write_entry(
@@ -540,6 +601,35 @@ class TestCachePutEnforcement:
         assert not (
             tmp_path / "github-issue" / "deftai" / "directive" / "400"
         ).exists()
+
+    def test_shrinking_reput_below_cap_succeeds(self, tmp_path: Path) -> None:
+        # Regression for the iter-1 P1 finding: a shrinking re-put against
+        # a tight byte cap was incorrectly rejected because incoming_delta
+        # was floored to 0, so cap_breached saw the existing oversized entry
+        # alone exceeding the cap. The fix lets incoming_delta go negative
+        # so the projected total post-write reflects the smaller payload.
+        large_body = "x" * 8000  # ~8 KB raw.json
+        cache.cache_put(
+            "github-issue",
+            "deftai/directive/410",
+            _good_raw(number=410, body=large_body),
+            cache_root=tmp_path,
+        )
+        # Re-put with a much smaller body under a cap smaller than the
+        # original entry. Must NOT raise -- the smaller payload fits.
+        caps = _cache_quota.CacheCaps(max_bytes=4000, max_entries=0)
+        cache.cache_put(
+            "github-issue",
+            "deftai/directive/410",
+            _good_raw(number=410, body="tiny"),
+            cache_root=tmp_path,
+            caps=caps,
+        )
+        # Entry persists with the smaller raw.json.
+        edir = tmp_path / "github-issue" / "deftai" / "directive" / "410"
+        assert edir.exists()
+        size_after = (edir / "raw.json").stat().st_size
+        assert size_after < 4000
 
     def test_cli_exit_3_on_cap_breach(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

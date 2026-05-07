@@ -326,59 +326,91 @@ def evict_lru(
     protect_keys: Iterable[tuple[str, str]] = (),
     on_evict: EvictCallback | None = None,
 ) -> list[EntryUsage]:
-    """Evict LRU entries until the cap fits ``incoming_bytes``.
+    """Evict LRU entries until the cap fits the incoming delta.
 
-    Returns the list of evicted :class:`EntryUsage` records (in eviction
-    order, oldest first).
+    Single-pass O(n log n): one ``scan_usage`` call up-front, then iterate
+    the LRU-ordered candidate list maintaining running totals so each
+    eviction does not re-scan the cache root (the previous O(n^2)
+    re-scan pattern was a P2 finding from the iter-0 review).
+
+    Returns the list of evicted :class:`EntryUsage` records, oldest
+    first, in eviction order.
 
     Args:
         cache_root: Cache root path.
         sources: Cache layer's ALLOWED_SOURCES tuple.
         caps: Resolved cap thresholds.
         incoming_bytes: Bytes the caller plans to add post-eviction.
-            Pass 0 for prune-to-cap (no new entry); pass the projected
-            raw.json size for cache:put.
+            May be negative for a shrinking re-put (caller subtracts
+            the existing entry's size).
+        incoming_entries: Entry-count delta (0 for re-put / prune-to-
+            cap, 1 for a brand-new entry).
         protect_keys: Iterable of (source, key) pairs that MUST NOT be
-            evicted (e.g. the entry currently being written; protects
-            an existing fresher version of a key from being evicted by
-            its own re-put).
+            evicted (typically the entry currently being written, so a
+            re-put cannot self-evict).
         on_evict: Optional callback invoked once per evicted entry
-            BEFORE the directory is removed. Used by cache.py to append
-            ``cache:evict`` audit records to quarantine-audit.jsonl.
+            BEFORE the directory is removed. Receives the victim, the
+            already-narrowed reason string (``"size_cap"`` /
+            ``"entry_cap"`` / ``"size_cap+entry_cap"``) reflecting which
+            cap was actually exceeded at the moment of eviction, and
+            the resolved caps for caller introspection.
     """
     if not caps.any_enforced:
         return []
     protect = {(s, k) for s, k in protect_keys}
+    usage = scan_usage(cache_root, sources=sources)
+    if not cap_breached(
+        usage,
+        caps,
+        incoming_bytes=incoming_bytes,
+        incoming_entries=incoming_entries,
+    ):
+        return []
+    ordered = [e for e in lru_order(usage) if (e.source, e.key) not in protect]
+    if not ordered:
+        # Every entry is protected -- caller decides what to do.
+        return []
     evicted: list[EntryUsage] = []
-    while True:
-        usage = scan_usage(cache_root, sources=sources)
-        if not cap_breached(
-            usage,
-            caps,
-            incoming_bytes=incoming_bytes,
-            incoming_entries=incoming_entries,
-        ):
-            return evicted
-        # Pick the oldest evictable entry that is not in the protect set.
-        candidates = [e for e in lru_order(usage) if (e.source, e.key) not in protect]
-        if not candidates:
-            # Every remaining entry is protected -- caller decides what
-            # to do (cache:put raises CacheCapBreachedError; prune-to-cap
-            # logs a warning and stops). Return what we evicted so far.
-            return evicted
-        victim = candidates[0]
+    running_bytes = usage.total_bytes
+    running_entries = usage.total_entries
+    for victim in ordered:
+        bytes_breach = (
+            caps.bytes_enforced
+            and running_bytes + incoming_bytes > caps.max_bytes
+        )
+        entries_breach = (
+            caps.entries_enforced
+            and running_entries + incoming_entries > caps.max_entries
+        )
+        if not (bytes_breach or entries_breach):
+            break
+        reasons: list[str] = []
+        if bytes_breach:
+            reasons.append("size_cap")
+        if entries_breach:
+            reasons.append("entry_cap")
+        reason = "+".join(reasons) or "unknown"
         if on_evict is not None:
-            on_evict(victim, caps, incoming_bytes)
+            on_evict(victim, reason, caps)
         # Concurrent removal -- treat as a no-op.
         with contextlib.suppress(FileNotFoundError):
             shutil.rmtree(victim.entry_dir)
         evicted.append(victim)
+        running_bytes -= victim.size_bytes
+        running_entries -= 1
+    return evicted
 
 
 #: Type alias for the on_evict callback used by :func:`evict_lru` and
 #: :func:`enforce_caps`. Invoked once per evicted entry BEFORE the
-#: directory is removed.
-EvictCallback = Callable[[EntryUsage, CacheCaps, int], None]
+#: directory is removed. Signature is ``(victim, reason, caps)`` where
+#: ``reason`` is the already-narrowed breach descriptor reflecting which
+#: cap was actually exceeded at the moment of eviction (P1 fix from the
+#: iter-1 review: the previous ``(victim, caps, incoming_bytes)`` shape
+#: forced the audit callback to recompute reason without enough context
+#: and ended up tagging every record ``size_cap+entry_cap`` under the
+#: defaults).
+EvictCallback = Callable[[EntryUsage, str, CacheCaps], None]
 
 
 # ---------------------------------------------------------------------------

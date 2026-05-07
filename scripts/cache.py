@@ -312,10 +312,14 @@ def cache_put(
     raw_text = json.dumps(raw, indent=2, sort_keys=True, ensure_ascii=False)
     raw_size = len(raw_text.encode("utf-8"))
 
-    # Re-put: charge delta only; protect the existing entry from self-eviction.
+    # Re-put: charge delta only (may be negative when shrinking; cap_breached
+    # handles the arithmetic correctly). Protect the existing entry from
+    # self-eviction. Flooring to 0 here was a P1 finding -- a shrinking re-put
+    # against a tight cap was being rejected as a cap-breach even though the
+    # smaller payload would bring the cache *under* the cap.
     existing_size = _existing_entry_size(edir)
     is_new_entry = existing_size is None
-    incoming_delta = raw_size if is_new_entry else max(0, raw_size - existing_size)
+    incoming_delta = raw_size if is_new_entry else raw_size - existing_size
     incoming_entries = 1 if is_new_entry else 0
 
     cache_root_path = cache_root if cache_root is not None else DEFAULT_CACHE_ROOT
@@ -712,16 +716,17 @@ def _make_evict_audit_callback(
     """Build the ``on_evict`` callback that appends ``cache:evict`` records.
 
     One audit record per eviction; operators can grep for the
-    ``"event":"cache:evict"`` line to trace why an entry vanished.
+    ``"event":"cache:evict"`` line to trace why an entry vanished. The
+    ``reason`` field is the precomputed breach descriptor passed in by
+    ``evict_lru`` -- it reflects the cap actually exceeded at the moment
+    of *this* eviction (not just the configured caps), so an operator
+    grepping ``"reason":"entry_cap"`` gets only the entry-cap-driven
+    evictions even when both caps are configured. P1 fix from the iter-1
+    review (the prior callback derived reason from caps alone, tagging
+    every record ``size_cap+entry_cap`` under the defaults).
     """
 
-    def _on_evict(victim: EntryUsage, caps: CacheCaps, incoming_bytes: int) -> None:
-        # Both caps can fire on the same eviction; +-join the reasons.
-        reasons: list[str] = []
-        if caps.bytes_enforced:
-            reasons.append("size_cap")
-        if caps.entries_enforced:
-            reasons.append("entry_cap")
+    def _on_evict(victim: EntryUsage, reason: str, _caps: CacheCaps) -> None:
         last_accessed_iso = (
             datetime.fromtimestamp(victim.last_accessed, tz=UTC).strftime(
                 "%Y-%m-%dT%H:%M:%SZ"
@@ -735,7 +740,7 @@ def _make_evict_audit_callback(
                 "source": victim.source,
                 "key": victim.key,
                 "timestamp": _utc_iso(),
-                "reason": "+".join(reasons) or "unknown",
+                "reason": reason,
                 "trigger": trigger,
                 "freed_bytes": victim.size_bytes,
                 "last_accessed_at": last_accessed_iso,
