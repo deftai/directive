@@ -22,77 +22,77 @@
       {
         "id": "947-ac-1-quota-helper-module",
         "title": "scripts/_cache_quota.py: new helper module owning compute_usage(), enforce_caps(), evict_lru(), env-var resolution, CacheCapBreachedError",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-2-mtime-touch-on-get",
         "title": "scripts/cache.py: cache_get touches meta.json mtime (single os.utime syscall) so LRU ordering reflects access recency",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-3-put-pre-write-enforcement",
         "title": "scripts/cache.py: cache_put projects new total; calls enforce_caps() pre-write; evicts LRU until fitting; raises CacheCapBreachedError if impossible",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-4-prune-to-cap",
         "title": "scripts/cache.py: new cache_prune_to_cap() function; --to-cap flag added to cache:prune CLI; idempotent on repeat invocation",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-5-evict-audit-event",
         "title": "scripts/cache.py: every eviction appends one cache:evict record to quarantine-audit.jsonl with {source, key, timestamp, reason, trigger, freed_bytes, last_accessed_at}",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-6-env-var-config",
         "title": "scripts/_cache_quota.py: DEFT_CACHE_MAX_BYTES (default 100 MB) and DEFT_CACHE_MAX_ENTRIES (default 10000) env vars; 0 disables the corresponding cap",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-7-cli-exit-code-3",
         "title": "scripts/cache.py: CacheCapBreachedError surfaces as CLI exit-3 (distinct from CacheError exit-1, schema exit-2) with structured stderr",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-8-tests-eviction-unit",
         "title": "tests/test_cache_eviction.py (new): _cache_quota unit coverage -- compute_usage, evict_lru ordering, refusal-on-impossible-fit, env-var override parsing, CacheCapBreachedError shape",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-9-tests-cache-integration",
         "title": "tests/test_cache.py: cache_get mtime touch; cache_put pre-write eviction; cap-breach exit-3 path; idempotent prune --to-cap; audit cache:evict format; env-var overrides",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-10-tests-integration-fetchall",
         "title": "tests/integration/test_cache_quarantine.py: fetch-all triggers eviction when N exceeds entry cap; audit log carries cache:evict events",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-11-tasks-yml",
         "title": "tasks/cache.yml: cache:prune --to-cap forwarded via {{.CLI_ARGS}} (no sources/generates per #574 conventions)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-12-changelog",
         "title": "CHANGELOG.md [Unreleased] -> ### Added bullet referencing #947 with sizing rationale (100 MB / 10000 entries; ~10 KB/entry from smoke evidence)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-13-task-check",
         "title": "task check passes (validate + lint + test + verify:encoding + verify:branch)",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-14-draft-pr",
         "title": "Push branch feat/947-cache-cap and open DRAFT PR (no merge, no ready) with Closes #947 in body",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "947-ac-15-review-cycle",
         "title": "Run skills/deft-directive-review-cycle (cap 3 iterations); greptile-errored -> retry once via @greptileai then halt",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "metadata": {
