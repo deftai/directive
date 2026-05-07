@@ -217,16 +217,31 @@ class TestResolvedPathArgv:
     def test_release_publish_view_uses_resolved_path(
         self, monkeypatch, patched_which
     ):
+        # Post-#961 REST refactor: view_release now issues
+        # `gh api repos/<owner>/<repo>/releases/tags/<tag>` against the core
+        # bucket, not the legacy GraphQL `gh release view --json ...` form.
+        # The stdout fixture mirrors the REST response shape (draft /
+        # tag_name / html_url / id) and the argv assertion checks for the
+        # `api` subcommand + the REST endpoint path token.
         captured = self._capture_subprocess(
             monkeypatch,
-            stdout='{"isDraft":true,"name":"v0.21.0","tagName":"v0.21.0","url":"u"}',
+            stdout=(
+                '{"id":1234567,"draft":true,"name":"v0.21.0",'
+                '"tag_name":"v0.21.0","html_url":"u"}'
+            ),
         )
         release_publish.view_release("0.21.0", "deftai/directive")
         assert captured["cmd"][0] == patched_which
         assert captured["cmd"][0] != "gh"
-        # Sanity: the rest of argv is the gh subcommand we expect, not garbage.
-        assert "release" in captured["cmd"]
-        assert "view" in captured["cmd"]
+        # Sanity: argv now goes through `gh api <endpoint>` (REST core),
+        # not the legacy `gh release view --json ...` (GraphQL).
+        assert "api" in captured["cmd"]
+        assert any(
+            arg == "repos/deftai/directive/releases/tags/v0.21.0"
+            for arg in captured["cmd"]
+        )
+        # Defence-in-depth against re-introducing the GraphQL path.
+        assert "--json" not in captured["cmd"]
 
     def test_release_rollback_delete_uses_resolved_path(
         self, monkeypatch, patched_which
@@ -307,9 +322,14 @@ class TestEnvPropagation:
     def test_release_publish_view_propagates_env(
         self, monkeypatch, patched_which
     ):
+        # Post-#961 REST refactor: stdout fixture uses REST shape so the
+        # helper succeeds and reaches the env= propagation assertion.
         captured = self._capture_subprocess(
             monkeypatch,
-            stdout='{"isDraft":false,"name":"v0.21.0","tagName":"v0.21.0","url":"u"}',
+            stdout=(
+                '{"id":1234567,"draft":false,"name":"v0.21.0",'
+                '"tag_name":"v0.21.0","html_url":"u"}'
+            ),
         )
         release_publish.view_release("0.21.0", "deftai/directive")
         self._assert_env_kwarg(captured)

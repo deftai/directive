@@ -1,0 +1,141 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Ship the canonical gh-mutation/read REST-fallback module per issue #961 -- scripts/gh_rest.py with seven typed helpers (5 mutations: rest_create_issue, rest_post_comment, rest_close_issue, rest_open_pr, rest_merge_pr; 2 reads: rest_issue_view, rest_pr_view) wrapping `gh api` REST endpoints, returning structured dicts, raising typed GhRestError on failure, building all JSON payloads via Python pathlib UTF-8 (closes the recurring PS 5.1 mojibake hazard at gh-mutation call sites). Sibling deliverable per maintainer Path (C) authorization: refactor scripts/release_publish.py to replace its two `gh release view --json ...` (line 144, GraphQL) and `gh release edit ... --draft=false` (line 182, GraphQL) calls with inline `gh api` REST equivalents (NOT routed through gh_rest.py because issue #961 explicitly carves releases out as #74's concern). The motivating incident is the v0.26.1 publish failure today -- the GraphQL bucket was exhausted and both GraphQL surfaces failed. Predecessor agent (e1215873) correctly identified a scope conflict in the prior envelope and BLOCKED with analysis (releases were initially proposed for inclusion in gh_rest.py, contradicting the issue body's explicit out-of-scope list); this dispatch carves releases out of gh_rest.py and ships them as a sibling refactor. Single PR, DRAFT only, closes #961, targets v0.26.2 quick-follow. PowerShell 5.1 non-ASCII rule (#798) governs all file edits.",
+    "created": "2026-05-07T22:30:00Z",
+    "updated": "2026-05-07T22:31:32Z"
+  },
+  "plan": {
+    "id": "961-gh-rest-helpers",
+    "title": "feat(scripts): gh_rest.py REST-fallback helpers for gh mutations and reads (#961)",
+    "status": "running",
+    "planRef": "#961",
+    "narratives": {
+      "Problem": "Mid-session 2026-05-07 the `graphql` bucket exhausted (gh api rate_limit reported graphql: 0/5000, core: 4996/5000). gh issue create / close / comment, gh pr ready / merge, gh pr view --json, gh issue view --json all routed through GraphQL and failed hard, even though every operation has a working REST equivalent. The session worked around it by inlining gh api repos/.../<endpoint> --method POST/PATCH/PUT --input <payload.json> per call site -- repetitive, error-prone (PS 5.1 inline-string operations corrupt non-ASCII content), and the pattern lives only as prose in meta/lessons.md. Same root cause re-fired today during the v0.26.1 publish: scripts/release_publish.py line 144 (`gh release view --json ...`) and line 182 (`gh release edit ... --draft=false`) are both GraphQL surfaces, and they failed when the bucket exhausted. Without REST equivalents at those call sites the publish stalled. Reifying the issue/PR pattern as scripts/gh_rest.py + refactoring release_publish.py to use inline REST closes the recurrence at every mutation call site we currently own.",
+      "Overview": "Two concrete deliverables in one PR plus tests / CHANGELOG / lessons.md cross-reference. (1) NEW scripts/gh_rest.py exposing seven typed helpers per issue #961 acceptance criteria: 5 mutations (rest_create_issue, rest_post_comment, rest_close_issue, rest_open_pr, rest_merge_pr) + 2 reads (rest_issue_view, rest_pr_view). Each helper wraps `gh api` (subprocess) calling explicit REST endpoints (issues / pulls / comments). Pure stdlib + subprocess. Returns structured dataclass / typed dict (the parsed REST response). Raises typed GhRestError(stderr, exit_code, endpoint, payload) with actionable recovery hint on failure. Module-level test seam (_run_gh_api indirection) for hermetic mocking. Binary routing via scripts/scm.py::resolve_binary (ghx -> gh ladder per #884). All JSON payloads built via Python pathlib + UTF-8. File MUST be < 1000 lines; SHOULD be < 500. Split companion scripts/_gh_rest_helpers.py for low-level machinery if the file approaches the soft limit (mirrors cache.py / _cache_validate.py split). Module docstring documents the two REST-impossible mutations (markPullRequestReadyForReview, addPullRequestReview) as known limitations -- GraphQL-only on the GitHub side -- so callers don't expect them. (2) REFACTOR scripts/release_publish.py: replace `gh release view --json isDraft,name,tagName,url` (~line 144) with `gh api repos/<owner>/<repo>/releases/tags/<tag>` (REST core); replace `gh release edit ... --draft=false` (~line 182) with `gh api -X PATCH repos/<owner>/<repo>/releases/<id> -F draft=false` (REST core). Preserve existing CLI surface and JSON-shape contract (state machine: not-found / published / draft / gh-error; stdout/stderr shape; exit codes 0/1/2). Cite the v0.26.1 publish failure as recurrence record in module docstring. Releases helpers are NOT routed through gh_rest.py because issue #961's body explicitly carves releases OUT (charter says: different concern, owned by task release / #74). (3) tests/cli/test_gh_rest.py: per-helper coverage of mutations + reads, error paths, JSON-shape contract, UTF-8 round-trip with non-ASCII content (regression for #798). Hermetic via mocked _run_gh_api. (4) tests/cli/test_release_publish.py extended with regression tests reproducing today's failure mode (GraphQL exhausted via mocked subprocess returning rate-limit error -> REST helper succeeds). (5) CHANGELOG.md [Unreleased] Added bullet for gh_rest.py and Fixed bullet for release_publish.py REST internals (cite v0.26.1 publish failure); both reference #961. (6) meta/lessons.md cross-reference under '## REST-fallback module surface (2026-05)'.",
+      "Constraint": "PREDECESSOR ANALYSIS BINDS THIS SCOPE: agent e1215873 BLOCKED on the prior envelope after correctly identifying that issue #961 explicitly out-of-scopes releases (charter says: 'different concern, owned by task release / #74'). This corrected envelope HONORS that carve-out: scripts/gh_rest.py contains issues/PR helpers ONLY (no rest_view_release, no rest_edit_release_publish, no rest_create_release). The release_publish refactor uses INLINE `gh api` REST calls directly in scripts/release_publish.py -- it is a sibling concern, not routed through gh_rest.py. NO gh issue view --json / gh pr view --json / gh pr ready / gh pr update-branch (all GraphQL). NO Draft<->Ready toggling (stay DRAFT). NO merge. NO ROADMAP.md edits. NO CHANGELOG.md section restructure (only ADD entries to existing [Unreleased] subsections). NO touching templates/agent-prompt-preamble.md (just shipped). NO touching scripts/scm.py / scripts/cache*.py / tasks/*.yml beyond what's necessary for tests. PowerShell 5.1 + non-ASCII = Python pathlib for ALL file edits. File length: < 1000 lines (deft MUST limit); SHOULD be < 500. Wall-clock cap: 2.5h.",
+      "Outcome": "scripts/gh_rest.py (new): seven typed REST helpers (5 mutations + 2 reads) per issue #961 acceptance criteria, all routing through scripts/scm.py::resolve_binary, all building JSON payloads via Python pathlib + UTF-8, all raising GhRestError on failure with structured (stderr, exit_code, endpoint, payload) attributes, module docstring documenting the two REST-impossible mutations (mark-ready-for-review, pr-review-approve) as known GraphQL-only limitations. scripts/release_publish.py (refactored): two GraphQL-routed gh subcommand calls replaced with inline REST `gh api` invocations; CLI surface and JSON-shape contract preserved; module docstring cites v0.26.1 publish failure as the motivating incident. tests/cli/test_gh_rest.py (new): per-helper mutation + read coverage, error paths, JSON-shape contract, UTF-8 round-trip regression. tests/cli/test_release_publish.py (extended): regression tests for the GraphQL-exhausted -> REST-succeeds path. CHANGELOG.md [Unreleased]: Added bullet for gh_rest.py + Fixed bullet for release_publish.py REST internals, both #961 references. meta/lessons.md: cross-reference under '## REST-fallback module surface (2026-05)' pointing at the new module + the release-publish refactor + REST-impossible-mutations note. task check green. DRAFT PR with `Closes #961` in body. adoption blocker label applied.",
+      "Test": "tests/cli/test_gh_rest.py covers per-helper argv shape (correct binary, correct endpoint URL, correct method flag, correct --input JSON path), JSON-payload UTF-8 round-trip with non-ASCII content (em dashes, arrows, smart quotes -- regression for #798), 0-exit success returns parsed dict, non-zero exit raises GhRestError with parsed stderr/exit_code/endpoint/payload attributes, owner/repo parsing (valid + malformed), public-surface contract test (asserts the seven exported helpers). tests/cli/test_release_publish.py extended with: mocked subprocess returning GraphQL-rate-limit-exhausted error on the legacy `gh release view --json` form -> REST `gh api repos/.../releases/tags/<tag>` succeeds and returns the release payload; same for the edit path. task check green.",
+      "DesignChoice": "INLINE-NOT-VIA-HELPERS-FOR-RELEASES: per issue #961 body (literal acceptance criteria + Out of scope section), releases are explicitly carved OUT of gh_rest.py because they are 'different concern, owned by task release / #74'. The release_publish refactor uses inline `gh api` REST calls directly in scripts/release_publish.py -- a sibling concern that ships in the same PR but does NOT extend the gh_rest.py surface. This honors the predecessor agent's scope-clarification analysis (BLOCKED message id 9f5f1e62-9cc6-40aa-8e64-af6d992d95d2). MODULE-LEVEL-TEST-SEAM: the seven helpers route through a module-private `_run_gh_api` indirection so tests can monkeypatch a single seam rather than mocking subprocess.run for each helper -- mirrors the existing `release_publish.shutil.which` / `release_publish.subprocess` patch pattern. KNOWN-LIMITATIONS-DOCUMENTED-NOT-WORKED-AROUND: gh pr ready (markPullRequestReadyForReview) and gh pr review --approve (addPullRequestReview) are GraphQL-only on the GitHub side -- no REST equivalent exists. Module docstring documents the limitation; lessons.md cross-references it. Callers needing those mutations must accept the GraphQL bucket cost; we do not invent a fake-REST shim. RAW-RESPONSE-DICT-NOT-CLI-SHAPE: each helper returns the raw GitHub REST response dict (parsed JSON), NOT the CLI's `gh issue view --json ...` augmented shape. Callers expecting the CLI's GraphQL-augmented fields (closingIssuesReferences, etc.) compose explicitly. Module docstring calls this out so a future caller doesn't expect drop-in equivalence."
+    },
+    "items": [
+      {
+        "id": "961-ac-1-gh-rest-module",
+        "title": "scripts/gh_rest.py (new): seven typed helpers (5 mutations + 2 reads) per issue #961 acceptance criteria. Mutations: rest_create_issue, rest_post_comment, rest_close_issue, rest_open_pr, rest_merge_pr. Reads: rest_issue_view, rest_pr_view. Each helper wraps `gh api` via subprocess, builds JSON payloads via Python pathlib + UTF-8, raises GhRestError(stderr, exit_code, endpoint, payload) on failure, routes binary through scripts/scm.py::resolve_binary. Module docstring documents two REST-impossible GraphQL-only mutations (markPullRequestReadyForReview / addPullRequestReview) as known limitations.",
+        "status": "proposed"
+      },
+      {
+        "id": "961-ac-2-release-publish-refactor",
+        "title": "scripts/release_publish.py: replace `gh release view --json isDraft,name,tagName,url` (line 144, GraphQL) with `gh api repos/<owner>/<repo>/releases/tags/<tag>` (REST core); replace `gh release edit ... --draft=false` (line 182, GraphQL) with `gh api -X PATCH repos/<owner>/<repo>/releases/<id> -F draft=false` (REST core). Preserve CLI surface and state-machine contract (not-found / published / draft / gh-error). Module docstring cites v0.26.1 publish failure. Inline REST -- NOT routed through gh_rest.py per issue #961 release out-of-scope carve-out.",
+        "status": "proposed"
+      },
+      {
+        "id": "961-ac-3-tests-gh-rest",
+        "title": "tests/cli/test_gh_rest.py (new): per-helper coverage of all seven helpers -- argv shape, JSON-payload UTF-8 round-trip with non-ASCII content (regression for #798), 0-exit success returns parsed dict, non-zero exit raises GhRestError with structured attributes, owner/repo parsing valid + malformed, public-surface contract test pinning the seven exported names.",
+        "status": "proposed"
+      },
+      {
+        "id": "961-ac-4-tests-release-publish-extension",
+        "title": "tests/cli/test_release_publish.py (extended): regression tests for GraphQL-exhausted -> REST-succeeds path on the view + edit calls. Mocked subprocess returning GraphQL rate-limit error on the legacy form, succeeding on the REST `gh api` form.",
+        "status": "proposed"
+      },
+      {
+        "id": "961-ac-5-changelog",
+        "title": "CHANGELOG.md [Unreleased]: Added bullet for scripts/gh_rest.py (7 helpers, REST-fallback for issues/PRs); Fixed bullet for scripts/release_publish.py (REST internals; cite v0.26.1 publish failure as motivating incident). Both reference #961. NO section restructure.",
+        "status": "proposed"
+      },
+      {
+        "id": "961-ac-6-lessons-cross-reference",
+        "title": "meta/lessons.md: brief entry under '## REST-fallback module surface (2026-05)' documenting (a) issue/PR helpers live in scripts/gh_rest.py, (b) release surfaces are intentionally NOT wrapped (charter / #74 ownership), (c) REST-impossible mutations (mark-ready-for-review, pr-review-approve) -- known limitations, GraphQL-only on GitHub side. Cross-references templates/agent-prompt-preamble.md § 5 (REST-by-default rule).",
+        "status": "proposed"
+      },
+      {
+        "id": "961-ac-7-task-check",
+        "title": "task check passes (validate + lint + test + verify:encoding + verify:branch).",
+        "status": "proposed"
+      },
+      {
+        "id": "961-ac-8-draft-pr",
+        "title": "Push branch feat/961-gh-rest-helpers; create `adoption blocker` label via REST if missing (color e74c3c); open DRAFT PR via REST mutation (`gh api -X POST repos/deftai/directive/pulls --input <file>`); body includes `Closes #961` and a Scope deviation notes section documenting the inline-REST-not-via-helpers approach for releases. Apply `adoption blocker` label via REST. Stay DRAFT.",
+        "status": "proposed"
+      },
+      {
+        "id": "961-ac-9-review-cycle",
+        "title": "Run skills/deft-directive-review-cycle/SKILL.md (cap 3 iterations); REST-only polling; greptile-errored -> retry once via @greptileai then halt. Probe rate_limit between iterations.",
+        "status": "proposed"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_issue": "#961",
+        "predecessor_blocked_message_id": "9f5f1e62-9cc6-40aa-8e64-af6d992d95d2",
+        "scope_clarification_source": "Predecessor (e1215873) BLOCKED analysis: issue #961 carves releases out; release_publish refactor ships as sibling concern via inline REST, not via gh_rest helpers.",
+        "files_owned": [
+          "scripts/gh_rest.py (new)",
+          "scripts/release_publish.py (refactor)",
+          "tests/cli/test_gh_rest.py (new)",
+          "tests/cli/test_release_publish.py (extend)",
+          "CHANGELOG.md ([Unreleased] additive only)",
+          "meta/lessons.md (additive section)",
+          "vbrief/proposed/2026-05-07-961-gh-rest-helpers.vbrief.json (this file; lifecycle-moved on completion)"
+        ],
+        "files_must_not_touch": [
+          "ROADMAP.md",
+          "templates/agent-prompt-preamble.md",
+          "scripts/scm.py",
+          "scripts/cache.py",
+          "scripts/_cache_validate.py",
+          "scripts/_cache_fetch.py",
+          "scripts/_cache_quota.py",
+          "tasks/*.yml (beyond test discovery)",
+          "vbrief/schemas/",
+          "vbrief/PROJECT-DEFINITION.vbrief.json"
+        ],
+        "branch": "feat/961-gh-rest-helpers",
+        "branch_status": "exists; created off origin/master @ a1878dc; no commits yet",
+        "pr_title_prefix": "feat(scripts): gh_rest.py REST-fallback helpers for gh mutations and reads (#961)",
+        "draft_pr_only": true,
+        "release_target": "v0.26.2 quick-follow",
+        "out_of_scope_followups": [
+          "Releases REST helpers (rest_create_release / rest_publish_release) -- explicit out-of-scope per issue #961 body; #74 ownership",
+          "Branch operations (delete, protect, etc.) -- explicit out-of-scope per issue #961 body",
+          "rest_pr_checks (CI check-runs polling) -- candidate for v2 per issue #961 body",
+          "rest_reopen_issue / label / assignee / reviewer mutations -- deferred per issue #961 body"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/961",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #961: gh_rest.py REST fallback helpers for gh mutations and reads when GraphQL is exhausted"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/884",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #884: ghx adoption -- the binary chain helpers route through"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/74",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #74: task release surface (owns release-creation; releases out of scope for #961)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/798",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #798: PS 5.1 non-ASCII deterministic gate -- gh_rest.py JSON pathlib + UTF-8 closes the hazard at gh-mutation call sites"
+      },
+      {
+        "uri": "meta/lessons.md",
+        "type": "x-vbrief/related-file",
+        "title": "Lessons section '## gh CLI GraphQL Bucket Exhaustion + REST Fallback + UTF-8 Payload Pattern (2026-05)' -- this PR is the deterministic-tier follow-up"
+      },
+      {
+        "uri": "templates/agent-prompt-preamble.md",
+        "type": "x-vbrief/related-file",
+        "title": "Canonical preamble § 5 (REST-by-default rule) -- the institutional-memory anchor that this module ships at the script layer"
+      }
+    ],
+    "updated": "2026-05-07T22:31:28Z"
+  }
+}
