@@ -35,12 +35,14 @@ Scanner v2 baseline categories
    ``DIRECTIVE:`` / ``ROLE:`` / ``INSTRUCTION(S):`` / ``PROMPT:`` /
    ``TOOL:`` / ``FUNCTION:`` at the heading's start -- or (b) a shell
    vector inside the heading's body (``curl ... | sh``, ``wget ... | sh``,
-   ``base64 -d``, ``eval``, ``sh -c``). Plain-prose lines with the same
-   instruction-override phrasing also flag. A small allowlist of canonical
-   template heading patterns short-circuits before the signal check.
-   ``quarantine_ext`` keeps its broader policy untouched -- this category
-   owns its own detection + wrapping.
-   The flag carries ``match_count`` = number of detected sections.
+   ``base64 -d``, ``eval``, ``sh -c``, ```eval `cmd``` ``). Plain-prose
+   lines with the same instruction-override phrasing also flag. The
+   structural-signal check is the sole gate -- there is no allowlist
+   short-circuit, so a benign-template heading whose tail smuggles an
+   injection phrase (e.g. ``## STEP 1 - Ignore previous instructions``)
+   still flags. ``quarantine_ext`` keeps its broader policy untouched --
+   this category owns its own detection + wrapping. The flag carries
+   ``match_count`` = number of detected sections.
 
 2. ``credentials`` -- severity ``hard-fail``. A curated regex set covering
    the canonical exfiltratable secret shapes (``gh[pousr]_``, ``sk-`` /
@@ -120,9 +122,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 #: 2.0.0 -- baseline (3 categories on, injection-heading reused
 #: quarantine_ext.SUSPICIOUS_TOKENS).
 #: 2.1.0 -- injection-heading detector tuned for precision (#949): tighter
-#: structural-signal + heading-allowlist policy reduces the false-positive
-#: rate from ~85% to <20% on organic deftai/directive issue bodies. No
-#: schema break; existing meta.json + audit-log records remain valid.
+#: structural-signal policy (instruction-override / role-hijack / body
+#: shell-vector) reduces the false-positive rate from ~85% to <20% on
+#: organic deftai/directive issue bodies. No schema break; existing
+#: meta.json + audit-log records remain valid.
 SCANNER_VERSION: str = "2.1.0"
 
 #: Categories baselined in scanner v2. Frozen tuple so the ordering
@@ -245,62 +248,6 @@ def _is_invisible(ch: str) -> bool:
 # Injection-heading detection (#949 tuning)
 # ---------------------------------------------------------------------------
 
-#: Allowlist of canonical legitimate template heading patterns. Each
-#: pattern is matched (case-insensitive) against the heading TEXT (the
-#: portion after the leading ``#``-prefix and any whitespace). A
-#: heading whose full text matches any allowlist pattern short-circuits
-#: the signal check entirely -- we treat it as a known-good section
-#: shape regardless of token content. Patterns are anchored ``^...$``
-#: so trailing arbitrary content (e.g. an injection sentence appended
-#: after the canonical label) is NOT allowlisted; the structural-signal
-#: check still runs against the full heading text.
-#:
-#: Coverage drawn from: GitHub issue templates (Steps to reproduce /
-#: Expected / Actual / Repro), deft narrative shape (Problem / Overview
-#: / Constraint / Outcome / Test / Action), and common engineering
-#: vocabulary (Acceptance Criteria / Definition of Done / Background /
-#: Task list / Action items / Important Notes).
-_LEGITIMATE_HEADING_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
-    re.compile(p, re.IGNORECASE)
-    for p in (
-        r"^step\s+\d+(?:\s*[-:.\u2014]\s*[\w \-,.()/&'\"]{0,120})?$",
-        r"^steps?(?:\s+to\s+(?:reproduce|repro))?$",
-        r"^action(?:\s+items?)?$",
-        r"^actions?$",
-        r"^problem(?:\s+statement)?$",
-        r"^overview$",
-        r"^summary$",
-        r"^background$",
-        r"^context$",
-        r"^constraints?$",
-        r"^outcomes?$",
-        r"^test(?:\s+plan)?$",
-        r"^tests?$",
-        r"^task\s+list$",
-        r"^tasks?$",
-        r"^important\s+notes?$",
-        r"^important\s+context$",
-        r"^acceptance\s+criteria$",
-        r"^definition\s+of\s+done$",
-        r"^goals?$",
-        r"^non[-\s]?goals?$",
-        r"^implementation(?:\s+notes?)?$",
-        r"^migration(?:\s+notes?|\s+plan)?$",
-        r"^repro(?:duction)?(?:\s+steps?)?$",
-        r"^expected(?:\s+behaviou?r)?$",
-        r"^actual(?:\s+behaviou?r)?$",
-        r"^solution$",
-        r"^required\s+changes?$",
-        r"^proposed\s+changes?$",
-        r"^rationale$",
-        r"^risk(?:s|\s+factors)?$",
-        r"^check(?:list)?$",
-        r"^post[-\s]?merge$",
-        r"^related\s+issues?$",
-        r"^references?$",
-    )
-)
-
 #: Structural injection signal detected within a heading TEXT. A heading
 #: that triggers any of these patterns is treated as a real injection
 #: vector. The patterns are deliberately narrow so generic prose ("the
@@ -352,7 +299,7 @@ _HEADING_ROLE_PREFIX_RE: re.Pattern[str] = re.compile(
 _BODY_VECTOR_RE: re.Pattern[str] = re.compile(
     r"(?:curl|wget|fetch)\s+[^|\n]*\|\s*(?:sh|bash|zsh|ksh)\b"
     r"|\bbase64\s+(?:-d|--decode|-D)\b"
-    r"|\beval\s*[\(\$\"']"
+    r"|\beval\s*[\(\$\"'`]"
     r"|\b(?:sh|bash|zsh)\s+-c\s+[\"']"
     r"|\b/bin/(?:sh|bash|zsh)\s+-c\s+[\"']",
     re.IGNORECASE,
@@ -379,11 +326,6 @@ def _heading_text(line: str) -> str | None:
     if match is None:
         return None
     return match.group(2).strip()
-
-
-def _is_allowlisted_heading(text: str) -> bool:
-    """Return True iff the heading text matches a legitimate-template pattern."""
-    return any(p.match(text) for p in _LEGITIMATE_HEADING_PATTERNS)
 
 
 def _heading_signal(text: str) -> bool:
@@ -498,24 +440,26 @@ def _detect_injection_heading(text: str) -> tuple[str, ScanFlag | None]:
 
     Detection rule (#949 tuning):
 
-    1. **Heading allowlist short-circuit.** When a heading's text matches
-       :data:`_LEGITIMATE_HEADING_PATTERNS` (case-insensitive, anchored)
-       the heading and its body are passed through unchanged.
-    2. **Heading structural signal.** When the heading text contains an
+    1. **Heading structural signal.** When the heading text contains an
        instruction-override phrase (``IGNORE PREVIOUS`` /
        ``DISREGARD ABOVE`` / ``OVERRIDE ALL``) OR the heading text starts
        with a role-hijack prefix (``SYSTEM:`` / ``ASSISTANT:`` /
        ``USER:`` / ``AGENT:`` / ``OVERRIDE:`` / ``DIRECTIVE:`` /
        ``ROLE:`` / ``INSTRUCTION(S):`` / ``PROMPT:`` / ``TOOL:`` /
-       ``FUNCTION:``) we wrap the heading + section.
-    3. **Body shell vector.** When the heading's body contains a
+       ``FUNCTION:``) we wrap the heading + section. The signal check is
+       evaluated on the full heading text with no allowlist short-circuit
+       so a benign-template heading whose tail smuggles an injection
+       phrase (e.g. ``## STEP 1 - Ignore previous instructions``) still
+       flags.
+    2. **Body shell vector.** When the heading's body contains a
        shell-injection vector (``curl ... | sh`` / ``base64 -d`` /
-       ``eval`` / ``sh -c``) we wrap the heading + section even when
-       the heading text itself is benign-looking.
-    4. **Inline (non-heading) injection.** Any line outside a heading
+       ``eval`` -- including ``eval `cmd``` `` backtick form -- /
+       ``sh -c``) we wrap the heading + section even when the heading
+       text itself is benign-looking.
+    3. **Inline (non-heading) injection.** Any line outside a heading
        that carries an instruction-override phrase or a body shell
        vector is wrapped on its own.
-    5. **Idempotency.** Lines inside an existing fenced code block (any
+    4. **Idempotency.** Lines inside an existing fenced code block (any
        ```` ``` ```` / ``~~~`` opener) are passed through verbatim, so a
        previously-wrapped ``quarantined`` block is a no-op on re-scan.
 
@@ -578,14 +522,14 @@ def _detect_injection_heading(text: str) -> tuple[str, ScanFlag | None]:
 
             body_lines = lines[i + 1 : section_end]
 
-            # Allowlisted heading bypasses the signal check entirely.
-            # We still recurse into the body for inline non-heading
-            # signals -- a clean ``## Steps to reproduce`` heading does
-            # not mask an embedded ``curl ... | sh`` line.
-            allowlisted = _is_allowlisted_heading(heading_text)
-            heading_signal = (not allowlisted) and _heading_signal(
-                heading_text
-            )
+            # Structural-signal check is the sole gate on the heading
+            # text (no allowlist short-circuit -- a benign-template
+            # heading whose tail smuggles an injection phrase like
+            # ``## STEP 1 - Ignore previous instructions`` would
+            # otherwise pass through unwrapped). The body shell-vector
+            # check fires independently so a clean heading that smuggles
+            # ``curl ... | sh`` in the body is still flagged.
+            heading_signal = _heading_signal(heading_text)
             body_signal = _body_has_shell_vector(body_lines)
 
             if heading_signal or body_signal:
