@@ -1,0 +1,94 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story 3 of #845 triage v1: per-issue triage commands accept|reject|defer|needs-ac|mark-duplicate|status|reset|history. Owner: Agent A3 (wave 2, depends on A1 cache + A2 audit log).",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T16:15:00Z"
+  },
+  "plan": {
+    "id": "845-story-3-triage-actions",
+    "title": "feat(scripts,tasks): triage action commands (accept/reject/defer/needs-ac/mark-duplicate/status/reset/history)",
+    "status": "completed",
+    "planRef": "#845",
+    "narratives": {
+      "Problem": "Triage decisions need a clear command surface. The reject path must close the upstream GitHub issue with a reason + label and record the decision reversibly.",
+      "Overview": "Implement `scripts/triage_actions.py` consuming Story 1 (cache) for issue context and Story 2 (audit log) for decision recording. Exposes Taskfile targets: `triage:accept <N>`, `triage:reject <N> --reason <r>`, `triage:defer <N>`, `triage:needs-ac <N>`, `triage:mark-duplicate <N> --of <M>`, `triage:status <N>` (current decision), `triage:reset <N>` (revert to prior), `triage:history <N>` (decision timeline).",
+      "Constraint": "Reject MUST close upstream via `gh issue close <N> --comment '<reason>' --reason 'not planned'` AND apply a `triage-rejected` label. Reset MUST be reversible (writes a `reset` audit entry pointing at the prior decision_id; does NOT delete history). Mark-duplicate MUST validate that the linked-to issue exists in cache. All actions MUST be idempotent on already-final state (re-rejecting a rejected issue is a no-op, not an error).",
+      "Outcome": "Each action emits a single audit-log line via Story 2's `append()`. Reject also performs the upstream close. Status/history are read-only against the audit log. Tests cover: each action's happy path + idempotency; reject upstream-close failure recovery (audit entry MUST roll back if `gh issue close` fails); duplicate-of validation; reset chain depth ≥ 2.",
+      "Test": "pytest tests/test_triage_actions.py covering: (1) accept records audit entry; (2) reject closes upstream + records + labels (mock `gh`); (3) defer records; (4) needs-ac records + posts AC-request comment to upstream; (5) mark-duplicate validates target; (6) status returns latest; (7) history returns timeline ordered by timestamp; (8) reset writes new entry referencing prior; (9) reject failure rolls back audit entry; (10) idempotent re-action is no-op.",
+      "Action": "Implement scripts/triage_actions.py with public function per action: `accept(N, repo)`, `reject(N, repo, reason)`, etc. Wire tasks/triage-actions.yml STANDALONE fragment with one Taskfile target per action. Imports Story 1 (cache.show) and Story 2 (candidates_log.append/latest_decision)."
+    },
+    "items": [
+      {
+        "id": "845-s3-ac-1-script",
+        "title": "scripts/triage_actions.py implements 8 actions per Overview",
+        "status": "running"
+      },
+      {
+        "id": "845-s3-ac-2-taskfile-fragment",
+        "title": "tasks/triage-actions.yml exposes 8 triage:* targets (standalone)",
+        "status": "running"
+      },
+      {
+        "id": "845-s3-ac-3-reject-upstream",
+        "title": "Reject closes upstream issue + applies triage-rejected label; rollback on gh failure",
+        "status": "running"
+      },
+      {
+        "id": "845-s3-ac-4-idempotency",
+        "title": "All actions idempotent on already-final state",
+        "status": "running"
+      },
+      {
+        "id": "845-s3-ac-5-tests",
+        "title": "tests/test_triage_actions.py covers all 10 cases per Test narrative",
+        "status": "running"
+      },
+      {
+        "id": "845-s3-ac-6-changelog",
+        "title": "CHANGELOG.md [Unreleased] entry: feat(triage): action commands (#845 Story 3)",
+        "status": "running"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "epic_vbrief": "completed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "parent_issue": "#845",
+        "agent": "A3",
+        "wave": 2,
+        "depends_on_stories": [
+          "Story 1 (cache)",
+          "Story 2 (audit log)"
+        ],
+        "files_owned": [
+          "scripts/triage_actions.py",
+          "tasks/triage-actions.yml",
+          "tests/test_triage_actions.py",
+          "CHANGELOG.md (append under [Unreleased])"
+        ],
+        "files_must_not_touch": [
+          "scripts/triage_cache.py (Agent A1; import only)",
+          "scripts/candidates_log.py (Agent A2; import only)",
+          "scripts/triage_bulk.py (Agent A4)",
+          "scripts/triage_refresh.py (Agent A4)",
+          "scripts/triage_bootstrap.py (Agent A6)",
+          "skills/deft-directive-refinement/SKILL.md (Agent A5)",
+          "tasks/Taskfile.yml (Agent A6)"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/845",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #845 (parent epic)"
+      },
+      {
+        "uri": "completed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
+      }
+    ],
+    "updated": "2026-05-03T20:47:54Z"
+  }
+}

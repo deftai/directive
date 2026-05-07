@@ -1,0 +1,34 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #762: centralize roadmap phase taxonomy in PROJECT-DEFINITION.vbrief.json; update roadmap_render.py to read from there."
+  },
+  "plan": {
+    "title": "feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "Phase 2",
+      "Description": "Add a phases array to vbrief/PROJECT-DEFINITION.vbrief.json (canonical phase names + descriptions). Update scripts/roadmap_render.py to source phase headings/descriptions from there in preference to per-vBRIEF x-migrator fields. Eliminates the 'first-vBRIEF-wins' fragility that loses Phase descriptions when the carrier brief moves out of pending/. Adds drift-detection warning when a brief's Phase value does not match the canonical taxonomy.",
+      "Acceptance": "PROJECT-DEFINITION.vbrief.json carries the canonical phase taxonomy; roadmap_render.py reads from there first with per-vBRIEF fields as fallback; task roadmap:render produces stable phase descriptions regardless of which vBRIEFs are in pending/; vbrief:validate warns on phase-name drift.",
+      "Origin": "Filed during chore/proposed-vbrief-cleanup."
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2",
+        "PhaseDescription": "Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files.",
+        "Description": "Centralize roadmap phase taxonomy in PROJECT-DEFINITION; renderer change.",
+        "Description_source": "deftai/directive#762",
+        "Status_source": "filed-during-cleanup"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/762",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #762: feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there"
+      }
+    ],
+    "updated": "2026-04-30T17:23:18Z"
+  }
+}

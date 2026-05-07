@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #50: Strategies redundant old names -- brownfield.md redirect, default.md deleted",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Strategies redundant old names -- brownfield.md redirect, default.md deleted",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Strategies redundant old names -- brownfield.md redirect, default.md deleted",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/50",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #50: Strategies redundant old names -- brownfield.md redirect, default.md deleted"
+      }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #126: specification.vbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "specification.vbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "specification.vbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/126",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #126: specification.vbrief.json schema non-conformance -- agent generation guidance, subItems/narrative rules, spec_validate.py hardened, 5 new tests"
+      }
+    ]
+  }
+}

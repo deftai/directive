@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #45: Bootstrap parity",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Bootstrap parity",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Bootstrap parity",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/45",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #45: Bootstrap parity"
+      }
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "P0 cache-bypass + audit-log poisoning fix for scripts/triage_bulk.py (#915). Replaces the live `gh issue list` candidate source with a Tier-1 cache walk, intersects with Tier-2 audit log to skip already-actioned candidates, hard-fails on empty cache, removes the live-gh fallback path, and re-enables the four task triage:bulk-* surfaces gated by PR #916.",
+    "created": "2026-05-05T15:58:23Z",
+    "updated": "2026-05-05T16:01:35Z"
+  },
+  "plan": {
+    "title": "P0: triage_bulk.py bypasses Tier-1 cache and Tier-2 audit log -- iterates live gh issue list (#845 Story 4)",
+    "status": "completed",
+    "narratives": {
+      "Overview": "scripts/triage_bulk.py iterates live `gh issue list` output and skips the .deft-cache/issues sidecar entirely. It also never reads vbrief/.eval/candidates.jsonl, so repeat runs silently re-action issues and poison the append-only audit log. Together this violates the Tier-1 / Tier-2 contracts documented in skills/deft-directive-refinement/SKILL.md and the #845 epic vBRIEF: cache is supposed to be the read surface, the audit log is supposed to short-circuit terminal/in-progress decisions. The fix rewrites the candidate source to walk .deft-cache/issues/<owner>-<repo>/*.json, intersects results with candidates_log records to skip terminal (accept | reject | mark-duplicate) and in-progress (defer | needs-ac) decisions (the latter overridable via a new --re-action flag), hard-fails with exit 2 when the cache is empty (no live-gh fallback), and re-enables the four task triage:bulk-* surfaces that PR #916 gated. A new tests/integration/test_triage_smoke.py file regression-covers the cache-only contract end-to-end via a fake-gh shim on PATH; tests/test_triage_bulk.py gains unit tests for _list_cached_candidates."
+    },
+    "items": [
+      {
+        "id": "ac-1",
+        "title": "scripts/triage_bulk.py reads candidates from .deft-cache/issues/<owner>-<repo>/*.json (Tier-1) -- live `gh issue list` is no longer called.",
+        "status": "pending"
+      },
+      {
+        "id": "ac-2",
+        "title": "Bulk operations skip issues with terminal audit-log records (accept | reject | mark-duplicate) and in-progress records (defer | needs-ac) UNLESS --re-action is passed.",
+        "status": "pending"
+      },
+      {
+        "id": "ac-3",
+        "title": "Empty cache -> exit 2 with stderr message `triage_bulk: cache is empty for {repo}; run \\`task triage:bootstrap\\` first.`",
+        "status": "pending"
+      },
+      {
+        "id": "ac-4",
+        "title": "tasks/triage-bulk.yml: bulk-accept / bulk-reject / bulk-defer / bulk-needs-ac restored to original cmds: invocations of triage_bulk.py with PYTHONUTF8 env block and non-DISABLED desc; refresh-active untouched. The four triage:bulk-* root aliases dispatch to the re-enabled inner tasks.",
+        "status": "pending"
+      },
+      {
+        "id": "ac-5",
+        "title": ".gitignore gains a `vbrief/.eval/` entry; scripts/triage_bootstrap.py adds an idempotent step_ensure_gitignore_eval_dir() step so upgrading projects auto-add the line on next bootstrap run.",
+        "status": "pending"
+      },
+      {
+        "id": "ac-6",
+        "title": "tests/integration/test_triage_smoke.py: test_bulk_defer_actions_only_cached, test_bulk_defer_idempotent, test_empty_cache_hard_fails -- all three pass via a fake-gh PATH shim, no live network calls.",
+        "status": "pending"
+      },
+      {
+        "id": "ac-7",
+        "title": "tests/test_triage_bulk.py: unit coverage for _list_cached_candidates -- missing dir -> hard fail path, populated dir -> parsed issue dicts, invalid JSON -> warn+skip with valid entries returned.",
+        "status": "pending"
+      },
+      {
+        "id": "ac-8",
+        "title": "CHANGELOG.md: Unreleased -> Fixed entries describing the cache-walk rewrite and the bulk-* re-enable; Unreleased -> Added entries for vbrief/.eval gitignore + bootstrap ensure step + integration test.",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/915",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #915: P0 -- bulk operations bypass cache"
+      }
+    ],
+    "updated": "2026-05-05T16:44:49Z"
+  }
+}

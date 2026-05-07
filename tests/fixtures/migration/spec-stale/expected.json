@@ -1,0 +1,17 @@
+{
+  "scenario": "spec-stale",
+  "folder_counts": {
+    "proposed": 1,
+    "pending": 0,
+    "active": 0,
+    "completed": 1,
+    "cancelled": 0
+  },
+  "statuses": {
+    "proposed": ["proposed"],
+    "completed": ["completed"]
+  },
+  "reconciliation_md": true,
+  "registry_statuses_include": ["completed", "proposed"],
+  "notes": "SPEC item t2.4.1 references #50; ROADMAP Completed entry #50 matches that SPEC item. ROADMAP active item #100 is orphan (no SPEC match) so routes to proposed/ with SourceConflict."
+}

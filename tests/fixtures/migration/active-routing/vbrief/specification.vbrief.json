@@ -1,0 +1,11 @@
+{
+  "vBRIEFInfo": {"version": "0.5", "description": "active-routing scenario spec"},
+  "plan": {
+    "title": "Active routing",
+    "status": "approved",
+    "narratives": {"Overview": "Task is in flight; must route to active/ with status=running."},
+    "items": [
+      {"id": "t4", "title": "Dashboard redesign", "status": "running"}
+    ]
+  }
+}

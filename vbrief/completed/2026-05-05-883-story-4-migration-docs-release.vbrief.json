@@ -1,0 +1,123 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story 4 of #883 v1: migration docs + end-to-end integration test + v0.26.0 release dispatch. Wave 4; depends on Stories 1-3 having all merged. UPGRADING.md ## v0.25.x -> v0.26.0 section, CHANGELOG ### Breaking framing, integration test parallel to v0.25.2's, and deft-directive-release skill invocation.",
+    "created": "2026-05-05T23:20:00Z",
+    "updated": "2026-05-06T15:11:23Z"
+  },
+  "plan": {
+    "id": "883-story-4-migration-docs-release",
+    "title": "feat(release): v0.26.0 migration docs + cache layer release dispatch (#883 Story 4)",
+    "status": "completed",
+    "planRef": "#883",
+    "narratives": {
+      "Problem": "Stories 1-3 ship the unified cache layer + triage rebind, but consumers upgrading from v0.25.x have no documented migration path; the on-disk cache layout changed (.deft-cache/issues/<owner>-<repo>/<N>.{json,md} -> .deft-cache/<source>/<key>/{raw.json,content.md,meta.json}); two task names disappeared (triage:cache, triage:show); CHANGELOG framing matters because the surface change is a breaking change pre-1.0. Story 4 closes the migration loop and ships v0.26.0.",
+      "Overview": "Append `## v0.25.x -> v0.26.0` section to UPGRADING.md (~30-40 lines, terse-imperative tone matching existing sections). Reframe the eventual v0.26.0 CHANGELOG entry to lead with `### Breaking` block (NOT in `### Added`). Ship `tests/integration/test_cache_e2e.py` parallel to v0.25.2's `tests/integration/test_triage_smoke.py` asserting the new cache layer end-to-end. Re-run the v0.25.2 real-world bulk-triage smoke test against v0.26.0 master to verify the migration didn't regress the bug-fix work. Invoke `skills/deft-directive-release/SKILL.md` for v0.26.0 release dispatch (CHANGELOG promote + ROADMAP refresh + tag + draft + publish).",
+      "Constraint": "UPGRADING.md tone matches existing sections (four-field micro-format header: Applies when / Safe to auto-run / Restart required / Commands; terse-imperative). CHANGELOG framing MUST lead with `### Breaking` -- NOT bury the surface change in `### Added`. Integration test MUST be hermetic (fake-gh shim) for CI; the real-world re-run smoke is performed by the release agent against deftai/directive itself, not in CI. v0.25.2 smoke pattern (10 cached -> 10 actioned, idempotent, fails closed on empty cache) MUST PASS against v0.26.0 master before publish. PowerShell 5.1 non-ASCII rule (#798) governs all file edits.",
+      "Outcome": "UPGRADING.md ## v0.25.x -> v0.26.0 section is the authoritative migration guide. CHANGELOG v0.26.0 entry leads with the breaking change. Integration test asserts cache layer end-to-end (cache:fetch-all populates correct layout, cache:get returns expected meta.json shape, scanner_version recorded, audit log appended). Real-world v0.25.2 smoke pattern re-runs cleanly against v0.26.0 master. v0.26.0 tagged + drafted + published via deft-directive-release skill. PR #936 epic vBRIEF moved to vbrief/completed/.",
+      "Test": "tests/integration/test_cache_e2e.py: ~3-5 test functions covering: (1) cache:fetch-all populates new .deft-cache/<source>/<key>/{raw.json,content.md,meta.json} layout for 5-issue fake-gh fixture; (2) cache:get returns expected meta.json shape with scanner_version and stale flag; (3) audit log appended on each cache:put; (4) cache:invalidate removes entry directory cleanly; (5) idempotent re-run of cache:fetch-all skips fresh entries. Re-run of v0.25.2 smoke against v0.26.0 master is the release-time validation -- not a CI test, but a manual gate before publish.",
+      "Action": "Append UPGRADING.md migration section. Tighten CHANGELOG framing for v0.26.0. Create tests/integration/test_cache_e2e.py. Run task check. Single PR. Run review-cycle. Merge. Release agent then runs deft-directive-release skill: re-run v0.25.2 smoke pattern against new master, CHANGELOG promote ([Unreleased] -> [v0.26.0]), ROADMAP refresh, tag, draft, publish, lifecycle-move epic + 4 story vBRIEFs to vbrief/completed/."
+    },
+    "items": [
+      {
+        "id": "883-s4-ac-1-upgrading-md",
+        "title": "UPGRADING.md append `## v0.25.x -> v0.26.0` section, ~30-40 lines, terse-imperative tone matching existing sections, four-field header (Applies when / Safe to auto-run / Restart required / Commands)",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s4-ac-2-upgrading-content",
+        "title": "UPGRADING.md content covers: (1) task triage:cache removed -> use task cache:fetch-all --source=github-issue --repo=OWNER/NAME; (2) task triage:show removed -> use task cache:get github-issue <owner>/<repo>/<N>; (3) on-disk layout change + recommend Remove-Item .deft-cache/issues/ then re-run cache populate; (4) audit log vbrief/.eval/candidates.jsonl unchanged; (5) all other task triage:* actions semantically unchanged",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s4-ac-3-changelog-breaking",
+        "title": "CHANGELOG.md v0.26.0 entry leads with `### Breaking` block citing the surface removal + layout change; NOT buried in `### Added`",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s4-ac-4-integration-test",
+        "title": "tests/integration/test_cache_e2e.py NEW: ~3-5 test functions covering cache:fetch-all layout correctness, cache:get meta.json shape (scanner_version, stale, fetched_at), audit log append, cache:invalidate cleanup, idempotent re-run; fake-gh shim hermetic",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s4-ac-5-real-world-smoke",
+        "title": "Re-run the v0.25.2 real-world bulk-triage smoke pattern against v0.26.0 master (10 newest issues against deftai/directive; populate -> bulk-defer; assert 10 cached, 10 actioned, idempotent, fails closed on empty cache); release gate, not CI",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s4-ac-6-release-skill-dispatch",
+        "title": "Invoke skills/deft-directive-release/SKILL.md for v0.26.0: CHANGELOG promote, ROADMAP refresh, build, tag, draft, publish; release agent owns the 8-phase workflow",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s4-ac-7-vbrief-lifecycle",
+        "title": "Lifecycle-move epic vBRIEF + 4 story vBRIEFs from vbrief/active/ to vbrief/completed/ via task scope:complete (or task reconcile:issues --apply-lifecycle-fixes); plan.status flipped to completed; vBRIEFInfo.updated stamped",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s4-ac-8-task-check-green",
+        "title": "task check passes (validate + lint + test + verify:encoding + verify:branch); coverage threshold maintained",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s4-ac-9-changelog",
+        "title": "CHANGELOG.md [Unreleased] -> ### Added (Story 4-side bullet only): docs(upgrading): v0.25.x -> v0.26.0 migration section + tests(integration): cache layer e2e (#883 Story 4)",
+        "status": "proposed"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_issue": "#883",
+        "epic_vbrief": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
+        "wave": 4,
+        "depends_on_stories": [
+          "Story 1 (scm stub)",
+          "Story 2 (cache infra + scanner)",
+          "Story 3 (triage rebind + skill rewrite)"
+        ],
+        "blocks_stories": [],
+        "swarm_ready": false,
+        "swarm_ready_after": "Story 3 merged",
+        "files_owned": [
+          "UPGRADING.md (append v0.25.x -> v0.26.0 section)",
+          "CHANGELOG.md (### Breaking framing on v0.26.0 promotion + Story 4 bullet under [Unreleased])",
+          "tests/integration/test_cache_e2e.py (NEW)"
+        ],
+        "files_must_not_touch": [
+          "scripts/cache.py (Story 2)",
+          "scripts/cache_scanner.py (Story 2)",
+          "scripts/triage_*.py (Story 3)",
+          "tasks/cache.yml (Story 2)",
+          "tasks/scm.yml (Story 1)",
+          "vbrief/schemas/cache-meta.schema.json (Story 2)",
+          "skills/deft-directive-refinement/SKILL.md (Story 3)"
+        ],
+        "branch": "feat/883-story-4-migration-docs-release",
+        "pr_title_prefix": "feat(release,docs): v0.26.0 migration + cache layer release prep (#883 Story 4)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/883",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #883 (parent epic): feat(processes): deft-cache -- unified content cache and quarantine layer"
+      },
+      {
+        "uri": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Epic vBRIEF for #883 v1 (parent decomposition; this story is item 4 of 4 -- final wave)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/74",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #74: task release pipeline (this story dispatches release via deft-directive-release skill)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/716",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #716: release safety hardening (e2e rehearsal, draft authority gate; release skill consumes these)"
+      }
+    ],
+    "updated": "2026-05-06T15:11:23Z"
+  }
+}

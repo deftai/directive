@@ -8,6 +8,15 @@ on:
 permissions:
   contents: read
 
+env:
+  # Pinned ghx version (#884). Bump in lockstep with
+  # `scripts/setup_ghx.py::GHX_VERSION` so the consent-gated installer
+  # and the CI pre-install step never disagree on which release the
+  # project recommends. v1.5.1 (2026-04-17) is the first release
+  # carrying the Windows install.ps1 + agent-plugin shim contract
+  # documented in the upstream README.
+  GHX_VERSION: v1.5.1
+
 jobs:
   python:
     name: Python (lint + type-check + test)
@@ -21,6 +30,38 @@ jobs:
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
+
+      # #884: idempotent ghx pre-install. Linux runner -> upstream
+      # install.sh fetched via curl|bash. Both the BINARY and the
+      # INSTALLER SCRIPT itself are pinned to ${GHX_VERSION} (closes
+      # Greptile #950 P2): the binary via the upstream installer's
+      # `GHX_VERSION` env hook, the installer URL by tagref so an
+      # accidental upstream regression on `main` does not flow into a
+      # past CI run. The step short-circuits when ghx is already on PATH
+      # so re-runs of the same workflow do not re-download. Network
+      # failures are non-fatal: the `scm:*` runtime ladder falls back
+      # to `gh` transparently when ghx is missing. See AGENTS.md
+      # `## SCM tooling -- prefer ghx (#884)` for the prefer-ghx rule
+      # consumed here.
+      - name: Install ghx (cache proxy for gh) -- #884
+        shell: bash
+        run: |
+          if command -v ghx >/dev/null 2>&1; then
+            echo "ghx already on PATH at $(command -v ghx); skipping install."
+            exit 0
+          fi
+          # `GHX_VERSION` is honoured by the upstream install.sh's
+          # version-resolution branch (filters out plugin-v* tags by
+          # default; an explicit env value pins to that release tag).
+          export GHX_VERSION="${GHX_VERSION}"
+          curl -fsSL "https://raw.githubusercontent.com/brunoborges/ghx/${GHX_VERSION}/install.sh" | bash || {
+            echo "::warning title=ghx install (#884)::install.sh exited non-zero; gh fallback remains in effect."
+          }
+          # Confirm the install (non-fatal: a soft-warn keeps the
+          # workflow green if upstream is transiently unavailable).
+          if command -v ghx >/dev/null 2>&1; then
+            ghx --version || true
+          fi
 
       - name: Install dependencies
         run: uv sync
@@ -64,3 +105,191 @@ jobs:
           GOOS: windows
           GOARCH: amd64
         run: go build -o /dev/null ./cmd/deft-install/
+
+  windows-task-dispatch:
+    # Regression guard for #566: `task migrate:vbrief` (and every other task
+    # that dispatches a Python script via `{{.DEFT_ROOT}}/scripts/...`) must
+    # run without the path-traversal defect that dropped the `deft\` prefix
+    # on Windows.  Runs a dry-run migration against the pre-cutover fixture
+    # so the path is actually exercised end-to-end under `uv run python`
+    # and PowerShell, not just statically lint-checked.
+    name: Windows (task dispatch regression)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # #884: idempotent ghx pre-install. Windows runner -> upstream
+      # install.ps1 invoked via the documented `irm | iex` trampoline.
+      # Both the BINARY and the INSTALLER SCRIPT itself are pinned to
+      # ${GHX_VERSION} (closes Greptile #950 P2). Mirrors the Linux step
+      # above (same GHX_VERSION pin, same already-on-PATH short-circuit,
+      # same soft-warn-on-failure contract). Both branches MUST stay in
+      # sync; a future ghx security advisory only requires bumping the
+      # workflow-level `env.GHX_VERSION` and
+      # `scripts/setup_ghx.py::GHX_VERSION`.
+      #
+      # `continue-on-error: true` (closes Greptile #950 iteration-2 P1):
+      # PowerShell `try/catch` only intercepts terminating exceptions --
+      # a bare `exit N` inside `Invoke-Expression` (which is exactly
+      # what install.ps1 calls on a network/permission failure) bypasses
+      # the catch and terminates the PowerShell process with the non-zero
+      # exit code. Without `continue-on-error`, that propagates to the
+      # job and fails the Windows CI run, breaking parity with the Linux
+      # step's `|| { echo "::warning::" }` soft-warn fallback. Per the
+      # documented #884 contract the ghx pre-install MUST be best-effort
+      # (the `gh` fallback through scripts/scm.py keeps everything
+      # working), so `continue-on-error: true` is the GitHub-Actions
+      # native equivalent of the Linux pipe-fallthrough.
+      - name: Install ghx (cache proxy for gh) -- #884
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          if (Get-Command ghx -ErrorAction SilentlyContinue) {
+            Write-Host "ghx already on PATH at $((Get-Command ghx).Source); skipping install."
+            exit 0
+          }
+          $env:GHX_VERSION = $env:GHX_VERSION
+          $installerUrl = "https://raw.githubusercontent.com/brunoborges/ghx/$env:GHX_VERSION/install.ps1"
+          try {
+            Invoke-RestMethod $installerUrl | Invoke-Expression
+          } catch {
+            Write-Host "::warning title=ghx install (#884)::install.ps1 raised: $($_.Exception.Message); gh fallback remains in effect."
+          }
+          if (Get-Command ghx -ErrorAction SilentlyContinue) {
+            ghx --version 2>$null
+          }
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Stage pre-cutover fixture as consumer project
+        shell: pwsh
+        run: |
+          $fixtureDir = Join-Path $env:RUNNER_TEMP 'consumer'
+          New-Item -ItemType Directory -Path $fixtureDir -Force | Out-Null
+          Copy-Item tests\fixtures\pre_cutover_customized\* $fixtureDir -Recurse
+          # Drop a vbrief/specification.vbrief.json so migrate:vbrief has
+          # something to enrich (pre-cutover detection hits criterion #3 even
+          # with just the root .md files; emitting an empty spec keeps the
+          # dry-run output stable for the assertion below).
+          New-Item -ItemType Directory -Path (Join-Path $fixtureDir 'vbrief') -Force | Out-Null
+          '{"vBRIEFInfo":{"version":"0.6"},"plan":{"title":"fixture","status":"running","narratives":{},"items":[]}}' | Set-Content -Path (Join-Path $fixtureDir 'vbrief\specification.vbrief.json')
+          # Git-init so the migrator's dirty-tree guard is satisfied.
+          Push-Location $fixtureDir
+          git init -q
+          git -c user.name=ci -c user.email=ci@example.com add -A
+          git -c user.name=ci -c user.email=ci@example.com commit -q -m seed
+          Pop-Location
+          "fixture=$fixtureDir" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: task -t Taskfile.yml migrate:vbrief -- --dry-run (via absolute path)
+        shell: pwsh
+        working-directory: ${{ env.fixture }}
+        run: |
+          $deftTaskfile = Join-Path $env:GITHUB_WORKSPACE 'Taskfile.yml'
+          task -t $deftTaskfile migrate:vbrief -- --dry-run
+
+      - name: task -t Taskfile.yml scope:promote (end-to-end #577 regression)
+        shell: pwsh
+        working-directory: ${{ env.fixture }}
+        run: |
+          $deftTaskfile = Join-Path $env:GITHUB_WORKSPACE 'Taskfile.yml'
+          # Stage a proposed scope vBRIEF in the same fixture consumer
+          # project used by the migrate:vbrief step above.  The file name
+          # must match the YYYY-MM-DD-<slug>.vbrief.json convention so the
+          # scope_lifecycle.py path resolver accepts it end-to-end.
+          $proposedDir = Join-Path $env:fixture 'vbrief\proposed'
+          New-Item -ItemType Directory -Path $proposedDir -Force | Out-Null
+          $scopeFile = Join-Path $proposedDir '2026-04-22-scope-cli-args-windows-ci.vbrief.json'
+          $scopeJson = '{"vBRIEFInfo":{"version":"0.6"},"plan":{"title":"scope CLI_ARGS windows CI fixture","status":"proposed","narratives":{"Overview":"Regression fixture for #577."},"items":[]}}'
+          $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+          [System.IO.File]::WriteAllText($scopeFile, $scopeJson, $utf8NoBom)
+          # Dispatch scope:promote against a relative path -- this is the
+          # exact invocation shape that previously failed on Windows with
+          # ``File not found: ...\'.\vbrief\proposed\<slug>.vbrief.json'``
+          # because ``tasks/scope.yml`` wrapped ``{{.CLI_ARGS}}`` in
+          # double quotes (#577).
+          task -t $deftTaskfile scope:promote -- .\vbrief\proposed\2026-04-22-scope-cli-args-windows-ci.vbrief.json
+          if ($LASTEXITCODE -ne 0) { throw "scope:promote exited $LASTEXITCODE" }
+          # Assert the file moved from proposed/ to pending/.
+          $pendingFile = Join-Path $env:fixture 'vbrief\pending\2026-04-22-scope-cli-args-windows-ci.vbrief.json'
+          if (Test-Path $scopeFile) { throw "scope:promote did not remove source file: $scopeFile" }
+          if (-not (Test-Path $pendingFile)) { throw "scope:promote did not create target file: $pendingFile" }
+          Write-Host "scope:promote end-to-end OK -- $scopeFile -> $pendingFile"
+
+      - name: Pytest guard-rails (#566 + #577 + #574 regressions)
+        run: uv run pytest tests/content/test_taskfile_paths.py tests/content/test_taskfile_cli_args.py tests/content/test_taskfile_caching.py -v
+
+      - name: task migrate:vbrief end-to-end Completed-section partition (#593)
+        shell: pwsh
+        run: |
+          # #593 regression: run a real (non-dry-run) migration against
+          # the completed-routing fixture and assert that Completed
+          # section items land in vbrief/completed/ with plan.status=
+          # "completed", while active-phase items stay in vbrief/
+          # proposed/. Pre-#593 this partition check would have failed
+          # because every Completed-section orphan collapsed into
+          # vbrief/proposed/ silently.
+          $fixture = Join-Path $env:RUNNER_TEMP 'completed-consumer'
+          if (Test-Path $fixture) { Remove-Item -Recurse -Force $fixture }
+          Copy-Item -Recurse tests\fixtures\migration\completed-routing $fixture
+          # Git-init so the migrator's dirty-tree guard is satisfied.
+          Push-Location $fixture
+          git init -q
+          git -c user.name=ci -c user.email=ci@example.com add -A
+          git -c user.name=ci -c user.email=ci@example.com commit -q -m seed
+          Pop-Location
+          $deftTaskfile = Join-Path $env:GITHUB_WORKSPACE 'Taskfile.yml'
+          Push-Location $fixture
+          task -t $deftTaskfile migrate:vbrief
+          if ($LASTEXITCODE -ne 0) { throw "migrate:vbrief exited $LASTEXITCODE" }
+          Pop-Location
+          # Partition assertions.
+          $completed = Get-ChildItem -Path (Join-Path $fixture 'vbrief\completed') -Filter '*.vbrief.json' -ErrorAction SilentlyContinue
+          $proposed  = Get-ChildItem -Path (Join-Path $fixture 'vbrief\proposed')  -Filter '*.vbrief.json' -ErrorAction SilentlyContinue
+          if ($completed.Count -ne 2) {
+            throw "expected 2 scope vBRIEFs in vbrief/completed/ (#593); got $($completed.Count): $($completed.Name -join ', ')"
+          }
+          if ($proposed.Count -ne 2) {
+            throw "expected 2 scope vBRIEFs in vbrief/proposed/ (active-phase orphans); got $($proposed.Count)"
+          }
+          # Both cohorts are inspected here so the e2e check mirrors the
+          # #593 unit-test coverage: completed scopes must carry
+          # vBRIEFInfo.updated; proposed scopes must NOT carry it.
+          foreach ($f in $completed) {
+            $data = Get-Content -Raw $f.FullName | ConvertFrom-Json
+            if ($data.plan.status -ne 'completed') {
+              throw "scope $($f.Name) has plan.status=$($data.plan.status); expected 'completed' (#593)"
+            }
+            if ($data.plan.narratives.SourceSection -ne 'ROADMAP Completed section') {
+              throw "scope $($f.Name) missing SourceSection narrative (#593)"
+            }
+            if (-not $data.vBRIEFInfo.updated) {
+              throw "scope $($f.Name) missing vBRIEFInfo.updated timestamp (#593)"
+            }
+          }
+          foreach ($f in $proposed) {
+            $data = Get-Content -Raw $f.FullName | ConvertFrom-Json
+            if ($data.plan.status -ne 'proposed') {
+              throw "scope $($f.Name) has plan.status=$($data.plan.status); expected 'proposed' (#593)"
+            }
+            if ($data.plan.narratives.SourceSection -ne 'ROADMAP active phase') {
+              throw "scope $($f.Name) missing active-phase SourceSection narrative (#593)"
+            }
+            if ($data.vBRIEFInfo.updated) {
+              throw "scope $($f.Name) unexpectedly carries vBRIEFInfo.updated (#593)"
+            }
+          }
+          Write-Host "migrate:vbrief Completed-section partition OK (#593)"

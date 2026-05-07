@@ -1,0 +1,182 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story 2 of #883 v1: cache infrastructure (scripts/cache.py, 5 commands) + scanner v2 (3 categories baseline-on) for the github-issue source. Wave 2; depends on Story 1's scm:issue:view interface; provides the cache:get interface that Story 3 rebinds onto.",
+    "created": "2026-05-05T23:20:00Z",
+    "updated": "2026-05-06T01:27:03Z"
+  },
+  "plan": {
+    "id": "883-story-2-cache-infrastructure",
+    "title": "feat(cache,quarantine): unified cache + scanner v2 baseline (#883 Story 2)",
+    "status": "completed",
+    "planRef": "#883",
+    "narratives": {
+      "Problem": "Triage v1 (#845) shipped a triage-specific cache that drifted from its stated contract (#915 P0). #883 v1 replaces it with a content-agnostic cache and quarantine layer that future consumers (wiki-llm #610, URL/email/file ingestion) can reuse without reimplementing. The v1 trim limits scope to one source type (github-issue) and three scanner categories so the foundation ships fast and clean.",
+      "Overview": "Ship `scripts/cache.py` (5 cache commands), `scripts/cache_scanner.py` (3 baseline categories), `tasks/cache.yml` (Taskfile fragment), and `vbrief/schemas/cache-meta.schema.json` (frozen meta.json contract validated on read AND write). Storage layout: `.deft-cache/<source>/<key>/{raw.json, content.md, meta.json}` plus `.deft-cache/quarantine-audit.jsonl` global audit log. Hard-coded TTL: github-issue=7d. Scanner severity is per-category (NOT uniform hard-fail per epic design_doc_departures): injection-heading=fence-and-pass, credentials=hard-fail, invisible-unicode=strip-and-pass.",
+      "Constraint": "v1 = github-issue source only; do NOT implement github-pr, github-review, url, email, or file source types (epic deferred_to_v2). cache:check, cache:doctor full, cache:stats dashboard, cache:refresh: deferred. ETag refresh: deferred (gh CLI doesn't expose ETag at the JSON layer). Mutation-triggered auto-invalidation: deferred (v1 = explicit cache:invalidate by consumers). Scanner extensions YAML: deferred (v1 = code-baseline only / C1a). meta.json schema (M4) MUST validate on read AND write (fail-closed contract). Rate-limit handling (M1) and idempotency + partial-failure (M2) MUST ship in v1. PowerShell 5.1 non-ASCII rule (#798) governs all file edits.",
+      "Outcome": "task cache:put | get | invalidate | fetch-all | prune functional for github-issue source. cache:put runs scanner before content.md write; hard-fail (credentials) writes only raw.json + meta.json (no content.md), exits 2; soft-flag (injection-heading) wraps suspicious sections in `quarantined` fences; invisible-unicode strips chars and records in flags. cache:get returns content.md path + meta.json contents; flags stale=true when current time > expires_at; never auto-refreshes. cache:fetch-all batches 10 issues with 500ms delay (overrideable), retries on 429 with Retry-After parsing, skips fresh entries (TTL idempotency), exits with structured {succeeded, failed, skipped} count on partial failure. cache:invalidate deletes the entry directory + appends invalidation audit. cache:prune drops entries older than 30d (default). meta.json schema validates the full field set: source, key, fetched_at, ttl_seconds, expires_at, scan_result {passed, scanned_at, scanner_version, flags[]}, size_bytes, stale; etag reserved.",
+      "Test": "~80-100 unit tests across cache primitives + scanner categories. Cache: cache:put atomic write + scanner integration + hard-fail/soft-flag/strip-and-pass paths; cache:get + stale flag; cache:invalidate; cache:fetch-all rate-limit (mocked subprocess delays + 429 retry); cache:fetch-all idempotency (skip-fresh + partial-failure exit shape); cache:prune. Scanner: ~10-15 positive + ~10-15 negative cases per category (injection-heading reuses #845's 14 tokens; credentials curated regex list; invisible-unicode codepoint set); cross-pattern interaction; empty/long/malformed body edge cases. ~3 integration tests covering fetch-all rate-limit, partial-failure recovery, scan-failure semantics. Schema validation: positive (full valid meta.json) + negative (missing required field, wrong type, unknown source).",
+      "Action": "Create scripts/cache.py + scripts/cache_scanner.py + tasks/cache.yml + vbrief/schemas/cache-meta.schema.json. Wire tasks/cache.yml into parent Taskfile.yml includes. Add unit tests + integration tests. Ship single PR. Run review-cycle. Merge. Story 3 dispatch unblocks."
+    },
+    "items": [
+      {
+        "id": "883-s2-ac-1-cache-py-5-commands",
+        "title": "scripts/cache.py NEW: 5 commands (cache:put, cache:get, cache:invalidate, cache:fetch-all, cache:prune); atomic write semantics; storage layout .deft-cache/<source>/<key>/{raw.json,content.md,meta.json}",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-2-meta-schema",
+        "title": "vbrief/schemas/cache-meta.schema.json NEW: JSON Schema 2020-12 validating full meta.json field set (source, key, fetched_at, ttl_seconds, expires_at, scan_result {passed, scanned_at, scanner_version, flags[]}, size_bytes, stale; etag optional/reserved); validated on read AND write (M4)",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-3-cache-put-scanner-integration",
+        "title": "cache:put runs scanner before content.md write; on credentials hard-fail writes only raw.json + meta.json (no content.md), exits 2; on injection-heading wraps in fences and writes content.md; on invisible-unicode strips chars and writes content.md; one append to quarantine-audit.jsonl per cache:put regardless of outcome",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-4-cache-get-stale",
+        "title": "cache:get returns content.md path + meta.json contents; computes stale=true when current time > expires_at; never auto-refreshes; --allow-stale and --no-stale flags supported",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-5-cache-fetch-all-rate-limit",
+        "title": "cache:fetch-all rate-limit handling (M1): --batch-size N (default 10), --delay-ms N (default 500), 429 response retry with Retry-After header parsing; calls task scm:issue:view (Story 1 interface) per issue",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-6-cache-fetch-all-idempotency",
+        "title": "cache:fetch-all idempotency + partial-failure (M2): skip already-cached entries fresh per TTL (7d for github-issue); on partial failure exit non-zero with structured {succeeded, failed, skipped} count; persisted entries survive partial failure",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-7-cache-invalidate-prune",
+        "title": "cache:invalidate deletes entry directory + appends invalidation reason to audit log; cache:prune drops entries with expires_at older than 30d (default), --older-than override, --dry-run preview, --source filter",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-8-scanner-injection-heading",
+        "title": "scripts/cache_scanner.py injection-heading category: reuse 14-token list from quarantine_ext.py (STEP, TASK:, IMPORTANT:, etc.); heading-context only; severity = fence-and-pass (wraps in `quarantined` fences); preserves existing #845 semantic",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-9-scanner-credentials",
+        "title": "scripts/cache_scanner.py credentials category: curated regex list (gh[pousr]_, sk-, sk-ant-, xox[bp]-, AKIA*, PEM private key headers, Bearer tokens, JWT shape); body-wide; severity = hard-fail (no content.md written); meta.json scan_result.passed=false",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-10-scanner-invisible-unicode",
+        "title": "scripts/cache_scanner.py invisible-unicode category: codepoint membership test (U+200B-200F, U+202A-202E, U+2060, U+2066-2069, U+FEFF, U+E0000-E007F); severity = strip-and-pass (chars stripped from content.md; flags record what was stripped + where)",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-11-scanner-versioning",
+        "title": "Scanner version constant SCANNER_VERSION at module top; each cache:put records scanner_version in meta.json.scan_result.scanner_version + quarantine-audit.jsonl entry; semver bumps documented (patch=patterns, minor=categories, major=semantic rewrites)",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-12-tasks-cache-yml",
+        "title": "tasks/cache.yml NEW: Taskfile fragment exposing 5 cache commands; wired into parent tasks/Taskfile.yml includes block under canonical `cache:` namespace; no doubled prefix; no sources:/generates: per conventions/task-caching.md",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-13-unit-tests",
+        "title": "tests/test_cache.py + tests/test_cache_scanner.py: ~80-100 unit tests covering all primitives, all 3 scanner categories (positive + negative + edge cases), schema validation positive/negative, atomic write, stale flag, 429 retry, partial failure exit shape",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-14-integration-tests",
+        "title": "tests/integration/test_cache_quarantine.py: ~3 integration tests covering fetch-all rate-limit (fake-gh shim with simulated 429), partial-failure recovery (mid-batch error), cache:put scan-failure semantics (real credentials regex match)",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-15-task-check-green",
+        "title": "task check passes (validate + lint + test + verify:encoding + verify:branch); coverage threshold maintained",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s2-ac-16-changelog",
+        "title": "CHANGELOG.md [Unreleased] -> ### Added: feat(cache,quarantine): unified content cache + scanner v2 baseline for #883 v1 (github-issue source; 5 commands; 3 scanner categories; #883 Story 2)",
+        "status": "proposed"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_issue": "#883",
+        "epic_vbrief": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
+        "wave": 2,
+        "depends_on_stories": [
+          "Story 1 (scm:issue:view interface)"
+        ],
+        "blocks_stories": [
+          "Story 3 (triage rebind; needs cache:get interface)"
+        ],
+        "swarm_ready": false,
+        "swarm_ready_after": "Story 1 merged",
+        "files_owned": [
+          "scripts/cache.py (NEW)",
+          "scripts/cache_scanner.py (NEW)",
+          "tasks/cache.yml (NEW)",
+          "tasks/Taskfile.yml (includes wiring only)",
+          "vbrief/schemas/cache-meta.schema.json (NEW)",
+          "tests/test_cache.py (NEW)",
+          "tests/test_cache_scanner.py (NEW)",
+          "tests/integration/test_cache_quarantine.py (NEW)",
+          "CHANGELOG.md (one bullet under [Unreleased] ### Added)"
+        ],
+        "files_must_not_touch": [
+          "tasks/scm.yml (Story 1; import only)",
+          "scripts/triage_cache.py (Story 3 deletes)",
+          "scripts/triage_bulk.py (Story 3 rewrites)",
+          "scripts/triage_actions.py (Story 3 rewrites)",
+          "scripts/triage_refresh.py (Story 3 rewrites)",
+          "scripts/triage_bootstrap.py (Story 3 rewrites)",
+          "tasks/triage-cache.yml (Story 3 deletes)",
+          "skills/deft-directive-refinement/SKILL.md (Story 3)",
+          "UPGRADING.md (Story 4)",
+          "scripts/quarantine_ext.py (read-only reuse of 14-token list)"
+        ],
+        "branch": "feat/883-story-2-cache-infrastructure",
+        "pr_title_prefix": "feat(cache,quarantine): unified cache + scanner v2 baseline (#883 Story 2)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/883",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #883 (parent epic): feat(processes): deft-cache -- unified content cache and quarantine layer"
+      },
+      {
+        "uri": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Epic vBRIEF for #883 v1 (parent decomposition; this story is item 2 of 4)"
+      },
+      {
+        "uri": "docs/design-deft-cache-quarantine.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Design: Unified Content Cache and Quarantine Layer (visionik; canonical meta.json field set is here)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/583",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #583: name governance pattern + injection-quarantine directive (this story extends the injection-quarantine half to scanner v2)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/835",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #835: memory write security scan (sibling consumer of the unified scanner)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/788",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #788: token-cost framework (cache persistence is a v2 mechanism toward O(1)-per-pass goal)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/845",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #845: pre-ingest triage workflow (predecessor cache surface that this story replaces)"
+      }
+    ],
+    "updated": "2026-05-06T15:11:52Z"
+  }
+}

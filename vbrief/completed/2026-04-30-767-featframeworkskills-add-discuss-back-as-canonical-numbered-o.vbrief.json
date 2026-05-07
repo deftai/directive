@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #767"
+  },
+  "plan": {
+    "title": "feat(framework,skills): add Discuss + Back as canonical numbered options in all deterministic-mode questions",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(framework,skills): add Discuss + Back as canonical numbered options in all deterministic-mode questions",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/767",
+      "Labels": "enhancement, skills, determinism, adoption-blocker",
+      "Problem": "Deterministic questions (structured ask_user_question single_select / multi_select) trap users in a narrow lane when no offered option fits. Today the only escapes are forced-bad-answer, skip, or free-form interjection -- none of which is part of any skill contract. Surfaced during the 2026-04-30 Phase 1 swarm planning session: user typed 'discuss (user-provided)' to break out, and earlier typed 'wait' at a hard gate -- both honored only by convention, not by rule.",
+      "Acceptance": "Every structured ask_user_question prompt (single_select or multi_select) and every numbered-menu prompt in skill prose MUST include 'Discuss' and 'Back' as the final two numbered options, in that order. 'Discuss' MUST mean: pause the structured flow IMMEDIATELY -- agent halts the in-progress sequence, emits no further tool calls beyond acknowledging the pause, and prompts 'What would you like to discuss?'; agent ONLY resumes when user explicitly signals readiness (re-asks original question, says 'resume'/'continue', or re-issues prior selection); implicit resumption is forbidden. 'Back' returns to the prior question or decision point. Codify the rule once in main.md (or new contracts/deterministic-questions.md), with the Discuss-pause semantic documented verbatim. Add brief ! cross-reference from each affected skill (no rule duplication). Glossary entry for 'deterministic mode'. Content test scans skill prose for documented numbered menus and asserts the final two options match Discuss + Back. CHANGELOG entry under Added.",
+      "PriorArt": "#431 (CLOSED, completed) -- 'Deterministic questions (RC2): confirm step, back nav, escape hatch distinct from Other' -- earlier RC2 work on back-nav and escape-hatch. Implementing agent MUST review #431's merge PR BEFORE starting: (1) audit existing back-nav surface (do not reimplement -- extend); (2) honor the 'escape hatch distinct from Other' principle -- Discuss is a top-level numbered option, NOT a sub-choice of Other; this issue does NOT introduce an Other option; (3) reuse existing wiring (option labels, state handling, prompt formatting). Implementing agent's PR description MUST include a '## Prior art reviewed' section summarizing what existed pre-#767 vs what changed.",
+      "OutOfScope": "Out-of-band meta-signal vocabulary (wait/stop/pause/why) -- defer to follow-up if friction persists. State-machine resume / conversation-state checkpointing -- separate scope. Free-form text prompts -- unchanged. Slash-command surface (/deft:discuss / /deft:back) -- can layer on top later.",
+      "Files": "main.md (or NEW contracts/deterministic-questions.md); skills/deft-directive-swarm/SKILL.md; skills/deft-directive-setup/SKILL.md; skills/deft-directive-interview/SKILL.md; skills/deft-directive-build/SKILL.md; skills/deft-directive-refinement/SKILL.md; skills/deft-directive-pre-pr/SKILL.md; deft/glossary.md; NEW tests/content/test_deterministic_questions.py; CHANGELOG.md (append)."
+    },
+    "items": [
+      {
+        "title": "Review #431's merge PR FIRST -- audit existing back-nav surface; do not reimplement, extend",
+        "status": "pending"
+      },
+      {
+        "title": "Codify deterministic-mode rule in main.md (or NEW contracts/deterministic-questions.md): mandate Discuss + Back as final two numbered options",
+        "status": "pending"
+      },
+      {
+        "title": "Document Discuss-pause semantic verbatim: pause immediately, no further tool calls, no implicit resumption",
+        "status": "pending"
+      },
+      {
+        "title": "Glossary entry for 'deterministic mode'",
+        "status": "pending"
+      },
+      {
+        "title": "Update skills/deft-directive-swarm/SKILL.md numbered menus + add ! cross-reference (Phase 0 Step 0/5, Phase 1 Step 3, Phase 5->6)",
+        "status": "pending"
+      },
+      {
+        "title": "Update skills/deft-directive-setup/SKILL.md numbered menus + add ! cross-reference (Phase 1/2 + post-interview)",
+        "status": "pending"
+      },
+      {
+        "title": "Update skills/deft-directive-interview/SKILL.md numbered menus + add ! cross-reference (q&a loop)",
+        "status": "pending"
+      },
+      {
+        "title": "Update skills/deft-directive-build/SKILL.md kickoff confirmation + add ! cross-reference",
+        "status": "pending"
+      },
+      {
+        "title": "Update skills/deft-directive-refinement/SKILL.md reprioritization gate + add ! cross-reference",
+        "status": "pending"
+      },
+      {
+        "title": "Update skills/deft-directive-pre-pr/SKILL.md per-finding decision menus + add ! cross-reference",
+        "status": "pending"
+      },
+      {
+        "title": "NEW tests/content/test_deterministic_questions.py: scan skills for numbered menus; assert final two options match Discuss + Back",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md [Unreleased] entry under Added referencing #767",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/767",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #767: feat(framework,skills): add Discuss + Back as canonical numbered options in all deterministic-mode questions"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-05-01T02:02:52Z"
+  }
+}

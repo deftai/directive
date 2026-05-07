@@ -1,0 +1,36 @@
+version: '3'
+
+# tasks/framework.yml -- framework-level introspection / upkeep tasks (#801).
+#
+# Hosts surfaces that interrogate the deft framework itself (rather than the
+# consumer project). Currently only `framework:check-updates`, but this is
+# the natural home for any future "is the deft framework healthy / current"
+# probe (e.g. submodule SHA reconcile, deft/run version vs marker, etc.).
+#
+# Per `conventions/task-caching.md` (#574): the check-updates task accepts a
+# user-facing `--force` recovery flag (mapped to DEFT_FORCE_REMOTE_PROBE=1)
+# and therefore MUST NOT declare `sources:` / `generates:` -- the cached
+# `cmds:` skip would silently discard the recovery flag.
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  check-updates:
+    desc: "Read-only remote-version probe (#801) -- task framework:check-updates [-- --force | --json]. Honors DEFT_NO_NETWORK=1 and DEFT_REMOTE_PROBE_TIMEOUT (default 5s)."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+      # When the operator passes `--force`, the task wrapper sets
+      # DEFT_FORCE_REMOTE_PROBE=1 so the gate-integration helper bypasses
+      # the 24h throttle. The `run` CLI surface (`run check-updates`) is
+      # already idempotent (does not write to the throttle file), so this
+      # env var only affects callers that probe through the upgrade gate.
+      DEFT_FORCE_REMOTE_PROBE: '{{if (mustRegexMatch "(^|\\s)--force(\\s|$)" .CLI_ARGS)}}1{{else}}{{.DEFT_FORCE_REMOTE_PROBE | default ""}}{{end}}'
+    cmds:
+      # Strip our own `--force` from the args we pass through to `run` so it
+      # does not surface as an unknown flag in the JSON / text output. Other
+      # supported flags (e.g. `--json`) flow through unchanged.
+      - >-
+        python3 "{{.DEFT_ROOT}}/run" check-updates
+        {{regexReplaceAll "(^|\\s)--force(\\s|$)" .CLI_ARGS " "}}

@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF (#635 child): wire 3 behavioral framework events that lack existing detectors -- session:interrupted/session:resumed (paired), plan:approved, legacy:detected. Split out from PR #401 per canonical #642 workflow comment so the trimmed PR lands hygiene only and behavioral events become enforceable structural artifacts.",
+    "created": "2026-04-27T22:25:52Z",
+    "updated": "2026-04-27T22:25:52Z"
+  },
+  "plan": {
+    "id": "635-events-behavioral",
+    "title": "Events: behavioral wiring (3 items: session interrupt/resume pair, plan:approved, legacy:detected)",
+    "status": "pending",
+    "planRef": "#635",
+    "narratives": {
+      "Problem": "PR #401's original DDD section also proposed behavioral events that capture agent and user actions in real time -- not just things deft can statically detect. Three of those have no existing detector and require new instrumentation: a paired session-lifecycle event (interrupted/resumed) for context-window shifts, a plan-approval event for the Phase 5->6 merge gate, and a legacy-detected event for legacy artifact captures during migration. Without structural emission these stay prose-only and decay under agent pressure (canonical #642 workflow comment, locked decisions).",
+      "Overview": "Define and emit 3 behavioral events as structural artifacts. (1) `session:interrupted` + `session:resumed` (paired -- always emitted together; resumed references the interrupted record's id) for context-window shift detection per AGENTS.md Deft Alignment Confirmation. (2) `plan:approved` emitted when the user types `yes`/`confirmed`/`approve` in a PR thread per the Phase 5->6 gate in the canonical workflow comment + skills/deft-directive-review-cycle. (3) `legacy:detected` emitted by scripts/_vbrief_legacy.py when a non-canonical SPECIFICATION.md/PROJECT.md section is captured to vbrief/legacy/ (currently emits to vbrief/migration/LEGACY-REPORT.md as text only).",
+      "Background": "Behavioral events differ from detection-bound events: they cannot be inferred from filesystem state alone and require either an agent emission point (Alignment Confirmation, plan approval) or a script-internal capture point (legacy artifact write). The events behavioral vBRIEF is therefore higher-design-effort than its detection-bound sibling; the swarm worker decides whether to land all 3 in one PR or split further.",
+      "Constraint": "Same encoding-form constraint as the detection-bound vBRIEF: structural artifact (registry data file + emission helper), not prose. Pairs `session:interrupted` and `session:resumed` MUST be co-defined and co-emitted -- a `session:resumed` without a matching `session:interrupted` is invalid.",
+      "Risk": "(1) Behavioral events touch agent-runtime contracts not just static scripts; the swarm worker must coordinate with skills/deft-directive-sync/SKILL.md and skills/deft-directive-review-cycle/SKILL.md for the session and plan:approved emissions. (2) `legacy:detected` overlaps with the existing vbrief/migration/LEGACY-REPORT.md flow; care needed not to double-emit. (3) `plan:approved` emission requires either a manual user action mapped to an event (most likely) or a more complex bot-driven detection -- the simpler design wins.",
+      "Outcome": "Acceptance: (1) the structural event registry from the detection-bound vBRIEF (or a sibling registry) gains 3 behavioral events with payload contracts; (2) each event has at least one emission point; (3) `session:interrupted`/`session:resumed` pairing is enforced (test asserts no orphan resumed records); (4) at least one consuming skill or task references each event by name; (5) `task check` passes.",
+      "Test": "Verification: tests/cli/test_behavioral_events.py exercises the 3 events end-to-end with synthetic emit points; pairing constraint is enforced; existing skill/script tests remain green.",
+      "Action": "Swarm-ready leaf: independent of the detection-bound events vBRIEF (different emission surface) but SHOULD wait for that vBRIEF's registry helper to land first to avoid duplicate `_events.py` work. Gated on PR #401 trim merge."
+    },
+    "items": [
+      {
+        "id": "events-behavioral-session-pair",
+        "title": "session:interrupted + session:resumed (paired) -- emit on context-window shift detection per AGENTS.md Deft Alignment Confirmation",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add emission points to the alignment confirmation flow. Pairing enforced via session_id correlation."
+        }
+      },
+      {
+        "id": "events-behavioral-plan-approved",
+        "title": "plan:approved -- emit when user types yes/confirmed/approve on a Phase 5->6 merge gate (per skills/deft-directive-review-cycle and canonical #642 workflow comment ready-to-merge templates)",
+        "status": "pending",
+        "narrative": {
+          "Action": "Decide between agent-side emission (simpler -- skill detects affirmative reply and emits) vs. bot-side detection (complex). Recommend agent-side."
+        }
+      },
+      {
+        "id": "events-behavioral-legacy-detected",
+        "title": "legacy:detected -- emit when scripts/_vbrief_legacy.py captures a non-canonical section to vbrief/legacy/ (alongside the existing vbrief/migration/LEGACY-REPORT.md write)",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add emission call inside scripts/_vbrief_legacy.py.LegacyArtifactsCapture; existing report behavior preserved."
+        }
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2",
+        "PhaseDescription": "Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files."
+      },
+      "x-tracking": {
+        "parent_epic": "#635",
+        "split_authority": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
+        "swarm_ready": true,
+        "blocks": null,
+        "blocked_by": "PR #401 trim merge: CLEARED 2026-04-28. Soft preference (not strict): land the sibling detection-bound events vBRIEF first so the shared scripts/_events.py helper exists before this brief consumes it."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/635",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/642",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this split)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/401",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #401: hygiene/DDD/determinism (trim makes the events surface available for structural respawn under this vBRIEF)"
+      },
+      {
+        "uri": "proposed/2026-04-27-635-events-detection-bound-wiring.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Sibling vBRIEF: events detection-bound wiring (lands shared scripts/_events.py helper) -- related-plan, not parent/child, so no D4 back-link required"
+      }
+    ]
+  }
+}

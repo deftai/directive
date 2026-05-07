@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #725: scripts/release_rollback.py uses an unsafe `git reset --hard HEAD~1` (unwinds whatever happens to be at HEAD when commits land between release-prep and rollback) AND `git push --force-with-lease origin master` (rejected by GitHub branch protection rules disallowing force-push). Replace with a resolved-SHA forward `git revert` flow and a normal (non-force) push so rollback works end-to-end on a protected default branch.",
+    "created": "2026-04-28T22:30:00Z",
+    "updated": "2026-04-29T18:18:17Z"
+  },
+  "plan": {
+    "id": "725-release-rollback-revert-and-no-force-push",
+    "title": "Replace HEAD~1 reset + force-push with resolved-SHA forward-revert + normal push in scripts/release_rollback.py",
+    "status": "completed",
+    "planRef": "#725",
+    "narratives": {
+      "Problem": "scripts/release_rollback.py::git_reset_head_minus_one blindly resets to HEAD~1, assuming the release-prep commit is the latest commit. That assumption breaks the moment ANY commit lands between release-prep and the rollback invocation -- which is a normal operational scenario (fix a release defect via PR, then decide to rollback). Live demonstration: PR #722 merged on top of release-prep commit 6573335; `task release:rollback -- v0.21.0 --allow-data-loss` then reset master from 94d1aa5 -> 6573335, unwinding PR #722 instead of release-prep. Defect B coupled to A: scripts/release_rollback.py::git_force_push_base calls `git push --force-with-lease origin master`, which is rejected by GitHub branch-protection rules disallowing force-push (default config for protected master). The script aborts after gh release delete already succeeded, leaving master in a broken local-only state.",
+      "Overview": "Resolve the actual release-prep commit SHA at runtime (preferred: `git rev-parse v<version>^{commit}` BEFORE the tag is deleted; fallback: `git log --grep='^chore(release): v<version>' -n 1 --format=%H` walking back from HEAD). Replace `git_reset_head_minus_one` with `git_revert_release_commit(project_root, sha)` that runs `git revert <sha> --no-edit`. On conflict the helper aborts the revert and returns a clear refusal pointing the operator at the manual-recovery hint in the script docstring. Replace `git_force_push_base` with `git_push_base` that runs a normal `git push origin <base-branch>` (no force, branch-protection-compatible). State 1 (local-only) drops the remote push entirely -- nothing was pushed so there is nothing to push back. States 2 and 3 push the new revert commit forward.",
+      "Background": "Surfaced during the v0.21.0 rollback-as-test on 2026-04-28 (#721). The state-aware unwind (#716) works correctly through state detection, guard logic, and gh release delete --cleanup-tag, but the commit-unwind + push phase has these two coupled defects. Defect A's fix (forward revert) makes Defect B's force-push moot because we no longer rewrite history; Defect B's branch-protection refusal would have surfaced even with the correct SHA in Defect A's reset path, so they MUST be fixed together. The companion #722 (subprocess PATHEXT fix) is already merged and exposes `release._resolve_gh()` -- this PR re-uses `release._run_git()` for git invocations.",
+      "Constraint": "MUST preserve existing exit codes (0 success / 1 violation / 2 config error), the four-state machine (local-only / tag-pushed-no-release / released / absent), the time-windowed download-count guard, and the race-condition double-read. MUST NOT widen scope beyond the rollback unwind + push phase. MUST keep the public CLI surface stable (no new flags). MUST update the module docstring's state table so the operator-readable contract matches the new behaviour.",
+      "Risk": "Low. The revert flow is strictly safer than reset --hard (it preserves history and is auditable), and a forward push to a protected branch is the documented path. The conflict-refusal path defends against the rare case where a commit on top of release-prep touched a file the release-prep commit also touched (CHANGELOG.md / ROADMAP.md) -- the operator gets a manual-recovery hint instead of a half-unwound state.",
+      "Outcome": "Acceptance: (1) task release:rollback -- v<version> works end-to-end against a master branch with branch protection enabled (no force-push required); (2) regression test in tests/cli/test_release_rollback.py simulates a commit landing between release-prep and rollback, asserts the unwind targets the release-prep commit (not HEAD~1); (3) regression test asserts `git push origin <base-branch>` is invoked WITHOUT --force / --force-with-lease; (4) regression test asserts the conflict path refuses cleanly with a manual-recovery hint; (5) module docstring's state table updated to reflect the new git revert + git push (no force) flow.",
+      "Test": "Verification: tests/cli/test_release_rollback.py covers (a) resolve_release_prep_sha returns the rev-parse result when the tag exists; (b) resolve_release_prep_sha falls back to `git log --grep` when rev-parse fails; (c) resolve_release_prep_sha returns ('', reason) when both probes fail; (d) git_revert_release_commit invokes `git revert <sha> --no-edit`; (e) git_revert_release_commit detects conflict (non-zero rc + recognised stderr) and runs `git revert --abort`, returning False with a manual-recovery hint; (f) git_push_base invokes `git push origin <base-branch>` with NO --force / --force-with-lease; (g) _unwind_local / _unwind_tag_pushed_no_release / _unwind_released call resolve_release_prep_sha BEFORE deleting the tag, AND pass the resolved SHA (not HEAD~1) to the revert helper; (h) the new push helper is the only push path (no force-push remains anywhere). Existing rollback tests continue to pass.",
+      "Action": "Swarm-scope leaf: independent of any other vBRIEF (touches only scripts/release_rollback.py + tests/cli/test_release_rollback.py + CHANGELOG); gated only on master. Closes #725 once merged."
+    },
+    "items": [
+      {
+        "id": "rollback-resolve-release-prep-sha",
+        "title": "Add resolve_release_prep_sha helper to scripts/release_rollback.py with rev-parse + grep fallback",
+        "status": "completed",
+        "narrative": {
+          "Action": "New `def resolve_release_prep_sha(project_root: Path, version: str) -> tuple[str, str]` returning (sha, reason). Try `git rev-parse v<version>^{commit}` first (works whenever the tag still resolves locally OR a tag-shaped probe walks the repo); on failure fall back to `git log --grep='^chore(release): v<version>' --format=%H -n 1`. Return ('', diagnostic) when neither resolves so callers can refuse cleanly.",
+          "Acceptance": "Unit tests cover the rev-parse happy path, grep fallback, and the all-probes-failed refusal."
+        }
+      },
+      {
+        "id": "rollback-revert-and-normal-push",
+        "title": "Replace git_reset_head_minus_one + git_force_push_base with git_revert_release_commit + git_push_base across all unwind branches",
+        "status": "completed",
+        "narrative": {
+          "Action": "Add `git_revert_release_commit(project_root, sha)` running `git revert <sha> --no-edit`; on non-zero rc run `git revert --abort` and return (False, manual-recovery hint). Add `git_push_base(project_root, base_branch)` running `git push origin <base>` (NO --force / --force-with-lease). Update `_unwind_local` / `_unwind_tag_pushed_no_release` / `_unwind_released` to call `resolve_release_prep_sha` BEFORE deleting the tag (release_e2e cleanup-tag deletes both refs), and pass the resolved SHA into the revert helper. State 1 (local-only) drops the push entirely (nothing was pushed). States 2 and 3 push the new revert commit forward via `git_push_base`.",
+          "Acceptance": "Tests assert intervening-commit safety (resolved SHA is the revert target, NOT HEAD~1), no-force push semantics (argv contains 'push' + 'origin' + base-branch, NO '--force' / '--force-with-lease'), and clean conflict refusal (revert --abort runs, return value carries the manual-recovery hint)."
+        }
+      },
+      {
+        "id": "rollback-docstring-and-changelog",
+        "title": "Update scripts/release_rollback.py module docstring state table to git revert + git push (no force); add CHANGELOG entry",
+        "status": "completed",
+        "narrative": {
+          "Action": "Replace the state-table prose `git reset --hard HEAD~1` and `git push --force-with-lease` cells with `git revert <release-prep-sha> --no-edit` and `git push origin <base>` (no force). Add a Manual Recovery section to the docstring describing the steps the operator runs when revert conflicts. CHANGELOG entry: '[Unreleased]/Fixed: Replace unsafe HEAD~1 reset + force-push with resolved-SHA forward revert + normal push in scripts/release_rollback.py so the rollback flow is safe across intervening commits and compatible with GitHub branch protection (#725).'",
+          "Acceptance": "Docstring rendering shows the new state-table cells; CHANGELOG.md `## [Unreleased] / ### Fixed` contains the entry."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "swarm_ready": true,
+        "blocks": null,
+        "blocked_by": null,
+        "scope_authority": "deft-725-fix sub-agent dispatch (swarm Agent 1; parent monitor's plan stages 1-4)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/725",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #725: rollback script uses unsafe HEAD~1 reset + branch-protection-incompatible force-push"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/716",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #716: release safety hardening (canonical spec; rollback semantics origin)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/722",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #722: subprocess PATHEXT fix (introduces release._resolve_gh helper re-used here)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/721",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #721: rollback-as-test recovery anchor (full session transcript surfacing #725)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/74",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #74: task release foundation"
+      }
+    ]
+  }
+}

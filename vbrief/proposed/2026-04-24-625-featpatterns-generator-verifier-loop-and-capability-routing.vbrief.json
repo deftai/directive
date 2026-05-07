@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #625"
+  },
+  "plan": {
+    "title": "feat(patterns): generator-verifier loop and capability routing as multi-agent architecture patterns",
+    "status": "proposed",
+    "narratives": {
+      "Description": "feat(patterns): generator-verifier loop and capability routing as multi-agent architecture patterns",
+      "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/625",
+      "Labels": "enhancement, patterns"
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#625",
+        "url": "https://api.github.com/repos/deftai/directive/issues/625"
+      }
+    ]
+  }
+}

@@ -1,0 +1,158 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Add a size cap, entry cap, LRU eviction, and disk quota to the v1 unified content cache (#883 follow-up). Caps are configurable via DEFT_CACHE_MAX_BYTES / DEFT_CACHE_MAX_ENTRIES with sensible defaults (100 MB / 10,000 entries) sized from the v0.26.0 smoke evidence (320 entries = 3.03 MB on disk, ~10 KB/entry avg). LRU is tracked via meta.json mtime touched on cache:get -- zero schema change, zero migration burden for v0.26.0-era cache trees, no edit to the FROZEN cache-meta.schema.json. cache:put refuses-with-eviction on cap breach, and a new cache:prune --to-cap mode lets operators drain the cache on demand. Eviction events are written as cache:evict records to the existing quarantine-audit.jsonl so operators can trace why an entry vanished. Audit retention/rotation (#948) is explicitly out of scope.",
+    "created": "2026-05-07T14:43:23Z",
+    "updated": "2026-05-07T14:46:53Z"
+  },
+  "plan": {
+    "id": "947-cache-cap-lru-quota",
+    "title": "feat(cache): size cap + LRU eviction + disk quota (#947)",
+    "status": "completed",
+    "planRef": "#947",
+    "narratives": {
+      "Problem": "v1 unified cache (#883) ships with no size cap, no LRU eviction, and no disk quota. Bulk-triage workflows against an active backlog will grow .deft-cache/ unboundedly until the operator notices a several-GB folder. Concrete real-scale evidence from docs/smoke-2026-05-07-v0.26.0-rerun.md: 320 issue dirs = 3.03 MB on disk (~10 KB/entry average). Extrapolating, a 50,000-issue repo would consume ~500 MB; a multi-repo deployment can hit single-digit-GB inside a session. The cache becomes an operator footgun before any signal surfaces.",
+      "Overview": "Add a configurable cap (default 100 MB total bytes / 10,000 total entries; either trips eviction). Track per-entry last-accessed time via meta.json mtime (touched on cache:get). On cache:put, project the new total; if over cap, evict LRU entries until fitting. If the new put still cannot fit (e.g. raw.json larger than cap, or every entry is the just-written one) raise a structured CacheCapBreachedError -> exit code 3. Add cache:prune --to-cap mode that drains LRU until under cap on demand. Every eviction appends one cache:evict record to the existing quarantine-audit.jsonl so operators can trace why an entry vanished. Cap thresholds via env vars (DEFT_CACHE_MAX_BYTES, DEFT_CACHE_MAX_ENTRIES); 0 disables the corresponding cap. Quota-enforcement logic extracted to scripts/_cache_quota.py to keep scripts/cache.py under the 1000-line MUST limit (mirrors the existing _cache_fetch / _cache_validate split).",
+      "Constraint": "DO NOT edit vbrief/schemas/cache-meta.schema.json -- the schema is FROZEN and a v0.26.0-era cache tree must keep validating after this PR. The schema-bump alternative (add a 'last_accessed_at' field to meta.json) was rejected because (a) it forces a write-on-read for every cache:get (meta.json rewrite + schema validation on every access -- expensive at scale), (b) it creates a migration burden for pre-existing cache trees that lack the field, and (c) it requires a schema SemVer bump and coordinated change to _cache_validate.py. The mtime-touch approach is atomic (single os.utime syscall), zero schema change, and degrades gracefully (a cache tree from v0.26.0 still has a valid mtime). DO NOT touch scripts/scm.py, tasks/scm.yml, scripts/triage_*.py, tasks/triage*.yml, skills/deft-directive-refinement/SKILL.md, UPGRADING.md, scripts/quarantine_ext.py, scripts/cache_scanner.py (#949 territory). DO NOT scope-creep into #948 (audit retention / rotation -- separate concern). Single PR, draft only (no merge, no ready). PowerShell 5.1 non-ASCII rule (#798) governs all file edits. Wall-clock cap: 3h. Parallel agent on #884 (different machine) shares only origin master + GraphQL bucket; ghx-first / REST-first for all gh calls.",
+      "Outcome": "scripts/_cache_quota.py: new helper module with compute_usage(), enforce_caps(), evict_lru(), and a CacheCapBreachedError. scripts/cache.py: cache_get touches meta.json mtime (LRU signal); cache_put calls enforce_caps() pre-write and refuses with exit-3 if cap can't be honored even after eviction; new cache_prune_to_cap() function; --to-cap flag added to cache:prune CLI. Default caps: 100 MB / 10,000 entries (sized from smoke evidence). Env-var overrides: DEFT_CACHE_MAX_BYTES, DEFT_CACHE_MAX_ENTRIES (0 = disabled). Audit log: new cache:evict event records with {source, key, timestamp, reason, trigger, freed_bytes, last_accessed_at}. tests/test_cache.py + new tests/test_cache_eviction.py + tests/integration/test_cache_quarantine.py: cap-breach -> eviction fires; cap-breach + no-evictable -> exit-3; LRU correctness across reads; idempotent prune --to-cap; eviction audit-log format; env-var overrides; mtime-touch on cache:get. tasks/cache.yml: prune subcommand carries --to-cap forwarded via {{.CLI_ARGS}}. CHANGELOG.md [Unreleased] -> ### Added bullet referencing #947 with default-cap rationale. task check is green. Draft PR body cites the smoke-evidence sizing methodology. Closes #947.",
+      "Test": "tests/test_cache_eviction.py (new): unit tests for _cache_quota helpers covering compute_usage() summation across entries, evict_lru() deterministic ordering by mtime, refusal-on-impossible-fit, env-var override parsing (DEFT_CACHE_MAX_BYTES, DEFT_CACHE_MAX_ENTRIES, including 0 = disabled), CacheCapBreachedError shape. tests/test_cache.py additions: cache_get touches meta.json mtime; cache_put pre-write enforcement evicts oldest entry; cache_put cap-breach + can't-fit -> CacheCapBreachedError -> CLI exit-3; cache_prune_to_cap is idempotent (second invocation no-ops); audit log carries cache:evict records with full schema; default caps applied when env unset; env vars override defaults. tests/integration/test_cache_quarantine.py: end-to-end fetch-all path triggers eviction when N > entry cap and audit log includes cache:evict events for the evicted entries.",
+      "DesignChoice": "MTIME-AS-LRU vs SCHEMA-BUMP: chose mtime. cache_get does a single os.utime(meta_path) syscall (no rewrite, no validation). LRU ordering reads stat().st_mtime for every entry's meta.json. Trade-offs: (a) clock-skew between writes is irrelevant -- relative ordering is what matters and a single host's clock monotonicity is sufficient; (b) a v0.26.0 cache tree's existing entries already have a valid mtime (the original write timestamp) so this is backward-compatible without migration; (c) filesystem mtime granularity (1s on most FS) is sufficient -- two reads in the same second may tie but eviction picks deterministically (sorted (mtime, path)); (d) os.utime() on Windows + POSIX is atomic per-inode. Schema-bump alternative rejected per the Constraint section above."
+    },
+    "items": [
+      {
+        "id": "947-ac-1-quota-helper-module",
+        "title": "scripts/_cache_quota.py: new helper module owning compute_usage(), enforce_caps(), evict_lru(), env-var resolution, CacheCapBreachedError",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-2-mtime-touch-on-get",
+        "title": "scripts/cache.py: cache_get touches meta.json mtime (single os.utime syscall) so LRU ordering reflects access recency",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-3-put-pre-write-enforcement",
+        "title": "scripts/cache.py: cache_put projects new total; calls enforce_caps() pre-write; evicts LRU until fitting; raises CacheCapBreachedError if impossible",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-4-prune-to-cap",
+        "title": "scripts/cache.py: new cache_prune_to_cap() function; --to-cap flag added to cache:prune CLI; idempotent on repeat invocation",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-5-evict-audit-event",
+        "title": "scripts/cache.py: every eviction appends one cache:evict record to quarantine-audit.jsonl with {source, key, timestamp, reason, trigger, freed_bytes, last_accessed_at}",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-6-env-var-config",
+        "title": "scripts/_cache_quota.py: DEFT_CACHE_MAX_BYTES (default 100 MB) and DEFT_CACHE_MAX_ENTRIES (default 10000) env vars; 0 disables the corresponding cap",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-7-cli-exit-code-3",
+        "title": "scripts/cache.py: CacheCapBreachedError surfaces as CLI exit-3 (distinct from CacheError exit-1, schema exit-2) with structured stderr",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-8-tests-eviction-unit",
+        "title": "tests/test_cache_eviction.py (new): _cache_quota unit coverage -- compute_usage, evict_lru ordering, refusal-on-impossible-fit, env-var override parsing, CacheCapBreachedError shape",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-9-tests-cache-integration",
+        "title": "tests/test_cache.py: cache_get mtime touch; cache_put pre-write eviction; cap-breach exit-3 path; idempotent prune --to-cap; audit cache:evict format; env-var overrides",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-10-tests-integration-fetchall",
+        "title": "tests/integration/test_cache_quarantine.py: fetch-all triggers eviction when N exceeds entry cap; audit log carries cache:evict events",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-11-tasks-yml",
+        "title": "tasks/cache.yml: cache:prune --to-cap forwarded via {{.CLI_ARGS}} (no sources/generates per #574 conventions)",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-12-changelog",
+        "title": "CHANGELOG.md [Unreleased] -> ### Added bullet referencing #947 with sizing rationale (100 MB / 10000 entries; ~10 KB/entry from smoke evidence)",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-13-task-check",
+        "title": "task check passes (validate + lint + test + verify:encoding + verify:branch)",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-14-draft-pr",
+        "title": "Push branch feat/947-cache-cap and open DRAFT PR (no merge, no ready) with Closes #947 in body",
+        "status": "completed"
+      },
+      {
+        "id": "947-ac-15-review-cycle",
+        "title": "Run skills/deft-directive-review-cycle (cap 3 iterations); greptile-errored -> retry once via @greptileai then halt",
+        "status": "completed"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_issue": "#947",
+        "smoke_evidence": "docs/smoke-2026-05-07-v0.26.0-rerun.md",
+        "evidence_comment": "https://github.com/deftai/directive/issues/comments/4393228418",
+        "files_owned": [
+          "scripts/_cache_quota.py (new)",
+          "scripts/cache.py",
+          "tasks/cache.yml",
+          "tests/test_cache.py",
+          "tests/test_cache_eviction.py (new)",
+          "tests/integration/test_cache_quarantine.py",
+          "CHANGELOG.md",
+          "vbrief/proposed/2026-05-07-947-cache-cap-lru-quota.vbrief.json (this file; lifecycle-moved)"
+        ],
+        "files_must_not_touch": [
+          "scripts/scm.py",
+          "scripts/quarantine_ext.py",
+          "scripts/cache_scanner.py",
+          "scripts/triage_bootstrap.py",
+          "scripts/triage_cache.py",
+          "scripts/triage_actions.py",
+          "scripts/triage_bulk.py",
+          "scripts/triage_refresh.py",
+          "tasks/scm.yml",
+          "tasks/triage.yml",
+          "vbrief/schemas/cache-meta.schema.json",
+          "UPGRADING.md",
+          "skills/deft-directive-refinement/SKILL.md"
+        ],
+        "branch": "feat/947-cache-cap",
+        "pr_title_prefix": "feat(cache): size cap + LRU eviction + disk quota (#947)",
+        "draft_pr_only": true,
+        "out_of_scope_followups": [
+          "Audit log retention + rotation (#948 -- separate concern)",
+          "Multi-worktree coordination (deferred per #947 issue body)",
+          "In-memory cache layer (deferred per #947 issue body)"
+        ],
+        "schema_decision": "mtime-touch (no schema bump). Trade-offs documented in narratives.DesignChoice."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/947",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #947: feat(cache): size cap + LRU eviction + disk quota (post-#883 v1)"
+      },
+      {
+        "uri": "docs/smoke-2026-05-07-v0.26.0-rerun.md",
+        "type": "x-vbrief/related-doc",
+        "title": "v0.26.0 cache-layer scale smoke rerun -- evidence anchor for sizing defaults (320 entries = 3.03 MB)"
+      },
+      {
+        "uri": "completed/2026-05-05-883-story-2-cache-infrastructure.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Story 2 vBRIEF that landed the v1 cache layer this PR caps"
+      }
+    ],
+    "updated": "2026-05-07T15:13:27Z"
+  }
+}

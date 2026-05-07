@@ -1,0 +1,75 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #746"
+  },
+  "plan": {
+    "title": "feat(setup,skills,policy): no-feature-branch opt-out — interview disclosure, skill-level guard, and reversible reconfiguration",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(setup,skills,policy): no-feature-branch opt-out -- interview disclosure, skill-level guard, and reversible reconfiguration",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/746",
+      "Labels": "enhancement, skills, determinism, adoption-blocker",
+      "Problem": "Today the 'Allow direct commits to master' opt-out lives as a free-form narrative string in PROJECT-DEFINITION.vbrief.json -- fragile (case sensitivity, typos, type coercion), never explicitly elicited by setup-interview, never disclosed (capability cost is silent), never defended by PR-shaped skills at invocation, and not reversible without hand-editing JSON. Companion to #747 (mechanical gate).",
+      "Acceptance": "A. Schema: promote opt-out to typed boolean policy.allowDirectCommitsToMaster on PROJECT-DEFINITION schema; vbrief:validate rejects strings/missing/out-of-domain; one-shot migration from legacy narrative key. B. Setup-interview: explicit elicitation in deft-directive-setup Phase 2 with capability-cost disclosure + confirmation re-prompt; default=enforce. C. Skill-level guard: deft-directive-{swarm,review-cycle,pre-pr,release} read the typed flag at entry and halt with actionable message before any state mutation; ~ rule offers no-branch alternatives. D. Session-start disclosure: AGENTS.md alignment line discloses direct-commit mode when flag is true. E. Bootstrap fallback: missing PROJECT-DEFINITION fail-closed with helpful error and DEFT_ALLOW_DEFAULT_BRANCH_COMMIT env-var bypass. F. Documentation: README, main.md, glossary entries. (templates/agents-entry.md is owned by #768 -- this scope provides the policy-disclosure copy as content INSIDE #768's managed section, but does NOT edit the file directly.) G. Reconfigure: NEW tasks/policy.yml with policy:show / policy:enforce-branches / policy:allow-direct-commits (--confirm); slash commands; meta/policy-changes.log audit trail; re-running setup interview detects existing flag. H. Tests across all of A-G.",
+      "OutOfScope": "The mechanical detection-bound branch gate itself (owned by #747). AGENTS.md categorical-edit-gates audit (separate). Eager-loading of AGENTS.md by Warp (#136 platform-side). Direct edits to templates/agents-entry.md -- that file is owned by #768 (managed-section markers + canonical content); #746's policy-disclosure copy lands as content within #768's managed section, coordinated via the #768 implementing agent.",
+      "Files": "vbrief/schemas/vbrief-core.schema.json (or sibling project-definition schema); scripts/migrate_*.py (legacy migration); scripts/project_render.py / scripts/vbrief_validate.py (typed-field acceptance); skills/deft-directive-setup/SKILL.md (Phase 2 elicitation); skills/deft-directive-swarm/SKILL.md, deft-directive-review-cycle/SKILL.md, deft-directive-pre-pr/SKILL.md, deft-directive-release/SKILL.md (skill-level guard); AGENTS.md (session-start disclosure + Branching cross-ref); README.md; main.md (mid-file edits ONLY -- line 1 is owned by #768 preamble); NEW tasks/policy.yml; NEW meta/policy-changes.log; NEW or updated glossary; tests across schema/migration/skills/tasks; CHANGELOG.md (append). NOTE: templates/agents-entry.md is owned by #768; this vBRIEF supplies the policy-disclosure copy to #768's managed-section content but does NOT edit that file directly."
+    },
+    "items": [
+      {
+        "title": "A. Schema: typed policy.allowDirectCommitsToMaster boolean + validator + migration from legacy narrative key",
+        "status": "pending"
+      },
+      {
+        "title": "B. Setup-interview elicitation in deft-directive-setup Phase 2 with capability-cost disclosure + confirmation re-prompt",
+        "status": "pending"
+      },
+      {
+        "title": "C. Skill-level guard at entry of deft-directive-{swarm,review-cycle,pre-pr,release} -- halt before state mutation",
+        "status": "pending"
+      },
+      {
+        "title": "D. AGENTS.md session-start disclosure when flag is true",
+        "status": "pending"
+      },
+      {
+        "title": "E. Bootstrap fallback: missing PROJECT-DEFINITION fail-closed with helpful error + DEFT_ALLOW_DEFAULT_BRANCH_COMMIT bypass",
+        "status": "pending"
+      },
+      {
+        "title": "F. Documentation surface: README, main.md (mid-file only), glossary entries; templates/agents-entry.md owned by #768 -- coordinate policy-disclosure copy as content inside #768's managed section",
+        "status": "pending"
+      },
+      {
+        "title": "G1. NEW tasks/policy.yml with policy:show, policy:enforce-branches, policy:allow-direct-commits (--confirm)",
+        "status": "pending"
+      },
+      {
+        "title": "G2. Slash commands /deft:policy:* wrappers; meta/policy-changes.log audit trail; re-run interview detects existing flag",
+        "status": "pending"
+      },
+      {
+        "title": "H. Tests across schema, migration, interview branches, skill-entry guards, task targets, audit log",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md [Unreleased] entry under Added referencing #746",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/746",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #746: feat(setup,skills,policy): no-feature-branch opt-out — interview disclosure, skill-level guard, and reversible reconfiguration"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-05-01T02:02:51Z"
+  }
+}

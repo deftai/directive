@@ -1,0 +1,124 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #233 (remaining): More Determinism -- the 6 deterministic-enforcement tasks still open after v0.17.0 (Phase 0 generated per-phase gates, task doctor, build:verify, change:archive, task ci:local, task release). 8 v0.17.0-completed items (tasks/ restructure, toolchain:check, verify:stubs, verify:links, changelog:check, change:init, commit:lint, enhanced task check) are split out into vbrief/completed/2026-04-23-233-partial-... -- this vBRIEF only tracks remaining work.",
+    "updated": "2026-04-27T22:25:52Z"
+  },
+  "plan": {
+    "title": "More Determinism (remaining): Phase 0 spec scaffolding, task doctor, build:verify, change:archive, task ci:local, task release",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase",
+      "Problem": "The original #233 'More Determinism' initiative bundled 14 deterministic-enforcement tasks. v0.17.0 shipped 8 of them (tasks/ restructure, toolchain:check, verify:stubs, verify:links, changelog:check, change:init, commit:lint, enhanced task check); the corresponding partial-completion record lives at vbrief/completed/2026-04-23-233-partial-more-determinism-tasks-restructure-toolchain.vbrief.json. Without an explicit done/pending split, this scope vBRIEF still claims the entire initiative as 'proposed' -- which double-counts the 8 done items and obscures the 6 that genuinely remain. Per the canonical workflow comment for issue #642 (PR #401 trim arc, locked decision: 0 new determinism-themed vBRIEFs; augment existing #233 instead), this vBRIEF is repaired in PR-A with an explicit split: the 8 v0.17.0 items move out (already captured by the partial-completion vBRIEF in completed/) and the 6 remaining tasks surface as plan.items[] here.",
+      "Overview": "After PR-A, this vBRIEF lives in vbrief/pending/ (lifecycle move from proposed/ -- the work is approved and waiting on swarm assignment, not still under proposal review). plan.status flips to 'pending'. plan.items[] enumerate the 6 remaining tasks (Phase 0 generated per-phase gates, task doctor, build:verify, change:archive, task ci:local, task release) so the swarm can harvest them as independent leaves with no mutual file overlap. The Phase 0 RFC is split into its own dedicated vBRIEF under #635 (multi-phase plan with open design questions; doesn't compress to a leaf plan.item) -- this vBRIEF references that scaffolding RFC for traceability.",
+      "Background": "v0.17.0 done items reference: vbrief/completed/2026-04-23-233-partial-more-determinism-tasks-restructure-toolchain.vbrief.json captures (1) tasks/ directory restructure, (2) task toolchain:check, (3) task verify:stubs, (4) task verify:links (validate:links in the original ROADMAP wording), (5) task changelog:check, (6) task change:init, (7) task commit:lint, (8) enhanced `task check` aggregator. Per Taskfile.yml and tasks/*.yml verification at PR-A authoring time, all 8 are present in the active task graph. The 6 remaining items below correspond to lines from commit 47034134's docs/more-determinism.md proposal that did NOT ship in v0.17.0.",
+      "Constraint": "Closing this vBRIEF requires either (a) all 6 remaining items completed (each transitions to vbrief/completed/ via task scope:complete and #233 closes via squash-merge closing keyword), or (b) a refinement decision to descope unmaintained items to vbrief/cancelled/ via task scope:cancel. The Phase 0 spec scaffolding RFC under #635 is the upstream design-question gate -- task ci:local and task release SHOULD wait on its outcome.",
+      "Risk": "If the done/pending split is not applied, swarm harvest of the remaining 6 items pulls a vBRIEF that still lists the v0.17.0 work as proposed -- agents waste cycles re-checking scope or worse, re-implement what already shipped. Closing #233 prematurely on partial work erases the audit trail of the remaining 6 tasks. The completed/ partial vBRIEF is the historical record; this pending vBRIEF is the forward queue.",
+      "Outcome": "Acceptance criteria: (1) plan.status == 'pending' and the file lives in vbrief/pending/; (2) plan.items[] has exactly 6 entries (Phase 0 generated per-phase gates, task doctor, build:verify, change:archive, task ci:local, task release); (3) the v0.17.0-done items do NOT appear in plan.items[]; (4) plan.references[] includes the partial-completion vBRIEF in completed/ as historical record; (5) PR-A (the scaffolding PR that creates this refined vBRIEF) references #233 via `Refs #233` in its body -- the refinement + lifecycle move (proposed/ -> pending/) + done/pending split resolves the SCOPE-vBRIEF tracking task (the original 'More Determinism' proposal that lived in vbrief/proposed/ and was double-counting v0.17.0-shipped items), but issue #233 stays OPEN as the GitHub-side umbrella for the 6 remaining pending items so the swarm has a tracker when promoting them to active leaves. The 6 remaining items live as scope vBRIEF plan.items[] in this pending vBRIEF and become swarm-ready leaves once promoted to active; the Phase 0 RFC (item #1) gates the others under #635.",
+      "Test": "Verification: `task vbrief:validate` passes; `gh issue view 233 --json state --jq .state` returns the merged-after-PR-A state; the 6 remaining items can each be promoted to active and harvested by the swarm without dependency-graph collisions; the completed-partial reference resolves and lists the 8 already-shipped items."
+    },
+    "items": [
+      {
+        "id": "phase-0-generated-per-phase-gates",
+        "title": "Phase 0 spec scaffolding: generated per-phase task gates (e.g. spec:phase0, spec:pipeline) -- design RFC scaffolded under #635",
+        "status": "pending",
+        "narrative": {
+          "Action": "This is the upstream design-question item. Tracked in detail in the Phase 0 spec scaffolding RFC vBRIEF under #635 (vbrief/proposed/2026-04-27-635-phase-0-spec-scaffolding-rfc.vbrief.json). The RFC's outcome determines the implementation shape for this item; do NOT begin implementation until the RFC reaches discussion exit.",
+          "Acceptance": "RFC reaches design-question close-out; implementation can be split into discrete leaf items at that point."
+        }
+      },
+      {
+        "id": "task-doctor",
+        "title": "task doctor -- system-health diagnostic that bundles toolchain:check + version drift + AGENTS.md sentinel + vbrief lifecycle structure",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add tasks/doctor.yml with a `doctor` task that aggregates toolchain:check, the upgrade-gate logic from `deft/run upgrade`, AGENTS.md sentinel detection (deft/main.md), and vbrief lifecycle folder integrity (proposed/pending/active/completed/cancelled all present and writable). Emit a single PASS/WARN/FAIL summary.",
+          "Acceptance": "`task doctor` exits 0 on a healthy project, non-zero on a broken one with actionable diagnostics; covered by tests/cli/test_doctor.py."
+        }
+      },
+      {
+        "id": "task-build-verify",
+        "title": "task build:verify -- post-build artifact integrity check (file shape, expected entries, sha256 manifest)",
+        "status": "pending",
+        "narrative": {
+          "Action": "Extend tasks/core.yml or add tasks/build.yml with a `build:verify` task that runs after `task build` and asserts the produced archive matches an expected file manifest (path set, sha256 per entry, optional version stamp). Wires into `task check` only when run on release branches to keep dev cycles fast.",
+          "Acceptance": "`task build && task build:verify` exits 0 with a clean manifest summary; corrupting an archive entry causes build:verify to exit non-zero with the offending path; tests/cli/test_build_verify.py."
+        }
+      },
+      {
+        "id": "task-change-archive",
+        "title": "task change:archive -- complete the change-proposal lifecycle (init -> approve -> archive) by moving merged proposals into history/changes/<name>/archived/",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add a `change:archive` task to tasks/change.yml that takes a proposal name, verifies the corresponding PR has merged (gh pr view), moves the change directory under history/changes/<name>/archived/<YYYY-MM-DD>/, and updates any cross-references. Pairs with the existing `change:init` task; closes the symmetry gap that left merged proposals dangling in history/changes/<name>/ with no archive marker.",
+          "Acceptance": "`task change:archive -- <name>` succeeds when the corresponding PR is merged and refuses (with actionable error) when the PR is open; tests/cli/test_change_archive.py."
+        }
+      },
+      {
+        "id": "task-ci-local",
+        "title": "task ci:local -- run the full CI pipeline locally (matrix-aware where possible) so contributors catch CI failures before pushing",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add tasks/ci.yml with a `ci:local` task that runs the same step graph as .github/workflows/ci.yml on the host platform (validate, lint, test, toolchain:check, verify:stubs, verify:links, vbrief:validate, build, build:verify). Document Linux/macOS/Windows differences inline. Output mirrors CI logs for debugging.",
+          "Acceptance": "`task ci:local` reproduces a known-good CI run end-to-end on Windows / macOS / Linux; tests/cli/test_ci_local.py covers task graph composition."
+        }
+      },
+      {
+        "id": "task-release",
+        "title": "task release -- automate the v0.X.Y release flow (tag, build, dist, CHANGELOG promote, ROADMAP move-to-completed)",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add tasks/release.yml with a `release` task that takes a version, runs `task ci:local`, promotes [Unreleased] entries to [vX.Y.Z] - YYYY-MM-DD in CHANGELOG.md, batch-moves merged issues to ROADMAP.md ## Completed, builds dist, tags vX.Y.Z, pushes the tag, and creates a GitHub release via `gh release create`. Pairs with PR conventions in AGENTS.md.",
+          "Acceptance": "`task release -- 0.21.0` produces a clean tag + GitHub release on a dry-run fixture; tests/cli/test_release.py covers CHANGELOG promotion and ROADMAP move-to-completed."
+        }
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 6 -- CLI Overhaul & New Features",
+        "PhaseDescription": "Larger feature work -- only after issues are resolved and content is stable.",
+        "Description": "More Determinism (remaining 6): Phase 0 generated per-phase gates, task doctor, build:verify, change:archive, task ci:local, task release. 8 v0.17.0-completed items split out into vbrief/completed/2026-04-23-233-partial-...",
+        "Description_source": "ROADMAP.md + canonical #642 workflow comment (split decision)",
+        "Status_source": "PR-A done/pending split (proposed -> pending lifecycle move)",
+        "SourceConflict": "missing-from-spec"
+      },
+      "x-split": {
+        "completed_partial_ref": "vbrief/completed/2026-04-23-233-partial-more-determinism-tasks-restructure-toolchain.vbrief.json",
+        "v0_17_0_done_items": [
+          "tasks/ directory restructure",
+          "task toolchain:check",
+          "task verify:stubs",
+          "task verify:links",
+          "task changelog:check",
+          "task change:init",
+          "task commit:lint",
+          "enhanced `task check` aggregator"
+        ],
+        "remaining_count": 6,
+        "split_authority": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/233",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #233: More Determinism (remaining 6 tasks after v0.17.0 partial close)"
+      },
+      {
+        "uri": "completed/2026-04-23-233-partial-more-determinism-tasks-restructure-toolchain.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "#233 (partial) -- v0.17.0 done items: tasks/ restructure, toolchain:check, verify:stubs, verify:links, changelog:check, change:init, commit:lint, enhanced check (historical record of split; related-plan, not parent/child, so no D4 back-link required)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/635",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #635 (epic): skill-system maturity + framework-rule determinism -- anchors the Phase 0 spec scaffolding RFC vBRIEF that gates the first remaining item here"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/642",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #642: tracking umbrella for PR #401 trim arc (canonical workflow comment authorizes this done/pending split + lifecycle move)"
+      }
+    ]
+  }
+}

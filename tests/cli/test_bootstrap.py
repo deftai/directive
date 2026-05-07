@@ -44,11 +44,11 @@ def _bootstrap_responses(user_path: Path) -> list:
 
 
 def test_bootstrap_happy_path(
-    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    run_command, mock_user_input, isolated_env_no_user, deft_run_module, monkeypatch
 ):
     """cmd_bootstrap with mocked inputs produces USER.md with expected sections."""
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
-    user_path = isolated_env / "USER.md"
+    user_path = isolated_env_no_user / "USER.md"
     mock_user_input(_bootstrap_responses(user_path))
 
     result = run_command("cmd_bootstrap", [])
@@ -62,7 +62,7 @@ def test_bootstrap_happy_path(
 
 
 def test_bootstrap_output_path(
-    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    run_command, mock_user_input, isolated_env_no_user, deft_run_module, monkeypatch
 ):
     """USER.md is written to the path from get_default_paths()['user']."""
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
@@ -79,11 +79,11 @@ def test_bootstrap_output_path(
 
 
 def test_bootstrap_no_crash(
-    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    run_command, mock_user_input, isolated_env_no_user, deft_run_module, monkeypatch
 ):
     """cmd_bootstrap exits without exception given minimal valid inputs."""
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
-    mock_user_input(_bootstrap_responses(isolated_env / "USER.md"))
+    mock_user_input(_bootstrap_responses(isolated_env_no_user / "USER.md"))
 
     result = run_command("cmd_bootstrap", [])
 
@@ -93,11 +93,11 @@ def test_bootstrap_no_crash(
 
 
 def test_bootstrap_rejects_duplicate_languages(
-    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    run_command, mock_user_input, isolated_env_no_user, deft_run_module, monkeypatch
 ):
     """Duplicate language selections are rejected and the user is re-prompted."""
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
-    user_path = isolated_env / "USER.md"
+    user_path = isolated_env_no_user / "USER.md"
     mock_user_input([
         str(user_path),   # 1  output path
         "TestUser",        # 2  name
@@ -119,11 +119,11 @@ def test_bootstrap_rejects_duplicate_languages(
 
 
 def test_bootstrap_collects_custom_rules(
-    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    run_command, mock_user_input, isolated_env_no_user, deft_run_module, monkeypatch
 ):
     """When user opts in to custom rules, per-line collection loop runs."""
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
-    user_path = isolated_env / "USER.md"
+    user_path = isolated_env_no_user / "USER.md"
     mock_user_input([
         str(user_path),        # 1  output path
         "TestUser",            # 2  name

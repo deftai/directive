@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #170: Move ROADMAP.md updates from merge-time to release-time -- AGENTS.md convention updated, deft-swarm SKILL.md Phase 6 Step 5 added, ⊗ swarm anti-patterns added",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Move ROADMAP.md updates from merge-time to release-time -- AGENTS.md convention updated, deft-swarm SKILL.md Phase 6 Step 5 added, ⊗ swarm anti-patterns added",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Move ROADMAP.md updates from merge-time to release-time -- AGENTS.md convention updated, deft-swarm SKILL.md Phase 6 Step 5 added, ⊗ swarm anti-patterns added",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/170",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #170: Move ROADMAP.md updates from merge-time to release-time -- AGENTS.md convention updated, deft-swarm SKILL.md Phase 6 Step 5 added, ⊗ swarm anti-patterns added"
+      }
+    ]
+  }
+}

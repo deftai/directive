@@ -1,0 +1,59 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Remove RC-specific safety banner from README.md (Option A). Optionally move a distilled upgrade-safety paragraph to UPGRADING.md.",
+    "created": "2026-04-20T00:00:00Z",
+    "updated": "2026-04-20T00:00:00Z"
+  },
+  "plan": {
+    "id": "ga-429-release-rc-safety-banner",
+    "title": "release(v0.20.0): remove or revise RC testing safety banner from README before cutting final",
+    "status": "completed",
+    "narratives": {
+      "Problem": "README.md carries a v0.20.0 RC-specific safety banner telling testers to run task migrate:vbrief against a fork or copy. Correct today, cosmetically wrong and misleading the moment v0.20.0 final ships. Must be handled before tag cut.",
+      "Action": "Option A: remove the RC banner entirely from README.md (line 23 block). Option C (compatible): move a short generic \"test on a fork or copy first\" paragraph to UPGRADING.md under the v0.20 section so upgrade-safety advice is preserved without RC-specific language. Remove any other \"we are still refining\" language across README.",
+      "Test": "grep README.md for \"release-candidate testers\" yields no match. verify:links passes. Any content test that previously asserted banner presence is updated or removed.",
+      "Outcome": "README.md has no RC-specific language. UPGRADING.md covers any retained upgrade-safety advice. PR 403 release-checklist item #429 satisfied."
+    },
+    "items": [
+      {
+        "status": "running",
+        "title": "Remove RC testing safety banner block from README.md",
+        "id": "429-1"
+      },
+      {
+        "status": "running",
+        "title": "(Option C) Add test-on-fork-first paragraph to UPGRADING.md v0.20 section",
+        "id": "429-2"
+      },
+      {
+        "status": "running",
+        "title": "Search repo for \"we are still refining\" / similar RC-only language and remove",
+        "id": "429-3"
+      },
+      {
+        "status": "running",
+        "title": "Run verify:links; confirm no broken internal links",
+        "id": "429-4"
+      },
+      {
+        "status": "running",
+        "title": "Update or remove any content test asserting banner presence",
+        "id": "429-5"
+      }
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/429",
+        "id": "#429"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/403",
+        "id": "#403"
+      }
+    ],
+    "updated": "2026-04-20T18:44:12Z"
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Adoption blocker: scripts/release.py only checks tag availability at Step 9 of a 12-step pipeline, after Steps 1-8 have already promoted CHANGELOG, rendered ROADMAP, built dist artifacts, and made a release commit locally. A duplicate-tag failure at Step 9 strands the operator with manual recovery via git reset --hard.",
+    "created": "2026-05-03T01:53:52Z",
+    "updated": "2026-05-03T03:00:45Z"
+  },
+  "plan": {
+    "title": "fix(scripts/release.py): pre-flight should verify release tag is available before state mutation",
+    "status": "completed",
+    "narratives": {
+      "Problem": "scripts/release.py invokes `git tag v<version>` at Step 9 of a 12-step pipeline. By that point Steps 1-8 have already mutated state: CHANGELOG promoted to `[<version>]`, ROADMAP regenerated, pyproject.toml + uv.lock synced to the new version, dist/deft-<version>.zip built, and a `chore(release): v<version>` commit made locally. A duplicate-tag failure at Step 9 leaves an unpushed wrong-version commit on master with orphaned build artifacts; recovery requires `git reset --hard` (which AGENTS.md SCM rules forbid without explicit permission). Surfaced 2026-05-01 during the v0.23.0 release attempt where the operator typed `0.22.0` (the 12-hour-old prior release) and the pipeline ran 8 steps before failing.",
+      "Overview": "Add a new `[X/N] Pre-flight tag availability` step to release.py Phase 1 (pre-flight), placed before any state mutation. Check three surfaces: local tag (`git tag -l`), remote tag (`git ls-remote --tags origin`), and GitHub release (`gh release view --repo`). Read-only; safe on dry-run; produces actionable recovery message naming the conflict source.",
+      "Background": "Current Phase 1 pre-flight (release.py): Step 1 working tree clean, Step 2 branch == base, Step 3 vBRIEF lifecycle sync (#734), Step 4 CI (`task ci:local`). None inspect tag availability. The e2e rehearsal (`task release:e2e`, #716) uses tag `v0.0.1` against an auto-created temp repo, so the production tag namespace is never exercised. Sibling precedent: #734 added vBRIEF lifecycle sync as a new pre-flight step that refuses before mutation; this work follows the same pattern.",
+      "Constraint": "MUST be Phase 1 (pre-flight) -- before CHANGELOG promotion (current Step 5), build (current Step 7), or commit (current Step 8). MUST be read-only (no `gh api` writes; safe on `--dry-run`). MUST renumber _TOTAL_STEPS and existing pipeline-step assertions (mirrors the 11 -> 12 shift from #734). MUST surface in dry-run output as `DRYRUN (would verify v<version> tag not present locally / remote / GitHub release)`. MUST NOT auto-increment the version on conflict (silent recovery is the wrong shape).",
+      "Risk": "Low. Read-only check; the only side effect is the pipeline refusing earlier. Renumbering _TOTAL_STEPS touches existing tests but the pattern is well-established by #734. Edge case: `gh release view` returns non-zero on missing release, which is the OK path -- must not conflate gh-CLI failure with a missing release.",
+      "Outcome": "Acceptance: (1) New pre-flight step verifies local tag, remote tag, and GitHub release availability for v<version> before any state mutation. (2) Step lands in Phase 1 (definitely before Step 5 CHANGELOG, Step 7 build, Step 8 commit). (3) _TOTAL_STEPS bumped; existing pipeline-step assertions renumbered. (4) Dry-run reports `[X/N] Pre-flight tag availability... DRYRUN (would verify ...)`. (5) Production reports `OK` on clean state, `FAIL (<reason>)` with actionable recovery on conflict (suggest different version; most likely cause is operator typo). (6) skills/deft-directive-release/SKILL.md Phase 1 gains a `!` rule citing this issue and the v0.22.0 -> v0.23.0 incident. (7) CHANGELOG entry under [Unreleased] / Fixed.",
+      "Test": "tests/cli/test_release_tag_availability.py (NEW) covering: clean state passes; local-only tag conflict fails with actionable message; remote-only tag conflict fails; GitHub-release-only conflict fails; combinations; gh-CLI not-found != release-exists. Existing pipeline-step assertions in tests/cli/test_release.py / test_release_skip_flags.py / test_release_summary.py renumbered for the new _TOTAL_STEPS.",
+      "Action": "1. Add `check_tag_available(version, repo) -> Result` helper in scripts/release.py mirroring the issue's reference implementation. 2. Wire into Phase 1 (between Step 2 branch check and Step 3 vBRIEF sync, OR as Step 5 -- placement matters less than 'before mutation'). 3. Bump _TOTAL_STEPS; renumber subsequent step labels. 4. Add tests/cli/test_release_tag_availability.py. 5. Renumber existing pipeline-step assertions across test_release.py / test_release_skip_flags.py / test_release_summary.py. 6. Add `!` rule to skills/deft-directive-release/SKILL.md Phase 1. 7. CHANGELOG [Unreleased] / Fixed entry. 8. task check; commit; push; PR.",
+      "Urgency": "Adoption blocker for release operators. Strands the operator with wrong-version local commit + wrong-version build artifact + manual git-reset recovery. v0.23.0 cut hit it once already. Blast radius small (one helper + one wiring point + renumber); fix is mechanical."
+    },
+    "items": [
+      {
+        "id": "784-add-helper",
+        "title": "Add check_tag_available(version, repo) helper to scripts/release.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Pure-Python stdlib + gh subprocess. Three surfaces: `git tag -l`, `git ls-remote --tags origin refs/tags/v<version>`, `gh release view v<version> --repo <repo> --json tagName`. Returns Result-shaped object (mirror existing pattern in release.py). Dry-run returns DRYRUN status without invoking gh."
+        }
+      },
+      {
+        "id": "784-wire-pipeline",
+        "title": "Wire helper into Phase 1 pre-flight; bump _TOTAL_STEPS",
+        "status": "pending",
+        "narrative": {
+          "Action": "Insert new step before any state mutation (CHANGELOG promotion / build / commit). Bump _TOTAL_STEPS by 1; cascade-renumber subsequent step labels in run_pipeline. Match the pattern established by #734."
+        }
+      },
+      {
+        "id": "784-add-tests",
+        "title": "Add tests/cli/test_release_tag_availability.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Cover: clean state OK; local-only conflict FAIL; remote-only conflict FAIL; gh-release-only conflict FAIL; combinations; gh-CLI not-found is NOT a conflict. Mock subprocess.run + gh helpers; no real network."
+        }
+      },
+      {
+        "id": "784-renumber-existing-tests",
+        "title": "Renumber pipeline-step assertions across existing release tests",
+        "status": "pending",
+        "narrative": {
+          "Action": "tests/cli/test_release.py, test_release_skip_flags.py, test_release_summary.py -- update _TOTAL_STEPS expected value and any explicit step-label substring assertions. Mirror the 11 -> 12 shift from #734."
+        }
+      },
+      {
+        "id": "784-skill-rule",
+        "title": "Add `!` rule + recurrence record to deft-directive-release SKILL Phase 1",
+        "status": "pending",
+        "narrative": {
+          "Action": "Cite this issue and the v0.22.0 -> v0.23.0 incident as recurrence record. Phase 1 gate already lists vBRIEF lifecycle sync (#734) and task ci:local; this slots in alongside."
+        }
+      },
+      {
+        "id": "784-changelog",
+        "title": "Add CHANGELOG entry under [Unreleased] / Fixed",
+        "status": "pending",
+        "narrative": {
+          "Action": "fix(scripts/release.py): refuse early when target tag exists locally, on origin, or as a published GitHub release (#784) -- prevents wrong-version CHANGELOG promotion + orphaned dist artifacts."
+        }
+      },
+      {
+        "id": "784-task-check",
+        "title": "Run task check and confirm clean",
+        "status": "pending",
+        "narrative": {
+          "Action": "Pre-PR gate per main.md Decision Making bullet."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/784",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #784: fix(scripts/release.py): pre-flight should verify release tag is available before state mutation"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/734",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #734 (sibling pattern): vBRIEF lifecycle sync gate -- precedent for adding a pre-flight step that refuses before state mutation"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/716",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #716: release safety hardening (default-draft, verify-isDraft) -- companion publish-side gate"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/74",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #74: release pipeline parent"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#793",
+          "#794",
+          "#798",
+          "#796",
+          "#800",
+          "#814"
+        ],
+        "estimated_size": "M (1 helper + 1 wiring point + 1 new test file + cross-test renumber + skill rule + CHANGELOG)",
+        "blocks": [],
+        "blocked_by": []
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Standalone bug fix with a clear single-PR boundary. No design questions; the issue body includes a reference implementation. Agent should branch, add helper + wiring + tests + renumber + skill rule + CHANGELOG, run task check, commit, push, open PR.",
+        "files_to_touch": [
+          "scripts/release.py",
+          "tests/cli/test_release_tag_availability.py",
+          "tests/cli/test_release.py",
+          "tests/cli/test_release_skip_flags.py",
+          "tests/cli/test_release_summary.py",
+          "skills/deft-directive-release/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "fix/784-release-preflight-tag-availability",
+        "pr_title_suggestion": "fix(scripts/release.py): verify release tag is available before state mutation (#784)"
+      }
+    },
+    "updated": "2026-05-03T04:38:18Z",
+    "id": "784-release-preflight-tag-availability",
+    "planRef": "#784"
+  }
+}

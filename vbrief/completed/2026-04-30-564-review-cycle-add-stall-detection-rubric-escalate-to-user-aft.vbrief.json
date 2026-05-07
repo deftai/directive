@@ -1,0 +1,63 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #564"
+  },
+  "plan": {
+    "title": "review-cycle: add stall detection rubric, escalate to user after threshold",
+    "status": "completed",
+    "narratives": {
+      "Description": "review-cycle: add stall detection rubric, escalate to user after threshold",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/564",
+      "Labels": "bug",
+      "Problem": "Greptile reviews can stall past the 2-5 min expected window (observed 21 min during the rc4 swarm cascade on PR #561). Step 4 of deft-directive-review-cycle has no rubric for when to escalate to the user, and Phase 6 Step 1 of deft-directive-swarm has the hard gate but no escalation guidance.",
+      "Acceptance": "Add a Stall Detection Rubric subsection to Step 4 covering: track startedAt + commit.oid per poll; escalate to user when IN_PROGRESS exceeds 3x expected (~10 min Greptile); reset clock on auto-restart; never auto-retrigger without explicit user approval; document any override in a PR comment. Add a meta/lessons.md entry capturing the 21-min observation.",
+      "OutOfScope": "New retrigger mechanics, new service integration, replacing the existing Phase 6 Step 1 hard gate.",
+      "Files": "skills/deft-directive-review-cycle/SKILL.md (Step 4); meta/lessons.md (new entry); CHANGELOG.md (append)."
+    },
+    "items": [
+      {
+        "title": "Add Stall Detection Rubric subsection to Step 4 of deft-directive-review-cycle/SKILL.md",
+        "status": "pending"
+      },
+      {
+        "title": "Track startedAt and commit.oid per poll; escalate at >3x expected duration (~10 min Greptile)",
+        "status": "pending"
+      },
+      {
+        "title": "Detect auto-restart (startedAt changes) and reset elapsed-time clock; notify user",
+        "status": "pending"
+      },
+      {
+        "title": "Forbid auto-retrigger (empty commits, comments, force-pushes) without explicit user approval",
+        "status": "pending"
+      },
+      {
+        "title": "Document any user-approved override in a brief PR comment for auditability",
+        "status": "pending"
+      },
+      {
+        "title": "Add meta/lessons.md entry capturing the rc4 21-min stall observation",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md [Unreleased] entry under Changed referencing #564",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/564",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #564: review-cycle: add stall detection rubric, escalate to user after threshold"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-05-01T02:02:50Z"
+  }
+}

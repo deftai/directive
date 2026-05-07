@@ -132,13 +132,15 @@ def deft_run_module(deft_module):
 def isolated_env(tmp_project_dir: Path, monkeypatch: pytest.MonkeyPatch):
     """Combine tmp_project_dir with env var overrides for CLI isolation.
 
-    Sets DEFT_USER_PATH and DEFT_PROJECT_PATH to temp locations so CLI
-    commands don't read/write real config files during tests.
+    Sets DEFT_USER_PATH, DEFT_PROJECT_PATH, and DEFT_VBRIEF_PROPOSED to temp
+    locations so CLI commands don't read/write real config files during tests.
     """
     user_md = tmp_project_dir / "USER.md"
-    project_md = tmp_project_dir / "PROJECT.md"
+    project_json = tmp_project_dir / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
+    vbrief_proposed = tmp_project_dir / "vbrief" / "proposed"
     monkeypatch.setenv("DEFT_USER_PATH", str(user_md))
-    monkeypatch.setenv("DEFT_PROJECT_PATH", str(project_md))
+    monkeypatch.setenv("DEFT_PROJECT_PATH", str(project_json))
+    monkeypatch.setenv("DEFT_VBRIEF_PROPOSED", str(vbrief_proposed))
     monkeypatch.chdir(tmp_project_dir)
     return tmp_project_dir
 

@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for Builds the widget index for a repo"
+  },
+  "plan": {
+    "title": "Builds the widget index for a repo",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 3 -- Operations",
+        "PhaseDescription": "Items in this phase exercise the slug-safe ID sanitiser -- titles contain\nspaces, slashes, `<id>` placeholders, and `@` prefixes that previously\nleaked through as scope-registry ids and scope vBRIEF filenames.",
+        "Description": "Builds the widget index for a repo",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "default"
+      }
+    }
+  }
+}

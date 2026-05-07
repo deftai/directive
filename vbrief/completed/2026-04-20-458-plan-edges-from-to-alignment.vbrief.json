@@ -1,0 +1,74 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Bilingual edge reader in roadmap_render + spec_render (#435) + migrate_vbrief (#436). Canonical convention is schema-aligned from/to. Legacy source/target continues to work for at least one release cycle.",
+    "created": "2026-04-20T00:00:00Z",
+    "updated": "2026-04-20T00:00:00Z"
+  },
+  "plan": {
+    "id": "ga-458-plan-edges-from-to-alignment",
+    "title": "v0.20.0 GA blocker: align plan.edges[] field names (from/to vs source/target)",
+    "status": "completed",
+    "narratives": {
+      "Problem": "Schema requires {from,to,type}; speckit doc example uses {from,to,type}; code (roadmap_render._build_edge_map) reads {source,target}; test fixtures use {source,target}. Silent dep-map failure when schema-compliant data meets code expecting legacy keys. #436 migrator and #435 aggregator both consume edges and will hit this in production.",
+      "Action": "Update scripts/roadmap_render.py _build_edge_map to read both: edge.get(\"from\") or edge.get(\"source\",\"\"); edge.get(\"to\") or edge.get(\"target\",\"\"); prefers from/to when both present. Apply the same bilingual pattern in scripts/spec_render.py (#435 aggregator cross-scope topo sort) and scripts/migrate_vbrief.py (#436 speckit-plan translator). Update tests/cli/test_roadmap_render.py primary fixture to {from,to}; add legacy {source,target} regression fixture; add mixed-keys-within-one-plan fixture. Confirm strategies/speckit.md still uses {from,to}. Ensure vbrief/vbrief.md documents edges consistently.",
+      "Test": "tests/cli/test_roadmap_render.py: test_edge_map_from_to_keys (canonical), test_edge_map_source_target_keys (legacy regression), test_edge_map_mixed_keys_within_single_plan.",
+      "Outcome": "Edge reads never silently lose data regardless of which convention the input uses. #435 and #436 can be built on this reader without reintroducing the silent-empty-map failure."
+    },
+    "items": [
+      {
+        "status": "running",
+        "title": "Update roadmap_render.py _build_edge_map to read both conventions (from/to preferred)",
+        "id": "458-1"
+      },
+      {
+        "status": "running",
+        "title": "Apply bilingual read pattern in spec_render.py aggregator (#435 touchpoint)",
+        "id": "458-2"
+      },
+      {
+        "status": "running",
+        "title": "Apply bilingual read pattern in migrate_vbrief.py speckit-plan translator (#436 touchpoint)",
+        "id": "458-3"
+      },
+      {
+        "status": "running",
+        "title": "Switch test_roadmap_render.py primary fixture to {from, to}",
+        "id": "458-4"
+      },
+      {
+        "status": "running",
+        "title": "Add legacy {source, target} regression fixture",
+        "id": "458-5"
+      },
+      {
+        "status": "running",
+        "title": "Add mixed-keys-within-single-plan fixture",
+        "id": "458-6"
+      },
+      {
+        "status": "running",
+        "title": "Confirm strategies/speckit.md edge example stays {from, to}",
+        "id": "458-7"
+      },
+      {
+        "status": "running",
+        "title": "Ensure vbrief/vbrief.md edges documentation uses {from, to}",
+        "id": "458-8"
+      }
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/458",
+        "id": "#458"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/403",
+        "id": "#403"
+      }
+    ],
+    "updated": "2026-04-20T18:44:14Z"
+  }
+}

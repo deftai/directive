@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #217: pyproject.toml dev deps breaks task check in fresh worktrees -- moved to [dependency-groups] (PEP 735), languages/python.md updated, uv.lock regenerated",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "pyproject.toml dev deps breaks task check in fresh worktrees -- moved to [dependency-groups] (PEP 735), languages/python.md updated, uv.lock regenerated",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "pyproject.toml dev deps breaks task check in fresh worktrees -- moved to [dependency-groups] (PEP 735), languages/python.md updated, uv.lock regenerated",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/217",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #217: pyproject.toml dev deps breaks task check in fresh worktrees -- moved to [dependency-groups] (PEP 735), languages/python.md updated, uv.lock regenerated"
+      }
+    ]
+  }
+}

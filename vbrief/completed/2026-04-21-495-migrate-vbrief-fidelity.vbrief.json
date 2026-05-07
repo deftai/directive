@@ -1,0 +1,101 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "author": "agent:deft-directive-swarm",
+    "description": "Address migrate:vbrief fidelity regressions in scope per #506 D2.",
+    "created": "2026-04-21T17:18:00Z"
+  },
+  "plan": {
+    "id": "rc3-495-migration-fidelity",
+    "title": "migrate:vbrief fidelity regressions (body preservation, trace IDs, narrative shape) (#495)",
+    "status": "completed",
+    "tags": [
+      "rc3",
+      "wave-3",
+      "agent-a",
+      "migrator"
+    ],
+    "narratives": {
+      "Overview": "Migrator loses per-task bodies, renumbers FR traces, does not emit Requirements narrative, drops structural sections, diverges from #506 D3 narrative shape, and has ambiguous logging. Per #506 D2, scope is direct fixes for findings #1, #3, #4, #6 (D4-routed), #9 (D3 narrative shape), #15. Other findings resolved by siblings.",
+      "Problem": "Post-migration vBRIEFs are not faithful to pre-cutover SPECIFICATION.md + PROJECT.md + ROADMAP.md, violating D3 narrative ownership, losing FR-N traces, and silently dropping structural sections.",
+      "Action": "Edit scripts/migrate_vbrief.py to: preserve per-task body/Depends-on/AcceptanceCriteria into scope vBRIEF narratives (body source from SPEC per D2 #14); pass FR/NFR IDs through verbatim; emit Requirements narrative parsed from SPEC; emit plan.edges[] from Depends-on lines (D4); drop freestanding Dependency Graph + Parallelisable Work (captured via #505 LegacyArtifacts); fold Project-Level Acceptance Criteria into SuccessMetrics (D4); align narrative keys to D3; disambiguate migration log.",
+      "Test": "Expand tests/cli/test_migrate_vbrief.py with synthetic fixtures under deft/tests/fixtures/ covering body preservation, trace pass-through, Requirements narrative, edge extraction, D3 narrative shape, logging assertions. No slizard/external data.",
+      "Outcome": "Migrator produces faithful vBRIEFs whose narrative keys match D3; traces survive verbatim; per-task bodies preserved; structural sections handled per D4."
+    },
+    "items": [
+      {
+        "id": "495-directive",
+        "status": "running",
+        "title": "Follow directive guidelines: AGENTS.md, deft/main.md, deft/QUICK-START.md, conventional commits, task check before commit"
+      },
+      {
+        "id": "495-1",
+        "status": "running",
+        "title": "Preserve per-task body + Depends-on + AcceptanceCriteria into scope vBRIEF narratives"
+      },
+      {
+        "id": "495-3",
+        "status": "running",
+        "title": "Pass FR/NFR trace IDs through verbatim (no renumbering)"
+      },
+      {
+        "id": "495-4",
+        "status": "running",
+        "title": "Emit Requirements narrative on specification.vbrief.json"
+      },
+      {
+        "id": "495-6",
+        "status": "running",
+        "title": "Emit plan.edges[] from Depends-on lines; drop Dependency Graph + Parallelisable Work (D4)"
+      },
+      {
+        "id": "495-6b",
+        "status": "running",
+        "title": "Fold Project-Level Acceptance Criteria into SuccessMetrics (D4)"
+      },
+      {
+        "id": "495-9",
+        "status": "running",
+        "title": "Align narrative keys to #506 D3 canonical set per file"
+      },
+      {
+        "id": "495-15",
+        "status": "running",
+        "title": "Disambiguate migration log (every narrative routed is logged)"
+      },
+      {
+        "id": "495-tests",
+        "status": "running",
+        "title": "Synthetic fixtures + golden-file tests in tests/cli/test_migrate_vbrief.py"
+      },
+      {
+        "id": "495-close",
+        "status": "running",
+        "title": "Comment on #495 marking out-of-scope findings resolved-by-sibling (#2->#499, #5->#497, #7/8/10/11/12->#498, #14->#496)"
+      },
+      {
+        "id": "495-changelog",
+        "status": "running",
+        "title": "CHANGELOG [Unreleased] entry under Fixed"
+      }
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/495",
+        "id": "#495"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/505",
+        "id": "#505"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/506",
+        "id": "#506"
+      }
+    ],
+    "updated": "2026-04-23T02:28:02Z"
+  }
+}

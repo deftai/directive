@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #102: Add request-id logging middleware"
+  },
+  "plan": {
+    "title": "Add request-id logging middleware",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Foundation",
+        "PhaseDescription": "Fix the blocking setup gaps before any feature work.",
+        "Description": "Add request-id logging middleware",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "default"
+      }
+    }
+  }
+}

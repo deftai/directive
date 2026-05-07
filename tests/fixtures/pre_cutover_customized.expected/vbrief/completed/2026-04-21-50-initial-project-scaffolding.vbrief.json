@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #50: Initial project scaffolding",
+    "updated": "2026-04-21T00:00:00Z"
+  },
+  "plan": {
+    "title": "Initial project scaffolding",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Initial project scaffolding",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "ROADMAP.md"
+      }
+    }
+  }
+}

@@ -1,0 +1,152 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Adoption blocker: a user running `task migrate:vbrief` directly (not via the agent setup skill) gets no preflight checks and hits raw subprocess failures when uv / migrator script / Taskfile include is missing. Add `task migrate:preflight` and have `migrate:vbrief` self-invoke it.",
+    "created": "2026-05-01T00:00:00Z",
+    "updated": "2026-05-03T03:02:48Z"
+  },
+  "plan": {
+    "id": "793-task-migrate-preflight-aggregate",
+    "title": "Add task migrate:preflight; have migrate:vbrief self-invoke it",
+    "status": "completed",
+    "planRef": "#793",
+    "narratives": {
+      "Problem": "The pre-cutover migration preflight (task resolvability, uv on PATH, migrate_vbrief.py present) is currently prescribed only on the agent-driven path (QUICK-START.md Step H.2; skills/deft-directive-setup/SKILL.md Environment Preflight). A user who follows main.md Migrating from pre-v0.20 and runs `task migrate:vbrief` directly gets none of those checks: failures surface as raw subprocess errors (uv not found, FileNotFoundError) with no remediation pointer. This is an adoption blocker for any non-agent entry path (CI runs, scripted upgrades, ops engineers).",
+      "Overview": "Two complementary surfaces. (1) Add a new aggregate task `migrate:preflight` to tasks/migrate.yml that runs the three checks via a new scripts/migrate_preflight.py and prints a one-line remediation per failure. (2) Wire `migrate:vbrief` to invoke preflight before doing destructive work (either via deps: or as the first cmd), with a `--skip-preflight` opt-out for advanced users. Closes the parity gap between agent-driven and CLI-driven entry.",
+      "Background": "tasks/migrate.yml today has only the `vbrief:` task (line 11) which calls scripts/migrate_vbrief.py directly. The agent path enforces preflight in skill prose (skills/deft-directive-setup/SKILL.md lines 47-63) but that contract is not reified as a runnable task.",
+      "Constraint": "MUST NOT regress the existing `task migrate:vbrief` invocation surface. MUST honor `--skip-preflight` so advanced users (and the agent path that ALREADY ran preflight inline) can opt out without redundancy. MUST coordinate with #792 if it lands first: both touch uv-detection logic and should share one helper rather than each re-implementing `shutil.which('uv')`.",
+      "Risk": "Medium. Adding preflight as a `migrate:vbrief` precondition risks breaking edge cases where users already had a working setup and don't want the extra check. Mitigation: --skip-preflight opt-out, exit-early with clear reason if any check fails, never run preflight twice when invoked from the agent path (skip-preflight env var or arg).",
+      "Outcome": "Acceptance: (1) `task migrate:preflight` exists and runs the three checks (resolvability, uv, migrator script); (2) each failing check prints a specific remediation pointer; (3) `task migrate:vbrief` invokes preflight before destructive work; (4) `--skip-preflight` opt-out is documented and tested; (5) tests/cli/test_migrate_preflight.py covers each failure mode and the all-pass case; (6) main.md Migrating from pre-v0.20 mentions running migrate:preflight first.",
+      "Test": "tests/cli/test_migrate_preflight.py (new): four test cases - all-pass, missing uv, missing script, unresolvable task. Use unittest.mock.patch for shutil.which / Path.is_file as needed. Plus an integration test that runs `task migrate:vbrief --skip-preflight` against a fixture project to confirm opt-out works.",
+      "Action": "1. Add scripts/migrate_preflight.py implementing the three checks. 2. Add `preflight:` task to tasks/migrate.yml. 3. Wire `vbrief:` to depend on `preflight` (or run it inline) with --skip-preflight opt-out. 4. Cross-reference from main.md Migrating from pre-v0.20 and from skills/deft-directive-setup/SKILL.md (point at the new task). 5. Add tests. 6. Run task check. 7. CHANGELOG entry.",
+      "Urgency": "Adoption blocker for the CLI-driven upgrade path. Sequence with #792: if #792 lands first, the uv helper introduced there should be the foundation for #793's uv check rather than a parallel implementation."
+    },
+    "items": [
+      {
+        "id": "793-add-preflight-script",
+        "title": "Add scripts/migrate_preflight.py with the three checks",
+        "status": "pending",
+        "narrative": {
+          "Action": "New script that mirrors skills/deft-directive-setup/SKILL.md Environment Preflight steps 1-3. Argparse: --project-root <path>. Returns 0 on all-pass, 1 on any failure. Prints one line per check (CHECK <name>: PASS|FAIL <remediation>). If #792 lands first, import the uv helper from run.py rather than re-implementing shutil.which('uv')."
+        }
+      },
+      {
+        "id": "793-add-preflight-task",
+        "title": "Add `preflight:` task to tasks/migrate.yml",
+        "status": "pending",
+        "narrative": {
+          "Action": "New task block in tasks/migrate.yml dispatching to the preflight script, mirroring the dir/env/cmds shape of the existing `vbrief:` task (USER_WORKING_DIR, PYTHONUTF8=1, uv run python {{.DEFT_ROOT}}/scripts/migrate_preflight.py). desc string per main.md style."
+        }
+      },
+      {
+        "id": "793-wire-vbrief-self-preflight",
+        "title": "Have migrate:vbrief invoke preflight before destructive work",
+        "status": "pending",
+        "narrative": {
+          "Action": "Either add `deps: [preflight]` to the `vbrief:` task, or prepend a preflight invocation to its `cmds:` block. Honor --skip-preflight and DEFT_SKIP_MIGRATE_PREFLIGHT=1 env-var bypass for the agent path. The agent setup skill ALREADY ran preflight inline, so it should pass --skip-preflight when it invokes migrate:vbrief."
+        }
+      },
+      {
+        "id": "793-update-skill-docs",
+        "title": "Update skills/deft-directive-setup/SKILL.md to delegate to the new task",
+        "status": "pending",
+        "narrative": {
+          "Action": "Replace the inline three-check prose (lines 47-63) with: `task migrate:preflight` is the canonical implementation; the skill calls the task and reports its output. Keep the prose as a fallback for environments where task is unavailable. Per main.md Preferred Workflow Tasks + Skills Together: skills MUST delegate to the canonical task implementation."
+        }
+      },
+      {
+        "id": "793-update-mainmd",
+        "title": "Cross-link main.md Migrating from pre-v0.20",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add a one-liner: 'Run `task migrate:preflight` first to validate environment readiness; `task migrate:vbrief` will invoke this automatically unless --skip-preflight is passed.'"
+        }
+      },
+      {
+        "id": "793-tests",
+        "title": "Add tests/cli/test_migrate_preflight.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Four unit cases (all-pass, no uv, no script, no task resolvability) plus an integration case that runs `task migrate:vbrief -- --skip-preflight` against a fixture project (via tmp_path) and asserts preflight is skipped while migration proceeds."
+        }
+      },
+      {
+        "id": "793-changelog",
+        "title": "Add CHANGELOG.md entry under [Unreleased] / Added",
+        "status": "pending",
+        "narrative": {
+          "Action": "'feat(migrate): add task migrate:preflight aggregate; migrate:vbrief now invokes it automatically (#793).'"
+        }
+      },
+      {
+        "id": "793-task-check",
+        "title": "Run task check and confirm clean",
+        "status": "pending",
+        "narrative": {
+          "Action": "Pre-PR gate. New test file satisfies forward-coverage rule."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#794",
+          "#798",
+          "#784",
+          "#796",
+          "#800",
+          "#814"
+        ],
+        "estimated_size": "M-L (new task + new script + skill + main.md + tests + CHANGELOG)",
+        "blocks": [],
+        "blocked_by": [],
+        "soft_dep_on": "#792 (parallelizable, but if #792 lands first share its uv-detection helper instead of re-implementing)"
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Cross-cutting but well-bounded: 1 new task, 1 new script, 1 skill update, 1 docs cross-link, 1 test file. Agent should coordinate with the #792 worker via inbox if running in parallel to avoid duplicating uv-detection. If #792 has already landed, import its helper.",
+        "files_to_touch": [
+          "scripts/migrate_preflight.py (new)",
+          "tasks/migrate.yml",
+          "skills/deft-directive-setup/SKILL.md",
+          "main.md",
+          "tests/cli/test_migrate_preflight.py (new)",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "feat/793-task-migrate-preflight",
+        "pr_title_suggestion": "feat(migrate): add task migrate:preflight; migrate:vbrief self-invokes it (#793)"
+      },
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/793",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #793: Add task migrate:preflight aggregate; have migrate:vbrief self-invoke it"
+      },
+      {
+        "uri": "skills/deft-directive-setup/SKILL.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Environment Preflight: the agent-side preflight contract this task reifies"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/792",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #792 (soft-dep): cmd_doctor uv check; share uv-detection helper if #792 lands first"
+      },
+      {
+        "uri": "tasks/migrate.yml",
+        "type": "x-vbrief/related-doc",
+        "title": "The Taskfile surface to extend"
+      }
+    ],
+    "updated": "2026-05-03T04:38:17Z"
+  }
+}

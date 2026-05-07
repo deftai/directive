@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #174: deft-roadmap-refresh: Phase 4 PR & Review Cycle -- user confirmation gate, pre-flight before push, auto-chains to deft-review-cycle",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "deft-roadmap-refresh: Phase 4 PR & Review Cycle -- user confirmation gate, pre-flight before push, auto-chains to deft-review-cycle",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "deft-roadmap-refresh: Phase 4 PR & Review Cycle -- user confirmation gate, pre-flight before push, auto-chains to deft-review-cycle",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/174",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #174: deft-roadmap-refresh: Phase 4 PR & Review Cycle -- user confirmation gate, pre-flight before push, auto-chains to deft-review-cycle"
+      }
+    ]
+  }
+}

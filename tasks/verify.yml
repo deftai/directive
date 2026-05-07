@@ -1,12 +1,68 @@
 version: '3'
 
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
 tasks:
   stubs:
     desc: Scan source files for stub patterns (TODO, FIXME, HACK, return null, bare pass)
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/verify-stubs.py
+      - uv run python "{{.DEFT_ROOT}}/scripts/verify-stubs.py"
 
   links:
     desc: Validate internal links in markdown files
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - uv run python scripts/validate-links.py
+      - uv run python "{{.DEFT_ROOT}}/scripts/validate-links.py"
+
+  rule-ownership:
+    desc: "Verify the Rule Ownership Map (conventions/rule-ownership.json) is in sync with its owner files (#635)"
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/rule_ownership_lint.py" --root "{{.DEFT_ROOT}}"
+
+  branch:
+    desc: "Detection-bound branch-protection gate (#747). Reads plan.policy.allowDirectCommitsToMaster from PROJECT-DEFINITION."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      # `--allow-missing-project-definition` keeps the framework's own check
+      # green for fresh checkouts that have not yet run `task setup` (the
+      # bootstrap fallback path documented in #746 acceptance criterion E).
+      # Production projects with PROJECT-DEFINITION present will still get
+      # the full enforcement -- the flag is a no-op when the file exists.
+      - uv run python "{{.DEFT_ROOT}}/scripts/preflight_branch.py" --project-root "{{.USER_WORKING_DIR}}" --allow-missing-project-definition
+
+  hooks-installed:
+    desc: "Assert git core.hooksPath==.githooks (run `task setup` if this fails) (#747)."
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      # Inline POSIX-sh under go-task's mvdan/sh interpreter; cross-platform.
+      - |
+        configured=$(git config --get core.hooksPath || true)
+        if [ "$configured" = ".githooks" ]; then
+          echo "✓ core.hooksPath=.githooks"
+        else
+          echo "❌ hooks not installed; run task setup" >&2
+          echo "  (got core.hooksPath='$configured', expected '.githooks')" >&2
+          exit 1
+        fi
+
+  encoding:
+    desc: "Detect PS 5.1 non-ASCII round-trip corruption (#798). Scans tracked text files for U+FFFD, CP1252/CP437-as-UTF-8 mojibake, and unexpected BOM. Defaults to --all; pass --staged for the pre-commit invocation."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # Per `conventions/task-caching.md`: NO `sources:` / `generates:` because
+    # user-facing flags (--staged / --all / --allow-list <path>) MUST NOT be
+    # silently swallowed by go-task's incremental-build cache. The same
+    # rationale that gated `task release` (#74) and `task pr:check-protected-issues`
+    # (#702) applies here -- the gate accepts recovery flags that the cache
+    # layer would otherwise discard.
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/verify_encoding.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

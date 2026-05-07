@@ -1,0 +1,43 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #623: name and encode Context Rot as a first-class concept in context/context.md with mitigations.",
+    "updated": "2026-05-01T02:22:00Z"
+  },
+  "plan": {
+    "title": "feat(context): name and encode Context Rot as a first-class concept with mitigations",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "Phase 3 -- Documentation & Content Fixes",
+      "Description": "Add a named definition of 'Context Rot' (degradation of decision quality as context length grows; distinct from context loss) to context/context.md, plus four mitigation rules: fresh-context agents for verification; vBRIEF compression checkpoints; bounded sub-tasks; clean-context-as-capability-multiplier framing. Source: Cognition's 'Multi-Agents: What's Actually Working'.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/623"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 3 -- Documentation & Content Fixes",
+        "Description": "Encode Context Rot in context/context.md (companion to #622 / slizard#124).",
+        "Description_source": "deftai/directive#623",
+        "Status_source": "filed-during-cleanup"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/623",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #623: feat(context): name and encode Context Rot as a first-class concept with mitigations"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/622",
+        "type": "x-vbrief/github-issue",
+        "title": "Companion: deftai/directive#622 (communication bridge filter)"
+      },
+      {
+        "uri": "https://github.com/deftai/slizard/issues/124",
+        "type": "x-vbrief/github-issue",
+        "title": "Companion: deftai/slizard#124 (clean-context reviewer)"
+      }
+    ],
+    "updated": "2026-05-01T02:22:00Z"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/deftai/directive/events/registry.schema.json",
+  "title": "Deft Events Registry",
+  "description": "Schema for events/registry.json. Validates the structural event registry that lists detection-bound and behavioral framework events. The registry is the single source of truth for event names, payload contracts, and detector/consumer pointers. See events/event-record.schema.json for the shape of an emitted event record.",
+  "type": "object",
+  "required": ["version", "events"],
+  "additionalProperties": true,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional pointer to this schema for editor tooling."
+    },
+    "version": {
+      "type": "string",
+      "description": "Registry schema version. Bumped when the registry's own shape changes (not when individual events are added/removed)."
+    },
+    "description": {
+      "type": "string"
+    },
+    "events": {
+      "type": "array",
+      "description": "Registered events. Order is not significant, but names MUST be unique.",
+      "items": {
+        "$ref": "#/$defs/Event"
+      }
+    }
+  },
+  "$defs": {
+    "Event": {
+      "type": "object",
+      "required": ["name", "category", "description", "trigger", "payload", "consumers"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Canonical event name. Convention: lowercase, colon-separated namespace (e.g. 'pre-cutover:detected', 'session:interrupted').",
+          "pattern": "^[a-z][a-z0-9-]*(:[a-z][a-z0-9-]*)+$"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["detection-bound", "behavioral"],
+          "description": "detection-bound: detectable from filesystem state alone. behavioral: requires runtime instrumentation (agent emission point or script-internal capture)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of what the event represents."
+        },
+        "trigger": {
+          "type": "string",
+          "description": "Free-form pointer to the detection logic or emission point (file::function or skill section)."
+        },
+        "payload": {
+          "type": "object",
+          "description": "Field-name -> contract-string map. Each value is a free-form description of the field's type and meaning.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "consumers": {
+          "type": "array",
+          "description": "Pointers to skills, tasks, or scripts that consume this event by name. At least one consumer is required so the surface stays usable.",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

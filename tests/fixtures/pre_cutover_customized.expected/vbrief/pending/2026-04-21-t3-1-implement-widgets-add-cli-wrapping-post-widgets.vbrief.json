@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for Implement widgets add CLI wrapping POST /widgets"
+  },
+  "plan": {
+    "title": "Implement widgets add CLI wrapping POST /widgets",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2 -- Core API",
+        "Tier": "Tier 2 -- CLI",
+        "Description": "Implement widgets add CLI wrapping POST /widgets",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "default"
+      }
+    }
+  }
+}

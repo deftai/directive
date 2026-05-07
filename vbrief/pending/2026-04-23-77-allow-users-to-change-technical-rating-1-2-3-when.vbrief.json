@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #77: Allow users to change technical rating (1/2/3) when starting a new project"
+  },
+  "plan": {
+    "title": "Allow users to change technical rating (1/2/3) when starting a new project",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 3 -- Documentation & Content Fixes",
+        "PhaseDescription": "Larger feature work -- only after issues are resolved and content is stable.",
+        "Description": "Allow users to change technical rating (1/2/3) when starting a new project",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec",
+        "Phase_source": "pre-migration ROADMAP (commit 3925468)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/77",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #77: Allow users to change technical rating (1/2/3) when starting a new project"
+      }
+    ],
+    "updated": "2026-04-23T18:53:10Z"
+  }
+}

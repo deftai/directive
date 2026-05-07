@@ -1,0 +1,67 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #739"
+  },
+  "plan": {
+    "title": "feat(skills,build): pre-build cost & budget transparency phase between SPECIFICATION approval and build kickoff",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(skills,build): pre-build cost & budget transparency phase between SPECIFICATION approval and build kickoff",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/739",
+      "Labels": "enhancement, skills, adoption-blocker",
+      "Problem": "Per #151 (issues #7 and #14, the only critical hard blocker in the playtest), users complete install -> bootstrap -> interview -> PRD -> SPECIFICATION approval and stop at build because deft offers no cost signal. For non-technical users, small businesses, and non-profits, this is a build-phase blocker.",
+      "Acceptance": "Insert a new phase or skill between SPECIFICATION approval and build kickoff producing a COST-ESTIMATE.md (or similar) artifact covering: pre-flight account/sign-up summary, hosting/infra cost ranges calibrated to the spec's tech stack, API/third-party fee estimates, monthly low/typical/high band, scale considerations, and an explicit build/no/rescope decision point. Build skill MUST refuse kickoff until the cost artifact exists AND the user has explicitly accepted, rescoped, or skipped (with a recorded skip reason). Plain-English ranges; no spreadsheets. NEW references/cost-models.md captures methodology. Tests cover artifact creation, build-gate behavior, and rescope loop.",
+      "OutOfScope": "Hard cost numbers; real-time pricing API integration; currency/region localization (USD-only first pass).",
+      "Files": "NEW skills/deft-directive-cost/SKILL.md (or phase added to existing skill); skills/deft-directive-build/SKILL.md (build-gate); AGENTS.md (routing keyword + skill chain entry); NEW references/cost-models.md; templates/COST-ESTIMATE.md (new); tests/skills/test_cost_phase*.py (new); CHANGELOG.md (append)."
+    },
+    "items": [
+      {
+        "title": "NEW cost/budget skill or phase invoked between spec approval and build kickoff",
+        "status": "pending"
+      },
+      {
+        "title": "NEW COST-ESTIMATE.md artifact contract; reference from PROJECT-DEFINITION",
+        "status": "pending"
+      },
+      {
+        "title": "Build skill refuses kickoff until cost artifact exists and is accepted/rescoped/skipped",
+        "status": "pending"
+      },
+      {
+        "title": "Plain-English ranges with low/typical/high bands; non-technical-user voice",
+        "status": "pending"
+      },
+      {
+        "title": "NEW references/cost-models.md capturing cost-model methodology",
+        "status": "pending"
+      },
+      {
+        "title": "AGENTS.md routing entry for the new cost phase + skill chain integration",
+        "status": "pending"
+      },
+      {
+        "title": "Tests: artifact creation, build-gate behavior, rescope loop",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md [Unreleased] entry under Added referencing #739 (and #151 umbrella)",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/739",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #739: feat(skills,build): pre-build cost & budget transparency phase between SPECIFICATION approval and build kickoff"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-05-01T02:02:51Z"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #900",
+    "updated": "2026-05-05T01:36:03Z"
+  },
+  "plan": {
+    "title": "task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache",
+    "status": "completed",
+    "narratives": {
+      "Description": "task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/900",
+      "Labels": "bug"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/900",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #900: task triage:bootstrap and task triage:cache populate cannot scope or filter the issue cache"
+      }
+    ],
+    "updated": "2026-05-05T01:36:03Z",
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "parallelizable_with": [
+          "#899",
+          "#901",
+          "#902"
+        ]
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "deft-directive-build",
+        "rationale": "Adds --limit / --state / --label flags to triage_cache populate and triage_bootstrap pass-through. Without these, Phase 0 first-run on any real-sized backlog is unbounded -- effectively makes the bulk-ingestion skill unusable for new maintainers. Bonus: infer --repo from git remote get-url origin when omitted.",
+        "files_to_touch": [
+          "scripts/triage_cache.py",
+          "scripts/triage_bootstrap.py",
+          "skills/deft-directive-refinement/SKILL.md",
+          "tests/scripts/test_triage_cache.py",
+          "tests/scripts/test_triage_bootstrap.py"
+        ],
+        "branch": "fix/triage-cache-filters",
+        "pr_title_prefix": "feat(triage):"
+      }
+    }
+  }
+}

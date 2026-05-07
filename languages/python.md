@@ -110,9 +110,9 @@ def process_order(order: Order) -> ProcessedOrder:
 [project]
 requires-python=">=3.11"
 dependencies=["flask>=3.0.0"]  # or fastapi/typer[all]/textual[dev]
-[dependency-groups]  # PEP 735 — uv syncs these by default
+[dependency-groups]  # PEP 735 — uv syncs these automatically without extra flags
 dev=["pytest>=7.4","pytest-cov>=4.1","pytest-mock>=3.12","hypothesis>=6.0","black>=23","isort>=5.12","ruff>=0.1","mypy>=1.7","pydantic>=2.0"]
-[project.optional-dependencies]
+[project.optional-dependencies]  # pip/hatch compat — requires: uv sync --extra dev / pip install -e ".[dev]"
 prod=["pydantic>=2.0","logfire>=0.1"]  # ~ Observability for production
 [tool.pytest.ini_options]
 testpaths=["tests"]
@@ -136,6 +136,25 @@ warn_return_any=true
 warn_unused_configs=true
 disallow_untyped_defs=true
 ```
+
+## Hygiene
+
+**Types:**
+- ⊗ `# type: ignore` without an inline comment explaining exactly why it is safe
+- ⊗ `Any` as a function return type where the concrete type is knowable
+- ⊗ Bare `object` or untyped containers (`list`, `dict` with no generics) on public APIs
+
+**Error handling:**
+- ⊗ Bare `except:` or `except Exception: pass` — catch the specific exception; log or re-raise
+- ⊗ Returning `None` or a neutral default to mask an exception — let it propagate
+
+**Dead code:**
+- ~ Run `vulture` to detect unused functions, classes, and variables
+- ~ Add `vulture . --min-confidence 80` as a `task hygiene` target
+
+**Circular dependencies:**
+- ~ Run `pydeps <package>` or `importlab` to detect import cycles; resolve by extracting shared types to a lower-level module
+- ⊗ Circular imports between modules — see [coding/hygiene.md](../coding/hygiene.md) for resolution pattern
 
 ## Compliance Checklist
 

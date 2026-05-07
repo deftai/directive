@@ -17,9 +17,18 @@ import json
 import sys
 from pathlib import Path
 
+# Belt-and-suspenders UTF-8 stdout guard (#540) so non-ASCII status glyphs
+# do not crash on Windows cp1252 when the ``PYTHONUTF8`` env var is not set.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _stdio_utf8 import reconfigure_stdio  # noqa: E402
+
+reconfigure_stdio()
+
+# v0.6 Status enum (includes the new ``failed`` terminal status per
+# the canonical schema at vbrief/schemas/vbrief-core.schema.json, #533).
 VALID_STATUSES = frozenset({
     "draft", "proposed", "approved", "pending",
-    "running", "completed", "blocked", "cancelled",
+    "running", "completed", "blocked", "failed", "cancelled",
 })
 
 
@@ -38,7 +47,13 @@ def _validate_narratives(narratives: object, path: str, errors: list[str]) -> No
 def _validate_plan_item(
     item: dict, path: str, errors: list[str],
 ) -> None:
-    """Recursively validate a PlanItem and its subItems."""
+    """Recursively validate a PlanItem and its nested children.
+
+    Per the canonical v0.6 schema, ``PlanItem.items`` is the PREFERRED
+    nested field and ``PlanItem.subItems`` is the deprecated legacy alias
+    kept for backward compatibility (#533 / Greptile P1). Both are accepted
+    here and recursively validated; neither is treated as an error.
+    """
     item_id = item.get("id", "<no-id>")
     item_path = f"{path}[{item_id}]"
 
@@ -55,14 +70,18 @@ def _validate_plan_item(
     if "narrative" in item:
         _validate_narratives(item["narrative"], f"{item_path}.narrative", errors)
 
-    # Detect items misuse inside PlanItem (should be subItems)
+    # v0.6 preferred nested field.
     if "items" in item:
-        errors.append(
-            f"{item_path} uses 'items' for children — use 'subItems' instead "
-            "('items' is only valid at plan level)"
-        )
+        if not isinstance(item["items"], list):
+            errors.append(f"{item_path}.items must be an array")
+        else:
+            for j, sub in enumerate(item["items"]):
+                if not isinstance(sub, dict):
+                    errors.append(f"{item_path}.items[{j}] must be an object")
+                    continue
+                _validate_plan_item(sub, f"{item_path}.items", errors)
 
-    # Recurse into subItems
+    # Deprecated legacy alias -- still accepted for backward compatibility.
     if "subItems" in item:
         if not isinstance(item["subItems"], list):
             errors.append(f"{item_path}.subItems must be an array")
@@ -74,8 +93,27 @@ def _validate_plan_item(
                 _validate_plan_item(sub, f"{item_path}.subItems", errors)
 
 
+# Strict v0.6-only acceptance (#533). The canonical schema at
+# vbrief/schemas/vbrief-core.schema.json pins vBRIEFInfo.version to
+# const "0.6"; this validator rejects every other version. Pre-existing
+# v0.5 vBRIEFs are automatically bumped to v0.6 during ``task
+# migrate:vbrief`` (#571); operators who see the error below should run
+# the migrator on the affected project. The check below consults this
+# frozenset rather than an inline literal so the validator shares the
+# version-check pattern with ``scripts/vbrief_validate.py`` (#565,
+# Option B): future v0.7 introduction adds one entry here instead of
+# touching multiple inline string comparisons.
+VALID_VBRIEF_VERSIONS: frozenset[str] = frozenset({"0.6"})
+
+
 def _validate_schema(data: dict, path: str) -> list[str]:
-    """Validate vBRIEF v0.5 structural requirements. Returns a list of errors."""
+    """Validate vBRIEF structural requirements (v0.6). Returns a list of errors.
+
+    Strictly requires ``vBRIEFInfo.version`` to be one of
+    ``VALID_VBRIEF_VERSIONS`` (currently ``{"0.6"}``) to match the
+    canonical v0.6 schema (#533). Any v0.5 vBRIEF must be migrated to
+    v0.6 via ``task migrate:vbrief``.
+    """
     errors: list[str] = []
 
     # Top-level envelope
@@ -85,9 +123,24 @@ def _validate_schema(data: dict, path: str) -> list[str]:
         info = data["vBRIEFInfo"]
         if not isinstance(info, dict):
             errors.append("'vBRIEFInfo' must be an object")
-        elif info.get("version") != "0.5":
+        elif info.get("version") not in VALID_VBRIEF_VERSIONS:
+            # #571: the previous wording pointed at a "migrator sweep"
+            # that did not exist as a standalone command, leaving
+            # operators with an unactionable error. The migrator now
+            # auto-bumps v0.5 -> v0.6 on ingest (see
+            # ``scripts/migrate_vbrief.py`` ``_ingest_spec_narratives``
+            # path), so the actionable recovery command is just
+            # ``task migrate:vbrief``.
+            #
+            # #565: the version comparison consults
+            # ``VALID_VBRIEF_VERSIONS`` rather than an inline ``"0.6"``
+            # literal so this validator matches the
+            # ``scripts/vbrief_validate.py`` pattern (Option B).
             errors.append(
-                f"'vBRIEFInfo.version' must be '0.5', got {info.get('version')!r}"
+                f"'vBRIEFInfo.version' must be '0.6' (canonical v0.6 "
+                f"schema, #533), got {info.get('version')!r}. Run "
+                f"`task migrate:vbrief` to upgrade pre-existing v0.5 "
+                f"vBRIEFs in-place."
             )
 
     if "plan" not in data:
@@ -126,13 +179,16 @@ def _validate_schema(data: dict, path: str) -> list[str]:
                             continue
                         _validate_plan_item(item, "plan.items", errors)
 
-    # Detect legacy flat format
+    # Detect legacy flat format. Per #565, the migration target message
+    # advertises the canonical v0.6 envelope (the prior wording pointed
+    # at the retired v0.5 envelope after the strict v0.6 tightening in
+    # #533).
     legacy_keys = {"vbrief", "tasks", "overview", "architecture"}
     found_legacy = legacy_keys & set(data.keys())
     if found_legacy:
         errors.append(
             f"legacy flat-format keys found at top level: {sorted(found_legacy)}. "
-            "Migrate to vBRIEF v0.5 envelope (vBRIEFInfo + plan)"
+            "Migrate to vBRIEF v0.6 envelope (vBRIEFInfo + plan)"
         )
 
     return errors
@@ -165,7 +221,7 @@ def validate_spec(spec_path: str) -> tuple[bool, str]:
         detail = "\n".join(f"  • {e}" for e in errors)
         return False, f"✗ {path.name} has schema violations:\n{detail}"
 
-    return True, f"✓ {path.name} is valid vBRIEF v0.5"
+    return True, f"✓ {path.name} is valid vBRIEF"
 
 
 def main() -> int:

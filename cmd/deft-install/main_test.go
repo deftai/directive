@@ -13,6 +13,34 @@ import (
 )
 
 // ---------------------------------------------------------------------------
+// resolveBranch — build-time default vs user flag precedence (#424)
+// ---------------------------------------------------------------------------
+
+func TestResolveBranch(t *testing.T) {
+	tests := []struct {
+		name         string
+		flagValue    string
+		defaultValue string
+		want         string
+	}{
+		{"both empty falls through to origin default", "", "", ""},
+		{"defaultBranch used when flag empty", "", "v0.20.0-rc.1", "v0.20.0-rc.1"},
+		{"flag takes precedence over default", "beta", "v0.20.0-rc.1", "beta"},
+		{"flag wins even with empty default", "beta", "", "beta"},
+		{"branch-style default (phase2 dispatch build)", "", "phase2/vbrief-cutover", "phase2/vbrief-cutover"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := resolveBranch(tc.flagValue, tc.defaultValue)
+			if got != tc.want {
+				t.Errorf("resolveBranch(%q, %q) = %q, want %q",
+					tc.flagValue, tc.defaultValue, got, tc.want)
+			}
+		})
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Phase 1 — smoke test
 // ---------------------------------------------------------------------------
 
@@ -508,6 +536,18 @@ func TestWriteAgentsMD_CreateNew(t *testing.T) {
 	if strings.Contains(string(data), "Skills: deft/SKILL.md") {
 		t.Error("AGENTS.md should not contain Skills line — .agents/skills/ handles discovery")
 	}
+	// Verify deft-directive-setup references (not legacy deft-setup).
+	content := string(data)
+	if !strings.Contains(content, "deft-directive-setup") {
+		t.Error("AGENTS.md should reference deft-directive-setup")
+	}
+	if strings.Contains(content, "deft/skills/deft-setup/") {
+		t.Error("AGENTS.md should not reference legacy deft-setup path")
+	}
+	// Verify vBRIEF-centric references.
+	if !strings.Contains(content, "PROJECT-DEFINITION.vbrief.json") {
+		t.Error("AGENTS.md should reference PROJECT-DEFINITION.vbrief.json")
+	}
 }
 
 func TestWriteAgentsMD_AppendExisting(t *testing.T) {
@@ -548,6 +588,78 @@ func TestWriteAgentsMD_Idempotent(t *testing.T) {
 	}
 }
 
+// repoRootFromDeftInstall walks up from the cmd/deft-install test working
+// directory to find the repo root (identified by the go.mod file). Keeps the
+// template fixture tests independent of how `go test` was invoked.
+func repoRootFromDeftInstall(t *testing.T) string {
+	t.Helper()
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("could not get working directory: %v", err)
+	}
+	for i := 0; i < 6; i++ {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	t.Fatalf("could not locate repo root (go.mod) from %s", dir)
+	return ""
+}
+
+// TestWriteAgentsMD_MatchesTemplateFixture asserts that the AGENTS.md the
+// installer writes is byte-identical to templates/agents-entry.md at the repo
+// root. This ties cmd/deft-install to the canonical template so the installer,
+// task agents:init, and QUICK-START.md all produce byte-identical output for
+// the same template revision (closes #636).
+func TestWriteAgentsMD_MatchesTemplateFixture(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+
+	written, err := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	templatePath := filepath.Join(repoRootFromDeftInstall(t), "templates", "agents-entry.md")
+	template, err := os.ReadFile(templatePath)
+	if err != nil {
+		t.Fatalf("could not read %s: %v", templatePath, err)
+	}
+
+	if string(written) != string(template) {
+		t.Errorf("installer-written AGENTS.md drifted from %s: wrote %d bytes, template has %d bytes",
+			templatePath, len(written), len(template))
+	}
+}
+
+// TestAgentsMDEntrySourcedFromTemplate asserts the installer's agentsMDEntry
+// is fed by the embedded templates.AgentsEntry (i.e. no stray hardcoded copy
+// was re-introduced alongside it). This is the cmd-level mirror of the drift
+// test in templates/embed_test.go (closes #636).
+func TestAgentsMDEntrySourcedFromTemplate(t *testing.T) {
+	templatePath := filepath.Join(repoRootFromDeftInstall(t), "templates", "agents-entry.md")
+	template, err := os.ReadFile(templatePath)
+	if err != nil {
+		t.Fatalf("could not read %s: %v", templatePath, err)
+	}
+	if agentsMDEntry != string(template) {
+		t.Errorf("agentsMDEntry drifted from %s: installer has %d bytes, template has %d bytes",
+			templatePath, len(agentsMDEntry), len(template))
+	}
+	if !strings.Contains(agentsMDEntry, agentsMDSentinel) {
+		t.Errorf("agentsMDEntry must contain the %q sentinel for idempotency", agentsMDSentinel)
+	}
+}
+
 func TestUserConfigDir_EnvOverride(t *testing.T) {
 	t.Setenv("DEFT_USER_PATH", "/custom/path")
 	if got := UserConfigDir(); got != "/custom/path" {
@@ -582,8 +694,9 @@ func TestWriteAgentsSkills_CreateNew(t *testing.T) {
 	}
 
 	allSkills := []string{
-		"deft", "deft-setup", "deft-build",
-		"deft-review-cycle", "deft-roadmap-refresh", "deft-swarm",
+		"deft", "deft-directive-setup", "deft-directive-build",
+		"deft-directive-review-cycle", "deft-directive-refinement", "deft-directive-swarm",
+		"deft-directive-interview", "deft-directive-pre-pr", "deft-directive-sync",
 	}
 	for _, skill := range allSkills {
 		path := filepath.Join(tmp, ".agents", "skills", skill, "SKILL.md")
@@ -614,7 +727,7 @@ func TestWriteAgentsSkills_Idempotent(t *testing.T) {
 	deftPath := filepath.Join(tmp, ".agents", "skills", "deft", "SKILL.md")
 	os.WriteFile(deftPath, sentinel, 0o644)
 
-	// Second call should skip (all six files exist).
+	// Second call should skip (all nine files exist).
 	if _, err := WriteAgentsSkills(w, tmp); err != nil {
 		t.Fatalf("second WriteAgentsSkills call failed unexpectedly: %v", err)
 	}
@@ -643,8 +756,9 @@ func TestInstallPathConsistency_SkillPointersUseDeftPrefix(t *testing.T) {
 	}
 
 	allSkills := []string{
-		"deft", "deft-setup", "deft-build",
-		"deft-review-cycle", "deft-roadmap-refresh", "deft-swarm",
+		"deft", "deft-directive-setup", "deft-directive-build",
+		"deft-directive-review-cycle", "deft-directive-refinement", "deft-directive-swarm",
+		"deft-directive-interview", "deft-directive-pre-pr", "deft-directive-sync",
 	}
 	for _, skill := range allSkills {
 		path := filepath.Join(tmp, ".agents", "skills", skill, "SKILL.md")
@@ -761,7 +875,7 @@ func TestPrintNextSteps(t *testing.T) {
 		"AGENTS.md",
 		"User config",
 		"Use AGENTS.md",
-		"USER.md and PROJECT.md",
+		"USER.md and PROJECT-DEFINITION.vbrief.json",
 		"created",
 	} {
 		if !strings.Contains(out, want) {
@@ -787,5 +901,114 @@ func TestPrintNextSteps_SkillsAlreadyPresent(t *testing.T) {
 	}
 	if strings.Contains(out, "created") {
 		t.Error("output should not contain \"created\" for skillsCreated=false")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Skill count and new skill coverage
+// ---------------------------------------------------------------------------
+
+func TestWriteAgentsSkills_CreatesNineSkills(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	if _, err := WriteAgentsSkills(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+
+	// Count directories under .agents/skills/.
+	skillsDir := filepath.Join(tmp, ".agents", "skills")
+	entries, err := os.ReadDir(skillsDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dirCount := 0
+	for _, e := range entries {
+		if e.IsDir() {
+			dirCount++
+		}
+	}
+	if dirCount != 9 {
+		t.Errorf("expected 9 skill directories, got %d", dirCount)
+	}
+}
+
+func TestWriteAgentsSkills_InterviewPointer(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	WriteAgentsSkills(w, tmp)
+
+	path := filepath.Join(tmp, ".agents", "skills", "deft-directive-interview", "SKILL.md")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("missing deft-directive-interview thin pointer: %v", err)
+	}
+	content := string(data)
+	if !strings.Contains(content, "name: deft-directive-interview") {
+		t.Error("interview pointer missing name frontmatter")
+	}
+	if !strings.Contains(content, "deft/skills/deft-directive-interview/SKILL.md") {
+		t.Error("interview pointer missing correct path")
+	}
+}
+
+func TestWriteAgentsSkills_PrePrPointer(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	WriteAgentsSkills(w, tmp)
+
+	path := filepath.Join(tmp, ".agents", "skills", "deft-directive-pre-pr", "SKILL.md")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("missing deft-directive-pre-pr thin pointer: %v", err)
+	}
+	content := string(data)
+	if !strings.Contains(content, "name: deft-directive-pre-pr") {
+		t.Error("pre-pr pointer missing name frontmatter")
+	}
+	if !strings.Contains(content, "deft/skills/deft-directive-pre-pr/SKILL.md") {
+		t.Error("pre-pr pointer missing correct path")
+	}
+}
+
+func TestWriteAgentsSkills_SyncPointer(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	WriteAgentsSkills(w, tmp)
+
+	path := filepath.Join(tmp, ".agents", "skills", "deft-directive-sync", "SKILL.md")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("missing deft-directive-sync thin pointer: %v", err)
+	}
+	content := string(data)
+	if !strings.Contains(content, "name: deft-directive-sync") {
+		t.Error("sync pointer missing name frontmatter")
+	}
+	if !strings.Contains(content, "deft/skills/deft-directive-sync/SKILL.md") {
+		t.Error("sync pointer missing correct path")
+	}
+}
+
+func TestWriteAgentsSkills_RefinementReplacesRoadmapRefresh(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	WriteAgentsSkills(w, tmp)
+
+	// deft-directive-refinement should exist.
+	path := filepath.Join(tmp, ".agents", "skills", "deft-directive-refinement", "SKILL.md")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("missing deft-directive-refinement thin pointer: %v", err)
+	}
+	if !strings.Contains(string(data), "name: deft-directive-refinement") {
+		t.Error("refinement pointer missing name frontmatter")
+	}
+
+	// Legacy deft-roadmap-refresh should NOT exist.
+	legacyPath := filepath.Join(tmp, ".agents", "skills", "deft-roadmap-refresh", "SKILL.md")
+	if _, err := os.Stat(legacyPath); err == nil {
+		t.Error("legacy deft-roadmap-refresh pointer should not be created")
 	}
 }

@@ -1,0 +1,148 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story 3 of #883 v1: rebind triage v1 surface onto cache:*. Delete task triage:cache + triage:show (hard cutover, no shims). Rewrite 4 triage scripts to consume cache:get. Rewrite refinement skill Phase 0 prose. External surface unchanged for kept tasks. Wave 3; depends on Story 2's cache:get + meta.json schema.",
+    "created": "2026-05-05T23:20:00Z",
+    "updated": "2026-05-06T15:11:23Z"
+  },
+  "plan": {
+    "id": "883-story-3-triage-rebind",
+    "title": "refactor(triage): rebind v1 surface onto cache:* (#883 Story 3)",
+    "status": "completed",
+    "planRef": "#883",
+    "narratives": {
+      "Problem": "Triage v1 (#845) ships its own scripts/triage_cache.py and tasks/triage-cache.yml that mirror upstream issue bodies into a triage-specific layout. After Story 2 lands, the unified cache:* surface owns all content mirroring; triage v1's cache surface becomes redundant + drift-prone (#915 root cause was exactly this drift). Story 3 deletes the redundant triage-side cache and rebinds the 13 kept triage:* tasks (accept, reject, defer, needs-ac, mark-duplicate, bulk-*, status, reset, history, refresh-active, bootstrap) onto cache:get. Phase 0 of the refinement skill is rewritten so its three-tier inventory model points at cache:* for Tier 1.",
+      "Overview": "DELETE: scripts/triage_cache.py, tasks/triage-cache.yml, parent Taskfile.yml triage-cache include. REWRITE 4 scripts: triage_bulk.py + triage_actions.py + triage_refresh.py + triage_bootstrap.py to consume the cache:get interface from Story 2 instead of reading .deft-cache/issues/<owner>-<repo>/<N>.{json,md} directly. EDIT: skills/deft-directive-refinement/SKILL.md Phase 0 prose (~30-50 lines) -- update Tier 1 references to point at cache:*, update task names throughout, preserve the three-tier inventory model and action menu structure verbatim. Hard cutover: task triage:cache and task triage:show are removed entirely with no deprecation shims (epic design decision; documented in epic design_doc_departures via Story 4's UPGRADING.md).",
+      "Constraint": "EXTERNAL surface UNCHANGED for: triage:accept, triage:reject, triage:defer, triage:needs-ac, triage:mark-duplicate, triage:bulk-accept, triage:bulk-reject, triage:bulk-defer, triage:bulk-needs-ac, triage:status, triage:reset, triage:history, triage:refresh-active, triage:bootstrap. EXTERNALLY REMOVED: triage:cache, triage:show. Internal-only changes: which on-disk path the scripts read. Audit log (vbrief/.eval/candidates.jsonl) unchanged. Story 4 owns UPGRADING.md migration text. triage_bootstrap.py rewrite scope (M3 from epic) is explicitly: orchestrate `task cache:fetch-all --source=github-issue` + audit-log init + gitignore-ensure for both `.deft-cache/` and `vbrief/.eval/`. PowerShell 5.1 non-ASCII rule (#798) governs all file edits; the refinement skill prose contains Unicode markers (! ~ ⊗ ?) so all edits MUST go through Python pathlib + utf-8.",
+      "Outcome": "task triage:* surface (13 kept tasks) functionally identical to v0.25.2 from the user's perspective; internal implementation reads via cache:get. task triage:cache and task triage:show: removed (Task 'triage:cache' does not exist on master post-merge; Story 4 documents the migration in UPGRADING.md). scripts/triage_cache.py: deleted. tasks/triage-cache.yml: deleted. Refinement skill Phase 0 reads as a clean three-tier model (Tier 1 = cache:*, Tier 2 = vbrief/.eval/candidates.jsonl, Tier 3 = vbrief/proposed/) with all task names updated. v0.25.2 integration test (tests/integration/test_triage_smoke.py) needs minor update to reflect new internal call path; external behaviors preserved.",
+      "Test": "Regression tests per rebound script using fake cache fixtures (no real `task cache:get` invocations in CI; subprocess mocked or cache:get function imported directly when scripts move to in-process call). triage_bulk.py: regression test that bulk-defer reads candidates via cache:get (asserts the call); audit log invariants from v0.25.2 still hold. triage_actions.py: per-action tests assert cache:get is the read path. triage_refresh.py: regression test that meta.json.fetched_at is consulted for staleness (vs the prior pattern of stat()-ing .deft-cache/issues/<N>.json). triage_bootstrap.py: regression test that the new sequence (cache:fetch-all + audit-log init + dual gitignore-ensure) runs idempotently. Refinement skill: content tests assert Phase 0 prose references cache:* (not triage:cache) and the three-tier model is preserved.",
+      "Action": "Delete triage_cache.py + triage-cache.yml + their parent include line. Rewrite 4 triage scripts to consume cache:get. Update tests/test_triage_*.py accordingly. Edit refinement SKILL.md Phase 0. Single PR. Run review-cycle. Merge. Story 4 dispatch unblocks."
+    },
+    "items": [
+      {
+        "id": "883-s3-ac-1-delete-triage-cache",
+        "title": "DELETE: scripts/triage_cache.py + tasks/triage-cache.yml + parent tasks/Taskfile.yml triage-cache include line; verify task triage:cache and task triage:show no longer resolve in `task -l`",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s3-ac-2-rebind-triage-bulk",
+        "title": "Rewrite scripts/triage_bulk.py: drop v0.25.2's _list_cached_candidates helper; consume cache:get for candidate body retrieval; preserve audit-log Tier-2 short-circuit invariants verbatim",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s3-ac-3-rebind-triage-actions",
+        "title": "Rewrite scripts/triage_actions.py: per-action body reads via cache:get instead of triage_cache.show; preserve all 8 actions semantics (accept/reject/defer/needs-ac/mark-duplicate/status/reset/history)",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s3-ac-4-rebind-triage-refresh",
+        "title": "Rewrite scripts/triage_refresh.py: read meta.json.fetched_at via cache:get for staleness detection (compare to live `gh issue view <N> --json updatedAt`); preserve three-way drift prompt (proceed-with-stale / refresh-and-update-local / defer-from-this-batch)",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s3-ac-5-rewrite-triage-bootstrap",
+        "title": "Rewrite scripts/triage_bootstrap.py (M3 explicit scope): orchestrate task cache:fetch-all --source=github-issue + audit-log init + gitignore-ensure for both .deft-cache/ and vbrief/.eval/; idempotent re-run; gitcrawl install path optional or dropped per epic design",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s3-ac-6-skill-phase-0-rewrite",
+        "title": "Edit skills/deft-directive-refinement/SKILL.md Phase 0 prose (~30-50 lines): Tier 1 references point at cache:* (not triage:cache); task name references throughout updated; three-tier inventory model + action menu structure preserved verbatim; UTF-8 safe via Python pathlib",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s3-ac-7-external-surface-unchanged",
+        "title": "External surface for 13 kept triage:* tasks unchanged: accept, reject, defer, needs-ac, mark-duplicate, bulk-accept, bulk-reject, bulk-defer, bulk-needs-ac, status, reset, history, refresh-active, bootstrap. Verified by re-running v0.25.2 smoke test pattern against the rebound scripts",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s3-ac-8-regression-tests",
+        "title": "Update / add regression tests: test_triage_bulk.py + test_triage_actions.py + test_triage_refresh.py + test_triage_bootstrap.py with fake cache fixtures asserting cache:get is the new read path; tests/integration/test_triage_smoke.py updated as needed for new internal calls",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s3-ac-9-content-tests-skill",
+        "title": "Content tests on refinement SKILL.md Phase 0 assert: cache:* tokens present, triage:cache token absent, three-tier inventory model preserved, action menu structure intact",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s3-ac-10-task-check-green",
+        "title": "task check passes (validate + lint + test + verify:encoding + verify:branch); coverage threshold maintained",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s3-ac-11-changelog",
+        "title": "CHANGELOG.md [Unreleased] -> ### Changed: refactor(triage): rebind v1 surface onto cache:*; remove task triage:cache and task triage:show (hard cutover; migration in UPGRADING.md per Story 4) (#883 Story 3)",
+        "status": "proposed"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_issue": "#883",
+        "epic_vbrief": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
+        "wave": 3,
+        "depends_on_stories": [
+          "Story 1 (scm:issue:view)",
+          "Story 2 (cache:get + meta.json schema)"
+        ],
+        "blocks_stories": [
+          "Story 4 (migration docs + release; needs the rebind to be complete before UPGRADING.md text is final)"
+        ],
+        "swarm_ready": false,
+        "swarm_ready_after": "Story 2 merged",
+        "files_owned": [
+          "scripts/triage_cache.py (DELETE)",
+          "scripts/triage_bulk.py (REWRITE)",
+          "scripts/triage_actions.py (REWRITE)",
+          "scripts/triage_refresh.py (REWRITE)",
+          "scripts/triage_bootstrap.py (REWRITE)",
+          "tasks/triage-cache.yml (DELETE)",
+          "tasks/Taskfile.yml (drop triage-cache include line)",
+          "skills/deft-directive-refinement/SKILL.md (Phase 0 prose edit)",
+          "tests/test_triage_bulk.py (UPDATE)",
+          "tests/test_triage_actions.py (UPDATE)",
+          "tests/test_triage_refresh.py (UPDATE)",
+          "tests/test_triage_bootstrap.py (UPDATE)",
+          "tests/integration/test_triage_smoke.py (UPDATE if internal calls changed)",
+          "CHANGELOG.md (one bullet under [Unreleased] ### Changed)"
+        ],
+        "files_must_not_touch": [
+          "scripts/cache.py (Story 2; import only)",
+          "scripts/cache_scanner.py (Story 2; import only)",
+          "tasks/cache.yml (Story 2)",
+          "vbrief/schemas/cache-meta.schema.json (Story 2)",
+          "tasks/scm.yml (Story 1)",
+          "scripts/quarantine_ext.py (legacy; Story 2 reuses; Story 3 doesn't touch)",
+          "scripts/candidates_log.py (Story 2 + Tier-2 audit log; #845 frozen)",
+          "vbrief/schemas/candidates.schema.json (#845 frozen)",
+          "vbrief/schemas/vbrief-core.schema.json (out of scope)",
+          "UPGRADING.md (Story 4)"
+        ],
+        "branch": "refactor/883-story-3-triage-rebind",
+        "pr_title_prefix": "refactor(triage): rebind v1 surface onto cache:* (#883 Story 3)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/883",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #883 (parent epic): feat(processes): deft-cache -- unified content cache and quarantine layer"
+      },
+      {
+        "uri": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Epic vBRIEF for #883 v1 (parent decomposition; this story is item 3 of 4)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/845",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #845: pre-ingest triage workflow (this story replaces #845's cache surface; the actions/audit-log surfaces stay)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/915",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #915 (P0): triage_bulk.py bypasses Tier-1 cache (root-cause for the rebind; this story removes the drift surface entirely)"
+      }
+    ],
+    "updated": "2026-05-06T15:11:23Z"
+  }
+}

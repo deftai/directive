@@ -187,6 +187,22 @@ Items marked ⊗ in Standards above are not repeated here.
 - ≉ **God-struct with many `Option` fields**: Use builder pattern or state types
 - ≉ **`Box<dyn Error>` in libraries**: Define specific error enums
 
+## Hygiene
+
+**Types:**
+- ⊗ `dyn Any` or `Box<dyn Any>` where a concrete type or typed trait object is knowable
+- ⊗ `#[allow(unused)]` or `#[allow(dead_code)]` attributes to suppress rather than remove dead code
+
+**Error handling:**
+- ⊗ `.unwrap()` or `.expect()` outside test code — use `?` or explicit match
+- ⊗ `let _ = result` to silently ignore a `Result` or `Option` — handle or document why safe
+- ⊗ Match arms `_ => {}` or `Err(_) => {}` that swallow errors without logging or propagating
+
+**Dead code:**
+- ~ `cargo check` warns on unused items; `cargo clippy` detects dead helpers and unreachable branches
+- ~ Use `cargo +nightly udeps` to detect unused dependencies in `Cargo.toml`
+- ⊗ Commented-out code — delete; version control preserves history
+
 ## Compliance Checklist
 
 - ! rustdoc on all public items with examples

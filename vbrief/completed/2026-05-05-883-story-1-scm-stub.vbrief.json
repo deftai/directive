@@ -1,0 +1,123 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story 1 of #883 v1: minimal scm:* stub (4 commands) with strong forward-compat marker pointing at #881. Wave 1 of the linear cohort; ships first; provides the scm:issue:view interface that Story 2 cache:fetch-all consumes.",
+    "created": "2026-05-05T23:20:00Z",
+    "updated": "2026-05-06T00:56:42Z"
+  },
+  "plan": {
+    "id": "883-story-1-scm-stub",
+    "title": "feat(scm): minimal stub (4 commands) for #883 v1 cache layer",
+    "status": "completed",
+    "planRef": "#883",
+    "narratives": {
+      "Problem": "The #883 v1 cache layer needs a fetching layer underneath it; visionik's design doc explicitly puts scm:* tasks between external content and cache:put. Building cache:* against raw `gh` calls inline violates the layering and makes #881 (full scm:* namespace) harder to land later. v1 needs a minimal stub that captures the 4 commands the cache layer actually uses, no more.",
+      "Overview": "Ship `tasks/scm.yml` exposing 4 scm:* commands as thin ghx-or-gh fallback wrappers: scm:issue:list, scm:issue:view, scm:issue:close, scm:issue:edit. Strong forward-compat marker at file top points at #881 for the full namespace. Each command emits JSON via --json. PR commands (scm:pr:list/view/merge/close) deferred to v2.",
+      "Constraint": "DO NOT EXTEND beyond the 4 commands without coordinating with #881. ghx-or-gh fallback uses shutil.which probe pattern. Output JSON shape must be stable enough for Story 2's cache:fetch-all to parse without per-version conditionals. Tests MUST be hermetic (mock subprocess); the single integration smoke test is the only exception and must skip on DEFT_NO_NETWORK=1.",
+      "Outcome": "task scm:issue:list / view / close / edit functional via ghx (when on PATH) or gh (fallback). task -l shows the 4 commands cleanly. Forward-compat marker visible at top of tasks/scm.yml. Story 2 can call `task scm:issue:view --json title,number,...` and parse the result. Adoption blocker for Story 2 cleared.",
+      "Test": "Unit tests on JSON shape (mock subprocess; per-command argv assertions; ghx-then-gh fallback path verified via shutil.which mock; --json flag forwarded). 1 integration smoke test exercising real `gh issue view 1 --repo deftai/directive --json title,number` asserting non-empty JSON body; skipped under DEFT_NO_NETWORK. ~50 LOC unit + ~20 LOC integration. Contract-test fixture obligation: tests/fixtures/scm_issue_view.json (NEW) is owned by Story 1 and reused verbatim by Story 2's cache:fetch-all unit tests; the JSON-shape contract pinned in tests/test_scm_contract.py is the Story 1→2 handoff guard.",
+      "Action": "Create tasks/scm.yml with 4 thin wrapper tasks. Wire into parent tasks/Taskfile.yml includes block. Add unit tests + 1 integration smoke. Ship single PR. Run review-cycle. Merge. Story 2 dispatch unblocks."
+    },
+    "items": [
+      {
+        "id": "883-s1-ac-1-scm-yml-4-commands",
+        "title": "tasks/scm.yml NEW: 4 commands (scm:issue:list / view / close / edit) as ghx-or-gh fallback wrappers; --json output by default",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s1-ac-2-forward-compat-marker",
+        "title": "Forward-compat marker comment block at top of tasks/scm.yml: STUB for #883, DO NOT EXTEND, DO NOT ADD NEW COMMANDS HERE, full namespace lives at #881",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s1-ac-3-taskfile-includes",
+        "title": "Parent tasks/Taskfile.yml includes wiring: 4 commands reachable via `task -l` with no doubled prefix (canonical names: scm:issue:list, etc.)",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s1-ac-4-unit-tests",
+        "title": "tests/test_scm_stub.py: unit tests mock subprocess; assert per-command argv shape; assert ghx-then-gh fallback when ghx absent; assert --json forwarded; ~50 LOC",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s1-ac-5-integration-smoke",
+        "title": "tests/integration/test_scm_smoke.py: 1 integration test exercising real `gh issue view 1 --repo deftai/directive --json title,number`; skip on DEFT_NO_NETWORK=1",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s1-ac-6-contract-test",
+        "title": "tests/test_scm_contract.py (or extension to tests/test_scm_stub.py): JSON-shape contract test pinning the exact field set Story 2's cache:fetch-all consumes from scm:issue:view and scm:issue:list. MUST assert presence and types on `scm:issue:view --json` output for at minimum: number, title, body, state, author, createdAt, updatedAt, labels, comments; AND on `scm:issue:list --json` output for at minimum: number, title, state, updatedAt. Test fixture lives at tests/fixtures/scm_issue_view.json and is referenced by both Story 1's contract test AND will be reused verbatim by Story 2's cache:fetch-all unit tests. Rationale: prevents Story 1→2 contract drift; the prior #845 6-parallel swarm produced 4 integration bugs at composition time; this contract pin is the v1 mitigation for the linear-wave handoff.",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s1-ac-7-task-check-green",
+        "title": "task check passes (validate + lint + test + verify:encoding + verify:branch); no regressions",
+        "status": "proposed"
+      },
+      {
+        "id": "883-s1-ac-8-changelog",
+        "title": "CHANGELOG.md [Unreleased] -> ### Added: feat(scm): minimal stub for #883 v1 (4 commands; ghx-or-gh fallback; #883 Story 1)",
+        "status": "proposed"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_issue": "#883",
+        "epic_vbrief": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
+        "wave": 1,
+        "depends_on_stories": [],
+        "blocks_stories": [
+          "Story 2 (cache infra; needs scm:issue:view interface; reuses tests/fixtures/scm_issue_view.json contract fixture from Story 1)"
+        ],
+        "swarm_ready": true,
+        "files_owned": [
+          "tasks/scm.yml (NEW)",
+          "tasks/Taskfile.yml (includes wiring only)",
+          "tests/test_scm_stub.py (NEW)",
+          "tests/integration/test_scm_smoke.py (NEW)",
+          "CHANGELOG.md (one bullet under [Unreleased] ### Added)",
+          "tests/fixtures/scm_issue_view.json (NEW)"
+        ],
+        "files_must_not_touch": [
+          "scripts/cache.py (Story 2)",
+          "scripts/cache_scanner.py (Story 2)",
+          "tasks/cache.yml (Story 2)",
+          "vbrief/schemas/cache-meta.schema.json (Story 2)",
+          "scripts/triage_cache.py (Story 3 deletes)",
+          "scripts/triage_bulk.py (Story 3 rewrites)",
+          "scripts/triage_actions.py (Story 3 rewrites)",
+          "scripts/triage_refresh.py (Story 3 rewrites)",
+          "scripts/triage_bootstrap.py (Story 3 rewrites)",
+          "tasks/triage-cache.yml (Story 3 deletes)",
+          "skills/deft-directive-refinement/SKILL.md (Story 3)",
+          "UPGRADING.md (Story 4)"
+        ],
+        "branch": "feat/883-story-1-scm-stub",
+        "pr_title_prefix": "feat(scm): minimal stub for #883 v1 cache layer (#883 Story 1)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/883",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #883 (parent epic): feat(processes): deft-cache -- unified content cache and quarantine layer"
+      },
+      {
+        "uri": "pending/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Epic vBRIEF for #883 v1 (parent decomposition; this story is item 1 of 4)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/881",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #881: scm:* task namespace (full namespace; this stub is replaced wholesale when #881 lands)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/884",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #884: ghx as standard gh proxy (this stub uses ghx-or-gh fallback)"
+      }
+    ],
+    "updated": "2026-05-06T15:11:52Z"
+  }
+}

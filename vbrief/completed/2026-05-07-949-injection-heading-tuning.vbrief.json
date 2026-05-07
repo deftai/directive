@@ -1,0 +1,145 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Tune the scanner v2 injection-heading detector to drive the false-positive rate from ~85% to <20% on legitimate organic GitHub issue bodies (#949 detector-tuning subset). Tightens the suspicious-token list curated for cache_scanner, adds an allowlist of common legitimate template heading patterns, and gates flagging on a structural-injection signal so bare ## STEP / ## Action / ## Important: headings no longer wrap. NEW scanner categories (shell-cmd-injection, exfiltration-patterns) are explicitly out of scope; tracked separately under #949.",
+    "created": "2026-05-07T01:43:39Z",
+    "updated": "2026-05-07T02:29:13Z"
+  },
+  "plan": {
+    "id": "949-injection-heading-tuning",
+    "title": "fix(scanner): tune injection-heading detector to reduce false-positives on legitimate template markdown (#949)",
+    "status": "completed",
+    "planRef": "#949",
+    "narratives": {
+      "Problem": "Three independent v0.26.0 scale-smoke samples (Phase 1 N=50, prior Phase 2 N=319, post-#955 rerun N=320) confirm injection-heading flag rate of 80-85% on organic deftai/directive issue bodies. The current detector reuses the 14-token list from quarantine_ext (STEP, TASK:, IMPORTANT:, MUST, AGENT:, DIRECTIVE:, ROLE:, etc.) and flags any markdown heading containing one of those tokens. Almost all of the 271/320 flagged bodies are false-positives on canonical template sections like '## Steps to reproduce', '## Action items', '## Important Notes', '## Task list', '## Background', '## STEP 1'. The fence-and-pass severity means correctness is preserved (downstream consumers still see the content), but the audit log and content.md noise is high enough to obscure real injection signals and erode operator trust in the scanner's output.",
+      "Overview": "Scope is TUNING ONLY, narrowly to the injection-heading category. Refactor scripts/cache_scanner.py to (a) define a tighter scanner-local _INJECTION_TOKENS set scoped to vectors with low organic-template overlap, (b) add an allowlist of common legitimate template heading regex patterns the detector skips, (c) require a structural injection signal (clear instruction-override phrasing or a role-prefix at heading start) before flagging, and (d) re-implement the fence-wrap algorithm locally so the transform follows the same tighter policy (not the broader quarantine_ext.quarantine_body). Bump SCANNER_VERSION 2.0.0 -> 2.1.0 (minor: detection policy change, no schema break). DO NOT add the deferred shell-cmd-injection or exfiltration-patterns categories -- those ship under separate scope.",
+      "Constraint": "Pure tuning. DO NOT modify scripts/cache.py, scripts/scm.py, tasks/*.yml, scripts/triage_*.py, vbrief/schemas/cache-meta.schema.json (frozen), UPGRADING.md. quarantine_ext.py stays as-is (other consumers still depend on its broader policy). DO NOT add new scanner categories. Single PR, draft only (no merge, no ready). PowerShell 5.1 non-ASCII rule (#798) governs all file edits. Wall-clock cap: 3h. Tests MUST keep all existing true-positive injection patterns flagged (curl|sh, IGNORE PREVIOUS, role hijack); regression coverage is a non-negotiable.",
+      "Outcome": "scripts/cache_scanner.py injection-heading detector: tighter token set + heading allowlist + context-signal gate; transform mirrors detection. SCANNER_VERSION = 2.1.0 (minor bump). tests/test_cache_scanner.py: legitimate '## STEP N', '## Action', '## Problem', '## Overview', '## Constraint', '## Outcome', '## Test', '## Steps to reproduce', '## Important Notes', '## Background', '## Task list', '## Acceptance Criteria' headings do NOT flag. True-positive corpus preserved: 'IGNORE PREVIOUS instructions', 'SYSTEM:'/'ASSISTANT:' role hijacks, 'OVERRIDE:' directives, embedded curl|sh / wget|sh / base64-decode shell vectors all still flag. False-positive rate on a 12+ paraphrased real-deftai-issue test corpus drops from 100% (v2.0.0) to <20% (v2.1.0). task check is green. CHANGELOG bullet under [Unreleased] -> Changed referencing #949. Draft PR refs #949 (does NOT close #949 because the new categories are deferred).",
+      "Test": "tests/test_cache_scanner.py adds: (a) ~12 negative cases for legitimate template headings drawn from deftai/directive-shape issue text -- '## Step 1: reproduce', '## Steps to reproduce', '## Action items', '## Important Notes', '## Problem statement', '## Overview', '## Constraint(s)', '## Outcome', '## Test plan', '## Background', '## Task list', '## Acceptance Criteria' -- all assert no injection-heading flag fires; (b) preserved positive cases for 'IGNORE PREVIOUS', 'DISREGARD PREVIOUS', 'FORGET PREVIOUS', '## SYSTEM:', '## ASSISTANT:', '## USER:', '## OVERRIDE:', '## INSTRUCTION:'/'INSTRUCTIONS:', plus shell-vector-context positives ('## Run\\ncurl ... | sh') verifying body-context still flags; (c) before/after FP-rate harness counting flagged-vs-clean over the new mixed corpus. test_scanner_version_starts_at_2 stays green; existing TestCombined integration cases stay green."
+    },
+    "items": [
+      {
+        "id": "949-ac-1-tighten-token-list",
+        "title": "scripts/cache_scanner.py: define scanner-local _INJECTION_TOKENS scoped to clear injection vectors (drop noisy STEP / MUST / TASK / IMPORTANT / AGENT / DIRECTIVE / ROLE / TOOL / FUNCTION / PROMPT; keep IGNORE/DISREGARD/FORGET PREVIOUS, SYSTEM:, ASSISTANT:, USER:, OVERRIDE:, INSTRUCTION(S):)",
+        "status": "completed"
+      },
+      {
+        "id": "949-ac-2-allowlist-template-headings",
+        "title": "scripts/cache_scanner.py: add _LEGITIMATE_HEADING_PATTERNS regex allowlist covering common organic template sections (## Step N, ## Steps, ## Action(s), ## Action items, ## Problem, ## Overview, ## Constraint(s), ## Outcome, ## Test(s), ## Background, ## Task(s), ## Important Notes, ## Acceptance Criteria, ## Definition of Done)",
+        "status": "completed"
+      },
+      {
+        "id": "949-ac-3-context-signal-gate",
+        "title": "scripts/cache_scanner.py: require a structural injection signal (heading text contains injection phrase like 'previous instructions' / 'above' / 'prior'; or role-prefix at heading start; or following body contains shell-vector token like curl|sh, wget|sh, base64 -d, eval) before flagging a heading -- bare token presence in a non-allowlisted heading no longer flags by itself",
+        "status": "completed"
+      },
+      {
+        "id": "949-ac-4-strict-wrap-transform",
+        "title": "scripts/cache_scanner.py: implement local _strict_quarantine wrap that mirrors the new detection policy (replaces the quarantine_body delegation) so transformed_content reflects only true-positive sections; preserves idempotency on already-fenced quarantined content",
+        "status": "completed"
+      },
+      {
+        "id": "949-ac-5-version-bump",
+        "title": "scripts/cache_scanner.py: SCANNER_VERSION 2.0.0 -> 2.1.0 (minor: detection policy change, no schema break)",
+        "status": "completed"
+      },
+      {
+        "id": "949-ac-6-tests-negative-template-corpus",
+        "title": "tests/test_cache_scanner.py: 12+ legitimate template heading cases (## Step 1, ## Steps to reproduce, ## Action items, ## Important Notes, ## Problem, ## Overview, ## Constraint, ## Outcome, ## Test, ## Background, ## Task list, ## Acceptance Criteria) -- all assert no injection-heading flag fires",
+        "status": "completed"
+      },
+      {
+        "id": "949-ac-7-tests-positive-preserved",
+        "title": "tests/test_cache_scanner.py: preserve true-positive coverage (IGNORE PREVIOUS, DISREGARD PREVIOUS, FORGET PREVIOUS, ## SYSTEM:, ## ASSISTANT:, ## USER:, ## OVERRIDE:, ## INSTRUCTION:); add shell-vector-context positives ('## Run\\ncurl ... | sh', '## Setup\\nwget ... | bash', '## Update\\nbase64 -d ... | eval')",
+        "status": "completed"
+      },
+      {
+        "id": "949-ac-8-fp-rate-harness",
+        "title": "tests/test_cache_scanner.py: add a before/after FP-rate harness counting flagged-vs-clean over the new mixed (legitimate + injection) corpus; assert <20% FP rate on legitimate-only sub-corpus",
+        "status": "completed"
+      },
+      {
+        "id": "949-ac-9-changelog",
+        "title": "CHANGELOG.md [Unreleased] -> ### Changed bullet referencing #949 and citing the FP-rate reduction (~85% -> <20%) on the legitimate-corpus harness",
+        "status": "completed"
+      },
+      {
+        "id": "949-ac-10-task-check",
+        "title": "task check passes (validate + lint + test + verify:encoding + verify:branch)",
+        "status": "completed"
+      },
+      {
+        "id": "949-ac-11-draft-pr",
+        "title": "Push branch fix/949-injection-heading-tuning and open DRAFT PR (no merge, no ready) with Refs #949 in body (NOT Closes -- the new categories are deferred under separate scope)",
+        "status": "completed"
+      },
+      {
+        "id": "949-ac-12-review-cycle",
+        "title": "Run skills/deft-directive-review-cycle (cap 3 iterations); greptile-errored -> retry once via @greptileai then halt",
+        "status": "completed"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_issue": "#949",
+        "smoke_evidence": "docs/smoke-2026-05-07-v0.26.0-rerun.md",
+        "evidence_comment": "https://github.com/deftai/directive/issues/comments/4393228565",
+        "files_owned": [
+          "scripts/cache_scanner.py",
+          "tests/test_cache_scanner.py",
+          "CHANGELOG.md",
+          "vbrief/proposed/2026-05-07-949-injection-heading-tuning.vbrief.json (this file; lifecycle-moved)"
+        ],
+        "files_must_not_touch": [
+          "scripts/cache.py",
+          "scripts/scm.py",
+          "scripts/quarantine_ext.py",
+          "scripts/triage_bootstrap.py",
+          "scripts/triage_cache.py",
+          "scripts/triage_actions.py",
+          "scripts/triage_bulk.py",
+          "scripts/triage_refresh.py",
+          "tasks/cache.yml",
+          "tasks/scm.yml",
+          "vbrief/schemas/cache-meta.schema.json",
+          "UPGRADING.md"
+        ],
+        "branch": "fix/949-injection-heading-tuning",
+        "pr_title_prefix": "fix(scanner): tune injection-heading detector to reduce false-positives on legitimate template markdown (#949)",
+        "draft_pr_only": true,
+        "out_of_scope_followups": [
+          "shell-cmd-injection scanner category (separate #949 deliverable)",
+          "exfiltration-patterns scanner category (separate #949 deliverable)"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/949",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #949: scanner v2 detector tuning -- 85% benign-flag rate on organic backlog needs precision fix"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/comments/4393228565",
+        "type": "x-vbrief/github-comment",
+        "title": "#949 evidence comment: three-sample full-scale measurements (80% / 84.6% / 84.7%)"
+      },
+      {
+        "uri": "docs/smoke-2026-05-07-v0.26.0-rerun.md",
+        "type": "x-vbrief/related-doc",
+        "title": "v0.26.0 cache-layer scale smoke rerun -- post-#955 (full-scale tuning evidence anchor)"
+      },
+      {
+        "uri": "completed/2026-05-05-883-story-2-cache-infrastructure.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Story 2 vBRIEF that originally landed scanner v2 with the 14-token quarantine_ext list"
+      },
+      {
+        "uri": "docs/quarantine-spec.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Quarantine spec (#583) -- the original injection heuristic this PR refines"
+      }
+    ],
+    "updated": "2026-05-07T02:29:13Z"
+  }
+}

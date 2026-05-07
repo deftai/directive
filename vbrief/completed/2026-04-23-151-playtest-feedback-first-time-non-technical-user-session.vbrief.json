@@ -1,0 +1,35 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #151: [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)",
+    "updated": "2026-04-30T13:58:20Z"
+  },
+  "plan": {
+    "title": "[Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 3 -- Documentation & Content Fixes",
+        "Tier": "Content & Doc Fixes",
+        "PhaseDescription": "Quick doc/content fixes that don't require code changes.",
+        "Description": "[Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec",
+        "Phase_source": "pre-migration ROADMAP (commit 3925468)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/151",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #151: [Playtest Feedback] First-time non-technical user session report (19 issues + 4 strategic recommendations) -- umbrella issue; content/wording fixes here, strategic recommendations (cost interview, co-pilot, tiered UX, IP risk flagging) deferred to Phase 5 (xrefs #77, #84, #89, #136)"
+      }
+    ],
+    "updated": "2026-04-30T13:58:20Z"
+  }
+}

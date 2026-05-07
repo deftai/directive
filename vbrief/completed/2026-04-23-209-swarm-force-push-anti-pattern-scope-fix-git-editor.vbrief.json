@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #209: Swarm force-push anti-pattern scope fix + GIT_EDITOR Windows portability + 7 regression tests",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Swarm force-push anti-pattern scope fix + GIT_EDITOR Windows portability + 7 regression tests",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Swarm force-push anti-pattern scope fix + GIT_EDITOR Windows portability + 7 regression tests",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/209",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #209: Swarm force-push anti-pattern scope fix + GIT_EDITOR Windows portability + 7 regression tests"
+      }
+    ]
+  }
+}

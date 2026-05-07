@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deft.dev/schemas/candidates-1.0.schema.json",
+  "title": "Triage Candidates Log Entry v1",
+  "description": "Frozen interface contract for one line in vbrief/.eval/candidates.jsonl. Each line is a single JSON object capturing one triage decision. The log is append-only -- existing lines are never edited or deleted. Consumed by Story 3 (triage actions), Story 4 (triage:bulk + triage:refresh), and Story 6 (bootstrap). Field set, types, and enums are FROZEN -- new fields may only be added in additive, optional positions in a follow-up schema version.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decision_id",
+    "timestamp",
+    "repo",
+    "issue_number",
+    "decision",
+    "actor"
+  ],
+  "properties": {
+    "decision_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "RFC 4122 UUID (any version) uniquely identifying this decision row.",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp with the literal Z suffix (e.g. 2026-05-03T16:32:54Z) when the decision was recorded. Non-UTC offsets are intentionally rejected because latest_decision() sorts by lexicographic timestamp comparison, which is correct only when every entry is anchored to the same zone.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
+    },
+    "repo": {
+      "type": "string",
+      "description": "GitHub-style 'owner/name' coordinate of the repository the issue belongs to.",
+      "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"
+    },
+    "issue_number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Issue number within `repo`."
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "accept",
+        "reject",
+        "defer",
+        "needs-ac",
+        "mark-duplicate",
+        "reset"
+      ],
+      "description": "Decision verb. `mark-duplicate` requires `linked_to`; `reset` requires `prior_decision_id`."
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Decision actor identity -- a human username (e.g. 'msadams') or an agent tag (e.g. 'agent:warp-oz')."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Optional free-form rationale captured at decision time."
+    },
+    "linked_to": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Required ONLY when `decision` is `mark-duplicate`: issue number this duplicate links to."
+    },
+    "prior_decision_id": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+      "description": "Required ONLY when `decision` is `reset`: the prior decision's `decision_id` being undone."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "const": "mark-duplicate"
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "then": {
+        "required": [
+          "linked_to"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "linked_to"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "const": "reset"
+          }
+        },
+        "required": [
+          "decision"
+        ]
+      },
+      "then": {
+        "required": [
+          "prior_decision_id"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "prior_decision_id"
+          ]
+        }
+      }
+    }
+  ]
+}

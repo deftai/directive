@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #67: Write SPECIFICATION.md and proper PROJECT.md for the deft project itself",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Write SPECIFICATION.md and proper PROJECT.md for the deft project itself",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Write SPECIFICATION.md and proper PROJECT.md for the deft project itself",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/67",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #67: Write SPECIFICATION.md and proper PROJECT.md for the deft project itself"
+      }
+    ]
+  }
+}

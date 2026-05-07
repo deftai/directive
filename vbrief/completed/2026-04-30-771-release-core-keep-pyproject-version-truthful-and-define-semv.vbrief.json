@@ -1,0 +1,72 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #771"
+  },
+  "plan": {
+    "title": "release-core: keep pyproject version truthful and define semver -> PEP 440 normalization",
+    "status": "completed",
+    "narratives": {
+      "Description": "release-core: keep pyproject version truthful and define semver -> PEP 440 normalization",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/771",
+      "Labels": "Phase 4 (GitHub label) -- ABSORBED INTO PHASE 1 per swarm planning 2026-04-30",
+      "Problem": "pyproject.toml's [project].version is stale (0.5.0) since #741 moved the functional release version to dynamic resolution (DEFT_RELEASE_VERSION / git describe / scripts/resolve_version.py). The root pyproject.toml is now the only authoritative-looking version source that is wrong -- humans/agents reading the repo can still conclude 'Deft is at 0.5.0'. With #11 keeping pip on the table, packaging metadata debt becomes real. Need release-core fix (a) to keep pyproject.toml truthful going forward and (b) to define a single canonical semver -> PEP 440 normalization path for any future Python package artifact.",
+      "Acceptance": "Phase A (stop lying now): release flow updates [project].version in pyproject.toml on every real release, reusing the canonical version source already used by run/release (DEFT_RELEASE_VERSION first, then tag resolver). Regression tests fail if a release leaves pyproject.toml stale. Phase B (PEP 440 normalization): single canonical helper converts release version to Python-package-safe form -- v0.22.0 -> 0.22.0, v0.20.0-rc.3 -> 0.20.0rc3, v0.20.0-beta.2 -> 0.20.0b2, v0.20.0-alpha.1 -> 0.20.0a1; test-only/disposable tags (v0.0.0-test.1) explicitly classified non-publishable. Pre-release mappings (alpha/beta/rc) explicitly tested. Non-publishable tag handling explicitly documented + tested. Phase C (out of implementation scope): leave a single obvious hook for future pip packaging work (whether root-repo or thin-wrapper) -- exactly one normalization rule across release-tag / CLI / PyPI. Docs identify the canonical version sources for CLI/runtime, release-tag, and Python-package contexts. CHANGELOG entry under Added.",
+      "OutOfScope": "Shipping pip itself (#11). Choosing root-repo package vs dedicated wrapper package. NPM packaging details. AGENTS.md / upgrade-gate work (#768). Editing UPGRADING.md (Agent 6 owns; release-source documentation lands in scm/github.md or new docs/versioning.md). Editing tasks/core.yml (Agent 5).",
+      "Files": "pyproject.toml (release-time [project].version sync); scripts/release.py (release-flow integration: write pyproject version on release); scripts/resolve_version.py (extend with canonical semver -> PEP 440 normalization helper); NEW or extended tests/cli/test_resolve_version.py (alpha/beta/rc/test mappings); regression test asserting pyproject.toml does not drift from released version (likely in tests/cli/test_release.py or a new tests/content/test_pyproject_version_freshness.py); Taskfile.yml or tasks/release.yml (only if needed -- prefer changes in scripts/release.py to avoid Agent 1 Taskfile.yml conflict; if Taskfile change required, edit different section than verify:branch); NEW docs/versioning.md (or section in scm/github.md) documenting the canonical version sources for CLI / release-tag / Python-package; CHANGELOG.md (append)."
+    },
+    "items": [
+      {
+        "title": "Phase A: release flow writes [project].version in pyproject.toml from DEFT_RELEASE_VERSION / tag resolver on every real release",
+        "status": "pending"
+      },
+      {
+        "title": "Phase A: regression test fails if pyproject.toml drifts from released version",
+        "status": "pending"
+      },
+      {
+        "title": "Phase B: single canonical semver -> PEP 440 normalization helper in scripts/resolve_version.py (or sibling)",
+        "status": "pending"
+      },
+      {
+        "title": "Phase B: tests for stable releases (v0.22.0 -> 0.22.0)",
+        "status": "pending"
+      },
+      {
+        "title": "Phase B: tests for pre-release tags (rc.3 -> rc3, beta.2 -> b2, alpha.1 -> a1)",
+        "status": "pending"
+      },
+      {
+        "title": "Phase B: explicit classification + test for non-publishable tags (v0.0.0-test.1)",
+        "status": "pending"
+      },
+      {
+        "title": "Docs: canonical version-source documentation -- CLI/runtime, release-tag, Python-package contexts (NEW docs/versioning.md or scm/github.md section)",
+        "status": "pending"
+      },
+      {
+        "title": "Phase C hook: leave one obvious extension point for future pip packaging (root-repo or wrapper) -- no implementation",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md [Unreleased] entry under Added referencing #771",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/771",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #771: release-core: keep pyproject version truthful and define semver -> PEP 440 normalization"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX.",
+        "PhaseOverride": "GitHub label says Phase 4; absorbed into Phase 1 per swarm planning 2026-04-30 to land alongside related release-core work"
+      }
+    },
+    "updated": "2026-05-01T02:02:52Z"
+  }
+}

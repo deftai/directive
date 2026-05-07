@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #249: fix(skill): deft-swarm Phase 6 autonomous Greptile re-review monitoring in rebase cascade -- tiered monitoring step after each force-push",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "fix(skill): deft-swarm Phase 6 autonomous Greptile re-review monitoring in rebase cascade -- tiered monitoring step after each force-push",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "fix(skill): deft-swarm Phase 6 autonomous Greptile re-review monitoring in rebase cascade -- tiered monitoring step after each force-push",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/249",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #249: fix(skill): deft-swarm Phase 6 autonomous Greptile re-review monitoring in rebase cascade -- tiered monitoring step after each force-push"
+      }
+    ]
+  }
+}

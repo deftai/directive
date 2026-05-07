@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #117: Interview command loops in CLI -- `cmd_project` no longer re-runs questionnaire after `cmd_install` chains through `cmd_spec`",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Interview command loops in CLI -- `cmd_project` no longer re-runs questionnaire after `cmd_install` chains through `cmd_spec`",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Interview command loops in CLI -- `cmd_project` no longer re-runs questionnaire after `cmd_install` chains through `cmd_spec`",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/117",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #117: Interview command loops in CLI -- `cmd_project` no longer re-runs questionnaire after `cmd_install` chains through `cmd_spec`"
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "scenario": "orphan",
+  "folder_counts": {
+    "proposed": 1,
+    "pending": 1,
+    "active": 0,
+    "completed": 0,
+    "cancelled": 0
+  },
+  "statuses": {
+    "proposed": ["proposed"],
+    "pending": ["pending"]
+  },
+  "reconciliation_md": true,
+  "registry_statuses_include": ["proposed", "pending"],
+  "narrative_contains": {
+    "proposed": {"SourceConflict": "missing-from-spec"}
+  }
+}

@@ -157,11 +157,19 @@ _SPEC_GENERATING_FILES = ["interview.md", "yolo.md", "speckit.md"]
 
 @pytest.mark.parametrize("filename", _PREPARATORY_FILES)
 def test_preparatory_strategy_references_chaining_gate(filename: str) -> None:
-    """Preparatory strategies must have a 'Then: Chaining Gate' section (FR-15)."""
+    """Preparatory strategies must reference the chaining gate (FR-15).
+
+    Strategies with standalone mode (e.g. map.md) may use a Completion section
+    with separate Chained/Standalone subsections instead of a single
+    'Then: Chaining Gate' section. Both patterns satisfy the requirement.
+    """
     text = _read(f"strategies/{filename}")
-    assert "## Then: Chaining Gate" in text, (
-        f"strategies/{filename} is missing '## Then: Chaining Gate' section — "
-        "preparatory strategies must return to the chaining gate"
+    has_then_section = "## Then: Chaining Gate" in text
+    has_chained_mode = "### Chained Mode" in text and "chaining gate" in text.lower()
+    assert has_then_section or has_chained_mode, (
+        f"strategies/{filename} is missing chaining gate reference — "
+        "preparatory strategies must return to the chaining gate "
+        "(via '## Then: Chaining Gate' or '### Chained Mode')"
     )
 
 

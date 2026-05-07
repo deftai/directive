@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #239: fix(workflow): mandatory pre-commit file review step -- added to deft-roadmap-refresh Phase 4 pre-flight and deft-build checklist",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "fix(workflow): mandatory pre-commit file review step -- added to deft-roadmap-refresh Phase 4 pre-flight and deft-build checklist",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "fix(workflow): mandatory pre-commit file review step -- added to deft-roadmap-refresh Phase 4 pre-flight and deft-build checklist",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/239",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #239: fix(workflow): mandatory pre-commit file review step -- added to deft-roadmap-refresh Phase 4 pre-flight and deft-build checklist"
+      }
+    ]
+  }
+}

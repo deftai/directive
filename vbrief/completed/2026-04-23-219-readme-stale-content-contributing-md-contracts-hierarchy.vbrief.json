@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #219: README stale content -- CONTRIBUTING.md, contracts/hierarchy.md, 3 skills added to directory tree and Skills section",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "README stale content -- CONTRIBUTING.md, contracts/hierarchy.md, 3 skills added to directory tree and Skills section",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "README stale content -- CONTRIBUTING.md, contracts/hierarchy.md, 3 skills added to directory tree and Skills section",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/219",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #219: README stale content -- CONTRIBUTING.md, contracts/hierarchy.md, 3 skills added to directory tree and Skills section"
+      }
+    ]
+  }
+}

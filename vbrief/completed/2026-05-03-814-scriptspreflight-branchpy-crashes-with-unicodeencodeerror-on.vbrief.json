@@ -1,0 +1,147 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "HOT adoption blocker: scripts/preflight_branch.py prints a U+2713 check mark on its success path. On Windows where Python's stdout defaults to cp1252, this raises UnicodeEncodeError after the gate has already approved the commit, blocking every commit on a default Windows install. Fix: force UTF-8 stdout reconfigure at script entry; audit every hook-invoked deft script for the same shape; warn at task setup time when cp1252 is detected.",
+    "created": "2026-05-03T01:53:52Z",
+    "updated": "2026-05-03T02:37:44Z"
+  },
+  "plan": {
+    "title": "scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) -- blocks every commit",
+    "status": "completed",
+    "narratives": {
+      "Problem": "scripts/preflight_branch.py (the pre-commit branch-protection hook installed by `task setup`, #747) prints `\\u2713` on its success path. On Windows, Python's stdout default is cp1252 (or cp437 depending on console host), neither of which has a glyph for U+2713. `codecs.charmap_encode` raises UnicodeEncodeError; the hook exits non-zero with a traceback; git aborts the commit. Crucially: the gate has ALREADY APPROVED the commit before the print fails, so the user sees a Python traceback after a successful check, which is maximally confusing. Workaround (`PYTHONIOENCODING=utf-8 git commit ...`) is undiscoverable. Reproduction captured during the #810 fixup chore commit on this Windows session.",
+      "Overview": "Three coordinated changes per the issue. Change 1: force UTF-8 stdout/stderr reconfigure at the top of scripts/preflight_branch.py main() with errors='replace' as a belt-and-suspenders fallback. Change 2: audit every scripts/*.py referenced from .githooks/ and apply the same fix; pin via a NEW tests/cli/test_hooks_encoding.py contract test that wraps stdout in a cp1252 BytesIO TextIOWrapper and verifies non-ASCII print succeeds. Change 3: task setup detects cp1252 stdout at install time and warns the user with the actionable PYTHONIOENCODING fix (informational on current versions because the hooks self-reconfigure).",
+      "Background": "Python TextIOWrapper.reconfigure was added in 3.7 and is available on stdout/stderr when those streams ARE TextIOWrapper instances (terminal attach). When stdout is captured by git as a PIPE, reconfigure is a no-op or unavailable -- guarded by `hasattr(sys.stdout, \"reconfigure\")`. errors='replace' means rare encoding-failure environments see printable replacement characters instead of an unhandled traceback. The gate logic itself (#747) is correct and should not change; only the print path does.",
+      "Constraint": "MUST NOT regress the gate logic (#747). MUST NOT change the success glyph from `\\u2713` to ASCII `OK` -- the glyph is intentional and matches framework CLI conventions per the issue Out-of-Scope. MUST guard `reconfigure` calls behind hasattr (PIPE-mode safety). MUST audit every hook-invoked script under scripts/ -- not only preflight_branch.py. MUST NOT auto-set PYTHONIOENCODING from task setup (mutating the user's environment in a way that surprises other tooling is the wrong shape). SHOULD also surface the same warning from the agent-side environment-preflight (skills/deft-directive-setup/SKILL.md) if applicable.",
+      "Risk": "Very low. The reconfigure block is idempotent and well-known; guarded by hasattr. Worst case (PIPE-mode + no reconfigure + downstream consumer of stdout) is unchanged from today. Audit may surface other scripts but the pattern is uniform.",
+      "Outcome": "Acceptance: (1) scripts/preflight_branch.py reconfigures stdout/stderr to UTF-8 with errors='replace' at main() entry. (2) The success-path U+2713 glyph prints cleanly on Windows cp1252 (verified by contract test). (3) Audit identifies every hook-invoked script under scripts/ and applies the same fix. (4) NEW tests/cli/test_hooks_encoding.py asserts non-ASCII print succeeds for each hook script in a cp1252-emulated stdout. (5) task setup detects cp1252 at install time and emits the actionable warning. (6) CHANGELOG [Unreleased] / Fixed entry. (7) meta/lessons.md one-liner on Windows + cp1252 + Python stdout default as a recurring adoption-blocker class.",
+      "Test": "tests/cli/test_hooks_encoding.py (NEW) -- for each hook script: monkeypatch sys.stdout to a TextIOWrapper wrapping a BytesIO with encoding='cp1252' and errors='strict'; invoke main() (or the relevant entry point); assert no UnicodeEncodeError; assert sys.stdout.encoding == 'utf-8' after reconfigure; assert the U+2713 glyph reaches the underlying buffer encoded as UTF-8 bytes 0xE2 0x9C 0x93. Skip on platforms where reconfigure is unavailable (Python < 3.7 -- not in support matrix; defense in depth).",
+      "Action": "1. Edit scripts/preflight_branch.py main() to add the stdout/stderr reconfigure block at entry (before any print). 2. Audit scripts/ for every Python file referenced from .githooks/ -- apply the same fix to each. 3. Add tests/cli/test_hooks_encoding.py with the contract test described above. 4. Add the cp1252 detection + warning to tasks/setup.yml or the equivalent setup script. 5. CHANGELOG [Unreleased] / Fixed entry citing #814. 6. meta/lessons.md one-liner on the Windows + cp1252 + Python stdout default pattern. 7. task check (with PYTHONIOENCODING=utf-8 as a workaround during the build itself, until the fix lands and is self-applying); commit; push; PR.",
+      "Urgency": "HOT adoption blocker. Every fresh Windows install of `task setup` produces a clone that fails on its first commit. The user encounters a Python traceback with no in-band guidance. Should land FIRST in the Phase 1 cohort because every other Phase 1 fix that ships from a Windows machine without PYTHONIOENCODING=utf-8 set is itself blocked by this bug. Recurrence record: #810 fixup chore commit on the 2026-05-01 Windows session."
+    },
+    "items": [
+      {
+        "id": "814-fix-preflight-branch",
+        "title": "Force UTF-8 stdout/stderr reconfigure at the top of scripts/preflight_branch.py main()",
+        "status": "pending",
+        "narrative": {
+          "Action": "Insert verbatim per the issue body's 'Change 1' block: guarded `sys.stdout.reconfigure(encoding='utf-8', errors='replace')` (and stderr) before any print. Place before the gate logic so even error-path prints are encoding-safe."
+        }
+      },
+      {
+        "id": "814-audit-hook-scripts",
+        "title": "Audit + fix every scripts/*.py referenced from .githooks/",
+        "status": "pending",
+        "narrative": {
+          "Action": "Greppable surface: any script under scripts/ referenced from .githooks/. Currently includes scripts/preflight_branch.py (this issue). Apply the same reconfigure block to each. Future-proof: add a content test asserting any new hook script carries the reconfigure block (optional; recommended)."
+        }
+      },
+      {
+        "id": "814-contract-test",
+        "title": "Add tests/cli/test_hooks_encoding.py contract test",
+        "status": "pending",
+        "narrative": {
+          "Action": "For each hook script: monkeypatch sys.stdout to a TextIOWrapper wrapping a BytesIO with encoding='cp1252' errors='strict'; invoke main() (or relevant entry); assert non-ASCII glyph print succeeds and stdout encoding is utf-8 post-reconfigure."
+        }
+      },
+      {
+        "id": "814-task-setup-warning",
+        "title": "Add Windows cp1252 detection + warning to task setup",
+        "status": "pending",
+        "narrative": {
+          "Action": "task setup detects the Windows-cp1252 environment at install time and emits the actionable warning per the issue body's 'Change 3' block. Informational only on current versions because hooks self-reconfigure."
+        }
+      },
+      {
+        "id": "814-lessons-entry",
+        "title": "Add meta/lessons.md one-liner on Windows + cp1252 pattern",
+        "status": "pending",
+        "narrative": {
+          "Action": "## Windows cp1252 stdout default breaks non-ASCII prints (2026-05) -- short cross-reference to this issue + the self-reconfigure pattern. Per [AXIOM] strongest-applicable-layer, the rule body lives in the script + tests, not duplicated in prose."
+        }
+      },
+      {
+        "id": "814-changelog",
+        "title": "Add CHANGELOG entry under [Unreleased] / Fixed",
+        "status": "pending",
+        "narrative": {
+          "Action": "fix(scripts/preflight_branch.py + audit): UTF-8 self-reconfigure at hook-script entry; add task setup cp1252 warning; add tests/cli/test_hooks_encoding.py contract test; closes a Windows adoption blocker that broke every commit on default cp1252 stdout (#814)."
+        }
+      },
+      {
+        "id": "814-task-check",
+        "title": "Run task check and confirm clean",
+        "status": "pending",
+        "narrative": {
+          "Action": "Pre-PR gate. May require PYTHONIOENCODING=utf-8 in the agent's environment for the build itself if running on Windows before the self-reconfigure lands."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/814",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #814: scripts/preflight_branch.py crashes with UnicodeEncodeError on Windows (cp1252) when printing the success glyph -- blocks every commit"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/747",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #747: detection-bound branch gate -- the surface this affects"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/810",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #810: implementation-intent gate -- the session that surfaced this; the chore commit was blocked until PYTHONIOENCODING=utf-8 was applied"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/768",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #768: cmd_agents_refresh -- another deft-managed surface that prints non-ASCII; audit Change 2 should include it"
+      },
+      {
+        "uri": "scripts/preflight_branch.py",
+        "type": "x-vbrief/related-doc",
+        "title": "The script to fix"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#793",
+          "#794",
+          "#798",
+          "#784",
+          "#796",
+          "#800"
+        ],
+        "estimated_size": "M (1 fix + audit + 1 new test file + task setup warning + lessons + CHANGELOG); priority HOT -- blocks every Windows commit",
+        "blocks": [],
+        "blocked_by": []
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "HOT bug; clear single-PR boundary; reference implementation in the issue body. Multiple files but uniform pattern. Agent should branch, fix preflight_branch.py + audit hook scripts, add the contract test, add the task setup warning + lessons entry + CHANGELOG, run task check, commit, push, open PR. Agent should self-apply PYTHONIOENCODING=utf-8 in its build environment until the fix is committed if running on Windows.",
+        "files_to_touch": [
+          "scripts/preflight_branch.py",
+          "tests/cli/test_hooks_encoding.py",
+          "tasks/setup.yml",
+          "meta/lessons.md",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "fix/814-preflight-branch-cp1252-glyph",
+        "pr_title_suggestion": "fix(scripts/preflight_branch.py): UTF-8 self-reconfigure at hook entry to unblock Windows cp1252 commits (#814)"
+      }
+    },
+    "updated": "2026-05-03T04:38:15Z",
+    "id": "814-preflight-branch-cp1252-glyph",
+    "planRef": "#814"
+  }
+}

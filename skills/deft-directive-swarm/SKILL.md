@@ -1,0 +1,616 @@
+---
+name: deft-directive-swarm
+description: >
+  Parallel local agent orchestration. Use when running multiple agents
+  on story-level vBRIEFs simultaneously — to scan active/ for allocatable
+  work, set up isolated worktrees, launch agents with proven prompts,
+  monitor progress, handle stalled review cycles, and close out PRs cleanly.
+---
+
+# Deft Directive Swarm
+
+Structured workflow for a monitor agent to orchestrate N parallel local agents working on story-level vBRIEFs from `vbrief/active/`.
+
+Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
+
+**⚠️ See also**: [swarm.md](../../swarm/swarm.md) | [deft-directive-review-cycle](../deft-directive-review-cycle/SKILL.md)
+
+## Platform Requirements
+
+! This skill requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** to be installed and authenticated. Issue fetching, PR creation, and post-merge verification all depend on `gh`.
+
+## Branch-Protection Policy Guard
+
+! Before any state mutation (creating worktrees, dispatching sub-agents, opening PRs), run the skill-level branch-policy guard documented in `scripts/policy.py` / `scripts/preflight_branch.py` (#746 / #747). Halt with the actionable disclosure message when the project's `plan.policy.allowDirectCommitsToMaster` is unresolvable AND `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT` is unset:
+
+```
+uv run python scripts/preflight_branch.py --project-root . --quiet || exit 1
+```
+
+or invoke `task verify:branch`. The swarm skill creates branches per agent so the guard is mostly informational here, but a malformed PROJECT-DEFINITION (missing `plan.policy` block AND no legacy narrative) is a fail-closed signal worth surfacing before the swarm spawns N agents.
+
+## Deterministic Questions Contract
+
+! Every numbered-menu prompt rendered in this skill (Phase 0 Step 0/5 source/approval gates, Phase 1 Step 3 file-overlap audit gate, Phase 5->6 ready-to-merge gate) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. Implicit resumption is forbidden.
+
+## When to Use
+
+- User says "run agents", "parallel agents", "swarm", or "launch N agents on stories"
+- Multiple independent story-level vBRIEFs in `vbrief/active/` need to be worked on simultaneously
+- A batch of stories are ready and have no mutual dependencies
+
+## Prerequisites
+
+- ! `vbrief/active/` contains one or more story-level vBRIEFs with status `running`
+- ! GitHub CLI (`gh`) is authenticated
+- ! `git` supports worktrees (`git worktree` available)
+- ~ `oz` CLI available (for `oz agent run-cloud` cloud launch — see Phase 3 Step 2c)
+
+## Phase 0 — Allocate
+
+! Before assigning work to agents, scan the active vBRIEFs and plan allocation.
+
+### Step 0: Work-Item Source
+
+! Determine where work items come from before proceeding to allocation.
+
+Ask the user: **"Are work items already in `vbrief/active/` as vBRIEFs, or should I generate them from GitHub issue numbers?"**
+
+- **Option A — Existing vBRIEFs**: Proceed directly to Step 1.
+- **Option B — GitHub issue numbers**: The user provides a list of issue numbers. For each issue:
+  1. ! Fetch issue data: `gh issue view <N> --json title,body,labels,number`
+  2. ! Generate a minimal vBRIEF in `vbrief/active/` following the `YYYY-MM-DD-descriptive-slug.vbrief.json` naming convention (slug rules: [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md))
+  3. ! The generated vBRIEF must conform to the canonical v0.6 schema (`vbrief/schemas/vbrief-core.schema.json`, strict `const: "0.6"`; see [`../../conventions/references.md`](../../conventions/references.md)):
+     - `vBRIEFInfo.version`: `"0.6"`
+     - `plan.title`: issue title
+     - `plan.status`: `"running"`
+     - `plan.narratives`: object with `{ "Overview": "<issue body content>" }`
+     - `plan.items`: empty array (to be enriched); use `items` for any nested structure (v0.6 preferred field), not `subItems`
+     - `plan.references`: array of schema-conformant entries; for GitHub origins use the canonical shape (see [`../../conventions/references.md`](../../conventions/references.md)):
+       ```json
+       [
+         {
+           "uri": "https://github.com/{owner}/{repo}/issues/<N>",
+           "type": "x-vbrief/github-issue",
+           "title": "Issue #<N>: <issue title>"
+         }
+       ]
+       ```
+  4. ! Proceed to Step 1 as normal after all vBRIEFs are generated
+
+! Auto-generated vBRIEFs are minimal scaffolds -- the monitor or user should review and enrich acceptance criteria before proceeding to Phase 1.
+
+### Step 1: Read Project State
+
+- ! Scan `vbrief/active/` for all story-level vBRIEFs (files matching `*.vbrief.json`)
+- ! For each candidate vBRIEF, MUST run `task vbrief:preflight -- <path>` (the structural intent gate, #810; wraps `scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory) to validate eligibility before any allocation work. Skip any vBRIEF that exits non-zero -- the helper's stderr message is the actionable redirect (`task vbrief:activate <path>`). Surface the exit message in the Phase 0 Step 4 analysis so the user can route the lifecycle move; do NOT attempt to allocate, dispatch, or implement against a vBRIEF that fails the preflight.
+- ! Read each vBRIEF's `plan.title`, `plan.status`, `plan.items`, `references`, and `planRef` (for epic linkage)
+- ! Read `vbrief/PROJECT-DEFINITION.vbrief.json` for project-wide context (narratives, scope registry)
+- ! Cross-reference: every candidate vBRIEF should have acceptance criteria in its `plan.items`
+- ! Determine the base branch: ask the user which branch to target for worktree creation, PR targets, and rebase cascade (default: `master`). Record this as the **configured base branch** for all subsequent phases.
+- ⊗ Spawn an implementation agent (via `start_agent`, `oz agent run`, Warp tab dispatch, or any other path) for a vBRIEF that has not passed `task vbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- the gate is the only authorization signal; affirmative continuation phrases and workflow-shape vocabulary are NOT (#810).
+
+### Step 2: Surface Blockers
+
+- ! Identify blocked vBRIEFs (status `blocked`) and their blocking reasons (check `narrative` fields)
+- ! Identify vBRIEFs with incomplete acceptance criteria (no `plan.items` or empty items array)
+- ! Identify dependency conflicts between candidate vBRIEFs (e.g. story A depends on story B via `planRef` or `edges`, but B is assigned to a different agent or is incomplete)
+- ! Flag any candidate vBRIEFs whose prerequisites are unmet
+
+### Step 3: Plan Allocation
+
+! The monitor allocates one or more vBRIEFs to each agent based on scope, complexity, and dependencies. There is no fixed per-agent limit.
+
+- ! **Small/independent stories** can be batched to a single agent — group related or low-complexity vBRIEFs together
+- ! **Large/complex stories** get dedicated agents — a story with broad file scope or high acceptance criteria count should not share an agent
+- ! **Dependency-aware grouping** — vBRIEFs that share `planRef` to the same epic or have `edges` between them should be assigned to the same agent when possible, OR sequenced with clear ordering
+- ! The monitor decides allocation dynamically — no hardcoded 1:1 rule
+
+### Step 4: Present Analysis
+
+! Present a summary to the user containing:
+
+- **Candidate vBRIEFs**: story-level vBRIEFs eligible for assignment (with titles, statuses, and origin references)
+- **Preflight rejections (#810)**: any vBRIEFs that failed `task vbrief:preflight` (wraps `scripts/preflight_implementation.py`) in Step 1 -- include the file path AND the helper's exit message verbatim so the user can route the appropriate `task vbrief:activate <path>` move. These vBRIEFs MUST NOT be allocated until they pass the preflight on a re-run.
+- **Blockers found**: blocked vBRIEFs, unresolved dependencies, items requiring design decisions
+- **Incomplete vBRIEFs**: stories with missing or empty acceptance criteria
+- **Allocation plan**: which agent gets which vBRIEF(s), with reasoning for batching decisions
+- **Tentative version bump**: current version (from CHANGELOG.md or latest git tag) and proposed next version (patch/minor/major) based on the scope and nature of candidate items — this is advisory and will be confirmed before merge cascade
+
+### Step 5: Get User Approval
+
+- ! Wait for explicit user approval (`yes`, `confirmed`, `approve`) before proceeding to Phase 1 (Select)
+- ! If the user requests changes to the allocation plan, re-analyze and re-present
+- ⊗ Proceed to Phase 1 (Select) without completing the allocate phase and receiving explicit user approval
+
+## Phase 1 — Select
+
+! Finalize assignments from the allocation plan. Each agent gets a coherent set of related work.
+
+### Step 1: Confirm Candidates
+
+- ! Use the allocation plan and vBRIEF analysis from Phase 0 as the starting point
+- ! Re-read `vbrief/active/` only if Phase 0 was skipped (user override) or context was lost
+- ! For each candidate vBRIEF, verify its `plan.status` is `running` (not `blocked` or `completed`)
+- ! Exclude vBRIEFs that are blocked, have unresolved dependencies, or require design decisions
+
+### Step 2: File-Overlap Audit
+
+! Before assigning tasks to agents, list every file each vBRIEF's acceptance criteria are expected to touch.
+
+- ! Verify ZERO file overlap between agents — no two agents may modify the same file
+- ! Check **transitive** file touches, not just primary scope — trace each vBRIEF's acceptance criteria to specific files. A task may require changes to files outside its obvious scope (e.g., an enforcement task adding an anti-pattern to a skill file owned by another agent).
+- ! Shared files (CHANGELOG.md) are exceptions — each agent adds entries but does not edit existing content
+- ! If overlap exists, reassign tasks until overlap is eliminated
+
+⊗ Proceed to Phase 2 while any file overlap exists between agents (excluding shared append-only files).
+⊗ Assume a task only touches files in its primary scope — always check acceptance criteria for cross-file requirements.
+
+### Step 3: Present Assignment
+
+- ! Show the user: agent number, branch name, assigned vBRIEF(s) (with origin issue numbers), and files each agent will touch
+- ~ Wait for user approval unless the user explicitly said to proceed autonomously
+
+## Phase 2 — Setup
+
+### Step 1: Create Worktrees
+
+For each agent, create an isolated git worktree:
+
+```
+git worktree add <path> -b <branch-name> <configured-base-branch>
+```
+
+- ! One worktree per agent (e.g. `E:\Repos\deft-agent1`, `E:\Repos\deft-agent2`)
+- ! Branch naming: `agent<N>/<type>/<issue-numbers>-<short-description>` (e.g. `agent1/cleanup/31-50-23-strategy-consolidation`) — the agent number prefix aids traceability since GitHub PR numbers won't match agent numbers
+- ! All worktrees branch from the same base (the configured base branch from Phase 0)
+
+### Step 2: Generate Prompt Files
+
+! Create a `launch-agent.ps1` (Windows) or `launch-agent.sh` (Unix) in each worktree using the Prompt Template below.
+
+~ Also prepare plain-text prompt versions for pasting into Warp agent chat or other terminal interfaces.
+
+## Phase 3 — Launch
+
+### Step 1: Runtime Capability Detection
+
+! Before selecting a launch method, probe the environment to determine the best available path.
+
+1. ! **Probe for `start_agent` tool** — check the available tool set for `start_agent` (or equivalent agent-orchestration tool). Its presence indicates a Warp environment with native orchestration support.
+2. ! **Probe for Warp environment** — if `start_agent` is not available, check for `WARP_*` environment variables (e.g. `WARP_TERMINAL_SESSION`, `WARP_IS_WARP_TERMINAL`). Their presence indicates Warp without orchestration.
+3. ! **Select launch path automatically** based on detection results — do NOT present static options:
+   - **`start_agent` available** → Orchestrated launch (Step 2a) — preferred path, fully automated, no manual tab management
+   - **`start_agent` unavailable, Warp detected** → Interactive Warp tabs (Step 2b) — full MCP, global rules, warm index; requires manual tab management
+   - **No Warp detected** → Manual terminal launch (Step 2b fallback) — paste prompt into any terminal with access to the worktree
+4. ? **Cloud escape hatch** — use `oz agent run-cloud` (Step 2c) ONLY if the user explicitly requests cloud execution. Never default to cloud.
+
+⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime.
+⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate on `WARP_*` environment variables or `start_agent` tool presence.
+
+### Step 2a: Orchestrated Launch (start_agent available)
+
+! When `start_agent` is detected in the tool set, use it directly to launch each agent.
+
+- ! Launch one agent per worktree using `start_agent` with the generated prompt and worktree path as the working directory
+- ! Agents inherit the current environment's MCP servers, Warp Drive rules, and codebase index — equivalent to interactive Warp tabs but without manual tab management
+- ! No user intervention needed — launch is fully automated
+- ~ This is the preferred path: richest context with zero manual overhead
+
+### Step 2b: Interactive Warp Tabs (start_agent unavailable, Warp detected)
+
+! When `start_agent` is not available but Warp is detected (via `WARP_*` environment variables), fall back to manual Warp tab launch — briefly note that orchestrated launch is not available in this session, then proceed with the tab instructions below.
+
+! **Warp tabs cannot be opened programmatically.** There is no API or CLI command to open a new Warp terminal tab from an agent or script.
+
+Ask the user to open N new Warp terminal tabs. For each tab, the user:
+1. Navigates to the worktree: `cd <worktree>`
+2. Pastes the prompt directly into the **Warp agent chat input** (not the terminal)
+
+**Context advantages of Warp tabs:**
+- Global Warp Drive rules (personal rules auto-injected)
+- MCP servers via UUID (GitHub, etc. — zero-config)
+- Warp Drive notebooks, workflows, and other auto-injected context
+- Warm codebase index from the active Warp session (no cold-start delay)
+- Agent is interruptible and steerable mid-run
+
+**Tradeoff:** Requires the user to manually open and manage one Warp tab per agent.
+
+? If not running inside Warp at all (no `WARP_*` variables, no `start_agent`), use the same tab approach but with any terminal emulator — the user pastes prompts into their preferred terminal or agent interface.
+
+### Step 2c: Cloud Agents (explicit user request only)
+
+! Use `oz agent run-cloud` ONLY when the user explicitly requests cloud execution. Never default to this path.
+
+```powershell
+oz agent run-cloud --prompt "TASK: You must complete..."
+```
+
+Agents execute on remote VMs without local MCP servers, codebase indexing, or Warp Drive rules. Agents MUST use `gh` CLI for GitHub operations. `AGENTS.md` is the only behavioral control surface.
+
+**Tradeoff:** Fully automated with zero tab management, but context-starved — no MCP, no Warp Drive rules, no codebase indexing. Best for self-contained tasks that don't need rich local context.
+
+⊗ Default to cloud launch — it is an escape hatch, not a default path.
+⊗ Use `oz agent run-cloud` when the user expects local execution — `run-cloud` routes to remote VMs with no local context.
+
+## Phase 4 — Monitor
+
+### Polling Cadence
+
+- ~ Check each agent's worktree every 2–3 minutes: `git status --short` and `git log --oneline -3`
+- ~ After 5 minutes with no changes, check if the agent process is still running
+
+### Checkpoints
+
+Track each agent through these stages:
+
+1. **Reading** — agent is loading AGENTS.md, vBRIEF files, project files (no file changes yet)
+2. **Implementing** — working tree shows modified files
+3. **Validating** — agent running `task check`
+4. **Committed** — new commit(s) in `git log`
+5. **Pushed** — branch exists on `origin`
+6. **PR Created** — PR visible via `gh pr list --head <branch>`
+7. **Review Cycling** — additional commits after PR creation (Greptile fix rounds)
+
+### Takeover Triggers
+
+! **Pre-spawn verification:** Before spawning a replacement agent, verify the original is truly unresponsive by waiting for an idle/blocked lifecycle event (e.g. the agent's Warp tab shows no tool calls in progress, no pending shell commands, and no recent output). Do NOT spawn a replacement based solely on message timing, absence of recent commits, or a perceived delay — original Warp tabs can resume after apparent failure, and spawning a new agent creates two concurrent agents on the same worktree (see Duplicate-Tab Failure Mode below).
+
+! Take over an agent's workflow if ANY of these occur:
+
+- Agent process has exited and PR has not been created
+- Agent process has exited and Greptile review cycle was not started
+- Agent is idle for >5 minutes after PR creation with no review activity
+- Agent is stuck in an error loop (same error 3+ times)
+
+When taking over: read the agent's current state (git log, diff, PR comments), complete remaining steps manually following the same deft process.
+
+### Duplicate-Tab Failure Mode
+
+⚠️ **Root cause of #261 and #263:** Original Warp agent tabs may resume after apparent failure (network hiccup, temporary Warp UI freeze, context window pressure). If the monitor spawns a new agent for the same worktree, two concurrent agents execute on the same branch simultaneously. This corrupts the `tool_use`/`tool_result` message chain — both agents issue tool calls, but responses are interleaved unpredictably, causing one or both agents to act on stale or incorrect state.
+
+**Recovery guidance:**
+- ! Keep original agent tabs open until their PR is merged — do not close tabs that appear stalled
+- ! If an agent appears stalled, go to its original Warp tab and tell it to resume (e.g. "continue from where you left off") rather than spawning a replacement
+- ! If the original tab is truly unrecoverable (Warp crash, tab closed), only then create a new agent — and first verify the worktree state (`git status`, `git log`, `gh pr list`) to avoid conflicting with any in-flight work
+
+### Context-Length Warning
+
+! Long monitoring sessions accumulate large conversation history (hundreds of tool_use/tool_result pairs) and are susceptible to conversation corruption — the tool_use/tool_result mismatch observed in #263 occurred at approximately message 158 in a single monitor conversation. To mitigate:
+
+- ! Offload rebase, review-watch, and merge sub-tasks to ephemeral sub-agents using the tiered approach from `skills/deft-directive-review-cycle/SKILL.md` (spawn via `start_agent` when available, discrete tool calls with yield otherwise) — this keeps the monitor conversation shallow
+- ~ Target <100 tool-call round-trips in any single monitor conversation before considering a fresh session handoff
+- ! If the monitor detects degraded output (repeated errors, inconsistent state references, tool call failures), stop and hand off to a fresh session with a state summary rather than continuing in a corrupted context
+
+## Phase 5 — Review & Complete
+
+### Verify Review Cycle Completion
+
+For each agent's PR:
+
+1. ! Check that Greptile has reviewed the latest commit (compare "Last reviewed commit" SHA to branch HEAD)
+2. ! Verify Greptile confidence score > 3
+3. ! Verify no P0 or P1 issues remain (P2 are non-blocking style suggestions)
+4. ! If the agent did not complete its review cycle, the monitor runs it per `skills/deft-directive-review-cycle/SKILL.md`
+
+### Complete vBRIEFs
+
+For each story vBRIEF that an agent's PR fully resolves:
+
+1. ! Move the vBRIEF from `vbrief/active/` to `vbrief/completed/` via `task scope:complete <file>`
+2. ! Verify `plan.status` is set to `completed` (the scope command handles this)
+3. ! If the vBRIEF has a `planRef` to a parent epic, check whether all sibling stories are now completed — if so, the epic may also be completable
+
+⚠️ Origin/issue closure happens in Phase 6 Step 2 (after merge), not here — closing issues before merge creates premature state if the merge cascade fails.
+
+### Exit Condition
+
+All PRs meet ALL of:
+- Greptile confidence > 3
+- No P0 or P1 issues remain (P2 issues are non-blocking style suggestions)
+- `task check` passed (or equivalent validation completed)
+- CHANGELOG entries present under `[Unreleased]`
+
+### Phase 5→6 Gate: Release Decision Checkpoint
+
+! Before proceeding to Phase 6 (Close), the monitor MUST present the proposed release scope and version bump to the user for confirmation.
+
+⊗ **Context-pressure bypass prohibition:** Even under long-context or time pressure (large conversation history, many tool calls, approaching context limits), this gate MUST NOT be bypassed. The Phase 5→6 gate is mandatory regardless of conversation length, elapsed time, or perceived urgency. If the monitor's context is degraded, hand off to a fresh session rather than skipping the gate.
+
+1. ! Present a summary containing:
+   - **PRs ready to merge**: list of PRs with titles, issue numbers, and current review status
+   - **Proposed version bump**: the tentative version from Phase 0 (patch/minor/major) with rationale — updated if scope changed during implementation
+   - **Release scope**: brief description of what this batch of changes represents
+2. ! **Merge-readiness checklist:** Before any `gh pr merge` call, the monitor MUST emit a structured checklist confirming each PR is merge-ready. For each PR, verify and explicitly confirm:
+   - Greptile confidence score > 3
+   - No P0 or P1 issues remaining
+   - `task check` passed on the branch
+   - CHANGELOG.md entry present under `[Unreleased]`
+   - Explicit user approval received for this merge cascade
+
+   ! **Programmatic gate:** Before each `gh pr merge` call, the monitor MUST run `task pr:merge-ready -- <N>` (script: `scripts/pr_merge_readiness.py`) and abort the cascade on non-zero exit. The Taskfile target parses the Greptile rolling-summary comment **body** (confidence, P0 / P1 badge counts, errored sentinel, HEAD-SHA freshness) -- not the GitHub CheckRun status. The CheckRun goes green when Greptile finishes its review pass, irrespective of findings; relying on it alone is the SUCCESS-with-findings blind spot that started the PR #652 incident merge cascade against `Confidence: 3/5 + 1×P1 + 2×P2`.
+
+   ! **Atomic gate (freshness window):** The monitor MUST invoke `task pr:merge-ready -- <N>` and `gh pr merge <N>` in the same shell call (e.g. `task pr:merge-ready -- <N> && gh pr merge <N> --squash --delete-branch --admin`) so no time elapses between verdict and merge. A readiness check more than ~60 seconds stale is a Mode-1 false-positive risk: in the elapsed window an unrelated commit may land on master, auto-rebase trigger a fresh Greptile pass, and the new pass surface a P1 the cached verdict did not see. Re-invoking the gate is cheap (single `gh api` call); the shell-`&&` chain makes the freshness window structurally enforceable rather than prose-trust.
+
+   ⊗ Merge on the basis of a SUCCESS Greptile CheckRun alone. The CheckRun signals review **completion**, not review **approval**. Parse the comment body (confidence + P0/P1 count) via `task pr:merge-ready -- <N>` before merging.
+
+   ⊗ Run `task pr:merge-ready -- <N>` upstream of `gh pr merge <N>` (e.g. as a separate batched check during cascade prep, then later run `gh pr merge` after intervening rebase / sub-agent dispatch / user discussion). Stale verdicts risk Mode-1 false positives -- always chain readiness and merge in the same shell call.
+3. ! Wait for explicit user approval (`yes`, `confirmed`, `approve`) before proceeding to Phase 6 merge cascade
+4. ! If the user requests changes (e.g. different version bump, defer a PR), adjust and re-present
+
+⊗ Begin merge cascade without presenting the version bump proposal and receiving explicit user approval.
+
+## Phase 6 — Close
+
+### Sub-Agent Role Separation (#727)
+
+! **Post-PR sub-agents are review-cycle agents (#727):** Sub-agents addressing review findings, waiting for re-review, and iterating to clean MUST embody `skills/deft-directive-review-cycle/SKILL.md` end-to-end as a single coherent role. Do NOT split the review-cycle into separate "poll" and "fix" agents -- pollers that spawn separate fix agents create cross-agent state-handoff hazards and double the chance of an agent exiting at the wrong lifecycle boundary.
+
+! **Post-PR monitoring runs in a fresh sub-agent (#727):** Post-PR monitoring (Greptile, CI checks, downloadCount drift, lifecycle events, etc.) MUST be done by spawning a fresh short-lived sub-agent via `start_agent`. The parent yields with no tool calls and waits for the sub-agent's messages -- this preserves conversation steerability so the user can interrupt or redirect while the watch is pending. The only Warp runtime surface with a true async callback channel is `start_agent` + messaging; every Taskfile / shell-sleep / `time.sleep` / synchronous tool-call alternative blocks the parent's turn for the duration of the watch.
+
+! **Canonical poller template (#727):** When delegating to a poller / review-cycle sub-agent, MUST use the canonical poller-prompt template at `templates/swarm-greptile-poller-prompt.md` with placeholders (`{pr_number}`, `{repo}`, `{poll_interval_seconds}`, `{poll_cap_minutes}`, `{parent_agent_id}`) filled in. Do NOT hand-author per-watch prompts -- the template encodes parsing fixes (markdown-link `Last reviewed commit:` regex, badge-based / negation-aware P0/P1 detection) that hand-authored variants have repeatedly missed (Agent D, post-#721 swarm; #727 comment 2).
+
+! **Destructive commands run alone (#727):** Sub-agent prompts MUST instruct the agent to run destructive commands (`rm`, `Remove-Item`, `del`, `git clean`, etc.) in their OWN shell call, never chained with non-destructive commands. Chaining poisons Warp's `is_risky` classification on the entire pipeline and forces manual approval on every otherwise-safe operation -- a multi-commit branch hits the user N times per agent.
+
+! **Commit-message temp file is leave-alone (#727):** When using the canonical PowerShell UTF-8-safe commit-message pattern (`create_file <tmp>` -> `git commit -F <tmp>`), MUST NOT clean up the temp file in the same shell call. Leave it orphaned -- worktree teardown or `git clean -fd` reclaims it. The two-step value (separate cleanup) is not worth the per-commit approval prompt the chained `rm` triggers.
+
+⊗ Run a poll loop in the parent's own turn (via `task`, shell sleep, `time.sleep`, or any synchronous tool call). The conversation must remain user-steerable while watches are pending.
+
+⊗ Bundle "watch for Greptile" / "monitor CI" instructions into an implementation agent's `start_agent` prompt -- implementation agents exit at PR-open via the `succeeded` lifecycle, so any post-exit monitoring instruction is unreachable.
+
+⊗ Spawn a "pure poller" sub-agent for a PR that has likely findings. Pure pollers are appropriate ONLY when no fixes are expected (CI watch on known-good HEAD, post-merge state checks, lifecycle observers). Default for post-PR work is review-cycle, NOT poller.
+
+⊗ Chain `rm` (or any destructive command) with `git commit` / `git push` / any non-destructive command in a single shell pipeline.
+
+### Step 1: Merge
+
+! **Per-PR sub-agent identity gate:** Before acting on any PR (merge, force-push, status check), query the specific sub-agent responsible for that PR for live status. Do not infer a PR's status from a different agent's tab, from message timing, or from the absence of recent commits. If the responsible agent is unreachable, verify PR state directly via `gh pr view <number>` and `gh pr checks <number>` before proceeding.
+
+! **Idempotent pre-check pattern:** Before each action in the merge cascade, verify the current PR/branch state to ensure the action is still needed and safe to execute. Check: is this PR already merged (`gh pr view <number> --json state --jq .state`)? Is this branch already rebased onto the latest master? Has this issue already been closed? This makes recovery re-runs safe — a crash mid-cascade can resume from any point without duplicate actions or errors.
+
+! **Pre-merge protected-issue link inspection (Layer 3, #701):** Before any `gh pr merge` call where a referenced issue MUST remain OPEN (umbrella, anchor, follow-up tracker), inspect GitHub's persistent linked-issue list:
+
+```bash
+gh pr view <N> --repo <owner/repo> --json closingIssuesReferences --jq '.closingIssuesReferences[].number'
+```
+
+The optional `task pr:check-protected-issues -- <pr-number> --protected <N1,N2,...>` Taskfile target (`tasks/pr.yml`) wraps this inspection and exits non-zero if any protected issue is GitHub-side linked.
+
+! **Layer 0 (prevention) cross-reference (#737):** before reaching this Layer 3 recovery surface, the operator should already have run `task pr:check-closing-keywords -- --pr <N>` per `skills/deft-directive-pre-pr/SKILL.md` Phase 4 (Diff). Layer 0 scans the PR body + every commit message for closing-keyword tokens in negation / quotation / example / code-block contexts and refuses to push when findings surface; Layer 3 (this rule) is the persistent-link recovery for cases where Layer 0 was bypassed OR the link was attached via the Development sidebar. The two layers complement each other -- Layer 0 prevents the false-positive from being authored, Layer 3 catches the durable-link case Layer 0 cannot see.
+
+If any protected (umbrella / staying-OPEN) issue number appears in the output, the link is persistent in GitHub's database from a prior PR body revision (or a manual sidebar attachment) and survives subsequent body edits; on squash merge, GitHub will close the issue regardless of the current PR body, commit messages, or explicit `--subject` / `--body-file` overrides. The merger MUST manually unlink via the PR's Development sidebar panel (web UI -> PR -> right-side Development section -> X next to the linked issue) before merging. The `gh` CLI does not expose a direct unlink mutation; the GraphQL surface (`disconnectPullRequestFromIssue` and friends) shifts over time -- the web UI is the reliable path. See `meta/lessons.md` `## GitHub Closing-Keyword False-Positive Layer 3` for the incident history (PR #700 closed #233; PR #401 closed #642).
+
+! **Merge authority:** Monitor proposes merge order and executes merges; user approves before the first merge. Do not merge without explicit user approval.
+
+! **Rebase cascade ownership:** Monitor owns rebase cascade sequencing. Swarm agents do not rebase -- by the time merges begin, swarm agents are idle or complete. The monitor fetches the updated configured base branch, rebases each remaining branch, resolves conflicts, and force-pushes.
+
+! **Read-back verification after conflict resolution:** After resolving any rebase conflict and BEFORE running `git add`, re-read the resolved file and verify structural integrity:
+- ! No conflict markers remain (`<<<<<<<`, `=======`, `>>>>>>>`)
+- ! No collapsed or missing lines (compare line count to pre-rebase version if feasible)
+- ! No encoding artifacts (BOM injection, mojibake, replacement characters)
+- ! For `CHANGELOG.md` conflicts: prefer `edit_files` over shell regex (`sed`, `Select-String -replace`) for resolution -- edit_files preserves encoding and provides exact match verification, while regex substitutions risk silent line collapse or encoding corruption
+- ⊗ Run `git add` on a conflict-resolved file without first re-reading it and verifying structural integrity
+
+! **Non-interactive rebase:** Monitor MUST set `GIT_EDITOR=true` (Unix/WSL/Git Bash) or `$env:GIT_EDITOR="echo"` (Windows PowerShell) before running `git rebase --continue` during merge cascade to prevent the default editor from blocking the agent.
+
+! **Merge cascade warning:** Shared append-only files (CHANGELOG.md) cause merge conflicts when PRs are merged sequentially — each merge changes the insertion point, conflicting remaining PRs. Each conflict requires rebase → push → wait for checks (~3 min) + ~2-5 min Greptile re-review per rebase. Plan for N-1 rebase cycles × ~3 min CI + ~2-5 min Greptile re-review per rebase when merging N PRs.
+
+! **Greptile re-review on rebase force-push:** Force-pushing a rebased branch triggers a **full** Greptile re-review (not an incremental diff), even if the rebase introduced no logic changes. Expected latency is ~2-5 minutes per PR in the cascade. Factor this into merge sequencing.
+
+! **Autonomous re-review monitoring after force-push:** After each `--force-with-lease` push of a rebased branch in the cascade, the monitor MUST autonomously wait for the Greptile re-review to complete before proceeding to the next merge. Use the tiered monitoring approach defined in `skills/deft-directive-review-cycle/SKILL.md` Step 4 Review Monitoring (Approach 1: spawn sub-agent via `start_agent` to poll and report back; Approach 2 fallback: discrete `run_shell_command` wait-mode calls with yield between polls, adaptive cadence -- see deft-directive-review-cycle SKILL.md). Do NOT duplicate the full monitoring logic here -- follow the canonical skill.
+
+! **Gate:** Do NOT proceed to the next merge in the cascade until the Greptile review for the rebased branch is current (pushed SHA matches "Last reviewed commit" SHA) AND the exit condition is met (confidence > 3, no P0/P1 issues remaining). A stale or in-progress review is not sufficient; an errored review is also not sufficient; follow the escalation procedure below.
+
+! **Greptile service errored state (#526):** If the Greptile comment on the current HEAD is the exact string "Greptile encountered an error while reviewing this PR", treat the review as errored (distinct from stale, in-progress, or ready). The GitHub CheckRun will read COMPLETED/NEUTRAL; do NOT interpret that as passing.
+
+Retry ONCE via an `@greptileai review` comment with a 10-minute cap. If the retry also errors, escalate to the user with a three-way choice:
+
+  (a) wait longer (another ~15-20 min in case the service recovers);
+  (b) push an empty `chore: retrigger greptile` commit to force a fresh review pass;
+  (c) merge with documented override, where the rationale MUST be recorded in the merge commit body (not just the PR body) citing prior Greptile success on a pre-rebase SHA, CI/Go + CI/Python success on the current SHA, and the rebase being a pure conflict-resolution merge with no new business logic.
+
+⊗ Loop the monitor indefinitely on the errored state. The monitor MUST detect the "Greptile encountered an error" comment body and exit with an explicit `errored` report so the parent swarm monitor can route to the escalation procedure above.
+
+⊗ Merge on the basis of the NEUTRAL CheckRun alone -- the service-side failure is indistinguishable from a clean pass at the CheckRun level.
+
+! **Polling sub-agent contract for errored state (#526):** Short-lived polling sub-agents spawned under Phase 6 MUST detect the "Greptile encountered an error" comment body on the current HEAD and emit a distinct "PR #<N> Greptile errored" message back to the parent, rather than silently continuing to poll or timing out. Sub-agents MUST separately track "Greptile last-reviewed SHA" and "Greptile errored on current HEAD" so an errored state on the current HEAD is not masked by a successful review on a prior SHA.
+
+? **Rebase-only annotation:** If the force-push contains no logic changes (pure rebase onto updated master), the monitor MAY post a brief PR comment noting "rebase-only, no logic changes" to give Greptile context and help reviewers triage the re-review.
+
+~ To minimize cascades: rebase ALL remaining PRs onto latest master before starting any merges, then merge in rapid succession.
+
+~ **Parallel rebase + review monitoring (start_agent available):** When `start_agent` is available during the merge cascade, the monitor MAY launch parallel sub-agents to overlap rebase and review monitoring work. For example: while Greptile re-reviews PR #A after a rebase push, spawn a sub-agent to begin rebasing PR #B onto the latest master. Each sub-agent reports back via `send_message_to_agent` when its task (rebase complete, review passed) is done. This reduces total cascade wall-clock time from serial (rebase + review per PR) to overlapped. The gate remains: do NOT merge PR #B until its own Greptile review passes the exit condition.
+
+- ! Undraft PRs: `gh pr ready <number> --repo <owner/repo>`
+- ! Squash merge: `gh pr merge <number> --squash --delete-branch --admin` (if branch protection requires)
+- ! Use descriptive squash subject: `type(scope): description (#issues)`
+- ! After each merge, rebase remaining PRs onto the updated configured base branch before merging the next
+
+! **Post-merge protected-issue reopen sweep (Layer 3, #701):** After every squash-merge of a PR that referenced any umbrella / staying-OPEN issue (`Refs #N` with N a protected issue), verify each protected issue's post-merge state and reopen on regression:
+
+```bash
+for n in <protected-issue-numbers>; do
+  state=$(gh issue view "$n" --json state --jq .state)
+  if [ "$state" != "OPEN" ]; then
+    gh issue reopen "$n" --comment "Reopened: closing-keyword Layer 3 false-positive on squash merge of PR #<N>; issue is umbrella for ongoing work. See #701."
+  fi
+done
+```
+
+This is defense in depth -- run it even when the pre-merge inspection above passed, because a sidebar-attached link not visible to a body scan, or a missed protected issue in the protected-issue list, can still slip through. The reopen comment MUST cite #701 and the PR that triggered the false-positive so future operators tracing the closed-then-reopened churn can find the root cause.
+
+### Step 2: Close Issues and Update Origins
+
+- ! Close resolved issues with a comment referencing the PR
+- ~ Issues with "Closes #N" in PR body auto-close on squash merge
+- ! After each squash merge, verify issues actually closed: `gh issue view <N> --json state --jq .state`. If not closed, close manually with a comment referencing the merged PR. Squash merge + closing keywords can silently fail to close issues (#167).
+- ! For each completed vBRIEF: read its `references` array and update each origin:
+  - For `github-issue` references: verify the issue is closed (auto-close from PR body or Phase 6 Step 2 above); if not, close with `gh issue close <N> --comment "Completed in #<PR>"`
+  - For other reference types: document the completion as appropriate
+
+### Step 3: Update Master
+
+- ! Pull merged changes: `git pull origin <configured-base-branch>` from the merger's OWN worktree only.
+- ⊗ Run `git checkout` (any branch) in a worktree the merging agent does not own. Post-merge `git pull origin <base-branch>` semantics MUST be performed via `git fetch origin <base-branch>` from the merger's own worktree, OR by leaving the master update entirely to the human operator. NEVER touch HEAD of a sibling worktree another agent is using.
+- ! After a successful squash merge, the merger MAY remove its own worktree via `git worktree remove <path>` and delete the now-orphaned local feature branch via `git branch -D <branch>`. The merger MUST NOT alter any other worktree's HEAD or branch state.
+- ! **Worktree-boundary discipline (#800, companion to #727):** the `⊗` rule above extends the same boundary discipline as the `### Sub-Agent Role Separation (#727)` companion rules earlier in Phase 6 -- #727 codifies sub-agent spawn shape; #800 codifies worktree HEAD operations. Recurrence record: PR #797 merge session (2026-05-01) -- Agent B (the merger) ran `cd C:\repos\Deft\directive; git checkout master --quiet` against Agent A's sibling worktree after merging its own PR; HEAD detached on Agent A's branch and was retroactively restored. No work was lost (Agent A had pushed) but recovery was incident-driven, not preventative.
+
+### Step 4: Clean Up
+
+- ! Remove worktrees: `git worktree remove <path>`
+- ! Delete local branches: `git branch -D <branch>`
+- ~ Delete launch scripts if still present
+- ? If worktree removal fails (locked files from open terminals), note for manual cleanup
+
+### Step 5: Generate Slack Release Announcement
+
+! After creating the GitHub release (or after the final merge if no formal release is created), generate a standard Slack announcement block and present it to the user for copy-paste into the team channel.
+
+! The announcement block MUST include all of the following fields:
+
+```
+:rocket: *{Project Name} {version}* -- {release title}
+
+*Summary*: {one-sentence description of the release scope}
+
+*Key Changes*:
+- {bullet per significant change, 3-5 items max}
+
+*Stats*: {N} agents | ~{duration} elapsed | {N} PRs merged
+*PRs*: {#PR1, #PR2, ...}
+*Override merges*: {#PRX: <one-line rationale from merge commit body>, ...} -- omit this line only if no PR in the release used the Greptile-service-errored override path
+*Release*: {GitHub release URL}
+```
+
+- ! Populate version from the CHANGELOG promotion commit or git tag
+- ! Populate release title from the CHANGELOG section heading or GitHub release title
+- ! Key changes summarized from CHANGELOG `[Unreleased]` entries (not raw commit messages)
+- ! Agent count and approximate duration from the swarm session (Phase 3 launch to Phase 6 close)
+- ! PR numbers from the merged PRs in this swarm run
+- ! **Override merges line (#526):** For any PR in the release that was merged via the Greptile-service-errored override path (Phase 6 Step 1 choice (c)), explicitly call it out in the announcement with the one-line rationale taken from the merge commit body so downstream readers of the release notes can trace the documented rationale. Detect override merges by scanning each merged PR's merge commit body for the override rationale footprint (prior Greptile success on a pre-rebase SHA + CI green on current SHA + pure conflict-resolution rebase). Omit the `*Override merges*` line only when no merged PR in this release used the override path.
+- ! GitHub release URL from the `gh release create` output (or `gh release view --json url` if already created)
+- ~ Present the block as a code-fenced snippet the user can copy directly
+- ? If no formal GitHub release was created (e.g. user deferred), still generate the announcement with a placeholder URL and note that the release is pending
+
+## Crash Recovery
+
+When a monitor session crashes or a new session must take over an in-progress swarm, follow these steps to safely reconstruct and continue.
+
+### Checkpoint Guidance
+
+! At each major Phase 6 milestone, record progress so a new session can reconstruct state:
+
+- **PR merged** — note the PR number, merge commit SHA, and which issues it closes
+- **Rebase done** — note which branches have been rebased onto the latest master
+- **Review passed** — note which PRs have passed the Greptile exit condition post-rebase
+
+~ Use a brief structured note (in the conversation or a scratch file) after each milestone — this is the checkpoint a recovery session will read.
+
+### Recovery Steps
+
+! On a fresh session taking over a swarm, reconstruct the cascade state before taking any action:
+
+1. ! Run `gh pr list --repo <owner>/<repo> --state all` to see all PRs from the swarm (filter by branch prefix, e.g. `agent1/`, `agent2/`)
+2. ! For each PR, run `gh pr view <number> --json state,mergeCommit,headRefName,title` to determine:
+   - Is this PR already merged? (state = MERGED) → skip, move to issue verification
+   - Is this PR still open? → check if it needs rebase, re-review, or merge
+   - Is this PR closed without merge? → investigate (was it superseded?)
+3. ! For open PRs, check rebase status: `git --no-pager log --oneline <branch> ^origin/<configured-base-branch> -5` — if empty, the branch is already up-to-date with the configured base branch
+4. ! For open PRs, check review status: `gh pr checks <number>` and `gh pr view <number> --comments` to verify Greptile review state
+5. ! Resume the cascade from the first incomplete step — the idempotent pre-check pattern (see Step 1 above) ensures re-running any step on an already-completed PR is safe
+
+### Idempotent Safety
+
+! Every Phase 6 action MUST be safe to re-run:
+- Merging an already-merged PR → `gh pr merge` will report "already merged" and exit cleanly
+- Rebasing a branch already on latest configured base branch → rebase is a no-op
+- Closing an already-closed issue → `gh issue close` will report "already closed"
+- Force-pushing a branch that hasn't changed → push reports "Everything up-to-date"
+
+## Prompt Template
+
+! Use this template for all agent prompts. The first line MUST be an imperative task statement.
+
+```
+TASK: You must complete N [type] fixes on this branch ([branch-name]) in the deft directive repo.
+This is a git worktree. Do NOT just read files and stop — you must implement all changes,
+run task check, commit, push, create a PR, and run the review cycle.
+DO NOT STOP until all steps are complete.
+
+STEP 1 — Read directives: Read AGENTS.md, vbrief/vbrief.md, and the assigned vBRIEF(s) from vbrief/active/.
+Read skills/deft-directive-review-cycle/SKILL.md.
+
+STEP 2 — Implement these N tasks (see assigned vBRIEF(s) for full acceptance criteria):
+
+Task A (vBRIEF: [filename], issue #[N]): [one-paragraph description with specific acceptance criteria]
+
+Task B (vBRIEF: [filename], issue #[N]): [one-paragraph description with specific acceptance criteria]
+
+[...repeat for each task...]
+
+STEP 3 — Validate: Run task check. Fix any failures.
+
+STEP 4 — Commit: Add CHANGELOG.md entries under [Unreleased].
+Commit with message: [type]([scope]): [description] — with bullet-point body.
+
+STEP 5 — Push and PR: Push branch to origin. Create PR targeting <configured-base-branch> using gh CLI.
+Note: --body-file must use a temp file in the OS temp directory ($env:TEMP on PowerShell,
+$TMPDIR or /tmp on Unix) -- do NOT write temp files in the worktree. See scm/github.md.
+
+STEP 6 — Review cycle: Follow skills/deft-directive-review-cycle/SKILL.md to run the
+Greptile review cycle on the PR. Do NOT merge — leave for human review.
+
+CONSTRAINTS:
+- Do not touch [list files other agents are working on]
+- New source files (scripts/, src/, cmd/, *.py, *.go) must have corresponding test files in the same PR
+- Use conventional commits: type(scope): description
+- Run task check before every commit
+- Never force-push
+```
+
+### Template Rules
+
+- ! First line MUST start with `TASK:` followed by an imperative statement
+- ! Include `DO NOT STOP until all steps are complete` in the preamble
+- ! Each task MUST include its vBRIEF filename and origin issue number
+- ! CONSTRAINTS section MUST list files the agent must not touch (other agents' scope)
+- ! Review cycle step MUST reference `skills/deft-directive-review-cycle/SKILL.md` explicitly
+- ⊗ Start the prompt with context ("You are working in...") — agents treat this as passive setup and may stop after reading
+
+## Push Autonomy
+
+! Swarm agents operating under this skill with a monitor agent may push, create PRs, and run review cycles autonomously after passing `task check`. The global "never push/commit without explicit user instruction" convention does not apply to swarm agents executing the full STEP 1-6 prompt workflow -- the skill's quality gates (`task check`, Greptile review cycle) replace the interactive confirmation gate.
+
+## Anti-Patterns
+
+- ⊗ Start prompts with context or description instead of an imperative TASK directive
+- ⊗ Use `--mcp` with Warp MCP server UUIDs from standalone (non-Warp) terminals
+- ⊗ Assign overlapping files to multiple agents
+- ⊗ Merge PRs before Greptile exit condition is met (score > 3, no P0/P1)
+- ⊗ Assume agents will complete the full workflow — always verify review cycle completion
+- ⊗ Launch agents without checking vBRIEF acceptance criteria first
+- ⊗ Skip the file-overlap audit in Phase 1
+- ⊗ Use `git reset --hard` or force-push in any worktree (swarm agents only -- monitor may `--force-with-lease` after rebase cascade per Phase 6 Step 1)
+- ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime — always probe for `start_agent` and Warp environment variables before choosing a launch path
+- ⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate on `WARP_*` environment variables or `start_agent` tool presence
+- ⊗ Default to `oz agent run-cloud` — cloud is an explicit user-requested escape hatch, not a default path
+- ⊗ Use `oz agent run-cloud` when the user expects local execution — `run-cloud` routes to remote VMs with no local context
+- ⊗ Proceed to Phase 1 (Select) without completing Phase 0 (Allocate) and receiving explicit user approval
+- ⊗ Begin merge cascade without presenting the version bump proposal and receiving explicit user approval — the Phase 5→6 gate is mandatory
+- ⊗ Ignore Greptile re-review latency when planning merge cascade timing -- each rebase force-push triggers a full re-review (~2-5 min), not an incremental diff
+- ⊗ Proceed to the next merge in the rebase cascade before confirming the Greptile re-review is current (SHA match) and exit condition is met (confidence > 3, no P0/P1) on the rebased branch -- see `skills/deft-directive-review-cycle/SKILL.md` Step 4 for the monitoring approach
+- ⊗ Spawn a replacement sub-agent without confirming the original is unresponsive via a lifecycle event (idle/blocked) — original Warp tabs can resume after apparent failure, and two concurrent agents on the same worktree will corrupt the tool_use/tool_result call chain (#261, #263)
+- ⊗ Skip Phase 5 or the Phase 5→6 confirmation gate under time pressure or due to long context — the gate is mandatory regardless of conversation length, elapsed time, or context-window pressure
+- ⊗ Run `git add` on a conflict-resolved file without re-reading and verifying structural integrity (no conflict markers, no collapsed lines, no encoding artifacts) -- see Phase 6 Step 1 read-back verification rule (#288)
+- ⊗ Use shell regex (`sed`, `Select-String -replace`) to resolve `CHANGELOG.md` rebase conflicts -- prefer `edit_files` for encoding safety and exact match verification (#288)
+- ⊗ Hardcode a 1:1 vBRIEF-per-agent allocation rule — the monitor decides allocation dynamically based on scope, complexity, and dependencies
+- ⊗ Complete a story without moving its vBRIEF from `active/` to `completed/` and updating its origin references
+- ⊗ Hardcode `master` as the base branch -- always use the configured base branch from Phase 0
+- ⊗ Treat a Greptile GitHub CheckRun of COMPLETED/NEUTRAL as equivalent to a passing review without inspecting the comment body. NEUTRAL is the result both when Greptile intentionally has nothing to say AND when it errored out mid-review; the two cases require opposite responses (#526)
+- ⊗ Loop the monitor indefinitely on the Greptile-service-errored state or time out silently at the poll cap -- detect the "Greptile encountered an error" comment body, retry once via `@greptileai review` with a 10-minute cap, and on second error escalate to the user with the three-way choice (wait / empty retrigger commit / documented override) per Phase 6 Step 1 (#526)
+- ⊗ Merge a rebased PR on the basis of the NEUTRAL CheckRun alone when the Greptile comment body is the error sentinel -- the service-side failure is indistinguishable from a clean pass at the CheckRun level, and any merge taken must be recorded as a documented override in the merge commit body (#526)
+- ⊗ Omit override-merged PRs from the Phase 6 Step 5 Slack release announcement -- any merge that used the Greptile-service-errored override path MUST be called out with its one-line rationale so downstream readers can trace the documented override trail (#526)
+- ⊗ Run `gh pr merge` on a PR that has any protected (umbrella / staying-OPEN) issue listed in `gh pr view <N> --json closingIssuesReferences` -- the link is persistent in GitHub's database from a prior PR body revision (or sidebar attachment) and survives body edits, commit-message edits, and explicit `--subject` / `--body-file` overrides; manually unlink via the PR's Development sidebar panel before merging (Layer 3, #701)
+- ⊗ Skip the post-merge protected-issue reopen sweep for any squash merge that referenced an umbrella / staying-OPEN issue -- defense in depth catches Layer 3 false-positives the pre-merge inspection missed (#701)
+- ⊗ Merge on the basis of a SUCCESS Greptile CheckRun alone -- the CheckRun signals review **completion**, not review **approval** (PR #652 incident; symmetric blind spot to the NEUTRAL CheckRun #526 case). Always run `task pr:merge-ready -- <N>` before `gh pr merge` to parse the comment body for confidence + P0 / P1 findings
+- ⊗ Run `git checkout` (any branch) -- including the brief `cd <other-worktree>; git checkout master --quiet` shape -- in a worktree the merging agent does not own during Phase 6 Step 3 (Update Master) or Step 4 (Clean Up). Post-merge state-update semantics MUST be performed via `git fetch origin <base-branch>` from the merger's OWN worktree, never by switching HEAD on a sibling worktree another agent is actively using. Recurrence record: PR #797 merge session (2026-05-01); companion to the Sub-Agent Role Separation rules (#727) -- this anti-pattern extends the same boundary discipline from sub-agent spawn shape to worktree HEAD operations (#800)

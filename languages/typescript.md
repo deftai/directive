@@ -28,8 +28,10 @@ See [testing.md](../coding/testing.md).
 
 ### Types
 - ! Use strict mode
-- ⊗ Use `any`
-- ~ Prefer `unknown` for type-safe unknowns
+- ⊗ Use `any` — including `as any` or `as unknown as T` casts to bypass type checking
+- ~ Prefer `unknown` for inputs from untrusted sources; narrow with type guards before use
+- ⊗ `unknown` as a function return type where the concrete type is knowable
+- ⊗ `@ts-ignore` or `@ts-expect-error` without an inline comment explaining why it is safe
 
 ### Telemetry
 - See [telemetry.md](../tools/telemetry.md)
@@ -107,6 +109,20 @@ Key settings: `globals: true`, `environment: "node"` (or `jsdom`), `coverage.pro
 ## .eslintrc.json
 
 Key settings: `@typescript-eslint/parser`, extends `recommended` + `recommended-requiring-type-checking`, rules: `no-explicit-any: error`, `no-unused-vars: [error, { argsIgnorePattern: "^_" }]`, `explicit-function-return-type: [warn, { allowExpressions: true }]`.
+
+## Hygiene
+
+**Dead code:**
+- ~ Run `knip` to detect unused exports, files, and dependencies
+- ~ Add `knip` as a `task hygiene` target; treat unused exports in library code as errors
+
+**Circular dependencies:**
+- ~ Run `madge --circular --exit-code src/` to detect cycles; resolve by extracting shared types to a lower-level module
+- ⊗ Circular imports between modules — use dependency inversion (interfaces/types in a shared module)
+
+**Error handling:**
+- ⊗ Empty `catch` blocks or `catch (e) {}` — log or re-throw
+- ⊗ Returning `null`, `undefined`, or a neutral default to mask a thrown error
 
 ## Compliance Checklist
 

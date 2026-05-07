@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #206: Swarm close-out orchestration rules for start_agent monitor workflow -- merge authority, rebase ownership, GIT_EDITOR, post-merge verification, push autonomy, MCP fallback",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Swarm close-out orchestration rules for start_agent monitor workflow -- merge authority, rebase ownership, GIT_EDITOR, post-merge verification, push autonomy, MCP fallback",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Swarm close-out orchestration rules for start_agent monitor workflow -- merge authority, rebase ownership, GIT_EDITOR, post-merge verification, push autonomy, MCP fallback",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/206",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #206: Swarm close-out orchestration rules for start_agent monitor workflow -- merge authority, rebase ownership, GIT_EDITOR, post-merge verification, push autonomy, MCP fallback"
+      }
+    ]
+  }
+}

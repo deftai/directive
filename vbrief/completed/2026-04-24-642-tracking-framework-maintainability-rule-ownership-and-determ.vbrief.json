@@ -1,0 +1,94 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #642: tracking umbrella narrowed to PR #401 trim tracker -- anchors only the trimmed hygiene merge; remains open until split children land under #635.",
+    "updated": "2026-04-27T22:25:52Z"
+  },
+  "plan": {
+    "title": "PR #401 trim tracker (hygiene merge anchor)",
+    "status": "completed",
+    "narratives": {
+      "Problem": "PR #401 (\"feat(coding): codebase hygiene, DDD framework structure, and determinism design\") spans hygiene codification, DDD framework structure, and determinism design -- broader than a single coherent merge. The original #642 umbrella tried to anchor all five sub-arcs at once, which made it impossible to land or close coherently. Per the canonical workflow comment (issue #642 comment 4330742436), #642 is being narrowed to anchor only the trimmed PR's hygiene merge; everything else routes to scope-clean child vBRIEFs under epic #635 (events x2, rule-ownership-map, Phase 0 RFC) plus refinement of #233.",
+      "Overview": "After Phase 2 (PR-A) lands, this vBRIEF tracks ONLY the trimmed PR #401 merge -- coding/hygiene.md plus consistent Hygiene sections across the mainstream language docs, with the Rule Authority [AXIOM] block landing in main.md as the framework's deterministic-encoding-form heuristic. The DDD/events material, Rule Ownership Map prose, and determinism design doc all leave PR #401 and respawn as enforceable structural artifacts under #635. #642 stays open with `Refs` (NOT `Closes`) on PR #401 until the four split children under #635 also land via subsequent swarm work.",
+      "Background": "The decision to trim rather than merge intact (Path B) is locked in the canonical workflow comment. S2 sequencing puts scaffolding (PR-A) first so PR #401 can rebase on master with concrete child vBRIEF references in its body. v0.17.0 already shipped 8 of the 12 determinism doc tasks, so 0 new determinism-themed vBRIEFs are created -- the remaining 6 fold into #233 instead.",
+      "Constraint": "PR #401 references this tracking issue with `Refs #642` (NOT `Closes`); #642 MUST remain open until the 4 split children under #635 (events detection-bound, events behavioral, rule-ownership-map data-file + lint, Phase 0 spec scaffolding RFC) and the 6 pending #233 items have landed or been split further.",
+      "Risk": "If the trim merge proceeds without the four child vBRIEFs scaffolded first, the trimmed scope loses traceability to the work that was lifted out -- swarm harvest cannot pick the leaves up cleanly. PR-A scaffolding (this vBRIEF's parent commit) is the deterministic ref that prevents promissory linkage.",
+      "Outcome": "Acceptance criteria: (1) PR #401's trimmed merge lands `coding/hygiene.md` plus Hygiene sections across the 11 mainstream language docs and the Rule Authority [AXIOM] block in main.md; (2) PR #401's body references this issue with `Refs #642` and references the four scope-clean child vBRIEFs under #635 via concrete file paths; (3) the RWLDL pre-PR loop and Greptile review cycle complete cleanly on PR #401 (confidence > 3, no P0/P1); (4) #642 stays OPEN after PR #401's squash merge so the four #635 children remain anchored to a tracking umbrella until they themselves land.",
+      "Test": "Verification: `gh pr view 401 --repo deftai/directive` shows `Refs #642` (not `Closes`); `gh issue view 642 --repo deftai/directive --json state --jq .state` returns `OPEN` after the squash merge; the four #635 child vBRIEFs in `vbrief/proposed/` exist on master; the original vbrief/active/2026-04-24-642-... narrative items match the trimmed merge scope (hygiene only, not events/rule-ownership-map/Phase 0)."
+    },
+    "items": [
+      {
+        "id": "trim-execution",
+        "title": "PR #401 trim execution: delete docs/more-determinism.md, delete core/events.md, remove REFERENCES.md Rule Ownership Map prose, drop main.md event-pointer addition, add Rule Authority [AXIOM] block to main.md (peer section after Persona, V4 body, See #634, #642)",
+        "status": "completed",
+        "narrative": {
+          "Action": "On the docs/holzmann-and-superpowers branch (Phase 3), apply the four trim deletions and the Rule Authority [AXIOM] insertion exactly as specified in the canonical workflow comment's DP5 V4 block. Apply Greptile P1/P2 fixes (madge --circular --exit-code, Python circular-deps subsection) at the same time. Trim leaves coding/hygiene.md and the language Hygiene sections intact -- those are the trimmed scope's load-bearing content.",
+          "Acceptance": "PR #401 diff against master after rebase shows: 4 file deletions/section removals listed above; main.md contains a `## Rule Authority [AXIOM]` peer section immediately after Persona with V4 body and `See #634, #642` cross-reference; coding/hygiene.md and 11 language Hygiene sections survive unchanged."
+        }
+      },
+      {
+        "id": "rwldl-pre-pr",
+        "title": "Pre-PR RWLDL hygiene loop on the trimmed PR #401 branch (Read-Write-Lint-Diff until clean)",
+        "status": "completed",
+        "narrative": {
+          "Action": "Run skills/deft-directive-pre-pr/SKILL.md end-to-end on the trim branch before pushing. Special attention to the AGENTS.md PS rule (Phase 1 Read): when the [AXIOM] block adds `!`/`\u2297` rules, scan main.md for any softer-strength `~`/`\u2249`/prose that softens prose-as-default-encoding before committing. Resolve all contradictions in the same commit per the pre-PR skill's RFC2119 contradiction rule.",
+          "Acceptance": "Loop exits with zero changes on a full Read-Write-Lint-Diff cycle; final `task check` passes (validate + lint + test + toolchain:check + verify:stubs + verify:links + vbrief:validate); CHANGELOG.md carries an `[Unreleased]` entry covering the trim + [AXIOM] addition."
+        }
+      },
+      {
+        "id": "greptile-review-cycle",
+        "title": "Run skills/deft-directive-review-cycle/SKILL.md to exit on PR #401 (Greptile confidence > 3, no P0/P1) and post the ready-to-merge template",
+        "status": "completed",
+        "narrative": {
+          "Action": "Address all P1 findings; address mechanical P2 (whitespace, line length, trivial style); defer substantive P2 with a comment per the canonical workflow's substantive-vs-mechanical bright line. Halt and post a need-decision comment if any Greptile finding contradicts a locked decision in the canonical comment's `Decisions locked -- do not reopen` section.",
+          "Acceptance": "Greptile review on the latest HEAD reports confidence > 3 with no P0/P1 issues remaining; `task check` passes locally and on CI; the ready-to-merge template (PR #401 variant -- adds the swarm next-steps line) is posted as a PR comment via `gh pr comment 401 --body-file <temp-path>`; halt for explicit user approval per Phase 5->6 gate."
+        }
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2"
+      },
+      "x-tracking": {
+        "umbrella": true,
+        "anchored_pr": "#401",
+        "split_policy": "PR #401 references this issue with Refs (not Closes); #642 stays open after PR #401 merges until the 4 split children under #635 (events detection-bound, events behavioral, rule-ownership-map data-file + lint, Phase 0 spec scaffolding RFC) and the 6 pending #233 items have landed or been split further. Canonical workflow: github.com/deftai/directive/issues/642#issuecomment-4330742436.",
+        "narrowed_from": "Original #642 umbrella anchored 5 sub-arcs (hygiene codification, language hygiene, framework structure / rule ownership, review-fix cleanup, determinism design); narrowed to PR #401 trim tracker only -- the other arcs route to #635 children + #233 refinement."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/642",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #642: tracking: framework maintainability, rule ownership, and determinism codification (PR #401 trim tracker)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/401",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #401: feat(coding): codebase hygiene, DDD framework structure, and determinism design (trimmed)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/635",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #635 (epic): skill-system maturity + framework-rule determinism (umbrella for #75, #604, #607, #633, #634) -- anchors the 4 split children scaffolded by PR-A"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/634",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #634: codify determinism-tier ladder as governing rule for framework-level root-cause fixes (cross-referenced by main.md Rule Authority [AXIOM] block)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/233",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #233: More Determinism (refined in PR-A: done/pending split + lifecycle move proposed/ -> pending/)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
+        "type": "x-vbrief/github-issue",
+        "title": "Canonical workflow comment for PR #401 trim + framework maintainability arc (locked decisions, DP5 V4 block, halt-to-user templates, substantive-vs-mechanical bright line)"
+      }
+    ],
+    "updated": "2026-04-30T17:42:12Z",
+    "completedNote": "PR #401 merged 2026-04-28T01:31:25Z with `Refs #642` per the canonical workflow (not `Closes`). Issue #642 remains intentionally OPEN as the umbrella anchor for the four #635 split children (events-detection-bound, events-behavioral, rule-ownership-map, Phase 0 RFC) until they themselves land. The brief moves to completed/ because the trim-execution items (this brief's defined scope) are done; the umbrella role of #642 is tracked by the children's references and the GitHub issue's open state, not by keeping this brief in active/."
+  }
+}

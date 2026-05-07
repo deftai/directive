@@ -1,0 +1,87 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story 5 of #845 triage v1: extend the deft-directive-refinement skill with a new Phase 0 (cache + triage). Owner: Agent A5 (independent track; single-file owner).",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T16:15:00Z"
+  },
+  "plan": {
+    "id": "845-story-5-triage-refinement-phase-0",
+    "title": "feat(skills): extend deft-directive-refinement with Phase 0 (cache + triage)",
+    "status": "completed",
+    "planRef": "#845",
+    "narratives": {
+      "Problem": "The current refinement skill ingests every candidate to `proposed/` first, then evaluates. This is the root cause of `proposed/` semantic drift and the wasted-regen problem (#845).",
+      "Overview": "Add a new Phase 0 to `skills/deft-directive-refinement/SKILL.md` that operates on the new cache + triage primitives (Stories 1-4). Phase 0 invokes `task triage:cache` to populate, then routes each new candidate through `task triage:accept|reject|defer|needs-ac`. The existing Phase 1 then runs ONLY on accepted items. Phase 0 auto-skips when the cache is empty (graceful degradation; consumers don't need to opt in).",
+      "Constraint": "Single-file owner: this story modifies `skills/deft-directive-refinement/SKILL.md` only. Zero overlap with any other agent's scope. The numbered-menu prompts in Phase 0 MUST follow the deterministic-questions contract (Discuss + Back as final two options) per `contracts/deterministic-questions.md`.",
+      "Outcome": "Phase 0 documented in the skill with: trigger conditions, three-tier inventory model explanation, action menu, deterministic-question gates, and explicit chaining into existing Phase 1 (which is renumbered if necessary). The skill's `## When to Use` section updated to reflect the Phase 0 entry.",
+      "Test": "Schema validation via existing skill-doc lint (if any) plus manual readability pass. No new pytest file required; the change is doc-only.",
+      "Action": "Edit skills/deft-directive-refinement/SKILL.md to insert Phase 0 before existing Phase 1. Update headings, cross-references, and `## When to Use`. Add deterministic-questions contract reference."
+    },
+    "items": [
+      {
+        "id": "845-s5-ac-1-skill-edit",
+        "title": "skills/deft-directive-refinement/SKILL.md gains Phase 0 (cache + triage) before existing Phase 1",
+        "status": "running"
+      },
+      {
+        "id": "845-s5-ac-2-deterministic-prompts",
+        "title": "Phase 0 numbered prompts conform to contracts/deterministic-questions.md (Discuss + Back final two)",
+        "status": "running"
+      },
+      {
+        "id": "845-s5-ac-3-auto-skip",
+        "title": "Phase 0 auto-skips with informational message when cache is empty",
+        "status": "running"
+      },
+      {
+        "id": "845-s5-ac-4-cross-refs",
+        "title": "Cross-references updated (When to Use, chaining, related skills)",
+        "status": "running"
+      },
+      {
+        "id": "845-s5-ac-5-changelog",
+        "title": "CHANGELOG.md [Unreleased] entry: feat(skills): refinement Phase 0 (#845 Story 5)",
+        "status": "running"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "epic_vbrief": "completed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "parent_issue": "#845",
+        "agent": "A5",
+        "wave": "independent",
+        "files_owned": [
+          "skills/deft-directive-refinement/SKILL.md",
+          "CHANGELOG.md (append under [Unreleased])"
+        ],
+        "files_must_not_touch": [
+          "scripts/* (all owned by other agents)",
+          "tasks/* (all owned by other agents)",
+          "vbrief/schemas/candidates.schema.json (Agent A2)",
+          "UPGRADING.md (Agent A6)",
+          "docs/quarantine-spec.md (Agent A6)",
+          "docs/privacy-nfr.md (Agent A6)"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/845",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #845 (parent epic)"
+      },
+      {
+        "uri": "completed/2026-05-03-845-pre-ingest-triage-workflow-epic.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Epic vBRIEF for #845 (related-plan; planRef captures parent semantic)"
+      },
+      {
+        "uri": "contracts/deterministic-questions.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Deterministic-questions contract (gate compliance)"
+      }
+    ],
+    "updated": "2026-05-03T20:47:57Z"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Fix project_render.py SKELETON_NARRATIVES to use the lowercase-space 'tech stack' key so task project:render skeletons pass task vbrief:validate.",
+    "created": "2026-04-16T00:00:00Z",
+    "updated": "2026-04-16T00:00:00Z"
+  },
+  "plan": {
+    "id": "fix-405-project-render-tech-stack-key",
+    "title": "fix(scripts): project_render.py SKELETON_NARRATIVES TechStack key breaks vbrief:validate",
+    "status": "completed",
+    "narratives": {
+      "Problem": "scripts/project_render.py SKELETON_NARRATIVES uses 'TechStack' (camelCase). scripts/vbrief_validate.py PROJECT_DEF_EXPECTED_NARRATIVES requires 'tech stack' (space-separated) via lowercase comparison. 'TechStack'.lower() == 'techstack' != 'tech stack', so every skeleton created by `task project:render` immediately fails `task vbrief:validate` (part of `task check`).",
+      "Action": "Rename 'TechStack' to 'tech stack' in SKELETON_NARRATIVES. Update the corresponding assertion in tests/cli/test_project_render.py (TestSkeletonCreation.test_skeleton_has_empty_narratives) so the end-to-end contract is covered.",
+      "Test": "Existing test_project_render.py suite plus the updated assertion; CI's `task check` (which runs vbrief:validate) is the end-to-end gate.",
+      "Outcome": "Skeleton PROJECT-DEFINITION.vbrief.json passes `task vbrief:validate` immediately after `task project:render`. `task check` stays green."
+    },
+    "items": [
+      {
+        "id": "405-1",
+        "title": "Rename SKELETON_NARRATIVES['TechStack'] to 'tech stack' in scripts/project_render.py",
+        "status": "running"
+      },
+      {
+        "id": "405-2",
+        "title": "Update TestSkeletonCreation.test_skeleton_has_empty_narratives assertion to check 'tech stack' key",
+        "status": "running"
+      },
+      {
+        "id": "405-3",
+        "title": "Verify task check (including vbrief:validate) passes end-to-end",
+        "status": "running"
+      }
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/405",
+        "id": "#405"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/402",
+        "id": "#402"
+      }
+    ],
+    "updated": "2026-04-20T17:07:59Z"
+  }
+}

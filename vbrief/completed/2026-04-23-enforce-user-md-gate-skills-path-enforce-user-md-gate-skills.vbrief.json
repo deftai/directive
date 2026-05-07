@@ -1,0 +1,24 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for Enforce USER.md gate (skills path)",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Enforce USER.md gate (skills path)",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Enforce USER.md gate (skills path)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    }
+  }
+}

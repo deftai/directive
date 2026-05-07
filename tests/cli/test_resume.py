@@ -105,11 +105,11 @@ def _bootstrap_responses(user_path: Path) -> list:
 
 
 def test_bootstrap_resume_skips_answered(
-    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    run_command, mock_user_input, isolated_env_no_user, deft_run_module, monkeypatch
 ):
     """When a progress file exists and user resumes, answered questions are skipped."""
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
-    user_path = isolated_env / "USER.md"
+    user_path = isolated_env_no_user / "USER.md"
 
     # Simulate partial progress (first 3 questions answered)
     prog_file = deft_run_module._progress_path(user_path)
@@ -143,11 +143,11 @@ def test_bootstrap_resume_skips_answered(
 
 
 def test_bootstrap_discard_starts_fresh(
-    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    run_command, mock_user_input, isolated_env_no_user, deft_run_module, monkeypatch
 ):
     """When user declines resume, progress is deleted and full questionnaire runs."""
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
-    user_path = isolated_env / "USER.md"
+    user_path = isolated_env_no_user / "USER.md"
 
     # Simulate partial progress
     prog_file = deft_run_module._progress_path(user_path)
@@ -172,11 +172,11 @@ def test_bootstrap_discard_starts_fresh(
 
 
 def test_bootstrap_no_progress_unchanged(
-    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    run_command, mock_user_input, isolated_env_no_user, deft_run_module, monkeypatch
 ):
     """Without a progress file, bootstrap works exactly as before (no extra prompts)."""
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
-    user_path = isolated_env / "USER.md"
+    user_path = isolated_env_no_user / "USER.md"
     mock_user_input(_bootstrap_responses(user_path))
 
     result = run_command("cmd_bootstrap", [])
@@ -186,11 +186,11 @@ def test_bootstrap_no_progress_unchanged(
 
 
 def test_bootstrap_progress_cleared_on_success(
-    run_command, mock_user_input, isolated_env, deft_run_module, monkeypatch
+    run_command, mock_user_input, isolated_env_no_user, deft_run_module, monkeypatch
 ):
     """Progress file is removed after successful bootstrap completion."""
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
-    user_path = isolated_env / "USER.md"
+    user_path = isolated_env_no_user / "USER.md"
     mock_user_input(_bootstrap_responses(user_path))
 
     result = run_command("cmd_bootstrap", [])
@@ -204,11 +204,11 @@ def test_bootstrap_progress_cleared_on_success(
 
 
 def test_ctrlc_preserves_progress(
-    isolated_env, deft_run_module, monkeypatch
+    isolated_env_no_user, deft_run_module, monkeypatch
 ):
     """KeyboardInterrupt mid-questionnaire leaves progress file on disk."""
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
-    user_path = isolated_env / "USER.md"
+    user_path = isolated_env_no_user / "USER.md"
 
     call_count = 0
 

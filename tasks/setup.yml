@@ -1,0 +1,37 @@
+version: '3'
+
+# Windows toolchain bootstrap fragment (#902).
+#
+# Wired into the parent Taskfile.yml `includes:` block under namespace key
+# `setup`, so the inner task `toolchain` is reachable as `task setup:toolchain`.
+# This fragment is independent of the root-level `setup` task in
+# Taskfile.yml (which configures git hooks via core.hooksPath); the two
+# coexist because go-task treats `setup` and `setup:toolchain` as distinct
+# task names.
+#
+# Companion script: scripts/setup_windows.ps1
+# Companion test:   tests/scripts/test_setup_windows.ps1
+# Issue: #902
+#
+# Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+# declarations on these tasks because user-facing behaviour is determined at
+# runtime by host platform detection and the script's idempotent probe-
+# before-install logic, not by file mtimes.
+
+vars:
+  # Resolve the deft framework root from this fragment's directory. The
+  # joinPath idiom mirrors the convention documented in the root Taskfile.yml
+  # header (#566): {{.TASKFILE_DIR}}/.. evaluated by go-task's eager
+  # templating yields a native-separator absolute path that pwsh / Bash can
+  # open on Windows / macOS / Linux.
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  toolchain:
+    desc: "Bootstrap the Windows maintainer toolchain (Go, Python, uv, Task, gh) via winget. Windows-only -- no-op on macOS / Linux. -- task setup:toolchain"
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - cmd: pwsh -NoProfile -ExecutionPolicy Bypass -File "{{.DEFT_ROOT}}/scripts/setup_windows.ps1"
+        platforms: [windows]
+      - cmd: echo "setup:toolchain currently supports Windows only. See CONTRIBUTING.md for macOS / Linux setup."
+        platforms: [linux, darwin]

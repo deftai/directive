@@ -1,0 +1,199 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Epic vBRIEF for #883 v1: minimum viable unified content cache + quarantine layer for triage v1 migration. Decomposes into 4 linear-dependency stories shipping as v0.26.0. Trimmed scope (1 source type, 5 cache commands, 3 scanner categories) explicit; full design surface deferred to v2.",
+    "created": "2026-05-05T21:24:00Z",
+    "updated": "2026-05-06T15:11:23Z"
+  },
+  "plan": {
+    "id": "883-deft-cache-quarantine-v1",
+    "title": "feat(cache,quarantine): unified content cache + quarantine layer (v1 / triage migration)",
+    "status": "completed",
+    "planRef": "#883",
+    "narratives": {
+      "Problem": "Triage v1 (#845) shipped with a P0 cache-bypass + audit-log-poisoning bug (#915, fixed in v0.25.2) plus three companion bugs (#913, #914, #916). The root cause was a triage-specific cache implementation that drifted from its stated contract. Building on top of that ad-hoc design produces more drift; #883 establishes a single, content-agnostic cache and quarantine layer that triage v1 (and later #610 wiki-llm, URL ingestion, etc.) consume rather than reimplement.",
+      "Background": "Visionik authored the design doc landed via #925 at `docs/design-deft-cache-quarantine.md`. The doc captures the END-STATE architecture: 6 source types, ETag-based refresh, per-project YAML scanner extensions, mutation-triggered auto-invalidation, full task surface (cache:put/get/check/invalidate/refresh/prune/stats/doctor + standalone quarantine:scan). #883 v1 is a deliberately TRIMMED implementation focused exclusively on the immediate v1 consumer (triage v1 migration). 14+ design-doc capabilities are explicitly deferred to v2; see metadata.x-tracking.deferred_to_v2.",
+      "Overview": "Four linear-dependency stories. Story 1 ships a minimal `scm:*` stub (4 commands) with strong forward-compat markers pointing at #881. Story 2 ships `scripts/cache.py` + `scripts/cache_scanner.py` implementing 5 cache commands and 3 scanner categories on the github-issue source only. Story 3 rebinds the kept `task triage:*` surface (accept/reject/defer/needs-ac/mark-duplicate/bulk-*/status/reset/history/refresh-active/bootstrap) onto `cache:get`, deletes `task triage:cache` and `task triage:show`, and rewrites `skills/deft-directive-refinement/SKILL.md` Phase 0. Story 4 ships UPGRADING.md, CHANGELOG.md `### Breaking` framing, end-to-end integration test, and v0.26.0 release dispatch.",
+      "Constraint": "Linear dependency between stories (no parallel waves) chosen over speed for safety: the #845 6-story-parallel swarm produced 4 bugs that composed broken at integration. Story 1's `scm:*` stub interface is the contract Story 2 builds on; Story 2's `cache:get` interface is what Story 3 consumes. Hard cutover migration -- no deprecation shims for `task triage:cache` or `task triage:show`. Per-category scanner severity (injection=fence-and-pass, credentials=hard-fail, invisible-unicode=strip-and-pass) departs from doc-default uniform hard-fail; documented in metadata.x-tracking.design_doc_departures. Sole source type in v1 is `github-issue`; 5 other source types deferred. PowerShell 5.1 non-ASCII rule (#798) governs all file edits.",
+      "Outcome": "Ships as v0.26.0. Acceptance: `task cache:put|get|invalidate|fetch-all|prune` functional for github-issue source; quarantine scanner v2 with 3 categories baseline-on; `task triage:*` actions/bulk/refresh-active/bootstrap rebound onto cache:get with no external surface change to kept tasks; `task triage:cache` and `task triage:show` removed (hard cutover); UPGRADING.md migration section authoritative; refinement skill Phase 0 rewritten to reference `cache:*`; integration test asserts cache contract end-to-end against fake-gh shim and against real `deftai/directive` repo.",
+      "Test": "Each story carries its own test surface. Story 1: unit tests on `scm:*` JSON shape (mock gh subprocess) + 1 integration smoke against real gh. Story 2: ~80-100 unit tests across cache primitives + scanner categories + ~3 integration tests covering fetch-all rate-limit handling, partial-failure recovery, and cache:put scan-failure semantics. Story 3: regression tests for each rebound task using fake cache contents. Story 4: end-to-end integration test parallel to v0.25.2's `tests/integration/test_triage_smoke.py`, plus the v0.25.2 real-world smoke test re-run against v0.26.0 master to verify the migration didn't regress the bug-fix work.",
+      "Action": "Promote this epic vBRIEF to pending/, then to active/, then dispatch the 4-story swarm in linear-wave order. Each story owns one ship-PR + one review-cycle pass. Wave 1 (Story 1) → review-cycle → merge → Wave 2 (Story 2) → review-cycle → merge → Wave 3 (Story 3) → review-cycle → merge → Wave 4 (Story 4) → review-cycle → merge → cut v0.26.0 via deft-directive-release skill."
+    },
+    "items": [
+      {
+        "id": "883-story-1-scm-stub",
+        "title": "Minimal scm:* stub (4 commands) with forward-compat marker pointing at #881",
+        "status": "proposed",
+        "narrative": {
+          "Action": "Owner: Agent A1 (Wave 1). Files owned: tasks/scm.yml (NEW), tasks/Taskfile.yml (includes wiring only), tests/test_scm_stub.py (NEW), tests/integration/test_scm_smoke.py (NEW). Surface: scm:issue:list, scm:issue:view, scm:issue:close, scm:issue:edit. Each command is a thin wrapper that tries `ghx <verb>` first, falls back to `gh <verb>` if ghx is not on PATH. Output: JSON via --json flag with consistent field set. Forward-compat marker at top of tasks/scm.yml: '# scm.yml -- STUB for #883. DO NOT EXTEND. DO NOT ADD NEW COMMANDS HERE. The full scm:* namespace lives at #881; this file is replaced wholesale when #881 lands.' Tests: unit tests mock subprocess + assert command-line shape (~50 LOC); 1 integration test exercises real `gh issue view` and asserts non-empty JSON body."
+        }
+      },
+      {
+        "id": "883-story-2-cache-infrastructure",
+        "title": "Cache infrastructure (scripts/cache.py, 5 commands) + scanner v2 (3 categories baseline-on)",
+        "status": "proposed",
+        "narrative": {
+          "Action": "Owner: Agent A2 (Wave 2; depends on Story 1's scm:issue:view interface). Files owned: scripts/cache.py (NEW), scripts/cache_scanner.py (NEW), tasks/cache.yml (NEW), tasks/Taskfile.yml (includes wiring only), vbrief/schemas/cache-meta.schema.json (NEW), tests/test_cache.py (NEW), tests/test_cache_scanner.py (NEW), tests/integration/test_cache_quarantine.py (NEW). Storage layout: .deft-cache/github-issue/<owner>/<repo>/<N>/{raw.json, content.md, meta.json} + .deft-cache/quarantine-audit.jsonl. Cache surface: cache:put, cache:get, cache:invalidate, cache:fetch-all, cache:prune (5 commands). Hard-coded TTL: github-issue = 7 days. Rate-limit handling on cache:fetch-all (M1): --batch-size N (default 10), --delay-ms N (default 500), 429 response retry with Retry-After header parsing. Idempotency on cache:fetch-all (M2): skip already-cached entries fresh-per-TTL; on partial failure exit with structured count of {succeeded, failed, skipped}; persisted entries survive partial failure. Scanner v2 categories: (A) injection-heading -- reuse 14-token list from quarantine_ext.py, fence-and-pass severity; (B) credentials -- curated regex list (gh*_, sk-*, sk-ant-*, xox[bp]-*, AKIA*, PEM private key headers, Bearer tokens, JWT shape), hard-fail severity; (C) invisible-unicode -- codepoint membership test (U+200B-200F, U+202A-202E, U+2060, U+2066-2069, U+FEFF, U+E0000-E007F), strip-and-pass severity. Scanner version constant at module top. meta.json records the full per-entry field set per visionik design doc: {source, key, fetched_at, ttl_seconds, expires_at, scan_result: {passed, scanned_at, scanner_version, flags[]}, size_bytes, stale}; etag is reserved (deferred from v1 ETag work). The schema in vbrief/schemas/cache-meta.schema.json validates this full shape on read AND write so a corrupt or version-incompatible meta.json fails closed (M4). fetched_at is consumed by Story 3 triage_refresh.py for staleness detection; stale is the v1 substitute for the deferred cache:check command. quarantine-audit.jsonl gets one append per cache:put regardless of scan outcome."
+        }
+      },
+      {
+        "id": "883-story-3-triage-rebind",
+        "title": "Rebind triage v1 surface onto cache:* (delete triage:cache + triage:show; rewrite scripts; rewrite skill Phase 0)",
+        "status": "proposed",
+        "narrative": {
+          "Action": "Owner: Agent A3 (Wave 3; depends on Story 2's cache:get interface). DELETE: scripts/triage_cache.py, tasks/triage-cache.yml, tasks/Taskfile.yml triage-cache include. REWRITE: scripts/triage_bulk.py (drop v0.25.2's _list_cached_candidates helper; consume cache:get), scripts/triage_actions.py (consume cache:get), scripts/triage_refresh.py (read cache:get + inspect meta.json.fetched_at for staleness), scripts/triage_bootstrap.py (M3 explicit scope: orchestrate cache:fetch-all --source=github-issue + audit-log init + gitignore-ensure for both .deft-cache/ and vbrief/.eval/; drop the gitcrawl install path or keep it as optional). EDIT: skills/deft-directive-refinement/SKILL.md Phase 0 prose (~30-50 lines): update Tier 1 references to point at cache:*, update task name references throughout, preserve the three-tier inventory model and action menu. EXTERNAL SURFACE UNCHANGED for: triage:accept, triage:reject, triage:defer, triage:needs-ac, triage:mark-duplicate, triage:bulk-accept, triage:bulk-reject, triage:bulk-defer, triage:bulk-needs-ac, triage:status, triage:reset, triage:history, triage:refresh-active, triage:bootstrap. EXTERNALLY REMOVED: triage:cache, triage:show (hard cutover; no shims). Tests: regression tests per rebound task using fake cache fixtures."
+        }
+      },
+      {
+        "id": "883-story-4-migration-docs-release",
+        "title": "Migration docs + integration test + v0.26.0 release dispatch",
+        "status": "proposed",
+        "narrative": {
+          "Action": "Owner: Agent A4 (Wave 4; depends on Stories 1-3 having all merged). Files owned: UPGRADING.md (append section), CHANGELOG.md ([Unreleased] -> [v0.26.0] promotion at release time), tests/integration/test_cache_e2e.py (NEW). UPGRADING.md ## v0.25.x -> v0.26.0 section, terse-imperative tone matching existing sections, ~30-40 lines: (1) `task triage:cache` removed, use `task cache:fetch-all --source=github-issue --repo=OWNER/NAME` with example; (2) `task triage:show` removed, use `task cache:get github-issue <owner>/<repo>/<N>`; (3) on-disk layout changed from .deft-cache/issues/<owner>-<repo>/<N>.{json,md} to .deft-cache/github-issue/<owner>/<repo>/<N>/{raw.json,content.md,meta.json}; recommend `Remove-Item -Recurse -Force .deft-cache/issues/` then re-run cache populate; (4) audit log vbrief/.eval/candidates.jsonl unchanged; (5) all other task triage:* actions semantically unchanged. CHANGELOG framing: lead v0.26.0 entry with `### Breaking` block, NOT in `### Added`. Integration test: parallel to v0.25.2's tests/integration/test_triage_smoke.py; assert new cache layer end-to-end (cache:fetch-all populates layout correctly, cache:get returns expected meta.json shape, scanner_version recorded, audit log appended); also re-run the v0.25.2 real-world smoke test against v0.26.0 master (real `deftai/directive` repo, 10 newest issues) to verify migration didn't regress the bug-fix work. Release dispatch: invoke deft-directive-release skill for v0.26.0; CHANGELOG promotion + ROADMAP update + tag + draft + publish per skill phases."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_issue": "#883",
+        "design_doc": "docs/design-deft-cache-quarantine.md",
+        "design_doc_landed_via": "#925",
+        "swarm_ready": false,
+        "swarm_ready_after": "epic vBRIEF reviewed by maintainer + promoted to active/",
+        "wave_dependencies": "Linear chain: Story 1 (scm stub) -> Story 2 (cache infra + scanner) -> Story 3 (triage rebind + skill rewrite) -> Story 4 (migration docs + release). NO parallel waves; chosen over speed for safety, given #845's 6-parallel-story swarm produced 4 integration bugs.",
+        "depends_on": [
+          "design doc landed (#925 merged 2026-05-05)",
+          "v0.25.2 released (2026-05-05; provides clean baseline for triage rebind)",
+          "v0.25.2 bulk-triage real-world smoke test passing (gap D in dispatcher discussion; runs before swarm dispatch)"
+        ],
+        "blocks": [
+          "v0.26.0 release",
+          "#610 wiki-llm (post-v1 source-type expansion)",
+          "#881 scm:* full namespace generalization (post-v1; this epic stubs the surface)",
+          "#884 ghx adoption recommendation (this epic uses ghx-or-gh fallback in scm:*)"
+        ],
+        "v1_scope": {
+          "source_types": [
+            "github-issue"
+          ],
+          "scm_stub_commands": [
+            "scm:issue:list",
+            "scm:issue:view",
+            "scm:issue:close",
+            "scm:issue:edit"
+          ],
+          "cache_commands": [
+            "cache:put",
+            "cache:get",
+            "cache:invalidate",
+            "cache:fetch-all",
+            "cache:prune"
+          ],
+          "scanner_categories_baseline_on": [
+            "injection-heading",
+            "credentials",
+            "invisible-unicode"
+          ],
+          "ttl_strategy": "hard-coded per source (github-issue=7d)"
+        },
+        "deferred_to_v2": [
+          "5 additional source types (github-pr, github-review, url, email, file)",
+          "ETag-based conditional refresh",
+          "task cache:check (subsumed by cache:get + meta.json.stale flag in v1)",
+          "task cache:doctor full diagnostic surface (v1 ships a no-op stub)",
+          "task cache:stats dashboard-grade output (v1 ships entry-count-per-source minimum)",
+          "task cache:refresh (collapses to cache:put once ETag is deferred)",
+          "4 additional scm:* stub commands (scm:pr:list/view/merge/close)",
+          "Project-level config block at .deft/config.yaml",
+          "Per-project scanner-extensions YAML (C1c hybrid; v1 ships C1a baseline-only)",
+          "Mutation-triggered auto-invalidation via scm:* wrapping (v1 = explicit by consumers)",
+          "Standalone task quarantine:scan (v1 = Python import only)",
+          "2 additional scanner categories (shell-cmd-injection, exfiltration-patterns)",
+          "Cache size cap / disk quota / LRU eviction",
+          "Cache hit/miss telemetry beyond minimal stats",
+          "Cross-source dependencies (PR mentions issue auto-fetch)",
+          "In-memory cache layer in front of cache:get",
+          "Audit log retention/rotation",
+          "Multi-worktree shared cache",
+          "Cache restoration on corruption (cache:doctor remediation)"
+        ],
+        "design_doc_departures": [
+          "C3: per-category scanner severity (injection=fence-and-pass, credentials=hard-fail, invisible-unicode=strip-and-pass) DEPARTS from doc-default uniform hard-fail. Rationale: hard-fail-on-injection-headings would break legitimate `## STEP` template headings used in many real issue bodies; existing #845 fence-and-pass is correct and is preserved.",
+          "C1: v1 ships C1a (baseline-only scanner) NOT C1c (hybrid baseline + per-project YAML extensions). Rationale: nobody authors scanner extensions on day 1; premature surface area. Per-project YAML extensions deferred to v2.",
+          "v1 ships 1 source type, NOT all 6 from the doc. Rationale: triage-v1 migration is the only v1 consumer; other sources speculative until #610/etc. ship.",
+          "ETag-based conditional refresh deferred. Rationale: gh CLI doesn't natively expose ETag at the JSON layer; high implementation cost for marginal value when TTL-based freshness suffices for v1.",
+          "Mutation-triggered auto-invalidation deferred. Rationale: requires every scm:* command to know about cache invalidation; v1 = explicit cache:invalidate by consumers."
+        ],
+        "v1_must_include": [
+          "M1: Per-source rate-limit awareness on cache:fetch-all (--batch-size, --delay-ms, 429 retry) -- visionik flagged in the only #883 comment we have; without it v1 swarms break on real-sized populate.",
+          "M2: cache:fetch-all idempotency (skip already-cached) + partial-failure recovery (structured exit with succeeded/failed/skipped counts) -- usability-critical, prevents flaky-network from corrupting cache state.",
+          "M3: task triage:bootstrap rewrite scope explicitly pinned in Story 3 narrative -- prevents agent ambiguity on the orchestration sequence.",
+          "M4: meta.json JSON schema at vbrief/schemas/cache-meta.schema.json with read-and-write validation -- prevents corrupt or version-incompatible meta.json from propagating undetected."
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/883",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #883 (parent epic): feat(processes): deft-cache -- unified content cache and quarantine layer (blocks #845, #610)"
+      },
+      {
+        "uri": "docs/design-deft-cache-quarantine.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Design: Unified Content Cache and Quarantine Layer (visionik, landed via #925 2026-05-05)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/845",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #845: pre-ingest triage workflow (active triage v1 umbrella; closes when v0.26.0 ships and triage v1 is migrated; this epic continues #845's intent and replaces its cache surface)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/915",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #915 (P0): triage_bulk.py bypasses Tier-1 cache and Tier-2 audit log (fixed in v0.25.2; proves the design-drift cost the unified layer is meant to prevent)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/916",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #916 (merged): fix(triage): disable bulk-* tasks pending v0.25.2 (#915) -- hot-fix gate that protected master between bug discovery and v0.25.2 ship"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/583",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #583: name governance pattern + injection-quarantine directive umbrella (this epic extends the injection-quarantine half to scanner v2; #583's name-governance scope is independent and out of scope here)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/835",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #835: memory write security scan (sibling consumer of the unified scanner; visionik's design doc lists this as a related issue alongside #845 and #583)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/788",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #788: token-cost framework (the original cost motivation that #845 cited; the cache layer's persistence + ETag refresh hooks are the v2 mechanisms that satisfy #788's O(1)-per-pass goal)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/881",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #881: scm:* task namespace (this epic's Story 1 ships a minimal stub; full namespace generalization deferred to #881)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/610",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #610: wiki-llm knowledge base (downstream consumer of v2 url/email source types)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/884",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #884: ghx as standard gh proxy (this epic's scm:* stub uses ghx-or-gh fallback)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/925",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #925 (merged): docs: import unsynced documentation -- landed visionik's design doc and 11 reference docs"
+      }
+    ],
+    "updated": "2026-05-06T15:11:23Z"
+  }
+}

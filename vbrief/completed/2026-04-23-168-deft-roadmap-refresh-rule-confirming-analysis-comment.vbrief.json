@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #168: deft-roadmap-refresh: ! rule confirming analysis comment post to user with issue number and link",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "deft-roadmap-refresh: ! rule confirming analysis comment post to user with issue number and link",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "deft-roadmap-refresh: ! rule confirming analysis comment post to user with issue number and link",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/168",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #168: deft-roadmap-refresh: ! rule confirming analysis comment post to user with issue number and link"
+      }
+    ]
+  }
+}

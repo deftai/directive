@@ -1,0 +1,35 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for reframing install paths around webinstaller + npm/pip; demote Go binary to legacy"
+  },
+  "plan": {
+    "title": "docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "Phase 3 -- Documentation & Content Fixes"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 3 -- Documentation & Content Fixes",
+        "Description": "Reframe install documentation around webinstaller (https://webinstaller.fly.dev/) + npm/pip (#11), demote Go binary installer to legacy. Supersedes the cancelled code-signing brief.",
+        "Description_source": "chore/proposed-vbrief-cleanup discussion",
+        "Status_source": "filed-during-cleanup"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/761",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #761: docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/11",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #11: Proposal: Publish Deft as an NPM + PIP CLI (related; this brief leads with webinstaller and references #11)"
+      }
+    ],
+    "updated": "2026-04-30T16:17:10Z"
+  }
+}

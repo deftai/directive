@@ -1,0 +1,13 @@
+{
+  "vBRIEFInfo": {"version": "0.6", "description": "Completed-routing regression spec (#593)"},
+  "plan": {
+    "title": "Completed-routing",
+    "status": "approved",
+    "narratives": {
+      "Overview": "SPEC carries task items that do not reference the ROADMAP Completed rows (#101, #102). Before #593 those Completed-section orphans collapsed into vbrief/proposed/ with plan.status=proposed, losing the completion signal recorded in ROADMAP.md."
+    },
+    "items": [
+      {"id": "t1.1", "title": "Keep SPEC stable", "status": "pending"}
+    ]
+  }
+}

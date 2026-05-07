@@ -1,0 +1,74 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Create scripts/issue_ingest.py with single-issue and bulk modes, dedup against existing references, Taskfile wiring, doc cross-refs, tests.",
+    "created": "2026-04-20T00:00:00Z",
+    "updated": "2026-04-20T00:00:00Z"
+  },
+  "plan": {
+    "id": "ga-454-task-issue-ingest",
+    "title": "v0.20.0 GA blocker: add task issue:ingest for GitHub issue -> vBRIEF ingestion",
+    "status": "completed",
+    "narratives": {
+      "Problem": "vbrief/vbrief.md declares origin-provenance ingestion as a MUST but ships no tool to perform it. Only migrate (one-time) and reconcile (read-only) exist. Every post-GA issue grows reconcile unlinked section monotonically; mitigations are hand-author, ignore, or re-migrate (no longer works).",
+      "Action": "Create scripts/issue_ingest.py. Single-issue mode: fetch via gh api, dedup via scan_vbrief_dir (reused from reconcile_issues.py), write vbrief/proposed/YYYY-MM-DD-<N>-<slug>.vbrief.json with references type=github-issue. Bulk mode: --all [--label] [--status] [--dry-run] using fetch_open_issues. Extract shared helpers (_slugify, _create_scope_vbrief) from migrate_vbrief.py into scripts/_vbrief_build.py or promote in place. Wire task issue:ingest in Taskfile.yml. Document in vbrief.md Quick Reference, README Ingesting GitHub issues subsection, UPGRADING.md v0.20 section.",
+      "Test": "tests/cli/test_issue_ingest.py: single-issue happy path, dedup hit (exit 1 + existing path), bulk mode summary, --dry-run no-writes, gh API error (exit 2). In-process module loading via importlib.util matching existing tests/cli style.",
+      "Outcome": "New GitHub issues can be ingested into vbrief/proposed/ with one command, preserving origin provenance. reconcile unlinked section stays manageable post-GA. PR 403 checklist item #454 satisfied."
+    },
+    "items": [
+      {
+        "status": "running",
+        "title": "Extract _slugify and _create_scope_vbrief helpers to a shared module",
+        "id": "454-1"
+      },
+      {
+        "status": "running",
+        "title": "Create scripts/issue_ingest.py with single-issue mode",
+        "id": "454-2"
+      },
+      {
+        "status": "running",
+        "title": "Add bulk mode (--all, --label, --status, --dry-run)",
+        "id": "454-3"
+      },
+      {
+        "status": "running",
+        "title": "Wire task issue:ingest in Taskfile.yml",
+        "id": "454-4"
+      },
+      {
+        "status": "running",
+        "title": "Add tests/cli/test_issue_ingest.py (5 scenarios)",
+        "id": "454-5"
+      },
+      {
+        "status": "running",
+        "title": "Add task issue:ingest to vbrief/vbrief.md Quick Reference Task Commands table",
+        "id": "454-6"
+      },
+      {
+        "status": "running",
+        "title": "Add Ingesting GitHub issues subsection to README.md",
+        "id": "454-7"
+      },
+      {
+        "status": "running",
+        "title": "Mention task issue:ingest in UPGRADING.md v0.20 section",
+        "id": "454-8"
+      }
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/454",
+        "id": "#454"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/403",
+        "id": "#403"
+      }
+    ],
+    "updated": "2026-04-20T18:44:14Z"
+  }
+}

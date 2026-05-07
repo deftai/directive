@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #104: Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/104",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #104: Add Holzmann Power of 10 rules as opt-in coding standard (`coding/holzmann.md`)"
+      }
+    ]
+  }
+}

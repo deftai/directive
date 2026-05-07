@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for Upgrade GitHub Actions to Node.js 24"
+  },
+  "plan": {
+    "title": "Upgrade GitHub Actions to Node.js 24",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 4",
+        "Description": "Upgrade GitHub Actions to Node.js 24",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/760",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #760: ci: upgrade GitHub Actions to Node.js 24-compatible majors (checkout/upload-artifact/download-artifact)"
+      }
+    ],
+    "updated": "2026-04-30T15:47:43Z"
+  }
+}

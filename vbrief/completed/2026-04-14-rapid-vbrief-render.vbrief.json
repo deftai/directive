@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "author": "agent:deft-directive-swarm",
+    "description": "Auto-generated from GitHub issue #363",
+    "created": "2026-04-14T22:05:00Z",
+    "updated": "2026-04-15T18:49:00Z"
+  },
+  "plan": {
+    "title": "rapid strategy: SPECIFICATION.md should be rendered from specification.vbrief.json",
+    "status": "completed",
+    "narratives": {
+      "Overview": "See GitHub issue #363 for full description and acceptance criteria."
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#363"
+      }
+    ]
+  }
+}

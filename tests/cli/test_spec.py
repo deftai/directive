@@ -14,10 +14,12 @@ Covers spec_validate:
 Covers spec_render:
   - render_spec: file missing → False (delegates to validate)
   - render_spec: invalid JSON → False (delegates to validate)
-  - render_spec: valid JSON, status != 'approved' → False
-  - render_spec: valid JSON, status == 'approved' → True, writes SPECIFICATION.md
+  - render_spec: valid JSON, status not in renderable set → False
+  - render_spec: valid JSON, renderable status → True, writes SPECIFICATION.md
   - render_spec: renders title, overview, tasks correctly
   - render_spec: tasks with list fields rendered as bullet points
+  - render_spec: completed/running status accepted (#384)
+  - render_spec: pending status rejected (#384)
   - main(): no args → exit code 2
   - main(): not-approved file → exit code 1
   - main(): approved file → exit code 0, output file created
@@ -69,7 +71,7 @@ def render_mod():
 # ---------------------------------------------------------------------------
 
 _MINIMAL_APPROVED = {
-    "vBRIEFInfo": {"version": "0.5"},
+    "vBRIEFInfo": {"version": "0.6"},
     "plan": {
         "title": "Test Spec",
         "status": "approved",
@@ -78,7 +80,7 @@ _MINIMAL_APPROVED = {
 }
 
 _MINIMAL_DRAFT = {
-    "vBRIEFInfo": {"version": "0.5"},
+    "vBRIEFInfo": {"version": "0.6"},
     "plan": {
         "title": "Test Spec",
         "status": "draft",
@@ -87,7 +89,7 @@ _MINIMAL_DRAFT = {
 }
 
 _FULL_APPROVED = {
-    "vBRIEFInfo": {"version": "0.5"},
+    "vBRIEFInfo": {"version": "0.6"},
     "plan": {
         "title": "Full Spec",
         "status": "approved",
@@ -222,7 +224,7 @@ def test_render_invalid_json_returns_false(render_mod, tmp_path) -> None:
 
 
 def test_render_not_approved_returns_false(render_mod, tmp_path) -> None:
-    """render_spec() must return False when status is not 'approved'."""
+    """render_spec() must return False when status is not renderable."""
     spec_file = tmp_path / "spec.json"
     _write_json(spec_file, _MINIMAL_DRAFT)
     ok, msg = render_mod.render_spec(str(spec_file), str(tmp_path / "SPECIFICATION.md"))
@@ -310,10 +312,52 @@ def test_render_output_item_title(render_mod, tmp_path) -> None:
     assert "## T2: Fallback title key" in content
 
 
+def test_render_completed_status_accepted(render_mod, tmp_path) -> None:
+    """render_spec() must accept status 'completed' (#384)."""
+    spec = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {"title": "Completed Spec", "status": "completed", "items": []},
+    }
+    spec_file = tmp_path / "spec.json"
+    out_file = tmp_path / "SPECIFICATION.md"
+    _write_json(spec_file, spec)
+    ok, msg = render_mod.render_spec(str(spec_file), str(out_file))
+    assert ok is True
+    assert out_file.exists()
+
+
+def test_render_running_status_accepted(render_mod, tmp_path) -> None:
+    """render_spec() must accept status 'running' (#384)."""
+    spec = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {"title": "Running Spec", "status": "running", "items": []},
+    }
+    spec_file = tmp_path / "spec.json"
+    out_file = tmp_path / "SPECIFICATION.md"
+    _write_json(spec_file, spec)
+    ok, msg = render_mod.render_spec(str(spec_file), str(out_file))
+    assert ok is True
+    assert out_file.exists()
+
+
+def test_render_pending_status_rejected(render_mod, tmp_path) -> None:
+    """render_spec() must reject status 'pending' (#384)."""
+    spec = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {"title": "Pending Spec", "status": "pending", "items": []},
+    }
+    spec_file = tmp_path / "spec.json"
+    out_file = tmp_path / "SPECIFICATION.md"
+    _write_json(spec_file, spec)
+    ok, msg = render_mod.render_spec(str(spec_file), str(out_file))
+    assert ok is False
+    assert "pending" in msg
+
+
 def test_render_output_plan_title_as_h1(render_mod, tmp_path) -> None:
     """plan.title must render as the H1 heading."""
     spec = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {"title": "Plan Title", "status": "approved", "items": []},
     }
     spec_file = tmp_path / "spec.json"
@@ -386,7 +430,7 @@ def test_validate_missing_vbriefinfo(validate_mod, tmp_path) -> None:
 def test_validate_missing_plan(validate_mod, tmp_path) -> None:
     """validate_spec must fail when plan is missing."""
     spec_file = tmp_path / "spec.json"
-    _write_json(spec_file, {"vBRIEFInfo": {"version": "0.5"}})
+    _write_json(spec_file, {"vBRIEFInfo": {"version": "0.6"}})
     ok, msg = validate_mod.validate_spec(str(spec_file))
     assert ok is False
     assert "plan" in msg
@@ -395,7 +439,7 @@ def test_validate_missing_plan(validate_mod, tmp_path) -> None:
 def test_validate_plan_missing_required_fields(validate_mod, tmp_path) -> None:
     """validate_spec must fail when plan is missing title/status/items."""
     spec_file = tmp_path / "spec.json"
-    _write_json(spec_file, {"vBRIEFInfo": {"version": "0.5"}, "plan": {}})
+    _write_json(spec_file, {"vBRIEFInfo": {"version": "0.6"}, "plan": {}})
     ok, msg = validate_mod.validate_spec(str(spec_file))
     assert ok is False
     assert "title" in msg
@@ -405,7 +449,7 @@ def test_validate_legacy_flat_format(validate_mod, tmp_path) -> None:
     """validate_spec must detect legacy flat-format keys."""
     spec_file = tmp_path / "spec.json"
     _write_json(spec_file, {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {"title": "T", "status": "approved", "items": []},
         "tasks": [],
     })
@@ -414,11 +458,75 @@ def test_validate_legacy_flat_format(validate_mod, tmp_path) -> None:
     assert "legacy" in msg
 
 
+def test_validate_legacy_flat_format_advertises_v06_envelope(
+    validate_mod, tmp_path
+) -> None:
+    """#565: legacy-flat-format error MUST advertise the v0.6 envelope.
+
+    The v0.6 strict tightening (#533) retired the v0.5 envelope; the
+    error message previously pointed operators at "vBRIEF v0.5 envelope"
+    which has not been a valid migration target since the strict
+    tightening. This regression-guards the corrected wording so a future
+    refactor cannot revert it silently.
+    """
+    spec_file = tmp_path / "spec.json"
+    _write_json(spec_file, {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {"title": "T", "status": "approved", "items": []},
+        "tasks": [],
+    })
+    ok, msg = validate_mod.validate_spec(str(spec_file))
+    assert ok is False
+    # Positive: target envelope is v0.6.
+    assert "v0.6 envelope" in msg, (
+        f"expected migration-target wording 'v0.6 envelope'; got: {msg!r}"
+    )
+    # Negative: the prior stale wording must not survive.
+    assert "v0.5 envelope" not in msg, (
+        "legacy-flat-format error must not point at the retired v0.5 "
+        f"envelope after the v0.6 tightening (#565); got: {msg!r}"
+    )
+
+
+def test_validate_valid_vbrief_versions_constant(validate_mod) -> None:
+    """#565: spec_validate exposes VALID_VBRIEF_VERSIONS frozenset.
+
+    Mirrors the ``scripts/vbrief_validate.py`` pattern (Option B). The
+    version check consults this set rather than an inline ``"0.6"``
+    literal, so a future v0.7 introduction adds one entry here instead
+    of touching multiple call sites.
+    """
+    valid = validate_mod.VALID_VBRIEF_VERSIONS
+    assert isinstance(valid, frozenset)
+    assert valid == frozenset({"0.6"})
+
+
+def test_validate_version_check_uses_valid_vbrief_versions(
+    validate_mod, tmp_path
+) -> None:
+    """#565: the version comparison consults VALID_VBRIEF_VERSIONS.
+
+    Behavioural guard: a vBRIEF carrying a non-0.6 version is rejected
+    with the canonical migration hint. Surfaces drift if a future patch
+    accidentally hard-codes ``"0.6"`` in the comparison again.
+    """
+    spec_file = tmp_path / "spec.json"
+    _write_json(spec_file, {
+        "vBRIEFInfo": {"version": "0.5"},
+        "plan": {"title": "T", "status": "approved", "items": []},
+    })
+    ok, msg = validate_mod.validate_spec(str(spec_file))
+    assert ok is False
+    assert "vBRIEFInfo.version" in msg
+    assert "0.6" in msg
+    assert "task migrate:vbrief" in msg
+
+
 def test_validate_plan_items_not_array(validate_mod, tmp_path) -> None:
     """validate_spec must fail when plan.items is not an array."""
     spec_file = tmp_path / "spec.json"
     _write_json(spec_file, {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {"title": "T", "status": "approved", "items": "bad"},
     })
     ok, msg = validate_mod.validate_spec(str(spec_file))
@@ -430,7 +538,7 @@ def test_validate_plan_item_missing_title(validate_mod, tmp_path) -> None:
     """validate_spec must fail when a plan item is missing title."""
     spec_file = tmp_path / "spec.json"
     _write_json(spec_file, {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "T", "status": "approved",
             "items": [{"id": "x", "status": "pending"}],
@@ -449,7 +557,7 @@ def test_validate_plan_item_missing_title(validate_mod, tmp_path) -> None:
 def test_render_item_with_metadata_dependencies(render_mod, tmp_path) -> None:
     """render_spec must render dependencies from item.metadata.dependencies."""
     spec = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "Deps Test", "status": "approved",
             "items": [{
@@ -469,7 +577,7 @@ def test_render_item_with_metadata_dependencies(render_mod, tmp_path) -> None:
 def test_render_item_with_traces(render_mod, tmp_path) -> None:
     """render_spec must render Traces from item narrative."""
     spec = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "Traces Test", "status": "approved",
             "items": [{

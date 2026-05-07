@@ -1,0 +1,52 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #899",
+    "updated": "2026-05-05T01:36:02Z"
+  },
+  "plan": {
+    "title": "Installer fails on a clean Windows machine: reinstalls git, then exits without completing",
+    "status": "completed",
+    "narratives": {
+      "Description": "Installer fails on a clean Windows machine: reinstalls git, then exits without completing",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/899",
+      "Labels": "bug"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/899",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #899: Installer fails on a clean Windows machine: reinstalls git, then exits without completing"
+      }
+    ],
+    "updated": "2026-05-05T01:36:02Z",
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "parallelizable_with": [
+          "#900",
+          "#901",
+          "#902"
+        ]
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "deft-directive-build",
+        "rationale": "Tactical fix for the current Go binary installer's stale-PATH probe (cmd/deft-install/git.go:70-73). gitAvailable() resolves git via exec.LookPath against the process's startup PATH snapshot; after installGitWindows runs the silent installer the registry PATH is updated but the running installer's PATH is unchanged, so the Re-check after install always fails. Fix introduces refreshPathFromRegistry() Go helper (Windows build tag) called before the initial gitAvailable() and after installGitWindows succeeds. Shares registry-PATH-refresh primitive with #902.",
+        "files_to_touch": [
+          "cmd/deft-install/git.go",
+          "cmd/deft-install/path_windows.go",
+          "cmd/deft-install/path_other.go",
+          "cmd/deft-install/git_test.go",
+          "cmd/deft-install/path_windows_test.go"
+        ],
+        "branch": "fix/installer-git-detection-windows",
+        "pr_title_prefix": "fix(installer):"
+      }
+    }
+  }
+}

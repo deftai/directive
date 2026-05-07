@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #159: meta/philosophy.md -- deterministic > probabilistic design principle: definition, rationale, examples, Phase 5 scope note",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "meta/philosophy.md -- deterministic > probabilistic design principle: definition, rationale, examples, Phase 5 scope note",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "meta/philosophy.md -- deterministic > probabilistic design principle: definition, rationale, examples, Phase 5 scope note",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/159",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #159: meta/philosophy.md -- deterministic > probabilistic design principle: definition, rationale, examples, Phase 5 scope note"
+      }
+    ]
+  }
+}

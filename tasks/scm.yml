@@ -1,0 +1,71 @@
+version: '3'
+
+# ---------------------------------------------------------------------------
+# scm.yml -- STUB for #883 v1 cache layer (Story 1).
+#
+# DO NOT EXTEND. DO NOT ADD NEW COMMANDS HERE.
+#
+# The full scm:* task namespace lives at #881; this file is replaced wholesale
+# when #881 lands. The stub exposes the minimum surface the #883 v1 cache
+# consumer (Story 2 cache:fetch-all) needs:
+#
+#   - scm:issue:list    (thin wrapper over `ghx|gh issue list`)
+#   - scm:issue:view    (thin wrapper over `ghx|gh issue view`)
+#   - scm:issue:close   (thin wrapper over `ghx|gh issue close`)
+#   - scm:issue:edit    (thin wrapper over `ghx|gh issue edit`)
+#
+# Each command is a thin pass-through to `ghx <verb>` (when ghx is on PATH)
+# or `gh <verb>` (fallback). Output JSON via the consumer-supplied --json
+# flag. The JSON-shape contract Story 2 depends on is pinned by the
+# tests/test_scm_contract.py contract test against tests/fixtures/scm_issue_view.json.
+#
+# Forward-compat marker: the ONLY scm:* surface in v1 is the four issue:*
+# commands above. PR commands (scm:pr:list/view/merge/close) and any
+# additional scm:* surface are EXPLICITLY deferred to #881; do not add them
+# here. See vbrief/active/2026-05-05-883-story-1-scm-stub.vbrief.json for
+# the full Story 1 scope and vbrief/active/2026-05-05-883-deft-cache-quarantine-v1.vbrief.json
+# for the epic chain context.
+# ---------------------------------------------------------------------------
+
+vars:
+  # Each included sub-taskfile defines its own DEFT_ROOT mirror so scripts
+  # can be dispatched via {{.DEFT_ROOT}}/scripts/<name>.py on every platform
+  # (#566). joinPath is evaluated eagerly by go-task templating and yields
+  # a native-separator absolute path that uv run python can open on Windows.
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# Per `conventions/task-caching.md` (#574): tasks that accept user-facing
+# CLI args via {{.CLI_ARGS}} MUST NOT declare `sources:` / `generates:` --
+# the cached cmds skip would silently discard the recovery flag.
+tasks:
+  issue:list:
+    desc: "[#883 stub] List issues -- task scm:issue:list -- --repo OWNER/NAME --json number,title,state,updatedAt [--state ...]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scm.py" issue list {{.CLI_ARGS}}
+
+  issue:view:
+    desc: "[#883 stub] View an issue -- task scm:issue:view -- <N> --repo OWNER/NAME --json number,title,body,state,author,createdAt,updatedAt,labels,comments"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scm.py" issue view {{.CLI_ARGS}}
+
+  issue:close:
+    desc: "[#883 stub] Close an issue -- task scm:issue:close -- <N> --repo OWNER/NAME [--comment ...]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scm.py" issue close {{.CLI_ARGS}}
+
+  issue:edit:
+    desc: "[#883 stub] Edit an issue -- task scm:issue:edit -- <N> --repo OWNER/NAME [--add-label ...] [--body ...]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scm.py" issue edit {{.CLI_ARGS}}

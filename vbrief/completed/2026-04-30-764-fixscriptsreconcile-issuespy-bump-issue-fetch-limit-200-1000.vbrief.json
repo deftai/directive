@@ -1,0 +1,24 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #764"
+  },
+  "plan": {
+    "title": "fix(scripts/reconcile_issues.py): bump ISSUE_FETCH_LIMIT 200 -> 1000 to clear truncation warning on 232-issue corpus",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(scripts/reconcile_issues.py): bump ISSUE_FETCH_LIMIT 200 -> 1000 to clear truncation warning on 232-issue corpus",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/764",
+      "Labels": "bug"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/764",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #764: fix(scripts/reconcile_issues.py): bump ISSUE_FETCH_LIMIT 200 -> 1000 to clear truncation warning on 232-issue corpus"
+      }
+    ],
+    "updated": "2026-04-30T18:25:33Z"
+  }
+}

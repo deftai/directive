@@ -41,8 +41,27 @@ LEGEND_DIRS = [
     "resilience",
 ]
 
-# Directories to skip when collecting files for deprecated checks
-_SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", "backup", "dist", "tests"}
+# Directories to skip when collecting files for deprecated checks.
+#
+# ``.deft-cache`` holds the unified cache layer's mirrored issue bodies
+# (``.deft-cache/<source>/<key>/{raw.json,content.md,meta.json}`` per
+# #883 Story 2). These are gitignored, machine-fetched, verbatim
+# upstream content -- they legitimately quote deprecated framework
+# vocabulary (e.g. issue threads discussing the v0.5 ``core/user.md``
+# path or the pre-rename ``warping`` name) and are NOT framework docs.
+# Without this skip a developer who has run ``task triage:bootstrap``
+# against deftai/directive sees ``task check`` fail on cache content
+# that is outside the standards-compliance surface (#952).
+_SKIP_DIRS = {
+    ".git",
+    ".venv",
+    "__pycache__",
+    ".pytest_cache",
+    "backup",
+    "dist",
+    "tests",
+    ".deft-cache",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -66,6 +85,34 @@ def _exempt_set(check: str) -> set[str]:
 # File collection helpers
 # ---------------------------------------------------------------------------
 
+# Migration artifacts produced by `task migrate:vbrief` preserve verbatim
+# pre-cutover content (for rollback + audit) and therefore legitimately
+# contain old paths / renamed terms ("warping", etc.) that the framework
+# no longer uses. The content-standards tests below assert *current*
+# framework content conforms, so these migration byproducts must be
+# skipped.  Two categories:
+#
+# 1. ``*.premigrate.*`` backups at the project root (SPECIFICATION /
+#    PROJECT / ROADMAP / PRD) -- already gitignored by the migrator via
+#    `.gitignore` append, but some test environments scan the untracked
+#    working tree; the filename-suffix filter here is belt-and-suspenders.
+# 2. ``vbrief/migration/*.md`` audit reports (LEGACY-REPORT.md,
+#    RECONCILIATION.md) -- these are tracked (committed) but contain
+#    captured legacy content verbatim; they are historical records, not
+#    framework docs.
+_MIGRATION_ARTIFACT_TREES = ("vbrief/migration",)
+
+
+def _is_migration_artifact(rel: str) -> bool:
+    """True if ``rel`` is a migration byproduct that carries legacy content."""
+    if any(rel.startswith(t + "/") for t in _MIGRATION_ARTIFACT_TREES):
+        return True
+    # Match ``*.premigrate.md`` / ``*.premigrate.anything.md`` -- the
+    # migrator-assigned sibling names for pre-migration backups.
+    name = rel.rsplit("/", 1)[-1]
+    return ".premigrate." in name
+
+
 def _all_md_files(exclude_trees: list[str] | None = None) -> list[str]:
     """Return all .md paths (relative to repo root), excluding skip dirs and trees."""
     result = []
@@ -74,6 +121,8 @@ def _all_md_files(exclude_trees: list[str] | None = None) -> list[str]:
             continue
         rel = path.relative_to(_REPO_ROOT).as_posix()
         if exclude_trees and any(rel.startswith(t + "/") for t in exclude_trees):
+            continue
+        if _is_migration_artifact(rel):
             continue
         result.append(rel)
     return result

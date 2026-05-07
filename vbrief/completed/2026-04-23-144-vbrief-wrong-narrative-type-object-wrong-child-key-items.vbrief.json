@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #144: vBRIEF wrong narrative type (object) + wrong child key (`items` vs `subItems`) -- fixed in agent guidance + spec_validate.py (with #126)",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "vBRIEF wrong narrative type (object) + wrong child key (`items` vs `subItems`) -- fixed in agent guidance + spec_validate.py (with #126)",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "vBRIEF wrong narrative type (object) + wrong child key (`items` vs `subItems`) -- fixed in agent guidance + spec_validate.py (with #126)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/144",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #144: vBRIEF wrong narrative type (object) + wrong child key (`items` vs `subItems`) -- fixed in agent guidance + spec_validate.py (with #126)"
+      }
+    ]
+  }
+}

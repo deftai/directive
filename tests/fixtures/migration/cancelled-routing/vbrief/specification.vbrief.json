@@ -1,0 +1,11 @@
+{
+  "vBRIEFInfo": {"version": "0.5", "description": "cancelled-routing scenario spec"},
+  "plan": {
+    "title": "Cancelled routing",
+    "status": "approved",
+    "narratives": {"Overview": "A cancelled task must route to cancelled/."},
+    "items": [
+      {"id": "t5", "title": "Retired feature", "status": "cancelled"}
+    ]
+  }
+}

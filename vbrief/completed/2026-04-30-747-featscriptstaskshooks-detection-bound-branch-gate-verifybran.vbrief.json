@@ -1,0 +1,71 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #747"
+  },
+  "plan": {
+    "title": "feat(scripts,tasks,hooks): detection-bound branch gate — verify:branch + git hooks reading PROJECT-DEFINITION policy field",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(scripts,tasks,hooks): detection-bound branch gate -- verify:branch + git hooks reading PROJECT-DEFINITION policy field",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/747",
+      "Labels": "enhancement, determinism, adoption-blocker",
+      "Problem": "AGENTS.md's 'never commit directly to master/main unless opted out' rule is prose-only (tier-4 detection). Demonstrably fails to bind: in a 2026-04-29 session reproducing #136, the strongest agent ducked the rule on a benign-looking JSON enrichment task and would have committed directly to master. This issue ships the layered tier-3 mechanical enforcement.",
+      "Acceptance": "A. NEW scripts/preflight_branch.py (Python stdlib-only, cross-platform) that reads policy.allowDirectCommitsToMaster (typed per #746) with legacy-narrative fallback + deprecation warning; exits 0 on allowed states (feature branch, detached HEAD, opted-out, env-var bypass) and non-zero with helpful message otherwise; documented setup-interview exemption hook. B. NEW .githooks/pre-commit and .githooks/pre-push shelling out to the script; task setup sets git config core.hooksPath .githooks idempotently. C. NEW verify:branch task wired into task check aggregate. D. verify:hooks-installed (or sibling) asserts core.hooksPath==.githooks and fails 'hooks not installed; run task setup'. E. CI sanity check: GH Actions job asserting head_ref != base_ref on PRs. F. AGENTS.md cross-reference (brief ! line) under Branching pointing to enforcement surfaces + override mechanisms (no rule duplication). G. Documentation: README paragraph + glossary entry coordinated with #746. H. Tests for script (all states), verify:branch task, and CI workflow (master->master PR rejected).",
+      "OutOfScope": "Typed-field schema and migration (owned by #746 part A; HARD prerequisite). Setup-interview elicitation (#746). Skill-level defense (#746). Reconfigure surface tasks/policy.yml (#746). Eager-loading of AGENTS.md by Warp (#136).",
+      "Files": "NEW scripts/preflight_branch.py; NEW .githooks/pre-commit; NEW .githooks/pre-push; Taskfile.yml or tasks/*.yml (verify:branch + verify:hooks-installed); .github/workflows/ci.yml or new workflow (head_ref != base_ref); AGENTS.md (Branching cross-ref); README.md; tests/cli/test_preflight_branch*.py (new); tests/content/test_branch_gate_integration*.py (new); CHANGELOG.md (append)."
+    },
+    "items": [
+      {
+        "title": "A. NEW scripts/preflight_branch.py (stdlib-only, cross-platform) with all override paths",
+        "status": "pending"
+      },
+      {
+        "title": "B. NEW .githooks/pre-commit and .githooks/pre-push; task setup sets core.hooksPath idempotently",
+        "status": "pending"
+      },
+      {
+        "title": "C. NEW verify:branch task wired into task check aggregate",
+        "status": "pending"
+      },
+      {
+        "title": "D. verify:hooks-installed asserts core.hooksPath==.githooks; fails 'hooks not installed; run task setup'",
+        "status": "pending"
+      },
+      {
+        "title": "E. NEW CI sanity check: head_ref != base_ref on PR events",
+        "status": "pending"
+      },
+      {
+        "title": "F. AGENTS.md Branching section: brief ! cross-reference to enforcement surfaces + overrides",
+        "status": "pending"
+      },
+      {
+        "title": "G. Documentation: README paragraph + glossary entry coordinated with #746",
+        "status": "pending"
+      },
+      {
+        "title": "H. Tests: preflight_branch all states, verify:branch task, master->master PR rejection",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md [Unreleased] entry under Added referencing #747",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/747",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #747: feat(scripts,tasks,hooks): detection-bound branch gate — verify:branch + git hooks reading PROJECT-DEFINITION policy field"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-05-01T02:02:52Z"
+  }
+}

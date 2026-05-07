@@ -1,0 +1,11 @@
+{
+  "vBRIEFInfo": {"version": "0.5", "description": "orphan scenario spec"},
+  "plan": {
+    "title": "Orphan",
+    "status": "approved",
+    "narratives": {"Overview": "ROADMAP has an item SPEC does not know about."},
+    "items": [
+      {"id": "t1", "title": "Known task", "status": "pending"}
+    ]
+  }
+}

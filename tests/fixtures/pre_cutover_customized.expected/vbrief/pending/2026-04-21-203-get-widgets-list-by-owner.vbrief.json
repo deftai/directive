@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #203: GET /widgets: list by owner"
+  },
+  "plan": {
+    "title": "GET /widgets: list by owner",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2 -- Core API",
+        "Tier": "Tier 1 -- CRUD",
+        "Description": "GET /widgets: list by owner",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "default"
+      }
+    }
+  }
+}

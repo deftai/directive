@@ -22,6 +22,9 @@ Thumbs.db
 *.tmp
 *.bak
 
+# Transient agent scratch directory (PR #401 trim arc convention -- see #642)
+temp/
+
 # User-specific files (users should copy from templates)
 core/user.md
 
@@ -46,3 +49,28 @@ vcontext/
 
 # Generated Deft exports
 .deft/
+
+# Pre-cutover backups written by `task migrate:vbrief` (#497, #506 D7).
+# Operators who want these versioned can delete these lines or override per-file.
+*.premigrate.*
+vbrief/*.premigrate.*
+
+# Migration backups (created by `task migrate:vbrief`) -- do NOT commit.
+# Post-commit, pre-migration state is recoverable via git history; see
+# deft/main.md § Safety flags for the post-commit recovery path.
+*.premigrate.md
+*.premigrate.vbrief.json
+
+# Local triage / refinement issue cache (#845 Story 1). Sidecar mirror of
+# `gh issue list` populated by `task triage:cache`; never versioned. See
+# scripts/triage_cache.py for the layout (.deft-cache/issues/<owner>-<repo>/).
+.deft-cache/
+
+# Local triage audit/eval scratch (#845 Story 2 + #915). Holds the
+# append-only candidates.jsonl audit log written by triage actions and
+# transient evaluation artefacts. Never versioned -- the log is per-machine
+# operator state and would leak triage timing/identity if shared.
+vbrief/.eval/
+
+# Monitor scratch (poller scripts, banner-edit helpers, etc.)
+.swarm/

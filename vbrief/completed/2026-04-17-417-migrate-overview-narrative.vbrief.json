@@ -1,0 +1,64 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Populate Overview narrative on PROJECT-DEFINITION.vbrief.json so task migrate:vbrief output satisfies the D3 validator on v0.19 fixtures.",
+    "created": "2026-04-17T00:00:00Z",
+    "updated": "2026-04-17T00:00:00Z"
+  },
+  "plan": {
+    "id": "fix-417-migrate-overview-narrative",
+    "title": "fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key",
+    "status": "completed",
+    "narratives": {
+      "Problem": "Canonical v0.19 consumer projects (SPECIFICATION.md + PROJECT.md + ROADMAP.md, no pre-existing vbrief/specification.vbrief.json) migrate via `task migrate:vbrief` to a PROJECT-DEFINITION.vbrief.json that is missing the required `Overview` narrative key. D3 in scripts/vbrief_validate.py requires both 'overview' and 'tech stack' (case-folded) to be present. _build_project_definition only pulls narratives from spec_vbrief and extracts 'tech stack' from PROJECT.md -- neither source supplies Overview for the canonical v0.19 layout. Result: post-migration `task vbrief:validate` fails with 'narratives missing expected key overview (D3)'. Discovered during swarm-402 Phase 5 consumer upgrade simulation (13/14 checks passed).",
+      "Action": "Add _first_prose_paragraph(content) helper and _derive_overview_narrative(spec_vbrief, spec_md_content, project_content, scope_item_count) helper to scripts/migrate_vbrief.py. In _build_project_definition, check whether any narrative key case-folds to 'overview'; if not, call _derive_overview_narrative. Resolution order: (1) spec_vbrief.plan.narratives['Overview']; (2) first prose paragraph / H1 of SPECIFICATION.md (skip sentinel stubs); (3) first prose paragraph / H1 of PROJECT.md (skip sentinel stubs); (4) synthesized placeholder naming the scope count. Add spec_md_content optional parameter to _build_project_definition and pass from the migrate() call site. Update existing TestBuildProjectDefinition.test_no_sources_produces_empty_narratives to reflect new synthesized-Overview contract.",
+      "Test": "tests/cli/test_migrate_vbrief.py::TestFirstProseParagraph (5) + TestDeriveOverviewNarrative (6) + TestMigrateOverviewNarrative (4) -- 15 new assertions. TestMigrateOverviewNarrative::test_migrated_project_definition_passes_d3_validator is the end-to-end regression test: it invokes vbrief_validate.py via subprocess on a migrated v0.19 fixture and asserts no D3 'overview' or 'tech stack' errors appear.",
+      "Outcome": "task migrate:vbrief on a canonical v0.19 fixture produces a PROJECT-DEFINITION.vbrief.json that immediately passes `task vbrief:validate` D3. Consumer upgrade simulation progresses from 13/14 to 14/14 checks. Charter Addendum v1.1 blocking condition resolved."
+    },
+    "items": [
+      {
+        "id": "417-1",
+        "title": "Add _first_prose_paragraph and _derive_overview_narrative helpers",
+        "status": "running"
+      },
+      {
+        "id": "417-2",
+        "title": "Add spec_md_content parameter to _build_project_definition and fallback Overview derivation",
+        "status": "running"
+      },
+      {
+        "id": "417-3",
+        "title": "Pass spec_md_content from migrate() to _build_project_definition",
+        "status": "running"
+      },
+      {
+        "id": "417-4",
+        "title": "Update test_no_sources_produces_empty_narratives -> synthesized Overview contract",
+        "status": "running"
+      },
+      {
+        "id": "417-5",
+        "title": "Add TestFirstProseParagraph, TestDeriveOverviewNarrative, TestMigrateOverviewNarrative (15 new tests)",
+        "status": "running"
+      },
+      {
+        "id": "417-6",
+        "title": "Re-run consumer upgrade simulation and confirm 14/14",
+        "status": "running"
+      }
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/417",
+        "id": "#417"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/402",
+        "id": "#402"
+      }
+    ],
+    "updated": "2026-04-20T17:08:02Z"
+  }
+}

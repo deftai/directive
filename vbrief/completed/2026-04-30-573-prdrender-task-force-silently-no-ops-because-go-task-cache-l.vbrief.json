@@ -1,0 +1,55 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #573"
+  },
+  "plan": {
+    "title": "prd:render: task -- --force silently no-ops because go-task cache layer wins before script --force reaches the code",
+    "status": "completed",
+    "narratives": {
+      "Description": "prd:render: task -- --force silently no-ops because go-task cache layer wins before script --force reaches the code",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/573",
+      "Labels": "bug, rc3-feedback",
+      "Problem": "task prd:render -- --force silently skips with 'Task is up to date' because go-task's sources/generates cache shortcuts the task before CLI_ARGS reach the script. Operators following the #539 refuse-to-overwrite recovery hint hit a no-op dead-end. The actual recipe is task --force prd:render -- --force (two --force flags at two layers). Note: #574 (drop sources/generates from tasks/prd.yml) is already complete; this issue covers the message-update + audit follow-through.",
+      "Acceptance": "Following the #539 refuse-to-overwrite error message's recovery hint actually causes PRD.md to be overwritten. Implementation can be: (a) update the #539 error string to spell out the double-force incantation, or (b) confirm the #574 fix already resolved the original repro and add a regression test. Audit other tasks/*.yml entries with sources/generates + script-level --force-like flags for the same class of issue. Add a regression test that reproduces the refuse-to-overwrite case, follows the message's recovery command literally, and asserts the file is overwritten.",
+      "OutOfScope": "Removing the safety check from #539; renaming the script flag (would break consumer docs). New task-cache documentation file unless the audit surfaces a broader pattern.",
+      "Files": "scripts/prd_render.py (#539 error message); tasks/prd.yml (already cleaned by #574 -- verify); other tasks/*.yml entries (audit); tests/cli/test_prd_render*.py (regression); CHANGELOG.md (append)."
+    },
+    "items": [
+      {
+        "title": "Verify #574 fix resolved the original repro; if not, update the #539 error string to the double-force incantation",
+        "status": "pending"
+      },
+      {
+        "title": "Audit other tasks/*.yml entries for sources/generates + script --force pattern; document findings",
+        "status": "pending"
+      },
+      {
+        "title": "Regression test: refuse-to-overwrite -> follow message recovery -> assert PRD.md overwritten",
+        "status": "pending"
+      },
+      {
+        "title": "Optional: docs note about double-force semantics in scm/git.md or new docs/task-cache.md",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md [Unreleased] entry under Fixed referencing #573",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/573",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #573: prd:render: task -- --force silently no-ops because go-task cache layer wins before script --force reaches the code"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-05-01T02:02:50Z"
+  }
+}

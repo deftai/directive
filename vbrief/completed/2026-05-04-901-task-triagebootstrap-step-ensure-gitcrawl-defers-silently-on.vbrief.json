@@ -1,0 +1,51 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #901",
+    "updated": "2026-05-05T01:36:03Z"
+  },
+  "plan": {
+    "title": "task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback",
+    "status": "completed",
+    "narratives": {
+      "Description": "task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/901",
+      "Labels": "bug"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/901",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #901: task triage:bootstrap step ensure_gitcrawl defers silently on Windows; users get no signal about the gh-only fallback"
+      }
+    ],
+    "updated": "2026-05-05T01:36:03Z",
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "parallelizable_with": [
+          "#899",
+          "#900",
+          "#902"
+        ]
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "deft-directive-build",
+        "rationale": "Try uv tool install gitcrawl before pipx (uv is already required by deft); improve deferred StepOutcome message + JSON details (falling_back_to, missing_fields, install_hint); add docs/gitcrawl-fallback.md documenting the gh-only field gap. Touches step_ensure_gitcrawl only -- disjoint from #900's parser changes.",
+        "files_to_touch": [
+          "scripts/triage_bootstrap.py",
+          "tests/scripts/test_triage_bootstrap.py",
+          "docs/gitcrawl-fallback.md",
+          "skills/deft-directive-refinement/SKILL.md"
+        ],
+        "branch": "fix/triage-gitcrawl-install-path",
+        "pr_title_prefix": "fix(triage):"
+      }
+    }
+  }
+}

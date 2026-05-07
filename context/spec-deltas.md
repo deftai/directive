@@ -16,13 +16,12 @@ Code diffs show *what* changed. Spec deltas show *why* — how the system's requ
 
 ## How It Works
 
-When a change modifies existing requirements (or adds new ones), the change's `specs/` folder captures the delta:
+When a change modifies existing requirements (or adds new ones), the change's `specs/` folder captures the delta as a vBRIEF file:
 
 ```
 history/changes/add-remember-me/
 └── specs/
-    └── auth-session/
-        └── spec.md          ← New/changed requirements for auth-session
+    └── auth-session.delta.vbrief.json  ← New/changed requirements for auth-session
 ```
 
 The spec delta is linked to the project's baseline spec via a vBRIEF reference in the change's `tasks.vbrief.json`:
@@ -51,46 +50,36 @@ The spec delta is linked to the project's baseline spec via a vBRIEF reference i
 
 ### Format
 
-Spec delta files use the same RFC 2119 language as full specs but capture only what's new or changed:
+Spec delta files are vBRIEF v0.5 files with `plan.narratives` capturing requirement changes:
 
-```markdown
-# auth-session — Spec Delta
-
-**Change**: add-remember-me
-**Baseline**: SPECIFICATION.md §auth-session
-
-## New Requirements
-
-### Requirement: Extended session with remember-me
-
-The system SHALL support configurable session expiration periods.
-
-#### Scenario: Extended session with remember me
-
-- GIVEN user checks "Remember me" at login
-- WHEN 30 days have passed
-- THEN invalidate the session token
-- AND clear the persistent cookie
-
-## Modified Requirements
-
-### Requirement: Session expiration (modified)
-
-**Was**: The system SHALL expire sessions after 24 hours without activity.
-
-**Now**: The system SHALL expire sessions after a configured duration.
-Default 24 hours; 30 days with "Remember me."
+```json
+{
+  "vBRIEFInfo": { "version": "0.5" },
+  "plan": {
+    "title": "auth-session-delta",
+    "status": "draft",
+    "narratives": {
+      "Baseline": "specification.vbrief.json -- auth-session scope",
+      "NewRequirements": "FR-4: The system SHALL support configurable session expiration periods. GIVEN user checks 'Remember me' at login WHEN 30 days have passed THEN invalidate the session token AND clear the persistent cookie.",
+      "ModifiedRequirements": "FR-1 (Session expiration): was: The system SHALL expire sessions after 24 hours without activity. now: The system SHALL expire sessions after a configured duration. Default 24 hours; 30 days with 'Remember me'.",
+      "RemovedRequirements": ""
+    }
+  }
+}
 ```
 
 ### Rules
 
-- ! Each spec delta file identifies its **baseline** — the spec or section it modifies
-- ! Separate "New Requirements" from "Modified Requirements"
-- ! For modified requirements, show **was** and **now** explicitly
-- ~ Organize spec deltas by capability, matching the project's spec structure
-- ~ Use GIVEN/WHEN/THEN scenarios for behavioral requirements
+- ! Each delta vBRIEF identifies its **Baseline** narrative — the spec or section it modifies
+- ! Separate `NewRequirements` from `ModifiedRequirements` narratives
+- ! For modified requirements, show **was** and **now** explicitly within the `ModifiedRequirements` narrative
+- ! All narrative values MUST be plain strings — never objects or arrays
+- ~ Organize spec deltas by capability: `specs/auth-session.delta.vbrief.json`
+- ~ Use GIVEN/WHEN/THEN scenarios for behavioral requirements within narrative values
+- ~ Use RFC 2119 language (MUST, SHOULD, MAY) within narrative values
 - ⊗ Rewrite the full spec — only capture the delta
-- ⊗ Omit the baseline reference — the delta is meaningless without it
+- ⊗ Omit the Baseline narrative — the delta is meaningless without it
+- ⊗ Use markdown spec files (`spec.md`) — all spec deltas must be vBRIEF format
 
 ---
 
@@ -99,7 +88,7 @@ Default 24 hours; 30 days with "Remember me."
 Spec deltas form a chain via vBRIEF `references`:
 
 ```
-SPECIFICATION.md (baseline)
+specification.vbrief.json (baseline)
     ↑ referenced by
 history/changes/add-auth/tasks.vbrief.json
     ↑ referenced by
@@ -147,8 +136,8 @@ Use vBRIEF `narratives` on the plan to capture the **why** of the spec change:
 
 When an agent needs to understand the current state of requirements:
 
-1. ! Read the baseline `SPECIFICATION.md`
-2. ! Scan `history/changes/*/specs/` for any deltas that modify relevant sections
+1. ! Read the baseline `specification.vbrief.json` (or relevant scope vBRIEFs)
+2. ! Scan `history/changes/*/specs/` for any `*.delta.vbrief.json` files that modify relevant sections
 3. ! Apply deltas in chronological order (directory timestamps or vBRIEF chain order)
 4. ~ Archived changes (`history/archive/`) represent already-merged deltas — skip unless investigating history
 
@@ -167,17 +156,22 @@ When an agent needs to understand the current state of requirements:
 
 When a change is archived via `/deft:change:archive`:
 
-- ~ Merge the spec delta into the project's main `SPECIFICATION.md` (or its vBRIEF source)
-- ~ The archived spec delta remains as a historical record of *why* the spec changed
-- ! The main spec should always reflect the current state of requirements
-- ⊗ Leave spec deltas unmerged after archiving — the main spec drifts from reality
+- ! Read each `*.delta.vbrief.json` file's narratives and apply to the target scope vBRIEF
+- ! Apply `NewRequirements` narrative to the scope vBRIEF
+- ! Apply `ModifiedRequirements` narrative — replace **was** with **now** in the scope vBRIEF
+- ! Apply `RemovedRequirements` narrative — remove identified requirements from the scope vBRIEF
+- ~ The archived delta vBRIEF remains as a historical record of *why* the spec changed
+- ! The main spec (scope vBRIEFs) should always reflect the current state of requirements
+- ⊗ Leave spec deltas unmerged after archiving — the scope vBRIEF drifts from reality
+- ⊗ Parse markdown to extract delta content — read vBRIEF narratives directly
 
 ---
 
 ## Anti-Patterns
 
 - ⊗ Rewriting the full spec in every delta (capture only what changed)
-- ⊗ Spec deltas without a baseline reference (orphaned deltas are useless)
+- ⊗ Spec deltas without a Baseline narrative (orphaned deltas are useless)
 - ⊗ Skipping spec deltas for behavioral changes ("the code is the spec")
 - ⊗ Modifying archived spec deltas (history is immutable)
 - ⊗ Accumulating unmerged deltas after archiving (spec rot)
+- ⊗ Using markdown spec files (`spec.md`) — all spec deltas must be vBRIEF format

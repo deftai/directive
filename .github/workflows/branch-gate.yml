@@ -1,0 +1,37 @@
+name: branch-gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+# CI sanity check (#747 acceptance criterion E): refuse PRs whose head_ref
+# equals the base_ref. master->master PRs slip past every other layer (the
+# pre-commit hook can be bypassed locally; verify:branch only runs in
+# task check; the typed policy only governs *direct* commits) so this job
+# closes the loop at the merge surface.
+jobs:
+  head-ref-not-equal-base-ref:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse master->master PR
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        # Compare lowercased ref names so e.g. `Master` vs `master` is
+        # caught (Greptile P2 review on PR #777). GitHub's UI lets users
+        # create capitalized branch names; ASCII-fold lowercase covers the
+        # cases we care about without pulling in Unicode-aware tooling.
+        run: |
+          set -eu
+          echo "head_ref=$HEAD_REF"
+          echo "base_ref=$BASE_REF"
+          head_lc=$(printf '%s' "$HEAD_REF" | tr '[:upper:]' '[:lower:]')
+          base_lc=$(printf '%s' "$BASE_REF" | tr '[:upper:]' '[:lower:]')
+          if [ "$head_lc" = "$base_lc" ]; then
+            echo "::error title=Branch gate (#747)::head_ref ($HEAD_REF) equals base_ref ($BASE_REF) (case-insensitive). PRs from a branch to itself are refused. Open the PR from a feature branch instead." >&2
+            exit 1
+          fi
+          echo "✓ head_ref ($HEAD_REF) != base_ref ($BASE_REF)"

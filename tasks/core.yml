@@ -1,5 +1,8 @@
 version: '3'
 
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
 tasks:
   validate:
     desc: Validate all markdown files
@@ -36,29 +39,39 @@ tasks:
 
 
   build:
-    desc: Package framework for distribution
+    desc: Package framework for distribution (cross-platform via Python helper, #736)
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - cmd: mkdir -p dist
-        platforms: [linux, darwin]
-      - cmd: powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path dist | Out-Null"
-        platforms: [windows]
-      - cmd: tar -czf dist/deft-{{.VERSION}}.tar.gz --exclude=backup --exclude=dist --exclude=.git --exclude=node_modules .
-        platforms: [linux, darwin]
-      - cmd: powershell -NoProfile -Command "Compress-Archive -Path . -DestinationPath dist\deft-{{.VERSION}}.zip -Force"
-        platforms: [windows]
-      - cmd: echo "Created dist/deft-{{.VERSION}}.tar.gz"
-        platforms: [linux, darwin]
-      - cmd: echo "Created dist/deft-{{.VERSION}}.zip"
-        platforms: [windows]
+      # Single cross-platform dispatch (#736). The Python helper uses
+      # stdlib tarfile / zipfile with a canonical exclude list and
+      # auto-selects tar.gz on Linux/macOS, zip on Windows. The previous
+      # platform-split shape had the Windows branch missing the exclude
+      # list, ingesting .git history and the prior dist/ artifact.
+      # Regression-guarded by tests/content/test_taskfile_zip_parity.py.
+      - uv run python "{{.DEFT_ROOT}}/scripts/build_dist.py" --version "{{.VERSION}}"
 
   clean:
-    desc: Clean generated artifacts
+    desc: Clean generated artifacts (cross-platform via Python helper, #736)
+    env:
+      PYTHONUTF8: "1"
     cmds:
-      - cmd: rm -rf dist/
-        platforms: [linux, darwin]
-      - cmd: powershell -NoProfile -Command "if (Test-Path dist) { Remove-Item -Recurse -Force dist }"
-        platforms: [windows]
-      - echo "Cleaned artifacts"
+      # Single cross-platform dispatch (#736) -- mirrors the build target's
+      # simplification. Python's pathlib + shutil.rmtree handles the dist/
+      # directory removal identically on POSIX and Windows, replacing the
+      # prior rm -rf / Remove-Item duplication.
+      #
+      # The dist/ path is anchored at {{.DEFT_ROOT}} so `task clean` works
+      # the same way regardless of the operator's current working directory.
+      # The previous shape relied on `pathlib.Path('dist')` resolving against
+      # the inherited CWD, which silently no-ops when the operator runs
+      # `task -t tasks/core.yml clean` from a subdirectory (Greptile P2 on
+      # PR #773).
+      - cmd: >-
+          uv run python -c "import shutil, pathlib;
+          d = pathlib.Path(r'{{.DEFT_ROOT}}') / 'dist';
+          shutil.rmtree(d) if d.exists() else None;
+          print(f'Cleaned {d}')"
 
   stats:
     desc: Show framework statistics

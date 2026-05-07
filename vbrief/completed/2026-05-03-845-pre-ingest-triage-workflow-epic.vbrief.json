@@ -1,0 +1,121 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Epic vBRIEF for issue #845: pre-ingest triage workflow with sidecar issue cache + decision audit log + accept/reject/defer/needs-AC state machine. Decomposed into 6 story-level vBRIEFs for parallel swarm implementation.",
+    "created": "2026-05-03T16:15:00Z",
+    "updated": "2026-05-03T20:48:27Z"
+  },
+  "plan": {
+    "id": "845-pre-ingest-triage-workflow-epic",
+    "title": "feat(triage,cache,refinement): pre-ingest triage workflow with sidecar issue cache",
+    "status": "completed",
+    "narratives": {
+      "Overview": "Three-tier inventory model: (1) `.deft-cache/issues/<repo>/<N>.{json,md}` local mirror with injection quarantine; (2) `vbrief/.eval/candidates.jsonl` append-only audit log of triage decisions; (3) `vbrief/proposed/` reserved for items the user/agent has accepted as worth tracking. Triage actions: accept / reject / defer / needs-AC / mark-duplicate. Reject closes upstream issue with reason + label. Refinement skill gains a Phase 0 that operates on the cache and routes decisions; existing Phase 1 operates on accepted-only.",
+      "Problem": "Current refinement skill ingests every candidate to `proposed/` first, then evaluates. Reject path costs 2 vBRIEFs (proposed -> cancelled) plus 2 PROJECT-DEFINITION regens. `proposed/` semantics drift: items there were not actually proposed by the maintainer. Per-item `gh issue view` calls during evaluation are operationally expensive (token + rate-limit, see #788). Backlog visibility is qualitative (\"the proposed/ folder has stuff in it\") instead of quantitative.",
+      "Background": "Adopts hybrid build-vs-buy: `openclaw/gitcrawl` (MIT, all hard gates pass) handles the read side; deft-built decision overlay handles the write side. Sidecar JSONL chosen over vBRIEF schema extension to decouple from ADR-001 (#742) outcome. Closes the #583 injection-quarantine gap on the cache path. Forward-compatible with vBRIEF v0.7 (PlanItem `type`, `Source` narrative, `^x-deft/` namespace). Sequencing precondition (the `chore/ingest-open-bugs-blockers-784-796-800-814` cohort) merged on 2026-05-03 with v0.24.0; this work unblocks.",
+      "Goals": "(1) Reject path drops from `2 vBRIEFs + 2 regens` to `0 + 0` (truly free). (2) Evaluator API calls drop from `O(N) per pass` to `O(1)` after cache populate. (3) Tiered evaluator pipeline filters ~50%+ of candidates before LLM spend. (4) `proposed/` semantics aligned with v0.6 schema intent. (5) Backlog visibility becomes quantitative. (6) Pre-swarm freshness gate catches upstream drift before agent dispatch.",
+      "Outcome": "v1 ships as 6 PRs landing in master under v0.25.0. Acceptance: cache populated for all open issues; all triage actions implemented + tested; reject path closes upstream with reversible audit-log entry; refinement Phase 0 documented + active with auto-skip on empty cache; `task triage:bootstrap` idempotent; `UPGRADING.md` migration section added; CHANGELOG entry calling out additive nature + opt-in path.",
+      "Constraint": "Zero forced migration: existing vBRIEFs untouched; `task issue:ingest` keeps working as-is; `task reconcile:issues` keeps working. Bootstrap MUST NOT modify existing vBRIEFs' metadata; legacy `x-migrator.*` cleanup is owned by #802 and is independent. Triage-emitted vBRIEFs MUST include v0.7-ready fields (`PlanItem.type`, `narratives.Source`, `^x-deft/` namespace) where applicable.",
+      "Test": "Each story-level vBRIEF carries its own test surface (unit tests in `tests/test_triage_*.py`). Integration verified by Story 6 (bootstrap) which exercises the full stack end-to-end. Schema validation via `task vbrief:validate`. Encoding gate via existing `task verify:encoding` (#798)."
+    },
+    "items": [
+      {
+        "id": "845-story-1-cache-infra",
+        "title": "Cache infra + quarantine: `.deft-cache/issues/<repo>/<N>.{json,md}` + `task triage:cache` + `task triage:show` + gitcrawl install/wrapper + #583 quarantine on cache path",
+        "status": "running",
+        "narrative": {
+          "Action": "Owner: Agent A1. Files: scripts/triage_cache.py, scripts/quarantine_ext.py, tasks/triage-cache.yml (standalone fragment), .gitignore (.deft-cache/), tests/test_triage_cache.py."
+        }
+      },
+      {
+        "id": "845-story-2-candidates-audit-log",
+        "title": "Audit log core: `vbrief/.eval/candidates.jsonl` append-only writer/reader + JSON schema (`vbrief/schemas/candidates.schema.json`)",
+        "status": "running",
+        "narrative": {
+          "Action": "Owner: Agent A2. Files: scripts/candidates_log.py, vbrief/schemas/candidates.schema.json, tests/test_candidates_log.py."
+        }
+      },
+      {
+        "id": "845-story-3-triage-actions",
+        "title": "Triage actions: `task triage:accept|reject|defer|needs-ac|mark-duplicate|status|reset|history` consuming cache (Story 1) + audit log (Story 2)",
+        "status": "running",
+        "narrative": {
+          "Action": "Owner: Agent A3. Files: scripts/triage_actions.py, tasks/triage-actions.yml (standalone fragment), tests/test_triage_actions.py. Reject closes upstream issue via `gh issue close` with reason + label."
+        }
+      },
+      {
+        "id": "845-story-4-bulk-and-freshness",
+        "title": "Bulk ops + pre-swarm freshness gate: `task triage:bulk-*` filter ops + `task triage:refresh-active`",
+        "status": "running",
+        "narrative": {
+          "Action": "Owner: Agent A4. Files: scripts/triage_bulk.py, scripts/triage_refresh.py, tasks/triage-bulk.yml (standalone fragment), tests/test_triage_bulk.py, tests/test_triage_refresh.py. Freshness gate provides the cache-refresh primitive that #868 (lock-comment protocol) consumes."
+        }
+      },
+      {
+        "id": "845-story-5-refinement-phase-0",
+        "title": "Extend `skills/deft-directive-refinement/SKILL.md` with Phase 0 (cache + triage); existing Phase 1 operates on accepted-only with auto-skip on empty cache",
+        "status": "running",
+        "narrative": {
+          "Action": "Owner: Agent A5. Files: skills/deft-directive-refinement/SKILL.md (single-file owner; zero overlap with other agents)."
+        }
+      },
+      {
+        "id": "845-story-6-bootstrap-and-docs",
+        "title": "`task triage:bootstrap` idempotent installer + UPGRADING.md migration section + quarantine spec + privacy NFR + parent Taskfile.yml `includes:` wiring for fragments",
+        "status": "running",
+        "narrative": {
+          "Action": "Owner: Agent A6. Files: scripts/triage_bootstrap.py, tasks/triage-bootstrap.yml, tasks/Taskfile.yml (wires all 4 fragment includes; merges LAST to avoid cascade conflicts), UPGRADING.md (append section), docs/quarantine-spec.md (new), docs/privacy-nfr.md (new), tests/test_triage_bootstrap.py."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_issue": "#845",
+        "swarm_ready": true,
+        "wave_dependencies": "A1+A2 wave 1; A3 wave 2 (depends on A1+A2 contracts); A4 wave 3 (depends on A3); A5 independent; A6 LAST (parent Taskfile includes wiring).",
+        "depends_on": [
+          "#845 design record (parent issue)",
+          "v0.24.0 (released 2026-05-03; prerequisite cohort cleared)",
+          "#583 injection-quarantine spec (cache path)",
+          "#788 token-cost framework"
+        ],
+        "blocks": [
+          "#868 lock-comment protocol (consumes Story 4 freshness primitive)",
+          "Triage v1 ship under v0.25.0"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/845",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #845: feat(triage,cache,refinement): pre-ingest triage workflow with sidecar issue cache (refs #583 #788 #789 #815 #522)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/583",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #583: injection-quarantine for ingested origin content (security blocker absorbed)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/788",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #788: token-cost as first-class constraint (cost framework)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/789",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #789: pr-triage-stack (prior art / tooling: ghreplica, gitcrawl, pr-search-cli)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/815",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #815: refinement-state forcing function (visibility integration)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/868",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #868: bidirectional implementation-lock comment protocol (stacks on top of this work)"
+      }
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #237: chore(docs): migrate ROADMAP.md em-dashes to ASCII -- (317 replacements) -- enables edit_files on Windows without PowerShell fallback",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "chore(docs): migrate ROADMAP.md em-dashes to ASCII -- (317 replacements) -- enables edit_files on Windows without PowerShell fallback",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "chore(docs): migrate ROADMAP.md em-dashes to ASCII -- (317 replacements) -- enables edit_files on Windows without PowerShell fallback",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/237",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #237: chore(docs): migrate ROADMAP.md em-dashes to ASCII -- (317 replacements) -- enables edit_files on Windows without PowerShell fallback"
+      }
+    ]
+  }
+}

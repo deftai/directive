@@ -1,0 +1,133 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Bug in skills/deft-directive-review-cycle/SKILL.md Phase 2 Step 1: the dual-source fetch rule does not cover the cold-start case where the agent's first fetch lands before the bot reviewer (Greptile) has posted, leading to false-clean exit declarations on freshly-opened PRs.",
+    "created": "2026-05-03T01:53:52Z",
+    "updated": "2026-05-03T03:03:27Z"
+  },
+  "plan": {
+    "title": "Review-cycle dual-source fetch can miss late-arriving bot reviews",
+    "status": "completed",
+    "narratives": {
+      "Problem": "Phase 2 Step 1 of the review-cycle skill mandates dual-source fetching (`gh pr view --comments` + MCP `get_review_comments` or `gh api` fallback) and `do_not_summarize_output: true` to catch the 'Comments Outside Diff' section. Both correct. The gap: if the agent's first fetch lands BEFORE the bot has posted (e.g. T+30s after PR creation; Greptile lands at T+3-7min), both sources return zero findings. The Step 6 exit condition then evaluates against an empty review and declares 'no P0/P1 remaining' even though the bot review is still in flight. The Step 4 polling loop covers any cycle that includes a push, but the cold-start case (first review-cycle invocation on a freshly-opened PR with no fixes yet) is uncovered.",
+      "Overview": "Add a `~` SHOULD rule to Phase 2 Step 1 mandating a re-fetch after a ~60s delay when the initial dual-source pass returns no bot review on the current HEAD SHA, before the Step 6 exit condition can be evaluated. Companion `⊗` MUST NOT rule against declaring exit on a single empty fetch.",
+      "Background": "Bot reviewers (Greptile in deft's setup) typically land within 3-7 min of PR creation/push. The user's global rule (`KthiAoZEVMVffm0rv4vxQ6`) already documents this gap qualitatively ('re-check after initial fetch if bot reviewers like Greptile are configured'). This work codifies it into directive's deterministic tier. The poller template (templates/swarm-greptile-poller-prompt.md) handles the same case correctly via its loop body -- the gap is in the one-shot review-cycle entry path, not the poller.",
+      "Constraint": "MUST be skill prose addition (not code) -- the review cycle is agent-driven, no script to wire. MUST live in Phase 2 Step 1, before Step 6 exit-condition evaluation. MUST cite the global-rule precedent so the deft-internal version is the canonical source. MUST NOT change the poller template (correct already) or the polling loop (Step 4) which already handles this for push-driven cycles. SHOULD match the existing prose tone (`~`/`!`/`⊗` legend per RFC 2119 subset).",
+      "Risk": "Very low. Skill prose change only; no code; no tests on logic, only content tests on the skill file. The existing polling loop (Step 4) guarantees safety for any cycle that pushes a fix; this addition covers the orthogonal cold-start case.",
+      "Outcome": "Acceptance: (1) Phase 2 Step 1 of skills/deft-directive-review-cycle/SKILL.md gains a `~` SHOULD rule and a `⊗` MUST NOT rule covering the late-arriving bot review case. (2) Cross-references the user-rule precedent and the poller template (no-op for the poller; positive guidance for the one-shot entry path). (3) Optionally: the same rule is restated in meta/lessons.md as a one-line cross-reference (per the [AXIOM] strongest-applicable-layer rule, the rule body lives in the skill, not duplicated in prose). (4) CHANGELOG entry under [Unreleased] / Fixed.",
+      "Test": "tests/content/test_review_cycle_skill.py (existing; extended OR new module if it doesn't exist): regex-assert the new `~` rule presence, the `⊗` rule presence, and the canonical phrasing tokens (`60s`, `re-fetch`, `before evaluating`). Failure messages cite file + missing pattern.",
+      "Action": "1. Edit skills/deft-directive-review-cycle/SKILL.md Phase 2 Step 1 to add the `~` and `⊗` rules per the issue body's verbatim text. 2. Cross-reference the user rule + poller template for context. 3. Add tests/content/test_review_cycle_skill.py (or extend existing) with regex assertions on the new rule tokens. 4. CHANGELOG [Unreleased] / Fixed entry. 5. task check; commit; push; PR.",
+      "Urgency": "Low-medium severity per the issue. Adoption blocker only for the cold-start case on freshly-opened PRs with no fixes yet; routine push-driven review cycles are already safe. Worth landing now while it is fresh and the cohort is open; small change with no design risk."
+    },
+    "items": [
+      {
+        "id": "796-add-skill-rule",
+        "title": "Add `~` re-fetch rule + `⊗` no-single-fetch-exit rule to Phase 2 Step 1",
+        "status": "pending",
+        "narrative": {
+          "Action": "Insert verbatim per the issue body's 'Proposed Fix' block. Anchor: skills/deft-directive-review-cycle/SKILL.md, current Phase 2 Step 1 (lines ~77-100; verify before edit)."
+        }
+      },
+      {
+        "id": "796-cross-reference",
+        "title": "Cross-reference user rule + poller template",
+        "status": "pending",
+        "narrative": {
+          "Action": "Short pointer to user rule `KthiAoZEVMVffm0rv4vxQ6` and templates/swarm-greptile-poller-prompt.md (which already handles this case in its loop body) so future readers see the deft-internal version is the canonical source."
+        }
+      },
+      {
+        "id": "796-content-test",
+        "title": "Add/extend tests/content/test_review_cycle_skill.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Regex-assert the new `~` rule presence, the `⊗` rule presence, and the canonical phrasing tokens. Mirror the pattern in tests/content/test_skills.py."
+        }
+      },
+      {
+        "id": "796-lessons-crossref",
+        "title": "Optional one-line meta/lessons.md cross-reference",
+        "status": "pending",
+        "narrative": {
+          "Action": "Per [AXIOM] strongest-applicable-layer: the rule body lives in the skill, but a one-line lessons.md entry pointing at it is consistent with the existing pattern (e.g. PR #652 / Greptile CheckRun lesson). Optional; agent's call."
+        }
+      },
+      {
+        "id": "796-changelog",
+        "title": "Add CHANGELOG entry under [Unreleased] / Fixed",
+        "status": "pending",
+        "narrative": {
+          "Action": "fix(skills/review-cycle): re-fetch after a delay when the initial dual-source pass returns no bot review on the current HEAD; closes the cold-start false-clean gap (#796)."
+        }
+      },
+      {
+        "id": "796-task-check",
+        "title": "Run task check and confirm clean",
+        "status": "pending",
+        "narrative": {
+          "Action": "Pre-PR gate. Content test must pass."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/796",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #796: Review-cycle dual-source fetch can miss late-arriving bot reviews"
+      },
+      {
+        "uri": "skills/deft-directive-review-cycle/SKILL.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Phase 2 Step 1 (Fetch ALL bot comments) -- the surface this PR extends"
+      },
+      {
+        "uri": "templates/swarm-greptile-poller-prompt.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Poller template -- already handles the late-arrival case in its loop body; no-op for this work"
+      },
+      {
+        "uri": "meta/lessons.md",
+        "type": "x-vbrief/related-doc",
+        "title": "PR Review Process (2026-03) -- precedent lesson on dual-source fetching + Comments Outside Diff"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#793",
+          "#794",
+          "#798",
+          "#784",
+          "#800",
+          "#814"
+        ],
+        "estimated_size": "S (skill prose + content test + optional lessons xref + CHANGELOG)",
+        "blocks": [],
+        "blocked_by": []
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Skill-prose change with one new content test. No code. Single-PR boundary. The issue body provides the verbatim insertion text. Agent should branch, edit the skill, add the content test, run task check, commit, push, open PR.",
+        "files_to_touch": [
+          "skills/deft-directive-review-cycle/SKILL.md",
+          "tests/content/test_review_cycle_skill.py",
+          "meta/lessons.md",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "fix/796-review-cycle-late-bot-reviews",
+        "pr_title_suggestion": "fix(skills/review-cycle): re-fetch on cold-start to catch late-arriving bot reviews (#796)"
+      }
+    },
+    "updated": "2026-05-03T04:38:16Z",
+    "id": "796-review-cycle-late-arriving-bot-reviews",
+    "planRef": "#796"
+  }
+}

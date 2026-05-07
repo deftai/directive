@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "author": "agent:deft-directive-swarm",
+    "description": "Auto-generated from GitHub issue #390",
+    "created": "2026-04-15T17:34:00Z",
+    "updated": "2026-04-15T18:49:00Z"
+  },
+  "plan": {
+    "title": "deft-directive-setup SKILL.md: deft_version still 0.19.0 -- should be 0.20.0",
+    "status": "completed",
+    "narratives": {
+      "Overview": "See GitHub issue #390 for full description and acceptance criteria."
+    },
+    "items": [],
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#390"
+      }
+    ]
+  }
+}

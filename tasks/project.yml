@@ -1,0 +1,20 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# project:render task.
+#
+# Fixed #539: the task previously used ``{{.ROOT_DIR}}`` which is deft's
+# own repo root when invoked via ``includes:`` -- consumers got their data
+# scanned from ``deft/vbrief/``. Switched to ``{{.USER_WORKING_DIR}}`` to
+# match the convention used by roadmap:render / spec:render / migrate:vbrief.
+
+tasks:
+  render:
+    desc: Regenerate PROJECT-DEFINITION.vbrief.json items registry from lifecycle folders
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/project_render.py" "{{.USER_WORKING_DIR}}/vbrief"

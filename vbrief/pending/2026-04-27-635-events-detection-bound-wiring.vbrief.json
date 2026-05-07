@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF (#635 child): wire 5 detection-bound framework events whose detectors largely already exist into a uniform event surface. Split out from PR #401 per canonical #642 workflow comment so the trimmed PR lands hygiene only and events become enforceable structural artifacts.",
+    "created": "2026-04-27T22:25:52Z",
+    "updated": "2026-04-27T22:25:52Z"
+  },
+  "plan": {
+    "id": "635-events-detection-bound",
+    "title": "Events: detection-bound wiring (5 events with existing detectors)",
+    "status": "pending",
+    "planRef": "#635",
+    "narratives": {
+      "Problem": "PR #401's original DDD section introduced a domain-event vocabulary in core/events.md, but the prose-only encoding decays under agent pressure (the canonical #642 workflow comment's `Decisions locked` section calls this out as the root reason for splitting events into structural artifacts). Five of the proposed events are already detectable by existing scripts -- pre-cutover state, vBRIEF schema invalidity, AGENTS.md staleness, version drift, and dirty-tree -- but each detector emits in its own ad-hoc shape (warning lines, exit codes, in-script prints) rather than a uniform event record consumed by skills.",
+      "Overview": "Define a minimal detection-bound event surface for the 5 events whose detectors already exist. Land the event names + payload contracts as a structural artifact (not prose in core/events.md, which is being deleted by the trim). Detectors emit a uniform record (`event`, `detected_at`, `payload`) consumable by skills via a single helper. Phase 0: list the 5 events + their existing detectors; Phase 1: define payload contracts; Phase 2: refactor each detector to emit the uniform record; Phase 3: update consuming skills.",
+      "Background": "Five candidates (subject to confirmation against the deleted core/events.md content via PR #401's pre-trim ref): (1) `pre-cutover:detected` -- existing detector in skills/deft-directive-setup/SKILL.md Pre-Cutover Detection Guard + scripts/migrate_vbrief.py; (2) `vbrief:invalid` -- existing detector in scripts/vbrief_validate.py D1-D11 checks; (3) `agents-md:stale` -- existing detector in QUICK-START.md / SKILL.md path verification (deprecation redirect detection); (4) `version:drift` -- existing detector in `deft/run upgrade` gate (vbrief/.deft-version vs framework VERSION); (5) `dirty-tree` -- existing detector in scripts/_vbrief_safety.py SafetyManifest dirty-tree guard. Each currently emits via warning text, exit code, or stderr.",
+      "Constraint": "MUST NOT introduce new prose under coding/ or core/ -- the events surface lives as a data file (e.g. vbrief/schemas/events.schema.json or events/registry.yaml) plus per-detector emission in scripts/. The Rule Authority [AXIOM] block landing in main.md as part of PR #401's trim says the strongest applicable encoding form wins; this vBRIEF's deliverable is structural enforcement, not prose.",
+      "Risk": "(1) Conflict with the parallel Unit B work that deletes core/events.md from PR #401 -- this vBRIEF MUST NOT reintroduce that file. (2) Detector refactor risks regressing existing CI gates (task check / vbrief:validate / verify:links). Each detector's existing test suite MUST remain green. (3) The 5-event list is provisional pending a read of the deleted core/events.md from PR #401's pre-trim head; if Unit B's actual list differs, the swarm worker who picks this up reconciles in their first commit.",
+      "Outcome": "Acceptance: (1) a structural event registry (data file + schema) lists exactly 5 events with payload contracts; (2) each of the 5 detectors emits the uniform event record alongside its existing output (no breaking changes to existing CLIs); (3) at least one consuming skill or task references events by name (proves the surface is consumable); (4) `task check` passes; (5) coding/* and core/* prose files do not gain new event vocabulary.",
+      "Test": "Verification: tests/cli/test_event_registry.py asserts the registry validates against its own schema; per-detector tests assert the emitted event record matches the registered payload; existing detector test suites continue to pass.",
+      "Action": "Swarm-ready leaf: independent of the events behavioral wiring vBRIEF (different file set), independent of rule-ownership-map (different surface), gated on PR #401 trim merge so the deleted core/events.md is no longer in the way."
+    },
+    "items": [
+      {
+        "id": "events-detection-bound-registry",
+        "title": "Author the structural event registry (data file + schema) listing the 5 detection-bound events",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add events/registry.yaml (or vbrief/schemas/events.schema.json -- swarm worker decides) listing each event's name, payload fields, and emission contract."
+        }
+      },
+      {
+        "id": "events-detection-bound-emit",
+        "title": "Refactor the 5 existing detectors to emit the uniform event record (pre-cutover, vbrief-invalid, agents-md-stale, version-drift, dirty-tree)",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add a shared helper (e.g. scripts/_events.py::emit) and call it from each detector. Existing CLI output preserved."
+        }
+      },
+      {
+        "id": "events-detection-bound-consume",
+        "title": "Reference at least one event by name from a consuming skill or task to validate the surface is usable",
+        "status": "pending",
+        "narrative": {
+          "Action": "Concrete consumer TBD by swarm worker; could be skills/deft-directive-sync/SKILL.md Pre-Cutover Detection Guard step."
+        }
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2",
+        "PhaseDescription": "Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files."
+      },
+      "x-tracking": {
+        "parent_epic": "#635",
+        "split_authority": "https://github.com/deftai/directive/issues/642#issuecomment-4330742436",
+        "swarm_ready": true,
+        "blocks": null,
+        "blocked_by": "PR #401 trim merge: CLEARED 2026-04-28 (core/events.md removed). Foundational piece -- the events-behavioral-wiring sibling has a soft preference to land after this so the shared scripts/_events.py helper exists."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/635",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #635 (epic, parent): skill-system maturity + framework-rule determinism (umbrella for #75, #604, #607, #633, #634)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/642",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #642: PR #401 trim tracker (canonical workflow comment authorizes this split)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/401",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #401: feat(coding): codebase hygiene, DDD framework structure, and determinism design (the trim makes core/events.md available to be respawned as a structural artifact under this vBRIEF)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/634",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #634: determinism-tier ladder (this vBRIEF's structural-artifact deliverable sits at T5/T6 on the 7-tier ladder)"
+      }
+    ]
+  }
+}

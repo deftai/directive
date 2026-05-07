@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+# .githooks/pre-push -- detection-bound branch-protection gate (#747).
+#
+# Activated by `git config core.hooksPath .githooks` (idempotent setup
+# performed by `task setup`). Mirrors the pre-commit shape: pre-push
+# defends against the case where a user opted out at commit time (e.g.
+# DEFT_ALLOW_DEFAULT_BRANCH_COMMIT in a single shell) but still tries
+# to push to the default branch in a fresh shell. The same script runs
+# in both hooks so behavior stays consistent.
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$REPO_ROOT" ]; then
+    echo "deft pre-push: unable to resolve repo root via 'git rev-parse'." >&2
+    exit 1
+fi
+
+PYTHON_BIN="${DEFT_PYTHON:-}"
+if [ -z "$PYTHON_BIN" ]; then
+    if command -v python3 >/dev/null 2>&1; then
+        PYTHON_BIN=python3
+    elif command -v python >/dev/null 2>&1; then
+        PYTHON_BIN=python
+    else
+        echo "deft pre-push: no python interpreter found on PATH." >&2
+        echo "  Set DEFT_PYTHON=<absolute python path> or install python3." >&2
+        exit 1
+    fi
+fi
+
+exec "$PYTHON_BIN" "$REPO_ROOT/scripts/preflight_branch.py" --project-root "$REPO_ROOT"

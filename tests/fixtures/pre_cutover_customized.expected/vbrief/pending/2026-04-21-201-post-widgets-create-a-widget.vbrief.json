@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #201: POST /widgets: create a widget"
+  },
+  "plan": {
+    "title": "POST /widgets: create a widget",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2 -- Core API",
+        "Tier": "Tier 1 -- CRUD",
+        "Description": "POST /widgets: create a widget",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "default"
+      }
+    }
+  }
+}

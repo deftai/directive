@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #293: test(cli): add subprocess-based unit tests for v0.17.0 task scripts -- 25 test cases in tests/cli/test_task_scripts.py",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "test(cli): add subprocess-based unit tests for v0.17.0 task scripts -- 25 test cases in tests/cli/test_task_scripts.py",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "test(cli): add subprocess-based unit tests for v0.17.0 task scripts -- 25 test cases in tests/cli/test_task_scripts.py",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/293",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #293: test(cli): add subprocess-based unit tests for v0.17.0 task scripts -- 25 test cases in tests/cli/test_task_scripts.py"
+      }
+    ]
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF (#883 child): re-run v0.26.0 cache+triage scale smoke after #952 bootstrap-hang fix landed in PR #955 (master @ e51f35d). Validate fix at full backlog scale + capture full Phase 2 metrics + idempotency check.",
+    "created": "2026-05-07T00:08:44Z",
+    "updated": "2026-05-07T00:11:58Z"
+  },
+  "plan": {
+    "id": "883-v0.26.0-rerun-smoke",
+    "title": "v0.26.0 cache-layer scale smoke re-run after #952 bootstrap-hang fix (#883)",
+    "status": "completed",
+    "planRef": "#883",
+    "narratives": {
+      "Problem": "Prior smoke (PR #953, doc: docs/smoke-2026-05-06-v0.26.0-scale.md) captured Phase 1 (N=50 filtered) cleanly but Phase 2 (full backlog) was salvaged read-only after the bootstrap orchestrator hung at 18:00 UTC after cache:fetch-all completed (filed as #952). PR #955 landed a watchdog (default 3600s, configurable) plus per-step structured progress on master @ e51f35d. We need empirical validation that the fix works at real-world scale, plus full Phase 2 metrics and an idempotency confirmation that were not captured the first time.",
+      "Overview": "Docs+evidence run only. Wipe .deft-cache for a clean baseline, run task triage:bootstrap at full backlog scale with default watchdog, capture Phase 2 metrics (wall-clock, succeeded/failed/skipped, structured progress timings, audit/cache sizes, scanner flag distribution). Re-run cache:fetch-all immediately to confirm Story 2 idempotency (skip-fresh on every entry). Write docs/smoke-2026-05-07-v0.26.0-rerun.md with metrics + comparison vs prior smoke + evidence findings on #946-#949.",
+      "Background": "v0.26.0 ships unified content cache + quarantine layer (#883 epic). PR #955 fixed the orchestrator hang surfaced in #952. Issues #946-#949 are open follow-ups (cache integrity, sizing, audit growth, detector tuning) that benefit from full-scale evidence comments.",
+      "Constraint": "Docs-only PR. Do NOT modify scripts/, tasks/, skills/. Do NOT promote CHANGELOG to v0.26.1. Do NOT fix any defects surfaced -- file new issues if any. 90 min wall-clock cap. PowerShell 5.1 Python pathlib for non-ASCII edits.",
+      "Risk": "(R-1) Bootstrap hangs again at scale -- mitigated by the new watchdog defaulting to 3600s; if it fires, BLOCKED with full progress output for diagnosis. (R-2) New defects surface during the run -- file as new issues, do NOT attempt to fix in this PR.",
+      "Outcome": "Acceptance: (1) docs/smoke-2026-05-07-v0.26.0-rerun.md exists with TL;DR + Methodology + Phase 2 metrics + Phase 2B idempotency table + comparison vs prior smoke + Findings sections; (2) evidence comments posted on each of #946, #947, #948, #949; (3) draft PR open against master citing the smoke doc and evidence comments; (4) CHANGELOG.md [Unreleased] docs bullet added.",
+      "Test": "task check green. skills/deft-directive-pre-pr/SKILL.md RWLD until clean. cache layout integrity spot-check (5 random meta.json schema conformance, no orphan dirs, audit-log monotonic timestamps).",
+      "Action": "Execute steps 1-15 from the dispatch directive: branch -> wipe cache -> bootstrap -> idempotency check -> snapshot -> doc -> evidence comments -> pre-pr -> changelog -> scope:complete -> commit+push -> draft PR -> done message.",
+      "Urgency": "v0.26.0 release validation depends on empirical confirmation that the bootstrap-hang fix holds at scale. The four follow-up issues (#946-#949) are blocked on full-scale evidence."
+    },
+    "items": [
+      {
+        "id": "883-rerun-smoke-doc",
+        "title": "Author docs/smoke-2026-05-07-v0.26.0-rerun.md with full Phase 2 + Phase 2B metrics, comparison vs prior smoke, and findings on #946-#949",
+        "status": "pending",
+        "narrative": {
+          "Action": "Python pathlib write with utf-8 encoding (PS 5.1 safe). Cross-reference docs/smoke-2026-05-06-v0.26.0-scale.md."
+        }
+      },
+      {
+        "id": "883-rerun-evidence-comments",
+        "title": "Post evidence comments on #946, #947, #948, #949 with relevant metrics from this run via gh api",
+        "status": "pending",
+        "narrative": {
+          "Action": "Use gh api repos/deftai/directive/issues/<N>/comments -X POST --input - with JSON body written via Python."
+        }
+      },
+      {
+        "id": "883-rerun-changelog-and-pr",
+        "title": "CHANGELOG.md [Unreleased] docs bullet + draft PR against master",
+        "status": "pending",
+        "narrative": {
+          "Action": "PR body: TL;DR, comparison vs prior smoke, list of evidence comments. Draft only -- do not ready for merge."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_issue": "#883",
+        "swarm_ready": false,
+        "depends_on": [
+          "#955 bootstrap watchdog + structured progress (merged on master @ e51f35d)"
+        ],
+        "blocks": [
+          "v0.26.0 release validation",
+          "#946 cache integrity follow-up",
+          "#947 cache sizing follow-up",
+          "#948 audit-log growth follow-up",
+          "#949 detector tuning follow-up"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/883",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #883 (epic): unified content cache + quarantine layer for triage v1"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/953",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #953: prior v0.26.0 scale smoke (Phase 1 clean + Phase 2 partial)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/955",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #955: bootstrap watchdog + per-step structured progress (fixes #952)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/952",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #952: bootstrap orchestrator hang at backlog scale (FIXED by #955)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/946",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #946: cache integrity follow-up"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/947",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #947: cache sizing follow-up"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/948",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #948: audit-log growth follow-up"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/949",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #949: detector tuning follow-up"
+      }
+    ],
+    "updated": "2026-05-07T01:19:26Z"
+  }
+}

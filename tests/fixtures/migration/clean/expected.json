@@ -1,0 +1,13 @@
+{
+  "scenario": "clean",
+  "folder_counts": {
+    "proposed": 0,
+    "pending": 1,
+    "active": 0,
+    "completed": 0,
+    "cancelled": 0
+  },
+  "statuses": {"pending": ["pending"]},
+  "reconciliation_md": false,
+  "registry_statuses": ["pending"]
+}

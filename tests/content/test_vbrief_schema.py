@@ -204,7 +204,7 @@ def test_spec_plan_has_title_status_items() -> None:
 def test_narrative_object_value_must_be_string() -> None:
     """Narrative values that are objects (not strings) must be flagged."""
     data = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "Test",
             "status": "draft",
@@ -222,7 +222,7 @@ def test_narrative_object_value_must_be_string() -> None:
 def test_item_narrative_value_must_be_string() -> None:
     """PlanItem narrative values that are objects (not strings) must be flagged."""
     data = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "Test",
             "status": "draft",
@@ -247,10 +247,11 @@ def test_item_narrative_value_must_be_string() -> None:
 # subItems / items-inside-PlanItem validation tests
 # ---------------------------------------------------------------------------
 
-def test_items_inside_plan_item_detected() -> None:
-    """Using 'items' inside a PlanItem (instead of 'subItems') must be flagged."""
+def test_items_inside_plan_item_accepted_v06() -> None:
+    """Per v0.6 schema, ``PlanItem.items`` is the preferred nested field
+    and MUST be accepted without error (#533 / Greptile P1 alignment)."""
     data = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "Test",
             "status": "draft",
@@ -267,13 +268,13 @@ def test_items_inside_plan_item_detected() -> None:
         },
     }
     errors = _validate_schema(data, "test")
-    assert any("use 'subItems' instead" in e for e in errors)
+    assert errors == [], f"PlanItem.items should be accepted in v0.6: {errors}"
 
 
 def test_recursive_subitems_validation() -> None:
     """Nested subItems must be validated recursively."""
     data = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "Test",
             "status": "draft",
@@ -307,7 +308,7 @@ def test_recursive_subitems_validation() -> None:
 def test_valid_hierarchical_spec_passes() -> None:
     """A correctly structured hierarchical spec must pass validation."""
     data = {
-        "vBRIEFInfo": {"version": "0.5"},
+        "vBRIEFInfo": {"version": "0.6"},
         "plan": {
             "title": "Project SPECIFICATION",
             "status": "draft",

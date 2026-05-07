@@ -1,0 +1,63 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Rename triage v1 fragment-include task names so the documented task triage:* surface is reachable verbatim from task -l (#913). Skill docs and CHANGELOG advertise task triage:cache / task triage:show / task triage:accept|reject|defer|needs-ac|mark-duplicate|status|reset|history / task triage:bulk-accept|bulk-reject|bulk-defer|bulk-needs-ac|refresh-active / task triage:bootstrap, but go-task installs them under fragment-include prefixes (triage-cache:cache, triage-actions:triage:accept with a doubled prefix, triage-bulk:bulk-accept, etc.). Pick option (1) from #913: hide the include-namespace forms via internal: true and add root-level alias tasks that delegate verbatim. scripts/triage_bulk.py / scripts/triage_cache.py / scripts/triage_bootstrap.py are intentionally untouched (Agents B/C scope).",
+    "created": "2026-05-05T15:15:00Z",
+    "updated": "2026-05-05T15:21:05Z"
+  },
+  "plan": {
+    "title": "task: triage v1 fragment-include task names don't match documented triage:* surface",
+    "status": "completed",
+    "narratives": {
+      "Overview": "Rename includes-block + inner task names (and add root-level alias tasks where namespace collisions block a single triage: include) so task -l exposes only the documented triage:* surface. The four fragment files keep their inner logic and are reached via internal-marked include namespaces; the root Taskfile.yml owns the user-facing triage:* aliases that delegate to those internal tasks. Mirrors the established #718 release-pipeline flatten precedent (release: tasks defined inline at the root Taskfile so go-task does not double-prefix them).",
+      "Action": "1) tasks/triage-cache.yml: add internal: true to cache and show. 2) tasks/triage-actions.yml: drop the triage: prefix from inner task names (accept, reject, defer, needs-ac, mark-duplicate, status, reset, history) and add internal: true so the doubled prefix bug disappears. 3) tasks/triage-bulk.yml: add internal: true to bulk-accept, bulk-reject, bulk-defer, bulk-needs-ac, refresh-active (do not touch the disable-gate cmds). 4) tasks/triage-bootstrap.yml: add internal: true to bootstrap. 5) Taskfile.yml: replace the single triage:bootstrap alias with the full 16-alias surface (triage:cache, triage:show, triage:accept|reject|defer|needs-ac|mark-duplicate|status|reset|history, triage:bulk-accept|bulk-reject|bulk-defer|bulk-needs-ac|refresh-active, triage:bootstrap), each delegating to the underlying include-namespace task and forwarding CLI_ARGS. 6) CHANGELOG.md [Unreleased] / Fixed bullet citing #913.",
+      "Outcome": "task -l shows the documented triage:* names verbatim and no triage-cache:, triage-actions:triage:, triage-bulk:, or triage-bootstrap: prefixes appear. The skill smoke test in skills/deft-directive-refinement/SKILL.md Phase 0 runs cleanly using only the documented surface. CHANGELOG carries one Fixed bullet citing #913. scripts/triage_bootstrap.py recap text continues to print the namespaced forms; those forms continue to resolve as internal tasks so the recap is not stale-but-broken (cleanup of the recap text is deferred to Agents B/C scope). Existing tests/test_triage_bootstrap.py recap pins (test_namespaced_forms_present, test_shorthand_forms_not_advertised, test_recap_carries_deferral_note, test_taskfile_includes_wired_for_four_fragments) continue to pass byte-identically.",
+      "Test": "Acceptance per #913: (1) every documented triage:* task resolves under task -l; (2) no triage-cache:, triage-actions:triage:, or triage-bulk: prefixes are visible in task -l; (3) task triage:cache, task triage:accept, task triage:bulk-defer, task triage:bootstrap, etc. dispatch to their underlying script via the alias delegation. Validation: task -l | Select-String triage; task triage:bootstrap -- --help (smoke); task check (full pre-commit aggregate)."
+    },
+    "items": [
+      {
+        "id": "913-internal-mark-fragments",
+        "title": "Add internal: true to every inner task across tasks/triage-cache.yml, tasks/triage-actions.yml, tasks/triage-bulk.yml, tasks/triage-bootstrap.yml so the include-namespace forms drop out of task -l",
+        "status": "proposed"
+      },
+      {
+        "id": "913-rename-actions-inner-names",
+        "title": "Drop the triage: prefix from inner task names in tasks/triage-actions.yml (accept, reject, defer, needs-ac, mark-duplicate, status, reset, history) so the doubled triage-actions:triage:* prefix disappears",
+        "status": "proposed"
+      },
+      {
+        "id": "913-add-root-aliases",
+        "title": "Replace the single triage:bootstrap alias in Taskfile.yml with the full 16-alias surface (cache, show, accept, reject, defer, needs-ac, mark-duplicate, status, reset, history, bulk-accept, bulk-reject, bulk-defer, bulk-needs-ac, refresh-active, bootstrap), each delegating to the underlying internal include-namespace task and forwarding CLI_ARGS",
+        "status": "proposed"
+      },
+      {
+        "id": "913-changelog-unreleased-fixed",
+        "title": "Append a single bullet to CHANGELOG.md [Unreleased] / Fixed citing #913 (triage: rename fragment-include task names so the documented surface is reachable verbatim)",
+        "status": "proposed"
+      },
+      {
+        "id": "913-acceptance-task-list",
+        "title": "Acceptance: task -l | Select-String triage exposes only the documented triage:* names; no fragment-prefixed names visible",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/913",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #913: task: triage v1 fragment-include task names don't match documented triage:* surface"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/845",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #845 (parent epic): pre-ingest triage workflow + sidecar issue cache"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/718",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #718: release task name doubled-prefix bug (precedent for inline-flatten pattern)"
+      }
+    ],
+    "updated": "2026-05-05T15:45:34Z"
+  }
+}

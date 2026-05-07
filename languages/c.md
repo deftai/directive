@@ -204,6 +204,23 @@ Items marked ⊗ in Standards above are not repeated here.
 - ≉ **Mixing signed/unsigned**: Explicit casts + `-Wconversion`
 - ≉ **Global mutable state**: Pass state via struct pointers
 
+## Hygiene
+
+**Types:**
+- ⊗ Implicit `int` return type or implicit function declarations — illegal in C99+; always declare explicitly
+- ⊗ `void*` casts without an inline comment explaining why a generic pointer is necessary
+- ⊗ `int` used as a boolean — use `bool` (`<stdbool.h>`, C99+) for clarity
+
+**Error handling:**
+- ⊗ Ignoring return values of `malloc`, `fread`, `fwrite`, `fclose`, or any function that signals failure via return value
+- ⊗ Empty error branches — all error paths must log, clean up, or propagate
+- ~ Use `-Wunused-result` and `__attribute__((warn_unused_result))` to enforce checked return values at the compiler level
+
+**Dead code:**
+- ~ Run `cppcheck --enable=unusedFunction,unusedVariable` to detect dead functions and variables
+- ~ `-Wunused-function` and `-Wunused-variable` compiler flags catch file-local dead code
+- ⊗ `#pragma GCC diagnostic ignored "-Wunused-function"` to suppress rather than remove dead code
+
 ## Compliance Checklist
 
 - ! Doxygen comments for all public APIs

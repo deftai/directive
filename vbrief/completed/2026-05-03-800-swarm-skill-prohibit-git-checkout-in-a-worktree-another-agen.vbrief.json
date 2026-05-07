@@ -1,0 +1,132 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Bug in skills/deft-directive-swarm/SKILL.md Phase 6 Step 3 (Update Master) and #727 orchestrator role-separation guidance: post-merge cleanup implicitly assumes the merging agent owns the worktree where `git pull origin <base>` runs. In multi-worktree swarm patterns, this lets the merger detach HEAD on a sibling worktree another agent is actively using.",
+    "created": "2026-05-03T01:53:52Z",
+    "updated": "2026-05-03T03:04:13Z"
+  },
+  "plan": {
+    "title": "swarm SKILL: prohibit `git checkout` in a worktree another agent owns (post-merge cleanup overreach)",
+    "status": "completed",
+    "narratives": {
+      "Problem": "Phase 6 Step 3 of the swarm SKILL describes post-merge `git pull origin <base-branch>` without scoping to the merger's own worktree. In multi-worktree patterns (the documented multi-agent pattern from AGENTS.md), the merging agent can `cd` into a sibling worktree another agent owns and run `git checkout master` to perform the pull -- detaching HEAD on the other agent's branch. Recurrence record: PR #797 merge session (2026-05-01) -- Agent A owned C:\\repos\\Deft\\directive on a refinement branch; Agent B (merger) owned a sibling worktree; Agent B ran `cd C:\\repos\\Deft\\directive; git checkout master --quiet` after merging its own PR. No work lost (Agent A had pushed) but recovery was retroactive, not preventative.",
+      "Overview": "Add a `⊗` MUST NOT rule to Phase 6 Step 3 prohibiting `git checkout` (any branch) in a worktree the merger does not own, plus a companion `!` MUST rule that the merger MAY remove its OWN worktree and orphaned local feature branch but MUST NOT alter any other worktree's HEAD or branch state. Post-merge state-update is performed via `git fetch origin <base>` from the merger's own worktree, OR left to the human operator.",
+      "Background": "Multi-agent worktree patterns are explicitly documented in AGENTS.md ('another agent is working in branch ...' rule the user cited at PR #797 kickoff). The current Phase 6 Step 3 ruleset predates the multi-worktree adoption and implicitly assumes single-worktree. Companion to #727 (Sub-Agent Role Separation) -- this work extends the same boundary discipline from sub-agent spawn shape to worktree HEAD operations.",
+      "Constraint": "MUST be skill prose addition (no code). MUST land in Phase 6 Step 3 (Update Master). MUST cite #727 as the companion role-separation rule and PR #797 as the recurrence record. MUST NOT weaken the existing Phase 6 Step 3 master-update guidance for the merger's own worktree (still valid). SHOULD use `git fetch origin <base>` as the canonical replacement for `git pull` when the merger needs the latest base-branch state for follow-up decisions.",
+      "Risk": "Very low. Skill prose change only; no code. The existing single-worktree pattern continues to work because the merger's OWN worktree is unaffected. The new rules are net additions, not subtractions.",
+      "Outcome": "Acceptance: (1) skills/deft-directive-swarm/SKILL.md Phase 6 Step 3 carries the new `⊗` rule (no checkout in another worktree) and the companion `!` rule (merger MAY remove its own worktree + orphaned branch; MUST NOT touch others). (2) Anti-Patterns block gains a corresponding bullet citing PR #797 as recurrence record. (3) Cross-reference to #727 Sub-Agent Role Separation present. (4) Content test asserts the new rule tokens. (5) CHANGELOG entry under [Unreleased] / Fixed.",
+      "Test": "tests/content/test_swarm_skill.py (existing OR new): regex-assert Phase 6 Step 3 contains the canonical `⊗` rule tokens and the `!` companion rule tokens. Failure messages cite file + missing pattern. Mirror the pattern in tests/content/test_skills.py for Sub-Agent Role Separation tokens.",
+      "Action": "1. Edit skills/deft-directive-swarm/SKILL.md Phase 6 Step 3 with the verbatim text from the issue body's 'Proposed rule' block. 2. Add a corresponding bullet to the Anti-Patterns block citing PR #797 as recurrence record. 3. Add/extend tests/content/test_swarm_skill.py with regex assertions on the new rule tokens. 4. CHANGELOG [Unreleased] / Fixed entry. 5. task check; commit; push; PR.",
+      "Urgency": "Low-medium severity per the issue. No work lost in the recurrence; risk is higher if a future agent's working tree is dirty when the same overreach happens. Cheap to land now while the cohort is open; small skill-prose change with no design risk."
+    },
+    "items": [
+      {
+        "id": "800-add-checkout-rule",
+        "title": "Add `⊗` no-checkout-in-others-worktree rule to Phase 6 Step 3",
+        "status": "pending",
+        "narrative": {
+          "Action": "Insert verbatim per the issue body's 'Proposed rule' block. Anchor: skills/deft-directive-swarm/SKILL.md Phase 6 Step 3 (Update Master)."
+        }
+      },
+      {
+        "id": "800-add-companion-rule",
+        "title": "Add `!` merger-MAY-remove-own / MUST-NOT-touch-others rule",
+        "status": "pending",
+        "narrative": {
+          "Action": "Companion rule clarifying what the merger IS allowed to do (remove own worktree + orphaned branch) so the `⊗` is not read as 'merger does nothing post-merge'."
+        }
+      },
+      {
+        "id": "800-anti-pattern-block",
+        "title": "Add Anti-Patterns block bullet citing PR #797 as recurrence record",
+        "status": "pending",
+        "narrative": {
+          "Action": "Mirror the existing Sub-Agent Role Separation anti-pattern shape (#727). Cite the 2026-05-01 merge session and the concrete `cd ...; git checkout master --quiet` pattern that triggered it."
+        }
+      },
+      {
+        "id": "800-content-test",
+        "title": "Add/extend tests/content/test_swarm_skill.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Regex-assert Phase 6 Step 3 contains the canonical rule tokens. Test failure message: file + missing pattern."
+        }
+      },
+      {
+        "id": "800-changelog",
+        "title": "Add CHANGELOG entry under [Unreleased] / Fixed",
+        "status": "pending",
+        "narrative": {
+          "Action": "fix(skills/swarm): prohibit git checkout in another agent's worktree during post-merge cleanup; add companion merger-may-remove-own rule and anti-pattern citing PR #797 (#800)."
+        }
+      },
+      {
+        "id": "800-task-check",
+        "title": "Run task check and confirm clean",
+        "status": "pending",
+        "narrative": {
+          "Action": "Pre-PR gate. Content test must pass."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/800",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #800: swarm SKILL prohibit git checkout in a worktree another agent owns (post-merge cleanup overreach)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/727",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #727 (companion): Sub-Agent Role Separation -- this work extends the same boundary discipline to worktree HEAD operations"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/pull/797",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #797 -- recurrence record (Agent B's post-merge `cd ...; git checkout master --quiet` against Agent A's worktree)"
+      },
+      {
+        "uri": "skills/deft-directive-swarm/SKILL.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Phase 6 Step 3 (Update Master) -- the surface this PR extends"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#793",
+          "#794",
+          "#798",
+          "#784",
+          "#796",
+          "#814"
+        ],
+        "estimated_size": "S (skill prose + anti-pattern bullet + content test + CHANGELOG)",
+        "blocks": [],
+        "blocked_by": []
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Skill-prose change with one new content test. No code. Single-PR boundary. The issue body provides the verbatim insertion text. Agent should branch, edit the skill + anti-patterns block, add the content test, run task check, commit, push, open PR.",
+        "files_to_touch": [
+          "skills/deft-directive-swarm/SKILL.md",
+          "tests/content/test_swarm_skill.py",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "fix/800-swarm-no-checkout-in-others-worktree",
+        "pr_title_suggestion": "fix(skills/swarm): prohibit git checkout in another agent's worktree during post-merge cleanup (#800)"
+      }
+    },
+    "updated": "2026-05-03T04:38:15Z",
+    "id": "800-swarm-no-checkout-in-others-worktree",
+    "planRef": "#800"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #101: Scaffold FastAPI app with SQLite"
+  },
+  "plan": {
+    "title": "Scaffold FastAPI app with SQLite",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Foundation",
+        "PhaseDescription": "Fix the blocking setup gaps before any feature work.",
+        "Description": "Scaffold FastAPI app with SQLite",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "default"
+      }
+    }
+  }
+}

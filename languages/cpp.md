@@ -102,6 +102,24 @@ See [commands.md](./commands.md).
 - **I.13**: Don't pass arrays as single pointers (use `gsl::span<T>`)
 
 **Polymorphism**: ~ Abstract base classes OR concepts (C++20)
+
+## Hygiene
+
+**Types:**
+- ⊗ `void*` where a typed pointer, `std::variant`, or template parameter is feasible
+- ⊗ C-style casts `(T)x` — use `static_cast`, `reinterpret_cast`, or `dynamic_cast` explicitly
+- ~ Mark functions `[[nodiscard]]` when callers must not ignore the return value
+
+**Error handling:**
+- ⊗ Empty `catch(...)` or `catch(std::exception&) {}` that swallow exceptions silently
+- ⊗ Discarding `[[nodiscard]]` return values without explicit `(void)` cast and inline comment
+- ⊗ Using exceptions for control flow in tight loops — use `std::expected` (C++23) or error codes
+
+**Dead code:**
+- ~ Run `cppcheck --enable=unusedFunction` to detect unreferenced functions
+- ~ clang-tidy `misc-unused-*` and `readability-function-cognitive-complexity` checks surface dead helpers
+- ⊗ `// NOLINT` or `#pragma warning(disable:...)` without an inline explanation
+
 ## Compliance Checklist
 
 - ! Include Doxygen comments for all public APIs

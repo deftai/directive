@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #319: Story J: deft-directive-interview (namespace rename)",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Story J: deft-directive-interview (namespace rename)",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Story J: deft-directive-interview (namespace rename)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/319",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #319: Story J: deft-directive-interview (namespace rename)"
+      }
+    ]
+  }
+}

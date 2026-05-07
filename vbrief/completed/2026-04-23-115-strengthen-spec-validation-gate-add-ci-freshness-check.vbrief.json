@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #115: Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)",
+    "updated": "2026-04-29T18:06:43Z"
+  },
+  "plan": {
+    "title": "Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 4",
+        "Description": "Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/115",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #115: Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)"
+      }
+    ]
+  }
+}

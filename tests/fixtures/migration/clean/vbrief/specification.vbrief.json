@@ -1,0 +1,11 @@
+{
+  "vBRIEFInfo": {"version": "0.5", "description": "Clean scenario spec"},
+  "plan": {
+    "title": "Clean",
+    "status": "approved",
+    "narratives": {"Overview": "A tiny project with one pending task."},
+    "items": [
+      {"id": "t1", "title": "Backlog item", "status": "pending"}
+    ]
+  }
+}

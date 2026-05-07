@@ -79,7 +79,16 @@
       "id": "shape-strategy-brownfield-redirect-exempt",
       "check": "test_shape.strategy_file_shape",
       "file": "strategies/brownfield.md",
-      "reason": "Legacy redirect file — brownfield strategy has been renamed to map. File kept only for backward compatibility.",
+      "reason": "Legacy redirect file -- brownfield strategy has been renamed to map. File kept only for backward compatibility.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "shape-strategy-roadmap-redirect-exempt",
+      "check": "test_shape.strategy_file_shape",
+      "file": "strategies/roadmap.md",
+      "reason": "Superseded redirect file -- roadmap strategy replaced by deft-directive-refinement skill and task roadmap:render (#369).",
       "xfail": false,
       "exempt": true,
       "fix_in": "N/A"
@@ -209,7 +218,16 @@
       "id": "rfc2119-exempt-strategies-brownfield",
       "check": "test_standards.rfc2119_legend_present",
       "file": "strategies/brownfield.md",
-      "reason": "Legacy redirect file — brownfield strategy renamed to map. No RFC2119 content.",
+      "reason": "Legacy redirect file -- brownfield strategy renamed to map. No RFC2119 content.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A"
+    },
+    {
+      "id": "rfc2119-exempt-strategies-roadmap",
+      "check": "test_standards.rfc2119_legend_present",
+      "file": "strategies/roadmap.md",
+      "reason": "Superseded redirect file -- roadmap strategy replaced by deft-directive-refinement skill (#369). No RFC2119 content.",
       "xfail": false,
       "exempt": true,
       "fix_in": "N/A"
@@ -348,9 +366,10 @@
       "id": "warping-roadmap",
       "check": "test_standards.no_warping_references",
       "file": "ROADMAP.md",
-      "reason": "Roadmap references warping in task descriptions. Pre-existing.",
-      "xfail": true,
-      "fix_in": "Phase 2 (t2.4.1)"
+      "reason": "ROADMAP.md contains 'warping' in historical entries (e.g. warping.sh deprecation, rename tasks). Intentionally preserved.",
+      "xfail": false,
+      "exempt": true,
+      "fix_in": "N/A — historical record, intentionally preserved"
     },
     {
       "id": "deprecated-path-testbed-spec",
@@ -375,7 +394,23 @@
       "reason": "Retired todo doc with historical warping references. Intentionally preserved.",
       "xfail": false,
       "exempt": true,
-      "fix_in": "N/A — historical record"
+      "fix_in": "N/A \u2014 historical record"
+    },
+    {
+      "id": "see-also-swarm-review-cycle-link",
+      "check": "test_contracts.see_also_links_resolve",
+      "composite_key": "skills/deft-swarm/SKILL.md::../deft-review-cycle/SKILL.md",
+      "reason": "deft-swarm still references old deft-review-cycle path. Fixed by Story H (#317) when deft-swarm is renamed to deft-directive-swarm.",
+      "xfail": true,
+      "fix_in": "Story H (#317)"
+    },
+    {
+      "id": "roadmap-refresh-review-cycle-stale-ref",
+      "check": "test_skills.test_deft_roadmap_refresh_phase4_review_cycle_handoff",
+      "file": "skills/deft-roadmap-refresh/SKILL.md",
+      "reason": "deft-roadmap-refresh Phase 4 still references old skills/deft-review-cycle/SKILL.md path. Fixed by Story G (#316) when deft-roadmap-refresh is renamed to deft-directive-refinement. Constraint: Story F (#315) cannot modify deft-roadmap-refresh.",
+      "xfail": false,
+      "fix_in": "Story G (#316)"
     }
   ]
 }

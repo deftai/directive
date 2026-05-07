@@ -1,0 +1,74 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Implement Option 1 from the issue: speckit Phase 4 emits scope vBRIEFs per implementation phase. plan.vbrief.json reverts to session-todo role. Migrator converts existing speckit projects.",
+    "created": "2026-04-20T00:00:00Z",
+    "updated": "2026-04-20T00:00:00Z"
+  },
+  "plan": {
+    "id": "ga-436-speckit-phase4-scope-vbriefs",
+    "title": "speckit Phase 4 collides with plan.vbrief.json definition (no scope vBRIEFs emitted)",
+    "status": "completed",
+    "narratives": {
+      "Problem": "speckit.md Phase 4 writes project task list to plan.vbrief.json, but vbrief.md defines plan.vbrief.json as session-level agent-private todo list. Same filename, two contradictory roles. Result: speckit projects bypass lifecycle folders entirely; ROADMAP.md is empty; PROJECT-DEFINITION items registry is empty; any future agent honoring the session-todo contract overwrites the project plan. Decision 2026-04-20: implement Option 1 (speckit emits scope vBRIEFs).",
+      "Action": "Update deft/strategies/speckit.md Phase 4: each implementation phase (IP-1..IP-N) writes to vbrief/pending/YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json as a scope vBRIEF with status pending. Carry narrative.Acceptance, narrative.Traces (FR/NFR/IP IDs), references[] to parent spec, metadata.dependencies (mirrors current edges[].blocks). plan.vbrief.json reverts to session todos with planRef to the current scope. Add migrator path in scripts/migrate_vbrief.py: given a speckit-shaped plan.vbrief.json, emit one scope vBRIEF per IP and clear plan.items. Update vbrief/vbrief.md: document filename convention ip<NNN> 3-digit padded (Risk 5), canonical narrative keys Description/Acceptance/Traces (Risk 7), plan.metadata.dependencies plan-level placement (Risk 6).",
+      "Test": "tests/cli/test_migrate_vbrief.py: speckit-plan fixture (plan.vbrief.json with IP-1..IP-N items) migrates to N scope vBRIEFs in vbrief/pending/ with correct filename stems, narratives, and references. Content test for speckit.md Phase 4 describing scope emission. Content test for vbrief.md documenting filename convention, narrative keys, and dependency placement.",
+      "Outcome": "speckit projects plug into Model 2 cleanly: lifecycle commands work, task roadmap:render produces meaningful output, task project:render populates items registry, #435 aggregator naturally renders speckit plans. Model collision resolved."
+    },
+    "items": [
+      {
+        "status": "running",
+        "title": "Update speckit.md Phase 4 to emit scope vBRIEFs in vbrief/pending/",
+        "id": "436-1"
+      },
+      {
+        "status": "running",
+        "title": "Document filename convention ip<NNN> 3-digit padded in vbrief.md (Risk 5)",
+        "id": "436-2"
+      },
+      {
+        "status": "running",
+        "title": "Document plan.metadata.dependencies plan-level placement in vbrief.md (Risk 6)",
+        "id": "436-3"
+      },
+      {
+        "status": "running",
+        "title": "Document canonical narrative keys Description/Acceptance/Traces in vbrief.md (Risk 7)",
+        "id": "436-4"
+      },
+      {
+        "status": "running",
+        "title": "Add speckit-plan translator to scripts/migrate_vbrief.py",
+        "id": "436-5"
+      },
+      {
+        "status": "running",
+        "title": "Add migration tests for speckit-plan -> scope vBRIEF emission",
+        "id": "436-6"
+      },
+      {
+        "status": "running",
+        "title": "Add content tests for speckit.md and vbrief.md updates",
+        "id": "436-7"
+      },
+      {
+        "status": "running",
+        "title": "Revert plan.vbrief.json to session-todo role in agent guidance",
+        "id": "436-8"
+      }
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/436",
+        "id": "#436"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/403",
+        "id": "#403"
+      }
+    ],
+    "updated": "2026-04-20T18:44:13Z"
+  }
+}

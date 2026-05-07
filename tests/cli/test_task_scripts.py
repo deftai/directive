@@ -239,7 +239,7 @@ class TestChangeInit:
     """Tests for tasks/change.yml change:init task."""
 
     def test_correct_directory_structure(self, tmp_path):
-        """change:init creates proposal.md, design.md, tasks.vbrief.json, specs/."""
+        """change:init creates proposal.vbrief.json, tasks.vbrief.json, specs/."""
         # Set up minimal Taskfile that includes change.yml
         taskfile = (
             "version: '3'\n"
@@ -260,12 +260,18 @@ class TestChangeInit:
         assert result.returncode == 0, f"Unexpected failure: {result.stderr}"
         base = tmp_path / "history" / "changes" / "test-feature"
         assert base.is_dir()
-        assert (base / "proposal.md").is_file()
-        assert (base / "design.md").is_file()
+        assert (base / "proposal.vbrief.json").is_file()
         assert (base / "tasks.vbrief.json").is_file()
         assert (base / "specs").is_dir()
 
-        # Verify vBRIEF structure
+        # Verify proposal vBRIEF structure
+        proposal = json.loads((base / "proposal.vbrief.json").read_text("utf-8"))
+        assert proposal["vBRIEFInfo"]["version"] == "0.5"
+        assert proposal["plan"]["title"] == "test-feature"
+        assert "Problem" in proposal["plan"]["narratives"]
+        assert "Approach" in proposal["plan"]["narratives"]
+
+        # Verify tasks vBRIEF structure
         vbrief = json.loads((base / "tasks.vbrief.json").read_text("utf-8"))
         assert vbrief["vBRIEFInfo"]["version"] == "0.5"
         assert vbrief["plan"]["title"] == "test-feature"
@@ -413,3 +419,88 @@ class TestCommitLint:
                 ["git", "commit", "-m", f"{ctype}: valid message"],
                 cwd=str(tmp_path), capture_output=True,
             )
+
+
+# ===========================================================================
+# QUICK-START.md bootstrap file (#358)
+# ===========================================================================
+
+
+class TestAgentsBootstrap:
+    """Tests for QUICK-START.md trampoline and templates/agents-entry.md (#358)."""
+
+    TRAMPOLINE_PATH = REPO_ROOT / "QUICK-START.md"
+    TEMPLATE_PATH = REPO_ROOT / "templates" / "agents-entry.md"
+    SENTINEL = "deft/main.md"
+
+    def test_trampoline_exists_at_repo_root(self):
+        """QUICK-START.md must exist at the repository root."""
+        assert self.TRAMPOLINE_PATH.is_file()
+
+    def test_trampoline_is_agent_instructions(self):
+        """Trampoline must contain step-by-step agent instructions, not AGENTS.md content."""
+        content = self.TRAMPOLINE_PATH.read_text(encoding="utf-8")
+        assert "Step 1" in content
+        assert "Step 2" in content
+        assert "Step 3" in content
+        assert "templates/agents-entry.md" in content
+
+    def test_trampoline_has_contributor_guard(self):
+        """Trampoline must ask whether user is a consumer or contributor."""
+        content = self.TRAMPOLINE_PATH.read_text(encoding="utf-8")
+        assert "working on deft itself" in content
+
+    def test_trampoline_references_sentinel(self):
+        """Trampoline must use deft/main.md sentinel for idempotency check."""
+        content = self.TRAMPOLINE_PATH.read_text(encoding="utf-8")
+        assert self.SENTINEL in content
+
+    def test_template_exists(self):
+        """templates/agents-entry.md must exist as the single source of truth."""
+        assert self.TEMPLATE_PATH.is_file()
+
+    def test_template_contains_sentinel(self):
+        """Template must contain the deft/main.md sentinel."""
+        content = self.TEMPLATE_PATH.read_text(encoding="utf-8")
+        assert self.SENTINEL in content
+
+    def test_template_references_v020_artifacts(self):
+        """Template must reference v0.20 skill names and artifacts."""
+        content = self.TEMPLATE_PATH.read_text(encoding="utf-8")
+        assert "deft-directive-setup" in content
+        assert "PROJECT-DEFINITION.vbrief.json" in content
+
+    def test_template_is_single_source_for_go_installer(self):
+        """cmd/deft-install/setup.go must source agentsMDEntry from the
+        templates package (//go:embed templates/agents-entry.md) rather than
+        a hardcoded raw string literal (#636).
+
+        If this test fails, the installer has grown a second hardcoded copy
+        of the AGENTS.md body and the single-source-of-truth contract is
+        broken. To repair: remove the hardcoded copy and rely on the embed
+        in templates/embed.go.
+        """
+        setup_go = (REPO_ROOT / "cmd" / "deft-install" / "setup.go").read_text(encoding="utf-8")
+        assert "templates.AgentsEntry" in setup_go, (
+            "cmd/deft-install/setup.go must reference templates.AgentsEntry "
+            "(sourced via //go:embed from templates/agents-entry.md) so that "
+            "editing the template alone is sufficient to change what the "
+            "installer writes (#636)."
+        )
+        assert "github.com/deftai/directive/templates" in setup_go, (
+            "cmd/deft-install/setup.go must import the templates package "
+            "(github.com/deftai/directive/templates) to consume the embedded "
+            "agents-entry.md (#636)."
+        )
+        # Guard against reintroduction of the backtick raw-string literal
+        # that previously held the hardcoded AGENTS.md body.
+        assert "agentsMDEntry = `" not in setup_go, (
+            "cmd/deft-install/setup.go reintroduced a hardcoded agentsMDEntry "
+            "raw-string literal. The AGENTS.md body must be sourced exclusively "
+            "from templates/agents-entry.md via the templates package embed (#636)."
+        )
+
+    def test_readme_calls_out_trampoline(self):
+        """README.md must reference QUICK-START.md near the top."""
+        readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+        assert "QUICK-START.md" in readme

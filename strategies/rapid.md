@@ -28,7 +28,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! Describe the prototype goal in one sentence: what are you trying to learn or prove?
 
-- ! Record the goal at the top of the SPECIFICATION.md
+- ! Record the goal in `vbrief/specification.vbrief.json` (e.g. as the plan title or a brief narrative)
 - ~ Include a time-box if applicable (e.g. "4-hour spike")
 - ⊗ Skip this step -- even throwaway work needs a clear objective
 
@@ -40,14 +40,18 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ~ 3-5 questions maximum -- bias toward defaults and moving fast
 - ⊗ Run the full interview questionnaire -- that defeats the purpose of rapid
 
-### Step 3: Generate SPECIFICATION.md (Forced-Light Path)
+### Step 3: Generate specification.vbrief.json (Forced-Light Path)
 
-! Produce a SPECIFICATION.md directly -- no PRD, no approval gate.
+! Before writing output artifacts, follow the [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full).
+
+! Write a slim `vbrief/specification.vbrief.json` -- no PRD, no approval gate.
 
 - ! Use the Light path from [interview.md](./interview.md) unconditionally
-- ! Mark the spec status as `draft` (not `approved`) to signal prototype quality
+- ! Mark `plan.status` as `draft` (not `approved`) to signal prototype quality
+- ! Run `task spec:render` to produce `SPECIFICATION.md` as a read-only export
 - ~ Keep tasks coarse-grained -- 3-5 tasks is typical for a spike
 - ⊗ Generate a PRD or require approval -- rapid skips both
+- ⊗ Hand-author `SPECIFICATION.md` directly -- it is a rendered artifact, not a source file
 
 ### Step 4: Build
 
@@ -70,7 +74,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Output Artifacts
 
-- `SPECIFICATION.md` -- lightweight spec with `draft` status
+- `vbrief/specification.vbrief.json` -- lightweight scope vBRIEF with `draft` status (primary artifact)
+- `SPECIFICATION.md` -- read-only rendered export via `task spec:render`
 - Prototype code (may be discarded)
 - Findings summary (inline in spec or as a separate note)
 
@@ -78,7 +83,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Fits into Chaining Gate
 
-Rapid is a **spec-generating** strategy. Selecting it at the chaining gate produces a SPECIFICATION.md and moves directly to implementation. There is no chaining back to preparatory strategies.
+Rapid is a **spec-generating** strategy. Selecting it at the chaining gate produces a `vbrief/specification.vbrief.json` (and renders `SPECIFICATION.md` via `task spec:render`) and moves directly to implementation. There is no chaining back to preparatory strategies.
 
 ---
 

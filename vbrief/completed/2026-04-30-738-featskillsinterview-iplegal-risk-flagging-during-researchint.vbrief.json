@@ -1,0 +1,67 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #738"
+  },
+  "plan": {
+    "title": "feat(skills,interview): IP/legal risk flagging during research/interview phase for projects built on third-party IP",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(skills,interview): IP/legal risk flagging during research/interview phase for projects built on third-party IP",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/738",
+      "Labels": "enhancement, skills, adoption-blocker",
+      "Problem": "Deft has no surface that prompts users about IP risk, monetization intent, or legal protection when building on established third-party IP (games, music, film, characters, sports leagues). Playtester (#151) built a Magic: The Gathering deck-builder app through full PRD + SPECIFICATION approval without deft ever flagging WotC copyright, recommending disclaimers, or suggesting a lawyer.",
+      "Acceptance": "Add an IP-detection step in research/interview skills using a permissive heuristic (recognizable IP names, fictional-universe terms, branded characters, sports leagues, trademarked products). When IP is detected: ask explicit monetization-intent question (personal vs commercial); emit a plain-English risk summary; recommend lawyer consultation for commercial IP-adjacent projects (non-optional); inject scope items into SPECIFICATION generation for disclaimer stub, API-only-asset-access policy, hosting policy. Create references/ip-risk.md capturing heuristic + question script + minimum-protection checklist. Tests: detection (positive + negative), commercial vs personal branching, scope-item insertion in spec output.",
+      "OutOfScope": "Providing legal advice. Cataloging specific IP holders. Automated trademark/copyright lookup.",
+      "Files": "skills/deft-directive-interview/SKILL.md; strategies/research.md; NEW references/ip-risk.md; scripts/spec_render.py or equivalent (scope-item injection); tests/skills/test_ip_risk*.py (new); CHANGELOG.md (append)."
+    },
+    "items": [
+      {
+        "title": "Add IP-detection step to skills/deft-directive-interview/SKILL.md (and strategies/research.md if applicable)",
+        "status": "pending"
+      },
+      {
+        "title": "Wire monetization-intent question to fire when IP is detected",
+        "status": "pending"
+      },
+      {
+        "title": "Plain-English risk summary in interview output for IP-adjacent projects",
+        "status": "pending"
+      },
+      {
+        "title": "Lawyer-consultation recommendation: non-optional output for commercial IP-adjacent",
+        "status": "pending"
+      },
+      {
+        "title": "SPECIFICATION generation injects disclaimer / asset-access / hosting protection scope items",
+        "status": "pending"
+      },
+      {
+        "title": "NEW references/ip-risk.md: heuristic + question script + minimum-protection checklist",
+        "status": "pending"
+      },
+      {
+        "title": "Tests: detection (positive + negative), commercial vs personal branching, scope-item insertion",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md [Unreleased] entry under Added referencing #738 (and #151 umbrella)",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/738",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #738: feat(skills,interview): IP/legal risk flagging during research/interview phase for projects built on third-party IP"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-05-01T02:02:51Z"
+  }
+}

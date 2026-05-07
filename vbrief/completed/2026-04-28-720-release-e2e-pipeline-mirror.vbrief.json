@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #720: scripts/release_e2e.py::run_rehearsal is currently a thin existence check (`gh repo view`); it does not actually exercise the release pipeline. Deepen it to a full pipeline mirror -- clone the directive repo into a temp dir, set the temp repo as origin, push --mirror, run `task release -- 0.0.1 --repo deftai/<temp-slug> --skip-ci --skip-build`, verify the draft release + tag exist, run `task release:rollback -- 0.0.1`, then cleanup. Adds --skip-ci / --skip-build flags to scripts/release.py so the rehearsal can exercise the pipeline end-to-end without burning minutes on `task ci:local` / `task build` (covered separately by unit tests).",
+    "created": "2026-04-28T22:32:00Z",
+    "updated": "2026-04-29T18:18:17Z"
+  },
+  "plan": {
+    "id": "720-release-e2e-pipeline-mirror",
+    "title": "Deepen release_e2e rehearsal to a full task release + rollback mirror against an auto-created+destroyed temp repo",
+    "status": "completed",
+    "planRef": "#720",
+    "narratives": {
+      "Problem": "scripts/release_e2e.py::run_rehearsal is an existence check (verifies the temp repo via `gh repo view`); the SKILL.md Phase 3 prose claims it exercises the release pipeline end-to-end. The CLI surface confirms the gap (`release_e2e.py [--owner] [--dry-run] [--keep-repo] [--project-root]` -- no version/pipeline orchestration flags). Today's e2e catches `gh repo create` / `gh repo delete` regressions and nothing else; it does NOT catch `task release` pipeline regressions, `gh release create --draft` behaviour, `git push --atomic` against a fresh remote, CHANGELOG/ROADMAP commit-and-push lifecycle, or `gh release upload` asset attachment.",
+      "Overview": "Replace the smoke-test `run_rehearsal` with a substantive pipeline mirror. Steps: (1) clone the current directive repo into a tempdir; (2) `git remote set-url origin` to the auto-created temp repo; (3) `git push --mirror` to populate the temp repo; (4) dispatch `task release -- 0.0.<run-counter> --repo deftai/<temp-slug> --skip-ci --skip-build` from the temp clone (real tag + real draft release on the temp repo); (5) verify the draft release exists via `gh release view` (assert isDraft=true and tagName matches); (6) verify the tag ref exists; (7) dispatch `task release:rollback -- 0.0.<run-counter> --repo deftai/<temp-slug>` to verify the rollback path against a known-state release; (8) tempdir + temp repo cleanup runs in a try/finally per the existing pattern. Per the user's wall-clock guidance, skip `task ci:local` and `task build` during the rehearsal -- both are covered by the unit-test suite. To make that possible, add `--skip-ci` and `--skip-build` flags (plus matching `ReleaseConfig.skip_ci` / `skip_build` fields) to `scripts/release.py`. The release_e2e helper passes them through.",
+      "Background": "Surfaced by the live `release-e2e-validation` sub-agent run on master @ 4a83981; v0.21.0 cut despite this gap. PR #712 landed the e2e foundation but the rehearsal's smoke-test scope only catches `gh repo create` and `gh repo delete` regressions. Per #716 canonical Q1 (auto-create + auto-destroy temp repo) the whole point is exercising the pipeline against a real (throwaway) GitHub remote -- the existence-check approach defeats that. This PR aligns reality with the SKILL prose. Tests use mocks on subprocess / gh / git so CI never actually clones / pushes / hits real GitHub.",
+      "Constraint": "MUST keep run_e2e's provision -> rehearse -> destroy ordering and the try/finally cleanup so the temp repo is always destroyed (even when the rehearsal fails partway). MUST NOT widen the file-overlap surface beyond release.py + release_e2e.py + their tests + CHANGELOG. Keep wall-clock under 90s where possible -- skip task ci:local + task build during the rehearsal (unit-test coverage is sufficient). MUST NOT regress existing release.py CLI surface (new flags are additive; defaults preserve current behaviour). Files MUST stay < 1000 lines and SHOULD stay < 500.",
+      "Risk": "Low risk to existing pipeline because the new --skip-ci / --skip-build flags default to False (current behaviour). The rehearsal's clone + push --mirror + task release + rollback flow is exercised entirely through mocks in tests, so CI never hits real GitHub. The full live e2e is operator-driven (`task release:e2e`).",
+      "Outcome": "Acceptance: (1) release_e2e.py rehearsal step actually invokes `task release` against the temp repo (vs the prior existence-check); (2) tests cover pipeline-success path, pipeline-failure detection (mock a stage failure), rollback-against-temp-repo path, and cleanup-runs-after-failure path; (3) SKILL.md Phase 3 prose matches reality (already aligned per scope -- this PR makes the implementation match).",
+      "Test": "Verification: tests/cli/test_release_e2e.py asserts (a) run_rehearsal walks the expected step sequence (clone -> set-origin -> push-mirror -> task release -> verify draft -> verify tag -> task release:rollback); (b) cleanup runs even when an intermediate step fails (try/finally still triggers destroy_temp_repo); (c) provision-failure short-circuits (no rehearsal, no destroy); (d) --keep-repo skips destroy; (e) --dry-run invokes nothing. Existing 18 release_e2e tests + 60 release tests continue to pass; new release.py flag tests cover --skip-ci / --skip-build wiring (additive).",
+      "Action": "Swarm-scope leaf: independent of any other vBRIEF (touches only scripts/release_e2e.py + scripts/release.py + tests + CHANGELOG); gated only on master. Closes #720 once merged."
+    },
+    "items": [
+      {
+        "id": "release-skip-ci-and-skip-build-flags",
+        "title": "Add --skip-ci and --skip-build flags to scripts/release.py (with matching ReleaseConfig fields)",
+        "status": "completed",
+        "narrative": {
+          "Action": "Extend `_build_parser()` with `--skip-ci` and `--skip-build` argparse switches; add `skip_ci: bool = False` and `skip_build: bool = False` to the `ReleaseConfig` dataclass. In `run_pipeline`, gate Step 3 (CI) and Step 6 (build) on these flags so they emit `SKIP (--skip-ci)` / `SKIP (--skip-build)` instead of running `task ci:local` / `task build`. Tests in tests/cli/test_release.py: argparse round-trip sets the config fields; pipeline emits the SKIP label and does NOT invoke run_ci / run_build when set; default behaviour unchanged (without the flags, CI / build still run).",
+          "Acceptance": "test_release.py covers both flags; `task release -- 0.0.1 --skip-ci --skip-build` runs the rest of the pipeline without invoking `task ci:local` / `task build`."
+        }
+      },
+      {
+        "id": "release-e2e-full-pipeline-mirror",
+        "title": "Replace release_e2e.py::run_rehearsal smoke check with a full clone+push+task release+verify+rollback flow",
+        "status": "completed",
+        "narrative": {
+          "Action": "New helpers (one mockable function each): `clone_repo_to_temp(project_root, target_dir)`, `set_origin_to_temp_repo(clone_dir, owner, slug)`, `push_mirror(clone_dir)`, `dispatch_task_release(clone_dir, version, repo)`, `verify_draft_release(owner, slug, version)`, `verify_tag(clone_dir, version)`, `dispatch_task_release_rollback(clone_dir, version, repo)`. Re-use `release._resolve_gh()` for any gh subprocess calls (#722). `run_rehearsal` orchestrates the seven steps inside a `tempfile.TemporaryDirectory()`; on any step failure, return False with the diagnostic. Existing `provision_temp_repo` / `destroy_temp_repo` and the run_e2e try/finally cleanup pattern are unchanged.",
+          "Acceptance": "tests/cli/test_release_e2e.py asserts the orchestration walks the expected steps (mocked); cleanup runs after partial failure; existing run_e2e shape (provision -> rehearse -> destroy with try/finally) continues to pass."
+        }
+      },
+      {
+        "id": "release-e2e-changelog",
+        "title": "Add CHANGELOG.md [Unreleased]/Fixed entry covering --skip-ci/--skip-build flags + e2e pipeline mirror",
+        "status": "completed",
+        "narrative": {
+          "Action": "CHANGELOG entry: '[Unreleased]/Fixed: scripts/release_e2e.py rehearsal is no longer a smoke-test existence check -- it now mirrors the directive repo into the auto-created temp repo, dispatches `task release` end-to-end against it (with new --skip-ci / --skip-build flags so wall-clock stays manageable), verifies the draft release + tag, dispatches `task release:rollback`, then cleans up. Aligns SKILL.md Phase 3 prose with reality (#720, refs #716).'",
+          "Acceptance": "CHANGELOG.md `## [Unreleased] / ### Fixed` contains the entry."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "swarm_ready": true,
+        "blocks": null,
+        "blocked_by": null,
+        "scope_authority": "deft-720-fix sub-agent dispatch (swarm Agent 1; parent monitor's plan stages 1-4)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/720",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #720: release_e2e rehearsal is smoke-test only, not pipeline mirror"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/716",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #716: release safety hardening (canonical spec; e2e Q1 origin)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/722",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #722: subprocess PATHEXT fix (release._resolve_gh helper re-used here)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/74",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #74: task release foundation"
+      }
+    ]
+  }
+}

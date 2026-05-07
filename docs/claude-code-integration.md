@@ -322,7 +322,7 @@ Browse published skills at https://clawdhub.com
 
 **Deft**:
 - [Deft Framework README](../README.md)
-- [Deft REFERENCES.md](../deft/REFERENCES.md)
+- [Deft REFERENCES.md](../REFERENCES.md)
 - [GitHub Repository](https://github.com/deftai/directive)
 
 ## Cross-Platform Benefits

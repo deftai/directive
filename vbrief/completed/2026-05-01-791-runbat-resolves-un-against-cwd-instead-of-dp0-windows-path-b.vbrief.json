@@ -1,0 +1,106 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Adoption blocker: run.bat resolves the `run` Python entry point against the caller's CWD instead of %~dp0, breaking the documented `..\\deft\\run upgrade` flow on Windows.",
+    "created": "2026-05-01T00:00:00Z",
+    "updated": "2026-05-03T03:02:05Z"
+  },
+  "plan": {
+    "id": "791-runbat-cwd-resolution-bug",
+    "title": "run.bat: resolve `run` against %~dp0 instead of CWD (Windows)",
+    "status": "completed",
+    "planRef": "#791",
+    "narratives": {
+      "Problem": "run.bat:25 reads `python.exe run %*`. The `run` token is an unqualified relative path; Windows resolves it against the current working directory of the caller, not the directory of run.bat. Consumers who install deft as `./deft/` and follow the documented `..\\deft\\run upgrade` invocation from their project root therefore see python.exe fail to find a script named `run`. Workaround in field use: `python.exe \"<full path>\\deft\\run\" upgrade`.",
+      "Overview": "Single-line fix in run.bat: replace `python.exe run %*` with `python.exe \"%~dp0run\" %*`. %~dp0 expands to the drive+path of the executing batch file with a trailing backslash and is the canonical Windows idiom for self-relative path resolution.",
+      "Background": "The Python entry point (`run`) lives next to run.bat in the deft repo root. The launcher worked when invoked from inside the deft repo (CWD == deft repo root) but never did when invoked as `..\\deft\\run.bat <cmd>` from a sibling consumer project, which is the documented install pattern.",
+      "Constraint": "MUST preserve compatibility with existing in-deft-repo invocations (running run.bat help from the deft repo root must continue to work). MUST NOT regress the Python version detection / Microsoft Store install fallback paths in run.bat.",
+      "Risk": "Very low. The change is one line, the idiom is well-known, and the existing in-repo behavior is preserved as a special case of the general rule.",
+      "Outcome": "Acceptance: (1) `..\\deft\\run.bat upgrade` succeeds from a sibling directory; (2) C:\\path\\to\\deft\\run.bat <cmd> succeeds from any CWD; (3) existing in-repo invocation continues to work; (4) regression test or smoke check covers the cross-CWD case.",
+      "Test": "tests/cli/test_run_bat_path.py (new, Windows-conditional via @pytest.mark.skipif on platform): cd to a temp directory not equal to the deft repo root, invoke run.bat help via subprocess.run, assert returncode == 0 and stdout contains 'Usage:' or 'Deft CLI'. On non-Windows, the test skips.",
+      "Action": "1. Edit run.bat line 25 to use %~dp0run. 2. Add tests/cli/test_run_bat_path.py with the cross-CWD smoke test (skipped off Windows). 3. Run task check to confirm no regression. 4. CHANGELOG entry under [Unreleased] / Fixed.",
+      "Urgency": "Adoption blocker. Every Windows consumer following the documented upgrade flow hits this on first contact. Blast radius is small (one file edit) and fix is mechanical."
+    },
+    "items": [
+      {
+        "id": "791-edit-runbat",
+        "title": "Edit run.bat:25 to use %~dp0run",
+        "status": "pending",
+        "narrative": {
+          "Action": "Replace `python.exe run %*` with `python.exe \"%~dp0run\" %*`. Preserve the surrounding Python version detection (lines 4-22) and Microsoft Store fallback (lines 28-40) verbatim."
+        }
+      },
+      {
+        "id": "791-add-regression-test",
+        "title": "Add tests/cli/test_run_bat_path.py cross-CWD smoke test",
+        "status": "pending",
+        "narrative": {
+          "Action": "Skipped off Windows. Use tempfile.TemporaryDirectory, subprocess.run with cwd=tempdir invoking the absolute path to run.bat with arg 'help', assert returncode == 0. Pin to pytest fixtures already used in tests/cli/."
+        }
+      },
+      {
+        "id": "791-changelog",
+        "title": "Add CHANGELOG.md entry under [Unreleased] / Fixed",
+        "status": "pending",
+        "narrative": {
+          "Action": "One-line entry: fix(run): run.bat now resolves the run entry point against %~dp0 so `..\\\\deft\\\\run.bat <cmd>` works from any CWD on Windows (#791)."
+        }
+      },
+      {
+        "id": "791-task-check",
+        "title": "Run task check and confirm clean",
+        "status": "pending",
+        "narrative": {
+          "Action": "Pre-PR gate per main.md Decision Making bullet. The new test file MUST be present before commit (forward coverage rule)."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#792",
+          "#793",
+          "#794",
+          "#798",
+          "#784",
+          "#796",
+          "#800",
+          "#814"
+        ],
+        "estimated_size": "S (1 file edit + 1 new test + CHANGELOG)",
+        "blocks": [],
+        "blocked_by": []
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Standalone bug fix with a clear single-PR boundary. No design questions. Agent should branch, edit run.bat, add the test, run task check, commit, push, open PR.",
+        "files_to_touch": [
+          "run.bat",
+          "tests/cli/test_run_bat_path.py",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "fix/791-runbat-cwd-resolution",
+        "pr_title_suggestion": "fix(run): resolve run entry point against %~dp0 in run.bat (#791)"
+      },
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/791",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #791: run.bat resolves `run` against CWD instead of %~dp0 (Windows path bug)"
+      },
+      {
+        "uri": "main.md#publishing-deft-tasks-in-your-project-root",
+        "type": "x-vbrief/related-doc",
+        "title": "Related: same class of framework-relative path resolution that the consumer Taskfile include solves (already documented)"
+      }
+    ],
+    "updated": "2026-05-03T04:38:15Z"
+  }
+}

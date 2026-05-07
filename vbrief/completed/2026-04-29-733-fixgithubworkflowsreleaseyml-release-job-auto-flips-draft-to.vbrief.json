@@ -1,0 +1,53 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #733",
+    "updated": "2026-04-30T13:58:20Z"
+  },
+  "plan": {
+    "title": "fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/733",
+      "Labels": "bug, determinism, adoption-blocker, test-debt"
+    },
+    "items": [
+      {
+        "id": "remove-auto-publish",
+        "title": "Remove the auto-publish step from .github/workflows/release.yml",
+        "status": "pending",
+        "narrative": {
+          "Action": "Identify and remove the offending step in `.github/workflows/release.yml` that flips `isDraft` from true to false (likely `softprops/action-gh-release@vN` with `draft: false` or unset, or `gh release edit --draft=false`). Workflow's job becomes BUILD AND UPLOAD only. Publish authority belongs exclusively to `task release:publish`. Path (1) per issue #733 — preferred over the workflow_dispatch input alternative because it preserves the #716 safety contract with no new moving parts.",
+          "Acceptance": "After this fix, running `task release -- <new-version>` followed by waiting for release.yml to complete leaves the release in `isDraft: true` state. `task release:publish -- <new-version>` is the only path that flips draft -> public. Verified by reading `gh release view v<new-version> --json isDraft,publishedAt` post-workflow-completion: returns `{isDraft: true, publishedAt: null}`."
+        }
+      },
+      {
+        "id": "workflow-test",
+        "title": "New test asserts the workflow does not auto-publish",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add `tests/content/test_release_workflow.py` (or similar location matching project conventions) that parses `.github/workflows/release.yml` as YAML and asserts: no step uses `softprops/action-gh-release@v*` with `draft: false` or `draft` unset (default is false), no step uses `gh release edit --draft=false` directly, no step otherwise flips the draft flag.",
+          "Acceptance": "Test fails on the pre-fix workflow YAML (regression-protection demonstration); test passes on the post-fix workflow YAML. Test runs as part of `task check`."
+        }
+      },
+      {
+        "id": "changelog-entry",
+        "title": "CHANGELOG `[Unreleased] / ### Fixed` entry referencing #716 and #733",
+        "status": "pending",
+        "narrative": {
+          "Action": "Add a single `### Fixed` line under `[Unreleased]` describing the auto-publish-bypass fix and citing #716 (the safety contract) and #733 (this issue).",
+          "Acceptance": "`CHANGELOG.md` `[Unreleased]` section has the new line. PR template checklist item satisfied."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/733",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #733: fix(.github/workflows/release.yml): release job auto-flips draft to public, bypassing #716 / Phase 5 user-only authority gate"
+      }
+    ],
+    "updated": "2026-04-30T13:58:20Z"
+  }
+}

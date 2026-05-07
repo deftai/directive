@@ -1,0 +1,129 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Adoption blocker (docs): the AGENTS.md managed-section legacy migration contract (one-time append for pre-marker files; sentinel-only rewrites thereafter) is implemented in run.py but not documented anywhere in UPGRADING.md. Risk-averse consumers cannot review the contract before running deft/run upgrade.",
+    "created": "2026-05-01T00:00:00Z",
+    "updated": "2026-05-03T03:03:24Z"
+  },
+  "plan": {
+    "id": "794-upgrading-md-agents-md-legacy-contract",
+    "title": "Document AGENTS.md managed-section legacy migration in UPGRADING.md",
+    "status": "completed",
+    "planRef": "#794",
+    "narratives": {
+      "Problem": "When a consumer's AGENTS.md predates the <!-- deft:managed-section v1 --> markers, deft/run upgrade performs a one-time legacy migration (run::_wrap_legacy_in_markers, line ~1073; run::_agents_refresh_plan state=='missing' branch, line ~1131): existing content is preserved verbatim above the rendered managed section. Subsequent upgrades then become sentinel-only byte-replaces. The behavior is correct, but it is not documented in any user-facing surface. Risk-averse consumers reviewing the upgrade flow before running it cannot find the contract for what `run upgrade` will and will not modify. QUICK-START Case G covers the same scenario in agent-prescriptive terms but not as a long-term human-readable contract.",
+      "Overview": "Three changes: (1) add a section to UPGRADING.md titled 'AGENTS.md managed section: one-time legacy migration' covering the four states (current/stale/missing/absent), the one-time append behavior, and the sentinel-only rewrite contract; (2) augment cmd_agents_refresh --dry-run output for state='missing' to point at the new docs section; (3) add a contract test asserting byte-stability of pre-marker content across two consecutive run upgrade invocations.",
+      "Background": "run.py already implements the four-state classification (_classify_agents_md, line ~939) and the legacy wrap (_wrap_legacy_in_markers). QUICK-START Case G (line 62-68) covers it for agents. Templates/agents-entry.md is the source of the rendered managed-section. None of these surfaces give a human reader the long-term modification contract.",
+      "Constraint": "MUST NOT change run.py behavior beyond the dry-run output augmentation. MUST preserve QUICK-START Case G as the agent-prescriptive entry point and add a cross-link to the new UPGRADING.md section, not duplicate the prose. The contract test MUST pin the byte-stable promise (existing_content + sep + rendered + newline) so future refactors of _wrap_legacy_in_markers cannot silently regress it.",
+      "Risk": "Very low. Pure docs + one diagnostic line + one regression test. No behavior change.",
+      "Outcome": "Acceptance: (1) UPGRADING.md has a section covering the four states, the one-time append, and the long-term sentinel-only-rewrite contract; (2) cmd_agents_refresh --dry-run for state='missing' prints a pointer to the docs section; (3) tests/cli/test_agents_md_legacy_migration.py asserts byte-stability across two consecutive upgrade invocations; (4) QUICK-START.md Case G cross-links to the new UPGRADING.md section.",
+      "Test": "tests/cli/test_agents_md_legacy_migration.py: create a tmp project with a hand-written AGENTS.md (no markers), run cmd_agents_refresh, assert state moved to 'current' and original content preserved verbatim above the markers, run cmd_agents_refresh again, assert NO change to user-authored content. Plus a unit case asserting --dry-run output for state='missing' includes the UPGRADING.md pointer.",
+      "Action": "1. Read run.py _classify_agents_md docstring and mirror its four-state taxonomy into UPGRADING.md prose. 2. Augment cmd_agents_refresh --dry-run output (run line ~1219) for state='missing'. 3. Add cross-link from QUICK-START.md Case G. 4. Add the contract test. 5. Run task check. 6. CHANGELOG entry under [Unreleased] / Documentation.",
+      "Urgency": "Adoption blocker for risk-averse consumers, but lower priority than #791-#793 (which break code paths). This is the docs surface that catches up to existing behavior."
+    },
+    "items": [
+      {
+        "id": "794-upgrading-md-section",
+        "title": "Add 'AGENTS.md managed section: one-time legacy migration' section to UPGRADING.md",
+        "status": "pending",
+        "narrative": {
+          "Action": "New section covering: (a) the four states classified by _classify_agents_md (current, stale, missing, absent); (b) the one-time append behavior for state='missing' (existing content preserved verbatim above the new markers); (c) the long-term contract: subsequent upgrades only rewrite the sentinel-bounded region; content outside the markers is never touched; (d) preview link to templates/agents-entry.md."
+        }
+      },
+      {
+        "id": "794-dry-run-pointer",
+        "title": "Augment cmd_agents_refresh --dry-run for state='missing' with docs pointer",
+        "status": "pending",
+        "narrative": {
+          "Action": "In run::cmd_agents_refresh (~line 1219) state=='missing' branch, append a second print line: 'see UPGRADING.md section AGENTS.md managed section for the full contract'. Keep the existing 'Plan: wrap existing content above the new managed section (one-time legacy migration)' line as-is."
+        }
+      },
+      {
+        "id": "794-quickstart-crosslink",
+        "title": "Cross-link QUICK-START.md Case G to the new UPGRADING.md section",
+        "status": "pending",
+        "narrative": {
+          "Action": "In QUICK-START.md Case G (line ~62), add a final bullet: 'For the long-term contract on what subsequent upgrades will and will not modify, point the user at UPGRADING.md section AGENTS.md managed section.'"
+        }
+      },
+      {
+        "id": "794-contract-test",
+        "title": "Add tests/cli/test_agents_md_legacy_migration.py byte-stability test",
+        "status": "pending",
+        "narrative": {
+          "Action": "Use tmp_path. Step 1: write a hand-written AGENTS.md with non-ASCII content (em dash, arrow) and no markers. Step 2: invoke cmd_agents_refresh, assert _classify_agents_md returns 'current' afterwards and original content appears verbatim above the markers. Step 3: invoke cmd_agents_refresh a second time, assert AGENTS.md byte-content unchanged. Plus a third assertion: --dry-run output for state='missing' contains the UPGRADING.md pointer."
+        }
+      },
+      {
+        "id": "794-changelog",
+        "title": "Add CHANGELOG.md entry under [Unreleased] / Documentation",
+        "status": "pending",
+        "narrative": {
+          "Action": "'docs(upgrading): document AGENTS.md managed-section legacy migration contract (#794).'"
+        }
+      },
+      {
+        "id": "794-task-check",
+        "title": "Run task check and confirm clean",
+        "status": "pending",
+        "narrative": {
+          "Action": "Pre-PR gate. New test file satisfies forward-coverage rule. Verify QUICK-START.md and UPGRADING.md still pass markdown link validation."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#793",
+          "#798",
+          "#784",
+          "#796",
+          "#800",
+          "#814"
+        ],
+        "estimated_size": "S (1 docs section + 1 diagnostic line + 1 cross-link + 1 test + CHANGELOG)",
+        "blocks": [],
+        "blocked_by": []
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Docs-heavy with a small code touch (one print line) and a contract test. Fully independent of #791-#793. Single-PR scope. Agent should preview UPGRADING.md and QUICK-START.md side-by-side before writing to ensure the cross-link wording stays symmetrical.",
+        "files_to_touch": [
+          "UPGRADING.md",
+          "run",
+          "QUICK-START.md",
+          "tests/cli/test_agents_md_legacy_migration.py (new)",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "docs/794-agents-md-legacy-migration-contract",
+        "pr_title_suggestion": "docs(upgrading): document AGENTS.md managed-section legacy migration (#794)"
+      },
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/794",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #794: Document AGENTS.md managed-section legacy migration in UPGRADING.md"
+      },
+      {
+        "uri": "templates/agents-entry.md",
+        "type": "x-vbrief/related-doc",
+        "title": "The rendered managed-section template (preview link target)"
+      },
+      {
+        "uri": "QUICK-START.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Case G: agent-prescriptive coverage of the same scenario; cross-link target"
+      }
+    ],
+    "updated": "2026-05-03T04:38:15Z"
+  }
+}

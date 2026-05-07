@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+# .githooks/pre-commit -- detection-bound branch-protection gate (#747).
+#
+# Activated by `git config core.hooksPath .githooks` (idempotent setup
+# performed by `task setup`). Verify with:
+#
+#     task verify:hooks-installed
+#
+# Pure POSIX-shell so this runs from MSYS / Git for Windows without bash
+# being on PATH. The Python script itself is stdlib-only so it does NOT
+# require `uv` or a virtualenv to be active.
+
+# Resolve repo root (this hook lives at .githooks/pre-commit).
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [ -z "$REPO_ROOT" ]; then
+    echo "deft pre-commit: unable to resolve repo root via 'git rev-parse'." >&2
+    exit 1
+fi
+
+PYTHON_BIN="${DEFT_PYTHON:-}"
+if [ -z "$PYTHON_BIN" ]; then
+    if command -v python3 >/dev/null 2>&1; then
+        PYTHON_BIN=python3
+    elif command -v python >/dev/null 2>&1; then
+        PYTHON_BIN=python
+    else
+        echo "deft pre-commit: no python interpreter found on PATH." >&2
+        echo "  Set DEFT_PYTHON=<absolute python path> or install python3." >&2
+        exit 1
+    fi
+fi
+
+# Step 1: branch-protection gate (#747).
+"$PYTHON_BIN" "$REPO_ROOT/scripts/preflight_branch.py" --project-root "$REPO_ROOT" || exit $?
+
+# Step 2: PS 5.1 non-ASCII round-trip corruption gate (#798). Scans staged
+# files for U+FFFD, CP1252/CP437-as-UTF-8 mojibake, and unexpected BOM.
+# Three-state exit propagates: 0 allowed / 1 corruption blocked with diagnostic
+# / 2 config error. Recurrence chain documented in scripts/verify_encoding.py.
+exec "$PYTHON_BIN" "$REPO_ROOT/scripts/verify_encoding.py" --project-root "$REPO_ROOT" --staged

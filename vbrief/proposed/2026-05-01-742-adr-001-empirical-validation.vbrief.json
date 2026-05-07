@@ -1,0 +1,155 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF (#742 child): Empirical validation of ADR-001 (vBRIEF-as-master). Two-gate evidence pack (comprehension parity + CRUD determinism) addressing Visionik's Apr-30 review concerns. Bench infrastructure lives in deftai/deft-agent-bench (internal); production CRUD tooling lives in deft-directive.",
+    "created": "2026-05-01T16:00:00Z",
+    "updated": "2026-05-01T16:00:00Z"
+  },
+  "plan": {
+    "id": "742-adr-001-empirical-validation",
+    "title": "ADR-001 empirical validation: comprehension parity + CRUD determinism gates",
+    "status": "proposed",
+    "planRef": "#742",
+    "narratives": {
+      "Problem": "ADR-001 (#742) proposes vBRIEF-as-master for the agentic-consumed surface. Visionik's Apr-30 review approved-with-conditions, raising two empirical prerequisites that block final approval: (1) cross-model/harness comprehension validation -- verify that {Opus, ChatGPT, Gemini, etc.} and harnesses {Claude Code, Warp, opencode, pi.dev} consume vBRIEF JSON as well as Markdown; (2) deterministic CRUD tooling as a hard prerequisite -- without typed CRUD operations on vBRIEF JSON, agents 'innovate' within the structure, undermining the reliability claim. Both must be answered empirically before ADR approval and Phase 1 can ship.",
+      "Overview": "Two-gate empirical validation. Gate 1 = comprehension parity benchmark (cross-model, cross-harness, paired-form, scored against gold labels). Gate 2 = CRUD-determinism three-arm evaluation (free-form vs schema-aware-prompt vs typed-CRUD-tooling) of agent-driven mutations. Build the deterministic CRUD tooling in deft-directive as both production guardrail and Gate 2's measurement subject. Bench infrastructure (runner, schema, methodology, results) lives in a new internal repo deftai/deft-agent-bench. Pre-registered thresholds locked before any data collection. V1 coverage: 3 models x 3 harnesses x 3 artifacts x N=3 trials; broader coverage as V1.1 follow-on.",
+      "Background": "Visionik's encoding-form ladder framing in #602 motivates this ADR. #714 defines the four-tier model. #715 covers round-trip preservation. #634 covers detection strength as the orthogonal axis. #665 proposes ADR storage convention. #336 is the migration umbrella that depends on ADR-001 outcome. Strategic positioning per #714: deft-directive becomes the reference implementation of vBRIEF-as-master; this validation effort gives that claim empirical backing.",
+      "Constraint": "Pre-registered thresholds MUST be locked before any data collection -- per-question-class scheme with parity-or-better required for lookup/aggregation/negative and -3 pp non-inferiority margin acceptable for reasoning/cross-reference. CRUD tool must achieve >=99% first-try schema validity, 0% field invention, 100% byte-diff minimality on mutate ops to PASS Gate 2. Free-form arm must be measurably worse than CRUD-mediated on >=2 of 4 primary metrics, otherwise the 'CRUD as hard prerequisite' claim is unjustified. Telemetry is NOT Gate-1 evidence (current user N too small for inference); repurposed as Gate 4 operational tripwire post-ship.",
+      "Risk": "(R-1) Bus factor 1: solo execution, illness or vacation stops everything. (R-2) Methodology iteration after V0: V0 nearly always surfaces a scoring issue, +3-5 days budgeted. (R-3) Provider rate-limit bottleneck: file quota-bump requests day 0 against both machines' API keys. (R-4) Sub-agent coordination tax: cap at 3 concurrent per machine. (R-5) Two-machine state-sync drift: pin CRUD tool version in bench Taskfile. (R-7) vBRIEF schema upstream churn: week-0 confirmation with maintainer before pinning revision. Full register in section-31 operations/2026-05-01-adr-001-risks.md.",
+      "Outcome": "Acceptance: (1) Gate 1 results meet pre-registered per-class thresholds and produce a signed CSV publishable as ADR-001's empirical evidence pack; (2) Gate 2 results meet pre-registered CRUD-determinism criteria, with the free-form arm measurably worse on >=2 metrics; (3) deterministic CRUD tooling shipped in deft-directive as production guardrail with full test coverage; (4) ADR-001 written and approval-ready, citing the bench results; (5) follow-on issues filed (foundational mechanism, pilot pack TBD, #336 reframe).",
+      "Test": "Gate 1: paired-prompt benchmark across 3 models x 3 harnesses x 3 artifacts at N=3 trials, scored by cross-family judge with rule-based scoring where possible, 10% spot-check by hand. Gate 2: three-arm mutation eval over ~20 ops including adversarial probes (non-ASCII, ambiguous, near-but-not-exact field names, large items[]). CRUD tool: directive's own test suite (happy-path + schema-rejection + atomic + non-ASCII + large-file + concurrent-edit). All bench runs reproducible from prompts/ + corpora/ + gold-labels/ + locked threshold-pre-registration commit.",
+      "Action": "Week 1: ship CRUD tool + migrations in deft-directive; bootstrap deft-agent-bench corpus + methodology drafts. Week 2: slice API + V0 run; lock methodology and threshold pre-registration. Week 3: full Gate 1 matrix + Gate 2 mutation eval (compute parallelized across two machines' API quota lanes). Week 4: synthesize results, write ADR-001, file follow-on issues, schedule Visionik checkpoints. Week 5: recovery; Phase-1 (TBD pilot pack) kickoff.",
+      "Urgency": "ADR-001 blocks Phase 1 (TBD pilot pack) which blocks the broader #336 migration umbrella. Empirical evidence is the gate; once delivered, the migration arc unblocks. Estimate based on April velocity (249 commits in deft-directive) extrapolated to dual-machine swarm execution full-time: 3-4 weeks calendar to ADR approval-ready, +1 recovery week before Phase 1."
+    },
+    "items": [
+      {
+        "id": "742-confirm-goals-budget-with-visionik",
+        "title": "Confirm goals (cross-model/harness validation + deterministic CRUD prerequisite) and time budget (3-4 weeks) with Visionik via Slack post on #742",
+        "status": "pending",
+        "narrative": {
+          "Action": "Send concise Slack post: two questions (goals + budget), link to section-31 strategic briefing for depth. Two-question framing; no operational decisions surfaced for his sign-off."
+        }
+      },
+      {
+        "id": "742-week-1-crud-tool-and-migrations",
+        "title": "Ship deterministic CRUD tool in deft-directive (scripts/vbrief_crud.py) with operations get/set/add-item/remove-item/move-item/validate; migrate existing vBRIEF writers to route through it; add normative rule in coding/ + AGENTS.md pointer",
+        "status": "pending",
+        "narrative": {
+          "Action": "Schema-validates before write; atomic; emits unified diff. Test coverage: happy-path, schema-rejection, atomic, non-ASCII (em dashes, arrows, CJK), large file (>200 items), concurrent-edit. Rule lands AFTER CRUD ships and migrations complete -- otherwise rule unsupportable on day 1."
+        }
+      },
+      {
+        "id": "742-week-1-bench-corpus-and-methodology",
+        "title": "Bench: select corpus (3 artifacts per criteria), vendor at known revisions, finalize methodology drafts, finalize gold-label format",
+        "status": "pending",
+        "narrative": {
+          "Action": "Corpus stratified by structural shape (skill / PROJECT-DEFINITION / rules-dense). Vendor with MANIFEST.json recording commit hashes. Methodology drafts already skeletoned in deft-agent-bench/docs/methodology/."
+        }
+      },
+      {
+        "id": "742-week-2-slice-api-and-v0-run",
+        "title": "Ship slice API in deft-directive (task <pack>:slice <name> <path>); bench runner harness with raw-API + Claude Code + Warp adapters; V0 run (1x1x1) to surface methodology issues; lock threshold pre-registration",
+        "status": "pending",
+        "narrative": {
+          "Action": "V0 deliberately tiny to fail fast. Pre-registration commit gates V1 matrix. +3-5 days budget if V0 surfaces 'scoring is wrong' type issue."
+        }
+      },
+      {
+        "id": "742-week-3-gate-1-and-gate-2-runs",
+        "title": "Run full Gate 1 matrix (3x3x3 at N=3) + Gate 2 mutation eval (3 arms, ~20 ops); compute parallelized across two machines' API quota lanes",
+        "status": "pending",
+        "narrative": {
+          "Action": "Gate 1 wall-clock target ~2-3 days with quota lanes (vs ~5-7 single-machine). Gate 2 in parallel where API contention permits."
+        }
+      },
+      {
+        "id": "742-week-4-adr-text-and-followons",
+        "title": "Synthesize Gate 1 + Gate 2 results; write ADR-001 at docs/decisions/ADR-001.md per #665 convention; draft follow-on issues (foundational mechanism, pilot pack TBD, #336 reframe); schedule Visionik decision points",
+        "status": "pending",
+        "narrative": {
+          "Action": "ADR-001's claim language scopes to whatever V1 coverage actually validated. Follow-ons file independently."
+        }
+      },
+      {
+        "id": "742-promote-to-active",
+        "title": "On Visionik goals+budget confirmation, promote this vBRIEF from proposed/ to active/ via task scope:promote",
+        "status": "pending",
+        "narrative": {
+          "Action": "Lifecycle move signals execution start. Status field updates to 'in-progress'."
+        }
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2",
+        "PhaseDescription": "Cross-cutting structural work: spans deft-directive (CRUD + slice API), deft-agent-bench (new repo, runner, methodology), section-31 (briefing + decisions + execution + risks), and downstream ADR / migration umbrella."
+      },
+      "x-tracking": {
+        "parent_issue": "#742",
+        "swarm_ready": false,
+        "needs_visionik_confirmation": true,
+        "depends_on": [
+          "#742 ADR-001 design (parent ADR)",
+          "#714 tier-3 packs (mechanism)",
+          "#715 round-trip preservation (prerequisite)",
+          "deftai/vBRIEF schema (vendored at pinned revision)"
+        ],
+        "blocks": [
+          "#742 ADR-001 final approval (HARD)",
+          "Phase 1 pilot pack (TBD) (HARD)",
+          "#336 migration umbrella (SOFT)"
+        ]
+      },
+      "x-internal-references": {
+        "section-31": {
+          "briefing": "strategy/2026-05-01-adr-001-empirical-validation.md",
+          "decisions": "decisions/003-adr-001-empirical-validation.md",
+          "execution": "operations/2026-05-01-adr-001-execution-plan.md",
+          "risks": "operations/2026-05-01-adr-001-risks.md"
+        }
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/742",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #742 (parent ADR): doc(adr): ADR-001 -- vBRIEF-as-master for the agentic-consumed surface"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/602",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #602: encode latent-vs-deterministic as an explicit coding principle (encoding-form ladder origin)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/634",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #634: detection-strength ladder (orthogonal axis)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/714",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #714: tier-3 extension packs (mechanism for ADR-001 implementation)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/715",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #715: round-trip preservation (prerequisite)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/665",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #665: ADR convention (storage spec for ADR-001)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/336",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #336: migration umbrella (downstream consumer)"
+      },
+      {
+        "uri": "https://github.com/deftai/deft-agent-bench",
+        "type": "x-vbrief/related-repo",
+        "title": "deft-agent-bench (internal): bench infrastructure for this validation effort"
+      }
+    ]
+  }
+}

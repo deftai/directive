@@ -1,0 +1,69 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Update README.md to describe the vBRIEF-centric flow: scope vBRIEFs are the source of truth; SPECIFICATION.md is a rendered view.",
+    "created": "2026-04-16T00:00:00Z",
+    "updated": "2026-04-16T00:00:00Z"
+  },
+  "plan": {
+    "id": "fix-407-readme-vbrief-centric-accuracy",
+    "title": "docs(readme): README still describes SPECIFICATION.md as primary output instead of vBRIEF",
+    "status": "completed",
+    "narratives": {
+      "Problem": "README.md described SPECIFICATION.md as the primary output of the setup/spec flow. In the v0.20 vBRIEF-centric model SPECIFICATION.md is a rendered artifact; the source of truth is `vbrief/specification.vbrief.json` plus scope vBRIEFs in lifecycle folders. If a user edits SPECIFICATION.md directly, their changes are overwritten on the next `task spec:render`.",
+      "Action": "Rewrite README Step 2 (`run bootstrap` output) to reference PROJECT-DEFINITION.vbrief.json, rename Step 3 to 'Generate a Scope vBRIEF' and describe the vBRIEF-centric flow, update Step 4 build example to read vbrief/PROJECT-DEFINITION.vbrief.json and the scope vBRIEFs, add a source-of-truth / rendered-view paragraph, fix the Rule Precedence diagram and Rule Hierarchy list, update SDD diagram and description to say vBRIEF instead of SPECIFICATION.md, update example workflow diagrams to read PROJECT-DEFINITION.vbrief.json. Also surface `deft/run upgrade` in the command list and add a brownfield note linking to docs/BROWNFIELD.md.",
+      "Test": "tests/content/test_readme_brownfield.py::TestReadmeVbriefCentric -- 6 assertions covering each acceptance criterion.",
+      "Outcome": "New users reading README understand that vBRIEFs are authoritative and .md files are generated, preventing the 'edit SPECIFICATION.md and lose work' footgun."
+    },
+    "items": [
+      {
+        "id": "407-1",
+        "title": "Rewrite Step 2 to reference PROJECT-DEFINITION.vbrief.json",
+        "status": "running"
+      },
+      {
+        "id": "407-2",
+        "title": "Rename Step 3 to 'Generate a Scope vBRIEF' with vBRIEF-centric explanation",
+        "status": "running"
+      },
+      {
+        "id": "407-3",
+        "title": "Update Step 4 build example and add brownfield pointer to docs/BROWNFIELD.md",
+        "status": "running"
+      },
+      {
+        "id": "407-4",
+        "title": "Fix Rule Precedence mermaid + Rule Hierarchy list to reference vbrief/* files",
+        "status": "running"
+      },
+      {
+        "id": "407-5",
+        "title": "Update SDD diagrams and text to reference specification.vbrief.json",
+        "status": "running"
+      },
+      {
+        "id": "407-6",
+        "title": "Update example workflow diagrams (Existing Go Project, code review) to read PROJECT-DEFINITION.vbrief.json",
+        "status": "running"
+      },
+      {
+        "id": "407-7",
+        "title": "Content tests asserting vBRIEF-centric wording",
+        "status": "running"
+      }
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/407",
+        "id": "#407"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/402",
+        "id": "#402"
+      }
+    ],
+    "updated": "2026-04-20T17:07:59Z"
+  }
+}

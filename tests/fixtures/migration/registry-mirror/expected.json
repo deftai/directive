@@ -1,0 +1,18 @@
+{
+  "scenario": "registry-mirror",
+  "folder_counts": {
+    "proposed": 0,
+    "pending": 1,
+    "active": 1,
+    "completed": 1,
+    "cancelled": 0
+  },
+  "statuses": {
+    "completed": ["completed"],
+    "active": ["running"],
+    "pending": ["pending"]
+  },
+  "reconciliation_md": false,
+  "registry_statuses_include": ["completed", "running", "pending"],
+  "forbidden_values_in_any_file": ["in_progress"]
+}

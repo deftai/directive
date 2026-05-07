@@ -1,0 +1,63 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# pr:* tasks for PR-level merge-discipline checks.
+#
+# pr:check-protected-issues is the Taskfile-level encoding of the Layer 3
+# pre-merge protected-issue link inspection from
+# skills/deft-directive-swarm/SKILL.md Phase 6 Step 1 (#701). Per the Rule
+# Authority [AXIOM] block in main.md, deterministic and Taskfile encodings
+# rank above prose -- this target wraps the canonical
+#   gh pr view <N> --json closingIssuesReferences
+# query so a swarm monitor (or any operator) can verify in one command that
+# no protected (umbrella / staying-OPEN) issue is GitHub-side linked to the
+# PR before squash-merging.
+#
+# Companion script: scripts/pr_check_protected_issues.py
+# Companion test:   tests/cli/test_pr_check_protected_issues.py
+
+tasks:
+  check-protected-issues:
+    desc: "Verify NO protected (umbrella / staying-OPEN) issue is GitHub-side linked to a PR before squash merge (#701)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/pr_check_protected_issues.py" {{.CLI_ARGS}}
+
+  # pr:check-closing-keywords -- Layer 0 (prevention) closing-keyword
+  # negation-context lint introduced by #737. Refuses to push when the
+  # PR body or any commit message contains a closing-keyword token in a
+  # negation / quotation / example / code-block context. Pairs with the
+  # existing Layer 3 (recovery) ``pr:check-protected-issues`` (#701).
+  #
+  # Per ``conventions/task-caching.md`` (#574): NO ``sources:`` /
+  # ``generates:`` because user-facing recovery flags (``--pr``,
+  # ``--body-file``, ``--commits-file``, ``--allow-known-false-positives``)
+  # MUST NOT be silently swallowed by go-task's incremental-build cache.
+  check-closing-keywords:
+    desc: "Scan PR body + commit messages for closing-keyword substrings in negation/quotation/example contexts that would trigger Layer 0 false-positive auto-closes (#737)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/pr_check_closing_keywords.py" {{.CLI_ARGS}}
+
+  # pr:merge-ready -- programmatic Greptile-body verdict gate. Closes the
+  # SUCCESS-with-findings blind spot in the Phase 5 -> 6 merge-readiness
+  # checklist. Parses the Greptile rolling-summary comment body (NOT the
+  # CheckRun status) for confidence, P0/P1 findings, errored sentinel
+  # (#526), and HEAD-SHA freshness. Companion to the swarm SKILL Phase 6
+  # Step 1 prose rule. PR #652 incident motivated this gap-closer.
+  #
+  # Companion script: scripts/pr_merge_readiness.py
+  # Companion test:   tests/cli/test_pr_merge_readiness.py
+  merge-ready:
+    desc: "Verify a PR's Greptile review body satisfies the merge exit condition (confidence >3, no P0/P1, HEAD-SHA fresh, not errored)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/pr_merge_readiness.py" {{.CLI_ARGS}}

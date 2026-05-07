@@ -1,0 +1,52 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #902",
+    "updated": "2026-05-05T01:36:03Z"
+  },
+  "plan": {
+    "title": "Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper",
+    "status": "completed",
+    "narratives": {
+      "Description": "Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/902",
+      "Labels": "bug"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/902",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #902: Fresh Windows maintainer setup has no scripted toolchain bootstrap or PATH-refresh helper"
+      }
+    ],
+    "updated": "2026-05-05T01:36:03Z",
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      },
+      "x-tracking": {
+        "swarm_ready": true,
+        "parallelizable_with": [
+          "#899",
+          "#900",
+          "#901"
+        ]
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "deft-directive-build",
+        "rationale": "Adds scripts/setup_windows.ps1 (idempotent winget bootstrap for go/python/uv/task/gh) + scripts/refresh-path.ps1 (registry PATH merge) + tasks/setup.yml task setup:toolchain + CONTRIBUTING.md Windows quickstart. Shares the registry-PATH-refresh primitive with #899's Go-side refreshPathFromRegistry() -- both should read from HKLM\\System\\CurrentControlSet\\Control\\Session Manager\\Environment\\Path + HKCU\\Environment\\Path.",
+        "files_to_touch": [
+          "scripts/setup_windows.ps1",
+          "scripts/refresh-path.ps1",
+          "tasks/setup.yml",
+          "CONTRIBUTING.md",
+          "tests/scripts/test_setup_windows.ps1"
+        ],
+        "branch": "feat/windows-maintainer-onboarding",
+        "pr_title_prefix": "feat(setup):"
+      }
+    }
+  }
+}

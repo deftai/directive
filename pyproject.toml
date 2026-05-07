@@ -1,6 +1,10 @@
 [project]
 name = "deft-directive"
-version = "0.5.0"
+# version is kept in lockstep with the latest published release tag by
+# scripts/release.py Step 5 (#771). Manual edits here are overwritten on
+# every `task release -- X.Y.Z` and guarded by
+# tests/content/test_pyproject_version_freshness.py.
+version = "0.26.0"
 description = "A layered framework for AI-assisted development with consistent standards and workflows"
 requires-python = ">=3.11"
 
@@ -46,11 +50,17 @@ exclude = [
     "__pycache__",
     "run",        # extension-less CLI entry point — not linted in Phase 1
     "run.py",     # importlib shim for tests — inherent E402/I001
-    "warping.sh",
 ]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PIE", "RET", "SIM"]
+
+[tool.ruff.lint.isort]
+# Combine `from X import a as _a` / `from X import b as _b` into a single
+# parenthesised import block so large thin-wrapper modules (e.g.
+# scripts/migrate_vbrief.py, #495/#505) stay under the 1000-line MUST
+# limit from deft/main.md without one line per imported symbol.
+combine-as-imports = true
 
 [tool.black]
 line-length = 100

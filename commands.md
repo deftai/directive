@@ -35,28 +35,28 @@ Create a scoped change proposal.
 
 ```
 history/changes/<name>/
-├── proposal.md          ← Why this change, what's affected, scope
-├── design.md            ← Technical approach, alternatives considered
+├── proposal.vbrief.json ← Why/what/how (all narratives in vBRIEF format)
 ├── tasks.vbrief.json    ← Implementation tasks in vBRIEF format
 └── specs/               ← Spec deltas (how requirements change)
-    └── <capability>/
-        └── spec.md      ← New or modified requirements
+    └── <capability>.delta.vbrief.json ← New or modified requirements
 ```
 
-### proposal.md
+### proposal.vbrief.json
+
+A vBRIEF v0.5 file with `plan.narratives` capturing both the proposal and the design:
 
 - ! **Problem** — what's wrong or missing
 - ! **Change** — what this proposal does about it
 - ! **Scope** — what's in, what's explicitly out
 - ~ **Impact** — what existing code/specs are affected
 - ~ **Risks** — what could go wrong
-
-### design.md
-
 - ! **Approach** — how to implement the change
 - ~ **Alternatives** — what else was considered and why not
 - ~ **Dependencies** — what must exist before this works
-- ? Skip if the change is trivial (< 1 hour of work)
+
+! All narrative values MUST be plain strings — never objects or arrays.
+
+? The Approach, Alternatives, and Dependencies narratives may be omitted if the change is trivial (< 1 hour of work).
 
 ### tasks.vbrief.json
 
@@ -103,17 +103,24 @@ Example:
 
 ### specs/
 
-Spec deltas capture how requirements change. See [context/spec-deltas.md](./context/spec-deltas.md) for full format and vBRIEF chain pattern.
+Spec deltas capture how requirements change as vBRIEF files. See [context/spec-deltas.md](./context/spec-deltas.md) for full format and vBRIEF chain pattern.
 
-- ? Create spec files only when the change modifies requirements
-- ! Each spec file captures the **new or changed** requirements, not the full system
-- ! Separate "New Requirements" from "Modified Requirements" — show **was** and **now** for modifications
-- ! Include a **baseline** reference identifying which spec/section is being modified
-- ~ Organize by capability: `specs/auth-session/spec.md`, `specs/checkout-cart/spec.md`
-- ~ Use RFC 2119 language (MUST, SHOULD, MAY)
-- ~ Use GIVEN/WHEN/THEN scenarios for behavioral requirements
+Each delta is a vBRIEF v0.5 file at `specs/<capability>.delta.vbrief.json` with `plan.narratives`:
+
+- ! **Baseline** — reference to which spec/section is being modified
+- ! **NewRequirements** — new FR/NFR entries being added
+- ! **ModifiedRequirements** — changes in "was: X / now: Y" format
+- ~ **RemovedRequirements** — any requirements being removed
+
+- ? Create spec delta files only when the change modifies requirements
+- ! Each delta captures the **new or changed** requirements, not the full system
+- ! All narrative values MUST be plain strings — never objects or arrays
+- ~ Organize by capability: `specs/auth-session.delta.vbrief.json`, `specs/checkout-cart.delta.vbrief.json`
+- ~ Use RFC 2119 language (MUST, SHOULD, MAY) within narrative values
+- ~ Use GIVEN/WHEN/THEN scenarios for behavioral requirements within narrative values
 - ~ Link to baseline spec via vBRIEF `references` in `tasks.vbrief.json`
 - ⊗ Rewrite the full spec — only capture the delta
+- ⊗ Use markdown spec files (`spec.md`) — all spec deltas must be vBRIEF format
 
 ---
 
@@ -128,7 +135,7 @@ Implement the active change's tasks.
 - ! Follow task ordering from `blocks` edges
 - ! Update task statuses as work progresses
 - ! Follow TDD: write tests before implementation
-- ~ Reference `design.md` for architectural decisions
+- ~ Reference `proposal.vbrief.json` `Approach` narrative for architectural decisions
 - ~ Reference `specs/` for requirement details
 
 ### Active Change Detection
@@ -168,19 +175,22 @@ Archive a completed change.
 
 ### Spec Delta Merge
 
-If the change included spec deltas (`specs/`), merge them into the project's main spec before archiving. See [context/spec-deltas.md](./context/spec-deltas.md) § After Archiving.
+If the change included spec deltas (`specs/`), merge them into the relevant scope vBRIEF(s) before archiving. See [context/spec-deltas.md](./context/spec-deltas.md) § After Archiving.
 
-- ! Read each spec delta in the change's `specs/` directory
-- ! Apply "New Requirements" to the corresponding section in `SPECIFICATION.md` (or its vBRIEF source)
-- ! Apply "Modified Requirements" — replace the **was** with the **now** in the main spec
-- ! Verify the main spec is internally consistent after merge
-- ~ Use `task spec:render` to regenerate `SPECIFICATION.md` from the vBRIEF source if applicable
-- ⊗ Leave spec deltas unmerged — the main spec drifts from reality
+- ! Read each `*.delta.vbrief.json` file in the change's `specs/` directory
+- ! Read the delta's `Baseline` narrative to identify the target scope vBRIEF
+- ! Apply `NewRequirements` narrative content to the corresponding scope vBRIEF in `./vbrief/` (or `specification.vbrief.json` for project-wide changes)
+- ! Apply `ModifiedRequirements` narrative — replace the **was** with the **now** in the scope vBRIEF
+- ! Apply `RemovedRequirements` narrative — remove the identified requirements from the scope vBRIEF
+- ! Verify the scope vBRIEF is internally consistent after merge
+- ~ Use `task spec:render` to regenerate rendered output from the vBRIEF source if applicable
+- ⊗ Leave spec deltas unmerged — the scope vBRIEF drifts from reality
+- ⊗ Parse markdown to extract delta content — read vBRIEF narratives directly
 
 ### CHANGELOG Entry
 
 - ~ Add a CHANGELOG.md entry summarizing the change
-- ~ Use the change's `proposal.md` Problem/Change sections as the source
+- ~ Use the change's `proposal.vbrief.json` Problem/Change narratives as the source
 - ~ Follow the existing CHANGELOG format ([Keep a Changelog](https://keepachangelog.com/en/1.0.0/))
 - ? Link to the archived change folder for full context
 
@@ -191,6 +201,48 @@ The entire change folder moves as-is. The archive is a historical record — nev
 - ⊗ Delete archived changes
 - ⊗ Modify files in `history/archive/`
 - ? Prune old archives periodically if disk space is a concern
+
+---
+
+## Command Lifecycle: `run` vs `task`
+
+Deft uses two complementary command surfaces that together cover the full document lifecycle:
+
+### `run` commands — Interactive creation
+
+`run` commands handle conversational, agent-friendly creation workflows:
+
+- `deft/run bootstrap` — Interactive setup for USER.md and PROJECT-DEFINITION.vbrief.json
+- `deft/run spec` — AI-assisted specification interview (produces scope vBRIEFs)
+- `deft/run validate` — Check deft configuration
+- `deft/run doctor` — Check system dependencies
+- `deft/run reset` — Reset config files
+
+These are the entry points for humans and agents starting new work.
+
+### `task` commands — Scripted rendering, migration, and validation
+
+`task` commands handle deterministic, CI-friendly operations:
+
+- `task spec:render` — Regenerate `SPECIFICATION.md` from `specification.vbrief.json`
+- `task spec:pipeline` — Full spec validation and rendering pipeline
+- `task roadmap:render` — Regenerate `ROADMAP.md` from `vbrief/pending/` scope vBRIEFs
+- `task roadmap:check` — Detect drift between ROADMAP.md and pending/ contents
+- `task project:render` — Regenerate `PROJECT-DEFINITION.vbrief.json` items registry from lifecycle folders
+- `task migrate:vbrief` — One-time migration from pre-v0.20 model to vBRIEF lifecycle folders
+- `task vbrief:validate` — Validate vBRIEF schema, filenames, folder/status consistency (runs as part of `task check`)
+These transform
+
+### Why the split?
+
+The split is intentional: `run` commands are conversational and agent-friendly (they prompt for input, adapt to context); `task` commands are deterministic and scriptable (same input always produces the same output). For the full document lifecycle:
+
+1. **Create** with `run` — bootstrap, interview, generate spec
+2. **Render** with `task` — produce markdown artifacts from vBRIEF sources
+3. **Validate** with `task` — enforce schema, naming, and consistency rules
+4. **Migrate** with `task` — one-time structural upgrades
+
+See also: [README.md — Document Generation & vBRIEF Tooling](./README.md#-document-generation--vbrief-tooling) | [vbrief/vbrief.md](./vbrief/vbrief.md)
 
 ---
 

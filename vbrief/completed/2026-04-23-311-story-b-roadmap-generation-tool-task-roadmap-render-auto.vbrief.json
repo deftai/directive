@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #311: Story B: Roadmap generation tool (task roadmap:render) + auto-generated banner + drift detection",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Story B: Roadmap generation tool (task roadmap:render) + auto-generated banner + drift detection",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Story B: Roadmap generation tool (task roadmap:render) + auto-generated banner + drift detection",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/311",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #311: Story B: Roadmap generation tool (task roadmap:render) + auto-generated banner + drift detection"
+      }
+    ]
+  }
+}

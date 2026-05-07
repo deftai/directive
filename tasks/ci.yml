@@ -1,0 +1,49 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# ci:* tasks for running the full CI pipeline locally so contributors
+# catch CI failures before pushing.
+#
+# ci:local mirrors the step graph of .github/workflows/ci.yml on the
+# host platform:
+#
+#   - Linux:   Python (uv sync + ruff + mypy + pytest --cov), Go test +
+#              cross-compile builds for linux/amd64 + darwin/arm64 +
+#              windows/amd64, and the existing Taskfile-level
+#              verifications (toolchain:check, verify:stubs,
+#              verify:links, verify:rule-ownership, vbrief:validate,
+#              build).
+#
+#   - macOS:   Same as Linux. The darwin/arm64 cross-compile is the
+#              native build path. /dev/null is the discard target for
+#              cross-compile output.
+#
+#   - Windows: Same Python + Go + Taskfile-level steps; NUL replaces
+#              /dev/null as the cross-compile discard target.
+#              Additionally, when --matrix=windows is supplied the
+#              Windows-task-dispatch regression pytest guard-rails run
+#              -- those steps shell out to PowerShell and require a
+#              real Windows host (CI uses windows-latest).
+#
+# CLI_ARGS are forwarded so contributors can pass flags such as
+# --matrix=linux, --skip-build, --verbose, and --no-fail-fast.
+#
+# Per conventions/task-caching.md, this task forwards {{.CLI_ARGS}} to
+# a Python script that accepts user-facing flags (--skip-build,
+# --no-fail-fast, etc.); declaring sources: / generates: would short-
+# circuit the cmds: block and silently swallow those flags. Caching is
+# intentionally absent.
+#
+# Companion script: scripts/ci_local.py
+# Companion test:   tests/cli/test_ci_local.py
+
+tasks:
+  local:
+    desc: "Run the full CI pipeline locally (matrix-aware). Mirrors .github/workflows/ci.yml step graph; on Windows hosts --matrix=windows additionally runs the windows-task-dispatch regression guard-rails. Refs #233."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/ci_local.py" --root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

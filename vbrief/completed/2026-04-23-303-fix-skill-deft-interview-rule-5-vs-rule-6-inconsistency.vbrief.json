@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #303: fix(skill): deft-interview Rule 5 vs Rule 6 inconsistency -- ok accepted for default but not confirmation gate",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "fix(skill): deft-interview Rule 5 vs Rule 6 inconsistency -- ok accepted for default but not confirmation gate",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "fix(skill): deft-interview Rule 5 vs Rule 6 inconsistency -- ok accepted for default but not confirmation gate",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/303",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #303: fix(skill): deft-interview Rule 5 vs Rule 6 inconsistency -- ok accepted for default but not confirmation gate"
+      }
+    ]
+  }
+}

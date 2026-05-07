@@ -1,0 +1,51 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #756"
+  },
+  "plan": {
+    "title": "fix(scripts/reconcile_issues.py): apply_lifecycle_fixes does not dedupe vBRIEFs that reference multiple closed issues (spurious file-missing failures, misleading exit 1)",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(scripts/reconcile_issues.py): apply_lifecycle_fixes does not dedupe vBRIEFs that reference multiple closed issues (spurious file-missing failures, misleading exit 1)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/756",
+      "Labels": "bug, test-debt",
+      "Problem": "apply_lifecycle_fixes iterates per closed-issue Section (c) entry; when a single vBRIEF references multiple closed issues, the same file path appears N times. First move succeeds; subsequent attempts fail with 'vBRIEF file missing' because the file already moved. Exit 1 with N-1 spurious failures per multi-reference vBRIEF. No data loss; misleading exit code and inflated failures counter.",
+      "Acceptance": "task reconcile:issues -- --apply-lifecycle-fixes on a tree with at least one multi-reference vBRIEF exits 0 with failures=0. Implementation per the issue's preferred form: pre-compute the unique candidate set before the move loop. New test test_apply_dedupes_multi_reference_vbrief in tests/cli/test_reconcile_issues_apply.py covering: synthetic report with one vBRIEF in three Section (c) entries; assert moved==1, failures==[], file landed in completed/ exactly once. Existing happy-path tests still pass unchanged.",
+      "OutOfScope": "The inverted-lookup helper (#754/#755 -- correct). Reverse mismatches (issue reopened after vBRIEF reached completed/). The exit-code wrapping in tasks/reconcile.yml.",
+      "Files": "scripts/reconcile_issues.py (apply_lifecycle_fixes function); tests/cli/test_reconcile_issues_apply.py (new test); CHANGELOG.md (append)."
+    },
+    "items": [
+      {
+        "title": "Pre-compute unique candidate set before the move loop in apply_lifecycle_fixes",
+        "status": "pending"
+      },
+      {
+        "title": "NEW test test_apply_dedupes_multi_reference_vbrief in tests/cli/test_reconcile_issues_apply.py",
+        "status": "pending"
+      },
+      {
+        "title": "Verify existing happy-path tests in tests/cli/test_reconcile_issues_apply.py continue passing",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md [Unreleased] entry under Fixed referencing #756",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/756",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #756: fix(scripts/reconcile_issues.py): apply_lifecycle_fixes does not dedupe vBRIEFs that reference multiple closed issues (spurious file-missing failures, misleading exit 1)"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-05-01T02:02:52Z"
+  }
+}

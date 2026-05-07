@@ -1,0 +1,99 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #768"
+  },
+  "plan": {
+    "title": "Universal upgrade gate: stale-AGENTS.md consumers silently follow obsolete instructions",
+    "status": "completed",
+    "narratives": {
+      "Description": "Universal upgrade gate: stale-AGENTS.md consumers silently follow obsolete instructions",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/768",
+      "Labels": "adoption-blocker",
+      "Problem": "Consumers installed at any pre-current version can run agent sessions that read a stale ./AGENTS.md and silently follow obsolete instructions, with no deterministic upgrade detection firing. The Timmy session reproduced this: v0.5-installed consumer with deft/ bumped to v0.22, agent reads stale AGENTS.md, executes pre-v0.20 phase logic, never notices the framework jump. Existing gates only fire on CLI invocation (#410), sync-skill trigger phrases, or paths the agent does not take. Structural gap: there is no upgrade-path-agnostic anchor on the read-AGENTS.md-and-follow-it path that every consumer ever installed traverses.",
+      "Acceptance": "Five coordinated changes that share one principle: the gate is upgrade-path-agnostic; the framework owns the AGENTS.md contract; UPGRADING.md is the only source of truth per state. (1) NEW cmd_gate in run -- read-only state-vector probe emitting 'OK v<current>' or 'NEEDS-UPGRADE recorded=<recorded|unknown> current=<current> precutover=<csv|empty> agents-md=<current|stale|missing|absent>' with --json variant; reuses _read_version_marker, _detect_pre_cutover_legacy, _running_inside_deft_repo, dynamic VERSION (#741); no marker writes / no migrations / no commits; agents-md= axis computed via cmd_agents_refresh --check. (2) Universal '<!-- DEFT-PREAMBLE-V1 -->' preamble at line 1 of deft/main.md AND every legacy redirect stub at historical AGENTS.md target paths (skills/deft-setup/SKILL.md, skills/deft-build/SKILL.md, SKILL.md, plus any path enumerated by 'git --no-pager log --all -- cmd/deft-install/setup.go'). Preamble instructs agent to run 'python3 deft/run gate' before any other instruction; on non-zero, read deft/UPGRADING.md, find section whose 'Applies when' matches the state vector, execute verbatim, honor 'Restart required' directives. (3) NEW cmd_agents_refresh in run -- Python reference implementation of the AGENTS.md contract; --dry-run shows planned changes; --check exits 0 if managed section is byte-identical to current rendered template; reads templates/agents-entry.md, substitutes documented placeholder tokens, handles four states: agents-md=current (no-op), stale (rewrite content between markers), missing (wrap legacy block in markers then refresh -- one-time migration), absent (create AGENTS.md from rendered template). (4) Contract artifacts: <!-- deft:managed-section v1 --> ... <!-- /deft:managed-section --> markers added to templates/agents-entry.md (versioned for future format detection); NEW templates/agents-entry.placeholders.md documenting the placeholder spec (UPSTREAM_SHA, UPSTREAM_REF, UPSTREAM_TAG, FETCHED_AT, FETCHED_BY -- inherited from webinstaller); cmd_upgrade in run/run.py modified to call cmd_agents_refresh automatically alongside writing vbrief/.deft-version; conformance test tests/content/test_agents_entry_contract.py asserting template parses, placeholders match documented spec, markers well-formed, byte-identical refresh produces byte-identical output. (5) UPGRADING.md retrofit: every '## From <prev> -> <new>' section gains four-field micro-format header (Applies when / Safe to auto-run / Restart required / Commands), with deft/run agents:refresh in Commands when AGENTS.md template changes between versions. Tests: tests/cli/test_cmd_gate.py covers all four agents-md= states + version drift + pre-cutover combinations + --json structure; tests/cli/test_cmd_agents_refresh.py covers fresh write / marker round-trip / legacy-to-marker migration / --check exit codes / --dry-run output; tests/content/test_upgrading_sections.py asserts every section has all four fields; tests/content/test_main_md_preamble.py asserts marker present at line 1 of every required file; tests/content/test_agents_entry_contract.py is the rail-agnostic conformance test. Manual repro: v0.5-state fixture bumped to current, agent reads ./AGENTS.md, runs gate, gets NEEDS-UPGRADE recorded=0.5.0 ... agents-md=missing, reads UPGRADING.md, executes matching section's commands (including agents:refresh), halts with start-fresh-session message. CHANGELOG entry under Added.",
+      "OutOfScope": "Bumping pyproject.toml's stale 'version = 0.5.0' field (release pipeline already uses dynamic resolution per #741; vestigial; separate chore). Adding any agent-platform-specific bootstrap rule (gate is platform-agnostic by design). Any submodule post-update hook (user-machine-specific, not framework concern). Go installer modernization to read templates/agents-entry.md instead of hardcoded agentsMDEntry constant -- INDEPENDENT; tracked in #636 (active vBRIEF). The gate self-heals AGENTS.md drift via the agents-md= axis regardless of which installer wrote it, so #636 is non-blocking. Webinstaller managed-section marker support (deftai/webinstaller#153) -- separate repo. NPM/PIP CLI wrapper integration of the contract via shell-out -- consumer of #11 once that issue is rescoped.",
+      "Files": "NEW cmd_gate function in run/run.py (read-only state-vector probe + --json output + agents-md= axis); NEW cmd_agents_refresh function in run/run.py (--dry-run, --check, fresh write / marker round-trip / legacy-to-marker migration); modify cmd_upgrade in run/run.py to call cmd_agents_refresh automatically; main.md (line 1 preamble injection ONLY -- coordinate with Agent 1's mid-file edits via #767/#746); skills/deft-setup/SKILL.md, skills/deft-build/SKILL.md, SKILL.md (legacy redirect-stub preamble injection -- audit historical agentsMDEntry paths via git log on cmd/deft-install/setup.go to enumerate ALL stub paths); templates/agents-entry.md (add <!-- deft:managed-section v1 --> ... <!-- /deft:managed-section --> markers + canonical content -- this file moved to Agent 6 ownership from #746); NEW templates/agents-entry.placeholders.md (placeholder token spec); UPGRADING.md (four-field micro-format retrofit on every '## From X -> Y' section); NEW tests/cli/test_cmd_gate.py; NEW tests/cli/test_cmd_agents_refresh.py; NEW tests/content/test_agents_entry_contract.py; NEW tests/content/test_upgrading_sections.py; NEW tests/content/test_main_md_preamble.py; CHANGELOG.md (append)."
+    },
+    "items": [
+      {
+        "title": "Audit historical AGENTS.md target paths via 'git --no-pager log --all -- cmd/deft-install/setup.go' to enumerate ALL stub paths needing the preamble",
+        "status": "pending"
+      },
+      {
+        "title": "NEW cmd_gate in run/run.py: read-only state-vector probe; reuses _read_version_marker, _detect_pre_cutover_legacy, _running_inside_deft_repo, dynamic VERSION; --json variant; exit 0 OK, non-zero NEEDS-UPGRADE; agents-md= axis computed via cmd_agents_refresh --check",
+        "status": "pending"
+      },
+      {
+        "title": "NEW cmd_agents_refresh in run/run.py: Python reference impl of AGENTS.md contract; --dry-run, --check; reads templates/agents-entry.md; handles 4 states (current/stale/missing/absent); legacy-to-marker migration on first run",
+        "status": "pending"
+      },
+      {
+        "title": "Modify cmd_upgrade in run/run.py to call cmd_agents_refresh automatically alongside writing vbrief/.deft-version",
+        "status": "pending"
+      },
+      {
+        "title": "Add <!-- deft:managed-section v1 --> ... <!-- /deft:managed-section --> markers to templates/agents-entry.md (versioned)",
+        "status": "pending"
+      },
+      {
+        "title": "NEW templates/agents-entry.placeholders.md: placeholder token spec (UPSTREAM_SHA, UPSTREAM_REF, UPSTREAM_TAG, FETCHED_AT, FETCHED_BY)",
+        "status": "pending"
+      },
+      {
+        "title": "Inject '<!-- DEFT-PREAMBLE-V1 -->' at line 1 of deft/main.md with gate-then-UPGRADING-then-respect-restart instructions",
+        "status": "pending"
+      },
+      {
+        "title": "Inject same preamble at line 1 of every legacy redirect stub enumerated by the audit (skills/deft-setup/SKILL.md, skills/deft-build/SKILL.md, SKILL.md, plus any other historical path)",
+        "status": "pending"
+      },
+      {
+        "title": "Retrofit UPGRADING.md: every '## From X -> Y' section gains four-field micro-format header (Applies when / Safe to auto-run / Restart required / Commands); include 'deft/run agents:refresh' in Commands when template changes",
+        "status": "pending"
+      },
+      {
+        "title": "NEW tests/cli/test_cmd_gate.py: covers all four agents-md= states + version drift + pre-cutover combinations + --json structure; pin output format and exit codes",
+        "status": "pending"
+      },
+      {
+        "title": "NEW tests/cli/test_cmd_agents_refresh.py: fresh write, marker round-trip, legacy-to-marker migration, --check exit codes, --dry-run output",
+        "status": "pending"
+      },
+      {
+        "title": "NEW tests/content/test_agents_entry_contract.py: rail-agnostic conformance test asserting template parses, placeholders match spec, markers well-formed, byte-identical refresh produces byte-identical output",
+        "status": "pending"
+      },
+      {
+        "title": "NEW tests/content/test_upgrading_sections.py: assert every '## From X -> Y' section has all four fields; CI fails on future regression",
+        "status": "pending"
+      },
+      {
+        "title": "NEW tests/content/test_main_md_preamble.py: assert preamble marker present at line 1 of every required file",
+        "status": "pending"
+      },
+      {
+        "title": "Manual repro evidence: v0.5-state fixture bumped to current; agent reads AGENTS.md; runs gate; gets NEEDS-UPGRADE recorded=0.5.0 ... agents-md=missing; reads UPGRADING.md; executes matching section's commands; halts with start-fresh message",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md [Unreleased] entry under Added referencing #768",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/768",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #768: Universal upgrade gate: stale-AGENTS.md consumers silently follow obsolete instructions"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-05-01T02:02:52Z"
+  }
+}

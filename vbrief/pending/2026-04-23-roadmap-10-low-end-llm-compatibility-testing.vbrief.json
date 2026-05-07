@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for Low-end LLM compatibility testing"
+  },
+  "plan": {
+    "title": "Low-end LLM compatibility testing",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 4",
+        "Description": "Low-end LLM compatibility testing",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/759",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #759: testing: low-end / quantised LLM compatibility validation + min model size docs"
+      }
+    ],
+    "updated": "2026-04-30T15:44:28Z"
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Adoption blocker: directive has zero awareness of upstream releases. Add a periodic, read-only remote-version probe that runs `git ls-remote --tags` against the deft submodule's upstream, throttled to 24h per remote tag, and surfaces a single warn line when the local checkout is behind. Never auto-mutates project state -- write paths stay in cmd_upgrade / sync skill / task migrate:vbrief.",
+    "created": "2026-05-01T19:04:00Z",
+    "updated": "2026-05-01T23:35:54Z"
+  },
+  "plan": {
+    "id": "801-periodic-remote-version-probe",
+    "title": "Periodic remote-version probe: occasionally check upstream for new directive tags and prompt the user to update",
+    "status": "completed",
+    "planRef": "#801",
+    "narratives": {
+      "Problem": "Directive currently has zero awareness of upstream releases. `_resolve_version()` (run lines 50-88) reads only local refs via `git describe --tags --abbrev=0`; `cmd_update` (run line 2614) is a stub that prints 'not yet implemented'; the upgrade gate in `_check_upgrade_gate` (#410) compares the project's vbrief/.deft-version marker against the in-process VERSION only -- it never asks 'is VERSION itself behind the remote?'; and the universal gate `cmd_gate` (#768) is intentionally read-only and offline. The deft submodule is only refreshed when the user explicitly runs skills/deft-directive-sync/SKILL.md Phase 2 (`git submodule update --remote --merge deft`), which most users will run rarely or never. Net effect: a consumer can sit at v0.18 indefinitely while v0.23 ships fixes (e.g. #768 stale-AGENTS.md), with no signal in any session that an upstream release exists. The recorded-vs-current gate cannot fire because both numbers are local. Velocity check (last 30 days, this repo): 6 minor releases in 8 days (v0.20.0, v0.20.1, v0.20.2, v0.21.0, v0.22.0, v0.23.0); commits per active day median around 9. A weekly notification cadence would silently swallow 3-5 release notifications per sprint -- justifying a 24h notification floor.",
+      "Overview": "Five coordinated changes that share one principle: the probe is opt-out, throttled, and never auto-mutates project state. (1) NEW cmd_check_updates in run -- read-only `git ls-remote --tags --refs <upstream>` probe with --json variant; honors DEFT_NO_NETWORK and DEFT_REMOTE_PROBE_TIMEOUT. (2) Throttle file vbrief/.deft-remote-probe.json with 24h probe / 24h notification cadence keyed on (remote_tag, last_notified_at) plus per-session dedup. (3) Wire into _check_upgrade_gate to fork the probe in the background, swallow all errors, append a single informational warn line on BEHIND -- never blocks CI. (4) NEW Taskfile entry framework:check-updates (with --force) for synchronous interactive use; documented in QUICK-START.md and UPGRADING.md. (5) Emit framework:remote-drift via scripts/_event_detect.py and register in events/registry.json so observability mirrors the #635 pattern for version:drift / pre-cutover:detected.",
+      "Background": "Issue #140 (closed) covered consumer-project clones, not directive-self -- this surface was never instrumented. #410 introduced the local-only marker gate; #768 introduced the universal read-only state-vector gate; #635 wired the events surface that this work extends. cmd_update has been a stub since it was first added.",
+      "Constraint": "MUST be read-only: refs-only `git ls-remote`, never `git fetch`, never write tags into .git/refs. MUST honor DEFT_NO_NETWORK=1 (silent skip) and DEFT_REMOTE_PROBE_TIMEOUT (default 5s). MUST NOT block CI -- non-interactive sessions warn once and continue, no prompt. MUST work against any SCM that speaks git (gitea, gitlab, self-hosted) -- no hard `gh` / GitHub-API dependency. MUST swallow every error mode (network down, no upstream configured, detached HEAD, malformed tag, rate-limit). The cadence file MUST be per-tag-keyed so a fresh release re-notifies even if a previous tag was just dismissed. Per-session dedup MUST cap at 1 banner per `run` invocation chain.",
+      "Risk": "Low. The probe is read-only and budget-bounded (5s timeout, 24h cadence). Two failure modes worth pinning in tests: (a) operating in offline / air-gapped CI -- DEFT_NO_NETWORK=1 must short-circuit before any subprocess call; (b) interaction with the existing #410 gate -- the new warn line MUST come AFTER the existing recorded-vs-current message so the marker-drift signal stays primary, and MUST NOT introduce a second prompt that could block stdin-bound CI runners.",
+      "Outcome": "Acceptance: (1) `deft/run gate` still works unchanged (read-only, offline). (2) `task framework:check-updates` against a checkout one minor behind upstream prints `BEHIND upstream=v<N> current=v<M>` and exits 1; against a current checkout prints `OK upstream=v<N>` and exits 0. (3) Setting DEFT_NO_NETWORK=1 makes the probe a silent no-op in every code path. (4) Running any non-skip command on a behind checkout shows exactly one informational warn line (not a prompt) below the existing recorded-vs-current message, throttled per-tag at 24h. (5) `framework:remote-drift` event lands in events/registry.json and emits via scripts/_event_detect.py on every positive BEHIND. (6) Three new test files cover all probe states, throttle cadence, and gate integration.",
+      "Test": "tests/cli/test_cmd_check_updates.py: mock subprocess.run('git ls-remote ...') -> {OK, BEHIND, no-upstream, timeout, malformed-tag, detached-HEAD}; assert exit codes and stdout shape including --json variant; assert DEFT_NO_NETWORK=1 short-circuits before subprocess. tests/cli/test_remote_probe_throttle.py: round-trip vbrief/.deft-remote-probe.json; assert 24h floor on probe and notification; assert per-tag re-notification (v0.23.0 dismissed -> v0.23.1 re-notifies immediately); assert per-session dedup. tests/cli/test_upgrade_gate_remote_drift.py: integrate _check_upgrade_gate with the probe mocked to BEHIND; assert single warn line, no prompt, non-zero exit unchanged from the existing gate path; assert non-interactive (stdin not a TTY) still passes through.",
+      "Action": "1. Implement cmd_check_updates in run/run.py with --json, DEFT_NO_NETWORK, DEFT_REMOTE_PROBE_TIMEOUT support. 2. Add throttle helpers reading/writing vbrief/.deft-remote-probe.json. 3. Wire into _check_upgrade_gate behind the throttle, after the existing version-marker check. 4. Register `framework:remote-drift` in events/registry.json and emit via scripts/_event_detect.py. 5. Add Taskfile entry framework:check-updates with --force. 6. Document DEFT_NO_NETWORK and the cadence file in QUICK-START.md and UPGRADING.md. 7. Land three new test files. 8. CHANGELOG entry under [Unreleased] / Added. 9. Run `task check`.",
+      "Urgency": "Adoption blocker: at observed velocity (6 releases / 8 days) consumers go stale within days of any release without ever knowing. The framework already ships fixes for adoption-blocker bugs (#768, #791-#794) but consumers cannot benefit from them because they never see a signal to update."
+    },
+    "items": [
+      {
+        "id": "801-cmd-check-updates",
+        "title": "NEW cmd_check_updates in run/run.py: read-only `git ls-remote --tags --refs` probe; --json variant; OK/BEHIND output; exit 0/1",
+        "status": "completed",
+        "narrative": {
+          "Action": "Add cmd_check_updates(args) near cmd_gate (run lines ~854-1025 region). Resolve upstream by reading the deft submodule's configured remote, falling back to `origin` of the run-rooted repo when invoked directly inside the framework checkout. Run `git ls-remote --tags --refs <upstream>` with subprocess timeout = DEFT_REMOTE_PROBE_TIMEOUT (default 5). Parse `refs/tags/v*` lines, pick highest semver via packaging.version (already a transitive dep) or hand-rolled tuple sort. Compare against in-process VERSION. Emit single line: `OK upstream=v<remote>` or `BEHIND upstream=v<remote> current=v<local> commits-behind=<n|unknown>`. Honor --json (same axes as JSON object). Honor DEFT_NO_NETWORK=1 (silent skip, exit 0). Never write; never `git fetch`. Add to _UPGRADE_GATE_SKIP_COMMANDS so the universal preamble can call it without recursion."
+        }
+      },
+      {
+        "id": "801-throttle-file",
+        "title": "Throttle file vbrief/.deft-remote-probe.json with 24h probe / 24h notification cadence, per-tag keyed",
+        "status": "completed",
+        "narrative": {
+          "Action": "Add helpers _read_remote_probe_state / _write_remote_probe_state mirroring _read_version_marker / _write_version_marker (run lines 663-690). Schema: {\"last_probed_at\": ISO8601, \"last_seen_remote\": \"v0.23.1\", \"last_notified_at\": ISO8601, \"last_notified_tag\": \"v0.23.0\"}. Notification fires when (remote_tag != last_notified_tag) OR (now - last_notified_at >= 24h). Probe fires when (now - last_probed_at >= 24h). Per-session dedup via module-level _PROBE_NOTIFIED_THIS_SESSION flag. Best-effort I/O -- swallow OSError so a read-only filesystem never breaks the gate."
+        }
+      },
+      {
+        "id": "801-gate-integration",
+        "title": "Wire cmd_check_updates into _check_upgrade_gate behind the throttle, after the existing marker-drift check",
+        "status": "completed",
+        "narrative": {
+          "Action": "Modify _check_upgrade_gate (run lines 757-851). After the existing recorded-vs-current branch and the agents-md staleness emit, if cadence allows, fork the probe in subprocess.Popen with hard timeout, parse output, and on BEHIND: append `Upstream directive v<remote> is available (you are on v<local>). Run \\`task framework:check-updates\\` for details, \\`task sync\\` to update.` via warn(). Non-interactive sessions: warn and continue (do NOT add a prompt -- the existing recorded-vs-current prompt is the only blocking surface). Wrap entire integration in `try: ... except Exception: pass` -- detection MUST NOT break the gate."
+        }
+      },
+      {
+        "id": "801-events-registry",
+        "title": "Register framework:remote-drift in events/registry.json and emit via scripts/_event_detect.py on positive BEHIND",
+        "status": "completed",
+        "narrative": {
+          "Action": "Append entry to events/registry.json with payload schema {project_root, current_version, remote_version, upstream_url, commits_behind|null}. Add detect_remote_drift() to scripts/_event_detect.py mirroring detect_agents_md_stale (run line 832 reference). Call _emit_event_safe('framework:remote-drift', payload) from the gate-integration site whenever the probe returns BEHIND. Pin the event name in tests/cli/test_upgrade_gate_remote_drift.py."
+        }
+      },
+      {
+        "id": "801-taskfile-entry",
+        "title": "NEW Taskfile entry framework:check-updates with --force flag",
+        "status": "completed",
+        "narrative": {
+          "Action": "Add to tasks/framework.yml (or create if absent and wire into root Taskfile.yml includes). Default: shells out to `python3 deft/run check-updates`. With --force: prepends `DEFT_FORCE_REMOTE_PROBE=1` env var so the probe ignores the throttle. Surface in `task --list` summary."
+        }
+      },
+      {
+        "id": "801-test-cmd-check-updates",
+        "title": "NEW tests/cli/test_cmd_check_updates.py: covers OK / BEHIND / no-upstream / timeout / DEFT_NO_NETWORK / malformed-tag / detached-HEAD / --json",
+        "status": "completed",
+        "narrative": {
+          "Action": "Use unittest.mock.patch on subprocess.run to inject canned `git ls-remote` outputs. Cover: clean OK path; BEHIND with one minor / one patch / multiple-tags-pick-highest; no upstream configured; subprocess timeout; malformed tag (skip and continue); detached HEAD; DEFT_NO_NETWORK=1 short-circuits before subprocess; --json output shape. Pin exit codes."
+        }
+      },
+      {
+        "id": "801-test-throttle",
+        "title": "NEW tests/cli/test_remote_probe_throttle.py: round-trip cadence file, per-tag re-notification, per-session dedup",
+        "status": "completed",
+        "narrative": {
+          "Action": "tmp_path fixture for vbrief/.deft-remote-probe.json. Assert: fresh state -> probe runs and writes; 23h59m later -> probe skipped; 24h+1m later -> probe runs; same tag within 24h -> notification skipped; new tag within 24h -> notification fires immediately; per-session flag prevents second banner in same process."
+        }
+      },
+      {
+        "id": "801-test-gate-integration",
+        "title": "NEW tests/cli/test_upgrade_gate_remote_drift.py: gate integration with probe mocked BEHIND",
+        "status": "completed",
+        "narrative": {
+          "Action": "Mock cmd_check_updates to return BEHIND. Invoke _check_upgrade_gate via the existing test harness. Assert: existing recorded-vs-current message appears first; new informational warn appears after; no second prompt; non-interactive (sys.stdin.isatty() False) returns True; framework:remote-drift event emitted. Mock the probe to OK and assert no warn / no event."
+        }
+      },
+      {
+        "id": "801-docs",
+        "title": "Document DEFT_NO_NETWORK and the cadence file in QUICK-START.md and UPGRADING.md",
+        "status": "completed",
+        "narrative": {
+          "Action": "QUICK-START.md: one paragraph under a new 'Update notifications' section explaining the warn line, `task framework:check-updates`, and the DEFT_NO_NETWORK opt-out. UPGRADING.md: add a 'Remote probe' subsection to the latest `## From X -> Y` block following the four-field micro-format (Applies when / Safe to auto-run / Restart required / Commands)."
+        }
+      },
+      {
+        "id": "801-changelog",
+        "title": "CHANGELOG.md [Unreleased] / Added entry referencing #801",
+        "status": "completed",
+        "narrative": {
+          "Action": "Two-bullet entry under [Unreleased] / Added: 'feat(gate): periodic remote-version probe via `git ls-remote` with 24h-per-tag throttle (#801)' and 'feat(events): framework:remote-drift event registered and emitted on positive probe (#801)'."
+        }
+      },
+      {
+        "id": "801-task-check",
+        "title": "Run `task check` and confirm clean",
+        "status": "completed",
+        "narrative": {
+          "Action": "Pre-PR gate. Three new test files satisfy the forward-coverage rule from main.md (new source paths require new tests in the same PR)."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#791",
+          "#792",
+          "#793",
+          "#794"
+        ],
+        "estimated_size": "L (1 large file edit + 3 new tests + Taskfile + events registry + 2 docs + CHANGELOG)",
+        "blocks": [],
+        "blocked_by": [],
+        "related_to": "#410 (CLI upgrade gate / version marker -- direct integration site), #768 (universal upgrade gate / cmd_gate -- shares the read-only / no-mutation contract), #635 (events behavioral wiring -- framework:remote-drift mirrors version:drift / pre-cutover:detected), #140 (closed -- consumer-project clones, NOT directive-self)"
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Self-contained feature with clear single-PR boundary. The integration touches _check_upgrade_gate (which is also touched by #768-era work) but #768 is already merged so there is no live conflict. The throttle helpers and event registration are independent and could in principle be split across two parallel agents, but the surface is small enough (1 file) that a single agent is more efficient. If parallelizing with #791-#794, coordinate via inbox if any of those agents also edits run/run.py to avoid merge conflicts on the cmd_* function block.",
+        "files_to_touch": [
+          "run/run.py",
+          "scripts/_event_detect.py",
+          "events/registry.json",
+          "tasks/framework.yml",
+          "QUICK-START.md",
+          "UPGRADING.md",
+          "tests/cli/test_cmd_check_updates.py",
+          "tests/cli/test_remote_probe_throttle.py",
+          "tests/cli/test_upgrade_gate_remote_drift.py",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "feat/801-remote-version-probe",
+        "pr_title_suggestion": "feat(gate): periodic remote-version probe with 24h-per-tag throttle (#801)",
+        "coordination_notes": "If swarmed alongside any other run/run.py editor (#791-#794), the agent picking up #801 should land its cmd_* additions at the end of the existing cmd_* block (after cmd_agents_refresh, before cmd_upgrade) to minimize merge conflict surface. The throttle file path (vbrief/.deft-remote-probe.json) is namespaced separately from .deft-version so there is no contention with #410's marker. Event registry edits are append-only -- safe to merge in any order."
+      },
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/801",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #801: Periodic remote-version probe: occasionally check upstream for new directive tags and prompt the user to update"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/410",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #410: CLI upgrade gate (local marker drift) -- direct integration site for the new probe"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/768",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #768: Universal upgrade gate / cmd_gate -- shares the read-only, no-mutation contract"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/635",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #635: Events behavioral wiring -- framework:remote-drift mirrors the version:drift / pre-cutover:detected pattern"
+      },
+      {
+        "uri": "skills/deft-directive-sync/SKILL.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Sync skill Phase 2 -- the existing user-triggered remote refresh that this probe complements"
+      }
+    ],
+    "updated": "2026-05-01T23:35:54Z"
+  }
+}

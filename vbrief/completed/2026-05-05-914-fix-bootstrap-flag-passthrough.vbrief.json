@@ -1,0 +1,53 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "updated": "2026-05-05T18:14:38Z"
+  },
+  "plan": {
+    "title": "task: triage:bootstrap doesn't pass --limit / --state / --label through to populate (#900)",
+    "status": "completed",
+    "narratives": {
+      "Overview": "Fix scripts/triage_bootstrap.py argparse to accept the full set of populate-side flags (--limit, --state, --label, --force, --use-gitcrawl, --ttl-seconds) and forward them to triage_cache.populate(...). The bootstrap is documented as a transparent wrapper but currently narrows the populate flag surface; #914 closes that gap so the skill's recommended scoped first-run incantation works verbatim."
+    },
+    "items": [
+      {
+        "id": "ac-1",
+        "title": "task triage:bootstrap -- --repo OWNER/NAME --limit 50 --label adoption-blocker populates a scoped cache and exits 0.",
+        "status": "completed",
+        "completed": "2026-05-05T15:38:42Z"
+      },
+      {
+        "id": "ac-2",
+        "title": "task triage:bootstrap -- --repo OWNER/NAME --state closed --limit 25 populates 25 closed issues.",
+        "status": "completed",
+        "completed": "2026-05-05T15:38:42Z"
+      },
+      {
+        "id": "ac-3",
+        "title": "The skill's recommended first-run incantation (--limit 50 --label adoption-blocker) works verbatim.",
+        "status": "completed",
+        "completed": "2026-05-05T15:38:42Z"
+      },
+      {
+        "id": "ac-4",
+        "title": "Existing no-flag invocation (task triage:bootstrap) keeps the current unbounded-open-issues behaviour for backwards compatibility.",
+        "status": "completed",
+        "completed": "2026-05-05T15:38:42Z"
+      },
+      {
+        "id": "ac-5",
+        "title": "Regression tests in tests/test_triage_bootstrap.py exercise --limit / --state / --label forwarding and the bare-invocation default.",
+        "status": "completed",
+        "completed": "2026-05-05T15:38:42Z"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/914",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #914: task: triage:bootstrap doesn't pass --limit / --state / --label through to populate (#900)"
+      }
+    ],
+    "updated": "2026-05-05T18:14:38Z"
+  }
+}

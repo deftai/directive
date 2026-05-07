@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)"
+  },
+  "plan": {
+    "title": "NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+    "status": "pending",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 5 -- Package Distribution & Install UX",
+        "PhaseDescription": "Publish deft as NPM + PIP CLI packages for developer-audience install.\nComplements the Go installer (which targets novice/bare-machine users).",
+        "Description": "NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec",
+        "Phase_source": "pre-migration ROADMAP (commit 3925468)"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/11",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #11: NPM + PIP CLI distribution (`npm i -g @deftai/directive`, `pipx install deft-cli`)"
+      }
+    ],
+    "updated": "2026-04-23T18:53:14Z"
+  }
+}

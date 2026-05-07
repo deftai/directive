@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #135: Greptile review rules SKILL.md in repo",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Greptile review rules SKILL.md in repo",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Greptile review rules SKILL.md in repo",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/135",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #135: Greptile review rules SKILL.md in repo"
+      }
+    ]
+  }
+}

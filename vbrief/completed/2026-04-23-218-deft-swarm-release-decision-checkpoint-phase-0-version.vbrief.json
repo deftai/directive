@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #218: deft-swarm release decision checkpoint -- Phase 0 version bump proposal + Phase 5->6 confirmation gate before merge cascade",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "deft-swarm release decision checkpoint -- Phase 0 version bump proposal + Phase 5->6 confirmation gate before merge cascade",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "deft-swarm release decision checkpoint -- Phase 0 version bump proposal + Phase 5->6 confirmation gate before merge cascade",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/218",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #218: deft-swarm release decision checkpoint -- Phase 0 version bump proposal + Phase 5->6 confirmation gate before merge cascade"
+      }
+    ]
+  }
+}

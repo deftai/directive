@@ -1,0 +1,72 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "author": "agent:deft-directive-swarm",
+    "description": "Issue #593 scaffold: migrator routes ROADMAP.md ## Completed items to vbrief/completed/ (not proposed/).",
+    "created": "2026-04-23T01:34:01Z"
+  },
+  "plan": {
+    "id": "rc3-593-migrator-completed-routing",
+    "title": "migrator: ROADMAP.md Completed section items routed to vbrief/proposed/ instead of vbrief/completed/",
+    "status": "completed",
+    "tags": [
+      "rc3",
+      "rc4",
+      "migrator",
+      "blocks-merge",
+      "cutover-safety"
+    ],
+    "narratives": {
+      "Overview": "task migrate:vbrief parses items from ROADMAP.md's ## Completed section and recognizes them as completed (visible in the migrator's own log via the (completed:...) prefix), but routes every one of them to vbrief/proposed/ instead of vbrief/completed/. The migrator has the classification information; it just doesn't use it when choosing the destination folder. Surfaced during the v0.20.0-rc.3 validation session (rc.4-candidate dogfood pass) running the post-swarm-fix migrator on deft's own repo, which has a ROADMAP.md with 165 completed items. Same recognition-without-action failure shape as #571 / #572 / #574.",
+      "Problem": "Every consumer running task migrate:vbrief on a project with a ## Completed ROADMAP section ends up with all completed items mis-filed under vbrief/proposed/ (as backlog) with plan.status likely 'proposed' despite source saying completed. task project:render / task roadmap:render misreport completed work as open backlog. Deft's own repo would require 165 manual task scope:complete invocations post-migration. Silent failure: migrator exits 0 with no warning. Cutover-safety class.",
+      "Action": "Fix the routing layer (likely deft/scripts/_vbrief_routing.py or deft/scripts/_vbrief_sources.py's parse_roadmap caller chain) so that when the parser tags an item as sourced from ## Completed, the router maps to vbrief/completed/ and sets plan.status='completed' (and vBRIEFInfo.updated to the migration timestamp). Active-phase items continue to route to proposed/ as today. Improve the CREATE <folder>/... log line to indicate source-section origin (e.g., 'CREATE completed/... (from ROADMAP Completed section)').",
+      "Test": "New pytest fixture covering a ROADMAP with both active phase sections AND a ## Completed section. Assert post-migration: (a) all Completed-section items land in vbrief/completed/; (b) their scope vBRIEFs have plan.status='completed'; (c) all active-phase items stay in vbrief/proposed/ (no regressions). Extend the windows-task-dispatch CI job (added in #568) to run the migrator against a fixture with a ## Completed section and assert correct partition.",
+      "Outcome": "Completed-section routing and status are aligned with the lifecycle folder; downstream renderers report accurate state; no manual cleanup required after migration. Migrator log lines make the routing decision auditable."
+    },
+    "items": [
+      {
+        "id": "593-directive",
+        "status": "running",
+        "title": "Follow directive guidelines: AGENTS.md, deft/main.md, conventional commits, task check before commit"
+      },
+      {
+        "id": "593-1",
+        "status": "running",
+        "title": "Routing correction: items parsed from ROADMAP.md ## Completed section route to vbrief/completed/ (not vbrief/proposed/)"
+      },
+      {
+        "id": "593-2",
+        "status": "running",
+        "title": "Status alignment: Completed-sourced scope vBRIEFs have plan.status='completed'; active-phase items keep plan.status='proposed'"
+      },
+      {
+        "id": "593-3",
+        "status": "running",
+        "title": "Regression test: pytest fixture with active + ## Completed sections asserts partition and status for both"
+      },
+      {
+        "id": "593-4",
+        "status": "running",
+        "title": "Windows CI coverage: extend windows-task-dispatch CI job (from #568) to run migrator against a Completed-section fixture and assert partition"
+      },
+      {
+        "id": "593-5",
+        "status": "running",
+        "title": "Migrator log clarity: CREATE <folder>/... log line annotates source-section origin (e.g., 'from ROADMAP Completed section')"
+      },
+      {
+        "id": "593-changelog",
+        "status": "running",
+        "title": "CHANGELOG [Unreleased] entry under Fixed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/593",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #593: migrator: ROADMAP.md Completed section items routed to vbrief/proposed/ instead of vbrief/completed/"
+      }
+    ],
+    "updated": "2026-04-23T02:22:16Z"
+  }
+}

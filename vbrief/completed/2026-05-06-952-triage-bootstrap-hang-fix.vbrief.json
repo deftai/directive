@@ -1,0 +1,126 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Fix #952 (triage:bootstrap hangs after cache:fetch-all at backlog scale, post-#883 v1) and #951 (--skip-gitcrawl flag scrub from triage:bootstrap task description). Single PR closing both. Adds per-step structured progress output and a hermetic regression test simulating a 50+ issue backlog.",
+    "created": "2026-05-06T19:45:24Z",
+    "updated": "2026-05-06T19:50:31Z"
+  },
+  "plan": {
+    "id": "952-triage-bootstrap-hang-fix",
+    "title": "fix(triage): bootstrap orchestrator hang post-cache:fetch-all (#952) + scrub --skip-gitcrawl (#951)",
+    "status": "completed",
+    "planRef": "#952",
+    "narratives": {
+      "Problem": "v0.26.0 Story 3 shipped scripts/triage_bootstrap.py orchestrating cache:fetch-all + audit-log backfill + dual gitignore-ensure for github-issue. The 2026-05-06 scale smoke (#883, doc docs/smoke-2026-05-06-v0.26.0-scale.md, PR #953) showed: Phase 1 (limit=50) ran clean in 58.5s; Phase 2 against the full deftai/directive backlog hung after cache:fetch-all completed -- last cache audit at 2026-05-06T18:00:09Z (issue #9 cache:put), 71+ minutes of orchestrator silence before maintainer cancelled. Two follow-up defects filed: #952 (HIGH, blocks bulk-ingest) and #951 (cosmetic; tasks/triage-bootstrap.yml description still cites a --skip-gitcrawl flag the Story 3 rewrite no longer accepts).",
+      "Overview": "Investigate the post-fetch hang by reading scripts/triage_bootstrap.py end-to-end, identifying which post-cache step (backfill_audit_log, ensure_gitignore_entry, ensure_gitignore_eval_dir) blocks at backlog scale, and applying the appropriate fix (timeout/retry on a stuck subprocess or lock, batch/parallelise an O(N) loop, or stream an oversized read). Add structured per-step progress output (stderr status lines with item counts) so future hangs are observable. Scrub --skip-gitcrawl from tasks/triage-bootstrap.yml task description and any docstring/help text in scripts/triage_bootstrap.py; verify argparse never accepted the flag.",
+      "Constraint": "DO NOT modify scripts/cache.py, scripts/cache_scanner.py, scripts/scm.py, tasks/cache.yml, tasks/scm.yml, vbrief/schemas/cache-meta.schema.json, UPGRADING.md, skills/. DO NOT run task triage:bootstrap against deftai/directive (it hangs -- that's the bug). PowerShell 5.1 non-ASCII rule: edits touching non-ASCII glyphs go through Python pathlib + utf-8. Single PR; draft (no merge, no ready). Closes #952 and Closes #951 in PR body for squash auto-close. CHANGELOG bullet under [Unreleased] only; do NOT promote to v0.26.1.",
+      "Outcome": "task triage:bootstrap completes deterministically against a 50+ issue hermetic backlog within a small wall-clock cap (~30s); per-step progress is observable on stderr; --skip-gitcrawl no longer appears in task description / docstrings; CHANGELOG [Unreleased] gains a Fixed bullet; task check is green; draft PR is open with both Closes #952 and Closes #951; greptile lane resolved per the review-cycle skill.",
+      "Test": "tests/integration/test_triage_bootstrap_at_scale.py (NEW, hermetic) -- simulates a 50+ issue backlog via a fake-gh shim, drives scripts/triage_bootstrap.run_bootstrap(), asserts (a) exit_code == 0; (b) wall-clock <= 30s; (c) all four steps emit ok=True StepOutcomes; (d) per-step progress lines were emitted (stderr capture). Existing tests/test_triage_bootstrap.py kept green. task check (validate + lint + test + verify:encoding + verify:branch) MUST pass.",
+      "Action": "Create scope vBRIEF (this file). scope:promote + vbrief:activate + vbrief:preflight. Investigate the hang root cause via reproduction at small scale. Apply fix + add structured progress output. Scrub --skip-gitcrawl. Add hermetic regression test. CHANGELOG bullet. task check green. Push branch fix/952-triage-bootstrap-hang. Open DRAFT PR closing #952 + #951. Run review-cycle (cap 3 iterations). scope:complete on the way out."
+    },
+    "items": [
+      {
+        "id": "952-ac-1-investigate-hang",
+        "title": "Reproduce the post-cache:fetch-all hang at small scale via fake-gh shim or small fixture; identify the exact blocking call (subprocess buffer / lock / O(N) loop)",
+        "status": "completed"
+      },
+      {
+        "id": "952-ac-2-fix-root-cause",
+        "title": "Apply the appropriate fix to scripts/triage_bootstrap.py (timeout + drain on subprocess, batch / parallelise on O(N), or other) -- documented in commit + PR body",
+        "status": "completed"
+      },
+      {
+        "id": "952-ac-3-progress-output",
+        "title": "Add structured per-step progress output (stderr status lines with item counts) matching the style of scripts/cache.py / cache_scanner.py so future hangs are observable",
+        "status": "completed"
+      },
+      {
+        "id": "952-ac-4-scrub-skip-gitcrawl",
+        "title": "Scrub --skip-gitcrawl from tasks/triage-bootstrap.yml task description and any docstring/help text in scripts/triage_bootstrap.py; argparse never accepted it (verify)",
+        "status": "completed"
+      },
+      {
+        "id": "952-ac-5-regression-test",
+        "title": "Add tests/integration/test_triage_bootstrap_at_scale.py: hermetic 50+ issue backlog via fake-gh shim; asserts exit 0, wall-clock <= 30s, four ok StepOutcomes, progress emitted",
+        "status": "completed"
+      },
+      {
+        "id": "952-ac-6-changelog",
+        "title": "CHANGELOG.md [Unreleased] -> ### Fixed bullet referencing #952 and #951",
+        "status": "completed"
+      },
+      {
+        "id": "952-ac-7-task-check",
+        "title": "task check passes (validate + lint + test + verify:encoding + verify:branch)",
+        "status": "completed"
+      },
+      {
+        "id": "952-ac-8-draft-pr",
+        "title": "Push branch fix/952-triage-bootstrap-hang and open DRAFT PR (no merge, no ready) with Closes #952 and Closes #951 in body for squash auto-close",
+        "status": "completed"
+      },
+      {
+        "id": "952-ac-9-review-cycle",
+        "title": "Run skills/deft-directive-review-cycle (cap 3 iterations); greptile-errored -> retry once via @greptileai then halt",
+        "status": "completed"
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "parent_issue": "#952",
+        "secondary_issues": [
+          "#951"
+        ],
+        "smoke_evidence": "docs/smoke-2026-05-06-v0.26.0-scale.md",
+        "files_owned": [
+          "scripts/triage_bootstrap.py",
+          "tasks/triage-bootstrap.yml",
+          "tests/integration/test_triage_bootstrap_at_scale.py (NEW)",
+          "CHANGELOG.md",
+          "vbrief/proposed/2026-05-06-952-triage-bootstrap-hang-fix.vbrief.json (this file; lifecycle-moved)"
+        ],
+        "files_must_not_touch": [
+          "scripts/cache.py",
+          "scripts/cache_scanner.py",
+          "scripts/scm.py",
+          "tasks/cache.yml",
+          "tasks/scm.yml",
+          "vbrief/schemas/cache-meta.schema.json",
+          "UPGRADING.md",
+          "skills/"
+        ],
+        "branch": "fix/952-triage-bootstrap-hang",
+        "pr_title_prefix": "fix(triage): bootstrap orchestrator hang post-cache:fetch-all (#952, #951)",
+        "draft_pr_only": true
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/952",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #952 (HIGH): triage:bootstrap orchestrator hangs after cache:fetch-all completes at backlog scale (post-#883 v1; blocks bulk-ingest)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/951",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #951: triage:bootstrap task description references obsolete --skip-gitcrawl flag (post-#883 v1)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/883",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #883: deft-cache unified content cache + quarantine layer (parent epic; v0.26.0 shipped Story 3 that introduced this regression)"
+      },
+      {
+        "uri": "completed/2026-05-05-883-story-3-triage-rebind.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Story 3 vBRIEF (the rewrite that introduced scripts/triage_bootstrap.py in its current shape)"
+      },
+      {
+        "uri": "docs/smoke-2026-05-06-v0.26.0-scale.md",
+        "type": "x-vbrief/related-doc",
+        "title": "v0.26.0 cache-layer scale smoke -- Phase 1 clean / Phase 2 hang evidence"
+      }
+    ],
+    "updated": "2026-05-06T20:53:38Z"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #33: When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)",
+    "updated": "2026-04-29T18:06:43Z"
+  },
+  "plan": {
+    "title": "When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP active phase"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 4",
+        "Description": "When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: proposed default",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/33",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #33: When using Docker, smoke tests and e2e tests should validate Docker (docker:up, /healthz)"
+      }
+    ]
+  }
+}

@@ -27,7 +27,21 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
 _LINK_RE = re.compile(r"\[([^\]]*)\]\(([^)]+)\)")
 
-_SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", "backup", "dist", "tests"}
+# ``.deft-cache`` is the unified cache layer's mirror of upstream issue
+# bodies (#883 Story 2). Cached content legitimately quotes documentation
+# fragments + markdown links that resolve relative to the upstream repo,
+# not the deft framework -- they MUST NOT participate in the framework's
+# See-also link resolution check (#952).
+_SKIP_DIRS = {
+    ".git",
+    ".venv",
+    "__pycache__",
+    ".pytest_cache",
+    "backup",
+    "dist",
+    "tests",
+    ".deft-cache",
+}
 
 
 # ---------------------------------------------------------------------------

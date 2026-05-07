@@ -1,0 +1,59 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #736"
+  },
+  "plan": {
+    "title": "fix(tasks/core.yml): task build cross-platform artifact parity defect (Windows zip lacks excludes; vestigial-vs-internal purpose unclear)",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(tasks/core.yml): task build cross-platform artifact parity defect (Windows zip lacks excludes; vestigial-vs-internal purpose unclear)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/736",
+      "Labels": "bug, determinism, test-debt",
+      "Problem": "task build's Windows branch (Compress-Archive) doesn't apply the Linux/macOS tar exclude list (.git, dist, backup, node_modules). Windows zips include hundreds of MB of .git history and recursively zip the prior dist/ output; CI never catches this because no test asserts artifact-shape parity across platform branches.",
+      "Acceptance": "Replace the Linux/macOS tar + Windows Compress-Archive split with a single Python helper (scripts/build_dist.py) using stdlib tarfile/zipfile and a canonical exclude list. Update tasks/core.yml::build to dispatch to the helper as a single command. Apply the same simplification to tasks/core.yml::clean. Add tests/cli/test_build_dist.py covering exclude correctness, expected-paths-present, artifact size ceiling, idempotent re-run, and end-to-end smoke. Add tests/content/test_taskfile_zip_parity.py guarding against regression to the verbose duplicated shape. CHANGELOG entry citing #736; task ci:local green.",
+      "OutOfScope": "Decision on whether task build is vestigial or has internal consumers (separate scope question; this issue's deliverable is parity).",
+      "Files": "NEW scripts/build_dist.py; tasks/core.yml (build + clean); NEW tests/cli/test_build_dist.py; NEW tests/content/test_taskfile_zip_parity.py; CHANGELOG.md (append)."
+    },
+    "items": [
+      {
+        "title": "NEW scripts/build_dist.py: cross-platform tarfile/zipfile + canonical exclude list",
+        "status": "pending"
+      },
+      {
+        "title": "tasks/core.yml::build dispatches to scripts/build_dist.py as a single command (no platform split)",
+        "status": "pending"
+      },
+      {
+        "title": "tasks/core.yml::clean simplified to a single cross-platform command",
+        "status": "pending"
+      },
+      {
+        "title": "NEW tests/cli/test_build_dist.py covers excludes, expected paths, size ceiling, idempotent re-run, end-to-end smoke",
+        "status": "pending"
+      },
+      {
+        "title": "NEW tests/content/test_taskfile_zip_parity.py guards against regression to verbose duplicated shape",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md [Unreleased] entry under Fixed referencing #736",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/736",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #736: fix(tasks/core.yml): task build cross-platform artifact parity defect (Windows zip lacks excludes; vestigial-vs-internal purpose unclear)"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-05-01T02:02:51Z"
+  }
+}

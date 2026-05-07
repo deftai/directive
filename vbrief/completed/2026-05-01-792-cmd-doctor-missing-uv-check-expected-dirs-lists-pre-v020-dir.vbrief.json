@@ -1,0 +1,137 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Adoption blocker: deft/run doctor passes green on a machine without uv installed, then every subsequent task command fails with `uv: command not found`. Plus expected_dirs hardcodes pre-v0.20 dirs that no longer exist, producing spurious 'Missing directory' warnings on every clean checkout.",
+    "created": "2026-05-01T00:00:00Z",
+    "updated": "2026-05-03T03:01:38Z"
+  },
+  "plan": {
+    "id": "792-cmd-doctor-uv-and-stale-dirs",
+    "title": "cmd_doctor: add uv check; replace pre-v0.20 expected_dirs with v0.20+ layout",
+    "status": "completed",
+    "planRef": "#792",
+    "narratives": {
+      "Problem": "Two defects in run::cmd_doctor (run lines 2563-2612). (1) Missing uv check: every deft task script runs via `uv run python ...` (tasks/migrate.yml:34, tasks/issue.yml:27, etc.), making uv a hard runtime dependency. cmd_doctor checks task / git / python3 / go / node but not uv, so a fresh-machine user gets a green report and then an opaque `uv: command not found` failure as soon as they run task migrate:vbrief. (2) Stale expected_dirs: the list at run line 2596 includes pre-v0.20 directories core/, interfaces/, tools/, swarm/, meta/ that were removed during the vBRIEF cutover. On a clean v0.23 checkout cmd_doctor warns 'Missing directory: <name>/' for each, burying any real signal. The agent-driven setup skill already implements the right uv check (skills/deft-directive-setup/SKILL.md::Environment Preflight); cmd_doctor must mirror it.",
+      "Overview": "Three changes in run::cmd_doctor: (1) add `check_command(\"uv\", \"uv (Astral Python runner)\", required=True)` and surface https://docs.astral.sh/uv/ as the install pointer; (2) replace expected_dirs with the v0.20+ canonical layout (languages, strategies, skills, templates, tasks, scripts, vbrief); (3) consolidate the warning summary so missing-uv is not buried under spurious dir warnings. Add tests covering the uv-missing path and the no-spurious-warnings path.",
+      "Background": "cmd_doctor predates the v0.20 vBRIEF cutover; expected_dirs was never updated when core/, interfaces/, tools/, swarm/ were retired. The agent path was instrumented for uv (#566 era) but cmd_doctor was not.",
+      "Constraint": "MUST NOT regress existing checks (task / git / python3 / go / node). MUST keep cmd_doctor non-fatal for optional tools (go, node) while making uv required. SHOULD use the same install URL the agent skill points at for consistency. The expected_dirs replacement MUST be verified against the actual v0.23 checkout to avoid swapping one stale list for another.",
+      "Risk": "Low. cmd_doctor is read-only diagnostic. The only behavioral risk is making uv-missing a hard error on machines that legitimately don't have uv (e.g. a user only ever invoking `deft/run bootstrap` which is pure-Python). Mitigation: keep uv 'required' but distinguish the exit code so existing CI invocations that ignore warnings still see a clear error rather than silent green.",
+      "Outcome": "Acceptance: (1) run doctor on a machine without uv exits non-zero with a clear install-pointer message; (2) run doctor on a clean v0.23 checkout reports zero spurious 'Missing directory' warnings; (3) two new tests cover those paths; (4) main.md / docs reference the install URL consistently.",
+      "Test": "tests/cli/test_doctor_uv.py (new): mock shutil.which('uv') -> None, run cmd_doctor, assert error path printed and non-zero return. tests/cli/test_doctor_dirs.py (new): run cmd_doctor against the live framework checkout (use a fixture pointing get_script_dir at a known-good tree), assert zero 'Missing directory' warnings.",
+      "Action": "1. Edit run::cmd_doctor: add uv check, replace expected_dirs. 2. Add the two new tests. 3. Run task check. 4. CHANGELOG entry under [Unreleased] / Fixed.",
+      "Urgency": "Adoption blocker for first-time CLI-first users on Windows / fresh containers / CI runners. Same severity as #791 but on a different surface."
+    },
+    "items": [
+      {
+        "id": "792-add-uv-check",
+        "title": "Add uv check to cmd_doctor; mark required; print install URL on miss",
+        "status": "pending",
+        "narrative": {
+          "Action": "In run::cmd_doctor (~line 2585) add `check_command(\"uv\", \"uv (Astral Python runner)\", required=True)`. On miss, the existing error() helper should print 'uv not found - required; install: https://docs.astral.sh/uv/ or `pip install uv`'. Mirror the install pointer used in skills/deft-directive-setup/SKILL.md line 57."
+        }
+      },
+      {
+        "id": "792-fix-expected-dirs",
+        "title": "Replace expected_dirs with v0.20+ canonical layout",
+        "status": "pending",
+        "narrative": {
+          "Action": "At run line 2596, replace `expected_dirs = [\"core\", \"languages\", \"interfaces\", \"tools\", \"swarm\", \"templates\", \"meta\"]` with the verified current set. Run `Get-ChildItem -Directory C:\\repos\\Deft\\directive` (or `ls -d */`) on a clean checkout to derive the truth before editing. Suggested set: languages, strategies, skills, templates, tasks, scripts, vbrief. Drop the legacy entries."
+        }
+      },
+      {
+        "id": "792-consolidate-summary",
+        "title": "Consolidate doctor summary so missing-uv is surfaced first",
+        "status": "pending",
+        "narrative": {
+          "Action": "Group findings by severity (errors first, then warnings) so a missing-uv 'required' message renders above optional-tool warnings. Keep the existing success path unchanged when nothing is wrong."
+        }
+      },
+      {
+        "id": "792-test-uv-missing",
+        "title": "Add tests/cli/test_doctor_uv.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Use unittest.mock.patch on shutil.which to return None for 'uv'. Invoke cmd_doctor via the existing test harness. Assert non-zero return / error message contains 'uv'. Pin to existing pytest fixtures."
+        }
+      },
+      {
+        "id": "792-test-no-spurious-warnings",
+        "title": "Add tests/cli/test_doctor_dirs.py",
+        "status": "pending",
+        "narrative": {
+          "Action": "Run cmd_doctor against the real framework root via subprocess. Capture stdout. Assert no line matches 'Missing directory:'. This locks the v0.20+ layout truth into a regression test."
+        }
+      },
+      {
+        "id": "792-changelog",
+        "title": "Add CHANGELOG.md entry under [Unreleased] / Fixed",
+        "status": "pending",
+        "narrative": {
+          "Action": "Two-bullet entry: 'fix(doctor): require uv and surface https://docs.astral.sh/uv/ when missing (#792)' and 'fix(doctor): replace pre-v0.20 expected_dirs with current canonical layout (#792)'."
+        }
+      },
+      {
+        "id": "792-task-check",
+        "title": "Run task check and confirm clean",
+        "status": "pending",
+        "narrative": {
+          "Action": "Pre-PR gate. Two new test files satisfy forward-coverage rule from main.md."
+        }
+      }
+    ],
+    "metadata": {
+      "x-tracking": {
+        "swarm_ready": true,
+        "needs_discussion": false,
+        "parallelizable_with": [
+          "#791",
+          "#793",
+          "#794",
+          "#798",
+          "#784",
+          "#796",
+          "#800",
+          "#814"
+        ],
+        "estimated_size": "M (1 file edit + 2 new tests + CHANGELOG)",
+        "blocks": [],
+        "blocked_by": [],
+        "related_to": "#793 (the migrate:preflight task should reuse the uv-detection helper added here)"
+      },
+      "x-swarm-guidance": {
+        "primary_skill": "skills/deft-directive-build/SKILL.md",
+        "rationale": "Standalone bug fix with clear single-PR boundary. The uv-detection helper added here can be reused by #793; agents picking up #792 and #793 should coordinate via inbox if both run in parallel to avoid duplicating the helper.",
+        "files_to_touch": [
+          "run",
+          "tests/cli/test_doctor_uv.py",
+          "tests/cli/test_doctor_dirs.py",
+          "CHANGELOG.md"
+        ],
+        "branch_name_suggestion": "fix/792-cmd-doctor-uv-and-dirs",
+        "pr_title_suggestion": "fix(doctor): add uv check; refresh expected_dirs to v0.20+ layout (#792)"
+      },
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/792",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #792: cmd_doctor missing uv check; expected_dirs lists pre-v0.20 directories"
+      },
+      {
+        "uri": "skills/deft-directive-setup/SKILL.md",
+        "type": "x-vbrief/related-doc",
+        "title": "Environment Preflight: the agent-side uv check to mirror"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/793",
+        "type": "x-vbrief/related-issue",
+        "title": "Issue #793 (related): task migrate:preflight should consume the same uv-detection helper introduced here"
+      }
+    ],
+    "updated": "2026-05-03T04:38:17Z"
+  }
+}

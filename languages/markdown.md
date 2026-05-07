@@ -34,7 +34,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Use relative paths for internal project links
 - ! Verify links are valid before commit (dead link checker in CI)
 - ~ Use reference-style links when the same URL appears 3+ times
-- ~ Link to specific headings when referencing a section: `[Setup](./guide.md#setup)`
+- ~ Link to specific headings when referencing a section (e.g. `[Testing](../coding/testing.md#testing)`)
 - ⊗ Bare URLs in prose — always wrap in descriptive link text
 - ⊗ "Click here" or "this link" as link text
 

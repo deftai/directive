@@ -1,0 +1,38 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #622 (narrowed): communication bridge filter for deft-directive-review-cycle. Improvement 1 (clean-context reviewer) is split out to deftai/slizard#124.",
+    "updated": "2026-05-01T02:22:00Z"
+  },
+  "plan": {
+    "title": "feat(skills): communication bridge filter for deft-directive-review-cycle (intent-aware finding triage)",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "Phase 3 -- Documentation & Content Fixes",
+      "Description": "Add an intent-filter step to skills/deft-directive-review-cycle/SKILL.md Phase 2: before fixing reviewer findings, classify each as in-scope/implement, in-scope/surface-to-user, or out-of-scope/defer-to-follow-up-issue. Prevents scope creep, user-intent conflicts, and divergent loops. Source: Cognition's 'Multi-Agents: What's Actually Working'.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/622; scope narrowed to Improvement 2 only after discussion. Improvement 1 (clean-context reviewer) tracked separately at deftai/slizard#124."
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 3 -- Documentation & Content Fixes",
+        "Description": "Communication bridge filter for deft-directive-review-cycle (Improvement 2 from #622).",
+        "Description_source": "deftai/directive#622 (narrowed)",
+        "Status_source": "filed-during-cleanup"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/622",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #622: feat(skills): clean-context reviewer principle and communication bridge filter for deft-review-cycle (now scoped to Improvement 2 only)"
+      },
+      {
+        "uri": "https://github.com/deftai/slizard/issues/124",
+        "type": "x-vbrief/github-issue",
+        "title": "deftai/slizard#124: review: clean-context reviewer principle (Improvement 1 of #622, split out to slizard repo)"
+      }
+    ],
+    "updated": "2026-05-01T02:22:00Z"
+  }
+}

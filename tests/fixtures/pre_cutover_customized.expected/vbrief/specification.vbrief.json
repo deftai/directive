@@ -1,0 +1,21 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Specification"
+  },
+  "plan": {
+    "title": "Specification",
+    "status": "approved",
+    "narratives": {
+      "ProblemStatement": "Operators managing widget inventories need a deterministic HTTP surface so\ndashboards, CLIs, and workflow tools can CRUD widgets without guessing\nserver-side shapes. The hand-rolled state currently lives in spreadsheets.",
+      "Goals": "- CRUD widgets via HTTP\n- List widgets by owner\n- Offer a typed CLI client",
+      "UserStories": "As an operator, I want to add a widget so downstream consumers see it\nwithin a single second.\n\nAs a consumer, I want to list widgets I own so I can review my inventory\nwithout direct database access.",
+      "Requirements": "- FR-1: POST /widgets creates a widget (returns 201 + widget body)\n- FR-2: GET /widgets/{id} returns 200 or 404\n- FR-3: GET /widgets?owner=X returns widgets for owner X\n- FR-4: CLI `widgets add` wraps FR-1",
+      "NonFunctionalRequirements": "- NFR-1: p95 latency < 200ms for FR-1 / FR-2\n- NFR-2: structured logging with request-id correlation\n- NFR-3: stdlib-only dependencies (zero runtime deps)",
+      "SuccessMetrics": "- 95% of FR-1 requests succeed within NFR-1\n- 0 unhandled 5xx errors in 30-day rolling window",
+      "Architecture": "Small monolith: single FastAPI process, SQLite-backed repository, thin CLI\nthat shells out to the same module. No worker queue; no cache.",
+      "LegacyArtifacts": "### Implementation Plan (from SPECIFICATION.md:57-68)\n\n- **`t1.1`** Scaffold FastAPI app [done]\n  Depends on: none\n- **`t1.2`** Implement FR-1 (POST /widgets)\n  Depends on: t1.1\n- **`t1.3`** Implement FR-2 (GET /widgets/{id})\n  Depends on: t1.1\n- **`t2.1`** Implement FR-3 (GET /widgets?owner=X)\n  Depends on: t1.2, t1.3\n- **`t3.1`** Implement FR-4 (CLI widgets add)\n  Depends on: t1.2\n"
+    },
+    "items": []
+  }
+}

@@ -1,0 +1,109 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# scope lifecycle tasks.
+#
+# IMPORTANT: every task sets ``dir: '{{.USER_WORKING_DIR}}'`` so the Python
+# script's CWD is the consumer project root, NOT ``deft/``. The script path
+# is resolved via ``{{.DEFT_ROOT}}/scripts/`` (DEFT_ROOT is defined locally
+# in this file's `vars:` block via ``{{joinPath .TASKFILE_DIR ".."}}`` --
+# see ../Taskfile.yml for why root-level definition is avoided) so it
+# still points at ``deft/scripts/scope_lifecycle.py`` after the dir switch.
+# The previous ``{{.TASKFILE_DIR}}/../scripts/`` form broke on Windows
+# under `uv run python` (#566) because mixed-separator traversal
+# normalizes incorrectly and drops the deft/ prefix.
+#
+# CLI_ARGS: passed to the script raw / unquoted. go-task shell-escapes
+# CLI_ARGS with single quotes on its own, so wrapping the interpolation
+# in Taskfile-level double quotes produces ``"'path'"`` at dispatch time
+# on Windows (pwsh/cmd preserve nested quotes verbatim), and Python's
+# argv receives a literal single-quote-prefixed filename that fails to
+# open (#577). All seven scope:* commands therefore forward
+# ``{{.CLI_ARGS}}`` bare -- matching migrate.yml / prd.yml / issue.yml /
+# reconcile.yml.  ``scope_lifecycle.py`` handles both absolute and
+# relative values via ``_resolve_file_path`` + ``resolve_project_root``
+# -- the script owns path resolution, the task just forwards
+# ``--project-root`` so detection never silently falls back to deft's
+# own tree (#535). Relative paths resolve against the consumer root
+# thanks to ``--project-root``; absolute paths are used as-is.
+#
+# ``env: PYTHONUTF8: "1"`` is set per-task as a belt-and-suspenders guard
+# for Windows (cp1252 default crashes on -- / -> / x / !); the top-level
+# Taskfile.yml also sets this (#540).
+
+tasks:
+  promote:
+    desc: "Promote a vBRIEF scope: proposed/ -> pending/ (status: pending)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" promote {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
+  activate:
+    desc: "Activate a vBRIEF scope: pending/ -> active/ (status: running)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" activate {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
+  complete:
+    desc: "Complete a vBRIEF scope: active/ -> completed/ (status: completed)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" complete {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
+  fail:
+    # Terminal ``failed`` transition (#614). Parallels ``scope:complete``
+    # (same source + destination folders) and differs only in the
+    # resulting ``plan.status`` (``failed`` vs ``completed``). Semantic
+    # contract: use ``scope:fail`` when a scope was attempted but could
+    # not be completed (external blocker, infeasibility discovered
+    # mid-flight, deadline hit, agent exhausted retries) and should NOT
+    # be cancelled. ``scope:cancel`` remains the right call when the
+    # scope is no longer wanted / superseded / obsolete. The canonical
+    # v0.6 Status enum includes ``failed`` (see
+    # vbrief/schemas/vbrief-core.schema.json).
+    desc: "Fail a vBRIEF scope: active/ -> completed/ (status: failed)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" fail {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
+  cancel:
+    desc: "Cancel a vBRIEF scope: any folder -> cancelled/ (status: cancelled)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" cancel {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
+  restore:
+    desc: "Restore a cancelled vBRIEF scope: cancelled/ -> proposed/ (status: proposed)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" restore {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
+  block:
+    desc: "Block a vBRIEF scope: stays in active/ (status: blocked)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" block {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
+  unblock:
+    desc: "Unblock a vBRIEF scope: stays in active/ (status: running)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" unblock {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"

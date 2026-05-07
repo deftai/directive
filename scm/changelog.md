@@ -110,6 +110,24 @@ At release time, `[Unreleased]` is renamed to the new version (see Release Proce
 
 ! Use semantic versioning for version numbers (see [versioning.md](../core/versioning.md)).
 
+## Optional Release Summary Blockquote
+
+? An optional one-line Markdown blockquote may appear directly after the `## [MAJOR.MINOR.PATCH] - YYYY-MM-DD` heading, sandwiched by blank lines:
+
+```markdown
+## [1.1.0] - 2024-02-01
+
+> Adds dark mode and CSV export, replacing the legacy theme picker.
+
+### Added
+- Dark mode support
+- Export data to CSV format
+```
+
+The blockquote captures the operator's one-sentence release narrative (recommended 80-160 chars). It is authored once during the release flow (`task release -- <version> --summary "<text>"`; see `skills/deft-directive-release/SKILL.md` Phase 1) and propagates verbatim into the GitHub release body (auto-pickup via `scripts/release.py::_section_for_version`) AND the Phase 8 Slack `*Summary*:` slot. The blockquote is inline Markdown -- `**bold**`, `[link](url)`, etc. are preserved verbatim. Omit the blockquote (no `--summary` flag) to keep the pre-existing Keep-a-Changelog shape.
+
+⊗ Hand-write a different one-line narrative for each downstream surface (CHANGELOG / GitHub release / Slack) -- author once via `--summary` and let the pipeline propagate.
+
 ## Entry Format
 
 ~ Each change is a concise bullet point:

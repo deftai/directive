@@ -1,0 +1,65 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Add version/upgrade gate to deft/run entry point so CLI users see a warning after a framework update.",
+    "created": "2026-04-16T00:00:00Z",
+    "updated": "2026-04-16T00:00:00Z"
+  },
+  "plan": {
+    "id": "fix-410-run-upgrade-gate",
+    "title": "feat(cli): add version/upgrade gate to deft/run entry point",
+    "status": "completed",
+    "narratives": {
+      "Problem": "After a consumer updates their deft submodule, there is no deterministic gate that detects the project needs migration. The sync skill only fires on explicit agent triggers; the consumer's `task check` is their own. `deft/run` is the only deterministic entry point directive controls that runs in consumer project context, so that is where the CLI gate belongs.",
+      "Action": "Add a non-fatal upgrade gate in main() before subcommand dispatch. Write a vbrief/.deft-version marker on first setup (cmd_project) and on explicit `run upgrade`. On every invocation, compare the recorded version to VERSION; warn on drift. If no marker but legacy SPECIFICATION.md/PROJECT.md without the <!-- deft:deprecated-redirect --> sentinel are found, warn about pre-v0.20 state. Interactive sessions prompt 'continue anyway? [y/N]'; non-interactive sessions warn and continue so CI is never blocked. Skip the gate entirely when running inside the deft repo itself (detected by root main.md + missing ./deft/ subdir).",
+      "Constraint": "Non-fatal; charter says 'warn + prompt; non-interactive: warn + continue; never fatal'.",
+      "Test": "tests/cli/test_upgrade_gate.py -- marker helpers, legacy detection, deft-repo heuristic, gate behavior (silent on match, warns on drift, non-interactive continues, skip commands), cmd_upgrade happy path + idempotency + legacy warning.",
+      "Outcome": "CLI users invoking `deft/run <command>` after updating the submodule see a clear warning directing them to `task migrate:vbrief` or `deft/run upgrade`. `run upgrade` records the current VERSION in vbrief/.deft-version so subsequent invocations are silent. The gate does not break CI (no TTY -> warn + continue)."
+    },
+    "items": [
+      {
+        "id": "410-1",
+        "title": "Add _read_version_marker / _write_version_marker helpers + .deft-version path resolution",
+        "status": "running"
+      },
+      {
+        "id": "410-2",
+        "title": "Add _detect_pre_cutover_legacy and _running_inside_deft_repo heuristics",
+        "status": "running"
+      },
+      {
+        "id": "410-3",
+        "title": "Add _check_upgrade_gate orchestrator + wire into main() before dispatch",
+        "status": "running"
+      },
+      {
+        "id": "410-4",
+        "title": "Add cmd_upgrade command + register in dispatcher + usage() entry",
+        "status": "running"
+      },
+      {
+        "id": "410-5",
+        "title": "Write marker on successful cmd_project (greenfield first-setup)",
+        "status": "running"
+      },
+      {
+        "id": "410-6",
+        "title": "Tests: version marker helpers, legacy detection, gate behavior, cmd_upgrade",
+        "status": "running"
+      }
+    ],
+    "references": [
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/410",
+        "id": "#410"
+      },
+      {
+        "type": "github-issue",
+        "url": "https://github.com/deftai/directive/issues/402",
+        "id": "#402"
+      }
+    ],
+    "updated": "2026-04-20T17:08:02Z"
+  }
+}

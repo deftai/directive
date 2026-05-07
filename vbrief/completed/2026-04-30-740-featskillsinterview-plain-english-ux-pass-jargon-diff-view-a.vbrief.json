@@ -1,0 +1,67 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #740"
+  },
+  "plan": {
+    "title": "feat(skills,interview): plain-English UX pass — jargon, diff view, approval actions, button labels",
+    "status": "completed",
+    "narratives": {
+      "Description": "feat(skills,interview): plain-English UX pass -- jargon, diff view, approval actions, button labels",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/740",
+      "Labels": "documentation, skills, adoption-blocker",
+      "Problem": "Per #151 (playtest issues #8, #9, #10, #11, #12, #17), non-technical users only complete the planning flow because they have an external AI translating jargon, decoding confirmations, and validating choices. Defects cluster: jargon without explanations (frontend/db/auth/deployment/PRD/Next.js), unclear approval actions (Accept/Refine/Edit), and alarming red/green diff view at PRD/SPEC review.",
+      "Acceptance": "Jargon pass: every technical question gets a one-line plain-English context note; acronyms defined inline on first use (PRD, etc.); framework justifications explained or removed. Approval-action pass: explicit numbered approval menu (1=Approve, 2=Suggest changes, 3=Edit) replacing ambiguous buttons. Diff-view pass: one-line non-alarming preface above red/green diffs, or hide diff entirely on first review. Reference doc captures plain-English-pass guidelines for future skill authors. Tests cover jargon-on-first-use rule, approval-menu presence, and diff preface presence.",
+      "OutOfScope": "Full review-UI redesign. Separate non-technical-user mode (#77/#84). Cost/budget transparency (#739). IP/legal risk flagging (#738).",
+      "Files": "skills/deft-directive-interview/SKILL.md (jargon + acronyms); PRD review skill (approval menu); SPECIFICATION review skill (approval menu + diff preface); NEW references/plain-english-ux.md; tests/content/test_plain_english*.py (new); CHANGELOG.md (append)."
+    },
+    "items": [
+      {
+        "title": "Jargon audit + remediation across interview / PRD / spec review skills",
+        "status": "pending"
+      },
+      {
+        "title": "Acronyms defined inline on first use (PRD, etc.) per skill",
+        "status": "pending"
+      },
+      {
+        "title": "Explicit numbered approval menu after PRD review",
+        "status": "pending"
+      },
+      {
+        "title": "Explicit numbered approval menu after SPECIFICATION review",
+        "status": "pending"
+      },
+      {
+        "title": "Diff-view preface added (or diff hidden on first review)",
+        "status": "pending"
+      },
+      {
+        "title": "NEW references/plain-english-ux.md guidelines for future skill authors",
+        "status": "pending"
+      },
+      {
+        "title": "Tests: jargon-on-first-use rule + approval-menu presence + diff preface presence",
+        "status": "pending"
+      },
+      {
+        "title": "CHANGELOG.md [Unreleased] entry under Changed referencing #740 (and #151 umbrella)",
+        "status": "pending"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/740",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #740: feat(skills,interview): plain-English UX pass — jargon, diff view, approval actions, button labels"
+      }
+    ],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 1 -- Fix Now",
+        "PhaseDescription": "Urgent fixes to land ahead of broader roadmap work -- adoption blockers and bugs that block consumer adoption or successful first-session UX."
+      }
+    },
+    "updated": "2026-05-01T02:02:51Z"
+  }
+}

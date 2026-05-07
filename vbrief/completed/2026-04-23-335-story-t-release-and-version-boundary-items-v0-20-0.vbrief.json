@@ -1,0 +1,31 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF for #335: Story T: Release and version boundary items (v0.20.0)",
+    "updated": "2026-04-23T14:30:07Z"
+  },
+  "plan": {
+    "title": "Story T: Release and version boundary items (v0.20.0)",
+    "status": "completed",
+    "narratives": {
+      "SourceSection": "ROADMAP Completed section"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Completed",
+        "Description": "Story T: Release and version boundary items (v0.20.0)",
+        "Description_source": "ROADMAP.md",
+        "Status_source": "orphan: ROADMAP Completed section (#593)",
+        "SourceConflict": "missing-from-spec"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/335",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #335: Story T: Release and version boundary items (v0.20.0)"
+      }
+    ]
+  }
+}

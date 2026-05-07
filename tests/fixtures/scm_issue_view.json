@@ -1,0 +1,47 @@
+{
+  "number": 883,
+  "title": "feat(processes): deft-cache -- unified content cache and quarantine layer",
+  "body": "## Problem\nTriage v1 (#845) shipped with a P0 cache-bypass bug. Build a single, content-agnostic cache + quarantine layer that triage v1 (and later #610 wiki-llm) consume rather than reimplement.\n\n## Acceptance criteria\n- task cache:put / get / invalidate / fetch-all / prune functional for github-issue source\n- quarantine scanner v2 with 3 categories baseline-on\n- task triage:* surface rebound onto cache:get\n",
+  "state": "OPEN",
+  "author": {
+    "id": "MDQ6VXNlcjEyMzQ1Njc4",
+    "is_bot": false,
+    "login": "msadams",
+    "name": "Scott Adams"
+  },
+  "createdAt": "2026-04-28T12:34:56Z",
+  "updatedAt": "2026-05-05T21:24:00Z",
+  "labels": [
+    {
+      "id": "LA_kwDOAAAAAA",
+      "name": "epic",
+      "description": "Multi-story umbrella issue",
+      "color": "5319e7"
+    },
+    {
+      "id": "LA_kwDOAAAAAB",
+      "name": "cache",
+      "description": "Cache infrastructure work",
+      "color": "0e8a16"
+    }
+  ],
+  "comments": [
+    {
+      "id": "IC_kwDOAAAAAA1",
+      "author": {
+        "login": "visionik",
+        "is_bot": false
+      },
+      "authorAssociation": "MEMBER",
+      "body": "Per-source rate-limit awareness on cache:fetch-all is a v1 must-include; without it v1 swarms break on real-sized populate.",
+      "createdAt": "2026-05-01T08:15:30Z",
+      "includesCreatedEdit": false,
+      "isMinimized": false,
+      "minimizedReason": "",
+      "reactionGroups": [],
+      "url": "https://github.com/deftai/directive/issues/883#issuecomment-1",
+      "viewerDidAuthor": false
+    }
+  ],
+  "url": "https://github.com/deftai/directive/issues/883"
+}
