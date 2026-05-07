@@ -297,11 +297,17 @@ _HEADING_ROLE_PREFIX_RE: re.Pattern[str] = re.compile(
 #: scanner category that would do this body-wide is intentionally
 #: deferred (#949 follow-up).
 _BODY_VECTOR_RE: re.Pattern[str] = re.compile(
+    # Shell set kept consistent across all three sub-patterns (pipe-to-
+    # shell, ``sh -c``, ``/bin/sh -c``) so a vector like ``ksh -c '...'``
+    # or ``/bin/ksh -c '...'`` is not silently passed through; ksh was
+    # previously only listed in the pipe-to-shell alternative which left
+    # a blind spot the other two branches did not cover. Refs PR #957
+    # Greptile review on commit 5acfa8a.
     r"(?:curl|wget|fetch)\s+[^|\n]*\|\s*(?:sh|bash|zsh|ksh)\b"
     r"|\bbase64\s+(?:-d|--decode|-D)\b"
     r"|\beval\s*[\(\$\"'`]"
-    r"|\b(?:sh|bash|zsh)\s+-c\s+[\"']"
-    r"|\b/bin/(?:sh|bash|zsh)\s+-c\s+[\"']",
+    r"|\b(?:sh|bash|zsh|ksh)\s+-c\s+[\"']"
+    r"|\b/bin/(?:sh|bash|zsh|ksh)\s+-c\s+[\"']",
     re.IGNORECASE,
 )
 
