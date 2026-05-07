@@ -110,3 +110,59 @@ def test_template_done_message_protocol_present(template_text: str) -> None:
         assert exit_marker in template_text, (
             f"DONE-message protocol must include exit marker: {exit_marker}"
         )
+
+
+def test_template_rate_limit_probe_uses_gh_not_ghx_with_q_flag(template_text: str) -> None:
+    """Section 7's rate-limit probe MUST use `gh api ... -q` not `ghx api ... -q`.
+
+    AGENTS.md `## Multi-agent orchestration discipline (#954)` ghx surface
+    clarification documents that `ghx api` accepts a single positional path
+    arg only and multi-arg forms (e.g. `-q` + jq expression) fail with
+    `accepts 1 arg(s), received N`. The probe example in this template MUST
+    therefore use `gh api` so a worker copying the preamble verbatim into a
+    dispatch envelope and executing the probe gets structured JSON, not a
+    runtime error that bypasses the rate-limit guard. Greptile review on
+    PR #966 (P1).
+    """
+    assert re.search(r"gh\s+api\s+rate_limit\s+-q\s+'", template_text), (
+        "template Section 7 must use `gh api rate_limit -q '...'` (not `ghx api`)"
+    )
+    assert not re.search(r"ghx\s+api\s+rate_limit\s+-q\b", template_text), (
+        "template MUST NOT use `ghx api rate_limit -q` -- ghx accepts only a "
+        "single positional path arg per AGENTS.md ghx surface clarification"
+    )
+
+
+def test_template_section_5_qualifies_mutation_graphql_freedom(template_text: str) -> None:
+    """Section 5 mutation claim must qualify to REST endpoints, not blanket.
+
+    `gh api -X POST /graphql ...` IS still a GraphQL mutation and consumes
+    GraphQL budget; the prior phrasing "Mutations are inherently GraphQL-free"
+    overstated and could mislead a worker into bypassing the throttle.
+    Greptile review on PR #966 (P2 with concrete suggestion).
+    """
+    assert "Mutations to REST endpoints" in template_text
+    assert "do not consume GraphQL budget" in template_text
+    assert "`/graphql` endpoint" in template_text or "/graphql" in template_text
+    # Negative: the unqualified blanket form must not survive
+    assert "are inherently GraphQL-free" not in template_text, (
+        "unqualified blanket claim about mutation GraphQL-freedom must be "
+        "qualified to REST endpoints (Greptile PR #966 review)"
+    )
+
+
+def test_template_footer_concrete_vbrief_path(template_text: str) -> None:
+    """Footer must cite the concrete vbrief/active/ path, not a glob wildcard.
+
+    Greptile review on PR #966 flagged the prior `vbrief/.../954-...` form
+    as a broken-reference-after-lifecycle-move hazard. The replacement
+    cites the concrete active/ path and notes the move-to-completed/ on
+    merge so a future reader can find the file at either lifecycle stage.
+    """
+    assert (
+        "vbrief/active/2026-05-07-954-orchestrator-agents-md-preamble-template.vbrief.json"
+        in template_text
+    )
+    assert "vbrief/completed/" in template_text
+    # Negative: the glob form must not survive
+    assert "vbrief/.../954-orchestrator-agents-md-preamble-template" not in template_text

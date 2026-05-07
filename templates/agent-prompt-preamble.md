@@ -61,7 +61,7 @@ gh pr ready <N>                              # GraphQL mutation (mutation, not p
 gh pr update-branch <N>                      # GraphQL mutation
 ```
 
-The forbidden surfaces are convenient and well-documented but route through GraphQL; under N concurrent workers they exhaust the bucket within minutes. Use the explicit REST forms above. Mutations (`gh api -X POST/PATCH/PUT/DELETE`) are inherently GraphQL-free and are fine.
+The forbidden surfaces are convenient and well-documented but route through GraphQL; under N concurrent workers they exhaust the bucket within minutes. Use the explicit REST forms above. Mutations to REST endpoints (`gh api -X POST/PATCH/PUT/DELETE /repos/...`) do not consume GraphQL budget and are fine; mutations to the `/graphql` endpoint (`gh api -X POST /graphql -f query=...`) DO consume GraphQL budget and are subject to the same throttle.
 
 ## 6. No Draft re-toggling within a single review cycle
 
@@ -76,7 +76,7 @@ Anti-pattern: re-Drafting a PR to "indicate work in progress" between review ite
 Before any GraphQL-heavy operation (PR readiness check loop, batch issue ingest, review-cycle Greptile polling, mass `gh pr list`), probe the rate limit:
 
 ```pwsh path=null start=null
-ghx api rate_limit -q '{core: .resources.core.remaining, graphql: .resources.graphql.remaining}'
+gh api rate_limit -q '{core: .resources.core.remaining, graphql: .resources.graphql.remaining}'
 # {
 #   "core": 4998,
 #   "graphql": 3989
@@ -133,4 +133,4 @@ Per-step acks during the run are noise. ONE start message, ONE final message; in
 
 If any rule above conflicts with the user's explicit in-conversation directive, ASK rather than improvise. Rules represent the project's institutional memory; the user can override on a case-by-case basis but the dispatcher should surface the conflict, not silently bypass.
 
-This template is owned by `vbrief/.../954-orchestrator-agents-md-preamble-template.vbrief.json` and may be revised via a #954-tagged PR.
+This template is owned by `vbrief/active/2026-05-07-954-orchestrator-agents-md-preamble-template.vbrief.json` (lifecycle-moves to `vbrief/completed/` on PR merge) and may be revised via a #954-tagged PR.
