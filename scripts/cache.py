@@ -10,39 +10,19 @@ Public surface (5 commands)
     python scripts/cache.py fetch-all   --source github-issue --repo OWNER/NAME [...]
     python scripts/cache.py prune       [--older-than-days 30] [--source ...] [--dry-run]
 
-Storage layout
---------------
+Storage: ``.deft-cache/<source>/<key>/{raw.json, content.md, meta.json}``
+plus a global ``quarantine-audit.jsonl`` audit log.
 
-    .deft-cache/
-      <source>/<key>/
-        raw.json     -- original API response (always written)
-        content.md   -- scanner-passed markdown (omitted on hard-fail)
-        meta.json    -- per-entry metadata, validated against
-                        vbrief/schemas/cache-meta.schema.json on read AND write
-      quarantine-audit.jsonl
-                     -- append-only audit log; one record per cache:put / cache:invalidate
+Scanner integration: every ``cache_put`` runs ``cache_scanner.scan``;
+``credentials`` -> hard-fail (no content.md written, exit 2);
+``injection-heading`` -> fence-and-pass; ``invisible-unicode`` -> strip-and-pass.
+One audit record per put / invalidate / evict regardless of scan outcome.
 
-For ``source=github-issue``, ``key`` is ``<owner>/<repo>/<N>`` and the
-on-disk path is ``.deft-cache/github-issue/<owner>/<repo>/<N>/``.
+Quota (#947): pre-write LRU eviction enforces ``DEFT_CACHE_MAX_BYTES`` /
+``DEFT_CACHE_MAX_ENTRIES`` (defaults 100 MB / 10,000); breach -> exit 3.
 
-Scanner integration
--------------------
-
-Every :func:`cache_put` call runs :func:`cache_scanner.scan` BEFORE
-writing ``content.md``:
-
-- ``credentials`` -- severity hard-fail. ``content.md`` is NOT written;
-  ``raw.json`` + ``meta.json`` ARE written (audit). Exit code is ``2``.
-- ``injection-heading`` -- severity fence-and-pass. ``content.md`` is
-  written with suspicious sections wrapped in ```quarantined`` fences.
-- ``invisible-unicode`` -- severity strip-and-pass. ``content.md`` is
-  written with the matched codepoints stripped.
-
-A single append to ``quarantine-audit.jsonl`` happens for every
-``cache_put`` call regardless of the scan outcome.
-
-Rate limit + idempotency are owned by :mod:`_cache_fetch`; meta.json
-schema validation is owned by :mod:`_cache_validate`. The split keeps
+Rate limit + idempotency owned by :mod:`_cache_fetch`; schema validation
+by :mod:`_cache_validate`; quota by :mod:`_cache_quota`. The split keeps
 this module under the deft 1000-line MUST limit.
 """
 
@@ -70,15 +50,21 @@ from _cache_fetch import (  # noqa: E402  -- intentional sys.path tweak
     FetchAllReport,
     run_fetch_all,
 )
+from _cache_quota import (  # noqa: E402
+    CacheCapBreachedError,
+    CacheCaps,
+    EnforceResult,
+    EntryUsage,
+    enforce_caps as _enforce_caps,
+    predict_eviction_set,
+    resolve_caps,
+    scan_usage,
+)
 from _cache_validate import (  # noqa: E402
     CacheValidationError,
     validate_meta as _validate_meta_against_sources,
 )
-from cache_scanner import (  # noqa: E402
-    SCANNER_VERSION,
-    ScanResult,
-    scan,
-)
+from cache_scanner import SCANNER_VERSION, ScanResult, scan  # noqa: E402
 
 # Reconfigure stdout / stderr to UTF-8 so the cache layer's status lines
 # render under Windows cp1252 default (#814).
@@ -91,12 +77,16 @@ for _stream in (sys.stdout, sys.stderr):
 # module advertises the same SemVer the scanner module persists.
 __all__ = [
     "ALLOWED_SOURCES",
+    "CacheCapBreachedError",
+    "CacheCaps",
     "CacheError",
     "CacheNotFoundError",
     "CacheValidationError",
     "DEFAULT_BATCH_SIZE",
     "DEFAULT_DELAY_MS",
     "DEFAULT_PRUNE_OLDER_THAN_DAYS",
+    "EnforceResult",
+    "EntryUsage",
     "FetchAllReport",
     "GetResult",
     "PutResult",
@@ -107,9 +97,12 @@ __all__ = [
     "cache_get",
     "cache_invalidate",
     "cache_prune",
+    "cache_prune_to_cap",
     "cache_put",
     "entry_dir",
     "main",
+    "resolve_caps",
+    "scan_usage",
     "validate_meta",
 ]
 
@@ -298,8 +291,14 @@ def cache_put(
     ttl_seconds: int | None = None,
     cache_root: Path | None = None,
     fetched_at: datetime | None = None,
+    caps: CacheCaps | None = None,
 ) -> PutResult:
-    """Write a cache entry. Always writes raw.json + meta.json; conditionally writes content.md."""
+    """Write a cache entry. Always writes raw.json + meta.json; conditionally writes content.md.
+
+    Pre-write quota enforcement (#947): projects the new total against
+    the resolved caps, evicts LRU entries until the put fits, and raises
+    :class:`CacheCapBreachedError` if eviction can't free enough (CLI exit-3).
+    """
     _validate_key(source, key)
     fetched = fetched_at or _utc_now()
     ttl = ttl_seconds if ttl_seconds is not None else SOURCE_TTL_SECONDS[source]
@@ -308,12 +307,56 @@ def cache_put(
     expires = fetched + timedelta(seconds=ttl)
 
     edir = entry_dir(source, key, cache_root=cache_root)
-    edir.mkdir(parents=True, exist_ok=True)
 
+    # Project raw.json size pre-write (UTF-8 JSON has no platform variance).
     raw_text = json.dumps(raw, indent=2, sort_keys=True, ensure_ascii=False)
+    raw_size = len(raw_text.encode("utf-8"))
+
+    # Re-put: charge delta only; protect the existing entry from self-eviction.
+    existing_size = _existing_entry_size(edir)
+    is_new_entry = existing_size is None
+    incoming_delta = raw_size if is_new_entry else max(0, raw_size - existing_size)
+    incoming_entries = 1 if is_new_entry else 0
+
+    cache_root_path = cache_root if cache_root is not None else DEFAULT_CACHE_ROOT
+    enforce_result = _enforce_caps(
+        cache_root_path,
+        sources=ALLOWED_SOURCES,
+        caps=caps,
+        incoming_bytes=incoming_delta,
+        incoming_entries=incoming_entries,
+        protect_keys=[(source, key)],
+        on_evict=_make_evict_audit_callback(
+            cache_root=cache_root, trigger="cache:put"
+        ),
+    )
+    if enforce_result.would_breach:
+        resolved = caps if caps is not None else resolve_caps()
+        reason_parts: list[str] = []
+        if (
+            resolved.bytes_enforced
+            and enforce_result.final_usage.total_bytes + incoming_delta > resolved.max_bytes
+        ):
+            reason_parts.append("size_cap")
+        if (
+            resolved.entries_enforced
+            and enforce_result.final_usage.total_entries + incoming_entries
+            > resolved.max_entries
+        ):
+            reason_parts.append("entry_cap")
+        raise CacheCapBreachedError(
+            reason="+".join(reason_parts) or "unknown",
+            max_bytes=resolved.max_bytes,
+            max_entries=resolved.max_entries,
+            current_bytes=enforce_result.final_usage.total_bytes,
+            current_entries=enforce_result.final_usage.total_entries,
+            incoming_bytes=incoming_delta,
+        )
+
+    edir.mkdir(parents=True, exist_ok=True)
     raw_path = edir / "raw.json"
     _atomic_write_text(raw_path, raw_text)
-    raw_size = raw_path.stat().st_size
+    raw_size = raw_path.stat().st_size  # authoritative for meta.json::size_bytes
 
     rendered = _render_content(source, raw)
     scan_result = scan(rendered, scanned_at=_utc_iso(fetched))
@@ -449,6 +492,12 @@ def cache_get(
     # read-time concept; without this the field is misleading on cache hits
     # against TTL-expired entries). #883 Story 2 P2 cleanup.
     meta["stale"] = is_stale
+
+    # LRU signal (#947): touch meta.json mtime so future eviction passes
+    # see this entry as recently-accessed. Single os.utime syscall; no
+    # rewrite, no schema validation, no extra disk I/O. Failures are
+    # swallowed so a read-only cache tree still serves cache hits.
+    _touch_mtime(meta_path)
 
     content_path = edir / "content.md"
     return GetResult(
@@ -631,6 +680,115 @@ def _meta_key_or_relpath(meta_path: Path, src_root: Path) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Quota helpers (#947) -- size cap, entry cap, LRU eviction integration
+# ---------------------------------------------------------------------------
+
+
+def _existing_entry_size(edir: Path) -> int | None:
+    """Return ``meta.json::size_bytes`` for an existing entry, or ``None`` if absent.
+
+    Used by :func:`cache_put` to compute the byte delta on a re-put so
+    cap projection does not double-count the replaced entry. Corrupt /
+    parse-failed meta.json returns 0 (treat re-put as adding full size).
+    """
+    meta_path = edir / "meta.json"
+    if not meta_path.exists():
+        return None
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return 0
+    size = meta.get("size_bytes") if isinstance(meta, dict) else None
+    if not isinstance(size, int) or size < 0:
+        return 0
+    return size
+
+
+def _make_evict_audit_callback(
+    *,
+    cache_root: Path | None,
+    trigger: str,
+) -> Any:
+    """Build the ``on_evict`` callback that appends ``cache:evict`` records.
+
+    One audit record per eviction; operators can grep for the
+    ``"event":"cache:evict"`` line to trace why an entry vanished.
+    """
+
+    def _on_evict(victim: EntryUsage, caps: CacheCaps, incoming_bytes: int) -> None:
+        # Both caps can fire on the same eviction; +-join the reasons.
+        reasons: list[str] = []
+        if caps.bytes_enforced:
+            reasons.append("size_cap")
+        if caps.entries_enforced:
+            reasons.append("entry_cap")
+        last_accessed_iso = (
+            datetime.fromtimestamp(victim.last_accessed, tz=UTC).strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            )
+            if victim.last_accessed > 0
+            else "unknown"
+        )
+        _append_audit(
+            {
+                "event": "cache:evict",
+                "source": victim.source,
+                "key": victim.key,
+                "timestamp": _utc_iso(),
+                "reason": "+".join(reasons) or "unknown",
+                "trigger": trigger,
+                "freed_bytes": victim.size_bytes,
+                "last_accessed_at": last_accessed_iso,
+            },
+            cache_root=cache_root,
+        )
+
+    return _on_evict
+
+
+def _touch_mtime(path: Path) -> None:
+    """Update ``path``'s mtime to now (LRU signal). Single ``os.utime`` syscall.
+
+    Failures are swallowed: a read-only meta.json on a locked-down filesystem
+    still serves cache hits. Stale mtime degrades gracefully -- old mtime just
+    makes the entry a stronger eviction candidate next round.
+    """
+    with contextlib.suppress(OSError):
+        os.utime(path, None)
+
+
+def cache_prune_to_cap(
+    *,
+    cache_root: Path | None = None,
+    caps: CacheCaps | None = None,
+    dry_run: bool = False,
+) -> list[EntryUsage]:
+    """Drain LRU entries until the cache is under the resolved caps.
+
+    Idempotent: a second invocation against an already-under-cap tree
+    returns ``[]``. ``dry_run=True`` evaluates the eviction set without
+    removing anything (no audit records are written either).
+    """
+    root = cache_root if cache_root is not None else DEFAULT_CACHE_ROOT
+    resolved = caps if caps is not None else resolve_caps()
+    if not resolved.any_enforced:
+        return []
+    if dry_run:
+        return list(
+            predict_eviction_set(root, sources=ALLOWED_SOURCES, caps=resolved)
+        )
+    enforce_result = _enforce_caps(
+        root,
+        sources=ALLOWED_SOURCES,
+        caps=resolved,
+        on_evict=_make_evict_audit_callback(
+            cache_root=cache_root, trigger="cache:prune-to-cap"
+        ),
+    )
+    return list(enforce_result.evicted)
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -673,6 +831,16 @@ def _build_parser() -> argparse.ArgumentParser:
     p_pr.add_argument("--older-than-days", type=int, default=DEFAULT_PRUNE_OLDER_THAN_DAYS)
     p_pr.add_argument("--source", default=None, choices=list(ALLOWED_SOURCES))
     p_pr.add_argument("--dry-run", action="store_true")
+    p_pr.add_argument(
+        "--to-cap",
+        action="store_true",
+        help=(
+            "LRU-evict entries until the cache is under the configured "
+            "size + entry caps (DEFT_CACHE_MAX_BYTES, DEFT_CACHE_MAX_ENTRIES). "
+            "Mutually exclusive with --older-than-days semantics; ignores "
+            "the threshold and uses LRU recency instead."
+        ),
+    )
 
     return parser
 
@@ -687,6 +855,12 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         return _DISPATCH[args.cmd](args)
+    except CacheCapBreachedError as exc:
+        # Cap breached even after eviction (#947). Distinct exit-3 so
+        # operators / orchestrators can branch on "impossible to honor
+        # the cap" vs the schema (exit 2) and generic (exit 1) failures.
+        print(f"cache: cap breached: {exc}", file=sys.stderr)
+        return 3
     except (CacheError, CacheFetchError) as exc:
         # CacheFetchError is a sibling of CacheError (extends RuntimeError
         # directly to avoid a circular import in _cache_fetch). It surfaces
@@ -762,6 +936,20 @@ def _cmd_fetch_all(args: argparse.Namespace) -> int:
 
 
 def _cmd_prune(args: argparse.Namespace) -> int:
+    if args.to_cap:
+        evicted = cache_prune_to_cap(dry_run=args.dry_run)
+        caps = resolve_caps()
+        payload = {
+            "mode": "to-cap",
+            "max_bytes": caps.max_bytes,
+            "max_entries": caps.max_entries,
+            "dry_run": args.dry_run,
+            "evicted_count": len(evicted),
+            "evicted_keys": [f"{e.source}/{e.key}" for e in evicted],
+            "freed_bytes": sum(e.size_bytes for e in evicted),
+        }
+        sys.stdout.write(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+        return 0
     removed = cache_prune(
         older_than_days=args.older_than_days,
         source=args.source,

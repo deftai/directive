@@ -61,7 +61,7 @@ tasks:
       - uv run python "{{.DEFT_ROOT}}/scripts/cache.py" fetch-all {{.CLI_ARGS}}
 
   prune:
-    desc: "Drop expired -- task cache:prune -- [--older-than-days 30] [--source github-issue] [--dry-run]"
+    desc: "Drop expired or LRU-evict -- task cache:prune -- [--older-than-days 30] [--source github-issue] [--dry-run] [--to-cap]"
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"

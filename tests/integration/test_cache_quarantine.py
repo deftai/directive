@@ -233,3 +233,79 @@ def test_cache_put_scan_failure_semantics(tmp_path: Path) -> None:
     assert record["event"] == "cache:put"
     assert record["scan_passed"] is False
     assert record["content_written"] is False
+
+
+def test_fetch_all_triggers_eviction_on_entry_cap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Integration (#947): fetch-all with N issues > entry cap evicts LRU.
+
+    Sets DEFT_CACHE_MAX_ENTRIES=2 and lists 4 issues. The first two land,
+    then each subsequent put evicts the oldest entry. Asserts: (a) only
+    the two newest entries remain on disk, (b) the audit log carries
+    cache:evict records for the evicted keys with trigger=cache:put.
+    """
+    monkeypatch.setenv("DEFT_CACHE_MAX_BYTES", "0")
+    monkeypatch.setenv("DEFT_CACHE_MAX_ENTRIES", "2")
+
+    issues_listing = json.dumps(
+        [
+            {
+                "number": n,
+                "title": f"i{n}",
+                "state": "OPEN",
+                "updatedAt": "2026-05-05T00:00:00Z",
+            }
+            for n in (40, 41, 42, 43)
+        ]
+    )
+
+    def fake_run(cmd: list[str], **_: object) -> mock.Mock:
+        if "scm:issue:list" in cmd:
+            return _proc(issues_listing)
+        if "scm:issue:view" in cmd:
+            num = int(cmd[cmd.index("--") + 1])
+            return _proc(json.dumps(_issue(num)))
+        return _proc("", returncode=1)
+
+    monkeypatch.setattr(_cache_fetch, "_run_subprocess", fake_run)
+    monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
+
+    report = cache.cache_fetch_all(
+        source="github-issue",
+        repo="deftai/directive",
+        batch_size=10,
+        delay_ms=0,
+        cache_root=tmp_path,
+    )
+    assert report.succeeded == 4
+    assert report.failed == 0
+
+    # Only the two newest remain (42, 43); 40 and 41 evicted.
+    for evicted_num in (40, 41):
+        edir = cache.entry_dir(
+            "github-issue", f"deftai/directive/{evicted_num}", cache_root=tmp_path
+        )
+        assert not edir.exists()
+    for kept_num in (42, 43):
+        edir = cache.entry_dir(
+            "github-issue", f"deftai/directive/{kept_num}", cache_root=tmp_path
+        )
+        assert (edir / "meta.json").exists()
+
+    # Audit log carries cache:evict records for the evicted keys.
+    audit_lines = [
+        json.loads(line)
+        for line in (tmp_path / "quarantine-audit.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip()
+    ]
+    evict_records = [r for r in audit_lines if r.get("event") == "cache:evict"]
+    assert {r["key"] for r in evict_records} >= {
+        "deftai/directive/40",
+        "deftai/directive/41",
+    }
+    for r in evict_records:
+        assert r["trigger"] == "cache:put"
+        assert r["reason"] == "entry_cap"
