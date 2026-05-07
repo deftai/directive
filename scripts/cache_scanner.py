@@ -483,12 +483,21 @@ def _detect_injection_heading(text: str) -> tuple[str, ScanFlag | None]:
 
         # Existing fenced code blocks pass through verbatim (idempotent
         # on re-scan; the v1 ``quarantine_body`` semantic is preserved).
+        # Closer detection requires the line to be ONLY the fence delim
+        # (after right-trim) -- per CommonMark a closing fence carries no
+        # info string, so ``` ```python ``` ``` is an OPENER for a nested
+        # block, not a closer for the outer one. The naive
+        # ``line.startswith(in_fence)`` check would otherwise drop the
+        # outer fence prematurely on the nested opener and re-process the
+        # nested block's content as live, breaking the idempotency
+        # guarantee on previously-quarantined bodies that happen to
+        # contain an embedded code example.
         fence_match = _FENCE_RE.match(line)
         if fence_match:
             delim = fence_match.group(1)
             if in_fence is None:
                 in_fence = delim
-            elif line.startswith(in_fence):
+            elif line.rstrip() == in_fence:
                 in_fence = None
             out.append(line)
             i += 1
@@ -510,9 +519,13 @@ def _detect_injection_heading(text: str) -> tuple[str, ScanFlag | None]:
                 if nested_fence:
                     section_end += 1
                     nested = nxt[:3]
-                    while section_end < len(lines) and not lines[
-                        section_end
-                    ].startswith(nested):
+                    # Same closer-vs-nested-opener disambiguation as the
+                    # outer fence loop above: a closing fence MUST be
+                    # only the delim chars (no info string).
+                    while (
+                        section_end < len(lines)
+                        and lines[section_end].rstrip() != nested
+                    ):
                         section_end += 1
                     section_end += 1  # consume the closer
                     continue

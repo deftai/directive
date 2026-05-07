@@ -1,0 +1,31 @@
+fix(scanner): correct fence-closer detection so nested code fences inside quarantined blocks do not break idempotency (#949)
+
+Address Greptile P1 review finding on PR #957 commit d36ca53:
+
+The outer fence-state closer check used `line.startswith(in_fence)`
+where `in_fence` was always `'```'` (set from the canonical 3-char
+delim captured by `_FENCE_RE`). Any line that starts with three
+backticks -- including a nested code-fence opener with an info string
+like ` ```python ` -- satisfied the predicate and prematurely reset
+`in_fence = None`, dropping the outer fence prematurely. On re-scan
+of a previously-quarantined block that contained a nested code
+example, the nested block's body was then re-processed as live
+content and double-wrapped, violating the idempotency contract
+documented in the detector docstring.
+
+Fixed by switching the closer check from `line.startswith(in_fence)`
+to `line.rstrip() == in_fence`, which correctly distinguishes a
+closing fence (delim chars only, no info string per CommonMark) from
+a nested opener with an info string. Same disambiguation applied to
+the section-span scanner's nested-fence consumption loop so the body
+span over a heading section also tracks nested fences correctly.
+
+Tests: new
+`test_no_double_wrap_when_quarantined_block_contains_nested_fence`
+regression in TestInjectionHeading covering the exact scenario
+Greptile flagged (` ```quarantined ` outer + ` ```python ` nested
+opener with injection-shaped content inside + outer closer);
+asserts exactly one ```quarantined fence in the transformed
+content and no injection-heading flags fire.
+
+Refs #957 (Greptile review-cycle iter 2/3).
