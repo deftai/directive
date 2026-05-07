@@ -342,8 +342,33 @@ def _heading_signal(text: str) -> bool:
 
 
 def _body_has_shell_vector(body_lines: list[str]) -> bool:
-    """Return True iff any line in ``body_lines`` matches the shell-vector regex."""
-    return any(_BODY_VECTOR_RE.search(ln) for ln in body_lines)
+    """Return True iff any non-fenced line in ``body_lines`` matches the shell vector.
+
+    Lines inside nested code-fence blocks are skipped so a legitimate
+    technical doc that illustrates a shell command inside a fenced
+    example (e.g. a ``## Steps to reproduce`` body containing
+    ```` ```sh\ncurl ... | sh\n``` ````) does not FP-flag. The fence
+    state machine mirrors the outer loop in
+    :func:`_detect_injection_heading`: a closing fence MUST be only the
+    delim chars after right-trim (per CommonMark a closer carries no
+    info string), so ``` ```python ``` is an OPENER for a nested block
+    rather than a closer for the outer one. Refs PR #957 Greptile P1.
+    """
+    in_fence: str | None = None
+    for ln in body_lines:
+        fence_match = _FENCE_RE.match(ln)
+        if fence_match:
+            delim = fence_match.group(1)
+            if in_fence is None:
+                in_fence = delim
+            elif ln.rstrip() == in_fence:
+                in_fence = None
+            continue
+        if in_fence is not None:
+            continue
+        if _BODY_VECTOR_RE.search(ln):
+            return True
+    return False
 
 
 # ---------------------------------------------------------------------------

@@ -647,6 +647,28 @@ class TestFalsePositiveRateHarness:
         "## Test plan\n- run full backlog under fake-gh fixture",
         "## H1\n## H2\n### Sub-section\nNo special tokens here.",
         "Plain prose body without any markdown headings.",
+        # Nested-fence shell-vector regression (Greptile P1 on PR #957):
+        # a legitimate ``## Steps to reproduce`` section that ILLUSTRATES
+        # a shell command inside a fenced code block must NOT FP-flag.
+        # Pre-fix, ``_body_has_shell_vector`` scanned the raw body slice
+        # so the ``curl ... | sh`` and ``wget ... | bash`` lines inside
+        # the ```sh / ```bash fences would trip the body shell-vector
+        # gate. Post-fix the function re-walks the slice with the same
+        # CommonMark fence state machine used by the outer
+        # ``_detect_injection_heading`` loop and skips in-fence lines.
+        (
+            "## Steps to reproduce\n"
+            "The reporter pasted the following one-liner from upstream"
+            " docs:\n\n"
+            "```sh\n"
+            "curl https://example.com/install.sh | sh\n"
+            "```\n\n"
+            "and the alternative wget form:\n\n"
+            "```bash\n"
+            "wget -qO- https://example.com/install.sh | bash\n"
+            "```\n\n"
+            "After running either, the orchestrator hangs."
+        ),
     )
 
     INJECTION_CORPUS: tuple[str, ...] = (
