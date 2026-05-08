@@ -359,10 +359,25 @@ def run_publish(config: PublishConfig) -> int:
     # Step 1: view current state.
     label = f"View {tag} on {repo}"
     if config.dry_run:
-        _emit(label, f"DRYRUN (would run `gh release view {tag} --repo {repo}`)")
+        # Dry-run text mirrors the post-#961 REST surface: a GET against
+        # `releases/tags/<tag>` (core bucket) followed by a PATCH against
+        # `releases/<id>` carrying `-F draft=false`. The legacy GraphQL
+        # `gh release view` / `gh release edit` forms were removed in
+        # the REST refactor; previewing them here would mis-describe the
+        # operation an operator is about to perform.
+        _emit(
+            label,
+            (
+                f"DRYRUN (would run "
+                f"`gh api repos/{repo}/releases/tags/{tag}`)"
+            ),
+        )
         _emit(
             f"Edit {tag}",
-            f"DRYRUN (would run `gh release edit {tag} --repo {repo} --draft=false`)",
+            (
+                f"DRYRUN (would run "
+                f"`gh api -X PATCH repos/{repo}/releases/<id> -F draft=false`)"
+            ),
         )
         return EXIT_OK
 

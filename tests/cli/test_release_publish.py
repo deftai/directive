@@ -581,8 +581,20 @@ class TestRunPublish:
         assert rc == release_publish.EXIT_OK
         captured = capsys.readouterr()
         assert "DRYRUN" in captured.err
-        assert "release view" in captured.err
-        assert "release edit" in captured.err
+        # Dry-run text MUST describe the post-#961 REST surface (GET
+        # releases/tags/<tag> + PATCH releases/<id> -F draft=false), NOT
+        # the legacy GraphQL `gh release view` / `gh release edit`
+        # subcommands which were removed in the refactor. Pinning the
+        # REST substrings here prevents the dry-run preview from drifting
+        # back to commands that no longer exist on the actual code path.
+        assert "gh api" in captured.err
+        assert "repos/deftai/directive/releases/tags/v0.21.0" in captured.err
+        assert "-X PATCH" in captured.err
+        assert "draft=false" in captured.err
+        # Defence-in-depth: assert the legacy subcommand vocabulary is
+        # GONE so a future revert to GraphQL-routed text trips this test.
+        assert "release view" not in captured.err
+        assert "release edit" not in captured.err
 
     def test_happy_path_draft_to_published(self, monkeypatch, capsys):
         sequence = iter(

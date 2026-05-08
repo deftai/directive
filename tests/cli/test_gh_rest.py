@@ -205,14 +205,22 @@ class TestWriteJsonPayload:
         # Em dash is the canonical PS 5.1 mojibake regression glyph
         # (#798 / PR #795). The payload MUST round-trip as canonical
         # UTF-8 bytes so `gh api --input <file>` reads the literal
-        # character, not a mojibake replacement.
-        body = "Title -- with em dash and arrow ->"
+        # character, not a mojibake replacement. The body uses the
+        # actual U+2014 (em dash) and U+2192 (rightwards arrow) code
+        # points -- ASCII placeholders (`--` / `->`) would not exercise
+        # the multi-byte UTF-8 encoding path that originally regressed.
+        body = "Title \u2014 with em dash and arrow \u2192"
         path = gh_rest._write_json_payload({"body": body})
         try:
             raw_bytes = path.read_bytes()
-            # The em dash literal char is encoded as two bytes in UTF-8;
-            # we assert the file is parsable as UTF-8 AND that round-trip
-            # preserves the original string byte-for-byte.
+            # U+2014 and U+2192 each encode to three bytes in UTF-8
+            # (E2 80 94 / E2 86 92); we assert the file is parsable as
+            # UTF-8 AND that round-trip preserves the original string
+            # byte-for-byte. We also pin the raw UTF-8 byte sequences
+            # in the file so a future regression that silently writes
+            # cp1252 (em dash -> 0x97) or '?' replacements would fail.
+            assert b"\xe2\x80\x94" in raw_bytes  # em dash
+            assert b"\xe2\x86\x92" in raw_bytes  # rightwards arrow
             data = path.read_text(encoding="utf-8")
             assert json.loads(data)["body"] == body
             # Defence-in-depth: ensure no UTF-8 BOM was written (the BOM
