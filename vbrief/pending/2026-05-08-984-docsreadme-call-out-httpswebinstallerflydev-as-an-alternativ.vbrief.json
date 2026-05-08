@@ -9,9 +9,14 @@
     "narratives": {
       "Description": "docs(readme): call out https://webinstaller.fly.dev/ as an alternative installer in README",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/984",
+      "Overview": "## Problem\n\nToday's README presents one install path. The hosted webinstaller at\nhttps://webinstaller.fly.dev/ is a working alternative -- particularly useful for\nnew users who would rather not paste a curl-pipe-bash command, and for\nenvironments where running a script locally before reading it is not the\npreferred default. Because the README does not mention it, that path is\neffectively invisible to new users landing on the repo.\n\n## Proposed change\n\n- Add a short \"Alternative installer\" subsection under the install / getting-started\n  section of `README.md` linking to https://webinstaller.fly.dev/.\n- Briefly describe the trade-off (hosted convenience vs. local-only install) so\n  the reader can pick.\n- No code changes; this is README-only.\n\n## Acceptance criteria\n\n- A first-time reader of README can find the webinstaller link without leaving\n  the repo's front page.\n- The callout sits next to (not buried below) the existing primary install\n  instructions.\n\n## Related\n\n- #979 -- README / getting-started / commands.md should also surface the\n  refinement/triage workflow. This issue and #979 are both README adoption-blocker\n  touches and can ship in a single PR.\n\n## Non-goals\n\n- Does NOT change install scripts, hosting, or webinstaller behavior.\n- Does NOT establish webinstaller as the recommended default -- it stays an\n  alternative.\n",
       "Labels": "docs, adoption-blocker"
     },
     "items": [],
+    "tags": [
+      "docs",
+      "adoption-blocker"
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/984",
@@ -19,6 +24,6 @@
         "title": "Issue #984: docs(readme): call out https://webinstaller.fly.dev/ as an alternative installer in README"
       }
     ],
-    "updated": "2026-05-08T17:12:13Z"
+    "updated": "2026-05-08T19:45:15Z"
   }
 }

@@ -86,7 +86,6 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#979** -- docs: surface refinement/triage workflow to end users (Phase 0 / cache / ingest)
 - **#983** -- feat(swarm,security): swarm workers should authenticate as a distinct GitHub identity, not share the maintainer's PAT
 - **#984** -- docs(readme): call out https://webinstaller.fly.dev/ as an alternative installer in README
-- **#985** -- bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/`
 
 ## Completed
 
@@ -409,4 +408,6 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#949** -- fix(scanner): tune injection-heading detector to reduce false-positives on legitimate template markdown (#949) -- `[completed]`
 - **#954** -- feat(meta): canonical orchestrator preamble + REST-default / no-Draft-retoggle / rate-limit-throttle / dispatcher-lifecycle-hygiene rules (#954) -- `[completed]`
 - **#961** -- feat(scripts): gh_rest.py REST-fallback helpers for gh mutations and reads (#961) -- `[completed]`
+- **#985** -- bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/` -- `[completed]`
+- **#988** -- bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready -- `[completed]`
 

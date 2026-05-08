@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/988",
@@ -51,6 +51,6 @@
         "title": "Issue #988: bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready"
       }
     ],
-    "updated": "2026-05-08T17:53:51Z"
+    "updated": "2026-05-08T19:43:42Z"
   }
 }

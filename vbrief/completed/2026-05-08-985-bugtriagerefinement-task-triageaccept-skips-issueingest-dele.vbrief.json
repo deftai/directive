@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/`",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/`",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/985",
@@ -51,6 +51,6 @@
         "title": "Issue #985: bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/`"
       }
     ],
-    "updated": "2026-05-08T17:53:51Z"
+    "updated": "2026-05-08T19:43:38Z"
   }
 }

@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-08T17:12:21Z"
+    "updated": "2026-05-08T19:45:42Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -1000,22 +1000,6 @@
               "uri": "https://github.com/deftai/directive/issues/984",
               "type": "x-vbrief/github-issue",
               "title": "Issue #984: docs(readme): call out https://webinstaller.fly.dev/ as an alternative installer in README"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-08-985-bugtriagerefinement-task-triageaccept-skips-issueingest-dele",
-        "title": "bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/`",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-05-08-985-bugtriagerefinement-task-triageaccept-skips-issueingest-dele.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/985",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #985: bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/`"
             }
           ]
         }
@@ -6827,6 +6811,38 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-05-08-985-bugtriagerefinement-task-triageaccept-skips-issueingest-dele",
+        "title": "bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/`",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-08-985-bugtriagerefinement-task-triageaccept-skips-issueingest-dele.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/985",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #985: bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/`"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-08-988-bugrefinementingest-task-issueingest-produces-stub-vbriefs-w",
+        "title": "bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-08-988-bugrefinementingest-task-issueingest-produces-stub-vbriefs-w.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/988",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #988: bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
@@ -6845,6 +6861,7 @@
         "Narrative 'OpenQuestions' may be stale: completed scope 'Deterministic questions: instant number acceptance is disorienting' shares topics (questions)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'feat(framework,skills): add Discuss + Back as canonical numbered options in all deterministic-mode questions' shares topics (questions)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'fix(scripts/reconcile_issues.py, scripts/release.py): vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues' shares topics (open)",
+        "Narrative 'Overview' may be stale: completed scope 'bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready' shares topics (overview)",
         "Narrative 'Overview' may be stale: completed scope 'fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key' shares topics (overview)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Branching requirement too prescriptive -- context-aware solo-project qualifier' shares topics (project)",

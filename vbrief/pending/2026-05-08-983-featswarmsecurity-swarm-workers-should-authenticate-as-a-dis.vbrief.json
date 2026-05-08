@@ -9,9 +9,14 @@
     "narratives": {
       "Description": "feat(swarm,security): swarm workers should authenticate as a distinct GitHub identity, not share the maintainer's PAT",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/983",
+      "Overview": "## Problem\n\nToday, swarm workers and the maintainer share a single GitHub PAT. This couples\nthe human review/merge workflow and N concurrent workers onto a single\n5,000-req/hr GraphQL bucket per identity. Operational consequences observed in\nthe 2026-05-07 multi-agent session and again on 2026-05-08:\n\n- Bucket depletion by workers blocks the maintainer's interactive review\n  workflow (PR open/close, review submission, merge) -- the human is rate-limited\n  by their own swarm.\n- Audit logs conflate human actions and machine actions under one identity, so\n  forensic separation (\"which commit/comment was a worker vs. the maintainer?\")\n  requires correlating timestamps and prompt envelopes rather than reading\n  `actor.login` directly.\n- Credential blast radius: a leaked or compromised worker prompt can act with\n  the full scope of the maintainer's PAT (issue close, PR merge, release\n  publish), not the narrower scope a worker actually needs.\n\nThis issue is the credential-isolation track that was carved out of #976\n(originally drafted as a \"Complementary mitigation: per-identity credential\nseparation\" section in that issue). #976 itself stays focused on the SCM/REST\nmigration.\n\n## Proposed remediation\n\n- Provision a dedicated bot identity (bot account or, preferably, a GitHub App\n  installation token) for swarm workers.\n- Reserve the maintainer's PAT for human review, merge, and release operations\n  -- it should never be the active credential inside a `start_agent` envelope.\n- Inject the worker credential explicitly via the dispatch envelope (e.g.\n  `GH_TOKEN` in the prompt-supplied env), NOT via implicit `gh auth status` on\n  the host machine. This makes credential identity explicit per dispatch and\n  testable.\n- Scope the worker token down to the minimum needed (issues:write, pulls:write,\n  contents:read, etc.). The maintainer PAT keeps the broader scope.\n\n## Sub-scope\n\n- New doc: `patterns/multi-agent.md` covering identity separation, bucket\n  partitioning, and the dispatch-envelope credential rule.\n- Operator runbook section: how to provision the bot identity / GitHub App,\n  rotate its credential, and recover from a leaked worker token.\n- Update `templates/agent-prompt-preamble.md` so the canonical preamble says\n  workers MUST consume the credential injected by the dispatcher (and MUST NOT\n  fall back to the host's `gh auth` state).\n\n## Related\n\n- #976 -- remaining GraphQL drain in `scripts/scm.py` + smoke test (this issue\n  was carved out of #976's \"Complementary mitigation\" section)\n- #588, #806, #585, #519, #520 -- prior multi-agent / swarm credential and\n  rate-limit threads\n- #954 / #966 -- canonical agent-prompt preamble; this work updates that\n  template\n\n## Non-goals\n\n- Does NOT block the SCM/REST migration in #976. The two tracks are\n  complementary and can land independently.\n- Does NOT introduce per-worker token rotation infrastructure in v1 -- a\n  single shared bot/App token for all workers is acceptable as the first\n  increment, with rotation deferred to a follow-up.\n",
       "Labels": "docs, adoption-blocker"
     },
     "items": [],
+    "tags": [
+      "docs",
+      "adoption-blocker"
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/983",
@@ -19,6 +24,6 @@
         "title": "Issue #983: feat(swarm,security): swarm workers should authenticate as a distinct GitHub identity, not share the maintainer's PAT"
       }
     ],
-    "updated": "2026-05-08T17:12:13Z"
+    "updated": "2026-05-08T19:45:08Z"
   }
 }
