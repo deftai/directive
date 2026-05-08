@@ -32,6 +32,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 # Make sibling scripts importable both when run as __main__ and when imported
 # by tests that pre-populate sys.path with the ``scripts/`` directory.
@@ -45,6 +46,17 @@ from reconcile_issues import (  # noqa: E402
     fetch_open_issues,
     scan_vbrief_dir,
 )
+
+# #883 unified cache surface (optional). When present we prefer the cached
+# raw.json payload over a live ``gh api`` round-trip so a Phase 0 walk that
+# pre-populated the cache (``task cache:fetch-all``) does not re-spend the
+# REST budget per issue. The import is guarded so this module imports cleanly
+# in checkouts where ``scripts/cache.py`` is not yet on the branch -- tests
+# substitute fakes via ``monkeypatch.setattr(issue_ingest, "cache", ...)``.
+try:  # pragma: no cover -- exercised once #883 Story 2 lands.
+    import cache  # type: ignore[import-not-found]  # noqa: E402
+except ImportError:  # pragma: no cover
+    cache = None  # type: ignore[assignment]
 
 reconfigure_stdio()
 
@@ -73,12 +85,26 @@ def _build_issue_vbrief(
     """Build a scope vBRIEF dict (and the target lifecycle folder) from a GitHub issue dict.
 
     ``issue`` is the JSON payload returned by ``gh api repos/.../issues/N`` or
-    one element of the ``gh issue list --json number,title,labels,url`` array.
+    one element of the ``gh issue list --json number,title,labels,url,body``
+    array.
 
-    Emits canonical vBRIEF v0.6 output (#639):
+    Emits canonical vBRIEF v0.6 output (#639 + #988):
       - ``vBRIEFInfo.version = EMITTED_VBRIEF_VERSION`` (``"0.6"``) -- the
         canonical schema pin (const ``"0.6"`` in
         ``vbrief/schemas/vbrief-core.schema.json``).
+      - ``plan.narratives.Overview`` carries the GitHub issue body verbatim
+        when present (#988). This is the contract documented in
+        ``skills/deft-directive-swarm/SKILL.md`` Phase 0 Step 0B; the prior
+        implementation only emitted ``Description`` (= title) and dropped
+        the body, producing stub vBRIEFs that failed every downstream
+        "acceptance criteria present" check. ``narratives.Labels`` is kept
+        for backward compatibility but ``plan.tags`` is now the structured
+        surface for downstream filtering.
+      - ``plan.tags`` is a list of label-name strings when the issue carries
+        labels (#988). The Plan schema's ``tags`` array (line 162 of
+        ``vbrief/schemas/vbrief-core.schema.json``) accepts arbitrary
+        strings; this lets consumers filter without parsing the freeform
+        ``narratives.Labels`` text.
       - ``plan.references`` uses the canonical
         ``VBriefReference`` shape ``{uri, type: "x-vbrief/github-issue",
         title: "Issue #{N}: {title}"}`` documented in
@@ -95,6 +121,8 @@ def _build_issue_vbrief(
     url = str(issue.get("url", "")) or (
         f"{repo_url}/issues/{number}" if repo_url else ""
     )
+    body = issue.get("body")
+    body_str = str(body) if isinstance(body, str) and body else ""
     labels = issue.get("labels", []) or []
     label_names = [
         (lbl.get("name") if isinstance(lbl, dict) else str(lbl))
@@ -107,6 +135,12 @@ def _build_issue_vbrief(
         "Description": title,
         "Origin": f"Ingested from {url}" if url else f"Ingested from issue #{number}",
     }
+    if body_str:
+        # #988: carry the issue body verbatim to ``narratives.Overview`` so
+        # the swarm Phase 0 "acceptance criteria present" check has source
+        # text to project from. We do NOT parse sections into ``plan.items``
+        # here -- that is explicitly a follow-up per the issue's Non-goals.
+        narratives["Overview"] = body_str
     if label_names:
         narratives["Labels"] = ", ".join(label_names)
 
@@ -116,6 +150,10 @@ def _build_issue_vbrief(
         "narratives": narratives,
         "items": [],
     }
+    if label_names:
+        # #988: structured-surface mirror of ``narratives.Labels`` so
+        # consumers can filter by tag without parsing the freeform string.
+        plan["tags"] = list(label_names)
 
     # #639: canonical v0.6 VBriefReference shape. Only emit when we have a
     # resolvable URL -- the schema requires ``uri`` and we must not forge
@@ -143,6 +181,75 @@ def _target_filename(number: int, title: str) -> str:
     """Build the ``YYYY-MM-DD-<N>-<slug>.vbrief.json`` filename for an issue."""
     slug = slugify(title) or f"issue-{number}"
     return f"{TODAY}-{number}-{slug}.vbrief.json"
+
+
+def _fetch_from_cache(
+    repo: str,
+    number: int,
+    *,
+    cache_root: Path | None = None,
+) -> dict | None:
+    """Read the unified cache (#883) for ``(github-issue, repo/number)`` if fresh.
+
+    Returns the parsed ``raw.json`` payload when present and not stale,
+    ``None`` otherwise (cache miss, stale entry, parse failure, or the
+    cache module is not importable). The caller falls back to a live
+    ``gh api`` round-trip via :func:`_fetch_single_issue` on ``None``.
+
+    Cache freshness is delegated to :func:`scripts.cache.cache_get` with
+    ``allow_stale=False`` -- this matches the #883 contract that callers
+    opt in to stale entries explicitly. The unified cache TTL for
+    ``github-issue`` is 7 days (see ``scripts/cache.py::SOURCE_TTL_SECONDS``).
+    """
+    if cache is None:
+        return None
+    key = f"{repo}/{int(number)}"
+    try:
+        result = cache.cache_get(
+            "github-issue", key, cache_root=cache_root, allow_stale=False
+        )
+    except Exception:  # noqa: BLE001 -- any cache error -> live fetch fallback
+        return None
+    raw_path = Path(result.entry_dir) / "raw.json"
+    if not raw_path.exists():
+        return None
+    try:
+        issue: Any = json.loads(raw_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(issue, dict):
+        return None
+    # Mirror the normalisation _fetch_single_issue applies to live ``gh api``
+    # output: prefer ``html_url`` (browser URL) over ``url`` (REST API URL)
+    # when both are present. The cache populated by ``task cache:fetch-all``
+    # uses ``gh issue list --json ...,url`` which already emits the browser
+    # URL, so this branch is a no-op for cached payloads -- but keep it
+    # defensive so a future cache populator using ``gh api`` directly still
+    # produces honest output here.
+    if issue.get("html_url"):
+        issue["url"] = issue["html_url"]
+    return issue
+
+
+def _fetch_issue(
+    repo: str,
+    number: int,
+    *,
+    cwd: Path | None = None,
+    cache_root: Path | None = None,
+) -> dict | None:
+    """Fetch a single issue, preferring the unified cache over live ``gh api``.
+
+    #988: when ``.deft-cache/github-issue/<owner>/<repo>/<N>/raw.json`` is
+    fresh, return the cached payload directly so a Phase 0 walk that
+    pre-populated the cache via ``task cache:fetch-all`` does not re-spend
+    the REST budget per issue. Falls back to live ``gh api`` on cache miss
+    or stale entries (per #883 cache freshness rules).
+    """
+    cached = _fetch_from_cache(repo, number, cache_root=cache_root)
+    if cached is not None:
+        return cached
+    return _fetch_single_issue(repo, number, cwd=cwd)
 
 
 def _fetch_single_issue(
@@ -423,8 +530,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  SKIP    {entry} (already has scope vBRIEF)")
         return 0
 
-    # Single-issue mode
-    issue = _fetch_single_issue(repo, args.number, cwd=project_root)
+    # Single-issue mode -- prefer the unified cache (#883/#988) before
+    # falling back to a live ``gh api`` round-trip.
+    issue = _fetch_issue(repo, args.number, cwd=project_root)
     if issue is None:
         return 2
     result, path, msg = ingest_one(
@@ -438,6 +546,52 @@ def main(argv: list[str] | None = None) -> int:
     if result == "duplicate":
         return 1
     return 0
+
+
+def ingest_single_for_accept(
+    n: int,
+    repo: str,
+    *,
+    project_root: Path | None = None,
+    status: str = "proposed",
+    cache_root: Path | None = None,
+) -> tuple[str, Path | None]:
+    """Ingest a single issue on behalf of ``triage_actions.accept`` (#985).
+
+    The triage skill's contract is that ``task triage:accept`` delegates the
+    actual vBRIEF authoring to ``task issue:ingest`` so slug / reference /
+    schema rules stay in one place (per ``conventions/references.md`` and
+    ``skills/deft-directive-refinement/SKILL.md`` Phase 0 Tier 3). This is
+    the importable Python entry point that ``scripts/triage_actions.py::accept``
+    calls after the audit-log append succeeds.
+
+    Resolves ``vbrief_dir`` to ``<project_root>/vbrief`` (created on demand)
+    and the ``repo_url`` to the canonical browser URL via
+    :func:`_resolve_repo_url`. Fetches the issue via :func:`_fetch_issue`
+    (cache-first per #988) and writes the vBRIEF via :func:`ingest_one`.
+
+    Returns the ``(result, path)`` tuple from :func:`ingest_one`. Raises
+    :class:`RuntimeError` on fetch failure so the caller (``accept``) can
+    roll the audit-log entry back.
+    """
+    root = (project_root or Path.cwd()).resolve()
+    vbrief_dir = (root / "vbrief").resolve()
+    if not vbrief_dir.exists():
+        vbrief_dir.mkdir(parents=True, exist_ok=True)
+    repo_url = _resolve_repo_url(repo)
+    issue = _fetch_issue(repo, n, cwd=root, cache_root=cache_root)
+    if issue is None:
+        raise RuntimeError(
+            f"failed to fetch GitHub issue #{n} from {repo} "
+            "(unified cache miss + live gh api fetch failed; see stderr)"
+        )
+    result, path, _msg = ingest_one(
+        issue,
+        vbrief_dir=vbrief_dir,
+        status=status,
+        repo_url=repo_url,
+    )
+    return result, path
 
 
 if __name__ == "__main__":

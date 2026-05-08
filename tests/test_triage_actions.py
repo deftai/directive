@@ -109,9 +109,53 @@ def _fake_candidates_log() -> SimpleNamespace:
 # ---------------------------------------------------------------------------
 
 
+def _fake_issue_ingest(
+    *,
+    fail: bool = False,
+    error: Exception | None = None,
+) -> SimpleNamespace:
+    """Return a stub of ``issue_ingest`` recording delegation calls.
+
+    When ``fail`` is True (or an explicit ``error`` is supplied) the stub
+    raises -- exercising the audit-rollback path on the accept side.
+    """
+
+    calls: list[dict[str, Any]] = []
+
+    def ingest_single_for_accept(
+        n: int,
+        repo: str,
+        *,
+        project_root: Path | None = None,
+        status: str = "proposed",
+        cache_root: Path | None = None,
+    ) -> tuple[str, Path | None]:
+        calls.append(
+            {
+                "n": n,
+                "repo": repo,
+                "project_root": project_root,
+                "status": status,
+                "cache_root": cache_root,
+            }
+        )
+        if error is not None:
+            raise error
+        if fail:
+            raise RuntimeError("simulated ingest failure")
+        return "created", Path("vbrief/proposed/fake.vbrief.json")
+
+    return SimpleNamespace(
+        ingest_single_for_accept=ingest_single_for_accept,
+        calls=calls,
+    )
+
+
 def test_accept_appends_audit_entry(monkeypatch: pytest.MonkeyPatch) -> None:
     log = _fake_candidates_log()
+    ingest = _fake_issue_ingest()
     monkeypatch.setattr(triage_actions, "candidates_log", log)
+    monkeypatch.setattr(triage_actions, "issue_ingest", ingest)
 
     decision_id = triage_actions.accept(123, "deftai/directive", actor="agent:test")
 
@@ -122,6 +166,124 @@ def test_accept_appends_audit_entry(monkeypatch: pytest.MonkeyPatch) -> None:
     assert entry["issue_number"] == 123
     assert entry["repo"] == "deftai/directive"
     assert entry["actor"] == "agent:test"
+    # #985: accept MUST delegate to issue_ingest after the audit append.
+    assert len(ingest.calls) == 1
+    assert ingest.calls[0]["n"] == 123
+    assert ingest.calls[0]["repo"] == "deftai/directive"
+
+
+def test_accept_delegates_to_issue_ingest_after_audit_append(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """#985: ``accept`` invokes ``issue_ingest.ingest_single_for_accept`` once,
+    AFTER the audit entry has been recorded, with the project_root threaded
+    through so the delegate writes into the correct ``vbrief/`` tree.
+    """
+    log = _fake_candidates_log()
+    ingest = _fake_issue_ingest()
+
+    # Capture the audit-append order: every append happens BEFORE the
+    # delegate is called. Stash a marker on the entry so the test can
+    # assert ordering rather than relying on call counts alone.
+    order: list[str] = []
+
+    def _ordered_append(entry: dict[str, Any], *, path: Path | None = None) -> str:
+        order.append("append")
+        log.appended.append(entry)
+        return str(entry["decision_id"])
+
+    log.append = _ordered_append
+
+    def _ordered_ingest(
+        n: int,
+        repo: str,
+        *,
+        project_root: Path | None = None,
+        status: str = "proposed",
+        cache_root: Path | None = None,
+    ) -> tuple[str, Path | None]:
+        order.append("ingest")
+        ingest.calls.append({"n": n, "repo": repo, "project_root": project_root})
+        return "created", tmp_path / "vbrief" / "proposed" / "fake.vbrief.json"
+
+    ingest.ingest_single_for_accept = _ordered_ingest
+
+    monkeypatch.setattr(triage_actions, "candidates_log", log)
+    monkeypatch.setattr(triage_actions, "issue_ingest", ingest)
+
+    triage_actions.accept(
+        555, "deftai/directive", actor="agent:test", project_root=tmp_path
+    )
+
+    assert order == ["append", "ingest"]
+    assert ingest.calls[0]["project_root"] == tmp_path
+
+
+def test_accept_rolls_audit_back_on_ingest_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """#985: when the delegated ingest raises, the audit entry MUST be rolled
+    back (mirrors :func:`reject`'s upstream-close-failure pattern). The log
+    must never reference an accept decision that did not produce a vBRIEF.
+    """
+    log = _fake_candidates_log()
+
+    audit_path = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
+    audit_path.parent.mkdir(parents=True, exist_ok=True)
+    audit_path.write_text("", encoding="utf-8")
+    monkeypatch.setattr(
+        triage_actions, "AUDIT_LOG_REL_PATH", str(audit_path.relative_to(tmp_path))
+    )
+
+    def _capture_append(entry: dict[str, Any], *, path: Path | None = None) -> str:
+        log.appended.append(entry)
+        with audit_path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry) + "\n")
+        return str(entry["decision_id"])
+
+    log.append = _capture_append
+
+    ingest = _fake_issue_ingest(fail=True)
+    monkeypatch.setattr(triage_actions, "candidates_log", log)
+    monkeypatch.setattr(triage_actions, "issue_ingest", ingest)
+
+    with pytest.raises(triage_actions.TriageError, match="ingest delegation failed"):
+        triage_actions.accept(
+            42, "deftai/directive", actor="agent:test", project_root=tmp_path
+        )
+
+    # The audit entry was written, then rolled back -- the file is empty.
+    remaining = audit_path.read_text(encoding="utf-8").strip()
+    assert remaining == "", (
+        f"audit entry must be rolled back on ingest failure; remaining: {remaining!r}"
+    )
+
+
+def test_accept_idempotent_does_not_re_ingest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """#985: a re-accept on an already-accepted issue MUST NOT call the
+    ingest delegate again. The original ``vbrief/proposed/`` artefact is
+    preserved as-is; re-ingesting would overwrite human edits.
+    """
+    log = _fake_candidates_log()
+    log.state["latest"] = {
+        "decision_id": "prior-id",
+        "decision": "accept",
+        "issue_number": 9,
+        "repo": "deftai/directive",
+    }
+    ingest = _fake_issue_ingest()
+    monkeypatch.setattr(triage_actions, "candidates_log", log)
+    monkeypatch.setattr(triage_actions, "issue_ingest", ingest)
+
+    decision_id = triage_actions.accept(9, "deftai/directive", actor="agent:test")
+
+    assert decision_id == "prior-id"
+    assert log.appended == []
+    assert ingest.calls == [], (
+        "idempotent re-accept must not re-invoke the ingest delegate"
+    )
 
 
 def test_defer_appends_audit_entry(monkeypatch: pytest.MonkeyPatch) -> None:

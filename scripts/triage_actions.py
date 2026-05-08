@@ -3,7 +3,13 @@
 
 Provides eight commands consumed via ``tasks/triage-actions.yml``:
 
-- ``accept(n, repo)`` -- record an accept audit entry.
+- ``accept(n, repo)`` -- record an accept audit entry AND delegate the vBRIEF
+  authoring to ``scripts/issue_ingest.py`` (#985). After ``log.append(entry)``
+  succeeds, ``ingest_single_for_accept`` is invoked to materialise the issue
+  in ``vbrief/proposed/`` per the refinement skill's three-tier inventory
+  model. If the ingest fails, the audit entry is ROLLED BACK so the log
+  never references an accept decision that did not actually produce a vBRIEF
+  (mirrors :func:`reject`'s rollback pattern).
 - ``reject(n, repo, reason)`` -- close the upstream GitHub issue with
   ``gh issue close <n> --comment <reason> --reason 'not planned'``, apply the
   ``triage-rejected`` label, and record a reject audit entry. If the upstream
@@ -75,6 +81,16 @@ try:  # pragma: no cover -- exercised once #883 Story 2 lands.
     import cache  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover
     cache = None  # type: ignore[assignment]
+
+# #985: triage:accept delegates the vBRIEF authoring to issue_ingest after
+# the audit-log append succeeds. Guarded so the module imports cleanly when
+# issue_ingest pulls in transitive deps (e.g. ``cache``) that may not be
+# present on a slimmed-down checkout. Tests substitute fakes via
+# ``monkeypatch.setattr(triage_actions, "issue_ingest", ...)``.
+try:  # pragma: no cover -- exercised once #454 lands on the same checkout.
+    import issue_ingest  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover
+    issue_ingest = None  # type: ignore[assignment]
 
 
 # Public constants ----------------------------------------------------------
@@ -299,14 +315,74 @@ def accept(
     actor: str | None = None,
     project_root: Path | None = None,
 ) -> str:
-    """Record an accept audit entry. Idempotent on already-accepted state."""
+    """Record an accept audit entry AND delegate vBRIEF authoring to issue_ingest.
+
+    Performs (in order):
+
+    1. Idempotency check -- if the issue is already accepted, return the
+       prior ``decision_id`` without re-appending and WITHOUT re-ingesting.
+       The pre-existing ``vbrief/proposed/`` artefact written on the first
+       accept is preserved as-is.
+    2. Append the audit entry, capturing ``decision_id``.
+    3. Delegate to :func:`scripts.issue_ingest.ingest_single_for_accept` to
+       materialise the issue as a scope vBRIEF in ``vbrief/proposed/``
+       (per ``skills/deft-directive-refinement/SKILL.md`` Phase 0 Tier 3:
+       "task triage:accept is the canonical write path -- it delegates the
+       actual vBRIEF authoring to task issue:ingest so slug/reference/schema
+       rules stay in one place"). The ingest call is cache-first per #883;
+       slug rules + canonical reference shape stay owned by ``issue_ingest``
+       per #537.
+    4. On ingest failure: roll the audit entry back via
+       :func:`_rollback_audit_entry` and re-raise as :class:`TriageError`
+       (mirrors :func:`reject`'s upstream-close-failure handling).
+
+    Idempotency note: the idempotent short-circuit at step 1 deliberately
+    skips both the audit append AND the ingest delegation -- a re-accept
+    must NOT write a second proposed/ vBRIEF. Story 2's append-only audit
+    log preserves the original ``decision_id`` and the slug-stable vBRIEF
+    path keeps the original artefact reachable.
+    """
     actor_str = _resolve_actor(actor)
     prior = _is_idempotent_repeat(n, repo, "accept")
     if prior is not None:
         return str(prior["decision_id"])
     log = _require_log()
     entry = _build_entry("accept", n, repo, actor=actor_str)
-    return str(log.append(entry))
+    decision_id = str(log.append(entry))
+    try:
+        _delegate_accept_ingest(n, repo, project_root=project_root)
+    except Exception as exc:  # noqa: BLE001 -- any ingest failure -> rollback
+        _rollback_audit_entry(decision_id, project_root=project_root)
+        # Surface as a structured TriageError so CLI / Taskfile callers exit
+        # non-zero with an actionable message instead of a raw traceback.
+        raise TriageError(
+            f"accept #{n} ({repo}): issue:ingest delegation failed; "
+            f"audit entry rolled back. Cause: {exc}"
+        ) from exc
+    return decision_id
+
+
+def _delegate_accept_ingest(
+    n: int,
+    repo: str,
+    *,
+    project_root: Path | None = None,
+) -> None:
+    """Invoke ``issue_ingest.ingest_single_for_accept`` for ``(repo, n)``.
+
+    Raises :class:`TriageError` when ``scripts/issue_ingest.py`` is not
+    importable in this checkout (mirrors :func:`_require_log` /
+    :func:`_require_cache`). Any exception raised by the ingest path is
+    propagated unchanged so :func:`accept` can roll the audit entry back
+    with the original cause attached to the chained ``TriageError``.
+    """
+    if issue_ingest is None:
+        raise TriageError(
+            "scripts/issue_ingest.py is not available in this checkout. "
+            "#454 (task issue:ingest) must land or this PR must be rebased "
+            "onto master."
+        )
+    issue_ingest.ingest_single_for_accept(n, repo, project_root=project_root)
 
 
 def reject(

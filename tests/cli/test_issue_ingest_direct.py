@@ -415,3 +415,340 @@ class TestBuildIssueVbrief:
     def test_target_filename_empty_title_falls_back(self):
         name = issue_ingest._target_filename(11, "")
         assert name.endswith("-11-issue-11.vbrief.json")
+
+
+# ---------------------------------------------------------------------------
+# #988 body fidelity -- narratives.Overview + plan.tags
+# ---------------------------------------------------------------------------
+
+
+class TestBodyFidelityAndTags:
+    """Cover the #988 contract: body lands in narratives.Overview and labels
+    populate the structured plan.tags array.
+    """
+
+    def test_body_lands_in_narratives_overview(self):
+        """#988: ``plan.narratives.Overview`` MUST equal the issue body verbatim."""
+        body = (
+            "## Summary\nThis is the canonical body.\n\n"
+            "## Acceptance Criteria\n- [ ] does the thing\n"
+        )
+        vbrief, _folder = issue_ingest._build_issue_vbrief(
+            {"number": 12, "title": "T", "body": body, "url": "https://x/12"},
+            "proposed",
+            "",
+        )
+        assert vbrief["plan"]["narratives"]["Overview"] == body
+
+    def test_missing_body_omits_overview(self):
+        """When the GitHub payload has no body, ``Overview`` is omitted (not
+        emitted as an empty string -- that would lie about there being
+        content).
+        """
+        vbrief, _ = issue_ingest._build_issue_vbrief(
+            {"number": 13, "title": "T"}, "proposed", ""
+        )
+        assert "Overview" not in vbrief["plan"]["narratives"]
+
+    def test_empty_body_omits_overview(self):
+        """An explicit empty-string body is honest about "no content"."""
+        vbrief, _ = issue_ingest._build_issue_vbrief(
+            {"number": 14, "title": "T", "body": ""}, "proposed", ""
+        )
+        assert "Overview" not in vbrief["plan"]["narratives"]
+
+    def test_plan_tags_populated_from_label_dicts(self):
+        """#988: ``plan.tags`` is a structured array of label-name strings."""
+        vbrief, _ = issue_ingest._build_issue_vbrief(
+            {
+                "number": 15,
+                "title": "T",
+                "labels": [
+                    {"name": "bug"},
+                    {"name": "adoption-blocker"},
+                ],
+            },
+            "proposed",
+            "",
+        )
+        assert vbrief["plan"]["tags"] == ["bug", "adoption-blocker"]
+        # narratives.Labels survives for backward compatibility.
+        assert vbrief["plan"]["narratives"]["Labels"] == "bug, adoption-blocker"
+
+    def test_plan_tags_populated_from_string_labels(self):
+        vbrief, _ = issue_ingest._build_issue_vbrief(
+            {"number": 16, "title": "T", "labels": ["alpha", "beta"]},
+            "proposed",
+            "",
+        )
+        assert vbrief["plan"]["tags"] == ["alpha", "beta"]
+
+    def test_plan_tags_omitted_when_no_labels(self):
+        """No labels -> no ``plan.tags`` key (rather than an empty array)."""
+        vbrief, _ = issue_ingest._build_issue_vbrief(
+            {"number": 17, "title": "T"}, "proposed", ""
+        )
+        assert "tags" not in vbrief["plan"]
+
+    def test_plan_items_remains_empty_per_988_non_goals(self):
+        """#988 Non-goals: section-parsing into ``plan.items`` is explicitly a
+        follow-up. ``plan.items`` MUST remain ``[]`` from this fix.
+        """
+        body = (
+            "## Acceptance Criteria\n- [ ] thing one\n- [ ] thing two\n"
+        )
+        vbrief, _ = issue_ingest._build_issue_vbrief(
+            {"number": 18, "title": "T", "body": body},
+            "proposed",
+            "",
+        )
+        assert vbrief["plan"]["items"] == []
+
+
+# ---------------------------------------------------------------------------
+# #988 cache-first fetch path -- _fetch_from_cache + _fetch_issue
+# ---------------------------------------------------------------------------
+
+
+class TestCachePreference:
+    """Cover the #883/#988 contract: a fresh unified-cache hit is preferred
+    over a live ``gh api`` round-trip; cache miss / stale falls back to live.
+    """
+
+    @staticmethod
+    def _seed_cache(tmp_path, repo: str, number: int, raw: dict) -> None:
+        """Write a raw.json under the cache root in the shape ``cache.cache_get``
+        consumes (the entry dir matches ``entry_dir("github-issue", key)``).
+        """
+        owner, name = repo.split("/")
+        edir = tmp_path / "github-issue" / owner / name / str(number)
+        edir.mkdir(parents=True, exist_ok=True)
+        (edir / "raw.json").write_text(
+            json.dumps(raw, indent=2), encoding="utf-8"
+        )
+
+    def test_fetch_from_cache_returns_cached_payload(self, monkeypatch, tmp_path):
+        """When a fresh cache hit exists, ``_fetch_from_cache`` returns its
+        ``raw.json`` parsed into a dict.
+        """
+        from types import SimpleNamespace
+
+        raw = {"number": 21, "title": "Cached", "body": "BODY", "url": "https://x/21"}
+        self._seed_cache(tmp_path, "o/r", 21, raw)
+
+        def fake_get(source, key, *, cache_root=None, allow_stale=False):
+            assert source == "github-issue"
+            assert key == "o/r/21"
+            assert allow_stale is False
+            return SimpleNamespace(
+                source=source,
+                key=key,
+                entry_dir=tmp_path / "github-issue" / "o" / "r" / "21",
+                meta={},
+                content_path=None,
+                stale=False,
+            )
+
+        fake_cache = SimpleNamespace(cache_get=fake_get)
+        monkeypatch.setattr(issue_ingest, "cache", fake_cache)
+
+        got = issue_ingest._fetch_from_cache("o/r", 21)
+        assert got is not None
+        assert got["number"] == 21
+        assert got["body"] == "BODY"
+
+    def test_fetch_from_cache_returns_none_on_miss(self, monkeypatch):
+        """Cache miss -> ``None`` so the wrapper falls back to live fetch."""
+        from types import SimpleNamespace
+
+        def fake_get(*_a, **_k):
+            raise KeyError("miss")
+
+        monkeypatch.setattr(
+            issue_ingest, "cache", SimpleNamespace(cache_get=fake_get)
+        )
+        assert issue_ingest._fetch_from_cache("o/r", 22) is None
+
+    def test_fetch_from_cache_returns_none_on_stale(self, monkeypatch):
+        """Stale entry surfaces as ``CacheNotFoundError`` from cache_get; the
+        wrapper swallows and falls back.
+        """
+        from types import SimpleNamespace
+
+        def fake_get(*_a, **_k):
+            # cache.cache_get raises CacheNotFoundError when allow_stale=False
+            # AND the entry is stale; from this layer's perspective the only
+            # contract is "any error -> live fetch fallback".
+            raise RuntimeError("stale")
+
+        monkeypatch.setattr(
+            issue_ingest, "cache", SimpleNamespace(cache_get=fake_get)
+        )
+        assert issue_ingest._fetch_from_cache("o/r", 23) is None
+
+    def test_fetch_from_cache_returns_none_when_cache_module_missing(
+        self, monkeypatch
+    ):
+        """On a slim checkout without ``scripts/cache.py``, ``_fetch_from_cache``
+        returns ``None`` cleanly (no AttributeError) so the live-fetch path
+        runs.
+        """
+        monkeypatch.setattr(issue_ingest, "cache", None)
+        assert issue_ingest._fetch_from_cache("o/r", 24) is None
+
+    def test_fetch_issue_prefers_cache_over_live(self, monkeypatch, tmp_path):
+        """#988: cache hit short-circuits the live ``gh api`` call entirely."""
+        from types import SimpleNamespace
+
+        raw = {"number": 30, "title": "Cached", "body": "FROM CACHE", "url": "https://x/30"}
+        self._seed_cache(tmp_path, "o/r", 30, raw)
+
+        def fake_get(source, key, *, cache_root=None, allow_stale=False):
+            return SimpleNamespace(
+                source=source,
+                key=key,
+                entry_dir=tmp_path / "github-issue" / "o" / "r" / "30",
+                meta={},
+                content_path=None,
+                stale=False,
+            )
+
+        called = {"live": False}
+
+        def _spy_live(*_a, **_k):
+            called["live"] = True
+            return {"number": 999, "title": "LIVE", "body": "LIVE"}
+
+        monkeypatch.setattr(
+            issue_ingest, "cache", SimpleNamespace(cache_get=fake_get)
+        )
+        monkeypatch.setattr(issue_ingest, "_fetch_single_issue", _spy_live)
+
+        got = issue_ingest._fetch_issue("o/r", 30)
+        assert got is not None
+        assert got["body"] == "FROM CACHE"
+        assert called["live"] is False, "live fetch must be skipped on cache hit"
+
+    def test_fetch_issue_falls_back_to_live_on_cache_miss(self, monkeypatch):
+        """Cache miss -> live ``gh api`` fetch is invoked."""
+        from types import SimpleNamespace
+
+        def fake_get(*_a, **_k):
+            raise KeyError("miss")
+
+        monkeypatch.setattr(
+            issue_ingest, "cache", SimpleNamespace(cache_get=fake_get)
+        )
+
+        called = {"live": False}
+
+        def _spy_live(repo, number, *, cwd=None):
+            called["live"] = True
+            return {"number": number, "title": "LIVE", "body": "L", "url": "https://x"}
+
+        monkeypatch.setattr(issue_ingest, "_fetch_single_issue", _spy_live)
+        got = issue_ingest._fetch_issue("o/r", 31)
+        assert called["live"] is True
+        assert got is not None
+        assert got["body"] == "L"
+
+
+# ---------------------------------------------------------------------------
+# #985 ingest_single_for_accept -- importable Python entry point
+# ---------------------------------------------------------------------------
+
+
+class TestIngestSingleForAccept:
+    """Cover the #985 contract: ``ingest_single_for_accept`` writes a vBRIEF
+    in ``<project_root>/vbrief/proposed/`` from a fetched issue.
+    """
+
+    def test_writes_proposed_vbrief_with_canonical_shape(
+        self, monkeypatch, tmp_path
+    ):
+        """Happy path: a proposed/ vBRIEF is written, carrying body and tags."""
+
+        def _fake_fetch(repo, number, *, cwd=None, cache_root=None):
+            return {
+                "number": int(number),
+                "title": "Triaged Issue",
+                "body": "## Summary\nReal body.\n",
+                "url": "https://github.com/o/r/issues/100",
+                "labels": [{"name": "bug"}, {"name": "p1"}],
+            }
+
+        monkeypatch.setattr(issue_ingest, "_fetch_issue", _fake_fetch)
+
+        result, path = issue_ingest.ingest_single_for_accept(
+            100, "o/r", project_root=tmp_path
+        )
+        assert result == "created"
+        assert path is not None
+        assert path.exists()
+        # Path is inside vbrief/proposed/.
+        assert path.parent == tmp_path / "vbrief" / "proposed"
+        # Filename matches the slug rules from _vbrief_build.slugify.
+        assert path.name.endswith("-100-triaged-issue.vbrief.json")
+
+        vbrief = json.loads(path.read_text(encoding="utf-8"))
+        assert vbrief["vBRIEFInfo"]["version"] == "0.6"
+        plan = vbrief["plan"]
+        assert plan["narratives"]["Overview"] == "## Summary\nReal body.\n"
+        assert plan["tags"] == ["bug", "p1"]
+        # Canonical reference shape (#534/#613/#639).
+        ref = plan["references"][0]
+        assert ref["uri"] == "https://github.com/o/r/issues/100"
+        assert ref["type"] == "x-vbrief/github-issue"
+        assert ref["title"] == "Issue #100: Triaged Issue"
+
+    def test_raises_when_fetch_fails(self, monkeypatch, tmp_path):
+        """Both cache and live fetch fail -> ``RuntimeError`` so the caller
+        (``triage_actions.accept``) can roll the audit entry back.
+        """
+        monkeypatch.setattr(
+            issue_ingest, "_fetch_issue", lambda *_a, **_k: None
+        )
+        with pytest.raises(RuntimeError, match="failed to fetch GitHub issue"):
+            issue_ingest.ingest_single_for_accept(
+                404, "o/r", project_root=tmp_path
+            )
+
+    def test_returns_duplicate_when_already_ingested(self, monkeypatch, tmp_path):
+        """Pre-existing vBRIEF for the issue -> ``ingest_one`` returns
+        ``duplicate``; ``ingest_single_for_accept`` propagates that result
+        rather than raising.
+        """
+        # Pre-seed a vBRIEF that references issue #200 in proposed/.
+        proposed = tmp_path / "vbrief" / "proposed"
+        proposed.mkdir(parents=True, exist_ok=True)
+        (proposed / "2026-04-01-200-existing.vbrief.json").write_text(
+            json.dumps(
+                {
+                    "vBRIEFInfo": {"version": "0.6"},
+                    "plan": {
+                        "title": "Existing",
+                        "status": "proposed",
+                        "items": [],
+                        "references": [
+                            {
+                                "uri": "https://github.com/o/r/issues/200",
+                                "type": "x-vbrief/github-issue",
+                                "title": "Issue #200: Existing",
+                            }
+                        ],
+                    },
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+        def _fake_fetch(repo, number, *, cwd=None, cache_root=None):
+            return {"number": int(number), "title": "X", "body": "Y", "url": ""}
+
+        monkeypatch.setattr(issue_ingest, "_fetch_issue", _fake_fetch)
+
+        result, _path = issue_ingest.ingest_single_for_accept(
+            200, "o/r", project_root=tmp_path
+        )
+        assert result == "duplicate"
