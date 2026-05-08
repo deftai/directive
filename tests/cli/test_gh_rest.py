@@ -468,6 +468,32 @@ class TestRestCloseIssue:
         assert args[0] == "repos/deftai/directive/issues/100"
         assert args[args.index("--method") + 1] == "PATCH"
 
+    def test_reason_none_is_accepted(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Greptile P2-3 (#961): rest_close_issue.reason accepts None per
+        # its docstring (the GitHub REST API takes ``state_reason: null``
+        # to clear the field). Pre-fix the type annotation said ``str``
+        # only, so callers passing ``None`` would trip strict type
+        # checkers despite the runtime support. This test pins the
+        # None-passing path: payload serialises ``state_reason: null``
+        # and the call returns the parsed REST response without raising.
+        captured_payload: dict[str, Any] = {}
+
+        def fake_seam(args: list[str], **_kwargs: Any) -> SimpleNamespace:
+            captured_payload["text"] = _input_payload_path(args).read_text(
+                encoding="utf-8"
+            )
+            return _ok_completed(stdout='{"state": "closed"}')
+
+        monkeypatch.setattr(gh_rest, "_run_gh_api", fake_seam)
+        result = gh_rest.rest_close_issue("deftai/directive", 100, reason=None)
+        # Helper returns the parsed REST response shape, not the payload.
+        assert result == {"state": "closed"}
+        # Payload on disk serialises ``state_reason`` as JSON null.
+        parsed = json.loads(captured_payload["text"])
+        assert parsed == {"state": "closed", "state_reason": None}
+
 
 class TestRestOpenPr:
     def test_argv_and_payload_shape(self, monkeypatch: pytest.MonkeyPatch) -> None:

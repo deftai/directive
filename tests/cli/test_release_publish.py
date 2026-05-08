@@ -338,6 +338,223 @@ class TestEditReleasePublish:
 
 
 # ---------------------------------------------------------------------------
+# Greptile P2-1: 404 detection on stdout (some gh proxy configs route the
+# REST 404 JSON body to stdout instead of stderr). Pre-fix the helper only
+# inspected stderr and returned "gh-error" in this configuration.
+# ---------------------------------------------------------------------------
+
+
+class TestStdoutNotFoundDetection:
+    """Greptile P2-1 (#961): 404 may surface on stdout, not stderr.
+
+    Some gh CLI proxy configurations (notably ghx and corporate proxies)
+    forward the REST error body (``{"message": "Not Found", ...}``) to
+    stdout while leaving stderr empty. The original helper inspected
+    stderr only and returned ``gh-error`` in that case, masking the
+    idempotent no-op the caller relies on. Each test below pins one of
+    the surface shapes (JSON body / plain text / both streams) and
+    asserts the helper returns the canonical ``not-found`` state.
+    """
+
+    def test_stdout_json_message_not_found(self, monkeypatch):
+        # Proxied gh: JSON 404 body on stdout, empty stderr, exit != 0.
+        monkeypatch.setattr(
+            release_publish.shutil, "which", lambda _: "/usr/bin/gh"
+        )
+
+        def fake_run(cmd, **kwargs):
+            return SimpleNamespace(
+                stdout=json.dumps(
+                    {
+                        "message": "Not Found",
+                        "documentation_url": (
+                            "https://docs.github.com/rest/releases/releases"
+                            "#get-a-release-by-tag-name"
+                        ),
+                    }
+                ),
+                stderr="",
+                returncode=1,
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        state, body, reason = release_publish.view_release(
+            "9.9.9", "deftai/directive"
+        )
+        assert state == "not-found"
+        assert body is None
+        # Reason carries the JSON body so operators can correlate to the API.
+        assert "Not Found" in reason
+
+    def test_stdout_plain_text_not_found(self, monkeypatch):
+        # Some proxies emit plain text (not JSON) for 404; substring fallback.
+        monkeypatch.setattr(
+            release_publish.shutil, "which", lambda _: "/usr/bin/gh"
+        )
+
+        def fake_run(cmd, **kwargs):
+            return SimpleNamespace(
+                stdout="HTTP 404 Not Found: release does not exist",
+                stderr="",
+                returncode=22,
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        state, _body, _reason = release_publish.view_release(
+            "9.9.9", "deftai/directive"
+        )
+        assert state == "not-found"
+
+    def test_stdout_404_with_published_run_publish_no_op(
+        self, monkeypatch, capsys
+    ):
+        # End-to-end: when the proxy routes 404 to stdout, run_publish
+        # MUST NOT report "gh-error" -- the not-found state surfaces and
+        # exits as a violation (release missing) rather than gh-error.
+        monkeypatch.setattr(
+            release_publish.shutil, "which", lambda _: "/usr/bin/gh"
+        )
+
+        def fake_run(cmd, **kwargs):
+            return SimpleNamespace(
+                stdout=json.dumps({"message": "Not Found"}),
+                stderr="",
+                returncode=1,
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        rc = release_publish.run_publish(_make_config())
+        assert rc == release_publish.EXIT_VIOLATION
+        captured = capsys.readouterr()
+        # The script reports the canonical "not found" message; pre-fix
+        # this would have been "gh-error" because stderr was empty.
+        assert "not found" in captured.err
+
+    def test_unrelated_500_still_returns_gh_error(self, monkeypatch):
+        # Negative case: a non-404 stdout body MUST still classify as
+        # gh-error so callers do not silently treat server faults as
+        # missing releases.
+        monkeypatch.setattr(
+            release_publish.shutil, "which", lambda _: "/usr/bin/gh"
+        )
+
+        def fake_run(cmd, **kwargs):
+            return SimpleNamespace(
+                stdout=json.dumps({"message": "Internal Server Error"}),
+                stderr="",
+                returncode=1,
+            )
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        state, _body, _reason = release_publish.view_release(
+            "0.21.0", "deftai/directive"
+        )
+        assert state == "gh-error"
+
+
+# ---------------------------------------------------------------------------
+# Greptile P2-2: edit_release_publish optional release_id param elides the
+# redundant GET when the caller already has the id from a prior view call.
+# ---------------------------------------------------------------------------
+
+
+class TestEditReleasePublishIdElision:
+    """Greptile P2-2 (#961): supplying ``release_id`` skips the redundant GET.
+
+    Pre-fix, ``edit_release_publish`` always issued a GET to resolve the
+    id even when the caller (``run_publish``) had just fetched the same
+    release object. The optional ``release_id`` kwarg lets callers elide
+    the second GET; ``run_publish`` now passes it from the step-1 view
+    payload.
+    """
+
+    def test_release_id_provided_skips_get(self, monkeypatch):
+        # Caller passes release_id directly -> exactly ONE subprocess
+        # call (the PATCH). No GET issued.
+        monkeypatch.setattr(
+            release_publish.shutil, "which", lambda _: "/usr/bin/gh"
+        )
+        captured_cmds: list[list[str]] = []
+
+        def fake_run(cmd, **kwargs):
+            captured_cmds.append(list(cmd))
+            return SimpleNamespace(stdout="{}", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, reason = release_publish.edit_release_publish(
+            "0.21.0", "deftai/directive", release_id=1234567
+        )
+        assert ok is True
+        # ONE call -- the GET is elided.
+        assert len(captured_cmds) == 1
+        patch_cmd = captured_cmds[0]
+        assert "--method" in patch_cmd
+        assert patch_cmd[patch_cmd.index("--method") + 1] == "PATCH"
+        # Endpoint embeds the supplied id directly.
+        assert any(
+            arg == "repos/deftai/directive/releases/1234567"
+            for arg in patch_cmd
+        )
+        # No GET to releases/tags/<tag> happened.
+        assert all(
+            "releases/tags/" not in arg
+            for cmd in captured_cmds
+            for arg in cmd
+        ), "GET releases/tags/<tag> should be elided when release_id is supplied"
+        assert "flipped v0.21.0" in reason
+
+    def test_release_id_none_falls_back_to_get(self, monkeypatch):
+        # Backward compatibility: when release_id is None (the default),
+        # the helper performs the GET as before. Two subprocess calls.
+        monkeypatch.setattr(
+            release_publish.shutil, "which", lambda _: "/usr/bin/gh"
+        )
+        captured_cmds: list[list[str]] = []
+
+        def fake_run(cmd, **kwargs):
+            captured_cmds.append(list(cmd))
+            if any("releases/tags/" in arg for arg in cmd):
+                return SimpleNamespace(
+                    stdout=json.dumps(_REST_DRAFT_RELEASE),
+                    stderr="",
+                    returncode=0,
+                )
+            return SimpleNamespace(stdout="{}", stderr="", returncode=0)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        ok, _reason = release_publish.edit_release_publish(
+            "0.21.0", "deftai/directive"  # no release_id -> default None
+        )
+        assert ok is True
+        assert len(captured_cmds) == 2  # GET + PATCH
+
+    def test_run_publish_passes_release_id_to_edit(self, monkeypatch):
+        # End-to-end: run_publish forwards the id from step-1 view so
+        # edit_release_publish does not re-GET. Pin the kwarg propagation.
+        seen_kwargs: dict[str, object] = {}
+
+        monkeypatch.setattr(
+            release_publish,
+            "view_release",
+            lambda version, repo: (
+                "draft" if not seen_kwargs.get("called") else "published",
+                {"url": "https://example.com/r", "id": 4242},
+                "",
+            ),
+        )
+
+        def fake_edit(version, repo, release_id=None):
+            seen_kwargs["called"] = True
+            seen_kwargs["release_id"] = release_id
+            return True, f"flipped v{version}"
+
+        monkeypatch.setattr(release_publish, "edit_release_publish", fake_edit)
+        rc = release_publish.run_publish(_make_config())
+        assert rc == release_publish.EXIT_OK
+        assert seen_kwargs["release_id"] == 4242
+
+
+# ---------------------------------------------------------------------------
 # run_publish
 # ---------------------------------------------------------------------------
 
@@ -370,8 +587,12 @@ class TestRunPublish:
     def test_happy_path_draft_to_published(self, monkeypatch, capsys):
         sequence = iter(
             [
-                ("draft", {"url": "https://example.com/r"}, ""),
-                ("published", {"url": "https://example.com/r"}, ""),
+                ("draft", {"url": "https://example.com/r", "id": 42}, ""),
+                (
+                    "published",
+                    {"url": "https://example.com/r", "id": 42},
+                    "",
+                ),
             ]
         )
 
@@ -382,7 +603,9 @@ class TestRunPublish:
         monkeypatch.setattr(
             release_publish,
             "edit_release_publish",
-            lambda version, repo: (True, f"flipped v{version} to published"),
+            lambda version, repo, release_id=None: (
+                True, f"flipped v{version} to published"
+            ),
         )
         rc = release_publish.run_publish(_make_config())
         assert rc == release_publish.EXIT_OK
@@ -452,12 +675,18 @@ class TestRunPublish:
         monkeypatch.setattr(
             release_publish,
             "view_release",
-            lambda version, repo: ("draft", {"url": "https://example.com/r"}, ""),
+            lambda version, repo: (
+                "draft",
+                {"url": "https://example.com/r", "id": 7},
+                "",
+            ),
         )
         monkeypatch.setattr(
             release_publish,
             "edit_release_publish",
-            lambda version, repo: (False, "gh release edit failed: 404"),
+            lambda version, repo, release_id=None: (
+                False, "gh release edit failed: 404"
+            ),
         )
         rc = release_publish.run_publish(_make_config())
         assert rc == release_publish.EXIT_VIOLATION
@@ -471,8 +700,8 @@ class TestRunPublish:
         # still reports draft (verification mismatch) -> exit 1.
         sequence = iter(
             [
-                ("draft", {"url": "https://example.com/r"}, ""),
-                ("draft", {"url": "https://example.com/r"}, ""),
+                ("draft", {"url": "https://example.com/r", "id": 9}, ""),
+                ("draft", {"url": "https://example.com/r", "id": 9}, ""),
             ]
         )
 
@@ -484,7 +713,9 @@ class TestRunPublish:
         monkeypatch.setattr(
             release_publish,
             "edit_release_publish",
-            lambda version, repo: (True, "flipped (apparently)"),
+            lambda version, repo, release_id=None: (
+                True, "flipped (apparently)"
+            ),
         )
         rc = release_publish.run_publish(_make_config())
         assert rc == release_publish.EXIT_VIOLATION

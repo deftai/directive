@@ -201,14 +201,39 @@ def _gh_api_get_release_by_tag(
         return "gh-error", None, "gh CLI not found on PATH"
     if result.returncode != 0:
         stderr = (result.stderr or "").strip()
+        stdout = (result.stdout or "").strip()
         # ``gh api`` exits non-zero on 404, returning a JSON error body
-        # with ``"message": "Not Found"`` to stdout. Treat any "not found"
-        # surface (404 stderr OR REST 404 JSON) as the not-found state
-        # so the caller can no-op idempotently. This mirrors the legacy
-        # behaviour that handled both shapes.
-        lowered = stderr.lower()
-        if "not found" in lowered or "404" in lowered:
-            return "not-found", None, stderr or "release not found"
+        # with ``"message": "Not Found"`` that some gh proxy / `ghx`
+        # configurations surface on stdout instead of stderr. Treat any
+        # "not found" surface (404 stderr, 404 in stderr text, or the
+        # REST 404 JSON body on EITHER stream) as the not-found state
+        # so the caller can no-op idempotently. Greptile P2-1 (#961):
+        # the original implementation only inspected stderr and so
+        # missed the stdout-routed shape under ghx / proxied gh.
+        lowered_stderr = stderr.lower()
+        stdout_is_404 = False
+        if stdout:
+            # Try parsing the stdout body as the REST error JSON; if it
+            # parses to a dict with ``message`` containing "not found",
+            # treat as 404. Falls through to substring check on parse
+            # failure (some proxies emit non-JSON 404 text).
+            try:
+                body = json.loads(stdout)
+            except json.JSONDecodeError:
+                body = None
+            if isinstance(body, dict):
+                msg = str(body.get("message", "")).lower()
+                if "not found" in msg:
+                    stdout_is_404 = True
+            if not stdout_is_404 and "not found" in stdout.lower():
+                stdout_is_404 = True
+        if (
+            "not found" in lowered_stderr
+            or "404" in lowered_stderr
+            or stdout_is_404
+        ):
+            reason_text = stderr or stdout or "release not found"
+            return "not-found", None, reason_text
         return "gh-error", None, f"gh api {endpoint} failed: {stderr}"
     try:
         rest_payload = json.loads(result.stdout)
@@ -250,31 +275,49 @@ def view_release(version: str, repo: str) -> tuple[str, dict | None, str]:
     return _gh_api_get_release_by_tag(gh_path, repo, tag)
 
 
-def edit_release_publish(version: str, repo: str) -> tuple[bool, str]:
+def edit_release_publish(
+    version: str, repo: str, release_id: int | None = None
+) -> tuple[bool, str]:
     """Flip the release out of draft via REST PATCH (#961).
 
     Replaces the legacy ``gh release edit ... --draft=false`` form
     (which routed through GraphQL and failed under bucket exhaustion).
-    Two REST calls under the ``core`` bucket: (1) GET
-    ``releases/tags/<tag>`` to resolve the release id, then (2) PATCH
+    Up to two REST calls under the ``core`` bucket: (1) GET
+    ``releases/tags/<tag>`` to resolve the release id (skipped when
+    ``release_id`` is supplied by the caller), then (2) PATCH
     ``releases/<id>`` with ``draft=false``. The ``-F draft=false`` flag
     on ``gh api`` parses the literal ``false`` as a boolean (not a
     string) per the gh CLI documentation, so no JSON-payload tempfile
     is required for this single-field mutation.
+
+    Args:
+        version: Release version (no leading ``v``); the tag is derived
+            as ``v<version>``.
+        repo: ``"owner/repo"`` slug.
+        release_id: Optional pre-resolved REST release id. When the
+            caller already has the id from a prior :func:`view_release`
+            call (the common case under :func:`run_publish`), supplying
+            it here elides the redundant GET. When ``None`` (default),
+            the helper performs the GET as before. Greptile P2-2 (#961).
     """
     gh_path = release._resolve_gh()
     if gh_path is None:
         return False, "gh CLI not found on PATH"
     tag = f"v{version}"
-    # Step 1: resolve the release id via REST.
-    state, payload, reason = _gh_api_get_release_by_tag(gh_path, repo, tag)
-    if state == "not-found":
-        return False, f"release {tag} not found on {repo}"
-    if state == "gh-error":
-        return False, f"could not resolve release id: {reason}"
-    if not payload or payload.get("id") is None:
-        return False, f"release {tag} payload missing 'id' field"
-    release_id = payload["id"]
+    # Step 1: resolve the release id via REST (only when caller did not
+    # supply one). Backward-compatible: existing callers passing only
+    # (version, repo) still get the lookup behaviour.
+    if release_id is None:
+        state, payload, reason = _gh_api_get_release_by_tag(
+            gh_path, repo, tag
+        )
+        if state == "not-found":
+            return False, f"release {tag} not found on {repo}"
+        if state == "gh-error":
+            return False, f"could not resolve release id: {reason}"
+        if not payload or payload.get("id") is None:
+            return False, f"release {tag} payload missing 'id' field"
+        release_id = payload["id"]
     # Step 2: PATCH the release to flip draft=false.
     endpoint = f"repos/{repo}/releases/{release_id}"
     cmd = [
@@ -337,9 +380,12 @@ def run_publish(config: PublishConfig) -> int:
     assert payload is not None
     _emit(label, f"OK (draft found at {payload.get('url', '<no url>')})")
 
-    # Step 2: edit to flip draft=false.
+    # Step 2: edit to flip draft=false. Pass the already-resolved release
+    # id from step 1 so edit_release_publish does not re-GET (P2-2).
     label = f"Edit {tag} (--draft=false)"
-    ok, reason = edit_release_publish(version, repo)
+    ok, reason = edit_release_publish(
+        version, repo, release_id=payload.get("id")
+    )
     if not ok:
         _emit(label, f"FAIL ({reason})")
         return EXIT_VIOLATION

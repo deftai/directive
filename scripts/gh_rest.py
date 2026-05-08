@@ -419,7 +419,7 @@ def rest_post_comment(repo: str, n: int, body: str) -> dict[str, Any]:
 
 
 def rest_close_issue(
-    repo: str, n: int, *, reason: str = "completed"
+    repo: str, n: int, *, reason: str | None = "completed"
 ) -> dict[str, Any]:
     """``PATCH /repos/{owner}/{repo}/issues/{n}`` -- close an issue.
 
@@ -429,7 +429,11 @@ def rest_close_issue(
         reason: ``state_reason`` per the GitHub REST API. Allowed values
             are ``"completed"`` (default), ``"not_planned"``,
             ``"reopened"``, or ``None`` for unset. The default mirrors
-            ``gh issue close --reason completed``.
+            ``gh issue close --reason completed``. Greptile P2-3 (#961):
+            the type annotation is ``str | None`` because the docstring
+            documents ``None`` as a supported value (the GitHub REST
+            API accepts ``"state_reason": null`` to clear it); the
+            annotation now matches that contract.
 
     Returns:
         Parsed REST issue object reflecting the post-close state.
