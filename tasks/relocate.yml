@@ -1,0 +1,56 @@
+version: '3'
+
+# tasks/relocate.yml -- wipe-and-reinstall relocator surface (#992 PR2).
+#
+# Wires `task relocate` to scripts/relocate.py with full {{.CLI_ARGS}}
+# pass-through so operators can compose flags as documented in the script
+# docstring (--project-root / --framework-source / --force / --confirm /
+# --no-confirm / --dry-run / --rollback / --snapshot / --no-snapshot /
+# --json / --quiet).
+#
+# Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+# declarations because user-facing recovery flags (`--force`, `--confirm`,
+# `--rollback`, `--dry-run`) flow via {{.CLI_ARGS}} -- a go-task cache
+# short-circuit would silently drop the recovery flag and leave the
+# operator following the docs against an exit-0 no-op (the same hazard
+# `task prd:render -- --force` hit at #574).
+#
+# Path resolution uses the same {{.TASKFILE_DIR}} / joinPath idiom every
+# other fragment uses (#566) so the dispatch resolves correctly under
+# Windows / macOS / Linux. The dispatched script lives at
+# {{.DEFT_ROOT}}/scripts/relocate.py with helper modules at
+# {{.DEFT_ROOT}}/scripts/_relocate_states.py and
+# {{.DEFT_ROOT}}/scripts/_relocate_snapshot.py.
+#
+# Usage notes for operators:
+#
+# - Bare invocation against a project root that needs relocating prompts
+#   `[y/N]` on stdin (auto-prompt never auto-wipe per the active vBRIEF).
+# - For scripted use, pass `--confirm` to skip the prompt (or
+#   `--no-snapshot` for hermetic test fixtures).
+# - For consumer projects: the canonical entry point is the webinstaller
+#   bootstrap (`upgrade.sh` / `upgrade.ps1` in the separate `webinstaller`
+#   repo) which fetches a fresh framework copy to a temp dir and runs the
+#   relocator from THAT copy -- the in-place framework about to be wiped
+#   never executes its own wipe.
+# - `task relocate -- --rollback` extracts the most recent snapshot back
+#   into project root.
+#
+# Companion script: scripts/relocate.py
+# Companion tests:  tests/relocate/test_state_matrix.py
+#                   tests/relocate/test_preflight.py
+# Refs: #992 (parent issue), #11 (.deft/core/ origin),
+#       #768 (managed-section v2 contract), #794 (_wrap_legacy_in_markers),
+#       #884 (consent-gate convention).
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  relocate:
+    desc: "Wipe-and-reinstall relocator (#992 PR2) -- task relocate [-- --confirm | --dry-run | --force | --rollback | --json | --quiet]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv run python "{{.DEFT_ROOT}}/scripts/relocate.py" {{.CLI_ARGS}}

@@ -171,6 +171,15 @@ includes:
   changelog:
     taskfile: ./tasks/changelog.yml
     optional: true
+  # Wipe-and-reinstall relocator (#992 PR2). Exposes `task relocate` --
+  # forwards user-facing flags (`--confirm` / `--dry-run` / `--force` /
+  # `--rollback` / `--no-snapshot` / `--json` / `--quiet`) via
+  # {{.CLI_ARGS}}; per `conventions/task-caching.md` no `sources:` /
+  # `generates:` so the recovery flags reach the script (#574). The
+  # include is `optional: true` for rolling-merge tolerance.
+  relocate:
+    taskfile: ./tasks/relocate.yml
+    optional: true
 
 tasks:
   default:
