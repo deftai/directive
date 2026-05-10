@@ -212,11 +212,11 @@ Deft uses two complementary command surfaces that together cover the full docume
 
 `run` commands handle conversational, agent-friendly creation workflows:
 
-- `deft/run bootstrap` — Interactive setup for USER.md and PROJECT-DEFINITION.vbrief.json
-- `deft/run spec` — AI-assisted specification interview (produces scope vBRIEFs)
-- `deft/run validate` — Check deft configuration
-- `deft/run doctor` — Check system dependencies
-- `deft/run reset` — Reset config files
+- `.deft/core/run bootstrap` — Interactive setup for USER.md and PROJECT-DEFINITION.vbrief.json
+- `.deft/core/run spec` — AI-assisted specification interview (produces scope vBRIEFs)
+- `.deft/core/run validate` — Check deft configuration
+- `.deft/core/run doctor` — Check system dependencies
+- `.deft/core/run reset` — Reset config files
 
 These are the entry points for humans and agents starting new work.
 

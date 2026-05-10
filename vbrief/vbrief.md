@@ -20,7 +20,7 @@ Key `task` commands for working with vBRIEF files:
 - `task vbrief:validate` — Validate schema, filenames, folder/status consistency (part of `task check`)
 - `task scope:promote|activate|complete|cancel|restore|block|unblock <file>` — Lifecycle transitions
 
-For interactive creation workflows, use `run` commands (`deft/run bootstrap`, `deft/run spec`). See [commands.md](../commands.md) for the full command lifecycle.
+For interactive creation workflows, use `run` commands (`.deft/core/run bootstrap`, `.deft/core/run spec`). See [commands.md](../commands.md) for the full command lifecycle.
 
 ---
 

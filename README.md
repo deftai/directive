@@ -79,7 +79,7 @@ go run ./cmd/deft-install/
 Deft offers two setup paths that produce the same output (`USER.md` + `vbrief/PROJECT-DEFINITION.vbrief.json`) but adapt to different users:
 
 - **Agent-driven** (recommended for most users) — Tell your agent `read AGENTS.md and follow it` to start the Deft setup flow. The agent will ask how technical you are and adapt accordingly.
-- **CLI** (for technical users) — `deft/run bootstrap` runs an interactive setup for `USER.md` and `vbrief/PROJECT-DEFINITION.vbrief.json`.
+- **CLI** (for technical users) — `.deft/core/run bootstrap` runs an interactive setup for `USER.md` and `vbrief/PROJECT-DEFINITION.vbrief.json`.
 
 **User config location:**
 
@@ -89,10 +89,10 @@ Deft offers two setup paths that produce the same output (`USER.md` + `vbrief/PR
 
 ### 3. Generate a Scope vBRIEF
 
-`deft/run bootstrap` can chain into the scope-vBRIEF interview, or you can create one anytime:
+`.deft/core/run bootstrap` can chain into the scope-vBRIEF interview, or you can create one anytime:
 
 ```bash
-deft/run spec            # AI-assisted interview -> vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json
+.deft/core/run spec            # AI-assisted interview -> vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json
 ```
 
 The interview writes a **scope vBRIEF** to `vbrief/proposed/`. `vbrief/*.vbrief.json` files are the source of truth; `.md` files (`PRD.md`, `SPECIFICATION.md`, `ROADMAP.md`) are rendered views generated on demand via `task *:render`. Direct edits to the rendered `.md` files are overwritten on the next render — edit the underlying `.vbrief.json` instead.
@@ -100,10 +100,10 @@ The interview writes a **scope vBRIEF** to `vbrief/proposed/`. `vbrief/*.vbrief.
 Other commands:
 
 ```bash
-deft/run reset           # Reset config files
-deft/run validate        # Check deft configuration
-deft/run doctor          # Check system dependencies
-deft/run upgrade         # Record the current framework version after updating deft
+.deft/core/run reset           # Reset config files
+.deft/core/run validate        # Check deft configuration
+.deft/core/run doctor          # Check system dependencies
+.deft/core/run upgrade         # Record the current framework version after updating deft
 ```
 
 ### 4. Build With AI

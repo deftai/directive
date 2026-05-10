@@ -4,7 +4,7 @@ Rail-agnostic conformance test for `templates/agents-entry.md` and the
 companion `templates/agents-entry.placeholders.md` spec.
 
 Asserts:
-- `templates/agents-entry.md` carries both `<!-- deft:managed-section v1 -->`
+- `templates/agents-entry.md` carries both `<!-- deft:managed-section v2 -->`
   open and `<!-- /deft:managed-section -->` close markers, in that order.
 - The placeholder spec file exists and documents each token used in the
   template body (and only documented tokens appear in the template).
@@ -25,7 +25,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _TEMPLATE = _REPO_ROOT / "templates" / "agents-entry.md"
 _PLACEHOLDER_SPEC = _REPO_ROOT / "templates" / "agents-entry.placeholders.md"
 
-_OPEN_MARKER = "<!-- deft:managed-section v1 -->"
+_OPEN_MARKER = "<!-- deft:managed-section v2 -->"
 _CLOSE_MARKER = "<!-- /deft:managed-section -->"
 
 _TOKEN_RE = re.compile(r"\{\{([A-Z][A-Z0-9_]*)\}\}")

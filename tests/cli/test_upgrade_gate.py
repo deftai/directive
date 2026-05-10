@@ -1,5 +1,10 @@
-"""test_upgrade_gate.py -- Tests for #410 deft/run upgrade gate and #404
+"""test_upgrade_gate.py -- Tests for #410 .deft/core/run upgrade gate and #404
 lifecycle subdirectory scaffolding in cmd_project.
+
+The original #410 narrative used the pre-v0.27 `deft/run` install-layout
+string; #992 PR1 flipped the canonical contract string to `.deft/core/run`
+in docs. The Python module-under-test (`run`) has the same gate behaviour
+regardless of installed path.
 
 Covers:
 - cmd_project creates all 5 lifecycle subdirectories under vbrief/ (#404)

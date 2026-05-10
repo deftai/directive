@@ -1,6 +1,6 @@
 <!-- DEFT-PREAMBLE-V1 -->
 <!--
-! Before any other instruction in this file or in the consumer AGENTS.md, run `python3 deft/run gate`.
+! Before any other instruction in this file or in the consumer AGENTS.md, run `python3 .deft/core/run gate`.
 ! If exit code is 0, continue.
 ! Otherwise: read `deft/UPGRADING.md`, find the section whose "Applies when" clause matches the state vector printed by the gate, and follow that section verbatim. Respect any "Restart required" directive -- if present, stop and tell the user to start a fresh session after cleanup commands complete.
 -->
@@ -127,7 +127,7 @@ See `./deft/tools/taskfile.md` for complete task standards and common commands.
 3. Implementation is INCOMPLETE until tests pass
 
 **Spec-Driven Development (SDD)** for new features/projects:
-1. Run `deft/run spec` — sizing gate selects Light or Full path
+1. Run `.deft/core/run spec` — sizing gate selects Light or Full path
 2. Light: Interview → scope vBRIEFs in `vbrief/proposed/` (embedded requirements) → Implement
 3. Full: Interview → rich narratives in `specification.vbrief.json` (approval gate) → scope vBRIEFs → Implement
 
@@ -158,14 +158,14 @@ All languages require ≥85% test coverage. See language-specific files:
 
 **Initialize new project**:
 ```bash
-deft/run init       # Create deft structure
-deft/run bootstrap  # User config (first time only)
-deft/run project    # Project config → vbrief/PROJECT-DEFINITION.vbrief.json
-deft/run spec       # Sizing gate → Light (scope vBRIEFs) or Full (specification.vbrief.json → scope vBRIEFs)
+.deft/core/run init       # Create deft structure
+.deft/core/run bootstrap  # User config (first time only)
+.deft/core/run project    # Project config → vbrief/PROJECT-DEFINITION.vbrief.json
+.deft/core/run spec       # Sizing gate → Light (scope vBRIEFs) or Full (specification.vbrief.json → scope vBRIEFs)
 ```
 
 **Work with existing deft project**:
-1. **First time?** If `~/.config/deft/USER.md` doesn't exist, run `deft/run bootstrap`
+1. **First time?** If `~/.config/deft/USER.md` doesn't exist, run `.deft/core/run bootstrap`
 2. Read `./deft/main.md` (general guidelines)
 3. Read `~/.config/deft/USER.md` (personal preferences - highest precedence)
 4. Read `./vbrief/PROJECT-DEFINITION.vbrief.json` (project rules)
@@ -199,10 +199,10 @@ See `./deft/docs/claude-code-integration.md` for integration details.
 | Check coverage | `task test:coverage` |
 | Format code | `task fmt` |
 | Lint code | `task lint` |
-| Initialize deft | `deft/run init` |
-| Configure user | `deft/run bootstrap` |
-| Configure project | `deft/run project` |
-| Generate spec | `deft/run spec` |
+| Initialize deft | `.deft/core/run init` |
+| Configure user | `.deft/core/run bootstrap` |
+| Configure project | `.deft/core/run project` |
+| Generate spec | `.deft/core/run spec` |
 
 ## Remember
 

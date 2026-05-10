@@ -117,9 +117,14 @@ def test_managed_section_legacy_migration_section_present() -> None:
     # contract the docs MUST surface so risk-averse consumers can decide
     # whether to run `deft/run agents:refresh` before doing so.
     required_tokens = (
+        # The historical migration narrative still describes the pre-v0.27
+        # `<!-- deft:managed-section v1 -->` markers (the migration FROM
+        # pre-#768 -> the original v1 managed-section contract); the v1 -> v2
+        # bump in #992 PR1 happens in `templates/agents-entry.md`, not here.
         "<!-- deft:managed-section v1 -->",
         "agents-md=missing",
-        "deft/run agents:refresh",
+        # #992 PR1 contract-string flip: `deft/run` -> `.deft/core/run`.
+        ".deft/core/run agents:refresh",
         "one-time",
         "sentinel-only",
         "templates/agents-entry.md",
@@ -130,9 +135,9 @@ def test_managed_section_legacy_migration_section_present() -> None:
     missing_tokens = [tok for tok in required_tokens if tok not in body]
     assert not missing_tokens, (
         f"UPGRADING.md section {heading.strip()!r} is missing required "
-        f"contract tokens: {missing_tokens}. The section MUST cover the "
+    f"contract tokens: {missing_tokens}. The section MUST cover the "
         f"detection rule (`<!-- deft:managed-section v1 -->` markers absent), "
         f"the one-time append behavior, the sentinel-only-rewrite contract, "
         f"and cross-link `templates/agents-entry.md` plus `QUICK-START.md` "
-        f"Case G (#794)."
+        f"Case G (#794; contract-string flip refreshed in #992 PR1)."
     )

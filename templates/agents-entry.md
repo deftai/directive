@@ -1,4 +1,4 @@
-<!-- deft:managed-section v1 -->
+<!-- deft:managed-section v2 -->
 # Deft — AI Development Framework
 
 Deft is installed in deft/. Full guidelines: deft/main.md
@@ -68,6 +68,6 @@ Override paths the user may invoke:
 - /deft:run:discuss <topic>  — Feynman-style alignment
 - /deft:run:research <topic> — Research before planning
 - /deft:run:map              — Map an existing codebase
-- deft/run bootstrap         — CLI setup (terminal users)
-- deft/run spec              — CLI spec generation
+- .deft/core/run bootstrap         — CLI setup (terminal users)
+- .deft/core/run spec              — CLI spec generation
 <!-- /deft:managed-section -->

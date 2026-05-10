@@ -1295,7 +1295,7 @@ def _check_upgrade_gate(command: str) -> bool:
 # Both functions are intentionally side-effect-free apart from `print()` so
 # the test harness can capture stdout via the `run_command` fixture.
 
-_AGENTS_MANAGED_OPEN = "<!-- deft:managed-section v1 -->"
+_AGENTS_MANAGED_OPEN = "<!-- deft:managed-section v2 -->"
 _AGENTS_MANAGED_CLOSE = "<!-- /deft:managed-section -->"
 
 
@@ -1321,7 +1321,7 @@ def _read_agents_template() -> Optional[str]:
 
 
 def _render_managed_section(template_text: str) -> Optional[str]:
-    """Extract the `<!-- deft:managed-section v1 -->` block from the template.
+    """Extract the `<!-- deft:managed-section v2 -->` block from the template.
 
     Returns the byte sequence (newlines normalised to ``\n``) bracketed by
     the open/close markers, INCLUSIVE. Returns None when either marker is

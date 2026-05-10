@@ -9,7 +9,7 @@ description: >
 
 # Deft Directive Setup
 
-Agent-driven alternative to `deft/run bootstrap && deft/run project && deft/run spec`.
+Agent-driven alternative to `.deft/core/run bootstrap && .deft/core/run project && .deft/core/run spec`.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 

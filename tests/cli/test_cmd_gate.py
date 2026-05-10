@@ -36,7 +36,7 @@ def _patch_template(monkeypatch, deft_run_module, template_text: str) -> None:
 
 
 _TEMPLATE_BODY = (
-    "<!-- deft:managed-section v1 -->\n"
+    "<!-- deft:managed-section v2 -->\n"
     "# Deft\n"
     "Body\n"
     "<!-- /deft:managed-section -->\n"
@@ -103,7 +103,7 @@ class TestAgentsMdAxis:
         )
         # Markers present but body differs from template -> stale
         stale = (
-            "<!-- deft:managed-section v1 -->\n"
+            "<!-- deft:managed-section v2 -->\n"
             "# Old body\n"
             "<!-- /deft:managed-section -->\n"
         )
@@ -367,7 +367,7 @@ def test_exit_code_matrix(
             deft_run_module.VERSION + "\n", encoding="utf-8"
         )
         (tmp_path / "AGENTS.md").write_text(
-            "<!-- deft:managed-section v1 -->\nold\n<!-- /deft:managed-section -->\n",
+            "<!-- deft:managed-section v2 -->\nold\n<!-- /deft:managed-section -->\n",
             encoding="utf-8",
         )
 

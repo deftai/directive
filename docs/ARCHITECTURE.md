@@ -179,7 +179,7 @@ The script deduplicates against existing `references[type=x-vbrief/github-issue]
 
 Deft uses two complementary command surfaces:
 
-- **`run` commands** (`deft/run bootstrap`, `deft/run spec`, `deft/run validate`) handle **interactive creation** — bootstrapping user/project config, conducting spec interviews, validating configuration. These are the entry points for humans starting new work.
+- **`run` commands** (`.deft/core/run bootstrap`, `.deft/core/run spec`, `.deft/core/run validate`) handle **interactive creation** — bootstrapping user/project config, conducting spec interviews, validating configuration. These are the entry points for humans starting new work.
 - **`task` commands** (`task spec:render`, `task roadmap:render`, `task migrate:vbrief`, etc.) handle **scripted rendering, migration, and validation** — deterministic operations that transform vBRIEF source files into readable artifacts or enforce structural rules.
 
 This split is intentional: `run` commands are conversational and agent-friendly; `task` commands are deterministic and CI-friendly. For the full document lifecycle, start with `run` to create, then use `task` to render and validate. See [../commands.md](../commands.md) for cross-references.

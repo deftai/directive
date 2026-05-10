@@ -88,17 +88,17 @@ This returns the project to its pre-bootstrap state. Existing scope vBRIEFs in `
 
 ## From pre-#768 AGENTS.md → managed-section AGENTS.md
 
-- **Applies when:** `./AGENTS.md` exists at your project root AND does **not** contain the `<!-- deft:managed-section v1 -->` and `<!-- /deft:managed-section -->` sentinel markers. This is the canonical pre-#768 state -- the file pre-dates the Deft-managed-section contract added in v0.20.0 (#768) -- and is reported as `agents-md=missing` by `deft/run gate`. (Distinct from `agents-md=absent`, which means no `AGENTS.md` exists at all.)
-- **Safe to auto-run:** Yes. `deft/run agents:refresh` performs a **one-time legacy migration**: your existing `AGENTS.md` content is preserved verbatim ABOVE the rendered managed-section block (separated by one blank line). The framework only ever owns the bytes between the two sentinel markers; content outside that bracketed region is never modified. Run `deft/run agents:refresh --dry-run` first to preview the planned change, or `deft/run agents:refresh --check` to interrogate the current state without writing.
+- **Applies when:** `./AGENTS.md` exists at your project root AND does **not** contain the `<!-- deft:managed-section v1 -->` and `<!-- /deft:managed-section -->` sentinel markers. This is the canonical pre-#768 state -- the file pre-dates the Deft-managed-section contract added in v0.20.0 (#768) -- and is reported as `agents-md=missing` by `.deft/core/run gate`. (Distinct from `agents-md=absent`, which means no `AGENTS.md` exists at all.)
+- **Safe to auto-run:** Yes. `.deft/core/run agents:refresh` performs a **one-time legacy migration**: your existing `AGENTS.md` content is preserved verbatim ABOVE the rendered managed-section block (separated by one blank line). The framework only ever owns the bytes between the two sentinel markers; content outside that bracketed region is never modified. Run `.deft/core/run agents:refresh --dry-run` first to preview the planned change, or `.deft/core/run agents:refresh --check` to interrogate the current state without writing.
 - **Restart required:** Yes -- after the managed section is appended, the agent's current session still holds the pre-#768 `AGENTS.md` in context. Start a new agent session so the refreshed `AGENTS.md` (Implementation Intent Gate, Branch Policy Disclosure, Pre-Cutover Check, etc.) is loaded from a clean context.
 - **Commands:**
-  - `python deft/run agents:refresh --dry-run` (preview; never writes)
-  - `python deft/run agents:refresh` (apply -- one-time append for state=`missing`, byte-replace for state=`stale`, no-op for state=`current`, fresh write for state=`absent`)
-  - `python deft/run upgrade` (records the framework version in `vbrief/.deft-version` AND chains into `agents:refresh` -- equivalent end state to running both above)
+  - `python .deft/core/run agents:refresh --dry-run` (preview; never writes)
+  - `python .deft/core/run agents:refresh` (apply -- one-time append for state=`missing`, byte-replace for state=`stale`, no-op for state=`current`, fresh write for state=`absent`)
+  - `python .deft/core/run upgrade` (records the framework version in `vbrief/.deft-version` AND chains into `agents:refresh` -- equivalent end state to running both above)
 
 ### What `agents:refresh` does on a pre-#768 file
 
-The gate (`deft/run gate`) classifies every project's `AGENTS.md` into one of four states; pre-#768 files land in `missing`:
+The gate (`.deft/core/run gate`) classifies every project's `AGENTS.md` into one of four states; pre-#768 files land in `missing`:
 
 - `current` -- markers present and bracketed bytes match the rendered template. No-op.
 - `stale` -- markers present but bracketed bytes have drifted from the rendered template. Byte-replace the bracketed region in place.
@@ -107,32 +107,32 @@ The gate (`deft/run gate`) classifies every project's `AGENTS.md` into one of fo
 
 ### Long-term contract: sentinel-only rewrite
 
-After the one-time legacy migration, every subsequent `deft/run agents:refresh` against the same project follows a **sentinel-only-rewrite** contract: the framework reads only the bytes between `<!-- deft:managed-section v1 -->` and `<!-- /deft:managed-section -->`, replaces them in place when the rendered template drifts (`stale` state), and never touches content above or below those markers. Hand-authored notes, custom rules, project-specific gates, and any text that lived in your `AGENTS.md` before the one-time append survive every future framework upgrade verbatim.
+After the one-time legacy migration, every subsequent `.deft/core/run agents:refresh` against the same project follows a **sentinel-only-rewrite** contract: the framework reads only the bytes between `<!-- deft:managed-section v1 -->` and `<!-- /deft:managed-section -->`, replaces them in place when the rendered template drifts (`stale` state), and never touches content above or below those markers. Hand-authored notes, custom rules, project-specific gates, and any text that lived in your `AGENTS.md` before the one-time append survive every future framework upgrade verbatim.
 
 The contract is byte-stable by construction:
 
 - `agents:refresh --check` exits 0 only when the bracketed bytes match the rendered template byte-for-byte; this is the regression guard against silent drift.
 - The bracketed region is the SOLE byte sequence the framework owns. Edits inside the markers are not preserved across upgrades; edit the consumer-section above or below the markers instead.
-- The migration is idempotent: re-running `deft/run agents:refresh` against an already-migrated file is a no-op.
+- The migration is idempotent: re-running `.deft/core/run agents:refresh` against an already-migrated file is a no-op.
 
 ### References
 
-- [`templates/agents-entry.md`](./templates/agents-entry.md) -- the canonical rendered managed-section template; this is the source of the bytes that `deft/run agents:refresh` writes between the sentinel markers.
-- [`QUICK-START.md`](./QUICK-START.md) Case G -- agent-prescriptive coverage of the same scenario for agents that read `QUICK-START.md` (rather than invoking `deft/run agents:refresh` directly).
+- [`templates/agents-entry.md`](./templates/agents-entry.md) -- the canonical rendered managed-section template; this is the source of the bytes that `.deft/core/run agents:refresh` writes between the sentinel markers.
+- [`QUICK-START.md`](./QUICK-START.md) Case G -- agent-prescriptive coverage of the same scenario for agents that read `QUICK-START.md` (rather than invoking `.deft/core/run agents:refresh` directly).
 - [#768](https://github.com/deftai/directive/issues/768) -- the universal upgrade gate that introduced the managed-section markers and the `agents:refresh` reference implementation.
 
 ---
 
 ## From any pre-v0.20 version → v0.20.0
 
-- **Applies when:** `deft/run gate` reports `precutover=SPECIFICATION.md,PROJECT.md` (or any subset thereof) AND/OR `agents-md=missing`. The presence of legacy `SPECIFICATION.md` / `PROJECT.md` without the `<!-- deft:deprecated-redirect -->` sentinel is the canonical pre-cutover signal.
+- **Applies when:** `.deft/core/run gate` reports `precutover=SPECIFICATION.md,PROJECT.md` (or any subset thereof) AND/OR `agents-md=missing`. The presence of legacy `SPECIFICATION.md` / `PROJECT.md` without the `<!-- deft:deprecated-redirect -->` sentinel is the canonical pre-cutover signal.
 - **Safe to auto-run:** No -- `task migrate:vbrief` rewrites `SPECIFICATION.md` and `PROJECT.md` into deprecation-redirect stubs and creates lifecycle folders; the operator must review the dry-run output and acknowledge the rewrite. `--dry-run` is recommended on any non-trivial project before the live run.
 - **Restart required:** Yes -- the agent's current session still holds stale rules from the previous `AGENTS.md`. After cleanup commands complete, stop the session and start a fresh one so the rewritten `AGENTS.md` and v0.20 skills are loaded from a clean context.
 - **Commands:**
   - `task migrate:vbrief --dry-run` (preview)
   - `task migrate:vbrief` (apply)
-  - `deft/run upgrade` (writes `vbrief/.deft-version` AND now refreshes the AGENTS.md managed section in one step per #768)
-  - `deft/run agents:refresh` (idempotent; runs implicitly via `deft/run upgrade` -- only invoke directly if you skipped that step)
+  - `.deft/core/run upgrade` (writes `vbrief/.deft-version` AND now refreshes the AGENTS.md managed section in one step per #768)
+  - `.deft/core/run agents:refresh` (idempotent; runs implicitly via `.deft/core/run upgrade` -- only invoke directly if you skipped that step)
   - `task roadmap:render` / `task project:render` / `task prd:render -- --force` (regenerate exports)
   - `task check` (verify)
 
@@ -144,7 +144,7 @@ The contract is byte-stable by construction:
 - **Commands:**
   - `task framework:check-updates` (synchronous probe, exit 1 on BEHIND; pass `-- --force` to bypass the 24h throttle and `-- --json` for machine-parseable output)
   - `git submodule update --remote --merge deft && git add deft && git commit -m "chore(deft): bump submodule"` (canonical update path -- mirrors `skills/deft-directive-sync/SKILL.md` Phase 2)
-  - `deft/run upgrade` (after the bump, to record the new framework version in `vbrief/.deft-version` and refresh the AGENTS.md managed section)
+  - `.deft/core/run upgrade` (after the bump, to record the new framework version in `vbrief/.deft-version` and refresh the AGENTS.md managed section)
   - `DEFT_NO_NETWORK=1 task <anything>` (CI / air-gapped opt-out: probe short-circuits before any subprocess call)
 
 **What changed:** Deft moved from a flat document model (`SPECIFICATION.md`, `PROJECT.md`, `ROADMAP.md` as authoritative) to a **vBRIEF-centric model** with lifecycle folders. All skills were renamed from `deft-*` to `deft-directive-*`.
@@ -169,7 +169,7 @@ After you update `deft/` to v0.20.0, `vbrief/*.vbrief.json` files are the source
    # task spec:render         # optional; re-emits SPECIFICATION.md from narratives
    ```
    The `deft-directive-pre-pr` skill auto-renders `PRD.md` / `SPECIFICATION.md` at Phase 3b on every PR, so you only need to run these explicitly once post-migration. `ROADMAP.md` is not covered by Phase 3b auto-render.
-5. **Record the framework version** so the CLI upgrade gate stops warning on every invocation: `deft/run upgrade` writes `vbrief/.deft-version`.
+5. **Record the framework version** so the CLI upgrade gate stops warning on every invocation: `.deft/core/run upgrade` writes `vbrief/.deft-version`.
 6. **Start a new agent session.** Your current session still holds stale rules from the previous `AGENTS.md`. Close the tab / session and open a new one; the agent will read the refreshed `AGENTS.md` and v0.20 skills on its own.
 7. **Verify.** Run `task check` -- the full pre-commit pipeline (fmt + lint + typecheck + tests + vbrief validation + link check) must be green. If `task vbrief:validate` warns about `SPECIFICATION.md` or `PROJECT.md`, the deprecation redirect stubs were not written correctly; re-run `task migrate:vbrief` or patch the stubs to include the `<!-- deft:deprecated-redirect -->` line on the first line.
 
@@ -182,14 +182,14 @@ After you update `deft/` to v0.20.0, `vbrief/*.vbrief.json` files are the source
 - Your `SPECIFICATION.md` and `PROJECT.md` are replaced with short redirect stubs containing `<!-- deft:deprecated-redirect -->` on the first line. Existing content is migrated into `vbrief/specification.vbrief.json` narratives + `vbrief/pending/` scope vBRIEFs + `vbrief/PROJECT-DEFINITION.vbrief.json` narratives. `ROADMAP.md` remains an **actively rendered view** (not a deprecation redirect) -- it is backed up to `ROADMAP.premigrate.md` and is regenerated by `task roadmap:render` from the migrated scope vBRIEFs in `vbrief/pending/` and `vbrief/completed/`.
 - `.md` files continue to exist as **rendered views**, generated on demand via `task spec:render`, `task prd:render`, `task roadmap:render`. ⊗ Edit them directly — your changes are overwritten on the next render; edit the underlying `.vbrief.json` instead.
 - Skills live under new `deft-directive-*` directory names. Legacy `skills/deft-*/SKILL.md` files contain small redirect stubs that point agents at `deft/QUICK-START.md`; they exist for one release cycle so v0.19 `AGENTS.md` files that still reference old paths keep working until you re-run QUICK-START.
-- The CLI (`deft/run`) now has a **non-fatal upgrade gate** (issue #410). After updating, the gate warns once per invocation until you run `deft/run upgrade` or `task migrate:vbrief`. Interactive sessions get a `Continue anyway? [y/N]` prompt; non-interactive sessions (CI, cloud agents) warn and continue.
+- The CLI (`.deft/core/run`) now has a **non-fatal upgrade gate** (issue #410). After updating, the gate warns once per invocation until you run `.deft/core/run upgrade` or `task migrate:vbrief`. Interactive sessions get a `Continue anyway? [y/N]` prompt; non-interactive sessions (CI, cloud agents) warn and continue.
 - **New `task issue:ingest`** (#454) -- materialise GitHub issues as scope vBRIEFs in `vbrief/proposed/` (single-issue mode `task issue:ingest -- <N>` or bulk `task issue:ingest -- --all [--label L] [--status S] [--dry-run]`). Deduplicates against existing origin-provenance references so the `task reconcile:issues` unlinked section stops growing monotonically post-GA.
 
 ### Troubleshooting
 
 - **Agent says it can't find `deft/skills/deft-sync/SKILL.md`:** that is a stale v0.19 `AGENTS.md` path. Tell your agent: *"Read `deft/QUICK-START.md` and follow it."* If the dummy redirect stub is read, it also points at QUICK-START.md.
 - **`task check` fails on `task vbrief:validate`:** typical causes are filename convention (must be `YYYY-MM-DD-<lowercase-slug>.vbrief.json`), folder/status mismatch (use `task scope:activate|complete|cancel|restore|block|unblock` to move files), or missing `overview` / `tech stack` narrative keys on `PROJECT-DEFINITION.vbrief.json`.
-- **CLI keeps warning about version drift:** run `deft/run upgrade` to record the current framework version in `vbrief/.deft-version`.
+- **CLI keeps warning about version drift:** run `.deft/core/run upgrade` to record the current framework version in `vbrief/.deft-version`.
 - **"My existing `AGENTS.md` additions got wiped":** QUICK-START refreshes only the Deft-managed section (bounded by the `deft/main.md` sentinel region). If you saw content outside that region change, please file an issue with `discovered-during-402` so we can tighten the detection.
 
 ### References

@@ -134,14 +134,14 @@ On first interactive session after adding Deft, the agent-driven path runs a **p
 
 **Action on detection:** the agent stops with an actionable message such as "Run `task migrate:vbrief` to upgrade to the vBRIEF-centric model."
 
-### CLI path (`deft/run`)
+### CLI path (`.deft/core/run`)
 
-The CLI has a companion non-fatal upgrade gate (issue #410): `deft/run` warns on every invocation when `vbrief/.deft-version` does not match the framework `VERSION`, or when legacy artifacts are found without the sentinel. Interactive sessions get a `Continue anyway? [y/N]` prompt; non-interactive sessions (CI, cloud agents) warn once and continue so CI is never blocked.
+The CLI has a companion non-fatal upgrade gate (issue #410): `.deft/core/run` warns on every invocation when `vbrief/.deft-version` does not match the framework `VERSION`, or when legacy artifacts are found without the sentinel. Interactive sessions get a `Continue anyway? [y/N]` prompt; non-interactive sessions (CI, cloud agents) warn once and continue so CI is never blocked.
 
 After completing migration, record the framework version so the CLI gate stays silent:
 
 ```bash
-deft/run upgrade         # writes vbrief/.deft-version = <current VERSION>
+.deft/core/run upgrade         # writes vbrief/.deft-version = <current VERSION>
 ```
 
 ---

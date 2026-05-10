@@ -162,8 +162,11 @@ class TestUpgradingDoc:
 
     def test_mentions_run_upgrade(self) -> None:
         content = self.PATH.read_text(encoding="utf-8")
-        assert "deft/run upgrade" in content, (
-            "UPGRADING.md must mention `deft/run upgrade` (CLI marker writer)."
+        # Per #992 PR1: install-layout contract flipped deft/ -> .deft/core/
+        # for the run script invocation surface in all docs.
+        assert ".deft/core/run upgrade" in content, (
+            "UPGRADING.md must mention `.deft/core/run upgrade` "
+            "(CLI marker writer; canonical install-layout per #992 PR1)."
         )
 
     def test_instructs_new_session(self) -> None:
