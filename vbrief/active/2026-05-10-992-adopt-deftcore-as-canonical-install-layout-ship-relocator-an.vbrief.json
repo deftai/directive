@@ -90,7 +90,7 @@
           "tests/cmd_gate/test_state_detection.py (PR3 -- extended)",
           "tests/contract/test_no_legacy_deft_run.py (PR1 -- new; regex-grep regression)",
           "CHANGELOG.md ([Unreleased] entries across PR1 + PR2 + PR3)",
-          "vbrief/proposed/2026-05-10-992-adopt-deftcore-as-canonical-install-layout-ship-relocator-an.vbrief.json (this file; lifecycle-moved on completion)"
+          "vbrief/active/2026-05-10-992-adopt-deftcore-as-canonical-install-layout-ship-relocator-an.vbrief.json (this file; lifecycle-moved on completion)"
         ],
         "files_owned_external_repo": [
           "<webinstaller>/upgrade.sh (PR2 -- new; in webinstaller repo)",
