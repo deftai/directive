@@ -30,10 +30,25 @@ CANONICAL_FRAMEWORK_DIR: str = ".deft/core"
 LEGACY_FRAMEWORK_DIR: str = "deft"
 SNAPSHOT_PREFIX: str = "relocate-snapshot-"
 
+#: Project-relative paths the snapshot tarball is allowed to capture or
+#: leave residue for. The rollback path uses this set to clean any tracked
+#: path that was NOT captured in the snapshot (i.e. was created by the
+#: relocator post-snapshot) so the rollback restores a byte-equivalent
+#: pre-relocate state for tracked files. F3 fix (#1015): without this
+#: set the relocator-created ``.gitignore`` was left as residue after a
+#: rollback when the pre-relocate project had no ``.gitignore``.
+ROLLBACK_TRACKED_PATHS: tuple[str, ...] = (
+    LEGACY_FRAMEWORK_DIR,
+    CANONICAL_FRAMEWORK_DIR,
+    "AGENTS.md",
+    ".gitignore",
+)
+
 
 __all__ = [
     "CANONICAL_FRAMEWORK_DIR",
     "LEGACY_FRAMEWORK_DIR",
+    "ROLLBACK_TRACKED_PATHS",
     "SNAPSHOT_PREFIX",
     "SnapshotError",
     "create_snapshot",
@@ -83,19 +98,18 @@ def create_snapshot(
 ) -> Path:
     """Tarball the consumer's pre-relocate state into ``.deft-cache/``.
 
-    Captures (when present): ``<project-root>/deft/``,
-    ``<project-root>/.deft/core/``, ``<project-root>/AGENTS.md``, and
-    ``<project-root>/.gitignore``. The tarball uses paths relative to
-    ``project_root`` so :func:`extract_snapshot` restores them directly.
+    Captures (when present): every path in :data:`ROLLBACK_TRACKED_PATHS`
+    -- ``<project-root>/deft/``, ``<project-root>/.deft/core/``,
+    ``<project-root>/AGENTS.md``, and ``<project-root>/.gitignore``. The
+    tarball uses paths relative to ``project_root`` so
+    :func:`extract_snapshot` restores them directly. Tracked paths that
+    DID NOT exist pre-relocate are intentionally absent from the tarball;
+    the rollback path uses that absence to recognise relocator-created
+    residue and remove it (F3 fix #1015).
     """
     out = target or snapshot_path(project_root, timestamp=timestamp)
     out.parent.mkdir(parents=True, exist_ok=True)
-    members = [
-        project_root / LEGACY_FRAMEWORK_DIR,
-        project_root / CANONICAL_FRAMEWORK_DIR,
-        project_root / "AGENTS.md",
-        project_root / ".gitignore",
-    ]
+    members = [project_root / name for name in ROLLBACK_TRACKED_PATHS]
     captured = [m for m in members if m.exists()]
     with tarfile.open(out, "w:gz") as tar:
         for member in captured:
@@ -114,10 +128,25 @@ def extract_snapshot(
 ) -> Path:
     """Extract ``snapshot`` (or the most recent) back into ``project_root``.
 
-    The wipe targets (``deft/`` and ``.deft/core/``) and ``AGENTS.md`` are
-    removed first so a partially-relocated tree doesn't carry stale bytes
-    forward into the rolled-back state. Returns the snapshot path that
-    was actually extracted (handy for the operator-facing log line).
+    Tracked-paths contract (F3 fix, #1015): every path in
+    :data:`ROLLBACK_TRACKED_PATHS` is reset before extraction --
+
+    - paths captured in the tarball are removed first (so a
+      partially-relocated tree doesn't carry stale bytes forward) then
+      re-extracted, and
+    - paths NOT captured in the tarball are removed unconditionally
+      because the relocator created them post-snapshot (e.g. a
+      relocator-created ``.gitignore`` when the pre-relocate project had
+      none). Without this step, ``git status --porcelain`` post-rollback
+      would surface ``?? .gitignore`` and break the byte-equivalent
+      pre-relocate-state contract.
+
+    The ``.deft-cache/`` directory (which hosts the snapshot tarball
+    itself) is intentionally NOT in the tracked-paths set -- removing it
+    would break re-rollback against the same snapshot.
+
+    Returns the snapshot path that was actually extracted (handy for the
+    operator-facing log line).
     """
     chosen = snapshot or latest_snapshot(project_root)
     if chosen is None:
@@ -131,17 +160,38 @@ def extract_snapshot(
             exit_code=2,
         )
 
-    for name in (LEGACY_FRAMEWORK_DIR, CANONICAL_FRAMEWORK_DIR):
+    # F3 residue fix (#1015): clear EVERY tracked path before extracting
+    # the tarball. Captured tracked paths are then restored by
+    # ``extractall``; uncaptured tracked paths (relocator-created
+    # post-snapshot residue, e.g. a fresh ``.gitignore`` written by
+    # ``_ensure_gitignore_lines`` when the pre-relocate project had
+    # none) stay absent so ``git status --porcelain`` is clean.
+    # Symmetrically removing captured paths up front also guarantees no
+    # partially-relocated bytes survive into the rolled-back state.
+    for name in ROLLBACK_TRACKED_PATHS:
         target = project_root / name
         if target.is_dir() and not target.is_symlink():
             shutil.rmtree(target)
-    agents_md = project_root / "AGENTS.md"
-    if agents_md.is_file():
-        agents_md.unlink()
+        elif target.is_file() or target.is_symlink():
+            target.unlink()
 
     with tarfile.open(chosen, "r:gz") as tar:
         _safe_extract(tar, project_root)
     return chosen
+
+
+def _captured_top_level_names(snapshot: Path) -> set[str]:
+    """Return the set of top-level paths captured in ``snapshot``.
+
+    Used by :func:`extract_snapshot` to distinguish tracked paths that
+    were captured (and thus will be restored by the tarball extract)
+    from tracked paths that the relocator created post-snapshot (which
+    must be removed without restoration to honour the byte-equivalent
+    pre-relocate-state contract -- F3 fix #1015).
+    """
+    with tarfile.open(snapshot, "r:gz") as tar:
+        names = tar.getnames()
+    return {n.split("/", 1)[0] for n in names if n}
 
 
 def _safe_extract(tar: tarfile.TarFile, dest: Path) -> None:

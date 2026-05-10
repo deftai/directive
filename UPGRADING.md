@@ -53,6 +53,21 @@ task relocate -- --rollback
 
 The rollback extracts the most recent `.deft-cache/relocate-snapshot-*.tar.gz` back into the project root. Snapshots are timestamped (UTC) so multiple back-to-back relocates each leave their own snapshot; the rollback always picks the most recent. If you need to roll back further, extract the older snapshot manually with `tar -xzf .deft-cache/relocate-snapshot-<timestamp>.tar.gz -C <project_root>`.
 
+The rollback restores **byte-equivalent pre-relocate state** for the four tracked paths (`deft/`, `.deft/core/`, `AGENTS.md`, `.gitignore`): captured paths are restored from the tarball; uncaptured tracked paths (relocator-created `.gitignore` when the project had none pre-relocate) are removed so `git status --porcelain` is clean post-rollback. The `.deft-cache/` directory is intentionally outside the byte-equivalent contract because it hosts the snapshot tarball and the relocator's working state -- removing it would break re-rollback against the same snapshot. (F3 #1015)
+
+### Manual edits required after relocate (above-marker prose)
+
+The relocator preserves consumer-authored prose ABOVE the AGENTS.md managed-section markers verbatim per the [#794](https://github.com/deftai/directive/issues/794) `_wrap_legacy_in_markers` contract -- this is by design so hand-rolled notes survive the migration. As a consequence, **legacy `deft/run` references the consumer wrote into their own AGENTS.md (or other consumer-owned files outside `.deft/core/`) survive the relocate verbatim**. The relocator's advisory grep flags these as fix-manually hits at the end of the run; the operator decides whether to update each surface.
+
+The relocator does NOT auto-rewrite consumer-owned files (the canonical reason: external CI workflows, dotfiles, and tooling outside the framework's control may also hardcode the legacy path -- the framework cannot mechanically distinguish a benign reference from a load-bearing one). After the relocate, scan the advisory grep output and update each occurrence by hand:
+
+- `AGENTS.md` head/tail (above and below the managed-section markers) -- replace `deft/run` with `.deft/core/run` and `Full guidelines: deft/main.md` with `Full guidelines: .deft/core/main.md`.
+- CI workflow files (`.github/workflows/*.yml`) -- replace any `deft/run <task>` invocations.
+- Project scripts (`scripts/`, `Makefile`, `Taskfile.yml`, dotfiles) that hardcode the legacy path.
+- README / docs / contributor-onboarding prose that points new contributors at `deft/run` for bootstrap.
+
+The advisory grep output is the operator's worklist; treat it as a finite todo. Once every flagged occurrence is either updated to `.deft/core/run` or explicitly acknowledged as legacy-friendly redirect-stub content (e.g. the `skills/deft-{sync,setup,...}/SKILL.md` redirect stubs that intentionally retain `deft/run` per [#411](https://github.com/deftai/directive/issues/411)), commit the changes alongside the relocate. (F1 #1015)
+
 ### What the cmd_gate auto-prompt does NOT do
 
 The gate-side prompt is informational only:

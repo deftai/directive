@@ -410,14 +410,22 @@ class TestSnapshotRollback:
 
 
 # ---------------------------------------------------------------------------
-# Self-detect (BOOTSTRAP NEVER SELF-DESTRUCTIVE)
+# Self-detect + self-bootstrap (BOOTSTRAP NEVER SELF-DESTRUCTIVE; #1015)
 # ---------------------------------------------------------------------------
 
 
 class TestSelfDetect:
-    """``main()`` exits 2 when the relocator script lives inside the wipe target."""
+    """``main()`` invokes the self-bootstrap path when running from in-place.
 
-    def test_main_exits_config_error_when_inside_canonical_dir(
+    v0.27.0 (#992 PR2) shipped a fail-loud branch that returned exit 2 when
+    the relocator script lived inside the wipe target. #1015 replaces that
+    branch with an in-process self-bootstrap: the framework is copied to an
+    OS temp dir and the relocator is re-launched from there. The fail-loud
+    branch only fires now if the bootstrap copy itself fails (an OS / shutil
+    error). These tests assert the bootstrap-dispatch contract.
+    """
+
+    def test_main_dispatches_self_bootstrap_when_inside_canonical_dir(
         self,
         relocate: Any,
         project_root: Path,
@@ -432,8 +440,9 @@ class TestSelfDetect:
         fake_script = canonical / "scripts" / "relocate.py"
         fake_script.parent.mkdir(parents=True, exist_ok=True)
         fake_script.write_text("# fake\n", encoding="utf-8")
-        # Patch the module-level ``__file__`` reference inside the helper
-        # so the self-detect compares against our fake_script path.
+        # Patch the helper so the self-detect compares against our
+        # fake_script path (the real ``__file__`` lives outside the wipe
+        # target on the test runner).
         original = relocate._running_inside_wipe_target
 
         def fake_helper(
@@ -442,6 +451,19 @@ class TestSelfDetect:
             return original(script_path=fake_script, project_root=project_root)
 
         monkeypatch.setattr(relocate, "_running_inside_wipe_target", fake_helper)
+
+        # Stub the bootstrap so we can assert it was invoked without
+        # actually copying the framework + spawning a subprocess.
+        bootstrap_invocations: list[dict[str, Any]] = []
+
+        def fake_bootstrap(*, in_place_framework: Path, argv: Any) -> int:
+            bootstrap_invocations.append(
+                {"in_place_framework": in_place_framework, "argv": list(argv)}
+            )
+            return relocate.EXIT_SUCCESS
+
+        monkeypatch.setattr(relocate, "self_bootstrap_to_temp", fake_bootstrap)
+
         rc = relocate.main(
             [
                 "--project-root",
@@ -453,7 +475,80 @@ class TestSelfDetect:
                 "--quiet",
             ]
         )
-        assert rc == relocate.EXIT_CONFIG_ERROR
+        assert rc == relocate.EXIT_SUCCESS, (
+            "self-bootstrap dispatch should propagate the child's exit code"
+        )
+        assert len(bootstrap_invocations) == 1, (
+            "the self-bootstrap helper must be invoked exactly once on detect"
+        )
+        invocation = bootstrap_invocations[0]
+        # The offending wipe target is the canonical dir.
+        assert invocation["in_place_framework"] == canonical.resolve()
+        # The full argv (minus the script name) is forwarded so the temp
+        # child can re-parse the operator's flags.
+        assert "--confirm" in invocation["argv"]
+        assert "--no-snapshot" in invocation["argv"]
+
+    def test_bootstrapped_from_temp_sentinel_suppresses_self_detect(
+        self,
+        relocate: Any,
+        project_root: Path,
+        framework_source: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        # Place a fake script inside the wipe target -- but ALSO pass
+        # ``--bootstrapped-from-temp`` to simulate the temp-child run.
+        # The relocator MUST proceed normally instead of self-bootstrapping
+        # again; otherwise we get an infinite re-launch loop.
+        _populate_canonical(project_root, framework_source)
+        canonical = project_root / ".deft" / "core"
+        fake_script = canonical / "scripts" / "relocate.py"
+        fake_script.parent.mkdir(parents=True, exist_ok=True)
+        fake_script.write_text("# fake\n", encoding="utf-8")
+        original = relocate._running_inside_wipe_target
+
+        def fake_helper(
+            *, script_path: Path, project_root: Path
+        ) -> tuple[bool, Path | None]:
+            return original(script_path=fake_script, project_root=project_root)
+
+        monkeypatch.setattr(relocate, "_running_inside_wipe_target", fake_helper)
+
+        bootstrap_calls: list[Any] = []
+
+        def forbidden_bootstrap(**_: Any) -> int:  # pragma: no cover
+            bootstrap_calls.append(_)
+            raise AssertionError(
+                "self_bootstrap_to_temp must NOT fire when the sentinel is set"
+            )
+
+        monkeypatch.setattr(
+            relocate, "self_bootstrap_to_temp", forbidden_bootstrap
+        )
+        # ``--force`` clears the customization probe -- this fixture seeds
+        # a fake ``scripts/relocate.py`` inside the wipe target which the
+        # state-classifier rightly flags as customization. The contract
+        # under test here is the sentinel-suppression of the bootstrap
+        # dispatch, NOT the customization gate.
+        rc = relocate.main(
+            [
+                "--project-root",
+                str(project_root),
+                "--framework-source",
+                str(framework_source),
+                "--force",
+                "--confirm",
+                "--no-snapshot",
+                "--quiet",
+                "--bootstrapped-from-temp",
+            ]
+        )
+        # The wipe should proceed normally to canonical end state -- the
+        # exit code is the canonical-state success code.
+        assert rc == relocate.EXIT_SUCCESS
+        assert bootstrap_calls == [], (
+            "sentinel must short-circuit the bootstrap dispatch (no infinite loop)"
+        )
 
 
 # ---------------------------------------------------------------------------

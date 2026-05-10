@@ -46,6 +46,14 @@ copies of historical material, or explicitly carved out by the
 orchestrator as docs-only-out-of-scope for PR1 (see the ``Scope deviation
 notes`` block in the PR1 PR body):
 
+- ``UPGRADING.md`` (canonical migration documentation -- by definition
+  references BOTH the legacy ``deft/run`` path AND the canonical
+  ``.deft/core/run`` path so consumers know what they are migrating FROM
+  and TO. The #1015 F1 "Manual edits required after relocate (above-marker
+  prose)" subsection explicitly enumerates the legacy occurrences
+  consumers must update by hand; removing the literal token would break
+  the doc's operator-actionable usefulness).
+
 - ``vbrief/PROJECT-DEFINITION.vbrief.json`` (must-not-touch per the active
   vBRIEF's ``files_must_not_touch`` list; regenerated via ``task project:render``).
 - ``vbrief/schemas/**`` (frozen schemas; out of scope).
@@ -159,6 +167,12 @@ _EXCLUDED_EXACT_PATHS = frozenset(
         # docstring `Beyond-AC` block for the rationale.
         "scripts/relocate.py",
         "scripts/_relocate_states.py",
+        # #1015 F1: UPGRADING.md is the canonical migration docs surface and
+        # MUST reference both the legacy `deft/run` and canonical
+        # `.deft/core/run` paths so consumers know what to migrate FROM
+        # and TO. The F1 "Manual edits required after relocate" subsection
+        # is the operator's worklist; the literal token is load-bearing.
+        "UPGRADING.md",
     }
 )
 

@@ -37,9 +37,13 @@ Three load-bearing invariants (active vBRIEF DesignChoice):
 - **WIPE-NOT-DIFF-MERGE**: one code path idempotent across A/B/C/D/F.
 - **BOOTSTRAP NEVER SELF-DESTRUCTIVE**: ``main()`` self-detects whether
   the running script lives inside the wipe-target tree
-  (``<project-root>/deft/`` or ``<project-root>/.deft/core/``) and exits
-  2 if so. The webinstaller bootstrap fetches a fresh framework copy to
-  a temp dir and runs the relocator from there.
+  (``<project-root>/deft/`` or ``<project-root>/.deft/core/``) and on
+  detection performs an in-process **self-bootstrap** -- the framework is
+  copied to an OS temp directory and the relocator is re-launched from
+  the temp copy with a ``--bootstrapped-from-temp`` sentinel. The temp
+  copy proceeds with the wipe + redeposit while the in-place tree is no
+  longer holding live import handles. This eliminates the v0.27.0
+  webinstaller dependency for the relocation path (#1015 self-bootstrap).
 - **AUTO-PROMPT NEVER AUTO-WIPE**: bare invocation prompts ``[y/N]``;
   ``--confirm`` skips the prompt for scripted use; ``--dry-run`` reports
   the plan without I/O.
@@ -67,8 +71,10 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import subprocess
 import sys
-from collections.abc import Iterable
+import tempfile
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import IO
@@ -99,6 +105,8 @@ reconfigure_stdio()
 __all__ = [
     "AGENTS_MANAGED_CLOSE",
     "AGENTS_MANAGED_OPEN",
+    "BOOTSTRAP_TEMP_PREFIX",
+    "BOOTSTRAP_FRAMEWORK_NAME",
     "CANONICAL_FRAMEWORK_DIR",
     "EXIT_CONFIG_ERROR",
     "EXIT_FAILURE",
@@ -122,6 +130,7 @@ __all__ = [
     "main",
     "regenerate_agents_md",
     "render_managed_section",
+    "self_bootstrap_to_temp",
     "wipe_and_reinstall",
 ]
 
@@ -177,10 +186,41 @@ VBRIEF_LIFECYCLE_DIRS: tuple[str, ...] = (
 )
 
 #: ``.gitignore`` baseline the relocator ensures present after a relocate.
+#:
+#: F2 canonical-default decision (#1015): the canonical relocator default
+#: gitignores ``.deft-cache/`` (runtime cache, snapshot tarballs, audit log
+#: -- mirrors the #845 / #883 hidden-namespace gitignore convention) and
+#: ``vbrief/.eval/`` (audit-log private state). The framework deposit at
+#: ``.deft/core/`` is INTENTIONALLY NOT auto-gitignored: per #11 the
+#: ``.deft/core/`` tree is read-only packaged framework assets that ship
+#: with the consumer's repo for reproducibility. Auto-gitignoring it would
+#: silently break that contract on every v0.27.0 install already in the
+#: wild. Active scope vBRIEF Outcome narrative #992 mentions "include
+#: .deft/core/" in passing but the canonical Test narrative + #845
+#: precedent + the v0.27.0-shipped behaviour all align with the
+#: ``.deft-cache/`` + ``vbrief/.eval/`` baseline pinned here. Consumers who
+#: deliberately want their framework dir gitignored can append ``.deft/``
+#: to their own ``.gitignore`` manually -- the relocator does NOT take
+#: that decision on the operator's behalf.
 GITIGNORE_LINES: tuple[str, ...] = (
     ".deft-cache/",
     "vbrief/.eval/",
 )
+
+#: Sentinel argv flag the relocator passes to its own re-launch from an OS
+#: temp directory. Consumers MUST NOT set this manually; the bootstrap path
+#: is the only correct producer (see :func:`self_bootstrap_to_temp`).
+BOOTSTRAP_SENTINEL: str = "--bootstrapped-from-temp"
+
+#: tempfile prefix used by :func:`self_bootstrap_to_temp` so the OS temp
+#: cleanup heuristics (and ``task verify:cache``-style pruning) can locate
+#: stale relocator copies after a botched run.
+BOOTSTRAP_TEMP_PREFIX: str = "deft-relocator-"
+
+#: Subdirectory name under the temp dir that hosts the framework copy.
+#: The fixed ``deft`` name is canonical (matches a fresh git clone shape)
+#: so the temp child can compute ``framework-source`` deterministically.
+BOOTSTRAP_FRAMEWORK_NAME: str = "deft"
 
 STATE_DESCRIPTIONS: dict[str, str] = {
     "A": "pure deft/ (legacy install)",
@@ -288,6 +328,134 @@ def _running_inside_wipe_target(
             continue
         return (True, candidate)
     return (False, None)
+
+
+# ---------------------------------------------------------------------------
+# Self-bootstrap (#1015): copy framework to OS temp + re-launch from there
+# ---------------------------------------------------------------------------
+
+
+#: Top-level entries skipped when copying the in-place framework into the
+#: OS temp dir for self-bootstrap. Mirrors :data:`FRAMEWORK_DEPOSIT_EXCLUSIONS`
+#: with the addition of repo-internal noise that does not need to travel
+#: with the relocator (the bootstrap copy only needs the relocator + its
+#: dependencies + the AGENTS.md template).
+_BOOTSTRAP_COPY_EXCLUSIONS: frozenset[str] = frozenset(
+    {
+        ".git",
+        ".github",
+        ".githooks",
+        ".venv",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".mypy_cache",
+        ".idea",
+        ".vscode",
+        ".deft",
+        ".deft-cache",
+        "__pycache__",
+        "node_modules",
+        "dist",
+        "build",
+        "session.txt",
+        "session2.txt",
+    }
+)
+
+
+def _bootstrap_copy_ignore(_src: str, names: list[str]) -> set[str]:
+    """``shutil.copytree`` ignore callback skipping repo-noise top-level dirs."""
+    return {n for n in names if n in _BOOTSTRAP_COPY_EXCLUSIONS}
+
+
+def _argv_strip_framework_source(argv: Iterable[str]) -> list[str]:
+    """Strip ``--framework-source <path>`` (and ``--framework-source=<path>``).
+
+    Used by :func:`self_bootstrap_to_temp` to rebuild the child argv with the
+    temp framework path injected in place of whatever the parent invocation
+    pointed at (typically the in-place wipe target).
+    """
+    out: list[str] = []
+    skip_next = False
+    for token in argv:
+        if skip_next:
+            skip_next = False
+            continue
+        if token == "--framework-source":
+            skip_next = True
+            continue
+        if token.startswith("--framework-source="):
+            continue
+        out.append(token)
+    return out
+
+
+_BootstrapRunner = Callable[[list[str]], int]
+_BootstrapTempFactory = Callable[[], Path]
+
+
+def self_bootstrap_to_temp(
+    *,
+    in_place_framework: Path,
+    argv: Iterable[str],
+    runner: _BootstrapRunner | None = None,
+    temp_factory: _BootstrapTempFactory | None = None,
+) -> int:
+    """Copy ``in_place_framework`` to OS temp + re-launch the relocator from there.
+
+    The parent process that invoked this helper is running from inside the
+    wipe target (e.g. ``<consumer>/.deft/core/scripts/relocate.py``). To
+    avoid the parent's import handles racing the child's wipe, we copy the
+    in-place tree to an isolated OS temp directory and re-launch the
+    relocator from the temp copy with the :data:`BOOTSTRAP_SENTINEL` flag
+    set (which suppresses the self-detect on the child run). The parent
+    waits for the child to complete and propagates its exit code so the
+    operator-facing surface is identical to a direct invocation from a
+    fresh git clone.
+
+    The temp directory is intentionally NOT auto-cleaned: leaving the copy
+    behind aids forensic inspection if the relocate fails, and the OS
+    cleanup heuristics (plus any future ``task verify:cache`` prune) will
+    reclaim the space without operator intervention.
+
+    Parameters are kwarg-only so the test seam (``runner`` /
+    ``temp_factory``) does not collide with positional re-ordering on a
+    future API tweak.
+    """
+    factory = temp_factory or (
+        lambda: Path(tempfile.mkdtemp(prefix=BOOTSTRAP_TEMP_PREFIX))
+    )
+    temp_root = factory()
+    temp_framework = temp_root / BOOTSTRAP_FRAMEWORK_NAME
+    shutil.copytree(
+        in_place_framework,
+        temp_framework,
+        ignore=_bootstrap_copy_ignore,
+        symlinks=False,
+    )
+    temp_script = temp_framework / "scripts" / "relocate.py"
+    if not temp_script.is_file():  # pragma: no cover -- defensive guard
+        raise RelocateError(
+            f"self-bootstrap copy is missing scripts/relocate.py at {temp_script}",
+            exit_code=EXIT_CONFIG_ERROR,
+        )
+    stripped_argv = _argv_strip_framework_source(argv)
+    child_argv = [
+        sys.executable,
+        str(temp_script),
+        *stripped_argv,
+        "--framework-source",
+        str(temp_framework),
+        BOOTSTRAP_SENTINEL,
+    ]
+    run: _BootstrapRunner = runner or _default_subprocess_runner
+    return run(child_argv)
+
+
+def _default_subprocess_runner(argv: list[str]) -> int:
+    """Default child-runner -- ``subprocess.run`` with inherited stdio."""
+    completed = subprocess.run(argv, check=False)  # noqa: S603 -- argv built locally
+    return completed.returncode
 
 
 # ---------------------------------------------------------------------------
@@ -570,6 +738,12 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Suppress informational status lines (errors still print).",
     )
+    parser.add_argument(
+        BOOTSTRAP_SENTINEL,
+        dest="bootstrapped_from_temp",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
     return parser
 
 
@@ -661,7 +835,11 @@ def _enforce_force_gate(plan: RelocatePlan) -> None:
     )
 
 
-def _run_relocate(args: argparse.Namespace) -> int:
+def _run_relocate(
+    args: argparse.Namespace,
+    *,
+    raw_argv: list[str] | None = None,
+) -> int:
     project_root: Path = args.project_root.resolve()
     framework_source: Path = args.framework_source.resolve()
 
@@ -669,15 +847,31 @@ def _run_relocate(args: argparse.Namespace) -> int:
         script_path=Path(__file__),
         project_root=project_root,
     )
-    if detected:
-        print(
-            f"[relocate] FATAL: relocator script lives inside wipe target "
-            f"{offending}. The webinstaller bootstrap fetches a fresh framework "
-            "copy to a temp dir and runs the relocator from there. Do not "
-            "invoke this script from the in-place framework.",
-            file=sys.stderr,
+    if detected and not args.bootstrapped_from_temp:
+        # #1015 self-bootstrap: instead of fail-loud (the v0.27.0 behaviour
+        # that produced a half-promise UX for state-A consumers running
+        # ``<framework>/run relocate`` from in-place), copy the framework to
+        # an OS temp dir and re-launch the relocator from there. The temp
+        # copy holds no live import handles into the wipe target so the
+        # downstream wipe is safe.
+        in_place_framework = offending or framework_source
+        _emit_status(
+            f"[relocate] self-bootstrap: relocator lives inside wipe target "
+            f"{in_place_framework}; copying framework to OS temp and "
+            "re-launching relocator from there.",
+            quiet=args.quiet,
         )
-        return EXIT_CONFIG_ERROR
+        try:
+            return self_bootstrap_to_temp(
+                in_place_framework=in_place_framework,
+                argv=raw_argv if raw_argv is not None else sys.argv[1:],
+            )
+        except (OSError, shutil.Error, RelocateError) as exc:
+            print(
+                f"[relocate] FATAL: self-bootstrap failed -- {exc}",
+                file=sys.stderr,
+            )
+            return EXIT_CONFIG_ERROR
 
     if not framework_source.is_dir():
         print(
@@ -769,9 +963,10 @@ def _run_relocate(args: argparse.Namespace) -> int:
 
 def main(argv: Iterable[str] | None = None) -> int:
     parser = _build_parser()
-    args = parser.parse_args(list(argv) if argv is not None else None)
+    raw_argv = list(argv) if argv is not None else list(sys.argv[1:])
+    args = parser.parse_args(raw_argv)
     try:
-        return _run_relocate(args)
+        return _run_relocate(args, raw_argv=raw_argv)
     except KeyboardInterrupt:
         print("[relocate] interrupted by operator.", file=sys.stderr)
         return EXIT_FAILURE
