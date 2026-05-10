@@ -70,6 +70,17 @@ notes`` block in the PR1 PR body):
   ``events/registry.json``.
 - ``cmd/deft-install/**`` (Go installer; functional code surface,
   follow-up).
+- ``scripts/relocate.py`` / ``scripts/_relocate_states.py`` (PR2
+  relocator; the `advise_external_hardcodes()` function intentionally
+  searches consumer files OUTSIDE ``.deft/core/`` for ``deft/run``
+  references and prints findings to help operators manually fix
+  external hardcodes per the ADVISORY-NOT-AUTOFIX-FOR-EXTERNAL-HARDCODES
+  DesignChoice on the active vBRIEF. The literal token lives in the
+  relocator code as a search constant, function default arg, log
+  message format string, and module docstring -- removing it would
+  break the advisory feature). The relocator's own framework deposit
+  is ``.deft/core/run``; the legacy-token search is for consumer-side
+  detection only.
 - ``tests/**`` (test files document both the legacy and canonical
   contract tokens by necessity -- they pin the redirect-stub contract,
   the canonical-vs-legacy split documented in `test_main_md_preamble.py`,
@@ -143,6 +154,11 @@ _EXCLUDED_EXACT_PATHS = frozenset(
         # as a low-blast-radius follow-up.
         "run.py",
         "run.bat",
+        # PR2 (#992 PR2): relocator advisory-grep retains `deft/run` as a
+        # search constant for consumer-side hardcode detection. See module
+        # docstring `Beyond-AC` block for the rationale.
+        "scripts/relocate.py",
+        "scripts/_relocate_states.py",
     }
 )
 
