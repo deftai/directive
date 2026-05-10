@@ -8,7 +8,7 @@
   "plan": {
     "id": "992-deft-core-canonical",
     "title": "feat(installer): adopt .deft/core/ as canonical install layout; ship relocator and contract flip in v0.27 (#992)",
-    "status": "running",
+    "status": "completed",
     "planRef": "#992",
     "narratives": {
       "Problem": "Directive's documented install layout (deft/) and the actual output of every current installer (.deft/core/) have diverged. Inventory across 38 deftai repos identified four install states: A pure deft/ (working; legacy installs); B pure .deft/core/ (broken; produced by current webinstaller, sync skill, oz -- AGENTS.md says deft/ but framework lives at .deft/core/); C hybrid both dirs (broken; agents follow whichever they read first); D AGENTS.md only (broken partial install). State A is the only working configuration today and B/C/D are accumulating with every new install. The contract is broken in the direction directive should fix, not the direction installers should change. Root-cause search of changelog/git/issue trail surfaced no directive-side declaration of .deft/core/ as canonical -- the only deliberate-design appearance is #11 (npm/pip CLI proposal, 2026-02-04) which spec'd .deft/core/ for read-only packaged assets, .deft/cache/ for gitignored cache, and ./deft/ for project overrides. Installers picked up the .deft/core/ path from #11 but skipped the ./deft/ override directory, producing the half-implemented hybrid consumers see today. #768 later canonized deft/ as the visible framework root via templates/agents-entry.md and AGENTS.md managed-section markers, but installer behavior had already drifted.",
@@ -24,47 +24,47 @@
       {
         "id": "992-ac-1-pr1-contract-strings",
         "title": "PR1 -- contract strings flipped (deft/run -> .deft/core/run) across templates/agents-entry.md, main.md, legacy redirect stubs, every skills/**/*.md, README.md, UPGRADING.md, QUICK-START.md, docs/**; managed-section marker bumped v1 -> v2 so cmd_gate fires agents-md=stale on every current install; matching test updates pinned. PR1 lands first because PR2 + PR3 reference the new strings and marker v2 contract.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "992-ac-2-pr2-relocator",
         "title": "PR2 -- scripts/relocate.py (new wipe-and-reinstall implementation, idempotent across states A/B/C/D, snapshot-rollback path, pre-flight hard-fails for --force gate); tasks/relocate.yml (new, wires task relocate); webinstaller-hosted upgrade.sh + upgrade.ps1 bootstrap scripts (in webinstaller repo; fetch fresh framework to temp + run relocator from there); state A-G synthetic-fixture test matrix; pre-flight hard-fail tests for customized framework + active swarm.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "992-ac-3-pr3-gate-prompt-upgrading-md",
         "title": "PR3 -- cmd_gate state-detection (A/B/C/D) + auto-prompt 'Run <framework>/run relocate to upgrade. (Y/n)' (auto-prompt only, never auto-wipe); UPGRADING.md '## From deft/ -> .deft/core/' section with four-field micro-format header; dogfood validation harness; cmd_gate state-detection unit tests.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "992-ac-4-rc1-tag",
         "title": "Tag v0.27.0-rc.1 once PR1 + PR2 + PR3 are merged and state-matrix tests are green. rc1 release notes call out the marker v1 -> v2 drift (every current install fires agents-md=stale on first gate invocation post-v0.27 -- intended).",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "992-ac-5-rc1-dogfood",
         "title": "Dogfood pass against rc1 -- 2-3 deftai repos relocated end-to-end across states A, B, and C; snapshot rollback verified at least once. Dogfood gate is the precondition for v0.27.0 GA.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "992-ac-6-installer-conformance",
         "title": "Webinstaller / sync skill / oz / Go-installer (#636) verified conformant against rc1 -- each producing .deft/core/ layout matching the new contract strings + marker v2. Conformance failure blocks GA.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "992-ac-7-ga-tag",
         "title": "Tag v0.27.0 GA after rc1 dogfood is clean. Release notes include Tier 2-4 bootstrap one-liner for pre-v0.23 out-of-band reach (deft-news / release notes / <webinstaller>/upgrade).",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "992-ac-8-close-followups",
         "title": "Close #176 (webinstaller hold lifted), #986 (install-layout contract resolved), #989 (sync skill layout re-scoped to verify-conformance), #990 (auto-repair-on-upgrade subsumed by relocator) on v0.27.0 GA -- each with comment referencing the closing PR / release.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "992-ac-9-pr4-cli-paths",
         "title": "PR4 -- CLI / Taskfile / events.json contract-string flip (post-PR1 follow-up). 9 deft/run references in non-doc surfaces: 7 in run, 1 in tasks/framework.yml comment, 1 in events/registry.json event description. Removes the corresponding exclusions from tests/contract/test_no_legacy_deft_run.py.",
-        "status": "running"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -206,6 +206,6 @@
         "title": "Issue #884: ghx adoption + task setup consent gate -- referenced by the auto-prompt-never-auto-wipe DesignChoice (operator-consent gate convention)"
       }
     ],
-    "updated": "2026-05-10T02:06:26Z"
+    "updated": "2026-05-10T23:00:28Z"
   }
 }

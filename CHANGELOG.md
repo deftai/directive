@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - v0.27.1 relocator dogfood evidence for cohort #992: state-B (deftai/postmortem) + synthetic state-A; F1/F2/F3 decisions verified; see docs/smoke-2026-05-10-v0.27.1-relocator-dogfood.md
 - cmd/deft-install installer conformance audit for cohort #992: 3/8 assertions pass (marker v2 only); 5/8 fail (legacy deft/ deposit, no .gitignore upkeep on `.deft-cache/` / `vbrief/.eval/`, no `.deft/core/` deposit, no consumer-root `vbrief/` + schemas); drifts tracked as #1020 (adoption-blocker); see docs/audit-2026-05-10-installer-conformance.md
 
+### Refinement
+- **chore(992): cohort #992 closure -- vBRIEF moved active/ -> completed/; all 9 acceptance criteria items flipped to `completed` status; #1020 (cmd/deft-install F2 drift) tracked separately as adoption-blocker; closes #992**
+
 ## [0.27.1] - 2026-05-10
 
 > v0.27.1: relocator self-bootstrap (#1015) + release_publish DRAFT-lookup fix (#1016) -- closes the v0.27.0 cohort follow-up pair under #992.
