@@ -1253,6 +1253,18 @@ def _check_upgrade_gate(command: str) -> bool:
     except Exception:
         pass
 
+    # #992 PR3: install-layout state detector + auto-prompt. Fires on
+    # non-A states (B / C / D) regardless of version-marker drift -- the
+    # prompt is informational only and does NOT set ``needs_prompt`` so
+    # the existing ``Continue anyway?`` blocking prompt path is not
+    # triggered solely because the install layout has drifted. Operator
+    # consent is required to act (mirrors the #884 ghx-install consent
+    # gate convention). Read-only -- the detector NEVER mutates state.
+    try:
+        _maybe_emit_install_layout_prompt(project_root)
+    except Exception:  # noqa: BLE001 -- detection MUST NOT break the gate
+        pass
+
     # On the happy path (no local drift, no legacy artifacts), there is no
     # actionable prompt to surface even if the remote probe emitted a banner
     # -- remote drift is informational, not blocking.
@@ -1389,6 +1401,135 @@ def _classify_agents_md(project_root: Path) -> str:
     if rendered is None:
         return "current"
     return "current" if extracted == rendered else "stale"
+
+
+# --- Install-layout state detector + auto-prompt (#992 PR3) ----------------
+#
+# The deft framework supports two on-disk install layouts at the consumer
+# project root: the legacy ``deft/`` directory (state A) and the canonical
+# ``.deft/core/`` directory (state B; produced by current installer +
+# webinstaller + sync skill + oz). v0.27 ships the relocator (#992 PR2)
+# that wipes-and-reinstalls into ``.deft/core/`` from any state. PR3 adds
+# the gate-side detector + auto-prompt so non-A consumers see a one-line
+# advisory on every CLI invocation directing them to the relocator.
+#
+# Four states (per the active scope vBRIEF Problem narrative):
+#
+#   A  pure ``deft/``                (legacy install; AGENTS.md + framework agree)
+#   B  pure ``.deft/core/``          (current installer output; broken because
+#                                     AGENTS.md may still say ``deft/``)
+#   C  hybrid (both dirs present)    (broken; agents follow whichever they
+#                                     read first)
+#   D  AGENTS.md only                (broken partial install)
+#
+# Detection inputs (read-only filesystem probes):
+#   - ``<project_root>/deft/``               legacy framework dir present?
+#   - ``<project_root>/.deft/core/``         canonical framework dir present?
+#   - ``<project_root>/AGENTS.md``           managed-section markers present?
+#
+# On detection of a non-A state the gate emits a single-line auto-prompt:
+#
+#   [deft] install layout state: <X> (<description>). \
+#       Run <framework>/run relocate to upgrade. (Y/n)
+#
+# AUTO-PROMPT ONLY -- the gate NEVER auto-invokes ``task relocate`` or
+# otherwise mutates filesystem state. Mirrors the #884 ghx-install consent
+# gate convention: the operator runs ``task relocate`` on consent.
+
+_INSTALL_LAYOUT_DESCRIPTIONS = {
+    "A": "pure deft/ legacy install",
+    "B": "pure .deft/core/ canonical install",
+    "C": "hybrid (deft/ + .deft/core/)",
+    "D": "AGENTS.md only (partial install)",
+}
+
+# Canonical relocate target -- the prompt always points at ``.deft/core``
+# regardless of source state because the relocator wipes-and-reinstalls
+# into that single namespace (single-namespace contract for v0.27 per the
+# active scope vBRIEF DesignChoice narrative).
+_INSTALL_LAYOUT_RELOCATE_TARGET = ".deft/core"
+
+
+def _agents_md_has_managed_markers(project_root: Path) -> bool:
+    """Return True iff ``./AGENTS.md`` exists and carries the managed-section markers.
+
+    Mirrors ``_classify_agents_md`` semantics but avoids the template-render
+    comparison: the install-layout detector only needs to know whether the
+    file declares itself as deft-managed, not whether the bracketed bytes
+    are byte-identical to the rendered template. Read-only -- never
+    modifies the file.
+    """
+    agents_md = project_root / "AGENTS.md"
+    if not agents_md.is_file():
+        return False
+    try:
+        text = agents_md.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return _AGENTS_MANAGED_OPEN in text and _AGENTS_MANAGED_CLOSE in text
+
+
+def _classify_install_layout(project_root: Path) -> Optional[str]:
+    """Return one of ``A``, ``B``, ``C``, ``D``, or ``None``.
+
+    Pure read-only filesystem probe -- inspects only the existence of
+    ``./deft/``, ``./.deft/core/``, and the managed-section markers in
+    ``./AGENTS.md``. Never modifies any state.
+
+    Mapping (per the active scope vBRIEF Problem narrative):
+        - ``A``  -> ``deft/`` present, ``.deft/core/`` absent
+        - ``B``  -> ``deft/`` absent,  ``.deft/core/`` present
+        - ``C``  -> both present (hybrid)
+        - ``D``  -> neither present, AGENTS.md present with managed markers
+        - ``None`` -> neither present, no managed AGENTS.md (not a deft project)
+    """
+    deft_present = (project_root / "deft").is_dir()
+    dotdeft_present = (project_root / ".deft" / "core").is_dir()
+    if deft_present and dotdeft_present:
+        return "C"
+    if deft_present:
+        return "A"
+    if dotdeft_present:
+        return "B"
+    if _agents_md_has_managed_markers(project_root):
+        return "D"
+    return None
+
+
+def _format_install_layout_prompt(state: str) -> str:
+    """Render the one-line auto-prompt for a non-A install-layout state.
+
+    Pure -- no I/O. Returns the single-line stdout surface consumed by
+    operators reading CLI output. The prompt asks ``(Y/n)`` purely as a
+    visual consent affordance; the gate NEVER acts on the answer.
+    """
+    description = _INSTALL_LAYOUT_DESCRIPTIONS.get(state, "")
+    framework = _INSTALL_LAYOUT_RELOCATE_TARGET
+    return (
+        f"[deft] install layout state: {state} ({description}). "
+        f"Run {framework}/run relocate to upgrade. (Y/n)"
+    )
+
+
+def _maybe_emit_install_layout_prompt(project_root: Path) -> Optional[str]:
+    """Print (and return) the install-layout auto-prompt on non-A states.
+
+    Returns the emitted prompt string when a prompt was printed; returns
+    ``None`` when the state is A or undetectable (not a deft project).
+    NEVER mutates filesystem state and NEVER invokes ``task relocate``
+    automatically -- operator consent is required for any remediation.
+
+    The prompt is informational (single line, exit 0 path); it does NOT
+    set ``needs_prompt`` in ``_check_upgrade_gate`` so the existing
+    ``Continue anyway?`` blocking prompt path is not triggered solely
+    because the install layout has drifted.
+    """
+    state = _classify_install_layout(project_root)
+    if state is None or state == "A":
+        return None
+    line = _format_install_layout_prompt(state)
+    print(line)
+    return line
 
 
 def _build_gate_state(project_root: Path) -> dict:

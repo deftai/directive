@@ -8,6 +8,77 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
+<!-- 992-pr3: From deft/ -> .deft/core/ migration BEGIN -->
+## From deft/ -> .deft/core/
+
+- **Applies when:** `.deft/core/run gate` reports a non-A install layout state (`B`, `C`, or `D`) -- equivalently, the new `_check_upgrade_gate` install-layout auto-prompt fires `[deft] install layout state: <X> (<description>). Run .deft/core/run relocate to upgrade. (Y/n)` on every CLI invocation. The four states inspected by the detector are: **A** pure `deft/` (legacy install; AGENTS.md + framework agree at the legacy path -- working today, no action required), **B** pure `.deft/core/` (current installer / webinstaller / sync skill / oz output -- AGENTS.md may still say `deft/` and the contract diverges), **C** hybrid (both `deft/` and `.deft/core/` present -- agents follow whichever they read first), **D** AGENTS.md only (managed-section markers present but no framework directory -- partial install). State A is the only non-firing state in v0.27 -- a future cycle decides whether to deprecate the legacy path. (#992)
+- **Safe to auto-run:** No -- the relocator is wipe-and-reinstall by design and operator consent is required at every gate-prompt invocation. The cmd_gate auto-prompt is purely informational: it asks `(Y/n)` as a visual consent affordance but the gate itself NEVER invokes `task relocate` automatically and NEVER mutates filesystem state. This mirrors the **#884 ghx-install consent gate** precedent (`task setup` prompts before invoking the upstream installer; the only non-interactive paths are explicit `--yes` or env-var opt-out). The relocator's own `task relocate` surface ALSO prompts `[y/N]` on bare invocation; pass `--confirm` to skip the prompt in scripted use, never as a default. The relocator writes a gzip snapshot tarball to `.deft-cache/relocate-snapshot-<UTC-timestamp>.tar.gz` BEFORE any wipe so a botched relocate is recoverable.
+- **Restart required:** Yes -- the marker v1 -> v2 bump (PR1) intentionally fires `agents-md=stale` on every current install on the first `cmd_gate` invocation post-v0.27. After the relocator completes, AGENTS.md is re-rendered with the v2 managed-section markers; chase with a fresh agent session so the refreshed `AGENTS.md` (Implementation Intent Gate, Branch Policy Disclosure, Multi-agent orchestration discipline, etc.) loads from a clean context. Your current session still holds the pre-relocate `AGENTS.md` in memory; restarting closes that drift.
+- **Commands:**
+  - `task relocate -- --dry-run` (preview the planned wipe-and-reinstall; never writes; no consent prompt because no mutation)
+  - `task relocate` (apply -- prompts `[y/N]` on bare invocation; writes gzip snapshot tarball to `.deft-cache/relocate-snapshot-<UTC-timestamp>.tar.gz` before any wipe; idempotent across states A/B/C/D/F)
+  - `task relocate -- --confirm` (apply non-interactively -- scripted-use ONLY; the consent prompt is the default for a reason)
+  - `task relocate -- --rollback` (extract the most recent snapshot back into project root if the relocate landed badly)
+  - `task relocate -- --force` (override the pre-flight hard-fails for **customized framework dir** [preserved-files list printed] OR **active swarm** [`vbrief/active/*.vbrief.json` with `plan.status == "running"`]; required when either condition is detected)
+  - `uv run python scripts/relocate.py --help` (full flag surface reference)
+
+### Install-layout state classification
+
+The gate-side detector inspects three filesystem facts at the consumer project root: presence of `deft/` (legacy framework dir), presence of `.deft/core/` (canonical framework dir), and presence of managed-section markers in `AGENTS.md`. The four states map onto those facts as follows:
+
+- **State A** -- `deft/` present, `.deft/core/` absent. Legacy install. **No prompt fires.** Working today; relocate is OPTIONAL in v0.27. Operators on state A can keep their legacy install indefinitely or relocate proactively.
+- **State B** -- `deft/` absent, `.deft/core/` present. Current installer / webinstaller / sync skill / oz output. **Prompt fires.** AGENTS.md may still reference `deft/` paths (pre-PR1 contract); the relocator re-renders AGENTS.md with the v2 markers and aligns the contract.
+- **State C** -- both `deft/` AND `.deft/core/` present. Hybrid. **Prompt fires.** Agents follow whichever path they read first; the relocator wipes both and reinstalls into `.deft/core/` only (single-namespace contract per the v0.27 DesignChoice).
+- **State D** -- neither directory present, AGENTS.md with managed markers present. Partial install. **Prompt fires.** Typically a cancelled / interrupted install; the relocator does a fresh canonical install into `.deft/core/`.
+
+### What the relocator does
+
+`task relocate` runs `scripts/relocate.py` (PR2). The implementation is wipe-and-reinstall by design: one idempotent code path across states A/B/C/D/F that enforces the canonical `.deft/core/` namespace contract from #11 (read-only packaged assets), has a trivial test surface (state matrix x relocator -> assert end state), catches stale framework versions for free (state B benefits even though no path move is needed), and aligns with the npm/pip rail packaging semantics that #11 will ship in parallel. Per phase, the relocator:
+
+1. **Pre-flight gates** -- hard-fails without `--force` when the framework dir is git-tracked + customized (preserved-files list printed) OR any `vbrief/active/*.vbrief.json` has `plan.status == "running"` (active swarm).
+2. **Snapshot** -- writes a gzip tarball to `.deft-cache/relocate-snapshot-<UTC-timestamp>.tar.gz` covering `deft/` + `.deft/core/` + `AGENTS.md` so the operation is reversible via `task relocate -- --rollback`.
+3. **Wipe** -- removes both `deft/` (if present) and `.deft/core/` (if present) -- the operation is contractually idempotent across source states.
+4. **Reinstall** -- copies the framework source into `.deft/core/`. The bootstrap path (`webinstaller/upgrade.sh` / `upgrade.ps1`, in the separate `webinstaller` repo) fetches a fresh framework copy to a temp dir and runs the relocator FROM that copy, so the in-place framework about to be wiped never executes its own wipe (BOOTSTRAP NEVER SELF-DESTRUCTIVE).
+5. **AGENTS.md re-render** -- bumps the managed-section bytes to the v2 marker contract using the `_wrap_legacy_in_markers` semantics from `run` (#794) so consumer notes outside the bracketed region survive verbatim.
+6. **`.gitignore` update** -- ensures `.deft/core/` is gitignored by default per the #845 / `.deft-cache/` precedent (hidden-namespace contract).
+7. **Advisory grep** -- scans consumer files OUTSIDE `.deft/core/` for legacy framework path references and prints findings (CI workflows, external scripts, dotfiles that hardcode the pre-v0.27 path). See `scripts/_relocate_states.py::advise_external_hardcodes()` for the exact search constant + grep semantics. The relocator NEVER auto-rewrites these -- CI / external tooling that hardcodes the legacy path is out of framework's control; the operator decides whether to update each surface.
+
+### Snapshot rollback
+
+A botched relocate is reversible:
+
+```bash
+task relocate -- --rollback
+```
+
+The rollback extracts the most recent `.deft-cache/relocate-snapshot-*.tar.gz` back into the project root. Snapshots are timestamped (UTC) so multiple back-to-back relocates each leave their own snapshot; the rollback always picks the most recent. If you need to roll back further, extract the older snapshot manually with `tar -xzf .deft-cache/relocate-snapshot-<timestamp>.tar.gz -C <project_root>`.
+
+### What the cmd_gate auto-prompt does NOT do
+
+The gate-side prompt is informational only:
+
+- ⊗ It does NOT invoke `task relocate` automatically; the operator runs the command on consent.
+- ⊗ It does NOT mutate any filesystem state during detection or emission.
+- ⊗ It does NOT block the CLI invocation it fires alongside; the gate stays exit-0 for layout drift (mirrors the #801 remote-version probe's informational-only contract).
+- ⊗ It does NOT call `read_yn` / interactive confirm helpers; the `(Y/n)` suffix is purely a visual consent affordance.
+
+The operator-consent contract is identical to the #884 `task setup` ghx-install consent gate: detection signals that work needs doing; the operator authorizes the work explicitly.
+
+### References
+
+- [#992](https://github.com/deftai/directive/issues/992) -- adopt `.deft/core/` as canonical install layout (parent issue).
+- [#11](https://github.com/deftai/directive/issues/11) -- origin of the `.deft/core/` layout choice (read-only packaged assets contract).
+- [#768](https://github.com/deftai/directive/issues/768) -- universal upgrade gate + AGENTS.md managed-section markers (PR1 bumps the marker from v1 to v2).
+- [#794](https://github.com/deftai/directive/issues/794) -- pre-#768 AGENTS.md legacy migration (`_wrap_legacy_in_markers` reused by the relocator's AGENTS.md re-render path).
+- [#884](https://github.com/deftai/directive/issues/884) -- `task setup` ghx-install consent gate (operator-consent precedent).
+- [`scripts/relocate.py`](./scripts/relocate.py) -- relocator source (PR2).
+- [`scripts/_relocate_states.py`](./scripts/_relocate_states.py) -- state classifier shared with cmd_gate.
+- [`tasks/relocate.yml`](./tasks/relocate.yml) -- `task relocate` Taskfile fragment.
+- [`tests/cmd_gate/test_state_detection.py`](./tests/cmd_gate/test_state_detection.py) -- gate-side state-detector + auto-prompt regression coverage (PR3).
+
+---
+<!-- 992-pr3: From deft/ -> .deft/core/ migration END -->
+
 <!-- 883-story-4: v0.25.x -> v0.26.0 migration BEGIN -->
 ## From v0.25.x → v0.26.0 (deft-cache unified layer; breaking)
 
