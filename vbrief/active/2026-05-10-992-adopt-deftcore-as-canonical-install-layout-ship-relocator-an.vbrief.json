@@ -3,7 +3,7 @@
     "version": "0.6",
     "description": "Adopt .deft/core/ as canonical install layout (closes the deft/ vs .deft/core/ contract divergence currently breaking states B/C/D installs from webinstaller/sync skill/oz). Single v0.27 release line: rc1 (validation vehicle) -> GA (after rc1 dogfood is clean). Three coordinated workstreams: (PR1) contract-string flip across templates/agents-entry.md, main.md, all skills, README, UPGRADING, QUICK-START, docs + managed-section marker bump v1 -> v2; (PR2) scripts/relocate.py wipe-and-reinstall relocator + tasks/relocate.yml + webinstaller-hosted upgrade.sh/upgrade.ps1 bootstrap scripts + state A-G synthetic-fixture test matrix; (PR3) cmd_gate state-detection (A/B/C/D) auto-prompt + UPGRADING.md '## From deft/ -> .deft/core/' section + dogfood harness. Drops the ./deft/ override directory from #11 -- single namespace, no override merge semantics in v0.27. Closes #992 on GA; #176, #986, #989, #990 closeable on GA. PowerShell 5.1 non-ASCII rule (#798) governs all file edits touching contract-string docs (em dashes, arrows).",
     "created": "2026-05-10T01:45:16Z",
-    "updated": "2026-05-10T01:48:36Z"
+    "updated": "2026-05-10T03:49:13Z"
   },
   "plan": {
     "id": "992-deft-core-canonical",
@@ -60,6 +60,11 @@
         "id": "992-ac-8-close-followups",
         "title": "Close #176 (webinstaller hold lifted), #986 (install-layout contract resolved), #989 (sync skill layout re-scoped to verify-conformance), #990 (auto-repair-on-upgrade subsumed by relocator) on v0.27.0 GA -- each with comment referencing the closing PR / release.",
         "status": "proposed"
+      },
+      {
+        "id": "992-ac-9-pr4-cli-paths",
+        "title": "PR4 -- CLI / Taskfile / events.json contract-string flip (post-PR1 follow-up). 9 deft/run references in non-doc surfaces: 7 in run, 1 in tasks/framework.yml comment, 1 in events/registry.json event description. Removes the corresponding exclusions from tests/contract/test_no_legacy_deft_run.py.",
+        "status": "running"
       }
     ],
     "tags": [
@@ -89,7 +94,11 @@
           "tests/relocate/test_preflight.py (PR2 -- new; --force gate)",
           "tests/cmd_gate/test_state_detection.py (PR3 -- extended)",
           "tests/contract/test_no_legacy_deft_run.py (PR1 -- new; regex-grep regression)",
-          "CHANGELOG.md ([Unreleased] entries across PR1 + PR2 + PR3)",
+          "CHANGELOG.md ([Unreleased] entries across PR1 + PR2 + PR3 + PR4)",
+          "run (PR4 -- CLI path-string flip; 7 occurrences)",
+          "tasks/framework.yml (PR4 -- comment-string flip)",
+          "events/registry.json (PR4 -- event description-string flip)",
+          "tests/contract/test_no_legacy_deft_run.py (PR4 -- remove out-of-scope exclusions)",
           "vbrief/active/2026-05-10-992-adopt-deftcore-as-canonical-install-layout-ship-relocator-an.vbrief.json (this file; lifecycle-moved on completion)"
         ],
         "files_owned_external_repo": [

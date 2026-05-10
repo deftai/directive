@@ -53,7 +53,7 @@
     {
       "name": "version:drift",
       "category": "detection-bound",
-      "description": "vbrief/.deft-version (or fallback project-root .deft-version) records a framework version that differs from the current run::VERSION constant. Indicates the consumer ran an older framework against this project last and may need task migrate:vbrief or deft/run upgrade.",
+      "description": "vbrief/.deft-version (or fallback project-root .deft-version) records a framework version that differs from the current run::VERSION constant. Indicates the consumer ran an older framework against this project last and may need task migrate:vbrief or .deft/core/run upgrade.",
       "trigger": "run::_check_upgrade_gate compares _read_version_marker() to VERSION; emits when both are non-None and unequal. The deft-repo self-detection short-circuit (run::_running_inside_deft_repo) suppresses the gate but does not suppress the event so framework maintainers can still observe drift in test fixtures.",
       "payload": {
         "project_root": "string -- absolute path to the consumer project root",

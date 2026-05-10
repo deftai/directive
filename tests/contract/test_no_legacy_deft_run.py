@@ -61,15 +61,13 @@ notes`` block in the PR1 PR body):
   ``history/implementation-*`` are also historical artefacts).
 - ``session.txt`` / ``session2.txt`` (developer scratch session logs from
   pre-v0.20 work; tracked but historical).
-- ``run`` / ``run.py`` / ``run.bat`` (Python CLI script and siblings;
-  intentionally docs-only-out-of-scope for PR1 per the orchestrator's
-  envelope -- the CLI surface has wider blast radius (test fixtures,
-  doctor checks, release pipeline) than the doc-side flip and is tracked
-  as a separate follow-up scope).
-- ``tasks/framework.yml`` (Taskfile fragment with one comment-only
-  reference; functional code surface, follow-up).
-- ``events/registry.json`` (event registry with one description-string
-  reference; functional config surface, follow-up).
+- ``run.py`` / ``run.bat`` (Python CLI siblings; legacy thin wrappers
+  around ``run`` retained for backward compatibility -- contract-string
+  flip on these is tracked as a separate follow-up because they live
+  outside the canonical CLI entry point and have low blast radius). The
+  primary ``run`` CLI script itself is NO LONGER excluded -- it was
+  flipped in PR4 alongside ``tasks/framework.yml`` and
+  ``events/registry.json``.
 - ``cmd/deft-install/**`` (Go installer; functional code surface,
   follow-up).
 - ``tests/**`` (test files document both the legacy and canonical
@@ -139,11 +137,12 @@ _EXCLUDED_EXACT_PATHS = frozenset(
         "SPECIFICATION.md",
         "session.txt",
         "session2.txt",
-        "run",
+        # PR4 (#992 PR4): `run`, `tasks/framework.yml`, and
+        # `events/registry.json` were flipped to `.deft/core/run`; they are
+        # NO LONGER excluded. The CLI sibling wrappers below remain excluded
+        # as a low-blast-radius follow-up.
         "run.py",
         "run.bat",
-        "tasks/framework.yml",
-        "events/registry.json",
     }
 )
 

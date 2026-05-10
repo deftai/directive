@@ -5,7 +5,7 @@ version: '3'
 # Hosts surfaces that interrogate the deft framework itself (rather than the
 # consumer project). Currently only `framework:check-updates`, but this is
 # the natural home for any future "is the deft framework healthy / current"
-# probe (e.g. submodule SHA reconcile, deft/run version vs marker, etc.).
+# probe (e.g. submodule SHA reconcile, .deft/core/run version vs marker, etc.).
 #
 # Per `conventions/task-caching.md` (#574): the check-updates task accepts a
 # user-facing `--force` recovery flag (mapped to DEFT_FORCE_REMOTE_PROBE=1)

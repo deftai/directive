@@ -62,7 +62,7 @@ def _resolve_version() -> str:
     # Run `git describe` rooted at the directory containing this script
     # so the lookup is independent of the operator's current working
     # directory (which can be any consumer project when `run` is invoked
-    # via `./deft/run <command>`).
+    # via `./.deft/core/run <command>`).
     script_dir = str(Path(__file__).parent.absolute())
     try:
         result = subprocess.run(
@@ -652,7 +652,7 @@ read_yn = ask_confirm
 
 # --- Upgrade gate (#410) ---------------------------------------------------
 #
-# `deft/run` is the one deterministic entry point directive controls that runs
+# `.deft/core/run` is the one deterministic entry point directive controls that runs
 # in the consumer project's working directory.  After a framework update, we
 # compare a `.deft-version` marker to VERSION and warn on drift.  Non-fatal by
 # design: interactive sessions get a prompt ("continue anyway? [y/N]"),
@@ -1200,7 +1200,7 @@ def _check_upgrade_gate(command: str) -> bool:
             )
             warn(
                 f"Deft has been updated from {recorded} to {VERSION}. "
-                "Run `deft/run upgrade` or `task migrate:vbrief` to update your project files."
+                "Run `.deft/core/run upgrade` or `task migrate:vbrief` to update your project files."
             )
             needs_prompt = True
     else:
@@ -1765,7 +1765,7 @@ def cmd_upgrade(args: List[str]):
         # Still refresh AGENTS.md in case the consumer's marker is current
         # but the template moved -- byte-stable when already at the latest.
         # Greptile P1: propagate the refresh return code so a failed AGENTS.md
-        # write surfaces as a non-zero `deft/run upgrade` exit instead of
+        # write surfaces as a non-zero `.deft/core/run upgrade` exit instead of
         # leaving the project partially upgraded with a silent success.
         return cmd_agents_refresh([])
 
@@ -1793,7 +1793,7 @@ def cmd_upgrade(args: List[str]):
     )
     # #768: bring AGENTS.md to the current template alongside the marker.
     # Greptile P1: propagate the refresh return code so a failed AGENTS.md
-    # write surfaces as a non-zero `deft/run upgrade` exit instead of
+    # write surfaces as a non-zero `.deft/core/run upgrade` exit instead of
     # leaving the project partially upgraded with a silent success.
     return cmd_agents_refresh([])
 
@@ -3001,8 +3001,8 @@ tasks:
         else:
             print()
             info("You can run these commands later:")
-            info("  ./deft/run project     # Configure this project")
-            info("  ./deft/run bootstrap   # Set up user preferences")
+            info("  ./.deft/core/run project     # Configure this project")
+            info("  ./.deft/core/run bootstrap   # Set up user preferences")
             return 0
     
     finally:
