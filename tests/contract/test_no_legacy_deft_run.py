@@ -82,9 +82,12 @@ notes`` block in the PR1 PR body):
 Refs
 ----
 
-- Active scope vBRIEF: ``vbrief/active/2026-05-10-992-adopt-deftcore-as-canonical-install-layout-ship-relocator-an.vbrief.json``
+- Active scope vBRIEF (filename split for line-length compliance):
+  ``vbrief/active/2026-05-10-992-adopt-deftcore-as-canonical-
+  install-layout-ship-relocator-an.vbrief.json``
 - Parent issue: https://github.com/deftai/directive/issues/992
-- Redirect stub list owner: ``tests/content/test_deprecated_skill_redirects.py``
+- Redirect stub list owner:
+  ``tests/content/test_deprecated_skill_redirects.py``
 """
 
 from __future__ import annotations
@@ -172,10 +175,7 @@ def _is_excluded(rel_path: str) -> bool:
         return True
     if rel_path in _LEGACY_REDIRECT_STUB_PATHS:
         return True
-    for prefix in _EXCLUDED_DIR_PREFIXES:
-        if rel_path.startswith(prefix):
-            return True
-    return False
+    return any(rel_path.startswith(prefix) for prefix in _EXCLUDED_DIR_PREFIXES)
 
 
 def _tracked_files() -> list[str]:
