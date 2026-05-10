@@ -14,7 +14,10 @@ which dispatches this script to flip the release out of draft state.
 Pipeline
 --------
 1. Pre-flight: verify the release exists and is in draft state via the
-   GitHub REST API (``GET /repos/{owner}/{repo}/releases/tags/{tag}``).
+   GitHub REST API. The lookup uses a paginated list+filter against
+   ``GET /repos/{owner}/{repo}/releases?per_page=100`` (with
+   ``gh api --paginate`` following ``Link: rel="next"`` headers) and
+   matches the first entry whose ``tag_name`` equals ``v<version>``.
    State machine:
 
    - **not-found** -> exit 1 (cannot publish a release that does not exist)
@@ -26,18 +29,30 @@ Pipeline
 3. Re-read the release and verify the draft state actually flipped.
 4. Print summary line; return exit 0.
 
-REST internals (#961)
----------------------
-The v0.26.1 publish failed today (2026-05-07) at the GraphQL bucket
+REST internals (#961, #1016)
+----------------------------
+The v0.26.1 publish failed (2026-05-07) at the GraphQL bucket
 exhaustion mid-cascade: the legacy ``gh release view --json ...`` and
 ``gh release edit ... --draft=false`` subcommands both routed through
 GraphQL and failed hard when the bucket hit zero. Per ``meta/lessons.md``
 ``## gh CLI GraphQL Bucket Exhaustion + REST Fallback + UTF-8 Payload
 Pattern (2026-05)`` and the canonical preamble in
 ``templates/agent-prompt-preamble.md`` S5 (REST-by-default rule), this
-script now uses ``gh api`` directly against REST endpoints, which bill
-the ``core`` bucket (independent of ``graphql``) -- the same publish
-step would have succeeded under today's bucket conditions.
+script uses ``gh api`` directly against REST endpoints, which bill
+the ``core`` bucket (independent of ``graphql``).
+
+#1016 follow-up: the v0.27.0 publish (2026-05-10) failed against a
+DRAFT release because the original #961 implementation called
+``GET /repos/{owner}/{repo}/releases/tags/{tag}``, which the GitHub
+REST docs explicitly limit to PUBLISHED releases ("This returns the
+latest published release for the specified tag"). DRAFT releases were
+filtered out at the API layer, so ``release_publish.py`` 404'd on the
+canonical case it was supposed to handle. The fix (option 2 from #1016)
+replaces the single ``/releases/tags/{tag}`` call with a paginated
+list+filter against ``GET /repos/{owner}/{repo}/releases?per_page=100``
+(via ``gh api --paginate``), then matches the first entry whose
+``tag_name`` equals the target. This stays within the REST core bucket
+and surfaces drafts.
 
 Release helpers are intentionally NOT routed through
 ``scripts/gh_rest.py`` (#961) because the issue body explicitly carves
@@ -173,27 +188,54 @@ def _normalise_release_payload(rest_payload: dict) -> dict:
     }
 
 
-def _gh_api_get_release_by_tag(
+# Endpoint used by the paginated list+filter lookup (#1016). Exposed as a
+# module-level constant so tests can pin the argv shape without
+# duplicating the literal.
+_RELEASES_LIST_ENDPOINT_TEMPLATE = "repos/{repo}/releases?per_page=100"
+
+
+def _gh_api_find_release_by_tag(
     gh_path: str, repo: str, tag: str
 ) -> tuple[str, dict | None, str]:
-    """GET /repos/<owner>/<repo>/releases/tags/<tag> via ``gh api`` REST.
+    """Find a release by ``tag_name`` via paginated REST list (#1016).
 
-    Replaces the legacy GraphQL-routed ``gh release view --json ...``
-    form (#961). Returns the same ``(state, payload, reason)`` shape
-    :func:`view_release` previously used so the caller's state machine
-    is unchanged. ``payload`` is normalised via
-    :func:`_normalise_release_payload` so callers see the legacy
-    ``isDraft`` / ``tagName`` / ``url`` keys regardless of the REST
-    transport.
+    The original #961 implementation called
+    ``GET /repos/<owner>/<repo>/releases/tags/<tag>``, which the GitHub
+    REST docs explicitly limit to PUBLISHED releases ("This returns the
+    latest published release for the specified tag"). DRAFT releases
+    were filtered out at the API layer, so the publish flow 404'd on
+    its canonical input. The fix (option 2 from #1016) lists ALL
+    releases via ``GET /repos/<owner>/<repo>/releases?per_page=100``
+    (paginated; ``gh api --paginate`` follows ``Link: rel="next"``
+    headers automatically and concatenates page arrays into one) and
+    filters client-side for ``tag_name == tag``. The first match wins;
+    if no entry matches, the helper returns ``not-found``.
+
+    Returns ``(state, payload, reason)`` matching
+    :func:`view_release`'s contract:
+
+    - ``"draft"`` -- matching release with ``draft=true`` (proceed)
+    - ``"published"`` -- matching release with ``draft=false`` (no-op)
+    - ``"not-found"`` -- no entry with ``tag_name == tag`` in the list
+    - ``"gh-error"`` -- gh failure (CLI missing, auth, network); the
+      ``reason`` carries the diagnostic
+
+    ``payload`` is normalised via :func:`_normalise_release_payload` so
+    callers see the legacy ``isDraft`` / ``tagName`` / ``url`` / ``id``
+    keys regardless of REST transport.
     """
-    endpoint = f"repos/{repo}/releases/tags/{tag}"
-    cmd = [gh_path, "api", endpoint]
+    endpoint = _RELEASES_LIST_ENDPOINT_TEMPLATE.format(repo=repo)
+    # ``--paginate`` instructs gh to follow Link: rel="next" headers and
+    # emit a single concatenated JSON array for array endpoints. Bumped
+    # timeout vs the single-tag form because multi-page traversal can
+    # legitimately take longer on repos with hundreds of releases.
+    cmd = [gh_path, "api", "--paginate", endpoint]
     try:
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=120,
             check=False,
             env=os.environ.copy(),
         )
@@ -201,70 +243,47 @@ def _gh_api_get_release_by_tag(
         return "gh-error", None, "gh CLI not found on PATH"
     if result.returncode != 0:
         stderr = (result.stderr or "").strip()
-        stdout = (result.stdout or "").strip()
-        # ``gh api`` exits non-zero on 404, returning a JSON error body
-        # with ``"message": "Not Found"`` that some gh proxy / `ghx`
-        # configurations surface on stdout instead of stderr. Treat any
-        # "not found" surface (404 stderr, 404 in stderr text, or the
-        # REST 404 JSON body on EITHER stream) as the not-found state
-        # so the caller can no-op idempotently. Greptile P2-1 (#961):
-        # the original implementation only inspected stderr and so
-        # missed the stdout-routed shape under ghx / proxied gh.
-        lowered_stderr = stderr.lower()
-        stdout_is_404 = False
-        if stdout:
-            # Try parsing the stdout body as the REST error JSON; if it
-            # parses to a dict with ``message`` containing "not found",
-            # treat as 404. Falls through to substring check on parse
-            # failure (some proxies emit non-JSON 404 text).
-            try:
-                body = json.loads(stdout)
-            except json.JSONDecodeError:
-                body = None
-            if isinstance(body, dict):
-                msg = str(body.get("message", "")).lower()
-                if "not found" in msg:
-                    stdout_is_404 = True
-            if not stdout_is_404 and "not found" in stdout.lower():
-                stdout_is_404 = True
-        if (
-            "not found" in lowered_stderr
-            or "404" in lowered_stderr
-            or stdout_is_404
-        ):
-            reason_text = stderr or stdout or "release not found"
-            return "not-found", None, reason_text
         return "gh-error", None, f"gh api {endpoint} failed: {stderr}"
     try:
         rest_payload = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
         return "gh-error", None, f"gh api {endpoint} returned non-JSON: {exc}"
-    if not isinstance(rest_payload, dict):
+    if not isinstance(rest_payload, list):
         return "gh-error", None, (
-            f"gh api {endpoint} returned non-object "
+            f"gh api {endpoint} returned non-list "
             f"({type(rest_payload).__name__})"
         )
-    payload = _normalise_release_payload(rest_payload)
-    if payload.get("isDraft", False):
-        return "draft", payload, ""
-    return "published", payload, ""
+    # First match wins. Drafts have no canonical SHA so equality on
+    # tag_name is the practical key per the #1016 issue body.
+    for entry in rest_payload:
+        if not isinstance(entry, dict):
+            continue
+        if entry.get("tag_name") != tag:
+            continue
+        payload = _normalise_release_payload(entry)
+        if payload.get("isDraft", False):
+            return "draft", payload, ""
+        return "published", payload, ""
+    return "not-found", None, f"release {tag} not found on {repo}"
 
 
 def view_release(version: str, repo: str) -> tuple[str, dict | None, str]:
     """Probe the current state of the GitHub release for ``v<version>``.
 
-    REST-routed since #961 -- uses
-    ``gh api repos/<owner>/<repo>/releases/tags/<tag>`` against the
-    ``core`` bucket so a depleted ``graphql`` bucket cannot stall the
-    publish. The internal ``payload`` shape is normalised to the legacy
-    field names (``isDraft`` / ``tagName`` / ``url`` / ``name`` plus
-    ``id`` for the downstream PATCH).
+    REST-routed since #961, paginated list+filter since #1016 -- uses
+    ``gh api --paginate repos/<owner>/<repo>/releases?per_page=100``
+    against the ``core`` bucket so a depleted ``graphql`` bucket cannot
+    stall the publish, and so DRAFT releases (which the
+    ``/releases/tags/{tag}`` endpoint hides) are surfaced. The internal
+    ``payload`` shape is normalised to the legacy field names
+    (``isDraft`` / ``tagName`` / ``url`` / ``name`` plus ``id`` for the
+    downstream PATCH).
 
     Returns ``(state, payload, reason)`` where ``state`` is one of:
 
     - ``"draft"`` -- release exists with isDraft=true (proceed to publish)
     - ``"published"`` -- release exists with isDraft=false (already done)
-    - ``"not-found"`` -- gh reports the release is missing (cannot publish)
+    - ``"not-found"`` -- no list entry matches the requested tag
     - ``"gh-error"`` -- gh failed for an unexpected reason (CLI missing,
       auth, network); ``reason`` carries the diagnostic
     """
@@ -272,23 +291,25 @@ def view_release(version: str, repo: str) -> tuple[str, dict | None, str]:
     if gh_path is None:
         return "gh-error", None, "gh CLI not found on PATH"
     tag = f"v{version}"
-    return _gh_api_get_release_by_tag(gh_path, repo, tag)
+    return _gh_api_find_release_by_tag(gh_path, repo, tag)
 
 
 def edit_release_publish(
     version: str, repo: str, release_id: int | None = None
 ) -> tuple[bool, str]:
-    """Flip the release out of draft via REST PATCH (#961).
+    """Flip the release out of draft via REST PATCH (#961, #1016).
 
     Replaces the legacy ``gh release edit ... --draft=false`` form
     (which routed through GraphQL and failed under bucket exhaustion).
-    Up to two REST calls under the ``core`` bucket: (1) GET
-    ``releases/tags/<tag>`` to resolve the release id (skipped when
-    ``release_id`` is supplied by the caller), then (2) PATCH
-    ``releases/<id>`` with ``draft=false``. The ``-F draft=false`` flag
-    on ``gh api`` parses the literal ``false`` as a boolean (not a
-    string) per the gh CLI documentation, so no JSON-payload tempfile
-    is required for this single-field mutation.
+    Up to two REST calls under the ``core`` bucket: (1) paginated GET
+    ``releases?per_page=100`` to resolve the release id (skipped when
+    ``release_id`` is supplied by the caller; the list+filter form
+    surfaces DRAFT releases that ``/releases/tags/<tag>`` would hide,
+    per #1016), then (2) PATCH ``releases/<id>`` with ``draft=false``.
+    The ``-F draft=false`` flag on ``gh api`` parses the literal
+    ``false`` as a boolean (not a string) per the gh CLI documentation,
+    so no JSON-payload tempfile is required for this single-field
+    mutation.
 
     Args:
         version: Release version (no leading ``v``); the tag is derived
@@ -306,9 +327,11 @@ def edit_release_publish(
     tag = f"v{version}"
     # Step 1: resolve the release id via REST (only when caller did not
     # supply one). Backward-compatible: existing callers passing only
-    # (version, repo) still get the lookup behaviour.
+    # (version, repo) still get the lookup behaviour. Uses the same
+    # paginated list+filter form as :func:`view_release` so DRAFT
+    # releases are surfaced (#1016).
     if release_id is None:
-        state, payload, reason = _gh_api_get_release_by_tag(
+        state, payload, reason = _gh_api_find_release_by_tag(
             gh_path, repo, tag
         )
         if state == "not-found":
@@ -359,17 +382,20 @@ def run_publish(config: PublishConfig) -> int:
     # Step 1: view current state.
     label = f"View {tag} on {repo}"
     if config.dry_run:
-        # Dry-run text mirrors the post-#961 REST surface: a GET against
-        # `releases/tags/<tag>` (core bucket) followed by a PATCH against
-        # `releases/<id>` carrying `-F draft=false`. The legacy GraphQL
-        # `gh release view` / `gh release edit` forms were removed in
-        # the REST refactor; previewing them here would mis-describe the
-        # operation an operator is about to perform.
+        # Dry-run text mirrors the post-#1016 REST surface: a paginated
+        # GET against `releases?per_page=100` (core bucket) filtered
+        # client-side for tag_name == <tag>, followed by a PATCH against
+        # `releases/<id>` carrying `-F draft=false`. The single-tag form
+        # `releases/tags/<tag>` was removed in #1016 because it 404s on
+        # DRAFT releases (the canonical publish input). The legacy
+        # GraphQL `gh release view` / `gh release edit` forms were
+        # removed in #961.
         _emit(
             label,
             (
                 f"DRYRUN (would run "
-                f"`gh api repos/{repo}/releases/tags/{tag}`)"
+                f"`gh api --paginate repos/{repo}/releases?per_page=100` "
+                f"and filter for tag_name == {tag})"
             ),
         )
         _emit(

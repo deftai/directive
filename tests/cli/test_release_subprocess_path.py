@@ -217,31 +217,42 @@ class TestResolvedPathArgv:
     def test_release_publish_view_uses_resolved_path(
         self, monkeypatch, patched_which
     ):
-        # Post-#961 REST refactor: view_release now issues
-        # `gh api repos/<owner>/<repo>/releases/tags/<tag>` against the core
-        # bucket, not the legacy GraphQL `gh release view --json ...` form.
-        # The stdout fixture mirrors the REST response shape (draft /
-        # tag_name / html_url / id) and the argv assertion checks for the
-        # `api` subcommand + the REST endpoint path token.
+        # Post-#1016 paginated list+filter (#961 REST refactor): view_release
+        # now issues `gh api --paginate repos/<owner>/<repo>/releases?per_page=100`
+        # against the core bucket and filters client-side for matching
+        # tag_name. The single-tag form `releases/tags/<tag>` was removed
+        # in #1016 because it 404s on DRAFT releases. The stdout fixture
+        # mirrors a single-page list response carrying one DRAFT entry,
+        # and the argv assertion checks for the `api` subcommand +
+        # `--paginate` flag + paginated endpoint path token.
         captured = self._capture_subprocess(
             monkeypatch,
             stdout=(
-                '{"id":1234567,"draft":true,"name":"v0.21.0",'
-                '"tag_name":"v0.21.0","html_url":"u"}'
+                '[{"id":1234567,"draft":true,"name":"v0.21.0",'
+                '"tag_name":"v0.21.0","html_url":"u"}]'
             ),
         )
         release_publish.view_release("0.21.0", "deftai/directive")
         assert captured["cmd"][0] == patched_which
         assert captured["cmd"][0] != "gh"
-        # Sanity: argv now goes through `gh api <endpoint>` (REST core),
-        # not the legacy `gh release view --json ...` (GraphQL).
+        # Sanity: argv now goes through `gh api --paginate <endpoint>`
+        # (REST core), not the post-#961 single-tag form `releases/tags/<tag>`
+        # which 404s on DRAFT releases, and not the legacy GraphQL
+        # `gh release view --json ...`.
         assert "api" in captured["cmd"]
+        assert "--paginate" in captured["cmd"]
         assert any(
-            arg == "repos/deftai/directive/releases/tags/v0.21.0"
+            arg == "repos/deftai/directive/releases?per_page=100"
             for arg in captured["cmd"]
         )
-        # Defence-in-depth against re-introducing the GraphQL path.
+        # Defence-in-depth against re-introducing either retired form.
         assert "--json" not in captured["cmd"]
+        assert all(
+            "/releases/tags/" not in arg for arg in captured["cmd"]
+        ), (
+            "argv re-introduces /releases/tags/<tag> which 404s on DRAFT "
+            "releases (re-fires #1016)."
+        )
 
     def test_release_rollback_delete_uses_resolved_path(
         self, monkeypatch, patched_which
