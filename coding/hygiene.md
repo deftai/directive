@@ -81,6 +81,23 @@ Legacy accumulation makes codebases fragile and hard to reason about. Code shoul
 
 ---
 
+## Surface Conflicts: Pick One, Explain, Flag the Other (#1005)
+
+When two existing patterns in the codebase contradict each other (error-handling shapes, state-management approaches, naming conventions, component patterns, test structure, API-shape conventions), the path of least resistance is to write new code that satisfies BOTH simultaneously. The result is doubled logic (two error handlers, two validation paths), incoherent behaviour at the seam where both patterns interact, and a future agent facing the same two-pattern conflict and averaging again. **"Average" code that satisfies both contradicting rules is the worst code.**
+
+- ! When two existing patterns in the codebase contradict, MUST pick ONE -- prefer the more recent OR the more tested -- and write new code against that pattern only
+- ! MUST explain the choice in the commit message, PR body, or an inline comment near the new code (one sentence -- which pattern was chosen, which was dropped, why)
+- ! MUST flag the dropped pattern as deprecated for cleanup: either (a) file a follow-up GitHub issue and reference its number, or (b) add a `# deprecated: see <ref>` / `// Deprecated: see <ref>` marker on the dropped pattern in the same PR so the legacy-code rules above pick it up on the next hygiene pass
+- ⊗ MUST NOT blend the two patterns -- doubled error handlers, dual validation paths, parallel state stores, or any other "satisfy both" shape
+- ⊗ MUST NOT silently choose one pattern without recording the choice -- a future agent must be able to read the commit / PR / comment and understand why this code does not match the other pattern they see elsewhere
+- ? Exception: if the contradiction is INTENTIONAL (e.g. legacy path maintained for backward compat, gradual migration in flight), MUST document that explicitly (`# kept for v1 compat -- removal tracked in #NNN`) rather than flagging for cleanup
+
+This applies across: error handling, state management, naming conventions, component patterns, test structure, API-shape conventions, dependency-injection styles, configuration-loading patterns, and any other surface where contradicting patterns can accumulate over a codebase's lifetime.
+
+**Cross-references:** sibling rule `## Legacy and Deprecated Code` above (the dropped pattern lands under those rules once flagged); `coding/coding.md` `## Code Design` (the modularity rules that govern the kept pattern); `skills/deft-directive-build/SKILL.md` Step 1 (the build skill applies this rule when it encounters contradicting patterns during a brownfield implementation).
+
+---
+
 ## DRY: Don't Repeat Yourself
 
 Duplication is the root cause of inconsistent behaviour and maintenance burden.

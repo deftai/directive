@@ -166,6 +166,8 @@ All vBRIEFs (including those read from `vbrief/active/` and any new vBRIEFs this
 
 - ! Read story vBRIEFs from `vbrief/active/` and `PROJECT-DEFINITION.vbrief.json`
 - ! Identify phases, dependencies, starting point from scope vBRIEF acceptance criteria
+- ! When scanning the existing codebase during scope understanding, MUST surface any contradicting patterns (two error-handling shapes, two state-management approaches, two naming conventions, etc.) before implementation begins -- apply `coding/hygiene.md` `## Surface Conflicts: Pick One, Explain, Flag the Other (#1005)` and choose ONE pattern (more recent OR more tested), explain the choice in the scope summary, and flag the other for cleanup
+- ⊗ Begin implementation against an averaged blend of two contradicting patterns -- "average code that satisfies both rules is the worst code" (#1005)
 - ! Present brief summary to user:
 
 > "Here's what I see: {N} story vBRIEFs in active/. I'll start with {name}. Ready?"

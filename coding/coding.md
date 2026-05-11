@@ -98,6 +98,27 @@ See [../scm/git.md](../scm/git.md) for:
 - ~ Error tracking (Sentry.io or equivalent)
 - ? Distributed tracing for complex systems
 
+## Fail Loud: Completion Claims Require Outcome Verification (#1006)
+
+The failure mode is the agent stating completion at the level of **intent** ("I ran the migration", "the tests pass", "the feature works") rather than at the level of **outcome verification** ("all 167 records migrated, 0 skipped", "42 tests collected, 42 passed, 0 skipped, 0 xfailed", "the edge case asked about was reproduced and now returns the expected value"). Outcome-blind completion claims hide silent skips, swallowed exceptions, suppressed errors, and unverified edge cases behind successful-sounding language. The example from the source: a database migration that completed "successfully" had silently skipped 14% of records on a constraint violation; the skip was logged but not surfaced; the bad reports were discovered 11 days later.
+
+This rule is the OPERATIONAL complement to the EPISTEMIC honesty rules elsewhere in the framework (`main.md` morals section: don't present speculation as fact; label unverified claims). Morals.md says "don't lie". Fail-loud says "count the records, check the logs, run the edge case, **then** claim completion." It is also the output-side complement to goal-gate-determinism (the gate specifies what evidence is required) and machine-verifiable-spec (verification commands prevent silent skips) -- without fail-loud, an agent can satisfy the letter of a gate ("tests pass") while hiding the gap ("some tests were skipped").
+
+- ! Before claiming a batch operation succeeded, MUST verify the record count and surface it in the claim ("migrated 167/167 records, 0 skipped, 0 errored" -- not "migration completed")
+- ! Before claiming "tests pass", MUST report the count of collected / passed / skipped / xfailed / errored tests ("42 collected, 42 passed, 0 skipped" -- not "tests pass"). A skipped or xfailed test is NOT a passing test for the purpose of this claim
+- ! Before claiming "the feature works", MUST report the specific edge case that was verified (if the user asked about a specific edge case, that edge case MUST be in the verification report; "the happy path works" is not equivalent to "the feature works")
+- ! Before claiming a migration / data transform / batch job completed, MUST check the error log AND the skip log AND the constraint-violation surface; surface the counts even when zero ("0 skipped, 0 errored" is the load-bearing claim, not silence)
+- ! When uncertainty exists about whether something worked, MUST surface the uncertainty explicitly ("the migration completed and reported success but I have not verified the per-record count -- recommend running `<verification-command>` before declaring done")
+- ⊗ MUST NOT claim "tests pass" when any test was skipped, xfailed, or run with errors suppressed -- report the full counts instead
+- ⊗ MUST NOT claim "migration completed" / "batch succeeded" / "job finished" without checking and reporting the per-record outcome counts
+- ⊗ MUST NOT claim "feature works" when only the happy path was verified -- name the edge case that was tested, or surface that it wasn't
+- ⊗ MUST NOT use successful-sounding completion phrasing to paper over uncertainty -- default to surfacing uncertainty, not hiding it
+- ⊗ MUST NOT suppress error output (`2>$null`, `2>/dev/null`, `try/except: pass` around the verification command) and then claim completion based on the resulting silence
+
+The rule applies to agent completion claims during task execution. It applies equally to claims to the user, claims in commit messages, claims in PR bodies, claims in CHANGELOG entries, and claims in status messages to a parent agent. A short, honest "the migration completed; I did not verify the per-record count" is strictly preferred over a confident "migration completed successfully" that hides the gap.
+
+**Cross-references:** `## Quality Standards` above (`⊗ Claim checks passed without running them` -- the sibling rule that this expands from process to outcome); `hygiene.md` `## Error Handling: No Hiding` (the same hiding pattern at the code-write level, not the claim level); `skills/deft-directive-pre-pr/SKILL.md` (pre-PR verification claims); `skills/deft-directive-build/SKILL.md` Step 4 Quality Gates (task-completion claims); `skills/deft-directive-review-cycle/SKILL.md` (the review-cycle skill explicitly checks for hidden incompleteness in fix-batch completion claims).
+
 ## Build Automation
 
 **Taskfile:**
@@ -172,3 +193,5 @@ See [../scm/git.md](../scm/git.md) for:
 - ⊗ Error hiding: empty catch blocks, silent fallbacks, swallowed exceptions
 - ⊗ Circular imports between modules
 - ⊗ Duplicate logic across 2+ call sites without shared abstraction
+- ⊗ Outcome-blind completion claims: "tests pass" with skipped tests, "migration completed" without per-record counts, "feature works" without naming the verified edge case (#1006 -- see `## Fail Loud` above)
+- ⊗ Averaging contradicting codebase patterns: writing new code that satisfies both of two conflicting patterns simultaneously (#1005 -- see `hygiene.md` `## Surface Conflicts`)
