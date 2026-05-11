@@ -27,4 +27,10 @@ if [ -z "$PYTHON_BIN" ]; then
     fi
 fi
 
-exec "$PYTHON_BIN" "$REPO_ROOT/scripts/preflight_branch.py" --project-root "$REPO_ROOT"
+"$PYTHON_BIN" "$REPO_ROOT/scripts/preflight_branch.py" --project-root "$REPO_ROOT" || exit $?
+
+# Step 2: destructive-gh-verb gate (#1019). Reads per-ref stdin lines from
+# git pre-push (one line per ref: <local_ref> <local_oid> <remote_ref> <remote_oid>)
+# and refuses pushes touching the default branch (force-push or otherwise).
+# DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 is the per-shell emergency bypass.
+exec "$PYTHON_BIN" "$REPO_ROOT/scripts/preflight_gh.py" --pre-push-stdin

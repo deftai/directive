@@ -220,6 +220,7 @@ tasks:
       - verify:rule-ownership
       - verify:branch
       - verify:encoding
+      - verify:destructive-gh-verbs
       - vbrief:validate
     cmds:
       - echo "All checks passed"

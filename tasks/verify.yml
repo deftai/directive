@@ -66,3 +66,15 @@ tasks:
     # layer would otherwise discard.
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_encoding.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
+  destructive-gh-verbs:
+    desc: "Detection-bound gate for destructive gh verbs (#1019). Runs scripts/preflight_gh.py --self-test so the fixture-vs-classifier contract fails CI on drift. Override via DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 (per-shell emergency bypass)."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # No sources:/generates: -- the self-test fixture table is the
+    # invariant under test; we want the gate to re-run on every
+    # `task check` invocation regardless of whether the classifier file
+    # mtime moved. Caching here would silently mask a regression.
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_gh.py" --self-test {{.CLI_ARGS}}

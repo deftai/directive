@@ -177,6 +177,28 @@ Following a v1.0.0 release, commits:
 - ⊗ Allow force pushes
 - ⊗ Allow deletions
 
+## Destructive gh verbs (#1019)
+
+A detection-bound gate (`scripts/preflight_gh.py`) refuses three classes of destructive surface before they execute, complementing the #747 branch-protection gate which already refuses commits to the default branch:
+
+- `delete_repo` -- `gh repo delete <owner/repo>` and `gh api -X DELETE repos/<owner>/<repo>[/...]`. Irreversible.
+- `force_push_default` -- `git push --force` / `--force-with-lease` / `+refspec` targeting `master` or `main`.
+- `admin_merge` -- `gh pr merge --admin` (bypasses branch-protection required reviews).
+
+Three enforcement surfaces back the gate:
+
+1. `.githooks/pre-push` invokes `preflight_gh.py --pre-push-stdin` after the #747 branch gate, refusing any push that touches the default branch (force-push or otherwise). Install via `task setup` (idempotent `git config core.hooksPath .githooks`); verify via `task verify:hooks-installed`.
+2. `task verify:destructive-gh-verbs` is wired into the `task check` aggregate. It runs `preflight_gh.py --self-test`, which drives a built-in fixture table through the classifier so a future edit that introduces a false negative / false positive fails CI immediately.
+3. Agent pre-execution callers can invoke `python scripts/preflight_gh.py --command "<full command>"` to classify a candidate verb before it executes. Three-state exit (0 allowed / 1 destructive refused / 2 config error) mirrors `scripts/preflight_branch.py`.
+
+**Override paths:**
+
+- `DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1` -- per-shell emergency env-var bypass. Mirrors `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT` (#747). The gate prints an explicit `policy bypassed for this session` line so the bypass is auditable after the fact.
+- For repo deletion specifically: prefer the GitHub web UI's archive-or-delete prompt -- archiving is reversible, the gate is not opining on it.
+- For an admin merge: the canonical recovery is to request review through the normal flow. The `--admin` flag is gated because the most-common legitimate use case (release hot-fix) is rare enough that documenting an explicit bypass is cheaper than letting the verb pass by default.
+
+**Out of scope (v1):** a PATH-shim that intercepts `gh` at the command layer is deferred -- the consent-gated install path mirrors `setup_ghx.py` (#884) and lands additively when a follow-up issue is opened. The current gate is detection-bound (pre-push hook + agent-side `--command` classifier + self-test contract) rather than execution-bound, which is sufficient to refuse the recurring failure mode that motivated #1019 (an agent with an unrestricted `gh` token executing a destructive verb).
+
 ## Release Workflow (UCCPR)
 
 **UCCPR** = Update Changelog, Commit, Push, Release
