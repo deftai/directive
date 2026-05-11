@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Scope vBRIEF #1046 -- Install/refresh contract self-healing cohort (ADR Choice C). Refined 2026-05-11; absorbs #1045 (PR-A) and #1047 (PR-C); PR-B ships task framework:doctor + canonical manifest + v3 sentinel.",
-    "updated": "2026-05-11T18:25:56Z"
+    "updated": "2026-05-11T18:50:28Z"
   },
   "plan": {
     "title": "Install/refresh contract has no self-healing path (#1046 cohort) -- canonical-path enforcement + framework:doctor + vbrief:preflight resolver",
@@ -144,7 +144,7 @@
         "title": "Issue #1050: installer consent gate (#1046 Finding #5 follow-up, DEFERRED to v0.29+)"
       }
     ],
-    "updated": "2026-05-11T18:25:56Z",
+    "updated": "2026-05-11T18:50:28Z",
     "metadata": {
       "x-tracking": {
         "cohort_id": "1046-install-contract-self-healing",
@@ -155,7 +155,7 @@
           {
             "issue": 1045,
             "vbrief": "vbrief/cancelled/2026-05-11-1045-templatesagents-entrymd-body-still-references-deft-not-flipp.vbrief.json",
-            "rationale": "templates/agents-entry.md literal flip is PR-A AC-1 and AC-2."
+            "rationale": "templates/agents-entry.md literal flip is PR-A AC-1. (AC-2 Case K classifier addresses Finding #2 from #1046 itself, NOT #1045.)"
           },
           {
             "issue": 1047,
@@ -172,7 +172,10 @@
           },
           {
             "finding": "A-shape true parameterization",
-            "rationale": "Deferred to v0.30+ unless a second install layout becomes a real requirement."
+            "rationale": "Deferred to v0.30+ unless a second install layout becomes a real requirement.",
+            "tracking_issue": null,
+            "tracking_issue_number": null,
+            "tracking_issue_note": "Explicit null -- no tracking issue filed yet. A second install layout has not surfaced as a real requirement; the deferral becomes actionable only when one does. If/when that happens, file a new issue here and update both fields."
           }
         ],
         "branch_strategy": "PR-A -> PR-B -> PR-C strict sequential rebase-cascade (no parallel within cluster).",
