@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)",
-    "status": "running",
+    "status": "cancelled",
     "narratives": {
       "Description": "tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1021",
@@ -23,6 +23,6 @@
         "title": "Issue #1021: tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)"
       }
     ],
-    "updated": "2026-05-11T03:59:41Z"
+    "updated": "2026-05-11T17:10:03Z"
   }
 }

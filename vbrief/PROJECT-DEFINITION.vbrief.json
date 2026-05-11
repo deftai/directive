@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-08T19:45:42Z"
+    "updated": "2026-05-11T17:10:23Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -893,113 +893,177 @@
         }
       },
       {
-        "id": "2026-05-08-910-templatesswarm-greptile-poller-promptmd-detector-misses-grep",
-        "title": "templates/swarm-greptile-poller-prompt.md detector misses Greptile findings rendered as markdown bullets or inline prose",
-        "status": "pending",
+        "id": "2026-05-11-1005-featcoding-surface-conflicts-rule-when-two-codebase-patterns",
+        "title": "feat(coding): surface-conflicts-rule — when two codebase patterns contradict, pick one and explain; never average them",
+        "status": "running",
         "metadata": {
-          "source_path": "pending/2026-05-08-910-templatesswarm-greptile-poller-promptmd-detector-misses-grep.vbrief.json",
-          "lifecycle_folder": "pending",
+          "source_path": "active/2026-05-11-1005-featcoding-surface-conflicts-rule-when-two-codebase-patterns.vbrief.json",
+          "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/910",
+              "uri": "https://github.com/deftai/directive/issues/1005",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #910: templates/swarm-greptile-poller-prompt.md detector misses Greptile findings rendered as markdown bullets or inline prose"
+              "title": "Issue #1005: feat(coding): surface-conflicts-rule — when two codebase patterns contradict, pick one and explain; never average them"
             }
           ]
         }
       },
       {
-        "id": "2026-05-08-911-swarm-cascade-changelogmd-unreleased-conflict-resolution-sho",
-        "title": "swarm cascade: CHANGELOG.md [Unreleased] conflict resolution should union-merge, not HEAD-take",
-        "status": "pending",
+        "id": "2026-05-11-1006-featcoding-fail-loud-rule-never-claim-completion-when-anythi",
+        "title": "feat(coding): fail-loud rule — never claim completion when anything was skipped silently",
+        "status": "running",
         "metadata": {
-          "source_path": "pending/2026-05-08-911-swarm-cascade-changelogmd-unreleased-conflict-resolution-sho.vbrief.json",
-          "lifecycle_folder": "pending",
+          "source_path": "active/2026-05-11-1006-featcoding-fail-loud-rule-never-claim-completion-when-anythi.vbrief.json",
+          "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/911",
+              "uri": "https://github.com/deftai/directive/issues/1006",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #911: swarm cascade: CHANGELOG.md [Unreleased] conflict resolution should union-merge, not HEAD-take"
+              "title": "Issue #1006: feat(coding): fail-loud rule — never claim completion when anything was skipped silently"
             }
           ]
         }
       },
       {
-        "id": "2026-05-08-975-perftests-triage-bootstrap-watchdog-tests-dominate-triage-su",
-        "title": "perf(tests): triage_bootstrap watchdog tests dominate triage suite (top 5 = 68% of triage time)",
-        "status": "pending",
+        "id": "2026-05-11-1011-framework-uv-run-invocations-leak-into-ancestor-pyprojecttom",
+        "title": "Framework `uv run` invocations leak into ancestor `pyproject.toml`; pin project root",
+        "status": "running",
         "metadata": {
-          "source_path": "pending/2026-05-08-975-perftests-triage-bootstrap-watchdog-tests-dominate-triage-su.vbrief.json",
-          "lifecycle_folder": "pending",
+          "source_path": "active/2026-05-11-1011-framework-uv-run-invocations-leak-into-ancestor-pyprojecttom.vbrief.json",
+          "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/975",
+              "uri": "https://github.com/deftai/directive/issues/1011",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #975: perf(tests): triage_bootstrap watchdog tests dominate triage suite (top 5 = 68% of triage time)"
+              "title": "Issue #1011: Framework `uv run` invocations leak into ancestor `pyproject.toml`; pin project root"
             }
           ]
         }
       },
       {
-        "id": "2026-05-08-976-fixscmtests-eliminate-remaining-graphql-backed-scmpy-live-sc",
-        "title": "fix(scm,tests): eliminate remaining GraphQL-backed scm.py / live SCM smoke bucket drain after #961",
-        "status": "pending",
+        "id": "2026-05-11-1019-featscripts-add-preflight-gate-for-destructive-gh-verbs-dele",
+        "title": "feat(scripts): add preflight gate for destructive gh verbs (delete_repo, force-push to default, unauthorized merge)",
+        "status": "running",
         "metadata": {
-          "source_path": "pending/2026-05-08-976-fixscmtests-eliminate-remaining-graphql-backed-scmpy-live-sc.vbrief.json",
-          "lifecycle_folder": "pending",
+          "source_path": "active/2026-05-11-1019-featscripts-add-preflight-gate-for-destructive-gh-verbs-dele.vbrief.json",
+          "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/976",
+              "uri": "https://github.com/deftai/directive/issues/1019",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #976: fix(scm,tests): eliminate remaining GraphQL-backed scm.py / live SCM smoke bucket drain after #961"
+              "title": "Issue #1019: feat(scripts): add preflight gate for destructive gh verbs (delete_repo, force-push to default, unauthorized merge)"
             }
           ]
         }
       },
       {
-        "id": "2026-05-08-979-docs-surface-refinementtriage-workflow-to-end-users-phase-0",
-        "title": "docs: surface refinement/triage workflow to end users (Phase 0 / cache / ingest)",
-        "status": "pending",
+        "id": "2026-05-11-1020-installer-cmddeft-install-drifts-from-v0271-canonical-layout",
+        "title": "installer: cmd/deft-install drifts from v0.27.1 canonical layout (F2)",
+        "status": "running",
         "metadata": {
-          "source_path": "pending/2026-05-08-979-docs-surface-refinementtriage-workflow-to-end-users-phase-0.vbrief.json",
-          "lifecycle_folder": "pending",
+          "source_path": "active/2026-05-11-1020-installer-cmddeft-install-drifts-from-v0271-canonical-layout.vbrief.json",
+          "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/979",
+              "uri": "https://github.com/deftai/directive/issues/1020",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #979: docs: surface refinement/triage workflow to end users (Phase 0 / cache / ingest)"
+              "title": "Issue #1020: installer: cmd/deft-install drifts from v0.27.1 canonical layout (F2)"
             }
           ]
         }
       },
       {
-        "id": "2026-05-08-983-featswarmsecurity-swarm-workers-should-authenticate-as-a-dis",
-        "title": "feat(swarm,security): swarm workers should authenticate as a distinct GitHub identity, not share the maintainer's PAT",
-        "status": "pending",
+        "id": "2026-05-11-1025-swarm-phase-0-missing-lifecycle-bridge-setup-deposits-vbrief",
+        "title": "Swarm Phase 0 missing lifecycle bridge: setup deposits vBRIEFs in proposed/, swarm expects active/",
+        "status": "running",
         "metadata": {
-          "source_path": "pending/2026-05-08-983-featswarmsecurity-swarm-workers-should-authenticate-as-a-dis.vbrief.json",
-          "lifecycle_folder": "pending",
+          "source_path": "active/2026-05-11-1025-swarm-phase-0-missing-lifecycle-bridge-setup-deposits-vbrief.vbrief.json",
+          "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/983",
+              "uri": "https://github.com/deftai/directive/issues/1025",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #983: feat(swarm,security): swarm workers should authenticate as a distinct GitHub identity, not share the maintainer's PAT"
+              "title": "Issue #1025: Swarm Phase 0 missing lifecycle bridge: setup deposits vBRIEFs in proposed/, swarm expects active/"
             }
           ]
         }
       },
       {
-        "id": "2026-05-08-984-docsreadme-call-out-httpswebinstallerflydev-as-an-alternativ",
-        "title": "docs(readme): call out https://webinstaller.fly.dev/ as an alternative installer in README",
-        "status": "pending",
+        "id": "2026-05-11-1035-swarm-greptile-poller-prompt-detector-misses-confidence-head",
+        "title": "swarm-greptile-poller-prompt detector misses confidence-heading form AND SLizard ### P1 · heading form -- false-negatives on PR #1034",
+        "status": "running",
         "metadata": {
-          "source_path": "pending/2026-05-08-984-docsreadme-call-out-httpswebinstallerflydev-as-an-alternativ.vbrief.json",
-          "lifecycle_folder": "pending",
+          "source_path": "active/2026-05-11-1035-swarm-greptile-poller-prompt-detector-misses-confidence-head.vbrief.json",
+          "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/984",
+              "uri": "https://github.com/deftai/directive/issues/1035",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #984: docs(readme): call out https://webinstaller.fly.dev/ as an alternative installer in README"
+              "title": "Issue #1035: swarm-greptile-poller-prompt detector misses confidence-heading form AND SLizard ### P1 · heading form -- false-negatives on PR #1034"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1039-greptile-poller-wedges-past-clean-clean-gate-fails-silent-bu",
+        "title": "Greptile poller wedges past CLEAN -- CLEAN gate fails silent, burns 30-min cap (recurrence on PR #1038)",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-11-1039-greptile-poller-wedges-past-clean-clean-gate-fails-silent-bu.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1039",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1039: Greptile poller wedges past CLEAN -- CLEAN gate fails silent, burns 30-min cap (recurrence on PR #1038)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1045-templatesagents-entrymd-body-still-references-deft-not-flipp",
+        "title": "templates/agents-entry.md body still references deft/ — not flipped to .deft/core/ for v0.27 contract",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-11-1045-templatesagents-entrymd-body-still-references-deft-not-flipp.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1045",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1045: templates/agents-entry.md body still references deft/ — not flipped to .deft/core/ for v0.27 contract"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1046-installrefresh-contract-has-no-self-healing-path-agent-gets",
+        "title": "Install/refresh contract has no self-healing path: agent gets stuck in a no-op Case G loop when install layout disagrees with AGENTS.md",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-11-1046-installrefresh-contract-has-no-self-healing-path-agent-gets.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1046",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1046: Install/refresh contract has no self-healing path: agent gets stuck in a no-op Case G loop when install layout disagrees with AGENTS.md"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1047-implementation-intent-gate-810-taskfile-target-hardcodes-def",
+        "title": "Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-11-1047-implementation-intent-gate-810-taskfile-target-hardcodes-def.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1047",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1047: Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout"
             }
           ]
         }
@@ -6813,6 +6877,118 @@
         }
       },
       {
+        "id": "2026-05-08-910-templatesswarm-greptile-poller-promptmd-detector-misses-grep",
+        "title": "templates/swarm-greptile-poller-prompt.md detector misses Greptile findings rendered as markdown bullets or inline prose",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-08-910-templatesswarm-greptile-poller-promptmd-detector-misses-grep.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/910",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #910: templates/swarm-greptile-poller-prompt.md detector misses Greptile findings rendered as markdown bullets or inline prose"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-08-911-swarm-cascade-changelogmd-unreleased-conflict-resolution-sho",
+        "title": "swarm cascade: CHANGELOG.md [Unreleased] conflict resolution should union-merge, not HEAD-take",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-08-911-swarm-cascade-changelogmd-unreleased-conflict-resolution-sho.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/911",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #911: swarm cascade: CHANGELOG.md [Unreleased] conflict resolution should union-merge, not HEAD-take"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-08-975-perftests-triage-bootstrap-watchdog-tests-dominate-triage-su",
+        "title": "perf(tests): triage_bootstrap watchdog tests dominate triage suite (top 5 = 68% of triage time)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-08-975-perftests-triage-bootstrap-watchdog-tests-dominate-triage-su.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/975",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #975: perf(tests): triage_bootstrap watchdog tests dominate triage suite (top 5 = 68% of triage time)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-08-976-fixscmtests-eliminate-remaining-graphql-backed-scmpy-live-sc",
+        "title": "fix(scm,tests): eliminate remaining GraphQL-backed scm.py / live SCM smoke bucket drain after #961",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-08-976-fixscmtests-eliminate-remaining-graphql-backed-scmpy-live-sc.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/976",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #976: fix(scm,tests): eliminate remaining GraphQL-backed scm.py / live SCM smoke bucket drain after #961"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-08-979-docs-surface-refinementtriage-workflow-to-end-users-phase-0",
+        "title": "docs: surface refinement/triage workflow to end users (Phase 0 / cache / ingest)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-08-979-docs-surface-refinementtriage-workflow-to-end-users-phase-0.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/979",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #979: docs: surface refinement/triage workflow to end users (Phase 0 / cache / ingest)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-08-983-featswarmsecurity-swarm-workers-should-authenticate-as-a-dis",
+        "title": "feat(swarm,security): swarm workers should authenticate as a distinct GitHub identity, not share the maintainer's PAT",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-08-983-featswarmsecurity-swarm-workers-should-authenticate-as-a-dis.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/983",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #983: feat(swarm,security): swarm workers should authenticate as a distinct GitHub identity, not share the maintainer's PAT"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-08-984-docsreadme-call-out-httpswebinstallerflydev-as-an-alternativ",
+        "title": "docs(readme): call out https://webinstaller.fly.dev/ as an alternative installer in README",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-08-984-docsreadme-call-out-httpswebinstallerflydev-as-an-alternativ.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/984",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #984: docs(readme): call out https://webinstaller.fly.dev/ as an alternative installer in README"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-05-08-985-bugtriagerefinement-task-triageaccept-skips-issueingest-dele",
         "title": "bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/`",
         "status": "completed",
@@ -6840,6 +7016,165 @@
               "uri": "https://github.com/deftai/directive/issues/988",
               "type": "x-vbrief/github-issue",
               "title": "Issue #988: bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-10-992-adopt-deftcore-as-canonical-install-layout-ship-relocator-an",
+        "title": "feat(installer): adopt .deft/core/ as canonical install layout; ship relocator and contract flip in v0.27 (#992)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-10-992-adopt-deftcore-as-canonical-install-layout-ship-relocator-an.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/992",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #992: Adopt .deft/core/ as canonical install layout; ship relocator and contract flip in v0.27 (rc1 -> GA)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/11",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #11: Publish Deft as an NPM + PIP CLI -- origin of .deft/core/ layout choice (read-only packaged assets); the ./deft/ override directory it spec'd is intentionally dropped from this scope"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/176",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #176: webinstaller -- currently held; lift hold once contract flip lands (closeable on v0.27.0 GA)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/768",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #768: universal upgrade gate + AGENTS.md managed-section contract -- PR1 bumps the marker from v1 to v2"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/793",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #793: task migrate:preflight / task migrate:vbrief -- chained by relocator for pre-v0.20 schema migration tier"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/794",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #794: pre-#768 AGENTS.md legacy migration -- _wrap_legacy_in_markers reused by relocator's AGENTS.md re-render path"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/845",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #845: triage v1 -- .deft-cache/ precedent for hidden-namespace gitignore-default contract; relocator Phase 7 mirrors that gitignore-default convention"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/986",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #986: install-layout contract -- this issue's parent decision; closeable on v0.27.0 GA"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/989",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #989: sync skill layout -- re-scoped to 'verify conformance against rc1'; closeable on v0.27.0 GA"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/990",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #990: auto-repair-on-upgrade -- subsumed by relocator; closeable on v0.27.0 GA"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/418",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #418: rename discussion -- separate; deferred (#418/#423 territory, not v0.27 scope)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/423",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #423: rename discussion -- separate; deferred (#418/#423 territory, not v0.27 scope)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/636",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #636: Go-installer -- verified conformant against rc1 as part of acceptance criterion 992-ac-6"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/798",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #798: PS 5.1 non-ASCII deterministic gate -- governs all contract-string file edits in PR1 (em dashes, arrows, smart quotes)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/884",
+              "type": "x-vbrief/related-issue",
+              "title": "Issue #884: ghx adoption + task setup consent gate -- referenced by the auto-prompt-never-auto-wipe DesignChoice (operator-consent gate convention)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-441-prepare-pr441-deft-glossary-skill-for-merge",
+        "title": "feat(skills): prepare PR #441 deft-glossary for merge -- rename to deft-directive-glossary + .agents stub + AGENTS.md routing + CHANGELOG + rebase",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-441-prepare-pr441-deft-glossary-skill-for-merge.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/pull/441",
+              "type": "x-vbrief/github-pull-request",
+              "title": "PR #441: feat(skills): add deft-glossary skill"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/401",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #401: DDD framework work (referenced by PR #441 body)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/411",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #411: v0.19 -> v0.20 skill rename arc (deft-* -> deft-directive-*)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/810",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #810: Implementation Intent Gate (preflight requirement satisfied by this vBRIEF)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-757-probe-strategy-and-deft-gh-skills",
+        "title": "Add probe strategy + deft-gh-slice/triage skills (re-author of #440)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-757-probe-strategy-and-deft-gh-skills.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/757",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #757: interview: probe language/tool choices through contract lens"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/pull/440",
+              "type": "x-vbrief/github-pr",
+              "title": "PR #440 (closed): feat: add probe strategy and deft-gh-slice/triage skills (superseded by this vBRIEF)"
+            },
+            {
+              "uri": "https://github.com/mattpocock/skills",
+              "type": "x-vbrief/related-repo",
+              "title": "mattpocock/skills (inspiration: grill-me, to-issues, triage-issue)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1021-tests-test-scm-issue-view-rest-returns-nonempty-json-flakes",
+        "title": "tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-05-11-1021-tests-test-scm-issue-view-rest-returns-nonempty-json-flakes.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1021",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1021: tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)"
             }
           ]
         }
