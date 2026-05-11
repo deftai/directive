@@ -1,5 +1,5 @@
 ---
-name: deft-glossary
+name: deft-directive-glossary
 description: >
   Extract a DDD-style ubiquitous language glossary from the current
   conversation, flagging ambiguities and proposing canonical terms. Saves

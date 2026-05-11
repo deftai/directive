@@ -56,6 +56,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - "pre-pr" / "quality loop" / "rwldl" / "self-review" → `skills/deft-directive-pre-pr/SKILL.md`
 - "interview loop" / "q&a loop" / "run interview loop" → `skills/deft-directive-interview/SKILL.md`
 - "release" / "cut release" / "v0.X.Y" / "publish release" → `skills/deft-directive-release/SKILL.md` — operationalizes the `task release` / `task release:publish` / `task release:rollback` / `task release:e2e` surface (#74 + #716 safety hardening); re-uses the `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 5 Slack announcement template
+- "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" → `skills/deft-directive-glossary/SKILL.md` — extracts a DDD-style ubiquitous language from the current conversation, flags ambiguities and synonyms, proposes a canonical glossary, and writes `UBIQUITOUS_LANGUAGE.md`; integrates with `core/glossary.md` as a baseline when present (#441)
 
 ## Development Process (always follow)
 
