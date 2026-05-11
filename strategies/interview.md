@@ -47,6 +47,7 @@ Present two groups sourced from the `Type` column in
 **Preparatory strategies** (type: `preparatory` — loops back to this gate on completion):
 - Research — investigate the domain, find libraries, identify pitfalls
 - Discuss — lock key decisions using Feynman technique
+- Probe — adversarially stress-test the plan; surface assumptions, edge cases, and risks
 - Map — analyze existing codebase conventions
 
 ~ Some preparatory strategies (currently map) also support standalone invocation
@@ -83,13 +84,14 @@ Ready to generate the specification. Before we proceed, would you like to:
 --- Preparatory (loops back) ---
 2. Run a research phase — investigate the domain, find libraries, identify pitfalls
 3. Run a discuss phase — lock key decisions using Feynman technique
-4. Run a map phase — analyze existing codebase conventions
+4. Run a probe phase — adversarially stress-test the plan; surface assumptions, edge cases, and risks
+5. Run a map phase — analyze existing codebase conventions
 
 --- Switch strategy ---
-5. Switch to yolo — auto-pilot picks all answers
-6. Switch to speckit — formal five-phase spec process
+6. Switch to yolo — auto-pilot picks all answers
+7. Switch to speckit — formal five-phase spec process
 
-7. Other (specify)
+8. Other (specify)
 ```
 
 ---
