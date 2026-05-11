@@ -54,9 +54,9 @@ import os
 import re
 import shlex
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 #: Environment variable that lets the operator bypass the destructive-verb
 #: gate WITHOUT editing the typed flag. Documented in #1019 as the
@@ -183,17 +183,19 @@ def _api_invocation_is_delete(tokens: Iterable[str]) -> bool:
     items = list(tokens)
     for idx, tok in enumerate(items):
         low = tok.lower()
-        if low in {"-x", "--method"} and idx + 1 < len(items):
-            if items[idx + 1].upper() == "DELETE":
-                return True
-        if low.startswith("-x=") or low.startswith("--method="):
+        if (
+            low in {"-x", "--method"}
+            and idx + 1 < len(items)
+            and items[idx + 1].upper() == "DELETE"
+        ):
+            return True
+        if low.startswith(("-x=", "--method=")):
             value = tok.split("=", 1)[1]
             if value.upper() == "DELETE":
                 return True
-        if low.startswith("-x") and len(low) > 2:
-            # -XDELETE / -Xdelete
-            if low[2:].upper() == "DELETE":
-                return True
+        # -XDELETE / -Xdelete (combined short-flag form)
+        if low.startswith("-x") and len(low) > 2 and low[2:].upper() == "DELETE":
+            return True
     return False
 
 
@@ -207,11 +209,16 @@ def _api_endpoint(tokens: Iterable[str]) -> str | None:
     argument; anything else with a leading ``-`` is treated as a boolean
     flag and skipped without consuming the next token.
     """
+    # Note: ``gh api`` short flag for ``--raw-field`` is ``-F`` (uppercase).
+    # Because the caller lower-cases the token before lookup, ``-F`` is
+    # already covered implicitly by the ``-f`` entry, but enumerating ``-F``
+    # explicitly makes the contract self-documenting and avoids a duplicate-
+    # item ruff finding (B033) when both forms collapse to the same key.
     value_taking = {
         "-x", "--method",
         "-h", "--header",
         "-f", "--field",
-        "-f", "--raw-field",
+        "-F", "--raw-field",
         "--input",
         "--jq", "-q",
         "--template", "-t",
@@ -493,7 +500,7 @@ def evaluate_pre_push(
         )
 
     blocked: list[str] = []
-    for local_ref, _local_oid, remote_ref, remote_oid in refs:
+    for local_ref, local_oid, remote_ref, remote_oid in refs:
         branch = remote_ref.removeprefix("refs/heads/")
         if branch.lower() not in {b.lower() for b in default_branches}:
             continue
@@ -503,8 +510,8 @@ def evaluate_pre_push(
         # master is the case this gate exists to cover.
         if _is_zero_oid(remote_oid):
             blocked.append(f"create {branch} (local={local_ref})")
-        elif _is_zero_oid(refs[0][1]):
-            # Deletion: local OID is zero.
+        elif _is_zero_oid(local_oid):
+            # Deletion: local OID is zero (per-ref, not per-batch).
             blocked.append(f"delete {branch}")
         else:
             blocked.append(f"update {branch} (local={local_ref})")

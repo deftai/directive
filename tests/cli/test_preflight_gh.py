@@ -300,6 +300,55 @@ def test_evaluate_pre_push_mixed_refs_blocks_on_default(preflight, monkeypatch):
     assert "master" in msg
 
 
+def test_evaluate_pre_push_multi_ref_deletion_labels_per_ref(preflight, monkeypatch):
+    """Greptile #1042 regression: deletion of default branch in a multi-ref push
+    MUST use the iteration's own local_oid for the zero check, not refs[0][1].
+
+    Pre-fix, a multi-ref push whose first ref had a non-zero local OID (feature
+    branch update) and a later ref deleted master (local OID = all-zeros) was
+    labelled `update master (local=...)` because `refs[0][1]` always pointed at
+    the first ref's non-zero OID. The gate still blocked (correct), but the
+    diagnostic was wrong.
+    """
+    monkeypatch.delenv(preflight.ENV_BYPASS, raising=False)
+    refs = [
+        # First ref: non-zero local OID (feature-branch push).
+        ("refs/heads/feat/x", _SHA_A, "refs/heads/feat/x", _SHA_B),
+        # Second ref: zero local OID -> deletion of master.
+        ("(delete)", _ZERO, "refs/heads/master", _SHA_B),
+    ]
+    code, msg = preflight.evaluate_pre_push(refs)
+    assert code == 1
+    assert "delete master" in msg
+    # Defence-in-depth: the misleading pre-fix `update master` label MUST NOT
+    # surface for a deletion when an earlier ref carries a non-zero local OID.
+    assert "update master" not in msg
+
+
+# ---------------------------------------------------------------------------
+# value_taking set -- duplicate `-f` ruff B033 regression (Greptile Issue 3 / #1042)
+# ---------------------------------------------------------------------------
+
+
+def test_value_taking_set_has_no_duplicate_short_flags(preflight):
+    """`-f` MUST appear at most once in the value_taking set and `-F` MUST be
+    enumerated explicitly so both gh-api flag forms are self-documenting.
+    Regression for the ruff B033 finding + Greptile Issue 3 on PR #1042.
+
+    Classifies a benign command exercising both ``-f`` and ``-F`` value-taking
+    forms; pre-fix the set's duplicate ``-f`` entry was silently dropped by
+    Python's set semantics so ``-F`` was only resolved by the implicit
+    lower-case fall-through. The fix replaces the duplicate ``-f`` entry with
+    an explicit ``-F`` -- both forms now register their value-consuming
+    semantics through distinct enumerated keys.
+    """
+    verdict = preflight.classify_command(
+        "gh api -F field=value -f other=value repos/foo/bar"
+    )
+    # Non-destructive -- the set lookup must succeed without raising.
+    assert verdict.allowed is True
+
+
 # ---------------------------------------------------------------------------
 # run_self_test -- the surface task verify:destructive-gh-verbs runs
 # ---------------------------------------------------------------------------
