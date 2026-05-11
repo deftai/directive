@@ -21,7 +21,12 @@ var errBackToDrives = errors.New("user chose to reselect drive")
 // <project>/deft/ layout is preserved behind --legacy-layout for in-flight
 // migrations only -- a consumer who runs the installer once without the flag
 // gets a canonical install no matter what was there before.
-var CanonicalFrameworkSubdir = filepath.Join(".deft", "core")
+//
+// Built as a constant expression via filepath.Separator so the value stays
+// immutable at the package surface and still resolves to the OS-native
+// separator at compile time (e.g. `.deft\core` on Windows, `.deft/core` on
+// Unix).
+const CanonicalFrameworkSubdir = ".deft" + string(filepath.Separator) + "core"
 
 // LegacyFrameworkSubdir is the pre-v0.27 layout. Selected via --legacy-layout.
 const LegacyFrameworkSubdir = "deft"

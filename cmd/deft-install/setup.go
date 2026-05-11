@@ -288,7 +288,7 @@ func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
 	if existing != "" && !strings.HasSuffix(existing, "\n\n") {
 		body.WriteString("\n")
 	}
-	body.WriteString("# Added by deft-install (#1020)\n")
+	body.WriteString("# Deft framework: ignore local-only caches and scratch directories\n")
 	for _, add := range additions {
 		body.WriteString(add)
 		body.WriteString("\n")
@@ -421,7 +421,12 @@ func filepathWalk(root string, fn func(string, bool) error) error {
 	})
 }
 
-func copyFile(src, dst string) error {
+// copyFile copies src into dst, capturing close errors so a silent-truncation
+// scenario (e.g. full-disk where io.Copy completes via the OS page cache but
+// the underlying flush at Close() fails) surfaces to the caller rather than
+// being swallowed by a bare `defer out.Close()`. The named return `err` lets
+// the deferred close-error override a nil return when io.Copy succeeded.
+func copyFile(src, dst string) (err error) {
 	in, err := os.Open(src)
 	if err != nil {
 		return err
@@ -431,11 +436,21 @@ func copyFile(src, dst string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
-	if _, err := io.Copy(out, in); err != nil {
-		return err
-	}
-	return nil
+	return copyStream(in, out)
+}
+
+// copyStream is the I/O orchestration half of copyFile, split out so the
+// close-error propagation path is testable without filesystem trickery
+// (a fake io.WriteCloser whose Close returns an error suffices). The named
+// return `err` lets the deferred Close error override a nil io.Copy return.
+func copyStream(in io.Reader, out io.WriteCloser) (err error) {
+	defer func() {
+		if cerr := out.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
+	_, err = io.Copy(out, in)
+	return err
 }
 
 // ---------------------------------------------------------------------------
