@@ -8,7 +8,7 @@
   "plan": {
     "id": "757-probe-strategy-and-deft-gh-skills",
     "title": "Add probe strategy + deft-gh-slice/triage skills (re-author of #440)",
-    "status": "running",
+    "status": "completed",
     "planRef": "#757",
     "narratives": {
       "Problem": "PR #440 introduced three valuable adaptations of mattpocock/skills (a `probe` adversarial-stress-test strategy and two gh-CLI-backed skills for converting SPECIFICATION.md into tracer-bullet issues and for triaging bug reports). The PR went stale (authored 2026-04-18), drifted ~3 weeks behind master, accumulated conflicts across SKILL.md, REFERENCES.md, ROADMAP.md, AGENTS.md, branch-gate workflow, and pre-commit hooks, and -- separately -- was authored without a scope vBRIEF, without a CHANGELOG entry, and without `.agents/skills/` stubs (so the new skills would not be discoverable by the agent runtime). PR #440 has been closed; this vBRIEF re-authors the three artifacts cleanly on top of current master with full gate compliance.",
@@ -97,7 +97,7 @@
       {
         "id": "757-review-cycle",
         "title": "Run `skills/deft-directive-review-cycle/SKILL.md` against Greptile findings (if any)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Exit cleanly when no P0/P1 findings remain. P2/P3 advisory findings are non-blocking."
         }
@@ -105,7 +105,7 @@
       {
         "id": "757-squash-merge",
         "title": "Squash-merge PR, verify branch deletion, fast-forward local master",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Squash-merge with the PR title as the commit subject. Verify any `Closes #N` references actually closed the issue (#167)."
         }
@@ -113,7 +113,7 @@
       {
         "id": "757-promote-to-completed",
         "title": "After merge, move this vBRIEF active/ -> completed/ via `task scope:complete`",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Status field flips to `completed`. Lifecycle close."
         }
@@ -146,6 +146,6 @@
         "title": "mattpocock/skills (inspiration: grill-me, to-issues, triage-issue)"
       }
     ],
-    "updated": "2026-05-11T01:29:13Z"
+    "updated": "2026-05-11T01:58:59Z"
   }
 }
