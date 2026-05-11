@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,18 +17,25 @@ import (
 // projects. It is sourced from templates/agents-entry.md via //go:embed (see
 // templates/embed.go) so that editing the template alone is sufficient to
 // change what the installer writes -- no Go file edit required (closes #636).
-// It must contain agentsMDSentinel ("deft/main.md") for idempotency --
-// WriteAgentsMD checks for that string before appending.
+// It must contain agentsMDSentinel (the v0.27 deft:managed-section v2 marker)
+// for idempotency -- WriteAgentsMD checks for that string (or the pre-v0.27
+// `deft/main.md` legacy sentinel) before appending (#1020).
 var agentsMDEntry = templates.AgentsEntry
 
 const (
 	deftRepoURL = "https://github.com/deftai/directive"
 
-	// Sentinel used to detect an existing deft entry in AGENTS.md. This is a
-	// contract between the installer and WriteAgentsMD's idempotency check, not
-	// template content -- it is intentionally kept in Go source rather than
-	// derived from the template.
-	agentsMDSentinel = "deft/main.md"
+	// agentsMDSentinel detects an existing deft entry in AGENTS.md for the
+	// idempotency probe in WriteAgentsMD. We use the v0.27 marker open token
+	// (the same marker the relocator and `run agents:refresh` use) because it
+	// is stable across both the canonical (`.deft/core/`) and legacy (`deft/`)
+	// install layouts -- a re-run after a layout flip MUST NOT re-append.
+	agentsMDSentinel = "<!-- deft:managed-section v2 -->"
+
+	// agentsMDLegacySentinel is the pre-v0.27 idempotency marker. It is
+	// retained so a fresh canonical install on top of a legacy AGENTS.md still
+	// recognises the deft entry and skips re-appending (#1020).
+	agentsMDLegacySentinel = "deft/main.md"
 
 	// agentsSkillDeft is the thin pointer content for .agents/skills/deft/SKILL.md.
 	agentsSkillDeft = `---
@@ -34,7 +43,7 @@ name: deft
 description: Apply deft framework standards for AI-assisted development. Use when starting projects, writing code, running tests, making commits, or when the user references deft, project standards, or coding guidelines.
 ---
 
-Read and follow: deft/SKILL.md
+Read and follow: .deft/core/SKILL.md
 `
 	// agentsSkillDeftDirectiveSetup is the thin pointer for .agents/skills/deft-directive-setup/SKILL.md.
 	agentsSkillDeftDirectiveSetup = `---
@@ -45,7 +54,7 @@ description: >-
   specification. Walks through setup conversationally — no separate CLI needed.
 ---
 
-Read and follow: deft/skills/deft-directive-setup/SKILL.md
+Read and follow: .deft/core/skills/deft-directive-setup/SKILL.md
 `
 	// agentsSkillDeftDirectiveBuild is the thin pointer for .agents/skills/deft-directive-build/SKILL.md.
 	agentsSkillDeftDirectiveBuild = `---
@@ -57,7 +66,7 @@ description: >-
   implementation, testing, and quality checks phase by phase.
 ---
 
-Read and follow: deft/skills/deft-directive-build/SKILL.md
+Read and follow: .deft/core/skills/deft-directive-build/SKILL.md
 `
 	// agentsSkillDeftDirectiveReviewCycle is the thin pointer for .agents/skills/deft-directive-review-cycle/SKILL.md.
 	agentsSkillDeftDirectiveReviewCycle = `---
@@ -69,7 +78,7 @@ description: >-
   remain. Enables cloud agents to run autonomous PR review cycles.
 ---
 
-Read and follow: deft/skills/deft-directive-review-cycle/SKILL.md
+Read and follow: .deft/core/skills/deft-directive-review-cycle/SKILL.md
 `
 	// agentsSkillDeftDirectiveRefinement is the thin pointer for .agents/skills/deft-directive-refinement/SKILL.md.
 	agentsSkillDeftDirectiveRefinement = `---
@@ -80,7 +89,7 @@ description: >-
   the roadmap with phase placement, analysis comments, and index entries.
 ---
 
-Read and follow: deft/skills/deft-directive-refinement/SKILL.md
+Read and follow: .deft/core/skills/deft-directive-refinement/SKILL.md
 `
 	// agentsSkillDeftDirectiveSwarm is the thin pointer for .agents/skills/deft-directive-swarm/SKILL.md.
 	agentsSkillDeftDirectiveSwarm = `---
@@ -92,7 +101,7 @@ description: >-
   handle stalled review cycles, and close out PRs cleanly.
 ---
 
-Read and follow: deft/skills/deft-directive-swarm/SKILL.md
+Read and follow: .deft/core/skills/deft-directive-swarm/SKILL.md
 `
 	// agentsSkillDeftDirectiveInterview is the thin pointer for .agents/skills/deft-directive-interview/SKILL.md.
 	agentsSkillDeftDirectiveInterview = `---
@@ -103,7 +112,7 @@ description: >-
   numbered options, default acceptance, and a confirmation gate.
 ---
 
-Read and follow: deft/skills/deft-directive-interview/SKILL.md
+Read and follow: .deft/core/skills/deft-directive-interview/SKILL.md
 `
 	// agentsSkillDeftDirectivePrePr is the thin pointer for .agents/skills/deft-directive-pre-pr/SKILL.md.
 	agentsSkillDeftDirectivePrePr = `---
@@ -114,7 +123,7 @@ description: >-
   to catch issues before they reach the bot reviewer.
 ---
 
-Read and follow: deft/skills/deft-directive-pre-pr/SKILL.md
+Read and follow: .deft/core/skills/deft-directive-pre-pr/SKILL.md
 `
 	// agentsSkillDeftDirectiveSync is the thin pointer for .agents/skills/deft-directive-sync/SKILL.md.
 	agentsSkillDeftDirectiveSync = `---
@@ -125,9 +134,19 @@ description: >-
   before starting work.
 ---
 
-Read and follow: deft/skills/deft-directive-sync/SKILL.md
+Read and follow: .deft/core/skills/deft-directive-sync/SKILL.md
 `
 )
+
+// canonicalGitignoreLines mirrors scripts/relocate.py::GITIGNORE_LINES (the F2
+// canonical default from #1015): the runtime cache directory and the audit-log
+// private state. The framework deposit at .deft/core/ is INTENTIONALLY NOT
+// auto-gitignored -- per #11 .deft/core/ ships read-only packaged framework
+// assets that consumers commit for reproducibility.
+var canonicalGitignoreLines = []string{
+	".deft-cache/",
+	"vbrief/.eval/",
+}
 
 // ---------------------------------------------------------------------------
 // 4.1 Clone deft
@@ -191,18 +210,21 @@ func UpdateDeft(w *Wizard, result *WizardResult, branch string) error {
 
 // WriteAgentsMD creates or appends deft entries to AGENTS.md in the project
 // folder. If the entries already exist the file is left unchanged (idempotent).
+// Both the canonical v2 marker and the pre-v0.27 "deft/main.md" sentinel
+// count as "already present" so a canonical re-install over a legacy
+// AGENTS.md does NOT duplicate the entry (#1020).
 func WriteAgentsMD(w *Wizard, projectDir string) error {
 	path := filepath.Join(projectDir, "AGENTS.md")
 
 	existing, err := os.ReadFile(path)
 	if err == nil {
-		// File exists — check for existing deft entry.
-		if strings.Contains(string(existing), agentsMDSentinel) {
+		s := string(existing)
+		if strings.Contains(s, agentsMDSentinel) || strings.Contains(s, agentsMDLegacySentinel) {
 			w.printf("AGENTS.md already contains deft entries — skipping.\n")
 			return nil
 		}
 		// Append to existing file.
-		content := string(existing)
+		content := s
 		if !strings.HasSuffix(content, "\n") {
 			content += "\n"
 		}
@@ -219,6 +241,200 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 		return fmt.Errorf("could not create AGENTS.md: %w", err)
 	}
 	w.printf("AGENTS.md created.\n")
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// 4.2b .gitignore upkeep -- canonical F2 default (#1015, #1020)
+// ---------------------------------------------------------------------------
+
+// EnsureGitignoreLines appends the canonical baseline (`.deft-cache/`,
+// `vbrief/.eval/`) to the consumer's .gitignore if any line is missing. The
+// file is created when absent. Pre-existing lines are preserved byte-for-byte.
+// Mirrors scripts/relocate.py::_ensure_gitignore_lines for parity with the
+// relocator (#1015 F2 canonical default). Returns true if the file was
+// modified, false when no additions were needed.
+func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
+	path := filepath.Join(projectDir, ".gitignore")
+	existing := ""
+	if data, err := os.ReadFile(path); err == nil {
+		existing = string(data)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return false, fmt.Errorf("could not read .gitignore: %w", err)
+	}
+
+	present := map[string]bool{}
+	scanner := bufio.NewScanner(strings.NewReader(existing))
+	for scanner.Scan() {
+		present[strings.TrimSpace(scanner.Text())] = true
+	}
+
+	var additions []string
+	for _, line := range canonicalGitignoreLines {
+		if !present[line] {
+			additions = append(additions, line)
+		}
+	}
+	if len(additions) == 0 {
+		w.printf(".gitignore already covers deft-cache + vbrief eval lines — skipping.\n")
+		return false, nil
+	}
+
+	var body strings.Builder
+	body.WriteString(existing)
+	if existing != "" && !strings.HasSuffix(existing, "\n") {
+		body.WriteString("\n")
+	}
+	if existing != "" && !strings.HasSuffix(existing, "\n\n") {
+		body.WriteString("\n")
+	}
+	body.WriteString("# Added by deft-install (#1020)\n")
+	for _, add := range additions {
+		body.WriteString(add)
+		body.WriteString("\n")
+	}
+
+	if err := os.WriteFile(path, []byte(body.String()), 0o644); err != nil {
+		return false, fmt.Errorf("could not write .gitignore: %w", err)
+	}
+	w.printf(".gitignore updated with canonical entries: %s\n", strings.Join(additions, ", "))
+	return true, nil
+}
+
+// ---------------------------------------------------------------------------
+// 4.2c Consumer-root vbrief/ deposit (#1020)
+// ---------------------------------------------------------------------------
+
+// vbriefReadmeBody is the placeholder vbrief.md text written at the consumer
+// root when the framework copy is absent or unreadable. The framework's full
+// canonical vbrief.md lives in the deposited framework tree under
+// .deft/core/vbrief/vbrief.md; this stub points operators at it.
+const vbriefReadmeBody = `# vbrief/ -- scope vBRIEF lifecycle workspace
+
+This directory is your project's scope vBRIEF lifecycle workspace.
+
+- vbrief/proposed/  -- newly proposed scope vBRIEFs
+- vbrief/pending/   -- accepted, awaiting activation
+- vbrief/active/    -- in-flight implementation work
+- vbrief/completed/ -- merged / shipped
+- vbrief/cancelled/ -- closed without merge
+
+Schemas: vbrief/schemas/ (mirrored from the framework copy at install time).
+Reference template: .deft/core/vbrief/vbrief.md
+
+Do not commit vbrief/.eval/ -- it is the local audit-log private state and
+is covered by the canonical .gitignore baseline deposited by deft-install.
+`
+
+// WriteConsumerVbrief deposits a consumer-side `vbrief/` workspace at the
+// project root containing `vbrief/schemas/` and a `vbrief/vbrief.md` template.
+// Schemas are copied from the freshly-deposited framework copy at
+// `<deftDir>/vbrief/schemas/` so the consumer's schema files stay in lockstep
+// with the framework version they installed. If the framework copy is missing
+// for any reason the function falls back to creating the directories with a
+// placeholder README so the deposit is observable to downstream tooling and
+// to the conformance audit (#1020).
+func WriteConsumerVbrief(w *Wizard, projectDir, deftDir string) (bool, error) {
+	consumerVbrief := filepath.Join(projectDir, "vbrief")
+	schemasDst := filepath.Join(consumerVbrief, "schemas")
+	vbriefMDDst := filepath.Join(consumerVbrief, "vbrief.md")
+
+	schemasPresent := false
+	if info, err := os.Stat(schemasDst); err == nil && info.IsDir() {
+		schemasPresent = true
+	}
+	vbriefMDPresent := false
+	if info, err := os.Stat(vbriefMDDst); err == nil && info.Mode().IsRegular() {
+		vbriefMDPresent = true
+	}
+	if schemasPresent && vbriefMDPresent {
+		w.printf("vbrief/ already present at project root — skipping.\n")
+		return false, nil
+	}
+
+	if err := os.MkdirAll(consumerVbrief, 0o755); err != nil {
+		return false, fmt.Errorf("could not create vbrief/: %w", err)
+	}
+
+	// Copy schemas from the framework deposit when available.
+	if !schemasPresent {
+		fwSchemas := filepath.Join(deftDir, "vbrief", "schemas")
+		if info, err := os.Stat(fwSchemas); err == nil && info.IsDir() {
+			if err := copyDir(fwSchemas, schemasDst); err != nil {
+				return false, fmt.Errorf("could not seed vbrief/schemas/: %w", err)
+			}
+		} else {
+			// Fallback: at least create the directory so downstream tooling
+			// (and the conformance audit) observes the deposit shape.
+			if err := os.MkdirAll(schemasDst, 0o755); err != nil {
+				return false, fmt.Errorf("could not create vbrief/schemas/: %w", err)
+			}
+		}
+	}
+
+	if !vbriefMDPresent {
+		fwVbriefMD := filepath.Join(deftDir, "vbrief", "vbrief.md")
+		if data, err := os.ReadFile(fwVbriefMD); err == nil {
+			if err := os.WriteFile(vbriefMDDst, data, 0o644); err != nil {
+				return false, fmt.Errorf("could not write vbrief/vbrief.md: %w", err)
+			}
+		} else {
+			if err := os.WriteFile(vbriefMDDst, []byte(vbriefReadmeBody), 0o644); err != nil {
+				return false, fmt.Errorf("could not write vbrief/vbrief.md: %w", err)
+			}
+		}
+	}
+
+	w.printf("vbrief/ deposited at project root (schemas + vbrief.md).\n")
+	return true, nil
+}
+
+// copyDir recursively copies src into dst. Intermediate directories are
+// created with mode 0o755; files keep their source bytes. Used by
+// WriteConsumerVbrief to seed schemas from the framework deposit.
+func copyDir(src, dst string) error {
+	return filepathWalk(src, func(srcPath string, isDir bool) error {
+		rel, err := filepath.Rel(src, srcPath)
+		if err != nil {
+			return err
+		}
+		dstPath := filepath.Join(dst, rel)
+		if isDir {
+			return os.MkdirAll(dstPath, 0o755)
+		}
+		if err := os.MkdirAll(filepath.Dir(dstPath), 0o755); err != nil {
+			return err
+		}
+		return copyFile(srcPath, dstPath)
+	})
+}
+
+// filepathWalk is a thin wrapper over filepath.WalkDir restricted to the
+// (path, isDir) callback shape copyDir needs. Keeping it tiny avoids pulling
+// fs.DirEntry into copyDir's body.
+func filepathWalk(root string, fn func(string, bool) error) error {
+	return filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		return fn(path, d.IsDir())
+	})
+}
+
+func copyFile(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	if _, err := io.Copy(out, in); err != nil {
+		return err
+	}
 	return nil
 }
 

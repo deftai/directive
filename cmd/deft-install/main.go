@@ -40,25 +40,29 @@ Usage:
   deft-install [options]
 
 Options:
-  --branch <name>   Clone from a specific branch (default: repo default)
-  --debug           Print build target and diagnostic info
-  --version         Print version and exit
-  --help            Show this help message
+  --branch <name>     Clone from a specific branch (default: repo default)
+  --legacy-layout     Deposit at legacy 'deft/' instead of canonical '.deft/core/'
+                      (back-compat path; pre-v0.27 in-flight migrations only)
+  --debug             Print build target and diagnostic info
+  --version           Print version and exit
+  --help              Show this help message
 
 Windows-style aliases:
-  /branch <name>    Same as --branch
-  /debug            Same as --debug
-  /v, /version      Same as --version
-  /?, /h, /help     Same as --help
+  /branch <name>      Same as --branch
+  /legacy-layout      Same as --legacy-layout
+  /debug              Same as --debug
+  /v, /version        Same as --version
+  /?, /h, /help       Same as --help
 
 User configuration:
   Config directory : %s
   Override via     : DEFT_USER_PATH environment variable
 
 Examples:
-  deft-install                  Install using the default branch
-  deft-install --branch beta    Install from the beta branch
-  deft-install /branch beta     Same, Windows-style
+  deft-install                     Install using the canonical .deft/core/ layout
+  deft-install --branch beta       Install from the beta branch
+  deft-install --legacy-layout     Install at legacy deft/ for back-compat
+  deft-install /branch beta        Same, Windows-style
 `, version, UserConfigDir())
 }
 
@@ -66,13 +70,14 @@ Examples:
 // so the standard flag package can parse them.
 func normalizeArgs(args []string) []string {
 	slashFlags := map[string]string{
-		"/?":       "--help",
-		"/h":       "--help",
-		"/help":    "--help",
-		"/v":       "--version",
-		"/version": "--version",
-		"/debug":   "--debug",
-		"/branch":  "--branch",
+		"/?":             "--help",
+		"/h":             "--help",
+		"/help":          "--help",
+		"/v":             "--version",
+		"/version":       "--version",
+		"/debug":         "--debug",
+		"/branch":        "--branch",
+		"/legacy-layout": "--legacy-layout",
 	}
 	out := make([]string, 0, len(args))
 	for _, a := range args {
@@ -92,6 +97,7 @@ func main() {
 	showVersion := flag.Bool("version", false, "print version and exit")
 	debug := flag.Bool("debug", false, "print build target and diagnostic info")
 	branch := flag.String("branch", "", "clone from a specific branch")
+	legacyLayout := flag.Bool("legacy-layout", false, "deposit at legacy 'deft/' instead of canonical '.deft/core/' (back-compat only)")
 	flag.Usage = printUsage
 	flag.Parse()
 
@@ -104,7 +110,7 @@ func main() {
 	// build-time default (if any).
 	effectiveBranch := resolveBranch(*branch, defaultBranch)
 
-	code := install(*debug, effectiveBranch)
+	code := install(*debug, effectiveBranch, *legacyLayout)
 	if runtime.GOOS == "windows" {
 		pressEnterToExit()
 	}
@@ -114,13 +120,13 @@ func main() {
 }
 
 // install runs the full install/update workflow and returns an exit code.
-func install(debug bool, branch string) int {
+func install(debug bool, branch string, legacyLayout bool) int {
 	if debug {
 		fmt.Printf("[debug] OS=%s ARCH=%s\n", runtime.GOOS, runtime.GOARCH)
-		fmt.Printf("[debug] defaultBranch=%s branch=%s\n", defaultBranch, branch)
+		fmt.Printf("[debug] defaultBranch=%s branch=%s legacyLayout=%v\n", defaultBranch, branch, legacyLayout)
 	}
 
-	w := NewWizard(os.Stdin, os.Stdout, debug)
+	w := NewWizardWithLayout(os.Stdin, os.Stdout, debug, legacyLayout)
 	result, err := w.Run()
 	if err != nil {
 		if err == errUserExit {
@@ -132,7 +138,7 @@ func install(debug bool, branch string) int {
 	}
 
 	if debug {
-		fmt.Printf("[debug] project=%s deft=%s\n", result.ProjectDir, result.DeftDir)
+		fmt.Printf("[debug] project=%s deft=%s legacy=%v\n", result.ProjectDir, result.DeftDir, result.LegacyLayout)
 	}
 
 	// Phase 3: ensure git is available.
@@ -161,6 +167,21 @@ func install(debug bool, branch string) int {
 
 	skillsCreated, err := WriteAgentsSkills(w, result.ProjectDir)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		return 1
+	}
+
+	// Phase 4b: .gitignore upkeep (#1015 F2 canonical default mirrored from
+	// scripts/relocate.py). Runs on every layout because the cache + audit
+	// log are written regardless of where the framework deposit lives.
+	if _, err := EnsureGitignoreLines(w, result.ProjectDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		return 1
+	}
+
+	// Phase 4c: consumer-root vbrief/ deposit (canonical contract: scope
+	// vBRIEFs live at the consumer root, not inside the framework copy).
+	if _, err := WriteConsumerVbrief(w, result.ProjectDir, result.DeftDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
 	}

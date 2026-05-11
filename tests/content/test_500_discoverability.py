@@ -217,11 +217,12 @@ def test_agents_entry_template_references_lifecycle_folders() -> None:
 
 def test_agents_entry_template_routes_to_setup_skill() -> None:
     """Pre-cutover branch must route agents to the setup SKILL pre-cutover
-    guard section."""
+    guard section. Path is the canonical .deft/core/ install layout (#1020,
+    flipped from the legacy deft/ path)."""
     text = _AGENTS_ENTRY_TEMPLATE.read_text(encoding="utf-8")
-    assert "deft/skills/deft-directive-setup/SKILL.md" in text, (
+    assert ".deft/core/skills/deft-directive-setup/SKILL.md" in text, (
         "templates/agents-entry.md: pre-cutover branch must route agents "
-        "to deft/skills/deft-directive-setup/SKILL.md (Task 500-C, #500 AC)"
+        "to .deft/core/skills/deft-directive-setup/SKILL.md (#1020)"
     )
     assert "Pre-Cutover Detection Guard" in text, (
         "templates/agents-entry.md: pre-cutover branch must name the "
@@ -265,17 +266,15 @@ def test_setup_go_mirrors_pre_cutover_branch() -> None:
             f"templates/agents-entry.md: must list the `{folder}` lifecycle "
             f"folder in its pre-cutover criterion"
         )
-    # The `Full guidelines: deft/main.md` line is the single deft/main.md
-    # reference inside the entry (also the agentsMDSentinel used for
-    # idempotency in WriteAgentsMD). Adding a second reference breaks
-    # TestWriteAgentsMD_Idempotent, so the pre-cutover branch must route
-    # via the setup SKILL and name the "Migrating from pre-v0.20" section
-    # of the main guidelines without repeating the path.
-    assert entry.count("deft/main.md") == 1, (
-        "templates/agents-entry.md: must contain exactly one `deft/main.md` "
-        "reference (the 'Full guidelines:' line that doubles as the "
-        "agentsMDSentinel). Adding a second reference inside the entry "
-        "breaks the Go installer's WriteAgentsMD idempotency contract."
+    # The `Full guidelines: .deft/core/main.md` line is the single
+    # canonical-path reference inside the entry (#1020 flipped the body
+    # from `deft/main.md` to `.deft/core/main.md`). The idempotency
+    # contract is now anchored on the `<!-- deft:managed-section v2 -->`
+    # marker, not on the path string, so this assertion pins the
+    # canonical-path token shape rather than the marker.
+    assert entry.count(".deft/core/main.md") == 1, (
+        "templates/agents-entry.md: must contain exactly one "
+        "`.deft/core/main.md` reference (the 'Full guidelines:' line)."
     )
     assert "Migrating from pre-v0.20" in entry, (
         "templates/agents-entry.md: pre-cutover branch must name the "

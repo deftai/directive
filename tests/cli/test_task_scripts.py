@@ -431,7 +431,13 @@ class TestAgentsBootstrap:
 
     TRAMPOLINE_PATH = REPO_ROOT / "QUICK-START.md"
     TEMPLATE_PATH = REPO_ROOT / "templates" / "agents-entry.md"
+    # The pre-v0.27 sentinel ``deft/main.md`` is still the trampoline's
+    # idempotency probe because QUICK-START.md is operator-facing and may
+    # describe both layouts; the template's canonical idempotency anchor
+    # was flipped in #1020 to the ``deft:managed-section v2`` marker (stable
+    # across both canonical and legacy install layouts).
     SENTINEL = "deft/main.md"
+    TEMPLATE_SENTINEL = "<!-- deft:managed-section v2 -->"
 
     def test_trampoline_exists_at_repo_root(self):
         """QUICK-START.md must exist at the repository root."""
@@ -460,9 +466,9 @@ class TestAgentsBootstrap:
         assert self.TEMPLATE_PATH.is_file()
 
     def test_template_contains_sentinel(self):
-        """Template must contain the deft/main.md sentinel."""
+        """Template must contain the v0.27 canonical v2 marker for idempotency (#1020)."""
         content = self.TEMPLATE_PATH.read_text(encoding="utf-8")
-        assert self.SENTINEL in content
+        assert self.TEMPLATE_SENTINEL in content
 
     def test_template_references_v020_artifacts(self):
         """Template must reference v0.20 skill names and artifacts."""

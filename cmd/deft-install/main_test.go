@@ -141,7 +141,7 @@ func TestListSubdirs_ExcludesHiddenAndSystem(t *testing.T) {
 
 func TestCheckGuards_WritableDir(t *testing.T) {
 	tmp := t.TempDir()
-	deftDir := filepath.Join(tmp, "project", "deft")
+	deftDir := filepath.Join(tmp, "project", ".deft", "core")
 	os.MkdirAll(filepath.Dir(deftDir), 0o755)
 
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
@@ -742,12 +742,13 @@ func TestWriteAgentsSkills_Idempotent(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Path consistency — all framework files under ./deft/
+// Path consistency — framework deposit at .deft/core/ (#1020)
 // ---------------------------------------------------------------------------
 
-// TestInstallPathConsistency verifies that the installer places all framework
-// files under ./deft/ with only AGENTS.md and .agents/ at the project root.
-func TestInstallPathConsistency_SkillPointersUseDeftPrefix(t *testing.T) {
+// TestInstallPathConsistency_SkillPointersUseCanonicalPrefix verifies every
+// thin-pointer SKILL.md references the canonical .deft/core/ path (NOT the
+// legacy deft/ path). Regression guard for #1020.
+func TestInstallPathConsistency_SkillPointersUseCanonicalPrefix(t *testing.T) {
 	tmp := t.TempDir()
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
 
@@ -767,26 +768,27 @@ func TestInstallPathConsistency_SkillPointersUseDeftPrefix(t *testing.T) {
 			t.Fatalf("missing skill pointer for %s: %v", skill, err)
 		}
 		content := string(data)
-		// Every thin pointer must reference a deft/-prefixed path.
-		if !strings.Contains(content, "deft/") {
-			t.Errorf("%s thin pointer does not use deft/ prefix:\n%s", skill, content)
+		if !strings.Contains(content, ".deft/core/") {
+			t.Errorf("%s thin pointer does not use .deft/core/ prefix:\n%s", skill, content)
+		}
+		// Legacy deft/<skill>/SKILL.md or deft/skills/ paths must be absent.
+		if strings.Contains(content, "Read and follow: deft/") {
+			t.Errorf("%s thin pointer still references legacy `deft/` path:\n%s", skill, content)
 		}
 	}
 }
 
 // TestInstallPathConsistency_OnlyExpectedRootFiles verifies that the install
-// workflow creates only AGENTS.md and .agents/ at the project root — all
-// other framework files are inside ./deft/.
+// workflow creates only AGENTS.md, .agents/, .gitignore, vbrief/, and the
+// canonical .deft/ framework parent at the project root.
 func TestInstallPathConsistency_OnlyExpectedRootFiles(t *testing.T) {
 	origRun := runCmdFunc
 	defer func() { runCmdFunc = origRun }()
 
-	// Stub git clone to just create the deft dir.
+	// Stub git clone to materialise the framework dir at result.DeftDir.
 	runCmdFunc = func(out io.Writer, name string, args ...string) error {
-		for _, a := range args {
-			if strings.HasSuffix(a, "deft") {
-				os.MkdirAll(a, 0o755)
-			}
+		if len(args) > 0 && args[0] == "clone" {
+			os.MkdirAll(args[len(args)-1], 0o755)
 		}
 		return nil
 	}
@@ -798,12 +800,11 @@ func TestInstallPathConsistency_OnlyExpectedRootFiles(t *testing.T) {
 	result := &WizardResult{
 		ProjectName: "myproj",
 		ProjectDir:  projectDir,
-		DeftDir:     filepath.Join(projectDir, "deft"),
+		DeftDir:     filepath.Join(projectDir, ".deft", "core"),
 	}
 
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
 
-	// Run all setup steps that create files.
 	if err := CloneDeft(w, result, ""); err != nil {
 		t.Fatal(err)
 	}
@@ -813,47 +814,56 @@ func TestInstallPathConsistency_OnlyExpectedRootFiles(t *testing.T) {
 	if _, err := WriteAgentsSkills(w, result.ProjectDir); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := EnsureGitignoreLines(w, result.ProjectDir); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := WriteConsumerVbrief(w, result.ProjectDir, result.DeftDir); err != nil {
+		t.Fatal(err)
+	}
 
-	// Enumerate top-level entries in the project directory.
 	entries, err := os.ReadDir(projectDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	allowed := map[string]bool{
-		"deft":      true, // framework directory
-		"AGENTS.md": true, // expected exception
-		".agents":   true, // expected exception
+		".deft":      true, // canonical framework parent
+		"AGENTS.md":  true,
+		".agents":    true,
+		".gitignore": true, // #1015 F2 baseline
+		"vbrief":     true, // consumer-root scope vBRIEF workspace
 	}
 	for _, e := range entries {
 		if !allowed[e.Name()] {
-			t.Errorf("unexpected file at project root: %s (framework files must be under ./deft/)", e.Name())
+			t.Errorf("unexpected file at project root: %s", e.Name())
 		}
+	}
+
+	// Legacy deft/ MUST NOT be created.
+	if _, err := os.Stat(filepath.Join(projectDir, "deft")); err == nil {
+		t.Error("legacy deft/ created at project root (canonical install must not create it)")
 	}
 }
 
-// TestInstallPathConsistency_DeftDirAlwaysSubfolder verifies the wizard always
-// sets DeftDir as a "deft" subfolder inside ProjectDir.
-func TestInstallPathConsistency_DeftDirAlwaysSubfolder(t *testing.T) {
-	projectDirs := []string{
-		filepath.Join("C:", "repos", "myproj"),
-		filepath.Join("/", "home", "user", "projects", "app"),
-		filepath.Join("E:", "Work", "project-name"),
+// TestWizardLayoutDefaultsCanonical asserts the wizard's default layout
+// produces the canonical .deft/core/ subdir (#1020).
+func TestWizardLayoutDefaultsCanonical(t *testing.T) {
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	got := w.frameworkSubdir()
+	want := filepath.Join(".deft", "core")
+	if got != want {
+		t.Errorf("default frameworkSubdir = %q, want %q", got, want)
 	}
+}
 
-	for _, pd := range projectDirs {
-		result := &WizardResult{
-			ProjectDir: pd,
-			DeftDir:    filepath.Join(pd, "deft"),
-		}
-		// Verify DeftDir is always the "deft" direct child of ProjectDir.
-		if result.DeftDir != filepath.Join(result.ProjectDir, "deft") {
-			t.Errorf("DeftDir mismatch for %s: got %s, want %s",
-				pd, result.DeftDir, filepath.Join(result.ProjectDir, "deft"))
-		}
-		if filepath.Base(result.DeftDir) != "deft" {
-			t.Errorf("DeftDir base should be 'deft', got %s", filepath.Base(result.DeftDir))
-		}
+// TestWizardLayoutLegacyFlag asserts --legacy-layout selects the pre-v0.27
+// `deft/` subdir for back-compat / in-flight migration paths.
+func TestWizardLayoutLegacyFlag(t *testing.T) {
+	w := NewWizardWithLayout(strings.NewReader(""), &bytes.Buffer{}, false, true)
+	got := w.frameworkSubdir()
+	want := "deft"
+	if got != want {
+		t.Errorf("legacy frameworkSubdir = %q, want %q", got, want)
 	}
 }
 
@@ -948,8 +958,8 @@ func TestWriteAgentsSkills_InterviewPointer(t *testing.T) {
 	if !strings.Contains(content, "name: deft-directive-interview") {
 		t.Error("interview pointer missing name frontmatter")
 	}
-	if !strings.Contains(content, "deft/skills/deft-directive-interview/SKILL.md") {
-		t.Error("interview pointer missing correct path")
+	if !strings.Contains(content, ".deft/core/skills/deft-directive-interview/SKILL.md") {
+		t.Error("interview pointer missing canonical .deft/core/ path")
 	}
 }
 
@@ -967,8 +977,8 @@ func TestWriteAgentsSkills_PrePrPointer(t *testing.T) {
 	if !strings.Contains(content, "name: deft-directive-pre-pr") {
 		t.Error("pre-pr pointer missing name frontmatter")
 	}
-	if !strings.Contains(content, "deft/skills/deft-directive-pre-pr/SKILL.md") {
-		t.Error("pre-pr pointer missing correct path")
+	if !strings.Contains(content, ".deft/core/skills/deft-directive-pre-pr/SKILL.md") {
+		t.Error("pre-pr pointer missing canonical .deft/core/ path")
 	}
 }
 
@@ -986,8 +996,187 @@ func TestWriteAgentsSkills_SyncPointer(t *testing.T) {
 	if !strings.Contains(content, "name: deft-directive-sync") {
 		t.Error("sync pointer missing name frontmatter")
 	}
-	if !strings.Contains(content, "deft/skills/deft-directive-sync/SKILL.md") {
-		t.Error("sync pointer missing correct path")
+	if !strings.Contains(content, ".deft/core/skills/deft-directive-sync/SKILL.md") {
+		t.Error("sync pointer missing canonical .deft/core/ path")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// .gitignore upkeep + consumer-root vbrief deposit (#1020)
+// ---------------------------------------------------------------------------
+
+func TestEnsureGitignoreLines_CreatesNew(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	changed, err := EnsureGitignoreLines(w, tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Error("expected changed=true on greenfield consumer")
+	}
+	data, err := os.ReadFile(filepath.Join(tmp, ".gitignore"))
+	if err != nil {
+		t.Fatalf("missing .gitignore: %v", err)
+	}
+	for _, want := range []string{".deft-cache/", "vbrief/.eval/"} {
+		if !strings.Contains(string(data), want) {
+			t.Errorf(".gitignore missing canonical line %q", want)
+		}
+	}
+}
+
+func TestEnsureGitignoreLines_AppendsToExisting(t *testing.T) {
+	tmp := t.TempDir()
+	pre := "# consumer pre-existing\nnode_modules/\n.env\n"
+	if err := os.WriteFile(filepath.Join(tmp, ".gitignore"), []byte(pre), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	if _, err := EnsureGitignoreLines(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(tmp, ".gitignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	// Pre-existing lines MUST be preserved byte-for-byte at the start.
+	if !strings.HasPrefix(content, pre) {
+		t.Errorf(".gitignore preamble lost; got:\n%s", content)
+	}
+	for _, want := range []string{"node_modules/", ".env", ".deft-cache/", "vbrief/.eval/"} {
+		if !strings.Contains(content, want) {
+			t.Errorf(".gitignore missing %q after augment", want)
+		}
+	}
+}
+
+func TestEnsureGitignoreLines_Idempotent(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	if _, err := EnsureGitignoreLines(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := EnsureGitignoreLines(w, tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed {
+		t.Error("expected changed=false on second invocation")
+	}
+	data, _ := os.ReadFile(filepath.Join(tmp, ".gitignore"))
+	countCache := strings.Count(string(data), ".deft-cache/")
+	countEval := strings.Count(string(data), "vbrief/.eval/")
+	if countCache != 1 || countEval != 1 {
+		t.Errorf("expected exactly one of each canonical line, got cache=%d eval=%d", countCache, countEval)
+	}
+}
+
+func TestWriteConsumerVbrief_CreatesNew(t *testing.T) {
+	tmp := t.TempDir()
+	projectDir := filepath.Join(tmp, "proj")
+	os.MkdirAll(projectDir, 0o755)
+	// Simulate the framework deposit at .deft/core/ with a schemas/ + vbrief.md.
+	deftDir := filepath.Join(projectDir, ".deft", "core")
+	fwSchemas := filepath.Join(deftDir, "vbrief", "schemas")
+	os.MkdirAll(fwSchemas, 0o755)
+	os.WriteFile(filepath.Join(fwSchemas, "vbrief-core.schema.json"), []byte(`{"name":"fixture"}`), 0o644)
+	os.WriteFile(filepath.Join(deftDir, "vbrief", "vbrief.md"), []byte("# fixture vbrief\n"), 0o644)
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	changed, err := WriteConsumerVbrief(w, projectDir, deftDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Error("expected changed=true on first deposit")
+	}
+	if _, err := os.Stat(filepath.Join(projectDir, "vbrief", "schemas", "vbrief-core.schema.json")); err != nil {
+		t.Errorf("schemas/ was not seeded: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(projectDir, "vbrief", "vbrief.md")); err != nil {
+		t.Errorf("vbrief.md was not deposited: %v", err)
+	}
+	// Lifecycle dirs MUST NOT be pre-created (#1020 4g contract).
+	for _, lifecycle := range []string{"active", "pending", "proposed", "completed", "cancelled"} {
+		if _, err := os.Stat(filepath.Join(projectDir, "vbrief", lifecycle)); err == nil {
+			t.Errorf("consumer-root vbrief/%s/ MUST NOT be auto-created", lifecycle)
+		}
+	}
+}
+
+func TestWriteConsumerVbrief_FallbackWhenFrameworkMissing(t *testing.T) {
+	tmp := t.TempDir()
+	projectDir := filepath.Join(tmp, "proj")
+	os.MkdirAll(projectDir, 0o755)
+	// deftDir intentionally absent -- exercises the fallback branch.
+	deftDir := filepath.Join(projectDir, ".deft", "core")
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if _, err := WriteConsumerVbrief(w, projectDir, deftDir); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(projectDir, "vbrief", "schemas")); err != nil {
+		t.Errorf("schemas dir was not created via fallback: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(projectDir, "vbrief", "vbrief.md"))
+	if err != nil {
+		t.Fatalf("vbrief.md fallback was not written: %v", err)
+	}
+	if !strings.Contains(string(data), "scope vBRIEF lifecycle workspace") {
+		t.Errorf("vbrief.md fallback body unexpected:\n%s", data)
+	}
+}
+
+func TestWriteConsumerVbrief_Idempotent(t *testing.T) {
+	tmp := t.TempDir()
+	projectDir := filepath.Join(tmp, "proj")
+	os.MkdirAll(projectDir, 0o755)
+	deftDir := filepath.Join(projectDir, ".deft", "core")
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if _, err := WriteConsumerVbrief(w, projectDir, deftDir); err != nil {
+		t.Fatal(err)
+	}
+	// Stash sentinel content -- a second call must not overwrite.
+	vbriefPath := filepath.Join(projectDir, "vbrief", "vbrief.md")
+	sentinel := []byte("# operator-edited\n")
+	os.WriteFile(vbriefPath, sentinel, 0o644)
+
+	changed, err := WriteConsumerVbrief(w, projectDir, deftDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed {
+		t.Error("expected changed=false on second invocation")
+	}
+	data, _ := os.ReadFile(vbriefPath)
+	if string(data) != string(sentinel) {
+		t.Errorf("WriteConsumerVbrief overwrote operator edit; got:\n%s", data)
+	}
+}
+
+// TestWriteAgentsMD_IdempotentAcrossLegacySentinel asserts the v0.27 marker
+// idempotency probe also recognises the pre-v0.27 "deft/main.md" sentinel so
+// a canonical re-install over a legacy AGENTS.md does not duplicate the entry
+// (#1020 regression for in-flight migration paths).
+func TestWriteAgentsMD_IdempotentAcrossLegacySentinel(t *testing.T) {
+	tmp := t.TempDir()
+	legacy := "# AGENTS\nDeft is installed in deft/. Full guidelines: deft/main.md\n"
+	if err := os.WriteFile(filepath.Join(tmp, "AGENTS.md"), []byte(legacy), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	if string(data) != legacy {
+		t.Errorf("AGENTS.md mutated despite legacy sentinel; got:\n%s", data)
 	}
 }
 
