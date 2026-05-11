@@ -27,7 +27,7 @@ version: '3'
 #
 # Path resolution mirrors the convention from tasks/issue.yml + tasks/policy.yml:
 # `DEFT_ROOT` is defined locally via `joinPath .TASKFILE_DIR ".."` so
-# `uv run python "{{.DEFT_ROOT}}/scripts/<name>.py"` resolves cleanly on
+# `uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/<name>.py"` resolves cleanly on
 # Windows under go-task's mvdan/sh interpreter (#566).
 
 vars:
@@ -41,7 +41,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" accept {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" accept {{.CLI_ARGS}}
 
   bulk-reject:
     desc: "Bulk reject candidates (#845 Story 4) -- task triage:bulk-reject -- --repo OWNER/NAME --reason 'why' [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
@@ -50,7 +50,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" reject {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" reject {{.CLI_ARGS}}
 
   bulk-defer:
     desc: "Bulk defer candidates (#845 Story 4) -- task triage:bulk-defer -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
@@ -59,7 +59,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" defer {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" defer {{.CLI_ARGS}}
 
   bulk-needs-ac:
     desc: "Bulk needs-ac candidates (#845 Story 4) -- task triage:bulk-needs-ac -- --repo OWNER/NAME [--label L] [--author A] [--age-days N] [--cluster C] [--re-action]"
@@ -68,7 +68,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" needs-ac {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_bulk.py" needs-ac {{.CLI_ARGS}}
 
   refresh-active:
     desc: "Pre-swarm freshness gate (#845 Story 4) -- detects drift between cached and live `gh issue view` for every issue referenced in vbrief/active/*.vbrief.json"
@@ -77,4 +77,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_refresh.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_refresh.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

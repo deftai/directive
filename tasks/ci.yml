@@ -46,4 +46,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/ci_local.py" --root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/ci_local.py" --root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

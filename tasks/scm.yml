@@ -44,7 +44,7 @@ vars:
   # Each included sub-taskfile defines its own DEFT_ROOT mirror so scripts
   # can be dispatched via {{.DEFT_ROOT}}/scripts/<name>.py on every platform
   # (#566). joinPath is evaluated eagerly by go-task templating and yields
-  # a native-separator absolute path that uv run python can open on Windows.
+  # a native-separator absolute path that uv --project "{{.DEFT_ROOT}}" run python can open on Windows.
   DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
 
 # Per `conventions/task-caching.md` (#574): tasks that accept user-facing
@@ -57,7 +57,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/scm.py" issue list {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scm.py" issue list {{.CLI_ARGS}}
 
   issue:view:
     desc: "[#883 stub] View an issue -- task scm:issue:view -- [--rest] <N> --repo OWNER/NAME --json number,title,body,state,author,createdAt,updatedAt,labels,comments (#976 --rest routes via REST helpers and emits REST shape; default forwards to ghx|gh GraphQL shape)"
@@ -65,7 +65,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/scm.py" issue view {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scm.py" issue view {{.CLI_ARGS}}
 
   issue:close:
     desc: "[#883 stub] Close an issue -- task scm:issue:close -- <N> --repo OWNER/NAME [--comment ...]"
@@ -73,7 +73,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/scm.py" issue close {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scm.py" issue close {{.CLI_ARGS}}
 
   issue:edit:
     desc: "[#883 stub] Edit an issue -- task scm:issue:edit -- <N> --repo OWNER/NAME [--add-label ...] [--body ...]"
@@ -81,4 +81,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/scm.py" issue edit {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scm.py" issue edit {{.CLI_ARGS}}

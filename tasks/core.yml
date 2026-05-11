@@ -10,7 +10,7 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - cmd: >-
-          uv run python -c "from pathlib import Path;
+          uv --project "{{.DEFT_ROOT}}" run python -c "from pathlib import Path;
           files=[f for f in sorted(Path('.').rglob('*.md')) if '.git' not in f.parts and 'backup' not in f.parts];
           [print(f'\u2713 {f}') for f in files];
           print(f'\u2713 All {len(files)} markdown files validated')"
@@ -18,24 +18,24 @@ tasks:
   test:
     desc: Run test suite
     cmds:
-      - uv run pytest tests/
+      - uv --project "{{.DEFT_ROOT}}" run pytest tests/
 
   test:coverage:
     desc: Run tests with coverage (fails if < 85%)
     cmds:
-      - uv run pytest tests/ --cov --cov-report=html
+      - uv --project "{{.DEFT_ROOT}}" run pytest tests/ --cov --cov-report=html
 
   fmt:
     desc: Format Python code
     cmds:
-      - uv run ruff format .
-      - uv run black .
+      - uv --project "{{.DEFT_ROOT}}" run ruff format .
+      - uv --project "{{.DEFT_ROOT}}" run black .
 
   lint:
     desc: Lint and type-check Python code
     cmds:
-      - uv run ruff check .
-      - uv run mypy run.py
+      - uv --project "{{.DEFT_ROOT}}" run ruff check .
+      - uv --project "{{.DEFT_ROOT}}" run mypy run.py
 
 
   build:
@@ -49,7 +49,7 @@ tasks:
       # platform-split shape had the Windows branch missing the exclude
       # list, ingesting .git history and the prior dist/ artifact.
       # Regression-guarded by tests/content/test_taskfile_zip_parity.py.
-      - uv run python "{{.DEFT_ROOT}}/scripts/build_dist.py" --version "{{.VERSION}}"
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/build_dist.py" --version "{{.VERSION}}"
 
   clean:
     desc: Clean generated artifacts (cross-platform via Python helper, #736)
@@ -68,7 +68,7 @@ tasks:
       # `task -t tasks/core.yml clean` from a subdirectory (Greptile P2 on
       # PR #773).
       - cmd: >-
-          uv run python -c "import shutil, pathlib;
+          uv --project "{{.DEFT_ROOT}}" run python -c "import shutil, pathlib;
           d = pathlib.Path(r'{{.DEFT_ROOT}}') / 'dist';
           shutil.rmtree(d) if d.exists() else None;
           print(f'Cleaned {d}')"
@@ -77,7 +77,7 @@ tasks:
     desc: Show framework statistics
     cmds:
       - cmd: >-
-          uv run python -c "from pathlib import Path;
+          uv --project "{{.DEFT_ROOT}}" run python -c "from pathlib import Path;
           v='{{.VERSION}}';
           sep='='*42;
           dirs=[('Core files','core'),('Languages','languages'),('Interfaces','interfaces'),('Tools','tools'),('Templates','templates')];

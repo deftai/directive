@@ -16,7 +16,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/policy.py" show
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy.py" show
 
   enforce-branches:
     desc: "Set plan.policy.allowDirectCommitsToMaster=false (enforce feature branches). Audits to meta/policy-changes.log. (#746)"
@@ -24,7 +24,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/policy_set.py" enforce-branches {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy_set.py" enforce-branches {{.CLI_ARGS}}
 
   allow-direct-commits:
     desc: "Set plan.policy.allowDirectCommitsToMaster=true (capability-cost: branch-protection OFF). Requires --confirm to apply. (#746)"
@@ -32,4 +32,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/policy_set.py" allow-direct-commits {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy_set.py" allow-direct-commits {{.CLI_ARGS}}

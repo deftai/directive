@@ -1,5 +1,12 @@
 version: '3'
 
+vars:
+  # Per ../Taskfile.yml header: joinPath is evaluated eagerly by go-task
+  # templating and yields a native-separator absolute path so {{.DEFT_ROOT}}
+  # resolves correctly under uv on Windows (#566). Used here to pin
+  # `uv --project` against ancestor pyproject.toml leakage (#1011).
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
 tasks:
   changelog:check:
     desc: Verify CHANGELOG.md has an [Unreleased] section with at least one entry
@@ -7,7 +14,7 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - cmd: >-
-          uv run python -c
+          uv --project "{{.DEFT_ROOT}}" run python -c
           "import sys, pathlib, re;
           p = pathlib.Path('CHANGELOG.md');
           (not p.exists()) and (print('FAIL: CHANGELOG.md not found'), sys.exit(1));
@@ -23,7 +30,7 @@ tasks:
     desc: Create a new change proposal directory structure in history/changes/<name>/
     cmds:
       - cmd: >-
-          uv run python -c
+          uv --project "{{.DEFT_ROOT}}" run python -c
           "import sys, pathlib, json, re;
           name = '{{.CLI_ARGS}}'.strip();
           (not name) and (print('FAIL: Usage: task change:init -- <name>'), sys.exit(1));

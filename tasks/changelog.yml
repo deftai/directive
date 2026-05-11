@@ -23,4 +23,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/resolve_changelog_unreleased.py" {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/resolve_changelog_unreleased.py" {{.CLI_ARGS}}

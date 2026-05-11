@@ -34,7 +34,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/cache.py" put {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/cache.py" put {{.CLI_ARGS}}
 
   get:
     desc: "Read an entry -- task cache:get -- <source> <key> [--allow-stale | --no-stale]"
@@ -42,7 +42,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/cache.py" get {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/cache.py" get {{.CLI_ARGS}}
 
   invalidate:
     desc: "Drop an entry -- task cache:invalidate -- <source> <key> [--reason TEXT]"
@@ -50,7 +50,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/cache.py" invalidate {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/cache.py" invalidate {{.CLI_ARGS}}
 
   fetch-all:
     desc: "Bulk populate -- task cache:fetch-all -- --source github-issue --repo OWNER/NAME [--batch-size N] [--delay-ms N] [--ttl-seconds N]"
@@ -58,7 +58,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/cache.py" fetch-all {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/cache.py" fetch-all {{.CLI_ARGS}}
 
   prune:
     desc: "Drop expired or LRU-evict -- task cache:prune -- [--older-than-days 30] [--source github-issue] [--dry-run] [--to-cap]"
@@ -66,4 +66,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/cache.py" prune {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/cache.py" prune {{.CLI_ARGS}}

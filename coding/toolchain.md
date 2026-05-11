@@ -28,3 +28,11 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Report exactly which tools are missing and provide install guidance
 - ! Do not partially implement using available tools while skipping quality gates
 - ~ Offer to help install missing tools if the user consents
+## uv Project Pinning (#1011)
+**Why this rule exists:** without an explicit pin, `uv run` walks upward from cwd looking for the nearest `pyproject.toml` and binds to whatever it finds first. When a deft consumer's repo root has no `pyproject.toml` of its own (the common case for non-Python projects), uv escapes the framework directory and resolves to an ancestor workspace `pyproject.toml`. That ancestor's build backend (frequently unresolvable in the consumer environment) crashes during environment resolution before any framework task body runs. The root-cause analysis lives in `vbrief/active/2026-05-11-1011-*.vbrief.json`.
+The project's two-layer mitigation:
+- ! **Layer 1 (env)** -- the root `Taskfile.yml` `env:` block sets `UV_PROJECT: '{{.TASKFILE_DIR}}'`. This is the safety net for any task that forgets the CLI flag in a future edit.
+- ! **Layer 2 (CLI)** -- every `uv run` invocation in `tasks/*.yml` and the root `Taskfile.yml` uses the explicit `uv --project "<pin>" run ...` form. Subfiles pin against `{{.DEFT_ROOT}}` (defined via `{{joinPath .TASKFILE_DIR ".."}}`); the root `Taskfile.yml` pins against `{{.TASKFILE_DIR}}` directly. CLI beats env beats walk, so the flag is the contract; the env var is defense-in-depth.
+- ⊗ Add a plain `uv run` line to any framework task -- the content guard in `tests/content/test_taskfile_uv_project_pin.py` will fail closed and the consumer-side breakage class returns immediately.
+- ⊗ Rely on cwd or a caller-exported `UV_PROJECT` to pin the project root. Task's `env:` does not override an already-exported `UV_PROJECT` from the caller's shell, and propagation through included subfiles depends on inclusion semantics. The CLI flag is unconditional.
+Cross-references: `Taskfile.yml` (Layer 1 env block), `tasks/*.yml` (Layer 2 call sites), `tests/content/test_taskfile_uv_project_pin.py` (deterministic content + slow behaviour regression).

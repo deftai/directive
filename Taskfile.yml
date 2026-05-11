@@ -47,8 +47,27 @@ vars:
 # on the ✓/→/✗/⚠ symbols emitted by spec_validate / roadmap_render / etc.).
 # Every task that runs Python ALSO sets this in its own env: block as a
 # belt-and-suspenders guard -- see #540 for the full audit.
+#
+# UV_PROJECT is the Layer-1 safety net for #1011: every framework-side
+# `uv run` invocation must resolve against the framework's own pyproject.toml,
+# not an ancestor pyproject.toml that happens to live above the install
+# location on the consumer machine. Without this, `uv run` walks upward
+# from cwd looking for the nearest pyproject.toml and binds to whatever
+# it finds first -- on a typical dev box with a parent workspace
+# pyproject.toml, that workspace's build backend (e.g. unresolvable
+# `setuptools.backends._legacy:_Backend`) crashes during environment
+# resolution before any framework task body runs. UV_PROJECT short-circuits
+# the upward walk by pinning the project root explicitly. {{.TASKFILE_DIR}}
+# at this top-level env: resolves to the directory containing this
+# Taskfile.yml (the framework root), which is exactly the right pin for
+# the framework's own pyproject.toml. CLI `--project` on each call site
+# (Layer 2, see tasks/*.yml) overrides env, which overrides walk -- the
+# CLI flag is the contract; UV_PROJECT is defense-in-depth for any task
+# that drops the flag in a future edit. See #1011 for the full root-cause
+# analysis and the two-layer rationale.
 env:
   PYTHONUTF8: "1"
+  UV_PROJECT: '{{.TASKFILE_DIR}}'
 
 includes:
   core:
@@ -215,7 +234,9 @@ tasks:
   check:slow:
     desc: "Run the @pytest.mark.slow test lane (watchdog regression suite excluded from `task check` by default, #975)"
     cmds:
-      - uv run pytest tests/ -o addopts= -m slow
+      # `--project` pins uv to the framework root so ancestor pyproject.toml
+      # files cannot hijack the resolver via uv's upward walk (#1011).
+      - uv --project "{{.TASKFILE_DIR}}" run pytest tests/ -o addopts= -m slow
 
   test:
     desc: Run test suite (alias for core:test)
@@ -320,8 +341,10 @@ tasks:
       # interactive entry point. The script is pure-stdlib so it works
       # before `uv sync` has run on a fresh worktree; `uv run` is still
       # the canonical dispatcher to keep the python interpreter consistent
-      # with every other Taskfile-dispatched script.
-      - uv run python "{{.TASKFILE_DIR}}/scripts/setup_ghx.py" --check
+      # with every other Taskfile-dispatched script. `--project` pins uv
+      # to the framework root so ancestor pyproject.toml files cannot
+      # hijack the resolver via uv's upward walk (#1011).
+      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/setup_ghx.py" --check
 
   setup:ghx:
     desc: "Consent-gated ghx (brunoborges/ghx) installer (#884) -- task setup:ghx [-- --yes]"
@@ -332,7 +355,7 @@ tasks:
     # because the script forwards user-facing flags via {{.CLI_ARGS}}
     # (notably --yes for non-interactive CI / scripted approval).
     cmds:
-      - uv run python "{{.TASKFILE_DIR}}/scripts/setup_ghx.py" {{.CLI_ARGS}}
+      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/setup_ghx.py" {{.CLI_ARGS}}
 
   # Release pipeline tasks (#74 + #716 safety hardening, namespace flatten #718).
   #
@@ -371,7 +394,9 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.TASKFILE_DIR}}/scripts/release.py" {{.CLI_ARGS}}
+      # `--project` pins uv to the framework root so ancestor pyproject.toml
+      # files cannot hijack the resolver via uv's upward walk (#1011).
+      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/release.py" {{.CLI_ARGS}}
 
   release:publish:
     desc: "Flip a draft GitHub release to public (#716) -- task release:publish -- <version> [--dry-run] [--repo OWNER/REPO]"
@@ -379,7 +404,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.TASKFILE_DIR}}/scripts/release_publish.py" {{.CLI_ARGS}}
+      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/release_publish.py" {{.CLI_ARGS}}
 
   release:rollback:
     desc: "State-aware release unwind (#716) -- task release:rollback -- <version> [--dry-run] [--allow-low-downloads N] [--allow-data-loss] [--force-strict-0]"
@@ -387,7 +412,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.TASKFILE_DIR}}/scripts/release_rollback.py" {{.CLI_ARGS}}
+      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/release_rollback.py" {{.CLI_ARGS}}
 
   release:e2e:
     desc: "End-to-end release rehearsal against an auto-created+destroyed temp repo (#716) -- task release:e2e [-- --dry-run] [--owner OWNER] [--keep-repo]"
@@ -395,7 +420,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.TASKFILE_DIR}}/scripts/release_e2e.py" {{.CLI_ARGS}}
+      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/release_e2e.py" {{.CLI_ARGS}}
 
   # ------------------------------------------------------------------
   # Triage v1 user-facing alias tasks (#845, #913).

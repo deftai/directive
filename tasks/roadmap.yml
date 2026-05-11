@@ -8,7 +8,7 @@ vars:
 # `vars:` block via ``{{joinPath .TASKFILE_DIR ".."}}`` -- see
 # ../Taskfile.yml for why root-level definition is avoided) to keep the
 # path traversal-free and avoid the {{.TASKFILE_DIR}}/.. form that breaks
-# on Windows under `uv run python` (#566).
+# on Windows under `uv --project "{{.DEFT_ROOT}}" run python` (#566).
 
 tasks:
   render:
@@ -17,7 +17,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/roadmap_render.py" "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md"
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/roadmap_render.py" "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md"
 
   check:
     desc: Verify ROADMAP.md matches what roadmap:render would produce
@@ -25,4 +25,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/roadmap_render.py" "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md" --check
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/roadmap_render.py" "{{.USER_WORKING_DIR}}/vbrief/pending" "{{.USER_WORKING_DIR}}/ROADMAP.md" --check

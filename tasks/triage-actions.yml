@@ -36,7 +36,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" accept {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" accept {{.CLI_ARGS}}
 
   reject:
     desc: "Reject an issue. Closes upstream via gh + applies triage-rejected label; rolls audit back on gh failure. (#845 Story 3)"
@@ -45,7 +45,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" reject {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" reject {{.CLI_ARGS}}
 
   defer:
     desc: "Defer an issue. Records an audit entry. (#845 Story 3)"
@@ -54,7 +54,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" defer {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" defer {{.CLI_ARGS}}
 
   needs-ac:
     desc: "Mark an issue as needing acceptance criteria + post AC-request comment upstream. (#845 Story 3)"
@@ -63,7 +63,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" needs-ac {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" needs-ac {{.CLI_ARGS}}
 
   mark-duplicate:
     desc: "Link an issue as a duplicate of another (validated against Story 1 cache). (#845 Story 3)"
@@ -72,7 +72,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" mark-duplicate {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" mark-duplicate {{.CLI_ARGS}}
 
   status:
     desc: "Print the latest triage decision for an issue. Read-only. (#845 Story 3)"
@@ -81,7 +81,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" status {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" status {{.CLI_ARGS}}
 
   reset:
     desc: "Reset an issue's triage state. Appends a reset audit entry referencing prior; does NOT delete history. (#845 Story 3)"
@@ -90,7 +90,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" reset {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" reset {{.CLI_ARGS}}
 
   history:
     desc: "Print the full triage timeline for an issue, ordered by timestamp. Read-only. (#845 Story 3)"
@@ -99,4 +99,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" history {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_actions.py" history {{.CLI_ARGS}}

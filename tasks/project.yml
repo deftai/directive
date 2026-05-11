@@ -17,4 +17,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/project_render.py" "{{.USER_WORKING_DIR}}/vbrief"
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/project_render.py" "{{.USER_WORKING_DIR}}/vbrief"

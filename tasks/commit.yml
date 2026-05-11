@@ -1,11 +1,18 @@
 version: '3'
 
+vars:
+  # Per ../Taskfile.yml header: joinPath is evaluated eagerly by go-task
+  # templating and yields a native-separator absolute path so {{.DEFT_ROOT}}
+  # resolves correctly under uv on Windows (#566). Used here to pin
+  # `uv --project` against ancestor pyproject.toml leakage (#1011).
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
 tasks:
   commit:lint:
     desc: Validate HEAD commit message against conventional commit format
     cmds:
       - cmd: >-
-          uv run python -c
+          uv --project "{{.DEFT_ROOT}}" run python -c
           "import sys, re, subprocess;
           result = subprocess.run(['git', 'log', '--format=%B', '-1'], capture_output=True, text=True);
           (result.returncode != 0) and (print('FAIL: Could not read HEAD commit message'), sys.exit(1));

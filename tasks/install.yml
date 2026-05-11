@@ -1,5 +1,12 @@
 version: '3'
 
+vars:
+  # Per ../Taskfile.yml header: joinPath is evaluated eagerly by go-task
+  # templating and yields a native-separator absolute path so {{.DEFT_ROOT}}
+  # resolves correctly under uv on Windows (#566). Used here to pin
+  # `uv --project` against ancestor pyproject.toml leakage (#1011).
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
 tasks:
   install:
     desc: Install deft (dev convenience -- end users should use the compiled binary from GitHub Releases)
@@ -10,7 +17,7 @@ tasks:
     desc: Remove deft entry from AGENTS.md
     cmds:
       - cmd: >-
-          uv run python -c "from pathlib import Path;
+          uv --project "{{.DEFT_ROOT}}" run python -c "from pathlib import Path;
           f=Path('AGENTS.md');
           t=f.read_text('utf-8') if f.exists() else '';
           lines=t.splitlines(keepends=True);

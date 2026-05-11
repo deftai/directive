@@ -25,7 +25,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/pr_check_protected_issues.py" {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pr_check_protected_issues.py" {{.CLI_ARGS}}
 
   # pr:check-closing-keywords -- Layer 0 (prevention) closing-keyword
   # negation-context lint introduced by #737. Refuses to push when the
@@ -43,7 +43,7 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/pr_check_closing_keywords.py" {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pr_check_closing_keywords.py" {{.CLI_ARGS}}
 
   # pr:merge-ready -- programmatic Greptile-body verdict gate. Closes the
   # SUCCESS-with-findings blind spot in the Phase 5 -> 6 merge-readiness
@@ -60,4 +60,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/pr_merge_readiness.py" {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pr_merge_readiness.py" {{.CLI_ARGS}}

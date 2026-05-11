@@ -15,7 +15,7 @@ vars:
 # ``{{joinPath .TASKFILE_DIR ".."}}`` -- see ../Taskfile.yml for why
 # root-level definition is avoided) to keep the path traversal-free and
 # avoid the {{.TASKFILE_DIR}}/.. form that breaks on Windows under
-# `uv run python` (#566).
+# `uv --project "{{.DEFT_ROOT}}" run python` (#566).
 
 tasks:
   ingest:
@@ -24,4 +24,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/issue_ingest.py" --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/issue_ingest.py" --vbrief-dir "{{.USER_WORKING_DIR}}/vbrief" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

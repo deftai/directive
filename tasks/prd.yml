@@ -8,7 +8,7 @@ vars:
 # IMPORTANT: explicit absolute paths are passed for BOTH the input spec and
 # the output PRD.md so a stray ``dir:`` or ``CWD`` mis-resolution can never
 # cause the framework's own ``deft/PRD.md`` to be silently overwritten from
-# a consumer project (#539). Standardised on ``uv run python`` -- the prior
+# a consumer project (#539). Standardised on ``uv --project "{{.DEFT_ROOT}}" run python`` -- the prior
 # ``python3`` invocation was inconsistent with every other task and caused
 # sporadic PATH issues on Windows.
 
@@ -29,4 +29,4 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - uv run python "{{.DEFT_ROOT}}/scripts/prd_render.py" --spec "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" --output "{{.USER_WORKING_DIR}}/PRD.md" {{.CLI_ARGS}}
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/prd_render.py" --spec "{{.USER_WORKING_DIR}}/vbrief/specification.vbrief.json" --output "{{.USER_WORKING_DIR}}/PRD.md" {{.CLI_ARGS}}
