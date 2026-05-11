@@ -407,4 +407,7 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#984** -- docs(readme): call out https://webinstaller.fly.dev/ as an alternative installer in README -- `[completed]`
 - **#985** -- bug(triage,refinement): `task triage:accept` skips `issue:ingest` delegation -- Phase 0 accepted candidates never reach `vbrief/proposed/` -- `[completed]`
 - **#988** -- bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready -- `[completed]`
+- **#992** -- feat(installer): adopt .deft/core/ as canonical install layout; ship relocator and contract flip in v0.27 (#992) -- `[completed]`
+- **#401** -- feat(skills): prepare PR #441 deft-glossary for merge -- rename to deft-directive-glossary + .agents stub + AGENTS.md routing + CHANGELOG + rebase -- `[completed]`
+- **#757** -- Add probe strategy + deft-gh-slice/triage skills (re-author of #440) -- `[completed]`
 

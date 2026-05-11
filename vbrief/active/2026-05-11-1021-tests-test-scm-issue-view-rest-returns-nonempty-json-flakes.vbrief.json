@@ -1,0 +1,28 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1021"
+  },
+  "plan": {
+    "title": "tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)",
+    "status": "running",
+    "narratives": {
+      "Description": "tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1021",
+      "Overview": "## Symptom\r\n\r\n`tests/integration/test_scm_smoke.py::test_scm_issue_view_rest_returns_nonempty_json` fails consistently on Windows hosts when invoked via `task check` / `uv run pytest`, despite the underlying `gh api` call succeeding at the shell.\r\n\r\n## Reproduction\r\n\r\nOn Windows 11 + pwsh 7.6.1, against master @ `af829f4` (tag `v0.27.1`):\r\n\r\n```\r\nuv run pytest tests/integration/test_scm_smoke.py::test_scm_issue_view_rest_returns_nonempty_json -v\r\n...\r\nE       AssertionError: scm.py --rest exit=1 stderr=\"error: gh api failed: endpoint='repos/deftai/directive/issues/1' exit=3221225794 stderr=''; hint: verify repo and issue number; check gh auth status\\n\"\r\n```\r\n\r\nBare `gh` works:\r\n\r\n```\r\ngh api repos/deftai/directive/issues/1 --jq '.number, .title'\r\n1\r\nfix(taskfile): use block scalar in stats task\r\n```\r\n\r\n## Diagnosis\r\n\r\nExit code `3221225794` is Windows NTSTATUS `0xC0000142` (`STATUS_DLL_INIT_FAILED`). Surfacing through Python's `subprocess.run` -> `gh.exe` chain only; direct shell invocations of the exact same `gh api` command succeed.\r\n\r\nThe failure is purely environmental (Windows + Python subprocess + gh.exe DLL load), not a code defect in `scripts/scm.py` or `scripts/gh_rest.py`. The REST fallback path itself works correctly when `gh` succeeds.\r\n\r\n## Why this matters for #992 / v0.27.1 evidence PRs\r\n\r\nSpotted while running `task check` as the pre-PR gate for the cohort #992 installer conformance audit (`evidence/992-installer-audit`). Per the deft-directive-review-cycle SKILL.md pre-existing failure carve-out, this flake is tracked here so PR bodies can reference it explicitly.\r\n\r\n## Recommended remediation paths (separate cohort)\r\n\r\n1. Add a Windows-only `pytest.skip` when the `_run_smoke_with_retry`-style retry exhausts (re-uses the `_MIN_CORE_BUDGET` skip plumbing already in the test).\r\n2. Or skip the live REST smoke entirely when `os.name == \"nt\"` and `os.environ.get(\"CI\") != \"true\"` (CI Windows runners may have different gh.exe init characteristics).\r\n3. Or switch the subprocess invocation to `subprocess.Popen` with explicit `startupinfo` flags so `gh.exe` initialises in a parent process group consistent with the shell baseline.\r\n\r\n## Refs\r\n\r\n- `tests/integration/test_scm_smoke.py::test_scm_issue_view_rest_returns_nonempty_json`\r\n- v0.27.1 release: https://github.com/deftai/directive/releases/tag/v0.27.1\r\n- cohort #992 installer conformance audit (PR landing on `evidence/992-installer-audit`)\r\n",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1021",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1021: tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)"
+      }
+    ],
+    "updated": "2026-05-11T03:59:41Z"
+  }
+}

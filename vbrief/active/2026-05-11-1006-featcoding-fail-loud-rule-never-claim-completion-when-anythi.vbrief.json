@@ -1,0 +1,28 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1006"
+  },
+  "plan": {
+    "title": "feat(coding): fail-loud rule — never claim completion when anything was skipped silently",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(coding): fail-loud rule — never claim completion when anything was skipped silently",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1006",
+      "Overview": "## Summary\n\nAdd a named coding rule: agents must surface uncertainty and incomplete execution rather than hiding it behind successful-sounding completion claims.\n\n## Source\n\n@Mnilax, \"Karpathy's 4 CLAUDE.md rules cut mistakes from 41% to 11%. After 30 codebases, I added 8 more\" (968 likes, 3103 bookmarks, 93K impressions)\nhttps://x.com/Mnilax/status/2053116311132155938\n\n## The failure mode\n\n> \"Claude said a database migration 'completed successfully.' It had silently skipped 14% of records that hit a constraint violation. The skip was logged but not surfaced. Discovered the problem 11 days later when reports started looking wrong.\"\n\nOther examples from the article:\n- \"Tests pass\" — wrong if any were skipped\n- \"Feature works\" — wrong if the specific edge case wasn't verified\n- \"Migration completed\" — wrong if any records were skipped silently\n\nThe pattern: the agent states completion at the level of intent (\"I ran the migration\") rather than at the level of outcome verification (\"all 167 records migrated, none skipped\").\n\n## The rule\n\n```\n## Fail loud\nIf you can't be sure something worked, say so explicitly.\n\"Migration completed\" is wrong if any records were skipped silently.\n\"Tests pass\" is wrong if you skipped any.\n\"Feature works\" is wrong if you didn't verify the edge case asked about.\nDefault to surfacing uncertainty, not hiding it.\n```\n\nSpecific anti-patterns:\n- Claiming a batch operation succeeded when the record count wasn't verified\n- Claiming tests pass when they were run with  flags or had errors suppressed\n- Claiming a migration completed when error logs weren't checked\n- Claiming a feature works when only the happy path was verified\n\n## Why this is distinct from morals.md\n\nDirective's  addresses epistemic honesty at the interaction level: don't present speculation as fact, label unverified claims. The fail-loud rule is operational: it applies specifically to agent completion claims during task execution, where the agent must actively check and report actual execution outcomes, not just be honest about what it knows.\n\nThe distinction: morals.md says \"don't lie\". Fail-loud says \"count the records, check the logs, run the edge case — then claim completion.\"\n\n## Connection to gate definitions (#852, #973)\n\nThe fail-loud rule is the output-side complement to goal-gate-determinism (#852) and machine-verifiable-spec (#973). The gate specifies what evidence is required; fail-loud requires the agent to actually produce and verify that evidence before claiming done.\n\nWithout fail-loud, an agent can satisfy the letter of a gate (\"tests pass\") while hiding the gap (\"some tests were skipped\").\n\n## Files affected\n\n- `coding/coding.md` — add fail-loud rule\n- `skills/deft-pre-pr/SKILL.md` — fail-loud applies to pre-PR verification claims specifically\n- `skills/deft-build/SKILL.md` — fail-loud applies to task completion claims\n\n## Related\n\n- #852 (goal-gate-determinism) — gates specify what counts as done; fail-loud enforces actual verification\n- #973 (machine-verifiable-spec) — verification commands prevent silent skips\n- #972 (over-editing) — both are about agents claiming more than they actually did",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1006",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1006: feat(coding): fail-loud rule — never claim completion when anything was skipped silently"
+      }
+    ],
+    "updated": "2026-05-11T03:59:40Z"
+  }
+}

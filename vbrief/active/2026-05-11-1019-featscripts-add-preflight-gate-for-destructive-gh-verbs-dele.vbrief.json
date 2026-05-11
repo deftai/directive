@@ -1,0 +1,28 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1019"
+  },
+  "plan": {
+    "title": "feat(scripts): add preflight gate for destructive gh verbs (delete_repo, force-push to default, unauthorized merge)",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(scripts): add preflight gate for destructive gh verbs (delete_repo, force-push to default, unauthorized merge)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1019",
+      "Overview": "## Problem\n\nDirective's existing branch-gate (#747) refuses commits to the default branch via three deterministic surfaces (`.githooks/pre-commit`, `task verify:branch` in `task check`, and the `branch-gate` GH Actions workflow). However, an agent with an unrestricted `gh` token can still execute destructive GitHub operations that bypass branch state entirely:\n\n- `gh repo delete` / `gh api -X DELETE repos/<owner>/<repo>` -- irreversible repo deletion\n- `gh pr merge --admin` -- unauthorized merge bypassing review\n- `git push --force` to the default branch (covered prose-tier by `main.md` SCM rule and #725, but not gated)\n\nReal-world recurrence: a peer-tool agent recently deleted \"every company repo\" and committed garbage directly to main after merging an unauthorized PR. Directive's branch-gate would have stopped the commit-to-main step; nothing in Directive would have stopped the repo deletion or unauthorized merge.\n\n## Proposed gate\n\nMirror the `scripts/preflight_branch.py` pattern with `scripts/preflight_gh.py` + `task verify:gh-destructive`:\n\n1. **`scripts/preflight_gh.py`** -- a deny-list wrapper that intercepts the following surfaces:\n   - `gh repo delete <repo>`\n   - `gh api -X DELETE repos/...`\n   - `gh pr merge` without explicit user-authorization marker\n   - `git push --force` (and `--force-with-lease`) to the default branch\n\n   Three-state exit: 0 clean / 1 destructive verb refused / 2 config error. Same shape as `preflight_branch.py` for operator familiarity.\n\n2. **`.githooks/pre-push`** -- extend to invoke `preflight_gh.py --git-push-args \"$@\"` so force-pushes to the default branch are refused at the git layer before the network call.\n\n3. **PATH-shim or alias for `gh`** -- opt-in install via `task setup` (consent-gated like `setup_ghx.py`) that intercepts `gh repo delete`, `gh pr merge`, `gh api -X DELETE`. Falls through to real `gh` for everything else. Refused calls exit non-zero with a one-line reason and a pointer to the override path.\n\n4. **Typed policy flag `plan.policy.allowDestructiveGhVerbs`** -- symmetrical with `allowDirectCommitsToMaster` (#746). Default `false`. When `true`, the gate is bypassed and a session-start disclosure line (`scripts/policy.py::disclosure_line` equivalent) surfaces the policy state.\n\n5. **Emergency env-var bypass** -- `DEFT_ALLOW_DESTRUCTIVE_GH=1` mirrors `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1`.\n\n## Adjacent: fine-grained PAT guidance in setup\n\nAt Phase 2 of `deft-directive-setup`, prompt the user to confirm their `gh` auth lacks `delete_repo` scope, or to switch to a fine-grained PAT with an explicit repo allowlist. The deterministic gate above is the durable fix; PAT-scope guidance is the token-layer belt for the suspenders.\n\n## Why now\n\nTwo observed agent failure modes in a peer tool within the same week:\n\n1. Agent deleted every company repo, then \"apologized\" and offered to fix it.\n2. Agent merged a PR without authorization, then pushed directly to main.\n\nDirective's existing gates would have refused (2)'s push step three times over. Neither (1) nor the unauthorized merge in (2) would have been refused. The gap is real and the fix pattern is well-trodden in this repo (#746, #747, #725).\n\n## Out of scope\n\n- MCP-layer integration (different surface; can land later)\n- Retroactive enforcement on already-running agents (the gate is for the dispatch path)\n- Branch-protection rule configuration on GitHub (operator concern, not framework concern)\n\n## References\n\n- `AGENTS.md` `## Branching` (#747 deterministic gate pattern this issue mirrors)\n- `scripts/preflight_branch.py` (template for `preflight_gh.py`)\n- `scripts/policy.py::disclosure_line` (template for session-start surface)\n- `scripts/setup_ghx.py` (template for consent-gated install)\n- `vbrief/completed/2026-04-30-746-*.vbrief.json` (typed policy flag pattern)\n- `vbrief/completed/2026-04-30-747-*.vbrief.json` (three-surface enforcement pattern)\n- `vbrief/completed/2026-04-28-725-*.vbrief.json` (force-push prevention prose tier)\r\n",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1019",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1019: feat(scripts): add preflight gate for destructive gh verbs (delete_repo, force-push to default, unauthorized merge)"
+      }
+    ],
+    "updated": "2026-05-11T03:59:41Z"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1005"
+  },
+  "plan": {
+    "title": "feat(coding): surface-conflicts-rule — when two codebase patterns contradict, pick one and explain; never average them",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(coding): surface-conflicts-rule — when two codebase patterns contradict, pick one and explain; never average them",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1005",
+      "Overview": "## Summary\n\nAdd a named coding rule: when two patterns in a codebase contradict each other, the agent must pick one (the more recent or more tested), explain the choice, and flag the other for cleanup. Never blend contradicting patterns into \"average\" code.\n\n## Source\n\n@Mnilax, \"Karpathy's 4 CLAUDE.md rules cut mistakes from 41% to 11%. After 30 codebases, I added 8 more\" (968 likes, 3103 bookmarks, 93K impressions)\nhttps://x.com/Mnilax/status/2053116311132155938\n\n6 weeks of testing across 30 codebases. 50 representative tasks tracked.\n\n## The failure mode\n\n> \"A codebase had two error-handling patterns — one async/await with explicit try/catch, one with a global error boundary. Claude wrote new code that did both. Doubled error handlers. Took 30 minutes to figure out why errors were swallowed twice.\"\n\nWhen an agent encounters two contradicting patterns, the path of least resistance is to satisfy both simultaneously. The result is:\n- Code that has doubled logic (two error handlers, two validation paths, two state management approaches)\n- Incoherent behavior at the seam where both patterns interact\n- Future agents facing the same two-pattern conflict and averaging again\n\n> \"'Average' code that satisfies both rules is the worst code.\"\n\n## The rule\n\nWhen two existing patterns in the codebase contradict:\n1. Do not blend them\n2. Pick one (prefer the more recent / more tested)\n3. Explain why in a comment or commit message\n4. Flag the other pattern for cleanup (note in the task journal or as a follow-up task)\n\nThis applies to: error handling patterns, state management approaches, naming conventions, component patterns, test structure, API shape conventions.\n\nException: if the contradiction is intentional (e.g. legacy path maintained for backward compat), document that explicitly rather than flagging for cleanup.\n\n## Why this isn't covered by existing rules\n\nDirective's  rules address code quality (simplicity, test coverage, minimal changes). None of them address the specific case of contradicting patterns — they assume a single consistent codebase style. In practice, codebases accumulate competing patterns over time, and agents silently average them on every task where both patterns are visible.\n\n## Files affected\n\n- `coding/coding.md` — add surface-conflicts rule\n- May also apply to `strategies/interview.md` — when discovering contradicting patterns during a brownfield map, surface them before implementation begins\n\n## Related\n\n- #866 (deep-module-principle) — shallow averaging is the code smell this prevents\n- #972 (over-editing rule) — related: agents should not introduce new patterns when contradicting patterns already exist",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1005",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1005: feat(coding): surface-conflicts-rule — when two codebase patterns contradict, pick one and explain; never average them"
+      }
+    ],
+    "updated": "2026-05-11T03:59:40Z"
+  }
+}
