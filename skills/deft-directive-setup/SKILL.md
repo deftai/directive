@@ -606,6 +606,20 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ! Testing Strategy and Deployment captured in narratives
 - ⊗ Write code — specification only
 
+### Lifecycle Bridge to Downstream Skills (#1025)
+
+! Scope vBRIEFs created by Phase 3 (both Light and Full paths) AND by the Onboarding Question "Adding scope to existing project" branch land in `vbrief/proposed/` with `plan.status: proposed`. This is the canonical deposit point per the deft lifecycle (`proposed -> pending -> active -> completed`). The #810 implementation-intent gate (`task vbrief:preflight`) and the deft-directive-swarm Phase 0 Step 1 preflight BOTH require candidate vBRIEFs to live in `vbrief/active/` with `plan.status == "running"` before any agent can dispatch against them; setup deliberately stops at `proposed/` because the lifecycle commitment (promote + activate) belongs to the downstream skill, not the setup interview.
+
+! Surface this bridge to the user in the Phase 3 → next-skill handoff so they are not surprised by a wholesale preflight rejection downstream:
+
+  - **If the next step is `skills/deft-directive-swarm/SKILL.md`**: the swarm skill's Phase 0 Step 0.5 (Lifecycle Bridge -- Promote and Activate Proposed Scope vBRIEFs) is the canonical bridge. The monitor will scan `vbrief/proposed/` and `vbrief/pending/`, present in-scope candidates, and run `task scope:promote -- <path>` then `task scope:activate -- <path>` on explicit user approval. No manual operator action is required ahead of the swarm invocation.
+  - **If the next step is `skills/deft-directive-refinement/SKILL.md`**: the refinement skill's Phase 4 (Promote/Demote) owns the same `task scope:promote` / `task scope:activate` surface and runs the bridge as part of the refinement loop. The refinement skill MAY leave vBRIEFs in `pending/` deliberately when they are queued for prioritisation rather than immediate dispatch.
+  - **If the user wants to invoke an implementation agent directly via `skills/deft-directive-build/SKILL.md` or `start_agent`**: the bridge MUST be run manually before dispatch -- `task scope:promote -- vbrief/proposed/<file>` then `task scope:activate -- vbrief/pending/<file>`. Both commands are idempotent and exit 0 on no-op (see `scripts/scope_lifecycle.py`). The #810 preflight gate (`task vbrief:preflight -- <active-path>`) will exit 0 only after the activate step.
+
+⊗ Auto-run `task scope:promote` or `task scope:activate` from the setup skill on the Phase 3 outputs. The lifecycle commitment belongs to the user ("I am ready to swarm/build on this scope"), not the setup interview; silent promotion would clear the #810 implementation-intent gate without explicit user authorisation and bypass the deterministic-questions contract that protects every other Phase 3 transition.
+
+⊗ Drop the user at the end of Phase 3 with scope vBRIEFs in `vbrief/proposed/` and no forward pointer to the bridge. Without this section the user discovers the gap at runtime when the swarm Phase 0 Step 1 preflight rejects every candidate (`Invalid transition: 'activate' requires file in pending/`), as in the originating 2026-05-10 first-session consumer tic-tac-toe swarm (issue #1025).
+
 ### End-of-Phase-3 Export Prompt and Render Gate
 
 ! After the human approval gate on `specification.vbrief.json` narratives but BEFORE handing off to `deft-directive-build` (or advancing speckit Phase 3 → Phase 4), ask the user whether to generate human-readable exports. This replaces the invisible skip-if-absent behavior of `task check` (#398) and closes the greenfield gap (#433). This is also the Phase 3 → Phase 4 transition gate required by [strategies/speckit.md Post-Phase 3 Transition Gate](../../strategies/speckit.md#post-phase-3-transition-gate-render-for-review) (#432).

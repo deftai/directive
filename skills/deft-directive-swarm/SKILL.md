@@ -80,6 +80,37 @@ Ask the user: **"Are work items already in `vbrief/active/` as vBRIEFs, or shoul
 
 ! Auto-generated vBRIEFs are minimal scaffolds -- the monitor or user should review and enrich acceptance criteria before proceeding to Phase 1.
 
+### Step 0.5: Lifecycle Bridge -- Promote and Activate Proposed Scope vBRIEFs (#1025)
+
+! Before running the Step 1 preflight gate, scan `vbrief/proposed/` and `vbrief/pending/` for candidate scope vBRIEFs and bridge them to `vbrief/active/`. The deft-directive-setup skill Phase 3 (Output -- Light Path / Output -- Full Path) deposits new scope vBRIEFs in `vbrief/proposed/`; the deft-directive-refinement skill Phase 4 (Promote/Demote) deposits them in `vbrief/pending/`. The swarm Phase 0 Step 1 preflight gate (`task vbrief:preflight`) only accepts vBRIEFs in `vbrief/active/` with `plan.status == "running"`, so candidates in `proposed/` or `pending/` MUST be bridged through the canonical lifecycle (`proposed -> pending -> active`) before allocation. Without this bridge, the monitor discovers the gap at runtime as a wholesale preflight rejection (`Invalid transition: 'activate' requires file in pending/`), as in the originating 2026-05-10 first-session consumer swarm.
+
+! **Scan**: list every `*.vbrief.json` under `vbrief/proposed/` and `vbrief/pending/`. Cross-reference each candidate against the user's stated swarm scope (the issue numbers / vBRIEF filenames the user asked the monitor to swarm on). Candidates outside the stated scope MUST NOT be promoted or activated by this bridge -- they may be in a deliberate refinement queue owned by `skills/deft-directive-refinement/SKILL.md` Phase 4.
+
+! **Present**: render a numbered list of in-scope candidates to the user with their current lifecycle folder (`proposed/` vs `pending/`) and `plan.status`. Render per the host's structured-tool mode (click-commit vs plain-text typed) per `skills/deft-directive-interview/SKILL.md` Rule 2 Always-Structured Rendering. The final two numbered options MUST be `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md).
+
+! **Approve**: wait for explicit user approval (`yes`, `confirmed`, `approve`) before any lifecycle mutation. Broad affirmative continuation phrases (`proceed`, `do it`, `go ahead`) are NOT authorisation -- the bridge MUST be explicitly confirmed because promoting + activating a scope vBRIEF is a lifecycle commitment that flips `plan.status` to `running` and clears the #810 implementation-intent gate for downstream agent dispatch.
+
+! **Bridge**: for each approved candidate, run the canonical lifecycle commands in order:
+
+  - For candidates in `vbrief/proposed/`: `task scope:promote -- <path>` (moves to `pending/`, status `pending`), THEN `task scope:activate -- <path-in-pending>` (moves to `active/`, status `running`).
+  - For candidates already in `vbrief/pending/`: `task scope:activate -- <path>` alone (moves to `active/`, status `running`).
+
+  Both commands are idempotent: a same-folder move with matching status is a no-op (see `scripts/scope_lifecycle.py`). If either command exits non-zero, surface the exit message verbatim, do NOT attempt to allocate against the failed candidate, and ask the user how to route.
+
+! **Verify**: re-run the scan and confirm each approved candidate now lives in `vbrief/active/` with `plan.status == "running"`. Only candidates that pass this verification advance to Step 1 (Read Project State); the rest stay surfaced as preflight rejections.
+
+⊗ Auto-promote + activate every candidate in `vbrief/proposed/` or `vbrief/pending/` without explicit user approval -- proposed-stage vBRIEFs may be in a deliberate refinement queue (`skills/deft-directive-refinement/SKILL.md` Phase 4) and silent promotion bypasses the user's lifecycle intent.
+
+⊗ Skip the lifecycle bridge and let the Step 1 preflight gate (`task vbrief:preflight`) reject the candidates wholesale -- the gate's exit message tells the user WHAT failed but not WHY the source folder was wrong; the bridge is the contract that prevents that confusion before it surfaces.
+
+⊗ Promote candidates outside the user's stated swarm scope. The bridge is scope-bounded by what the user asked the monitor to swarm on; out-of-scope candidates remain in `proposed/` / `pending/` for the refinement skill to own.
+
+Cross-references:
+- Setup-side deposit point: `skills/deft-directive-setup/SKILL.md` Phase 3 Output -- Light Path / Output -- Full Path (scope vBRIEFs land in `vbrief/proposed/`).
+- Refinement-side deposit point: `skills/deft-directive-refinement/SKILL.md` Phase 4 -- Promote/Demote (lifecycle transitions via the same `task scope:promote` / `task scope:activate` surface).
+- Underlying CLI: `scripts/scope_lifecycle.py` (the deterministic state machine; idempotent on same-folder moves; three-state exit 0 / 1 / 2).
+- Recurrence record: issue #1025 (2026-05-10 first-session consumer tic-tac-toe swarm; monitor hit `Invalid transition: 'activate' requires file in pending/` on all four candidate vBRIEFs because they were still in `proposed/`).
+
 ### Step 1: Read Project State
 
 - ! Scan `vbrief/active/` for all story-level vBRIEFs (files matching `*.vbrief.json`)
@@ -616,3 +647,5 @@ CONSTRAINTS:
 - ⊗ Skip the post-merge protected-issue reopen sweep for any squash merge that referenced an umbrella / staying-OPEN issue -- defense in depth catches Layer 3 false-positives the pre-merge inspection missed (#701)
 - ⊗ Merge on the basis of a SUCCESS Greptile CheckRun alone -- the CheckRun signals review **completion**, not review **approval** (PR #652 incident; symmetric blind spot to the NEUTRAL CheckRun #526 case). Always run `task pr:merge-ready -- <N>` before `gh pr merge` to parse the comment body for confidence + P0 / P1 findings
 - ⊗ Run `git checkout` (any branch) -- including the brief `cd <other-worktree>; git checkout master --quiet` shape -- in a worktree the merging agent does not own during Phase 6 Step 3 (Update Master) or Step 4 (Clean Up). Post-merge state-update semantics MUST be performed via `git fetch origin <base-branch>` from the merger's OWN worktree, never by switching HEAD on a sibling worktree another agent is actively using. Recurrence record: PR #797 merge session (2026-05-01); companion to the Sub-Agent Role Separation rules (#727) -- this anti-pattern extends the same boundary discipline from sub-agent spawn shape to worktree HEAD operations (#800)
+- ⊗ Skip the Phase 0 Step 0.5 lifecycle bridge (#1025) and let the Step 1 preflight gate reject candidate scope vBRIEFs wholesale. The setup skill deposits scope vBRIEFs in `vbrief/proposed/` and the refinement skill leaves them in `vbrief/pending/`; the swarm Phase 0 Step 1 preflight only accepts `vbrief/active/` with `plan.status == "running"`. The bridge step (`task scope:promote -- <path>` then `task scope:activate -- <path>`) is the contract that converts proposed/pending candidates to active before allocation -- bypassing it re-surfaces the originating 2026-05-10 first-session consumer-swarm failure mode (`Invalid transition: 'activate' requires file in pending/`)
+- ⊗ Auto-promote + activate every candidate in `vbrief/proposed/` or `vbrief/pending/` during the Phase 0 Step 0.5 bridge without explicit user approval (#1025). Proposed-stage vBRIEFs may be in a deliberate refinement queue (`skills/deft-directive-refinement/SKILL.md` Phase 4); silent promotion bypasses the user's lifecycle intent and may flip `plan.status` to `running` on scopes the user has not yet refined. Broad affirmatives (`proceed`, `do it`, `go ahead`) do NOT satisfy the bridge approval gate -- require an explicit `yes` / `confirmed` / `approve`
