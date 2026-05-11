@@ -25,7 +25,7 @@
       {
         "id": "757-promote-to-active",
         "title": "Promote this vBRIEF: proposed/ -> pending/ (`task scope:promote`) -> active/ (`task vbrief:activate`)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Two-step promotion to satisfy #810 preflight gate before any code-writing tool calls. Idempotent."
         }
@@ -33,7 +33,7 @@
       {
         "id": "757-create-feature-branch",
         "title": "Create branch `feat/probe-and-gh-skills` off current master",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "`git checkout -b feat/probe-and-gh-skills`. Local-only until ready to push."
         }
@@ -41,7 +41,7 @@
       {
         "id": "757-add-probe-strategy",
         "title": "Add `strategies/probe.md` (verbatim from closed PR #440)",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Copy `strategies/probe.md` from `origin/feat/probe-gh-skills`. 76 lines. Preparatory strategy; adversarial decision-tree stress-test inspired by mattpocock/skills `grill-me`."
         }
@@ -49,7 +49,7 @@
       {
         "id": "757-add-gh-slice-skill",
         "title": "Add `skills/deft-directive-gh-slice/SKILL.md` (canonical, verbatim body from #440 with `name:` frontmatter flipped to `deft-directive-gh-slice`) + create `.agents/skills/deft-directive-gh-slice/SKILL.md` stub",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Canonical body = 90 lines from `origin/feat/probe-gh-skills` with `name:` frontmatter flipped to `deft-directive-gh-slice` to satisfy the deft-directive-* prefix rule. Stub = standard frontmatter (`name`, `description`) + `Read and follow: skills/deft-directive-gh-slice/SKILL.md` per the established `.agents/skills/` pattern. Description extracted from frontmatter of the canonical file."
         }
@@ -57,7 +57,7 @@
       {
         "id": "757-add-gh-triage-skill",
         "title": "Add `skills/deft-directive-gh-triage/SKILL.md` (canonical, verbatim body from #440 with `name:` frontmatter flipped to `deft-directive-gh-triage`) + create `.agents/skills/deft-directive-gh-triage/SKILL.md` stub",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Canonical body = 96 lines from `origin/feat/probe-gh-skills` with `name:` frontmatter flipped to `deft-directive-gh-triage`. Stub = standard frontmatter + delegation line as above."
         }
@@ -65,7 +65,7 @@
       {
         "id": "757-update-cross-references",
         "title": "Re-apply minor cross-reference edits to current master versions of `strategies/README.md`, `strategies/interview.md`, `skills/deft-setup/SKILL.md`",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Probe added to strategy table (preparatory type) in `strategies/README.md`, listed in chaining gate options in `strategies/interview.md`, and listed in Available Strategies in `skills/deft-setup/SKILL.md`. Verify each target file's current shape on master before patching -- do NOT blindly port old-branch diffs."
         }
@@ -73,7 +73,7 @@
       {
         "id": "757-add-changelog-entry",
         "title": "Add `[Unreleased]` entry to CHANGELOG.md",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "One line each for the probe strategy, deft-gh-slice skill, and deft-gh-triage skill. Group under Added. Reference issue #757 and (in retrospect) closed PR #440."
         }
@@ -81,7 +81,7 @@
       {
         "id": "757-run-pre-pr-quality-loop",
         "title": "Run `skills/deft-directive-pre-pr/SKILL.md` iterative quality loop until full clean pass",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "Read-Write-Lint-Diff cycle. `task check` must pass with zero changes."
         }
@@ -89,7 +89,7 @@
       {
         "id": "757-push-and-open-pr",
         "title": "Push branch and open PR against master",
-        "status": "pending",
+        "status": "completed",
         "narrative": {
           "Action": "PR body MUST reference this vBRIEF, issue #757, and closed PR #440 for traceability. Title: `feat: add probe strategy and deft-gh-slice/triage skills (#757)`."
         }

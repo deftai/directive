@@ -38,7 +38,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 - ! Work from whatever is already in the conversation context
 - ~ If a `SPECIFICATION.md` exists at the project root, read it
-- ~ If the user passes a GitHub issue number or URL, fetch it: `gh issue view <number> --comments`
+- ~ If the user passes a GitHub issue number or URL, fetch it: `ghx issue view <number> --comments` (fall back to `gh issue view ...` if `ghx` is not on PATH) -- per AGENTS.md `## SCM tooling -- prefer ghx (#884)` the cached read proxy MUST be preferred when available
 - ⊗ Ask the user to re-explain content that is already available in context
 
 ### Step 2: Explore the codebase (if needed)

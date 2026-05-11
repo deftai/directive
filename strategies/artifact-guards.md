@@ -13,7 +13,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 This file is not a standalone strategy — it is a shared guard referenced by other strategies. It activates automatically when a strategy writes to vBRIEF artifacts.
 
 - ! Referenced by spec-generating strategies: [speckit](./speckit.md), [enterprise](./enterprise.md), [rapid](./rapid.md)
-- ! Referenced by preparatory strategies: [bdd](./bdd.md), [discuss](./discuss.md), [research](./research.md), [map](./map.md)
+- ! Referenced by preparatory strategies: [bdd](./bdd.md), [discuss](./discuss.md), [research](./research.md), [map](./map.md), [probe](./probe.md)
 
 ## Workflow
 

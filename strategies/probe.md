@@ -65,35 +65,44 @@ Walk the decision tree depth-first. For each unresolved branch:
 
 ## Output
 
-`{scope}` is the project name from `PROJECT.md`, or the feature/component name if
-probing a sub-scope. Use the same value consistently throughout the session.
-Examples: `my-app-probe.md`, `auth-probe.md`.
+! Before writing output artifacts, follow the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light).
 
-- ! Produce `{scope}-probe.md` with three sections:
-  - **Locked decisions** — what was resolved and why
-  - **Surfaced risks** — concerns raised, even if not fully resolved
-  - **Deferred decisions** — explicitly acknowledged items with justification
-- ! Each entry includes: **question asked**, **answer given**, **status** (locked / deferred / risk-accepted)
-- ~ Persist significant decisions as vBRIEF narratives on the relevant plan items
+`{scope}` is the project name from `PROJECT-DEFINITION.vbrief.json`, or the
+feature/component name if probing a sub-scope. Use the same value consistently
+throughout the session. Examples: `my-app-probe`, `auth-probe`.
+
+- ! Produce a `vbrief/proposed/{scope}-probe.vbrief.json` scope vBRIEF with three mandatory narratives:
+  - `LockedDecisions` — what was resolved and why
+  - `SurfacedRisks` — concerns raised, even if not fully resolved
+  - `DeferredDecisions` — explicitly acknowledged items with justification
+- ! Each entry in a narrative includes: **question asked**, **answer given**, **status** (locked / deferred / risk-accepted)
+- ! This vBRIEF is injected into all downstream work: planning, execution, verification
+- ! Persist significant decisions as vBRIEF narratives on the relevant plan items
+- ⊗ Write probe output to a hand-authored markdown file — use vBRIEF narratives for token-efficient, machine-consumable agent consumption (mirrors the [discuss](./discuss.md) and [research](./research.md) output contracts so the chaining-gate flow-through guarantee is mechanical, not aspirational)
 
 ---
 
 ## Then: Chaining Gate
 
-After the probe is complete and `{scope}-probe.md` is written, return to the
-[chaining gate](./interview.md#chaining-gate).
+After the probe is complete and `vbrief/proposed/{scope}-probe.vbrief.json` is
+written, return to the [chaining gate](./interview.md#chaining-gate).
 
 - ! On completion, register artifacts in `./vbrief/plan.vbrief.json`:
   - Update `completedStrategies`: increment `runCount` for `"probe"`,
-    append artifact path (`{scope}-probe.md`)
+    append artifact path (`vbrief/proposed/{scope}-probe.vbrief.json`)
   - Append the path to the flat `artifacts` array
 - ! Return to [interview.md Chaining Gate](./interview.md#chaining-gate)
-- ! The locked decisions and surfaced risks from `{scope}-probe.md` MUST flow
+- ! The `LockedDecisions`, `SurfacedRisks`, and `DeferredDecisions` narratives from `vbrief/proposed/{scope}-probe.vbrief.json` MUST flow
   into subsequent strategies and spec generation:
   - Locked decisions become constraints in the specification
   - Surfaced risks become NFRs or explicit acceptance criteria
   - Deferred decisions appear as open questions in the spec
 - ⊗ End the session after probe without returning to the chaining gate
+  or the invoking strategy's next-step menu
+
+! **Standalone context:** If invoked from a standalone strategy (e.g. map's
+  standalone next-step menu) rather than from the interview chaining gate,
+  return to the invoking strategy's menu instead.
 
 ---
 
@@ -104,4 +113,5 @@ After the probe is complete and `{scope}-probe.md` is written, return to the
 - ⊗ Letting vague answers pass without pushing for concrete specifics
 - ⊗ Using codebase exploration as a substitute for asking the user about deliberate design choices
 - ⊗ Stopping when the conversation feels comfortable — stop when no new branches emerge
-- ⊗ Ending after probe without chaining back to the gate
+- ⊗ Ending after probe without chaining back to the gate (chained mode; in standalone context, returning to the invoking strategy's menu satisfies the completion requirement per the [standalone-context rule](#then-chaining-gate))
+- ⊗ Writing probe output to a plain markdown file (`{scope}-probe.md`) instead of the canonical `vbrief/proposed/{scope}-probe.vbrief.json` scope vBRIEF — plain markdown bypasses the [Preparatory Guard](./artifact-guards.md#preparatory-guard-light) and breaks the downstream-consumer flow-through guarantee
