@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-11T17:10:23Z"
+    "updated": "2026-05-11T18:25:56Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -1021,24 +1021,8 @@
         }
       },
       {
-        "id": "2026-05-11-1045-templatesagents-entrymd-body-still-references-deft-not-flipp",
-        "title": "templates/agents-entry.md body still references deft/ — not flipped to .deft/core/ for v0.27 contract",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-11-1045-templatesagents-entrymd-body-still-references-deft-not-flipp.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1045",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1045: templates/agents-entry.md body still references deft/ — not flipped to .deft/core/ for v0.27 contract"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-05-11-1046-installrefresh-contract-has-no-self-healing-path-agent-gets",
-        "title": "Install/refresh contract has no self-healing path: agent gets stuck in a no-op Case G loop when install layout disagrees with AGENTS.md",
+        "title": "Install/refresh contract has no self-healing path (#1046 cohort) -- canonical-path enforcement + framework:doctor + vbrief:preflight resolver",
         "status": "running",
         "metadata": {
           "source_path": "active/2026-05-11-1046-installrefresh-contract-has-no-self-healing-path-agent-gets.vbrief.json",
@@ -1047,23 +1031,72 @@
             {
               "uri": "https://github.com/deftai/directive/issues/1046",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1046: Install/refresh contract has no self-healing path: agent gets stuck in a no-op Case G loop when install layout disagrees with AGENTS.md"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-11-1047-implementation-intent-gate-810-taskfile-target-hardcodes-def",
-        "title": "Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-11-1047-implementation-intent-gate-810-taskfile-target-hardcodes-def.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
+              "title": "Issue #1046: Install/refresh contract has no self-healing path (this scope)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1045",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1045: templates/agents-entry.md body still references deft/ (ABSORBED by PR-A)"
+            },
             {
               "uri": "https://github.com/deftai/directive/issues/1047",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1047: Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout"
+              "title": "Issue #1047: Implementation Intent Gate Taskfile target hardcodes deft/scripts/preflight_implementation.py (ABSORBED by PR-C)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/810",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #810: Implementation Intent Gate (the gate whose Taskfile target PR-C rewrites)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/801",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #801: remote-version probe via git ls-remote (precedent for the doctor-side gate wiring)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/768",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #768: universal upgrade gate + AGENTS.md contract (defines the managed-section marker contract PR-B v3-bumps)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/992",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #992: adopt .deft/core/ canonical install layout (v0.27 cohort; PR1 marker bump + PR3 cmd_gate state detector + PR4 contract-string flip)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/52",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #52: install into .deft/ hidden directory (pending vBRIEF that informed the install-layout-not-fixed observation)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/747",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #747: detection-bound branch gate (shape precedent for scripts/framework_doctor.py)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1019",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1019: destructive-gh-verb gate (shape precedent for scripts/framework_doctor.py)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/814",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #814: UTF-8 self-reconfigure pattern at main() entry (applies to scripts/framework_doctor.py)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1035",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1035: poller detector Tier 2.5 (sibling cohort -- MUST NOT regress)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1039",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1039: poller STALL terminal exit (sibling cohort -- MUST NOT regress)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1050",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1050: installer consent gate (#1046 Finding #5 follow-up, DEFERRED to v0.29+)"
             }
           ]
         }
@@ -7175,6 +7208,38 @@
               "uri": "https://github.com/deftai/directive/issues/1021",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1021: tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1045-templatesagents-entrymd-body-still-references-deft-not-flipp",
+        "title": "templates/agents-entry.md body still references deft/ — not flipped to .deft/core/ for v0.27 contract",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-05-11-1045-templatesagents-entrymd-body-still-references-deft-not-flipp.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1045",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1045: templates/agents-entry.md body still references deft/ — not flipped to .deft/core/ for v0.27 contract"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1047-implementation-intent-gate-810-taskfile-target-hardcodes-def",
+        "title": "Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout",
+        "status": "cancelled",
+        "metadata": {
+          "source_path": "cancelled/2026-05-11-1047-implementation-intent-gate-810-taskfile-target-hardcodes-def.vbrief.json",
+          "lifecycle_folder": "cancelled",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1047",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1047: Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout"
             }
           ]
         }
