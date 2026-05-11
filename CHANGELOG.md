@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - cmd/deft-install installer conformance audit for cohort #992: 3/8 assertions pass (marker v2 only); 5/8 fail (legacy deft/ deposit, no .gitignore upkeep on `.deft-cache/` / `vbrief/.eval/`, no `.deft/core/` deposit, no consumer-root `vbrief/` + schemas); drifts tracked as #1020 (adoption-blocker); see docs/audit-2026-05-10-installer-conformance.md
 
 ### Refinement
+- **chore(vbrief): #441 close-out -- scope vBRIEF moved active/ -> completed/ after PR #441 merged at 57bab6f.** Lifecycle bookkeeping for the maintainer-side merge-prep work that landed the `deft-directive-glossary` skill (rename + .agents/ stub + AGENTS.md routing + CHANGELOG entry). `plan.status` flipped `running` -> `completed` via `task scope:complete`. No code change.
 - **chore(992): cohort #992 closure -- vBRIEF moved active/ -> completed/; all 9 acceptance criteria items flipped to `completed` status; #1020 (cmd/deft-install F2 drift) tracked separately as adoption-blocker; closes #992**
 
 ## [0.27.1] - 2026-05-10

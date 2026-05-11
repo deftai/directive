@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(skills): prepare PR #441 deft-glossary for merge -- rename to deft-directive-glossary + .agents stub + AGENTS.md routing + CHANGELOG + rebase",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "PR #441 (feat(skills): add deft-glossary skill) is 22 days old, MERGEABLE + green CI but BEHIND master and violates four merge-bar contracts surfaced by Greptile review and by the current test suite. This scope covers the maintainer-side fixups needed to land the skill cleanly.",
       "Origin": "Maintainer-driven from PR review of https://github.com/deftai/directive/pull/441 (no underlying issue; PR is the canonical artifact).",
@@ -92,6 +92,6 @@
         "test_contracts_unblocked": "test_skills_dir_only_deft_directive_prefixed, test_skills_dir_has_no_bare_deft_prefix, test_agents_md_routing_path_exists, test_agents_md_routing_uses_directive_prefix"
       }
     },
-    "updated": "2026-05-11T03:14:47Z"
+    "updated": "2026-05-11T03:29:19Z"
   }
 }
