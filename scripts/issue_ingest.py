@@ -42,9 +42,12 @@ from _project_context import resolve_project_repo, resolve_project_root  # noqa:
 from _stdio_utf8 import reconfigure_stdio  # noqa: E402
 from _vbrief_build import EMITTED_VBRIEF_VERSION, TODAY, slugify  # noqa: E402
 from reconcile_issues import (  # noqa: E402
+    GITHUB_ISSUE_REF_TYPES,
+    LIFECYCLE_FOLDERS,
     detect_repo,
+    extract_references_from_vbrief,
     fetch_open_issues,
-    scan_vbrief_dir,
+    parse_issue_number,
 )
 
 # #883 unified cache surface (optional). When present we prefer the cached
@@ -67,6 +70,17 @@ reconfigure_stdio()
 # there.
 INGEST_STATUSES: tuple[str, ...] = ("proposed", "pending", "active")
 
+# #1096: provenance-narrative parsers. ``_build_issue_vbrief`` emits
+# ``narratives.Origin = "Ingested from <full-URL>"`` when a browser URL
+# resolves, or ``"Ingested from issue #N"`` when no URL is available.
+# ``vBRIEFInfo.description = "Scope vBRIEF ingested from GitHub issue #N"``
+# is the secondary signal. Both shapes yield the same canonical provenance
+# issue number for the dedup pass.
+_ORIGIN_URL_RE = re.compile(
+    r"https?://github\.com/[^/\s]+/[^/\s]+/issues/(\d+)"
+)
+_ORIGIN_BARE_RE = re.compile(r"issue\s*#(\d+)", re.IGNORECASE)
+
 # Map status keyword -> (folder, plan.status) pair used in the generated
 # scope vBRIEF file.
 _STATUS_MAP: dict[str, tuple[str, str]] = {
@@ -77,6 +91,128 @@ _STATUS_MAP: dict[str, tuple[str, str]] = {
 
 
 # --- Helpers ----------------------------------------------------------------
+
+
+def _provenance_issue_number(data: dict) -> int | None:
+    """Extract the provenance issue number from a vBRIEF data dict (#1096).
+
+    A vBRIEF is the *provenance owner* of issue ``#N`` when its
+    ``plan.narratives.Origin`` (or, as a secondary signal,
+    ``vBRIEFInfo.description``) states it was ingested from ``#N``. Both
+    canonical Origin shapes emitted by :func:`_build_issue_vbrief` are
+    accepted:
+
+    - ``Ingested from https://github.com/<owner>/<repo>/issues/<N>``
+    - ``Ingested from issue #<N>``  (no-URL fallback)
+
+    Returns the provenance issue number or ``None`` when the vBRIEF carries
+    no recognisable ``Ingested from ...`` signal (e.g. a hand-authored
+    kaizen brief that merely references GitHub issues, or a legacy v0.5
+    fixture predating the Origin convention -- the caller's fallback
+    heuristic in :func:`_scan_provenance_refs` handles back-compat).
+    """
+    if not isinstance(data, dict):
+        return None
+    plan = data.get("plan", {})
+    narratives = plan.get("narratives", {}) if isinstance(plan, dict) else {}
+    origin = (
+        narratives.get("Origin", "") if isinstance(narratives, dict) else ""
+    )
+    info = data.get("vBRIEFInfo", {})
+    description = info.get("description", "") if isinstance(info, dict) else ""
+
+    for text in (origin, description):
+        if not isinstance(text, str) or not text:
+            continue
+        m = _ORIGIN_URL_RE.search(text)
+        if m:
+            return int(m.group(1))
+        m = _ORIGIN_BARE_RE.search(text)
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def _scan_provenance_refs(vbrief_dir: Path) -> dict[int, list[str]]:
+    """Scan vBRIEF lifecycle folders and return a provenance-only dedup map (#1096).
+
+    Differentiates *provenance* references (the vBRIEF was actually
+    ingested from issue ``#N`` -- ``plan.narratives.Origin`` confirms it
+    AND a canonical ``x-vbrief/github-issue`` reference points at ``#N``)
+    from *informational* references (companion / sibling / related-plan
+    mentions, even when typed ``x-vbrief/github-issue``). Only the
+    provenance owner of an issue is returned, so ``task issue:ingest --
+    <N>`` no longer false-positives on informational references that
+    merely mention ``#N`` (closes #1096).
+
+    Per-vBRIEF resolution rule:
+
+    1. If ``plan.narratives.Origin`` (or ``vBRIEFInfo.description``)
+       identifies a provenance issue number ``P`` AND any
+       ``x-vbrief/github-issue`` reference points at ``P`` -> that vBRIEF
+       is the provenance owner of ``P`` (only). Other
+       ``x-vbrief/github-issue`` references on the same vBRIEF are
+       treated as informational and contribute nothing to the dedup map.
+    2. If no ``Origin`` provenance signal is present (legacy v0.5
+       fixtures, hand-authored stubs) -> fall back to the FIRST
+       ``x-vbrief/github-issue`` reference as the implied provenance.
+       This preserves dedup for unmigrated trees per the #1096 vBRIEF's
+       out-of-scope clause ("the fix should make new ingest correct
+       without requiring a data-migration sweep first").
+
+    Returns:
+        Mapping of issue_number -> list of vBRIEF file paths (relative to
+        ``vbrief_dir``) where each listed vBRIEF is the *provenance* owner
+        of that issue. The list shape matches
+        :func:`reconcile_issues.scan_vbrief_dir` so callers can swap the
+        two functions transparently.
+    """
+    issue_to_vbriefs: dict[int, list[str]] = {}
+
+    for folder in LIFECYCLE_FOLDERS:
+        folder_path = vbrief_dir / folder
+        if not folder_path.is_dir():
+            continue
+        for vbrief_file in sorted(folder_path.glob("*.vbrief.json")):
+            try:
+                data = json.loads(vbrief_file.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                continue
+
+            refs = extract_references_from_vbrief(data)
+            github_refs: list[tuple[dict, int]] = []
+            for ref in refs:
+                if ref.get("type") not in GITHUB_ISSUE_REF_TYPES:
+                    continue
+                num = parse_issue_number(ref)
+                if num is not None:
+                    github_refs.append((ref, num))
+
+            if not github_refs:
+                continue
+
+            provenance_num = _provenance_issue_number(data)
+            if provenance_num is not None:
+                # Origin/description identifies ``provenance_num`` -- only
+                # count the matching github-issue ref. Companion refs to
+                # other issues on the same vBRIEF are informational.
+                if not any(num == provenance_num for _, num in github_refs):
+                    # Origin narrative claims a number not borne out by any
+                    # github-issue reference. Honest behaviour is to skip
+                    # this vBRIEF -- treating the Origin claim alone as
+                    # provenance would re-introduce the false-positive
+                    # surface the legacy-ref fallback below is bounded
+                    # against.
+                    continue
+                owner_num = provenance_num
+            else:
+                # Legacy fallback: first github-issue ref is provenance.
+                owner_num = github_refs[0][1]
+
+            rel_path = f"{folder}/{vbrief_file.name}"
+            issue_to_vbriefs.setdefault(owner_num, []).append(rel_path)
+
+    return issue_to_vbriefs
 
 
 def _build_issue_vbrief(
@@ -327,7 +463,15 @@ def ingest_one(
     references this issue.
     """
     number = int(issue["number"])
-    refs = existing_refs if existing_refs is not None else scan_vbrief_dir(vbrief_dir)
+    # #1096: provenance-aware dedup. Only count vBRIEFs that were actually
+    # ingested from issue #N (Origin-narrative-confirmed) -- companion /
+    # related-plan / sibling-mention references that merely cite #N do NOT
+    # block ingest.
+    refs = (
+        existing_refs
+        if existing_refs is not None
+        else _scan_provenance_refs(vbrief_dir)
+    )
     if number in refs:
         existing = refs[number][0]
         return "duplicate", vbrief_dir / existing, f"#{number} already ingested at {existing}"
@@ -372,7 +516,8 @@ def ingest_bulk(
                     break
         issues = filtered
 
-    refs = scan_vbrief_dir(vbrief_dir)
+    # #1096: provenance-aware dedup. See :func:`_scan_provenance_refs`.
+    refs = _scan_provenance_refs(vbrief_dir)
 
     # Values are list[str] for the three bucket keys and int for "total",
     # hence the union annotation.

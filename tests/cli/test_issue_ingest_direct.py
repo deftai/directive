@@ -724,10 +724,21 @@ class TestIngestSingleForAccept:
         (proposed / "2026-04-01-200-existing.vbrief.json").write_text(
             json.dumps(
                 {
-                    "vBRIEFInfo": {"version": "0.6"},
+                    "vBRIEFInfo": {
+                        "version": "0.6",
+                        "description": (
+                            "Scope vBRIEF ingested from GitHub issue #200"
+                        ),
+                    },
                     "plan": {
                         "title": "Existing",
                         "status": "proposed",
+                        "narratives": {
+                            "Description": "Existing",
+                            "Origin": (
+                                "Ingested from https://github.com/o/r/issues/200"
+                            ),
+                        },
                         "items": [],
                         "references": [
                             {
@@ -752,3 +763,379 @@ class TestIngestSingleForAccept:
             200, "o/r", project_root=tmp_path
         )
         assert result == "duplicate"
+
+
+# ---------------------------------------------------------------------------
+# #1096 provenance-aware dedup -- _scan_provenance_refs + ingest_one / bulk
+# ---------------------------------------------------------------------------
+
+
+def _write_vbrief(
+    folder: Path,
+    name: str,
+    *,
+    primary_number: int | None,
+    extra_issue_numbers: list[int] | None = None,
+    include_origin: bool = True,
+    repo: str = "o/r",
+) -> Path:
+    """Helper: write a canonical-shape vBRIEF for the #1096 test matrix.
+
+    ``primary_number`` populates ``narratives.Origin`` and the first
+    ``x-vbrief/github-issue`` ref. ``extra_issue_numbers`` adds further
+    ``x-vbrief/github-issue`` refs that simulate companion / related-plan
+    / sibling-mention links (the false-positive source for #1096).
+    Set ``include_origin=False`` to model legacy v0.5 fixtures predating
+    the ``Origin: Ingested from ...`` convention.
+    """
+    folder.mkdir(parents=True, exist_ok=True)
+    refs: list[dict] = []
+    if primary_number is not None:
+        refs.append({
+            "uri": f"https://github.com/{repo}/issues/{primary_number}",
+            "type": "x-vbrief/github-issue",
+            "title": f"Issue #{primary_number}: Primary",
+        })
+    for n in extra_issue_numbers or []:
+        refs.append({
+            "uri": f"https://github.com/{repo}/issues/{n}",
+            "type": "x-vbrief/github-issue",
+            "title": f"Companion: #{n}",
+        })
+    narratives: dict[str, str] = {"Description": "Existing"}
+    if include_origin and primary_number is not None:
+        narratives["Origin"] = (
+            f"Ingested from https://github.com/{repo}/issues/{primary_number}"
+        )
+    vbrief: dict = {
+        "vBRIEFInfo": {
+            "version": "0.6",
+            "description": (
+                f"Scope vBRIEF ingested from GitHub issue #{primary_number}"
+                if include_origin and primary_number is not None
+                else "Existing"
+            ),
+        },
+        "plan": {
+            "title": "Existing",
+            "status": folder.name if folder.name != "active" else "running",
+            "narratives": narratives,
+            "items": [],
+            "references": refs,
+        },
+    }
+    target = folder / name
+    target.write_text(json.dumps(vbrief, indent=2), encoding="utf-8")
+    return target
+
+
+class TestProvenanceAwareDedup:
+    """#1096: ``task issue:ingest`` dedup must differentiate provenance refs
+    (the vBRIEF was actually ingested from #N) from informational refs
+    (companion / sibling mention -- even when typed ``x-vbrief/github-issue``).
+    """
+
+    def test_companion_ref_does_not_block_ingest(self, tmp_path):
+        """False-positive case: vBRIEF for #481 carries a companion ref to
+        #480; ``task issue:ingest -- 480`` MUST succeed (the #480 ref is
+        informational because #481's Origin identifies #481, not #480).
+        Drawn verbatim from the 2026-05-12 refinement-session recurrence
+        record in the #1096 vBRIEF.
+        """
+        vbrief_dir = tmp_path / "vbrief"
+        _write_vbrief(
+            vbrief_dir / "pending",
+            "2026-04-30-481-patterns.vbrief.json",
+            primary_number=481,
+            extra_issue_numbers=[480],
+        )
+
+        result, _path, _msg = issue_ingest.ingest_one(
+            {
+                "number": 480,
+                "title": "Agent trap defenses",
+                "url": "https://github.com/o/r/issues/480",
+            },
+            vbrief_dir=vbrief_dir,
+            status="proposed",
+            repo_url="https://github.com/o/r",
+        )
+        assert result == "created", (
+            "companion-only ref to #480 must not block ingest"
+        )
+
+    def test_primary_provenance_ref_still_blocks_ingest(self, tmp_path):
+        """True-positive case: vBRIEF for #481 (with Origin pointing at #481)
+        MUST still block ``task issue:ingest -- 481``.
+        """
+        vbrief_dir = tmp_path / "vbrief"
+        existing = _write_vbrief(
+            vbrief_dir / "pending",
+            "2026-04-30-481-patterns.vbrief.json",
+            primary_number=481,
+            extra_issue_numbers=[480],
+        )
+
+        result, path, msg = issue_ingest.ingest_one(
+            {
+                "number": 481,
+                "title": "Patterns directory",
+                "url": "https://github.com/o/r/issues/481",
+            },
+            vbrief_dir=vbrief_dir,
+            status="proposed",
+            repo_url="https://github.com/o/r",
+        )
+        assert result == "duplicate"
+        assert path == existing
+        assert "already ingested" in msg
+
+    def test_completed_vbrief_with_sibling_ref_does_not_block(self, tmp_path):
+        """Recurrence case #835: completed/2026-05-05-883 carried a sibling
+        ref to #835; ``task issue:ingest -- 835`` MUST succeed because
+        #883's Origin identifies #883, not #835. Verifies the
+        ``completed/`` lifecycle folder participates in the scan (operators
+        must not be forced to mutate completed history -- the dedup gate
+        the #1096 vBRIEF explicitly calls out as load-bearing failure).
+        """
+        vbrief_dir = tmp_path / "vbrief"
+        _write_vbrief(
+            vbrief_dir / "completed",
+            "2026-05-05-883-deft-cache-quarantine.vbrief.json",
+            primary_number=883,
+            extra_issue_numbers=[835],
+        )
+
+        result, _path, _msg = issue_ingest.ingest_one(
+            {
+                "number": 835,
+                "title": "Memory write security scan",
+                "url": "https://github.com/o/r/issues/835",
+            },
+            vbrief_dir=vbrief_dir,
+            status="proposed",
+            repo_url="https://github.com/o/r",
+        )
+        assert result == "created"
+
+    def test_multiple_github_refs_only_origin_match_is_provenance(self, tmp_path):
+        """Mixed case: vBRIEF has multiple ``x-vbrief/github-issue`` refs
+        where only the FIRST is provenance (Origin confirms it).
+        ``ingest -- <primary>`` blocks; ``ingest -- <companion>`` succeeds.
+        """
+        vbrief_dir = tmp_path / "vbrief"
+        _write_vbrief(
+            vbrief_dir / "active",
+            "2026-05-01-700-mixed.vbrief.json",
+            primary_number=700,
+            extra_issue_numbers=[701, 702, 703],
+        )
+
+        # Primary (Origin-confirmed) ref blocks dedup.
+        result_primary, _p, _m = issue_ingest.ingest_one(
+            {
+                "number": 700,
+                "title": "Primary",
+                "url": "https://github.com/o/r/issues/700",
+            },
+            vbrief_dir=vbrief_dir,
+            status="proposed",
+            repo_url="https://github.com/o/r",
+        )
+        assert result_primary == "duplicate"
+
+        # Each companion ref is informational -> ingest succeeds.
+        for companion in (701, 702, 703):
+            result_companion, _p, _m = issue_ingest.ingest_one(
+                {
+                    "number": companion,
+                    "title": f"Companion {companion}",
+                    "url": f"https://github.com/o/r/issues/{companion}",
+                },
+                vbrief_dir=vbrief_dir,
+                status="proposed",
+                repo_url="https://github.com/o/r",
+            )
+            assert result_companion == "created", (
+                f"companion ref to #{companion} must not block ingest"
+            )
+
+    def test_legacy_vbrief_without_origin_still_dedups(self, tmp_path):
+        """Back-compat: a legacy v0.5-shape vBRIEF carrying only
+        ``x-vbrief/github-issue`` refs and NO ``Origin`` narrative still
+        registers the FIRST ref as implied provenance. Per the #1096
+        vBRIEF's out-of-scope clause: "the fix should make new ingest
+        correct without requiring a data-migration sweep first."
+        """
+        vbrief_dir = tmp_path / "vbrief"
+        existing = _write_vbrief(
+            vbrief_dir / "pending",
+            "2026-04-01-50-legacy.vbrief.json",
+            primary_number=50,
+            include_origin=False,  # legacy: no Origin narrative
+        )
+
+        result, path, _msg = issue_ingest.ingest_one(
+            {
+                "number": 50,
+                "title": "Legacy dup",
+                "url": "https://github.com/o/r/issues/50",
+            },
+            vbrief_dir=vbrief_dir,
+            status="proposed",
+            repo_url="https://github.com/o/r",
+        )
+        assert result == "duplicate"
+        assert path == existing
+
+    def test_hand_authored_vbrief_with_only_companion_refs_no_dedup(
+        self, tmp_path
+    ):
+        """Edge case: a hand-authored kaizen vBRIEF that has NO Origin and
+        carries an ``x-vbrief/github-issue`` ref purely informationally.
+        The legacy fallback (first-ref-is-provenance) is the honest
+        behaviour here: we cannot distinguish such a vBRIEF from an
+        unmigrated v0.5 ingest. The #1096 fix narrows the regression
+        surface (Origin-confirmed vBRIEFs no longer false-positive on
+        companion refs) without forcing a data-migration sweep. The next
+        operator-visible iteration (Option C in the vBRIEF) would split
+        the type registry; this test pins current behaviour.
+        """
+        vbrief_dir = tmp_path / "vbrief"
+        # Hand-authored kaizen vBRIEF: no Origin, single companion ref.
+        # First-ref-is-provenance fallback registers it for #900.
+        _write_vbrief(
+            vbrief_dir / "pending",
+            "2026-04-01-kaizen.vbrief.json",
+            primary_number=900,
+            include_origin=False,
+        )
+
+        result, _path, _msg = issue_ingest.ingest_one(
+            {
+                "number": 900,
+                "title": "Would-be dup",
+                "url": "https://github.com/o/r/issues/900",
+            },
+            vbrief_dir=vbrief_dir,
+            status="proposed",
+            repo_url="https://github.com/o/r",
+        )
+        assert result == "duplicate"
+
+    def test_bulk_companion_refs_do_not_false_positive(self, tmp_path):
+        """Bulk path: pre-existing #481 vBRIEF with companion ref to #480
+        does NOT cause ``ingest_bulk`` to mark #480 as duplicate.
+        """
+        vbrief_dir = tmp_path / "vbrief"
+        _write_vbrief(
+            vbrief_dir / "pending",
+            "2026-04-30-481.vbrief.json",
+            primary_number=481,
+            extra_issue_numbers=[480],
+        )
+
+        summary = issue_ingest.ingest_bulk(
+            [
+                {"number": 480, "title": "Real new", "url": "", "labels": []},
+                {"number": 481, "title": "Dup", "url": "", "labels": []},
+            ],
+            vbrief_dir=vbrief_dir,
+            status="proposed",
+            repo_url="https://github.com/o/r",
+        )
+        assert len(summary["created"]) == 1, summary
+        assert len(summary["duplicate"]) == 1, summary
+        assert summary["total"] == 2
+
+    def test_origin_bare_format_matches(self, tmp_path):
+        """The no-URL Origin fallback ``Ingested from issue #N`` MUST also
+        be recognised as provenance (covers the
+        ``_build_issue_vbrief`` branch when no browser URL resolves).
+        """
+        vbrief_dir = tmp_path / "vbrief" / "pending"
+        vbrief_dir.mkdir(parents=True, exist_ok=True)
+        (vbrief_dir / "2026-04-01-77.vbrief.json").write_text(
+            json.dumps({
+                "vBRIEFInfo": {
+                    "version": "0.6",
+                    "description": (
+                        "Scope vBRIEF ingested from GitHub issue #77"
+                    ),
+                },
+                "plan": {
+                    "title": "No-URL ingest",
+                    "status": "pending",
+                    "narratives": {
+                        "Description": "No-URL ingest",
+                        "Origin": "Ingested from issue #77",
+                    },
+                    "items": [],
+                    "references": [
+                        {
+                            "uri": "https://github.com/o/r/issues/77",
+                            "type": "x-vbrief/github-issue",
+                            "title": "Issue #77: No-URL",
+                        }
+                    ],
+                },
+            }),
+            encoding="utf-8",
+        )
+
+        result, _p, _m = issue_ingest.ingest_one(
+            {
+                "number": 77,
+                "title": "Retry",
+                "url": "https://github.com/o/r/issues/77",
+            },
+            vbrief_dir=tmp_path / "vbrief",
+            status="proposed",
+            repo_url="https://github.com/o/r",
+        )
+        assert result == "duplicate"
+
+    def test_provenance_issue_number_extraction(self):
+        """Unit-level pin for the parser: URL form, bare form, missing,
+        description fallback."""
+        # URL form in Origin.
+        assert (
+            issue_ingest._provenance_issue_number({
+                "plan": {
+                    "narratives": {
+                        "Origin": (
+                            "Ingested from https://github.com/o/r/issues/42"
+                        )
+                    }
+                }
+            })
+            == 42
+        )
+        # Bare form in Origin.
+        assert (
+            issue_ingest._provenance_issue_number({
+                "plan": {"narratives": {"Origin": "Ingested from issue #99"}}
+            })
+            == 99
+        )
+        # Description-only fallback.
+        assert (
+            issue_ingest._provenance_issue_number({
+                "vBRIEFInfo": {
+                    "description": (
+                        "Scope vBRIEF ingested from GitHub issue #314"
+                    )
+                },
+                "plan": {},
+            })
+            == 314
+        )
+        # No Origin or description -> None (legacy fallback path).
+        assert (
+            issue_ingest._provenance_issue_number({
+                "plan": {"narratives": {"Description": "x"}}
+            })
+            is None
+        )
+        # Non-dict input -> None.
+        assert issue_ingest._provenance_issue_number("not a dict") is None  # type: ignore[arg-type]

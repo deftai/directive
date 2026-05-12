@@ -68,6 +68,36 @@ enforce the allow-list in CI can opt in via the same flag.
 - ! Every ingested scope vBRIEF MUST carry at least one `references` entry linking to its origin
 - ~ Prefer registry types over ad-hoc `x-vbrief/*` values when a registry type fits
 
+### `Origin` narrative -- canonical provenance signal (#1096)
+
+For scope vBRIEFs ingested from a GitHub issue, the canonical provenance
+signal is the `plan.narratives.Origin` text emitted by
+`scripts/issue_ingest.py::_build_issue_vbrief`:
+
+- ! `Origin` MUST take one of these two forms:
+  - `Ingested from https://github.com/{owner}/{repo}/issues/{N}` (browser URL resolves)
+  - `Ingested from issue #{N}` (no-URL fallback)
+- `vBRIEFInfo.description` SHOULD mirror this as `Scope vBRIEF ingested from GitHub issue #{N}` (the secondary signal used by the dedup pass when `Origin` is absent).
+
+The dedup pass in `task issue:ingest -- <N>` differentiates *provenance*
+from *informational* references using this narrative:
+
+- A pre-existing vBRIEF blocks ingest of `#N` only when BOTH conditions hold:
+  1. The vBRIEF carries an `x-vbrief/github-issue` reference whose `uri`
+     points at `#N`.
+  2. The vBRIEF's `plan.narratives.Origin` (or `vBRIEFInfo.description`)
+     identifies the SAME `#N` as its provenance.
+- A vBRIEF with `Origin` pointing at `#X` and a companion `x-vbrief/github-issue` reference to `#Y` (`X != Y`) is the *provenance owner of #X only*. The reference to `#Y` is informational and MUST NOT block `task issue:ingest -- Y`.
+- Legacy v0.5-shape vBRIEFs that predate the `Origin` convention fall back
+  to a position-aware heuristic: the FIRST `x-vbrief/github-issue` reference
+  in `plan.references` is the implied provenance. This preserves dedup for
+  unmigrated trees and is bounded -- the canonical Origin signal is
+  authoritative whenever it is present.
+
+- ⊗ Treat every `x-vbrief/github-issue` reference as dedup-blocking provenance regardless of `Origin` -- that was the #1096 false-positive surface
+- ⊗ Mutate a `completed/` vBRIEF to remove a companion / sibling reference solely because `task issue:ingest` false-positives on it (rewriting completed history is an anti-pattern per `skills/deft-directive-refinement/SKILL.md`)
+- ~ When adding a companion / sibling / related-plan reference to an ingested vBRIEF, keep `Origin` pointing at the original ingest source so the dedup pass continues to recognise the vBRIEF as the canonical owner of that issue
+
 ## Schema Version: v0.6 (Canonical, Strict)
 
 - ! All vBRIEFs MUST emit `"vBRIEFInfo": { "version": "0.6" }`

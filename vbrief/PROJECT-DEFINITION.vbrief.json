@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-12T21:20:46Z"
+    "updated": "2026-05-12T22:30:05Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -904,32 +904,6 @@
         }
       },
       {
-        "id": "2026-05-12-1096-fixscripts-task-issueingest-dedup-is-too-broad-non-provenanc",
-        "title": "fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-05-12-1096-fixscripts-task-issueingest-dedup-is-too-broad-non-provenanc.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1096",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1096: fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/835",
-              "type": "x-vbrief/github-issue",
-              "title": "Deferred consumer: #835 (memory-write-security-scan) was blocked by this dedup false positive during the 2026-05-12 refinement; ingest once #1096 lands"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/949",
-              "type": "x-vbrief/github-issue",
-              "title": "Deferred consumer: #949 (scanner v3 categories) was blocked by this dedup false positive during the 2026-05-12 refinement; ingest once #1096 lands"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-05-12-480-featsecurity-agent-trap-defenses-instruction-hierarchy-overs",
         "title": "feat(security): agent trap defenses — instruction hierarchy, oversight evasion, external content trust",
         "status": "pending",
@@ -1098,6 +1072,32 @@
               "uri": "pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json",
               "type": "x-vbrief/related-plan",
               "title": "Structural dependency: #481 creates the patterns/ directory this story writes into"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-1096-fixscripts-task-issueingest-dedup-is-too-broad-non-provenanc",
+        "title": "fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-12-1096-fixscripts-task-issueingest-dedup-is-too-broad-non-provenanc.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1096",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1096: fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/835",
+              "type": "x-vbrief/github-issue",
+              "title": "Deferred consumer: #835 (memory-write-security-scan) was blocked by this dedup false positive during the 2026-05-12 refinement; ingest once #1096 lands"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/949",
+              "type": "x-vbrief/github-issue",
+              "title": "Deferred consumer: #949 (scanner v3 categories) was blocked by this dedup false positive during the 2026-05-12 refinement; ingest once #1096 lands"
             }
           ]
         }
