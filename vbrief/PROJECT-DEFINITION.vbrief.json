@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-12T17:22:26Z"
+    "updated": "2026-05-12T17:27:10Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -131,22 +131,6 @@
               "uri": "https://github.com/deftai/deft-agent-bench",
               "type": "x-vbrief/related-repo",
               "title": "deft-agent-bench (internal): bench infrastructure for this validation effort"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-12-1069-choresecurity-supply-chain-ci-hygiene-gitleaks-pem-fixture-c",
-        "title": "chore(security): supply-chain & CI hygiene — gitleaks PEM fixture, curl|bash in CI, 40 OSV advisories, no Dependabot",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-05-12-1069-choresecurity-supply-chain-ci-hygiene-gitleaks-pem-fixture-c.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1069",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1069: chore(security): supply-chain & CI hygiene — gitleaks PEM fixture, curl|bash in CI, 40 OSV advisories, no Dependabot"
             }
           ]
         }
@@ -7352,6 +7336,22 @@
               "uri": "https://github.com/deftai/directive/issues/1062",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1062: Add install_root field to <install>/VERSION manifest -- single source of truth for install-layout contract"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-1069-choresecurity-supply-chain-ci-hygiene-gitleaks-pem-fixture-c",
+        "title": "chore(security): supply-chain & CI hygiene — gitleaks PEM fixture, curl|bash in CI, 40 OSV advisories, no Dependabot",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-12-1069-choresecurity-supply-chain-ci-hygiene-gitleaks-pem-fixture-c.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1069",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1069: chore(security): supply-chain & CI hygiene — gitleaks PEM fixture, curl|bash in CI, 40 OSV advisories, no Dependabot"
             }
           ]
         }
