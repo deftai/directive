@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(coding): add coding/security.md — baseline security standards for every project",
-    "status": "pending",
+    "status": "running",
     "narratives": {
       "Description": "feat(coding): add coding/security.md — baseline security standards for every project",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/661",
@@ -23,6 +23,6 @@
         "title": "Issue #661: feat(coding): add coding/security.md — baseline security standards for every project"
       }
     ],
-    "updated": "2026-05-12T20:45:08Z"
+    "updated": "2026-05-12T22:12:23Z"
   }
 }
