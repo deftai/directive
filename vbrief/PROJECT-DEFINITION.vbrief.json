@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-12T17:27:10Z"
+    "updated": "2026-05-12T21:20:46Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -862,11 +862,6 @@
               "uri": "https://github.com/deftai/directive/issues/482",
               "type": "x-vbrief/github-issue",
               "title": "Companion: #482 (move coding/holzmann.md -> patterns/safety-critical.md and swarm/swarm.md -> patterns/multi-agent.md)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/480",
-              "type": "x-vbrief/github-issue",
-              "title": "Companion: #480 (agent trap defenses; same source paper as #481)"
             }
           ]
         }
@@ -904,6 +899,205 @@
               "uri": "https://github.com/deftai/directive/issues/762",
               "type": "x-vbrief/github-issue",
               "title": "Issue #762: feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-1096-fixscripts-task-issueingest-dedup-is-too-broad-non-provenanc",
+        "title": "fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-05-12-1096-fixscripts-task-issueingest-dedup-is-too-broad-non-provenanc.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1096",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1096: fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/835",
+              "type": "x-vbrief/github-issue",
+              "title": "Deferred consumer: #835 (memory-write-security-scan) was blocked by this dedup false positive during the 2026-05-12 refinement; ingest once #1096 lands"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/949",
+              "type": "x-vbrief/github-issue",
+              "title": "Deferred consumer: #949 (scanner v3 categories) was blocked by this dedup false positive during the 2026-05-12 refinement; ingest once #1096 lands"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-480-featsecurity-agent-trap-defenses-instruction-hierarchy-overs",
+        "title": "feat(security): agent trap defenses — instruction hierarchy, oversight evasion, external content trust",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-05-12-480-featsecurity-agent-trap-defenses-instruction-hierarchy-overs.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/480",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #480: feat(security): agent trap defenses — instruction hierarchy, oversight evasion, external content trust"
+            },
+            {
+              "uri": "pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Related plan: #481 patterns/ directory + patterns/llm-app.md (sibling work informed by the same AI Agent Traps paper; previously cross-referenced as a companion ref on #481's vBRIEF, moved here on 2026-05-12 to unblock #480 ingest dedup)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-587-featcoding-add-no-read-secret-rule-for-agentic-application-d",
+        "title": "feat(coding): add no-read-secret rule for agentic application development",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-05-12-587-featcoding-add-no-read-secret-rule-for-agentic-application-d.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/587",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #587: feat(coding): add no-read-secret rule for agentic application development"
+            },
+            {
+              "uri": "pending/2026-05-12-661-featcoding-add-codingsecuritymd-baseline-security-standards.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Structural dependency: #661 creates coding/security.md which this story extends with the no-read-secret rule (alongside #686 tool-call-safety and #806 executor-layer-credentials)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-661-featcoding-add-codingsecuritymd-baseline-security-standards",
+        "title": "feat(coding): add coding/security.md — baseline security standards for every project",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-05-12-661-featcoding-add-codingsecuritymd-baseline-security-standards.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/661",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #661: feat(coding): add coding/security.md — baseline security standards for every project"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-686-featcoding-tool-call-safety-is-independent-of-text-level-saf",
+        "title": "feat(coding): tool-call safety is independent of text-level safety — add as named security rule",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-05-12-686-featcoding-tool-call-safety-is-independent-of-text-level-saf.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/686",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #686: feat(coding): tool-call safety is independent of text-level safety — add as named security rule"
+            },
+            {
+              "uri": "pending/2026-05-12-661-featcoding-add-codingsecuritymd-baseline-security-standards.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Structural dependency: #661 creates coding/security.md which this story extends with the tool-call-safety rule"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-708-ai-agent-destructive-op-guardrails-env-isolation-gate-irreve",
+        "title": "AI-agent destructive-op guardrails: env-isolation gate, irreversibility gate, incidents library, eval",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-05-12-708-ai-agent-destructive-op-guardrails-env-isolation-gate-irreve.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/708",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #708: AI-agent destructive-op guardrails: env-isolation gate, irreversibility gate, incidents library, eval"
+            },
+            {
+              "uri": "pending/2026-05-12-661-featcoding-add-codingsecuritymd-baseline-security-standards.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Structural dependency: #661 creates coding/security.md which is the canonical home for the env-isolation + irreversibility rules"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1095",
+              "type": "x-vbrief/github-issue",
+              "title": "Load-bearing composition: #1095 (closed-verb scope-expansion gate) consumes this story's irreversibility-tier classification via conventions/verb-classification.json -- #708 is the orthogonal destructive-op axis that #1095's PR-A explicitly cites"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-806-featpatterns-add-executor-layer-credentials-bind-secrets-at",
+        "title": "feat(patterns): add executor-layer-credentials — bind secrets at invocation layer, never in agent context",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-05-12-806-featpatterns-add-executor-layer-credentials-bind-secrets-at.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/806",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #806: feat(patterns): add executor-layer-credentials — bind secrets at invocation layer, never in agent context"
+            },
+            {
+              "uri": "pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Structural dependency: #481 creates the patterns/ directory this story writes patterns/executor-layer-credentials.md into"
+            },
+            {
+              "uri": "pending/2026-05-12-661-featcoding-add-codingsecuritymd-baseline-security-standards.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Structural dependency: #661 creates coding/security.md which this story references as the positive pattern"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-816-featpatterns-add-role-as-overlay-personarole-instructions-mu",
+        "title": "feat(patterns): add role-as-overlay — persona/role instructions must be system-prompt overlays, never injected into message history",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-05-12-816-featpatterns-add-role-as-overlay-personarole-instructions-mu.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/816",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #816: feat(patterns): add role-as-overlay — persona/role instructions must be system-prompt overlays, never injected into message history"
+            },
+            {
+              "uri": "pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Structural dependency: #481 creates the patterns/ directory this story writes into"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-836-featpatterns-prompt-assembly-layer-ordering-separate-cached",
+        "title": "feat(patterns): prompt-assembly-layer-ordering — separate cached system prompt layers from ephemeral per-turn injections",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-05-12-836-featpatterns-prompt-assembly-layer-ordering-separate-cached.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/836",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #836: feat(patterns): prompt-assembly-layer-ordering — separate cached system prompt layers from ephemeral per-turn injections"
+            },
+            {
+              "uri": "pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json",
+              "type": "x-vbrief/related-plan",
+              "title": "Structural dependency: #481 creates the patterns/ directory this story writes into"
             }
           ]
         }
