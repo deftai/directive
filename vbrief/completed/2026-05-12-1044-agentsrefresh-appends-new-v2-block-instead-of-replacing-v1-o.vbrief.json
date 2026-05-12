@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "agents:refresh appends new v2 block instead of replacing v1 on marker-version drift",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "agents:refresh appends new v2 block instead of replacing v1 on marker-version drift",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1044",
@@ -23,6 +23,6 @@
         "title": "Issue #1044: agents:refresh appends new v2 block instead of replacing v1 on marker-version drift"
       }
     ],
-    "updated": "2026-05-12T01:35:10Z"
+    "updated": "2026-05-12T04:39:22Z"
   }
 }

@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1059",
@@ -23,6 +23,6 @@
         "title": "Issue #1059: framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub"
       }
     ],
-    "updated": "2026-05-12T01:35:10Z"
+    "updated": "2026-05-12T04:39:23Z"
   }
 }

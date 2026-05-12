@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "framework:doctor failure prose names commands that don't exist; sharpen + add UPGRADING.md mitigation paragraph",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "framework:doctor failure prose names commands that don't exist; sharpen + add UPGRADING.md mitigation paragraph",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1061",
@@ -23,6 +23,6 @@
         "title": "Issue #1061: framework:doctor failure prose names commands that don't exist; sharpen + add UPGRADING.md mitigation paragraph"
       }
     ],
-    "updated": "2026-05-12T01:35:10Z"
+    "updated": "2026-05-12T04:39:23Z"
   }
 }

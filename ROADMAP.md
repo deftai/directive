@@ -422,5 +422,9 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#1047** -- Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout -- `[completed]`
 - **#401** -- feat(skills): prepare PR #441 deft-glossary for merge -- rename to deft-directive-glossary + .agents stub + AGENTS.md routing + CHANGELOG + rebase -- `[completed]`
 - **#757** -- Add probe strategy + deft-gh-slice/triage skills (re-author of #440) -- `[completed]`
+- **#1044** -- agents:refresh appends new v2 block instead of replacing v1 on marker-version drift -- `[completed]`
+- **#1059** -- framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub -- `[completed]`
+- **#1060** -- installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags -- `[completed]`
+- **#1061** -- framework:doctor failure prose names commands that don't exist; sharpen + add UPGRADING.md mitigation paragraph -- `[completed]`
 - **#1062** -- Add install_root field to <install>/VERSION manifest -- single source of truth for install-layout contract -- `[completed]`
 

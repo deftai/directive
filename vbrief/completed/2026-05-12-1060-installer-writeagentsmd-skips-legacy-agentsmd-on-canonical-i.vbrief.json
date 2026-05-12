@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1060",
@@ -23,6 +23,6 @@
         "title": "Issue #1060: installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags"
       }
     ],
-    "updated": "2026-05-12T01:35:10Z"
+    "updated": "2026-05-12T04:39:23Z"
   }
 }

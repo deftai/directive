@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-12T02:42:20Z"
+    "updated": "2026-05-12T04:39:29Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -888,70 +888,6 @@
               "uri": "https://github.com/deftai/directive/issues/762",
               "type": "x-vbrief/github-issue",
               "title": "Issue #762: feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-12-1044-agentsrefresh-appends-new-v2-block-instead-of-replacing-v1-o",
-        "title": "agents:refresh appends new v2 block instead of replacing v1 on marker-version drift",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-12-1044-agentsrefresh-appends-new-v2-block-instead-of-replacing-v1-o.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1044",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1044: agents:refresh appends new v2 block instead of replacing v1 on marker-version drift"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-12-1059-frameworkdoctor-and-check-updates-fail-on-windows-tasksframe",
-        "title": "framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-12-1059-frameworkdoctor-and-check-updates-fail-on-windows-tasksframe.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1059",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1059: framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-12-1060-installer-writeagentsmd-skips-legacy-agentsmd-on-canonical-i",
-        "title": "installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-12-1060-installer-writeagentsmd-skips-legacy-agentsmd-on-canonical-i.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1060",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1060: installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-12-1061-frameworkdoctor-failure-prose-names-commands-that-dont-exist",
-        "title": "framework:doctor failure prose names commands that don't exist; sharpen + add UPGRADING.md mitigation paragraph",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-12-1061-frameworkdoctor-failure-prose-names-commands-that-dont-exist.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1061",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1061: framework:doctor failure prose names commands that don't exist; sharpen + add UPGRADING.md mitigation paragraph"
             }
           ]
         }
@@ -7309,6 +7245,70 @@
         }
       },
       {
+        "id": "2026-05-12-1044-agentsrefresh-appends-new-v2-block-instead-of-replacing-v1-o",
+        "title": "agents:refresh appends new v2 block instead of replacing v1 on marker-version drift",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-12-1044-agentsrefresh-appends-new-v2-block-instead-of-replacing-v1-o.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1044",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1044: agents:refresh appends new v2 block instead of replacing v1 on marker-version drift"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-1059-frameworkdoctor-and-check-updates-fail-on-windows-tasksframe",
+        "title": "framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-12-1059-frameworkdoctor-and-check-updates-fail-on-windows-tasksframe.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1059",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1059: framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-1060-installer-writeagentsmd-skips-legacy-agentsmd-on-canonical-i",
+        "title": "installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-12-1060-installer-writeagentsmd-skips-legacy-agentsmd-on-canonical-i.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1060",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1060: installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-1061-frameworkdoctor-failure-prose-names-commands-that-dont-exist",
+        "title": "framework:doctor failure prose names commands that don't exist; sharpen + add UPGRADING.md mitigation paragraph",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-12-1061-frameworkdoctor-failure-prose-names-commands-that-dont-exist.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1061",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1061: framework:doctor failure prose names commands that don't exist; sharpen + add UPGRADING.md mitigation paragraph"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-05-12-1062-add-install-root-field-to-installversion-manifest-single-sou",
         "title": "Add install_root field to <install>/VERSION manifest -- single source of truth for install-layout contract",
         "status": "completed",
@@ -7333,6 +7333,7 @@
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Stale cross-references to legacy paths' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'Strengthen spec validation gate: add CI freshness check detecting stale `SPECIFICATION.md` (schema checks landed in PR #130 -- `spec_validate.py` now enforces vBRIEF v0.5 structure, status enum, legacy key detection)' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'docs(readme): add \"Your Artifacts\" section documenting user-generated artifact locations' shares topics (artifacts)",
+        "Narrative 'LegacyArtifacts' may be stale: completed scope 'installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'issue:ingest emits legacy v0.5 scope vBRIEFs and non-canonical references instead of canonical v0.6' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'rollback: empty `vbrief/legacy/` directory left behind after --rollback' shares topics (legacy)",
         "Narrative 'LegacyArtifacts' may be stale: completed scope 'rollback: orphaned `LEGACY-REPORT.reviewed.md` after Phase 6c rename (companion to #527)' shares topics (legacy)",
