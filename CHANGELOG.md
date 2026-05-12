@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **fix(ci): release.yml setup-go reads go version from go.mod via `go-version-file` (#1081 follow-up; closes #1071 deferred follow-up)** -- setup-go v6.0.0 changed the default `GOTOOLCHAIN` from unset to `local`, which disables go.mod's `toolchain` directive auto-fetch path. With the hardcoded `go-version: "1.22"` literal in `release.yml:43` (the deferred follow-up the v0.29.1 CHANGELOG explicitly named at #1071), the v5.6.0 -> v6.4.0 bump landed via PR #1081 (2026-05-12) made the next real release cut fail at the build step with `go: go.mod requires go >= 1.25 (running go 1.22.12; GOTOOLCHAIN=local)`. Surfaced by a `workflow_dispatch` smoke test against a combined throwaway branch carrying the in-flight #1079 + #1080 bumps -- the dependabot-triage cohort sub-wave C e2e exercise. Two-line fix in `release.yml`: replace `go-version: "1.22"` with `go-version-file: go.mod` so the release pipeline pins its Go version from the same single source of truth (`go.mod`'s `go 1.25` directive) as `ci.yml:130` already does. setup-go v6's `GOTOOLCHAIN=local` default no longer matters because the installed Go now satisfies the `go.mod` minimum directly. Refs #1081 (the v6 bump that exposed the latent string-drift hazard), #1071 (the parent OSV-resolution PR that named the `1.22` literal as out-of-scope).
 
 ### Removed
 
