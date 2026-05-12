@@ -282,3 +282,104 @@ func TestWriteInstallManifest_RejectsEmptyDeftDir(t *testing.T) {
 		t.Errorf("expected error to mention deftDir, got: %v", err)
 	}
 }
+
+// TestBuildInstallManifestText_BranchRefNotVPrefixed regression-guards the
+// Greptile P1 finding on PR #1063: a branch ref like `master` previously got
+// `v`-prefixed to `vmaster` because the normalisation was unconditional. The
+// fix gates v-prefixing on bareSemverPattern.
+func TestBuildInstallManifestText_BranchRefNotVPrefixed(t *testing.T) {
+	cases := []struct {
+		name   string
+		tag    string
+		prefix string
+	}{
+		{"plain master", "master", "tag: 'master'"},
+		{"plain main", "main", "tag: 'main'"},
+		{"feature branch", "feat/foo", "tag: 'feat/foo'"},
+		{"empty tag", "", "tag: ''"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fields := InstallManifestFields{
+				SHA:         "abc",
+				Tag:         tc.tag,
+				InstallRoot: ".deft/core",
+				FetchedAt:   "2026-05-12T02:08:16Z",
+				FetchedBy:   "deft-install",
+			}
+			got := BuildInstallManifestText(fields)
+			if !strings.Contains(got, tc.prefix) {
+				t.Errorf("%s: expected %q in output, got:\n%s", tc.name, tc.prefix, got)
+			}
+			// Explicit regression-pin against the `vmaster` mangling.
+			if tc.tag != "" && strings.Contains(got, "tag: 'v"+tc.tag+"'") {
+				t.Errorf("%s: branch ref %q was incorrectly v-prefixed, got:\n%s", tc.name, tc.tag, got)
+			}
+		})
+	}
+}
+
+// TestResolveInstallManifestFields_BranchLeavesTagEmpty regression-guards the
+// Greptile P1 finding on PR #1063: the resolver must NOT propagate a branch
+// name into the Tag field. Ref is still recorded so the manifest carries
+// full provenance.
+func TestResolveInstallManifestFields_BranchLeavesTagEmpty(t *testing.T) {
+	tmp := t.TempDir()
+	result := &WizardResult{
+		ProjectDir: tmp,
+		DeftDir:    filepath.Join(tmp, ".deft", "core"),
+	}
+	if err := os.MkdirAll(result.DeftDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct {
+		name   string
+		branch string
+		want   string
+	}{
+		{"master", "master", ""},
+		{"main", "main", ""},
+		{"feature branch", "feat/foo", ""},
+		{"prefixed semver", "v0.28.0", "v0.28.0"},
+		{"bare semver", "0.28.0", "0.28.0"},
+		{"rc tag", "v0.28.0-rc.1", "v0.28.0-rc.1"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fields := resolveInstallManifestFields(result, tc.branch)
+			if fields.Tag != tc.want {
+				t.Errorf("branch %q: Tag = %q, want %q", tc.branch, fields.Tag, tc.want)
+			}
+			// Ref always preserves the verbatim resolution.
+			if fields.Ref != tc.branch {
+				t.Errorf("branch %q: Ref = %q, want %q", tc.branch, fields.Ref, tc.branch)
+			}
+		})
+	}
+}
+
+// TestResolveInstallManifestFields_BranchRefDoesNotProduceVmasterManifest is
+// the end-to-end regression: resolve fields for branch `master`, run them
+// through BuildInstallManifestText, and assert the rendered body does NOT
+// contain `vmaster`.
+func TestResolveInstallManifestFields_BranchRefDoesNotProduceVmasterManifest(t *testing.T) {
+	tmp := t.TempDir()
+	result := &WizardResult{
+		ProjectDir: tmp,
+		DeftDir:    filepath.Join(tmp, ".deft", "core"),
+	}
+	if err := os.MkdirAll(result.DeftDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fields := resolveInstallManifestFields(result, "master")
+	body := BuildInstallManifestText(fields)
+	if strings.Contains(body, "vmaster") {
+		t.Errorf("branch ref `master` produced `vmaster` in manifest body:\n%s", body)
+	}
+	if !strings.Contains(body, "ref: 'master'") {
+		t.Errorf("expected `ref: 'master'` in body, got:\n%s", body)
+	}
+	if !strings.Contains(body, "tag: ''") {
+		t.Errorf("expected empty `tag: ''` in body, got:\n%s", body)
+	}
+}

@@ -7,11 +7,20 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
 	"github.com/deftai/directive/templates"
 )
+
+// bareSemverPattern matches a bare `X.Y.Z[-pre][+build]` semver triple (no
+// leading `v`). Used by BuildInstallManifestText to gate the v-prefix
+// normalisation: only bare semver strings get the `v` prepended; branch refs
+// or already-`v`-prefixed values pass through verbatim. Defence-in-depth
+// alongside the resolver-side guard in resolveInstallManifestFields
+// (Greptile P1 on PR #1063).
+var bareSemverPattern = regexp.MustCompile(`^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$`)
 
 // agentsMDEntry is the AGENTS.md body the installer writes into consumer
 // projects. It is sourced from templates/agents-entry.md via //go:embed (see
@@ -194,7 +203,11 @@ type InstallManifestFields struct {
 // the normalised tag when empty.
 func BuildInstallManifestText(fields InstallManifestFields) string {
 	effectiveTag := fields.Tag
-	if effectiveTag != "" && !strings.HasPrefix(effectiveTag, "v") {
+	// Only v-prefix tags that look like a bare semver number (e.g. `0.28.0`).
+	// Any other shape (branch refs the resolver missed, pre-formatted
+	// `vX.Y.Z`, empty strings) is rendered verbatim so we never produce
+	// `vmaster` or similar nonsense (Greptile P1 on PR #1063).
+	if effectiveTag != "" && !strings.HasPrefix(effectiveTag, "v") && bareSemverPattern.MatchString(effectiveTag) {
 		effectiveTag = "v" + effectiveTag
 	}
 	effectiveRef := fields.Ref

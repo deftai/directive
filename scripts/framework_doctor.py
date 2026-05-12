@@ -430,10 +430,16 @@ def _check_install_path_consistency(project_root: Path, install_root: str | None
     """
     effective_install_root = install_root
     fallback_info_note = ""
+    source = "AGENTS.md"
     # #1062: prefer the manifest-side ``install_root`` field when present --
     # it is the single source of truth for the install-layout contract.
     # Fall back to the legacy AGENTS.md parse only when the manifest exists
     # but predates the field (legacy v0.28 shape) or no manifest exists.
+    # The ``source`` flag stays sticky across the manifest-found-but-empty
+    # path so the diagnostic prose later accurately names where the
+    # effective install root came from (Greptile P1 on PR #1063 -- prior
+    # heuristic compared values, which mislabelled when manifest and
+    # AGENTS.md happened to agree).
     for manifest_path in (
         project_root / ".deft" / "core" / "VERSION",
         project_root / "deft" / "VERSION",
@@ -446,11 +452,15 @@ def _check_install_path_consistency(project_root: Path, install_root: str | None
         if isinstance(manifest_install_root, str) and manifest_install_root.strip():
             effective_install_root = manifest_install_root.strip()
             fallback_info_note = ""
+            source = "manifest"
             break
         fallback_info_note = (
             f" INFO: manifest at {manifest_path} is missing install_root; "
             "fell back to the legacy AGENTS.md install-root parse."
         )
+        # source stays "AGENTS.md" -- the manifest was found but did not
+        # carry the install_root field, so the effective value still came
+        # from the AGENTS.md parse.
         break
     if effective_install_root is None:
         return CheckResult(
@@ -472,15 +482,17 @@ def _check_install_path_consistency(project_root: Path, install_root: str | None
             name="install-path-consistency",
             status="fail",
             detail=(
-                f"AGENTS.md claims install root is {effective_install_root!r} but "
-                f"{claimed_dir} is not a directory. Reinstall the framework "
-                "at the declared path OR update AGENTS.md to match the "
-                "on-disk install layout. YAML manifest (if present) is "
-                "authoritative; see `task framework:doctor` reconcile hint."
+                f"Install root is recorded as {effective_install_root!r} "
+                f"(source: {source}) but {claimed_dir} is not a directory. "
+                "Reinstall the framework at the declared path OR update the "
+                "install-layout source (manifest or AGENTS.md) to match the "
+                "on-disk state. YAML manifest (if present) is authoritative; "
+                "see `task framework:doctor` reconcile hint."
             ),
             data={
                 "claimed_install_root": install_root,
                 "effective_install_root": effective_install_root,
+                "effective_install_root_source": source,
                 "claimed_dir": str(claimed_dir),
                 "claimed_dir_exists": False,
                 "fallback_info_note": fallback_info_note or None,
@@ -494,13 +506,14 @@ def _check_install_path_consistency(project_root: Path, install_root: str | None
         name="install-path-consistency",
         status="pass",
         detail=(
-            f"AGENTS.md install-root claim ({effective_install_root!r}) matches an "
-            f"existing directory at {claimed_dir}."
+            f"Install root ({effective_install_root!r}, source: {source}) "
+            f"matches an existing directory at {claimed_dir}."
             + fallback_info_note
         ),
         data={
             "claimed_install_root": install_root,
             "effective_install_root": effective_install_root,
+            "effective_install_root_source": source,
             "claimed_dir": str(claimed_dir),
             "fallback_info_note": fallback_info_note or None,
         },

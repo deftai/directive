@@ -5,10 +5,22 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
 )
+
+// semverTagPattern matches semver-shaped release refs (with or without the
+// leading `v`). Used by resolveInstallManifestFields to distinguish a release
+// tag (which the manifest should record as `tag: 'vX.Y.Z'`) from a branch
+// name like `master` / `main` / `feat/...` (which must NOT be propagated into
+// the manifest's `tag` field -- doing so produces nonsensical values such as
+// `vmaster` after BuildInstallManifestText's v-prefix normalisation, breaking
+// downstream consumers that parse `tag` as semver). The regex intentionally
+// allows pre-release / build-metadata suffixes (e.g. `v0.28.0-rc.1`,
+// `v0.28.0+build`) so legitimate release-candidate refs still round-trip.
+var semverTagPattern = regexp.MustCompile(`^v?\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$`)
 
 // version is set at build time via ldflags:
 //
@@ -219,12 +231,23 @@ func install(debug bool, branch string, legacyLayout bool) int {
 // unavailable) falls back to an empty string so the manifest still carries
 // the other fields. Ref / tag fall back to the build-time defaultBranch
 // when no explicit --branch was passed.
+//
+// Tag is populated ONLY when the resolved ref looks like a semver release
+// tag (per semverTagPattern). Branch refs (`master`, `main`, `feat/...`)
+// leave Tag empty -- BuildInstallManifestText then renders `tag: ''` rather
+// than nonsensical values like `vmaster` that would corrupt downstream
+// consumers parsing the field as semver. Ref is still recorded verbatim so
+// the manifest preserves the full provenance trail (Greptile P1 review on
+// PR #1063 closing PR for #1062).
 func resolveInstallManifestFields(result *WizardResult, branch string) InstallManifestFields {
 	effectiveRef := branch
 	if effectiveRef == "" {
 		effectiveRef = defaultBranch
 	}
-	effectiveTag := effectiveRef
+	effectiveTag := ""
+	if semverTagPattern.MatchString(effectiveRef) {
+		effectiveTag = effectiveRef
+	}
 	sha := resolveDeftHeadSHA(result.DeftDir)
 	return InstallManifestFields{
 		Ref:         effectiveRef,

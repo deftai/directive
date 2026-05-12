@@ -296,8 +296,9 @@ class TestDoctorInstallRootFallback:
     """``_check_install_path_consistency`` prefers the manifest field (#1062)."""
 
     def test_manifest_install_root_field_wins_over_agents_md(self, doctor_mod, tmp_path):
-        # AGENTS.md claims `.deft/core` but the manifest carries a different
-        # canonical value -- the doctor must trust the manifest.
+        # The manifest declares `.deft/core` -- the doctor must trust the
+        # manifest AND label the source so operators reading the diagnostic
+        # are pointed at the right artifact (Greptile P1 on PR #1063).
         _write_agents_md(tmp_path, install_root=".deft/core")
         install = _make_install_tree(tmp_path, ".deft/core")
         _write_manifest(install, install_root=".deft/core")
@@ -307,6 +308,9 @@ class TestDoctorInstallRootFallback:
         )
         assert check["status"] == "pass"
         assert check["data"]["effective_install_root"] == ".deft/core"
+        assert check["data"]["effective_install_root_source"] == "manifest"
+        # Pass detail names the source explicitly (verbatim phrasing).
+        assert "source: manifest" in check["detail"]
         assert check["data"]["fallback_info_note"] is None
 
     def test_legacy_manifest_without_install_root_falls_back_with_info_note(
@@ -314,7 +318,9 @@ class TestDoctorInstallRootFallback:
     ):
         # The legacy v0.28 shape omits install_root entirely. The doctor must
         # fall back to the AGENTS.md parse AND emit an INFO note so operators
-        # can see when the fallback fired.
+        # can see when the fallback fired. The source label MUST be
+        # ``AGENTS.md`` so the diagnostic does not falsely credit the
+        # manifest (Greptile P1 on PR #1063).
         _write_agents_md(tmp_path, install_root=".deft/core")
         install = _make_install_tree(tmp_path, ".deft/core")
         _write_manifest(install, install_root=None)
@@ -325,6 +331,8 @@ class TestDoctorInstallRootFallback:
         assert check["status"] == "pass"
         # AGENTS.md is the source of the resolved install root.
         assert check["data"]["effective_install_root"] == ".deft/core"
+        assert check["data"]["effective_install_root_source"] == "AGENTS.md"
+        assert "source: AGENTS.md" in check["detail"]
         info = check["data"]["fallback_info_note"]
         assert info is not None
         assert "INFO" in info
@@ -333,7 +341,8 @@ class TestDoctorInstallRootFallback:
     def test_no_manifest_keeps_legacy_agents_md_behaviour(self, doctor_mod, tmp_path):
         # No manifest anywhere -- the doctor's previous behaviour (parse
         # AGENTS.md, no INFO note, status driven by directory existence) is
-        # preserved.
+        # preserved. Source label is ``AGENTS.md`` since that is where the
+        # install root came from.
         _write_agents_md(tmp_path, install_root=".deft/core")
         _make_install_tree(tmp_path, ".deft/core")
         result = doctor_mod.run_checks(tmp_path)
@@ -342,4 +351,28 @@ class TestDoctorInstallRootFallback:
         )
         assert check["status"] == "pass"
         assert check["data"]["effective_install_root"] == ".deft/core"
+        assert check["data"]["effective_install_root_source"] == "AGENTS.md"
         assert check["data"]["fallback_info_note"] is None
+
+    def test_fail_detail_names_manifest_source_when_dir_missing(
+        self, doctor_mod, tmp_path
+    ):
+        # Greptile P1 regression: when the manifest provides the install_root
+        # but the directory does not exist, the FAIL detail must name the
+        # manifest as the source -- not say "AGENTS.md claims ...".
+        _write_agents_md(tmp_path, install_root=".deft/core")
+        # Write the manifest at .deft/core but DO NOT also create a directory
+        # at the manifest-declared install_root (we point it at a different
+        # path that does not resolve).
+        install = _make_install_tree(tmp_path, ".deft/core")
+        _write_manifest(install, install_root="does/not/exist")
+        result = doctor_mod.run_checks(tmp_path)
+        check = next(
+            c for c in result["checks"] if c["name"] == "install-path-consistency"
+        )
+        assert check["status"] == "fail"
+        assert check["data"]["effective_install_root"] == "does/not/exist"
+        assert check["data"]["effective_install_root_source"] == "manifest"
+        assert "source: manifest" in check["detail"]
+        # Regression-pin: prose must not falsely blame AGENTS.md.
+        assert "AGENTS.md claims" not in check["detail"]
