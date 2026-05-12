@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1096",
@@ -34,6 +34,6 @@
         "title": "Deferred consumer: #949 (scanner v3 categories) was blocked by this dedup false positive during the 2026-05-12 refinement; ingest once #1096 lands"
       }
     ],
-    "updated": "2026-05-12T22:12:39Z"
+    "updated": "2026-05-12T23:25:59Z"
   }
 }

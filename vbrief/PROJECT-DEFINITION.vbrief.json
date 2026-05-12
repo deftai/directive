@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-12T22:30:05Z"
+    "updated": "2026-05-12T23:25:59Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -846,27 +846,6 @@
         }
       },
       {
-        "id": "2026-04-30-481-patterns-directory-and-llm-app-standards",
-        "title": "feat(patterns): add patterns/ directory and patterns/llm-app.md for LLM application standards",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/481",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #481: feat(patterns): add patterns/ directory and patterns/llm-app.md for LLM application standards"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/482",
-              "type": "x-vbrief/github-issue",
-              "title": "Companion: #482 (move coding/holzmann.md -> patterns/safety-critical.md and swarm/swarm.md -> patterns/multi-agent.md)"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-04-30-761-install-paths-reframe-webinstaller-npm",
         "title": "docs: reframe install paths around webinstaller + npm/pip; demote Go binary to legacy",
         "status": "pending",
@@ -941,22 +920,6 @@
               "uri": "pending/2026-05-12-661-featcoding-add-codingsecuritymd-baseline-security-standards.vbrief.json",
               "type": "x-vbrief/related-plan",
               "title": "Structural dependency: #661 creates coding/security.md which this story extends with the no-read-secret rule (alongside #686 tool-call-safety and #806 executor-layer-credentials)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-12-661-featcoding-add-codingsecuritymd-baseline-security-standards",
-        "title": "feat(coding): add coding/security.md — baseline security standards for every project",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-05-12-661-featcoding-add-codingsecuritymd-baseline-security-standards.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/661",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #661: feat(coding): add coding/security.md — baseline security standards for every project"
             }
           ]
         }
@@ -1072,32 +1035,6 @@
               "uri": "pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json",
               "type": "x-vbrief/related-plan",
               "title": "Structural dependency: #481 creates the patterns/ directory this story writes into"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-12-1096-fixscripts-task-issueingest-dedup-is-too-broad-non-provenanc",
-        "title": "fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-12-1096-fixscripts-task-issueingest-dedup-is-too-broad-non-provenanc.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1096",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1096: fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/835",
-              "type": "x-vbrief/github-issue",
-              "title": "Deferred consumer: #835 (memory-write-security-scan) was blocked by this dedup false positive during the 2026-05-12 refinement; ingest once #1096 lands"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/949",
-              "type": "x-vbrief/github-issue",
-              "title": "Deferred consumer: #949 (scanner v3 categories) was blocked by this dedup false positive during the 2026-05-12 refinement; ingest once #1096 lands"
             }
           ]
         }
@@ -5554,6 +5491,27 @@
         }
       },
       {
+        "id": "2026-04-30-481-patterns-directory-and-llm-app-standards",
+        "title": "feat(patterns): add patterns/ directory and patterns/llm-app.md for LLM application standards",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/481",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #481: feat(patterns): add patterns/ directory and patterns/llm-app.md for LLM application standards"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/482",
+              "type": "x-vbrief/github-issue",
+              "title": "Companion: #482 (move coding/holzmann.md -> patterns/safety-critical.md and swarm/swarm.md -> patterns/multi-agent.md)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-04-30-564-review-cycle-add-stall-detection-rubric-escalate-to-user-aft",
         "title": "review-cycle: add stall detection rubric, escalate to user after threshold",
         "status": "completed",
@@ -7613,6 +7571,48 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-05-12-1096-fixscripts-task-issueingest-dedup-is-too-broad-non-provenanc",
+        "title": "fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-12-1096-fixscripts-task-issueingest-dedup-is-too-broad-non-provenanc.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1096",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1096: fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/835",
+              "type": "x-vbrief/github-issue",
+              "title": "Deferred consumer: #835 (memory-write-security-scan) was blocked by this dedup false positive during the 2026-05-12 refinement; ingest once #1096 lands"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/949",
+              "type": "x-vbrief/github-issue",
+              "title": "Deferred consumer: #949 (scanner v3 categories) was blocked by this dedup false positive during the 2026-05-12 refinement; ingest once #1096 lands"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-661-featcoding-add-codingsecuritymd-baseline-security-standards",
+        "title": "feat(coding): add coding/security.md — baseline security standards for every project",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-12-661-featcoding-add-codingsecuritymd-baseline-security-standards.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/661",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #661: feat(coding): add coding/security.md — baseline security standards for every project"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
@@ -7649,6 +7649,7 @@
         "Narrative 'ProjectConfig' may be stale: completed scope 'Story N: PROJECT-DEFINITION regeneration tool (task project:render)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Write SPECIFICATION.md and proper PROJECT.md for the deft project itself' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'deft-setup project name fallback' shares topics (project)",
+        "Narrative 'ProjectConfig' may be stale: completed scope 'feat(coding): add coding/security.md — baseline security standards for every project' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'feat(scripts,tasks,hooks): detection-bound branch gate — verify:branch + git hooks reading PROJECT-DEFINITION policy field' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'fix(cli): run project should create vbrief lifecycle subdirectories' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key' shares topics (project)",
