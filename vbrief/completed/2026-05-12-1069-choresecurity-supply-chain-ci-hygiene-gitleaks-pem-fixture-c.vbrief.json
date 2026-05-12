@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1069"
+    "description": "Scope vBRIEF ingested from GitHub issue #1069",
+    "updated": "2026-05-12T17:26:46Z"
   },
   "plan": {
     "title": "chore(security): supply-chain & CI hygiene — gitleaks PEM fixture, curl|bash in CI, 40 OSV advisories, no Dependabot",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Description": "chore(security): supply-chain & CI hygiene — gitleaks PEM fixture, curl|bash in CI, 40 OSV advisories, no Dependabot",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1069",
@@ -18,6 +19,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #1069: chore(security): supply-chain & CI hygiene — gitleaks PEM fixture, curl|bash in CI, 40 OSV advisories, no Dependabot"
       }
-    ]
+    ],
+    "updated": "2026-05-12T17:26:46Z"
   }
 }

@@ -17,6 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+
+### Fixed
+
+### Removed
+
+## [0.29.2] - 2026-05-12
+
+> Security supply-chain hardening cohort closure: GitHub Actions pinned to SHAs with least-privilege permissions blocks, docs/security.md baseline records the 2026-05-12 audit, parent umbrella #1069 resolved.
+
+### Added
+- **docs(security): record 2026-05-12 audit baseline in `docs/security.md` (#1073, parent #1069 -- final slice in the 2026-05-12 supply-chain hygiene cohort)** -- new `docs/security.md` records the inaugural audit baseline for `deftai/directive`: audit date (2026-05-12), the scanners run (`osv-scanner scan source --recursive .` + `gitleaks detect --redact`; future cadence adds `trivy fs --severity CRITICAL,HIGH --ignore-unfixed`), the five findings resolved (gitleaks PEM fixture remediated via PR #1077 / #1070; `curl | bash` removed from CI via PR #1077 / #1070; 22 OSV stdlib advisories resolved via PR #1076 / #1071 -- live count diverged from the 40 cited in #1069 because intervening dependabot bumps auto-cleared the rest; `.github/dependabot.yml` deposited via PR #1077 / #1070; Actions SHA-pinning + least-privilege `permissions:` blocks via the #1072 PR landing alongside this slice, cited prospectively per the vBRIEF escape hatch), and the residual-risk verdict (`osv-scanner scan source --recursive .` reports `No issues found` on master at tag `v0.29.1`; zero gitleaks `private-key` hits after PR #1077). New `## Audit cadence` section names the quarterly + event-driven cadence (dependabot security PR failure, scanner-CI escalation, newly-disclosed advisory at the pinned toolchain version). New `## Reporting a vulnerability` section points contributors at the canonical GitHub Security Advisories flow at <https://github.com/deftai/directive/security/advisories/new>. New `## Out of scope / follow-ups` section names **#1084** (PyPI OIDC trusted-publishing workflow, deferred -- blocked-by #11 because trusted-publishing is meaningless until Deft is published to PyPI, and the PyPI proposal is still OPEN). Companion `README.md` Security cross-reference section and `## Learn More` entry point consumers at the canonical body. Closes #1073, closes #1069 (umbrella close-out for the 2026-05-12 supply-chain cohort). Refs #1072 (Actions SHA-pinning + permissions hardening, landing alongside this slice), #1084 (deferred PyPI OIDC follow-up).
+
+### Changed
 - **fix(security): pin GitHub Actions to SHAs + least-privilege `permissions:` blocks (#1072, parent #1069)** -- closes the AFK GitHub-Actions slice of the 2026-05-12 supply-chain hardening cohort. Every remote `uses:` line in `.github/workflows/**` is now pinned to a 40-character commit SHA with a trailing `# vX.Y.Z` comment naming the upstream semver tag for Dependabot tracking + human readability: `actions/checkout@v4` -> `34e1148...` (v4.3.1, 3 sites), `actions/setup-python@v5` -> `a26af69...` (v5.6.0, 3 sites), `astral-sh/setup-uv@v5` -> `d4b2f3b...` (v5.4.2, 2 sites), `actions/setup-go@v5` -> `40f1582...` (v5.6.0, 2 sites), `arduino/setup-task@v2` -> `24c5e13...` (v2.0.0, 1 site), `actions/upload-artifact@v4` -> `ea165f8...` (v4.6.2, 2 sites), `actions/download-artifact@v4` -> `d3f86a1...` (v4.3.0, 3 sites), `softprops/action-gh-release@v2` -> `3bb1273...` (v2.6.2, 1 site). The pin per-site selects the highest semver tag matching the current major; all eight upstream `vN` aliases were cross-validated to point at the chosen SHA so Dependabot's existing major-version pin contract holds without churn (the one exception is `astral-sh/setup-uv`, whose `@v5` alias is ahead of the latest published `vN.M.P` tag -- pinning to `v5.4.2` is the safer single-version anchor). `release.yml` top-level `permissions:` flipped from `contents: write` (workflow-wide elevated scope) to default-deny `contents: read`; the `release` job (the only consumer of `softprops/action-gh-release`, which uploads binaries to the draft GitHub Release) gains an explicit per-job `permissions: contents: write` override with a `# #1072` comment naming the rationale so a future audit reads the scope contract without spelunking job history. `ci.yml` and `branch-gate.yml` already carry `permissions: contents: read` at the top level and have no job that requires elevated scope -- they pass through unchanged on the permissions axis. No workflow now relies on the default broad-scope `GITHUB_TOKEN` for any job (acceptance criterion #1072.4). Coordinates with sibling slice #1073 (docs/security.md baseline note, agent2-owned, disjoint file scope: `docs/security.md` + README security section). PyPI OIDC trusted-publishing carved out to follow-up #1084 (blocked-by #11; deft is not yet on PyPI so the OIDC scaffolding is meaningless until then). Refs #1069 (parent cohort umbrella), Refs #1073, Refs #1084. Closes #1072.
 
 ### Fixed
@@ -2696,7 +2709,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.29.1...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.29.2...HEAD
+[0.29.2]: https://github.com/deftai/directive/compare/v0.29.1...v0.29.2
 [0.29.1]: https://github.com/deftai/directive/compare/v0.29.0...v0.29.1
 [0.29.0]: https://github.com/deftai/directive/compare/v0.28.0...v0.29.0
 [0.28.0]: https://github.com/deftai/directive/compare/v0.27.1...v0.28.0

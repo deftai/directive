@@ -174,6 +174,10 @@ Emergency bypass: set `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the current shell
 
 See [`glossary.md`](./glossary.md) (Branch-protection policy / Policy audit log entries) for the canonical vocabulary and `skills/deft-directive-setup/SKILL.md` Phase 2 Step 9 for the interview disclosure copy.
 
+## 🔒 Security
+
+Security posture, audit cadence, and vulnerability-reporting flow live in [`docs/security.md`](./docs/security.md). The 2026-05-12 supply-chain hygiene cohort (#1069) recorded the inaugural baseline; future quarterly + event-driven audits append new sections rather than rewrite history. To report a vulnerability, file a private advisory at <https://github.com/deftai/directive/security/advisories/new>.
+
 ## ⚙️ Platform Requirements
 
 **GitHub** is the primary supported SCM platform. Skills that interact with issues and PRs (`deft-directive-sync`, `deft-directive-swarm`, `deft-directive-review-cycle`, `deft-directive-refinement`, `deft-directive-release`) require the [GitHub CLI (`gh`)](https://cli.github.com/) to be installed and authenticated. Core framework features (setup, build, rendering, validation) work independently of any SCM platform.
@@ -187,6 +191,7 @@ The migration script (`task migrate:vbrief`) defaults origin provenance to `x-vb
 - **[docs/FILES.md](./docs/FILES.md)** — Directory tree and per-area file index
 - **[docs/RELEASING.md](./docs/RELEASING.md)** — Release & smoke-test workflow
 - **[docs/BROWNFIELD.md](./docs/BROWNFIELD.md)** — Brownfield adoption (pre-v0.20 → vBRIEF migration)
+- **[docs/security.md](./docs/security.md)** — Security posture, audit baseline, cadence, vulnerability-reporting flow
 - **[main.md](./main.md)** — Comprehensive AI guidelines (general behavior layer)
 - **[commands.md](./commands.md)** — Full `run` and `task` command reference
 - **[glossary.md](./glossary.md)** — Canonical v0.20 vocabulary

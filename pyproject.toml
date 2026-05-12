@@ -4,7 +4,7 @@ name = "deft-directive"
 # scripts/release.py Step 5 (#771). Manual edits here are overwritten on
 # every `task release -- X.Y.Z` and guarded by
 # tests/content/test_pyproject_version_freshness.py.
-version = "0.29.1"
+version = "0.29.2"
 description = "A layered framework for AI-assisted development with consistent standards and workflows"
 requires-python = ">=3.11"
 
