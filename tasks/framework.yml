@@ -31,8 +31,18 @@ tasks:
       # Strip our own `--force` from the args we pass through to `run` so it
       # does not surface as an unknown flag in the JSON / text output. Other
       # supported flags (e.g. `--json`) flow through unchanged.
+      #
+      # #1059: invoke Python through `uv --project "{{.DEFT_ROOT}}" run python`
+      # rather than a bare `python3`. On Windows the bare `python3` command
+      # resolves to the Microsoft Store app-execution-alias stub (exit 49) on
+      # default-configured hosts where the user installed Python via the
+      # official installer, so the wrapper aborted before `run check-updates`
+      # ever started. The `uv` wrapper matches the canonical pattern used by
+      # every other tasks/*.yml file (see e.g. `tasks/prd.yml`,
+      # `tasks/vbrief.yml`) and pins the project root via #1011 so the
+      # uv environment never walks up into a hostile ancestor pyproject.
       - >-
-        python3 "{{.DEFT_ROOT}}/run" check-updates
+        uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/run" check-updates
         {{regexReplaceAll "(^|\\s)--force(\\s|$)" .CLI_ARGS " "}}
 
   doctor:
@@ -55,4 +65,11 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      - python3 "{{.DEFT_ROOT}}/scripts/framework_doctor.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # #1059: invoke Python through `uv --project "{{.DEFT_ROOT}}" run python`
+      # rather than a bare `python3`. See the #1059 comment on the
+      # `check-updates` task above for the full rationale -- in short, the
+      # bare `python3` form resolves to the Microsoft Store app-execution
+      # alias stub on Windows hosts and the wrapper exits 49 before the
+      # probe runs. The `uv` form mirrors every other tasks/*.yml file in
+      # the framework.
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/framework_doctor.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

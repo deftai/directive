@@ -244,6 +244,40 @@ jobs:
       - name: Pytest guard-rails (#566 + #577 + #574 regressions)
         run: uv run pytest tests/content/test_taskfile_paths.py tests/content/test_taskfile_cli_args.py tests/content/test_taskfile_caching.py -v
 
+      # #1059: regression guard that the framework:doctor Taskfile wrapper
+      # actually reaches `scripts/framework_doctor.py` on Windows. Before
+      # this fix `tasks/framework.yml` hardcoded the `python3` executable,
+      # which resolves to the Microsoft Store app-execution-alias stub on
+      # default-configured Windows hosts and exited 49 before the probe
+      # ever ran. After the fix the wrapper is `uv --project ... run
+      # python`, which works regardless of whether `python3` is on PATH.
+      # The smoke test runs `task framework:doctor` against the deft
+      # framework's own root and asserts the documented three-state exit
+      # contract (0 clean / 1 drift / 2 config error). Any other exit code
+      # (e.g. 49) means the wrapper layer regressed and the probe never
+      # ran. The Store-stub failure prints a known marker (`Python was not
+      # found; run without arguments to install from the Microsoft Store`)
+      # so we also assert it does NOT appear in the output -- a defence-
+      # in-depth check in case a future PATH change makes `python3`
+      # resolve to a real interpreter on the runner image (in which case
+      # the exit code alone would not catch a regression to the bare
+      # `python3` form).
+      - name: task framework:doctor smoke test (#1059 Windows wrapper regression)
+        shell: pwsh
+        run: |
+          $deftTaskfile = Join-Path $env:GITHUB_WORKSPACE 'Taskfile.yml'
+          $output = task -t $deftTaskfile framework:doctor 2>&1 | Out-String
+          $exit = $LASTEXITCODE
+          Write-Host "--- framework:doctor output (exit=$exit) ---"
+          Write-Host $output
+          if ($exit -notin @(0, 1, 2)) {
+            throw "framework:doctor returned unexpected exit code $exit -- expected 0/1/2 per documented three-state contract; the bare-python3 wrapper regression from #1059 returns 49 on Store-stub hosts"
+          }
+          if ($output -match 'Python was not found') {
+            throw "framework:doctor output contains the Microsoft Store app-execution-alias stub marker -- the #1059 wrapper regression has re-fired"
+          }
+          Write-Host "framework:doctor smoke OK (#1059) -- exit=$exit, no Store-stub marker in output"
+
       - name: task migrate:vbrief end-to-end Completed-section partition (#593)
         shell: pwsh
         run: |
