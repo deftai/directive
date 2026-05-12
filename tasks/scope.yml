@@ -107,3 +107,11 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scope_lifecycle.py" unblock {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
+  decompose:
+    desc: "Apply/check an approved epic/phase -> story decomposition draft"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scope_decompose.py" {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"

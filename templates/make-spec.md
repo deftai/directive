@@ -58,7 +58,7 @@ N. [feature]
 
 ### Full Path: PRD Generation
 
-Only on the **Full** path — generate `PRD.md` before the specification:
+Only on the **Full** path — generate `PRD.md` as a rendered stakeholder-review export before the specification source is finalized:
 
 ```markdown
 # [Project Name] PRD
@@ -94,28 +94,29 @@ Any remaining decisions deferred to implementation.
 - ! Focus on WHAT, not HOW
 - ! Use RFC 2119 language (MUST, SHOULD, MAY)
 - ! Number all requirements for traceability
-- ! User MUST review and approve PRD before specification generation begins
+- ! User MUST review and approve the rendered PRD export before specification generation begins
+- ! `vbrief/specification.vbrief.json` and scope vBRIEFs remain authoritative; rendered PRD/SPEC files are exports, not the source of truth
 
 ### Specification Flow (both paths)
 
-1. ! Write scope vBRIEF(s) to `./vbrief/proposed/` with `status: draft` using `YYYY-MM-DD-descriptive-slug.vbrief.json` naming
+1. ! Write scope vBRIEF(s) to `./vbrief/proposed/` with `status: proposed` using `YYYY-MM-DD-descriptive-slug.vbrief.json` naming
 2. ! Summarize what was decided and ask the user to review
-3. ! On user approval, update `status` to `approved` and move to `./vbrief/pending/` (or use `task scope:promote`)
+3. ! On user approval, use `task scope:promote` to move to `./vbrief/pending/` with `status: pending`
 4. ! Update `./vbrief/PROJECT-DEFINITION.vbrief.json` items registry to include the new scope vBRIEF(s)
 5. ? For project-wide spec: write `./vbrief/specification.vbrief.json` and run `task spec:render` to generate `SPECIFICATION.md`
 
 ! The vBRIEF file MUST use this exact top-level structure:
 
 - ! All `narratives` and `narrative` values MUST be plain strings — never objects or arrays
-- ! Nested children within a PlanItem MUST use `subItems` (not `items`)
-- ⊗ Use `items` inside a PlanItem — only `plan.items` is valid; within items use `subItems`
+- ! Nested children within a PlanItem MUST use `items` (the preferred v0.6 PlanItem field)
+- ≉ Use deprecated `subItems` for new content; it remains a compatibility alias only
 
 ```json
 {
   "vBRIEFInfo": { "version": "0.6" },
   "plan": {
     "title": "Project Name SPECIFICATION",
-    "status": "draft",
+    "status": "proposed",
     "narratives": {
       "Overview": "Brief project summary as a plain string.",
       "Architecture": "System design as a plain string."
@@ -125,12 +126,12 @@ Any remaining decisions deferred to implementation.
         "id": "phase-1",
         "title": "Phase 1: Foundation",
         "status": "pending",
-        "subItems": [
+        "items": [
           {
             "id": "1.1",
             "title": "Subphase 1.1: Setup",
             "status": "pending",
-            "subItems": [
+            "items": [
               {
                 "id": "1.1.1",
                 "title": "Task description",

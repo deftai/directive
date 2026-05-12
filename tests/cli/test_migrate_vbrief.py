@@ -1419,7 +1419,7 @@ def _write_speckit_plan(
     """Write a speckit-shaped plan.vbrief.json fixture."""
     plan_path.parent.mkdir(parents=True, exist_ok=True)
     data = {
-        "vBRIEFInfo": {"version": "0.5", "description": "speckit plan fixture"},
+        "vBRIEFInfo": {"version": "0.6", "description": "speckit plan fixture"},
         "plan": {
             "title": "speckit IPs",
             "status": "running",
@@ -1514,6 +1514,7 @@ class TestCreateSpeckitScopeVbrief:
         result = _create_speckit_scope_vbrief(
             item, ip_index=3, dependencies=["ip-1"], spec_ref="../specification.vbrief.json"
         )
+        assert result["plan"]["metadata"]["kind"] == "phase"
         assert result["plan"]["metadata"]["dependencies"] == ["ip-1"]
 
     def test_reference_links_back_to_spec(self):
@@ -1524,7 +1525,7 @@ class TestCreateSpeckitScopeVbrief:
         refs = result["plan"]["references"]
         assert any(
             r.get("type") == "x-vbrief/plan"
-            and r.get("url") == "../specification.vbrief.json"
+            and r.get("uri") == "../specification.vbrief.json"
             for r in refs
         )
 
@@ -1640,7 +1641,9 @@ class TestMigrateSpeckitPlan:
         assert data["plan"]["narratives"]["Traces"] == "FR-1, IP-1"
         refs = data["plan"]["references"]
         assert refs[0]["type"] == "x-vbrief/plan"
-        assert "specification.vbrief.json" in refs[0]["url"]
+        assert "specification.vbrief.json" in refs[0]["uri"]
+        assert "url" not in refs[0]
+        assert data["plan"]["metadata"]["kind"] == "phase"
 
     def test_plan_rewritten_to_session_scaffold(self, tmp_path):
         plan_path = tmp_path / "vbrief" / "plan.vbrief.json"

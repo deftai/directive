@@ -328,6 +328,54 @@ def test_aggregator_emits_implementation_plan_section(render_mod, tmp_path) -> N
     assert pending_pos < active_pos < completed_pos
 
 
+def test_aggregator_preserves_epic_and_story_acceptance(render_mod, tmp_path) -> None:
+    """Lifecycle rendering must show broad epic acceptance and story item acceptance."""
+    vbrief_dir = tmp_path / "vbrief"
+    spec_path = _write_spec(vbrief_dir, {"Overview": "Acceptance visibility."})
+    _write_scope(
+        vbrief_dir / "pending",
+        "2026-05-12-ip001-auth.vbrief.json",
+        _scope(
+            "IP-1: Auth epic",
+            "pending",
+            {
+                "Description": "Broad auth phase.",
+                "Acceptance": "Parent acceptance remains visible.",
+                "Traces": "FR-1",
+            },
+            items=[],
+        ),
+    )
+    _write_scope(
+        vbrief_dir / "active",
+        "2026-05-12-auth-story.vbrief.json",
+        _scope(
+            "Auth story",
+            "running",
+            {"Description": "Executable auth story."},
+            items=[
+                {
+                    "id": "story-a",
+                    "title": "Implement login",
+                    "status": "pending",
+                    "narrative": {
+                        "Acceptance": "Login returns a token.",
+                        "Traces": "FR-1",
+                    },
+                }
+            ],
+        ),
+    )
+
+    out = tmp_path / "SPECIFICATION.md"
+    ok, msg = render_mod.render_spec(str(spec_path), str(out))
+    assert ok, msg
+    content = out.read_text(encoding="utf-8")
+    assert "**Scope Acceptance**:" in content
+    assert "Parent acceptance remains visible." in content
+    assert "Login returns a token." in content
+
+
 def test_include_scopes_off_suppresses_aggregator(render_mod, tmp_path) -> None:
     """--include-scopes=off skips the aggregator and preserves pre-#435 output (#435 regression)."""
     vbrief_dir = tmp_path / "vbrief"

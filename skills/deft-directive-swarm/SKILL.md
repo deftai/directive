@@ -111,20 +111,24 @@ Cross-references:
 - Underlying CLI: `scripts/scope_lifecycle.py` (the deterministic state machine; idempotent on same-folder moves; three-state exit 0 / 1 / 2).
 - Recurrence record: issue #1025 (2026-05-10 first-session consumer tic-tac-toe swarm; monitor hit `Invalid transition: 'activate' requires file in pending/` on all four candidate vBRIEFs because they were still in `proposed/`).
 
-### Step 1: Read Project State
+### Step 1: Read Project State and Readiness Report
 
-- ! Scan `vbrief/active/` for all story-level vBRIEFs (files matching `*.vbrief.json`)
-- ! For each candidate vBRIEF, MUST run `task vbrief:preflight -- <path>` (the structural intent gate, #810; wraps `scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory) to validate eligibility before any allocation work. Skip any vBRIEF that exits non-zero -- the helper's stderr message is the actionable redirect (`task vbrief:activate <path>`). Surface the exit message in the Phase 0 Step 4 analysis so the user can route the lifecycle move; do NOT attempt to allocate, dispatch, or implement against a vBRIEF that fails the preflight.
-- ! Read each vBRIEF's `plan.title`, `plan.status`, `plan.items`, `references`, and `planRef` (for epic linkage)
+- ! Scan `vbrief/active/` for candidate vBRIEFs (files matching `*.vbrief.json`)
+- ! For each candidate vBRIEF, MUST run `task vbrief:preflight -- <path>` (the structural intent gate, #810; wraps `scripts/preflight_implementation.py` so the same invocation works whether deft is the project root or installed as a `deft/` subdirectory) to validate lifecycle eligibility before allocation work. Skip any vBRIEF that exits non-zero -- the helper's stderr message is the actionable redirect (`task vbrief:activate <path>`). Surface the exit message in the Phase 0 Step 4 analysis so the user can route the lifecycle move; do NOT attempt to allocate, dispatch, or implement against a vBRIEF that fails the preflight.
+- ! Run `task swarm:readiness -- vbrief/active/*.vbrief.json` before any agent allocation. This deterministic report is the allocator's source of truth for ready stories, blocked stories, decomposition-needed epics/phases, dependency waves, conflict groups, file overlap matrix, and missing fields.
+- ! Treat `plan.metadata.kind = "epic"` and `plan.metadata.kind = "phase"` as **needs decomposition**, not merely incomplete. Route broad scopes to `skills/deft-directive-decompose/SKILL.md` instead of assigning them to workers.
+- ! Read only readiness-approved story fields for allocation: `plan.title`, `plan.status`, non-empty `plan.items`, `planRef`, `references`, `plan.metadata.kind`, and `plan.metadata.swarm`.
 - ! Read `vbrief/PROJECT-DEFINITION.vbrief.json` for project-wide context (narratives, scope registry)
-- ! Cross-reference: every candidate vBRIEF should have acceptance criteria in its `plan.items`
 - ! Determine the base branch: ask the user which branch to target for worktree creation, PR targets, and rebase cascade (default: `master`). Record this as the **configured base branch** for all subsequent phases.
 - ⊗ Spawn an implementation agent (via `start_agent`, `oz agent run`, Warp tab dispatch, or any other path) for a vBRIEF that has not passed `task vbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- the gate is the only authorization signal; affirmative continuation phrases and workflow-shape vocabulary are NOT (#810).
+- ⊗ Allocate concurrent workers unless candidates are swarm-ready `kind=story` vBRIEFs with non-empty executable `plan.items` and `task swarm:readiness` exits 0.
+- ⊗ Use manual file-overlap reasoning as the only safety check; use the readiness report first, then explain any additional human judgment.
 
 ### Step 2: Surface Blockers
 
 - ! Identify blocked vBRIEFs (status `blocked`) and their blocking reasons (check `narrative` fields)
 - ! Identify vBRIEFs with incomplete acceptance criteria (no `plan.items` or empty items array)
+- ! Identify epic/phase scope vBRIEFs from the readiness report and route them to decomposition
 - ! Identify dependency conflicts between candidate vBRIEFs (e.g. story A depends on story B via `planRef` or `edges`, but B is assigned to a different agent or is incomplete)
 - ! Flag any candidate vBRIEFs whose prerequisites are unmet
 
@@ -142,8 +146,10 @@ Cross-references:
 ! Present a summary to the user containing:
 
 - **Candidate vBRIEFs**: story-level vBRIEFs eligible for assignment (with titles, statuses, and origin references)
+- **Readiness report**: ready stories, blocked stories, decomposition-needed epics/phases, dependency waves, conflict groups, file overlap matrix, and missing fields from `task swarm:readiness`
 - **Preflight rejections (#810)**: any vBRIEFs that failed `task vbrief:preflight` (wraps `scripts/preflight_implementation.py`) in Step 1 -- include the file path AND the helper's exit message verbatim so the user can route the appropriate `task vbrief:activate <path>` move. These vBRIEFs MUST NOT be allocated until they pass the preflight on a re-run.
 - **Blockers found**: blocked vBRIEFs, unresolved dependencies, items requiring design decisions
+- **Decomposition needed**: epic/phase scopes that must go through `skills/deft-directive-decompose/SKILL.md` before swarm allocation
 - **Incomplete vBRIEFs**: stories with missing or empty acceptance criteria
 - **Allocation plan**: which agent gets which vBRIEF(s), with reasoning for batching decisions
 - **Tentative version bump**: current version (from CHANGELOG.md or latest git tag) and proposed next version (patch/minor/major) based on the scope and nature of candidate items — this is advisory and will be confirmed before merge cascade
@@ -167,7 +173,7 @@ Cross-references:
 
 ### Step 2: File-Overlap Audit
 
-! Before assigning tasks to agents, list every file each vBRIEF's acceptance criteria are expected to touch.
+! Before assigning tasks to agents, start from the `task swarm:readiness` file-overlap matrix and conflict groups, then list every file each vBRIEF's acceptance criteria are expected to touch.
 
 - ! Verify ZERO file overlap between agents — no two agents may modify the same file
 - ! Check **transitive** file touches, not just primary scope — trace each vBRIEF's acceptance criteria to specific files. A task may require changes to files outside its obvious scope (e.g., an enforcement task adding an anti-pattern to a skill file owned by another agent).

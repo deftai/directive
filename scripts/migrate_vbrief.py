@@ -2316,7 +2316,7 @@ def _create_speckit_scope_vbrief(
             narratives[extra] = value.strip()
 
     references = [
-        {"type": "x-vbrief/plan", "url": spec_ref},
+        {"type": "x-vbrief/plan", "uri": spec_ref},
     ]
     # Copy any origin-provenance refs from the item (e.g. github-issue).
     for ref in item.get("references", []) or []:
@@ -2328,10 +2328,11 @@ def _create_speckit_scope_vbrief(
         "status": "pending",
         "narratives": narratives,
         "items": [],
+        "metadata": {"kind": "phase"},
         "references": references,
     }
     if dependencies:
-        plan["metadata"] = {"dependencies": list(dependencies)}
+        plan["metadata"]["dependencies"] = list(dependencies)
 
     return {
         "vBRIEFInfo": {
@@ -2347,7 +2348,7 @@ def migrate_speckit_plan(
     *,
     pending_dir: Path | None = None,
     date: str | None = None,
-    spec_ref: str = "../specification.vbrief.json",
+    spec_ref: str = "./specification.vbrief.json",
 ) -> tuple[bool, list[str]]:
     """Translate a speckit-shaped ``plan.vbrief.json`` into scope vBRIEFs.
 

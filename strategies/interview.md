@@ -57,7 +57,7 @@ See `strategies/map.md` for standalone behavior.
 
 **Switch spec-generating strategy** (type: `spec-generating` — replaces current pipeline):
 - Yolo — auto-pilot, Johnbot picks all answers
-- SpecKit — five-phase formal spec process
+- SpecKit — formal spec process with story readiness before implementation
 
 ### Run Count Annotations
 
@@ -89,7 +89,7 @@ Ready to generate the specification. Before we proceed, would you like to:
 
 --- Switch strategy ---
 6. Switch to yolo — auto-pilot picks all answers
-7. Switch to speckit — formal five-phase spec process
+7. Switch to speckit — formal spec process with story readiness before implementation
 
 8. Other (specify)
 ```

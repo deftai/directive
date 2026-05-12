@@ -1,0 +1,13 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  readiness:
+    desc: "Report whether story vBRIEFs are ready for concurrent swarm allocation"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/swarm_readiness.py" {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"

@@ -97,6 +97,9 @@ includes:
   scope:
     taskfile: ./tasks/scope.yml
     optional: true
+  swarm:
+    taskfile: ./tasks/swarm.yml
+    optional: true
   roadmap:
     taskfile: ./tasks/roadmap.yml
     optional: true

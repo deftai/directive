@@ -1,7 +1,8 @@
 """test_speckit_phase4.py -- Content tests for #436.
 
 Verifies:
-- strategies/speckit.md Phase 4 emits scope vBRIEFs per implementation phase
+- strategies/speckit.md Phase 4 emits phase/epic scope vBRIEFs per implementation phase
+- strategies/speckit.md Phase 4.5 emits swarm-ready story vBRIEFs
 - Artifacts Summary includes 3c PRD render row and Phase 4 pending/ entry
 - plan.vbrief.json is documented as session-todo only (not project plan)
 - vbrief/vbrief.md documents the ip<NNN> 3-digit padded filename convention,
@@ -28,9 +29,12 @@ class TestSpeckitPhase4Emission:
     _text = _read("strategies/speckit.md")
 
     def test_phase_4_heading_updated(self) -> None:
-        assert "## Phase 4: Tasks (Scope vBRIEF Emission)" in self._text, (
-            "speckit Phase 4 heading must announce scope vBRIEF emission (#436)"
+        assert "## Phase 4: Implementation Phase / Epic Scope Emission" in self._text, (
+            "speckit Phase 4 heading must announce phase/epic scope emission"
         )
+
+    def test_phase_45_heading_present(self) -> None:
+        assert "## Phase 4.5: Story Decomposition / Swarm Readiness" in self._text
 
     def test_phase_4_writes_to_pending_folder(self) -> None:
         assert "./vbrief/pending/" in self._text, (
@@ -60,6 +64,20 @@ class TestSpeckitPhase4Emission:
             "plan.metadata.dependencies (#436)"
         )
 
+    def test_phase_4_marks_kind_phase_or_epic(self) -> None:
+        assert 'plan.metadata.kind = "phase"' in self._text
+        assert '"epic"' in self._text
+
+    def test_phase_45_requires_story_swarm_metadata(self) -> None:
+        for token in (
+            'plan.metadata.kind = "story"',
+            "non-empty `plan.items`",
+            "plan.metadata.swarm.file_scope",
+            "plan.metadata.swarm.verify_commands",
+            "planRef",
+        ):
+            assert token in self._text
+
     def test_phase_4_plan_vbrief_is_session_todo(self) -> None:
         assert "session-todo role" in self._text, (
             "speckit.md must describe plan.vbrief.json as the session-todo role (#436)"
@@ -83,6 +101,9 @@ class TestSpeckitPhase4Emission:
         assert "`./vbrief/pending/YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json`" in self._text, (
             "Artifacts Summary must show Phase 4 -> pending scope vBRIEF path (#436)"
         )
+
+    def test_artifacts_summary_includes_phase_45(self) -> None:
+        assert "4.5. Story decomposition" in self._text
 
     def test_migrator_flag_documented(self) -> None:
         assert "--speckit-plan" in self._text, (

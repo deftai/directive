@@ -19,6 +19,8 @@ Key `task` commands for working with vBRIEF files:
 - `task issue:ingest -- <N>` / `task issue:ingest -- --all [--label L] [--status S] [--dry-run]` — Ingest GitHub issues as scope vBRIEFs in `vbrief/proposed/` (deduplicates via existing references)
 - `task vbrief:validate` — Validate schema, filenames, folder/status consistency (part of `task check`)
 - `task scope:promote|activate|complete|cancel|restore|block|unblock <file>` — Lifecycle transitions
+- `task scope:decompose -- <parent.vbrief.json> --draft <decomposition.json>` — Apply an approved phase/epic to story decomposition
+- `task swarm:readiness -- vbrief/active/*.vbrief.json` — Report whether candidate stories are safe for concurrent swarm allocation
 
 For interactive creation workflows, use `run` commands (`.deft/core/run bootstrap`, `.deft/core/run spec`). See [commands.md](../commands.md) for the full command lifecycle.
 
@@ -121,6 +123,58 @@ Larger initiatives use **epic vBRIEFs** linking to child **story vBRIEFs**. Link
 - ! Story vBRIEFs MUST carry `planRef` back to their parent epic
 - ~ The decision to create an epic vs. a standalone story is made collaboratively between user and agent
 
+### Scope Kinds and Swarm Semantics
+
+Directive uses `plan.metadata.kind` to distinguish broad planning scopes from executable swarm units:
+
+- `kind = "epic"` or `kind = "phase"` — broad implementation scope. MAY use `plan.narratives.Acceptance` for parent-level acceptance context and MAY have `plan.items: []`.
+- `kind = "story"` — executable implementation unit. MUST use non-empty `plan.items` for executable acceptance.
+
+- ! Story vBRIEFs are the only valid inputs for concurrent swarm worker allocation.
+- ! Epic/phase vBRIEFs MUST be decomposed before swarm allocation unless explicitly marked as a single-story scope.
+- ! Swarm allocation MUST NOT treat broad acceptance in `plan.narratives.Acceptance` as executable story acceptance.
+- ~ Phase 4 speckit output SHOULD use `kind = "phase"` or `kind = "epic"`; Phase 4.5 decomposition emits `kind = "story"` children.
+
+### Swarm-Ready Story Contract
+
+Swarm-ready story metadata lives under `plan.metadata.swarm` so the v0.6 schema remains compatible:
+
+```json
+{
+  "plan": {
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": ["src/foo.ts", "tests/foo.test.ts"],
+        "verify_commands": ["npm test -- foo"],
+        "expected_outputs": ["focused tests pass"],
+        "depends_on": ["story-id"],
+        "conflict_group": "backend-api",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    }
+  }
+}
+```
+
+For `kind = "story"` and `swarm.readiness = "ready"`:
+
+- ! `plan.items` MUST be non-empty
+- ! executable acceptance MUST live in `plan.items[].narrative.Acceptance`
+- ! dependency IDs MUST live in `plan.metadata.swarm.depends_on`
+- ! `file_scope` MUST be non-empty
+- ! `verify_commands` MUST be non-empty
+- ! `expected_outputs` SHOULD describe the evidence the worker is expected to produce
+- ! traces MUST exist through item/story `Traces`, `x-vbrief/spec-section` references, or an explicit `missing_traces_justification`
+- ! `planRef` MUST point to the parent phase/epic when the story was decomposed from one
+- ! parent phase/epic `references` MUST include child story paths with `type: x-vbrief/plan`
+- ⊗ Set `parallel_safe: true` on a `size: "large"` story
+- ⊗ Treat `file_scope_confidence: "low"` as parallel-safe by default
+
 **Epic → Stories** (via `references`):
 ```json
 {
@@ -165,13 +219,15 @@ When a scope grows too large, the parent vBRIEF becomes an epic and children are
 
 1. Agent identifies the scope is too large (collaboratively with user)
 2. Parent vBRIEF promoted to epic
-3. Child story vBRIEFs created with `planRef` back to parent
-4. Parent epic's `references` updated to list all child paths
-5. Update `plan.vbrief.json` (and `continue.vbrief.json` if present) `planRef` to reference child scope vBRIEFs
-6. Acceptance criteria redistributed by agent with user approval
-7. Origin provenance stays on the parent epic; children inherit via epic relationship
+3. Agent drafts a decomposition proposal and gets explicit user approval
+4. `task scope:decompose -- <parent> --draft <draft.json>` creates child story vBRIEFs with `planRef` back to parent
+5. Parent epic's `references` updated to list all child paths
+6. Update `plan.vbrief.json` (and `continue.vbrief.json` if present) `planRef` to reference child scope vBRIEFs
+7. Acceptance criteria redistributed by agent with user approval
+8. Origin provenance stays on the parent epic; children inherit via epic relationship
 
-- ! Scope splitting is agent-driven using existing tools — no dedicated split command
+- ! Scope splitting MUST use an approved draft and `task scope:decompose` for child writes
+- ! Run `task swarm:readiness` after decomposition before concurrent worker allocation
 - ~ Uses existing `scope:*` commands for lifecycle transitions after splitting
 
 ### General Rules

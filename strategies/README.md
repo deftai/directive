@@ -8,7 +8,7 @@ Development strategies define the workflow from idea to implementation.
 |----------|---------|------|----------|--------|
 | [interview.md](./interview.md) | `/deft:run:interview` | spec-generating | Standard projects (default) | Sizing gate: Light (Interview → SPECIFICATION) or Full (Interview → PRD → SPECIFICATION) |
 | [yolo.md](./yolo.md) | `/deft:run:yolo` | spec-generating | Quick prototyping | Auto-pilot sizing gate: Light or Full (Johnbot picks) |
-| [speckit.md](./speckit.md) | `/deft:run:speckit` | spec-generating | Large/complex projects | Principles → Specify → Plan → Tasks → Implement |
+| [speckit.md](./speckit.md) | `/deft:run:speckit` | spec-generating | Large/complex projects | Principles → Specify → Plan → Phase/Epic Scope → Story Readiness → Implement |
 | [map.md](./map.md) | `/deft:run:map` | preparatory | Existing codebases | Map → Chaining Gate |
 | [discuss.md](./discuss.md) | `/deft:run:discuss` | preparatory | Alignment before planning | Feynman technique → locked decisions → Chaining Gate |
 | [probe.md](./probe.md) | `/deft:run:probe` | preparatory | Adversarial plan stress-testing | Walk decision tree → challenge assumptions → surface risks → Chaining Gate |
