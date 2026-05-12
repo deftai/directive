@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "feat(patterns): add patterns/ directory and patterns/llm-app.md for LLM application standards",
-    "status": "pending",
+    "status": "running",
     "narratives": {
       "SourceSection": "Phase 2",
       "Description": "Create a new top-level patterns/ directory for cross-language architectural patterns (how to architect this *kind* of system, orthogonal to languages/, interfaces/, platforms/, coding/). First file: patterns/llm-app.md covering prompt construction (delimiters, parameterized templates), explicit trust tiers (system > few-shot > user > retrieved > web), tool/function-call validation (confused-deputy mitigation), RAG hygiene (no LLM-write-back, provenance), output handling (schema validation, XSS sanitisation), multi-agent orchestration (sub-agent-output-is-untrusted), and LLM-specific observability. Add REFERENCES.md lazy-load trigger and a short coding/coding.md addendum. Source material: AI Agent Traps paper (docs/ssrn-6372438.pdf).",
@@ -35,6 +35,6 @@
         "title": "Companion: #482 (move coding/holzmann.md -> patterns/safety-critical.md and swarm/swarm.md -> patterns/multi-agent.md)"
       }
     ],
-    "updated": "2026-05-12T19:53:33Z"
+    "updated": "2026-05-12T22:12:00Z"
   }
 }

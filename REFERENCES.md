@@ -69,6 +69,13 @@ Load as needed:
 - Load: Only when multiple agents working on same codebase
 - Contains: communication protocols, conflict resolution, handoff patterns
 
+### When Building LLM Applications
+
+**[patterns/llm-app.md](./patterns/llm-app.md)** - LLM application standards (#481)
+- Load: When the project calls any LLM API (OpenAI, Anthropic, Cohere, local models, etc.), builds agentic functionality, or implements RAG
+- Contains: prompt construction (delimiters, parameterized templates), explicit trust tiers (system > few-shot > user > retrieved > web), tool/function-call validation (confused-deputy mitigation), RAG hygiene (no LLM-write-back, provenance), output handling (schema validation, XSS sanitization), multi-agent orchestration (sub-agent-output-is-untrusted), LLM-specific observability
+- Source material: AI Agent Traps paper (`docs/ssrn-6372438.pdf`)
+
 ### When Managing Context or Long Tasks
 
 - **[context/context.md](./context/context.md)** - Core context engineering strategies (Write, Select, Compress, Isolate)
