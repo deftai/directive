@@ -287,6 +287,225 @@ class TestDryRun:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Legacy v1/v2 marker upgrade + duplicate-block recovery (#1044)
+# ---------------------------------------------------------------------------
+
+
+_BARE_V1_OPEN = "<!-- deft:managed-section v1 -->"
+_BARE_V2_OPEN = "<!-- deft:managed-section v2 -->"
+_BARE_V3_OPEN = "<!-- deft:managed-section v3 -->"
+_MARKER_CLOSE = "<!-- /deft:managed-section -->"
+
+
+def _count_managed_blocks(text: str) -> int:
+    """Return the count of managed-section blocks in ``text`` (#1044 helper)."""
+    import re as _re
+    return len(_re.findall(
+        r"<!--\s*deft:managed-section\s+v[123](?:\s+[^>]*)?\s*-->", text
+    ))
+
+
+class TestLegacyMarkerUpgrade:
+    """Legacy v1/v2 managed blocks are byte-replaced in place, never appended (#1044).
+
+    Before #1044 a consumer's AGENTS.md whose managed section was
+    bracketed by ``<!-- deft:managed-section v1 -->`` (the v0.26
+    marker) fell through to the ``missing`` classification because
+    the regex only matched v2/v3. The ``missing`` path triggered
+    ``_wrap_legacy_in_markers`` which APPENDED a fresh v3 block --
+    leaving the file with two managed blocks. The fix is to extend
+    the open-marker regex to accept v1 as well so the classifier
+    routes the file through ``stale`` (in-place byte-replace).
+    """
+
+    def test_v1_marker_only_replaces_in_place_at_original_position(
+        self, tmp_path, run_command, deft_run_module, monkeypatch
+    ):
+        monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        monkeypatch.chdir(tmp_path)
+        _patch_template(monkeypatch, deft_run_module)
+        existing = (
+            "# My consumer notes (preserved above)\n"
+            "Custom rules.\n"
+            "\n"
+            f"{_BARE_V1_OPEN}\n"
+            "# Old v0.26 body\n"
+            "Old v1 content\n"
+            f"{_MARKER_CLOSE}\n"
+            "\n"
+            "## Below the markers (preserved)\n"
+        )
+        (tmp_path / "AGENTS.md").write_text(existing, encoding="utf-8")
+
+        result = run_command("cmd_agents_refresh", [])
+
+        assert result.return_code == 0
+        new = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+        # Exactly one managed block remains -- no append.
+        assert _count_managed_blocks(new) == 1
+        # The remaining block is v3 (the v1 marker was upgraded).
+        import re as _re
+        marker_match = _re.search(
+            r"<!--\s*deft:managed-section v3(?:\s+[^>]*)?\s*-->", new
+        )
+        assert marker_match is not None
+        # No trace of the legacy v1 marker.
+        assert _BARE_V1_OPEN not in new
+        # Old v1 body bytes are replaced by the rendered template.
+        assert "Old v1 content" not in new
+        assert "# Deft\nBody" in new
+        # Surrounding user content order is preserved -- consumer notes
+        # above the original v1 block AND content below remain in
+        # document order.
+        notes_idx = new.index("My consumer notes (preserved above)")
+        below_idx = new.index("Below the markers (preserved)")
+        marker_idx = marker_match.start()
+        assert notes_idx < marker_idx < below_idx
+
+    def test_v1_marker_classified_as_stale(
+        self, tmp_path, deft_run_module, monkeypatch
+    ):
+        """`_classify_agents_md` returns ``stale`` for v1-only AGENTS.md (#1044)."""
+        _patch_template(monkeypatch, deft_run_module)
+        legacy = f"{_BARE_V1_OPEN}\n# Deft\nBody\n{_MARKER_CLOSE}\n"
+        (tmp_path / "AGENTS.md").write_text(legacy, encoding="utf-8")
+        assert deft_run_module._classify_agents_md(tmp_path) == "stale"
+
+    def test_v2_marker_only_replaces_in_place_at_original_position(
+        self, tmp_path, run_command, deft_run_module, monkeypatch
+    ):
+        """v2 markers also classify as stale and byte-replace in place (#1046 PR-B AC-5).
+
+        Pinned alongside the v1 case so #1044's expanded regex does not
+        accidentally break the existing v2 -> v3 transition.
+        """
+        monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        monkeypatch.chdir(tmp_path)
+        _patch_template(monkeypatch, deft_run_module)
+        existing = (
+            "# preamble (preserved)\n"
+            "\n"
+            f"{_BARE_V2_OPEN}\n"
+            "# Old v0.27 body\n"
+            "Old v2 content\n"
+            f"{_MARKER_CLOSE}\n"
+            "\n"
+            "## footer (preserved)\n"
+        )
+        (tmp_path / "AGENTS.md").write_text(existing, encoding="utf-8")
+
+        result = run_command("cmd_agents_refresh", [])
+
+        assert result.return_code == 0
+        new = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+        assert _count_managed_blocks(new) == 1
+        assert _BARE_V2_OPEN not in new
+        assert "Old v2 content" not in new
+        assert "# Deft\nBody" in new
+        # Surrounding user content order preserved.
+        import re as _re
+        marker_match = _re.search(
+            r"<!--\s*deft:managed-section v3(?:\s+[^>]*)?\s*-->", new
+        )
+        assert marker_match is not None
+        assert new.index("preamble (preserved)") < marker_match.start()
+        assert marker_match.start() < new.index("footer (preserved)")
+
+    def test_v1_plus_v3_duplicate_blocks_collapsed_to_single_v3(
+        self, tmp_path, run_command, deft_run_module, monkeypatch
+    ):
+        """A v1 leftover coexisting with a v3 block is removed; only v3 remains (#1044).
+
+        Reproduces the broken state a pre-#1044 partial upgrade leaves
+        behind: the legacy v1 block stays put AND a fresh v3 block was
+        appended below it. After this fix, the refresh path detects
+        multiple managed blocks, removes ALL of them, and inserts a
+        single v3-attributed block at the position of the FIRST block
+        so the file's surrounding user content order is preserved.
+        """
+        monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        monkeypatch.chdir(tmp_path)
+        _patch_template(monkeypatch, deft_run_module)
+        existing = (
+            "# Top notes (preserved)\n"
+            "\n"
+            f"{_BARE_V1_OPEN}\n"
+            "# Old v1 body\n"
+            "Old v1 content\n"
+            f"{_MARKER_CLOSE}\n"
+            "\n"
+            "# Middle notes (preserved)\n"
+            "\n"
+            f"{_BARE_V3_OPEN}\n"
+            "# Deft\n"
+            "Body\n"
+            f"{_MARKER_CLOSE}\n"
+            "\n"
+            "# Bottom notes (preserved)\n"
+        )
+        (tmp_path / "AGENTS.md").write_text(existing, encoding="utf-8")
+
+        result = run_command("cmd_agents_refresh", [])
+
+        assert result.return_code == 0
+        new = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+        # Exactly one managed block remains -- the duplicate leftover
+        # is gone.
+        assert _count_managed_blocks(new) == 1
+        # No legacy v1 marker survives.
+        assert _BARE_V1_OPEN not in new
+        assert "Old v1 content" not in new
+        # The remaining block is v3 (bare or attributed).
+        import re as _re
+        marker_match = _re.search(
+            r"<!--\s*deft:managed-section v3(?:\s+[^>]*)?\s*-->", new
+        )
+        assert marker_match is not None
+        # Surrounding user content order preserved -- top, middle, and
+        # bottom notes survive in document order, and the single v3
+        # block sits where the FIRST (v1) block used to be (above the
+        # middle notes).
+        top_idx = new.index("Top notes (preserved)")
+        middle_idx = new.index("Middle notes (preserved)")
+        bottom_idx = new.index("Bottom notes (preserved)")
+        marker_idx = marker_match.start()
+        assert top_idx < marker_idx < middle_idx < bottom_idx
+
+    def test_duplicate_block_classified_as_stale(
+        self, tmp_path, deft_run_module, monkeypatch
+    ):
+        """`_classify_agents_md` returns ``stale`` when multiple managed blocks present (#1044)."""
+        _patch_template(monkeypatch, deft_run_module)
+        duplicate = (
+            f"{_BARE_V1_OPEN}\nold\n{_MARKER_CLOSE}\n"
+            f"\n{_BARE_V3_OPEN}\n# Deft\nBody\n{_MARKER_CLOSE}\n"
+        )
+        (tmp_path / "AGENTS.md").write_text(duplicate, encoding="utf-8")
+        assert deft_run_module._classify_agents_md(tmp_path) == "stale"
+
+    def test_v1_refresh_is_idempotent(
+        self, tmp_path, run_command, deft_run_module, monkeypatch
+    ):
+        """Running refresh twice from a v1-only baseline produces byte-identical output (#1044)."""
+        monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        monkeypatch.chdir(tmp_path)
+        _patch_template(monkeypatch, deft_run_module)
+        (tmp_path / "AGENTS.md").write_text(
+            f"preamble\n{_BARE_V1_OPEN}\nold\n{_MARKER_CLOSE}\n",
+            encoding="utf-8",
+        )
+
+        run_command("cmd_agents_refresh", [])
+        first = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+        run_command("cmd_agents_refresh", [])
+        second = (tmp_path / "AGENTS.md").read_text(encoding="utf-8")
+
+        assert first == second
+        # And the file still carries exactly one managed block.
+        assert _count_managed_blocks(second) == 1
+
+
 class TestCmdUpgradePropagatesRefreshFailure:
     """`cmd_upgrade` MUST propagate `cmd_agents_refresh`'s return code.
 

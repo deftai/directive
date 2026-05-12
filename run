@@ -1458,26 +1458,35 @@ def _check_upgrade_gate(command: str) -> bool:
 
 # Managed-section marker contract.
 #
-# v2 was the v0.27 marker (#992 PR1, bumped from v1). v3 is the #1046 PR-B
-# marker that carries refresh provenance as attributes on the open tag:
-# ``<!-- deft:managed-section v3 sha=<framework-sha> refreshed=<iso>
-# session=<id> -->``. ``cmd_agents_refresh`` stamps the attributes at write
-# time; the staleness classifier normalises the open tag to the bare v3
-# form before byte-comparing so the attributes do not poison
-# idempotency. Parser back-compat: ``_AGENTS_MANAGED_OPEN_RE`` accepts
-# BOTH v2 and v3 with-or-without attributes for ONE release cycle (v0.28
-# only; v0.29 deprecates v2 -- see ``meta/lessons.md`` for the
-# deprecation window precedent).
+# v1 was the v0.26 marker (the original ``<!-- deft:managed-section v1 -->``
+# form). v2 was the v0.27 marker (#992 PR1, bumped from v1). v3 is the
+# #1046 PR-B marker that carries refresh provenance as attributes on the
+# open tag: ``<!-- deft:managed-section v3 sha=<framework-sha>
+# refreshed=<iso> session=<id> -->``. ``cmd_agents_refresh`` stamps the
+# attributes at write time; the staleness classifier normalises the open
+# tag to the bare v3 form before byte-comparing so the attributes do not
+# poison idempotency. Parser back-compat: ``_AGENTS_MANAGED_OPEN_RE``
+# accepts v1, v2 AND v3 with-or-without attributes so a consumer whose
+# AGENTS.md is bracketed by a legacy v1/v2 marker is classified as
+# ``stale`` and the bracketed block is byte-replaced in place by the
+# current v3 render (#1044) -- never appended as a second managed block.
 _AGENTS_MANAGED_OPEN = "<!-- deft:managed-section v3 -->"
 _AGENTS_MANAGED_OPEN_V2_LITERAL = "<!-- deft:managed-section v2 -->"
 _AGENTS_MANAGED_OPEN_V3_LITERAL = "<!-- deft:managed-section v3 -->"
 _AGENTS_MANAGED_CLOSE = "<!-- /deft:managed-section -->"
 
-# Accepts ``<!-- deft:managed-section v2 -->`` and ``<!-- deft:managed-section
-# v3 [attrs] -->``. Group 1 = version (2 or 3). Group 2 = the raw attribute
-# string (without leading whitespace) or '' when no attributes are present.
+# Accepts ``<!-- deft:managed-section v1 -->``,
+# ``<!-- deft:managed-section v2 -->`` and
+# ``<!-- deft:managed-section v3 [attrs] -->``. Group 1 = version (1, 2 or
+# 3). Group 2 = the raw attribute string (without leading whitespace) or
+# '' when no attributes are present. v1 acceptance (#1044) is the
+# load-bearing fix: before this, a v1-marker AGENTS.md fell through to
+# the ``missing`` path and triggered the legacy-wrap migration, producing
+# a SECOND managed block beneath the existing v1 one. With v1 in the
+# regex the classifier returns ``stale`` and the refresh path
+# byte-replaces the v1 block in place.
 _AGENTS_MANAGED_OPEN_RE = re.compile(
-    r"<!--\s*deft:managed-section\s+v(2|3)(?:\s+([^>]*?))?\s*-->"
+    r"<!--\s*deft:managed-section\s+v(1|2|3)(?:\s+([^>]*?))?\s*-->"
 )
 
 # Recognised attribute keys on the v3 marker. Extra keys are tolerated
@@ -1510,24 +1519,56 @@ def _read_agents_template() -> Optional[str]:
 
 
 def _find_managed_open_marker(text: str) -> Optional[re.Match]:
-    """Return the regex match for the open marker (v2 OR v3), or None (#1046 PR-B).
+    """Return the regex match for the open marker (v1, v2 OR v3), or None (#1044, #1046 PR-B).
 
-    Accepts ``<!-- deft:managed-section v2 -->`` AND
-    ``<!-- deft:managed-section v3 [attrs] -->``. The v2 back-compat
-    window is one release cycle per the #1046 PR-B Constraint narrative
-    (v0.28 only; v0.29 deprecates v2).
+    Accepts ``<!-- deft:managed-section v1 -->``,
+    ``<!-- deft:managed-section v2 -->`` AND
+    ``<!-- deft:managed-section v3 [attrs] -->``. v1 acceptance is the
+    #1044 fix so a legacy v0.26 consumer's marker is recognised by the
+    classifier and routed through the in-place byte-replace path rather
+    than the legacy-wrap append path.
     """
     return _AGENTS_MANAGED_OPEN_RE.search(text)
 
 
-def _parse_managed_section_attrs(extracted: str) -> Optional[dict]:
-    """Parse the open-marker attributes from an extracted managed section (#1046 PR-B).
+def _iter_managed_sections(text: str) -> List[tuple]:
+    """Yield ``(start, end, block)`` triples for every managed section (#1044).
 
-    Returns a dict with keys ``version`` (int, 2 or 3), ``sha`` (str or
+    Walks ``text`` left-to-right collecting every well-formed
+    ``<open>...<close>`` region. ``start`` is the open marker's first
+    byte index, ``end`` is the byte index just past the close marker,
+    and ``block`` is the corresponding text slice (newline-normalised by
+    the caller). Used by ``_agents_refresh_plan`` to collapse the
+    duplicate-block recovery case (a v1 marker coexisting with a v3
+    marker because a partial upgrade ran the append path before this
+    fix) into a single v3 block at the position of the first managed
+    section -- preserving surrounding user content order.
+    """
+    results: List[tuple] = []
+    pos = 0
+    while pos <= len(text):
+        open_match = _AGENTS_MANAGED_OPEN_RE.search(text, pos)
+        if open_match is None:
+            break
+        close_idx = text.find(_AGENTS_MANAGED_CLOSE, open_match.end())
+        if close_idx < 0:
+            break
+        end = close_idx + len(_AGENTS_MANAGED_CLOSE)
+        results.append((open_match.start(), end, text[open_match.start():end]))
+        pos = end
+    return results
+
+
+def _parse_managed_section_attrs(extracted: str) -> Optional[dict]:
+    """Parse the open-marker attributes from an extracted managed section (#1046 PR-B, #1044).
+
+    Returns a dict with keys ``version`` (int, 1, 2 or 3), ``sha`` (str or
     None), ``refreshed`` (ISO 8601 str or None), ``session`` (str or
     None), and ``extras`` (dict of unrecognised key=value attribute
     pairs). Returns None when ``extracted`` does not match the open
-    marker regex.
+    marker regex. v1 markers (#1044 back-compat) parse with
+    ``version=1`` and ``None`` for every provenance attribute -- v1
+    never carried attributes.
 
     Attribute syntax is ``key=value`` separated by whitespace. Quoted
     values are tolerated (``key='value'``, ``key="value"``) and unwrapped
@@ -1639,17 +1680,22 @@ def _classify_agents_md(project_root: Path) -> str:
 
     - ``absent``  -> ./AGENTS.md does not exist
     - ``missing`` -> ./AGENTS.md exists but has no managed-section markers
+                     (no v1/v2/v3 open marker found)
     - ``stale``   -> markers present but bracketed bytes (after open-marker
                      normalisation) != current template render OR the open
-                     marker is the legacy v2 form (forces upgrade to v3)
-    - ``current`` -> bracketed bytes byte-identical to current template
-                     render after stripping v3 marker attributes
+                     marker is a legacy v1/v2 form (forces upgrade to v3)
+                     OR more than one managed-section block exists in the
+                     file (a partial upgrade left duplicate blocks -- #1044)
+    - ``current`` -> exactly one managed block whose bracketed bytes are
+                     byte-identical to current template render after
+                     stripping v3 marker attributes
 
-    A v2-marker consumer file always classifies as ``stale`` so the
-    next refresh upgrades to the v3 form. After upgrade the v3 marker's
-    per-refresh ``sha`` / ``refreshed`` / ``session`` attributes do NOT
-    poison the staleness check -- ``_strip_managed_section_attrs``
-    normalises both sides to the bare ``v3`` form before comparison.
+    A v1- or v2-marker consumer file always classifies as ``stale`` so
+    the next refresh upgrades it to the v3 form (#1044 v1; #1046 PR-B
+    AC-5 v2). After upgrade the v3 marker's per-refresh ``sha`` /
+    ``refreshed`` / ``session`` attributes do NOT poison the staleness
+    check -- ``_strip_managed_section_attrs`` normalises both sides to
+    the bare ``v3`` form before comparison.
 
     A missing or unreadable template falls through to ``current`` so the
     gate never fires solely because the framework checkout itself is
@@ -1662,14 +1708,21 @@ def _classify_agents_md(project_root: Path) -> str:
         existing = agents_md.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return "absent"
-    extracted = _extract_managed_section(existing)
-    if extracted is None:
+    normalised = existing.replace("\r\n", "\n")
+    blocks = _iter_managed_sections(normalised)
+    if not blocks:
         return "missing"
+    if len(blocks) > 1:
+        # Multiple managed blocks present (e.g. a partial v1 -> v3
+        # upgrade left the original v1 in place AND appended a v3) --
+        # always stale so the refresh path collapses to a single v3.
+        return "stale"
+    extracted = blocks[0][2]
     attrs = _parse_managed_section_attrs(extracted)
-    if attrs is not None and attrs["version"] == 2:
-        # v2 marker -- force upgrade to v3 by classifying as stale
-        # regardless of whether the body bytes match. The v2 -> v3
-        # transition is the load-bearing AC-5 deliverable.
+    if attrs is not None and attrs["version"] in (1, 2):
+        # v1 / v2 marker -- force upgrade to v3 by classifying as stale
+        # regardless of whether the body bytes match. The legacy -> v3
+        # transition is the load-bearing #1044 / #1046 PR-B AC-5 fix.
         return "stale"
     template_text = _read_agents_template()
     if template_text is None:
@@ -2418,9 +2471,9 @@ def _agents_refresh_plan(project_root: Path) -> dict:
             "new_content": None,
             "error": str(exc),
         }
-    extracted = _extract_managed_section(existing)
     normalised = existing.replace("\r\n", "\n")
-    if extracted is None:
+    blocks = _iter_managed_sections(normalised)
+    if not blocks:
         # Legacy file with no markers -- one-time migration: wrap the
         # existing content + render the managed-section beneath it.
         new_content = _wrap_legacy_in_markers(normalised, attributed_rendered)
@@ -2435,14 +2488,47 @@ def _agents_refresh_plan(project_root: Path) -> dict:
             "existing": existing,
             "new_content": new_content,
         }
-    # #1046 PR-B AC-5: force-upgrade v2 -> v3 even when body bytes match.
-    # The classifier's ``_classify_agents_md`` rule (v2 markers always
-    # classify as stale) must agree with the plan; otherwise a v0.27.x
+    if len(blocks) > 1:
+        # Duplicate-block recovery (#1044): a partial upgrade left more
+        # than one managed block in place (canonical recurrence: a v1
+        # marker AND a freshly-appended v3 marker, because the pre-#1044
+        # classifier mis-routed v1 to the legacy-wrap path). Collapse to
+        # a single v3-attributed block at the position of the FIRST
+        # block so surrounding user content order is preserved. Walks
+        # the block list in reverse to keep slice indices valid as we
+        # remove each block.
+        first_start = blocks[0][0]
+        new_content = normalised
+        for start, end, _ in reversed(blocks):
+            new_content = new_content[:start] + new_content[end:]
+        new_content = (
+            new_content[:first_start]
+            + attributed_rendered
+            + new_content[first_start:]
+        )
+        return {
+            "state": "stale",
+            "path": str(agents_md),
+            "rendered": rendered,
+            "attributed_rendered": attributed_rendered,
+            "sha": framework_sha,
+            "refreshed": refreshed,
+            "session": session_id,
+            "existing": existing,
+            "new_content": new_content,
+        }
+    # Single managed block -- the canonical refresh path.
+    extracted = blocks[0][2]
+    # Force-upgrade v1 / v2 -> v3 even when body bytes match. The
+    # classifier's ``_classify_agents_md`` rule (legacy markers always
+    # classify as stale) must agree with the plan; otherwise a v0.26.x
     # consumer whose body is byte-identical to the v0.28 template would
-    # stay on the v2 marker indefinitely.
+    # stay on the v1 marker indefinitely (#1044 / #1046 PR-B AC-5).
     extracted_attrs = _parse_managed_section_attrs(extracted)
-    is_v2_marker = extracted_attrs is not None and extracted_attrs["version"] == 2
-    if not is_v2_marker and _strip_managed_section_attrs(extracted) == rendered:
+    is_legacy_marker = (
+        extracted_attrs is not None and extracted_attrs["version"] in (1, 2)
+    )
+    if not is_legacy_marker and _strip_managed_section_attrs(extracted) == rendered:
         return {
             "state": "current",
             "path": str(agents_md),
