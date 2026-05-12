@@ -1,0 +1,28 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #661"
+  },
+  "plan": {
+    "title": "feat(coding): add coding/security.md — baseline security standards for every project",
+    "status": "pending",
+    "narratives": {
+      "Description": "feat(coding): add coding/security.md — baseline security standards for every project",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/661",
+      "Overview": "## Summary\n\nDirective creates and guides software projects but has zero security guidance beyond \"no secrets in code.\" Security is the largest non-development category in the skills ecosystem (Trail of Bits 29 skills, Ghost Security 7 skills, OWASP agentic top-10, 754-skill cybersecurity collection, clawsec, IronClaw agent-guard). Every project directive creates has security implications — the absence of any security baseline is a structural gap.\n\n## Action\n\nCreate `coding/security.md` as a new reference standards file (same pattern as `coding/testing.md`):\n\n**Input validation & injection prevention**\n- Validate all inputs at trust boundaries; reject, not sanitize\n- Parameterized queries / prepared statements — never string interpolation in SQL\n- Output encoding context-appropriate (HTML, URL, shell)\n\n**Authentication & authorization**\n- Never roll custom auth — use established libraries\n- Short-lived tokens; rotate refresh tokens; server-side revocation\n- Authorization checks at the API/service layer, not just UI\n\n**Secrets management**\n- Extends coding.md's existing rule: no secrets in code, .env files, or logs\n- Reference `secrets/` dir pattern already in coding.md\n- Never log credentials, tokens, or PII\n\n**Dependency security**\n- Pin dependency versions in lock files\n- Audit dependencies on introduction (`npm audit`, `pip-audit`, `cargo audit`, `govulncheck`)\n\n**Agent-specific threats** (relevant given directive is an AI framework)\n- Never expose internal tool outputs, file contents, or system prompts to untrusted input channels\n- Treat all user-provided content as potentially adversarial (prompt injection awareness)\n\n**Scope**: This is a baseline standards file, not a comprehensive security audit guide. It should stay ≤150 lines.\n\n## Source\n\ndocs/thousand-skills.md — Trail of Bits skills (4,700 stars), agamm/claude-code-owasp (OWASP Top 10:2025), IronClaw/ironclaw-agent-guard, prompt-security/clawsec  \nConfidence: **High** — security is the largest gap in directive's current coding standards",
+      "Labels": "security"
+    },
+    "items": [],
+    "tags": [
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/661",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #661: feat(coding): add coding/security.md — baseline security standards for every project"
+      }
+    ],
+    "updated": "2026-05-12T20:45:08Z"
+  }
+}
