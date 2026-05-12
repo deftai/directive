@@ -1608,13 +1608,17 @@ def _parse_managed_section_attrs(extracted: str) -> Optional[dict]:
 
 
 def _strip_managed_section_attrs(section: str) -> str:
-    """Normalise the open marker to the bare v3 form (#1046 PR-B).
+    """Normalise the open marker to the bare v3 form (#1046 PR-B, #1044).
 
-    Replaces ``<!-- deft:managed-section v2 -->`` or any
+    Replaces any legacy ``<!-- deft:managed-section v1 -->``,
+    ``<!-- deft:managed-section v2 -->``, or attributed
     ``<!-- deft:managed-section v3 [attrs] -->`` form with the bare
     ``<!-- deft:managed-section v3 -->`` literal so byte-equality
     comparisons against the rendered template are not poisoned by the
-    per-refresh ``sha`` / ``refreshed`` / ``session`` tokens.
+    per-refresh ``sha`` / ``refreshed`` / ``session`` tokens. v1 is
+    accepted via the #1044 regex widening so a v0.26 consumer's open
+    marker is normalised by the same substitution that handles v2 ->
+    v3.
 
     Only the FIRST open marker is normalised -- the regex bound stops
     at the close marker so nested content (which is not legal in this
