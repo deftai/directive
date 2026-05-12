@@ -275,6 +275,15 @@ tasks:
     desc: Remove deft entry from AGENTS.md (alias for install:uninstall)
     cmds:
       - task: install:uninstall
+  # User-facing upgrade entrypoint (#1061). Aliases the install:upgrade
+  # wrapper that delegates to `run upgrade`. Cited by the doctor's
+  # failure prose and docs/install-manifest.md as the canonical
+  # post-drift repair entrypoint for the AGENTS.md / manifest /
+  # .deft-version triple.
+  upgrade:
+    desc: "Upgrade deft framework -- refresh AGENTS.md + write install manifest + regenerate .deft-version (alias for install:upgrade, #1061)"
+    cmds:
+      - task: install:upgrade
   stats:
     desc: Show framework statistics (alias for core:stats)
     cmds:

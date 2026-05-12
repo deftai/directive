@@ -24,3 +24,30 @@ tasks:
           out=''.join(l for l in lines if not l.startswith('See deft/main.md') and not l.startswith('Skills: deft/skills/'));
           f.write_text(out,'utf-8') if f.exists() else None;
           print('Removed deft entry from AGENTS.md' if out!=t else 'No deft entry found in AGENTS.md')"
+
+  # User-facing upgrade entrypoint (#1061). Wraps the canonical
+  # ``run upgrade`` command (`cmd_upgrade` in ./run) which:
+  #   1. Writes / refreshes the bare ``.deft-version`` marker.
+  #   2. Writes the canonical YAML provenance manifest at
+  #      ``<install>/VERSION`` (#1046 PR-B AC-4) -- including the
+  #      ``install_root`` field added in #1062.
+  #   3. Delegates to ``cmd_agents_refresh`` so the AGENTS.md managed
+  #      section is brought to the current rendered template (v3 marker
+  #      with sha/refreshed/session attributes, #1046 PR-B AC-5).
+  # This wrapper exists so the ``framework:doctor`` failure prose and
+  # ``docs/install-manifest.md`` can cite a real Taskfile target rather
+  # than a raw ``run`` invocation. Idempotent on re-run: a second
+  # invocation against a current manifest + AGENTS.md is a no-op.
+  #
+  # Per ``conventions/task-caching.md`` (#574): no ``sources:`` /
+  # ``generates:`` because the task is mutating + must run on every
+  # invocation; CLI_ARGS is intentionally NOT forwarded because
+  # ``cmd_upgrade`` does not currently accept flags (the surface stays
+  # narrow so future flag additions land deliberately, not implicitly).
+  upgrade:
+    desc: "Upgrade deft framework: refresh AGENTS.md to current marker, write canonical install manifest, regenerate .deft-version derivative (#1061). Wraps `run upgrade`."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/run" upgrade

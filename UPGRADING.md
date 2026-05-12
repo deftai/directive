@@ -51,6 +51,46 @@ The transition is one-way -- v0.28 has no shim back to the bare-only marker. To 
 ---
 <!-- 1046-prb: From v0.27.x -> v0.28 install-manifest transition END -->
 
+<!-- 1061: AGENTS.md drift repair via task upgrade BEGIN -->
+## From drifted AGENTS.md -> current install (`task upgrade` repair path, #1061)
+
+- **Applies when:** `task framework:doctor` reports drift on any of the four checks (`quick-start-resolves`, `skill-paths-resolve`, `manifest-agreement`, `install-path-consistency`). Common causes: a canonical-reinstall over a pre-v0.27 AGENTS.md (the #1060 recurrence pattern), a marker-version mismatch where AGENTS.md still carries the v1 / v2 managed-section sentinel after a framework bump, or an install-path-consistency mismatch detected via the new `install_root` manifest field that #1062 added to `<install>/VERSION` (the doctor reads the manifest's `install_root` first, then falls back to the AGENTS.md install-root parse, and FAILs when the resolved directory does not exist on disk).
+- **Safe to auto-run:** Yes. `task upgrade` is the canonical user-facing entrypoint added in #1061; it wraps `run upgrade` and is idempotent on re-run (a second invocation against a current manifest + AGENTS.md is a no-op). The wrapper: (1) re-pulls the framework version marker by writing / refreshing `.deft-version`; (2) re-writes the canonical install manifest at `<install>/VERSION` (`ref` / `sha` / `tag` / `install_root` / `fetched_at` / `fetched_by`); (3) refreshes AGENTS.md to the current marker version (v3 sentinel with sha / refreshed / session attributes) via `cmd_agents_refresh`. Pre-v0.27 AGENTS.md files (no managed-section markers, or v1 markers) are migrated in place: content above and below the bracketed block is preserved verbatim, only the framework-owned managed section is rewritten.
+- **Restart required:** Recommended. The agent's current session may still hold stale AGENTS.md / skill references from the pre-upgrade marker. After `task upgrade` completes, start a new agent session so the refreshed prose loads from a clean context.
+- **Commands:**
+  - `task framework:doctor` -- read the four-check report; identify which checks FAIL and which command the doctor recommends.
+  - `task framework:doctor -- --json` -- machine-readable form; per-check `data.suggested_fix` field (added in #1061) carries the named command the doctor recommends for each failure.
+  - `task upgrade` -- canonical drift repair (wraps `run upgrade`; rewrites manifest + .deft-version + AGENTS.md managed section). Use this when the framework on disk is correct and AGENTS.md / the manifest is out of date.
+  - `.deft/core/run agents:refresh` (Unix) / `.deft\core\run agents:refresh` (Windows) -- AGENTS.md-only refresh; useful when `task upgrade` is not available (e.g. the consumer project has no Taskfile) or when only the managed-section block needs rewriting.
+  - `task relocate:relocate -- --confirm` -- use this ONLY when the framework needs to move to a different on-disk path (rare; the doctor's `install-path-consistency` FAIL is the only check that recommends this). The doubled-namespace form (`relocate:relocate`) is the canonical go-task target name because the include namespace `relocate:` and the inner task `relocate:` carry the same key in `tasks/relocate.yml` (no root-level alias exists today, unlike the `install:install` / `install:upgrade` shortcuts wired in `Taskfile.yml`).
+
+### AGENTS.md drift symptoms and detection
+
+The doctor surfaces AGENTS.md drift across two complementary axes:
+
+1. **Mismatched marker version.** When `cmd/deft-install/setup.go::WriteAgentsMD` detects a pre-v0.27 sentinel in the existing AGENTS.md, it skips rewriting the deft entry (treating the legacy sentinel as evidence the entry is already present). On a canonical reinstall over such a file, the AGENTS.md keeps its pre-v0.27 prose while the on-disk framework has migrated to `.deft/core/`. Symptom: `quick-start-resolves` and `skill-paths-resolve` FAIL because the paths AGENTS.md references no longer match the on-disk layout. Repair: `task upgrade` (or `.deft/core/run agents:refresh` if a Taskfile is not available).
+2. **Install-path mismatch via the manifest's `install_root` field (#1062).** The doctor's `install-path-consistency` check reads `<install>/VERSION` for the `install_root` field first; when present, it uses that as the authoritative install-layout source (the field was added in #1062 as the single source of truth for the install-layout contract). When the field is absent (pre-v0.29 manifests), the doctor falls back to parsing the install root out of AGENTS.md and surfaces an INFO note in the check `detail` so operators can see when the legacy parse was taken. FAIL fires when the resolved install root does not exist as a directory on disk -- e.g. AGENTS.md / the manifest claims `.deft/core` but only `deft/` exists. Repair: `task upgrade` to rewrite the manifest + AGENTS.md to match the on-disk framework, OR `task relocate:relocate -- --confirm` to move the framework to the path AGENTS.md / the manifest claims (pick the relocate only when AGENTS.md is the correct source of truth).
+
+### What to do if the doctor's failure prose looks wrong
+
+The doctor's FAIL `detail` strings name the exact commands the operator should run. If a recommendation looks wrong (the named command does not exist, or the recommendation does not match the failure mode), this is a regression in the failure prose itself -- the prose-regression test at `tests/cli/test_framework_doctor_prose.py` (added in #1061) asserts every command string surfaced in FAIL details either exists as a Taskfile target or matches a documented `run` subcommand. File a new issue against [`deftai/directive`](https://github.com/deftai/directive/issues/new) with:
+
+- The full `task framework:doctor -- --json` output (the `checks[].detail` fields carry the prose; the `data.suggested_fix` / `data.suggested_fix_alt` fields carry the structured recommendation).
+- The on-disk state that produced the FAIL (`ls -la .deft/core/`, `cat .deft/core/VERSION` if present, `cat AGENTS.md` -- redact any consumer-private content above / below the managed-section markers first).
+- A reference to the originating issue [#1061](https://github.com/deftai/directive/issues/1061) so the maintainer can chain the regression back to the prose contract.
+
+### References
+
+- [#1061](https://github.com/deftai/directive/issues/1061) -- doctor failure prose sharpening + `task upgrade` wrapper + this UPGRADING.md section.
+- [#1060](https://github.com/deftai/directive/issues/1060) -- canonical-reinstall-over-pre-v0.27-AGENTS.md root cause that motivates the repair path.
+- [#1062](https://github.com/deftai/directive/issues/1062) -- `install_root` manifest field consumed by the doctor's `install-path-consistency` check.
+- [`scripts/framework_doctor.py`](./scripts/framework_doctor.py) -- doctor probe source (FAIL `detail` strings + `suggested_fix` data field).
+- [`tasks/install.yml`](./tasks/install.yml) -- `task install:upgrade` wrapper definition.
+- [`Taskfile.yml`](./Taskfile.yml) -- root-level `task upgrade` alias for the wrapper.
+
+---
+<!-- 1061: AGENTS.md drift repair via task upgrade END -->
+
 <!-- 992-pr3: From deft/ -> .deft/core/ migration BEGIN -->
 ## From deft/ -> .deft/core/
 

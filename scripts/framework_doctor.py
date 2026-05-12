@@ -245,10 +245,17 @@ def _check_quick_start_resolves(project_root: Path, install_root: str | None) ->
         detail=(
             f"QUICK-START.md not found at {qs_path}. AGENTS.md claims the "
             f"install root is {install_root!r} but the file is missing. "
-            "Reinstall the framework or update AGENTS.md to match the on-disk "
-            "install path."
+            "Run `.deft/core/run agents:refresh` (Unix) / "
+            "`.deft\\core\\run agents:refresh` (Windows) to align AGENTS.md "
+            "with the on-disk install root, OR run `task upgrade` to "
+            "re-pull the framework if the on-disk install is missing. "
+            "See UPGRADING.md for the canonical drift-repair walkthrough."
         ),
-        data={"path": str(qs_path), "install_root": install_root},
+        data={
+            "path": str(qs_path),
+            "install_root": install_root,
+            "suggested_fix": ".deft/core/run agents:refresh",
+        },
     )
 
 
@@ -290,11 +297,17 @@ def _check_skill_paths_resolve(project_root: Path, agents_md_text: str) -> Check
         detail=(
             f"{len(missing)} skill path(s) do not resolve; "
             f"{len(redirect_stubs)} stub redirect(s). " + "; ".join(parts)
+            + ". Run `.deft/core/run agents:refresh` (Unix) / "
+            "`.deft\\core\\run agents:refresh` (Windows) to rewrite the "
+            "managed AGENTS.md block so skill paths match the on-disk "
+            "framework, OR run `task upgrade` if the on-disk skills are "
+            "missing entirely. See UPGRADING.md for the drift-repair walkthrough."
         ),
         data={
             "referenced": referenced,
             "missing": missing,
             "redirect_stubs": redirect_stubs,
+            "suggested_fix": ".deft/core/run agents:refresh",
         },
     )
 
@@ -335,12 +348,14 @@ def _check_manifest_agreement(project_root: Path, install_root: str | None) -> C
             detail=(
                 f"Bare .deft-version exists at {bare_path} but YAML manifest "
                 f"is missing at {manifest_path}. Run `task upgrade` to write "
-                "the canonical manifest (#1046 PR-B AC-4)."
+                "the canonical manifest (#1046 PR-B AC-4). See UPGRADING.md "
+                "for the v0.27.x -> v0.28 transition walkthrough."
             ),
             data={
                 "manifest_path": str(manifest_path),
                 "bare_path": str(bare_path) if bare_path else None,
                 "bare_value": (bare_text or "").strip() if bare_text else None,
+                "suggested_fix": "task upgrade",
             },
         )
     if bare_text is None:
@@ -402,7 +417,8 @@ def _check_manifest_agreement(project_root: Path, install_root: str | None) -> C
             f"with bare .deft-version={bare_value!r}. Per #1046 PR-B AC-4 "
             "the YAML manifest is the canonical source -- run `task upgrade` "
             "to regenerate the bare derivative from the manifest, OR "
-            f"manually update {manifest_path} if the bare value is correct."
+            f"manually update {manifest_path} if the bare value is correct. "
+            "See UPGRADING.md for the canonical drift-repair walkthrough."
         ),
         data={
             "manifest_path": str(manifest_path),
@@ -410,6 +426,7 @@ def _check_manifest_agreement(project_root: Path, install_root: str | None) -> C
             "derived_version": derived,
             "bare_value": bare_value,
             "authoritative": "manifest",
+            "suggested_fix": "task upgrade",
         },
     )
 
@@ -484,10 +501,16 @@ def _check_install_path_consistency(project_root: Path, install_root: str | None
             detail=(
                 f"Install root is recorded as {effective_install_root!r} "
                 f"(source: {source}) but {claimed_dir} is not a directory. "
-                "Reinstall the framework at the declared path OR update the "
-                "install-layout source (manifest or AGENTS.md) to match the "
-                "on-disk state. YAML manifest (if present) is authoritative; "
-                "see `task framework:doctor` reconcile hint."
+                "Pick one of two repair paths: "
+                "(a) run `.deft/core/run agents:refresh` (Unix) / "
+                "`.deft\\core\\run agents:refresh` (Windows) to rewrite "
+                "AGENTS.md to match the on-disk framework -- pick this if "
+                "the framework on disk is correct; OR "
+                "(b) run `task relocate:relocate -- --confirm` to move the "
+                "framework to the path AGENTS.md / the manifest claims -- "
+                "pick this if AGENTS.md is correct. The YAML manifest (if "
+                "present) is authoritative for the install-layout contract. "
+                "See UPGRADING.md for the canonical drift-repair walkthrough."
             ),
             data={
                 "claimed_install_root": install_root,
@@ -496,6 +519,8 @@ def _check_install_path_consistency(project_root: Path, install_root: str | None
                 "claimed_dir": str(claimed_dir),
                 "claimed_dir_exists": False,
                 "fallback_info_note": fallback_info_note or None,
+                "suggested_fix": ".deft/core/run agents:refresh",
+                "suggested_fix_alt": "task relocate:relocate -- --confirm",
             },
         )
     # Note: this check intentionally does NOT verify the YAML manifest
