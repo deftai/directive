@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-12T14:14:11Z"
+    "updated": "2026-05-12T14:33:49Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -147,38 +147,6 @@
               "uri": "https://github.com/deftai/directive/issues/1069",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1069: chore(security): supply-chain & CI hygiene — gitleaks PEM fixture, curl|bash in CI, 40 OSV advisories, no Dependabot"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-12-1070-choresecurity-supply-chain-quick-wins-pem-fixture-curlbash-d",
-        "title": "chore(security): supply-chain quick wins -- PEM fixture, curl|bash, dependabot.yml (parent #1069)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-05-12-1070-choresecurity-supply-chain-quick-wins-pem-fixture-curlbash-d.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1070",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1070: chore(security): supply-chain quick wins -- PEM fixture, curl|bash, dependabot.yml (parent #1069)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-12-1071-choresecurity-resolve-40-osv-advisories-across-committed-man",
-        "title": "chore(security): resolve 40 OSV advisories across committed manifests (parent #1069)",
-        "status": "proposed",
-        "metadata": {
-          "source_path": "proposed/2026-05-12-1071-choresecurity-resolve-40-osv-advisories-across-committed-man.vbrief.json",
-          "lifecycle_folder": "proposed",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1071",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1071: chore(security): resolve 40 OSV advisories across committed manifests (parent #1069)"
             }
           ]
         }
@@ -968,6 +936,38 @@
               "uri": "https://github.com/deftai/directive/issues/762",
               "type": "x-vbrief/github-issue",
               "title": "Issue #762: feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-1070-choresecurity-supply-chain-quick-wins-pem-fixture-curlbash-d",
+        "title": "chore(security): supply-chain quick wins -- PEM fixture, curl|bash, dependabot.yml (parent #1069)",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-12-1070-choresecurity-supply-chain-quick-wins-pem-fixture-curlbash-d.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1070",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1070: chore(security): supply-chain quick wins -- PEM fixture, curl|bash, dependabot.yml (parent #1069)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-1071-choresecurity-resolve-40-osv-advisories-across-committed-man",
+        "title": "chore(security): resolve 40 OSV advisories across committed manifests (parent #1069)",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-12-1071-choresecurity-resolve-40-osv-advisories-across-committed-man.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1071",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1071: chore(security): resolve 40 OSV advisories across committed manifests (parent #1069)"
             }
           ]
         }

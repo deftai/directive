@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "chore(security): resolve 40 OSV advisories across committed manifests (parent #1069)",
-    "status": "proposed",
+    "status": "running",
     "narratives": {
       "Description": "chore(security): resolve 40 OSV advisories across committed manifests (parent #1069)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1071",
@@ -18,6 +18,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #1071: chore(security): resolve 40 OSV advisories across committed manifests (parent #1069)"
       }
-    ]
+    ],
+    "updated": "2026-05-12T14:33:40Z"
   }
 }
