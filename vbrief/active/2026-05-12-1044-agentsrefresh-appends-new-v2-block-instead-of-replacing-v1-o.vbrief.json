@@ -1,0 +1,28 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1044"
+  },
+  "plan": {
+    "title": "agents:refresh appends new v2 block instead of replacing v1 on marker-version drift",
+    "status": "running",
+    "narratives": {
+      "Description": "agents:refresh appends new v2 block instead of replacing v1 on marker-version drift",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1044",
+      "Overview": "## Summary\r\n\r\n`.deft/core/run agents:refresh` does not detect marker-version drift between an existing `<!-- deft:managed-section v1 -->` block in a consumer's `AGENTS.md` and the v0.27.1 template's `<!-- deft:managed-section v2 -->` block. Instead of classifying the file as `stale` and byte-replacing the bracketed region in place, it classifies the file as `missing` (no v2 markers found) and **appends** a fresh v2 block below the existing v1 block — leaving the consumer with two duplicate managed-section blocks.\r\n\r\n## Environment\r\n\r\n- Framework version: **v0.27.1** (just shipped)\r\n- Consumer install layout: `.deft/core/` (state B — pure canonical)\r\n- Prior framework version: v0.26.1 (which shipped the v1 marker)\r\n- OS: Windows 11, PowerShell 7.6.1\r\n- Python: 3.13 via `uv run --python 3.13 --no-project`\r\n\r\n## Reproduction\r\n\r\n1. Start with a consumer project whose `AGENTS.md` was rendered against any pre-v0.27 template — i.e. its managed section is bracketed by `<!-- deft:managed-section v1 -->` / `<!-- /deft:managed-section -->`.\r\n2. Upgrade the framework copy under `.deft/core/` to v0.27.1 (wipe-and-replace).\r\n3. Run `.deft/core/run agents:refresh` from the project root.\r\n\r\n### Expected\r\n\r\nThe refresher detects that the bracketed bytes do not match the v0.27.1 rendered template (because the v1 open-marker string differs from v2), classifies the state as `stale`, and byte-replaces the existing managed section in place. The end result is exactly one managed-section block, with the v2 marker, and all consumer content above/below the markers preserved.\r\n\r\n### Actual\r\n\r\n```\r\n✓ Wrapped existing AGENTS.md content above the new managed section (one-time legacy migration).\r\n```\r\n\r\nThe refresher classifies the state as `missing` and appends the v2 block, leaving the file with **two** managed sections in series:\r\n\r\n```\r\n<!-- deft:managed-section v1 -->\r\n... (old v0.26.x content) ...\r\n<!-- /deft:managed-section -->\r\n\r\n<!-- deft:managed-section v2 -->\r\n... (new v0.27.1 content) ...\r\n<!-- /deft:managed-section -->\r\n```\r\n\r\nBoth blocks survive every subsequent `agents:refresh` invocation. `agents:refresh --check` returns 0 (because the v2 block is byte-identical to the template) so the regression is not caught.\r\n\r\n## Root cause (likely)\r\n\r\n`_extract_managed_section` in `run` searches only for `_AGENTS_MANAGED_OPEN` / `_AGENTS_MANAGED_CLOSE`, where `_AGENTS_MANAGED_OPEN = \"<!-- deft:managed-section v2 -->\"`. There is no fallback search for prior-version open markers (v1). When neither the v2 open marker nor close are found in the existing file, the state collapses to `missing`, which triggers `_wrap_legacy_in_markers` — the one-time legacy migration path designed for pre-#768 hand-rolled `AGENTS.md` files, not for marker-version upgrades.\r\n\r\nThe QUICK-START case G prose says:\r\n\r\n> If the `deft/main.md` sentinel is **present**, replace only the sentinel-bounded section with the current content of `./templates/agents-entry.md`.\r\n\r\n…which suggests the intent for v1→v2 drift was in-place replacement, but the implementation only matches the *current* marker version literally.\r\n\r\n## Suggested fix\r\n\r\nDetect prior-version managed-section blocks (v1, and any future N-1 marker) and treat them as `stale` rather than `missing`. Concretely:\r\n\r\n1. Maintain a list of known prior open/close marker pairs (e.g. `_AGENTS_MANAGED_OPEN_LEGACY = [\"<!-- deft:managed-section v1 -->\"]`).\r\n2. In `_extract_managed_section` (and `_classify_agents_md`), fall back to scanning for legacy markers when the current ones are absent. If a legacy marker is found, return the bracketed bytes so the caller can route to the `stale` branch.\r\n3. In `_agents_refresh_plan`, the `stale` branch's `normalised.replace(extracted, rendered, 1)` already handles in-place replacement correctly — the entire fix is upstream of that.\r\n\r\nThis also makes future marker-version bumps (v2→v3) byte-identical regressions caught by the existing `agents:refresh --check` contract.\r\n\r\n## Workaround\r\n\r\nManually delete the obsolete v1 block from `AGENTS.md` after running `agents:refresh`. This is what I had to do during the v0.26.1→v0.27.1 upgrade.\r\n\r\n## References\r\n\r\n- `templates/agents-entry.md` — current rendered template\r\n- `run::_AGENTS_MANAGED_OPEN` — v2 marker constant added per PR1 of #992\r\n- `run::_extract_managed_section`, `_classify_agents_md`, `_agents_refresh_plan` — state detection\r\n- `QUICK-START.md` Case G — agent-prescriptive intent that v1→v2 should be in-place replace\r\n",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1044",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1044: agents:refresh appends new v2 block instead of replacing v1 on marker-version drift"
+      }
+    ],
+    "updated": "2026-05-12T01:35:10Z"
+  }
+}

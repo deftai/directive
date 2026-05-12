@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-11T18:50:28Z"
+    "updated": "2026-05-12T02:01:57Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -893,210 +893,81 @@
         }
       },
       {
-        "id": "2026-05-11-1005-featcoding-surface-conflicts-rule-when-two-codebase-patterns",
-        "title": "feat(coding): surface-conflicts-rule — when two codebase patterns contradict, pick one and explain; never average them",
+        "id": "2026-05-12-1044-agentsrefresh-appends-new-v2-block-instead-of-replacing-v1-o",
+        "title": "agents:refresh appends new v2 block instead of replacing v1 on marker-version drift",
         "status": "running",
         "metadata": {
-          "source_path": "active/2026-05-11-1005-featcoding-surface-conflicts-rule-when-two-codebase-patterns.vbrief.json",
+          "source_path": "active/2026-05-12-1044-agentsrefresh-appends-new-v2-block-instead-of-replacing-v1-o.vbrief.json",
           "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1005",
+              "uri": "https://github.com/deftai/directive/issues/1044",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1005: feat(coding): surface-conflicts-rule — when two codebase patterns contradict, pick one and explain; never average them"
+              "title": "Issue #1044: agents:refresh appends new v2 block instead of replacing v1 on marker-version drift"
             }
           ]
         }
       },
       {
-        "id": "2026-05-11-1006-featcoding-fail-loud-rule-never-claim-completion-when-anythi",
-        "title": "feat(coding): fail-loud rule — never claim completion when anything was skipped silently",
+        "id": "2026-05-12-1059-frameworkdoctor-and-check-updates-fail-on-windows-tasksframe",
+        "title": "framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub",
         "status": "running",
         "metadata": {
-          "source_path": "active/2026-05-11-1006-featcoding-fail-loud-rule-never-claim-completion-when-anythi.vbrief.json",
+          "source_path": "active/2026-05-12-1059-frameworkdoctor-and-check-updates-fail-on-windows-tasksframe.vbrief.json",
           "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1006",
+              "uri": "https://github.com/deftai/directive/issues/1059",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1006: feat(coding): fail-loud rule — never claim completion when anything was skipped silently"
+              "title": "Issue #1059: framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub"
             }
           ]
         }
       },
       {
-        "id": "2026-05-11-1011-framework-uv-run-invocations-leak-into-ancestor-pyprojecttom",
-        "title": "Framework `uv run` invocations leak into ancestor `pyproject.toml`; pin project root",
+        "id": "2026-05-12-1060-installer-writeagentsmd-skips-legacy-agentsmd-on-canonical-i",
+        "title": "installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags",
         "status": "running",
         "metadata": {
-          "source_path": "active/2026-05-11-1011-framework-uv-run-invocations-leak-into-ancestor-pyprojecttom.vbrief.json",
+          "source_path": "active/2026-05-12-1060-installer-writeagentsmd-skips-legacy-agentsmd-on-canonical-i.vbrief.json",
           "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1011",
+              "uri": "https://github.com/deftai/directive/issues/1060",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1011: Framework `uv run` invocations leak into ancestor `pyproject.toml`; pin project root"
+              "title": "Issue #1060: installer: WriteAgentsMD skips legacy AGENTS.md on canonical install -- leaves install-root drift the doctor flags"
             }
           ]
         }
       },
       {
-        "id": "2026-05-11-1019-featscripts-add-preflight-gate-for-destructive-gh-verbs-dele",
-        "title": "feat(scripts): add preflight gate for destructive gh verbs (delete_repo, force-push to default, unauthorized merge)",
+        "id": "2026-05-12-1061-frameworkdoctor-failure-prose-names-commands-that-dont-exist",
+        "title": "framework:doctor failure prose names commands that don't exist; sharpen + add UPGRADING.md mitigation paragraph",
         "status": "running",
         "metadata": {
-          "source_path": "active/2026-05-11-1019-featscripts-add-preflight-gate-for-destructive-gh-verbs-dele.vbrief.json",
+          "source_path": "active/2026-05-12-1061-frameworkdoctor-failure-prose-names-commands-that-dont-exist.vbrief.json",
           "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1019",
+              "uri": "https://github.com/deftai/directive/issues/1061",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1019: feat(scripts): add preflight gate for destructive gh verbs (delete_repo, force-push to default, unauthorized merge)"
+              "title": "Issue #1061: framework:doctor failure prose names commands that don't exist; sharpen + add UPGRADING.md mitigation paragraph"
             }
           ]
         }
       },
       {
-        "id": "2026-05-11-1020-installer-cmddeft-install-drifts-from-v0271-canonical-layout",
-        "title": "installer: cmd/deft-install drifts from v0.27.1 canonical layout (F2)",
+        "id": "2026-05-12-1062-add-install-root-field-to-installversion-manifest-single-sou",
+        "title": "Add install_root field to <install>/VERSION manifest -- single source of truth for install-layout contract",
         "status": "running",
         "metadata": {
-          "source_path": "active/2026-05-11-1020-installer-cmddeft-install-drifts-from-v0271-canonical-layout.vbrief.json",
+          "source_path": "active/2026-05-12-1062-add-install-root-field-to-installversion-manifest-single-sou.vbrief.json",
           "lifecycle_folder": "active",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1020",
+              "uri": "https://github.com/deftai/directive/issues/1062",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1020: installer: cmd/deft-install drifts from v0.27.1 canonical layout (F2)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-11-1025-swarm-phase-0-missing-lifecycle-bridge-setup-deposits-vbrief",
-        "title": "Swarm Phase 0 missing lifecycle bridge: setup deposits vBRIEFs in proposed/, swarm expects active/",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-11-1025-swarm-phase-0-missing-lifecycle-bridge-setup-deposits-vbrief.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1025",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1025: Swarm Phase 0 missing lifecycle bridge: setup deposits vBRIEFs in proposed/, swarm expects active/"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-11-1035-swarm-greptile-poller-prompt-detector-misses-confidence-head",
-        "title": "swarm-greptile-poller-prompt detector misses confidence-heading form AND SLizard ### P1 · heading form -- false-negatives on PR #1034",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-11-1035-swarm-greptile-poller-prompt-detector-misses-confidence-head.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1035",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1035: swarm-greptile-poller-prompt detector misses confidence-heading form AND SLizard ### P1 · heading form -- false-negatives on PR #1034"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-11-1039-greptile-poller-wedges-past-clean-clean-gate-fails-silent-bu",
-        "title": "Greptile poller wedges past CLEAN -- CLEAN gate fails silent, burns 30-min cap (recurrence on PR #1038)",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-11-1039-greptile-poller-wedges-past-clean-clean-gate-fails-silent-bu.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1039",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1039: Greptile poller wedges past CLEAN -- CLEAN gate fails silent, burns 30-min cap (recurrence on PR #1038)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-11-1046-installrefresh-contract-has-no-self-healing-path-agent-gets",
-        "title": "Install/refresh contract has no self-healing path (#1046 cohort) -- canonical-path enforcement + framework:doctor + vbrief:preflight resolver",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-11-1046-installrefresh-contract-has-no-self-healing-path-agent-gets.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1046",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1046: Install/refresh contract has no self-healing path (this scope)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/1045",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1045: templates/agents-entry.md body still references deft/ (ABSORBED by PR-A)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/1047",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1047: Implementation Intent Gate Taskfile target hardcodes deft/scripts/preflight_implementation.py (ABSORBED by PR-C)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/810",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #810: Implementation Intent Gate (the gate whose Taskfile target PR-C rewrites)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/801",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #801: remote-version probe via git ls-remote (precedent for the doctor-side gate wiring)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/768",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #768: universal upgrade gate + AGENTS.md contract (defines the managed-section marker contract PR-B v3-bumps)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/992",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #992: adopt .deft/core/ canonical install layout (v0.27 cohort; PR1 marker bump + PR3 cmd_gate state detector + PR4 contract-string flip)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/52",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #52: install into .deft/ hidden directory (pending vBRIEF that informed the install-layout-not-fixed observation)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/747",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #747: detection-bound branch gate (shape precedent for scripts/framework_doctor.py)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/1019",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1019: destructive-gh-verb gate (shape precedent for scripts/framework_doctor.py)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/814",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #814: UTF-8 self-reconfigure pattern at main() entry (applies to scripts/framework_doctor.py)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/1035",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1035: poller detector Tier 2.5 (sibling cohort -- MUST NOT regress)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/1039",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1039: poller STALL terminal exit (sibling cohort -- MUST NOT regress)"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/1050",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1050: installer consent gate (#1046 Finding #5 follow-up, DEFERRED to v0.29+)"
+              "title": "Issue #1062: Add install_root field to <install>/VERSION manifest -- single source of truth for install-layout contract"
             }
           ]
         }
@@ -7140,6 +7011,263 @@
         }
       },
       {
+        "id": "2026-05-11-1005-featcoding-surface-conflicts-rule-when-two-codebase-patterns",
+        "title": "feat(coding): surface-conflicts-rule — when two codebase patterns contradict, pick one and explain; never average them",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-1005-featcoding-surface-conflicts-rule-when-two-codebase-patterns.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1005",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1005: feat(coding): surface-conflicts-rule — when two codebase patterns contradict, pick one and explain; never average them"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1006-featcoding-fail-loud-rule-never-claim-completion-when-anythi",
+        "title": "feat(coding): fail-loud rule — never claim completion when anything was skipped silently",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-1006-featcoding-fail-loud-rule-never-claim-completion-when-anythi.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1006",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1006: feat(coding): fail-loud rule — never claim completion when anything was skipped silently"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1011-framework-uv-run-invocations-leak-into-ancestor-pyprojecttom",
+        "title": "Framework `uv run` invocations leak into ancestor `pyproject.toml`; pin project root",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-1011-framework-uv-run-invocations-leak-into-ancestor-pyprojecttom.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1011",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1011: Framework `uv run` invocations leak into ancestor `pyproject.toml`; pin project root"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1019-featscripts-add-preflight-gate-for-destructive-gh-verbs-dele",
+        "title": "feat(scripts): add preflight gate for destructive gh verbs (delete_repo, force-push to default, unauthorized merge)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-1019-featscripts-add-preflight-gate-for-destructive-gh-verbs-dele.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1019",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1019: feat(scripts): add preflight gate for destructive gh verbs (delete_repo, force-push to default, unauthorized merge)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1020-installer-cmddeft-install-drifts-from-v0271-canonical-layout",
+        "title": "installer: cmd/deft-install drifts from v0.27.1 canonical layout (F2)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-1020-installer-cmddeft-install-drifts-from-v0271-canonical-layout.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1020",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1020: installer: cmd/deft-install drifts from v0.27.1 canonical layout (F2)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1021-tests-test-scm-issue-view-rest-returns-nonempty-json-flakes",
+        "title": "tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-1021-tests-test-scm-issue-view-rest-returns-nonempty-json-flakes.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1021",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1021: tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1025-swarm-phase-0-missing-lifecycle-bridge-setup-deposits-vbrief",
+        "title": "Swarm Phase 0 missing lifecycle bridge: setup deposits vBRIEFs in proposed/, swarm expects active/",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-1025-swarm-phase-0-missing-lifecycle-bridge-setup-deposits-vbrief.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1025",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1025: Swarm Phase 0 missing lifecycle bridge: setup deposits vBRIEFs in proposed/, swarm expects active/"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1035-swarm-greptile-poller-prompt-detector-misses-confidence-head",
+        "title": "swarm-greptile-poller-prompt detector misses confidence-heading form AND SLizard ### P1 · heading form -- false-negatives on PR #1034",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-1035-swarm-greptile-poller-prompt-detector-misses-confidence-head.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1035",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1035: swarm-greptile-poller-prompt detector misses confidence-heading form AND SLizard ### P1 · heading form -- false-negatives on PR #1034"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1039-greptile-poller-wedges-past-clean-clean-gate-fails-silent-bu",
+        "title": "Greptile poller wedges past CLEAN -- CLEAN gate fails silent, burns 30-min cap (recurrence on PR #1038)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-1039-greptile-poller-wedges-past-clean-clean-gate-fails-silent-bu.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1039",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1039: Greptile poller wedges past CLEAN -- CLEAN gate fails silent, burns 30-min cap (recurrence on PR #1038)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1045-templatesagents-entrymd-body-still-references-deft-not-flipp",
+        "title": "templates/agents-entry.md body still references deft/ — not flipped to .deft/core/ for v0.27 contract",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-1045-templatesagents-entrymd-body-still-references-deft-not-flipp.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1045",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1045: templates/agents-entry.md body still references deft/ — not flipped to .deft/core/ for v0.27 contract"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1046-installrefresh-contract-has-no-self-healing-path-agent-gets",
+        "title": "Install/refresh contract has no self-healing path (#1046 cohort) -- canonical-path enforcement + framework:doctor + vbrief:preflight resolver",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-1046-installrefresh-contract-has-no-self-healing-path-agent-gets.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1046",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1046: Install/refresh contract has no self-healing path (this scope)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1045",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1045: templates/agents-entry.md body still references deft/ (ABSORBED by PR-A)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1047",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1047: Implementation Intent Gate Taskfile target hardcodes deft/scripts/preflight_implementation.py (ABSORBED by PR-C)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/810",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #810: Implementation Intent Gate (the gate whose Taskfile target PR-C rewrites)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/801",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #801: remote-version probe via git ls-remote (precedent for the doctor-side gate wiring)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/768",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #768: universal upgrade gate + AGENTS.md contract (defines the managed-section marker contract PR-B v3-bumps)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/992",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #992: adopt .deft/core/ canonical install layout (v0.27 cohort; PR1 marker bump + PR3 cmd_gate state detector + PR4 contract-string flip)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/52",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #52: install into .deft/ hidden directory (pending vBRIEF that informed the install-layout-not-fixed observation)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/747",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #747: detection-bound branch gate (shape precedent for scripts/framework_doctor.py)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1019",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1019: destructive-gh-verb gate (shape precedent for scripts/framework_doctor.py)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/814",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #814: UTF-8 self-reconfigure pattern at main() entry (applies to scripts/framework_doctor.py)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1035",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1035: poller detector Tier 2.5 (sibling cohort -- MUST NOT regress)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1039",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1039: poller STALL terminal exit (sibling cohort -- MUST NOT regress)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1050",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1050: installer consent gate (#1046 Finding #5 follow-up, DEFERRED to v0.29+)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-11-1047-implementation-intent-gate-810-taskfile-target-hardcodes-def",
+        "title": "Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-11-1047-implementation-intent-gate-810-taskfile-target-hardcodes-def.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1047",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1047: Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-05-11-441-prepare-pr441-deft-glossary-skill-for-merge",
         "title": "feat(skills): prepare PR #441 deft-glossary for merge -- rename to deft-directive-glossary + .agents stub + AGENTS.md routing + CHANGELOG + rebase",
         "status": "completed",
@@ -7195,54 +7323,6 @@
             }
           ]
         }
-      },
-      {
-        "id": "2026-05-11-1021-tests-test-scm-issue-view-rest-returns-nonempty-json-flakes",
-        "title": "tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)",
-        "status": "cancelled",
-        "metadata": {
-          "source_path": "cancelled/2026-05-11-1021-tests-test-scm-issue-view-rest-returns-nonempty-json-flakes.vbrief.json",
-          "lifecycle_folder": "cancelled",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1021",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1021: tests: test_scm_issue_view_rest_returns_nonempty_json flakes on Windows via Python subprocess (STATUS_DLL_INIT_FAILED 0xC0000142)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-11-1045-templatesagents-entrymd-body-still-references-deft-not-flipp",
-        "title": "templates/agents-entry.md body still references deft/ — not flipped to .deft/core/ for v0.27 contract",
-        "status": "cancelled",
-        "metadata": {
-          "source_path": "cancelled/2026-05-11-1045-templatesagents-entrymd-body-still-references-deft-not-flipp.vbrief.json",
-          "lifecycle_folder": "cancelled",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1045",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1045: templates/agents-entry.md body still references deft/ — not flipped to .deft/core/ for v0.27 contract"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-11-1047-implementation-intent-gate-810-taskfile-target-hardcodes-def",
-        "title": "Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout",
-        "status": "cancelled",
-        "metadata": {
-          "source_path": "cancelled/2026-05-11-1047-implementation-intent-gate-810-taskfile-target-hardcodes-def.vbrief.json",
-          "lifecycle_folder": "cancelled",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1047",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1047: Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout"
-            }
-          ]
-        }
       }
     ],
     "metadata": {
@@ -7259,12 +7339,14 @@
         "Narrative 'OpenQuestions' may be stale: completed scope '#233 (partial) -- More Determinism: tasks/ restructure, toolchain:check, verify:stubs, validate:links, spec:pipeline, changelog:check, change:init, commit:lint, enhanced check -- remaining items (Phase 0 generation, build:verify, change:archive, doctor) still open' shares topics (open)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'Deterministic questions (RC2): confirm step, back nav, escape hatch distinct from Other' shares topics (questions)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'Deterministic questions: instant number acceptance is disorienting' shares topics (questions)",
+        "Narrative 'OpenQuestions' may be stale: completed scope 'Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout' shares topics (open)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'feat(framework,skills): add Discuss + Back as canonical numbered options in all deterministic-mode questions' shares topics (questions)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'fix(scripts/reconcile_issues.py, scripts/release.py): vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues' shares topics (open)",
         "Narrative 'Overview' may be stale: completed scope 'bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready' shares topics (overview)",
         "Narrative 'Overview' may be stale: completed scope 'fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key' shares topics (overview)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Branching requirement too prescriptive -- context-aware solo-project qualifier' shares topics (project)",
+        "Narrative 'ProjectConfig' may be stale: completed scope 'Framework `uv run` invocations leak into ancestor `pyproject.toml`; pin project root' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Greptile Review status check blocks merge -- .greptile/config.json added with triggerOnUpdates, deft-review-cycle pre-flight check' shares topics (config)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Make /deft read-only (project-local layout)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'No direct-to-master agent commits -- ⊗ gate + PROJECT.md trunk-based opt-in, full agentic + CLI parity' shares topics (project)",

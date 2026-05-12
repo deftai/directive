@@ -1,0 +1,28 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1059"
+  },
+  "plan": {
+    "title": "framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub",
+    "status": "running",
+    "narratives": {
+      "Description": "framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1059",
+      "Overview": "## Summary\r\n\r\n`task framework:doctor` fails on Windows because `tasks/framework.yml` hardcodes the `python3` executable. On Windows the `python3` command is, by default, the Microsoft Store app-execution alias stub (a 0-byte launcher that prints an install prompt and exits non-zero), so the task aborts before `scripts/framework_doctor.py` ever runs. The doctor itself works fine when invoked through the actual interpreter — only the Taskfile wrapper is broken.\r\n\r\nThe same problem applies to the sibling task `framework:check-updates`, which uses the identical `python3 \"{{.DEFT_ROOT}}/run\" ...` pattern.\r\n\r\n## Reproduction\r\n\r\nHost: Windows 11, PowerShell 7.6.1, Python 3.12.10 installed via the official installer (no Store Python). `python3` resolves to `C:\\Users\\<user>\\AppData\\Local\\Microsoft\\WindowsApps\\python3.exe` (the Store stub); `python` and `py -3` resolve to the real interpreter.\r\n\r\n```\r\nPS> task -t .deft\\core\\Taskfile.yml framework:doctor\r\ntask: [framework:doctor] python3 \"...\\.deft\\core/scripts/framework_doctor.py\" --project-root \"...\"\r\nPython was not found; run without arguments to install from the Microsoft Store,\r\nor disable this shortcut from Settings > Apps > Advanced app settings > App execution aliases.\r\ntask: Failed to run task \"framework:doctor\": exit status 49\r\n```\r\n\r\nWorkaround that confirms the script itself is healthy:\r\n\r\n```\r\nPS> $env:PYTHONUTF8=\"1\"; python .deft\\core\\scripts\\framework_doctor.py --project-root .\r\n⚠ deft framework:doctor -- drift detected (install_root='deft').\r\n  ✗ quick-start-resolves: ...\r\n  ✗ skill-paths-resolve: ...\r\n  • manifest-agreement: ...\r\n  ✗ install-path-consistency: ...\r\n```\r\n\r\nExit 1 as documented (drift), which is the expected three-state behavior — proving the wrapper, not the probe, is the broken layer.\r\n\r\n## Expected vs actual\r\n\r\n- Expected: `task framework:doctor` invokes the probe and returns 0 / 1 / 2 per the documented three-state contract on every supported platform, including Windows hosts where `python3` is not on PATH.\r\n- Actual: On Windows hosts without an explicit `python3.exe` shim, the wrapper exits 49 (Store stub) and the doctor never runs. The user sees a Microsoft Store install prompt instead of the integrity report.\r\n\r\n## Impact\r\n\r\n- Breaks the AC-3 \"local install-integrity probe\" surface from #1046 PR-B on a first-class supported OS. The probe is precisely the tool an operator reaches for when an install looks off, so failing it on Windows defeats the recovery story.\r\n- Same root cause in `framework:check-updates` (`tasks/framework.yml:35`) — the documented `--force` recovery flag is also unreachable on Windows for the same reason.\r\n- Drives users to invoke the underlying script directly, bypassing the Taskfile's `PYTHONUTF8=1` env setup and the `--force` arg-stripping logic in `check-updates`.\r\n\r\n## Suggested fix\r\n\r\nPick a portable interpreter resolution strategy and apply it to both tasks in `tasks/framework.yml`:\r\n\r\n1. Prefer the `py` launcher on Windows and fall back to `python3` elsewhere — Task's templating can branch on `OS` (`{{if eq OS \"windows\"}}py -3{{else}}python3{{end}}`).\r\n2. Or compute a `PYTHON` var once in `vars:` (e.g. probe `py -3` → `python3` → `python`) and reference `{{.PYTHON}}` in `cmds:`.\r\n3. Or invoke via `uv run --python 3 scripts/framework_doctor.py`, which already appears elsewhere in the toolchain and sidesteps the PATH question entirely.\r\n\r\nWhatever shape, the contract should be: \"if a working Python ≥ 3.x is reachable by any common name on this host, the task runs.\" A doctor that can't start is worse than no doctor.\r\n\r\n## Source references\r\n\r\n- `tasks/framework.yml:35` — `python3 \"{{.DEFT_ROOT}}/run\" check-updates ...`\r\n- `tasks/framework.yml:58` — `python3 \"{{.DEFT_ROOT}}/scripts/framework_doctor.py\" --project-root \"{{.USER_WORKING_DIR}}\" {{.CLI_ARGS}}`\r\n- `scripts/framework_doctor.py` — probe itself; works correctly under `python`/`py -3`.\r\n\r\n## Environment\r\n\r\n- Framework: deft v0.28.0 (sha `f64dea07`, fetched via manual-upgrade-via-oz)\r\n- OS: Windows 11, PowerShell 7.6.1\r\n- Python: 3.12.10 (official installer); `python3` = Store stub; `py -3` + `python` = real interpreter\r\n- Reproduced from a fresh `task framework:doctor` invocation with no prior state mutation.\r\n",
+      "Labels": "bug"
+    },
+    "items": [],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1059",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1059: framework:doctor (and check-updates) fail on Windows -- tasks/framework.yml hardcodes python3, hits Store stub"
+      }
+    ],
+    "updated": "2026-05-12T01:35:10Z"
+  }
+}
