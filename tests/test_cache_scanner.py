@@ -343,15 +343,19 @@ class TestCredentials:
             # the runtime-concatenated string and still flags. The
             # `# gitleaks:allow` annotation is belt-and-braces for any
             # future gitleaks variant that scans concatenated literals.
-            # gitleaks:allow synthetic fixture (#1070) -- RSA variant
+            # Greptile #1077 P2: gitleaks evaluates `# gitleaks:allow`
+            # on the SAME source line as the match, so the annotation
+            # is co-located with the BEGIN-fragment literal below. The
+            # primary defence remains the string split (no single
+            # source line carries the full BEGIN sentinel), the
+            # annotation is belt-and-braces.
             (
-                "-----BEGIN RSA"
+                "-----BEGIN RSA"  # gitleaks:allow synthetic fixture (#1070)
                 + " PRIVATE KEY-----\nREDACTED-FIXTURE-BODY",
                 "pem-private-key",
             ),
-            # gitleaks:allow synthetic fixture (#1070) -- OPENSSH variant
             (
-                "-----BEGIN OPENSSH"
+                "-----BEGIN OPENSSH"  # gitleaks:allow synthetic fixture (#1070)
                 + " PRIVATE KEY-----\nREDACTED-FIXTURE-BODY",
                 "pem-private-key",
             ),
