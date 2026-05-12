@@ -395,6 +395,31 @@ func detectAgentsMDLayoutLabel(body string) string {
 	return "unknown"
 }
 
+// agentsMDManagedSlice returns the substring of body between the first v3 or
+// v2 open marker and the matching closing fence (inclusive of the close fence
+// bytes). Returns (slice, true) when a fenced managed section is found, or
+// ("", false) when no fenced block is detected (pre-v0.27 unfenced legacy
+// body, or no deft sentinel at all). Used by WriteAgentsMD to scope the
+// idempotency probe to the managed slice ONLY (Greptile P1 #1066: file-wide
+// claim check could produce a false skip when operator-authored prose
+// outside the fence contains the layout claim while the managed block stays
+// stale).
+func agentsMDManagedSlice(body string) (string, bool) {
+	for _, openMarker := range []string{agentsMDSentinel, agentsMDV2Sentinel} {
+		idx := strings.Index(body, openMarker)
+		if idx < 0 {
+			continue
+		}
+		closeOff := strings.Index(body[idx:], agentsMDFenceClose)
+		if closeOff < 0 {
+			continue
+		}
+		closeIdx := idx + closeOff + len(agentsMDFenceClose)
+		return body[idx:closeIdx], true
+	}
+	return "", false
+}
+
 // rewriteAgentsMDBlock replaces the deft-managed section inside body with the
 // rendered replacement and returns (newBody, surgical). When the section is
 // fenced by a v2/v3 open marker AND the closing marker, only the fenced range
@@ -405,6 +430,11 @@ func detectAgentsMDLayoutLabel(body string) string {
 // reliable terminator the installer can detect, and leaving stale legacy
 // prose alongside the new canonical body would itself produce the kind of
 // cross-layout drift #1060 closes.
+//
+// When the replacement already ends in a newline AND the byte immediately
+// after the closing fence is also a newline, one trailing newline is
+// consumed from body so repeated surgical rewrites don't accumulate blank
+// lines at the boundary (Greptile P1 #1066: cosmetic drift across upgrades).
 func rewriteAgentsMDBlock(body, replacement string) (string, bool) {
 	for _, openMarker := range []string{agentsMDSentinel, agentsMDV2Sentinel} {
 		idx := strings.Index(body, openMarker)
@@ -416,6 +446,9 @@ func rewriteAgentsMDBlock(body, replacement string) (string, bool) {
 			continue
 		}
 		closeIdx := idx + closeOff + len(agentsMDFenceClose)
+		if strings.HasSuffix(replacement, "\n") && closeIdx < len(body) && body[closeIdx] == '\n' {
+			closeIdx++
+		}
 		return body[:idx] + replacement + body[closeIdx:], true
 	}
 	return replacement, false
@@ -463,7 +496,21 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 	hasV3 := strings.Contains(s, agentsMDSentinel)
 	hasV2 := strings.Contains(s, agentsMDV2Sentinel)
 	hasLegacy := strings.Contains(s, agentsMDLegacySentinel)
-	hasClaim := strings.Contains(s, expectedClaim)
+
+	// Scope the layout-claim probe to the fenced managed slice when one
+	// exists -- operator-authored prose OUTSIDE the fence that happens to
+	// contain the claim string (e.g. a documentation callout copy-quoting
+	// the rendered template) MUST NOT mask a stale claim inside the managed
+	// block (Greptile P1 #1066: file-wide claim check could produce a false
+	// skip). When no fence exists (pre-v0.27 unfenced legacy body), the
+	// full-file probe is the correct surface -- there is no narrower slice
+	// the installer can isolate, and the unfenced legacy body always
+	// triggers a whole-file rewrite below regardless of hasClaim.
+	probe := s
+	if slice, ok := agentsMDManagedSlice(s); ok {
+		probe = slice
+	}
+	hasClaim := strings.Contains(probe, expectedClaim)
 
 	// Up-to-date: v3 marker AND body advertises the install root we are
 	// depositing at. This is the only happy-path that may legitimately skip

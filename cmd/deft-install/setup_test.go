@@ -484,6 +484,125 @@ func TestRenderAgentsEntry_LegacySubstitutesPaths(t *testing.T) {
 	}
 }
 
+// TestWriteAgentsMD_StaleCanonicalAGENTSMD_RewrittenByLegacyInstall covers
+// the canonical->legacy symmetric counterpart of acceptance criterion (b)
+// (Greptile P1 on PR #1066 issue 3): a `--legacy-layout` install run against
+// a project whose AGENTS.md still carries the canonical `.deft/core/` v3
+// body MUST rewrite the file to the `deft/` v3 body. Pre-#1066 only the
+// legacy->canonical direction was tested; a future refactor could break
+// this direction silently without tripping the existing suite.
+func TestWriteAgentsMD_StaleCanonicalAGENTSMD_RewrittenByLegacyInstall(t *testing.T) {
+	tmp := t.TempDir()
+
+	// Seed AGENTS.md with the canonical body via a first canonical install.
+	wSeed := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if err := WriteAgentsMD(wSeed, tmp); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(tmp, "AGENTS.md")
+	seed, _ := os.ReadFile(path)
+	if !strings.Contains(string(seed), agentsMDLayoutClaim(".deft/core")) {
+		t.Fatalf("seed AGENTS.md missing canonical claim; got:\n%s", seed)
+	}
+
+	// Run --legacy-layout install against the canonical-seeded file.
+	var out bytes.Buffer
+	wLegacy := NewWizardWithLayout(strings.NewReader(""), &out, false, true)
+	if err := WriteAgentsMD(wLegacy, tmp); err != nil {
+		t.Fatalf("WriteAgentsMD returned error on canonical->legacy rewrite: %v", err)
+	}
+
+	after, _ := os.ReadFile(path)
+	content := string(after)
+	if content == string(seed) {
+		t.Fatal("AGENTS.md was NOT rewritten on canonical->legacy cross-layout install (Greptile #1066 issue 3 regression)")
+	}
+	if strings.Contains(content, agentsMDLayoutClaim(".deft/core")) {
+		t.Errorf("rewritten AGENTS.md still carries canonical install-root claim:\n%s", content)
+	}
+	if !strings.Contains(content, agentsMDLayoutClaim("deft")) {
+		t.Errorf("rewritten AGENTS.md missing legacy install-root claim:\n%s", content)
+	}
+	if strings.Contains(content, ".deft/core/") {
+		t.Errorf("rewritten AGENTS.md still references canonical `.deft/core/` paths:\n%s", content)
+	}
+	if !strings.Contains(out.String(), "rewriting AGENTS.md") {
+		t.Errorf("installer did not log the rewrite; got log:\n%s", out.String())
+	}
+}
+
+// TestWriteAgentsMD_ClaimScopedToManagedSlice_NoFalseSkip pins the
+// Greptile P1 #1066 issue 1 fix: the `hasClaim` idempotency probe is
+// scoped to the fenced managed slice, NOT the full file. An operator-
+// authored callout OUTSIDE the fence that happens to contain the layout
+// claim string MUST NOT mask a stale claim inside the managed block.
+func TestWriteAgentsMD_ClaimScopedToManagedSlice_NoFalseSkip(t *testing.T) {
+	tmp := t.TempDir()
+
+	// Construct an AGENTS.md whose managed section advertises the LEGACY
+	// layout (stale for a canonical install) but whose operator prose
+	// OUTSIDE the fence quotes the canonical claim verbatim (a plausible
+	// shape: a documentation callout citing the rendered template).
+	stale := agentsMDSentinel + "\nDeft is installed in deft/.\n" + agentsMDFenceClose + "\n\n" +
+		"## Operator notes\n\n" +
+		"Migration historical context: \"Deft is installed in .deft/core/.\" was the canonical claim.\n"
+	if err := os.WriteFile(filepath.Join(tmp, "AGENTS.md"), []byte(stale), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	w := NewWizard(strings.NewReader(""), &out, false)
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+
+	data, _ := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	content := string(data)
+	if content == stale {
+		t.Fatal("AGENTS.md was NOT rewritten despite stale claim inside managed slice (Greptile #1066 issue 1 regression)")
+	}
+	if !strings.Contains(out.String(), "rewriting AGENTS.md") {
+		t.Errorf("installer did not log the rewrite; got log:\n%s", out.String())
+	}
+	// Operator prose outside the fence MUST survive verbatim.
+	if !strings.Contains(content, "## Operator notes") {
+		t.Errorf("operator prose outside fence was lost on rewrite; got:\n%s", content)
+	}
+}
+
+// TestRewriteAgentsMDBlock_NoTrailingNewlineAccumulation pins the
+// Greptile P1 #1066 issue 2 fix: repeated surgical rewrites MUST NOT
+// accumulate blank lines at the boundary between the closing fence and
+// any operator prose that follows it. The replacement template ends with
+// `<!-- /deft:managed-section -->\n` and the body slice after the close
+// marker typically begins with `\n`, so a naive concatenation produces
+// `\n\n` at the junction on every cycle.
+func TestRewriteAgentsMDBlock_NoTrailingNewlineAccumulation(t *testing.T) {
+	body := agentsMDSentinel + "\nDeft is installed in deft/.\n" + agentsMDFenceClose + "\n\n## After fence\n"
+	replacement := agentsMDSentinel + "\nDeft is installed in .deft/core/.\n" + agentsMDFenceClose + "\n"
+
+	// Apply the rewrite twice -- if the accumulation bug were live the
+	// second cycle would add another `\n` between the closing fence and
+	// `## After fence`, monotonically growing the body across upgrades.
+	after1, surgical1 := rewriteAgentsMDBlock(body, replacement)
+	if !surgical1 {
+		t.Fatal("first rewrite was not surgical (fenced)")
+	}
+	after2, surgical2 := rewriteAgentsMDBlock(after1, replacement)
+	if !surgical2 {
+		t.Fatal("second rewrite was not surgical (fenced)")
+	}
+	if after1 != after2 {
+		t.Errorf("repeated surgical rewrites must be idempotent; got:\n--- after1 ---\n%s\n--- after2 ---\n%s", after1, after2)
+	}
+	// Defence in depth: the junction MUST NOT carry doubled newlines
+	// between the closing fence and the operator prose that follows.
+	junction := agentsMDFenceClose + "\n\n\n## After fence"
+	if strings.Contains(after2, junction) {
+		t.Errorf("trailing-newline accumulation regressed; junction contains tripled newlines:\n%s", after2)
+	}
+}
+
 // TestBuildInstallManifestText_BranchRefNotVPrefixed regression-guards the
 // Greptile P1 finding on PR #1063: a branch ref like `master` previously got
 // `v`-prefixed to `vmaster` because the normalisation was unconditional. The
