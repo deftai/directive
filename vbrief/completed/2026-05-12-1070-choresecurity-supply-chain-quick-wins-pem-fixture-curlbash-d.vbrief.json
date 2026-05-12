@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "chore(security): supply-chain quick wins -- PEM fixture, curl|bash, dependabot.yml (parent #1069)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "chore(security): supply-chain quick wins -- PEM fixture, curl|bash, dependabot.yml (parent #1069)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1070",
@@ -19,6 +19,6 @@
         "title": "Issue #1070: chore(security): supply-chain quick wins -- PEM fixture, curl|bash, dependabot.yml (parent #1069)"
       }
     ],
-    "updated": "2026-05-12T14:33:39Z"
+    "updated": "2026-05-12T15:56:16Z"
   }
 }
