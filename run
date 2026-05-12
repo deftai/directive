@@ -2241,25 +2241,50 @@ def _install_manifest_tag_to_version(manifest: dict) -> Optional[str]:
     return None
 
 
+def _derive_install_root_string(install_root: Path, project_root: Path) -> str:
+    """Return the relative install root string for the manifest (#1062).
+
+    Computes ``install_root.relative_to(project_root)`` and renders it as
+    a POSIX-style forward-slash path so the manifest shape stays
+    consistent on Windows (``.deft/core`` not ``.deft\\core``). When
+    ``install_root`` is not under ``project_root`` (a defensive case --
+    callers should never construct this) the absolute path is returned
+    as a POSIX string so the field is still populated.
+    """
+    try:
+        rel = install_root.resolve().relative_to(project_root.resolve())
+    except ValueError:
+        return install_root.resolve().as_posix()
+    return rel.as_posix()
+
+
 def _build_install_manifest_text(
     *,
     tag: str,
     sha: str,
     fetched_at: str,
     fetched_by: str,
+    install_root: str,
     ref: Optional[str] = None,
 ) -> str:
-    """Render the canonical YAML provenance manifest text (#1046 PR-B AC-4).
+    """Render the canonical YAML provenance manifest text (#1046 PR-B AC-4, #1062).
 
     Pure -- no I/O. Mirrors the ``oz-agent-upgrade`` shape (single-quoted
-    values, ordered ref/sha/tag/fetched_at/fetched_by) so a doctor probe
-    that re-reads after a ``cmd_install`` write does not flag a shape
-    mismatch. Both ``ref`` and ``tag`` are normalised to the ``v<X.Y.Z>``
-    tag-reference form to match the ``oz-agent-upgrade`` rail and the
-    documented shape in ``docs/install-manifest.md``; ``ref`` defaults to
-    the normalised tag when None. The bare-derivative regeneration path
-    (``_install_manifest_tag_to_version``) ``lstrip("v")`` so the
-    derivative ``.deft-version`` still ends up as ``0.27.1``.
+    values, ordered ref/sha/tag/install_root/fetched_at/fetched_by) so a
+    doctor probe that re-reads after a ``cmd_install`` write does not
+    flag a shape mismatch. Both ``ref`` and ``tag`` are normalised to the
+    ``v<X.Y.Z>`` tag-reference form to match the ``oz-agent-upgrade``
+    rail and the documented shape in ``docs/install-manifest.md``;
+    ``ref`` defaults to the normalised tag when None. The bare-derivative
+    regeneration path (``_install_manifest_tag_to_version``)
+    ``lstrip("v")`` so the derivative ``.deft-version`` still ends up as
+    ``0.27.1``.
+
+    The ``install_root`` field (#1062) is the relative POSIX-style path
+    from the consumer project root to the framework deposit (e.g.
+    ``.deft/core`` for canonical installs, ``deft`` for legacy state-A).
+    The doctor consumer reads this field as the single source of truth
+    for the install-layout contract instead of parsing AGENTS.md prose.
     """
     # Normalise both ref and tag to the v-prefixed tag-reference form so
     # consumers reading the raw YAML (oz-agent-upgrade pipeline, doctor
@@ -2274,6 +2299,7 @@ def _build_install_manifest_text(
         f"ref: '{effective_ref}'",
         f"sha: '{sha}'",
         f"tag: '{effective_tag}'",
+        f"install_root: '{install_root}'",
         f"fetched_at: '{fetched_at}'",
         f"fetched_by: '{fetched_by}'",
     ]
@@ -2284,11 +2310,12 @@ def _write_install_manifest(
     install_root: Path,
     *,
     fetched_by: str,
+    project_root: Optional[Path] = None,
     tag: Optional[str] = None,
     sha: Optional[str] = None,
     fetched_at: Optional[str] = None,
 ) -> Optional[Path]:
-    """Write the canonical install manifest at ``<install>/VERSION`` (#1046 PR-B AC-4).
+    """Write the canonical install manifest at ``<install>/VERSION`` (#1046 PR-B AC-4, #1062).
 
     Best-effort: silently degrades on OSError (read-only filesystem,
     permission denied) rather than crashing the install flow. Returns
@@ -2296,6 +2323,10 @@ def _write_install_manifest(
     ``VERSION`` (the run-resolved framework version) when None;
     ``sha`` defaults to ``_resolve_framework_sha()`` when None;
     ``fetched_at`` defaults to ``_now_utc_iso()`` when None.
+    ``project_root`` defaults to ``install_root.parent`` when None --
+    callers SHOULD pass the explicit consumer project root so the
+    derived ``install_root`` field reflects the full layout-relative
+    path (e.g. ``.deft/core`` rather than just ``core``).
 
     The companion bare ``.deft-version`` file is regenerated from the
     manifest's ``tag`` field by ``cmd_install`` / ``cmd_upgrade`` so
@@ -2304,11 +2335,14 @@ def _write_install_manifest(
     effective_tag = tag if tag is not None else VERSION
     effective_sha = sha if sha is not None else _resolve_framework_sha()
     effective_fetched_at = fetched_at if fetched_at is not None else _now_utc_iso()
+    effective_project_root = project_root if project_root is not None else install_root.parent
+    install_root_str = _derive_install_root_string(install_root, effective_project_root)
     body = _build_install_manifest_text(
         tag=effective_tag,
         sha=effective_sha,
         fetched_at=effective_fetched_at,
         fetched_by=fetched_by,
+        install_root=install_root_str,
     )
     path = _install_manifest_path(install_root)
     try:
@@ -2647,7 +2681,11 @@ def cmd_upgrade(args: List[str]):
         project_root / "deft",
     ):
         if install_candidate.is_dir():
-            _write_install_manifest(install_candidate, fetched_by="run-upgrade")
+            _write_install_manifest(
+                install_candidate,
+                fetched_by="run-upgrade",
+                project_root=project_root,
+            )
             break
 
     if recorded is None:
@@ -3806,8 +3844,15 @@ def cmd_install(args: List[str]):
 
         # #1046 PR-B AC-4: stamp the canonical YAML manifest at
         # ``<install>/VERSION``. Best-effort -- silently degrades on a
-        # read-only filesystem.
-        _write_install_manifest(deft_dir, fetched_by="run-install")
+        # read-only filesystem. ``project_root`` is the current working
+        # directory at this point (we ``os.chdir(target_dir)`` above),
+        # so the manifest's ``install_root`` field (#1062) records the
+        # relative deposit path (e.g. ``deft``) verbatim.
+        _write_install_manifest(
+            deft_dir,
+            fetched_by="run-install",
+            project_root=Path.cwd(),
+        )
 
         # Create project-specific files
         Path("secrets").mkdir(exist_ok=True)

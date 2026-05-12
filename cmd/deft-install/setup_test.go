@@ -124,3 +124,161 @@ func TestCopyFile_SrcMissingReturnsError(t *testing.T) {
 		t.Fatal("expected error when src is missing, got nil")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Install manifest writer (#1062)
+// ---------------------------------------------------------------------------
+
+// TestBuildInstallManifestText_RendersAllFields verifies the renderer emits
+// the canonical YAML shape with single-quoted values, the
+// ref/sha/tag/install_root/fetched_at/fetched_by order, and the v-prefix
+// normalisation contract mirrored from run::_build_install_manifest_text.
+func TestBuildInstallManifestText_RendersAllFields(t *testing.T) {
+	fields := InstallManifestFields{
+		Ref:         "v0.28.0",
+		SHA:         "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+		Tag:         "v0.28.0",
+		InstallRoot: ".deft/core",
+		FetchedAt:   "2026-05-12T02:08:16Z",
+		FetchedBy:   "deft-install",
+	}
+	got := BuildInstallManifestText(fields)
+	want := "ref: 'v0.28.0'\n" +
+		"sha: 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef'\n" +
+		"tag: 'v0.28.0'\n" +
+		"install_root: '.deft/core'\n" +
+		"fetched_at: '2026-05-12T02:08:16Z'\n" +
+		"fetched_by: 'deft-install'\n"
+	if got != want {
+		t.Errorf("BuildInstallManifestText mismatch:\nwant=%q\ngot =%q", want, got)
+	}
+}
+
+// TestBuildInstallManifestText_NormalisesTagPrefix verifies a bare 0.X.Y tag
+// is normalised to v0.X.Y (mirrors run::_build_install_manifest_text).
+func TestBuildInstallManifestText_NormalisesTagPrefix(t *testing.T) {
+	fields := InstallManifestFields{
+		SHA:         "abc",
+		Tag:         "0.28.0",
+		InstallRoot: ".deft/core",
+		FetchedAt:   "2026-05-12T02:08:16Z",
+		FetchedBy:   "deft-install",
+	}
+	got := BuildInstallManifestText(fields)
+	if !strings.Contains(got, "tag: 'v0.28.0'") {
+		t.Errorf("expected v-prefixed tag, got: %s", got)
+	}
+	if !strings.Contains(got, "ref: 'v0.28.0'") {
+		t.Errorf("expected ref to default to normalised tag, got: %s", got)
+	}
+}
+
+// TestDeriveInstallRootString_Canonical verifies the canonical .deft/core
+// install root is rendered POSIX-style on every OS.
+func TestDeriveInstallRootString_Canonical(t *testing.T) {
+	tmp := t.TempDir()
+	deftDir := filepath.Join(tmp, ".deft", "core")
+	got := deriveInstallRootString(tmp, deftDir)
+	if got != ".deft/core" {
+		t.Errorf("derived install_root = %q, want %q", got, ".deft/core")
+	}
+}
+
+// TestDeriveInstallRootString_Legacy verifies the legacy deft/ install root.
+func TestDeriveInstallRootString_Legacy(t *testing.T) {
+	tmp := t.TempDir()
+	deftDir := filepath.Join(tmp, "deft")
+	got := deriveInstallRootString(tmp, deftDir)
+	if got != "deft" {
+		t.Errorf("derived install_root = %q, want %q", got, "deft")
+	}
+}
+
+// TestWriteInstallManifest_HappyPath verifies the manifest is written at
+// <deftDir>/VERSION with all fields including the install_root row (#1062).
+func TestWriteInstallManifest_HappyPath(t *testing.T) {
+	tmp := t.TempDir()
+	projectDir := filepath.Join(tmp, "myproj")
+	deftDir := filepath.Join(projectDir, ".deft", "core")
+	if err := os.MkdirAll(deftDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fields := InstallManifestFields{
+		Ref:         "v0.28.0",
+		SHA:         "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+		Tag:         "v0.28.0",
+		FetchedAt:   "2026-05-12T02:08:16Z",
+		FetchedBy:   "deft-install",
+	}
+	path, err := WriteInstallManifest(projectDir, deftDir, fields)
+	if err != nil {
+		t.Fatalf("WriteInstallManifest returned error: %v", err)
+	}
+	wantPath := filepath.Join(deftDir, "VERSION")
+	if path != wantPath {
+		t.Errorf("WriteInstallManifest returned %q, want %q", path, wantPath)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	for _, want := range []string{
+		"ref: 'v0.28.0'",
+		"sha: 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef'",
+		"tag: 'v0.28.0'",
+		"install_root: '.deft/core'",
+		"fetched_at: '2026-05-12T02:08:16Z'",
+		"fetched_by: 'deft-install'",
+	} {
+		if !strings.Contains(content, want) {
+			t.Errorf("manifest body missing %q:\n%s", want, content)
+		}
+	}
+}
+
+// TestWriteInstallManifest_DerivesInstallRootWhenEmpty verifies that when
+// the caller leaves InstallRoot empty, WriteInstallManifest derives it from
+// the project + deft dirs so the field is always populated (#1062).
+func TestWriteInstallManifest_DerivesInstallRootWhenEmpty(t *testing.T) {
+	tmp := t.TempDir()
+	projectDir := filepath.Join(tmp, "myproj")
+	deftDir := filepath.Join(projectDir, "deft")
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	fields := InstallManifestFields{
+		Ref:       "v0.28.0",
+		SHA:       "abc",
+		Tag:       "v0.28.0",
+		FetchedAt: "2026-05-12T02:08:16Z",
+		FetchedBy: "deft-install",
+	}
+	path, err := WriteInstallManifest(projectDir, deftDir, fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "install_root: 'deft'") {
+		t.Errorf("expected derived install_root 'deft', got:\n%s", string(data))
+	}
+}
+
+// TestWriteInstallManifest_RejectsEmptyDeftDir verifies the writer fails
+// loudly when called without a deftDir (defensive programming guard).
+func TestWriteInstallManifest_RejectsEmptyDeftDir(t *testing.T) {
+	projectDir := t.TempDir()
+	_, err := WriteInstallManifest(projectDir, "", InstallManifestFields{
+		Tag:       "v0.28.0",
+		FetchedBy: "deft-install",
+	})
+	if err == nil {
+		t.Fatal("expected error when deftDir is empty, got nil")
+	}
+	if !strings.Contains(err.Error(), "deftDir") {
+		t.Errorf("expected error to mention deftDir, got: %v", err)
+	}
+}

@@ -37,17 +37,19 @@ on every install.
 ref: 'v0.27.1'
 sha: 'af829f4ec5bbe6ef562722d76080bb94ba893f8e'
 tag: 'v0.27.1'
+install_root: '.deft/core'
 fetched_at: '2026-05-11T15:30:52Z'
 fetched_by: 'oz-agent-upgrade'
 ```
 
-| Field        | Required | Description                                                                                                  |
-| ------------ | -------- | ------------------------------------------------------------------------------------------------------------ |
-| `ref`        | yes      | Upstream ref the framework was fetched from. Usually a tag (`v0.27.1`) but may be a branch (`main`) for HEAD installs.    |
-| `sha`        | yes      | Full 40-char commit SHA of the framework HEAD at fetch time. Lets the doctor reconcile against `git rev-parse HEAD`.       |
-| `tag`        | yes      | The tag-reference version (`v0.27.1`) -- mirrors `oz-agent-upgrade` shape. The leading `v` is stripped when regenerating the bare `.deft-version` derivative (`0.27.1`).|
-| `fetched_at` | yes      | ISO-8601 UTC timestamp of the install. Used by the doctor to flag stale installs against an `--age-days` threshold. |
-| `fetched_by` | yes      | Identifier for the rail that produced the manifest (`oz-agent-upgrade`, `run-install`, `run-upgrade`, `webinstaller`, ...). |
+| Field          | Required                       | Description                                                                                                  |
+| -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `ref`          | yes                            | Upstream ref the framework was fetched from. Usually a tag (`v0.27.1`) but may be a branch (`main`) for HEAD installs.    |
+| `sha`          | yes                            | Full 40-char commit SHA of the framework HEAD at fetch time. Lets the doctor reconcile against `git rev-parse HEAD`.       |
+| `tag`          | yes                            | The tag-reference version (`v0.27.1`) -- mirrors `oz-agent-upgrade` shape. The leading `v` is stripped when regenerating the bare `.deft-version` derivative (`0.27.1`).|
+| `install_root` | required (added in v0.29.0)    | The relative POSIX-style path from the consumer project root to the framework deposit (e.g. `.deft/core` for canonical installs, `deft` for legacy state-A). This is the single source of truth for the install-layout contract (#1062): every writer rail (`run install`, `run upgrade`, `deft-install`, `oz-agent-upgrade`, webinstaller) records it at deposit time, and downstream consumers -- starting with the framework doctor's `install-path-consistency` check -- read this field instead of re-parsing AGENTS.md prose. Pre-v0.29 manifests that omit the field still parse; consumers fall back to the legacy AGENTS.md parse and surface a doctor INFO note when the fallback is taken. |
+| `fetched_at`   | yes                            | ISO-8601 UTC timestamp of the install. Used by the doctor to flag stale installs against an `--age-days` threshold. |
+| `fetched_by`   | yes                            | Identifier for the rail that produced the manifest (`oz-agent-upgrade`, `run-install`, `run-upgrade`, `deft-install`, `webinstaller`, ...). |
 
 The file format is intentionally minimal YAML so the framework's pure-stdlib
 parser in `run::_parse_install_manifest` does not need PyYAML at install

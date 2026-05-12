@@ -156,6 +156,110 @@ var canonicalGitignoreLines = []string{
 }
 
 // ---------------------------------------------------------------------------
+// 4.0 Install manifest writer (#1062)
+// ---------------------------------------------------------------------------
+
+// installManifestFilename is the canonical filename for the install manifest
+// at <install>/VERSION. Mirrors run::_INSTALL_MANIFEST_FILENAME.
+const installManifestFilename = "VERSION"
+
+// InstallManifestFields holds the provenance fields the Go installer emits
+// into the canonical <install>/VERSION manifest (#1046 PR-B AC-4, #1062).
+//
+// All fields are strings so the YAML shape matches what oz-agent-upgrade /
+// run install / run upgrade write -- the doctor and downstream consumers do
+// not need to special-case the producer rail.
+//
+// InstallRoot is the relative POSIX-style path from the consumer project
+// root to the framework deposit (e.g. ".deft/core" for canonical installs,
+// "deft" for legacy state-A). It is the #1062 single-source-of-truth field
+// the doctor reads instead of parsing AGENTS.md prose.
+type InstallManifestFields struct {
+	Ref         string // upstream ref the framework was fetched from (e.g. "v0.28.0" or "master")
+	SHA         string // 40-char commit SHA of framework HEAD at fetch time
+	Tag         string // tag-reference version (e.g. "v0.28.0"); leading "v" stripped for the bare derivative
+	InstallRoot string // relative POSIX-style install root path (#1062)
+	FetchedAt   string // ISO-8601 UTC timestamp of the install
+	FetchedBy   string // rail identifier (e.g. "deft-install", "run-install", "oz-agent-upgrade")
+}
+
+// BuildInstallManifestText renders the canonical YAML provenance manifest
+// text emitted by the Go installer (#1046 PR-B AC-4, #1062). Pure -- no I/O.
+//
+// Mirrors run::_build_install_manifest_text so consumers reading the file
+// see one consistent shape regardless of which rail produced it: single-
+// quoted values, ordered ref/sha/tag/install_root/fetched_at/fetched_by, and
+// the v-prefixed tag-reference form for both ref and tag. Tag is normalised
+// to the v-prefix when the caller passes a bare "0.X.Y"; ref defaults to
+// the normalised tag when empty.
+func BuildInstallManifestText(fields InstallManifestFields) string {
+	effectiveTag := fields.Tag
+	if effectiveTag != "" && !strings.HasPrefix(effectiveTag, "v") {
+		effectiveTag = "v" + effectiveTag
+	}
+	effectiveRef := fields.Ref
+	if effectiveRef == "" {
+		effectiveRef = effectiveTag
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "ref: '%s'\n", effectiveRef)
+	fmt.Fprintf(&b, "sha: '%s'\n", fields.SHA)
+	fmt.Fprintf(&b, "tag: '%s'\n", effectiveTag)
+	fmt.Fprintf(&b, "install_root: '%s'\n", fields.InstallRoot)
+	fmt.Fprintf(&b, "fetched_at: '%s'\n", fields.FetchedAt)
+	fmt.Fprintf(&b, "fetched_by: '%s'\n", fields.FetchedBy)
+	return b.String()
+}
+
+// deriveInstallRootString returns the POSIX-style relative install-root
+// string used in the manifest's install_root field (#1062). When deftDir is
+// not under projectDir (defensive case -- callers should never construct
+// this) the absolute POSIX path is returned so the field is still populated.
+func deriveInstallRootString(projectDir, deftDir string) string {
+	rel, err := filepath.Rel(projectDir, deftDir)
+	if err != nil {
+		return filepath.ToSlash(deftDir)
+	}
+	return filepath.ToSlash(rel)
+}
+
+// WriteInstallManifest writes the canonical YAML provenance manifest at
+// <deftDir>/VERSION (#1046 PR-B AC-4, #1062). Best-effort -- silently
+// degrades to a no-op when fields.SHA / fields.FetchedAt are empty so the
+// installer pipeline does not crash on a fresh checkout where git rev-parse
+// failed; callers SHOULD pre-populate every field so the manifest carries
+// full provenance.
+//
+// The install_root field is derived from filepath.Rel(projectDir, deftDir)
+// and rendered POSIX-style so the manifest shape stays consistent on
+// Windows (`.deft/core` not `.deft\\core`). Callers MUST pass the same
+// projectDir / deftDir the wizard chose so the recorded path matches the
+// on-disk deposit.
+//
+// Returns the absolute path to the written manifest file, or an empty
+// string if the field set is missing required values. An OSError-class
+// failure (read-only filesystem, permission denied) is returned to the
+// caller so the installer can surface it; mirrors run::_write_install_manifest's
+// best-effort contract while still propagating concrete filesystem errors.
+func WriteInstallManifest(projectDir, deftDir string, fields InstallManifestFields) (string, error) {
+	if deftDir == "" {
+		return "", fmt.Errorf("WriteInstallManifest: deftDir must not be empty")
+	}
+	if fields.InstallRoot == "" {
+		fields.InstallRoot = deriveInstallRootString(projectDir, deftDir)
+	}
+	body := BuildInstallManifestText(fields)
+	path := filepath.Join(deftDir, installManifestFilename)
+	if err := os.MkdirAll(deftDir, 0o755); err != nil {
+		return "", fmt.Errorf("could not create install dir for manifest: %w", err)
+	}
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		return "", fmt.Errorf("could not write install manifest: %w", err)
+	}
+	return path, nil
+}
+
+// ---------------------------------------------------------------------------
 // 4.1 Clone deft
 // ---------------------------------------------------------------------------
 

@@ -4,7 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"runtime"
+	"strings"
+	"time"
 )
 
 // version is set at build time via ldflags:
@@ -160,6 +163,20 @@ func install(debug bool, branch string, legacyLayout bool) int {
 		}
 	}
 
+	// #1062: stamp the canonical YAML install manifest at <deftDir>/VERSION
+	// alongside CloneDeft / UpdateDeft so the framework records the
+	// install_root field as the single source of truth for the install-
+	// layout contract. Best-effort: a failure to resolve git provenance
+	// (fresh shallow clone, git unavailable) falls back to the resolved
+	// values from the installer binary (defaultBranch + empty SHA) so the
+	// manifest still carries install_root.
+	installFields := resolveInstallManifestFields(result, branch)
+	if _, err := WriteInstallManifest(result.ProjectDir, result.DeftDir, installFields); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not write install manifest: %v\n", err)
+		// Non-fatal: the install proceeds, but downstream consumers (doctor,
+		// sync skill) will fall back to the AGENTS.md parse for install_root.
+	}
+
 	if err := WriteAgentsMD(w, result.ProjectDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
@@ -194,6 +211,42 @@ func install(debug bool, branch string, legacyLayout bool) int {
 
 	PrintNextSteps(w, result, configDir, skillsCreated)
 	return 0
+}
+
+// resolveInstallManifestFields builds the InstallManifestFields struct the
+// installer writes into <deftDir>/VERSION (#1062). The SHA is resolved via
+// `git rev-parse HEAD` rooted at deftDir; failure (fresh shallow clone, git
+// unavailable) falls back to an empty string so the manifest still carries
+// the other fields. Ref / tag fall back to the build-time defaultBranch
+// when no explicit --branch was passed.
+func resolveInstallManifestFields(result *WizardResult, branch string) InstallManifestFields {
+	effectiveRef := branch
+	if effectiveRef == "" {
+		effectiveRef = defaultBranch
+	}
+	effectiveTag := effectiveRef
+	sha := resolveDeftHeadSHA(result.DeftDir)
+	return InstallManifestFields{
+		Ref:         effectiveRef,
+		SHA:         sha,
+		Tag:         effectiveTag,
+		InstallRoot: deriveInstallRootString(result.ProjectDir, result.DeftDir),
+		FetchedAt:   time.Now().UTC().Format("2006-01-02T15:04:05Z"),
+		FetchedBy:   "deft-install",
+	}
+}
+
+// resolveDeftHeadSHA runs `git -C <deftDir> rev-parse HEAD` and returns the
+// trimmed output. Best-effort: returns "" on any failure (git missing,
+// shallow clone with no refs, permission denied) so the install pipeline
+// never crashes because of provenance resolution.
+func resolveDeftHeadSHA(deftDir string) string {
+	cmd := exec.Command("git", "-C", deftDir, "rev-parse", "HEAD")
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 // pressEnterToExit waits for the user to press Enter before the process exits.
