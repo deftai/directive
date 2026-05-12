@@ -78,12 +78,18 @@ def fd():
 # YAML and we only need to extract task names + include namespace keys; a
 # scoped regex over the file body is sufficient and matches what the
 # framework's own content tests (e.g. tests/content/test_taskfile_*.py) do.
-_TASK_NAME_RE = re.compile(r"^(?P<name>[\w][\w.:-]*?):\s*$", re.MULTILINE)
 _INCLUDE_KEY_RE = re.compile(r"^  (?P<key>[\w-]+):\s*$", re.MULTILINE)
 _TASKFILE_PATH_RE = re.compile(
     r"^    taskfile:\s*['\"]?(?P<path>[^'\"\n]+?)['\"]?\s*$",
     re.MULTILINE,
 )
+# Generous upper bound on how far we scan past an `includes:` entry's
+# namespace key to find its `taskfile:` line. Set well above any realistic
+# include-entry property block (`taskfile:` + `optional:` + `vars:` +
+# `env:` + `desc:`); a future include entry that exceeds this would
+# silently drop its namespace from the discovered targets, so we keep
+# the window generous (Greptile P2 on PR #1067).
+_INCLUDE_PROPERTY_WINDOW_CHARS = 1200
 
 
 def _extract_block(text: str, key: str) -> str:
@@ -130,8 +136,11 @@ def _parse_includes(text: str) -> dict[str, str]:
     #     optional: true
     for ns_match in _INCLUDE_KEY_RE.finditer(block):
         ns_key = ns_match.group("key")
-        # Search forward for the first taskfile: line within the next ~6 lines.
-        local_window = block[ns_match.end() : ns_match.end() + 600]
+        # Search forward for the first taskfile: line within a generous
+        # property-block window (see ``_INCLUDE_PROPERTY_WINDOW_CHARS``).
+        local_window = block[
+            ns_match.end() : ns_match.end() + _INCLUDE_PROPERTY_WINDOW_CHARS
+        ]
         path_match = _TASKFILE_PATH_RE.search(local_window)
         if path_match is None:
             continue
@@ -511,6 +520,51 @@ def test_fail_detail_carries_named_command_recommendation(
     assert not missing_named_command, (
         "FAIL `detail` strings missing a named command recommendation (#1061):\n"
         + "\n".join(missing_named_command)
+    )
+
+
+def test_dual_recommendation_checks_carry_both_structured_fields(
+    fd, tmp_path
+):
+    """Pin the dual-recommendation symmetry contract (SLizard P1 PR #1067).
+
+    Every check whose ``detail`` cites TWO alternative repair commands
+    MUST surface BOTH commands in the structured ``data`` block so
+    programmatic consumers (the agentic-sync skill, CI assertions) see
+    the same dual surface as humans. The three dual-recommendation
+    checks are: ``quick-start-resolves`` (agents:refresh OR task
+    upgrade), ``skill-paths-resolve`` (same pair), and
+    ``install-path-consistency`` (agents:refresh OR task
+    relocate:relocate). Each MUST carry BOTH ``suggested_fix`` AND
+    ``suggested_fix_alt`` -- a future regression that drops one breaks
+    the API contract documented in the PR description.
+    """
+    builders_and_dual_check_names = [
+        (_drift_state_quick_start_missing, "quick-start-resolves"),
+        (_drift_state_quick_start_missing, "install-path-consistency"),
+        (_drift_state_skill_missing, "skill-paths-resolve"),
+    ]
+    missing: list[str] = []
+    for builder, check_name in builders_and_dual_check_names:
+        sub = tmp_path / f"{builder.__name__}_{check_name}"
+        sub.mkdir()
+        project_root = builder(sub)
+        result = fd.run_checks(project_root)
+        check = next(
+            (c for c in result["checks"] if c["name"] == check_name), None
+        )
+        if check is None or check["status"] != "fail":
+            missing.append(f"check={check_name!r} did not surface as FAIL")
+            continue
+        data = check.get("data") or {}
+        for key in ("suggested_fix", "suggested_fix_alt"):
+            if not data.get(key):
+                missing.append(
+                    f"check={check_name!r} missing data.{key}"
+                )
+    assert not missing, (
+        "Dual-recommendation checks MUST carry BOTH suggested_fix and "
+        "suggested_fix_alt fields (SLizard P1 PR #1067):\n" + "\n".join(missing)
     )
 
 

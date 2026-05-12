@@ -254,7 +254,14 @@ def _check_quick_start_resolves(project_root: Path, install_root: str | None) ->
         data={
             "path": str(qs_path),
             "install_root": install_root,
+            # Dual repair-path contract: ``suggested_fix`` is the AGENTS.md
+            # realignment (preferred when the on-disk framework is correct);
+            # ``suggested_fix_alt`` re-pulls the framework when the on-disk
+            # install is missing entirely. Mirrors the prose's two-option
+            # phrasing so programmatic consumers (sync skill / CI) see the
+            # same dual surface as humans (SLizard P1 on PR #1067).
             "suggested_fix": ".deft/core/run agents:refresh",
+            "suggested_fix_alt": "task upgrade",
         },
     )
 
@@ -307,7 +314,10 @@ def _check_skill_paths_resolve(project_root: Path, agents_md_text: str) -> Check
             "referenced": referenced,
             "missing": missing,
             "redirect_stubs": redirect_stubs,
+            # Dual repair-path contract -- see ``_check_quick_start_resolves``
+            # for the rationale (SLizard P1 on PR #1067).
             "suggested_fix": ".deft/core/run agents:refresh",
+            "suggested_fix_alt": "task upgrade",
         },
     )
 

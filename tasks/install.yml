@@ -41,13 +41,20 @@ tasks:
   #
   # Per ``conventions/task-caching.md`` (#574): no ``sources:`` /
   # ``generates:`` because the task is mutating + must run on every
-  # invocation; CLI_ARGS is intentionally NOT forwarded because
-  # ``cmd_upgrade`` does not currently accept flags (the surface stays
-  # narrow so future flag additions land deliberately, not implicitly).
+  # invocation. CLI_ARGS is explicitly cleared (``vars: { CLI_ARGS: "" }``)
+  # so any operator-supplied ``-- <flags>`` are deterministically dropped
+  # before reaching ``run upgrade``: go-task only forwards ``{{.CLI_ARGS}}``
+  # when a ``cmds`` line references it, but pinning the var to empty makes
+  # the contract explicit AND defends against a future edit that
+  # accidentally appends ``{{.CLI_ARGS}}`` to the dispatch line (SLizard P1
+  # on PR #1067 -- ``cmd_upgrade`` does not currently accept flags; future
+  # flag additions land deliberately, not implicitly via Taskfile drift).
   upgrade:
     desc: "Upgrade deft framework: refresh AGENTS.md to current marker, write canonical install manifest, regenerate .deft-version derivative (#1061). Wraps `run upgrade`."
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
+    vars:
+      CLI_ARGS: ""
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/run" upgrade
