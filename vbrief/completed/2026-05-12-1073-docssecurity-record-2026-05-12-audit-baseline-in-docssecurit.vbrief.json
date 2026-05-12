@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "docs(security): record 2026-05-12 audit baseline in docs/security.md (parent #1069)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "docs(security): record 2026-05-12 audit baseline in docs/security.md (parent #1069)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1073",
@@ -19,6 +19,6 @@
         "title": "Issue #1073: docs(security): record 2026-05-12 audit baseline in docs/security.md (parent #1069)"
       }
     ],
-    "updated": "2026-05-12T16:34:05Z"
+    "updated": "2026-05-12T17:22:26Z"
   }
 }
