@@ -60,6 +60,7 @@ Load as needed:
 - **[scm/github.md](./scm/github.md)** - When setting up CI/CD, PRs, issues
 - **[tools/taskfile.md](./tools/taskfile.md)** - When creating/modifying tasks
 - **[coding/testing.md](./coding/testing.md)** - When writing tests or checking coverage
+- **[coding/security.md](./coding/security.md)** - When handling untrusted input, auth, secrets, dependencies, or building agent surfaces (#661)
 - **[tools/telemetry.md](./tools/telemetry.md)** - When implementing logging, tracing, metrics
 
 ### When Working in a Swarm

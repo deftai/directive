@@ -1,0 +1,179 @@
+"""
+test_security_standards.py -- Deterministic content regression for the
+`coding/security.md` baseline security standards (#661).
+
+Per the Rule Authority [AXIOM] in `main.md` the strongest applicable
+encoding tier for a prose rule is a deterministic content test that
+fails CI if the rule body or its cross-references drift. This module
+pins:
+
+1. `coding/security.md` exists at the canonical path.
+2. The file is <= 150 lines (the #661 vBRIEF ceiling).
+3. The RFC2119 legend is present near the top.
+4. Every required section heading from the vBRIEF is present.
+5. `coding/coding.md` carries a cross-link to `coding/security.md`.
+6. `REFERENCES.md` carries a lazy-load entry for `coding/security.md`.
+7. The Secrets Management section cross-references `coding/coding.md`.
+
+A future rename, accidental deletion, or section drop fails this lane
+before the change can land via `task check`.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+SECURITY_MD = _REPO_ROOT / "coding" / "security.md"
+CODING_MD = _REPO_ROOT / "coding" / "coding.md"
+REFERENCES_MD = _REPO_ROOT / "REFERENCES.md"
+
+# Line ceiling per the #661 vBRIEF: "It should stay <=150 lines."
+MAX_LINES = 150
+
+# Required section headings per the #661 vBRIEF Action section.
+REQUIRED_SECTIONS = (
+    "## Universal Requirements",
+    "## Input Validation & Injection Prevention",
+    "## Authentication & Authorization",
+    "## Secrets Management",
+    "## Dependency Security",
+    "## Agent-Specific Threats",
+    "## Anti-Patterns",
+)
+
+RFC2119_LEGEND_TOKENS = ("!=MUST", "~=SHOULD")
+
+
+def _read(path: Path) -> str:
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
+# ---------------------------------------------------------------------------
+# 1. Existence + size envelope
+# ---------------------------------------------------------------------------
+
+
+def test_security_md_exists() -> None:
+    """`coding/security.md` must exist at the canonical path (#661)."""
+    assert SECURITY_MD.is_file(), (
+        f"{SECURITY_MD}: file missing -- #661 introduces the baseline "
+        "security standards file at this path"
+    )
+
+
+def test_security_md_line_ceiling() -> None:
+    """File MUST stay <=150 lines per the #661 vBRIEF scope contract."""
+    line_count = len(_read(SECURITY_MD).splitlines())
+    assert line_count <= MAX_LINES, (
+        f"coding/security.md: {line_count} lines exceeds the {MAX_LINES} "
+        "ceiling from the #661 vBRIEF (\"It should stay <=150 lines\")"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 2. RFC2119 legend (mirrors coding/testing.md shape)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("token", RFC2119_LEGEND_TOKENS)
+def test_security_md_rfc2119_legend(token: str) -> None:
+    """The RFC2119 legend MUST appear in the first ~10 lines."""
+    head = "\n".join(_read(SECURITY_MD).splitlines()[:10])
+    assert token in head, (
+        f"coding/security.md: missing RFC2119 legend token {token!r} in "
+        "the first 10 lines -- mirror the coding/testing.md shape"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 3. Required sections present
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("heading", REQUIRED_SECTIONS)
+def test_security_md_required_sections_present(heading: str) -> None:
+    """Every required section heading from the #661 vBRIEF MUST be present."""
+    text = _read(SECURITY_MD)
+    assert heading in text, (
+        f"coding/security.md: missing required section heading {heading!r} "
+        "-- the #661 vBRIEF Action section names this section explicitly"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 4. MUST + MUST NOT token mix in the rule body
+# ---------------------------------------------------------------------------
+
+
+def test_security_md_carries_must_and_must_not_tokens() -> None:
+    """The body MUST encode rules with both `!` MUST and `\u2297` MUST NOT
+    markers so the standards file is enforceable as RFC2119, not advisory
+    prose."""
+    text = _read(SECURITY_MD)
+    assert "- ! " in text, (
+        "coding/security.md: missing any `- ! ` MUST bullet -- "
+        "baseline standards MUST encode at least one RFC2119 MUST rule"
+    )
+    assert "- \u2297 " in text, (
+        "coding/security.md: missing any `- \u2297 ` MUST NOT bullet -- "
+        "baseline standards MUST encode at least one RFC2119 MUST NOT rule"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 5. Secrets section cross-references coding/coding.md
+# ---------------------------------------------------------------------------
+
+
+def test_security_md_secrets_section_crossrefs_codingmd() -> None:
+    """The Secrets Management section MUST cross-reference the existing
+    `coding/coding.md` Secrets rule per the #661 vBRIEF Action section
+    (\"Extends coding.md's existing rule\")."""
+    text = _read(SECURITY_MD)
+    assert "coding.md" in text, (
+        "coding/security.md: missing `coding.md` cross-reference -- "
+        "the Secrets Management section MUST extend the existing coding.md "
+        "Secrets rule per the #661 vBRIEF Action section"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 6. coding/coding.md cross-link
+# ---------------------------------------------------------------------------
+
+
+def test_coding_md_links_to_security_md() -> None:
+    """`coding/coding.md` MUST carry a cross-link to `coding/security.md`
+    per the #661 scope (\"short cross-link to coding/security.md in the
+    appropriate standards section\")."""
+    text = _read(CODING_MD)
+    assert "coding/security.md" in text or "security.md" in text, (
+        "coding/coding.md: missing cross-link to `coding/security.md` -- "
+        "#661 scope mandates a short cross-link in the appropriate "
+        "standards section"
+    )
+    # Also pin the #661 issue-number cross-reference for discoverability.
+    assert "#661" in text, (
+        "coding/coding.md: missing `#661` issue-number cross-reference "
+        "for the security.md cross-link"
+    )
+
+
+# ---------------------------------------------------------------------------
+# 7. REFERENCES.md lazy-load entry
+# ---------------------------------------------------------------------------
+
+
+def test_references_md_registers_security_md() -> None:
+    """`REFERENCES.md` MUST register `coding/security.md` as a lazy-load
+    entry per the #661 scope contract (\"add lazy-load trigger for
+    coding/security.md\")."""
+    text = _read(REFERENCES_MD)
+    assert "coding/security.md" in text, (
+        "REFERENCES.md: missing lazy-load entry for `coding/security.md` "
+        "-- #661 scope mandates the trigger entry"
+    )

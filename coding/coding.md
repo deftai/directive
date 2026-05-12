@@ -89,6 +89,10 @@ See [../scm/git.md](../scm/git.md) for:
 - ! Implementation is INCOMPLETE until tests written AND `task test:coverage` passes
 - See [../coding/testing.md](../coding/testing.md) for universal requirements
 
+**Security:**
+- ! Apply baseline security standards to every project from day one
+- See [../coding/security.md](../coding/security.md) for input validation, authn/authz, secrets, dependency, and agent-specific threats (#661)
+
 **Codebase Hygiene:**
 - See [hygiene.md](hygiene.md) for: dead code removal, circular dependency detection, error hiding patterns, legacy/deprecated code cleanup
 
