@@ -1,0 +1,34 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #816"
+  },
+  "plan": {
+    "title": "feat(patterns): add role-as-overlay — persona/role instructions must be system-prompt overlays, never injected into message history",
+    "status": "pending",
+    "narratives": {
+      "Description": "feat(patterns): add role-as-overlay — persona/role instructions must be system-prompt overlays, never injected into message history",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/816",
+      "Overview": "## Summary\n\nRole and persona instructions applied to an agent or skill call MUST be implemented as call-scoped system prompt overlays, not injected into the persisted message history.\n\n## Source\n\nFlue SDK (withastro/flue README) — \"Role instructions are applied as call-scoped system prompt overlays, not injected into the persisted user message history.\" Precedence: call role > session role > agent role.\n\n## The principle\n\nWhen a skill or agent applies a persona (\"you are a security reviewer\", \"you are a senior engineer\", \"you are a concise summarizer\"), that instruction belongs in the system prompt layer — not as a user or assistant message in the conversation record.\n\n**Why this matters:**\n- Message history is the durable record of what happened. Role instructions are configuration — they describe *how* to process, not *what* was processed.\n- Injecting role instructions as messages pollutes the history: a resuming agent sees spurious \"you are a reviewer\" messages mixed into the work record, corrupts retrieval, and contributes to context rot (#674).\n- Call-scoped overlays are ephemeral by design — they apply for the duration of the call and disappear, leaving the history clean.\n\n**Precedence rule to encode:**\nCall-level role > session-level role > agent-level role. Lower levels are defaults; higher levels override without modifying the lower level's record.\n\n## Why this matters for directive\n\nDirective's deft-review-cycle, deft-pre-pr, and deft-build all implicitly apply roles (reviewer, builder, quality-checker). If these are injected as messages rather than system overlays, they accumulate in session history, degrade future context quality, and break session resumption. This names the correct implementation pattern.\n\n## Proposed placement\n\n- `patterns/role-as-overlay.md` — new pattern\n- `deft/skills/SKILL.md` template — add guidance on role injection method\n\n## Confidence\n\nMedium-High — the failure mode (role pollution in message history) is a known contributor to context rot. The fix is well-defined.\n\n## Related\n\nDirectly addresses a structural cause of #674 (context rot) and #479 (false memory propagation). Related to #808 (share-state-isolate-cognition), #662 (context degradation recovery).",
+      "Labels": "security",
+      "Dependencies": "Structurally depends on #481 (pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json), which creates the patterns/ directory. Swarm sequencing: dispatch #481 first and wait for its PR to merge before swarming this story; alternatively the implementing agent must scaffold patterns/ if absent (and the resulting PR must NOT carry the structural patterns/ scaffolding that is #481's deliverable)."
+    },
+    "items": [],
+    "tags": [
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/816",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #816: feat(patterns): add role-as-overlay — persona/role instructions must be system-prompt overlays, never injected into message history"
+      },
+      {
+        "uri": "pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Structural dependency: #481 creates the patterns/ directory this story writes into"
+      }
+    ],
+    "updated": "2026-05-12T20:45:08Z"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #836"
+  },
+  "plan": {
+    "title": "feat(patterns): prompt-assembly-layer-ordering — separate cached system prompt layers from ephemeral per-turn injections",
+    "status": "pending",
+    "narratives": {
+      "Description": "feat(patterns): prompt-assembly-layer-ordering — separate cached system prompt layers from ephemeral per-turn injections",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/836",
+      "Overview": "## Summary\n\nWhen building agents, separate the system prompt into a stable cached prefix (assembled once at session start) and ephemeral additions (injected at API-call time). Mixing these destroys prefix cache effectiveness.\n\n## Source\n\nNousResearch Hermes Agent architecture documentation (prompt-assembly.md). 'Hermes deliberately separates cached system prompt state from ephemeral API-call-time additions. This is one of the most important design choices in the project because it affects: token usage, prompt caching effectiveness, session continuity, memory correctness.'\n\n## The two layers\n\n**Cached prefix (assembled once, stable for the session):**\n1. Agent identity (SOUL.md / persona)\n2. Tool-aware behavior guidance\n3. Frozen memory snapshot (#832)\n4. Skills index\n5. Context files (AGENTS.md, project config)\n6. Session timestamp\n\n**Ephemeral (injected at API-call time, never cached):**\n- Current-turn context overlays\n- Gateway-derived session context\n- Later-turn memory recall injected into the user message (not the system prompt)\n- Prefill messages\n\n## The invariant\n\n**Rule:** If it changes per-turn, it is ephemeral. If it's stable for the session, it is cached.\n\nViolating this by putting variable content into the system prompt layer forces the provider to cache-miss on every turn, effectively multiplying token cost by the number of turns.\n\n## Why the ordering of cached layers matters\n\nWithin the cached prefix, ordering affects cache hit rate: layers that change less frequently should come earlier. Identity and behavior guidance change least frequently (frozen until next deploy). Memory snapshot changes only between sessions. Skills index changes when skills are added/removed. Context files change per-project. Timestamp changes per-session.\n\nCorrect ordering: most-stable first → least-stable last. This maximizes the cacheable prefix length.\n\n## Why this matters for directive\n\nDirective-built agents don't have explicit guidance on prompt assembly. Without it:\n- Agent-written context file content mixed into system prompt fragments caching\n- Memory updates injected mid-session instead of waiting for next session\n- Per-turn metadata (timestamps, current task) placed in system prompt instead of user message\n\nThis is closely related to #832 (frozen-memory-snapshot) — the frozen snapshot rule IS a consequence of the cached/ephemeral separation.\n\n## Proposed placement\n\n- `patterns/prompt-assembly-layer-ordering.md` — new pattern\n- Reference from `context/context.md`\n\n## Confidence\n\nHigh — prefix cache mechanics are well-documented by all major providers. The ordering and separation rules are concrete.\n\n## Related\n\nExtends #832 (frozen-memory-snapshot — a direct consequence of this pattern). Related to #816 (role-as-overlay — roles are ephemeral, not cached). Related to #788 (token cost as design constraint).",
+      "Labels": "security",
+      "Dependencies": "Structurally depends on #481 (pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json), which creates the patterns/ directory. Swarm sequencing: dispatch #481 first and wait for its PR to merge before swarming this story; alternatively the implementing agent must scaffold patterns/ if absent (and the resulting PR must NOT carry the structural patterns/ scaffolding that is #481's deliverable)."
+    },
+    "items": [],
+    "tags": [
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/836",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #836: feat(patterns): prompt-assembly-layer-ordering — separate cached system prompt layers from ephemeral per-turn injections"
+      },
+      {
+        "uri": "pending/2026-04-30-481-patterns-directory-and-llm-app-standards.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Structural dependency: #481 creates the patterns/ directory this story writes into"
+      }
+    ],
+    "updated": "2026-05-12T20:45:08Z"
+  }
+}

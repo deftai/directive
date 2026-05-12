@@ -1,0 +1,34 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #686"
+  },
+  "plan": {
+    "title": "feat(coding): tool-call safety is independent of text-level safety — add as named security rule",
+    "status": "pending",
+    "narratives": {
+      "Description": "feat(coding): tool-call safety is independent of text-level safety — add as named security rule",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/686",
+      "Overview": "## Source\nPaper: [Agent Behavioral Contracts: Formal Specification and Runtime Enforcement for Reliable Autonomous AI Agents](https://arxiv.org/abs/2602.22302)\nCiting: Cartagena & Teixeira (2026) — empirical demonstration that text-level safety alignment does not transfer to tool-call safety.\n\n## Finding\nAn agent whose text outputs satisfy safety alignment constraints may still execute harmful tool calls. Safety training at the text level provides no guarantee at the tool-call boundary. This has been empirically demonstrated (independently of the ABC paper).\n\n## Suggestion\nEncode as an explicit named rule in `coding/security.md` (see #661):\n\n> **Tool-call safety is independent of text safety.** Do not rely on model-level safety training to enforce tool-call constraints. Any tool with significant side effects (write, delete, send, execute, bill, authenticate) must have runtime enforcement at the call site — separate from the model.\n\nPractical implications:\n- Tool registries should declare constraint tiers (read-only, reversible, irreversible, destructive)\n- Hard constraints on high-impact tools must be enforced outside the model (middleware, gateway, contract layer)\n- Audit logging at the tool-call layer is mandatory — text-level logs are insufficient\n\n## Why relevant to directive\nThis is a non-obvious, empirically backed finding that directly affects how directive-guided agent projects should design their tool layers. Without this rule, teams naturally (and incorrectly) assume that a safety-aligned model is safe at the tool boundary.\n\n## Files affected\n- `coding/security.md` — extends #661\n\n## Related issues\n- Extends #661 (baseline security standards)\n- Related to #542 (LLM-generated code must execute in sandbox), #587 (no-read-secret rule)\n\n## Priority\n**High** — concrete, named rule; immediately encodable once #661 is in progress",
+      "Labels": "security",
+      "Dependencies": "Structurally depends on #661 (creates coding/security.md; pending/2026-05-12-661-...). Swarm sequencing: dispatch #661 in wave 1; this story lands in wave 2 once coding/security.md is in master."
+    },
+    "items": [],
+    "tags": [
+      "security"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/686",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #686: feat(coding): tool-call safety is independent of text-level safety — add as named security rule"
+      },
+      {
+        "uri": "pending/2026-05-12-661-featcoding-add-codingsecuritymd-baseline-security-standards.vbrief.json",
+        "type": "x-vbrief/related-plan",
+        "title": "Structural dependency: #661 creates coding/security.md which this story extends with the tool-call-safety rule"
+      }
+    ],
+    "updated": "2026-05-12T20:45:09Z"
+  }
+}
