@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1084"
+  },
+  "plan": {
+    "title": "chore(security): PyPI OIDC trusted-publishing workflow (blocked-by #11)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "chore(security): PyPI OIDC trusted-publishing workflow (blocked-by #11)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1084",
+      "Overview": "## Parent / Predecessor\r\n\r\n- Carved out of #1072 during the 2026-05-12 supply-chain cohort refinement.\r\n- Blocked-by #11 (Proposal: Publish Deft as an NPM + PIP CLI). PyPI OIDC trusted-publishing is meaningless until deft is actually publishing to PyPI, which #11 owns.\r\n\r\n## What to build\r\n\r\nPyPI OIDC trusted-publishing workflow for the deft CLI package. Replaces the static-token publish path proposed in #11 with a short-lived OIDC token issued by GitHub Actions, eliminating the long-lived `PYPI_API_TOKEN` secret-handling surface.\r\n\r\nSpecifically:\r\n\r\n- New `.github/workflows/release-pypi.yml` workflow:\r\n  - Trigger: `release: types: [published]` so it fires after `task release:publish -- <ver>` flips the GitHub release public.\r\n  - Permissions: top-level `permissions: contents: read`; per-job `permissions: id-token: write, contents: read`.\r\n  - Uses `pypa/gh-action-pypi-publish@<sha>` (pinned per #1072) -- no `password:` / `PYPI_API_TOKEN` input.\r\n- PyPI-side registration (HITL): one-time human step at `https://pypi.org/manage/account/publishing/` registering deftai/directive as a trusted publisher for the deft package name (workflow filename + ref pattern + environment).\r\n- Dry-run path: `release: types: [prereleased]` or a manual `workflow_dispatch` against TestPyPI to verify the OIDC flow before any production publish.\r\n\r\n## Acceptance criteria\r\n\r\n- [ ] #11 has landed (deft is published to PyPI at some package name)\r\n- [ ] `release-pypi.yml` workflow exists with `id-token: write` permission and `pypa/gh-action-pypi-publish@<sha>` (no `password:` input)\r\n- [ ] PyPI trusted-publisher registration completed in the PyPI web UI for the registered package name\r\n- [ ] A TestPyPI publish succeeds end-to-end via the OIDC path (dry-run verification)\r\n- [ ] A production publish succeeds at the next release cut\r\n- [ ] `task check` passes\r\n\r\n## Type\r\n\r\nHITL -- the PyPI-side trusted-publisher registration is a one-time human web-UI step.\r\n\r\n## Blocked by\r\n\r\n- Blocked by #11 (deft must actually be on PyPI before there is anything to OIDC-publish to)\r\n\r\n## Refs\r\n\r\n- #1069 (parent supply-chain audit umbrella)\r\n- #1072 (predecessor: Actions SHA-pinning + permissions hardening; carved this out so #1072 can ship as fully AFK)\r\n- #11 (NPM + PIP distribution proposal -- the upstream dependency)\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1084",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1084: chore(security): PyPI OIDC trusted-publishing workflow (blocked-by #11)"
+      }
+    ]
+  }
+}

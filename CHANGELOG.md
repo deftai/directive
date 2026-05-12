@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+### Refinement
+- **chore(vbrief): swarm lifecycle bridge -- activate #1072 + #1073 ahead of swarm dispatch + propose #1084 (parent #1069)** -- bridged the remaining two child scope vBRIEFs of the 2026-05-12 supply-chain cohort from `vbrief/proposed/` to `vbrief/active/` via `task scope:promote` -> `task scope:activate` per `skills/deft-directive-swarm/SKILL.md` Phase 0 Step 0.5 (#1025): **#1072** (GitHub Actions SHA-pinning + least-privilege `permissions:` blocks; PyPI OIDC carved out to #1084 since deft is not yet on PyPI per the OPEN #11 packaging proposal) and **#1073** (`docs/security.md` baseline note recording the 2026-05-12 audit results). `plan.status` flipped to `running`; both cleared the #810 implementation-intent gate (`task vbrief:preflight` exits 0 on each). Concurrently filed scope vBRIEF for **#1084** (PyPI OIDC trusted-publishing workflow; blocked-by #11) in `vbrief/proposed/` -- intentionally NOT promoted because the upstream PyPI trusted-publisher registration is a one-time human web-UI step that cannot fire until deft has a PyPI package to register. `task project:render` ran once as the single batch checkpoint per Phase 4 batching rule. ROADMAP.md unchanged (lifecycle bridge moves settle in `active/`, which the roadmap renderer does not include). No upstream issues closed -- lifecycle bookkeeping only.
+
 ## [0.29.1] - 2026-05-12
 
 > Security supply-chain hardening: OSV advisories resolved across go.mod (1.22 -> 1.25), gitleaks PEM fixture remediated, ghx installer SHA-pinned, dependabot.yml deposited.

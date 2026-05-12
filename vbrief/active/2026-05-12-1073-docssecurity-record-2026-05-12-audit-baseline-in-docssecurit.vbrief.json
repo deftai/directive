@@ -1,0 +1,24 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1073"
+  },
+  "plan": {
+    "title": "docs(security): record 2026-05-12 audit baseline in docs/security.md (parent #1069)",
+    "status": "running",
+    "narratives": {
+      "Description": "docs(security): record 2026-05-12 audit baseline in docs/security.md (parent #1069)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1073",
+      "Overview": "## Parent\r\n\r\n#1069\r\n\r\n## What to build (refined 2026-05-12)\r\n\r\nWrap-up slice for the 2026-05-12 supply-chain audit cohort (#1069). Creates `docs/security.md` recording the 2026-05-12 baseline so future scans start from a documented anchor and any regression is immediately visible.\r\n\r\nThe baseline records:\r\n\r\n- **Audit date:** 2026-05-12\r\n- **Scanners run:** `osv-scanner scan source --recursive`, `gitleaks detect --redact` (live in v0.29.0 cohort); future cadence adds `trivy fs --severity CRITICAL,HIGH --ignore-unfixed`\r\n- **Findings resolved:** the 5 items in #1069: (1) gitleaks PEM fixture remediated via PR #1077 (#1070); (2) `curl | bash` removed from CI via PR #1077 (#1070); (3) 22 OSV advisories resolved via PR #1076 (#1071) -- live count diverged from the cited 40; remainder were auto-cleared by intervening dependabot bumps; (4) `dependabot.yml` deposit via PR #1077 (#1070); (5) Actions SHA-pinning + permissions hardening via the #1072 PR landing alongside this slice.\r\n- **Residual risk:** no unfixable advisories remain after PR #1076 (`osv-scanner --recursive .` -> \"No issues found\" on master at v0.29.1)\r\n- **Next scheduled audit:** quarterly cadence, plus event-driven re-audit on any dependabot or scanner-CI escalation\r\n- **Follow-up tracked separately:** #1084 (PyPI OIDC trusted-publishing -- blocked-by #11)\r\n\r\n## Acceptance criteria\r\n\r\n- [ ] `docs/security.md` exists with the 2026-05-12 audit baseline section\r\n- [ ] Each of the 5 findings from #1069 has a one-line entry referencing the PR that resolved it (#1076, #1077, and the #1072 PR)\r\n- [ ] A `## Audit cadence` section names quarterly + event-driven\r\n- [ ] A `## Out of scope / follow-ups` section names #1084 (PyPI OIDC trusted-publishing) with rationale (blocked-by #11)\r\n- [ ] `README.md` security section (create if absent) cross-references `docs/security.md`\r\n- [ ] PR body closes #1073 AND #1069 (umbrella close-out)\r\n- [ ] `task check` passes\r\n\r\n## Type\r\n\r\nAFK\r\n\r\n## Blocked by\r\n\r\nNone. #1070 merged at PR #1077; #1071 merged at PR #1076; both shipped in v0.29.1. #1072 runs in parallel with this slice from a sibling worktree (disjoint file scopes: `.github/workflows/**` vs `docs/security.md`). The agent SHOULD read the #1072 PR diff (or merged commit) once it lands to accurately describe the SHA-pin + permissions contract; if #1072 has not landed by the time this doc is being written, reference it prospectively by PR number with a one-line provisional summary that the post-merge cohort-close commit (#1083-style) can update if needed.\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1073",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1073: docs(security): record 2026-05-12 audit baseline in docs/security.md (parent #1069)"
+      }
+    ],
+    "updated": "2026-05-12T16:34:05Z"
+  }
+}

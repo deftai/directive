@@ -1,0 +1,24 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1072"
+  },
+  "plan": {
+    "title": "chore(security): pin GitHub Actions to SHAs + least-privilege permissions + PyPI OIDC (parent #1069)",
+    "status": "running",
+    "narratives": {
+      "Description": "chore(security): pin GitHub Actions to SHAs + least-privilege permissions + PyPI OIDC (parent #1069)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1072",
+      "Overview": "## Parent\r\n\r\n#1069\r\n\r\n## What to build (refined 2026-05-12)\r\n\r\nGitHub Actions supply-chain hardening, scoped down to two AFK-shippable parts so this slice no longer carries a HITL gate. PyPI OIDC trusted-publishing -- originally bundled here -- is deferred to follow-up #1084 (blocked-by #11, since deft is not yet on PyPI and OIDC trusted-publishing is meaningless until it is).\r\n\r\n1. **Pin every `uses:` to a commit SHA.** Every `uses:` line in `.github/workflows/**` resolved to a floating ref (`@master`, `@main`, `@vN`) is a supply-chain entry point: an upstream compromise executes in CI with the job's full environment. Replace floating refs with resolved commit SHAs (`gh api repos/<owner>/<repo>/commits/<ref> --jq .sha`) and add a `# vX.Y.Z` comment naming the tag so Dependabot (landed in #1070) can still propose bumps.\r\n\r\n2. **Least-privilege `permissions:` blocks.** Every workflow declares a top-level `permissions: contents: read` (default-deny baseline). Per-job overrides only where elevated scope is genuinely needed (issue/PR comment automation, release upload, etc.). Default `GITHUB_TOKEN` broad scope no longer applies to any job in the workflow set.\r\n\r\n## Acceptance criteria\r\n\r\n- [ ] Every `uses:` in `.github/workflows/**` is pinned to a 40-character commit SHA (no `@master` / `@main` / floating-major refs on security-sensitive actions)\r\n- [ ] Each pin has a `# vX.Y.Z` comment naming the upstream tag for human readability and Dependabot tracking\r\n- [ ] Every workflow declares a top-level `permissions: contents: read` block; per-job blocks override only where elevated scope is genuinely needed\r\n- [ ] No workflow relies on the default broad-scope `GITHUB_TOKEN` for any job\r\n- [ ] `task check` passes\r\n- [ ] All workflows still execute correctly on a smoke PR / push (CI green on the PR landing this slice)\r\n\r\n## Deferred to follow-up\r\n\r\n- **PyPI OIDC trusted-publishing**: carved out to #1084 (blocked-by #11). Rationale: deft is not yet on PyPI; the OIDC piece is scaffolding that can only land in coordination with the actual PyPI-publishing path proposed in #11. Folding it into this slice would have forced a HITL gate (PyPI web-UI trusted-publisher registration) on otherwise fully-mechanical work.\r\n\r\n## Type\r\n\r\nAFK -- the carve-out to #1084 removed the only HITL step. Both remaining deliverables are deterministic edits to `.github/workflows/**`.\r\n\r\n## Blocked by\r\n\r\nNone. Predecessor #1071 (OSV advisories) merged at PR #1076 (master HEAD `f7e123c`); was the only structural blocker. Runs in parallel with #1073 (docs baseline) since file scopes are disjoint (`.github/workflows/**` vs `docs/security.md`).\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1072",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1072: chore(security): pin GitHub Actions to SHAs + least-privilege permissions + PyPI OIDC (parent #1069)"
+      }
+    ],
+    "updated": "2026-05-12T16:34:05Z"
+  }
+}
