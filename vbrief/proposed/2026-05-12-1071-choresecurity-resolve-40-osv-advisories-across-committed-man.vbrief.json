@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1071"
+  },
+  "plan": {
+    "title": "chore(security): resolve 40 OSV advisories across committed manifests (parent #1069)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "chore(security): resolve 40 OSV advisories across committed manifests (parent #1069)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1071",
+      "Overview": "## Parent\r\n\r\n#1069\r\n\r\n## What to build\r\n\r\nResolve the 40 known-vulnerable dependency versions surfaced by `osv-scanner scan source --recursive` against the committed dependency manifests (`pyproject.toml`, `poetry.lock`, `requirements.txt`, `Pipfile.lock`, `package-lock.json`, `go.mod` as applicable).\r\n\r\nBecause `directive` is the framework consumed by every downstream DEFTai repo, every vulnerable transitive dep here is reachable from any consumer that vendors the cache. The goal is to land the bumps in one coordinated pass rather than as a Dependabot trickle so the baseline is auditable.\r\n\r\nWorkflow:\r\n\r\n1. Re-run `osv-scanner scan source --recursive .` locally to enumerate each advisory + fix version.\r\n2. Bump direct deps in the relevant manifest(s) to the fix version. Prefer minor/patch bumps where possible; document any major bumps in the PR description.\r\n3. For unfixable advisories (no patched version available), document the residual risk in `docs/security.md` and add a scanner suppression entry with rationale.\r\n4. Re-run `osv-scanner` to confirm the HIGH/CRITICAL count is zero on this branch.\r\n\r\n## Acceptance criteria\r\n\r\n- [ ] `osv-scanner scan source --recursive .` exits with zero unfixed HIGH/CRITICAL advisories on the slice branch\r\n- [ ] Any unfixable advisories are documented in `docs/security.md` with risk rationale and a tracked follow-up\r\n- [ ] Bumped lockfiles committed (no drift between manifest and lock)\r\n- [ ] All new tests pass\r\n- [ ] `task check` passes\r\n\r\n## Type\r\n\r\nAFK\r\n\r\n## Blocked by\r\n\r\nNone — can start immediately.\r\n\r\nNote: coordinate with the Actions pinning slice (Slice 3) if a bumped action version collides with the pinning work — Slice 2 should land first to avoid bump-then-repin churn.\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1071",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1071: chore(security): resolve 40 OSV advisories across committed manifests (parent #1069)"
+      }
+    ]
+  }
+}

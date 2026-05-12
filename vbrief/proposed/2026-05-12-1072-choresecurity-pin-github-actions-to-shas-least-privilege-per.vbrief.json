@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1072"
+  },
+  "plan": {
+    "title": "chore(security): pin GitHub Actions to SHAs + least-privilege permissions + PyPI OIDC (parent #1069)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "chore(security): pin GitHub Actions to SHAs + least-privilege permissions + PyPI OIDC (parent #1069)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1072",
+      "Overview": "## Parent\r\n\r\n#1069\r\n\r\n## What to build\r\n\r\nGitHub Actions supply-chain hardening — two parts that ship in the same PR because they touch the same workflow files:\r\n\r\n1. **Pin every `uses:` to a commit SHA.** Every `uses:` line in `.github/workflows/**` resolved to a floating ref (`@master`, `@main`, `@vN`) is a supply-chain entry point: an upstream compromise executes in CI with the job's full environment. Replace floating refs with resolved commit SHAs and add a `# vX.Y.Z` comment naming the tag so Dependabot (landed in Slice 1, #1070) can still propose bumps.\r\n\r\n2. **Least-privilege `permissions:` blocks.** Build / publish jobs MUST declare a top-level (or job-level) `permissions:` block scoped to exactly the privileges they need. Default `GITHUB_TOKEN` scope is too broad for any job that touches secrets.\r\n\r\n3. **Migrate PyPI publish to OIDC trusted publishing.** Stop storing a long-lived `PYPI_API_TOKEN` in `secrets`; configure PyPI's trusted-publisher feature so the publish job obtains a short-lived token via OIDC. Requires a one-time human registration on `pypi.org` → project → Publishing → \"Add a new pending publisher\" with the workflow filename, environment, and ref pattern.\r\n\r\n## Acceptance criteria\r\n\r\n- [ ] Every `uses:` in `.github/workflows/**` is pinned to a 40-character commit SHA (no `@master` / `@main` / floating-major refs on security-sensitive actions)\r\n- [ ] Each pin has a `# vX.Y.Z` comment naming the upstream tag for human readability and Dependabot tracking\r\n- [ ] Every build/publish job declares a `permissions:` block (top-level or job-level) with the minimum required scopes; the default broad-scope token is no longer in use for jobs that see release secrets\r\n- [ ] The PyPI publish workflow uses `pypa/gh-action-pypi-publish` with OIDC (no `password:` / `PYPI_API_TOKEN` input); the PyPI project has a registered trusted publisher matching this repo's workflow + ref\r\n- [ ] A dry-run or test-PyPI publish succeeds end-to-end via the new OIDC path\r\n- [ ] All new tests pass\r\n- [ ] `task check` passes\r\n\r\n## Type\r\n\r\nHITL\r\n\r\nThe OIDC trusted-publishing migration requires a human to log into PyPI's web UI, navigate to project settings, and register this repo as a trusted publisher (workflow filename, environment, ref). No GitHub-side automation can do that step. The rest of the slice (SHA pinning, `permissions:` blocks) is mechanical and AFK; it's the PyPI-side enrollment that drags the whole slice into HITL.\r\n\r\n## Blocked by\r\n\r\n- Blocked by #1071 (resolve OSV advisories first so action bumps don't collide with pinning churn)\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1072",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1072: chore(security): pin GitHub Actions to SHAs + least-privilege permissions + PyPI OIDC (parent #1069)"
+      }
+    ]
+  }
+}

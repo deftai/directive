@@ -1,0 +1,23 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1070"
+  },
+  "plan": {
+    "title": "chore(security): supply-chain quick wins -- PEM fixture, curl|bash, dependabot.yml (parent #1069)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "chore(security): supply-chain quick wins -- PEM fixture, curl|bash, dependabot.yml (parent #1069)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1070",
+      "Overview": "## Parent\r\n\r\n#1069\r\n\r\n## What to build\r\n\r\nThree small supply-chain hygiene fixes bundled into a single PR. Each is independently scoped and trivially reviewable; bundling avoids three separate review cycles for the same omnibus parent.\r\n\r\n1. **gitleaks PEM fixture remediation.** Replace the literal PEM at `tests/test_cache_scanner.py:340-344` (commit `90dc6a1e52ad`, gitleaks rule `private-key`) with either:\r\n   - a key generated at test setup via `cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key` and discarded after the test, OR\r\n   - a `# gitleaks:allow`-annotated obviously-synthetic sentinel that does not match the `private-key` rule (with a short justification comment).\r\n\r\n2. **Replace `curl | bash` in CI.** Swap the live pipe at `.github/workflows/ci.yml:35` (comment) and `:57` (live command) — currently `curl https://raw.githubusercontent.com/brunoborges/ghx/${GHX_VERSION}/install.sh | bash` — with one of:\r\n   - pinned-by-SHA download + `sha256sum -c <expected>` + `bash ./install.sh`, OR\r\n   - vendored copy at `.github/scripts/ghx-install.sh` reviewed in PR.\r\n\r\n3. **Add `.github/dependabot.yml`.** Minimal config from #1069 body covering `pip`, `gomod`, and `github-actions` (weekly, security-updates group on pip).\r\n\r\n## Acceptance criteria\r\n\r\n- [ ] `gitleaks detect --redact` exits clean against `tests/test_cache_scanner.py` (or hit is annotated with `# gitleaks:allow` + justification AND fixture text no longer matches the rule)\r\n- [ ] No `curl ... | bash` against an unpinned upstream URL remains in `.github/workflows/**`\r\n- [ ] `.github/dependabot.yml` exists, validates, and the first scheduled run reports no config errors\r\n- [ ] All new tests pass\r\n- [ ] `task check` passes\r\n\r\n## Type\r\n\r\nAFK\r\n\r\n## Blocked by\r\n\r\nNone — can start immediately\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1070",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1070: chore(security): supply-chain quick wins -- PEM fixture, curl|bash, dependabot.yml (parent #1069)"
+      }
+    ]
+  }
+}
