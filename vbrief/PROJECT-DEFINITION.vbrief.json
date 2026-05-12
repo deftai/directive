@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-12T16:34:06Z"
+    "updated": "2026-05-12T17:22:26Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -920,38 +920,6 @@
               "uri": "https://github.com/deftai/directive/issues/762",
               "type": "x-vbrief/github-issue",
               "title": "Issue #762: feat(vbrief): centralize phase taxonomy in PROJECT-DEFINITION.vbrief.json; renderer reads from there"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-12-1072-choresecurity-pin-github-actions-to-shas-least-privilege-per",
-        "title": "chore(security): pin GitHub Actions to SHAs + least-privilege permissions + PyPI OIDC (parent #1069)",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-12-1072-choresecurity-pin-github-actions-to-shas-least-privilege-per.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1072",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1072: chore(security): pin GitHub Actions to SHAs + least-privilege permissions + PyPI OIDC (parent #1069)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-12-1073-docssecurity-record-2026-05-12-audit-baseline-in-docssecurit",
-        "title": "docs(security): record 2026-05-12 audit baseline in docs/security.md (parent #1069)",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-12-1073-docssecurity-record-2026-05-12-audit-baseline-in-docssecurit.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1073",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1073: docs(security): record 2026-05-12 audit baseline in docs/security.md (parent #1069)"
             }
           ]
         }
@@ -7416,6 +7384,38 @@
               "uri": "https://github.com/deftai/directive/issues/1071",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1071: chore(security): resolve 40 OSV advisories across committed manifests (parent #1069)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-1072-choresecurity-pin-github-actions-to-shas-least-privilege-per",
+        "title": "chore(security): pin GitHub Actions to SHAs + least-privilege permissions + PyPI OIDC (parent #1069)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-12-1072-choresecurity-pin-github-actions-to-shas-least-privilege-per.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1072",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1072: chore(security): pin GitHub Actions to SHAs + least-privilege permissions + PyPI OIDC (parent #1069)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-12-1073-docssecurity-record-2026-05-12-audit-baseline-in-docssecurit",
+        "title": "docs(security): record 2026-05-12 audit baseline in docs/security.md (parent #1069)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-12-1073-docssecurity-record-2026-05-12-audit-baseline-in-docssecurit.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1073",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1073: docs(security): record 2026-05-12 audit baseline in docs/security.md (parent #1069)"
             }
           ]
         }
