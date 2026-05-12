@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"os"
@@ -280,6 +281,206 @@ func TestWriteInstallManifest_RejectsEmptyDeftDir(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "deftDir") {
 		t.Errorf("expected error to mention deftDir, got: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Layout-aware WriteAgentsMD sentinel logic (#1060)
+// ---------------------------------------------------------------------------
+
+// TestWriteAgentsMD_FreshInstall_WritesCanonicalV3Body covers the (a)
+// fresh-install case from the #1060 acceptance criteria: no AGENTS.md
+// present at the project root -> the installer writes the v3 body keyed to
+// the canonical `.deft/core/` install root.
+func TestWriteAgentsMD_FreshInstall_WritesCanonicalV3Body(t *testing.T) {
+	tmp := t.TempDir()
+	var out bytes.Buffer
+	w := NewWizard(strings.NewReader(""), &out, false)
+
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatalf("WriteAgentsMD returned error on fresh install: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	if err != nil {
+		t.Fatalf("AGENTS.md not created: %v", err)
+	}
+	content := string(data)
+	if !strings.Contains(content, agentsMDSentinel) {
+		t.Errorf("fresh-install AGENTS.md missing v3 sentinel %q", agentsMDSentinel)
+	}
+	if !strings.Contains(content, agentsMDLayoutClaim(".deft/core")) {
+		t.Errorf("fresh-install AGENTS.md missing canonical install-root claim; got:\n%s", content)
+	}
+	if strings.Contains(content, agentsMDLayoutClaim("deft")) {
+		t.Errorf("fresh-install AGENTS.md leaked legacy install-root claim:\n%s", content)
+	}
+	if !strings.Contains(out.String(), "AGENTS.md created") {
+		t.Errorf("installer did not log fresh-create event; got log:\n%s", out.String())
+	}
+}
+
+// TestWriteAgentsMD_StaleLegacyAGENTSMD_RewritesToCanonical covers the (b)
+// case: a canonical install lands on a project whose AGENTS.md still carries
+// the pre-v0.27 `deft/main.md` legacy sentinel. The installer MUST rewrite
+// the file to the canonical `.deft/core/` v3 body and log the rewrite.
+// This is the load-bearing regression that #1060 closes -- pre-fix, the
+// legacy sentinel triggered a silent skip and the framework:doctor probe
+// (#1046 PR-B AC-3) then flagged the install as drifted.
+func TestWriteAgentsMD_StaleLegacyAGENTSMD_RewritesToCanonical(t *testing.T) {
+	tmp := t.TempDir()
+	legacyBody := "# Project AGENTS\n" +
+		"Deft is installed in deft/. Full guidelines: deft/main.md\n" +
+		"Read deft/skills/deft-directive-setup/SKILL.md for setup.\n"
+	if err := os.WriteFile(filepath.Join(tmp, "AGENTS.md"), []byte(legacyBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	w := NewWizard(strings.NewReader(""), &out, false)
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatalf("WriteAgentsMD returned error on legacy-layout AGENTS.md: %v", err)
+	}
+
+	data, _ := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	content := string(data)
+	if content == legacyBody {
+		t.Fatalf("AGENTS.md was NOT rewritten despite legacy sentinel + canonical install (#1060); got verbatim legacy body:\n%s", content)
+	}
+	if !strings.Contains(content, agentsMDSentinel) {
+		t.Errorf("rewritten AGENTS.md missing v3 sentinel:\n%s", content)
+	}
+	if !strings.Contains(content, agentsMDLayoutClaim(".deft/core")) {
+		t.Errorf("rewritten AGENTS.md missing canonical install-root claim:\n%s", content)
+	}
+	if strings.Contains(content, agentsMDLegacySentinel) {
+		t.Errorf("rewritten AGENTS.md still references legacy `deft/main.md`:\n%s", content)
+	}
+	if !strings.Contains(out.String(), "rewriting AGENTS.md") {
+		t.Errorf("installer did not log the rewrite (silent rewrite is a footgun per #1060); got log:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), ".deft/core") {
+		t.Errorf("installer log did not name the target layout; got log:\n%s", out.String())
+	}
+}
+
+// TestWriteAgentsMD_UpToDateCanonical_Skips covers the (c) case: a canonical
+// install lands on a project whose AGENTS.md already carries the canonical
+// v3 body. The installer MUST detect the layout match and skip the rewrite.
+func TestWriteAgentsMD_UpToDateCanonical_Skips(t *testing.T) {
+	tmp := t.TempDir()
+
+	// Seed AGENTS.md with the canonical body via a first WriteAgentsMD call,
+	// then capture its byte length so we can prove the second call is a
+	// no-op rewrite-wise.
+	w1 := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if err := WriteAgentsMD(w1, tmp); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(tmp, "AGENTS.md")
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeInfo, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	w2 := NewWizard(strings.NewReader(""), &out, false)
+	if err := WriteAgentsMD(w2, tmp); err != nil {
+		t.Fatalf("WriteAgentsMD returned error on up-to-date canonical AGENTS.md: %v", err)
+	}
+
+	after, _ := os.ReadFile(path)
+	if string(before) != string(after) {
+		t.Errorf("AGENTS.md byte-changed despite up-to-date canonical body")
+	}
+	afterInfo, _ := os.Stat(path)
+	if !afterInfo.ModTime().Equal(beforeInfo.ModTime()) {
+		t.Errorf("AGENTS.md was rewritten despite up-to-date canonical body (mtime drifted)")
+	}
+	if !strings.Contains(out.String(), "skipping") {
+		t.Errorf("installer did not log the skip; got log:\n%s", out.String())
+	}
+	if strings.Contains(out.String(), "rewriting AGENTS.md") {
+		t.Errorf("installer incorrectly logged a rewrite for up-to-date canonical AGENTS.md; got log:\n%s", out.String())
+	}
+}
+
+// TestWriteAgentsMD_UpToDateLegacy_LegacyInstallSkips covers the (d) case:
+// `--legacy-layout` install lands on a project whose AGENTS.md already
+// carries the v3 body keyed to the legacy `deft/` install root. The
+// installer MUST detect the layout match and skip the rewrite -- the legacy
+// layout selector is symmetric to the canonical happy path.
+func TestWriteAgentsMD_UpToDateLegacy_LegacyInstallSkips(t *testing.T) {
+	tmp := t.TempDir()
+
+	// Seed AGENTS.md with a v3 body keyed to the legacy `deft/` install
+	// root by running a first --legacy-layout install.
+	wSeed := NewWizardWithLayout(strings.NewReader(""), &bytes.Buffer{}, false, true)
+	if err := WriteAgentsMD(wSeed, tmp); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(tmp, "AGENTS.md")
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(before), agentsMDLayoutClaim("deft")) {
+		t.Fatalf("seed AGENTS.md missing legacy install-root claim; got:\n%s", before)
+	}
+	if strings.Contains(string(before), agentsMDLayoutClaim(".deft/core")) {
+		t.Errorf("legacy-seeded AGENTS.md leaked canonical claim:\n%s", before)
+	}
+
+	var out bytes.Buffer
+	wRerun := NewWizardWithLayout(strings.NewReader(""), &out, false, true)
+	if err := WriteAgentsMD(wRerun, tmp); err != nil {
+		t.Fatalf("WriteAgentsMD returned error on up-to-date legacy AGENTS.md: %v", err)
+	}
+
+	after, _ := os.ReadFile(path)
+	if string(before) != string(after) {
+		t.Errorf("AGENTS.md byte-changed despite up-to-date legacy body")
+	}
+	if !strings.Contains(out.String(), "skipping") {
+		t.Errorf("installer did not log the skip on up-to-date legacy install; got log:\n%s", out.String())
+	}
+	if strings.Contains(out.String(), "rewriting AGENTS.md") {
+		t.Errorf("installer incorrectly logged a rewrite for up-to-date legacy AGENTS.md; got log:\n%s", out.String())
+	}
+}
+
+// TestRenderAgentsEntry_CanonicalUnchanged pins the no-substitution contract
+// for the canonical install root: the rendered body is byte-identical to the
+// embedded templates.AgentsEntry. Guards against a future refactor that
+// accidentally introduces a normalisation pass for the canonical case.
+func TestRenderAgentsEntry_CanonicalUnchanged(t *testing.T) {
+	got := renderAgentsEntry(".deft/core")
+	if got != agentsMDEntry {
+		t.Errorf("renderAgentsEntry(\".deft/core\") drifted from embedded template (canonical install MUST be unchanged)")
+	}
+	if renderAgentsEntry("") != agentsMDEntry {
+		t.Errorf("renderAgentsEntry(\"\") drifted from embedded template (empty install root MUST fall back to canonical)")
+	}
+}
+
+// TestRenderAgentsEntry_LegacySubstitutesPaths pins the substitution
+// contract for the legacy install root: every `.deft/core/` path prefix in
+// the embedded body is rewritten to `deft/`. Without this the legacy install
+// would write a body that advertises `.deft/core/` while the framework is
+// deposited at `deft/` -- the symmetric form of the #1060 cross-layout drift.
+func TestRenderAgentsEntry_LegacySubstitutesPaths(t *testing.T) {
+	got := renderAgentsEntry("deft")
+	if got == agentsMDEntry {
+		t.Fatal("renderAgentsEntry(\"deft\") returned the canonical body verbatim (no substitution applied)")
+	}
+	if strings.Contains(got, ".deft/core/") {
+		t.Errorf("legacy-rendered AGENTS.md still contains `.deft/core/` after substitution:\n%s", got)
+	}
+	if !strings.Contains(got, agentsMDLayoutClaim("deft")) {
+		t.Errorf("legacy-rendered AGENTS.md missing legacy install-root claim:\n%s", got)
 	}
 }
 

@@ -1160,23 +1160,39 @@ func TestWriteConsumerVbrief_Idempotent(t *testing.T) {
 	}
 }
 
-// TestWriteAgentsMD_IdempotentAcrossLegacySentinel asserts the v0.27 marker
-// idempotency probe also recognises the pre-v0.27 "deft/main.md" sentinel so
-// a canonical re-install over a legacy AGENTS.md does not duplicate the entry
-// (#1020 regression for in-flight migration paths).
-func TestWriteAgentsMD_IdempotentAcrossLegacySentinel(t *testing.T) {
+// TestWriteAgentsMD_RewritesLegacySentinelOnCanonicalInstall asserts that a
+// canonical install over a pre-v0.27 AGENTS.md that still advertises the
+// legacy `deft/main.md` layout REWRITES the file to the canonical `.deft/core/`
+// v3 body. Pre-#1060 the legacy sentinel caused a silent skip and left the
+// consumer in cross-layout drift (`AGENTS.md` claims `deft/` while the
+// installer just deposited `.deft/core/`), which the framework:doctor probe
+// then flagged as a drift on a brand-new install. Layout-aware sentinel
+// logic (#1060) now treats the legacy sentinel as a trigger for rewrite,
+// not a skip.
+func TestWriteAgentsMD_RewritesLegacySentinelOnCanonicalInstall(t *testing.T) {
 	tmp := t.TempDir()
 	legacy := "# AGENTS\nDeft is installed in deft/. Full guidelines: deft/main.md\n"
 	if err := os.WriteFile(filepath.Join(tmp, "AGENTS.md"), []byte(legacy), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	var out bytes.Buffer
+	w := NewWizard(strings.NewReader(""), &out, false)
 	if err := WriteAgentsMD(w, tmp); err != nil {
 		t.Fatal(err)
 	}
 	data, _ := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
-	if string(data) != legacy {
-		t.Errorf("AGENTS.md mutated despite legacy sentinel; got:\n%s", data)
+	content := string(data)
+	if content == legacy {
+		t.Errorf("AGENTS.md was NOT rewritten despite legacy sentinel + canonical install (#1060 regression); got:\n%s", content)
+	}
+	if !strings.Contains(content, agentsMDSentinel) {
+		t.Errorf("rewritten AGENTS.md missing v3 sentinel; got:\n%s", content)
+	}
+	if !strings.Contains(content, agentsMDLayoutClaim(".deft/core")) {
+		t.Errorf("rewritten AGENTS.md missing canonical install-root claim; got:\n%s", content)
+	}
+	if !strings.Contains(out.String(), "rewriting AGENTS.md") {
+		t.Errorf("installer did not log the rewrite (silent rewrite is a footgun); got log:\n%s", out.String())
 	}
 }
 
