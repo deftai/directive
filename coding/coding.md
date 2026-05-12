@@ -123,6 +123,18 @@ The rule applies to agent completion claims during task execution. It applies eq
 
 **Cross-references:** `## Quality Standards` above (`⊗ Claim checks passed without running them` -- the sibling rule that this expands from process to outcome); `hygiene.md` `## Error Handling: No Hiding` (the same hiding pattern at the code-write level, not the claim level); `skills/deft-directive-pre-pr/SKILL.md` (pre-PR verification claims); `skills/deft-directive-build/SKILL.md` Step 4 Quality Gates (task-completion claims); `skills/deft-directive-review-cycle/SKILL.md` (the review-cycle skill explicitly checks for hidden incompleteness in fix-batch completion claims).
 
+## Calling LLM APIs (#481)
+
+When the project calls LLM APIs (OpenAI, Anthropic, Cohere, local models, etc.) or builds agentic functionality, the architectural standards in `patterns/llm-app.md` apply alongside the coding rules above. The short form:
+
+- ! User input is NEVER placed in the system prompt; the system prompt is the trust boundary
+- ! External content is ALWAYS wrapped in explicit delimiters (`<user_input>`, `<document>`, `<tool_result>`) and surfaces its trust tier
+- ! Tool call arguments are validated against a schema BEFORE execution (the LLM is a confused deputy)
+- ! LLM outputs are validated against expected schemas before being acted upon (no eval-of-output, no shell-of-output, no SQL-of-output)
+- ⊗ MUST NOT write LLM outputs back into the retrieval corpus in the same session without validation (RAG poisoning vector)
+
+See [../patterns/llm-app.md](../patterns/llm-app.md) for the full standards: prompt construction, trust tiers, tool/function-call validation, RAG hygiene, output handling, multi-agent orchestration, and LLM-specific observability. See [../tools/telemetry.md](../tools/telemetry.md) `## LLM-specific observability (#481)` for the matching observability surface.
+
 ## Build Automation
 
 **Taskfile:**

@@ -244,6 +244,38 @@ sentry_sdk.init(
 - ! Monitor telemetry overhead (<5% CPU)
 - ! Validate data quality
 
+## LLM-specific observability (#481)
+
+LLM applications carry observability needs that conventional request/response tracing does not address. Poisoning, prompt drift, output schema regressions, and token-budget exhaustion are invisible to standard logging unless the prompt and response are captured verbatim and the model + token telemetry is recorded alongside the call. This section extends the general telemetry guidance for projects that call LLM APIs (see [../patterns/llm-app.md](../patterns/llm-app.md) for the full LLM-application standards; this section is the observability slice).
+
+**Per-call audit log (mandatory in pro mode; recommended in fast mode):**
+- ! Log every LLM call: model identifier, prompt hash, response hash, latency, token count (input + output), tool calls invoked
+- ! Store prompt/response pairs in a queryable audit log, separate from application logs — application logs carry pointers/hashes only; the audit log carries the verbatim content
+- ! Log tool invocations alongside the LLM call that produced them so the audit trail `(prompt -> response -> tool call -> outcome)` is recoverable as a single chain
+- ⊗ MUST NOT log raw secrets or PII that leaked into the prompt; redact at log-write time, not at log-read time (the general `⊗ Log sensitive data` rule applies equally to LLM audit logs)
+
+**Token budget tracking:**
+- ~ Track token budgets per session and per user — budget exhaustion is a denial-of-service vector AND a cost-attack vector
+- ~ Emit a metric on every LLM call: `llm_tokens_total{model, kind="input|output", user_id, session_id}`
+- ~ Alert on per-user token spikes (anomaly detection on the distribution; a sudden 10x in tokens/hour for one user is a probe signal)
+
+**Latency histograms per model/prompt variant:**
+- ~ Record latency as a histogram dimensioned by `{model, prompt_variant}` so a slow-down on one prompt template is visible without polluting the model-wide aggregate
+- ~ Track p50/p95/p99 separately for streaming vs. non-streaming calls (streaming p99 is end-of-first-token; non-streaming p99 is end-of-full-response — conflating them hides regressions)
+
+**Evaluation harness logging:**
+- ~ Record evaluation-harness results in the audit log so output quality can be tracked over time (regression detection on the model output distribution, not just the application's behavior)
+- ~ Tag each eval run with the prompt-template version and the model identifier so a quality regression can be traced to either a prompt edit or a provider model update
+
+**Anomaly detection on output distributions:**
+- ~ Track output-length distribution per prompt variant; a sudden shift (longer outputs, shorter outputs, or higher variance) is a probe signal worth investigating
+- ~ Track refusal-rate per prompt variant; an unexpected refusal-rate change typically points at a provider-side policy update or a prompt drift
+- ~ Alert when a deployed prompt template diverges from the reviewed baseline (the **prompt drift detector**); a code review approved one prompt, a runtime change to that prompt without review is a regression signal
+
+**Cross-references:**
+- [../patterns/llm-app.md](../patterns/llm-app.md) `## LLM-specific observability` -- the full standards body this section anchors to
+- [../coding/coding.md](../coding/coding.md) `## Calling LLM APIs (#481)` -- short addendum cross-linking the patterns file
+
 ## References
 
 - OpenTelemetry: https://opentelemetry.io/
