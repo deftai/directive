@@ -77,6 +77,18 @@ Larger feature work -- only after issues are resolved and content is stable.
 - **#96** -- [Compliance] Config schema + compliance-aware constitution templates
 - **#758** -- **#84 Phase 3** -- Deft as teacher: teach strategy, lessons evolution
 
+## Ungrouped
+
+- **#1096** -- fix(scripts): task issue:ingest dedup is too broad -- non-provenance references trigger false-positive blocks
+- **#480** -- feat(security): agent trap defenses — instruction hierarchy, oversight evasion, external content trust
+- **#587** -- feat(coding): add no-read-secret rule for agentic application development
+- **#661** -- feat(coding): add coding/security.md — baseline security standards for every project
+- **#686** -- feat(coding): tool-call safety is independent of text-level safety — add as named security rule
+- **#708** -- AI-agent destructive-op guardrails: env-isolation gate, irreversibility gate, incidents library, eval
+- **#806** -- feat(patterns): add executor-layer-credentials — bind secrets at invocation layer, never in agent context
+- **#816** -- feat(patterns): add role-as-overlay — persona/role instructions must be system-prompt overlays, never injected into message history
+- **#836** -- feat(patterns): prompt-assembly-layer-ordering — separate cached system prompt layers from ephemeral per-turn injections
+
 ## Completed
 
 - **#365** -- bdd strategy: move context and scenarios to vbrief; remove specs/ folder -- `[completed]`
