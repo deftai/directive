@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "Add install_root field to <install>/VERSION manifest -- single source of truth for install-layout contract",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Add install_root field to <install>/VERSION manifest -- single source of truth for install-layout contract",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1062",
@@ -23,6 +23,6 @@
         "title": "Issue #1062: Add install_root field to <install>/VERSION manifest -- single source of truth for install-layout contract"
       }
     ],
-    "updated": "2026-05-12T01:35:11Z"
+    "updated": "2026-05-12T02:42:09Z"
   }
 }
