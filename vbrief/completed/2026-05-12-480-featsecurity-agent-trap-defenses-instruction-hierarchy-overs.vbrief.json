@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "feat(security): agent trap defenses — instruction hierarchy, oversight evasion, external content trust",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(security): agent trap defenses — instruction hierarchy, oversight evasion, external content trust",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/480",
@@ -32,6 +32,6 @@
         "TrustLevel": "internal"
       }
     ],
-    "updated": "2026-05-12T20:45:08Z"
+    "updated": "2026-05-13T01:29:21Z"
   }
 }

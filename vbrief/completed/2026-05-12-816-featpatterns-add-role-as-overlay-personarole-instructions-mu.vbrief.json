@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "feat(patterns): add role-as-overlay — persona/role instructions must be system-prompt overlays, never injected into message history",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(patterns): add role-as-overlay — persona/role instructions must be system-prompt overlays, never injected into message history",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/816",
@@ -30,6 +30,6 @@
         "title": "Structural dependency: #481 creates the patterns/ directory this story writes into"
       }
     ],
-    "updated": "2026-05-12T20:45:08Z"
+    "updated": "2026-05-13T01:29:22Z"
   }
 }

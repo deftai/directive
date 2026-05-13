@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "AI-agent destructive-op guardrails: env-isolation gate, irreversibility gate, incidents library, eval",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "AI-agent destructive-op guardrails: env-isolation gate, irreversibility gate, incidents library, eval",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/708",
@@ -38,6 +38,6 @@
         "title": "Load-bearing composition: #1095 (closed-verb scope-expansion gate) consumes this story's irreversibility-tier classification via conventions/verb-classification.json -- #708 is the orthogonal destructive-op axis that #1095's PR-A explicitly cites"
       }
     ],
-    "updated": "2026-05-12T20:45:09Z"
+    "updated": "2026-05-13T01:29:22Z"
   }
 }

@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "feat(patterns): prompt-assembly-layer-ordering — separate cached system prompt layers from ephemeral per-turn injections",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(patterns): prompt-assembly-layer-ordering — separate cached system prompt layers from ephemeral per-turn injections",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/836",
@@ -30,6 +30,6 @@
         "title": "Structural dependency: #481 creates the patterns/ directory this story writes into"
       }
     ],
-    "updated": "2026-05-12T20:45:08Z"
+    "updated": "2026-05-13T01:29:23Z"
   }
 }

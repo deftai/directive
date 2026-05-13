@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "feat(coding): tool-call safety is independent of text-level safety — add as named security rule",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(coding): tool-call safety is independent of text-level safety — add as named security rule",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/686",
@@ -30,6 +30,6 @@
         "title": "Structural dependency: #661 creates coding/security.md which this story extends with the tool-call-safety rule"
       }
     ],
-    "updated": "2026-05-12T20:45:09Z"
+    "updated": "2026-05-13T01:29:22Z"
   }
 }
