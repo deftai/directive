@@ -1,0 +1,25 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF to re-land PR #442 as .agents/skills/deft-directive-gh-arch with naming, path, routing, and Greptile-finding fixes.",
+    "updated": "2026-05-13T16:03:44Z"
+  },
+  "plan": {
+    "title": "feat(skills): re-land deft-directive-gh-arch (supersedes #442)",
+    "status": "running",
+    "narratives": {
+      "Description": "Re-land PR #442 (deft-gh-arch skill by visionik) at the canonical .agents/skills/ path with the deft-directive-* prefix and wire it into AGENTS.md Skill Routing. The original PR has been open for ~24 days and was authored before the .agents/skills/ migration and the #954 sub-agent preamble rule. Re-landing as a fresh PR is lower friction than rebasing the stale branch.",
+      "Origin": "Supersedes https://github.com/deftai/directive/pull/442 (open, +158/-0, single file). Original branch: feat/skill-deft-gh-arch. Greptile review on #442 surfaced four P2 findings, all addressed in this scope.",
+      "Overview": "## What to build\n\nAdd a new skill that explores a codebase for shallow modules, spawns 3+ parallel sub-agents to generate competing interface designs (Ousterhout deep-module lens), and files a refactor RFC as a GitHub Issue after user approval.\n\nDeltas vs PR #442:\n\n- Place the skill at `.agents/skills/deft-directive-gh-arch/SKILL.md` (not `skills/deft-gh-arch/SKILL.md`). The `.agents/skills/` migration landed after #442 was opened; sibling skills (`deft-directive-gh-slice`, `deft-directive-gh-triage`) follow the `deft-directive-*` prefix.\n- Drop the `triggers:` frontmatter field. No other skill uses it; nothing in the repo reads it. Normalise the frontmatter to match `deft-directive-gh-slice` / `deft-directive-gh-triage`.\n- Wire AGENTS.md Skill Routing entry so the skill is discoverable from natural-language input (e.g. \"improve architecture\", \"deep modules\", \"interface design\", \"refactor RFC\"). Without this entry the skill is dead code.\n- Wire `templates/agent-prompt-preamble.md` into the Step 4 sub-agent dispatch instructions per AGENTS.md #954 (the preamble rule landed after #442 was authored).\n- Fix the line-73 ambiguity Greptile flagged: change `⊗ Propose interfaces yet — just the candidates.` to `⊗ Propose interfaces at this step — present candidates only.`\n- Add an explicit skill-exit confirmation in Step 6 per AGENTS.md Skill Completion Gate: `! Confirm skill exit: \"deft-directive-gh-arch complete — RFC filed at <url>.\"` plus a chaining hint.\n- Add a CHANGELOG.md `[Unreleased]` entry under Added.\n- Credit visionik via `Co-authored-by:` commit trailer; reference PR #442 in the new PR body.\n- After merge, close PR #442 with a comment pointing at the new PR.\n\n## Type\n\nFramework content (new skill + AGENTS.md routing + CHANGELOG). No code-path changes to scripts or task verbs.\n\n## Acceptance criteria\n\n- [ ] `.agents/skills/deft-directive-gh-arch/SKILL.md` exists with PR-442 content adapted per the deltas above\n- [ ] `AGENTS.md` Skill Routing section contains an entry routing architecture-improvement phrases to the new skill\n- [ ] `CHANGELOG.md` `[Unreleased]` section has an Added entry for the new skill\n- [ ] No `triggers:` frontmatter on the new skill\n- [ ] Step 4 of the skill references `templates/agent-prompt-preamble.md`\n- [ ] Step 6 emits an explicit skill-exit confirmation line\n- [ ] Line-73 ambiguity is resolved\n- [ ] PR opened with `Co-authored-by: visionik <…>` trailer and body referencing PR #442\n- [ ] `task check` passes (lint, validate, encoding, tests)\n- [ ] Greptile review-cycle exits with zero P0/P1 findings\n- [ ] PR #442 closed with comment pointing at the new PR\n\n## Refs\n\n- PR #442: https://github.com/deftai/directive/pull/442\n- Original branch: `feat/skill-deft-gh-arch`\n- Inspired by: https://github.com/mattpocock/skills/tree/main/improve-codebase-architecture\n- AGENTS.md rules touched: Skill Routing, #954 (sub-agent preamble), Skill Completion Gate"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/pull/442",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #442: feat(skills): add deft-gh-arch skill (re-land target)"
+      }
+    ],
+    "updated": "2026-05-13T16:03:39Z"
+  }
+}
