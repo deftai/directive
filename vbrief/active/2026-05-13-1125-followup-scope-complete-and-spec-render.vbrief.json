@@ -1,0 +1,25 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Chore vBRIEF: post-merge follow-up for #1125 -- complete the gh-arch scope vBRIEF and catch up SPECIFICATION.md drift.",
+    "updated": "2026-05-13T17:09:09Z"
+  },
+  "plan": {
+    "title": "chore: complete #1125 scope vBRIEF and catch up SPECIFICATION.md",
+    "status": "running",
+    "narratives": {
+      "Description": "Post-merge housekeeping for #1125 (deft-directive-gh-arch re-land). Two work items in two commits: (1) scope:complete on the gh-arch scope vBRIEF (active/ -> completed/, status flip); (2) task spec:render to catch up SPECIFICATION.md drift that accumulated across prior PRs and was deliberately deferred during the #1125 review-cycle to keep that diff scoped.",
+      "Origin": "Follow-up to merged PR https://github.com/deftai/directive/pull/1125. Greptile P2 from #1125 cycle 2 deferred the auto-generated SPECIFICATION.md drift; this PR resolves it. Local-only side cleanup: untracked `history/drafts-2026-05-13/` (orchestrator pre-dispatch staging scratch) is removed locally (not part of any commit since the folder was never tracked).",
+      "Overview": "## What to build\n\nNo code. Two mechanical operations executed in this order:\n\n1. `task scope:complete -- vbrief/active/2026-05-13-442-reland-skill-deft-directive-gh-arch.vbrief.json` -- moves the gh-arch scope vBRIEF active/ -> completed/ and flips plan.status to completed. Commit standalone.\n2. `task spec:render` -- regenerates SPECIFICATION.md from current vBRIEF lifecycle state. Diff will be large (catch-up across many prior PRs) but is auto-generated content; human review skips body. Commit standalone.\n\n## Type\n\nChore -- vBRIEF lifecycle housekeeping + auto-generated artifact catch-up. No skill, code, or schema changes.\n\n## Acceptance criteria\n\n- [ ] `vbrief/completed/2026-05-13-442-reland-skill-deft-directive-gh-arch.vbrief.json` exists with plan.status == \"completed\"\n- [ ] `vbrief/active/2026-05-13-442-reland-skill-deft-directive-gh-arch.vbrief.json` no longer exists\n- [ ] `SPECIFICATION.md` regenerated via `task spec:render`; the diff is the catch-up content only (no manual edits)\n- [ ] Two commits on the feature branch (scope:complete + spec render, in that order)\n- [ ] `task check` passes\n- [ ] Greptile review cycle exits with zero P0/P1; P2 findings on auto-generated SPECIFICATION.md content are deferred (out of human-edit scope)\n- [ ] PR merged via squash; this vBRIEF self-completes in a subsequent housekeeping pass\n\n## Refs\n\n- Predecessor (merged): https://github.com/deftai/directive/pull/1125\n- Originating scope vBRIEF (to be completed by this PR): vbrief/active/2026-05-13-442-reland-skill-deft-directive-gh-arch.vbrief.json"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/pull/1125",
+        "type": "x-vbrief/github-pr",
+        "title": "PR #1125: feat(skills): add deft-directive-gh-arch (re-land of #442) -- merged predecessor"
+      }
+    ],
+    "updated": "2026-05-13T17:09:09Z"
+  }
+}

@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "feat(skills): re-land deft-directive-gh-arch (supersedes #442)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Re-land PR #442 (deft-gh-arch skill by visionik) at the canonical .agents/skills/ path with the deft-directive-* prefix and wire it into AGENTS.md Skill Routing. The original PR has been open for ~24 days and was authored before the .agents/skills/ migration and the #954 sub-agent preamble rule. Re-landing as a fresh PR is lower friction than rebasing the stale branch.",
       "Origin": "Supersedes https://github.com/deftai/directive/pull/442 (open, +158/-0, single file). Original branch: feat/skill-deft-gh-arch. Greptile review on #442 surfaced four P2 findings, all addressed in this scope.",
@@ -20,6 +20,6 @@
         "title": "PR #442: feat(skills): add deft-gh-arch skill (re-land target)"
       }
     ],
-    "updated": "2026-05-13T16:03:39Z"
+    "updated": "2026-05-13T17:10:52Z"
   }
 }
