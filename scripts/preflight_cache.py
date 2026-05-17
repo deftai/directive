@@ -302,10 +302,9 @@ def _issue_in_scope(
     if not isinstance(matched, list):
         return True
     target_number = issue.get("number")
-    for m in matched:
-        if isinstance(m, dict) and m.get("number") == target_number:
-            return True
-    return False
+    return any(
+        isinstance(m, dict) and m.get("number") == target_number for m in matched
+    )
 
 
 def _filter_scoped_meta_paths(
@@ -482,7 +481,7 @@ def evaluate(
     resolved_repo = _resolve_repo(project_root, cache_root, source, explicit=repo)
     if not resolved_repo:
         msg = (
-            f"❌ deft cache-fresh: cannot determine owner/repo. Pass --repo "
+            "❌ deft cache-fresh: cannot determine owner/repo. Pass --repo "
             "OWNER/NAME, set DEFT_TRIAGE_REPO, or run inside a git checkout "
             "whose `origin` is a github.com remote."
         )
@@ -491,7 +490,7 @@ def evaluate(
     meta_paths = list(_iter_meta_paths(cache_root, source, resolved_repo))
     if not meta_paths:
         msg = (
-            f"❌ deft cache-fresh: no cached entries under "
+            "❌ deft cache-fresh: no cached entries under "
             f".deft-cache/{source}/{resolved_repo}/.\n"
             "  Recovery: `task cache:fetch-all -- --source "
             f"{source} --repo {resolved_repo}`."
@@ -558,7 +557,7 @@ def evaluate(
 
     if stale and allow_stale:
         warning = (
-            f"⚠ deft cache-fresh: --allow-stale honoured; cache is "
+            "⚠ deft cache-fresh: --allow-stale honoured; cache is "
             f"{age_h:.1f}h old (max-age={max_age_h}h). Downstream tooling "
             "may still refuse work."
         )
