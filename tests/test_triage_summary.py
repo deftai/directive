@@ -24,6 +24,7 @@ import io
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -576,7 +577,12 @@ def test_append_history_swallows_mkdir_oserror(
 
     original_mkdir = Path.mkdir
 
-    def _refuse_mkdir(self: Path, *args: object, **kwargs: object) -> None:
+    # ``*args``/``**kwargs`` typed as ``Any`` so the delegate call into
+    # ``Path.mkdir`` (which expects ``mode: int``, ``parents: bool``,
+    # ``exist_ok: bool``) does not fail mypy's ``object`` -> ``int|bool``
+    # narrowing check. The test only cares about the side-effect of the
+    # refusal; the forwarded signature is opaque.
+    def _refuse_mkdir(self: Path, *args: Any, **kwargs: Any) -> None:
         # Only refuse the sidecar's parent; let other paths pass so the
         # tmp_path fixture itself stays usable for the helper.
         if self.name == ".eval":
@@ -617,7 +623,7 @@ def test_main_swallows_mkdir_oserror_and_returns_zero(
 
     original_mkdir = Path.mkdir
 
-    def _refuse_mkdir(self: Path, *args: object, **kwargs: object) -> None:
+    def _refuse_mkdir(self: Path, *args: Any, **kwargs: Any) -> None:
         if self.name == ".eval":
             raise PermissionError(13, "refused for test")
         original_mkdir(self, *args, **kwargs)
