@@ -1,0 +1,36 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: D5 (#1127) -- task verify:cache-fresh pre-start_agent gate (subscription-aware).",
+    "updated": "2026-05-17T21:03:20Z"
+  },
+  "plan": {
+    "title": "feat(verify): verify:cache-fresh pre-start_agent gate (subscription-aware) (#1127)",
+    "status": "running",
+    "narratives": {
+      "Description": "D5 lands the pre-start_agent gate that refuses implementation dispatch when the triage cache is stale. New scripts/preflight_cache.py (pure stdlib, three-state exit mirroring scripts/preflight_branch.py) checks (a) .deft-cache/github-issue/<owner>/<repo>/ has at least one entry, (b) the most recent meta.json fetched_at is within the freshness window (default 24h, env DEFT_CACHE_MAX_AGE_HOURS), (c) vbrief/.eval/candidates.jsonl exists, (d) optional --for-issue refuses dispatch when the latest decision is not accept, (e) optional --allow-stale escape hatch. Subscription-aware via the D12 surface scripts/triage_scope.py (#1131): the freshness scope is scoped to subscribed issues, and --for-issue verifies the target is in plan.policy.triageScope[] coverage. New task verify:cache-fresh wired into the task check aggregate alongside verify:branch / verify:encoding. templates/agent-prompt-preamble.md gains the dispatcher rule: run task verify:cache-fresh --for-issue <N> before any start_agent and refuse on non-zero exit.",
+      "Origin": "Wave-1 D5 child of umbrella #1119. Anchored to the issue body on #1127 (no Current Shape filed -- issue body is the spec).",
+      "Overview": "## What to build\n\n1. scripts/preflight_cache.py -- pure-stdlib gate with three-state exit (0 fresh / 1 stale-or-blocked / 2 config-error). --max-age-hours / DEFT_CACHE_MAX_AGE_HOURS; --for-issue <N>; --allow-stale; --project-root.\n2. Subscription-awareness via scripts/triage_scope.py (D12 / #1131): scope freshness checks to plan.policy.triageScope[] coverage; --for-issue rejects out-of-scope issues with a pointer to task triage:scope.\n3. tasks/verify-cache.yml fragment exposing verify:cache-fresh; wire into root task check aggregate via existing verify: include namespace (or new include) and add to the check deps list.\n4. templates/agent-prompt-preamble.md -- document the gate's invocation rule (run before start_agent, refuse on non-zero exit).\n5. tests/cli/test_preflight_cache.py covering fresh cache / stale cache / missing cache / missing audit log / --for-issue accept|defer|reject|missing|out-of-scope / --allow-stale override / subscription-awareness / task check wiring smoke.\n6. CHANGELOG [Unreleased] entry.\n\n## Acceptance criteria\n\n- preflight_cache.py exits 0 on fresh cache; 1 on stale (with remediation citing task triage:bootstrap and task cache:fetch-all); 2 on missing cache / missing candidates.jsonl\n- --for-issue <N> refuses non-accept latest decisions and out-of-scope issues\n- --allow-stale documented + tested\n- task check passes with the new verify:cache-fresh wired in\n- templates/agent-prompt-preamble.md updated with the gate's dispatcher rule\n- AGENTS.md NOT edited (N9 owns Wave-1 AGENTS.md edits per #1149)\n- PR body references #1119 + #1131 (D12 surface) + Closes #1127\n\n## Type\n\nFeature -- enforcement-surface gate; consumer-agnostic primitives only (no deft-specific labels).\n\n## Refs\n\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Issue: https://github.com/deftai/directive/issues/1127\n- D12 surface: https://github.com/deftai/directive/issues/1131\n- Pattern mirror: #747 (scripts/preflight_branch.py), #810 (implementation-intent gate)\n- Preamble convention: #954"
+    },
+    "items": [],
+    "policy": {},
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1127",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1127: D5 -- task verify:cache-fresh pre-start_agent gate"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-0/1 swarm"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1131",
+        "type": "x-vbrief/github-issue",
+        "title": "D12 #1131: subscription surface (scripts/triage_scope.py)"
+      }
+    ],
+    "updated": "2026-05-17T21:03:20Z"
+  }
+}

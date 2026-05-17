@@ -236,6 +236,7 @@ tasks:
       - verify:branch
       - verify:encoding
       - verify:destructive-gh-verbs
+      - verify:cache-fresh
       - vbrief:validate
     cmds:
       - echo "All checks passed"

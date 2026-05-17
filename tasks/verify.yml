@@ -78,3 +78,19 @@ tasks:
     # mtime moved. Caching here would silently mask a regression.
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_gh.py" --self-test {{.CLI_ARGS}}
+
+  cache-fresh:
+    desc: "Pre-`start_agent` cache-freshness gate (#1127). Refuses implementation dispatch when the triage cache is stale, missing, or the target issue's latest decision is not `accept`. Subscription-aware via plan.policy.triageScope[] (D12 / #1131). Flags: --for-issue N / --max-age-hours N / --allow-stale / --repo OWNER/NAME / --allow-missing-bootstrap (consumed by the framework's own `task check` so a fresh checkout passes -- consumers leave it OFF)."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+    # because the gate forwards user-facing flags via {{.CLI_ARGS}}
+    # (--for-issue / --max-age-hours / --allow-stale / --repo) that
+    # go-task's incremental-build cache would silently swallow. The
+    # `--allow-missing-bootstrap` flag below keeps the framework's own
+    # `task check` green on a fresh checkout that has not yet run
+    # `task triage:bootstrap`; consumer projects leave it off so a
+    # missing cache fails their `task check` loudly.
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_cache.py" --project-root "{{.USER_WORKING_DIR}}" --allow-missing-bootstrap {{.CLI_ARGS}}
