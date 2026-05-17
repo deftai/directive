@@ -73,11 +73,16 @@ vbrief/*.premigrate.*
 #                               fresh clone). #845 Story 2 + #915.
 #   - summary-history.jsonl  -> gitignored (operator-private observability;
 #                               not load-bearing for any decision).
+#   - scope-lifecycle.jsonl  -> gitignored (operator-private scope-lifecycle
+#                               audit decisions; D1 / #1121). Per-operator
+#                               demote stream; sharing would conflate
+#                               operators' demote timing across the team.
 #   - slices.jsonl           -> TRACKED (team-shared cohort records produced
 #                               by slicing skills; see #1132 / D13).
 # See vbrief/.eval/README.md for the full policy + merge=union rebase note.
 vbrief/.eval/candidates.jsonl
 vbrief/.eval/summary-history.jsonl
+vbrief/.eval/scope-lifecycle.jsonl
 
 # Monitor scratch (poller scripts, banner-edit helpers, etc.)
 .swarm/

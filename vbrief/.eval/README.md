@@ -11,10 +11,11 @@ by git versus gitignored using a **hybrid policy** (#1144, child of #1119).
 | `slices.jsonl` | Yes -- **committed** | Team-shared cohort records produced by slicing skills (D13 / #1132). New operators joining the team need to see prior cohort outputs to detect orphans and avoid re-slicing the same scope. |
 | `candidates.jsonl` | No -- **gitignored** | Operator-private triage decisions (#845 Story 2). Each operator's local accept / defer / reject stream is per-machine state; sharing it would conflate operators' timing + identity across the team. Re-derive on a fresh clone via `task triage:bootstrap`. |
 | `summary-history.jsonl` | No -- **gitignored** | Operator-private observability for `task triage:summary` output time-series. Not load-bearing for any decision. |
+| `scope-lifecycle.jsonl` | No -- **gitignored** | Operator-private scope-lifecycle audit decisions (D1 / #1121). Each demote (`task scope:demote`) appends one entry including a `demote_meta` block (`was_promoted`, `original_promotion_decision_id`, `days_in_pending`, `demote_reason`, `demoted_from`). Per-operator stream; sharing would conflate operators' demote timing across the team. Lightweight metrics over this log are tracked separately at #1180. |
 
-The gitignore lines live in the repo-root `.gitignore` (`vbrief/.eval/candidates.jsonl`
-and `vbrief/.eval/summary-history.jsonl`); everything else under `vbrief/.eval/`
-is committed by default.
+The gitignore lines live in the repo-root `.gitignore` (`vbrief/.eval/candidates.jsonl`,
+`vbrief/.eval/summary-history.jsonl`, and `vbrief/.eval/scope-lifecycle.jsonl`);
+everything else under `vbrief/.eval/` is committed by default.
 
 ## Fresh-clone regeneration
 

@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: D1 (#1121) -- scope:demote + --batch + demote_meta audit instrumentation.",
+    "updated": "2026-05-17T21:05:00Z"
+  },
+  "plan": {
+    "title": "feat(scope): scope:demote + --batch + demote_meta audit instrumentation (#1121)",
+    "status": "running",
+    "narratives": {
+      "Description": "D1 introduces a `task scope:demote` verb that moves a scope vBRIEF from `vbrief/pending/` back to `vbrief/proposed/`. Single-file and `--batch --older-than-days <N>` (default 45) modes are supported. Every demote (single or batch) appends a structured audit entry to `vbrief/.eval/scope-lifecycle.jsonl` with a `demote_meta` block containing: `was_promoted` (bool, true if the source was `pending/`), `original_promotion_decision_id` (UUID of prior promote audit entry on the same path, null when no prior entry exists), `days_in_pending` (int, derived from `plan.updated` or file mtime), `demote_reason` (free-text or batch-rule name), and `demoted_from` (source folder). The 30%-threshold falsification gate (Current Shape Decision 2) is explicitly out of scope; lightweight metrics over the audit log live in #1180. Append-only audit log file is operator-private (gitignored alongside the existing `candidates.jsonl` / `summary-history.jsonl` entries) and is covered by the `vbrief/.eval/*.jsonl merge=union` rule in `.gitattributes`.",
+      "Origin": "Wave-1 D1 child of umbrella #1119. Anchored to Current Shape comment 4471271992 on #1121 (canonical, supersedes prior amendments).",
+      "Overview": "## What to build\n\n1. `scripts/scope_demote.py` -- single-file demote + batch demote driver.\n2. `scripts/scope_audit_log.py` -- append-only writer for `vbrief/.eval/scope-lifecycle.jsonl` with cross-process locking mirroring `candidates_log.py`.\n3. `tasks/scope.yml` -- new `demote` task forwarding `{{.CLI_ARGS}}` to `scope_demote.py` (same shape as existing scope verbs).\n4. `.gitignore` entry for `vbrief/.eval/scope-lifecycle.jsonl` (operator-private, mirrors `candidates.jsonl`).\n5. Tests under `tests/cli/test_scope_demote.py` covering single-demote happy path, invalid source rejection, idempotent re-demote, batch with `--older-than-days`, batch no-op when nothing eligible, `demote_meta` block presence + content (every field), and `original_promotion_decision_id` traceability.\n\n## Acceptance criteria\n\n- `task scope:demote <path>` moves a `pending/` vBRIEF to `proposed/`, flips `plan.status` to `proposed`, refreshes `plan.updated`.\n- `task scope:demote -- --batch --older-than-days 45` demotes every `pending/` vBRIEF whose `plan.updated` (or file mtime fallback) is older than 45 days; idle when none match.\n- Every demote appends one JSONL entry to `vbrief/.eval/scope-lifecycle.jsonl` with the full `demote_meta` block (5 fields).\n- 30%-threshold gate is NOT shipped; metrics over the log are deferred to #1180.\n- `task check` green (lint/test/encoding).\n- PR body references #1119 + #1121 + Current Shape comment.\n\n## Type\n\nFeature -- framework scope-lifecycle primitive; consumer-agnostic.\n\n## Refs\n\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Issue: https://github.com/deftai/directive/issues/1121\n- Current Shape: https://github.com/deftai/directive/issues/1121#issuecomment-4471271992"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1121",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1121: D1 -- scope:demote + --batch + demote_meta"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-0/1 swarm"
+      }
+    ],
+    "updated": "2026-05-17T21:07:57Z"
+  }
+}
