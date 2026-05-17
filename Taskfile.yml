@@ -188,6 +188,12 @@ includes:
   triage-classify:
     taskfile: ./tasks/triage-classify.yml
     optional: true
+  # D2 (#1122): `task triage:summary` one-liner -- status surface invoked by
+  # the session-start ritual (N9 / #1149). Inner task `summary` is exposed
+  # as the user-facing alias `task triage:summary` in the alias block below.
+  triage-summary:
+    taskfile: ./tasks/triage-summary.yml
+    optional: true
   # Windows maintainer onboarding fragment (#902). Exposes the inner task
   # `toolchain` as `task setup:toolchain`. Note: the root-level `setup` task
   # below (git-hooks bootstrap) coexists with `setup:toolchain` because
@@ -590,5 +596,12 @@ tasks:
     desc: "Inspect / validate the auto-classification surface (#1129 / D10). -- task triage:classify -- [--list | --validate]"
     cmds:
       - task: triage-classify:classify
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:summary:
+    desc: "Emit the one-line triage state for the session-start ritual (D2 / #1122). Always exits 0; appends a JSONL record to vbrief/.eval/summary-history.jsonl. -- task triage:summary -- [--json] [--no-history]"
+    cmds:
+      - task: triage-summary:summary
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"

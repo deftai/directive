@@ -1,0 +1,559 @@
+"""Tests for scripts/triage_summary.py (#1122 / D2 of #1119).
+
+Covers the acceptance criteria spelled out in the issue body:
+
+- Empty / missing cache -> the documented empty-cache prompt (no zeros,
+  no warning glyph).
+- Populated cache, WIP under cap -> no warning glyph; ``0 untriaged``
+  still prints.
+- WIP at-or-above cap -> warning glyph appears.
+- Stale-defer count >= 1 -> stale-defer field appears with the count.
+- Long-content overflow -> graceful truncation at 120 chars.
+- Summary-history append -> one JSONL line per emission.
+
+The tests are hermetic: they build the cache + audit log + vBRIEF
+lifecycle folders under ``tmp_path`` so they never touch real consumer
+state. The script is imported directly (no subprocess) so failure modes
+surface as Python exceptions in the test report.
+"""
+
+from __future__ import annotations
+
+import importlib
+import io
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+_SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+triage_summary = importlib.import_module("triage_summary")
+
+
+# ---------------------------------------------------------------------------
+# Fixture builders
+# ---------------------------------------------------------------------------
+
+
+def _make_cached_issue(cache_root: Path, repo: str, number: int) -> None:
+    """Create the minimal cache-entry shape the walker recognises.
+
+    The walker only cares about the directory path; meta.json / raw.json
+    are stubbed for realism but are never read by triage_summary itself.
+    """
+    owner, name = repo.split("/", 1)
+    entry = cache_root / "github-issue" / owner / name / str(number)
+    entry.mkdir(parents=True, exist_ok=True)
+    (entry / "meta.json").write_text("{}", encoding="utf-8")
+    (entry / "raw.json").write_text("{}", encoding="utf-8")
+
+
+def _make_audit_entry(
+    repo: str,
+    issue_number: int,
+    decision: str,
+    *,
+    timestamp: str = "2026-05-17T20:00:00Z",
+    actor: str = "agent:test",
+    decision_id: str | None = None,
+) -> dict:
+    return {
+        "decision_id": decision_id or "00000000-0000-0000-0000-000000000001",
+        "timestamp": timestamp,
+        "repo": repo,
+        "issue_number": issue_number,
+        "decision": decision,
+        "actor": actor,
+    }
+
+
+def _write_audit_log(project_root: Path, entries: list[dict]) -> Path:
+    log_path = project_root / triage_summary.CANDIDATES_LOG_REL_PATH
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(log_path, "w", encoding="utf-8", newline="") as handle:
+        for entry in entries:
+            handle.write(
+                json.dumps(entry, sort_keys=True, ensure_ascii=False) + "\n"
+            )
+    return log_path
+
+
+def _write_wip(project_root: Path, count: int, *, folder: str = "active") -> None:
+    target = project_root / "vbrief" / folder
+    target.mkdir(parents=True, exist_ok=True)
+    for i in range(count):
+        (target / f"2026-05-17-test-{i:03d}.vbrief.json").write_text(
+            "{}", encoding="utf-8"
+        )
+
+
+def _set_wip_cap(project_root: Path, cap: int) -> None:
+    pd = project_root / triage_summary.PROJECT_DEFINITION_REL_PATH
+    pd.parent.mkdir(parents=True, exist_ok=True)
+    pd.write_text(
+        json.dumps(
+            {
+                "vBRIEFInfo": {"version": "0.6"},
+                "plan": {"policy": {"wipCap": cap}},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Empty / missing cache contract
+# ---------------------------------------------------------------------------
+
+
+def test_missing_cache_dir_emits_empty_cache_prompt(tmp_path: Path) -> None:
+    result = triage_summary.compute_summary(tmp_path)
+    assert result.cache_empty is True
+    line = triage_summary.format_one_liner(result)
+    assert line == triage_summary.EMPTY_CACHE_LINE
+    # No zeros, no warning glyph.
+    assert "untriaged" not in line
+    assert "WIP" not in line
+    assert triage_summary.WIP_WARN_GLYPH not in line
+
+
+def test_present_but_empty_cache_dir_emits_empty_cache_prompt(tmp_path: Path) -> None:
+    (tmp_path / triage_summary.CACHE_DIR_NAME / triage_summary.CACHE_SOURCE).mkdir(
+        parents=True
+    )
+    result = triage_summary.compute_summary(tmp_path)
+    assert result.cache_empty is True
+    assert triage_summary.format_one_liner(result) == triage_summary.EMPTY_CACHE_LINE
+
+
+# ---------------------------------------------------------------------------
+# Populated cache: untriaged + in-flight classification
+# ---------------------------------------------------------------------------
+
+
+def test_populated_cache_zero_wip_no_warning(tmp_path: Path) -> None:
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 100)
+    _make_cached_issue(cache_root, "deftai/directive", 101)
+    _make_cached_issue(cache_root, "deftai/directive", 102)
+    _write_audit_log(
+        tmp_path,
+        [
+            _make_audit_entry(
+                "deftai/directive",
+                100,
+                "accept",
+                decision_id="11111111-1111-1111-1111-111111111101",
+            ),
+            _make_audit_entry(
+                "deftai/directive",
+                101,
+                "accept",
+                decision_id="11111111-1111-1111-1111-111111111102",
+            ),
+        ],
+    )
+    # No vBRIEFs in pending/active -> 0/12 -> no warning glyph.
+    result = triage_summary.compute_summary(tmp_path)
+    assert result.cache_empty is False
+    assert result.untriaged == 1
+    assert result.in_flight == 2
+    assert result.stale_defer == 0
+    assert result.wip_count == 0
+    assert result.wip_cap == triage_summary.DEFAULT_WIP_CAP
+
+    line = triage_summary.format_one_liner(result)
+    assert line.startswith("[triage] 1 untriaged")
+    assert "2 in-flight" in line
+    assert "WIP 0/12" in line
+    # Stale-defer suppressed when count is 0.
+    assert "stale-defer" not in line
+    # WIP warning glyph suppressed when wip < cap.
+    assert triage_summary.WIP_WARN_GLYPH not in line
+
+
+def test_zero_untriaged_still_prints(tmp_path: Path) -> None:
+    """Zero is a healthy signal, not silence (#1122 issue body)."""
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 200)
+    _write_audit_log(
+        tmp_path,
+        [
+            _make_audit_entry(
+                "deftai/directive", 200, "accept",
+                decision_id="22222222-2222-2222-2222-222222222200",
+            ),
+        ],
+    )
+    result = triage_summary.compute_summary(tmp_path)
+    assert result.untriaged == 0
+    line = triage_summary.format_one_liner(result)
+    assert "0 untriaged" in line
+
+
+def test_reset_decision_returns_to_untriaged(tmp_path: Path) -> None:
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 300)
+    _write_audit_log(
+        tmp_path,
+        [
+            _make_audit_entry(
+                "deftai/directive", 300, "accept",
+                timestamp="2026-05-17T19:00:00Z",
+                decision_id="33333333-3333-3333-3333-333333333300",
+            ),
+            {
+                "decision_id": "33333333-3333-3333-3333-333333333301",
+                "timestamp": "2026-05-17T19:30:00Z",
+                "repo": "deftai/directive",
+                "issue_number": 300,
+                "decision": "reset",
+                "actor": "agent:test",
+                "prior_decision_id": "33333333-3333-3333-3333-333333333300",
+            },
+        ],
+    )
+    result = triage_summary.compute_summary(tmp_path)
+    assert result.untriaged == 1
+    assert result.in_flight == 0
+
+
+def test_reject_excluded_from_untriaged_and_in_flight(tmp_path: Path) -> None:
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 400)
+    _write_audit_log(
+        tmp_path,
+        [
+            _make_audit_entry(
+                "deftai/directive", 400, "reject",
+                decision_id="44444444-4444-4444-4444-444444444400",
+            ),
+        ],
+    )
+    result = triage_summary.compute_summary(tmp_path)
+    assert result.untriaged == 0
+    assert result.in_flight == 0
+
+
+# ---------------------------------------------------------------------------
+# WIP warning glyph contract
+# ---------------------------------------------------------------------------
+
+
+def test_wip_at_cap_emits_warning_glyph(tmp_path: Path) -> None:
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 500)
+    _set_wip_cap(tmp_path, 12)
+    _write_wip(tmp_path, 12, folder="pending")
+    result = triage_summary.compute_summary(tmp_path)
+    assert result.wip_count == 12
+    assert result.wip_cap == 12
+    line = triage_summary.format_one_liner(result)
+    assert triage_summary.WIP_WARN_GLYPH in line
+    assert "WIP 12/12" in line
+
+
+def test_wip_above_cap_emits_warning_glyph(tmp_path: Path) -> None:
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 501)
+    _set_wip_cap(tmp_path, 5)
+    _write_wip(tmp_path, 7, folder="active")
+    result = triage_summary.compute_summary(tmp_path)
+    assert result.wip_count == 7
+    assert result.wip_cap == 5
+    line = triage_summary.format_one_liner(result)
+    assert "WIP 7/5" in line
+    assert triage_summary.WIP_WARN_GLYPH in line
+
+
+def test_wip_just_under_cap_no_warning_glyph(tmp_path: Path) -> None:
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 502)
+    _set_wip_cap(tmp_path, 12)
+    _write_wip(tmp_path, 11, folder="pending")
+    result = triage_summary.compute_summary(tmp_path)
+    line = triage_summary.format_one_liner(result)
+    assert "WIP 11/12" in line
+    assert triage_summary.WIP_WARN_GLYPH not in line
+
+
+# ---------------------------------------------------------------------------
+# Stale-defer field
+# ---------------------------------------------------------------------------
+
+
+def test_stale_defer_field_appears_when_count_nonzero(tmp_path: Path) -> None:
+    """D3 (#1123) is not yet shipped so compute_summary cannot produce
+    stale_defer >= 1 from real data. Drive the renderer directly to pin
+    the formatting contract -- format_one_liner is the public surface
+    D11's eventual wrap-up will share.
+    """
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=12,
+        stale_defer=5,
+        in_flight=8,
+        wip_count=10,
+        wip_cap=12,
+    )
+    line = triage_summary.format_one_liner(result)
+    assert "5 stale-defer (resume condition met)" in line
+    assert "12 untriaged" in line
+    assert "8 in-flight" in line
+    assert "WIP 10/12" in line
+    assert triage_summary.WIP_WARN_GLYPH not in line
+
+
+def test_stale_defer_field_suppressed_when_zero(tmp_path: Path) -> None:
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=3,
+        stale_defer=0,
+        in_flight=2,
+        wip_count=1,
+        wip_cap=12,
+    )
+    line = triage_summary.format_one_liner(result)
+    assert "stale-defer" not in line
+
+
+# ---------------------------------------------------------------------------
+# Truncation contract
+# ---------------------------------------------------------------------------
+
+
+def test_truncation_caps_at_120_chars() -> None:
+    # Build a result that produces a > 120-char raw line.
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=9999999,
+        stale_defer=9999999,
+        in_flight=9999999,
+        wip_count=999999,
+        wip_cap=12,
+    )
+    line = triage_summary.format_one_liner(result, max_chars=60)
+    assert len(line) <= 60
+    # The leading tag MUST always survive truncation.
+    assert line.startswith("[triage]")
+
+
+def test_truncation_drops_warning_glyph_first() -> None:
+    # Engineer a case where the line WITH glyph overshoots by exactly
+    # the glyph width but WITHOUT glyph fits.
+    base = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=10,
+        stale_defer=0,
+        in_flight=8,
+        wip_count=12,
+        wip_cap=12,
+    )
+    with_glyph = triage_summary.format_one_liner(base)
+    assert triage_summary.WIP_WARN_GLYPH in with_glyph
+    cap = len(with_glyph) - 1
+    trimmed = triage_summary.format_one_liner(base, max_chars=cap)
+    # Glyph dropped, last field still legible.
+    assert triage_summary.WIP_WARN_GLYPH not in trimmed
+    assert "WIP 12/12" in trimmed
+
+
+def test_empty_cache_line_within_120_chars() -> None:
+    assert len(triage_summary.EMPTY_CACHE_LINE) <= triage_summary.MAX_LINE_CHARS
+
+
+# ---------------------------------------------------------------------------
+# Summary-history append
+# ---------------------------------------------------------------------------
+
+
+def test_append_history_writes_jsonl_record(tmp_path: Path) -> None:
+    history_path = tmp_path / triage_summary.SUMMARY_HISTORY_REL_PATH
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=4,
+        stale_defer=0,
+        in_flight=2,
+        wip_count=3,
+        wip_cap=12,
+    )
+    triage_summary.append_history(
+        history_path,
+        result,
+        line="[triage] 4 untriaged \u00b7 2 in-flight \u00b7 WIP 3/12",
+        emitted_at="2026-05-17T21:00:00Z",
+    )
+    assert history_path.is_file()
+    lines = history_path.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert record["schema"] == triage_summary.SUMMARY_HISTORY_SCHEMA
+    assert record["emitted_at"] == "2026-05-17T21:00:00Z"
+    assert record["untriaged"] == 4
+    assert record["in_flight"] == 2
+    assert record["wip_count"] == 3
+    assert record["wip_cap"] == 12
+    assert record["cache_empty"] is False
+    assert "line" in record
+
+
+def test_append_history_appends_one_line_per_call(tmp_path: Path) -> None:
+    history_path = tmp_path / triage_summary.SUMMARY_HISTORY_REL_PATH
+    result = triage_summary.SummaryResult(
+        cache_empty=True,
+        untriaged=0,
+        stale_defer=0,
+        in_flight=0,
+        wip_count=0,
+        wip_cap=12,
+    )
+    line = triage_summary.format_one_liner(result)
+    for i in range(3):
+        triage_summary.append_history(
+            history_path, result, line, emitted_at=f"2026-05-17T21:0{i}:00Z"
+        )
+    contents = history_path.read_text(encoding="utf-8").splitlines()
+    assert len(contents) == 3
+    for record_line in contents:
+        record = json.loads(record_line)
+        assert record["cache_empty"] is True
+
+
+def test_main_appends_one_history_record_per_invocation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 700)
+    monkeypatch.chdir(tmp_path)
+    # Capture stdout via a real StringIO so the CLI prints land in-test.
+    buf = io.StringIO()
+    monkeypatch.setattr(sys, "stdout", buf)
+    rc = triage_summary.main(["--project-root", str(tmp_path)])
+    assert rc == 0
+    history = tmp_path / triage_summary.SUMMARY_HISTORY_REL_PATH
+    assert history.is_file()
+    assert len(history.read_text(encoding="utf-8").splitlines()) == 1
+    # Second invocation appends, never overwrites.
+    triage_summary.main(["--project-root", str(tmp_path)])
+    assert len(history.read_text(encoding="utf-8").splitlines()) == 2
+
+
+# ---------------------------------------------------------------------------
+# CLI exit code contract
+# ---------------------------------------------------------------------------
+
+
+def test_cli_exits_zero_on_empty_cache(tmp_path: Path) -> None:
+    rc = triage_summary.main(["--project-root", str(tmp_path), "--no-history"])
+    assert rc == 0
+
+
+def test_cli_exits_zero_with_at_cap_wip(tmp_path: Path) -> None:
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 800)
+    _set_wip_cap(tmp_path, 4)
+    _write_wip(tmp_path, 5, folder="active")
+    rc = triage_summary.main(["--project-root", str(tmp_path), "--no-history"])
+    # Status surface, not a gate -- always 0.
+    assert rc == 0
+
+
+def test_cli_json_mode_emits_record(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 900)
+    rc = triage_summary.main(
+        ["--project-root", str(tmp_path), "--no-history", "--json"]
+    )
+    assert rc == 0
+    captured = capsys.readouterr()
+    record = json.loads(captured.out)
+    assert record["schema"] == triage_summary.SUMMARY_HISTORY_SCHEMA
+    assert record["cache_empty"] is False
+    assert "line" in record
+
+
+# ---------------------------------------------------------------------------
+# Audit-log tolerance
+# ---------------------------------------------------------------------------
+
+
+def test_audit_log_tolerates_malformed_lines(tmp_path: Path) -> None:
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 1000)
+    log = tmp_path / triage_summary.CANDIDATES_LOG_REL_PATH
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text(
+        "{this is not json\n"
+        + json.dumps(
+            _make_audit_entry(
+                "deftai/directive", 1000, "accept",
+                decision_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            ),
+            sort_keys=True,
+        )
+        + "\n\n"
+        + "[]\n",  # non-object entry -- also tolerated
+        encoding="utf-8",
+    )
+    result = triage_summary.compute_summary(tmp_path)
+    assert result.in_flight == 1
+    assert result.untriaged == 0
+
+
+def test_latest_decision_wins_chronologically() -> None:
+    entries = [
+        {
+            "decision_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1",
+            "timestamp": "2026-05-17T18:00:00Z",
+            "repo": "deftai/directive",
+            "issue_number": 50,
+            "decision": "defer",
+            "actor": "agent",
+        },
+        {
+            "decision_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2",
+            "timestamp": "2026-05-17T19:00:00Z",
+            "repo": "deftai/directive",
+            "issue_number": 50,
+            "decision": "accept",
+            "actor": "agent",
+        },
+    ]
+    decisions = triage_summary.latest_decisions(entries)
+    assert decisions[("deftai/directive", 50)] == "accept"
+
+
+# ---------------------------------------------------------------------------
+# WIP cap resolution
+# ---------------------------------------------------------------------------
+
+
+def test_wip_cap_defaults_to_12_when_field_absent(tmp_path: Path) -> None:
+    assert triage_summary.resolve_wip_cap(tmp_path) == 12
+
+
+def test_wip_cap_honours_typed_field(tmp_path: Path) -> None:
+    _set_wip_cap(tmp_path, 6)
+    assert triage_summary.resolve_wip_cap(tmp_path) == 6
+
+
+def test_wip_cap_rejects_non_int(tmp_path: Path) -> None:
+    pd = tmp_path / triage_summary.PROJECT_DEFINITION_REL_PATH
+    pd.parent.mkdir(parents=True, exist_ok=True)
+    pd.write_text(
+        json.dumps({"plan": {"policy": {"wipCap": "twelve"}}}),
+        encoding="utf-8",
+    )
+    assert triage_summary.resolve_wip_cap(tmp_path) == 12
+
+
+def test_wip_cap_zero_honoured(tmp_path: Path) -> None:
+    """Cap=0 freezes promotion entirely -- still a legitimate operator state."""
+    _set_wip_cap(tmp_path, 0)
+    assert triage_summary.resolve_wip_cap(tmp_path) == 0

@@ -1,0 +1,35 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: D2 child of #1119 Wave-1 -- task triage:summary one-liner + summary-history.jsonl write.",
+    "updated": "2026-05-17T21:08:10Z"
+  },
+  "plan": {
+    "title": "feat(triage): task triage:summary one-liner + summary-history.jsonl write (#1122)",
+    "status": "running",
+    "narratives": {
+      "Description": "D2 child of the #1119 Wave-1 swarm. Ship `task triage:summary` as a single-line status surface that the session-start ritual (N9 / #1149) calls before the agent answers the operator's first prompt. The verb reads the existing `.deft-cache/github-issue/<owner>/<repo>/` layout + `vbrief/.eval/candidates.jsonl` audit log and emits one bounded (<=120 char) line describing untriaged / stale-defer / in-flight / WIP counts, with a warning glyph when WIP is at-or-above the typed cap. Empty/missing cache prints the documented `[triage] cache empty -- run task triage:bootstrap` prompt instead of zeros. Every emission appends a JSONL record to `vbrief/.eval/summary-history.jsonl` (gitignored per N4 / #1144) so operators can replay drift offline.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1122. Issue body is the spec (no Current Shape comment filed).",
+      "Overview": "## What to build\n\n1. `scripts/triage_summary.py` -- pure-stdlib helper that walks the unified cache for the active triageScope, reads candidates.jsonl via scripts/candidates_log.py, derives the four counts, formats the one-liner under the 120-char cap, appends a record to vbrief/.eval/summary-history.jsonl, and exits 0 in every scenario.\n2. `tasks/triage-summary.yml` -- fragment file under `includes:` namespace `triage-summary` exposing the internal `summary` inner task that forwards `{{.CLI_ARGS}}`. Pattern mirrors `tasks/triage-scope.yml` from D12 (#1190 -- just landed).\n3. `Taskfile.yml` -- register the new include + add the alias `triage:summary` that delegates to `triage-summary:summary` (mirrors the existing triage:scope alias block).\n4. `tests/test_triage_summary.py` -- cover empty/missing cache prompt, populated cache w/ WIP under cap (no glyph), WIP at/above cap (glyph), stale-defer>0 (field appears), long-content overflow (graceful truncation), summary-history append (verify JSONL line written per call).\n5. `CHANGELOG.md` -- `[Unreleased]` entry.\n\n## Type\n\nFeature -- Deliverable 2 of #1119. Status surface, not a gate (always exits 0).\n\n## Acceptance criteria\n\n- `task triage:summary` exits 0 in every scenario (empty/missing cache, populated cache, WIP at cap, stale-defer >=1).\n- Output is a single line, <=120 chars, in the documented format `[triage] N untriaged ... in-flight ... WIP X/Y[warning]`.\n- Empty/missing cache prints `[triage] cache empty -- run task triage:bootstrap` (no zeros, no warning glyph).\n- WIP warning glyph appears only when count >= cap; stale-defer field appears only when count >= 1.\n- Long lines truncate gracefully at 120 chars.\n- Every emission appends a JSONL record `{emitted_at, line, ...computed_fields}` to vbrief/.eval/summary-history.jsonl.\n- D11 dependency hand-rolled in v1; comment notes the post-D11 wrap-up.\n- CHANGELOG entry under `[Unreleased]`.\n- `task check` green.\n- PR body references the issue body, lists acceptance criteria, includes `Closes #1122` + `Refs #1119` + a Follow-up note about D11 integration.\n\n## Not in scope\n\n- AGENTS.md edits (owned by sibling N9 / #1149 -- already landed the session-start ritual reference).\n- `templates/agent-prompt-preamble.md` edits (owned by D5 / #1127 for this wave).\n- Deft-specific labels / milestones in framework defaults (#1186 consumer-example is deferred).\n- Multi-line dashboards / TUI surfaces (out per issue body).\n- Real D11 wiring -- v1 hand-rolls the audit-log read; D11 wrap-up is a follow-up.\n\n## Refs\n\n- Umbrella: #1119\n- This deliverable: #1122\n- Sibling (consumer of summary output via session-start ritual): N9 / #1149 (landed)\n- Sibling (D11 / triage:audit --format=json -- planned follow-up wrap-up): #1128\n- N4 / #1144 (vbrief/.eval/ governance -- landed)\n- Foundation: #845 (cache + candidates.jsonl)"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1122",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1122: D2 -- task triage:summary one-liner + summary-history.jsonl write"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: triage-eval governance swarm"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1128",
+        "type": "x-vbrief/github-issue",
+        "title": "Sibling D11: task triage:audit --format=json (planned wrap-up consumer)"
+      }
+    ],
+    "updated": "2026-05-17T21:08:03Z"
+  }
+}
