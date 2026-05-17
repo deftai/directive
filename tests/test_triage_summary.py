@@ -557,3 +557,121 @@ def test_wip_cap_zero_honoured(tmp_path: Path) -> None:
     """Cap=0 freezes promotion entirely -- still a legitimate operator state."""
     _set_wip_cap(tmp_path, 0)
     assert triage_summary.resolve_wip_cap(tmp_path) == 0
+
+
+# ---------------------------------------------------------------------------
+# Greptile P1 regression -- mkdir OSError must NOT escape append_history
+# ---------------------------------------------------------------------------
+
+
+def test_append_history_swallows_mkdir_oserror(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Greptile P1: a read-only filesystem / permission denial on the
+    ``vbrief/.eval/`` parent ``mkdir`` MUST NOT propagate out of
+    ``append_history`` -- the sidecar write is observability only and the
+    issue body freezes the verb at exit 0 for every scenario.
+    """
+    history_path = tmp_path / triage_summary.SUMMARY_HISTORY_REL_PATH
+
+    original_mkdir = Path.mkdir
+
+    def _refuse_mkdir(self: Path, *args: object, **kwargs: object) -> None:
+        # Only refuse the sidecar's parent; let other paths pass so the
+        # tmp_path fixture itself stays usable for the helper.
+        if self.name == ".eval":
+            raise PermissionError(13, "refused for test")
+        original_mkdir(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "mkdir", _refuse_mkdir)
+
+    result = triage_summary.SummaryResult(
+        cache_empty=True,
+        untriaged=0,
+        stale_defer=0,
+        in_flight=0,
+        wip_count=0,
+        wip_cap=12,
+    )
+    # Pre-fix this would raise PermissionError -- the regression guard.
+    returned = triage_summary.append_history(
+        history_path,
+        result,
+        line=triage_summary.EMPTY_CACHE_LINE,
+        emitted_at="2026-05-17T22:00:00Z",
+    )
+    assert returned == history_path
+    # mkdir refused so the directory never came into being and the file
+    # is therefore absent -- best-effort write is exactly the contract.
+    assert not history_path.exists()
+
+
+def test_main_swallows_mkdir_oserror_and_returns_zero(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """End-to-end Greptile P1 guard: ``main`` MUST exit 0 even when the
+    sidecar mkdir refuses.
+    """
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 1100)
+
+    original_mkdir = Path.mkdir
+
+    def _refuse_mkdir(self: Path, *args: object, **kwargs: object) -> None:
+        if self.name == ".eval":
+            raise PermissionError(13, "refused for test")
+        original_mkdir(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "mkdir", _refuse_mkdir)
+
+    rc = triage_summary.main(["--project-root", str(tmp_path)])
+    assert rc == 0
+    history = tmp_path / triage_summary.SUMMARY_HISTORY_REL_PATH
+    assert not history.exists()  # mkdir refused -> sidecar absent, no crash
+
+
+# ---------------------------------------------------------------------------
+# Greptile P2 regression -- Unicode digit directory names must be filtered
+# ---------------------------------------------------------------------------
+
+
+def test_iter_cached_issues_skips_unicode_digit_names(tmp_path: Path) -> None:
+    """Greptile P2: ``str.isdigit()`` matches Unicode superscript digits
+    (``\u00b2``, ``\u00b3``, circled digits, etc.) but ``int(name)``
+    raises ``ValueError`` on those. The walker uses ``isdecimal`` (ASCII
+    ``0-9`` plus the strict ``Nd`` Decimal_Number class) so a stray
+    ``\u00b2``-named directory under ``<owner>/<repo>/`` is filtered out
+    cleanly instead of crashing the walk.
+    """
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 200)
+    # Drop a stray Unicode-digit directory alongside the legit one. The
+    # name passes ``str.isdigit()`` but FAILS ``int()`` conversion.
+    unicode_digit_dir = (
+        cache_root / "github-issue" / "deftai" / "directive" / "\u00b2"
+    )
+    unicode_digit_dir.mkdir(parents=True, exist_ok=True)
+
+    # Pre-fix this raised ``ValueError`` mid-walk. Post-fix the helper
+    # returns only the valid ASCII-digit entry.
+    entries = triage_summary.iter_cached_issues(cache_root)
+    assert entries == [("deftai/directive", 200)]
+
+
+def test_is_pos_int_dir_predicate_rejects_unicode_digit(tmp_path: Path) -> None:
+    """Direct predicate-level coverage for the Greptile P2 fix."""
+    valid = tmp_path / "7"
+    valid.mkdir()
+    unicode_digit = tmp_path / "\u00b2"
+    unicode_digit.mkdir()
+    circled_one = tmp_path / "\u2460"  # ① -- isdigit True, isdecimal False
+    circled_one.mkdir()
+
+    assert triage_summary._is_pos_int_dir(valid) is True
+    assert triage_summary._is_pos_int_dir(unicode_digit) is False
+    assert triage_summary._is_pos_int_dir(circled_one) is False
+    # Sanity-check: confirm the canonical isdigit/isdecimal divergence so a
+    # future Python release that tightens isdigit cannot silently retire
+    # the regression scenario this test guards.
+    assert "\u00b2".isdigit() is True
+    assert "\u00b2".isdecimal() is False

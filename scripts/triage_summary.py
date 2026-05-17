@@ -184,7 +184,13 @@ def _utc_iso(dt: datetime | None = None) -> str:
 
 
 def _is_pos_int_dir(p: Path) -> bool:
-    return p.is_dir() and p.name.isdigit()
+    # ``isdecimal`` (not ``isdigit``) -- ``isdigit`` accepts the Unicode
+    # ``Numeric_Type=Digit`` class which includes superscript digits
+    # (``²`` / ``³``) and circled digits; ``int(name)`` raises
+    # ``ValueError`` on those, breaking the walker. ``isdecimal`` is the
+    # stricter ``Nd`` (Decimal_Number) match -- ASCII ``0-9`` plus other
+    # genuine decimal-class digits whose ``int()`` round-trip is total.
+    return p.is_dir() and p.name.isdecimal()
 
 
 def iter_cached_issues(cache_root: Path) -> list[tuple[str, int]]:
@@ -501,19 +507,24 @@ def append_history(
     history sidecar is observability, not load-bearing for the summary
     surface itself; a corrupt sidecar MUST NOT crash session start.
     """
-    history_path.parent.mkdir(parents=True, exist_ok=True)
     record = result.to_record(
         emitted_at=emitted_at or _utc_iso(),
         line=line,
     )
     payload = json.dumps(record, sort_keys=True, ensure_ascii=False)
-    with contextlib.suppress(OSError), open(
-        history_path, "a", encoding="utf-8", newline=""
-    ) as handle:
-        handle.write(payload + "\n")
-        handle.flush()
-        with contextlib.suppress(OSError):
-            os.fsync(handle.fileno())
+    # Greptile P1 fix: ``mkdir`` is INSIDE the suppress block so a
+    # permission-denied / read-only-fs / SELinux refusal on the parent
+    # ``vbrief/.eval/`` directory never propagates out of the helper.
+    # ``append_history`` MUST never raise -- the sidecar is observability
+    # only, the issue body freezes the verb's exit code at 0 in every
+    # scenario.
+    with contextlib.suppress(OSError):
+        history_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(history_path, "a", encoding="utf-8", newline="") as handle:
+            handle.write(payload + "\n")
+            handle.flush()
+            with contextlib.suppress(OSError):
+                os.fsync(handle.fileno())
     return history_path
 
 
