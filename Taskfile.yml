@@ -194,6 +194,12 @@ includes:
   triage-summary:
     taskfile: ./tasks/triage-summary.yml
     optional: true
+  # D11 (#1128): ranked queue + per-item show + audit-log triage surfaces.
+  # Inner tasks queue/show/audit are exposed as the user-facing aliases
+  # `task triage:queue` / `task triage:show` / `task triage:audit` below.
+  triage-queue:
+    taskfile: ./tasks/triage-queue.yml
+    optional: true
   # Windows maintainer onboarding fragment (#902). Exposes the inner task
   # `toolchain` as `task setup:toolchain`. Note: the root-level `setup` task
   # below (git-hooks bootstrap) coexists with `setup:toolchain` because
@@ -603,5 +609,26 @@ tasks:
     desc: "Emit the one-line triage state for the session-start ritual (D2 / #1122). Always exits 0; appends a JSONL record to vbrief/.eval/summary-history.jsonl. -- task triage:summary -- [--json] [--no-history]"
     cmds:
       - task: triage-summary:summary
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:queue:
+    desc: "Print the ranked triage queue (#1128 / D11). -- task triage:queue [-- --repo OWNER/NAME] [--limit N]"
+    cmds:
+      - task: triage-queue:queue
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:show:
+    desc: "Per-issue triage detail (#1128 / D11). -- task triage:show -- <N> [--repo OWNER/NAME]"
+    cmds:
+      - task: triage-queue:show
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:audit:
+    desc: "Audit-log surface (#1128 / D11). -- task triage:audit [-- --format=json] [--vbrief-staleness] [--repo OWNER/NAME]"
+    cmds:
+      - task: triage-queue:audit
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"

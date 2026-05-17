@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: D11 (#1128) -- triage:queue + triage:audit + triage:show; group-by-state + updated_at desc within-group; consumer-configurable triageRankingLabels[].",
+    "updated": "2026-05-17T21:05:00Z"
+  },
+  "plan": {
+    "title": "feat(triage): triage:queue + audit + show with group-by-state and updated_at within-group (#1128)",
+    "status": "running",
+    "narratives": {
+      "Description": "D11 ships three read-only triage surfaces: task triage:queue (ranked work selection), task triage:show <N> (per-item detail), task triage:audit (audit-log surface with --format=json + --vbrief-staleness). Queue v1 ranking is hybrid: groups [RESUME] -> [URGENT] -> untriaged -> other, with within-group framework default = updated_at desc (no label weighting). New typed plan.policy.triageRankingLabels[] (list of strings) lets consumers add label-priority within-group ordering; framework default is empty per the section 12 framework-vs-consumer boundary. --explain <N> and weighted multi-signal ranking are explicitly deferred to follow-up children.",
+      "Origin": "Wave-1 D11 child of umbrella #1119. Anchored to Current Shape comment 4471272093 v2 on #1128 (canonical, supersedes 2026-05-13 deep-pass + 2026-05-14 subtractive OE-4 amendments).",
+      "Overview": "## What to build\n\n1. New module scripts/triage_queue.py: resolve_ranking_labels, validate_ranking_labels, validate_triage_ranking_labels_on_plan (vbrief_validate hook), derive_group (RESUME/URGENT/untriaged/other from latest audit decision + active-vBRIEF reference set), load_cached_issues, build_queue, render_queue, render_show, render_audit. CLI subcommands queue / show / audit.\n2. New tasks/triage-queue.yml fragment exposing inner tasks queue, show, audit; wired into Taskfile.yml via the includes block + root-level aliases task triage:queue / triage:show / triage:audit.\n3. scripts/vbrief_validate.py gains a lazy-imported hook calling triage_queue.validate_triage_ranking_labels_on_plan(plan, filepath) under contextlib.suppress (same pattern as the existing triage_scope hook).\n4. Tests under tests/test_triage_queue.py covering: group ordering correctness (RESUME -> URGENT -> untriaged -> other); within-group updated_at desc; consumer ranking-labels overrides default; --limit cap; audit --format=json schema stable; audit --vbrief-staleness filters; show <N> snapshot; ranking-labels validator.\n5. CHANGELOG.md [Unreleased] entry.\n\n## Acceptance criteria\n\n- plan.policy.triageRankingLabels[] schema accepts empty + list-of-strings, rejects non-list / non-string entries\n- Group ordering correctness: RESUME -> URGENT -> untriaged -> other, stable across permutations\n- Within-group default = updated_at desc; consumer ranking labels override deterministic by declared order\n- --limit N caps queue output\n- audit --format=json emits stable schema {entries: [...], generated_at: ISO-8601 UTC}\n- audit --vbrief-staleness filters to audit entries whose latest accept decision lacks an active-vBRIEF reference\n- show <N> output is read-only and snapshot-stable\n- --explain NOT implemented (deferred); weighted multi-signal ranking NOT implemented (deferred)\n- Framework defaults contain NO deft-specific labels (urgent / breaking-change / blocks-merge / adoption-blocker)\n- task check green (lint/test/encoding/vbrief-validate)\n- PR body references #1119 + #1128 + #1186 (consumer-example to follow)\n\n## Type\n\nFeature -- framework triage queue surface; consumer-agnostic primitives only.\n\n## Refs\n\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Issue: https://github.com/deftai/directive/issues/1128\n- Current Shape: https://github.com/deftai/directive/issues/1128#issuecomment-4471272093\n- Consumer-example (follow-up, deferred): #1186"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1128",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1128: D11 -- triage:queue + audit + show"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-0/1 swarm"
+      }
+    ],
+    "updated": "2026-05-17T21:08:12Z"
+  }
+}

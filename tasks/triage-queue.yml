@@ -1,0 +1,53 @@
+version: '3'
+
+# tasks/triage-queue.yml -- ranked triage queue + per-item show + audit
+# surface (#1128 / D11 of #1119).
+#
+# Wired into the parent Taskfile.yml via the `includes:` block under
+# namespace key `triage-queue` (matching the four-fragment cluster pattern
+# from #845 and the D12 #1131 pattern landed in tasks/triage-scope.yml).
+# When included that way, the inner tasks `queue` / `show` / `audit` are
+# reachable as `task triage-queue:queue` / `task triage-queue:show` /
+# `task triage-queue:audit`. The parent Taskfile exposes the documented
+# `task triage:queue` / `task triage:show` / `task triage:audit` aliases.
+#
+# Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+# declarations because each inner task accepts user-facing flags
+# (`--repo`, `--limit`, `--format=json`, `--vbrief-staleness`,
+# `--project-root`, `--cache-root`, `--audit-log`) via {{.CLI_ARGS}} and
+# go-task's incremental-build cache layer would silently swallow them.
+#
+# Companion script: scripts/triage_queue.py (+ scripts/_triage_queue_cli.py)
+# Companion tests:  tests/test_triage_queue.py
+# Current Shape:    https://github.com/deftai/directive/issues/1128#issuecomment-4471272093
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  queue:
+    desc: "Print the ranked triage queue (#1128 / D11). -- task triage:queue [-- --repo OWNER/NAME] [--limit N]"
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_queue.py" queue --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
+  show:
+    desc: "Per-issue triage detail (#1128 / D11). -- task triage:show -- <N> [--repo OWNER/NAME]"
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_queue.py" show --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
+  audit:
+    desc: "Audit-log surface (#1128 / D11). -- task triage:audit [-- --format=json] [--vbrief-staleness] [--repo OWNER/NAME]"
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_queue.py" audit --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

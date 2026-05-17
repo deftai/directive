@@ -376,6 +376,12 @@ def validate_project_definition(filepath: Path, data: dict, vbrief_dir: Path) ->
         errors.extend(_ac(plan, filepath))
         errors.extend(_hm(plan, filepath))
 
+    # #1128 (D11): typed plan.policy.triageRankingLabels[] validation --
+    # helper lives in scripts/triage_queue.py so this file does not grow.
+    with contextlib.suppress(Exception):
+        from triage_queue import validate_triage_ranking_labels_on_plan  # noqa: I001
+        errors.extend(validate_triage_ranking_labels_on_plan(plan, filepath))
+
     # Check items registry entries reference existing scope vBRIEF files
     items = plan.get("items", [])
     if isinstance(items, list):
