@@ -57,8 +57,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _validate_project(project_root: Path, module: object) -> int:
     """Run schema validation against the local PROJECT-DEFINITION."""
-    load = getattr(module, "_load_project_definition")
-    data = load(project_root)
+    data = module._load_project_definition(project_root)
     if data is None:
         # No PROJECT-DEFINITION -- the framework defaults apply with no
         # consumer overrides, which is always valid by construction.
