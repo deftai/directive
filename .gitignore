@@ -66,11 +66,18 @@ vbrief/*.premigrate.*
 # scripts/triage_cache.py for the layout (.deft-cache/issues/<owner>-<repo>/).
 .deft-cache/
 
-# Local triage audit/eval scratch (#845 Story 2 + #915). Holds the
-# append-only candidates.jsonl audit log written by triage actions and
-# transient evaluation artefacts. Never versioned -- the log is per-machine
-# operator state and would leak triage timing/identity if shared.
-vbrief/.eval/
+# vbrief/.eval/ tracking governance (#1144, N4 of #1119).
+# Hybrid policy from the Current Shape comment on #1144:
+#   - candidates.jsonl       -> gitignored (operator-private triage decisions;
+#                               re-derive via `task triage:bootstrap` on a
+#                               fresh clone). #845 Story 2 + #915.
+#   - summary-history.jsonl  -> gitignored (operator-private observability;
+#                               not load-bearing for any decision).
+#   - slices.jsonl           -> TRACKED (team-shared cohort records produced
+#                               by slicing skills; see #1132 / D13).
+# See vbrief/.eval/README.md for the full policy + merge=union rebase note.
+vbrief/.eval/candidates.jsonl
+vbrief/.eval/summary-history.jsonl
 
 # Monitor scratch (poller scripts, banner-edit helpers, etc.)
 .swarm/

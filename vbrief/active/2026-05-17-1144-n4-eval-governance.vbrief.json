@@ -1,0 +1,35 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: N4 child of #1119 swarm -- govern vbrief/.eval/ tracking (hybrid) + merge=union + README.",
+    "updated": "2026-05-17T14:59:32Z"
+  },
+  "plan": {
+    "title": "feat(eval): govern vbrief/.eval/ tracking + merge=union (#1144)",
+    "status": "running",
+    "narratives": {
+      "Description": "N4 child of the #1119 Wave-0 swarm. Replace the blanket `vbrief/.eval/` gitignore with the hybrid tracking policy from the Current Shape comment (4471302391): candidates.jsonl + summary-history.jsonl gitignored (operator-private), slices.jsonl tracked (team-shared). Add a `.gitattributes` rule `vbrief/.eval/*.jsonl merge=union` so append-only JSONL conflicts auto-resolve on rebase. Ship a concise vbrief/.eval/README.md documenting which files are tracked vs gitignored, the merge=union policy, and how to regenerate candidates.jsonl on a fresh clone via `task triage:bootstrap`. Tests simulate two append-branches and verify auto-merge produces the union of appended lines.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1144. Canonical Current Shape comment: https://github.com/deftai/directive/issues/1144#issuecomment-4471302391.",
+      "Overview": "## What to build\n\n1. `.gitignore` -- replace the blanket `vbrief/.eval/` line with selective entries for `vbrief/.eval/candidates.jsonl` and `vbrief/.eval/summary-history.jsonl`. `slices.jsonl` remains tracked by default.\n2. `.gitattributes` (new file at repo root) -- declare `vbrief/.eval/*.jsonl  merge=union` so append-only JSONLs auto-resolve concatenation conflicts on rebase.\n3. `vbrief/.eval/README.md` -- concise (does not duplicate the Current Shape comment). Covers which files are tracked vs gitignored and why, fresh-clone regeneration via `task triage:bootstrap`, and what `merge=union` means for operators rebasing.\n4. Test under `tests/` simulating two append-branches on a `.jsonl` and verifying that `git merge` with the `merge=union` attribute produces the union of each branch's appended lines (note: `merge=union` does NOT dedupe -- the test asserts concatenation semantics explicitly).\n\n## Type\n\nFeature -- governance / infrastructure for the #1119 triage-eval cohort. Foundational for D1 (#1121), D3 (#1123), D13 (#1132), and #1180 -- ships before any child writes to vbrief/.eval/.\n\n## Acceptance criteria\n\n- [ ] `.gitignore` selective entries land exactly as specified (candidates.jsonl + summary-history.jsonl), slices.jsonl remains tracked.\n- [ ] `.gitattributes` carries `vbrief/.eval/*.jsonl  merge=union`.\n- [ ] `vbrief/.eval/README.md` is concise and operator-readable.\n- [ ] Append-merge test passes.\n- [ ] `task check` green (lint + tests + encoding gate + branch gate).\n- [ ] PR body references the Current Shape comment + lists downstream consumers (D1/#1121, D3/#1123, D13/#1132, #1180) and `Closes #1144`.\n\n## Not in scope\n\n- AGENTS.md edits (owned by sibling N9 for this wave).\n- Multi-operator merge-conflict resolution tooling (out per #1119 R4).\n- Per-file retention policies / log rotation (out per umbrella).\n- `.deft-cache/<source>/` decisions (covered by #883).\n\n## Refs\n\n- Umbrella: #1119\n- Current Shape: https://github.com/deftai/directive/issues/1144#issuecomment-4471302391\n- Downstream consumers: D1 (#1121), D3 (#1123), D13 (#1132), #1180"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1144",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1144: vbrief/.eval/ directory governance -- gitignored vs committed decision (N4 of #1119)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1144#issuecomment-4471302391",
+        "type": "x-vbrief/github-issue-comment",
+        "title": "Current Shape comment on #1144 (canonical decision)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-0 triage-eval governance swarm"
+      }
+    ],
+    "updated": "2026-05-17T19:00:29Z"
+  }
+}
