@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: N9 (#1149) -- consolidate Wave-1 AGENTS.md session-start + skill-routing edits into a single PR.",
+    "updated": "2026-05-17T18:57:29Z"
+  },
+  "plan": {
+    "title": "feat(agents-md): consolidate Wave-1 session-start + skill-routing edits (#1149)",
+    "status": "running",
+    "narratives": {
+      "Description": "N9 absorbs every AGENTS.md edit that D2 (#1122), D5 (#1127), D6 (#1130), and D12 (#1131) would otherwise carry. Single PR delivers: (a) canonical Session-start ritual preamble order, (b) 5 new skill-routing entries, (c) cache-as-authoritative top-tier ! / x rule, (d) pre-start_agent gate stack ordering, (e) snapshot-style test asserting all of the above.",
+      "Origin": "Wave-0 of #1119 swarm; orchestrator dispatch with Current Shape comment 4471945068. Framework-only meta-instruction edits; no consumer-specific values land in AGENTS.md per the section 12 framework-vs-consumer boundary.",
+      "Overview": "## What to build\n\nEdits to AGENTS.md plus a new tests/content snapshot test:\n\n1. New 'Session-start ritual' header naming the 4 ordered preamble steps (Deft alignment confirmation, branch-policy disclosure, task triage:summary one-liner, task verify:cache-fresh warning when stale). D2 emission suppressed within 4 hours unless cache state changed.\n2. Five new skill-routing entries under '## Skill Routing' (triage hygiene, what's-next/queue/cohort, welcome/onboard-triage, refinement amendment, swarm amendment).\n3. Cache-as-authoritative top-tier ! and x rule lines (verbatim per Current Shape Decision 4).\n4. Pre-start_agent gate-stack ordering: vBRIEF implementation-intent gate (#810) -> task verify:cache-fresh (D5 / #1127) -> branch-policy gate -> start_agent.\n5. tests/content/test_agents_md_session_start.py snapshot test asserting all of the above.\n\n## Type\n\nFeature -- AGENTS.md framework meta-instruction consolidation. No skill body changes, no schema changes, no consumer-specific tuning.\n\n## Acceptance criteria\n\n- AGENTS.md 'Session-start ritual' section names the 4 preamble lines in canonical order\n- All 5 routing entries present with correct skill paths\n- Cache-as-authoritative ! and x lines present verbatim\n- Pre-start_agent gate stack order matches Current Shape Decision 5\n- Snapshot test under tests/content/ passes\n- task check green (especially task verify:encoding)\n- PR body lists D2 (#1122), D5 (#1127), D6 (#1130), D12 (#1131) as downstream children referencing this PR\n\n## Refs\n\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Issue: https://github.com/deftai/directive/issues/1149\n- Current Shape comment: https://github.com/deftai/directive/issues/1149#issuecomment-4471945068"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1149",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1149: N9 -- AGENTS.md consolidation"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-0/1 swarm"
+      }
+    ],
+    "updated": "2026-05-17T18:59:50Z"
+  }
+}

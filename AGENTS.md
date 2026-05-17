@@ -31,6 +31,17 @@ When all config exists: read the guidelines, your USER.md preferences, and PROJE
 
 Note: A true UI indicator (e.g. Warp status bar) is deferred to Phase 5. This is a behavioral rule only.
 
+## Session-start ritual (#1149)
+
+! On every interactive session start, the agent performs these four steps in the canonical order below. Each step is a hand-off into a more specific rule documented elsewhere in this file; the ordering itself is the rule and downstream gates (Implementation Intent Gate, branch-policy gate, the pre-`start_agent` gate stack) rely on it.
+
+1. **Deft alignment confirmation** -- see `### Deft Alignment Confirmation` above (#134).
+2. **Branch-policy disclosure** -- see the `Branch Policy Disclosure (session start)` block under `## Development Process` (#746 / #747).
+3. **`task triage:summary` one-line state** -- emit the current triage-cache one-liner (D2 / #1122). D2 suppresses repeat emission within 4 hours unless the cache state changed.
+4. **`task verify:cache-fresh` warning** -- printed only when the cache is stale (D5 / #1127); silent on a fresh cache.
+
+⊗ Reorder, skip, or merge the four steps above without an explicit operator override -- the canonical order is what makes the downstream gate stack composable.
+
 ## Skill Completion Gate
 
 ! When a skill's final step is complete, explicitly confirm skill exit and provide chaining instructions if applicable. The confirmation must be unambiguous -- for example: "{skill-name} complete -- exiting skill." followed by what the user/agent should do next (e.g. wait for PR review, return to monitor, chain into another skill).
@@ -42,14 +53,20 @@ Note: A true UI indicator (e.g. Warp status bar) is deferred to Phase 5. This is
 - ! Before designing a multi-step workflow from scratch, scan `skills/` for an existing skill that covers the task — skills are versioned, tested, and encode lessons from prior runs
 - ⊗ Improvise a multi-step workflow without first checking `skills/` for coverage
 
+## Cache-as-authoritative work selection (#1149)
+
+! When the operator asks "what should I work on next?" / "build a cohort" / "what's the queue?", the agent MUST run `task triage:queue --limit=10` (D11 / #1128) and present the ranked list before suggesting anything else. The agent MUST NOT recommend work from memory or open-GitHub-issue intuition.
+
+⊗ Recommend a specific issue or vBRIEF without consulting `task triage:queue` (or showing the operator the result of the consultation).
+
 ## Skill Routing
 
 When user input matches a trigger keyword, read the corresponding skill:
 
 - "review cycle" / "check reviews" / "run review cycle" → `skills/deft-directive-review-cycle/SKILL.md`
-- "swarm" / "parallel agents" / "run agents" → `skills/deft-directive-swarm/SKILL.md` — chains to `deft-directive-review-cycle` at Phase 5
+- "swarm" / "parallel agents" / "run agents" → `skills/deft-directive-swarm/SKILL.md` — chains to `deft-directive-review-cycle` at Phase 5; Phase 0 is queue-driven (see N2 / #1142)
 - "decompose" / "story decomposition" / "swarm readiness" → `skills/deft-directive-decompose/SKILL.md` — converts phase/epic scopes into swarm-ready story vBRIEFs before swarm allocation.
-- "refinement" / "reprioritize" / "refine" → `skills/deft-directive-refinement/SKILL.md` — chains to `deft-directive-review-cycle` at exit
+- "refinement" / "reprioritize" / "refine" → `skills/deft-directive-refinement/SKILL.md` — chains to `deft-directive-review-cycle` at exit; Phase 0 consults the triage cache first (see N1 / #1141)
 - "build" / "implement" / "implement spec" → `skills/deft-directive-build/SKILL.md`
 - "cost" / "budget" / "pre-build cost" / "how much will this cost" → `skills/deft-directive-cost/SKILL.md`
 - "setup" / "bootstrap" / "onboard" → `skills/deft-directive-setup/SKILL.md`
@@ -59,6 +76,9 @@ When user input matches a trigger keyword, read the corresponding skill:
 - "release" / "cut release" / "v0.X.Y" / "publish release" → `skills/deft-directive-release/SKILL.md` — operationalizes the `task release` / `task release:publish` / `task release:rollback` / `task release:e2e` surface (#74 + #716 safety hardening); re-uses the `skills/deft-directive-swarm/SKILL.md` Phase 6 Step 5 Slack announcement template
 - "glossary" / "ubiquitous language" / "domain model" / "DDD" / "define terms" → `skills/deft-directive-glossary/SKILL.md` — extracts a DDD-style ubiquitous language from the current conversation, flags ambiguities and synonyms, proposes a canonical glossary, and writes `UBIQUITOUS_LANGUAGE.md`; integrates with `core/glossary.md` as a baseline when present (#441)
 - "improve architecture" / "deep modules" / "interface design" / "refactor RFC" → `skills/deft-directive-gh-arch/SKILL.md` — explores codebase for shallow modules, designs competing interfaces in parallel via sub-agents, files a refactor RFC as a GitHub Issue (#442 re-land)
+- "triage hygiene" / "work the cache" → `skills/deft-directive-triage/SKILL.md`
+- "what's next" / "queue" / "build a cohort" → `skills/deft-directive-triage/SKILL.md`
+- "welcome" / "onboard triage" → invokes `task triage:welcome` (N3 / #1143)
 
 ## Development Process (always follow)
 
@@ -68,6 +88,8 @@ When user input matches a trigger keyword, read the corresponding skill:
 - ! Require an explicit action-verb directive (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`) from the user before invoking the preflight gate or `start_agent` for implementation. When intent is ambiguous, ask one targeted question instead of inferring.
 - ⊗ Infer implementation intent from lifecycle vocabulary ("do the full PR process", "start the work", "poller agents"), branching language, or workflow shape. Workflow-shape vocabulary is NOT authorization to spawn an implementation agent.
 - ⊗ Treat affirmative continuation phrases (`yes`, `go`, `proceed`, `do it`) as implementation authorization unless the prior turn explicitly proposed implementation. Broad approval is not a substitute for an explicit action-verb directive.
+
+**Pre-`start_agent` gate stack (#1149):** Before dispatching an implementation sub-agent via `start_agent`, run the gates in the canonical order: (1) vBRIEF implementation-intent gate (#810, `task vbrief:preflight -- <path>`) → (2) `task verify:cache-fresh` (D5 / #1127) → (3) branch-policy gate (existing -- `scripts/preflight_branch.py`, surfaced via `task verify:branch` and the `.githooks/pre-commit` / `pre-push` hooks; see `**Branching:**` below) → (4) `start_agent`. Any non-zero exit aborts dispatch; do NOT spawn the sub-agent past a failed gate. The canonical order makes the four gates composable so each one assumes the previous one has already cleared.
 
 **Before code changes:**
 - ! Check `./vbrief/` lifecycle folders for existing scope vBRIEF coverage of the issue being fixed
