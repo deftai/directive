@@ -370,6 +370,12 @@ def validate_project_definition(filepath: Path, data: dict, vbrief_dir: Path) ->
         from triage_scope import validate_triage_scope_on_plan  # noqa: I001
         errors.extend(validate_triage_scope_on_plan(plan, filepath))
 
+    # #1129 (D10): typed triageAutoClassify[] + triageHoldMarkers[] hooks.
+    with contextlib.suppress(Exception):
+        from triage_classify import validate_triage_auto_classify_on_plan as _ac, validate_triage_hold_markers_on_plan as _hm  # noqa: I001,E501
+        errors.extend(_ac(plan, filepath))
+        errors.extend(_hm(plan, filepath))
+
     # Check items registry entries reference existing scope vBRIEF files
     items = plan.get("items", [])
     if isinstance(items, list):

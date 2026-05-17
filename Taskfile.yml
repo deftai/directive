@@ -182,6 +182,12 @@ includes:
   triage-scope:
     taskfile: ./tasks/triage-scope.yml
     optional: true
+  # D10 (#1129): auto-classification surface. Inner task `classify` is
+  # exposed as the user-facing alias `task triage:classify` in the alias
+  # block below.
+  triage-classify:
+    taskfile: ./tasks/triage-classify.yml
+    optional: true
   # Windows maintainer onboarding fragment (#902). Exposes the inner task
   # `toolchain` as `task setup:toolchain`. Note: the root-level `setup` task
   # below (git-hooks bootstrap) coexists with `setup:toolchain` because
@@ -576,5 +582,12 @@ tasks:
     desc: "Inspect / refresh the typed plan.policy.triageScope[] subscription (#1131 / D12). -- task triage:scope -- [--list] [--refresh-denominator --repo OWNER/NAME --count N]"
     cmds:
       - task: triage-scope:scope
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:classify:
+    desc: "Inspect / validate the auto-classification surface (#1129 / D10). -- task triage:classify -- [--list | --validate]"
+    cmds:
+      - task: triage-classify:classify
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"

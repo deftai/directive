@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: D10 (#1129) -- auto-classification framework universal rules + plan.policy.triageAutoClassify[] typed consumer config.",
+    "updated": "2026-05-17T21:07:39Z"
+  },
+  "plan": {
+    "title": "feat(triage): auto-classification universal rules + plan.policy.triageAutoClassify[] (#1129)",
+    "status": "running",
+    "narratives": {
+      "Description": "D10 introduces auto-classification of upstream issues on every triage sync/bootstrap. Four framework universal rules are hardcoded (label-agnostic, body+state+age+vbrief-ref based) per Current Shape Decision 1; consumer-specific rules layer on top via plan.policy.triageAutoClassify[] (typed-matcher schema -- labels, body-text, state, age-days; action defer/archive/escalate/accept; reason; optional resume-on). Hold-marker phrases are configurable via plan.policy.triageHoldMarkers[] (defaults: 'do not implement', 'BLOCKED', 'HOLDING', 'Holding / capture only'). Order of evaluation: framework universal rules first, then consumer rules in declared order; first match wins. Validation lives next to D12's plan.policy validation in scripts/vbrief_validate.py via a hook in the new scripts/triage_classify.py module. Framework defaults MUST NOT reference deft-specific labels (status:superseded-pending, rfc, type:research, wontfix, duplicate, fixed-pending-merge) -- those ship in #1186 consumer-example.",
+      "Origin": "Wave-1 D10 child of umbrella #1119. Anchored to Current Shape comment 4471901622 on #1129 (canonical).",
+      "Overview": "## What to build\n\n1. scripts/triage_classify.py -- core library:\n   * UNIVERSAL_RULES (4 hardcoded rules); DEFAULT_HOLD_MARKERS (4 phrases).\n   * validate_classify_rules(rules) -> (errors, warnings)\n   * validate_hold_markers(markers) -> (errors, warnings)\n   * resolve_classify_rules(project_root) -> framework + consumer rules in eval order\n   * resolve_hold_markers(project_root) -> effective hold-marker list\n   * classify_issue(issue, rules, hold_markers, ...) -> ClassificationResult | None (first match)\n   * validate_triage_auto_classify_on_plan(plan, filepath) -- vbrief_validate hook\n   * validate_triage_hold_markers_on_plan(plan, filepath) -- vbrief_validate hook\n2. scripts/_triage_classify_cli.py -- argparse shim with --list/--dry-run verbs.\n3. tasks/triage-classify.yml -- new fragment exposing `task triage:classify [--list | --dry-run --repo OWNER/NAME]`.\n4. scripts/vbrief_validate.py -- add the two hooks alongside existing #1131 validate_triage_scope_on_plan call.\n5. tests/test_triage_classify.py -- universal rules fire on right fixtures; consumer rule extends framework set; first-match-wins ordering; reject malformed rules; default behaviour when triageAutoClassify[] unset; hold-marker default + override.\n6. Taskfile.yml -- add include for triage-classify fragment and top-level alias.\n7. CHANGELOG.md -- [Unreleased] entry.\n\n## Acceptance criteria\n\n- 4 universal rules fire correctly on synthetic fixtures (hold marker, closed never-triaged, dormant>90d+thin-body, vBRIEF-referenced)\n- Consumer rule layered after universal rules; first match wins\n- Schema validation rejects: non-list, malformed match block, unknown action, missing reason, bad age-days, bad state, unknown rule shape\n- Default behaviour: triageAutoClassify[] unset -> only universal rules apply\n- Hold-marker override via plan.policy.triageHoldMarkers[]\n- task triage:classify --list shows effective rules + hold markers\n- Framework defaults contain NO deft-specific label values\n- task check green (lint/test/encoding)\n\n## Type\n\nFeature -- framework auto-classification primitive; consumer-agnostic defaults only.\n\n## Refs\n\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Issue: https://github.com/deftai/directive/issues/1129\n- Current Shape: https://github.com/deftai/directive/issues/1129#issuecomment-4471901622\n- Consumer example (follows): https://github.com/deftai/directive/issues/1186"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1129",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1129: D10 -- auto-classification: universal rules + typed consumer config"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-0/1 swarm"
+      }
+    ],
+    "updated": "2026-05-17T21:07:34Z"
+  }
+}
