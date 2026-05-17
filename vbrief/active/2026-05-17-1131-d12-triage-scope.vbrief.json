@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: D12 (#1131) -- cache-scope contract as typed plan.policy.triageScope[] subscription.",
+    "updated": "2026-05-17T20:11:58Z"
+  },
+  "plan": {
+    "title": "feat(triage): typed plan.policy.triageScope[] subscription + denominator cache + triage:scope verb (#1131)",
+    "status": "running",
+    "narratives": {
+      "Description": "D12 introduces a typed cache-scope contract on PROJECT-DEFINITION.vbrief.json. plan.policy.triageScope[] is a list of rule objects (all-open, labels {any-of|all-of}, opened-since {duration}, updated-since {duration}, referenced-by-vbrief {scope}, sliced-from {scope}, explicit-watch {issues:[{n,note}]}). Framework default when unset is [{rule:'all-open'}]; consumer-specific subscriptions live outside the framework. The milestone rule type is explicitly deferred to D14b / #1181. Coverage denominator caching writes to .deft-cache/<source>/<owner>/<repo>/coverage.json with TTL DEFT_COVERAGE_MAX_AGE_HOURS (24h default); read paths never trigger a recompute and render coverage 247/? when stale. A new task triage:scope verb provides --list (effective rules + per-issue notes) and --refresh-denominator. Subscription hash is canonical-JSON SHA-256 truncated.",
+      "Origin": "Wave-1 D12 child of umbrella #1119. Anchored to Current Shape comment 4471901494 on #1131 (canonical, supersedes 2026-05-13 deep-pass amendment).",
+      "Overview": "## What to build\n\n1. Schema validation for plan.policy.triageScope[] in scripts/_vbrief_validation.py extension (alongside existing plan.policy.allowDirectCommitsToMaster handling in scripts/policy.py / scripts/vbrief_validate.py).\n2. New module scripts/triage_scope.py implementing rule grammar v1, evaluators, denominator caching, subscription hashing, and the triage:scope CLI verb.\n3. Default-behavior wiring so unset triageScope[] = [{rule:'all-open'}]; no bootstrap refusal.\n4. tasks/triage-scope.yml fragment exposing task triage:scope --list and --refresh-denominator.\n5. Tests under tests/test_triage_scope.py covering schema validation, default behaviour, each rule-type evaluator with synthetic upstream fixture, denominator cache lifecycle (write/read/TTL/hash invalidation/stale '?'), and --list output snapshot.\n\n## Acceptance criteria\n\n- plan.policy.triageScope[] schema accepts default-empty + each rule type, rejects malformed rules, rejects 'milestone' with #1181 pointer\n- Default behaviour test: PROJECT-DEFINITION with no triageScope[] field => all-open applies\n- Denominator cache lifecycle test (write/read/TTL expiry/hash change/stale '?')\n- triage:scope --list shows effective rules + explicit-watch per-issue notes\n- task check green (lint/test/encoding)\n- PR body references #1119 + #1131 + Current Shape comment\n\n## Type\n\nFeature -- framework cache-scope contract; consumer-agnostic primitives only.\n\n## Refs\n\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Issue: https://github.com/deftai/directive/issues/1131\n- Current Shape: https://github.com/deftai/directive/issues/1131#issuecomment-4471901494"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1131",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1131: D12 -- cache-scope contract as typed subscription"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-0/1 swarm"
+      }
+    ],
+    "updated": "2026-05-17T20:11:51Z"
+  }
+}

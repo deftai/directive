@@ -364,6 +364,12 @@ def validate_project_definition(filepath: Path, data: dict, vbrief_dir: Path) ->
             if expected not in present:
                 errors.append(f"{filepath}: narratives missing expected key '{expected}' (D3)")
 
+    # #1131 (D12): typed plan.policy.triageScope[] validation -- helper
+    # lives in scripts/triage_scope.py so this file does not grow.
+    with contextlib.suppress(Exception):
+        from triage_scope import validate_triage_scope_on_plan  # noqa: I001
+        errors.extend(validate_triage_scope_on_plan(plan, filepath))
+
     # Check items registry entries reference existing scope vBRIEF files
     items = plan.get("items", [])
     if isinstance(items, list):
