@@ -511,6 +511,22 @@ def evaluate(
             "or repopulate via `task cache:fetch-all`."
         )
         if allow_stale:
+            # Mirror the Step 5 stale-cache pattern: --allow-stale MUST NOT
+            # silently paper over a defer/reject/missing --for-issue
+            # decision. Run the per-issue gate FIRST and propagate any
+            # refusal; only fall through to the allow-stale exit 0 when
+            # the per-issue check is clean (or no --for-issue was passed).
+            if for_issue is not None:
+                for_issue_result = _gate_for_issue(
+                    resolved_repo,
+                    for_issue,
+                    candidates=candidates,
+                    scope_rules=scope_rules,
+                    source_dir=source_dir,
+                    project_root=project_root,
+                )
+                if for_issue_result.code != 0:
+                    return for_issue_result
             return GateResult(
                 0,
                 (

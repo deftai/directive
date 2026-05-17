@@ -505,6 +505,151 @@ class TestSubscriptionAwareness:
 
 
 # ---------------------------------------------------------------------------
+# Suite 5b: Greptile P1 regression -- empty-scope + --allow-stale + --for-issue
+# ---------------------------------------------------------------------------
+
+
+class TestEmptyScopeAllowStaleForIssueGuard:
+    """Empty-scope branch must NOT silently bypass --for-issue when --allow-stale.
+
+    Greptile P1 finding on PR #1192: the empty-scope branch (Step 4 in
+    :func:`preflight_cache.evaluate`) previously early-returned exit 0
+    on ``allow_stale=True`` BEFORE invoking :func:`_gate_for_issue`, so a
+    dispatcher passing both ``--allow-stale`` and ``--for-issue N`` could
+    silently dispatch against a refused issue. The Step 5 stale-cache
+    branch already guarded against this -- the empty-scope branch now
+    mirrors that pattern.
+    """
+
+    @staticmethod
+    def _empty_scope_fixture(tmp_path, now, *, issue_decision, issue_number=999):
+        """Populate cache + project-definition so every entry is out of scope.
+
+        The cache holds one issue (``issue_number``) labelled ``bug``; the
+        ``plan.policy.triageScope[]`` requires ``priority/p0``. After the
+        subscription filter runs, scoped_meta_paths is empty -- triggering
+        Step 4's empty-scope branch.
+        """
+        _write_meta(
+            tmp_path, "deftai/directive", issue_number,
+            now - timedelta(hours=1),
+            raw_labels=["bug"],  # NOT in scope
+        )
+        if issue_decision is not None:
+            kwargs = {"timestamp": now}
+            if issue_decision == "reject":
+                kwargs["reason"] = "duplicate"
+            _write_candidates(
+                tmp_path,
+                [_decision(
+                    "deftai/directive", issue_number, issue_decision, **kwargs,
+                )],
+            )
+        else:
+            _write_candidates(tmp_path, [])
+        _write_project_definition(
+            tmp_path,
+            {
+                "vBRIEFInfo": {"version": "0.6"},
+                "plan": {
+                    "title": "T",
+                    "status": "running",
+                    "items": [],
+                    "policy": {
+                        "triageScope": [
+                            {"rule": "labels", "any-of": ["priority/p0"]}
+                        ]
+                    },
+                },
+            },
+        )
+
+    @pytest.mark.parametrize(
+        "decision",
+        ["defer", "reject", "needs-ac"],
+    )
+    def test_allow_stale_does_not_bypass_non_accept_decision_in_empty_scope(
+        self, preflight, tmp_path, decision,
+    ):
+        """P1 regression: empty-scope + --allow-stale + --for-issue with a
+        non-accept (or refused-scope) decision MUST exit 1, not exit 0."""
+        now = datetime(2026, 5, 17, 12, tzinfo=UTC)
+        self._empty_scope_fixture(tmp_path, now, issue_decision=decision)
+        result = preflight.evaluate(
+            tmp_path,
+            repo="deftai/directive",
+            for_issue=999,
+            allow_stale=True,
+            now=now,
+        )
+        # Refusal MUST propagate; --allow-stale must not paper over it.
+        assert result.code == 1
+        # Refusal can surface as either the OUTSIDE-subscription block
+        # (scope check refuses first) or the decision-verdict block --
+        # both routes are correct propagations of a refusal. The contract
+        # is "non-zero exit", not a specific message.
+        assert (
+            "OUTSIDE" in result.message
+            or "outside the active" in result.message
+            or decision in result.message
+        )
+
+    def test_allow_stale_does_not_bypass_missing_decision_in_empty_scope(
+        self, preflight, tmp_path,
+    ):
+        """P1 regression: empty-scope + --allow-stale + --for-issue with NO
+        prior decision MUST exit 1 (no silent dispatch)."""
+        now = datetime(2026, 5, 17, 12, tzinfo=UTC)
+        self._empty_scope_fixture(tmp_path, now, issue_decision=None)
+        result = preflight.evaluate(
+            tmp_path,
+            repo="deftai/directive",
+            for_issue=999,
+            allow_stale=True,
+            now=now,
+        )
+        assert result.code == 1
+
+    def test_allow_stale_still_blocks_out_of_scope_for_issue_with_accept(
+        self, preflight, tmp_path,
+    ):
+        """Symmetric coverage: even an accept decision must NOT clear the
+        gate when the for-issue target is itself out of subscription scope.
+        The --allow-stale flag does not relax the scope contract."""
+        now = datetime(2026, 5, 17, 12, tzinfo=UTC)
+        self._empty_scope_fixture(tmp_path, now, issue_decision="accept")
+        result = preflight.evaluate(
+            tmp_path,
+            repo="deftai/directive",
+            for_issue=999,
+            allow_stale=True,
+            now=now,
+        )
+        # Issue 999 is out of scope (label "bug" not matched by
+        # any-of=["priority/p0"]) -- _gate_for_issue refuses on scope.
+        assert result.code == 1
+        assert "OUTSIDE" in result.message or "outside the active" in result.message
+
+    def test_allow_stale_clears_empty_scope_when_no_for_issue(
+        self, preflight, tmp_path,
+    ):
+        """Baseline preserved: empty-scope + --allow-stale (no --for-issue)
+        still exits 0 with the warning. The fix only affects the
+        --for-issue path."""
+        now = datetime(2026, 5, 17, 12, tzinfo=UTC)
+        self._empty_scope_fixture(tmp_path, now, issue_decision="accept")
+        result = preflight.evaluate(
+            tmp_path,
+            repo="deftai/directive",
+            allow_stale=True,
+            now=now,
+        )
+        assert result.code == 0
+        assert "\u26a0" in result.message  # ⚠ warning glyph
+        assert "--allow-stale" in result.message
+
+
+# ---------------------------------------------------------------------------
 # Suite 6: --max-age-hours / env var resolution
 # ---------------------------------------------------------------------------
 
