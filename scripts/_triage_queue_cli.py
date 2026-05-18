@@ -101,6 +101,17 @@ def build_parser(default_limit: int) -> argparse.ArgumentParser:
             " active-vBRIEF reference. Used by D4 (#1124)."
         ),
     )
+    p_audit.add_argument(
+        "--evaluate-resume",
+        action="store_true",
+        dest="evaluate_resume",
+        help=(
+            "Before rendering, walk every open 'defer' audit entry whose"
+            " resume_on field is non-null and append a 'resume-eligible'"
+            " entry for each condition that fires (#1123 / D3)."
+            " Idempotent."
+        ),
+    )
 
     return parser
 
@@ -204,6 +215,24 @@ def _cmd_show(args: argparse.Namespace, tq: Any) -> int:
 def _cmd_audit(args: argparse.Namespace, tq: Any) -> int:
     repo = _resolve_repo(args)
     project_root = Path(args.project_root).resolve()
+    # #1123 / D3: optional resume-eligibility evaluation pass. Runs
+    # BEFORE the audit dump so newly-appended ``resume-eligible`` rows
+    # surface in the same call. No-op when the resume_conditions module
+    # is not importable (slim test checkout).
+    if getattr(args, "evaluate_resume", False) and tq.resume_conditions is not None:
+        cache_root = Path(args.cache_root).resolve() if args.cache_root else None
+        try:
+            tq.resume_conditions.evaluate_resume_eligibility(
+                project_root,
+                cache_root=cache_root,
+                audit_log_path=args.audit_log,
+                repo=repo,
+            )
+        except Exception as exc:  # noqa: BLE001 -- best-effort surface
+            print(
+                f"triage:audit --evaluate-resume: evaluation failed: {exc}",
+                file=sys.stderr,
+            )
     entries = tq.read_audit_entries(repo, audit_path=args.audit_log)
     if args.vbrief_staleness:
         active_refs = frozenset(tq._active_referenced_issue_numbers(project_root))

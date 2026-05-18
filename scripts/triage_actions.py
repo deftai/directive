@@ -92,6 +92,15 @@ try:  # pragma: no cover -- exercised once #454 lands on the same checkout.
 except ImportError:  # pragma: no cover
     issue_ingest = None  # type: ignore[assignment]
 
+# Optional dep: resume-condition grammar parser (#1123 / D3). When
+# absent (slim test checkout) ``defer(resume_on=...)`` falls through
+# without pre-validation; the audit-log validator still accepts the
+# string verbatim.
+try:  # pragma: no cover -- exercised once #1123 lands.
+    import resume_conditions  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover
+    resume_conditions = None  # type: ignore[assignment]
+
 
 # Public constants ----------------------------------------------------------
 
@@ -262,6 +271,7 @@ def _build_entry(
     reason: str | None = None,
     linked_to: int | None = None,
     prior_decision_id: str | None = None,
+    resume_on: str | None = None,
 ) -> dict[str, Any]:
     """Construct an audit-log entry that satisfies the Story 2 schema.
 
@@ -284,6 +294,8 @@ def _build_entry(
         entry["linked_to"] = int(linked_to)
     if prior_decision_id is not None:
         entry["prior_decision_id"] = prior_decision_id
+    if resume_on is not None:
+        entry["resume_on"] = resume_on
     return entry
 
 
@@ -447,13 +459,45 @@ def reject(
 def defer(
     n: int,
     repo: str,
+    reason: str | None = None,
     *,
     actor: str | None = None,
+    resume_on: str | None = None,
     project_root: Path | None = None,
 ) -> str:
-    """Record a defer audit entry."""
+    """Record a defer audit entry (#1123 / D3 -- structured reason + resume_on).
+
+    ``reason`` was free-text-only in #845 Story 3 and is now the structured
+    rationale field on the audit entry (still optional at the API layer for
+    back-compat with callers that pre-date #1123; the CLI surface treats it
+    as required so new operator-driven defers always carry rationale).
+
+    ``resume_on`` is the optional structured condition that the resume
+    evaluator (`scripts/resume_conditions.evaluate_resume_eligibility`)
+    will later consult to surface this defer as ``resume-eligible``.
+    Pre-validated at write time when the ``resume_conditions`` module is
+    importable so a malformed expression cannot land in the audit log.
+    """
+    if resume_on is not None and resume_conditions is not None:
+        # Will raise ResumeGrammarError (ValueError subclass) on a bad
+        # expression; we let it propagate as a TriageError-shaped
+        # ValueError so CLI / Taskfile callers exit non-zero with the
+        # parser's actionable message attached.
+        try:
+            resume_conditions.parse(resume_on)
+        except resume_conditions.ResumeGrammarError as exc:
+            raise TriageError(
+                f"defer #{n} ({repo}): invalid --resume-on expression -- {exc}"
+            ) from exc
     log = _require_log()
-    entry = _build_entry("defer", n, repo, actor=_resolve_actor(actor))
+    entry = _build_entry(
+        "defer",
+        n,
+        repo,
+        actor=_resolve_actor(actor),
+        reason=reason,
+        resume_on=resume_on,
+    )
     return str(log.append(entry))
 
 
@@ -610,9 +654,29 @@ def _build_parser() -> argparse.ArgumentParser:
         p.add_argument("--repo", required=True, help="Upstream repo as owner/name.")
         p.add_argument("--actor", default=None, help="Override the audit actor field.")
 
-    for cmd in ("accept", "defer", "status", "reset", "history"):
+    for cmd in ("accept", "status", "reset", "history"):
         p = sub.add_parser(cmd)
         _common(p)
+
+    # #1123: ``defer`` now requires --reason (replacing free-text defer)
+    # and optionally accepts --resume-on.
+    p_defer = sub.add_parser("defer")
+    _common(p_defer)
+    p_defer.add_argument(
+        "--reason",
+        required=True,
+        help="Structured rationale captured on the defer audit entry (#1123).",
+    )
+    p_defer.add_argument(
+        "--resume-on",
+        default=None,
+        dest="resume_on",
+        help=(
+            "Optional resume-condition expression (#1123). Grammar v1: "
+            "ref:closed:#N | ref:merged:#N | date:>=YYYY-MM-DD | "
+            "pending-count:>=N | pending-count:<=N, joined by AND/OR."
+        ),
+    )
 
     p_reject = sub.add_parser("reject")
     _common(p_reject)
@@ -644,7 +708,13 @@ def main(argv: list[str] | None = None) -> int:
             decision_id = reject(n, repo, args.reason, actor=actor)
             print(f"reject #{n} ({repo}) -> {decision_id}")
         elif args.cmd == "defer":
-            decision_id = defer(n, repo, actor=actor)
+            decision_id = defer(
+                n,
+                repo,
+                args.reason,
+                actor=actor,
+                resume_on=getattr(args, "resume_on", None),
+            )
             print(f"defer #{n} ({repo}) -> {decision_id}")
         elif args.cmd == "needs-ac":
             decision_id = needs_ac(n, repo, actor=actor, comment=args.comment)

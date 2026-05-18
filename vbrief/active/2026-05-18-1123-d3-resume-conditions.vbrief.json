@@ -1,0 +1,40 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: D3 child of #1119 -- triage:defer --resume-on structured grammar + resume-eligible evaluation.",
+    "updated": "2026-05-18T13:13:18Z"
+  },
+  "plan": {
+    "title": "feat(triage): triage:defer --resume-on structured grammar + resume-eligible evaluation (#1123)",
+    "status": "running",
+    "narratives": {
+      "Description": "D3 child of the #1119 Wave-2a swarm. Convert defer from a one-way trapdoor to a reversible-by-machine state. Extend `task triage:defer <N>` with required `--reason=\"...\"` and optional `--resume-on=\"<expression>\"` flags. Persist both as structured fields on the `defer` audit-log entry in `vbrief/.eval/candidates.jsonl`. Ship a minimal v1 grammar covering five atomic condition types and top-level AND/OR composition. Extend `task triage:refresh-active` plus a new `task triage:audit --evaluate-resume` flag to walk open defer entries, evaluate each non-null `resume_on` against the cache + current date + pending/ count, and APPEND a `resume-eligible` audit entry (referencing the prior defer's decision_id) whenever the condition fires. Do NOT auto-un-defer. `resume-eligible` items flow into D11's existing `[RESUME]` queue bucket via `derive_group` and contribute to D2's `stale-defer (resume condition met)` count.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1123. Issue body is the spec (no Current Shape comment filed; umbrella #1119 Current Shape v3 takes precedence where overlapping per N12).",
+      "Overview": "## What to build\n\n1. `scripts/resume_conditions.py` -- pure-stdlib grammar parser + evaluator. Atomic types: `ref:closed:#N`, `ref:merged:#N`, `date:>=YYYY-MM-DD`, `pending-count:>=N`, `pending-count:<=N`. Top-level composition: `<atomic> AND <atomic>` | `<atomic> OR <atomic>` (no nesting in v1). `ResumeContext` dataclass carries `today: date`, `closed_issues: set[int]`, `merged_prs: set[int]`, `pending_count: int`. `ResumeEvaluator` walks `candidates.jsonl`, derives the context from `.deft-cache/github-issue/` + `vbrief/pending/`, evaluates each open defer entry whose `resume_on` is non-null, and appends an idempotent `resume-eligible` entry via `candidates_log.append`.\n2. `vbrief/schemas/candidates.schema.json` -- additive only. Append `resume-eligible` to the `decision` enum. Add optional `resume_on` (string). Permit `prior_decision_id` for `decision in {reset, resume-eligible}` and require it for both.\n3. `scripts/candidates_log.py` -- mirror schema additions in the hand-rolled validator (`_VALID_DECISIONS`, `_OPTIONAL_FIELDS`, conditional checks).\n4. `scripts/triage_actions.py` -- `defer()` now takes `reason: str` (required) + `resume_on: str | None`. Pre-validates `resume_on` via `resume_conditions.parse`. CLI: `--reason` becomes required for `defer`; new `--resume-on` flag.\n5. `scripts/triage_queue.py` + `scripts/_triage_queue_cli.py` -- extend `derive_group` so `latest_decision == 'resume-eligible'` routes to the `RESUME` bucket. Add `--evaluate-resume` flag to the `audit` subcommand; when passed, invoke the evaluator BEFORE rendering the audit dump.\n6. `scripts/triage_refresh.py` -- extend `refresh_active` to call the evaluator once after the freshness pass.\n7. `scripts/triage_summary.py` -- `stale_defer` count now reflects the number of cached issues whose latest decision is `resume-eligible`; add `resume-eligible` to the `TRIAGED_DECISIONS` frozenset.\n8. `skills/deft-directive-refinement/SKILL.md` -- Phase 0 action-menu surface documents the new `--reason` + `--resume-on` flags. Touch ONLY Phase 0 (D6 + N12 also edit this file in distinct sections).\n9. `tests/test_resume_conditions.py` (new) + targeted additions to `test_triage_actions.py`, `test_triage_queue.py`, `test_triage_summary.py`.\n10. `CHANGELOG.md` -- `[Unreleased]` entry.\n\n## Type\n\nFeature -- Deliverable 3 of #1119.\n\n## Acceptance criteria\n\n- `task triage:defer <N> --reason=\"...\" --resume-on=\"...\"` records both fields on the `defer` audit entry; resume condition validated at write time.\n- `--reason=\"...\"` without `--resume-on` continues to work (back-compat); `resume_on` is absent on the entry.\n- Grammar parser accepts each atomic type + AND/OR composition; rejects malformed expressions with a clear error and exits non-zero.\n- Evaluator appends a `resume-eligible` audit entry per fired condition; idempotent (re-running evaluation does NOT duplicate entries); does NOT auto-un-defer.\n- D11's `task triage:queue` surfaces `resume-eligible` items in the `[RESUME]` bucket (`derive_group` integration test).\n- D2's `task triage:summary` `stale-defer (resume condition met)` count reflects the number of `resume-eligible` decisions in the cache.\n- `skills/deft-directive-refinement/SKILL.md` Phase 0 documents the new flags.\n- CHANGELOG entry under `[Unreleased]`.\n- `task check` green.\n- PR body cites #1119 / #1122 (D2 consumer) / #1128 (D11 surface) and closes #1123.\n\n## Not in scope\n\n- Nested parens / boolean NOT / additional atomic types (deferred to v2).\n- Cross-repo references (single-repo only in v1).\n- Time-based conditions beyond `date:>=` (e.g. relative durations).\n- Notification / external surface when conditions fire.\n- Auto-un-defer (operator still re-triages manually).\n- AGENTS.md edits (N12-only this wave).\n- Deft-specific labels or default values in framework code (umbrella §12 boundary; consumer-example #1186 is Wave-2e and out of touch).\n\n## Refs\n\n- Umbrella: #1119\n- This deliverable: #1123\n- Consumer (D2 summary surface): #1122 (landed)\n- Consumer (D11 queue + audit surface): #1128 (landed)\n- Foundation: #845 (cache + candidates.jsonl), #883 Story 2 (unified cache)"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1123",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1123: D3 -- stale-defer items auto-resurface when resume condition fires"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: triage-eval governance swarm"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1122",
+        "type": "x-vbrief/github-issue",
+        "title": "Sibling D2 (consumer of stale-defer count): task triage:summary"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1128",
+        "type": "x-vbrief/github-issue",
+        "title": "Sibling D11 (consumer of [RESUME] surface): task triage:queue + audit"
+      }
+    ],
+    "updated": "2026-05-18T13:13:04Z"
+  }
+}

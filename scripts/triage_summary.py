@@ -130,9 +130,25 @@ IN_FLIGHT_DECISIONS: frozenset[str] = frozenset({"accept"})
 #: (the issue HAS been triaged). ``reset`` is INCLUDED in untriaged
 #: because a reset returns the issue to the unclassified state by
 #: design (`scripts/candidates_log.py::_VALID_DECISIONS`).
+#: ``resume-eligible`` (#1123 / D3) is a triaged state too -- the
+#: original defer's record still stands; the marker just routes the
+#: item into the [RESUME] queue bucket for operator review.
 TRIAGED_DECISIONS: frozenset[str] = frozenset(
-    {"accept", "reject", "defer", "needs-ac", "mark-duplicate"}
+    {
+        "accept",
+        "reject",
+        "defer",
+        "needs-ac",
+        "mark-duplicate",
+        "resume-eligible",
+    }
 )
+
+#: Decisions that count toward the ``stale-defer (resume condition
+#: met)`` field on the one-liner. D3 (#1123) emits ``resume-eligible``
+#: whenever a prior ``defer``'s ``resume_on`` expression fires -- the
+#: number of cached issues whose latest decision matches IS the count.
+STALE_DEFER_DECISIONS: frozenset[str] = frozenset({"resume-eligible"})
 
 
 # ---------------------------------------------------------------------------
@@ -394,6 +410,7 @@ def compute_summary(
 
     untriaged = 0
     in_flight = 0
+    stale_defer = 0
     for repo, issue_number in cached:
         decision = decisions.get((repo, issue_number))
         if decision is None or decision == "reset" or decision not in TRIAGED_DECISIONS:
@@ -403,13 +420,13 @@ def compute_summary(
             untriaged += 1
         elif decision in IN_FLIGHT_DECISIONS:
             in_flight += 1
-
-    # D3 (#1123) will introduce defer-resume conditions; until then the
-    # stale-defer count is always 0 per the issue body's explicit
-    # "Until then, stale-defer always reads 0 -- that's correct, not a
-    # bug." clause. The field is suppressed in the one-liner whenever
-    # the count is 0.
-    stale_defer = 0
+        if decision in STALE_DEFER_DECISIONS:
+            # D3 (#1123): cached issues whose latest decision is
+            # ``resume-eligible`` ARE the count the one-liner surfaces.
+            # Pre-D3 audit logs cannot emit ``resume-eligible`` so the
+            # count stays at zero on a checkout that has not yet rebased
+            # onto D3 -- back-compat preserved.
+            stale_defer += 1
 
     return SummaryResult(
         cache_empty=False,

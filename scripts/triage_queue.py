@@ -77,6 +77,15 @@ try:  # pragma: no cover -- exercised once D12 (#1131) lands.
 except ImportError:  # pragma: no cover
     triage_scope = None  # type: ignore[assignment]
 
+# Optional dep: resume-condition evaluator (#1123 / D3). When importable,
+# ``task triage:audit --evaluate-resume`` invokes the evaluator before
+# rendering the audit dump so any fired ``resume_on`` conditions surface
+# in the same call.
+try:  # pragma: no cover -- exercised once #1123 lands.
+    import resume_conditions  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover
+    resume_conditions = None  # type: ignore[assignment]
+
 
 # ---------------------------------------------------------------------------
 # Public constants
@@ -301,6 +310,11 @@ def derive_group(latest_decision: str | None, in_active_vbrief: bool) -> str:
       referencing this issue, so the operator already declared an
       implementation intent against it; the queue surfaces it first so
       the operator can resume the running work.
+    * ``latest_decision == "resume-eligible"`` -> ``"RESUME"``: D3
+      (#1123) appended a ``resume-eligible`` marker because the prior
+      ``defer``'s ``resume_on`` condition fired. The operator should
+      revisit the defer with current data; the queue surfaces it in
+      the same bucket as active-vBRIEF resumes.
     * ``latest_decision == "needs-ac"`` -> ``"URGENT"``: the operator
       previously asked the reporter for acceptance criteria; the issue
       is in a holding pattern that requires attention.
@@ -313,10 +327,12 @@ def derive_group(latest_decision: str | None, in_active_vbrief: bool) -> str:
 
     The order matters: ``RESUME`` takes priority over ``URGENT`` so
     an issue that was once flagged ``needs-ac`` and has since been
-    re-accepted into an active vBRIEF surfaces in the resumable bucket,
-    not the holding-pattern bucket.
+    re-accepted into an active vBRIEF (or had a resume condition fire)
+    surfaces in the resumable bucket, not the holding-pattern bucket.
     """
     if in_active_vbrief:
+        return "RESUME"
+    if latest_decision == "resume-eligible":
         return "RESUME"
     if latest_decision == "needs-ac":
         return "URGENT"

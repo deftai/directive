@@ -44,9 +44,10 @@
         "defer",
         "needs-ac",
         "mark-duplicate",
-        "reset"
+        "reset",
+        "resume-eligible"
       ],
-      "description": "Decision verb. `mark-duplicate` requires `linked_to`; `reset` requires `prior_decision_id`."
+      "description": "Decision verb. `mark-duplicate` requires `linked_to`; `reset` and `resume-eligible` require `prior_decision_id`. `resume-eligible` is appended by the resume-condition evaluator (#1123 / D3) when a prior `defer` entry's `resume_on` expression fires; it does NOT auto-un-defer."
     },
     "actor": {
       "type": "string",
@@ -56,6 +57,11 @@
     "reason": {
       "type": "string",
       "description": "Optional free-form rationale captured at decision time."
+    },
+    "resume_on": {
+      "type": "string",
+      "description": "Optional structured resume condition recorded on `defer` entries (#1123 / D3). Grammar v1: `ref:closed:#N` | `ref:merged:#N` | `date:>=YYYY-MM-DD` | `pending-count:>=N` | `pending-count:<=N`, joined by a single top-level `AND` / `OR`. Evaluated by `scripts/resume_conditions.py`; firings append a sibling `resume-eligible` entry.",
+      "minLength": 1
     },
     "linked_to": {
       "type": "integer",
@@ -97,7 +103,10 @@
       "if": {
         "properties": {
           "decision": {
-            "const": "reset"
+            "enum": [
+              "reset",
+              "resume-eligible"
+            ]
           }
         },
         "required": [

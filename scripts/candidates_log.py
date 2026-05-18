@@ -55,9 +55,23 @@ DEFAULT_LOG_PATH = REPO_ROOT / "vbrief" / ".eval" / "candidates.jsonl"
 SCHEMA_PATH = REPO_ROOT / "vbrief" / "schemas" / "candidates.schema.json"
 
 # Frozen vocabulary mirrored from candidates.schema.json. Keep in lockstep.
+# ``resume-eligible`` (#1123 / D3) is appended by the resume-condition
+# evaluator when a prior ``defer`` entry's ``resume_on`` fires; it carries
+# ``prior_decision_id`` referencing the defer.
 _VALID_DECISIONS: frozenset[str] = frozenset(
-    {"accept", "reject", "defer", "needs-ac", "mark-duplicate", "reset"}
+    {
+        "accept",
+        "reject",
+        "defer",
+        "needs-ac",
+        "mark-duplicate",
+        "reset",
+        "resume-eligible",
+    }
 )
+#: Decisions that require ``prior_decision_id`` -- ``reset`` (rollback)
+#: and ``resume-eligible`` (D3 evaluator marker referencing the defer).
+_PRIOR_REQUIRED_DECISIONS: frozenset[str] = frozenset({"reset", "resume-eligible"})
 _REQUIRED_FIELDS: tuple[str, ...] = (
     "decision_id",
     "timestamp",
@@ -66,7 +80,12 @@ _REQUIRED_FIELDS: tuple[str, ...] = (
     "decision",
     "actor",
 )
-_OPTIONAL_FIELDS: tuple[str, ...] = ("reason", "linked_to", "prior_decision_id")
+_OPTIONAL_FIELDS: tuple[str, ...] = (
+    "reason",
+    "resume_on",
+    "linked_to",
+    "prior_decision_id",
+)
 _ALLOWED_FIELDS: frozenset[str] = frozenset(_REQUIRED_FIELDS + _OPTIONAL_FIELDS)
 
 _UUID_RE = re.compile(
@@ -161,6 +180,13 @@ def _validate_entry(entry: Any) -> None:
             f"{type(entry['reason']).__name__}"
         )
 
+    if "resume_on" in entry:
+        resume_on = entry["resume_on"]
+        if not isinstance(resume_on, str) or not resume_on:
+            raise CandidatesLogError(
+                f"resume_on must be a non-empty string, got {resume_on!r}"
+            )
+
     # Conditional fields: linked_to is required for mark-duplicate and forbidden
     # otherwise; prior_decision_id is required for reset and forbidden otherwise.
     if decision == "mark-duplicate":
@@ -182,10 +208,10 @@ def _validate_entry(entry: Any) -> None:
             "'linked_to' is only valid for decision='mark-duplicate'"
         )
 
-    if decision == "reset":
+    if decision in _PRIOR_REQUIRED_DECISIONS:
         if "prior_decision_id" not in entry:
             raise CandidatesLogError(
-                "decision 'reset' requires 'prior_decision_id'"
+                f"decision {decision!r} requires 'prior_decision_id'"
             )
         pid = entry["prior_decision_id"]
         if not isinstance(pid, str) or not _UUID_RE.match(pid):
@@ -194,7 +220,8 @@ def _validate_entry(entry: Any) -> None:
             )
     elif "prior_decision_id" in entry:
         raise CandidatesLogError(
-            "'prior_decision_id' is only valid for decision='reset'"
+            "'prior_decision_id' is only valid for decision in "
+            f"{sorted(_PRIOR_REQUIRED_DECISIONS)}"
         )
 
 

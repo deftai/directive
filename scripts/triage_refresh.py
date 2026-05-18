@@ -432,6 +432,38 @@ RefreshLocal = Callable[[str, int, Path], None]
 AuditWriter = Callable[[str, int, str], None]
 
 
+def _evaluate_resume_step(project_root: Path, *, out: Any) -> None:
+    """Best-effort resume-condition evaluation hook (#1123 / D3).
+
+    Runs after the freshness pass so any defer entries whose ``resume_on``
+    condition fires get a ``resume-eligible`` audit-log marker before the
+    operator next consults the queue. Tolerates absence of the
+    ``resume_conditions`` module on slim test checkouts.
+    """
+    try:
+        rc = importlib.import_module("resume_conditions")
+    except ModuleNotFoundError:
+        try:
+            rc = importlib.import_module("scripts.resume_conditions")
+        except ModuleNotFoundError:
+            return
+    try:
+        appended = rc.evaluate_resume_eligibility(project_root)
+    except Exception as exc:  # noqa: BLE001 -- best-effort; surface failure
+        print(
+            f"[triage:refresh-active] WARN: resume-condition eval failed: "
+            f"{type(exc).__name__}: {exc}",
+            file=out,
+        )
+        return
+    if appended:
+        print(
+            f"[triage:refresh-active] resume-eligible: {len(appended)} "
+            "defer entr(ies) fired",
+            file=out,
+        )
+
+
 def refresh_active(
     project_root: Path,
     *,
@@ -443,7 +475,14 @@ def refresh_active(
     audit_writer: AuditWriter | None = None,
     out: Any | None = None,
 ) -> FreshnessSummary:
-    """Run the freshness gate end-to-end. Returns a :class:`FreshnessSummary`."""
+    """Run the freshness gate end-to-end. Returns a :class:`FreshnessSummary`.
+
+    Side effect (#1123 / D3): after the freshness pass, walks open
+    ``defer`` audit entries with non-null ``resume_on`` and appends a
+    ``resume-eligible`` audit row for each condition that fires. The
+    evaluation is idempotent so repeated invocations do NOT duplicate
+    markers.
+    """
 
     sink = out or sys.stdout
     active_dir = active_dir or (project_root / "vbrief" / "active")
@@ -453,6 +492,10 @@ def refresh_active(
     active_files = _iter_active_vbriefs(active_dir)
     if not active_files:
         print("[triage:refresh-active] vbrief/active/ is empty -- no-op", file=sink)
+        # Still run the resume-eligible pass: a maintainer can keep a defer
+        # queue going while having no active scope, and a fired resume
+        # condition should surface even then.
+        _evaluate_resume_step(project_root, out=sink)
         return FreshnessSummary(0, 0)
 
     skipped_records: list[tuple[str, int, str]] = []
@@ -517,6 +560,9 @@ def refresh_active(
                 "deferred-from-this-batch",
                 file=sink,
             )
+    # #1123 / D3: emit resume-eligible markers for any open defer whose
+    # condition has fired since the last evaluation pass.
+    _evaluate_resume_step(project_root, out=sink)
     return summary
 
 
