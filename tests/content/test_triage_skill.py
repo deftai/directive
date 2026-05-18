@@ -34,6 +34,7 @@ _REQUIRED_TRIGGERS = (
     "work the cache",
     "what's next",
     "whats next",
+    "what should I work on",
     "queue",
     "build a cohort",
     "build cohort",
