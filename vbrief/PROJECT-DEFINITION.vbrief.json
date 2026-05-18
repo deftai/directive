@@ -7679,6 +7679,100 @@
         "Narrative 'UserStories' may be stale: completed scope 'review-cycle: add stall detection rubric, escalate to user after threshold' shares topics (user)",
         "Narrative 'tech stack' may be stale: completed scope 'migrate_vbrief: PROJECT-DEFINITION missing 'tech stack' narrative key -- validator D3 failure' shares topics (stack, tech)"
       ]
+    },
+    "policy": {
+      "triageScope": [
+        {
+          "rule": "labels",
+          "any-of": [
+            "enhancement",
+            "epic",
+            "meta",
+            "skills",
+            "adoption-blocker",
+            "blocks-merge",
+            "blocks-release-tag"
+          ]
+        },
+        {
+          "rule": "milestone",
+          "is-open": true
+        }
+      ],
+      "triageRankingLabels": [
+        "blocks-merge",
+        "blocks-release-tag",
+        "adoption-blocker",
+        "breaking-change",
+        "urgent"
+      ],
+      "triageAutoClassify": [
+        {
+          "match": {
+            "labels": {
+              "any-of": [
+                "status:superseded-pending"
+              ]
+            }
+          },
+          "action": "defer",
+          "reason": "awaiting umbrella deliverable"
+        },
+        {
+          "match": {
+            "labels": {
+              "any-of": [
+                "rfc",
+                "type:research"
+              ]
+            }
+          },
+          "action": "defer",
+          "reason": "exploratory"
+        },
+        {
+          "match": {
+            "labels": {
+              "any-of": [
+                "wontfix"
+              ]
+            }
+          },
+          "action": "defer",
+          "reason": "wontfix"
+        },
+        {
+          "match": {
+            "labels": {
+              "any-of": [
+                "duplicate"
+              ]
+            }
+          },
+          "action": "archive",
+          "reason": "duplicate -- already tracked elsewhere"
+        },
+        {
+          "match": {
+            "labels": {
+              "any-of": [
+                "fixed-pending-merge"
+              ]
+            }
+          },
+          "action": "defer",
+          "reason": "auto-close on linked PR merge",
+          "resume-on": "<linked-PR>:merged"
+        }
+      ],
+      "triageScopeIgnores": [
+        {
+          "label": "wontfix"
+        },
+        {
+          "label": "duplicate"
+        }
+      ]
     }
   }
 }

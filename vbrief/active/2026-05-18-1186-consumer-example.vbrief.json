@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: #1186 -- deft consumer-example of #1119. Lands deft's actual plan.policy.* values on PROJECT-DEFINITION.vbrief.json + a docs/example-project-definition.md reference doc for future consumers. NO framework code edits per umbrella section 12 framework-vs-consumer boundary.",
+    "updated": "2026-05-18T20:09:18Z"
+  },
+  "plan": {
+    "title": "feat(consumer-example): deft's triage config + reference doc (#1186)",
+    "status": "running",
+    "narratives": {
+      "Description": "Wave-2c/2e consumer-example of #1119. Deliverable 1 fills plan.policy.* on vbrief/PROJECT-DEFINITION.vbrief.json with deft's actual operator choices: triageScope[] (labels any-of + milestone is-open:true), triageRankingLabels[] (blocks-merge, blocks-release-tag, adoption-blocker, breaking-change, urgent), triageAutoClassify[] (defer status:superseded-pending / rfc / type:research / wontfix / fixed-pending-merge; archive duplicate), triageScopeIgnores[] (labels any-of [wontfix, duplicate]). wipCap omitted (deft accepts framework default 10). Deliverable 2 ships docs/example-project-definition.md as the first reference example for future consumers: empty template, deft's filled-in version, side-by-side annotation column distinguishing deft-specific labels (blocks-merge, status:superseded-pending) from common conventions (breaking-change), plus a clone-and-edit closing note.",
+      "Origin": "Wave-2c/2e child of umbrella #1119 -- the FIRST consumer-side artifact loading deft's specific values against the framework primitives shipped by D10/D11/D12/D14c/D4. Issue body #1186 is canonical (no Current Shape filed).",
+      "Overview": "## What to build\n\n1. Update vbrief/PROJECT-DEFINITION.vbrief.json plan.policy.* with the typed values per the issue body. wipCap omitted (deft accepts framework default 10).\n2. New docs/example-project-definition.md reference doc with empty template / deft filled-in / side-by-side annotation / clone-and-edit closing note.\n3. New tests/content/test_consumer_config_example.py that pins the doc's section structure (mirrors N9/N12 content-test pattern) AND validates the deft PROJECT-DEFINITION via the existing vbrief_validate + per-primitive validators.\n4. CHANGELOG.md [Unreleased] entry.\n\n## Acceptance criteria\n\n- vbrief/PROJECT-DEFINITION.vbrief.json carries the four plan.policy.* arrays from the issue body verbatim\n- `task vbrief:validate` exits 0\n- `task vbrief:preflight -- vbrief/active/<this>.vbrief.json` exits 0\n- docs/example-project-definition.md exists with the four sections: empty template / deft filled-in / annotation column / clone-and-edit closing note\n- Content tests pin the doc section structure AND the deft PROJECT-DEFINITION validation\n- NO framework code edits anywhere (validators, defaults, primitives untouched)\n- `task check` green\n\n## Type\n\nFeature -- consumer-example artifact. Per umbrella section 12 framework-vs-consumer boundary the framework defaults remain consumer-agnostic; this PR holds deft's operator choices only.\n\n## Refs\n\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Issue: https://github.com/deftai/directive/issues/1186\n- Framework primitives consumed: #1129 (D10), #1128 (D11), #1131 (D12), #1182 (D14c), #1124 (D4 wipCap accepted at default)"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1186",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1186: Deft consumer config + reference example (consumer-example of #1119)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-0/1/2 swarm"
+      }
+    ],
+    "updated": "2026-05-18T20:09:13Z"
+  }
+}
