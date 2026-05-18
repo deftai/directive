@@ -175,7 +175,7 @@ def _mutate(
 
     atomic_write_project_definition(path, data)
     after = _snapshot_rules(rules)
-    _append_subscription_change(
+    record_subscription_change(
         project_root,
         op=op,
         label=label,
@@ -316,18 +316,33 @@ def _resolve_actor(actor: str | None) -> str:
         return "user:unknown"
 
 
-def _append_subscription_change(
+def record_subscription_change(
     project_root: Path,
     *,
     op: str,
-    label: str | None,
-    milestone: str | None,
-    issue: int | None,
-    before: list[Any],
-    after: list[Any],
-    actor: str | None,
+    label: str | None = None,
+    milestone: str | None = None,
+    issue: int | None = None,
+    author: str | None = None,
+    before: list[Any] | None = None,
+    after: list[Any] | None = None,
+    actor: str | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> None:
-    """Append a single JSONL record to ``vbrief/.eval/subscription-history.jsonl``.
+    """Append one JSONL record to ``vbrief/.eval/subscription-history.jsonl``.
+
+    Public since D14c (#1182): the ignore-list mutation surface
+    (``scripts/triage_scope_drift.add_ignore``) and the new
+    ``task triage:scope`` wrapper verbs need to write the same audit
+    trail subscribe / unsubscribe already write. ``op`` carries the
+    verb-name discriminator (``subscribe``, ``unsubscribe``,
+    ``ignore-label``, ``ignore-milestone``, ``ignore-author``);
+    schema field names mirror the discriminator (``label`` /
+    ``milestone`` / ``issue`` / ``author``).
+
+    ``extra`` is a per-op opaque blob (e.g. ``{"any-of": [...]}`` for
+    ignore-author) preserved verbatim in the JSONL record so consumers
+    can audit the structured payload.
 
     Pure-stdlib append. Failures are silenced via ``contextlib.suppress``
     because the sidecar is observability, not load-bearing for the
@@ -343,9 +358,12 @@ def _append_subscription_change(
         "label": label,
         "milestone": milestone,
         "issue": issue,
-        "before": before,
-        "after": after,
+        "author": author,
+        "before": before if before is not None else [],
+        "after": after if after is not None else [],
     }
+    if extra:
+        record["extra"] = extra
     line = json.dumps(record, sort_keys=True, ensure_ascii=False)
     with contextlib.suppress(OSError):
         history_path.parent.mkdir(parents=True, exist_ok=True)
@@ -354,6 +372,11 @@ def _append_subscription_change(
             fh.flush()
             with contextlib.suppress(OSError):
                 os.fsync(fh.fileno())
+
+
+# Backward-compat alias for the private name retained for callers that
+# imported the leading-underscore form before D14c (#1182).
+_append_subscription_change = record_subscription_change
 
 
 def main(argv: list[str] | None = None) -> int:

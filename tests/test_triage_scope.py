@@ -949,7 +949,8 @@ def test_validate_scope_ignores_rejects_empty_value():
 def test_resolve_scope_ignores_returns_empty_when_unset(tmp_path: Path):
     _write_project_definition(tmp_path, {"title": "x", "status": "running", "items": []})
     out = triage_scope.resolve_scope_ignores(project_root=tmp_path)
-    assert out == {"labels": set(), "milestones": set()}
+    # D14c (#1182) added an ``authors`` set alongside labels / milestones.
+    assert out == {"labels": set(), "milestones": set(), "authors": set()}
 
 
 def test_resolve_scope_ignores_partitions_label_vs_milestone(tmp_path: Path):

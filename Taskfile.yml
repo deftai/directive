@@ -630,7 +630,7 @@ tasks:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
   triage:scope:
-    desc: "Inspect / refresh the typed plan.policy.triageScope[] subscription (#1131 / D12). -- task triage:scope -- [--list] [--refresh-denominator --repo OWNER/NAME --count N]"
+    desc: "Inspect / mutate / diff the typed plan.policy.triageScope[] subscription + triageScopeIgnores[] (#1131 / D12, #1133 / D14, #1182 / D14c). -- task triage:scope -- [--list] [--add-label=L | --add-milestone=M | --ignore-label=L] [--diff-from-upstream --repo OWNER/NAME] [--refresh-denominator --repo OWNER/NAME --count N]"
     cmds:
       - task: triage-scope:scope
         vars:

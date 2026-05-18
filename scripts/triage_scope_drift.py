@@ -167,6 +167,30 @@ def _extract_milestone(issue: dict[str, Any]) -> str:
     return ""
 
 
+def _extract_author(issue: dict[str, Any]) -> str:
+    """Return the cached issue's author login (D14c / #1182).
+
+    GitHub REST issues payload shapes the author as
+    ``{ "user": { "login": "<name>", ... }, ... }``. We tolerate the
+    bare-string and ``{author: <str>}`` shapes for fixture flexibility.
+    Returns ``""`` (never ``None``) so downstream membership checks
+    stay type-safe.
+    """
+    user = issue.get("user")
+    if isinstance(user, dict):
+        login = user.get("login")
+        if isinstance(login, str) and login:
+            return login
+    author = issue.get("author")
+    if isinstance(author, dict):
+        login = author.get("login")
+        if isinstance(login, str) and login:
+            return login
+    if isinstance(author, str) and author:
+        return author
+    return ""
+
+
 def _is_open(issue: dict[str, Any]) -> bool:
     return issue.get("state", "open") == "open"
 
@@ -314,12 +338,20 @@ def compute_drift(
     # Track which issues are surfaced under any drift signal so
     # ``total`` counts distinct issues, not signal-occurrences.
     surfaced_issues: set[tuple[str, int]] = set()
+    # D14c / #1182: issues whose `user.login` matches a
+    # `{rule: author, any-of: [...]}` ignore entry are dropped from
+    # the drift surface entirely -- the operator already told us they
+    # don't care about this author's issues (canonical case: dependabot
+    # / renovate noise on a consumer's repo).
+    ignored_authors = ignores.get("authors", set())
 
     for issue in issues:
         if not _is_open(issue):
             continue
         number = issue.get("number")
         if not isinstance(number, int):
+            continue
+        if ignored_authors and _extract_author(issue) in ignored_authors:
             continue
         labels = _extract_labels(issue)
         for label in labels:
@@ -347,11 +379,15 @@ def compute_drift(
 
     # Re-walk to compute the distinct-issue total -- an issue counts
     # toward ``total`` if any of its labels / its milestone is surfaced.
+    # Author-ignored issues are excluded here too so the total stays
+    # consistent with the surfaced signals.
     for issue in issues:
         if not _is_open(issue):
             continue
         number = issue.get("number")
         if not isinstance(number, int):
+            continue
+        if ignored_authors and _extract_author(issue) in ignored_authors:
             continue
         repo_key = _issue_repo_key(issue)
         labels = _extract_labels(issue)
@@ -491,12 +527,31 @@ def add_ignore(
             f"PROJECT-DEFINITION at {path} has a non-list 'plan.policy.triageScopeIgnores'"
         )
 
+    before = json.loads(json.dumps(raw))
     for entry in raw:
         if isinstance(entry, dict) and entry.get(key) == value:
             return False, f"already-ignored ({key}={value})"
 
     raw.append({key: value})
     atomic_write_project_definition(path, data)
+    after = json.loads(json.dumps(raw))
+    # D14c (#1182): emit an audit entry on every successful mutation so
+    # the ignore-list surface shares the subscription-history.jsonl
+    # trail subscribe / unsubscribe write. Failure to import is
+    # tolerated -- the audit sidecar is observability, not load-bearing.
+    try:
+        from triage_subscribe import record_subscription_change
+
+        record_subscription_change(
+            project_root,
+            op=f"ignore-{key}",
+            label=value if key == "label" else None,
+            milestone=value if key == "milestone" else None,
+            before=before,
+            after=after,
+        )
+    except Exception:  # pragma: no cover -- observability is best-effort
+        pass
     return True, f"added ignore ({key}={value})"
 
 

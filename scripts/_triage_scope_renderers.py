@@ -112,6 +112,59 @@ def render_list(
     return "\n".join(lines)
 
 
+def render_ignores(ignores: Iterable[dict[str, Any]] | None) -> str:
+    """Render the ``plan.policy.triageScopeIgnores[]`` block (D14c / #1182).
+
+    Empty / missing list renders as the canonical ``(none)`` line so the
+    operator can distinguish ``ran, no ignores`` from ``ran, ignores
+    not surfaced``. The output is grouped by ignore-entry kind (label /
+    milestone / author) so a long ignore-list stays scannable.
+    """
+    entries = list(ignores or [])
+    lines: list[str] = [
+        f"triage:scope ignores ({len(entries)} entries):",
+    ]
+    if not entries:
+        lines.append("  (none) -- task triage:scope -- --ignore-label=<L> to add")
+        return "\n".join(lines)
+    labels: list[str] = []
+    milestones: list[str] = []
+    authors: list[str] = []
+    other: list[str] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            other.append(repr(entry))
+            continue
+        rule = entry.get("rule")
+        if rule == "author":
+            any_of = entry.get("any-of") or []
+            if isinstance(any_of, list):
+                authors.extend(
+                    str(name)
+                    for name in any_of
+                    if isinstance(name, str) and name
+                )
+            continue
+        label = entry.get("label")
+        if isinstance(label, str) and label:
+            labels.append(label)
+            continue
+        milestone = entry.get("milestone")
+        if isinstance(milestone, str) and milestone:
+            milestones.append(milestone)
+            continue
+        other.append(repr(entry))
+    if labels:
+        lines.append(f"  labels:     {sorted(labels)}")
+    if milestones:
+        lines.append(f"  milestones: {sorted(milestones)}")
+    if authors:
+        lines.append(f"  authors:    {sorted(authors)}")
+    if other:
+        lines.append(f"  unrecognised: {other}")
+    return "\n".join(lines)
+
+
 def _render_rule(idx: int, rule: dict[str, Any]) -> list[str]:
     kind = rule.get("rule", "<unknown>")
     if kind == "all-open":
