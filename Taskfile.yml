@@ -686,7 +686,7 @@ tasks:
           CLI_ARGS: "{{.CLI_ARGS}}"
 
   triage:audit:
-    desc: "Audit-log surface (#1128 / D11). -- task triage:audit [-- --format=json] [--vbrief-staleness] [--repo OWNER/NAME]"
+    desc: "Audit-log surface (#1128 / D11, #1180). -- task triage:audit [-- --format=text|json] [--vbrief-staleness] [--since=<window>] [--action=<verb>] [--repo OWNER/NAME]"
     cmds:
       - task: triage-queue:audit
         vars:

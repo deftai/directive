@@ -51,7 +51,7 @@ import json
 import sys
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -592,6 +592,134 @@ def build_queue(
             if opts.limit is not None and len(out) >= opts.limit:
                 return out
     return out
+
+
+# ---------------------------------------------------------------------------
+# Audit date / action filters (#1180 -- lightweight triage metrics)
+# ---------------------------------------------------------------------------
+
+
+#: Decision verbs accepted by ``--action=<verb>``.
+#:
+#: Sourced from :mod:`candidates_log`'s frozen vocabulary when the module
+#: is importable; falls back to the literal set so a slim test checkout
+#: still gets a useful error message.
+_AUDIT_ACTION_FALLBACK: frozenset[str] = frozenset(
+    {
+        "accept",
+        "reject",
+        "defer",
+        "needs-ac",
+        "mark-duplicate",
+        "reset",
+        "resume-eligible",
+    }
+)
+
+
+def valid_audit_actions() -> frozenset[str]:
+    """Return the valid set of ``--action=<verb>`` values.
+
+    Prefers :data:`candidates_log._VALID_DECISIONS` (the canonical
+    vocabulary frozen by ``vbrief/schemas/candidates.schema.json``);
+    falls back to a private mirror so the CLI still surfaces a useful
+    error message on a checkout where the audit-log module has not been
+    imported yet.
+    """
+    if candidates_log is not None:
+        decisions = getattr(candidates_log, "_VALID_DECISIONS", None)
+        if isinstance(decisions, frozenset):
+            return decisions
+    return _AUDIT_ACTION_FALLBACK
+
+
+def parse_audit_window(raw: str) -> timedelta:
+    """Parse a ``--since=<window>`` duration into a :class:`timedelta`.
+
+    Delegates to :func:`triage_scope.parse_duration` when importable so
+    the framework keeps a single duration grammar across D12 / #1131 +
+    #1180. Falls back to an inline ``N(s|m|h|d|w)`` parser for slim test
+    checkouts that have not rebased onto D12 yet.
+
+    Raises :class:`ValueError` on malformed input; the error message is
+    suitable for direct surfacing to stderr by the CLI shim.
+    """
+    if triage_scope is not None and hasattr(triage_scope, "parse_duration"):
+        return triage_scope.parse_duration(raw)  # type: ignore[no-any-return]
+    # Slim-checkout fallback. Mirrors the compact form documented by
+    # triage_scope.parse_duration so the grammar stays consistent.
+    if not isinstance(raw, str):
+        raise ValueError(f"duration must be a string, got {type(raw).__name__}")
+    text = raw.strip()
+    if not text:
+        raise ValueError("duration must be a non-empty string")
+    if len(text) < 2 or not text[:-1].isdigit():
+        raise ValueError(
+            f"invalid duration {raw!r}: expected '<N>(s|m|h|d|w)' (e.g. '7d', '24h')"
+        )
+    n = int(text[:-1])
+    unit = text[-1].lower()
+    if unit == "s":
+        return timedelta(seconds=n)
+    if unit == "m":
+        return timedelta(minutes=n)
+    if unit == "h":
+        return timedelta(hours=n)
+    if unit == "d":
+        return timedelta(days=n)
+    if unit == "w":
+        return timedelta(weeks=n)
+    raise ValueError(
+        f"invalid duration {raw!r}: expected '<N>(s|m|h|d|w)' (e.g. '7d', '24h')"
+    )
+
+
+def filter_by_since(
+    entries: Iterable[dict[str, Any]],
+    window: timedelta,
+    *,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Return entries whose ``timestamp`` is at-or-after ``now - window``.
+
+    Entries with a missing / malformed timestamp are dropped (they cannot
+    be placed on the time axis). ``window`` is interpreted inclusively
+    (``ts >= cutoff``) so ``--since=0s`` returns every still-valid entry.
+    """
+    cutoff = (now or _utc_now()) - window
+    out: list[dict[str, Any]] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        stamp = entry.get("timestamp")
+        if not isinstance(stamp, str) or not stamp:
+            continue
+        try:
+            text = stamp
+            if text.endswith("Z"):
+                text = text[:-1] + "+00:00"
+            ts = datetime.fromisoformat(text)
+        except ValueError:
+            continue
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=UTC)
+        if ts >= cutoff:
+            out.append(entry)
+    return out
+
+
+def filter_by_action(
+    entries: Iterable[dict[str, Any]],
+    action: str,
+) -> list[dict[str, Any]]:
+    """Return entries whose ``decision`` equals ``action``.
+
+    The caller is responsible for validating ``action`` against
+    :func:`valid_audit_actions` before invoking this helper -- a typo
+    here would silently return an empty list, which is the wrong UX for
+    a CLI flag. Validation lives in the argparse shim.
+    """
+    return [e for e in entries if isinstance(e, dict) and e.get("decision") == action]
 
 
 # ---------------------------------------------------------------------------

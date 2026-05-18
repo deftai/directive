@@ -1,0 +1,35 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: #1180 -- lightweight triage metrics; add --since=<window> + --action=<verb> filter flags to D11's task triage:audit verb (lightweight replacement for closed D17 #1135).",
+    "updated": "2026-05-18T20:07:39Z"
+  },
+  "plan": {
+    "title": "feat(triage-audit): --since=<window> + --action=<verb> filters (#1180)",
+    "status": "running",
+    "narratives": {
+      "Description": "Extend D11's task triage:audit verb with two filter flags: --since=<window> (Nd / Nh / Nm or ISO-8601 PnDTnHnMnS, reuses scripts/triage_scope.parse_duration) filters entries newer than now()-window; --action=<verb> filters to a single decision verb. Both flags work with --format=plain and --format=json. No automated trend computation, no falsification gate, no summary-history schema. Read raw, transform with jq.",
+      "Origin": "Wave-2c/2e child of umbrella #1119; supersedes closed D17 (#1135) per the 2026-05-14 subtractive pass OE-1. The 2026-05-17 walkthrough kept the demote_meta instrumentation from D1 (#1121) but discarded D17's threshold/gate scaffolding. This child fills the gap with the minimal read surface required to consume the demote_meta data via jq.",
+      "Overview": "## What to build\n\n1. scripts/_triage_queue_cli.py gains two new argparse flags on the `audit` subparser, grouped under a `Date filters` argparse group (D13 owns the `Slice operations` group, no overlap): --since=<duration> and --action=<verb>. The `_cmd_audit` function applies the filters AFTER reading entries and BEFORE the optional --vbrief-staleness reduction.\n2. scripts/triage_queue.py gains pure-Python helpers: filter_by_since(entries, window, *, now=None) reusing triage_scope.parse_duration; filter_by_action(entries, action). Both return lists; no side-effects.\n3. tasks/triage-queue.yml audit task desc updated to document the new flags (no cmds: change -- {{.CLI_ARGS}} carries the new flags through verbatim).\n4. Taskfile.yml root-level triage:audit alias desc updated to document the new flags.\n5. skills/deft-directive-triage/SKILL.md Phase 4 step 1 expanded with the canonical `task triage:audit --since=<window> --action=<verb>` look-back invocation per the D6 / #1130 documentation point.\n6. tests/test_triage_queue.py extended with: empty log + filters; single entry + filters; mixed actions + filtered by --action; mixed timestamps + filtered by --since; combined --since + --action; --format=plain and --format=json both honour the filters; backward compat (no flags = D11 behaviour); parse_duration error path surfaces a clear stderr message + exit 2.\n7. CHANGELOG.md [Unreleased] entry.\n\n## Acceptance criteria\n\n- task triage:audit --since=30d --format=json returns valid JSON to stdout, exit 0.\n- --action=<verb> filters to one verb type; multiple verbs not supported in v1; invalid verb -> exit 2 with explanatory stderr.\n- --since=<window> accepts Nd / Nh / Nm / Nw / Ns + ISO-8601 PnDTnHnMnS; invalid -> exit 2 with explanatory stderr.\n- text format renders one audit entry per line (existing D11 shape; filters reduce the row set only).\n- Tests cover empty log; single entry; mixed actions; filtered by action; filtered by duration; combined filters; both formats; backward compat.\n- Framework defaults contain NO deft-specific verb values beyond the candidates.schema.json decision vocabulary.\n- D13 file-overlap: argparse Date filters group placed distinctly from D13's Slice operations group to minimise rebase friction.\n- task check green (lint/test/encoding/vbrief-validate).\n- PR body references #1119 + #1128 (D11 base) + #1121 (D1 demote_meta) + #1135 (closed D17) + #1130 (D6 skill).\n\n## Type\n\nFeature -- framework triage-audit filter flags; consumer-agnostic primitives only.\n\n## Refs\n\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Issue: https://github.com/deftai/directive/issues/1180\n- Closed predecessor: https://github.com/deftai/directive/issues/1135 (D17)\n- D11 base: https://github.com/deftai/directive/issues/1128\n- D1 instrumentation: https://github.com/deftai/directive/issues/1121\n- D6 skill: https://github.com/deftai/directive/issues/1130"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1180",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1180: Lightweight triage metrics -- replacement for closed D17 (#1135)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Triage cache + ranked queue Wave-0/1/2"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1128",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1128: D11 task triage:queue + audit + show (base verb)"
+      }
+    ],
+    "updated": "2026-05-18T20:07:33Z"
+  }
+}

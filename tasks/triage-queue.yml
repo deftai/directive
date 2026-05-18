@@ -44,7 +44,7 @@ tasks:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_queue.py" show --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
   audit:
-    desc: "Audit-log surface (#1128 / D11). -- task triage:audit [-- --format=json] [--vbrief-staleness] [--repo OWNER/NAME]"
+    desc: "Audit-log surface (#1128 / D11, #1180). -- task triage:audit [-- --format=text|json] [--vbrief-staleness] [--since=<window>] [--action=<verb>] [--repo OWNER/NAME]"
     internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:

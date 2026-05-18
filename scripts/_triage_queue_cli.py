@@ -86,11 +86,15 @@ def build_parser(default_limit: int) -> argparse.ArgumentParser:
     _add_common_args(p_audit)
     p_audit.add_argument(
         "--format",
-        choices=("plain", "json"),
+        # 'text' is an alias for 'plain' so the documented surface
+        # ('--format=text|json' in the #1180 issue body and the D6 skill)
+        # matches the implementation surface (D11 shipped 'plain'|'json').
+        choices=("plain", "text", "json"),
         default="plain",
         help=(
             "Output format. 'json' emits the stable schema consumed by D2"
-            " (#1122) for triage:summary integration."
+            " (#1122) for triage:summary integration. 'text' is an alias"
+            " for 'plain'."
         ),
     )
     p_audit.add_argument(
@@ -110,6 +114,34 @@ def build_parser(default_limit: int) -> argparse.ArgumentParser:
             " resume_on field is non-null and append a 'resume-eligible'"
             " entry for each condition that fires (#1123 / D3)."
             " Idempotent."
+        ),
+    )
+    # Date filters (#1180) -- distinct argparse group so the parallel D13
+    # 'Slice operations' group on the same subparser does not textually
+    # overlap during rebase. Both flags are optional + composable; an
+    # unset flag keeps D11's original behaviour (full audit-log dump).
+    date_filters = p_audit.add_argument_group(
+        "Date filters (#1180)",
+        "Read-only filters over the audit log; transform with jq.",
+    )
+    date_filters.add_argument(
+        "--action",
+        default=None,
+        help=(
+            "Filter to audit entries whose `decision` equals <verb> (e.g."
+            " --action=demote-meta, --action=accept). v1 accepts a single"
+            " verb; pipe through jq for multi-verb queries. Invalid verb"
+            " -> exit 2 with explanatory stderr."
+        ),
+    )
+    date_filters.add_argument(
+        "--since",
+        default=None,
+        help=(
+            "Filter to entries whose timestamp is at-or-after now - <window>."
+            " Accepts the framework duration grammar: Nd / Nh / Nm / Nw / Ns"
+            " (e.g. '7d', '24h', '30m') or ISO-8601 PnDTnHnMnS (e.g. 'P7D',"
+            " 'PT24H'). Invalid -> exit 2 with explanatory stderr."
         ),
     )
 
@@ -215,6 +247,24 @@ def _cmd_show(args: argparse.Namespace, tq: Any) -> int:
 def _cmd_audit(args: argparse.Namespace, tq: Any) -> int:
     repo = _resolve_repo(args)
     project_root = Path(args.project_root).resolve()
+    # #1180: validate --action / --since up front so a typo fails fast
+    # (exit 2) instead of silently returning an empty result set.
+    if args.action is not None:
+        valid_actions = tq.valid_audit_actions()
+        if args.action not in valid_actions:
+            print(
+                f"triage:audit --action: unknown verb {args.action!r};"
+                f" expected one of {sorted(valid_actions)}",
+                file=sys.stderr,
+            )
+            return 2
+    since_window = None
+    if args.since is not None:
+        try:
+            since_window = tq.parse_audit_window(args.since)
+        except ValueError as exc:
+            print(f"triage:audit --since: {exc}", file=sys.stderr)
+            return 2
     # #1123 / D3: optional resume-eligibility evaluation pass. Runs
     # BEFORE the audit dump so newly-appended ``resume-eligible`` rows
     # surface in the same call. No-op when the resume_conditions module
@@ -234,6 +284,15 @@ def _cmd_audit(args: argparse.Namespace, tq: Any) -> int:
                 file=sys.stderr,
             )
     entries = tq.read_audit_entries(repo, audit_path=args.audit_log)
+    # #1180 date / action filters. Apply BEFORE --vbrief-staleness so the
+    # staleness reduction sees the filtered set; the operator who asked
+    # for `--since=30d --vbrief-staleness` wants "stale acceptances within
+    # the last 30 days", not "stale acceptances ever, then filtered to
+    # the last 30 days". Order: action -> since -> staleness.
+    if args.action is not None:
+        entries = tq.filter_by_action(entries, args.action)
+    if since_window is not None:
+        entries = tq.filter_by_since(entries, since_window)
     if args.vbrief_staleness:
         active_refs = frozenset(tq._active_referenced_issue_numbers(project_root))
         latest = tq.latest_decisions_by_issue(entries)
@@ -252,6 +311,7 @@ def _cmd_audit(args: argparse.Namespace, tq: Any) -> int:
             )
         )
     else:
+        # 'plain' and 'text' alias to the same renderer.
         print(
             tq.render_audit_plain(
                 entries,

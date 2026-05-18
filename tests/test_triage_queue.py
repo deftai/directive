@@ -20,7 +20,7 @@ import importlib
 import json
 import sys
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -670,3 +670,321 @@ def test_cli_queue_requires_repo(capsys, tmp_path: Path, monkeypatch):
     )
     assert rc == 2
     assert "--repo" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
+# Audit filters (#1180) -- --since=<window> + --action=<verb>
+# ---------------------------------------------------------------------------
+
+
+def test_parse_audit_window_accepts_compact_forms():
+    assert triage_queue.parse_audit_window("7d") == timedelta(days=7)
+    assert triage_queue.parse_audit_window("24h") == timedelta(hours=24)
+    assert triage_queue.parse_audit_window("30m") == timedelta(minutes=30)
+    assert triage_queue.parse_audit_window("2w") == timedelta(weeks=2)
+
+
+def test_parse_audit_window_accepts_iso8601_forms():
+    # Only exercised when triage_scope is importable (it is in this checkout).
+    assert triage_queue.parse_audit_window("P7D") == timedelta(days=7)
+    assert triage_queue.parse_audit_window("PT24H") == timedelta(hours=24)
+
+
+def test_parse_audit_window_rejects_malformed():
+    with pytest.raises(ValueError):
+        triage_queue.parse_audit_window("banana")
+    with pytest.raises(ValueError):
+        triage_queue.parse_audit_window("")
+
+
+def test_valid_audit_actions_includes_canonical_vocabulary():
+    actions = triage_queue.valid_audit_actions()
+    # Every entry in the canonical schema vocabulary MUST be present.
+    for verb in ("accept", "reject", "defer", "needs-ac", "mark-duplicate", "reset"):
+        assert verb in actions
+
+
+def test_filter_by_action_filters_to_single_verb():
+    entries = [
+        _audit_entry(1, "accept", timestamp=_ts(-3600)),
+        _audit_entry(2, "defer", timestamp=_ts(-7200)),
+        _audit_entry(3, "accept", timestamp=_ts(-1800)),
+        _audit_entry(4, "reject", timestamp=_ts(-900)),
+    ]
+    out = triage_queue.filter_by_action(entries, "accept")
+    assert [e["issue_number"] for e in out] == [1, 3]
+
+
+def test_filter_by_action_empty_log_returns_empty_list():
+    assert triage_queue.filter_by_action([], "accept") == []
+
+
+def test_filter_by_since_inclusive_cutoff(tmp_path: Path):
+    now = datetime(2026, 5, 18, 20, 0, 0, tzinfo=UTC)
+    entries = [
+        # 2h ago -> in
+        _audit_entry(1, "accept", timestamp="2026-05-18T18:00:00Z"),
+        # 24h ago -> in (cutoff inclusive)
+        _audit_entry(2, "accept", timestamp="2026-05-17T20:00:00Z"),
+        # 49h ago -> out
+        _audit_entry(3, "accept", timestamp="2026-05-16T19:00:00Z"),
+    ]
+    out = triage_queue.filter_by_since(entries, timedelta(days=1), now=now)
+    nums = [e["issue_number"] for e in out]
+    assert 1 in nums
+    assert 2 in nums
+    assert 3 not in nums
+
+
+def test_filter_by_since_drops_malformed_timestamps():
+    now = datetime(2026, 5, 18, 20, 0, 0, tzinfo=UTC)
+    entries = [
+        _audit_entry(1, "accept", timestamp="not-a-stamp"),
+        {"decision": "accept", "issue_number": 2},  # missing timestamp
+        _audit_entry(3, "accept", timestamp="2026-05-18T19:00:00Z"),
+    ]
+    out = triage_queue.filter_by_since(entries, timedelta(hours=2), now=now)
+    assert [e["issue_number"] for e in out] == [3]
+
+
+def test_filter_by_since_empty_log_returns_empty_list():
+    out = triage_queue.filter_by_since([], timedelta(days=7))
+    assert out == []
+
+
+def _write_simple_audit(path: Path, entries: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as fh:
+        for entry in entries:
+            fh.write(json.dumps(entry, sort_keys=True) + "\n")
+
+
+def test_cli_audit_empty_log_with_filters_exits_0(capsys, tmp_path: Path):
+    audit_path = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
+    _write_simple_audit(audit_path, [])
+    rc = triage_queue.main(
+        [
+            "audit",
+            "--project-root",
+            str(tmp_path),
+            "--repo",
+            REPO,
+            "--audit-log",
+            str(audit_path),
+            "--since",
+            "30d",
+            "--action",
+            "accept",
+            "--format",
+            "json",
+        ]
+    )
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["entry_count"] == 0
+    assert payload["entries"] == []
+
+
+def test_cli_audit_single_entry_passes_both_filters(capsys, tmp_path: Path):
+    now = datetime.now(UTC)
+    audit_path = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
+    _write_simple_audit(
+        audit_path,
+        [
+            _audit_entry(
+                500,
+                "accept",
+                timestamp=(now - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            )
+        ],
+    )
+    rc = triage_queue.main(
+        [
+            "audit",
+            "--project-root",
+            str(tmp_path),
+            "--repo",
+            REPO,
+            "--audit-log",
+            str(audit_path),
+            "--since",
+            "7d",
+            "--action",
+            "accept",
+            "--format",
+            "json",
+        ]
+    )
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["entry_count"] == 1
+    assert payload["entries"][0]["issue_number"] == 500
+
+
+def test_cli_audit_action_filter_isolates_verb(capsys, tmp_path: Path):
+    now = datetime.now(UTC)
+    ts = (now - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    audit_path = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
+    _write_simple_audit(
+        audit_path,
+        [
+            _audit_entry(1, "accept", timestamp=ts),
+            _audit_entry(2, "defer", timestamp=ts),
+            _audit_entry(3, "reject", timestamp=ts),
+            _audit_entry(4, "accept", timestamp=ts),
+        ],
+    )
+    rc = triage_queue.main(
+        [
+            "audit",
+            "--project-root",
+            str(tmp_path),
+            "--repo",
+            REPO,
+            "--audit-log",
+            str(audit_path),
+            "--action",
+            "accept",
+            "--format",
+            "json",
+        ]
+    )
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    nums = sorted(e["issue_number"] for e in payload["entries"])
+    assert nums == [1, 4]
+
+
+def test_cli_audit_since_filter_drops_old_entries(capsys, tmp_path: Path):
+    now = datetime.now(UTC)
+    audit_path = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
+    recent_ts = (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ancient_ts = (now - timedelta(days=60)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    _write_simple_audit(
+        audit_path,
+        [
+            _audit_entry(10, "accept", timestamp=recent_ts),
+            _audit_entry(11, "accept", timestamp=ancient_ts),
+        ],
+    )
+    rc = triage_queue.main(
+        [
+            "audit",
+            "--project-root",
+            str(tmp_path),
+            "--repo",
+            REPO,
+            "--audit-log",
+            str(audit_path),
+            "--since",
+            "1d",
+            "--format",
+            "json",
+        ]
+    )
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    nums = [e["issue_number"] for e in payload["entries"]]
+    assert nums == [10]
+
+
+def test_cli_audit_text_format_honours_filters(capsys, tmp_path: Path):
+    now = datetime.now(UTC)
+    recent_ts = (now - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ancient_ts = (now - timedelta(days=60)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    audit_path = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
+    _write_simple_audit(
+        audit_path,
+        [
+            _audit_entry(20, "accept", timestamp=recent_ts),
+            _audit_entry(21, "accept", timestamp=ancient_ts),
+            _audit_entry(22, "reject", timestamp=recent_ts),
+        ],
+    )
+    rc = triage_queue.main(
+        [
+            "audit",
+            "--project-root",
+            str(tmp_path),
+            "--repo",
+            REPO,
+            "--audit-log",
+            str(audit_path),
+            "--since",
+            "1d",
+            "--action",
+            "accept",
+            "--format",
+            "text",
+        ]
+    )
+    assert rc == 0
+    out = capsys.readouterr().out
+    # Only the recent accept survives.
+    assert "#20" in out
+    assert "#21" not in out
+    assert "#22" not in out
+
+
+def test_cli_audit_invalid_action_exits_2(capsys, tmp_path: Path):
+    audit_path = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
+    _write_simple_audit(audit_path, [])
+    rc = triage_queue.main(
+        [
+            "audit",
+            "--project-root",
+            str(tmp_path),
+            "--repo",
+            REPO,
+            "--audit-log",
+            str(audit_path),
+            "--action",
+            "banana",
+        ]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "--action" in err
+    assert "banana" in err
+
+
+def test_cli_audit_invalid_since_exits_2(capsys, tmp_path: Path):
+    audit_path = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
+    _write_simple_audit(audit_path, [])
+    rc = triage_queue.main(
+        [
+            "audit",
+            "--project-root",
+            str(tmp_path),
+            "--repo",
+            REPO,
+            "--audit-log",
+            str(audit_path),
+            "--since",
+            "not-a-duration",
+        ]
+    )
+    assert rc == 2
+    assert "--since" in capsys.readouterr().err
+
+
+def test_cli_audit_no_flags_preserves_d11_behaviour(capsys, tmp_path: Path):
+    """Backward compat -- no #1180 flags means the full audit-log dump."""
+    seeded = _seed_cache_and_log(tmp_path)
+    rc = triage_queue.main(
+        [
+            "audit",
+            "--project-root",
+            str(tmp_path),
+            "--repo",
+            REPO,
+            "--audit-log",
+            str(seeded["audit_path"]),
+            "--format",
+            "json",
+        ]
+    )
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    # _seed_cache_and_log writes two entries; both should pass.
+    assert payload["entry_count"] == 2
