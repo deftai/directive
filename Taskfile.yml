@@ -182,6 +182,18 @@ includes:
   triage-scope:
     taskfile: ./tasks/triage-scope.yml
     optional: true
+  # D14 (#1133): subscription drift detector. Inner task `scope-drift` is
+  # exposed as the user-facing alias `task triage:scope-drift` in the
+  # alias block below.
+  triage-scope-drift:
+    taskfile: ./tasks/triage-scope-drift.yml
+    optional: true
+  # D14 (#1133): subscribe / unsubscribe mutation verbs. Inner tasks
+  # `subscribe` / `unsubscribe` are exposed as the user-facing aliases
+  # `task triage:subscribe` / `task triage:unsubscribe` below.
+  triage-subscribe:
+    taskfile: ./tasks/triage-subscribe.yml
+    optional: true
   # D10 (#1129): auto-classification surface. Inner task `classify` is
   # exposed as the user-facing alias `task triage:classify` in the alias
   # block below.
@@ -621,6 +633,27 @@ tasks:
     desc: "Inspect / refresh the typed plan.policy.triageScope[] subscription (#1131 / D12). -- task triage:scope -- [--list] [--refresh-denominator --repo OWNER/NAME --count N]"
     cmds:
       - task: triage-scope:scope
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:scope-drift:
+    desc: "Detect subscription drift (#1133 / D14): unsubscribed labels/milestones on cached open issues. -- task triage:scope-drift [-- --ignore-label=L | --ignore-milestone=M]"
+    cmds:
+      - task: triage-scope-drift:scope-drift
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:subscribe:
+    desc: "Subscribe to a label / milestone / issue (#1133 / D14). -- task triage:subscribe -- (--label=L | --milestone=M | --issue=N)"
+    cmds:
+      - task: triage-subscribe:subscribe
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:unsubscribe:
+    desc: "Unsubscribe a label / milestone / issue (#1133 / D14). -- task triage:unsubscribe -- (--label=L | --milestone=M | --issue=N)"
+    cmds:
+      - task: triage-subscribe:unsubscribe
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"
 

@@ -1,0 +1,323 @@
+"""Tests for scripts/triage_scope_drift.py (D14 / #1133).
+
+Covers:
+
+* Drift detection: 3+ open cached issues using an unsubscribed label
+  triggers the surface; <=2 stays below threshold.
+* Closed issues do not count toward drift.
+* Milestone drift surfaces independently of label drift.
+* ``plan.policy.triageScopeIgnores[]`` suppresses surfaced signals.
+* Reconciliation: subscribing to a previously-drifted label suppresses
+  it on the next ``compute_drift`` call.
+* ``add_ignore()`` mutates the PROJECT-DEFINITION atomically; idempotent.
+* Output renderer surfaces both subscribe and ignore paths.
+"""
+
+from __future__ import annotations
+
+import importlib
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+_SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+triage_scope_drift = importlib.import_module("triage_scope_drift")
+
+
+# ---------------------------------------------------------------------------
+# Fixture helpers
+# ---------------------------------------------------------------------------
+
+
+def _write_cached_issue(
+    cache_root: Path,
+    repo: str,
+    number: int,
+    *,
+    state: str = "open",
+    labels: list[str] | None = None,
+    milestone: str | None = None,
+) -> Path:
+    """Write a synthetic ``raw.json`` payload to the cache.
+
+    Mirrors the GitHub REST issue shape that the drift detector reads.
+    """
+    owner, name = repo.split("/", 1)
+    entry = cache_root / "github-issue" / owner / name / str(number)
+    entry.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "number": number,
+        "state": state,
+        "labels": [{"name": label} for label in (labels or [])],
+        "repository_url": f"https://api.github.com/repos/{repo}",
+    }
+    if milestone is not None:
+        payload["milestone"] = {"title": milestone, "number": 1}
+    (entry / "raw.json").write_text(json.dumps(payload), encoding="utf-8")
+    (entry / "meta.json").write_text("{}", encoding="utf-8")
+    return entry / "raw.json"
+
+
+def _write_pd(tmp_path: Path, policy: dict | None = None) -> Path:
+    vbrief = tmp_path / "vbrief"
+    vbrief.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {
+            "title": "x",
+            "status": "running",
+            "items": [],
+            "policy": policy or {},
+        },
+    }
+    path = vbrief / "PROJECT-DEFINITION.vbrief.json"
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    return path
+
+
+# ---------------------------------------------------------------------------
+# Drift detection -- thresholds + label/milestone partition
+# ---------------------------------------------------------------------------
+
+
+def test_empty_cache_returns_empty_report(tmp_path: Path):
+    _write_pd(tmp_path)
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=tmp_path / ".deft-cache")
+    assert report.labels == {}
+    assert report.milestones == {}
+    assert report.total == 0
+
+
+def test_three_issues_with_unsubscribed_label_surface(tmp_path: Path):
+    """The framework threshold is _DRIFT_MIN_ISSUES = 3."""
+    _write_pd(tmp_path)
+    cache = tmp_path / ".deft-cache"
+    for n in (101, 102, 103):
+        _write_cached_issue(cache, "deftai/directive", n, labels=["priority:p0"])
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.labels == {"priority:p0": 3}
+    assert report.total == 3
+    assert report.threshold == 3
+
+
+def test_two_issues_below_threshold_suppressed(tmp_path: Path):
+    _write_pd(tmp_path)
+    cache = tmp_path / ".deft-cache"
+    for n in (200, 201):
+        _write_cached_issue(cache, "deftai/directive", n, labels=["rare-label"])
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.labels == {}
+    assert report.total == 0
+
+
+def test_closed_issues_excluded_from_drift(tmp_path: Path):
+    _write_pd(tmp_path)
+    cache = tmp_path / ".deft-cache"
+    for n in (300, 301, 302):
+        _write_cached_issue(
+            cache, "deftai/directive", n, state="closed", labels=["priority:p0"]
+        )
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.labels == {}
+    assert report.total == 0
+
+
+def test_milestone_drift_surfaces_independently(tmp_path: Path):
+    _write_pd(tmp_path)
+    cache = tmp_path / ".deft-cache"
+    for n in (400, 401, 402):
+        _write_cached_issue(cache, "deftai/directive", n, milestone="v2.0-blocker")
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.milestones == {"v2.0-blocker": 3}
+    assert report.labels == {}
+    assert report.total == 3
+
+
+def test_mixed_label_and_milestone_drift(tmp_path: Path):
+    _write_pd(tmp_path)
+    cache = tmp_path / ".deft-cache"
+    # 3 issues with label X
+    for n in (500, 501, 502):
+        _write_cached_issue(cache, "deftai/directive", n, labels=["priority:p0"])
+    # 3 issues with milestone Y (different issues)
+    for n in (510, 511, 512):
+        _write_cached_issue(cache, "deftai/directive", n, milestone="v2.0-blocker")
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.labels == {"priority:p0": 3}
+    assert report.milestones == {"v2.0-blocker": 3}
+    assert report.total == 6  # 6 distinct issues
+
+
+def test_total_dedupes_when_issue_has_both_signals(tmp_path: Path):
+    """An issue with an unsubscribed label AND milestone counts once."""
+    _write_pd(tmp_path)
+    cache = tmp_path / ".deft-cache"
+    # 3 issues with BOTH signals
+    for n in (600, 601, 602):
+        _write_cached_issue(
+            cache,
+            "deftai/directive",
+            n,
+            labels=["priority:p0"],
+            milestone="v2.0",
+        )
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.total == 3  # not 6
+
+
+def test_subscribed_label_excluded_from_drift(tmp_path: Path):
+    _write_pd(
+        tmp_path,
+        policy={
+            "triageScope": [{"rule": "labels", "any-of": ["priority:p0"]}],
+        },
+    )
+    cache = tmp_path / ".deft-cache"
+    for n in (700, 701, 702):
+        _write_cached_issue(cache, "deftai/directive", n, labels=["priority:p0"])
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.labels == {}
+
+
+def test_subscribed_milestone_excluded_from_drift(tmp_path: Path):
+    _write_pd(
+        tmp_path,
+        policy={
+            "triageScope": [{"rule": "milestone", "name": "v2.0-blocker"}],
+        },
+    )
+    cache = tmp_path / ".deft-cache"
+    for n in (800, 801, 802):
+        _write_cached_issue(cache, "deftai/directive", n, milestone="v2.0-blocker")
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.milestones == {}
+
+
+def test_ignore_list_suppresses_label_drift(tmp_path: Path):
+    _write_pd(
+        tmp_path,
+        policy={"triageScopeIgnores": [{"label": "rfc-track"}]},
+    )
+    cache = tmp_path / ".deft-cache"
+    for n in (900, 901, 902):
+        _write_cached_issue(cache, "deftai/directive", n, labels=["rfc-track"])
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.labels == {}
+    assert report.total == 0
+
+
+def test_ignore_list_suppresses_milestone_drift(tmp_path: Path):
+    _write_pd(
+        tmp_path,
+        policy={"triageScopeIgnores": [{"milestone": "future"}]},
+    )
+    cache = tmp_path / ".deft-cache"
+    for n in (1000, 1001, 1002):
+        _write_cached_issue(cache, "deftai/directive", n, milestone="future")
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.milestones == {}
+
+
+# ---------------------------------------------------------------------------
+# Output renderer
+# ---------------------------------------------------------------------------
+
+
+def test_render_drift_report_empty():
+    report = triage_scope_drift.DriftReport()
+    out = triage_scope_drift.render_drift_report(report)
+    assert "no unsubscribed" in out
+
+
+def test_render_drift_report_includes_labels_and_subscribe_paths():
+    report = triage_scope_drift.DriftReport(
+        labels={"priority:p0": 12, "compat:breaking": 4},
+        milestones={"v2.0-blocker": 7},
+        total=18,
+    )
+    out = triage_scope_drift.render_drift_report(report)
+    assert "[scope-drift] labels not in subscription" in out
+    assert "priority:p0" in out
+    assert "12 open issues" in out
+    assert "[scope-drift] milestones not in subscription" in out
+    assert "v2.0-blocker" in out
+    assert "task triage:subscribe -- --label=priority:p0" in out
+    assert "task triage:subscribe -- --milestone=v2.0-blocker" in out
+    assert "task triage:scope-drift -- --ignore-label=priority:p0" in out
+
+
+# ---------------------------------------------------------------------------
+# add_ignore() mutation
+# ---------------------------------------------------------------------------
+
+
+def test_add_ignore_label_appends_entry(tmp_path: Path):
+    pd = _write_pd(tmp_path)
+    changed, message = triage_scope_drift.add_ignore(tmp_path, label="rfc-track")
+    assert changed is True
+    assert "rfc-track" in message
+    data = json.loads(pd.read_text(encoding="utf-8"))
+    assert data["plan"]["policy"]["triageScopeIgnores"] == [{"label": "rfc-track"}]
+
+
+def test_add_ignore_milestone_appends_entry(tmp_path: Path):
+    pd = _write_pd(tmp_path)
+    changed, _ = triage_scope_drift.add_ignore(tmp_path, milestone="future")
+    assert changed is True
+    data = json.loads(pd.read_text(encoding="utf-8"))
+    assert {"milestone": "future"} in data["plan"]["policy"]["triageScopeIgnores"]
+
+
+def test_add_ignore_idempotent(tmp_path: Path):
+    _write_pd(tmp_path)
+    triage_scope_drift.add_ignore(tmp_path, label="rfc-track")
+    changed, message = triage_scope_drift.add_ignore(tmp_path, label="rfc-track")
+    assert changed is False
+    assert "already-ignored" in message
+
+
+def test_add_ignore_rejects_both_args(tmp_path: Path):
+    _write_pd(tmp_path)
+    with pytest.raises(ValueError):
+        triage_scope_drift.add_ignore(tmp_path, label="a", milestone="b")
+
+
+def test_add_ignore_rejects_empty_value(tmp_path: Path):
+    _write_pd(tmp_path)
+    with pytest.raises(ValueError):
+        triage_scope_drift.add_ignore(tmp_path, label="   ")
+
+
+def test_ignore_then_recompute_excludes_signal(tmp_path: Path):
+    """End-to-end: add_ignore() suppresses the signal on the next compute."""
+    _write_pd(tmp_path)
+    cache = tmp_path / ".deft-cache"
+    for n in (1100, 1101, 1102):
+        _write_cached_issue(cache, "deftai/directive", n, labels=["rfc-track"])
+    pre = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert pre.labels == {"rfc-track": 3}
+    triage_scope_drift.add_ignore(tmp_path, label="rfc-track")
+    post = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert post.labels == {}
+    assert post.total == 0
+
+
+# ---------------------------------------------------------------------------
+# Threshold override (test-only contract)
+# ---------------------------------------------------------------------------
+
+
+def test_threshold_override_lowers_bar(tmp_path: Path):
+    _write_pd(tmp_path)
+    cache = tmp_path / ".deft-cache"
+    for n in (1200, 1201):
+        _write_cached_issue(cache, "deftai/directive", n, labels=["edge-case"])
+    report = triage_scope_drift.compute_drift(
+        tmp_path, cache_root=cache, threshold=2
+    )
+    assert report.labels == {"edge-case": 2}

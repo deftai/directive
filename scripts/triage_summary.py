@@ -6,7 +6,9 @@ existing unified ``.deft-cache/github-issue/<owner>/<repo>/`` cache
 layout (`#883 Story 2`) and the operator-private ``candidates.jsonl``
 audit log (`#845 Story 2`), derives four counts (untriaged, stale-defer,
 in-flight, WIP-vs-cap), and prints ONE bounded (<=120 char) line in the
-documented format::
+documented format. D14 (#1133) adds an optional ``[scope-drift] N``
+segment when subscription drift is detected against the active
+``plan.policy.triageScope[]``; suppressed at zero.
 
     [triage] 12 untriaged ┬╖ 5 stale-defer (resume condition met) ┬╖ 8 in-flight ┬╖ WIP 12/12 ΓÜá
 
@@ -164,6 +166,11 @@ class SummaryResult:
     convention; renderers MUST treat the boolean as the discriminator
     (the all-zero shape on an empty cache MUST emit the empty-cache
     prompt, never zeros).
+
+    ``scope_drift`` (D14 / #1133) is the distinct-issue count that
+    would join the cache if every currently-detected unsubscribed
+    label/milestone were opted into. Suppressed from the one-liner
+    when zero; surfaced as ``[scope-drift] N`` when positive.
     """
 
     cache_empty: bool
@@ -176,6 +183,12 @@ class SummaryResult:
     #: at 8 entries so the JSONL line never blows past the
     #: ``vbrief/.eval/summary-history.jsonl`` rolling-tail tolerance.
     repos: tuple[str, ...] = field(default_factory=tuple)
+    #: D14 / #1133: subscription-drift count (distinct open cached
+    #: issues that would join the subscription if every surfaced
+    #: label/milestone signal were opted into). Defaults to 0 for
+    #: backward compatibility with pre-D14 callers / tests that
+    #: construct :class:`SummaryResult` directly.
+    scope_drift: int = 0
 
     def to_record(self, *, emitted_at: str, line: str) -> dict[str, Any]:
         """Render as the ``summary-history.jsonl`` record shape."""
@@ -190,6 +203,7 @@ class SummaryResult:
             "wip_count": self.wip_count,
             "wip_cap": self.wip_cap,
             "repos": list(self.repos),
+            "scope_drift": self.scope_drift,
         }
 
 
@@ -403,6 +417,7 @@ def compute_summary(
             wip_count=wip_count,
             wip_cap=wip_cap,
             repos=tuple(repos[:8]),
+            scope_drift=0,
         )
 
     entries = read_audit_log(resolved_log_path)
@@ -428,6 +443,8 @@ def compute_summary(
             # onto D3 -- back-compat preserved.
             stale_defer += 1
 
+    scope_drift = _read_scope_drift_total(project_root, resolved_cache_root)
+
     return SummaryResult(
         cache_empty=False,
         untriaged=untriaged,
@@ -436,7 +453,25 @@ def compute_summary(
         wip_count=wip_count,
         wip_cap=wip_cap,
         repos=tuple(repos[:8]),
+        scope_drift=scope_drift,
     )
+
+
+def _read_scope_drift_total(project_root: Path, cache_root: Path) -> int:
+    """Return the D14 (#1133) drift total -- 0 on any import / runtime failure.
+
+    The drift detector lives at ``scripts/triage_scope_drift.py`` and
+    is read-only; computing the total here is a cheap re-walk of the
+    same cache the summary already touched. Failures (missing module,
+    malformed PROJECT-DEFINITION, etc.) silently degrade to 0 so the
+    one-liner contract (always exits 0) is preserved.
+    """
+    try:
+        from triage_scope_drift import compute_drift  # noqa: I001
+        report = compute_drift(project_root, cache_root=cache_root)
+        return int(report.total)
+    except Exception:  # pragma: no cover -- broad on purpose; status surface
+        return 0
 
 
 def _truncate(text: str, max_chars: int) -> str:
@@ -485,6 +520,11 @@ def format_one_liner(result: SummaryResult, *, max_chars: int = MAX_LINE_CHARS) 
     if result.wip_count >= result.wip_cap:
         wip_field = f"{wip_field} {WIP_WARN_GLYPH}"
     parts.append(wip_field)
+    # D14 / #1133: `[scope-drift] N` is suppressed at 0; surfaced last
+    # so truncation drops it BEFORE the WIP cap field (the cap is a
+    # gate signal; drift is informational).
+    if result.scope_drift > 0:
+        parts.append(f"[scope-drift] {result.scope_drift}")
 
     candidate = " \u00b7 ".join(parts)
     if len(candidate) <= max_chars:

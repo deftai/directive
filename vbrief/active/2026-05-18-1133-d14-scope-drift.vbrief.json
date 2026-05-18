@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: D14 (#1133) -- subscription drift detection + milestone rule + subscribe/unsubscribe mutation verbs + triageScopeIgnores[] foundation.",
+    "updated": "2026-05-18T14:30:00Z"
+  },
+  "plan": {
+    "title": "feat(triage): scope-drift detector + milestone rule type + subscribe/unsubscribe verbs + triageScopeIgnores[] foundation (#1133)",
+    "status": "running",
+    "narratives": {
+      "Description": "D14 extends the D12 subscription contract with three new surfaces: (a) drift detection that walks the .deft-cache/ entries, extracts labels + milestones, and surfaces unsubscribed signals when >=3 cached issues carry them; threshold lives at scripts/triage_scope_drift.py::_DRIFT_MIN_ISSUES = 3 as a framework constant. (b) the milestone rule type {rule: 'milestone', name: '<exact-name>'} added to triageScope[] grammar; any-of/is-open variants stay deferred to D14b/#1181. (c) task triage:scope-drift / triage:subscribe / triage:unsubscribe verbs that atomically mutate PROJECT-DEFINITION.vbrief.json, record a subscription-change audit entry to vbrief/.eval/subscription-history.jsonl (sidecar mirroring D2's summary-history.jsonl precedent; the canonical candidates.jsonl schema is frozen so a subscription change cannot ride it), prompt the operator to re-bootstrap, and remain idempotent. (d) plan.policy.triageScopeIgnores[] typed field accepts {label: <L>} / {milestone: <M>} entries so the drift detector can be told 'don't surface this again' without subscribing. D2's one-liner gains a '[scope-drift] N' segment (suppressed at 0). D6 triage skill mentions the surface in Phase 0 (sync) and Phase 4 (audit).",
+      "Origin": "Wave-2b D14 child of umbrella #1119. Issue body #1133 is canonical; umbrella v3 Current Shape comment 4471269010 §9 also pins D14a (this) vs D14b (#1181) vs D14c (#1182) split. Orchestrator prompt clarifies D14 ships the basic milestone rule (exact match) here; D14b will later add any-of / is-open variants.",
+      "Overview": "## What to build\n\n1. Extend scripts/triage_scope.py: add 'milestone' to VALID_RULE_TYPES, drop the DEFERRED entry, add validation branch + evaluator branch + render_rule branch. Add validate_scope_ignores helper + resolve_scope_ignores helper for plan.policy.triageScopeIgnores[]. Add helper functions for mutating triageScope[] / triageScopeIgnores[] atomically.\n2. New scripts/triage_scope_drift.py (+ _triage_scope_drift_cli.py shim) that walks the cache, computes drift counts, honors ignores, renders the breakdown, and exposes compute_drift_total for D2 integration.\n3. New scripts/triage_subscribe.py (+ _triage_subscribe_cli.py) that adds/removes rules (label / milestone / issue) atomically and writes a subscription-history.jsonl audit entry.\n4. tasks/triage-scope-drift.yml + tasks/triage-subscribe.yml fragments + alias tasks in root Taskfile.yml.\n5. Extend scripts/triage_summary.py: SummaryResult gains scope_drift int; format_one_liner appends '[scope-drift] N' when >0; compute_summary reads drift count via the new helper (read-only -- never triggers a recompute). summary-history.jsonl records gain a scope_drift field.\n6. scripts/vbrief_validate.py hook for triageScopeIgnores[] via lazy-import.\n7. skills/deft-directive-triage/SKILL.md: one-paragraph edit per phase to mention the drift surface (Phase 0 + Phase 4).\n8. Tests under tests/test_triage_scope_drift.py + tests/test_triage_subscribe.py + updates to tests/test_triage_scope.py + tests/test_triage_summary.py.\n\n## Acceptance criteria\n\n- Drift detection fires when >=3 cached issues use an unsubscribed label/milestone; <=2 is below threshold and not surfaced\n- triageScopeIgnores[] entries suppress the surface for those labels/milestones; drift detector excludes them on subsequent runs\n- task triage:scope-drift renders unsubscribed labels + milestones with counts; documents both subscribe and ignore paths in output\n- task triage:subscribe --label=X / --milestone=M / --issue=N mutate PROJECT-DEFINITION atomically; idempotent on re-run; record a subscription-change audit entry to vbrief/.eval/subscription-history.jsonl; print a reconciliation hint pointing at task triage:bootstrap -- --resume\n- task triage:unsubscribe reverses the operation; out-of-scope entries marked (not deleted)\n- task triage:scope-drift -- --ignore-label=X / --ignore-milestone=M records ignores; future drift surfaces exclude them\n- milestone rule type accepts {name: '<exact-name>'}; rejects malformed; evaluator matches issues by milestone.title exact match\n- task triage:summary one-liner emits '[scope-drift] N' when N>0; suppresses at 0; summary-history JSONL records gain scope_drift field\n- skills/deft-directive-triage/SKILL.md Phase 0 + Phase 4 mention drift surface\n- vbrief_validate.py validates triageScopeIgnores[] via lazy-import hook\n- task check green\n- PR body references #1119 + #1133 + umbrella Current Shape v3 comment\n\n## Type\n\nFeature -- framework cache-scope contract extension; consumer-agnostic primitives only (§12 boundary).\n\n## Refs\n\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Issue: https://github.com/deftai/directive/issues/1133\n- Current Shape v3: https://github.com/deftai/directive/issues/1119#issuecomment-4471269010\n- Sibling D12: https://github.com/deftai/directive/issues/1131\n- D14b (deferred milestone variants): https://github.com/deftai/directive/issues/1181\n- D14c (ignores tuning): https://github.com/deftai/directive/issues/1182"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1133",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1133: D14 -- scope-drift detection + mutation verbs"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-0/1/2 swarm"
+      }
+    ],
+    "updated": "2026-05-18T14:30:00Z"
+  }
+}

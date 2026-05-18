@@ -133,11 +133,40 @@ def test_validate_accepts_each_rule_type():
     assert errors == [], errors
 
 
-def test_validate_rejects_milestone_with_1181_pointer():
-    errors, _ = triage_scope.validate_scope_rules([{"rule": "milestone", "name": "v1.0"}])
+def test_validate_accepts_milestone_exact_match_d14():
+    """D14 / #1133 ships the milestone rule with the v1 exact-match shape.
+
+    Previously this test asserted REJECTION with a #1181 pointer (D12 era);
+    D14 promotes ``milestone`` into the VALID_RULE_TYPES set.
+    """
+    errors, warnings = triage_scope.validate_scope_rules(
+        [{"rule": "milestone", "name": "v2.0-blocker"}]
+    )
+    assert errors == [], errors
+    assert warnings == [], warnings
+
+
+def test_validate_rejects_milestone_missing_name():
+    errors, _ = triage_scope.validate_scope_rules([{"rule": "milestone"}])
     assert errors
-    assert "#1181" in errors[0]
-    assert "deferred" in errors[0].lower()
+    assert "milestone.name" in errors[0]
+
+
+def test_validate_rejects_milestone_with_empty_name():
+    errors, _ = triage_scope.validate_scope_rules(
+        [{"rule": "milestone", "name": "   "}]
+    )
+    assert errors
+    assert "milestone.name" in errors[0]
+
+
+def test_validate_warns_milestone_unknown_keys():
+    """D14b / #1181 variant keys (any-of / is-open) surface as warnings."""
+    _, warnings = triage_scope.validate_scope_rules(
+        [{"rule": "milestone", "name": "v2.0", "is-open": True}]
+    )
+    assert any("is-open" in w for w in warnings)
+    assert any("D14b" in w or "#1181" in w for w in warnings)
 
 
 def test_validate_rejects_unknown_rule_type():
@@ -548,9 +577,146 @@ def test_validate_triage_scope_on_plan_empty_returns_no_errors():
     assert out == []
 
 
-def test_validate_triage_scope_on_plan_surfaces_milestone_rejection():
+def test_validate_triage_scope_on_plan_accepts_milestone_d14():
+    """D14 / #1133: milestone {name: ...} now passes validation."""
     plan = {"policy": {"triageScope": [{"rule": "milestone", "name": "v1"}]}}
     out = triage_scope.validate_triage_scope_on_plan(plan, "x.vbrief.json")
+    assert out == []
+
+
+def test_validate_triage_scope_on_plan_surfaces_milestone_missing_name():
+    plan = {"policy": {"triageScope": [{"rule": "milestone"}]}}
+    out = triage_scope.validate_triage_scope_on_plan(plan, "x.vbrief.json")
     assert out
-    assert any("#1181" in e for e in out)
     assert all("(#1131)" in e for e in out)
+    assert any("milestone.name" in e for e in out)
+
+
+# ---------------------------------------------------------------------------
+# D14 / #1133: milestone evaluator
+# ---------------------------------------------------------------------------
+
+
+def _issue_with_milestone(
+    n: int,
+    *,
+    state: str = "open",
+    milestone_title: str | None = None,
+) -> dict:
+    base = _issue(n, state=state, labels=[])
+    if milestone_title is not None:
+        base["milestone"] = {"title": milestone_title, "number": 1}
+    return base
+
+
+def test_evaluate_milestone_exact_match_open_only():
+    issues = [
+        _issue_with_milestone(1, milestone_title="v2.0-blocker"),
+        _issue_with_milestone(2, milestone_title="v2.0-blocker"),
+        _issue_with_milestone(3, milestone_title="v1.9"),
+        _issue_with_milestone(4, state="closed", milestone_title="v2.0-blocker"),
+        _issue_with_milestone(5, milestone_title=None),
+    ]
+    matched = triage_scope.evaluate_rules(
+        [{"rule": "milestone", "name": "v2.0-blocker"}], issues, now=_now()
+    )
+    assert sorted(m["number"] for m in matched) == [1, 2]
+
+
+def test_evaluate_milestone_handles_bare_string_field():
+    issues = [
+        {"number": 10, "state": "open", "labels": [], "milestone": "v3.0"},
+        {"number": 11, "state": "open", "labels": []},
+    ]
+    matched = triage_scope.evaluate_rules(
+        [{"rule": "milestone", "name": "v3.0"}], issues
+    )
+    assert [m["number"] for m in matched] == [10]
+
+
+def test_evaluate_milestone_ignored_when_name_missing():
+    issues = [_issue_with_milestone(1, milestone_title="v2.0")]
+    matched = triage_scope.evaluate_rules([{"rule": "milestone"}], issues)
+    assert matched == []
+
+
+# ---------------------------------------------------------------------------
+# D14 / #1133: triageScopeIgnores[] validation + resolve
+# ---------------------------------------------------------------------------
+
+
+def test_validate_scope_ignores_accepts_none():
+    errors, warnings = triage_scope.validate_scope_ignores(None)
+    assert errors == []
+    assert warnings == []
+
+
+def test_validate_scope_ignores_accepts_empty_list():
+    errors, _ = triage_scope.validate_scope_ignores([])
+    assert errors == []
+
+
+def test_validate_scope_ignores_accepts_label_and_milestone():
+    errors, _ = triage_scope.validate_scope_ignores(
+        [{"label": "rfc-track"}, {"milestone": "future"}]
+    )
+    assert errors == [], errors
+
+
+def test_validate_scope_ignores_rejects_non_list():
+    errors, _ = triage_scope.validate_scope_ignores({"label": "x"})
+    assert errors
+    assert "must be a list" in errors[0]
+
+
+def test_validate_scope_ignores_rejects_missing_keys():
+    errors, _ = triage_scope.validate_scope_ignores([{}])
+    assert errors
+    assert "label" in errors[0].lower()
+
+
+def test_validate_scope_ignores_rejects_both_keys():
+    errors, _ = triage_scope.validate_scope_ignores(
+        [{"label": "x", "milestone": "y"}]
+    )
+    assert any("mutually exclusive" in e for e in errors)
+
+
+def test_validate_scope_ignores_rejects_empty_value():
+    errors, _ = triage_scope.validate_scope_ignores([{"label": "  "}])
+    assert errors
+    assert "non-empty" in errors[0]
+
+
+def test_resolve_scope_ignores_returns_empty_when_unset(tmp_path: Path):
+    _write_project_definition(tmp_path, {"title": "x", "status": "running", "items": []})
+    out = triage_scope.resolve_scope_ignores(project_root=tmp_path)
+    assert out == {"labels": set(), "milestones": set()}
+
+
+def test_resolve_scope_ignores_partitions_label_vs_milestone(tmp_path: Path):
+    _write_project_definition(
+        tmp_path,
+        {
+            "title": "x",
+            "status": "running",
+            "items": [],
+            "policy": {
+                "triageScopeIgnores": [
+                    {"label": "rfc-track"},
+                    {"label": "wontfix"},
+                    {"milestone": "icebox"},
+                ]
+            },
+        },
+    )
+    out = triage_scope.resolve_scope_ignores(project_root=tmp_path)
+    assert out["labels"] == {"rfc-track", "wontfix"}
+    assert out["milestones"] == {"icebox"}
+
+
+def test_validate_triage_scope_ignores_on_plan_tags_issue_1133():
+    plan = {"policy": {"triageScopeIgnores": [{}]}}
+    out = triage_scope.validate_triage_scope_ignores_on_plan(plan, "x.vbrief.json")
+    assert out
+    assert all("(#1133)" in e for e in out)

@@ -1,0 +1,30 @@
+version: '3'
+
+# tasks/triage-scope-drift.yml -- subscription drift detection (#1133 / D14).
+#
+# Wired into the parent Taskfile.yml via the `includes:` block under namespace
+# key `triage-scope-drift`. When included that way, the inner task
+# `scope-drift` is reachable as `task triage-scope-drift:scope-drift`. The
+# parent Taskfile exposes the documented `task triage:scope-drift` alias.
+#
+# Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+# declarations on this task because user-facing flags (`--ignore-label`,
+# `--ignore-milestone`, `--threshold`, `--cache-root`) are forwarded via
+# {{.CLI_ARGS}} and go-task's incremental-build cache layer would silently
+# swallow them.
+#
+# Companion script: scripts/triage_scope_drift.py (+ shims).
+# Companion tests:  tests/test_triage_scope_drift.py.
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  scope-drift:
+    desc: "Detect subscription drift -- unsubscribed labels/milestones on cached open issues (#1133 / D14). -- task triage:scope-drift [-- --ignore-label=L | --ignore-milestone=M]"
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_scope_drift.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

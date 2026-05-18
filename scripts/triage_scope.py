@@ -15,7 +15,9 @@ Programmatic API:
 * :func:`resolve_scope_rules` -- read PROJECT-DEFINITION and return the
   effective rule list (default: ``[{"rule":"all-open"}]``).
 * :func:`validate_scope_rules` -- structural validation. The
-  ``milestone`` rule type is REJECTED with a pointer to #1181.
+  ``milestone`` rule type ACCEPTS ``{name: "<exact-name>"}`` (D14 /
+  #1133); the ``any-of`` and ``is-open: true`` variants stay deferred
+  to D14b / #1181.
 * :func:`subscription_hash` -- stable canonical-JSON SHA-256 digest
   (truncated to 16 chars) used as the coverage-cache invalidation key.
 * :func:`evaluate_rules` -- apply the rule set to an issue list; the
@@ -24,6 +26,13 @@ Programmatic API:
   -- coverage cache lifecycle helpers (Decision 3). Reads NEVER trigger
   a recompute; stale records surface as ``stale=True`` so callers can
   render ``coverage 247/?`` (literal ``?``).
+* :func:`validate_scope_ignores` /
+  :func:`resolve_scope_ignores` -- D14 (#1133) typed
+  ``plan.policy.triageScopeIgnores[]`` foundation: list of
+  ``{label: <L>}`` / ``{milestone: <M>}`` records the drift detector
+  consults to suppress entries the operator explicitly chose not to
+  subscribe to. Long-tail tuning verbs (mass-edit, sunset-on,
+  match-many) are D14c / #1182 scope.
 
 See ``scripts/_triage_scope_cli.py`` for the argparse shim. See the
 Current Shape comment 4471901494 on issue #1131 for the canonical
@@ -86,11 +95,14 @@ DEFAULT_TRIAGE_SCOPE: list[dict[str, Any]] = [{"rule": "all-open"}]
 #: consumer cache).
 SUBSCRIPTION_HASH_LEN: int = 16
 
-#: Recognised rule discriminator values.
+#: Recognised rule discriminator values. ``milestone`` shipped in D14
+#: (#1133) with the v1 ``{name: "<exact-name>"}`` shape; the ``any-of``
+#: and ``is-open: true`` variants are still owned by D14b / #1181.
 VALID_RULE_TYPES: frozenset[str] = frozenset(
     {
         "all-open",
         "labels",
+        "milestone",
         "opened-since",
         "updated-since",
         "referenced-by-vbrief",
@@ -101,13 +113,17 @@ VALID_RULE_TYPES: frozenset[str] = frozenset(
 
 #: Rule types reserved for downstream stories. Validation rejects them
 #: with a pointer to the owning issue so consumers get a clear error
-#: rather than silent ignore.
-DEFERRED_RULE_TYPES: dict[str, str] = {
-    "milestone": (
-        "milestone rule type is deferred to D14b / #1181; "
-        "see https://github.com/deftai/directive/issues/1181"
-    ),
-}
+#: rather than silent ignore. D14b / #1181 owns the ``milestone``
+#: ``any-of`` and ``is-open: true`` variants -- the v1 exact-match
+#: shape shipped in D14 (#1133); future variants will surface as
+#: per-field validation errors rather than discriminator-level
+#: rejections.
+DEFERRED_RULE_TYPES: dict[str, str] = {}
+
+#: Recognised ignore-entry discriminator values (D14 / #1133).
+#: Re-exported from :mod:`_triage_scope_ignores` so existing call
+#: sites that ``triage_scope.VALID_IGNORE_KEYS`` keep working.
+from _triage_scope_ignores import VALID_IGNORE_KEYS  # noqa: E402,F401,I001
 
 #: Valid scope values for ``referenced-by-vbrief``.
 _REFERENCED_BY_VBRIEF_SCOPES: frozenset[str] = frozenset({"any", "active"})
@@ -245,8 +261,10 @@ def validate_scope_rules(rules: Any) -> tuple[list[str], list[str]]:
       handled by :func:`resolve_scope_rules` with the framework default).
     * Each rule MUST be an object with a ``rule`` string discriminator.
     * The discriminator MUST be a member of :data:`VALID_RULE_TYPES`.
-    * The ``milestone`` discriminator is REJECTED with a pointer to
-      #1181 (Decision 2).
+    * The ``milestone`` discriminator was deferred from D12 / #1131 to
+      D14 / #1133, which ships the v1 exact-match shape
+      (``{name: "<exact-name>"}``). D14b / #1181 will introduce the
+      ``any-of`` and ``is-open: true`` variants.
     * Per-type field shape is checked (label list, duration string, etc.).
     """
     errors: list[str] = []
@@ -321,6 +339,28 @@ def _validate_rule_body(
         for j, label in enumerate(target):
             if not isinstance(label, str) or not label:
                 errors.append(f"{prefix}.labels.{which}[{j}] must be a non-empty string")
+        return
+
+    if kind == "milestone":
+        # D14 / #1133: v1 ships exact-match on ``name`` only. D14b /
+        # #1181 will introduce ``any-of`` + ``is-open: true`` variants;
+        # for now any unknown sibling key triggers a warning so a
+        # consumer who hand-edits a forward-compat shape gets a clear
+        # hint rather than silent drift.
+        name = rule.get("name")
+        if not isinstance(name, str) or not name.strip():
+            errors.append(
+                f"{prefix}.milestone.name must be a non-empty string "
+                "(D14 / #1133 v1 supports exact-match only; "
+                "any-of / is-open variants are deferred to D14b / #1181)"
+            )
+            return
+        extra = sorted(k for k in rule if k not in {"rule", "name"})
+        if extra:
+            warnings.append(
+                f"{prefix}.milestone: ignoring unrecognised keys {extra} "
+                "(D14b / #1181 will introduce any-of / is-open variants)"
+            )
         return
 
     if kind in {"opened-since", "updated-since"}:
@@ -612,6 +652,20 @@ def evaluate_rules(
                 n = _issue_number(issue)
                 if n in pinned:
                     matched.setdefault(n, issue)
+        elif kind == "milestone":
+            # D14 / #1133: v1 exact-match against the cached upstream
+            # milestone title. The GitHub REST payload nests milestone
+            # info as ``{ "title": "<name>", ... }``; consumers who pass
+            # bare strings or pre-normalised dicts both round-trip via
+            # :func:`_milestone_name`.
+            wanted = rule.get("name")
+            if not isinstance(wanted, str) or not wanted:
+                continue
+            for issue in issue_list:
+                if not _is_open(issue):
+                    continue
+                if _milestone_name(issue) == wanted:
+                    matched.setdefault(_issue_number(issue), issue)
 
     return [matched[k] for k in sorted(matched)]
 
@@ -638,6 +692,29 @@ def _label_names(issue: dict[str, Any]) -> set[str]:
         elif isinstance(item, str):
             names.add(item)
     return names
+
+
+def _milestone_name(issue: dict[str, Any]) -> str:
+    """Return the issue's milestone title (empty string when absent).
+
+    The GitHub REST issues payload shapes milestone info as
+    ``{ "title": <str>, ... }``; some upstreams or test fixtures pass
+    bare strings or a ``name`` alias. Tolerant of all three shapes;
+    returns ``""`` (never ``None``) so downstream equality checks stay
+    type-safe.
+    """
+    raw = issue.get("milestone")
+    if isinstance(raw, dict):
+        title = raw.get("title")
+        if isinstance(title, str):
+            return title
+        alt = raw.get("name")
+        if isinstance(alt, str):
+            return alt
+        return ""
+    if isinstance(raw, str):
+        return raw
+    return ""
 
 
 def _ts_after(stamp: Any, cutoff: datetime) -> bool:
@@ -797,68 +874,20 @@ def format_coverage_display(
 
 
 # ---------------------------------------------------------------------------
-# vBRIEF reference helper (used by --list)
+# vBRIEF reference helper + --list renderer (D14 / #1133 split)
 # ---------------------------------------------------------------------------
+#
+# The implementations live in ``scripts/_triage_scope_renderers.py`` to
+# keep this module under the 1000-line MUST cap from ``coding/coding.md``
+# after D14 (#1133) added the milestone rule type + ignore-list
+# surface. Re-exported here so existing call sites and tests that
+# ``import triage_scope`` keep working unchanged.
 
-
-def extract_referenced_issues(
-    project_root: Path | None = None,
-    *,
-    lifecycle_folders: tuple[str, ...] = (
-        "proposed",
-        "pending",
-        "active",
-        "completed",
-        "cancelled",
-    ),
-) -> dict[str, set[int]]:
-    """Walk ``vbrief/<folder>/*.vbrief.json`` and pull referenced issue numbers.
-
-    Returns ``{"any": {...}, "active": {...}}`` -- the per-scope sets
-    consumed by the ``referenced-by-vbrief`` evaluator. Used by
-    ``triage:scope --list`` to surface how the consumer's vBRIEF graph
-    feeds the subscription.
-    """
-    root = (project_root or Path.cwd()) / "vbrief"
-    any_set: set[int] = set()
-    active_set: set[int] = set()
-    if not root.is_dir():
-        return {"any": any_set, "active": active_set}
-    for folder in lifecycle_folders:
-        folder_path = root / folder
-        if not folder_path.is_dir():
-            continue
-        for vbrief_path in folder_path.glob("*.vbrief.json"):
-            try:
-                data = json.loads(vbrief_path.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
-                continue
-            plan = data.get("plan") if isinstance(data, dict) else None
-            if not isinstance(plan, dict):
-                continue
-            refs = plan.get("references") or []
-            if not isinstance(refs, list):
-                continue
-            for ref in refs:
-                if not isinstance(ref, dict):
-                    continue
-                if ref.get("type") != "x-vbrief/github-issue":
-                    continue
-                uri = ref.get("uri", "")
-                if not isinstance(uri, str):
-                    continue
-                tail = uri.rstrip("/").rsplit("/", 1)[-1]
-                if tail.isdigit():
-                    n = int(tail)
-                    any_set.add(n)
-                    if folder == "active":
-                        active_set.add(n)
-    return {"any": any_set, "active": active_set}
-
-
-# ---------------------------------------------------------------------------
-# --list renderer
-# ---------------------------------------------------------------------------
+from _triage_scope_renderers import (  # noqa: E402,F401,I001
+    extract_referenced_issues,
+    _render_rule,
+)
+from _triage_scope_renderers import render_list as _render_list_impl  # noqa: E402,I001
 
 
 def render_list(
@@ -867,61 +896,18 @@ def render_list(
     project_root: Path | None = None,
     is_default: bool = False,
 ) -> str:
-    """Return the human-readable ``triage:scope --list`` recap.
+    """Re-export wrapper around :func:`_triage_scope_renderers.render_list`.
 
-    Format:
-
-        triage:scope effective rules (N):
-          1. all-open
-          2. labels any-of=[bug, regression]
-          3. explicit-watch:
-               - #1234  (<note>)
-               - #5678  (<note>)
-        subscription-hash: <hex>
-
-    A leading ``(default applied)`` annotation is added when the rule
-    set is the framework default (``plan.policy.triageScope`` unset).
-    Per Decision 4, ``explicit-watch`` entries always print their note
-    so future operators understand why a specific issue was pinned.
+    Threads :func:`subscription_hash` through as the hash callable so the
+    renderer module does not need to import this module back (which
+    would create a circular import). All other args pass through verbatim.
     """
-    rules = list(rules)
-    lines: list[str] = []
-    header = f"triage:scope effective rules ({len(rules)}):"
-    if is_default:
-        header += " (default applied -- plan.policy.triageScope unset)"
-    lines.append(header)
-    for i, rule in enumerate(rules, start=1):
-        lines.extend(_render_rule(i, rule))
-    lines.append(f"subscription-hash: {subscription_hash(rules)}")
-    return "\n".join(lines)
-
-
-def _render_rule(idx: int, rule: dict[str, Any]) -> list[str]:
-    kind = rule.get("rule", "<unknown>")
-    if kind == "all-open":
-        return [f"  {idx}. all-open"]
-    if kind == "labels":
-        if "any-of" in rule:
-            return [f"  {idx}. labels any-of={sorted(rule['any-of'])}"]
-        if "all-of" in rule:
-            return [f"  {idx}. labels all-of={sorted(rule['all-of'])}"]
-        return [f"  {idx}. labels (malformed)"]
-    if kind in {"opened-since", "updated-since"}:
-        return [f"  {idx}. {kind} duration={rule.get('duration', '?')}"]
-    if kind == "referenced-by-vbrief":
-        return [f"  {idx}. referenced-by-vbrief scope={rule.get('scope', '?')}"]
-    if kind == "sliced-from":
-        return [f"  {idx}. sliced-from scope={rule.get('scope', '?')}"]
-    if kind == "explicit-watch":
-        out = [f"  {idx}. explicit-watch:"]
-        for entry in rule.get("issues", []):
-            if not isinstance(entry, dict):
-                continue
-            n = entry.get("n")
-            note = entry.get("note", "")
-            out.append(f"       - #{n}  ({note})")
-        return out
-    return [f"  {idx}. {kind} (unknown rule type)"]
+    return _render_list_impl(
+        rules,
+        subscription_hash_fn=subscription_hash,
+        project_root=project_root,
+        is_default=is_default,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -979,6 +965,21 @@ def validate_triage_scope_on_plan(plan: Any, filepath: Any) -> list[str]:
     for err in errors:
         out.append(f"{filepath}: {err} (#1131)")
     return out
+
+
+# ---------------------------------------------------------------------------
+# D14 / #1133: typed ``plan.policy.triageScopeIgnores[]`` foundation.
+# ---------------------------------------------------------------------------
+#
+# Validator + resolver + vbrief_validate hook live in
+# ``scripts/_triage_scope_ignores.py`` so this module stays under the
+# 1000-line MUST cap. Re-exported here for existing call sites.
+
+from _triage_scope_ignores import (  # noqa: E402,F401,I001
+    validate_scope_ignores,
+    resolve_scope_ignores,
+    validate_triage_scope_ignores_on_plan,
+)
 
 
 def main(argv: list[str] | None = None) -> int:

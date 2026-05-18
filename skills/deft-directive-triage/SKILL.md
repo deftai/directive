@@ -40,7 +40,8 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 1. ! Run `task verify:cache-fresh` (D5 / #1127). Exit 0 -> proceed to Phase 1. Exit 1 (stale or blocked) -> refresh per the printed remediation. Exit 2 (no bootstrap) -> run `task triage:bootstrap` first.
 2. ~ Refresh path: `task cache:fetch-all -- --source=github-issue --repo OWNER/NAME` for an already-bootstrapped project (idempotent, TTL-aware, re-applies the #883 scanner v2 quarantine rules); `task triage:bootstrap` for a first-time seed.
 3. ~ If `vbrief/active/*.vbrief.json` references are in play, run `task triage:refresh-active` to compare cached `meta.json.fetched_at` against live upstream `updatedAt` and surface drift before the queue is rendered.
-4. ⊗ Walk the queue against a stale cache -- the audit log will record decisions against bodies the operator never actually saw.
+4. ~ When the one-liner emitted by the session-start ritual carries a `[scope-drift] N` segment (D14 / #1133), run `task triage:scope-drift` to see the per-label / per-milestone breakdown of upstream signals on cached open issues that fall outside the active `plan.policy.triageScope[]` subscription. The output documents both opt-in (`task triage:subscribe -- --label=<L>`) and opt-out (`task triage:scope-drift -- --ignore-label=<L>`) paths -- pick one before walking the queue so the cohort reflects the operator's current intent rather than a stale subscription.
+5. ⊗ Walk the queue against a stale cache -- the audit log will record decisions against bodies the operator never actually saw.
 
 ## Phase 1 -- Classify
 
@@ -88,9 +89,10 @@ What would you like to do with this candidate?
 ! Confirm the session's decisions landed coherently before exiting the skill.
 
 1. ! Run `task triage:audit --format=json` (D11 / #1128) -- emits the stable `{generated_at, repo, vbrief_staleness, entry_count, entries: [...]}` schema; pipe through `jq` to surface this session's appended entries.
-2. ! Run `task triage:summary` (D2 / #1122) -- prints the canonical one-liner `[triage] N untriaged · S stale-defer · M in-flight · WIP X/Y [⚠]`. The WIP cap default is 10 per the umbrella Current Shape v3 (overridable via typed `plan.policy.wipCap`). The `⚠` glyph fires only at-or-above cap.
-3. ~ When the audit surfaces a stale acceptance (`accept` decision whose issue is no longer referenced by any `vbrief/active/`), surface it to the operator -- the typical fix is a fresh ingest via `task issue:ingest -- <N>` or a `task triage:reset <N>` if the acceptance was in error.
-4. ⊗ Skip the Phase 4 audit -- silent exit leaves the operator without a record of what landed in `vbrief/proposed/` this session, which is the typical recurrence vector for "what did I just accept?" confusion.
+2. ! Run `task triage:summary` (D2 / #1122) -- prints the canonical one-liner `[triage] N untriaged · S stale-defer · M in-flight · WIP X/Y [⚠] [· [scope-drift] N]`. The WIP cap default is 10 per the umbrella Current Shape v3 (overridable via typed `plan.policy.wipCap`). The `⚠` glyph fires only at-or-above cap. The `[scope-drift] N` segment (D14 / #1133) appears only when at least one unsubscribed label/milestone meets the framework `_DRIFT_MIN_ISSUES = 3` threshold; suppressed at zero.
+3. ~ When the summary surfaces a non-zero `[scope-drift] N` (D14 / #1133), surface it to the operator alongside `task triage:scope-drift` output and the matching `task triage:subscribe` / `task triage:unsubscribe` / `task triage:scope-drift -- --ignore-label=<L>` remediation. Subscription mutations record a `subscription-change` audit entry under `vbrief/.eval/subscription-history.jsonl` (sidecar of the existing `candidates.jsonl` audit surface) so future operators can replay how the subscription evolved. After every mutation, run `task triage:bootstrap -- --resume` to backfill newly-subscribed entries / mark newly-out-of-scope entries.
+4. ~ When the audit surfaces a stale acceptance (`accept` decision whose issue is no longer referenced by any `vbrief/active/`), surface it to the operator -- the typical fix is a fresh ingest via `task issue:ingest -- <N>` or a `task triage:reset <N>` if the acceptance was in error.
+5. ⊗ Skip the Phase 4 audit -- silent exit leaves the operator without a record of what landed in `vbrief/proposed/` this session, which is the typical recurrence vector for "what did I just accept?" confusion.
 
 ## Reversibility
 

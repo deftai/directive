@@ -447,6 +447,70 @@ def test_main_appends_one_history_record_per_invocation(
 
 
 # ---------------------------------------------------------------------------
+# D14 / #1133: scope-drift segment
+# ---------------------------------------------------------------------------
+
+
+def test_scope_drift_segment_appears_when_count_nonzero() -> None:
+    """D14: positive scope_drift surfaces as ``[scope-drift] N``."""
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=4,
+        stale_defer=0,
+        in_flight=2,
+        wip_count=3,
+        wip_cap=10,
+        scope_drift=12,
+    )
+    line = triage_summary.format_one_liner(result)
+    assert "[scope-drift] 12" in line
+
+
+def test_scope_drift_segment_suppressed_when_zero() -> None:
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=4,
+        stale_defer=0,
+        in_flight=2,
+        wip_count=3,
+        wip_cap=10,
+        scope_drift=0,
+    )
+    line = triage_summary.format_one_liner(result)
+    assert "scope-drift" not in line
+
+
+def test_to_record_includes_scope_drift_field() -> None:
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=4,
+        stale_defer=0,
+        in_flight=2,
+        wip_count=3,
+        wip_cap=10,
+        scope_drift=7,
+    )
+    rec = result.to_record(emitted_at="2026-05-18T14:30:00Z", line="[triage] ...")
+    assert rec["scope_drift"] == 7
+
+
+def test_to_record_default_scope_drift_zero() -> None:
+    """Backward compat: pre-D14 callers that construct SummaryResult
+    without scope_drift get the 0 default and the field in the JSONL.
+    """
+    result = triage_summary.SummaryResult(
+        cache_empty=True,
+        untriaged=0,
+        stale_defer=0,
+        in_flight=0,
+        wip_count=0,
+        wip_cap=10,
+    )
+    rec = result.to_record(emitted_at="2026-05-18T14:30:00Z", line="...")
+    assert rec["scope_drift"] == 0
+
+
+# ---------------------------------------------------------------------------
 # CLI exit code contract
 # ---------------------------------------------------------------------------
 

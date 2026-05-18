@@ -1,0 +1,38 @@
+version: '3'
+
+# tasks/triage-subscribe.yml -- subscribe / unsubscribe mutation verbs (#1133 / D14).
+#
+# Wired into the parent Taskfile.yml via the `includes:` block under namespace
+# key `triage-subscribe`. Inner tasks `subscribe` / `unsubscribe` are
+# reachable as `task triage-subscribe:subscribe` / `triage-subscribe:unsubscribe`.
+# The parent Taskfile exposes the user-facing `task triage:subscribe` /
+# `task triage:unsubscribe` aliases.
+#
+# Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+# declarations -- user-facing flags (`--label`, `--milestone`, `--issue`,
+# `--issue-note`, `--actor`) are forwarded via {{.CLI_ARGS}}.
+#
+# Companion script: scripts/triage_subscribe.py (+ shim).
+# Companion tests:  tests/test_triage_subscribe.py.
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  subscribe:
+    desc: "Subscribe to a label / milestone / issue on plan.policy.triageScope[] (#1133 / D14). -- task triage:subscribe -- (--label=L | --milestone=M | --issue=N)"
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_subscribe.py" subscribe --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
+  unsubscribe:
+    desc: "Unsubscribe a label / milestone / issue from plan.policy.triageScope[] (#1133 / D14). -- task triage:unsubscribe -- (--label=L | --milestone=M | --issue=N)"
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_subscribe.py" unsubscribe --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
