@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: N8 child of #1119 Wave-2d-1 -- task policy:show consolidated typed-policy inspector.",
+    "updated": "2026-05-18T21:34:30Z"
+  },
+  "plan": {
+    "title": "feat(policy): task policy:show consolidated typed-policy inspector (#1148 / N8)",
+    "status": "running",
+    "narratives": {
+      "Description": "N8 child of the #1119 Wave-2d-1 swarm. Ship `task policy:show` as the single read verb that enumerates every registered typed-policy field on plan.policy.* with its current value, default, and source (typed / default / legacy). Replaces the existing single-field branch-policy `task policy:show` (#746) with a consolidated inspector that walks _REGISTERED_POLICIES. Future typed-flag children append to that constant; no code change required in this PR or its consumers beyond append-and-test.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1148. Issue body is canonical (no Current Shape comment filed). Umbrella #1119 Wave-2d-1 batch handed off by orchestrator 019e374b-d84c-70e6-ac54-9d32202b8552; HARD-NO on AGENTS.md edits and the already-merged #1186 consumer-example.",
+      "Overview": "## What to build\n\n1. `scripts/policy.py` extension -- new `PolicyField` dataclass + `_REGISTERED_POLICIES` tuple of inspector callables + `inspect_all_policies(project_root) -> list[PolicyField]` public API. Seven inspectors cover every typed flag that landed on master in Waves 1-2c (allowDirectCommitsToMaster #746, wipCap #1124, triageScope #1131, triageScopeIgnores #1133/#1182, triageRankingLabels #1128, triageAutoClassify #1129, triageHoldMarkers #1129).\n2. `scripts/_policy_show_cli.py` (NEW) -- argparse shim handling `--format=json` (stable schema for scripting), `--changed-only` (filter to typed+legacy), `--field=<name>` (single-field isolation; exit 2 on unknown name). Pure-stdlib so it runs from any consumer install layout.\n3. `tasks/policy.yml` -- replace existing `show` task body with a call into `_policy_show_cli.py` forwarding {{.CLI_ARGS}} per `conventions/task-caching.md` (no sources/generates).\n4. `scripts/triage_welcome.py` Phase 6 -- TODO comment naming `task policy:show --changed-only` as the canonical post-ritual inspector; future N3 amendment PR wires the actual subprocess hop.\n5. `tests/test_policy_show.py` (NEW) -- coverage matrix: every registered field defaults / typed / legacy (where applicable); JSON schema stability; --changed-only filter; --field=<name> isolation; missing PROJECT-DEFINITION exits gracefully; unknown --field exits 2.\n6. `CHANGELOG.md` -- `[Unreleased]` entry.\n\n## Type\n\nFeature -- Deliverable N8 of #1119 Wave-2d-1. Read-only inspector verb; consolidates discoverability of every framework typed-flag surface.\n\n## Acceptance criteria\n\n- `task policy:show` exits 0 always and prints all seven registered fields.\n- `--format=json` emits a stable schema `{generated_at, fields: [{name, current, default, source}]}`.\n- `--changed-only` drops fields whose source is `default`; keeps `typed` + `legacy`.\n- `--field=<name>` shows exactly one field; unknown name exits 2 with explanatory stderr.\n- Missing PROJECT-DEFINITION renders the framework defaults gracefully (exit 0; informational stderr).\n- `_REGISTERED_POLICIES` is module-top in `scripts/policy.py` so future typed-flag children can discover the append point via `git grep _REGISTERED_POLICIES`.\n- Tests cover default / typed / legacy source for every field that has more than one source; JSON schema stability; flag matrix; error matrix.\n- `task check` passes.\n- AGENTS.md NOT touched (HARD-NO per Wave-2d-1 coordination contract).\n- §12 boundary: framework defaults stay consumer-agnostic -- no deft-specific labels or values land in this PR.\n- CHANGELOG entry under `[Unreleased]`.\n\n## Not in scope\n\n- Editing policy from the inspector (mutation verbs already exist; each typed flag ships its own write surface).\n- Policy diffing across PROJECT-DEFINITION revisions (`task policy:diff` -- separate future verb, not requested).\n- Wiring `task policy:show --changed-only` into N3 #1143's Phase 6 subprocess hop -- N3 is already on master; this PR leaves a TODO and a future amendment PR (or operator) closes the loop.\n- AGENTS.md edits (HARD-NO per orchestrator brief).\n- #1186 consumer-example edits (already merged; HARD-NO per orchestrator brief).\n- D18 #1136 `scope:promote --from-issue` integration (orthogonal to N8; no scope reference in this child).\n\n## Refs\n\n- Umbrella: #1119\n- This deliverable: #1148\n- Typed-flag pattern reference: #746 (policy.py base + audit log)\n- Field-registering primitives (already on master): D4 / #1124 (wipCap), D12 / #1131 (triageScope), D14 / #1133 + D14c / #1182 (triageScopeIgnores), D11 / #1128 (triageRankingLabels), D10 / #1129 (triageAutoClassify, triageHoldMarkers)\n- Future integration point (TODO): N3 / #1143 Phase 6 final summary"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1148",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1148: N8 -- task policy:show consolidated typed-policy inspector"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: triage-eval governance swarm"
+      }
+    ],
+    "updated": "2026-05-18T21:34:30Z"
+  }
+}

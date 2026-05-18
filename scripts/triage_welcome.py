@@ -853,6 +853,16 @@ def run_welcome(
             out_fn("[6/6] Final state:")
             if run_subprocess:
                 _run_task(["triage:summary"], cwd=project_root)
+                # TODO(#1148 / N8): wire `task policy:show --changed-only`
+                # here as the canonical consolidated typed-policy
+                # inspector for the post-ritual summary. The inspector
+                # landed on master via N8 (#1148) but this Phase 6 hop
+                # is intentionally NOT updated in that same PR because
+                # N3 (#1143) was already merged when N8 shipped -- a
+                # follow-up amendment PR (or operator) closes the loop
+                # by adding ``_run_task(["policy:show", "--",
+                # "--changed-only"], cwd=project_root)`` immediately
+                # after the triage:summary call above.
             else:
                 out_fn(
                     "  [dry-mode] triage:summary subprocess suppressed by caller."

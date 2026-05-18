@@ -70,7 +70,11 @@ def test_policy_yml_declares_show_enforce_allow():
     assert "show:" in text
     assert "enforce-branches:" in text
     assert "allow-direct-commits:" in text
-    assert "scripts/policy.py" in text
+    # After #1148 / N8 the `show` task dispatches through the consolidated
+    # inspector CLI (`scripts/_policy_show_cli.py`) which imports
+    # `scripts/policy.py` for `_REGISTERED_POLICIES`; mutation tasks keep
+    # using `scripts/policy_set.py`.
+    assert "scripts/_policy_show_cli.py" in text
     assert "scripts/policy_set.py" in text
 
 

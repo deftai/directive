@@ -24,6 +24,7 @@ import json
 import os
 import re
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -529,6 +530,366 @@ def disclosure_line(result: PolicyResult) -> str:
         "[deft policy] Branch-protection policy is ON. Direct commits to the "
         "default branch are blocked. Use a feature branch."
     )
+
+
+# ---------------------------------------------------------------------------
+# Consolidated typed-policy inspector (#1148 / N8 of #1119 Wave-2d-1)
+# ---------------------------------------------------------------------------
+#
+# ``task policy:show`` walks :data:`_REGISTERED_POLICIES` and renders one
+# row per registered typed-policy field. Each inspector callable returns a
+# :class:`PolicyField` carrying the field name, current effective value,
+# framework default, and resolution source (``typed`` / ``default`` /
+# ``legacy``). Future typed-flag children append their inspector to the
+# constant; no consumer-side wiring required.
+#
+# Source semantics (per the #1148 issue body):
+#
+# * ``typed`` -- ``plan.policy.<field>`` is present and contributes the
+#   effective value (for list fields this also requires a non-empty list
+#   so an accidental ``triageScope: []`` does not masquerade as configured).
+# * ``default`` -- ``plan.policy.<field>`` is absent, empty, or malformed.
+#   The resolver fell back to the framework default.
+# * ``legacy`` -- ONLY for ``allowDirectCommitsToMaster``: the typed key is
+#   absent but the deprecated narrative key ``plan.narratives['Allow
+#   direct commits to master']`` is present. Other fields never had a
+#   pre-typed legacy shape so this state cannot fire for them.
+#
+# The CLI shim lives in :mod:`_policy_show_cli` so this module stays well
+# under the 1000-line MUST cap from ``coding/coding.md``.
+
+#: Canonical dotted-path names for every registered field. These are the
+#: strings ``--field=<name>`` accepts and the keys ``--format=json`` emits.
+FIELD_ALLOW_DIRECT_COMMITS: str = "plan.policy.allowDirectCommitsToMaster"
+FIELD_WIP_CAP: str = "plan.policy.wipCap"
+FIELD_TRIAGE_SCOPE: str = "plan.policy.triageScope"
+FIELD_TRIAGE_SCOPE_IGNORES: str = "plan.policy.triageScopeIgnores"
+FIELD_TRIAGE_RANKING_LABELS: str = "plan.policy.triageRankingLabels"
+FIELD_TRIAGE_AUTO_CLASSIFY: str = "plan.policy.triageAutoClassify"
+FIELD_TRIAGE_HOLD_MARKERS: str = "plan.policy.triageHoldMarkers"
+
+#: Framework-default literals for the list-shaped policy fields. The
+#: branch / WIP defaults are sourced from existing module constants
+#: (:data:`DEFAULT_WIP_CAP`, the boolean ``False``).
+DEFAULT_TRIAGE_SCOPE_VALUE: list[dict[str, Any]] = [{"rule": "all-open"}]
+DEFAULT_TRIAGE_SCOPE_IGNORES_VALUE: list[Any] = []
+DEFAULT_TRIAGE_RANKING_LABELS_VALUE: list[str] = []
+DEFAULT_TRIAGE_AUTO_CLASSIFY_VALUE: list[Any] = []
+#: Fallback mirror of :data:`scripts.triage_classify.DEFAULT_HOLD_MARKERS`
+#: used when ``triage_classify`` is unimportable (stripped-down install).
+#: The canonical source is :mod:`triage_classify`; this constant is the
+#: belt-and-suspenders fallback for the show CLI ONLY.
+_FALLBACK_HOLD_MARKERS: tuple[str, ...] = (
+    "do not implement",
+    "BLOCKED",
+    "HOLDING",
+    "Holding / capture only",
+)
+
+
+@dataclass(frozen=True)
+class PolicyField:
+    """One row in the :func:`inspect_all_policies` result.
+
+    Fields:
+
+    * ``name`` -- canonical dotted path (e.g. ``plan.policy.wipCap``).
+    * ``current`` -- the effective value (what the corresponding resolver
+      would return for downstream consumers).
+    * ``default`` -- the framework default value for this field.
+    * ``source`` -- one of ``'typed'`` / ``'default'`` / ``'legacy'``.
+    """
+
+    name: str
+    current: Any
+    default: Any
+    source: str
+
+
+def _get_plan(data: dict | None) -> dict[str, Any]:
+    """Return ``data['plan']`` when it's a dict, else an empty dict."""
+    if not isinstance(data, dict):
+        return {}
+    plan = data.get("plan")
+    return plan if isinstance(plan, dict) else {}
+
+
+def _get_policy_block(data: dict | None) -> dict[str, Any]:
+    """Return ``data['plan']['policy']`` when it's a dict, else an empty dict."""
+    policy = _get_plan(data).get("policy")
+    return policy if isinstance(policy, dict) else {}
+
+
+def _get_narratives(data: dict | None) -> dict[str, Any]:
+    """Return ``data['plan']['narratives']`` when it's a dict, else empty."""
+    narratives = _get_plan(data).get("narratives")
+    return narratives if isinstance(narratives, dict) else {}
+
+
+def _default_hold_markers() -> list[str]:
+    """Return the framework default hold markers as a fresh list.
+
+    Sources :data:`triage_classify.DEFAULT_HOLD_MARKERS` lazily so the
+    show CLI stays importable on installs that strip the triage modules.
+    Falls back to the in-module mirror :data:`_FALLBACK_HOLD_MARKERS`.
+    """
+    try:
+        # Local import: avoid circular import at module load time and
+        # tolerate stripped-down installs that lack triage_classify.
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from triage_classify import DEFAULT_HOLD_MARKERS  # type: ignore[import-not-found]
+
+        return list(DEFAULT_HOLD_MARKERS)
+    except Exception:  # noqa: BLE001 -- defensive; fall back to mirror
+        return list(_FALLBACK_HOLD_MARKERS)
+
+
+def _inspect_allow_direct_commits(
+    data: dict | None, project_root: Path
+) -> PolicyField:
+    """Inspect ``plan.policy.allowDirectCommitsToMaster`` (#746)."""
+    policy_block = _get_policy_block(data)
+    if "allowDirectCommitsToMaster" in policy_block:
+        raw = policy_block["allowDirectCommitsToMaster"]
+        current = raw if isinstance(raw, bool) else False
+        return PolicyField(
+            name=FIELD_ALLOW_DIRECT_COMMITS,
+            current=current,
+            default=False,
+            source="typed",
+        )
+    narratives = _get_narratives(data)
+    if LEGACY_NARRATIVE_KEY in narratives:
+        coerced, _raw = _coerce_legacy_narrative(narratives[LEGACY_NARRATIVE_KEY])
+        return PolicyField(
+            name=FIELD_ALLOW_DIRECT_COMMITS,
+            current=coerced,
+            default=False,
+            source="legacy",
+        )
+    return PolicyField(
+        name=FIELD_ALLOW_DIRECT_COMMITS,
+        current=False,
+        default=False,
+        source="default",
+    )
+
+
+def _inspect_wip_cap(data: dict | None, project_root: Path) -> PolicyField:
+    """Inspect ``plan.policy.wipCap`` (#1124 / D4 of #1119)."""
+    policy_block = _get_policy_block(data)
+    if "wipCap" in policy_block:
+        raw = policy_block["wipCap"]
+        if isinstance(raw, int) and not isinstance(raw, bool) and raw >= 0:
+            current: int = raw
+        else:
+            # Malformed -- resolver falls back to the default at runtime;
+            # surface that here for honest reporting.
+            current = DEFAULT_WIP_CAP
+        return PolicyField(
+            name=FIELD_WIP_CAP,
+            current=current,
+            default=DEFAULT_WIP_CAP,
+            source="typed",
+        )
+    return PolicyField(
+        name=FIELD_WIP_CAP,
+        current=DEFAULT_WIP_CAP,
+        default=DEFAULT_WIP_CAP,
+        source="default",
+    )
+
+
+def _list_field_inspector(
+    data: dict | None,
+    key: str,
+    name: str,
+    default_value: list[Any],
+    *,
+    empty_is_typed: bool = False,
+) -> PolicyField:
+    """Shared helper for the list-shaped typed-policy fields.
+
+    The matching resolvers in :mod:`triage_scope`,
+    :mod:`triage_queue`, :mod:`triage_classify`, and
+    :mod:`_triage_scope_ignores` treat an empty / non-list value as
+    "unset" and fall back to the framework default. Mirror that
+    semantic here so ``source`` agrees with what the consumer-side
+    resolver actually returns. ``empty_is_typed=True`` is reserved for
+    ``triageHoldMarkers`` where an empty list is a meaningful operator
+    opt-out (silence the hold-marker rule entirely; see #1129
+    Decision 3).
+    """
+    policy_block = _get_policy_block(data)
+    if key not in policy_block:
+        return PolicyField(
+            name=name,
+            current=list(default_value),
+            default=list(default_value),
+            source="default",
+        )
+    raw = policy_block[key]
+    if not isinstance(raw, list):
+        return PolicyField(
+            name=name,
+            current=list(default_value),
+            default=list(default_value),
+            source="default",
+        )
+    if not raw and not empty_is_typed:
+        return PolicyField(
+            name=name,
+            current=list(default_value),
+            default=list(default_value),
+            source="default",
+        )
+    # Drop empty-string / non-string entries the same way the
+    # triage_classify resolver does so what we render matches what
+    # downstream consumers see.
+    if empty_is_typed and all(isinstance(s, str) for s in raw):
+        cleaned: list[Any] = [s for s in raw if isinstance(s, str) and s.strip()]
+        return PolicyField(
+            name=name,
+            current=cleaned,
+            default=list(default_value),
+            source="typed",
+        )
+    return PolicyField(
+        name=name,
+        current=list(raw),
+        default=list(default_value),
+        source="typed",
+    )
+
+
+def _inspect_triage_scope(data: dict | None, project_root: Path) -> PolicyField:
+    """Inspect ``plan.policy.triageScope`` (#1131 / D12 of #1119)."""
+    return _list_field_inspector(
+        data,
+        key="triageScope",
+        name=FIELD_TRIAGE_SCOPE,
+        default_value=DEFAULT_TRIAGE_SCOPE_VALUE,
+    )
+
+
+def _inspect_triage_scope_ignores(
+    data: dict | None, project_root: Path
+) -> PolicyField:
+    """Inspect ``plan.policy.triageScopeIgnores`` (#1133 / D14 + #1182 / D14c)."""
+    return _list_field_inspector(
+        data,
+        key="triageScopeIgnores",
+        name=FIELD_TRIAGE_SCOPE_IGNORES,
+        default_value=DEFAULT_TRIAGE_SCOPE_IGNORES_VALUE,
+    )
+
+
+def _inspect_triage_ranking_labels(
+    data: dict | None, project_root: Path
+) -> PolicyField:
+    """Inspect ``plan.policy.triageRankingLabels`` (#1128 / D11 of #1119)."""
+    return _list_field_inspector(
+        data,
+        key="triageRankingLabels",
+        name=FIELD_TRIAGE_RANKING_LABELS,
+        default_value=DEFAULT_TRIAGE_RANKING_LABELS_VALUE,
+    )
+
+
+def _inspect_triage_auto_classify(
+    data: dict | None, project_root: Path
+) -> PolicyField:
+    """Inspect ``plan.policy.triageAutoClassify`` (#1129 / D10 of #1119)."""
+    return _list_field_inspector(
+        data,
+        key="triageAutoClassify",
+        name=FIELD_TRIAGE_AUTO_CLASSIFY,
+        default_value=DEFAULT_TRIAGE_AUTO_CLASSIFY_VALUE,
+    )
+
+
+def _inspect_triage_hold_markers(
+    data: dict | None, project_root: Path
+) -> PolicyField:
+    """Inspect ``plan.policy.triageHoldMarkers`` (#1129 / D10 of #1119).
+
+    Default is :data:`triage_classify.DEFAULT_HOLD_MARKERS` (4 universal
+    phrases). An EXPLICIT empty list is a legitimate operator opt-out
+    state (silences the hold-marker universal rule entirely) per
+    Decision 3 of #1129 -- ``empty_is_typed=True`` preserves that
+    distinction in the show output.
+    """
+    return _list_field_inspector(
+        data,
+        key="triageHoldMarkers",
+        name=FIELD_TRIAGE_HOLD_MARKERS,
+        default_value=_default_hold_markers(),
+        empty_is_typed=True,
+    )
+
+
+#: Registered typed-policy inspectors. Future typed-flag children append
+#: a new ``_inspect_<field>`` callable here AND its definition above; the
+#: show CLI surfaces it automatically with no other wiring. Append-only
+#: by convention; reorders churn user-visible output ordering.
+_REGISTERED_POLICIES: tuple[
+    Callable[[dict | None, Path], PolicyField], ...
+] = (
+    _inspect_allow_direct_commits,
+    _inspect_wip_cap,
+    _inspect_triage_scope,
+    _inspect_triage_scope_ignores,
+    _inspect_triage_ranking_labels,
+    _inspect_triage_auto_classify,
+    _inspect_triage_hold_markers,
+)
+
+
+def inspect_all_policies(
+    project_root: Path | None = None,
+) -> list[PolicyField]:
+    """Walk :data:`_REGISTERED_POLICIES` and return one row per field.
+
+    Loads PROJECT-DEFINITION exactly once so every inspector reads from
+    the same in-memory snapshot. Missing / malformed PROJECT-DEFINITION
+    is tolerated -- every inspector returns its default-source row in
+    that case. The returned list preserves the registration order.
+    """
+    root = project_root or Path.cwd()
+    data, _err = load_project_definition(root)
+    return [inspect(data, root) for inspect in _REGISTERED_POLICIES]
+
+
+def inspect_one_policy(
+    name: str, project_root: Path | None = None
+) -> PolicyField | None:
+    """Look up a single registered field by canonical dotted-path name.
+
+    Returns ``None`` when ``name`` is not a registered field so callers
+    (the CLI shim) can surface an actionable error. ``name`` matching is
+    exact -- no abbreviation / case-folding -- so scripts that parse
+    ``--format=json`` and re-query a specific field cannot silently
+    drift onto an unintended field.
+    """
+    fields = inspect_all_policies(project_root)
+    for field in fields:
+        if field.name == name:
+            return field
+    return None
+
+
+def registered_policy_names() -> list[str]:
+    """Return the canonical names of every registered typed-policy field.
+
+    Cheap discovery surface for the CLI shim's ``--field=<name>`` error
+    message and for future typed-flag tests that want to assert their
+    field landed in :data:`_REGISTERED_POLICIES`.
+    """
+    # Run the inspectors against a None project_root so we get the
+    # registered names without touching the filesystem.
+    return [
+        inspect(None, Path.cwd()).name for inspect in _REGISTERED_POLICIES
+    ]
 
 
 def main(argv: list[str] | None = None) -> int:
