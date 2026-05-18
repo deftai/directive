@@ -85,6 +85,16 @@ def _write_pd(tmp_path: Path, policy: dict | None = None) -> Path:
 # ---------------------------------------------------------------------------
 
 
+# Canonical tightened subscription used by every test that needs drift to
+# actually surface. Under the framework-default ``all-open`` rule the
+# drift detector short-circuits to an empty report (Greptile P1 on PR
+# #1210; see ``test_default_all_open_with_non_empty_cache_yields_empty_drift``
+# below for the regression test). To exercise drift surfacing we tighten
+# the subscription to a label set that does not include the test fixture
+# labels.
+_TIGHTENED_POLICY = {"triageScope": [{"rule": "labels", "any-of": ["some-unrelated-label"]}]}
+
+
 def test_empty_cache_returns_empty_report(tmp_path: Path):
     _write_pd(tmp_path)
     report = triage_scope_drift.compute_drift(tmp_path, cache_root=tmp_path / ".deft-cache")
@@ -95,7 +105,7 @@ def test_empty_cache_returns_empty_report(tmp_path: Path):
 
 def test_three_issues_with_unsubscribed_label_surface(tmp_path: Path):
     """The framework threshold is _DRIFT_MIN_ISSUES = 3."""
-    _write_pd(tmp_path)
+    _write_pd(tmp_path, policy=_TIGHTENED_POLICY)
     cache = tmp_path / ".deft-cache"
     for n in (101, 102, 103):
         _write_cached_issue(cache, "deftai/directive", n, labels=["priority:p0"])
@@ -106,7 +116,7 @@ def test_three_issues_with_unsubscribed_label_surface(tmp_path: Path):
 
 
 def test_two_issues_below_threshold_suppressed(tmp_path: Path):
-    _write_pd(tmp_path)
+    _write_pd(tmp_path, policy=_TIGHTENED_POLICY)
     cache = tmp_path / ".deft-cache"
     for n in (200, 201):
         _write_cached_issue(cache, "deftai/directive", n, labels=["rare-label"])
@@ -116,7 +126,7 @@ def test_two_issues_below_threshold_suppressed(tmp_path: Path):
 
 
 def test_closed_issues_excluded_from_drift(tmp_path: Path):
-    _write_pd(tmp_path)
+    _write_pd(tmp_path, policy=_TIGHTENED_POLICY)
     cache = tmp_path / ".deft-cache"
     for n in (300, 301, 302):
         _write_cached_issue(
@@ -128,7 +138,7 @@ def test_closed_issues_excluded_from_drift(tmp_path: Path):
 
 
 def test_milestone_drift_surfaces_independently(tmp_path: Path):
-    _write_pd(tmp_path)
+    _write_pd(tmp_path, policy=_TIGHTENED_POLICY)
     cache = tmp_path / ".deft-cache"
     for n in (400, 401, 402):
         _write_cached_issue(cache, "deftai/directive", n, milestone="v2.0-blocker")
@@ -139,7 +149,7 @@ def test_milestone_drift_surfaces_independently(tmp_path: Path):
 
 
 def test_mixed_label_and_milestone_drift(tmp_path: Path):
-    _write_pd(tmp_path)
+    _write_pd(tmp_path, policy=_TIGHTENED_POLICY)
     cache = tmp_path / ".deft-cache"
     # 3 issues with label X
     for n in (500, 501, 502):
@@ -155,7 +165,7 @@ def test_mixed_label_and_milestone_drift(tmp_path: Path):
 
 def test_total_dedupes_when_issue_has_both_signals(tmp_path: Path):
     """An issue with an unsubscribed label AND milestone counts once."""
-    _write_pd(tmp_path)
+    _write_pd(tmp_path, policy=_TIGHTENED_POLICY)
     cache = tmp_path / ".deft-cache"
     # 3 issues with BOTH signals
     for n in (600, 601, 602):
@@ -168,6 +178,66 @@ def test_total_dedupes_when_issue_has_both_signals(tmp_path: Path):
         )
     report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
     assert report.total == 3  # not 6
+
+
+def test_default_all_open_with_non_empty_cache_yields_empty_drift(tmp_path: Path):
+    """Regression: under default ``plan.policy.triageScope[]`` (unset ->
+    ``all-open``), every cached open issue is already in scope by
+    definition; drift MUST be empty regardless of how many labels /
+    milestones appear across the cache (Greptile P1 on PR #1210).
+
+    Before the early-return fix, default-config consumers saw spurious
+    ``[scope-drift] N > 0`` warnings on every ``triage:summary`` because
+    the empty subscribed-labels / subscribed-milestones sets fell through
+    to the label-aggregation loop and surfaced every label / milestone
+    that hit the 3-issue threshold.
+    """
+    _write_pd(tmp_path)  # default policy -- triageScope unset -> all-open
+    cache = tmp_path / ".deft-cache"
+    # Stage a backlog that WOULD trip drift under any non-all-open policy.
+    for n in (701, 702, 703):
+        _write_cached_issue(cache, "deftai/directive", n, labels=["priority:p0"])
+    for n in (711, 712, 713):
+        _write_cached_issue(
+            cache, "deftai/directive", n, milestone="v2.0-blocker"
+        )
+    for n in (721, 722, 723):
+        _write_cached_issue(
+            cache,
+            "deftai/directive",
+            n,
+            labels=["compat:breaking", "rfc-track"],
+        )
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.labels == {}, (
+        "all-open subscribes to every open issue by definition; no label "
+        f"can be 'unsubscribed' (got {report.labels})"
+    )
+    assert report.milestones == {}
+    assert report.total == 0
+    assert report.threshold == 3  # threshold field still honoured for parity
+
+
+def test_explicit_all_open_rule_short_circuits_even_with_sibling_rules(tmp_path: Path):
+    """If ANY rule on triageScope[] is ``all-open``, the subscription is
+    universal and the early-return MUST fire -- sibling rules cannot
+    narrow ``all-open`` (the rule set is a union, not an intersection).
+    """
+    _write_pd(
+        tmp_path,
+        policy={
+            "triageScope": [
+                {"rule": "all-open"},
+                {"rule": "labels", "any-of": ["some-other-label"]},
+            ]
+        },
+    )
+    cache = tmp_path / ".deft-cache"
+    for n in (801, 802, 803):
+        _write_cached_issue(cache, "deftai/directive", n, labels=["priority:p0"])
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.labels == {}
+    assert report.total == 0
 
 
 def test_subscribed_label_excluded_from_drift(tmp_path: Path):
@@ -199,9 +269,16 @@ def test_subscribed_milestone_excluded_from_drift(tmp_path: Path):
 
 
 def test_ignore_list_suppresses_label_drift(tmp_path: Path):
+    # Tighten triageScope so the all-open short-circuit does not
+    # short-circuit drift before the ignore-list is consulted -- the
+    # test asserts the IGNORE list is what suppresses the surface, not
+    # the all-open default.
     _write_pd(
         tmp_path,
-        policy={"triageScopeIgnores": [{"label": "rfc-track"}]},
+        policy={
+            "triageScope": [{"rule": "labels", "any-of": ["some-unrelated-label"]}],
+            "triageScopeIgnores": [{"label": "rfc-track"}],
+        },
     )
     cache = tmp_path / ".deft-cache"
     for n in (900, 901, 902):
@@ -214,7 +291,10 @@ def test_ignore_list_suppresses_label_drift(tmp_path: Path):
 def test_ignore_list_suppresses_milestone_drift(tmp_path: Path):
     _write_pd(
         tmp_path,
-        policy={"triageScopeIgnores": [{"milestone": "future"}]},
+        policy={
+            "triageScope": [{"rule": "labels", "any-of": ["some-unrelated-label"]}],
+            "triageScopeIgnores": [{"milestone": "future"}],
+        },
     )
     cache = tmp_path / ".deft-cache"
     for n in (1000, 1001, 1002):
@@ -294,8 +374,12 @@ def test_add_ignore_rejects_empty_value(tmp_path: Path):
 
 
 def test_ignore_then_recompute_excludes_signal(tmp_path: Path):
-    """End-to-end: add_ignore() suppresses the signal on the next compute."""
-    _write_pd(tmp_path)
+    """End-to-end: add_ignore() suppresses the signal on the next compute.
+
+    Uses a tightened triageScope so the all-open short-circuit does
+    not pre-empt the ignore-list path.
+    """
+    _write_pd(tmp_path, policy=_TIGHTENED_POLICY)
     cache = tmp_path / ".deft-cache"
     for n in (1100, 1101, 1102):
         _write_cached_issue(cache, "deftai/directive", n, labels=["rfc-track"])
@@ -313,7 +397,7 @@ def test_ignore_then_recompute_excludes_signal(tmp_path: Path):
 
 
 def test_threshold_override_lowers_bar(tmp_path: Path):
-    _write_pd(tmp_path)
+    _write_pd(tmp_path, policy=_TIGHTENED_POLICY)
     cache = tmp_path / ".deft-cache"
     for n in (1200, 1201):
         _write_cached_issue(cache, "deftai/directive", n, labels=["edge-case"])

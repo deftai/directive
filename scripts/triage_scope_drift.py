@@ -242,6 +242,19 @@ def compute_drift(
     issues = _iter_cache_issues(resolved_cache_root)
     rules = resolve_scope_rules(project_root)
     ignores = resolve_scope_ignores(project_root)
+
+    # `all-open` subscribes to every currently-open upstream issue by
+    # definition (umbrella section 12 framework default when
+    # ``plan.policy.triageScope[]`` is unset / missing). Under that
+    # rule every cached open issue is already in scope, so no label
+    # or milestone can be "unsubscribed" -- the drift detector would
+    # otherwise spuriously flag every label/milestone on >=3 cached
+    # open issues for the entire default-config consumer base.
+    # Short-circuit to an empty report so D2's `[scope-drift] N`
+    # segment stays suppressed (segment renders only when N > 0).
+    if any(isinstance(r, dict) and r.get("rule") == "all-open" for r in rules):
+        return DriftReport(threshold=effective_threshold)
+
     subscribed_labels = _subscribed_labels(rules)
     subscribed_milestones = _subscribed_milestones(rules)
 
@@ -257,7 +270,6 @@ def compute_drift(
         number = issue.get("number")
         if not isinstance(number, int):
             continue
-        repo_key = _issue_repo_key(issue)
         labels = _extract_labels(issue)
         for label in labels:
             if label in subscribed_labels or label in ignores["labels"]:
