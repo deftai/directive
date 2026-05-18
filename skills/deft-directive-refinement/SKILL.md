@@ -23,6 +23,8 @@ Conversational refinement session -- ingest, evaluate, reconcile, and prioritize
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
+**Upstream pass**: refinement begins with a triage pass -- see [`../deft-directive-triage/SKILL.md`](../deft-directive-triage/SKILL.md) (D6 / #1130) for the canonical cache-hygiene + "what's next?" queue playbook before continuing into the refinement flow below.
+
 **See also**: [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md) (canonical numbered-menu rule used by every Phase 0 / Phase 2-5 gate below) | `task cache:fetch-all` / `task cache:get` (Tier 1 unified content cache, #883 Story 2) | `task triage:bootstrap` / `task triage:accept` / `task triage:reject` / `task triage:defer` / `task triage:needs-ac` / `task triage:mark-duplicate` / `task triage:bulk-*` / `task triage:refresh-active` (Phase 0 action surface, #845 + #883 Story 3 rebind).
 
 ## Platform Requirements

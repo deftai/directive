@@ -4,8 +4,9 @@ description: >
   Triage-cache hygiene and "what's next?" queue selection -- the agent-facing
   playbook for syncing the triage cache, classifying candidates, presenting a
   ranked queue, walking per-item decisions (accept / reject / defer / needs-ac
-  / mark-duplicate), and auditing the session. Routing target for "triage
-  hygiene", "work the cache", "what's next", "queue", and "build a cohort".
+  / mark-duplicate), and auditing the session. Use when the operator asks
+  what to work on next, wants to build a cohort, work the cache, or run a
+  triage hygiene pass.
 triggers:
   - triage
   - triage hygiene
@@ -18,41 +19,109 @@ triggers:
   - build cohort
 ---
 
-# Deft Directive Triage (stub)
+# Deft Directive Triage
+
+Triage-cache hygiene + "what's next?" queue selection. Operates against the unified `.deft-cache/github-issue/` mirror (#883 Story 2) and the append-only `vbrief/.eval/candidates.jsonl` audit log (#845 Story 2); writes only via the canonical `task triage:*` verbs.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-## Status
+## Platform Requirements
 
-! This skill is a **routing-target stub** landed by N9 (#1149) so the
-canonical AGENTS.md routing entries (`"triage hygiene" / "work the cache"`
-and `"what's next" / "queue" / "build a cohort"`) and the Skill Routing
-"welcome" / "onboard triage" entry have an on-disk destination before D6
-(#1130) ships the real body. The implementation -- Phase 0 sync, Phase 1
-classify, Phase 2 present, Phase 3 decide, Phase 4 audit, plus the EXIT
-block -- is owned by D6 / #1130 and is in progress.
+! Requires **GitHub** as the SCM platform and the **GitHub CLI (`gh`)** authenticated against the active project's repo -- the cache surface (`task cache:fetch-all`) and the read-side gate (`task verify:cache-fresh`) both depend on it.
 
-⊗ Agents MUST NOT invoke this stub as if it were the real skill. The
-deterministic playbook (sync -> classify -> present -> decide -> audit) is
-not yet encoded here; routing here today is informational, not actionable.
+## Deterministic Questions Contract
 
-! Until D6 lands, agents routed here SHOULD fall back to manual triage:
-inspect the cache at `.deft-cache/github-issue/<owner>/<repo>/` (#883),
-consult `task triage:queue --limit=10` (D11 / #1128) directly, and walk the
-per-item decision verbs (`task triage:{accept,reject,defer,needs-ac,mark-duplicate}`)
-already shipped by #845 / #883. The cache-as-authoritative rule in AGENTS.md
-(`## Cache-as-authoritative work selection (#1149)`) remains in force.
+! Every numbered-menu prompt rendered in this skill (Phase 2 candidate selection, Phase 3 per-item decision walk) ! MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options are `Discuss` and `Back`, in that order, and the Discuss-pause semantic from the contract applies verbatim -- on `Discuss` the agent halts the in-progress sequence and resumes only on an explicit user signal.
 
-## References
+## Phase 0 -- Sync
 
-- Issue (real implementation): #1130 (D6)
-- Umbrella: #1119
-- Sibling skills the real body will cross-reference: `skills/deft-directive-refinement/SKILL.md`,
-  `skills/deft-directive-swarm/SKILL.md`, `skills/deft-directive-sync/SKILL.md`
-- Stub author: #1149 (N9 -- AGENTS.md consolidation)
+! Probe cache freshness before doing any classification or selection. Stale cache reads produce stale decisions; the gate is the contract.
+
+1. ! Run `task verify:cache-fresh` (D5 / #1127). Exit 0 -> proceed to Phase 1. Exit 1 (stale or blocked) -> refresh per the printed remediation. Exit 2 (no bootstrap) -> run `task triage:bootstrap` first.
+2. ~ Refresh path: `task cache:fetch-all -- --source=github-issue --repo OWNER/NAME` for an already-bootstrapped project (idempotent, TTL-aware, re-applies the #883 scanner v2 quarantine rules); `task triage:bootstrap` for a first-time seed.
+3. ~ If `vbrief/active/*.vbrief.json` references are in play, run `task triage:refresh-active` to compare cached `meta.json.fetched_at` against live upstream `updatedAt` and surface drift before the queue is rendered.
+4. ⊗ Walk the queue against a stale cache -- the audit log will record decisions against bodies the operator never actually saw.
+
+## Phase 1 -- Classify
+
+! Inspect the auto-classification audit log so manually-decided items are not re-walked, and surface anomalies before the queue render.
+
+1. ! Run `task triage:classify --list` (D10 / #1129) to render the effective universal + consumer auto-classification rules and the active hold-marker list.
+2. ! Walk recent entries in `vbrief/.eval/candidates.jsonl` for anomalies: classifier disagreements against the operator's prior decisions, repeated `defer` cycles on the same issue, or `needs-ac` records older than the freshness window. Surface anomalies to the operator before Phase 2; do NOT auto-fix.
+3. ~ When the operator wants to widen / narrow the corpus, consult `task triage:scope --list` (D12 / #1131) to see the active `plan.policy.triageScope[]` subscription. Subscription edits belong in PROJECT-DEFINITION.vbrief.json, not in this skill.
+4. ⊗ Re-classify items already terminally decided (accept / reject / mark-duplicate) without explicit operator approval -- the audit log is append-only and supersession runs through Layer 5 (`task triage:reset <N>`), not through silent re-walks.
+
+## Phase 2 -- Present
+
+! Render the ranked queue before suggesting any specific issue. The cache-as-authoritative rule in AGENTS.md (`## Cache-as-authoritative work selection (#1149)`) is binding: the agent ! MUST consult `task triage:queue` and surface the result before proposing work from memory.
+
+1. ! Run `task triage:queue --limit=N` (D11 / #1128) -- default `N=10` per the umbrella Current Shape v3 WIP cap. Output is grouped `[RESUME]` -> `[URGENT]` -> untriaged -> other; within-group ordering follows the consumer-supplied `plan.policy.triageRankingLabels[]` (framework default empty per §12 boundary), tiebroken by `updated_at` descending.
+2. ! For per-item detail, run `task triage:show <N>` -- prints the cached upstream payload, the latest triage decision, the audit timeline, and the active-vBRIEF reference flag. Exit 0 on hit, 1 on cache miss (re-sync per Phase 0).
+3. ~ Present the ranked queue verbatim; do NOT silently re-rank, drop, or annotate beyond what the canonical renderer emits. If the operator wants a different ordering they edit `plan.policy.triageRankingLabels[]` and re-run.
+4. ⊗ Recommend a specific issue without consulting `task triage:queue` first, or recommend an issue absent from the queue without first running `task triage:show` to surface why (cache miss / outside subscription / terminal decision).
+
+## Phase 3 -- Decide
+
+! Walk per-item decisions through the canonical `task triage:*` verbs. The skill does NOT reimplement the audit-log append, schema validation, or `vbrief/proposed/` write inline -- the tasks are the canonical implementation (mirrors the #537 ingest-task discipline).
+
+For each candidate the operator selects from the Phase 2 queue, render the canonical numbered action menu and dispatch the matching verb:
+
+```
+What would you like to do with this candidate?
+  1. Accept         -- `task triage:accept <N>`         (writes proposed/ vBRIEF + audit-log entry)
+  2. Reject         -- `task triage:reject <N>`         (audit-log entry only; terminal)
+  3. Defer          -- `task triage:defer <N> [--resume-on <event>]`  (non-terminal; resurfaces)
+  4. Needs-AC       -- `task triage:needs-ac <N>`       (non-terminal; flags missing acceptance criteria)
+  5. Mark duplicate -- `task triage:mark-duplicate <N> <of-issue>`  (terminal; cross-links target)
+  6. Discuss
+  7. Back
+```
+
+- ! `--resume-on <event>` on `task triage:defer` (D3 / #1123 -- ships in parallel; reference but do not hard-depend) records a resume condition with the defer entry; the resume condition surfaces in `task triage:queue` once met. When D3 has not landed yet, omit the flag -- the verb stays terminal-shape-compatible.
+- ! On `Discuss`, halt the action sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. ⊗ Implicit resumption.
+- ! On `Back`, un-buffer the prior candidate's selection and re-render its action menu -- permitted only before the action has dispatched to a `task triage:*` command. Once dispatched, the audit entry is committed; revisions go through Layer 5 (`task triage:reset`).
+- ~ Bulk patterns: `task triage:bulk-{accept,reject,defer,needs-ac}` (#845 Story 4) for clear label-driven sweeps; bulk results still flow through the audit log so history stays coherent.
+- ⊗ Write to `vbrief/proposed/` directly -- only `task triage:accept` (which delegates to `task issue:ingest`) is authorised for that surface.
+
+## Phase 4 -- Audit
+
+! Confirm the session's decisions landed coherently before exiting the skill.
+
+1. ! Run `task triage:audit --format=json` (D11 / #1128) -- emits the stable `{generated_at, repo, vbrief_staleness, entry_count, entries: [...]}` schema; pipe through `jq` to surface this session's appended entries.
+2. ! Run `task triage:summary` (D2 / #1122) -- prints the canonical one-liner `[triage] N untriaged · S stale-defer · M in-flight · WIP X/Y [⚠]`. The WIP cap default is 10 per the umbrella Current Shape v3 (overridable via typed `plan.policy.wipCap`). The `⚠` glyph fires only at-or-above cap.
+3. ~ When the audit surfaces a stale acceptance (`accept` decision whose issue is no longer referenced by any `vbrief/active/`), surface it to the operator -- the typical fix is a fresh ingest via `task issue:ingest -- <N>` or a `task triage:reset <N>` if the acceptance was in error.
+4. ⊗ Skip the Phase 4 audit -- silent exit leaves the operator without a record of what landed in `vbrief/proposed/` this session, which is the typical recurrence vector for "what did I just accept?" confusion.
+
+## Reversibility
+
+! To undo a decision, run `task triage:reset <N>`. This writes a `reset` audit entry referencing the prior decision id; history is **never** deleted. `task triage:reset` is the canonical Layer 5 reversibility verb (resolves the V3 audit from 2026-05-13). After a reset, the candidate re-enters the untriaged group on the next `task triage:queue` render so it can be re-walked through Phase 3.
+
+⊗ Edit or delete prior entries in `vbrief/.eval/candidates.jsonl` to "undo" a decision -- the log is append-only by design and any external mutation breaks the `merge=union` rebase ergonomic (#1144 / N4).
+
+## Anti-Patterns
+
+- ⊗ Recommend a specific issue without first consulting `task triage:queue` (binding under AGENTS.md `## Cache-as-authoritative work selection (#1149)`).
+- ⊗ Walk the queue against a stale cache (Phase 0 gate skipped).
+- ⊗ Reimplement audit-log append / `proposed/` write inline -- the `task triage:*` verbs own those surfaces (#845, #883).
+- ⊗ Treat `defer` / `needs-ac` as terminal -- they intentionally resurface on the next pass.
+- ⊗ Edit `vbrief/.eval/candidates.jsonl` directly to revoke a decision -- use `task triage:reset <N>`.
 
 ## EXIT
 
-Pre-implementation: nothing to exit from. When this stub is invoked, the
-agent SHOULD report `deft-directive-triage stub -- not yet implemented; see
-#1130` and chain into the manual fallback documented above.
+! When the operator opts out (queue exhausted, mid-session stop, or explicit "done"), confirm skill exit with the canonical phrasing: `deft-directive-triage complete -- exiting skill.`
+
+! Provide chaining instructions:
+
+- **Ingestion / evaluation of accepted items**: chain into `skills/deft-directive-refinement/SKILL.md` -- refinement's Phase 1 ingests the `vbrief/proposed/` items this skill just wrote into the rest of the lifecycle.
+- **Cohort dispatch**: chain into `skills/deft-directive-swarm/SKILL.md` -- swarm Phase 0 is queue-driven (N2 / #1142) and consumes the same `task triage:queue` ordering you just walked.
+- **Fresh-state refresh before re-entry**: run `task cache:fetch-all -- --source=github-issue --repo OWNER/NAME` then re-enter this skill when ready to continue.
+
+⊗ Exit silently without the canonical confirmation + chaining instruction -- the Skill Completion Gate in AGENTS.md is binding.
+
+## References
+
+- Umbrella: #1119 (Wave-1 D6, this skill)
+- D2 #1122 (`task triage:summary`), D3 #1123 (`--resume-on`, parallel), D5 #1127 (`task verify:cache-fresh`), D10 #1129 (auto-classification), D11 #1128 (`task triage:queue` / `triage:show` / `triage:audit`), D12 #1131 (subscription scope)
+- Layer 5 reversibility verb: `scripts/triage_actions.py::reset` (already shipped under #845)
+- Sibling skills: `skills/deft-directive-refinement/SKILL.md`, `skills/deft-directive-swarm/SKILL.md`, `skills/deft-directive-sync/SKILL.md`
+- Stub author (replaced): #1149 (N9)
