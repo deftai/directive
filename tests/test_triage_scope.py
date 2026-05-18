@@ -146,10 +146,13 @@ def test_validate_accepts_milestone_exact_match_d14():
     assert warnings == [], warnings
 
 
-def test_validate_rejects_milestone_missing_name():
+def test_validate_rejects_milestone_missing_variant():
+    """D14b (#1181): an empty milestone rule must reject pointing at the matrix."""
     errors, _ = triage_scope.validate_scope_rules([{"rule": "milestone"}])
     assert errors
-    assert "milestone.name" in errors[0]
+    assert "requires one of" in errors[0]
+    assert "is-open" in errors[0]
+    assert "#1181" in errors[0]
 
 
 def test_validate_rejects_milestone_with_empty_name():
@@ -160,13 +163,13 @@ def test_validate_rejects_milestone_with_empty_name():
     assert "milestone.name" in errors[0]
 
 
-def test_validate_warns_milestone_unknown_keys():
-    """D14b / #1181 variant keys (any-of / is-open) surface as warnings."""
-    _, warnings = triage_scope.validate_scope_rules(
+def test_validate_rejects_milestone_name_and_is_open_combined():
+    """D14b (#1181): name + is-open is a hard mutex error, not a warning."""
+    errors, _ = triage_scope.validate_scope_rules(
         [{"rule": "milestone", "name": "v2.0", "is-open": True}]
     )
-    assert any("is-open" in w for w in warnings)
-    assert any("D14b" in w or "#1181" in w for w in warnings)
+    assert any("mutually exclusive" in e for e in errors)
+    assert any("#1181" in e for e in errors)
 
 
 def test_validate_rejects_unknown_rule_type():
@@ -584,12 +587,13 @@ def test_validate_triage_scope_on_plan_accepts_milestone_d14():
     assert out == []
 
 
-def test_validate_triage_scope_on_plan_surfaces_milestone_missing_name():
+def test_validate_triage_scope_on_plan_surfaces_milestone_missing_variant():
     plan = {"policy": {"triageScope": [{"rule": "milestone"}]}}
     out = triage_scope.validate_triage_scope_on_plan(plan, "x.vbrief.json")
     assert out
     assert all("(#1131)" in e for e in out)
-    assert any("milestone.name" in e for e in out)
+    # D14b (#1181) now points at the three-variant matrix instead of name-only.
+    assert any("requires one of" in e and "is-open" in e for e in out)
 
 
 # ---------------------------------------------------------------------------
@@ -637,6 +641,172 @@ def test_evaluate_milestone_handles_bare_string_field():
 def test_evaluate_milestone_ignored_when_name_missing():
     issues = [_issue_with_milestone(1, milestone_title="v2.0")]
     matched = triage_scope.evaluate_rules([{"rule": "milestone"}], issues)
+    assert matched == []
+
+
+# ---------------------------------------------------------------------------
+# D14b / #1181: milestone any-of + is-open variants
+# ---------------------------------------------------------------------------
+
+
+def test_validate_accepts_milestone_any_of_d14b():
+    errors, warnings = triage_scope.validate_scope_rules(
+        [{"rule": "milestone", "any-of": ["v0.27", "v0.28"]}]
+    )
+    assert errors == [], errors
+    assert warnings == [], warnings
+
+
+def test_validate_accepts_milestone_is_open_d14b():
+    errors, warnings = triage_scope.validate_scope_rules(
+        [{"rule": "milestone", "is-open": True}]
+    )
+    assert errors == [], errors
+    assert warnings == [], warnings
+
+
+def test_validate_rejects_milestone_any_of_empty_list():
+    errors, _ = triage_scope.validate_scope_rules(
+        [{"rule": "milestone", "any-of": []}]
+    )
+    assert errors
+    assert any("any-of" in e and "non-empty" in e for e in errors)
+
+
+def test_validate_rejects_milestone_any_of_non_string_member():
+    errors, _ = triage_scope.validate_scope_rules(
+        [{"rule": "milestone", "any-of": ["ok", 42, ""]}]
+    )
+    assert errors
+    assert any("any-of[1]" in e or "any-of[2]" in e for e in errors)
+
+
+def test_validate_rejects_milestone_is_open_false():
+    errors, _ = triage_scope.validate_scope_rules(
+        [{"rule": "milestone", "is-open": False}]
+    )
+    assert errors
+    assert any("meaningless" in e for e in errors)
+    assert any("name" in e and "any-of" in e for e in errors)
+
+
+def test_validate_rejects_milestone_is_open_non_bool():
+    errors, _ = triage_scope.validate_scope_rules(
+        [{"rule": "milestone", "is-open": "true"}]
+    )
+    assert errors
+    assert any("boolean" in e for e in errors)
+
+
+def test_validate_rejects_milestone_name_and_any_of_combined():
+    errors, _ = triage_scope.validate_scope_rules(
+        [{"rule": "milestone", "name": "v0.27", "any-of": ["v0.27"]}]
+    )
+    assert any("mutually exclusive" in e for e in errors)
+
+
+def test_validate_rejects_milestone_any_of_and_is_open_combined():
+    errors, _ = triage_scope.validate_scope_rules(
+        [{"rule": "milestone", "any-of": ["v0.27"], "is-open": True}]
+    )
+    assert any("mutually exclusive" in e for e in errors)
+
+
+def test_validate_backward_compat_name_only_rule_still_passes():
+    """Pre-D14b rules using ``{name: <str>}`` MUST continue to validate."""
+    errors, warnings = triage_scope.validate_scope_rules(
+        [{"rule": "milestone", "name": "v0.27"}]
+    )
+    assert errors == [], errors
+    assert warnings == [], warnings
+
+
+def test_evaluate_milestone_any_of_matches_members():
+    issues = [
+        _issue_with_milestone(1, milestone_title="v0.27"),
+        _issue_with_milestone(2, milestone_title="v0.28"),
+        _issue_with_milestone(3, milestone_title="v0.29"),
+        _issue_with_milestone(4, milestone_title=None),
+        _issue_with_milestone(5, state="closed", milestone_title="v0.27"),
+    ]
+    matched = triage_scope.evaluate_rules(
+        [{"rule": "milestone", "any-of": ["v0.27", "v0.28"]}], issues
+    )
+    assert sorted(m["number"] for m in matched) == [1, 2]
+
+
+def test_evaluate_milestone_any_of_no_match_returns_empty():
+    issues = [_issue_with_milestone(1, milestone_title="v3.0")]
+    matched = triage_scope.evaluate_rules(
+        [{"rule": "milestone", "any-of": ["v0.27", "v0.28"]}], issues
+    )
+    assert matched == []
+
+
+def test_evaluate_milestone_is_open_matches_open_milestones():
+    issues = [
+        _issue_with_milestone(1, milestone_title="v0.27"),
+        _issue_with_milestone(2, milestone_title="v0.28"),
+        _issue_with_milestone(3, milestone_title="v0.26"),  # closed upstream
+        _issue_with_milestone(4, milestone_title=None),
+        _issue_with_milestone(5, state="closed", milestone_title="v0.27"),
+    ]
+    matched = triage_scope.evaluate_rules(
+        [{"rule": "milestone", "is-open": True}],
+        issues,
+        open_milestones_fetcher=lambda: {"v0.27", "v0.28"},
+    )
+    assert sorted(m["number"] for m in matched) == [1, 2]
+
+
+def test_evaluate_milestone_is_open_does_not_match_closed():
+    issues = [
+        _issue_with_milestone(1, milestone_title="v0.26"),
+        _issue_with_milestone(2, milestone_title="v0.25"),
+    ]
+    matched = triage_scope.evaluate_rules(
+        [{"rule": "milestone", "is-open": True}],
+        issues,
+        open_milestones_fetcher=lambda: {"v0.27", "v0.28"},
+    )
+    assert matched == []
+
+
+def test_evaluate_milestone_is_open_snapshot_memoized_once_per_call():
+    """D14b (#1181): multiple is-open rules share a single fetcher call."""
+    call_count = {"n": 0}
+
+    def fetcher() -> set[str]:
+        call_count["n"] += 1
+        return {"v0.27", "v0.28"}
+
+    issues = [
+        _issue_with_milestone(1, milestone_title="v0.27"),
+        _issue_with_milestone(2, milestone_title="v0.28"),
+    ]
+    # Three identical is-open rules; the fetcher MUST still be called once.
+    rules = [
+        {"rule": "milestone", "is-open": True},
+        {"rule": "milestone", "is-open": True},
+        {"rule": "milestone", "is-open": True},
+    ]
+    matched = triage_scope.evaluate_rules(
+        rules, issues, open_milestones_fetcher=fetcher
+    )
+    assert call_count["n"] == 1
+    assert sorted(m["number"] for m in matched) == [1, 2]
+
+
+def test_evaluate_milestone_is_open_fetcher_failure_yields_no_matches():
+    def boom() -> set[str]:
+        raise RuntimeError("network down")
+
+    issues = [_issue_with_milestone(1, milestone_title="v0.27")]
+    matched = triage_scope.evaluate_rules(
+        [{"rule": "milestone", "is-open": True}],
+        issues,
+        open_milestones_fetcher=boom,
+    )
     assert matched == []
 
 

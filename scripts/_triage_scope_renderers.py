@@ -123,11 +123,19 @@ def _render_rule(idx: int, rule: dict[str, Any]) -> list[str]:
             return [f"  {idx}. labels all-of={sorted(rule['all-of'])}"]
         return [f"  {idx}. labels (malformed)"]
     if kind == "milestone":
-        # D14 / #1133: v1 exact-match shape. D14b / #1181 will add
-        # any-of / is-open variants; the renderer surfaces unknown
-        # keys verbatim so a forward-compat consumer who upgrades
-        # the rule shape still sees its config.
-        return [f"  {idx}. milestone name={rule.get('name', '?')!r}"]
+        # D14 (#1133) v1 exact-match + D14b (#1181) any-of / is-open
+        # variants render distinctly so the operator can confirm which
+        # branch their subscription actually uses.
+        if "name" in rule:
+            return [f"  {idx}. milestone name={rule.get('name', '?')!r}"]
+        if "any-of" in rule:
+            raw = rule.get("any-of") or []
+            return [
+                f"  {idx}. milestone any-of={sorted(raw) if isinstance(raw, list) else raw}"
+            ]
+        if rule.get("is-open") is True:
+            return [f"  {idx}. milestone is-open=true (currently-open upstream)"]
+        return [f"  {idx}. milestone (malformed)"]
     if kind in {"opened-since", "updated-since"}:
         return [f"  {idx}. {kind} duration={rule.get('duration', '?')}"]
     if kind == "referenced-by-vbrief":

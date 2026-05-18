@@ -1,0 +1,35 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: D14b (#1181) -- milestone rule any-of + is-open variants.",
+    "updated": "2026-05-18T18:35:00Z"
+  },
+  "plan": {
+    "title": "feat(triage-scope): milestone rule any-of + is-open variants (#1181)",
+    "status": "running",
+    "narratives": {
+      "Description": "D14b extends the milestone rule grammar shipped in D14 (#1133) with two new variants. The basic `{rule: 'milestone', name: '<exact-name>'}` form is preserved; the new variants are `{rule: 'milestone', any-of: [<names>...]}` (issue matches when its milestone title is in the list) and `{rule: 'milestone', is-open: true}` (issue matches when its milestone is currently open upstream). The is-open resolver queries `gh api repos/<o>/<r>/milestones?state=open` once per evaluate_rules call (memoized snapshot, never per-issue). Validator enforces mutual exclusion across `name` / `any-of` / `is-open` within a single milestone rule; rejects empty any-of, non-bool is-open, and `is-open: false`. Drift detector recognises milestones subscribed via any-of or is-open so they DO NOT appear in unsubscribed-milestones drift output.",
+      "Origin": "Wave-2b D14 child of umbrella #1119. D14 (#1133) shipped the basic exact-match milestone rule plus the drift detector and ignore-list foundation. D14b adds the two deferred variants. Issue body #1181 is canonical. Orchestrator prompt anchors the cross-child boundary with D14c (#1182) -- D14b owns the grammar extensions; D14c owns the `author` rule type + task wrapper-verb flag set.",
+      "Overview": "## What to build\n\n1. scripts/triage_scope.py validator: extend `_validate_rule_body` milestone branch to accept three mutually-exclusive variants (`name`, `any-of`, `is-open`); reject combinations, empty any-of, non-bool is-open, `is-open: false`. Backward-compat: existing `{name: <str>}` continues to validate.\n2. scripts/triage_scope.py evaluator: extend `evaluate_rules` milestone branch with `any-of` set membership and `is-open: true` resolver. The is-open snapshot is fetched via `gh api repos/<o>/<r>/milestones?state=open` exactly once per `evaluate_rules` call, regardless of how many `is-open` rules are present. Resolver is dependency-injectable for tests (`open_milestones_fetcher` kwarg).\n3. scripts/_triage_scope_renderers.py: render the three variant shapes distinctly in `--list` output.\n4. scripts/triage_scope_drift.py: extend `_subscribed_milestones` to recognise milestones referenced via any-of; for is-open subscriptions the drift detector consults the live open-milestones snapshot (same fetcher path) so an unsubscribed-but-currently-open milestone is NOT flagged.\n5. tests/test_triage_scope.py: matrix of variant validator + evaluator tests covering accept/reject, backward-compat, memoization (single fetch even with multiple is-open rules).\n6. tests/test_triage_scope_drift.py: new tests covering any-of suppression + is-open suppression in drift output.\n\n## Acceptance criteria\n\n- Validator accepts `{name: <str>}`, `{any-of: [<str>...]}` (non-empty), `{is-open: true}` -- each in isolation\n- Validator rejects: `name + any-of`, `name + is-open`, `any-of + is-open`, empty `any-of`, non-bool `is-open`, `is-open: false`\n- Evaluator matches `any-of` against the issue's milestone title; only open issues match (parity with the v1 exact-name rule)\n- Evaluator matches `is-open: true` against the upstream open-milestones snapshot; closed milestones DO NOT match\n- The `is-open` snapshot is fetched once per `evaluate_rules` call (memoized) even when multiple `is-open` rules are present\n- Drift detector: a milestone subscribed via `any-of` or `is-open` MUST NOT appear in `unsubscribed-milestones` output\n- Backward-compat: existing `{name: '<exact-name>'}` rules continue to validate and match\n- `task check` green\n- PR body cites Closes #1181 + Refs #1119, #1131 (D12), #1133 (D14)\n\n## Type\n\nFeature -- framework cache-scope contract grammar extension; consumer-agnostic primitives only (§12 boundary).\n\n## Refs\n\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Issue: https://github.com/deftai/directive/issues/1181\n- D12: https://github.com/deftai/directive/issues/1131\n- D14: https://github.com/deftai/directive/issues/1133\n- Sibling D14c: https://github.com/deftai/directive/issues/1182"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1181",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1181: D14b -- milestone rule any-of + is-open variants"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-0/1/2 swarm"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1133",
+        "type": "x-vbrief/github-issue",
+        "title": "D14 -- scope-drift + milestone rule v1"
+      }
+    ],
+    "updated": "2026-05-18T18:35:00Z"
+  }
+}

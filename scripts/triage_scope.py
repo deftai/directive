@@ -15,9 +15,9 @@ Programmatic API:
 * :func:`resolve_scope_rules` -- read PROJECT-DEFINITION and return the
   effective rule list (default: ``[{"rule":"all-open"}]``).
 * :func:`validate_scope_rules` -- structural validation. The
-  ``milestone`` rule type ACCEPTS ``{name: "<exact-name>"}`` (D14 /
-  #1133); the ``any-of`` and ``is-open: true`` variants stay deferred
-  to D14b / #1181.
+  ``milestone`` rule type ACCEPTS three mutually-exclusive variants:
+  ``{name: "<exact-name>"}`` (D14 / #1133 v1), ``{any-of: [<n1>, <n2>]}``
+  and ``{is-open: true}`` (D14b / #1181).
 * :func:`subscription_hash` -- stable canonical-JSON SHA-256 digest
   (truncated to 16 chars) used as the coverage-cache invalidation key.
 * :func:`evaluate_rules` -- apply the rule set to an issue list; the
@@ -96,8 +96,9 @@ DEFAULT_TRIAGE_SCOPE: list[dict[str, Any]] = [{"rule": "all-open"}]
 SUBSCRIPTION_HASH_LEN: int = 16
 
 #: Recognised rule discriminator values. ``milestone`` shipped in D14
-#: (#1133) with the v1 ``{name: "<exact-name>"}`` shape; the ``any-of``
-#: and ``is-open: true`` variants are still owned by D14b / #1181.
+#: (#1133) with the v1 ``{name: "<exact-name>"}`` shape; D14b (#1181)
+#: adds the ``any-of`` + ``is-open: true`` variants on the same
+#: discriminator.
 VALID_RULE_TYPES: frozenset[str] = frozenset(
     {
         "all-open",
@@ -113,9 +114,9 @@ VALID_RULE_TYPES: frozenset[str] = frozenset(
 
 #: Rule types reserved for downstream stories. Validation rejects them
 #: with a pointer to the owning issue so consumers get a clear error
-#: rather than silent ignore. D14b / #1181 owns the ``milestone``
-#: ``any-of`` and ``is-open: true`` variants -- the v1 exact-match
-#: shape shipped in D14 (#1133); future variants will surface as
+#: rather than silent ignore. D14 (#1133) shipped the v1 exact-match
+#: ``milestone`` shape; D14b (#1181) added the ``any-of`` +
+#: ``is-open: true`` variants -- future variants will surface as
 #: per-field validation errors rather than discriminator-level
 #: rejections.
 DEFERRED_RULE_TYPES: dict[str, str] = {}
@@ -262,9 +263,10 @@ def validate_scope_rules(rules: Any) -> tuple[list[str], list[str]]:
     * Each rule MUST be an object with a ``rule`` string discriminator.
     * The discriminator MUST be a member of :data:`VALID_RULE_TYPES`.
     * The ``milestone`` discriminator was deferred from D12 / #1131 to
-      D14 / #1133, which ships the v1 exact-match shape
-      (``{name: "<exact-name>"}``). D14b / #1181 will introduce the
-      ``any-of`` and ``is-open: true`` variants.
+      D14 / #1133, which shipped the v1 exact-match shape
+      (``{name: "<exact-name>"}``). D14b (#1181) added the
+      mutually-exclusive ``any-of`` and ``is-open: true`` variants;
+      see :mod:`_triage_scope_milestone` for the variant matrix.
     * Per-type field shape is checked (label list, duration string, etc.).
     """
     errors: list[str] = []
@@ -342,25 +344,9 @@ def _validate_rule_body(
         return
 
     if kind == "milestone":
-        # D14 / #1133: v1 ships exact-match on ``name`` only. D14b /
-        # #1181 will introduce ``any-of`` + ``is-open: true`` variants;
-        # for now any unknown sibling key triggers a warning so a
-        # consumer who hand-edits a forward-compat shape gets a clear
-        # hint rather than silent drift.
-        name = rule.get("name")
-        if not isinstance(name, str) or not name.strip():
-            errors.append(
-                f"{prefix}.milestone.name must be a non-empty string "
-                "(D14 / #1133 v1 supports exact-match only; "
-                "any-of / is-open variants are deferred to D14b / #1181)"
-            )
-            return
-        extra = sorted(k for k in rule if k not in {"rule", "name"})
-        if extra:
-            warnings.append(
-                f"{prefix}.milestone: ignoring unrecognised keys {extra} "
-                "(D14b / #1181 will introduce any-of / is-open variants)"
-            )
+        # D14b (#1181) variant matrix lives in _triage_scope_milestone.
+        from _triage_scope_milestone import validate_milestone_rule
+        validate_milestone_rule(rule, prefix, errors, warnings)
         return
 
     if kind in {"opened-since", "updated-since"}:
@@ -560,6 +546,8 @@ def evaluate_rules(
     vbrief_referenced: set[int] | None = None,
     vbrief_active_referenced: set[int] | None = None,
     umbrella_slices: set[int] | None = None,
+    open_milestones_fetcher: Any = None,
+    repo: str | None = None,
 ) -> list[dict[str, Any]]:
     """Apply ``rules`` to ``issues`` and return the union of matches.
 
@@ -581,6 +569,11 @@ def evaluate_rules(
       vBRIEFs.
     * ``umbrella_slices``: set of issue numbers sliced from any cached
       umbrella -- consumed by the ``sliced-from`` rule.
+    * ``open_milestones_fetcher`` / ``repo``: D14b (#1181) inputs for
+      the ``milestone {is-open: true}`` variant. The fetcher is a
+      ``Callable[[], set[str]]`` invoked AT MOST ONCE per call
+      (memoized); see :mod:`_triage_scope_milestone` for the default
+      ``gh api ... /milestones?state=open`` fallback + repo inference.
 
     A nil rule set returns the framework default behaviour (all open
     issues). Multiple rules union their matched sets.
@@ -589,6 +582,12 @@ def evaluate_rules(
     issue_list = list(issues)
     now_dt = now or _utc_now()
     matched: dict[int, dict[str, Any]] = {}
+
+    # D14b (#1181) is-open snapshot resolver -- memoized once per call.
+    from _triage_scope_milestone import make_open_milestones_resolver
+    _resolve_open_milestones = make_open_milestones_resolver(
+        open_milestones_fetcher, issue_list, repo
+    )
 
     for rule in rule_list:
         if not isinstance(rule, dict):
@@ -653,19 +652,17 @@ def evaluate_rules(
                 if n in pinned:
                     matched.setdefault(n, issue)
         elif kind == "milestone":
-            # D14 / #1133: v1 exact-match against the cached upstream
-            # milestone title. The GitHub REST payload nests milestone
-            # info as ``{ "title": "<name>", ... }``; consumers who pass
-            # bare strings or pre-normalised dicts both round-trip via
-            # :func:`_milestone_name`.
-            wanted = rule.get("name")
-            if not isinstance(wanted, str) or not wanted:
-                continue
-            for issue in issue_list:
-                if not _is_open(issue):
-                    continue
-                if _milestone_name(issue) == wanted:
-                    matched.setdefault(_issue_number(issue), issue)
+            # D14 (#1133) + D14b (#1181) variants delegated to sidecar.
+            from _triage_scope_milestone import evaluate_milestone_rule_into
+            evaluate_milestone_rule_into(
+                rule,
+                issue_list,
+                matched,
+                get_open_milestones=_resolve_open_milestones,
+                is_open_issue=_is_open,
+                issue_number=_issue_number,
+                milestone_name=_milestone_name,
+            )
 
     return [matched[k] for k in sorted(matched)]
 

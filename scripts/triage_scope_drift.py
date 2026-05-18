@@ -198,15 +198,30 @@ def _subscribed_labels(rules: list[dict[str, Any]]) -> set[str]:
     return out
 
 
-def _subscribed_milestones(rules: list[dict[str, Any]]) -> set[str]:
-    """Return the set of milestone names covered by any ``milestone`` rule."""
-    out: set[str] = set()
-    for rule in rules:
-        if not isinstance(rule, dict) or rule.get("rule") != "milestone":
-            continue
-        name = rule.get("name")
-        if isinstance(name, str) and name:
-            out.add(name)
+def _subscribed_milestones(
+    rules: list[dict[str, Any]],
+    *,
+    open_milestones_snapshot: set[str] | None = None,
+) -> set[str]:
+    """Return milestone names covered by ``milestone`` rules.
+
+    Recognises all three D14b (#1181) variants:
+
+    * ``{name: "<n>"}`` -- single exact name (D14 v1).
+    * ``{any-of: ["<n1>", ...]}`` -- explicit list.
+    * ``{is-open: true}`` -- subscribes to whatever is currently open
+      upstream; the caller pre-fetches the open snapshot and passes it
+      in via ``open_milestones_snapshot`` so the drift detector
+      consults the same set the evaluator does.
+    """
+    from _triage_scope_milestone import (
+        collect_milestone_subscribed_names,
+        rules_request_is_open,
+    )
+
+    out = collect_milestone_subscribed_names(rules)
+    if rules_request_is_open(rules) and open_milestones_snapshot:
+        out |= set(open_milestones_snapshot)
     return out
 
 
@@ -220,6 +235,7 @@ def compute_drift(
     *,
     cache_root: Path | None = None,
     threshold: int | None = None,
+    open_milestones_fetcher: Any = None,
 ) -> DriftReport:
     """Compute the drift report for a project.
 
@@ -228,6 +244,14 @@ def compute_drift(
     override is supported for tests but consumers SHOULD let the
     framework default stand (D14 / #1133 ships the threshold as a
     framework constant; per-consumer tunability is v2 scope).
+
+    ``open_milestones_fetcher`` is the D14b (#1181) injection point:
+    when any ``milestone {is-open: true}`` rule is present, the drift
+    detector fetches the upstream open-milestones snapshot once and
+    excludes those names from the surfaced drift. When omitted, the
+    default ``gh api repos/<owner>/<name>/milestones?state=open``
+    fetcher is used (best-effort; failures degrade to an empty
+    snapshot per the evaluator's contract).
 
     Read-only: never mutates PROJECT-DEFINITION, the cache, or the
     audit log. Empty cache yields an empty report (``total == 0``).
@@ -243,6 +267,31 @@ def compute_drift(
     rules = resolve_scope_rules(project_root)
     ignores = resolve_scope_ignores(project_root)
 
+    # D14b (#1181): resolve the open-milestones snapshot once when any
+    # rule asks for ``is-open: true``; an unavailable snapshot degrades
+    # to empty (drift still surfaces the milestone in that case so the
+    # operator sees the network failure indirectly).
+    open_ms_snapshot: set[str] = set()
+    from _triage_scope_milestone import (
+        default_open_milestones_fetcher,
+        infer_repo_from_issues,
+        rules_request_is_open,
+    )
+    if rules_request_is_open(rules):
+        if open_milestones_fetcher is not None:
+            try:
+                raw = open_milestones_fetcher()
+            except Exception:  # noqa: BLE001
+                raw = set()
+            open_ms_snapshot = (
+                set(raw)
+                if isinstance(raw, (set, frozenset, list, tuple))
+                else set()
+            )
+        else:
+            inferred_repo = infer_repo_from_issues(issues)
+            open_ms_snapshot = default_open_milestones_fetcher(inferred_repo)
+
     # `all-open` subscribes to every currently-open upstream issue by
     # definition (umbrella section 12 framework default when
     # ``plan.policy.triageScope[]`` is unset / missing). Under that
@@ -256,7 +305,9 @@ def compute_drift(
         return DriftReport(threshold=effective_threshold)
 
     subscribed_labels = _subscribed_labels(rules)
-    subscribed_milestones = _subscribed_milestones(rules)
+    subscribed_milestones = _subscribed_milestones(
+        rules, open_milestones_snapshot=open_ms_snapshot
+    )
 
     label_counts: dict[str, int] = {}
     milestone_counts: dict[str, int] = {}

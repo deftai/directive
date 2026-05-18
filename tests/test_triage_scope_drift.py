@@ -268,6 +268,69 @@ def test_subscribed_milestone_excluded_from_drift(tmp_path: Path):
     assert report.milestones == {}
 
 
+def test_milestone_any_of_subscription_excluded_from_drift(tmp_path: Path):
+    """D14b (#1181): milestones subscribed via any-of MUST NOT appear in drift."""
+    _write_pd(
+        tmp_path,
+        policy={
+            "triageScope": [
+                {"rule": "milestone", "any-of": ["v0.27", "v0.28"]},
+            ],
+        },
+    )
+    cache = tmp_path / ".deft-cache"
+    for n in (1300, 1301, 1302):
+        _write_cached_issue(cache, "deftai/directive", n, milestone="v0.27")
+    for n in (1310, 1311, 1312):
+        _write_cached_issue(cache, "deftai/directive", n, milestone="v0.28")
+    report = triage_scope_drift.compute_drift(tmp_path, cache_root=cache)
+    assert report.milestones == {}, report.milestones
+    assert report.total == 0
+
+
+def test_milestone_is_open_subscription_excluded_from_drift(tmp_path: Path):
+    """D14b (#1181): is-open consults the upstream snapshot to suppress drift."""
+    _write_pd(
+        tmp_path,
+        policy={
+            "triageScope": [{"rule": "milestone", "is-open": True}],
+        },
+    )
+    cache = tmp_path / ".deft-cache"
+    for n in (1400, 1401, 1402):
+        _write_cached_issue(cache, "deftai/directive", n, milestone="v0.27")
+    report = triage_scope_drift.compute_drift(
+        tmp_path,
+        cache_root=cache,
+        open_milestones_fetcher=lambda: {"v0.27", "v0.28"},
+    )
+    assert report.milestones == {}, report.milestones
+    assert report.total == 0
+
+
+def test_milestone_is_open_closed_milestone_still_drifts(tmp_path: Path):
+    """A closed-upstream milestone is NOT in the snapshot, so it should drift."""
+    _write_pd(
+        tmp_path,
+        policy={
+            "triageScope": [{"rule": "milestone", "is-open": True}],
+        },
+    )
+    cache = tmp_path / ".deft-cache"
+    for n in (1500, 1501, 1502):
+        _write_cached_issue(
+            cache, "deftai/directive", n, milestone="v0.20-archived"
+        )
+    report = triage_scope_drift.compute_drift(
+        tmp_path,
+        cache_root=cache,
+        # snapshot does NOT include the archived milestone
+        open_milestones_fetcher=lambda: {"v0.27", "v0.28"},
+    )
+    assert report.milestones == {"v0.20-archived": 3}
+    assert report.total == 3
+
+
 def test_ignore_list_suppresses_label_drift(tmp_path: Path):
     # Tighten triageScope so the all-open short-circuit does not
     # short-circuit drift before the ignore-list is consulted -- the
