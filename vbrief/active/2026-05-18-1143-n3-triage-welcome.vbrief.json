@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: N3 child of #1119 Wave-2a -- task triage:welcome single-entry onboarding ritual.",
+    "updated": "2026-05-18T13:06:00Z"
+  },
+  "plan": {
+    "title": "feat(triage): task triage:welcome 6-phase onboarding ritual (#1143)",
+    "status": "running",
+    "narratives": {
+      "Description": "N3 child of the #1119 Wave-2a swarm. Ship `task triage:welcome` as the single chained onboarding ritual a v0.26 consumer runs after `git pull`. Idempotent six-phase walkthrough: detect prior state -> prompt subscription scope (Small/Mid/Mega) -> task triage:bootstrap -> prompt wipCap (default 10 per umbrella Current Shape) -> offer scope:demote --batch relief when WIP exceeds cap -> print task triage:summary + pointer to skills/deft-directive-triage/SKILL.md. Replaces the per-child bullets in UPGRADING.md v0.26 -> v0.27. AGENTS.md routing entry already shipped by N9 (#1149).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1143. Issue body is the spec (no Current Shape comment filed); umbrella #1119 Current Shape v3 (comment 4471269010) overrides the legacy wipCap=12 wording: default = 10.",
+      "Overview": "## What to build\n\n1. `scripts/triage_welcome.py` -- pure-stdlib idempotent ritual with the 6 phases enumerated above. Detect prior state via PROJECT-DEFINITION (plan.policy.triageScope / plan.policy.wipCap), cache (.deft-cache/<source>/<owner>/<repo>/), candidates.jsonl. Prompts follow contracts/deterministic-questions.md (numbered menus with Discuss + Back as final two options; numeric/default-accept input).\n2. `tasks/triage-welcome.yml` -- fragment exposing inner `welcome` task forwarding {{.CLI_ARGS}} per the triage-summary.yml pattern.\n3. `Taskfile.yml` -- register `triage-welcome` include + add the user-facing `triage:welcome` alias.\n4. `tests/test_triage_welcome.py` -- cover clean install, partial install resume, WIP-exceeds-cap relief offered (dry-run-first + opt-in), operator declines relief, subscription write via D12 PROJECT-DEFINITION surface, wipCap write (hand-rolled until D4 ships its typed-flag writer subcommand).\n5. `UPGRADING.md` -- replace the per-child bullets in `v0.26 -> v0.27` with a single `task triage:welcome` recommendation.\n6. `skills/deft-directive-setup/SKILL.md` -- Phase 2 mentions `task triage:welcome` as the follow-up after project bootstrap.\n7. `CHANGELOG.md` -- `[Unreleased]` entry.\n\n## Type\n\nFeature -- Deliverable N3 of #1119 Wave-2a. Consolidating onboarding ritual; idempotent + re-runnable.\n\n## Acceptance criteria\n\n- `task triage:welcome` runs the 6-phase ritual idempotently; skipped phases emit informational stderr lines.\n- Subscription / wipCap writes via the typed-flag pattern (#746) with audit-log entries.\n- WIP-relief phase always runs `--dry-run` first; real run is opt-in only.\n- Empty-cache message in D2's `task triage:summary` chains here.\n- Default wipCap = 10 (umbrella Current Shape v3).\n- Tests cover clean install, partial install, WIP-exceeds-cap relief flow, operator declines relief, re-run after partial completion, menu defaults.\n- UPGRADING.md v0.26 -> v0.27 section recommends `task triage:welcome` as the single chained command.\n- skills/deft-directive-setup Phase 2 cross-references the new verb.\n- AGENTS.md NOT touched (N9 owns the routing entry).\n- CHANGELOG entry under `[Unreleased]`.\n\n## Not in scope\n\n- AGENTS.md edits (N9 / #1149 already shipped the routing entry).\n- Multi-operator coordination (#1119 R4).\n- TUI / GUI form rendering.\n- Subscription rule editor beyond the 3 presets (deferred).\n- Deft-specific labels / milestones in framework defaults (#1186 consumer-example, Wave-2e).\n\n## Refs\n\n- Umbrella: #1119\n- This deliverable: #1143\n- Consumed surfaces: D1 / #1121 (scope:demote --batch), D2 / #1122 (triage:summary), D4 / #1124 (wipCap typed flag, parallel), D6 / #1130 (triage skill pointer), D10 / #1129 (auto-classify), D12 / #1131 (triageScope typed flag)\n- Deterministic Questions Contract: contracts/deterministic-questions.md\n- Typed-flag pattern: #746"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1143",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1143: N3 -- task triage:welcome single entry-point"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: triage-eval governance swarm"
+      }
+    ],
+    "updated": "2026-05-18T13:10:57Z"
+  }
+}

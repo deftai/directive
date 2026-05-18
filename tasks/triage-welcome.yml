@@ -1,0 +1,31 @@
+version: '3'
+
+# tasks/triage-welcome.yml -- N3 (#1143) `task triage:welcome` 6-phase
+# onboarding ritual surface.
+#
+# Wired into the parent Taskfile.yml via the `includes:` block under
+# namespace key `triage-welcome`. The inner task `welcome` is reachable
+# as `task triage-welcome:welcome`; the parent Taskfile exposes the
+# documented `task triage:welcome` alias.
+#
+# Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+# declarations because user-facing flags (`--project-root`,
+# `--no-subprocess`) are forwarded via {{.CLI_ARGS}} and go-task's
+# incremental-build cache layer would silently swallow them.
+#
+# Companion script: scripts/triage_welcome.py (+ scripts/_triage_welcome_cli.py)
+# Companion tests:  tests/test_triage_welcome.py
+# Pattern reference: tasks/triage-summary.yml (D2 / #1122).
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  welcome:
+    desc: "Run the 6-phase onboarding ritual (N3 / #1143): detect prior state, prompt subscription scope, run triage:bootstrap, prompt wipCap, offer WIP relief, print triage:summary. Idempotent; re-run resumes cleanly. -- task triage:welcome -- [--no-subprocess]"
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_welcome.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

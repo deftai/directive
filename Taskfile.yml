@@ -200,6 +200,12 @@ includes:
   triage-queue:
     taskfile: ./tasks/triage-queue.yml
     optional: true
+  # N3 (#1143): `task triage:welcome` 6-phase onboarding ritual. Inner
+  # task `welcome` is exposed as the user-facing alias `task triage:welcome`
+  # in the alias block below.
+  triage-welcome:
+    taskfile: ./tasks/triage-welcome.yml
+    optional: true
   # Windows maintainer onboarding fragment (#902). Exposes the inner task
   # `toolchain` as `task setup:toolchain`. Note: the root-level `setup` task
   # below (git-hooks bootstrap) coexists with `setup:toolchain` because
@@ -650,5 +656,12 @@ tasks:
     desc: "Audit-log surface (#1128 / D11). -- task triage:audit [-- --format=json] [--vbrief-staleness] [--repo OWNER/NAME]"
     cmds:
       - task: triage-queue:audit
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:welcome:
+    desc: "Run the 6-phase onboarding ritual (N3 / #1143): detect prior state, prompt subscription scope, run triage:bootstrap, prompt wipCap, offer WIP relief, print triage:summary. Idempotent. -- task triage:welcome [-- --no-subprocess]"
+    cmds:
+      - task: triage-welcome:welcome
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"

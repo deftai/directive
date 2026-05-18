@@ -177,6 +177,49 @@ The operator-consent contract is identical to the #884 `task setup` ghx-install 
 ---
 <!-- 992-pr3: From deft/ -> .deft/core/ migration END -->
 
+<!-- 1143: From v0.26.x -> v0.27 triage adoption ritual BEGIN -->
+## From v0.26.x -> v0.27 (triage adoption via `task triage:welcome`)
+
+- **Applies when:** any project on deft v0.26.0 or later that has not yet run the v0.27 triage adoption ritual. Detection: `vbrief/PROJECT-DEFINITION.vbrief.json` has neither `plan.policy.triageScope` nor `plan.policy.wipCap` set, OR `.deft-cache/github-issue/` is absent / empty. The v0.27 cycle introduced 16+ new `task triage:*` / `task scope:*` verbs (the #1119 governance swarm: D1/#1121, D2/#1122, D5/#1127, D6/#1130, D10/#1129, D11/#1128, D12/#1131, plus the network children N9/#1149 + N3/#1143); without a chained command, operators had to learn each verb individually from the v0.27 release notes.
+- **Safe to auto-run:** Yes (interactive). `task triage:welcome` (#1143 / N3) is the single chained command for the v0.27 cycle's onboarding. The ritual is idempotent and detection-bound -- each phase emits an informational stderr line and skips when its precondition is already satisfied, so a re-run after a partial completion resumes cleanly without redoing work. The two destructive phases (subscription / `wipCap` writes to `PROJECT-DEFINITION`, plus the optional WIP-relief `task scope:demote --batch` invocation) are gated by numbered-menu prompts per [`contracts/deterministic-questions.md`](./contracts/deterministic-questions.md) (`Discuss` and `Back` are the canonical final two options); the relief preview is always shown before any real demote, and the operator must explicitly confirm before the relief runs.
+- **Restart required:** No -- the ritual writes typed flags on `PROJECT-DEFINITION` and runs subprocess hops into existing verbs; no `AGENTS.md` rewrite is involved (N9 / #1149 owns the v0.27 AGENTS.md updates and already landed).
+- **Commands:**
+  - `task triage:welcome` -- run the 6-phase ritual (detect prior state, prompt subscription scope, run `task triage:bootstrap`, prompt `wipCap`, offer WIP relief if needed, print `task triage:summary` + pointer to `skills/deft-directive-triage/SKILL.md`).
+  - `task triage:welcome -- --no-subprocess` -- test-mode flag that suppresses the bootstrap / scope:demote / triage:summary subprocess hops; never set in production runs.
+
+### What the ritual does
+
+Six phases, each detection-bound so a partial re-run resumes cleanly:
+
+1. **Detect prior state.** Reads `plan.policy.triageScope[]` and `plan.policy.wipCap` from `vbrief/PROJECT-DEFINITION.vbrief.json`; walks `.deft-cache/<source>/<owner>/<repo>/` for cache entries; counts vBRIEFs in `vbrief/pending/ + vbrief/active/`. Pure -- no writes.
+2. **Prompt subscription scope.** Numbered menu over three presets: **Small** (`all-open` -- recommended for repos <200 open issues), **Mid** (curated `labels` rule + `opened-since 60d` -- recommended 200-2000), **Mega** (`explicit-watch` + `referenced-by-vbrief` -- recommended 2000+). Default = Mid. Writes the typed array via the D12 / #1131 surface (`scripts/triage_scope.py::validate_scope_rules` is consulted for schema validation before the write commits). Skipped when already set.
+3. **Run `task triage:bootstrap`.** Subprocess hop into the existing D10 (#1129) / cache (#883) bootstrap. The D10 auto-classify pass runs on by default per its acceptance criteria. Skipped when the cache is already populated.
+4. **Prompt `wipCap`.** Numbered menu (8 small team / 10 default / 15 large team / custom). Default = **10** per umbrella #1119 Current Shape v3 (NOT 12 from older issue-body wording). Writes `plan.policy.wipCap` via the hand-rolled typed-flag writer that mirrors `scripts/policy.py::set_policy`; once D4 (#1124) lands its dedicated `policy_set.py wip-cap` subcommand the writer body becomes a thin delegation. Skipped when already set.
+5. **Offer WIP relief.** When `vbrief/pending/ + vbrief/active/` exceeds the chosen cap, preview the planned `task scope:demote -- --batch --older-than-days 30` (#1121 / D1) invocation: count + name the eligible vBRIEFs, show ineligibles. The relief is opt-in -- the operator must answer `y` to the explicit confirmation prompt (default `[y/N]`) before the real demote runs. Declining leaves the cap over by the existing delta and the ritual proceeds.
+6. **Final summary.** Emits `task triage:summary` (#1122 / D2) and points the operator at `skills/deft-directive-triage/SKILL.md` (#1130 / D6) for the next step.
+
+### Audit trail
+
+Every policy write (Phase 2 / Phase 4) appends an entry to `meta/policy-changes.log` with `actor=triage-welcome`, the field name, the new value, the previous value, and a `changed=true|false` token. This mirrors the existing `scripts/policy.py::set_policy` audit format so `git grep triage-welcome meta/policy-changes.log` surfaces every ritual run.
+
+### References
+
+- [#1143](https://github.com/deftai/directive/issues/1143) -- N3: `task triage:welcome` 6-phase onboarding ritual (this section).
+- [#1119](https://github.com/deftai/directive/issues/1119) -- umbrella: triage-eval governance swarm.
+- [#1131](https://github.com/deftai/directive/issues/1131) -- D12: typed `plan.policy.triageScope[]` subscription surface (Phase 2 writes).
+- [#1124](https://github.com/deftai/directive/issues/1124) -- D4: typed `plan.policy.wipCap` (Phase 4 writes; the ritual hand-rolls until D4 ships its writer subcommand).
+- [#1121](https://github.com/deftai/directive/issues/1121) -- D1: `task scope:demote --batch` (Phase 5 relief invocation).
+- [#1122](https://github.com/deftai/directive/issues/1122) -- D2: `task triage:summary` (Phase 6 final-state emission).
+- [#1129](https://github.com/deftai/directive/issues/1129) -- D10: triage auto-classification (consumed inside Phase 3).
+- [#1130](https://github.com/deftai/directive/issues/1130) -- D6: triage skill pointer (Phase 6 forward-pointer).
+- [#1149](https://github.com/deftai/directive/issues/1149) -- N9: `welcome` / `onboard triage` / `triage setup` skill-routing entry in AGENTS.md (already landed).
+- [`contracts/deterministic-questions.md`](./contracts/deterministic-questions.md) -- numbered-menu contract every prompt follows.
+- [`scripts/triage_welcome.py`](./scripts/triage_welcome.py) -- ritual entry point.
+- [`tasks/triage-welcome.yml`](./tasks/triage-welcome.yml) -- `task triage:welcome` Taskfile fragment.
+
+---
+<!-- 1143: From v0.26.x -> v0.27 triage adoption ritual END -->
+
 <!-- 883-story-4: v0.25.x -> v0.26.0 migration BEGIN -->
 ## From v0.25.x → v0.26.0 (deft-cache unified layer; breaking)
 
