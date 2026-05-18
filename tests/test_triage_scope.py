@@ -811,6 +811,94 @@ def test_evaluate_milestone_is_open_fetcher_failure_yields_no_matches():
 
 
 # ---------------------------------------------------------------------------
+# D14b / #1181: infer_repo_from_issues strict-hostname validation
+# (CodeQL py/incomplete-url-substring-sanitization regression)
+# ---------------------------------------------------------------------------
+
+
+def _load_milestone_module():
+    import importlib
+
+    return importlib.import_module("_triage_scope_milestone")
+
+
+def test_infer_repo_accepts_api_github_repository_url():
+    mod = _load_milestone_module()
+    issues = [{"repository_url": "https://api.github.com/repos/deftai/directive"}]
+    assert mod.infer_repo_from_issues(issues) == "deftai/directive"
+
+
+def test_infer_repo_accepts_github_html_url_issues_form():
+    mod = _load_milestone_module()
+    issues = [{"html_url": "https://github.com/deftai/directive/issues/1181"}]
+    assert mod.infer_repo_from_issues(issues) == "deftai/directive"
+
+
+def test_infer_repo_accepts_github_html_url_repo_only_form():
+    mod = _load_milestone_module()
+    issues = [{"html_url": "https://github.com/deftai/directive"}]
+    assert mod.infer_repo_from_issues(issues) == "deftai/directive"
+
+
+def test_infer_repo_rejects_spoofed_subdomain_attack():
+    """CodeQL py/incomplete-url-substring-sanitization regression.
+
+    A naive ``"github.com" in url`` check would accept this URL because
+    the literal substring ``github.com`` appears in the hostname. The
+    strict ``urlparse().hostname`` allow-list MUST reject it.
+    """
+    mod = _load_milestone_module()
+    issues = [
+        {"html_url": "https://evil-github.com.attacker.com/deftai/directive/issues/1"}
+    ]
+    assert mod.infer_repo_from_issues(issues) is None
+
+
+def test_infer_repo_rejects_github_com_in_path_only():
+    mod = _load_milestone_module()
+    issues = [
+        {"html_url": "https://attacker.com/github.com/deftai/directive"}
+    ]
+    assert mod.infer_repo_from_issues(issues) is None
+
+
+def test_infer_repo_rejects_github_com_with_credential_prefix():
+    mod = _load_milestone_module()
+    issues = [
+        {"html_url": "https://github.com@attacker.com/deftai/directive"}
+    ]
+    assert mod.infer_repo_from_issues(issues) is None
+
+
+def test_infer_repo_rejects_non_string_and_malformed_urls():
+    mod = _load_milestone_module()
+    issues = [
+        {"html_url": 12345},
+        {"html_url": ""},
+        {"html_url": "not-a-url"},
+        {"html_url": "https://github.com"},  # no path -> too few segments
+        {"html_url": "https://github.com/deftai"},  # only owner, no name
+    ]
+    assert mod.infer_repo_from_issues(issues) is None
+
+
+def test_infer_repo_skips_non_github_then_finds_canonical():
+    """Issues with non-github URLs are skipped; the first canonical URL wins."""
+    mod = _load_milestone_module()
+    issues = [
+        {"html_url": "https://evil-github.com.attacker.com/x/y"},
+        {"repository_url": "https://api.github.com/repos/deftai/directive"},
+    ]
+    assert mod.infer_repo_from_issues(issues) == "deftai/directive"
+
+
+def test_infer_repo_case_insensitive_hostname():
+    mod = _load_milestone_module()
+    issues = [{"html_url": "https://GitHub.com/deftai/directive/issues/1"}]
+    assert mod.infer_repo_from_issues(issues) == "deftai/directive"
+
+
+# ---------------------------------------------------------------------------
 # D14 / #1133: triageScopeIgnores[] validation + resolve
 # ---------------------------------------------------------------------------
 

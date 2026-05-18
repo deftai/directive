@@ -33,6 +33,15 @@ import sys
 from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
+
+#: Strict allow-list of GitHub hostnames accepted by
+#: :func:`infer_repo_from_issues`. Substring / `in` matching is a CodeQL
+#: ``py/incomplete-url-substring-sanitization`` finding: an attacker-controlled
+#: ``html_url`` value of the form ``https://evil-github.com.attacker.com/...``
+#: would satisfy a naive ``"github.com" in url`` check. Enforce strict host
+#: equality via :func:`urllib.parse.urlparse` instead.
+_GITHUB_HOSTNAMES: frozenset[str] = frozenset({"github.com", "api.github.com"})
 
 #: The set of recognised keys on a ``milestone`` rule body. ``rule`` is
 #: the discriminator itself; the rest are the three variant keys.
@@ -184,6 +193,13 @@ def infer_repo_from_issues(issues: Iterable[dict[str, Any]]) -> str | None:
     ``html_url``. Returns the first plausible match so a heterogeneous
     issue list (cross-repo cohort) still resolves to a deterministic
     repo for the upstream milestones call.
+
+    Strictly validates the URL's hostname via :func:`urllib.parse.urlparse`
+    against :data:`_GITHUB_HOSTNAMES` before extracting any path segment.
+    Substring / ``in`` matching on the URL string would be a CodeQL
+    ``py/incomplete-url-substring-sanitization`` finding -- an attacker
+    controlling an issue payload could craft ``https://evil-github.com.attacker.com/owner/name/...``
+    that satisfies a naive ``"github.com" in url`` check.
     """
     for issue in issues:
         if not isinstance(issue, dict):
@@ -192,29 +208,26 @@ def infer_repo_from_issues(issues: Iterable[dict[str, Any]]) -> str | None:
             value = issue.get(key)
             if not isinstance(value, str) or not value:
                 continue
-            tail = value.rstrip("/")
-            # repository_url tail: ".../repos/<owner>/<name>"
-            # html_url tail: ".../<owner>/<name>/issues/<n>" or ".../<owner>/<name>"
-            parts = tail.split("/")
-            if "repos" in parts:
-                idx = parts.index("repos")
-                if idx + 2 < len(parts):
-                    owner, name = parts[idx + 1], parts[idx + 2]
-                    if owner and name:
-                        return f"{owner}/{name}"
-            # html_url heuristic -- "<host>/<owner>/<name>/..."
-            if "github.com" in tail and len(parts) >= 5:
-                # Find segment after github.com
-                try:
-                    gh_idx = next(
-                        i for i, p in enumerate(parts) if "github.com" in p
-                    )
-                except StopIteration:
-                    continue
-                if gh_idx + 2 < len(parts):
-                    owner, name = parts[gh_idx + 1], parts[gh_idx + 2]
-                    if owner and name:
-                        return f"{owner}/{name}"
+            try:
+                parsed = urlparse(value)
+            except (ValueError, TypeError):
+                continue
+            host = (parsed.hostname or "").lower()
+            if host not in _GITHUB_HOSTNAMES:
+                continue
+            segments = [s for s in parsed.path.split("/") if s]
+            # api.github.com canonical repository_url:
+            #   path = "/repos/<owner>/<name>"  ->  segments[0]=="repos"
+            # github.com html_url:
+            #   path = "/<owner>/<name>" or "/<owner>/<name>/issues/<n>"
+            if segments and segments[0] == "repos" and len(segments) >= 3:
+                owner, name = segments[1], segments[2]
+            elif len(segments) >= 2:
+                owner, name = segments[0], segments[1]
+            else:
+                continue
+            if owner and name:
+                return f"{owner}/{name}"
     return None
 
 
