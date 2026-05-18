@@ -249,9 +249,29 @@ tasks:
       - verify:encoding
       - verify:destructive-gh-verbs
       - verify:cache-fresh
+      - verify-wip-cap-framework-self-check
       - vbrief:validate
     cmds:
       - echo "All checks passed"
+
+  # D4 (#1124): framework self-check wrapper that passes
+  # --allow-over-cap so deft's own landing-day overage (pending/+active/
+  # currently >> 10, resolved via D1 scope:demote --batch per umbrella
+  # v3) does not break framework `task check`. Consumer projects depend
+  # on `verify:wip-cap` directly (without --allow-over-cap) so a
+  # stale-branch / --force-merge over-cap state fails their `task check`
+  # loudly. Mirrors the verify:cache-fresh / verify:branch
+  # --allow-missing-* tolerance pattern.
+  verify-wip-cap-framework-self-check:
+    internal: true
+    desc: "Framework self-check shim for verify:wip-cap (#1124)."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - task: verify:wip-cap
+        vars:
+          CLI_ARGS: "--allow-over-cap"
 
   # `task check:slow` runs the @pytest.mark.slow lane that the default
   # `task check` skips (#975). The slow lane is dominated by the

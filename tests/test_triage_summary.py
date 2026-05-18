@@ -158,7 +158,10 @@ def test_populated_cache_zero_wip_no_warning(tmp_path: Path) -> None:
             ),
         ],
     )
-    # No vBRIEFs in pending/active -> 0/12 -> no warning glyph.
+    # No vBRIEFs in pending/active -> 0/<cap> -> no warning glyph.
+    # Default cap is now 10 (#1124 / D4 -- per umbrella #1119 Current
+    # Shape v3, comment 4471269010; previously 12 in the D4 issue
+    # body, now superseded).
     result = triage_summary.compute_summary(tmp_path)
     assert result.cache_empty is False
     assert result.untriaged == 1
@@ -170,7 +173,7 @@ def test_populated_cache_zero_wip_no_warning(tmp_path: Path) -> None:
     line = triage_summary.format_one_liner(result)
     assert line.startswith("[triage] 1 untriaged")
     assert "2 in-flight" in line
-    assert "WIP 0/12" in line
+    assert f"WIP 0/{triage_summary.DEFAULT_WIP_CAP}" in line
     # Stale-defer suppressed when count is 0.
     assert "stale-defer" not in line
     # WIP warning glyph suppressed when wip < cap.
@@ -535,8 +538,14 @@ def test_latest_decision_wins_chronologically() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_wip_cap_defaults_to_12_when_field_absent(tmp_path: Path) -> None:
-    assert triage_summary.resolve_wip_cap(tmp_path) == 12
+def test_wip_cap_defaults_to_framework_default_when_field_absent(tmp_path: Path) -> None:
+    # D4 / #1124 fixes D2's default-drift bug -- the shared
+    # ``scripts.policy.DEFAULT_WIP_CAP`` is the single source of truth
+    # (resolved to 10 per umbrella #1119 Current Shape v3). The
+    # historical 12-literal here mirrored the now-superseded D4 issue
+    # body.
+    assert triage_summary.resolve_wip_cap(tmp_path) == triage_summary.DEFAULT_WIP_CAP
+    assert triage_summary.DEFAULT_WIP_CAP == 10
 
 
 def test_wip_cap_honours_typed_field(tmp_path: Path) -> None:
@@ -551,7 +560,7 @@ def test_wip_cap_rejects_non_int(tmp_path: Path) -> None:
         json.dumps({"plan": {"policy": {"wipCap": "twelve"}}}),
         encoding="utf-8",
     )
-    assert triage_summary.resolve_wip_cap(tmp_path) == 12
+    assert triage_summary.resolve_wip_cap(tmp_path) == triage_summary.DEFAULT_WIP_CAP
 
 
 def test_wip_cap_zero_honoured(tmp_path: Path) -> None:

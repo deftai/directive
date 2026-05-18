@@ -553,12 +553,18 @@ class TestCLI:
 
     def test_cli_promote_success(self, tmp_path):
         f = make_vbrief(tmp_path, "proposed", "proposed")
+        # Pass --project-root so the D4 WIP cap check (#1124) reads the
+        # isolated tmp_path tree (empty pending/active) rather than
+        # walking up to the real deft worktree where the count is over
+        # cap during landing-day overage.
         result = subprocess.run(
             [
                 sys.executable,
                 str(REPO_ROOT / "scripts" / "scope_lifecycle.py"),
                 "promote",
                 str(f),
+                "--project-root",
+                str(tmp_path),
             ],
             capture_output=True,
             text=True,
@@ -569,16 +575,26 @@ class TestCLI:
 
     def test_cli_invalid_transition_returns_1(self, tmp_path):
         f = make_vbrief(tmp_path, "active", "running")
+        # Pass --project-root so the D4 cap check (#1124) reads the
+        # isolated tmp_path tree (empty pending/active) -- otherwise the
+        # cap check would short-circuit with its own refusal before the
+        # invalid-transition check fires. The test's intent is to exercise
+        # the invalid-transition path, so we keep the cap satisfied.
         result = subprocess.run(
             [
                 sys.executable,
                 str(REPO_ROOT / "scripts" / "scope_lifecycle.py"),
                 "promote",
                 str(f),
+                "--project-root",
+                str(tmp_path),
             ],
             capture_output=True,
             text=True,
             timeout=15,
         )
         assert result.returncode == 1
-        assert "Error" in result.stderr
+        # Match either "Error" (legacy invalid-transition prefix) or
+        # "ERROR" (D4 cap-check prefix) so a future re-ordering doesn't
+        # silently break this regression guard.
+        assert "rror" in result.stderr

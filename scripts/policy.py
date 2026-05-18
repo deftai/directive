@@ -52,6 +52,22 @@ LEGACY_NARRATIVE_KEY = "Allow direct commits to master"
 #: audit trail is grep-friendly across PowerShell and POSIX shells.
 AUDIT_LOG_REL_PATH = "meta/policy-changes.log"
 
+# ---------------------------------------------------------------------------
+# WIP cap surface (#1124 / D4 of #1119)
+# ---------------------------------------------------------------------------
+#
+# Framework default WIP cap. Used by ``scope:promote`` enforcement,
+# ``verify:wip-cap`` re-validation, and the D2 (#1122) ``triage:summary``
+# one-liner. **10** per umbrella #1119 Current Shape v3 (comment
+# 4471269010); supersedes the literal 12 in the D4 (#1124) issue body.
+# Importing the constant from ``scripts.policy`` is mandatory for any
+# component that surfaces the cap so D2 / D4 cannot drift again.
+DEFAULT_WIP_CAP: int = 10
+
+#: vBRIEF lifecycle folders that count toward the WIP set. Mirrors the
+#: D4 cap target (`pending/ + active/`).
+WIP_LIFECYCLE_DIRS: tuple[str, ...] = ("pending", "active")
+
 
 @dataclass(frozen=True)
 class PolicyResult:
@@ -60,6 +76,26 @@ class PolicyResult:
     allow_direct_commits: bool
     source: str  # one of: 'typed', 'legacy-narrative', 'env-bypass', 'default-fail-closed'
     deprecation_warning: str | None = None
+    error: str | None = None
+
+
+@dataclass(frozen=True)
+class WipCapResult:
+    """Resolved ``plan.policy.wipCap`` state. Mirrors :class:`PolicyResult` shape.
+
+    Fields:
+
+    * ``cap`` -- resolved integer cap (``>= 0``).
+    * ``source`` -- ``'typed'`` (typed field present and well-formed),
+      ``'default'`` (no typed field; framework default applied), or
+      ``'default-on-error'`` (typed field present but malformed -- the
+      caller can surface ``error`` to the operator).
+    * ``error`` -- one-line diagnostic when the typed field is
+      unreadable / non-int / negative; ``None`` on success / default.
+    """
+
+    cap: int
+    source: str  # one of: 'typed', 'default', 'default-on-error'
     error: str | None = None
 
 
@@ -202,6 +238,179 @@ def resolve_policy(project_root: Path | None = None) -> PolicyResult:
 def is_direct_commit_allowed(project_root: Path | None = None) -> bool:
     """Convenience boolean wrapper -- True when direct commits to master are allowed."""
     return resolve_policy(project_root).allow_direct_commits
+
+
+# ---------------------------------------------------------------------------
+# WIP cap helpers (#1124 / D4 of #1119)
+# ---------------------------------------------------------------------------
+
+
+def resolve_wip_cap(project_root: Path | None = None) -> WipCapResult:
+    """Resolve ``plan.policy.wipCap`` from PROJECT-DEFINITION.
+
+    Resolution order:
+
+    1. ``plan.policy.wipCap`` typed integer (``>= 0``) -- ``source='typed'``.
+    2. Missing / unreadable / non-int / negative -- ``source='default'``
+       (with ``error`` set when malformed so the caller can surface it).
+
+    Pure-stdlib; no live ``gh`` / cache calls. Mirrors the
+    :func:`resolve_policy` shape so callers can use the same
+    pattern-match-on-source style. Default = :data:`DEFAULT_WIP_CAP`
+    (10 per umbrella #1119 Current Shape v3).
+    """
+    data, err = load_project_definition(project_root)
+    if data is None:
+        # Missing PROJECT-DEFINITION is not an error for the WIP cap --
+        # we fall back to the framework default. ``err`` is propagated as
+        # observability for the caller.
+        return WipCapResult(
+            cap=DEFAULT_WIP_CAP,
+            source="default",
+            error=err,
+        )
+
+    plan = data.get("plan") if isinstance(data, dict) else None
+    if not isinstance(plan, dict):
+        return WipCapResult(
+            cap=DEFAULT_WIP_CAP,
+            source="default",
+            error="PROJECT-DEFINITION 'plan' is not an object",
+        )
+    policy_block = plan.get("policy")
+    if not isinstance(policy_block, dict) or "wipCap" not in policy_block:
+        return WipCapResult(cap=DEFAULT_WIP_CAP, source="default", error=None)
+
+    raw = policy_block["wipCap"]
+    # ``bool`` is a subclass of ``int`` in Python -- explicitly reject it
+    # so ``True`` does not silently parse as cap=1.
+    if not isinstance(raw, int) or isinstance(raw, bool) or raw < 0:
+        return WipCapResult(
+            cap=DEFAULT_WIP_CAP,
+            source="default-on-error",
+            error=(
+                "plan.policy.wipCap must be a non-negative integer; got "
+                f"{type(raw).__name__} ({raw!r})"
+            ),
+        )
+    return WipCapResult(cap=raw, source="typed", error=None)
+
+
+def count_vbrief_wip(project_root: Path) -> int:
+    """Count ``*.vbrief.json`` files in ``vbrief/pending/`` + ``vbrief/active/``.
+
+    Files are filtered by the ``.vbrief.json`` suffix so scratch /
+    README artefacts dropped into the lifecycle folders do not pollute
+    the count. Missing folders contribute 0. Mirrors the D4 / #1124 cap
+    target -- the single canonical WIP definition shared with D2.
+    """
+    total = 0
+    vbrief_root = project_root / "vbrief"
+    for sub in WIP_LIFECYCLE_DIRS:
+        folder = vbrief_root / sub
+        if not folder.is_dir():
+            continue
+        total += sum(
+            1
+            for child in folder.iterdir()
+            if child.is_file() and child.name.endswith(".vbrief.json")
+        )
+    return total
+
+
+def validate_wip_cap(value: Any) -> list[str]:
+    """Validate a ``plan.policy.wipCap`` payload. Returns a list of error strings.
+
+    Rules:
+
+    * ``None`` / unset is valid (resolver falls back to the default).
+    * Must be an integer (``bool`` explicitly rejected).
+    * Must be ``>= 0`` (``0`` is a legitimate operator state -- freezes
+      promotion entirely; useful for code-freeze windows).
+    """
+    errors: list[str] = []
+    if value is None:
+        return errors
+    if not isinstance(value, int) or isinstance(value, bool):
+        errors.append(
+            "plan.policy.wipCap must be an integer; got "
+            f"{type(value).__name__} ({value!r})"
+        )
+        return errors
+    if value < 0:
+        errors.append(
+            f"plan.policy.wipCap must be >= 0; got {value}"
+        )
+    return errors
+
+
+def validate_wip_cap_on_plan(plan: Any, filepath: Any) -> list[str]:
+    """vbrief_validate hook: validate ``plan.policy.wipCap`` (#1124).
+
+    Returns formatted error strings prefixed with ``<filepath>:`` so
+    ``vbrief_validate.validate_project_definition`` can splice them into
+    its existing error list. Unset / missing is treated as the framework
+    default and returns an empty list. Mirrors the D11 / D12 / D10
+    hook shape.
+    """
+    out: list[str] = []
+    if not isinstance(plan, dict):
+        return out
+    policy = plan.get("policy")
+    if not isinstance(policy, dict) or "wipCap" not in policy:
+        return out
+    for err in validate_wip_cap(policy["wipCap"]):
+        out.append(f"{filepath}: {err} (#1124)")
+    return out
+
+
+def set_wip_cap(
+    project_root: Path,
+    *,
+    cap: int,
+    actor: str = "agent",
+    note: str = "",
+) -> tuple[bool, str]:
+    """Write ``plan.policy.wipCap`` to PROJECT-DEFINITION.
+
+    Returns ``(changed, audit_entry)``. Performs an in-place edit
+    (preserves all other keys). Audit-log entry appended to
+    ``meta/policy-changes.log`` (shared with the existing
+    branch-protection writer; one log = one canonical timeline).
+
+    Raises ``FileNotFoundError`` when PROJECT-DEFINITION is missing --
+    the caller should produce a fail-closed message in that case.
+    """
+    if not isinstance(cap, int) or isinstance(cap, bool) or cap < 0:
+        raise ValueError(
+            f"wipCap must be a non-negative integer; got {cap!r}"
+        )
+    path = project_definition_path(project_root)
+    if not path.is_file():
+        raise FileNotFoundError(f"PROJECT-DEFINITION not found at {path}")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    plan = data.setdefault("plan", {})
+    if not isinstance(plan, dict):
+        raise ValueError("PROJECT-DEFINITION 'plan' is not an object")
+    policy_block = plan.setdefault("policy", {})
+    if not isinstance(policy_block, dict):
+        raise ValueError("plan.policy is not an object")
+
+    previous = policy_block.get("wipCap")
+    policy_block["wipCap"] = int(cap)
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    changed = previous != int(cap)
+    parts = [
+        f"actor={actor}",
+        f"wipCap={cap}",
+        f"previous={previous!r}",
+    ]
+    if note:
+        parts.append("note=" + note.replace("\n", " ").replace("\r", " "))
+    audit_entry = " ".join(parts)
+    append_audit_log(project_root, audit_entry)
+    return changed, audit_entry
 
 
 # Reconfiguration surface (used by tasks/policy.yml + slash commands) -----

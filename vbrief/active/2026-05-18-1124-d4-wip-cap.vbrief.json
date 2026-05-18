@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: D4 (#1124) -- plan.policy.wipCap (default 10) + scope:promote enforcement + D2 default-drift fix.",
+    "updated": "2026-05-18T13:10:00Z"
+  },
+  "plan": {
+    "title": "feat(policy): plan.policy.wipCap (default 10) + scope:promote enforcement + D2 default-drift fix (#1124)",
+    "status": "running",
+    "narratives": {
+      "Description": "D4 introduces the `plan.policy.wipCap` typed integer field (default 10 per umbrella Current Shape v3 override of issue body's 12) and refuses `task scope:promote` when `pending/ + active/` count is at-or-above cap. `--force` succeeds with a stderr warning and an audit-log entry tagged `wip-cap-override`. Extends `scripts/policy.py` with `WipCapResult` + `resolve_wip_cap`; `scripts/policy_set.py` with a `wip-cap` subcommand; `scripts/vbrief_validate.py` with a lazy-import validation hook; and wires `verify:wip-cap` into `task check`. Fixes D2 (#1122) default-drift by importing the shared `DEFAULT_WIP_CAP = 10` constant in `scripts/triage_summary.py::resolve_wip_cap`.",
+      "Origin": "Wave-2a D4 child of umbrella #1119. Issue body says default 12; umbrella Current Shape v3 (comment 4471269010) OVERRIDES to default = 10.",
+      "Overview": "## What to build\n\n1. `scripts/policy.py` -- add `DEFAULT_WIP_CAP=10`, `WipCapResult` dataclass, `resolve_wip_cap`, `set_wip_cap`, `validate_wip_cap`, `validate_wip_cap_on_plan`, `count_vbrief_wip`.\n2. `scripts/policy_set.py` -- add `wip-cap` subcommand (`--set N --confirm` writes typed flag with audit-log entry).\n3. `scripts/scope_lifecycle.py` -- thread WIP cap check + `--force` through `promote`; refuse over-cap with relief verbs; on `--force` emit stderr warning + audit-log entry tagged `wip-cap-override`.\n4. `scripts/preflight_wip_cap.py` -- `task verify:wip-cap` re-validation gate (exit 1 when over cap; `--allow-over-cap` for framework self-check tolerance).\n5. `scripts/vbrief_validate.py` -- lazy-import hook so `task vbrief:validate` rejects malformed `plan.policy.wipCap`.\n6. `scripts/triage_summary.py` -- import `DEFAULT_WIP_CAP` from `scripts.policy` (D2 drift fix).\n7. `tasks/policy.yml` + `tasks/verify.yml` + `Taskfile.yml` -- new `policy:wip-cap` + `verify:wip-cap` tasks; wire `verify:wip-cap` into `task check`.\n8. `skills/deft-directive-swarm/SKILL.md` -- cohort-selection phase names the cap (10) + relief verb (`task scope:demote`).\n\n## Acceptance criteria\n\n- `plan.policy.wipCap` accepted as a typed integer.\n- Default 10 applies when the field is absent.\n- `resolve_wip_cap` returns `WipCapResult(cap=10, source=\"default\")` on missing field; `WipCapResult(cap=N, source=\"typed\")` on typed field; falls back on non-int with an `error` set.\n- `task scope:promote <file>` exits non-zero when `pending/ + active/` count is >= cap; error names cap, count, and `task scope:demote` + `task scope:demote --batch --older-than-days 30` + `task scope:promote --force`.\n- `task scope:promote <file> --force` succeeds, emits stderr warning, records audit-log entry tagged `wip-cap-override`.\n- `task policy:wip-cap -- --set N --confirm` writes typed flag + audit-log entry.\n- `task verify:wip-cap` exits 1 when over cap (consumer); `--allow-over-cap` keeps the framework's own `task check` green during landing-day overage.\n- `scripts/triage_summary.py::resolve_wip_cap` imports `DEFAULT_WIP_CAP` from `scripts.policy` (drift fix).\n- D2 test expecting default 12 -> 10.\n- `skills/deft-directive-swarm/SKILL.md` cohort-selection phase names the cap + relief verb.\n- CHANGELOG `[Unreleased]` entry.\n\n## Type\n\nFeature -- framework policy primitive; consumer-agnostic; framework default 10.\n\n## Refs\n\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Issue: https://github.com/deftai/directive/issues/1124\n- Current Shape v3 override: https://github.com/deftai/directive/issues/comments/4471269010\n- D1 (relief valve): https://github.com/deftai/directive/issues/1121\n- D2 (default-drift fix): https://github.com/deftai/directive/issues/1122\n- Typed-flag pattern: https://github.com/deftai/directive/issues/746"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1124",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1124: D4 -- WIP cap enforcement"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-2a swarm"
+      }
+    ],
+    "updated": "2026-05-18T13:10:00Z"
+  }
+}

@@ -140,6 +140,7 @@ Cross-references:
 - ! **Large/complex stories** get dedicated agents — a story with broad file scope or high acceptance criteria count should not share an agent
 - ! **Dependency-aware grouping** — vBRIEFs that share `planRef` to the same epic or have `edges` between them should be assigned to the same agent when possible, OR sequenced with clear ordering
 - ! The monitor decides allocation dynamically — no hardcoded 1:1 rule
+- ! **WIP cap awareness (#1124 / D4 of #1119)** — the cohort + any bridge-promoted candidates (Step 0.5) MUST fit within `plan.policy.wipCap` (default 10 per umbrella #1119 Current Shape v3). When `pending/ + active/` count is at-or-above the cap, `task scope:promote` refuses with an error message naming `task scope:demote <existing>` and `task scope:demote --batch --older-than-days 30` as the relief valves. The monitor MUST drain the WIP set via `task scope:demote` (D1 / #1121) before promoting more candidates, OR open a per-promote `task scope:promote <file> --force` (audit-logged as `wip_cap_override` in `vbrief/.eval/scope-lifecycle.jsonl`) for the genuinely time-critical case. `task triage:summary` (D2 / #1122) surfaces the cap as `WIP X/Y` with a warning glyph when at-or-above cap.
 
 ### Step 4: Present Analysis
 

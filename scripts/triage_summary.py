@@ -71,11 +71,21 @@ for _stream in (sys.stdout, sys.stderr):
 #: graceful (last-field-first) rather than multi-line.
 MAX_LINE_CHARS: int = 120
 
-#: Default ``plan.policy.wipCap`` fallback when the typed field is
-#: absent / missing / non-int. Matches D4 (#1124) which freezes the
-#: same default. Kept duplicated here so D2 does NOT hard-depend on
-#: D4 (parallel wave).
-DEFAULT_WIP_CAP: int = 12
+# Default ``plan.policy.wipCap`` fallback when the typed field is
+# absent / missing / non-int. **Imported** from ``scripts.policy``
+# (#1124 / D4) -- the single source of truth so D2 and D4 cannot
+# drift again. The shared constant resolves to ``10`` per umbrella
+# #1119 Current Shape v3 (comment 4471269010); the value used to
+# duplicate-literal at 12 here, matching the now-superseded D4
+# issue-body default. Re-exported as a module attribute so existing
+# callers / tests that reference ``triage_summary.DEFAULT_WIP_CAP``
+# keep working without import-site churn.
+from policy import DEFAULT_WIP_CAP as _POLICY_DEFAULT_WIP_CAP  # noqa: E402
+
+#: Re-exported alias of :data:`scripts.policy.DEFAULT_WIP_CAP` (10
+#: per umbrella #1119 Current Shape v3). Kept as a module-level name
+#: for callers / tests that already import it from this module.
+DEFAULT_WIP_CAP: int = _POLICY_DEFAULT_WIP_CAP
 
 #: Filesystem-relative location of the PROJECT-DEFINITION vBRIEF
 #: (mirrors ``scripts/policy.py`` / ``scripts/triage_scope.py``).
@@ -314,33 +324,30 @@ def count_vbrief_wip(project_root: Path) -> int:
 
 
 def resolve_wip_cap(project_root: Path) -> int:
-    """Read ``plan.policy.wipCap`` from PROJECT-DEFINITION; fall back to 12.
+    """Read ``plan.policy.wipCap`` from PROJECT-DEFINITION; fall back to the framework default.
 
-    D2 ships in parallel with D4 (#1124) which adds the typed field +
-    its writer surface. Until D4 lands the field is absent on every
-    consumer; D2 honours the typed value when present so the two land
-    cleanly together. Non-int values, malformed JSON, missing file all
-    fall through to ``DEFAULT_WIP_CAP``.
+    D4 (#1124) ships the canonical resolver as
+    :func:`scripts.policy.resolve_wip_cap` (returns a ``WipCapResult``).
+    D2's surface here is a thin shim that returns the integer cap only,
+    preserving the original :func:`triage_summary.resolve_wip_cap`
+    return contract -- existing call-sites continue to work without
+    pattern-matching on ``source``. The shared constant
+    :data:`DEFAULT_WIP_CAP` is imported from ``scripts.policy`` (D4)
+    so D2 and D4 cannot drift again -- the post-#1119 Current Shape
+    v3 override (10) lives in ONE place. Defers to D4's resolver for
+    the actual read so all the malformed-JSON / non-int /
+    missing-PROJECT-DEFINITION tolerance lives in one place too.
     """
-    path = project_root / PROJECT_DEFINITION_REL_PATH
-    if not path.is_file():
-        return DEFAULT_WIP_CAP
+    # Lazy-import the D4 resolver under ``contextlib.suppress`` so a
+    # partial install (D4 not present on a pre-#1124 branch) still
+    # produces a sensible default. Mirrors the lazy-hook pattern in
+    # scripts/vbrief_validate.py.
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        from policy import resolve_wip_cap as _resolve_wip_cap_d4  # noqa: I001
+        result = _resolve_wip_cap_d4(project_root)
+        return int(result.cap)
+    except ImportError:  # pragma: no cover -- D4 not present on rolling-merge tolerance branch
         return DEFAULT_WIP_CAP
-    if not isinstance(data, dict):
-        return DEFAULT_WIP_CAP
-    plan = data.get("plan")
-    if not isinstance(plan, dict):
-        return DEFAULT_WIP_CAP
-    policy = plan.get("policy")
-    if not isinstance(policy, dict):
-        return DEFAULT_WIP_CAP
-    raw = policy.get("wipCap")
-    if isinstance(raw, int) and not isinstance(raw, bool) and raw >= 0:
-        return raw
-    return DEFAULT_WIP_CAP
 
 
 # ---------------------------------------------------------------------------

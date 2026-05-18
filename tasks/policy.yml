@@ -33,3 +33,11 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy_set.py" allow-direct-commits {{.CLI_ARGS}}
+
+  wip-cap:
+    desc: "Set plan.policy.wipCap=N (#1124 / D4 of #1119). Requires --set N --confirm. Default cap is 10 per umbrella #1119 Current Shape v3."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/policy_set.py" wip-cap {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"

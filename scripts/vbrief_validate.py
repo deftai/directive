@@ -382,6 +382,13 @@ def validate_project_definition(filepath: Path, data: dict, vbrief_dir: Path) ->
         from triage_queue import validate_triage_ranking_labels_on_plan  # noqa: I001
         errors.extend(validate_triage_ranking_labels_on_plan(plan, filepath))
 
+    # #1124 (D4): typed plan.policy.wipCap validation -- helper lives in
+    # scripts/policy.py so this file does not grow. Mirrors the D10 /
+    # D11 / D12 hook pattern above.
+    with contextlib.suppress(Exception):
+        from policy import validate_wip_cap_on_plan  # noqa: I001
+        errors.extend(validate_wip_cap_on_plan(plan, filepath))
+
     # Check items registry entries reference existing scope vBRIEF files
     items = plan.get("items", [])
     if isinstance(items, list):

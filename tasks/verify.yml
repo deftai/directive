@@ -94,3 +94,21 @@ tasks:
     # missing cache fails their `task check` loudly.
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_cache.py" --project-root "{{.USER_WORKING_DIR}}" --allow-missing-bootstrap {{.CLI_ARGS}}
+
+  wip-cap:
+    desc: "Pre-merge re-validation that pending/+active/ count is within plan.policy.wipCap (#1124 / D4 of #1119). Catches stale-branch merges + --force overrides. Default cap is 10 per umbrella #1119 Current Shape v3. The framework's own task check passes --allow-over-cap during landing-day overage; consumer projects MUST NOT pass that flag."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # Per `conventions/task-caching.md` (#574): NO `sources:` /
+    # `generates:` because the gate forwards user-facing flags via
+    # {{.CLI_ARGS}} (--allow-over-cap / --quiet) that go-task's
+    # incremental-build cache would silently swallow. The framework's
+    # own `task check` invocation in Taskfile.yml passes
+    # `--allow-over-cap` so deft's landing-day overage (pending/+active/
+    # >> 10; resolved via D1 scope:demote --batch per umbrella v3) does
+    # not break framework self-check; consumer projects leave the flag
+    # OFF so a stale-branch / --force-merge over-cap state fails their
+    # `task check` loudly.
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_wip_cap.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
