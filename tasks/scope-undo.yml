@@ -1,0 +1,38 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# scope:undo fragment (D15 / #1134).
+#
+# Standalone fragment per the post-D12 sub-task convention so the
+# orchestrator's cross-child coordination contract does not collide
+# with edits on tasks/scope.yml. The user-facing alias `task scope:undo`
+# lives in the root Taskfile.yml below; this fragment exposes the inner
+# task name `undo` under the include namespace key `scope-undo`, so the
+# fragment-namespace form `task scope-undo:undo` is also reachable for
+# debugging but is not the documented surface.
+#
+# CLI_ARGS forwarded bare (matches every other scope:* verb -- go-task's
+# shell-escape pipeline misbehaves on Windows when CLI_ARGS is wrapped
+# in double quotes, see #577).
+#
+# `dir: '{{.USER_WORKING_DIR}}'` keeps Python CWD at the consumer project
+# root so `--project-root "{{.USER_WORKING_DIR}}"` resolves correctly
+# (#535 path-resolution invariant).
+#
+# `env: PYTHONUTF8: "1"` is a belt-and-suspenders guard for Windows cp1252
+# default (#540); root Taskfile.yml also sets this.
+#
+# Per `conventions/task-caching.md` (#574) no `sources:` / `generates:`
+# because the verb forwards user-facing flags (`--dry-run` / `--batch-id` /
+# `--decision-id`) via {{.CLI_ARGS}}.
+
+tasks:
+  undo:
+    desc: "Reverse a scope-lifecycle audit entry (#1134). Single: `task scope:undo -- <decision_id>` / `task scope:undo -- --decision-id=<uuid>`. Batch: `task scope:undo -- --batch-id=<uuid>`. Optional `--dry-run`."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/scope_undo.py" {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"

@@ -199,6 +199,7 @@ def demote_one(
     actor: str = "operator",
     now: datetime | None = None,
     log_path: Path | None = None,
+    batch_id: str | None = None,
 ) -> tuple[bool, str, dict | None]:
     """Demote a single vBRIEF file from ``pending/`` to ``proposed/``.
 
@@ -265,6 +266,17 @@ def demote_one(
     # forward-trace lookups by current path naturally correct.
     canonical_path_after = _canonical_relpath(target_path, project_root)
 
+    demote_meta: dict = {
+        "was_promoted": parent == SOURCE_FOLDER,
+        "original_promotion_decision_id": original_promotion_decision_id,
+        "days_in_pending": days,
+        "demote_reason": reason,
+        "demoted_from": parent,
+    }
+    # `batch_id` is recorded only in batch mode so the D15 scope:undo
+    # --batch-id verb can reverse the cohort by tag (#1134).
+    if batch_id is not None:
+        demote_meta["batch_id"] = batch_id
     entry = {
         "decision_id": new_decision_id(),
         "timestamp": timestamp,
@@ -273,13 +285,7 @@ def demote_one(
         "from_status": "pending",
         "to_status": TARGET_STATUS,
         "actor": actor,
-        "demote_meta": {
-            "was_promoted": parent == SOURCE_FOLDER,
-            "original_promotion_decision_id": original_promotion_decision_id,
-            "days_in_pending": days,
-            "demote_reason": reason,
-            "demoted_from": parent,
-        },
+        "demote_meta": demote_meta,
     }
     audit_append(entry, log_path=log_path)
 
@@ -320,6 +326,11 @@ def batch_demote(
         return 0, [], []
 
     reason = f"batch:older-than-days:{older_than_days}"
+    # Cohort-wide tag the D15 scope:undo --batch-id verb consumes (#1134).
+    # Lazy: only mint a UUID when we actually have something eligible to
+    # demote; tests + callers that need to reference the batch_id can
+    # introspect the returned entries.
+    batch_id: str | None = None
     audit_entries: list[dict] = []
     skipped: list[str] = []
     demoted = 0
@@ -339,6 +350,10 @@ def batch_demote(
                 f"{candidate.name}: {days} day(s) in pending (< {older_than_days})"
             )
             continue
+        if batch_id is None:
+            # Mint the cohort UUID on the first eligible candidate so a
+            # no-op batch never pollutes the audit log with a unused tag.
+            batch_id = new_decision_id()
         ok, msg, entry = demote_one(
             candidate,
             project_root,
@@ -346,6 +361,7 @@ def batch_demote(
             actor=actor,
             now=current_now,
             log_path=log_path,
+            batch_id=batch_id,
         )
         if ok and entry is not None:
             audit_entries.append(entry)

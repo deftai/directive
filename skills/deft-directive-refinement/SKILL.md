@@ -261,7 +261,9 @@ The task scans every vBRIEF with a GitHub-backed reference (whether the referenc
 - `task scope:block <file>` -- stays in active/ (status: blocked)
 - `task scope:unblock <file>` -- stays in active/ (status: running)
 - `task scope:fail <file>` (v0.6+) -- active/ -> completed/ (status: failed) — record a failure terminal state when a scope cannot complete but should not be cancelled
-- `task scope:undo <file>` (D15 / #1134) -- reverses the most recent lifecycle transition recorded on `vbrief/.eval/scope-lifecycle.jsonl` for the named file (promote/activate/complete/cancel/restore/block/unblock/fail). Reversibility verb; the audit log retains both the original action and the undo entry. If D15 has not yet landed at runtime, the verb is absent -- this row is forward-correct documentation.
+- `task scope:undo <decision_id>` (D15 / #1134) -- reverse a single scope-lifecycle audit entry (`demote` -> re-promote, `cancel` -> restore-from-cancelled-to-prior-folder, `restore` -> re-cancel); terminal actions (`complete` / `fail`) are REFUSED -- use `git revert` or hand-edit
+- `task scope:undo --batch-id=<uuid>` (D15 / #1134) -- reverse every audit entry tagged with the batch_id (e.g. the cohort produced by `task scope:demote --batch`); idempotent on already-undone entries; the undo cohort is itself reversible via the `undo_batch_id` minted on the new entries. Optional `--dry-run` previews without writing.
+- `task scope:undo --latest` (D15 / #1134) -- reverse the most-recent reversible audit entry (`demote` / `cancel` / `restore` / `undo`) not already undone; convenience form used by the N6 / #1146 smoketest contract.
 
 ### Workflow
 

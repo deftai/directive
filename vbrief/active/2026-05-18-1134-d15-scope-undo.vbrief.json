@@ -1,0 +1,35 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: D15 (#1134) -- task scope:undo (single + --batch-id).",
+    "updated": "2026-05-18T21:35:00Z"
+  },
+  "plan": {
+    "title": "feat(scope): task scope:undo (single + batch-id reversibility) (#1134 / D15)",
+    "status": "running",
+    "narratives": {
+      "Description": "D15 introduces `task scope:undo` -- the generic reversibility verb for scope-lifecycle audit entries on `vbrief/.eval/scope-lifecycle.jsonl`. Two modes ship in one PR: (1) `task scope:undo <decision_id>` reverses a single audit entry (`demote` -> re-promote, `cancel` -> restore-from-cancelled-to-prior-folder, `restore` -> re-cancel); terminal actions `complete` / `fail` are explicitly REFUSED. (2) `task scope:undo --batch-id=<uuid>` reverses every entry tagged with the given batch-id, idempotent on already-undone entries. Each undo writes a fresh `action: 'undo'` audit entry with `original_decision_id`; batch undos are themselves tagged with a new `undo-batch-id` so the undo cohort is also reversible. `--dry-run` previews without writes; `--decision-id` is mutually exclusive with `--batch-id`; positional `<decision_id>` is shorthand for `--decision-id`. As a small adjacent fix, `scripts/scope_demote.batch_demote` now stamps every batch-demote entry with a shared `batch_id` field in `demote_meta` (forward-fill for the umbrella claim in the #1134 body). Out of scope: cross-batch rollback, time-travel snapshot restore, TUI confirmation dialogs, terminal-action reversal.",
+      "Origin": "Wave-2d-1 D15 child of umbrella #1119 (audit-log reversibility layer, sibling to D1 / #1121 scope:demote).",
+      "Overview": "## What to build\n\n1. `scripts/scope_undo.py` -- single + batch-id undo driver (mirrors `scripts/scope_demote.py` shape).\n2. `scripts/scope_demote.py` -- add `batch_id` to `demote_meta` written by `batch_demote` (minor forward-fill).\n3. `tasks/scope-undo.yml` -- new fragment exposing `undo` (per the post-D12 sub-task convention).\n4. `Taskfile.yml` -- include the new fragment + root alias `scope:undo`.\n5. `skills/deft-directive-refinement/SKILL.md` -- Phase 4 verb table updated.\n6. Tests under `tests/cli/test_scope_undo.py` covering demote-undo round-trip, cancel-undo round-trip, batch undo on a 5-entry cohort, idempotency, terminal-action refusal, --dry-run output, --batch-id / --decision-id mutex.\n\n## Acceptance criteria\n\n- `task scope:undo <decision_id>` reverses a single demote / cancel / restore audit entry.\n- `task scope:undo --batch-id=<uuid>` reverses every entry in the batch (idempotent on already-undone).\n- Terminal actions (`complete`, `fail`) refused with exit 1 and a clear error.\n- `--dry-run` previews the cohort without writes; exit 0.\n- Each undo writes an `action: 'undo'` audit entry with `original_decision_id`; batch undos carry `undo_batch_id`.\n- `task check` green (lint + test + encoding).\n- PR body references #1134 + #1119 + #1121 + #845.\n\n## Type\n\nFeature -- framework scope-lifecycle reversibility primitive; consumer-agnostic.\n\n## Refs\n\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Issue: https://github.com/deftai/directive/issues/1134\n- Companion: D1 / #1121 (`task scope:demote` + audit-log surface this consumes)."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1134",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1134: D15 -- task scope:undo (single + --batch-id reversibility)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-2d-1 swarm"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1121",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1121: D1 -- task scope:demote (audit-log surface consumed)"
+      }
+    ],
+    "updated": "2026-05-18T21:35:00Z"
+  }
+}

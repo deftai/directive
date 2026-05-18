@@ -97,6 +97,14 @@ includes:
   scope:
     taskfile: ./tasks/scope.yml
     optional: true
+  # D15 (#1134): scope:undo audit-log reversibility verb. Standalone
+  # fragment per the post-D12 sub-task convention so the cross-child
+  # coordination contract on tasks/scope.yml does not collide. Inner
+  # task `undo` is exposed as the user-facing alias `task scope:undo`
+  # below.
+  scope-undo:
+    taskfile: ./tasks/scope-undo.yml
+    optional: true
   swarm:
     taskfile: ./tasks/swarm.yml
     optional: false
@@ -710,5 +718,16 @@ tasks:
     desc: "Run the N6 (#1146) end-to-end smoketest against the hermetic 20-issue fixture; exits 0 on PASS / 1 on first failure. -- task triage:smoketest [-- --verbose] [--keep-tempdir] [--cache-only]"
     cmds:
       - task: triage-smoketest:smoketest
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  # D15 (#1134): scope:undo audit-log reversibility verb. Delegates to
+  # the standalone fragment include `scope-undo`. Reverses a single
+  # audit entry by decision_id or every entry tagged with batch_id;
+  # terminal actions (`complete` / `fail`) are REFUSED.
+  scope:undo:
+    desc: "Reverse a scope-lifecycle audit entry (#1134 / D15). -- task scope:undo -- <decision_id> | --decision-id=<uuid> | --batch-id=<uuid> [--dry-run]"
+    cmds:
+      - task: scope-undo:undo
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"
