@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: N1 child of #1119 Wave-2d-1 -- refinement skill Phase 0 cache-first rewrite.",
+    "updated": "2026-05-18T21:42:14Z"
+  },
+  "plan": {
+    "title": "docs(skills): rewrite refinement Phase 0 cache-first (#1141 / N1)",
+    "status": "running",
+    "narratives": {
+      "Description": "N1 child of the #1119 Wave-2d-1 batch. Rewrite Phase 0 of skills/deft-directive-refinement/SKILL.md from folder-scan to triage-first: 0a triage gate (task triage:summary, D2/#1122), 0b cache-first ingestion (task triage:queue --state=accept, D11/#1128), 0c [RESUME]-tagged items first (D3/#1123). Phase 4 verb table gains scope:undo (D15/#1134). New See-also footer points at skills/deft-directive-triage/SKILL.md (D6/#1130). Empty-cache fallback emits stderr prompt pointing at task triage:welcome (N3/#1143). Adds tests/content/test_refinement_skill.py asserting the three sub-phases, canonical verbs, See-also footer, and empty-cache fallback.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1141. Issue body is the spec (no Current Shape comment filed); umbrella #1119 Wave-2d-1.",
+      "Overview": "## What to build\n\n1. `skills/deft-directive-refinement/SKILL.md` -- Phase 0 rewrite with sub-phases 0a/0b/0c documented in canonical order; Phase 4 verb table gains `task scope:undo`; new See-also footer pointing at the triage skill; empty-cache backward-compat fallback emits stderr prompt referencing `task triage:welcome`.\n2. `tests/content/test_refinement_skill.py` -- content tests mirroring the test_triage_skill.py / test_swarm_skill.py shape. Assert the three sub-phases appear in canonical order; assert `task triage:summary`, `task triage:queue`, `[RESUME]` references appear; assert See-also footer and empty-cache fallback prompt.\n3. `CHANGELOG.md` -- `[Unreleased]` entry.\n\n## Type\n\nDocs / framework -- Deliverable N1 of #1119 Wave-2d-1. Skill body rewrite + content tests. No AGENTS.md edits (N9 already shipped routing).\n\n## Acceptance criteria\n\n- Phase 0 documents three sub-phases (0a Triage gate, 0b Cache-first ingestion, 0c Resume conditions) in canonical order.\n- Phase 0a invokes `task triage:summary` and points operator at `skills/deft-directive-triage/SKILL.md`.\n- Phase 0b consumes `task triage:queue --state=accept`; existing `vbrief/proposed/` items join the cache rather than being enumerated separately.\n- Phase 0c surfaces `[RESUME]`-tagged items first.\n- Empty-cache fallback emits clear stderr prompt pointing at `task triage:welcome`.\n- Phase 4 verb table gains `task scope:undo` (referencing D15/#1134).\n- New See-also footer pointing at `skills/deft-directive-triage/SKILL.md`.\n- Content tests in `tests/content/test_refinement_skill.py` assert the above.\n- CHANGELOG entry under `[Unreleased]`.\n- AGENTS.md NOT touched (N9 owns routing).\n\n## Not in scope\n\n- AGENTS.md edits (N9 / #1149).\n- Replacing later refinement phases (only Phase 0 changes; Phase 4 only gains the verb-table row).\n- Implementing #1136 `scope:promote --from-issue` (D18 fallback; not required by this scope).\n- N5/#1145 `scripts/scm.py` shim (Wave-2d-2).\n\n## Refs\n\n- Umbrella: #1119\n- This deliverable: #1141\n- Consumed surfaces: D2 / #1122 (triage:summary), D11 / #1128 (triage:queue), D3 / #1123 ([RESUME] tagging), D6 / #1130 (triage skill), D15 / #1134 (scope:undo), N3 / #1143 (triage:welcome), N9 / #1149 (AGENTS.md routing already landed)"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1141",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1141: N1 -- refinement skill Phase 0 cache-first rewrite"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: triage-eval governance swarm"
+      }
+    ],
+    "updated": "2026-05-18T21:42:09Z"
+  }
+}

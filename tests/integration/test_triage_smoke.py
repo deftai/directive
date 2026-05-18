@@ -13,10 +13,15 @@ Regression coverage for the rebind onto the unified `cache:*` surface:
    records).
 3. ``test_empty_cache_hard_fails`` -- bulk-defer against an empty cache
    exits 2 with the canonical stderr message ``cache is empty for {repo}``.
-4. ``test_skill_phase0_references_cache_star`` -- Phase 0 prose
-   references ``cache:*`` (the rebind), references no longer mention the
-   removed ``triage:cache`` task, and the three-tier inventory model is
-   intact.
+
+Note: the pre-#1141 Phase 0 prose content tests that previously lived
+here (three-tier inventory model, 7-option action menu, ``removed in
+#883 Story 3`` note) were superseded by the N1 / #1141 cache-first Phase
+0 rewrite. Equivalent coverage of the new Phase 0 structure -- the three
+sub-phases (0a / 0b / 0c) in canonical order, ``task triage:summary``,
+``task triage:queue --state=accept``, ``[RESUME]`` semantics, See-also
+footer, empty-cache fallback prompt, ``task scope:undo`` row in the
+Phase 4 verb table -- lives at ``tests/content/test_refinement_skill.py``.
 """
 
 from __future__ import annotations
@@ -248,73 +253,7 @@ def test_empty_cache_hard_fails(
 
 
 # ---------------------------------------------------------------------------
-# Content tests for the rewritten Phase 0 prose
+# Phase 0 prose content tests moved to tests/content/test_refinement_skill.py
+# (N1 / #1141 cache-first Phase 0 rewrite supersedes the pre-#1141
+# three-tier inventory model + 7-option action menu pinned here previously).
 # ---------------------------------------------------------------------------
-
-
-def _skill_text() -> str:
-    return SKILL.read_text(encoding="utf-8")
-
-
-def test_skill_phase0_references_cache_star() -> None:
-    """Phase 0 prose now references the unified `cache:*` surface."""
-
-    text = _skill_text()
-    assert "task cache:fetch-all" in text, (
-        "Phase 0 must point at the unified cache:fetch-all surface"
-    )
-    assert "task cache:get" in text, (
-        "Phase 0 must point at the unified cache:get surface"
-    )
-    assert ".deft-cache/github-issue/" in text, (
-        "Phase 0 must describe the unified cache layout"
-    )
-
-
-def test_skill_phase0_does_not_advertise_removed_tasks() -> None:
-    """Removed task aliases must not appear as live recommendations.
-
-    The migration paragraph noting that ``task triage:cache`` and
-    ``task triage:show`` were removed under #883 Story 3 is permitted
-    (and tested for explicitly below). What this guard rejects is any
-    invocation form that prescribes the removed command as the next
-    step the operator should run -- e.g. ``task triage:cache populate``
-    with arguments or ``-- --repo`` flag forms.
-    """
-
-    text = _skill_text()
-    # Concrete invocations of the removed surface MUST NOT appear.
-    assert "`task triage:cache populate`" not in text
-    assert "`task triage:cache --" not in text
-    assert "`task triage:show --" not in text
-    # The skill MUST NOT recommend ``task triage:refresh`` -- it has been
-    # superseded by ``task cache:fetch-all`` for re-population.
-    assert "`task triage:refresh`" not in text
-    # The skill MUST explicitly cite the removal so operators know not to
-    # reach for the legacy commands in v0.26.0+.
-    assert "removed in #883 Story 3" in text
-
-
-def test_skill_phase0_three_tier_inventory_model_preserved() -> None:
-    """The three-tier inventory model (Tier 1 / Tier 2 / Tier 3) survives."""
-
-    text = _skill_text()
-    assert "Tier 1 --" in text and "Tier 2 --" in text and "Tier 3 --" in text
-    assert "vbrief/.eval/candidates.jsonl" in text
-    assert "vbrief/proposed/" in text
-
-
-def test_skill_phase0_action_menu_intact() -> None:
-    """The canonical numbered action menu and its 7 options survive verbatim."""
-
-    text = _skill_text()
-    for opt in (
-        "1. Accept",
-        "2. Reject",
-        "3. Defer",
-        "4. Needs-AC",
-        "5. Mark duplicate",
-        "6. Discuss",
-        "7. Back",
-    ):
-        assert opt in text, f"action-menu option missing: {opt}"
