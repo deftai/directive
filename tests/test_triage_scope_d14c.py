@@ -186,6 +186,84 @@ def test_vbrief_validate_hook_tags_author_errors_with_1182_pointer(tmp_path: Pat
 
 
 # ---------------------------------------------------------------------------
+# Pointer-heuristic regression (Greptile P1 on PR #1213)
+# ---------------------------------------------------------------------------
+# The original substring-based pointer heuristic mistagged two rule-shape
+# error paths -- `{rule: ""}` ("rule must be a non-empty string") and
+# `{rule: "sunset-on"}` ("rule 'sunset-on' is not a recognised ignore-rule
+# kind") -- because neither error mentions `.author` / `"author rule"`. The
+# unrecognised-kind path additionally double-tagged itself with an inline
+# `(D14c / #1182)` AND the wrapper's appended `(#1133)`. The fix replaced
+# the substring heuristic with a shape inspection that walks the raw
+# entry list and pointer-tags by presence of a top-level `rule` key.
+
+
+@pytest.mark.parametrize(
+    ("entry", "expected_token"),
+    [
+        ({"rule": ""}, "must be a non-empty string"),
+        ({"rule": "sunset-on"}, "not a recognised ignore-rule"),
+    ],
+)
+def test_rule_shape_errors_tagged_with_1182_only(
+    tmp_path: Path, entry: dict, expected_token: str
+) -> None:
+    plan = {"policy": {"triageScopeIgnores": [entry]}}
+    errs = triage_scope.validate_triage_scope_ignores_on_plan(
+        plan, tmp_path / "PROJECT-DEFINITION.vbrief.json"
+    )
+    assert errs
+    relevant = [e for e in errs if expected_token in e]
+    assert relevant, errs
+    for err in relevant:
+        assert "(#1182)" in err, err
+        assert "(#1133)" not in err, err
+        # The unrecognised-kind error MUST NOT also inline the pointer --
+        # that was the source of the original double-pointer rendering.
+        assert "(D14c / #1182)" not in err, err
+
+
+def test_single_key_errors_still_tag_with_1133(tmp_path: Path) -> None:
+    """Defensive: a D14 single-key error must continue to render as (#1133)."""
+    plan = {"policy": {"triageScopeIgnores": [{"label": "  "}]}}
+    errs = triage_scope.validate_triage_scope_ignores_on_plan(
+        plan, tmp_path / "PROJECT-DEFINITION.vbrief.json"
+    )
+    assert errs
+    for err in errs:
+        assert "(#1133)" in err, err
+        assert "(#1182)" not in err, err
+
+
+def test_mixed_list_tags_each_entry_independently(tmp_path: Path) -> None:
+    """A list mixing single-key and rule-shape entries pointer-tags each
+    error independently by source-entry shape."""
+    plan = {
+        "policy": {
+            "triageScopeIgnores": [
+                {"label": "  "},  # entry[0] -> #1133
+                {"rule": "sunset-on"},  # entry[1] -> #1182
+                {"milestone": ""},  # entry[2] -> #1133
+                {"rule": "author"},  # entry[3] -> #1182
+            ]
+        }
+    }
+    errs = triage_scope.validate_triage_scope_ignores_on_plan(
+        plan, tmp_path / "PROJECT-DEFINITION.vbrief.json"
+    )
+    assert errs
+    for err in errs:
+        # Exactly one pointer per line, never both.
+        has_1133 = "(#1133)" in err
+        has_1182 = "(#1182)" in err
+        assert has_1133 ^ has_1182, err
+        if "triageScopeIgnores[0]" in err or "triageScopeIgnores[2]" in err:
+            assert has_1133, err
+        if "triageScopeIgnores[1]" in err or "triageScopeIgnores[3]" in err:
+            assert has_1182, err
+
+
+# ---------------------------------------------------------------------------
 # resolve_scope_ignores returns authors
 # ---------------------------------------------------------------------------
 
@@ -421,9 +499,15 @@ def test_compute_diff_partitions_labels(tmp_path: Path):
         upstream_milestones=set(),
         repo="deftai/directive",
     )
-    assert report.subscribed_labels == {"bug"}
-    assert report.ignored_labels == {"wontfix"}
-    assert report.neither_labels == {"feature"}
+    # Greptile P2 on PR #1213: DiffReport is frozen=True with frozenset
+    # fields so the wrapper is hashable. Mutable set fields on a frozen
+    # dataclass are a documented footgun.
+    assert isinstance(report.subscribed_labels, frozenset)
+    assert isinstance(report.ignored_labels, frozenset)
+    assert isinstance(report.neither_labels, frozenset)
+    assert report.subscribed_labels == frozenset({"bug"})
+    assert report.ignored_labels == frozenset({"wontfix"})
+    assert report.neither_labels == frozenset({"feature"})
 
 
 def test_compute_diff_partitions_milestones(tmp_path: Path):

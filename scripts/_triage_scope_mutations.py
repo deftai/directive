@@ -102,14 +102,18 @@ class DiffReport:
     * ``neither`` -- the name appears upstream but neither in scope nor
       in ignores; this is the operator's TODO list ("decide -- subscribe
       or ignore?").
+
+    Fields are ``frozenset[str]`` to honour the ``frozen=True`` dataclass
+    contract -- mutable ``set`` fields on a frozen dataclass are a
+    documented footgun (the wrapper is hashable, the fields are not).
     """
 
-    subscribed_labels: set[str] = field(default_factory=set)
-    ignored_labels: set[str] = field(default_factory=set)
-    neither_labels: set[str] = field(default_factory=set)
-    subscribed_milestones: set[str] = field(default_factory=set)
-    ignored_milestones: set[str] = field(default_factory=set)
-    neither_milestones: set[str] = field(default_factory=set)
+    subscribed_labels: frozenset[str] = field(default_factory=frozenset)
+    ignored_labels: frozenset[str] = field(default_factory=frozenset)
+    neither_labels: frozenset[str] = field(default_factory=frozenset)
+    subscribed_milestones: frozenset[str] = field(default_factory=frozenset)
+    ignored_milestones: frozenset[str] = field(default_factory=frozenset)
+    neither_milestones: frozenset[str] = field(default_factory=frozenset)
     repo: str = ""
 
 
@@ -164,12 +168,12 @@ def compute_diff_from_upstream(
             neither_milestones.add(name)
 
     return DiffReport(
-        subscribed_labels=subscribed_labels,
-        ignored_labels=ignored_labels,
-        neither_labels=neither_labels,
-        subscribed_milestones=subscribed_milestones,
-        ignored_milestones=ignored_milestones,
-        neither_milestones=neither_milestones,
+        subscribed_labels=frozenset(subscribed_labels),
+        ignored_labels=frozenset(ignored_labels),
+        neither_labels=frozenset(neither_labels),
+        subscribed_milestones=frozenset(subscribed_milestones),
+        ignored_milestones=frozenset(ignored_milestones),
+        neither_milestones=frozenset(neither_milestones),
         repo=repo,
     )
 
@@ -190,7 +194,7 @@ def render_diff_report(report: DiffReport) -> str:
           neither    (1): v2.0-blocker
     """
 
-    def _fmt(bucket: set[str]) -> str:
+    def _fmt(bucket: frozenset[str]) -> str:
         if not bucket:
             return "-"
         return ", ".join(sorted(bucket))

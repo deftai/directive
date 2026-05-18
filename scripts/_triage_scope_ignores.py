@@ -14,8 +14,21 @@ unchanged.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
+
+#: Index regex used by :func:`validate_triage_scope_ignores_on_plan` to
+#: associate each error message back to the raw entry that produced it.
+#: The validator prefixes every error with
+#: ``plan.policy.triageScopeIgnores[<i>]`` so the wrapper can look up the
+#: raw entry by integer index and decide the pointer (#1133 vs #1182)
+#: from the entry's *shape* rather than from a substring match on the
+#: error text -- shape inspection is robust to future error-wording
+#: edits, substring matching is not.
+_INDEXED_ERROR_RE: re.Pattern[str] = re.compile(
+    r"^plan\.policy\.triageScopeIgnores\[(\d+)\]"
+)
 
 #: Recognised single-key ignore-entry discriminator values (D14 / #1133).
 #: Each legacy entry on ``plan.policy.triageScopeIgnores[]`` is a single-key
@@ -119,10 +132,12 @@ def _validate_rule_ignore(
         errors.append(f"{prefix}.rule must be a non-empty string")
         return
     if kind not in VALID_IGNORE_RULES:
+        # The wrapper :func:`validate_triage_scope_ignores_on_plan` appends
+        # the canonical ``(#1182)`` pointer; do NOT inline it here or the
+        # error renders with two conflicting pointers on one line.
         errors.append(
             f"{prefix}.rule {kind!r} is not a recognised ignore-rule "
-            f"kind; expected one of {sorted(VALID_IGNORE_RULES)} "
-            "(D14c / #1182)"
+            f"kind; expected one of {sorted(VALID_IGNORE_RULES)}"
         )
         return
     # Per-kind body shape. v1 ships ``author`` only; the ``any-of``
@@ -226,8 +241,18 @@ def validate_triage_scope_ignores_on_plan(plan: Any, filepath: Any) -> list[str]
     Returns formatted error strings prefixed with ``<filepath>:`` so
     ``vbrief_validate.validate_project_definition`` can splice them in.
     Unset / missing payload returns an empty list. Errors carry the
-    ``(#1133)`` pointer for D14 single-key shapes and ``(#1182)`` for
-    the D14c rule-shaped ``{rule: author, any-of: [...]}`` variant.
+    ``(#1133)`` pointer for D14 single-key shape errors and ``(#1182)``
+    for any error on a D14c rule-shape entry (``{rule: <kind>, ...}``).
+
+    The pointer is resolved by inspecting each entry's *shape* (presence
+    of a top-level ``rule`` key) rather than substring-matching the
+    error text -- substring heuristics were fragile against rule-key
+    error messages that did not happen to mention ``author`` (e.g.
+    ``{rule: ""}`` -> ``...rule must be a non-empty string``,
+    ``{rule: "sunset-on"}`` -> ``...rule 'sunset-on' is not a
+    recognised ignore-rule kind...``). The shape check is robust to
+    future error-wording edits AND covers the entire rule-shape error
+    surface uniformly.
     """
     out: list[str] = []
     policy = plan.get("policy") if isinstance(plan, dict) else None
@@ -235,11 +260,27 @@ def validate_triage_scope_ignores_on_plan(plan: Any, filepath: Any) -> list[str]
     if raw is None:
         return out
     errors, _warnings = validate_scope_ignores(raw)
+    raw_list = raw if isinstance(raw, list) else []
     for err in errors:
-        # The D14c rule-shape entries surface ``author`` in their
-        # error strings (e.g. ``...author requires 'any-of' as a
-        # non-empty list...``). All other errors are D14 single-key
-        # shape issues and stay pointed at #1133.
-        pointer = "#1182" if ".author" in err or "author rule" in err else "#1133"
-        out.append(f"{filepath}: {err} ({pointer})")
+        out.append(f"{filepath}: {err} ({_pointer_for_error(err, raw_list)})")
     return out
+
+
+def _pointer_for_error(err: str, raw_list: list[Any]) -> str:
+    """Resolve the issue-tracker pointer for a single validator error.
+
+    Strategy: extract the entry index ``[i]`` from the canonical error
+    prefix and look the entry up in ``raw_list``. An entry carrying a
+    top-level ``rule`` key is a D14c rule-shape entry (#1182); anything
+    else is a D14 single-key entry (#1133). Errors with no parseable
+    index (e.g. the top-level ``must be a list`` error) fall through to
+    #1133.
+    """
+    match = _INDEXED_ERROR_RE.match(err)
+    if match is not None:
+        idx = int(match.group(1))
+        if 0 <= idx < len(raw_list):
+            entry = raw_list[idx]
+            if isinstance(entry, dict) and "rule" in entry:
+                return "#1182"
+    return "#1133"
