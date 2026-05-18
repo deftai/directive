@@ -333,6 +333,8 @@ The task scans every vBRIEF with a GitHub-backed reference (whether the referenc
 ⊗ Complete a scope without updating its origins
 ~ Completion lifecycle can be triggered during refinement or as a standalone action after a PR merge
 
+! When the refinement session files a new umbrella issue (or surfaces one whose current-shape comment is missing), file the umbrella then file its `## Current shape (as of pass-N)` comment per `## Umbrella current-shape convention` in `AGENTS.md` (#1152) -- the edit-in-place comment is the canonical surface every subsequent design pass updates.
+
 ## CHANGELOG Convention
 
 - ! Write ONE batch `CHANGELOG.md` entry at the END of the full refinement session -- not one entry per vBRIEF created or promoted. The batch entry summarizes all changes made during the session.

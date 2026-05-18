@@ -130,6 +130,8 @@ AFK / HITL
 
 After all issues are created, print a summary table: issue number, title, type, and blockers.
 
+- ! When the source plan was sliced into an umbrella + child issues, file the umbrella first, then file its `## Current shape (as of pass-N)` comment per `## Umbrella current-shape convention` in `AGENTS.md` (#1152) so subsequent design passes have a stable edit-in-place surface to update.
+
 ---
 
 ## Anti-Patterns

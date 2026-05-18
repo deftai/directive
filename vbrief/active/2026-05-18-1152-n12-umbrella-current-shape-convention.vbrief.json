@@ -1,0 +1,35 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: N12 (#1152) -- umbrella current-shape convention (AGENTS.md rules + skill cross-references; v1 discipline-only).",
+    "updated": "2026-05-18T13:09:47Z"
+  },
+  "plan": {
+    "title": "feat(agents-md): umbrella current-shape convention rules (#1152)",
+    "status": "running",
+    "narratives": {
+      "Description": "N12 codifies the discipline that every umbrella issue carries ONE canonical `## Current shape (as of pass-N)` comment, edited in place after each design pass. The body structure (Last updated / Last pass type / Child count / Child-count history / Open children / Closed children / Wave order / Open questions / Reading order) is documented; prior amendment comments stay as the audit trail. v1 is discipline-only -- no mechanical render (deferred to v2 per the issue body).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1152",
+      "Overview": "## What to build\n\n1. New `## Umbrella current-shape convention (#1152)` section in `AGENTS.md` carrying the 5 RFC2119 rules verbatim plus the canonical body structure documentation.\n2. One-line cross-reference in `skills/deft-directive-gh-slice/SKILL.md` final phase pointing at the convention.\n3. One-line cross-reference in `skills/deft-directive-refinement/SKILL.md` final phase pointing at the convention (distinct from D3's Phase 0 docs and D6's intro line).\n4. New deterministic content test `tests/content/test_agents_md_current_shape.py` asserting the section header + all 5 RFC2119 rules are present verbatim (mirrors `tests/content/test_agents_md_session_start.py` from N9).\n5. CHANGELOG `[Unreleased]` entry.\n\n## Out of scope (v2)\n\n- `task umbrella:current-shape <N>` mechanical render -- deferred unless discipline degrades (issue body explicit).\n- Editing the existing v3 Current Shape comment 4471269010 on #1119 -- the seed was already filed pre-Wave-0 per orchestrator HANDOFF.\n\n## Type\n\nFeature -- AGENTS.md framework meta-instruction extension. No skill body logic changes; only documentation cross-references. Per the section 12 framework-vs-consumer boundary no deft-specific labels / milestones / values land in AGENTS.md.\n\n## Acceptance criteria\n\n- AGENTS.md new section `## Umbrella current-shape convention (#1152)` carries all 5 RFC2119 rule lines verbatim per the issue body\n- Canonical body structure (Last updated / Last pass type / Child count / Child-count history / Open children / Closed children / Wave order / Open questions / Reading order) is named in the section\n- `skills/deft-directive-gh-slice/SKILL.md` final phase mentions the convention\n- `skills/deft-directive-refinement/SKILL.md` final phase mentions the convention\n- New `tests/content/test_agents_md_current_shape.py` passes\n- `task verify:encoding` clean\n- `task check` green (or pre-existing unrelated failures documented)\n\n## Refs\n\n- Issue: https://github.com/deftai/directive/issues/1152\n- Umbrella: https://github.com/deftai/directive/issues/1119\n- Meta-umbrella (parent of N12): https://github.com/deftai/directive/issues/1140\n- AGENTS.md ownership pattern: https://github.com/deftai/directive/issues/1149 (N9)\n- v3 Current Shape (already filed pre-Wave-0): https://github.com/deftai/directive/issues/1119#issuecomment-4471269010"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1152",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1152: N12 -- umbrella current-shape convention"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: Wave-0/1/2 swarm"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1140",
+        "type": "x-vbrief/github-issue",
+        "title": "Meta-umbrella #1140: design-pass churn"
+      }
+    ],
+    "updated": "2026-05-18T13:09:41Z"
+  }
+}

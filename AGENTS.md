@@ -177,5 +177,31 @@ Cross-references: `pyproject.toml` (marker registration + default opt-out), `Tas
 
 **ghx surface clarification (#954):** `ghx` is a cached read-only GET proxy for `gh`, NOT a full drop-in passthrough. The `ghx api` subcommand accepts a single positional path arg only -- multi-arg forms (e.g. `ghx api -X POST repos/.../comments --input file.json`) fail with `accepts 1 arg(s), received N`. Writes (POST/PATCH/PUT/DELETE via `gh api -X ...`) MUST fall through to `gh` directly. ghx wins for cached read-only `GET`s; `gh` owns mutations and any flag-rich `api` invocation. The `scripts/scm.py::resolve_binary` ladder already encodes this distinction at runtime; this clarification mirrors it for human readers.
 
+## Umbrella current-shape convention (#1152)
+
+**Why this rule exists:** the #1140 design-pass-churn deep-think analysis surfaced failure mode F3 -- an umbrella issue authored on pass-1 and amended via N comments forces every fresh contributor on pass-N to reconstruct the current shape by reading the umbrella body plus N amendment comments in order. That reconstruction cost compounds with every pass; the #1119 umbrella's 4-pass inflation (4 -> 8 -> 11 -> 16 children) only became visible at pass-4 because no canonical current-shape surface existed at pass-3. The convention below collapses the reconstruction cost to one comment read for every fresh contributor on every umbrella, forever. Each umbrella carries exactly ONE canonical comment titled `## Current shape (as of pass-N)`, edited in place at the end of every design pass. Amendment comments remain as the audit trail (they are never removed); the canonical "what does the umbrella look like right now?" surface is the single edited-in-place comment.
+
+- ! Every umbrella issue MUST have a single canonical `## Current shape (as of pass-N)` comment, edited in place after each design pass.
+- ! The current-shape comment MUST list open children, closed children, wave order, and the child-count history.
+- ~ Pass-N skills SHOULD update the current-shape comment as their Phase 4 step.
+- ⊗ Do NOT delete prior amendment comments when updating the current-shape comment — they remain the audit trail.
+- ⊗ Do NOT replace the current-shape comment with a fresh comment — it must be edited in place so its permalink is stable.
+
+**Canonical body structure:** the current-shape comment body MUST carry the following sections in the order listed so any fresh contributor can scan the same skeleton across every umbrella:
+
+1. `Last updated:` -- ISO-8601 UTC timestamp of the most recent edit-in-place.
+2. `Last pass type:` -- one of `additive | subtractive | refactor | verify` (per the pass-type declaration counterpart, N14 / TBD).
+3. `Child count:` -- `<total> (<open>/<closed>)`.
+4. `Child-count history:` -- `pass-1: N1, pass-2: N2, ...` so inflation / deflation across passes is visible at a glance.
+5. `### Open children` -- list with brief role-tag per child.
+6. `### Closed children` -- list with closure reason per child.
+7. `### Wave order` -- dependency graph or wave-grouped list.
+8. `### Open questions` -- optional; surface decisions still owing operator input.
+9. `### Reading order for fresh contributors` -- the canonical three-step (umbrella body -> this comment -> amendment comments) so a new reader knows where to start.
+
+v1 ships as discipline-only (this AGENTS.md section + skill cross-references in `skills/deft-directive-gh-slice/SKILL.md` and `skills/deft-directive-refinement/SKILL.md` final phases). The optional mechanical render verb (`task umbrella:current-shape <N>`) is deferred to v2 unless discipline degrades; the v2 mechanical render requires a structured-amendment-comment format which chains cleanly off the N14 (TBD) pass-type declaration rule.
+
+Cross-references: `skills/deft-directive-gh-slice/SKILL.md` (final phase -- file the umbrella, then file its current-shape comment per this convention), `skills/deft-directive-refinement/SKILL.md` (final phase -- same cross-reference), `templates/agent-prompt-preamble.md` (canonical orchestrator preamble that consumers of this convention dispatch against). Refs #1140 (parent meta-umbrella -- design-pass churn), #1119 (companion umbrella whose pattern motivated this convention; its v3 current-shape comment is the seed example pre-dating this convention).
+
 Note: paths here are root-relative — this repo IS the deft directory.
 Install-generated AGENTS.md uses deft/-prefixed paths.
