@@ -26,11 +26,17 @@ Grammar (minimal viable v1, per issue #1123)
 
 Atomic conditions::
 
-    ref:closed:#N           -- fires when issue/PR N is closed in the cache
-    ref:merged:#N           -- fires when PR N is merged in the cache
-    date:>=YYYY-MM-DD       -- fires when current date is at or past target
-    pending-count:>=N       -- fires when len(vbrief/pending/) >= N
-    pending-count:<=N       -- fires when len(vbrief/pending/) <= N
+    ref:closed:#N                  -- fires when issue/PR N is closed in the cache
+    ref:merged:#N                  -- fires when PR N is merged in the cache
+    date:>=YYYY-MM-DD              -- fires when current date is at or past target
+    pending-count:>=N              -- fires when len(vbrief/pending/) >= N
+    pending-count:<=N              -- fires when len(vbrief/pending/) <= N
+    slice-wave-ready:<slice_id>:<wave>
+                                   -- fires when every child of <slice_id>
+                                      in an earlier wave is closed (#1132 /
+                                      D13). ``<slice_id>`` is a UUID; ``<wave>``
+                                      is a positive int. Sourced from
+                                      vbrief/.eval/slices.jsonl.
 
 Top-level composition (no nested parens / NOT in v1)::
 
@@ -87,6 +93,15 @@ try:  # pragma: no cover -- exercised once #845 Story 2 lands.
 except ImportError:  # pragma: no cover
     candidates_log = None  # type: ignore[assignment]
 
+# Optional dependency: ``slice_record`` is the slicing-cohort writer
+# introduced alongside this grammar extension (#1132 / D13). The
+# ``slice-wave-ready:<slice_id>:<wave>`` atomic reads slices.jsonl via
+# this module. Guarded so the grammar still loads on pre-D13 checkouts.
+try:  # pragma: no cover -- exercised once #1132 lands.
+    import slice_record  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover
+    slice_record = None  # type: ignore[assignment]
+
 LOG = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -136,6 +151,8 @@ class Atomic:
     * ``"date-ge"``    -- ``value`` is a :class:`datetime.date`.
     * ``"pending-count-ge"`` -- ``value`` is the int threshold.
     * ``"pending-count-le"`` -- ``value`` is the int threshold.
+    * ``"slice-wave-ready"`` -- ``value`` is the int wave threshold;
+      :attr:`slice_id` carries the cohort identifier (#1132 / D13).
 
     The dataclass is intentionally simple -- the renderer round-trips
     via :attr:`raw` so the original operator-supplied text is preserved
@@ -145,6 +162,9 @@ class Atomic:
     kind: str
     value: int | date
     raw: str
+    #: Slice identifier carried by ``slice-wave-ready`` atoms (#1132). UUID
+    #: string; empty for every other atomic kind.
+    slice_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -177,12 +197,16 @@ class ResumeContext:
             ``closed_refs`` but NOT in ``merged_refs``.
         pending_count: Number of ``*.vbrief.json`` files in
             ``vbrief/pending/``.
+        slices: Cohort records from ``vbrief/.eval/slices.jsonl`` (#1132 /
+            D13). Consulted by ``slice-wave-ready:<slice_id>:<wave>``
+            atoms; empty tuple for back-compat with pre-D13 callers.
     """
 
     today: date
     closed_refs: frozenset[int] = field(default_factory=frozenset)
     merged_refs: frozenset[int] = field(default_factory=frozenset)
     pending_count: int = 0
+    slices: tuple[dict[str, Any], ...] = field(default_factory=tuple)
 
 
 # ---------------------------------------------------------------------------
@@ -194,6 +218,13 @@ _REF_MERGED_RE = re.compile(r"^ref:merged:#(\d+)$")
 _DATE_GE_RE = re.compile(r"^date:>=(\d{4}-\d{2}-\d{2})$")
 _PENDING_GE_RE = re.compile(r"^pending-count:>=(\d+)$")
 _PENDING_LE_RE = re.compile(r"^pending-count:<=(\d+)$")
+# slice-wave-ready:<uuid>:<wave>. UUID regex matches any RFC 4122 variant
+# (any version). Wave is a positive int.
+_SLICE_WAVE_READY_RE = re.compile(
+    r"^slice-wave-ready:"
+    r"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"
+    r":(\d+)$"
+)
 
 # AND / OR splitter -- whitespace-required so a value like "ANDREW" in a
 # free-text field could never be misparsed as a composition operator. The
@@ -224,11 +255,24 @@ def _parse_atomic(raw: str) -> Atomic:
         return Atomic(kind="pending-count-ge", value=int(m.group(1)), raw=text)
     if (m := _PENDING_LE_RE.match(text)) is not None:
         return Atomic(kind="pending-count-le", value=int(m.group(1)), raw=text)
+    if (m := _SLICE_WAVE_READY_RE.match(text)) is not None:
+        wave = int(m.group(2))
+        if wave < 1:
+            raise ResumeGrammarError(
+                f"slice-wave-ready wave must be a positive int, got {wave}"
+            )
+        return Atomic(
+            kind="slice-wave-ready",
+            value=wave,
+            raw=text,
+            slice_id=m.group(1).lower(),
+        )
 
     raise ResumeGrammarError(
         f"unrecognised atomic condition {text!r}; "
         "expected one of: ref:closed:#N, ref:merged:#N, date:>=YYYY-MM-DD, "
-        "pending-count:>=N, pending-count:<=N"
+        "pending-count:>=N, pending-count:<=N, "
+        "slice-wave-ready:<slice_id>:<wave>"
     )
 
 
@@ -294,12 +338,59 @@ def _eval_atomic(atom: Atomic, ctx: ResumeContext) -> bool:
         return ctx.pending_count >= cast(int, atom.value)
     if atom.kind == "pending-count-le":
         return ctx.pending_count <= cast(int, atom.value)
+    if atom.kind == "slice-wave-ready":
+        wave = cast(int, atom.value)
+        return _slice_wave_ready(ctx, atom.slice_id, wave)
     # Unreachable: parse() rejects unknown kinds. Defensive: a future
     # additive atomic that lands without an evaluator branch should be a
     # loud failure, not a silent ``False``.
     raise ResumeGrammarError(  # pragma: no cover -- defensive
         f"evaluator missing branch for atomic kind {atom.kind!r}"
     )
+
+
+def _slice_wave_ready(ctx: ResumeContext, slice_id: str, wave: int) -> bool:
+    """Return True when every child of ``slice_id`` in an earlier wave is closed.
+
+    Semantics (per #1132 issue body):
+
+    * Looks up the slice record by ``slice_id`` in ``ctx.slices``.
+    * Considers only children whose ``wave`` is < ``wave``.
+    * Fires when EVERY earlier-wave child's number is in
+      ``ctx.closed_refs``.
+    * If the slice record is absent, or there are no earlier-wave
+      children (e.g. ``wave == 1``, which has no Wave-0 to gate on),
+      the atomic does NOT fire -- the resume condition is meaningless
+      and should be revised by the operator rather than silently
+      passing.
+    """
+    sid_norm = slice_id.lower()
+    record: dict[str, Any] | None = None
+    for entry in ctx.slices:
+        if not isinstance(entry, dict):
+            continue
+        candidate = entry.get("slice_id")
+        if isinstance(candidate, str) and candidate.lower() == sid_norm:
+            record = entry
+            break
+    if record is None:
+        return False
+    children = record.get("children")
+    if not isinstance(children, list):
+        return False
+    earlier: list[int] = []
+    for child in children:
+        if not isinstance(child, dict):
+            continue
+        cwave = child.get("wave")
+        cn = child.get("n")
+        if not isinstance(cwave, int) or not isinstance(cn, int):
+            continue
+        if cwave < wave:
+            earlier.append(cn)
+    if not earlier:
+        return False
+    return all(n in ctx.closed_refs for n in earlier)
 
 
 def evaluate(expr: Expression, ctx: ResumeContext) -> bool:
@@ -390,12 +481,17 @@ def build_context(
     cache_root: Path | None = None,
     today: date | None = None,
     repo: str | None = None,
+    slices_log_path: Path | None = None,
 ) -> ResumeContext:
     """Derive a :class:`ResumeContext` from on-disk state.
 
     Pure-stdlib reader -- no live ``gh`` calls. ``today`` defaults to the
     UTC calendar date (so a midnight-boundary cron run on a UTC host
-    evaluates ``date:>=`` consistently).
+    evaluates ``date:>=`` consistently). ``slices_log_path`` overrides
+    the default ``vbrief/.eval/slices.jsonl`` location for tests; the
+    canonical path is used otherwise. When :mod:`slice_record` is not
+    importable (pre-D13 slim checkout) the slices tuple is empty and
+    ``slice-wave-ready`` atoms cannot fire.
     """
     today_resolved = today or datetime.now(UTC).date()
     closed: set[int] = set()
@@ -412,11 +508,20 @@ def build_context(
         # against either cache writer.
         if payload.get("merged") is True or payload.get("mergedAt"):
             merged.add(n)
+    slices: tuple[dict[str, Any], ...] = ()
+    if slice_record is not None:
+        try:
+            records = slice_record.read_all(path=slices_log_path)
+        except Exception as exc:  # noqa: BLE001 -- best-effort; pre-D13 fallback
+            LOG.warning("slice_record.read_all failed: %s", exc)
+            records = []
+        slices = tuple(r for r in records if isinstance(r, dict))
     return ResumeContext(
         today=today_resolved,
         closed_refs=frozenset(closed),
         merged_refs=frozenset(merged),
         pending_count=_count_pending(project_root),
+        slices=slices,
     )
 
 

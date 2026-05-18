@@ -132,6 +132,34 @@ After all issues are created, print a summary table: issue number, title, type, 
 
 - ! When the source plan was sliced into an umbrella + child issues, file the umbrella first, then file its `## Current shape (as of pass-N)` comment per `## Umbrella current-shape convention` in `AGENTS.md` (#1152) so subsequent design passes have a stable edit-in-place surface to update.
 
+### Step 6: Record the cohort in `vbrief/.eval/slices.jsonl` (#1132 / D13)
+
+At slice-completion (after the umbrella + every child issue is filed) call the framework helper to persist a durable cohort record. The record is sibling to the gitignored `candidates.jsonl` but is **tracked in git** (per `vbrief/.eval/README.md`) so a fresh contributor on pass-N can see prior cohort outputs without rebuilding state from closed issues.
+
+```python path=null start=null
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path('scripts').resolve()))
+import slice_record
+
+slice_id = slice_record.write_slice(
+    umbrella=<umbrella-issue-number>,
+    umbrella_url="https://github.com/<owner>/<repo>/issues/<umbrella-N>",
+    actor="skill:gh-slice",
+    expected_close_signal="all-children-merged",  # or "wave-1-merged" / "manual"
+    children=[
+        {"n": <child-N>, "url": "https://.../issues/<child-N>", "wave": 1, "role": "<short-tag>"},
+        # one dict per child issue
+    ],
+)
+print(f"[slice] wrote slice_id={slice_id[:8]}... umbrella=#<N> children=<count>")
+```
+
+- ! Call `slice_record.write_slice(...)` once per slicing event. The helper is idempotent on retry: passing an existing `slice_id` is a no-op (a network blip mid-PR-create does not duplicate the cohort record).
+- ! Set `actor="skill:gh-slice"` so downstream consumers (`task triage:audit --orphans` etc.) can attribute the cohort.
+- ! Populate `wave` correctly: Wave-1 children are the tracer-bullet entry points; Wave-N>1 children depend (transitively) on Wave-N-1 closing. The D3 `slice-wave-ready:<slice_id>:<wave>` resume-condition atomic reads this field.
+- ⊗ Skip the cohort record because "the issues are filed" -- without it `task triage:audit --orphans` cannot detect Wave-2+ children whose umbrella closes prematurely, which is the production-side drift this step exists to prevent.
+
 ---
 
 ## Anti-Patterns

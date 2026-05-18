@@ -101,6 +101,7 @@ Present designs sequentially, then compare in prose. Give your own recommendatio
 
 - ! Create a refactor RFC immediately using `gh issue create` with the template below
 - ! After creating, print the issue URL
+- ! When the RFC is filed as an umbrella with companion child issues (e.g. an interface-extraction RFC plus one child per migrating caller), record the cohort in `vbrief/.eval/slices.jsonl` via `scripts/slice_record.py::write_slice(...)` with `actor="skill:gh-arch"` -- this is the durable production-side record consumed by `task triage:audit --orphans` (#1132 / D13). Same usage pattern as `skills/deft-directive-gh-slice/SKILL.md` Step 6; idempotent on retry. Skip when the RFC is a single-issue "file and forget" with no child cohort.
 - ! Confirm skill exit: "deft-directive-gh-arch complete — RFC filed at <url>."
 - ~ Suggest next steps: run `deft-directive-refinement` to slot the RFC into the vBRIEF lifecycle, or assign the issue for swarm pickup.
 

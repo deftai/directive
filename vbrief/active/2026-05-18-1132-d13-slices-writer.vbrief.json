@@ -1,0 +1,40 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: D13 child of #1119 -- slices.jsonl writer + orphan/cohort surfaces.",
+    "updated": "2026-05-18T20:10:00Z"
+  },
+  "plan": {
+    "title": "feat(triage): slices.jsonl writer + orphan/slice-coverage audit flags + D3 slice-wave-ready atomic (#1132)",
+    "status": "running",
+    "narratives": {
+      "Description": "D13 child of the #1119 Wave-2c swarm. Introduce vbrief/.eval/slices.jsonl (committed) as the durable cohort record sibling to candidates.jsonl. Slicing skills (gh-slice, gh-arch, refinement slice-phase) call scripts/slice_record.py::write_slice to append a cohort entry. Three new read-only flags on task triage:audit: --orphans, --slice-stalled --days N, --slice-coverage; all accept --format=json. task triage:queue renders [ORPHAN] prefix and applies +8 ranking score for orphans. D3 grammar gains slice-wave-ready:<slice_id>:<wave> atomic (Option A from the issue body). Framework default = empty / consumer-agnostic; no deft-specific labels.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1132. Issue body is the spec; no Current Shape comment filed.",
+      "Overview": "See issue #1132 for full spec. Files owned: vbrief/schemas/slices.schema.json (new); scripts/slice_record.py (new); scripts/triage_queue.py + scripts/_triage_queue_cli.py (extend with Slice operations argparse group + ORPHAN ranking); scripts/resume_conditions.py (slice-wave-ready atomic); skills/deft-directive-gh-slice/SKILL.md + skills/deft-directive-gh-arch/SKILL.md + skills/deft-directive-refinement/SKILL.md (slice write step); tests/test_slice_record.py (new); tests/test_resume_conditions.py + tests/test_triage_queue.py (extend); CHANGELOG.md ([Unreleased])."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1132",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1132: D13 -- slices.jsonl writer + orphan/cohort surfaces"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: triage-eval governance swarm"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1128",
+        "type": "x-vbrief/github-issue",
+        "title": "Sibling D11 (triage:audit verb): scripts/triage_queue.py"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1123",
+        "type": "x-vbrief/github-issue",
+        "title": "Sibling D3 (resume-condition grammar): scripts/resume_conditions.py"
+      }
+    ],
+    "updated": "2026-05-18T20:10:00Z"
+  }
+}

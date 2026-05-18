@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deft.dev/schemas/slices-1.0.schema.json",
+  "title": "Slicing Cohort Record v1",
+  "description": "Frozen interface contract for one line in vbrief/.eval/slices.jsonl. Each line is a single JSON object recording one slicing event: an umbrella issue + the children produced from it. Slices.jsonl is APPEND-ONLY (existing lines are never edited or deleted) AND TRACKED IN GIT (sibling to the gitignored candidates.jsonl per vbrief/.eval/README.md tracking policy). Written by scripts/slice_record.py::write_slice; consumed by task triage:audit --orphans / --slice-stalled / --slice-coverage and by the D3 slice-wave-ready evaluator. Field set, types, and enums are FROZEN -- new fields may only be added in additive, optional positions in a follow-up schema version (D13 / #1132).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "slice_id",
+    "umbrella",
+    "umbrella_url",
+    "sliced_at",
+    "actor",
+    "children",
+    "expected_close_signal"
+  ],
+  "properties": {
+    "slice_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "RFC 4122 UUID (any version) uniquely identifying this cohort. Used by scripts/slice_record.py::write_slice for retry-dedup -- a re-write with the same slice_id is a no-op so a network blip mid-PR-create does not duplicate the cohort record.",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "umbrella": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Umbrella issue number this cohort was sliced from."
+    },
+    "umbrella_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Full URL of the umbrella issue (e.g. https://github.com/owner/repo/issues/1119)."
+    },
+    "sliced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp with literal Z suffix (e.g. 2026-05-13T18:00:00Z) when the slicing event was recorded.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Slicing actor identity. v1 expected values: `skill:gh-slice`, `skill:gh-arch`, `skill:refinement`. The field is open-vocab so future slicing surfaces can append additional tags without a schema bump."
+    },
+    "children": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Children produced by the slicing event. Order is informational; the consumer joins on `n` (issue number).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["n", "url", "wave", "role"],
+        "properties": {
+          "n": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Child issue number."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Full URL of the child issue."
+          },
+          "wave": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "1-indexed wave number. Wave-1 children block (transitively) Wave-N>1 children of the same slice_id via the D3 `slice-wave-ready:<slice_id>:<wave>` atomic."
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Short slicer-supplied tag describing the child's role (e.g. `structural`, `feature`, `docs`). Not semantically interpreted in v1 -- v1 is human readability only."
+          }
+        }
+      }
+    },
+    "expected_close_signal": {
+      "type": "string",
+      "enum": ["all-children-merged", "wave-1-merged", "manual"],
+      "description": "Operator-declared expected umbrella close signal. `all-children-merged` is the strict default; `wave-1-merged` is the lenient signal used when Wave-N>1 children are explicitly deferred via D3 `slice-wave-ready`; `manual` defers the close decision entirely to the operator."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional free-form rationale captured at slice time."
+    }
+  }
+}

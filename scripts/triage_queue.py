@@ -86,6 +86,16 @@ try:  # pragma: no cover -- exercised once #1123 lands.
 except ImportError:  # pragma: no cover
     resume_conditions = None  # type: ignore[assignment]
 
+# Optional dep: slice-cohort writer (#1132 / D13). When importable, the
+# slice operation flags on the ``audit`` subcommand (``--orphans``,
+# ``--slice-stalled``, ``--slice-coverage``) read ``vbrief/.eval/slices.jsonl``
+# via this module. Slim test checkouts that have not yet rebased onto D13
+# get a no-op fallback (empty result + informational stderr).
+try:  # pragma: no cover -- exercised once #1132 lands.
+    import slice_record  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover
+    slice_record = None  # type: ignore[assignment]
+
 
 # ---------------------------------------------------------------------------
 # Public constants
@@ -103,12 +113,31 @@ PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json"
 #: Default queue limit when ``--limit`` is omitted on the CLI surface.
 DEFAULT_QUEUE_LIMIT: int = 25
 
-#: Group display order. Mirrors Current Shape v2 Decision 1. The strings
-#: themselves are also the user-visible markers in :func:`render_queue`.
-GROUP_ORDER: tuple[str, ...] = ("RESUME", "URGENT", "untriaged", "other")
+#: Default stalled-cohort window in days for ``task triage:audit --slice-stalled``
+#: (#1132 / D13). Selectable per-invocation via ``--days N``. 30 days matches
+#: the issue body's example fixture and the umbrella amendment timeframe.
+DEFAULT_SLICE_STALLED_DAYS: int = 30
+
+#: Group display order. Mirrors Current Shape v2 Decision 1 plus the D13
+#: (#1132) ``ORPHAN`` insertion ABOVE ``RESUME``. The strings themselves
+#: are also the user-visible markers in :func:`render_queue`. ``ORPHAN``
+#: sits above ``RESUME`` because the orphan signal indicates work the
+#: framework already committed to and risks losing (issue #1132 spec:
+#: ``+8`` rank > resume-eligible ``+5``, below ``breaking-change`` ``+10``).
+#: Within-group ranking labels (e.g. ``breaking-change``) still apply, so
+#: a ``breaking-change``-labelled orphan tops the queue while a plain
+#: orphan still sits above a resume-eligible item.
+GROUP_ORDER: tuple[str, ...] = (
+    "ORPHAN",
+    "RESUME",
+    "URGENT",
+    "untriaged",
+    "other",
+)
 
 #: Display labels per group (left-of-issue marker).
 GROUP_DISPLAY: dict[str, str] = {
+    "ORPHAN": "[ORPHAN]    ",
     "RESUME": "[RESUME]    ",
     "URGENT": "[URGENT]    ",
     "untriaged": "[untriaged] ",
@@ -159,6 +188,11 @@ class QueueBuildOptions:
 
     ranking_labels: tuple[str, ...] = ()
     active_referenced: frozenset[int] = field(default_factory=frozenset)
+    #: Issue numbers in the ``ORPHAN`` group per D13 (#1132): open
+    #: children whose umbrella has closed. Routed above ``RESUME`` in
+    #: :data:`GROUP_ORDER`. Empty by default for back-compat with
+    #: callers that have not yet rebased onto D13.
+    orphan_issue_numbers: frozenset[int] = field(default_factory=frozenset)
     limit: int | None = None
 
 
@@ -565,7 +599,13 @@ def build_queue(
             continue
         latest = decisions.get(n)
         latest_decision = latest.get("decision") if isinstance(latest, dict) else None
-        group = derive_group(latest_decision, n in opts.active_referenced)
+        # D13 (#1132): ORPHAN takes precedence over every other group --
+        # an orphan is work the framework already committed to and risks
+        # losing, so it surfaces above RESUME / URGENT / untriaged.
+        if n in opts.orphan_issue_numbers:
+            group = "ORPHAN"
+        else:
+            group = derive_group(latest_decision, n in opts.active_referenced)
         issue["_latest_decision"] = latest_decision
         grouped[group].append(issue)
 

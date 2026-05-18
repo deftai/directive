@@ -338,6 +338,8 @@ The task scans every vBRIEF with a GitHub-backed reference (whether the referenc
 
 ! When the refinement session files a new umbrella issue (or surfaces one whose current-shape comment is missing), file the umbrella then file its `## Current shape (as of pass-N)` comment per `## Umbrella current-shape convention` in `AGENTS.md` (#1152) -- the edit-in-place comment is the canonical surface every subsequent design pass updates.
 
+! When a refinement pass produces a slicing event (rare but possible -- e.g. a design pass on an existing umbrella files N additional Wave-N child issues), record the cohort in `vbrief/.eval/slices.jsonl` via `scripts/slice_record.py::write_slice(...)` with `actor="skill:refinement"` immediately after the children are filed (#1132 / D13). Same call shape as `skills/deft-directive-gh-slice/SKILL.md` Step 6. The cohort record is what makes `task triage:audit --orphans` able to detect Wave-2+ children whose umbrella closes prematurely; without it the production-side drift this surface guards against re-fires. Skip when the pass produced no new child cohort (e.g. a pure re-prioritization).
+
 ## CHANGELOG Convention
 
 - ! Write ONE batch `CHANGELOG.md` entry at the END of the full refinement session -- not one entry per vBRIEF created or promoted. The batch entry summarizes all changes made during the session.

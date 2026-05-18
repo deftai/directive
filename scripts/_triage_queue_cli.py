@@ -15,6 +15,16 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# Make sibling scripts importable when invoked via Taskfile + uv.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+# Optional: slice_audit ships in the same wave as this CLI (#1132 / D13).
+# Guarded so an out-of-band import on a slim test checkout does not break.
+try:  # pragma: no cover -- exercised once #1132 lands.
+    import slice_audit  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover
+    slice_audit = None  # type: ignore[assignment]
+
 
 def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
@@ -43,6 +53,14 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
         help=(
             "Override the audit log path (default: <project-root>/"
             "vbrief/.eval/candidates.jsonl). Test hook."
+        ),
+    )
+    parser.add_argument(
+        "--slices-log",
+        default=None,
+        help=(
+            "Override the slices.jsonl path (default: <project-root>/"
+            "vbrief/.eval/slices.jsonl). Test hook for #1132 / D13."
         ),
     )
 
@@ -145,6 +163,53 @@ def build_parser(default_limit: int) -> argparse.ArgumentParser:
         ),
     )
 
+    # ----- Slice operations (#1132 / D13) -----
+    #
+    # Each of the three flags below selects a distinct slice-related
+    # surface; they are mutually exclusive (the CLI picks the first one
+    # set and emits its renderer instead of the default audit dump).
+    # Kept as a distinct argparse group so #1180's date-filter flags can
+    # land as a separate `Date filters` group without textual overlap.
+    slice_group = p_audit.add_argument_group(
+        "Slice operations (#1132 / D13)",
+        "Read-only surfaces that join slices.jsonl against the cache.",
+    )
+    slice_group.add_argument(
+        "--orphans",
+        action="store_true",
+        help=(
+            "List children whose umbrella issue is closed while they remain"
+            " open. Output: one line per orphan with umbrella back-pointer."
+        ),
+    )
+    slice_group.add_argument(
+        "--slice-stalled",
+        action="store_true",
+        dest="slice_stalled",
+        help=(
+            "List cohorts where >=1 child has merged but >=1 sibling has"
+            " not moved in --days days (default 30)."
+        ),
+    )
+    slice_group.add_argument(
+        "--slice-coverage",
+        action="store_true",
+        dest="slice_coverage",
+        help=(
+            "For each open umbrella in slices.jsonl, print"
+            " <umbrella>: <closed>/<total> children merged."
+        ),
+    )
+    slice_group.add_argument(
+        "--days",
+        type=int,
+        default=None,
+        help=(
+            "Stall window in days for --slice-stalled (default 30)."
+            " No effect without --slice-stalled."
+        ),
+    )
+
     return parser
 
 
@@ -181,17 +246,35 @@ def _cmd_queue(args: argparse.Namespace, tq: Any) -> int:
     project_root = Path(args.project_root).resolve()
     if args.cache_root:
         _override_cache_root(project_root, Path(args.cache_root).resolve())
-    issues = tq.load_cached_issues(repo, project_root=project_root)
+    # Load both open and closed issues so the orphan detection in #1132
+    # can see closed umbrellas; the queue itself still filters to open
+    # children via the QueueBuildOptions.orphan_issue_numbers set.
+    issues_for_queue = tq.load_cached_issues(repo, project_root=project_root)
+    issues_with_closed = tq.load_cached_issues(
+        repo, project_root=project_root, include_closed=True
+    )
+    issues_by_number = {i["number"]: i for i in issues_with_closed}
     audit_entries = tq.read_audit_entries(repo, audit_path=args.audit_log)
     ranking_labels = tuple(tq.resolve_ranking_labels(project_root))
     active_refs = frozenset(tq._active_referenced_issue_numbers(project_root))
+    orphan_numbers: frozenset[int] = frozenset()
+    if slice_audit is not None:
+        records = slice_audit.load_slice_records(
+            tq.slice_record, path=args.slices_log
+        )
+        orphan_numbers = slice_audit.collect_orphan_issue_numbers(
+            records, issues_by_number
+        )
     limit = None if args.limit == 0 else max(0, int(args.limit))
     options = tq.QueueBuildOptions(
         ranking_labels=ranking_labels,
         active_referenced=active_refs,
+        orphan_issue_numbers=orphan_numbers,
         limit=limit,
     )
-    items = tq.build_queue(issues, audit_entries, repo=repo, options=options)
+    items = tq.build_queue(
+        issues_for_queue, audit_entries, repo=repo, options=options
+    )
     print(
         tq.render_queue(
             items,
@@ -247,8 +330,22 @@ def _cmd_show(args: argparse.Namespace, tq: Any) -> int:
 def _cmd_audit(args: argparse.Namespace, tq: Any) -> int:
     repo = _resolve_repo(args)
     project_root = Path(args.project_root).resolve()
+    if args.cache_root:
+        _override_cache_root(project_root, Path(args.cache_root).resolve())
+    # #1132 / D13: slice operation flags short-circuit the audit dump.
+    # Mutually exclusive: first set flag wins; if more than one is
+    # passed the chained calls render only the highest-priority one.
+    if getattr(args, "orphans", False):
+        return _cmd_slice_orphans(args, tq, repo=repo, project_root=project_root)
+    if getattr(args, "slice_stalled", False):
+        return _cmd_slice_stalled(args, tq, repo=repo, project_root=project_root)
+    if getattr(args, "slice_coverage", False):
+        return _cmd_slice_coverage(args, tq, repo=repo, project_root=project_root)
     # #1180: validate --action / --since up front so a typo fails fast
-    # (exit 2) instead of silently returning an empty result set.
+    # (exit 2) instead of silently returning an empty result set. Runs
+    # AFTER the D13 slice short-circuit so --orphans/--slice-stalled/
+    # --slice-coverage don't waste cycles validating filters that the
+    # slice handlers never consume.
     if args.action is not None:
         valid_actions = tq.valid_audit_actions()
         if args.action not in valid_actions:
@@ -319,6 +416,103 @@ def _cmd_audit(args: argparse.Namespace, tq: Any) -> int:
                 vbrief_staleness=args.vbrief_staleness,
             )
         )
+    return 0
+
+
+def _slice_inputs(
+    args: argparse.Namespace,
+    tq: Any,
+    *,
+    repo: str | None,
+    project_root: Path,
+) -> tuple[list[dict[str, Any]], dict[int, dict[str, Any]]] | None:
+    """Load (slice_records, issues_by_number) or return ``None`` on missing surface.
+
+    Prints the canonical informational message to stderr and returns ``None``
+    when ``slice_audit`` is not importable -- the issue body's backward-
+    compat requirement ("slices.jsonl missing -> flags exit 0 with
+    informational stderr"). Repo is required for the cache walk but a
+    missing slices.jsonl is silent (read_all returns []).
+    """
+    if slice_audit is None:
+        print(
+            "triage:audit: slice operation flags require scripts/slice_audit.py"
+            " (#1132 / D13); skipping.",
+            file=sys.stderr,
+        )
+        return None
+    if not repo:
+        print(
+            "triage:audit: --repo OWNER/NAME (or $DEFT_TRIAGE_REPO) is required"
+            " for slice operations.",
+            file=sys.stderr,
+        )
+        return None
+    records = slice_audit.load_slice_records(
+        tq.slice_record, path=args.slices_log
+    )
+    issues = tq.load_cached_issues(
+        repo, project_root=project_root, include_closed=True
+    )
+    issues_by_number = {i["number"]: i for i in issues}
+    return records, issues_by_number
+
+
+def _cmd_slice_orphans(
+    args: argparse.Namespace,
+    tq: Any,
+    *,
+    repo: str | None,
+    project_root: Path,
+) -> int:
+    loaded = _slice_inputs(args, tq, repo=repo, project_root=project_root)
+    if loaded is None:
+        return 0
+    records, issues_by_number = loaded
+    rows = slice_audit.compute_orphans(records, issues_by_number)
+    if args.format == "json":
+        print(slice_audit.render_orphans_json(rows, repo=repo))
+    else:
+        print(slice_audit.render_orphans_plain(rows, repo=repo))
+    return 0
+
+
+def _cmd_slice_stalled(
+    args: argparse.Namespace,
+    tq: Any,
+    *,
+    repo: str | None,
+    project_root: Path,
+) -> int:
+    loaded = _slice_inputs(args, tq, repo=repo, project_root=project_root)
+    if loaded is None:
+        return 0
+    records, issues_by_number = loaded
+    days = args.days if args.days is not None else tq.DEFAULT_SLICE_STALLED_DAYS
+    rows = slice_audit.compute_stalled(records, issues_by_number, days=days)
+    if args.format == "json":
+        print(slice_audit.render_stalled_json(rows, repo=repo, days=days))
+    else:
+        print(slice_audit.render_stalled_plain(rows, repo=repo, days=days))
+    return 0
+
+
+def _cmd_slice_coverage(
+    args: argparse.Namespace,
+    tq: Any,
+    *,
+    repo: str | None,
+    project_root: Path,
+) -> int:
+    loaded = _slice_inputs(args, tq, repo=repo, project_root=project_root)
+    if loaded is None:
+        return 0
+    records, issues_by_number = loaded
+    rows = slice_audit.compute_coverage(records, issues_by_number)
+    if args.format == "json":
+        print(slice_audit.render_coverage_json(rows, repo=repo))
+    else:
+        print(slice_audit.render_coverage_plain(rows, repo=repo))
     return 0
 
 
