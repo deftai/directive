@@ -218,6 +218,13 @@ includes:
   triage-welcome:
     taskfile: ./tasks/triage-welcome.yml
     optional: true
+  # N6 (#1146): `task triage:smoketest` end-to-end synthetic test of the
+  # cache-as-operator-working-set surface. Inner task `smoketest` is
+  # exposed as the user-facing alias `task triage:smoketest` in the
+  # alias block below.
+  triage-smoketest:
+    taskfile: ./tasks/triage-smoketest.yml
+    optional: true
   # Windows maintainer onboarding fragment (#902). Exposes the inner task
   # `toolchain` as `task setup:toolchain`. Note: the root-level `setup` task
   # below (git-hooks bootstrap) coexists with `setup:toolchain` because
@@ -696,5 +703,12 @@ tasks:
     desc: "Run the 6-phase onboarding ritual (N3 / #1143): detect prior state, prompt subscription scope, run triage:bootstrap, prompt wipCap, offer WIP relief, print triage:summary. Idempotent. -- task triage:welcome [-- --no-subprocess]"
     cmds:
       - task: triage-welcome:welcome
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:smoketest:
+    desc: "Run the N6 (#1146) end-to-end smoketest against the hermetic 20-issue fixture; exits 0 on PASS / 1 on first failure. -- task triage:smoketest [-- --verbose] [--keep-tempdir] [--cache-only]"
+    cmds:
+      - task: triage-smoketest:smoketest
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"

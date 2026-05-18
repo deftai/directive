@@ -1,0 +1,21 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Smoketest fixture PROJECT-DEFINITION (#1146 / N6). Ships ONE consumer auto-classify rule (research labels -> defer) so the smoketest exercises the consumer-rule path of D10 / #1129 alongside the four universal rules. ASCII-only.",
+    "updated": "2026-05-18T21:30:00Z"
+  },
+  "plan": {
+    "title": "Smoketest fixture project",
+    "status": "running",
+    "items": [],
+    "policy": {
+      "triageAutoClassify": [
+        {
+          "match": {"labels": {"any-of": ["rfc", "type:research"]}},
+          "action": "defer",
+          "reason": "research"
+        }
+      ]
+    }
+  }
+}

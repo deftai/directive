@@ -1,0 +1,32 @@
+version: '3'
+
+# tasks/triage-smoketest.yml -- N6 (#1146) `task triage:smoketest` end-to-end
+# synthetic test of the cache-as-operator-working-set surface.
+#
+# Wired into the parent Taskfile.yml via the `includes:` block under namespace
+# key `triage-smoketest`. The inner task `smoketest` is reachable as
+# `task triage-smoketest:smoketest`; the parent Taskfile exposes the
+# documented `task triage:smoketest` alias.
+#
+# Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+# declarations because user-facing flags (`--verbose`, `--keep-tempdir`,
+# `--cache-only`, `--fixture`) are forwarded via {{.CLI_ARGS}} and
+# go-task's incremental-build cache layer would silently swallow them.
+#
+# Companion script:   scripts/triage_smoketest.py (+ scripts/_triage_smoketest_stages.py)
+# Companion fixture:  tests/fixtures/triage_smoketest/
+# Companion tests:    tests/test_triage_smoketest.py + tests/test_triage_smoketest_fixture.py
+# Pattern reference:  tasks/triage-summary.yml (D2 / #1122).
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  smoketest:
+    desc: "Run the N6 (#1146) end-to-end smoketest against the hermetic 20-issue fixture. Exits 0 on PASS / 1 on first failure. -- task triage:smoketest [-- --verbose] [--keep-tempdir] [--cache-only]"
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_smoketest.py" {{.CLI_ARGS}}

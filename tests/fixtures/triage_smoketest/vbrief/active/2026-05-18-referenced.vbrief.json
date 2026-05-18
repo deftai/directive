@@ -1,0 +1,19 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Smoketest fixture: pre-existing active vBRIEF referencing smoketest issue #20. Drives the universal:vbrief-referenced auto-classify rule (#1129) -> accept.",
+    "updated": "2026-05-18T21:30:00Z"
+  },
+  "plan": {
+    "title": "Smoketest fixture: already-referenced scope (issue #20)",
+    "status": "running",
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/smoketest/issues/20",
+        "type": "x-vbrief/github-issue",
+        "title": "Smoketest fixture issue #20"
+      }
+    ]
+  }
+}

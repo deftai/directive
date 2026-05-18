@@ -84,6 +84,12 @@ vbrief/.eval/candidates.jsonl
 vbrief/.eval/summary-history.jsonl
 vbrief/.eval/scope-lifecycle.jsonl
 
+# N6 (#1146) triage:smoketest assert log -- runtime artefact, never committed.
+# The fixture itself (tests/fixtures/triage_smoketest/{issues.json,
+# PROJECT-DEFINITION.vbrief.json, vbrief/, README.md}) IS committed; only the
+# per-run last_run.json output is gitignored.
+tests/fixtures/triage_smoketest/last_run.json
+
 # Monitor scratch (poller scripts, banner-edit helpers, etc.)
 .swarm/
 

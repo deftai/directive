@@ -1,0 +1,32 @@
+{
+  "_doc": "Hermetic 20-issue fixture for task triage:smoketest (#1146 / N6). Rendered into .deft-cache/github-issue/<owner>/<repo>/<N>/ by scripts/triage_smoketest.py at runtime. ASCII-only.",
+  "_schema_version": 1,
+  "repo": "deftai/smoketest",
+  "now_iso": "2026-05-18T21:30:00Z",
+  "issues": [
+    {"number": 1,  "title": "Normal issue 1",  "state": "open", "labels": [], "body": "Routine work item with no special markers.",                                                      "updated_at": "2026-05-15T12:00:00Z", "created_at": "2026-05-15T10:00:00Z", "bucket": "normal"},
+    {"number": 2,  "title": "Normal issue 2",  "state": "open", "labels": [], "body": "A second routine item without any classification triggers.",                                      "updated_at": "2026-05-14T12:00:00Z", "created_at": "2026-05-14T10:00:00Z", "bucket": "normal"},
+    {"number": 3,  "title": "Normal issue 3",  "state": "open", "labels": [], "body": "Third normal item, otherwise unremarkable.",                                                      "updated_at": "2026-05-13T12:00:00Z", "created_at": "2026-05-13T10:00:00Z", "bucket": "normal"},
+    {"number": 4,  "title": "Normal issue 4",  "state": "open", "labels": [], "body": "Fourth normal item, awaiting initial triage.",                                                    "updated_at": "2026-05-12T12:00:00Z", "created_at": "2026-05-12T10:00:00Z", "bucket": "normal"},
+    {"number": 5,  "title": "Normal issue 5",  "state": "open", "labels": [], "body": "Fifth normal item -- used as the defer-with-resume-on target in step 4 of the smoketest.",       "updated_at": "2026-05-11T12:00:00Z", "created_at": "2026-05-11T10:00:00Z", "bucket": "normal"},
+    {"number": 6,  "title": "Normal issue 6",  "state": "open", "labels": [], "body": "Sixth normal item.",                                                                              "updated_at": "2026-05-10T12:00:00Z", "created_at": "2026-05-10T10:00:00Z", "bucket": "normal"},
+    {"number": 7,  "title": "Normal issue 7",  "state": "open", "labels": [], "body": "Seventh normal item.",                                                                            "updated_at": "2026-05-09T12:00:00Z", "created_at": "2026-05-09T10:00:00Z", "bucket": "normal"},
+    {"number": 8,  "title": "Normal issue 8",  "state": "open", "labels": [], "body": "Eighth normal item.",                                                                             "updated_at": "2026-05-08T12:00:00Z", "created_at": "2026-05-08T10:00:00Z", "bucket": "normal"},
+    {"number": 9,  "title": "Normal issue 9",  "state": "open", "labels": [], "body": "Ninth normal item.",                                                                              "updated_at": "2026-05-07T12:00:00Z", "created_at": "2026-05-07T10:00:00Z", "bucket": "normal"},
+    {"number": 10, "title": "Normal issue 10", "state": "open", "labels": [], "body": "Tenth normal item.",                                                                              "updated_at": "2026-05-06T12:00:00Z", "created_at": "2026-05-06T10:00:00Z", "bucket": "normal"},
+    {"number": 11, "title": "Normal issue 11", "state": "open", "labels": [], "body": "Eleventh normal item.",                                                                           "updated_at": "2026-05-05T12:00:00Z", "created_at": "2026-05-05T10:00:00Z", "bucket": "normal"},
+    {"number": 12, "title": "Normal issue 12", "state": "open", "labels": [], "body": "Twelfth normal item.",                                                                            "updated_at": "2026-05-04T12:00:00Z", "created_at": "2026-05-04T10:00:00Z", "bucket": "normal"},
+
+    {"number": 20, "title": "Already-referenced issue",                "state": "open", "labels": [], "body": "Body normal but this issue is referenced by an active vBRIEF; auto-classify should pick universal:vbrief-referenced -> accept.", "updated_at": "2026-05-16T12:00:00Z", "created_at": "2026-05-16T10:00:00Z", "bucket": "referenced"},
+
+    {"number": 100, "title": "Hold-marker issue (do not implement)",   "state": "open", "labels": [], "body": "This is a tracking placeholder -- please do not implement until the upstream design lands.", "updated_at": "2026-05-10T12:00:00Z", "created_at": "2026-05-10T10:00:00Z", "bucket": "hold"},
+    {"number": 101, "title": "Hold-marker issue (BLOCKED)",            "state": "open", "labels": [], "body": "BLOCKED on upstream renderer change; capture only, do not start work.",                       "updated_at": "2026-05-09T12:00:00Z", "created_at": "2026-05-09T10:00:00Z", "bucket": "hold"},
+    {"number": 102, "title": "Hold-marker issue (HOLDING)",            "state": "open", "labels": [], "body": "HOLDING -- waiting on operator decision before this can move.",                              "updated_at": "2026-05-08T12:00:00Z", "created_at": "2026-05-08T10:00:00Z", "bucket": "hold"},
+
+    {"number": 200, "title": "Research item (rfc label)",              "state": "open", "labels": ["rfc"],            "body": "Research / RFC item -- consumer rule should route to defer with reason 'research'.",          "updated_at": "2026-05-07T12:00:00Z", "created_at": "2026-05-07T10:00:00Z", "bucket": "research"},
+    {"number": 201, "title": "Research item (type:research label)",    "state": "open", "labels": ["type:research"],  "body": "Type:research item -- consumer rule should route to defer with reason 'research'.",          "updated_at": "2026-05-06T12:00:00Z", "created_at": "2026-05-06T10:00:00Z", "bucket": "research"},
+
+    {"number": 300, "title": "Dormant issue 1",                        "state": "open", "labels": [], "body": "AC missing.",                                                                                "updated_at": "2026-01-10T12:00:00Z", "created_at": "2026-01-10T10:00:00Z", "bucket": "dormant"},
+    {"number": 301, "title": "Dormant issue 2",                        "state": "open", "labels": [], "body": "Stale; needs refresh.",                                                                     "updated_at": "2026-01-05T12:00:00Z", "created_at": "2026-01-05T10:00:00Z", "bucket": "dormant"}
+  ]
+}

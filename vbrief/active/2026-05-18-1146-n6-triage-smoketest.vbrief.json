@@ -1,0 +1,65 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: N6 child of #1119 Wave-2d-1 -- task triage:smoketest end-to-end synthetic test of the cache-as-operator-working-set surface.",
+    "updated": "2026-05-18T21:35:00Z"
+  },
+  "plan": {
+    "title": "feat(triage): task triage:smoketest end-to-end synthetic test (#1146 / N6)",
+    "status": "running",
+    "narratives": {
+      "Description": "N6 child of #1119 Wave-2d-1. Ship `task triage:smoketest` as a 9-stage end-to-end smoketest of the cache-as-operator-working-set surface: a hermetic 20-issue fixture under `tests/fixtures/triage_smoketest/`, a driver `scripts/triage_smoketest.py` that copies the fixture into a temp working directory and runs the full triage lifecycle against it (bootstrap, auto-classify, audit decision counts, queue determinism, defer w/ resume-on, evaluate-resume, scope:promote, scope:demote, scope:undo, triage:summary), and a `tasks/triage-smoketest.yml` Taskfile fragment + root alias `task triage:smoketest`.",
+      "Origin": "Issue body at https://github.com/deftai/directive/issues/1146 plus orchestrator scope (Wave-2d-1 batch). D18 #1136 (`scope:promote --from-issue`) is OPEN-not-implemented; the smoketest uses the existing `scope:promote <vbrief-file>` fallback form. D15 #1134 (`scope:undo`) is parallel in this wave; the smoketest gracefully skips the undo stage when the verb is absent.",
+      "Overview": "## What to build\n\n1. `tests/fixtures/triage_smoketest/` -- hermetic 20-issue fixture (issues.json spec, PROJECT-DEFINITION with consumer research rule, pre-existing active vBRIEF, proposed test-1.vbrief.json).\n2. `scripts/triage_smoketest.py` -- driver. Copies fixture into a temp working directory, renders the .deft-cache from issues.json, runs the 9 stages, writes `tests/fixtures/triage_smoketest/last_run.json` (gitignored), exits 0 on pass / 1 on first failure.\n3. `tasks/triage-smoketest.yml` + Taskfile include + `triage:smoketest` root alias.\n4. `tests/test_triage_smoketest.py` -- pytest wrapper that runs the script against the fixture and asserts exit 0.\n5. `tests/test_triage_smoketest_fixture.py` -- pins fixture structure (20 issues across 5 categories).\n6. CHANGELOG `[Unreleased]` entry; `.gitignore` for `last_run.json`.\n\n## Type\n\nFeature -- N6 child of #1119 Wave-2d-1. Smoketest surface, not a gate.\n\n## Acceptance criteria\n\n- Fixture committed under `tests/fixtures/triage_smoketest/`.\n- `scripts/triage_smoketest.py` implements the 9-stage assert flow.\n- `task triage:smoketest` exits 0 on a clean install / fresh fixture.\n- JSON assert-log written to `tests/fixtures/triage_smoketest/last_run.json` (gitignored).\n- `task check` green.\n- PR title / body follow the spec'd format with Closes #1146 + Refs #1119, #1129, #1128, #1123, #1121, #1122, #1134, #1136.\n\n## Not in scope\n\n- AGENTS.md edits (HARD-NO per orchestrator).\n- #1186 consumer-example (already merged; HARD-NO).\n- Implementing #1136 (`scope:promote --from-issue`) -- the smoketest fixture creates the proposed vBRIEF directly and uses the existing `scope:promote <file>` form.\n- Implementing #1134 (`scope:undo`) -- parallel child in same wave; the smoketest gracefully skips when the verb is absent.\n\n## Refs\n\n- Umbrella: #1119\n- This deliverable: #1146 (N6)\n- Smoketested verbs: D10 / #1129, D11 / #1128, D3 / #1123, D1 / #1121, D2 / #1122\n- Parallel: D15 / #1134 (`scope:undo`)\n- Future integration: D18 / #1136 (`scope:promote --from-issue`)\n- Slow-lane convention: #975"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1146",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1146: N6 -- task triage:smoketest end-to-end synthetic test"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: triage-eval governance swarm"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1129",
+        "type": "x-vbrief/github-issue",
+        "title": "D10: auto-classification universal rules + plan.policy.triageAutoClassify[]"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1128",
+        "type": "x-vbrief/github-issue",
+        "title": "D11: triage:queue + audit + show surface"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1123",
+        "type": "x-vbrief/github-issue",
+        "title": "D3: triage:defer --resume-on + evaluate-resume"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1121",
+        "type": "x-vbrief/github-issue",
+        "title": "D1: scope:demote single + --batch + demote_meta"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1122",
+        "type": "x-vbrief/github-issue",
+        "title": "D2: task triage:summary one-liner"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1134",
+        "type": "x-vbrief/github-issue",
+        "title": "D15: scope:undo (parallel child in same wave)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1136",
+        "type": "x-vbrief/github-issue",
+        "title": "D18: scope:promote --from-issue (future integration)"
+      }
+    ],
+    "updated": "2026-05-18T21:35:00Z"
+  }
+}

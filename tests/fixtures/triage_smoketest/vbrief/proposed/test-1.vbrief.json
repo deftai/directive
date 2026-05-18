@@ -1,0 +1,19 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Smoketest fixture: proposed scope vBRIEF for the promote -> demote -> undo stage. References fixture issue #1 (the D18 #1136 fallback per the orchestrator scope -- promote uses the existing `scope:promote <file>` form, no `--from-issue` flag).",
+    "updated": "2026-05-18T21:30:00Z"
+  },
+  "plan": {
+    "title": "Smoketest fixture: proposed scope (issue #1)",
+    "status": "proposed",
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/smoketest/issues/1",
+        "type": "x-vbrief/github-issue",
+        "title": "Smoketest fixture issue #1"
+      }
+    ]
+  }
+}
