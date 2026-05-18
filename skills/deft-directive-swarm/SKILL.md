@@ -31,7 +31,7 @@ or invoke `task verify:branch`. The swarm skill creates branches per agent so th
 
 ## Deterministic Questions Contract
 
-! Every numbered-menu prompt rendered in this skill (Phase 0 Step 0/5 source/approval gates, Phase 1 Step 3 file-overlap audit gate, Phase 5->6 ready-to-merge gate) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. Implicit resumption is forbidden.
+! Every numbered-menu prompt rendered in this skill (Phase 0 Step 0 queue-driven promote prompts (#1142 / N2), Step 0.5 bridge approval gate, Step 5 final-approval gate, Phase 1 Step 3 file-overlap audit gate, Phase 5->6 ready-to-merge gate) MUST follow [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md): the final two numbered options MUST be `Discuss` and `Back`, in that order. The Discuss-pause semantic is documented verbatim there -- on `Discuss` selection the agent MUST halt the in-progress sequence immediately, prompt `What would you like to discuss?`, and resume only on an explicit user signal. Implicit resumption is forbidden.
 
 ## When to Use
 
@@ -48,37 +48,84 @@ or invoke `task verify:branch`. The swarm skill creates branches per agent so th
 
 ## Phase 0 — Allocate
 
-! Before assigning work to agents, scan the active vBRIEFs and plan allocation.
+! Before assigning work to agents, build the cohort from the triage queue (queue-driven per #1142 / N2; see Step 0 below), then read project state and plan allocation against the activated cohort.
 
-### Step 0: Work-Item Source
+### Step 0: Queue-driven cohort selection (#1142 / N2)
 
-! Determine where work items come from before proceeding to allocation.
+! Phase 0 is queue-driven: consult the triage cache (D2 / #1122 + D11 / #1128) for the ranked promotion candidates, then fill the WIP cap. Do NOT pick the cohort by hand from `vbrief/pending/` or `vbrief/active/` -- the queue is the canonical record of "what's next?" per AGENTS.md `## Cache-as-authoritative work selection (#1149)`. The four sub-phases below run in canonical order; existing Step 0.5 (lifecycle bridge) and Steps 1-5 (readiness / blockers / allocation / present / approval) proceed unchanged after Phase 0d.
 
-Ask the user: **"Are work items already in `vbrief/active/` as vBRIEFs, or should I generate them from GitHub issue numbers?"**
+#### Phase 0a -- State overview via `task triage:summary` (D2 / #1122)
 
-- **Option A — Existing vBRIEFs**: Proceed directly to Step 1.
-- **Option B — GitHub issue numbers**: The user provides a list of issue numbers. For each issue:
-  1. ! Fetch issue data: `gh issue view <N> --json title,body,labels,number`
-  2. ! Generate a minimal vBRIEF in `vbrief/active/` following the `YYYY-MM-DD-descriptive-slug.vbrief.json` naming convention (slug rules: [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md))
-  3. ! The generated vBRIEF must conform to the canonical v0.6 schema (`vbrief/schemas/vbrief-core.schema.json`, strict `const: "0.6"`; see [`../../conventions/references.md`](../../conventions/references.md)):
-     - `vBRIEFInfo.version`: `"0.6"`
-     - `plan.title`: issue title
-     - `plan.status`: `"running"`
-     - `plan.narratives`: object with `{ "Overview": "<issue body content>" }`
-     - `plan.items`: empty array (to be enriched); use `items` for any nested structure (v0.6 preferred field), not `subItems`
-     - `plan.references`: array of schema-conformant entries; for GitHub origins use the canonical shape (see [`../../conventions/references.md`](../../conventions/references.md)):
-       ```json
-       [
-         {
-           "uri": "https://github.com/{owner}/{repo}/issues/<N>",
-           "type": "x-vbrief/github-issue",
-           "title": "Issue #<N>: <issue title>"
-         }
-       ]
-       ```
-  4. ! Proceed to Step 1 as normal after all vBRIEFs are generated
+- ! Run `task triage:summary` to emit the current triage-cache one-liner (`[triage] N untriaged ... WIP X/Y [⚠]`). The monitor uses the result to:
+  - confirm the cache is fresh enough to act on (the D5 / #1127 `task verify:cache-fresh` warning is silent on a fresh cache; D2's one-liner is the human-readable parallel for the operator);
+  - read the current `pending/ + active/` count against the configured `wipCap` (default 10 per umbrella #1119 Current Shape v3, exposed via `plan.policy.wipCap`).
+- ! If the summary reports an empty cache (no candidates ever ingested), surface the bootstrap remediation (`task triage:bootstrap` or the N3 / #1143 onboarding ritual `task triage:welcome`) and HALT Phase 0 -- there is no queue to drive cohort selection from.
 
-! Auto-generated vBRIEFs are minimal scaffolds -- the monitor or user should review and enrich acceptance criteria before proceeding to Phase 1.
+```pwsh path=null start=null
+task triage:summary
+# [triage] 12 untriaged · 3 in-flight · WIP 4/10
+```
+
+#### Phase 0b -- Ranked candidates via `task triage:queue` (D11 / #1128)
+
+- ! Run `task triage:queue --state=accept --limit=20` to surface the top-20 ranked promotion candidates. The queue is grouped (`[RESUME] -> [URGENT] -> untriaged -> other`) and ordered by `updated_at` within group (D11); the `--state=accept` filter restricts to issues whose latest triage decision is `accept` (the canonical "promote-ready" subset).
+- ! Treat the queue as authoritative. Do NOT supplement the list with agent recall, open-GitHub-issue intuition, or memory of recent commits -- the queue is the rank; swarm does not re-rank.
+- ! Present the candidate list to the operator as a numbered table (issue number, title, age in queue, top-line ranking rationale).
+
+```pwsh path=null start=null
+task triage:queue --state=accept --limit=20
+```
+
+#### Phase 0c -- Promote-fill-cap loop
+
+! While `pending/ + active/` count < `wipCap` AND the queue is non-empty, prompt the operator to promote the next ranked candidate to `vbrief/pending/`.
+
+Loop body, per candidate (top-of-queue first):
+
+1. ! Render the next queue candidate with brief context (issue title, labels, top-1 ranking rationale).
+2. ! Prompt the operator: `Promote #<N> to vbrief/pending/? [yes/skip/stop]`. The final two numbered options remain `Discuss` and `Back` per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md).
+3. On `yes` -- promote via the canonical lifecycle verb:
+
+   ```pwsh path=null start=null
+   # D18 #1136 fallback: the eventual --from-issue=<N> shape is OPEN but not
+   # yet implemented. Until #1136 lands, the monitor resolves the candidate's
+   # vBRIEF file from the issue number (file lives in vbrief/proposed/ from a
+   # prior triage:accept step, D10 / #1129) and passes the path to
+   # `task scope:promote`. Same lifecycle command, just routed through the
+   # file path rather than the issue-number shortcut.
+   task scope:promote vbrief/proposed/<file>.vbrief.json
+   # TODO(#1136): when D18 ships, replace the two-step (resolve file from #N,
+   # then pass to `task scope:promote`) with the deterministic one-step
+   # `task scope:promote --from-issue=<N>` invocation. The integration point
+   # is this Phase 0c loop body; the operator-facing prompt collapses from
+   # "Promote #<N>? [resolved to <path>]" to "Promote #<N>?" with the path
+   # resolution done inside the task.
+   ```
+
+   Re-run `task triage:summary` (or read the post-promote count directly) to refresh the `pending/ + active/` total before the next loop iteration.
+4. On `skip` -- drop this candidate from the current session's cohort; it stays in the queue for the next session. Advance to the next ranked candidate.
+5. On `stop` -- exit the loop early; the partial cohort proceeds to Phase 0d.
+
+! **D18 #1136 integration point**: the eventual `task scope:promote --from-issue=<N>` shape (D18 / #1136) is OPEN but not yet implemented. When it lands, the prompt above will be replaced with a deterministic `task scope:promote --from-issue=<N>` invocation; the operator no longer needs to resolve the vBRIEF file path manually. Until then, the file-path fallback above is the canonical Phase 0c verb -- it is the same `task scope:promote` lifecycle command, just routed through the file path rather than the issue-number shortcut. Track via #1136.
+
+! **WIP-cap exit-clean prose**: When WIP cap is reached, swarm Phase 0 stops adding to the cohort and exits cleanly with a count of what was filled. Operator can demote (D1 / #1121, `task scope:demote <existing>` or `task scope:demote --batch --older-than-days 30`) to free slots or `--force` to override (the override is audit-logged as `wip_cap_override` in `vbrief/.eval/scope-lifecycle.jsonl` per D4 / #1124).
+
+! **Cohort recovery on cap-fill exit**: If the queue surfaces 10 candidates but the cap allows only 4 more slots, the unpicked 6 stay queued for the next session. No state is lost; the queue is the canonical record. The operator can free a slot via `task scope:demote <existing>` (D1 / #1121) before re-running Phase 0, or accept the smaller cohort for this session.
+
+#### Phase 0d -- Cohort dispatch
+
+- ! After the promote-fill loop exits (cap reached, queue empty, or operator `stop`), `vbrief/pending/` now holds the cohort. The existing Step 0.5 (Lifecycle Bridge -- Promote and Activate Proposed Scope vBRIEFs, #1025) below moves the cohort `pending/ -> active/`, and Steps 1-5 (readiness report, blockers, allocation, present, approval) proceed against the activated set. Existing swarm Phase 1+ (Select, Setup, Launch, Monitor, Review, Close) proceeds unchanged.
+
+#### Manual / GitHub-issue escape hatch
+
+? When the operator explicitly opts out of the queue (e.g. a one-off ad-hoc cohort that has not been ingested into the triage cache yet, or a swarm batch driven from a hand-supplied list of issue numbers), the monitor MAY fall back to the legacy GitHub-issue path:
+
+1. ! Fetch issue data: `gh api repos/<owner>/<repo>/issues/<N>` (REST per `templates/agent-prompt-preamble.md` § 5; never the GraphQL `gh issue view --json` surface).
+2. ! Generate a minimal vBRIEF in `vbrief/proposed/` following the `YYYY-MM-DD-descriptive-slug.vbrief.json` naming convention (slug rules: [`../../conventions/vbrief-filenames.md`](../../conventions/vbrief-filenames.md)) and conforming to the canonical v0.6 schema (`vbrief/schemas/vbrief-core.schema.json`, strict `const: "0.6"`; see [`../../conventions/references.md`](../../conventions/references.md)).
+3. ! Promote through the canonical lifecycle (`task scope:promote -- <path>` then `task scope:activate -- <path>`), respecting the WIP cap and the same `--force` audit-logged override semantics as the queue-driven loop.
+4. ! Surface the opt-out reason in the Step 4 (Present Analysis) summary so a reviewer can see WHY the queue was bypassed.
+
+⊗ Default to the manual escape hatch when the queue is non-empty -- the cache-as-authoritative directive (AGENTS.md `## Cache-as-authoritative work selection (#1149)`) requires consulting the queue first.
 
 ### Step 0.5: Lifecycle Bridge -- Promote and Activate Proposed Scope vBRIEFs (#1025)
 

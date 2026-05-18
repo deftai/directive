@@ -203,3 +203,155 @@ def test_swarm_anti_patterns_800_bullet_is_prohibition() -> None:
         f"{_SWARM_PATH}: no Anti-Patterns bullet citing PR #797 + git checkout "
         "found -- the #800 anti-pattern is missing"
     )
+
+
+# ---------------------------------------------------------------------------
+# 4. N2 / #1142 -- Phase 0 queue-driven cohort selection
+# ---------------------------------------------------------------------------
+#
+# The N2 rewrite replaces the folder-scan Step 0 ("Work-Item Source") with a
+# queue-driven Step 0 carrying four sub-phases (0a / 0b / 0c / 0d) and a D18
+# #1136 fallback TODO marker pointing at the future
+# `task scope:promote --from-issue=<N>` integration point. These tests pin the
+# canonical content so a future edit silently dropping any of the load-bearing
+# pieces fails CI.
+#
+# Stable substring matches (not full-text); failure messages cite the missing
+# token so a contributor can locate the regression quickly.
+
+_PHASE0_STEP0_HEADER = "### Step 0: Queue-driven cohort selection (#1142 / N2)"
+_PHASE0_STEP0_5_HEADER = "### Step 0.5: Lifecycle Bridge"
+
+# The four sub-phase headers, in canonical order.
+_PHASE0_SUBPHASE_HEADERS = (
+    "#### Phase 0a -- State overview via `task triage:summary` (D2 / #1122)",
+    "#### Phase 0b -- Ranked candidates via `task triage:queue` (D11 / #1128)",
+    "#### Phase 0c -- Promote-fill-cap loop",
+    "#### Phase 0d -- Cohort dispatch",
+)
+
+# Canonical verb references that MUST be present inside the queue-driven
+# Step 0 block. These are the per-sub-phase load-bearing references the
+# scope of #1142 calls out explicitly.
+_PHASE0_VERB_TOKENS = (
+    # Phase 0a -- triage:summary verb cited verbatim
+    "task triage:summary",
+    # Phase 0b -- triage:queue verb cited verbatim with the --state=accept
+    # filter and the --limit=20 cap from the issue body
+    "task triage:queue --state=accept --limit=20",
+    # Phase 0c -- canonical lifecycle verb (fallback shape until D18 ships)
+    "task scope:promote",
+    # WIP cap source
+    "wipCap",
+    # Cache-as-authoritative cross-reference to AGENTS.md #1149
+    "Cache-as-authoritative work selection (#1149)",
+)
+
+# The exit-clean WIP-cap prose carries the literal language from the issue body.
+_PHASE0_WIP_CAP_EXIT_TOKENS = (
+    "WIP-cap exit-clean",
+    "stops adding to the cohort and exits cleanly",
+    "count of what was filled",
+    "demote",
+    "--force",
+)
+
+# The cohort-recovery prose carries the literal language from the issue body.
+_PHASE0_COHORT_RECOVERY_TOKENS = (
+    "Cohort recovery",
+    "unpicked",
+    "stay queued for the next session",
+    "queue is the canonical record",
+)
+
+# D18 #1136 fallback tokens. The TODO marker MUST reference #1136 explicitly
+# so a future grep for the integration point lands on this loop body.
+_PHASE0_D18_FALLBACK_TOKENS = (
+    "D18 #1136 fallback",
+    "TODO(#1136)",
+    "--from-issue=<N>",
+    "OPEN but not",
+)
+
+
+def _phase0_step0_block(text: str) -> str:
+    """Return the new queue-driven Step 0 block, bounded to Step 0.5."""
+    start = text.find(_PHASE0_STEP0_HEADER)
+    assert start != -1, (
+        f"{_SWARM_PATH}: missing '{_PHASE0_STEP0_HEADER}' heading -- "
+        "the N2 / #1142 queue-driven Phase 0 rewrite is missing"
+    )
+    end = text.find(_PHASE0_STEP0_5_HEADER, start)
+    assert end != -1 and end > start, (
+        f"{_SWARM_PATH}: '{_PHASE0_STEP0_5_HEADER}' heading not found after "
+        "Step 0 -- cannot bound the Step 0 block for the #1142 assertions"
+    )
+    return text[start:end]
+
+
+@pytest.mark.parametrize("header", _PHASE0_SUBPHASE_HEADERS)
+def test_swarm_phase0_subphase_header_present(header: str) -> None:
+    """Each of the four canonical sub-phase headers MUST be present."""
+    block = _phase0_step0_block(_read_swarm())
+    assert header in block, (
+        f"{_SWARM_PATH}: Phase 0 Step 0 missing canonical sub-phase header "
+        f"{header!r} -- see issue #1142 scope"
+    )
+
+
+def test_swarm_phase0_subphase_headers_in_canonical_order() -> None:
+    """The four sub-phase headers MUST appear in canonical order 0a -> 0b -> 0c -> 0d."""
+    block = _phase0_step0_block(_read_swarm())
+    positions = [block.find(h) for h in _PHASE0_SUBPHASE_HEADERS]
+    assert all(p != -1 for p in positions), (
+        f"{_SWARM_PATH}: at least one Phase 0 sub-phase header is missing; "
+        f"positions: {dict(zip(_PHASE0_SUBPHASE_HEADERS, positions, strict=True))}"
+    )
+    assert positions == sorted(positions), (
+        f"{_SWARM_PATH}: Phase 0 sub-phase headers are not in canonical order "
+        f"(0a -> 0b -> 0c -> 0d); positions: "
+        f"{dict(zip(_PHASE0_SUBPHASE_HEADERS, positions, strict=True))}"
+    )
+
+
+@pytest.mark.parametrize("token", _PHASE0_VERB_TOKENS)
+def test_swarm_phase0_verb_tokens_present(token: str) -> None:
+    """Each canonical verb / cross-reference MUST appear inside Step 0."""
+    block = _phase0_step0_block(_read_swarm())
+    assert token in block, (
+        f"{_SWARM_PATH}: Phase 0 Step 0 missing canonical verb / reference "
+        f"{token!r} -- N2 / #1142 acceptance criteria"
+    )
+
+
+@pytest.mark.parametrize("token", _PHASE0_WIP_CAP_EXIT_TOKENS)
+def test_swarm_phase0_wip_cap_exit_prose_present(token: str) -> None:
+    """The WIP-cap exit-clean prose MUST carry the language from the issue body."""
+    block = _phase0_step0_block(_read_swarm())
+    assert token in block, (
+        f"{_SWARM_PATH}: Phase 0 Step 0 missing WIP-cap exit-clean prose token "
+        f"{token!r} -- N2 / #1142 acceptance criteria"
+    )
+
+
+@pytest.mark.parametrize("token", _PHASE0_COHORT_RECOVERY_TOKENS)
+def test_swarm_phase0_cohort_recovery_prose_present(token: str) -> None:
+    """The cohort-recovery prose MUST carry the language from the issue body."""
+    block = _phase0_step0_block(_read_swarm())
+    assert token in block, (
+        f"{_SWARM_PATH}: Phase 0 Step 0 missing cohort-recovery prose token "
+        f"{token!r} -- N2 / #1142 acceptance criteria"
+    )
+
+
+@pytest.mark.parametrize("token", _PHASE0_D18_FALLBACK_TOKENS)
+def test_swarm_phase0_d18_1136_fallback_token_present(token: str) -> None:
+    """The D18 #1136 fallback + TODO integration-point marker MUST be present."""
+    block = _phase0_step0_block(_read_swarm())
+    assert token in block, (
+        f"{_SWARM_PATH}: Phase 0 Step 0 missing D18 / #1136 fallback token "
+        f"{token!r} -- the integration-point TODO marker is mandatory per "
+        "the orchestrator dispatch envelope's D18 #1136 fallback clause "
+        "(N2 / #1142 owns the marker; D18 / #1136 owns the eventual "
+        "--from-issue=<N> implementation)"
+    )

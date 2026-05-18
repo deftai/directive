@@ -1,0 +1,35 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF: N2 child of #1119 Wave-2d-1 -- rewrite swarm Phase 0 from folder-scan to queue-driven cohort selection.",
+    "updated": "2026-05-18T21:35:00Z"
+  },
+  "plan": {
+    "title": "docs(skills): rewrite swarm Phase 0 queue-driven (#1142 / N2)",
+    "status": "running",
+    "narratives": {
+      "Description": "N2 child of the #1119 Wave-2d-1 batch. Rewrite `skills/deft-directive-swarm/SKILL.md` Phase 0 so cohort selection consults the triage cache (D2 / #1122 `task triage:summary` and D11 / #1128 `task triage:queue --state=accept --limit=20`) instead of scanning `vbrief/pending/` or picking by hand. Phase 0c is a promote-fill-cap loop driven by `task scope:promote <vbrief-file>` (D18 / #1136 fallback for the `--from-issue=<N>` shape -- TODO marker references #1136). When wipCap (D4 / #1124, default 10) is reached the cohort selection exits cleanly with a count of what was filled; unpicked queue entries stay queued for the next session. Existing swarm Phase 1+ (Select / Setup / Launch / Monitor / Review / Close) proceeds unchanged. AGENTS.md is HARD-NO this wave -- N9 (#1149) already amended the swarm routing entry with `Phase 0 is queue-driven (see N2 / #1142)`.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1142. Issue body is the spec (no Current Shape comment filed); umbrella #1119 Current Shape v3 supplies the default wipCap=10. D18 #1136 is OPEN but not yet implemented -- this PR uses `task scope:promote <vbrief-file>` as the fallback verb and adds a TODO referencing #1136 for the future `--from-issue=<N>` integration point.",
+      "Overview": "## What to edit\n\n1. `skills/deft-directive-swarm/SKILL.md` -- replace Phase 0 Step 0 (Work-Item Source / folder-scan) with a queue-driven Step 0 carrying four sub-phases (0a `task triage:summary`, 0b `task triage:queue --state=accept --limit=20`, 0c promote-fill-cap loop, 0d cohort dispatch into the existing Step 0.5+). Preserve existing Step 0.5 (lifecycle bridge) and Steps 1-5 (readiness / blockers / allocation / present / approval) per the issue body's `Phase 1+ proceeds unchanged` directive.\n2. Add the WIP-cap exit-clean prose: `When WIP cap is reached, swarm Phase 0 stops adding to the cohort and exits cleanly with a count of what was filled. Operator can demote (D1 / #1121) to free slots or --force to override.`\n3. Add the cohort-recovery prose: `If the queue surfaces 10 candidates but cap allows only 4 more slots, the unpicked 6 stay queued for the next session. No state lost; the queue is the canonical record.`\n4. Add the D18 #1136 fallback TODO marker in the Phase 0c loop body referencing the future `task scope:promote --from-issue=<N>` integration point.\n5. `tests/content/test_swarm_skill.py` -- extend with a content test asserting the four sub-phases land in canonical order, the `task triage:summary` + `task triage:queue` references are present, the WIP-cap exit-clean prose ships, and the D18 fallback TODO marker is present.\n6. `CHANGELOG.md` -- `[Unreleased]` entry under `### Added` describing the rewrite.\n\n## Type\n\nDocs / process -- Deliverable N2 of #1119 Wave-2d-1. Skill-body rewrite + companion content test. No new scripts; no new task verbs.\n\n## Acceptance criteria\n\n- `skills/deft-directive-swarm/SKILL.md` Phase 0 invokes `task triage:summary` + `task triage:queue` as the canonical cohort-selection surface.\n- The four sub-phases (0a / 0b / 0c / 0d) land in canonical order with shell-command examples.\n- The promote-fill-cap loop documents the per-candidate prompt + the WIP-cap exit-clean prose + the cohort-recovery prose.\n- The D18 #1136 fallback is explicit: TODO marker referencing #1136 in the loop body + skill-body note that the eventual `--from-issue=<N>` invocation will replace the file-path prompt.\n- AGENTS.md NOT touched (N9 / #1149 already shipped the routing-entry amendment).\n- Tests assert the four sub-phases are present in canonical order with the canonical verb references and the D18 fallback TODO marker.\n- CHANGELOG entry under `[Unreleased]`.\n- `task check` passes.\n\n## Not in scope\n\n- AGENTS.md edits (N9 / #1149 already shipped the routing entry).\n- Implementing D18 #1136 (the `task scope:promote --from-issue=<N>` form) -- N2 only adds the TODO marker for the future integration point. If a child requires the `--from-issue` shape to function it implements its own minimal variant; N2's Phase 0c prompt is operator-driven and uses the file-path fallback.\n- Replacing later swarm phases (Phase 1+ proceeds unchanged).\n- Cohort scoring beyond D11's ranking.\n- Multi-operator coordination (#1119 R4 explicit non-goal).\n- Auto-dispatch (operator confirms each promote; no batch promote in Phase 0).\n- N5 / #1145's scripts/scm.py shim (Wave-2d-2 owns that).\n- Deft-specific labels / milestones / values in framework defaults (#1186 consumer-example, already merged).\n\n## Refs\n\n- Umbrella: #1119\n- This deliverable: #1142\n- Consumed surfaces: D2 / #1122 (task triage:summary), D11 / #1128 (task triage:queue), D4 / #1124 (wipCap typed flag), D1 / #1121 (task scope:demote relief), D18 / #1136 (future task scope:promote --from-issue=<N>; deferred to its own PR), N9 / #1149 (routing-entry amendment already shipped)."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1142",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1142: N2 -- swarm skill Phase 0 queue-driven cohort selection"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119: triage-eval governance swarm"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1136",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1136: D18 -- task scope:promote --from-issue=<N> (future integration point)"
+      }
+    ],
+    "updated": "2026-05-18T21:35:00Z"
+  }
+}
