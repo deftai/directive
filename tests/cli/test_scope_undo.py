@@ -356,12 +356,13 @@ class TestBatchUndo:
         # All files now in proposed/.
         for f in files:
             assert (project_root / "vbrief" / "proposed" / f.name).exists()
-        undone, audit_entries, skipped = undo_batch(
+        undone, audit_entries, skipped, previews = undo_batch(
             batch_id, project_root, log_path=log_path
         )
         assert undone == 5
         assert len(audit_entries) == 5
         assert skipped == []
+        assert previews == []  # non-dry-run -> no previews
         # All files back in pending/.
         for f in files:
             assert (project_root / "vbrief" / "pending" / f.name).exists()
@@ -376,15 +377,16 @@ class TestBatchUndo:
         self, project_root: Path, log_path: Path
     ) -> None:
         batch_id, _ = self._build_5_entry_cohort(project_root, log_path)
-        undone1, _, _ = undo_batch(batch_id, project_root, log_path=log_path)
+        undone1, _, _, _ = undo_batch(batch_id, project_root, log_path=log_path)
         assert undone1 == 5
         # Re-run: every member is already-undone -> all skipped.
-        undone2, audit_entries2, skipped2 = undo_batch(
+        undone2, audit_entries2, skipped2, previews2 = undo_batch(
             batch_id, project_root, log_path=log_path
         )
         assert undone2 == 0
         assert audit_entries2 == []
         assert len(skipped2) == 5
+        assert previews2 == []  # already-undone goes to skipped, not previews
         for line in skipped2:
             assert "already undone" in line
 
@@ -394,13 +396,43 @@ class TestBatchUndo:
         # Seed at least one unrelated audit entry so the log file exists.
         f = make_vbrief(project_root, "pending", "pending")
         demote_one(f, project_root, "operator-requested", log_path=log_path)
-        undone, entries, skipped = undo_batch(
+        undone, entries, skipped, previews = undo_batch(
             "no-such-batch-id", project_root, log_path=log_path
         )
         assert undone == 0
         assert entries == []
         assert len(skipped) == 1
         assert "No audit entries found" in skipped[0]
+        assert previews == []
+
+    def test_batch_undo_dry_run_surfaces_per_entry_previews(
+        self, project_root: Path, log_path: Path
+    ) -> None:
+        """Greptile #1219 P1 regression guard: --dry-run --batch-id MUST
+        surface a per-entry preview line for every member that would be
+        reversed, NOT silently drop them with only the count reaching the
+        caller (the contract that the original 3-tuple shape violated).
+        """
+        batch_id, files = self._build_5_entry_cohort(project_root, log_path)
+        # All 5 files now in proposed/ (post-demote pre-dry-run-undo).
+        for f in files:
+            assert (project_root / "vbrief" / "proposed" / f.name).exists()
+        undone, audit_entries, skipped, previews = undo_batch(
+            batch_id, project_root, log_path=log_path, dry_run=True
+        )
+        # Dry-run still counts them as reversed (matching pre-Greptile-fix
+        # behaviour) but now ALSO returns one preview line per member.
+        assert undone == 5
+        assert len(audit_entries) == 5  # preview entries built but not appended
+        assert skipped == []
+        assert len(previews) == 5
+        for line in previews:
+            assert line.startswith("DRY-RUN: would undo")
+            assert "vbrief/pending/" in line  # demote inverse target
+        # No file moved -- dry-run by contract.
+        for f in files:
+            assert (project_root / "vbrief" / "proposed" / f.name).exists()
+            assert not (project_root / "vbrief" / "pending" / f.name).exists()
 
     def test_find_by_batch_id_legacy_top_level(
         self, project_root: Path, log_path: Path

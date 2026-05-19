@@ -496,23 +496,36 @@ def undo_batch(
     now: datetime | None = None,
     log_path: Path | None = None,
     dry_run: bool = False,
-) -> tuple[int, list[dict], list[str]]:
+) -> tuple[int, list[dict], list[str], list[str]]:
     """Reverse every audit entry tagged with *batch_id*.
 
-    Returns ``(undone_count, audit_entries, skipped_messages)``. Skipped
-    members include already-undone entries (informational), terminal-
-    action members (errors), and any file-level failures (errors).
+    Returns ``(undone_count, audit_entries, skipped_messages, previews)``.
+    ``skipped`` carries informational messages for already-undone entries
+    (idempotent re-runs) plus error messages for terminal-action members
+    and file-level failures. ``previews`` is populated only on
+    ``dry_run=True`` and carries the per-entry ``would-undo`` message for
+    each member that would have been reversed in a real run -- emitted as
+    a separate list (rather than folded into ``skipped``) so callers can
+    surface preview-vs-error states distinctly. On ``dry_run=False`` the
+    list is always empty.
+
+    Greptile #1219 (D15 / #1134) P1 regression guard: prior shape
+    returned a 3-tuple that silently dropped per-entry dry-run preview
+    messages; the 4-tuple shape surfaces them so
+    ``task scope:undo --batch-id=<uuid> --dry-run`` produces actionable
+    per-entry output for an operator previewing the cohort.
     """
     if log_path is None:
         log_path = canonical_log_path(project_root)
     log_entries = read_all(log_path=log_path)
     members = _find_by_batch_id(batch_id, log_entries)
     if not members:
-        return 0, [], [f"No audit entries found for batch_id={batch_id}."]
+        return 0, [], [f"No audit entries found for batch_id={batch_id}."], []
 
     undo_batch_id = new_decision_id() if not dry_run else f"DRY-RUN-{new_decision_id()}"
     audit_entries: list[dict] = []
     skipped: list[str] = []
+    previews: list[str] = []
     undone = 0
     # Sort for deterministic test output / replay.
     members.sort(key=lambda e: e.get("timestamp", ""))
@@ -530,7 +543,11 @@ def undo_batch(
         if ok:
             if entry is not None:
                 audit_entries.append(entry)
-                if not dry_run:
+                if dry_run:
+                    # Surface the per-entry preview line so the caller
+                    # can render "would-undo X -> Y" for every member.
+                    previews.append(msg)
+                else:
                     # Re-read log_entries so idempotency check on
                     # subsequent members in the same batch sees the
                     # newly-appended undo entry.
@@ -541,7 +558,7 @@ def undo_batch(
                 skipped.append(msg)
         else:
             skipped.append(msg)
-    return undone, audit_entries, skipped
+    return undone, audit_entries, skipped, previews
 
 
 # ---------------------------------------------------------------------------
@@ -665,7 +682,7 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0911,PLR0912
         return 1
 
     if args.batch_id:
-        undone, _entries, skipped = undo_batch(
+        undone, _entries, skipped, previews = undo_batch(
             args.batch_id,
             project_root,
             actor=args.actor,
@@ -680,6 +697,9 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0911,PLR0912
             f"{prefix}Batch undo: {undone} reversed, {len(skipped)} skipped "
             f"(batch_id={args.batch_id})."
         )
+        # Per-entry previews (only populated under --dry-run).
+        for line in previews:
+            print(f"  preview: {line}")
         for line in skipped:
             print(f"  skipped: {line}")
         return 0
