@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1147",
+    "updated": "2026-05-19T16:09:46Z"
+  },
+  "plan": {
+    "title": "task slice:record-existing -- retrofit slice records for hand-filed cohorts (N7 of #1119)",
+    "status": "running",
+    "narratives": {
+      "Description": "task slice:record-existing -- retrofit slice records for hand-filed cohorts (N7 of #1119)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1147",
+      "Overview": "Implement `task slice:record-existing` verb (and optional `task slice:list`) that writes a backfill entry to vbrief/.eval/slices.jsonl for hand-filed umbrella cohorts. D13 writes slices.jsonl only when slicing skills fire; this verb closes the gap for cohorts authored via gh issue create / issue_write (e.g. #1119 itself). Validation uses scm.call(\"github-issue\", ...) per N5 (#1145) which has landed. Acceptance covers happy path, dry-run, idempotency, --force, missing umbrella, missing child, wave assignment, multi-wave; documents canonical retro path in deft-directive-refinement and deft-directive-gh-slice SKILL.md files."
+    },
+    "items": [],
+    "tags": [
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1147",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1147: task slice:record-existing -- retrofit slice records for hand-filed cohorts"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1119",
+        "type": "x-vbrief/github-issue",
+        "title": "Umbrella #1119"
+      }
+    ],
+    "updated": "2026-05-19T16:09:46Z"
+  }
+}

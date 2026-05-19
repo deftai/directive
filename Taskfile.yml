@@ -259,6 +259,18 @@ includes:
   relocate:
     taskfile: ./tasks/relocate.yml
     optional: true
+  # N7 (#1147): slice:* fragment exposing `task slice:record-existing`
+  # (retrofit slices.jsonl for hand-filed cohorts) + `task slice:list`
+  # (read surface). Include key `slice-record` (not `slice`) so the
+  # fragment-namespace forms (`slice-record:record-existing`,
+  # `slice-record:list`) do NOT collide with the user-facing
+  # `slice:record-existing` / `slice:list` aliases defined below.
+  # Inner tasks are `internal: true`; aliases at the root surface the
+  # documented user-facing names per the established triage:* / scope:*
+  # convention.
+  slice-record:
+    taskfile: ./tasks/slice.yml
+    optional: true
 
 tasks:
   default:
@@ -763,5 +775,24 @@ tasks:
     desc: "Reverse a scope-lifecycle audit entry (#1134 / D15). -- task scope:undo -- <decision_id> | --decision-id=<uuid> | --batch-id=<uuid> [--dry-run]"
     cmds:
       - task: scope-undo:undo
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  # N7 (#1147): slice:record-existing backfill verb. Retrofits a
+  # vbrief/.eval/slices.jsonl entry for hand-filed umbrella cohorts that
+  # D13's writer (#1132) never saw because they were filed via
+  # `gh issue create` / `issue_write` MCP rather than via a slicing
+  # skill. Companion `slice:list` exposes the read surface.
+  slice:record-existing:
+    desc: "Retrofit a slices.jsonl entry for a hand-filed cohort (#1147 / N7). -- task slice:record-existing -- --umbrella=N --children=A,B,C [--wave-1=A,B] [--wave-2=C] [--actor=manual:operator] [--expected-close-signal=all-children-merged] [--sliced-at=ISO] [--notes=TEXT] [--dry-run] [--force] [--skip-validation] [--repo OWNER/NAME]"
+    cmds:
+      - task: slice-record:record-existing
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  slice:list:
+    desc: "List recorded slices in vbrief/.eval/slices.jsonl (#1147 / N7). -- task slice:list [-- --json]"
+    cmds:
+      - task: slice-record:list
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"

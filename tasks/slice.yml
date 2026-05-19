@@ -1,0 +1,50 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# slice:* fragment (N7 / #1147).
+#
+# Exposes the canonical `task slice:record-existing` backfill verb plus
+# the companion `task slice:list` read surface. Both delegate to
+# `scripts/slice_record_existing.py`. Inner tasks below are
+# `internal: true` so the fragment-namespace forms (`slice:record-existing`
+# under the include key `slice`) are surfaced as user-facing aliases in
+# the root `Taskfile.yml` (mirrors the established triage:* / scope:*
+# pattern -- see Taskfile.yml header comment for why aliases live at the
+# root rather than here).
+#
+# CLI_ARGS is forwarded bare -- go-task's shell-escape pipeline misbehaves
+# on Windows when CLI_ARGS is wrapped in double quotes (#577). The driver
+# script owns argv parsing (including the dynamic `--wave-N=<csv>` flag
+# shape that argparse cannot natively model).
+#
+# `dir: '{{.USER_WORKING_DIR}}'` keeps Python CWD at the consumer project
+# root so `--project-root` / `--repo` resolution lands in the consumer
+# tree, not in deft's own checkout (#535 path-resolution invariant).
+#
+# `env: PYTHONUTF8: "1"` is a belt-and-suspenders guard for Windows
+# cp1252 default (#540); root Taskfile.yml also sets this.
+#
+# Per `conventions/task-caching.md` (#574) no `sources:` / `generates:`
+# because the verbs forward user-facing flags (`--dry-run`, `--force`,
+# `--wave-N=<csv>`, `--actor`, etc.) via {{.CLI_ARGS}}.
+
+tasks:
+  record-existing:
+    desc: "Retrofit a slices.jsonl entry for a hand-filed cohort (#1147 / N7). -- task slice:record-existing -- --umbrella=N --children=A,B,C [--wave-1=A,B] [--wave-2=C] [--actor=manual:operator] [--expected-close-signal=all-children-merged] [--sliced-at=ISO] [--notes=TEXT] [--dry-run] [--force] [--skip-validation] [--repo OWNER/NAME]"
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/slice_record_existing.py" record-existing {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
+  list:
+    desc: "List recorded slices in vbrief/.eval/slices.jsonl (umbrella + child count + actor + sliced_at). -- task slice:list [-- --json]"
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/slice_record_existing.py" list {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"

@@ -160,6 +160,28 @@ print(f"[slice] wrote slice_id={slice_id[:8]}... umbrella=#<N> children=<count>"
 - ! Populate `wave` correctly: Wave-1 children are the tracer-bullet entry points; Wave-N>1 children depend (transitively) on Wave-N-1 closing. The D3 `slice-wave-ready:<slice_id>:<wave>` resume-condition atomic reads this field.
 - ⊗ Skip the cohort record because "the issues are filed" -- without it `task triage:audit --orphans` cannot detect Wave-2+ children whose umbrella closes prematurely, which is the production-side drift this step exists to prevent.
 
+
+#### Retroactive backfill for hand-filed cohorts (#1147 / N7)
+
+When the umbrella + children were filed by hand (`gh issue create`, `issue_write` MCP, etc.) instead of through this skill, the cohort never reached `slice_record.write_slice(...)` and `slices.jsonl` is missing the corresponding entry. The canonical retro path is `task slice:record-existing` (#1147 / N7) -- the verb wraps the same writer with `actor="manual:operator"` and operator-supplied flags:
+
+```sh path=null start=null
+# Backfill a hand-filed umbrella cohort (writes one slices.jsonl entry)
+task slice:record-existing -- \
+    --umbrella=<N> \
+    --children=<A>,<B>,<C>,... \
+    --wave-1=<A>,<B> --wave-2=<C> \
+    --notes="backfill via N7"
+
+# Re-running with the same umbrella + child set is a no-op (informational stderr);
+# pass --force to write a second record when slicing happens in multiple sessions.
+task slice:list                  # enumerate recorded slices for verification
+```
+
+- ! Use `task slice:record-existing` for any cohort that was NOT produced by this skill (or the sibling `deft-directive-gh-arch` / `deft-directive-refinement` slicing paths) so D11's `task triage:audit --orphans` / `--slice-stalled` / `--slice-coverage` surfaces detect orphans on the cohort.
+- ! Issue numbers are validated via the `scm.call("github-issue", ...)` shim (N5 / #1145); the verb refuses to write when an umbrella or child is missing / inaccessible (override via `--skip-validation` only for cohorts whose issues live in a private mirror).
+- ? Use `actor="skill:gh-slice"` (the default for this skill's own slicing) instead of `manual:operator` when the cohort genuinely originated here -- the `actor` field is what `task slice:list` and the orphan/coverage surfaces use to distinguish backfill records from skill-emitted ones.
+
 ---
 
 ## Anti-Patterns

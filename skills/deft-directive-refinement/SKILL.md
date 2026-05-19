@@ -314,6 +314,9 @@ The task scans every vBRIEF with a GitHub-backed reference (whether the referenc
 
 ! When a refinement pass produces a slicing event (rare but possible -- e.g. a design pass on an existing umbrella files N additional Wave-N child issues), record the cohort in `vbrief/.eval/slices.jsonl` via `scripts/slice_record.py::write_slice(...)` with `actor="skill:refinement"` immediately after the children are filed (#1132 / D13). Same call shape as `skills/deft-directive-gh-slice/SKILL.md` Step 6. The cohort record is what makes `task triage:audit --orphans` able to detect Wave-2+ children whose umbrella closes prematurely; without it the production-side drift this surface guards against re-fires. Skip when the pass produced no new child cohort (e.g. a pure re-prioritization).
 
+
+! When the umbrella + children were filed by hand (legacy `gh issue create` / `issue_write` MCP / prior pass-N runs that pre-date this skill's slicing phase), use the canonical retro verb `task slice:record-existing` (#1147 / N7) -- it wraps the same `slice_record.write_slice` helper with `actor="manual:operator"`, takes `--umbrella=N --children=A,B,C [--wave-N=...]` flags, validates each issue via the N5 / #1145 `scm.call` shim, and is idempotent on a matching umbrella + child set (re-run is a no-op; `--force` writes a second record for legitimate multi-session slicing). Companion `task slice:list` enumerates persisted slices for verification. The backfill verb is the canonical retro path for cohorts D13's writer never saw.
+
 ## CHANGELOG Convention
 
 - ! Write ONE batch `CHANGELOG.md` entry at the END of the full refinement session -- not one entry per vBRIEF created or promoted. The batch entry summarizes all changes made during the session.
