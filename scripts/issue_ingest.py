@@ -38,6 +38,11 @@ from typing import Any
 # by tests that pre-populate sys.path with the ``scripts/`` directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# #1145 / N5: route the ``gh api`` round-trip in :func:`_fetch_single_issue`
+# through the source-aware shim so a future GitLab / Gitea / local consumer
+# sees ``NotImplementedError`` pointing at #445 / #935 Workstream 6 instead
+# of a confusing ``gh: command not found`` deep in the call stack. The shim
+# resolves the binary via the #884 ``ghx`` -> ``gh`` preference ladder.
 from _project_context import resolve_project_repo, resolve_project_root  # noqa: E402
 from _stdio_utf8 import reconfigure_stdio  # noqa: E402
 from _vbrief_build import EMITTED_VBRIEF_VERSION, TODAY, slugify  # noqa: E402
@@ -49,6 +54,8 @@ from reconcile_issues import (  # noqa: E402
     fetch_open_issues,
     parse_issue_number,
 )
+
+import scm  # noqa: E402 -- sibling-first path insertion above is intentional
 
 # #883 unified cache surface (optional). When present we prefer the cached
 # raw.json payload over a live ``gh api`` round-trip so a Phase 0 walk that
@@ -396,19 +403,29 @@ def _fetch_single_issue(
 ) -> dict | None:
     """Fetch a single issue via ``gh api repos/{repo}/issues/{number}``.
 
+    Routes through :func:`scripts.scm.call` (#1145 / N5) so a future
+    non-GitHub consumer raises a loud ``NotImplementedError`` pointing at
+    #445 / #935 Workstream 6 rather than failing deep in the call stack
+    with ``gh: command not found``. The shim resolves the binary via the
+    #884 ``ghx`` -> ``gh`` preference ladder so cached responses are
+    transparently picked up when ``ghx`` is installed.
+
     Returns the parsed issue dict on success, ``None`` on error (with the
     reason printed to stderr).
     """
     try:
-        result = subprocess.run(
-            ["gh", "api", f"repos/{repo}/issues/{number}"],
-            capture_output=True,
-            text=True,
+        result = scm.call(
+            "github-issue",
+            "api",
+            [f"repos/{repo}/issues/{number}"],
             timeout=30,
             cwd=str(cwd) if cwd is not None else None,
         )
     except FileNotFoundError:
         print("Error: gh CLI not found. Install GitHub CLI.", file=sys.stderr)
+        return None
+    except scm.ScmStubError as exc:
+        print(f"Error: gh CLI resolution failed: {exc}", file=sys.stderr)
         return None
     except subprocess.TimeoutExpired:
         print("Error: gh CLI timed out.", file=sys.stderr)

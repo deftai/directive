@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1145",
+    "updated": "2026-05-19T14:07:51Z"
+  },
+  "plan": {
+    "title": "Source-agnostic verb boundary scaffold (partial #445/#935 down-payment) (N5 of #1119)",
+    "status": "running",
+    "narratives": {
+      "Description": "Source-agnostic verb boundary scaffold (partial #445/#935 down-payment) (N5 of #1119)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1145",
+      "Overview": "# Wrap every `gh` invocation behind a source-aware shim — partial down-payment on #445 / #935 Workstream 6\n\n## Why\n\nD12 (#1131) names `<source>=github-issue` and acknowledges `gitlab`, `gitea`, `local` as future namespaces. Every shipped verb in `scripts/triage_*.py` and `scripts/scope_*.py` still calls `gh` directly via subprocess. The cache namespace is forge-agnostic; the verb layer is not. The first non-GitHub consumer hits an undocumented coupling and discovers it the hard way.\n\n#445 (SCM abstraction) and #935 Workstream 6 (SCM-agnostic VCS adapter) are deferred to post-beta. This child is a *cheap partial down-payment* that doesn't ship the full abstraction — it only relocates every `gh` call into one indirection point so the future abstraction has a single seam to extend.\n\n## Scope\n\n### New shim: `scripts/scm.py::call(source, verb, args, **kwargs)`\n\nv1 supports `source=\"github-issue\"` only. Internally invokes `gh` (or `ghx` per AGENTS.md §\"SCM tooling -- prefer ghx (#884)\" preference ladder) with the appropriate `repos/<owner>/<repo>/...` REST path or `gh issue view <N>` etc. Returns parsed JSON or raw output.\n\n### Mandatory call-site migration\n\nEvery `subprocess.run([\"gh\", ...])` and `subprocess.check_output([\"gh\", ...])` in:\n\n- `scripts/triage_actions.py`\n- `scripts/triage_bootstrap.py`\n- `scripts/triage_bulk.py`\n- `scripts/triage_refresh.py`\n- `scripts/scope_lifecycle.py`\n- (any new D1–D20 child sites)\n\nMigrates to `scm.call(\"github-issue\", ...)`. The shim is the only module allowed to invoke `gh` directly.\n\n### Deterministic enforcement\n\nNew `scripts/verify_scm_boundary.py` — scans tracked Python files for `subprocess` / `os.system` / `Popen` invocations of `gh` outside `scripts/scm.py`. Three-state exit (0 clean / 1 violations / 2 config error). Wired into `task check` via `task verify:scm-boundary`. Per AGENTS.md §\"Rule Authority\" AXIOM ladder, this elevates the rule from prose tier to deterministic tier.\n\n### Future extension hook\n\nThe shim's signature accepts `source` as the first arg so future code can call `scm.call(\"gitlab\", ...)` without changing call sites. v1 raises `NotImplementedError` for non-`github-issue` sources — that's the explicit \"not yet built\" surface.\n\n## Acceptance criteria\n\n- `scripts/scm.py::call()` implemented with `github-issue` source support\n- Every existing `gh` subprocess call in `scripts/{triage,scope}_*.py` migrated to the shim\n- `scripts/verify_scm_boundary.py` exits 0 on clean tree, 1 when a violating call appears\n- `task verify:scm-boundary` wired into `task check`\n- `task check` passes on master after migration\n- Tests cover: shim happy path, shim with `ghx` available (per #884 ladder), shim with unknown source (`NotImplementedError`), violation detection on a fixture with a raw `subprocess gh` call\n- `AGENTS.md` §\"SCM tooling -- prefer ghx (#884)\" gains a one-liner: \"raw `gh` calls outside `scripts/scm.py` are forbidden by `task verify:scm-boundary` (#445 partial down-payment)\"\n- CHANGELOG entry under `[Unreleased]`\n\n## Demoability\n\nA consumer on GitLab attempts to use `task triage:bootstrap`. The shim raises `NotImplementedError: source='gitlab' not yet supported; see #445 / #935 Workstream 6 for the abstraction.` The failure is loud, located, and points at the right design issue — instead of an obscure `gh: command not found` deep in the call stack.\n\n## Dependencies\n\n- Existing `scripts/scm.py::resolve_binary` (the `ghx` preference ladder per #884) — extended, not replaced\n- All `triage:*` / `scope:*` children that ship new `gh` calls — they must be coordinated to call the shim, not raw `gh`. If they land before this child, this child migrates them post-hoc.\n\nWave 4 (no consumer pain yet; cheap to land once Wave 1–3 surfaces stabilize so the migration list is final).\n\n## Not in scope\n\n- Implementing the `gitlab` / `gitea` / `local` source backends (that's #445 / #935 Workstream 6)\n- Full repository-host abstraction (issue templates, PR review surfaces, etc.) — just the read-side `gh` shim\n- Migration of test fixtures or developer scripts outside `scripts/` (e.g. `tools/`, ad-hoc one-shots)\n- Replacing the `gh` binary entirely with a vendored library — the shim is still subprocess-based\n\n## Refs\n\n- Umbrella: #1119\n- Subtractive design pass on #1119 that filed this child: 2026-05-14 comment on #1119\n- SCM abstraction (full work): #445\n- Beta posture (SCM-agnostic Workstream 6): #935\n- `ghx` preference ladder: #884\n- Deterministic-tier enforcement pattern: AGENTS.md §\"Rule Authority\" + #798 (`scripts/verify_encoding.py`) as template\n\n## Linking rule\n\nPer #1119: commit message footer, PR body, and any new artifact provenance MUST reference `#1119`. Reverse-link to the umbrella is mandatory.",
+      "Labels": "enhancement, determinism"
+    },
+    "items": [],
+    "tags": [
+      "enhancement",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1145",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1145: Source-agnostic verb boundary scaffold (partial #445/#935 down-payment) (N5 of #1119)"
+      }
+    ],
+    "updated": "2026-05-19T14:07:50Z"
+  }
+}

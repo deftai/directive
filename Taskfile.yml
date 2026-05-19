@@ -281,6 +281,7 @@ tasks:
       - verify:branch
       - verify:encoding
       - verify:destructive-gh-verbs
+      - verify:scm-boundary
       - verify:cache-fresh
       - verify-wip-cap-framework-self-check
       - vbrief:validate

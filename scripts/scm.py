@@ -79,6 +79,16 @@ from typing import Any
 #: a typo doesn't silently dispatch unexpected gh subcommands.
 _ALLOWED_NAMESPACES: tuple[str, ...] = ("issue",)
 
+#: Source-aware shim (#1145 / N5) supported sources. v1 ships with only
+#: ``github-issue``; ``gitlab`` / ``gitea`` / ``local`` are placeholders for
+#: #445 / #935 Workstream 6 and raise :class:`NotImplementedError` with the
+#: canonical message documented on issue #1145. Adding a source here without
+#: a matching backend implementation in :func:`call` is a bug -- the verifier
+#: :mod:`scripts.verify_scm_boundary` does not enforce backend coverage, but
+#: the unit test ``tests/test_scm_call.py::test_unknown_source_raises`` pins
+#: the exhaustive-source contract.
+_SUPPORTED_CALL_SOURCES: tuple[str, ...] = ("github-issue",)
+
 #: Allowed ``<verb>`` argv[2] for the ``issue`` namespace. Mirrors the four
 #: AC-1 commands in vbrief/active/2026-05-05-883-story-1-scm-stub.vbrief.json.
 _ALLOWED_ISSUE_VERBS: tuple[str, ...] = ("list", "view", "close", "edit")
@@ -155,6 +165,123 @@ def build_command(
         )
     resolved = binary if binary is not None else resolve_binary()
     return [resolved, namespace, verb, *extra]
+
+
+# ---------------------------------------------------------------------------
+# Source-aware call shim (#1145 / N5)
+# ---------------------------------------------------------------------------
+
+
+def call(
+    source: str,
+    verb: str,
+    args: Sequence[str] | None = None,
+    *,
+    check: bool = False,
+    capture_output: bool = True,
+    text: bool = True,
+    timeout: float | None = None,
+    cwd: str | None = None,
+    binary: str | None = None,
+    **kwargs: Any,
+) -> subprocess.CompletedProcess[str]:
+    """Source-aware SCM invocation -- partial down-payment on #445 / #935 Workstream 6.
+
+    This is the single seam through which the deft framework's verb layer
+    (``scripts/triage_*.py``, ``scripts/scope_*.py``, ``scripts/slice_*.py``,
+    ``scripts/issue_ingest.py``, ...) invokes the underlying SCM CLI.
+    Pre-N5, every consumer called ``subprocess.run(["gh", ...])`` directly;
+    the first non-GitHub consumer would have hit an undocumented coupling
+    deep in the call stack. The shim relocates that coupling to one
+    indirection point so the full SCM abstraction (#445 / #935 Workstream 6)
+    has a single seam to extend.
+
+    Routing (v1):
+
+    - ``source="github-issue"`` -- forwards to ``[binary, verb, *args]``
+      where ``binary`` comes from :func:`resolve_binary` (the #884
+      ``ghx`` -> ``gh`` preference ladder). This is the only source v1
+      implements.
+    - Any other source (``"gitlab"``, ``"gitea"``, ``"local"``, ...)
+      raises :class:`NotImplementedError` with the canonical message
+      ``"source=<x> not yet supported; see #445 / #935 Workstream 6 for
+      the abstraction."`` so a consumer on a non-GitHub forge sees the
+      deferred abstraction immediately instead of an obscure
+      ``"gh: command not found"`` deep in the call stack.
+
+    Args:
+        source: Forge identity for the invocation. Currently only
+            ``"github-issue"`` is implemented; see
+            :data:`_SUPPORTED_CALL_SOURCES` for the contract.
+        verb: The CLI verb passed to the resolved binary (e.g. ``"issue"``,
+            ``"api"``, ``"pr"``). Forwarded verbatim as the first argv
+            element after the binary; this shim deliberately does NOT
+            validate the verb so callers can use any surface the
+            underlying binary supports.
+        args: Pass-through positional / option args appended after
+            ``verb``. Defaults to an empty sequence.
+        check: Forwarded to :func:`subprocess.run`. Defaults to ``False``
+            so callers can inspect non-zero exits without an exception;
+            mutation call sites that want loud failures opt in via
+            ``check=True``.
+        capture_output / text: Forwarded to :func:`subprocess.run`.
+            Defaults to capture+text so the common "parse stdout" usage
+            works without extra plumbing.
+        timeout: Optional wall-clock cap forwarded to
+            :func:`subprocess.run`. Mirrors the existing per-call-site
+            timeouts (e.g. ``issue_ingest._fetch_single_issue`` uses
+            30s).
+        cwd: Optional working directory forwarded to
+            :func:`subprocess.run`.
+        binary: Optional override for the resolved binary. Tests pass
+            this so they don't depend on the host PATH.
+        **kwargs: Additional :func:`subprocess.run` keyword args
+            (``env``, ``input``, ``stdin``, ...).
+
+    Returns:
+        The :class:`subprocess.CompletedProcess` from the underlying
+        invocation -- the shim does not parse or transform stdout /
+        stderr / returncode.
+
+    Raises:
+        NotImplementedError: When ``source`` is not in
+            :data:`_SUPPORTED_CALL_SOURCES`. The error message points at
+            #445 / #935 Workstream 6 so consumers on GitLab / Gitea /
+            local backends see the deferred abstraction immediately.
+        ScmStubError: When neither ``gh`` nor ``ghx`` is on PATH and no
+            explicit ``binary`` override was provided.
+
+    Notes on the verifier (`scripts/verify_scm_boundary.py`):
+        The companion deterministic gate scans tracked Python files in
+        the verb-layer scope (``scripts/triage_*.py``,
+        ``scripts/scope_*.py``, ``scripts/slice_*.py``,
+        ``scripts/_triage_*.py``, ``scripts/_scope_*.py``,
+        ``scripts/resume_conditions.py``, ``scripts/issue_ingest.py``)
+        for subprocess / Popen / os.system invocations whose first
+        argv element is the literal ``"gh"`` or ``"ghx"``. Any such
+        call in those files is a violation because it bypasses this
+        shim. The verifier deliberately scopes by file glob rather
+        than scanning every tracked Python file so release tooling,
+        REST helpers (:mod:`scripts.gh_rest`), and the ghx installer
+        (:mod:`scripts.setup_ghx`) -- which have legitimate direct-gh
+        responsibilities -- are not flagged.
+    """
+    if source not in _SUPPORTED_CALL_SOURCES:
+        raise NotImplementedError(
+            f"source={source!r} not yet supported; "
+            "see #445 / #935 Workstream 6 for the abstraction."
+        )
+    resolved = binary if binary is not None else resolve_binary()
+    argv = [resolved, verb, *(args if args is not None else ())]
+    return subprocess.run(
+        argv,
+        check=check,
+        capture_output=capture_output,
+        text=text,
+        timeout=timeout,
+        cwd=cwd,
+        **kwargs,
+    )
 
 
 # ---------------------------------------------------------------------------

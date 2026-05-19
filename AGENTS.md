@@ -150,6 +150,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - ! Fall back to `gh` transparently when `ghx` is not on PATH; do NOT fail or warn -- this mirrors the `scripts/scm.py` runtime ladder and keeps the rule additive for consumers who have not yet opted in
 - ~ Maintainers SHOULD run `task setup` (which invokes `scripts/setup_ghx.py`) to install `ghx`; the install is consent-gated and never auto-runs by default. Pass `--yes` for non-interactive (CI / scripted) approval
 - ⊗ Auto-install `ghx` without explicit operator consent -- `task setup` MUST prompt before invoking the upstream installer; the only non-interactive paths are `--yes` (explicit approval) or `DEFT_SETUP_GHX_SKIP=1` (explicit opt-out)
+- ! Raw `gh` calls outside `scripts/scm.py` are forbidden by `task verify:scm-boundary` (#1145 / N5 -- partial down-payment on #445 / #935 Workstream 6). The verb layer (`scripts/triage_*.py`, `scripts/scope_*.py`, `scripts/slice_*.py`, `scripts/issue_ingest.py`, ...) MUST invoke `gh` only via `scm.call(source, verb, args, **kwargs)`; the deterministic gate scans the canonical scope globs and fails `task check` when any of them route around the shim. Non-`github-issue` sources raise `NotImplementedError` so a consumer on GitLab / Gitea / local sees the deferred abstraction immediately.
 - ? Power users MAY install `ghx` manually via the upstream `install.ps1` (Windows) or `install.sh` (macOS / Linux); the `task setup` prompt is a convenience, not a gate
 
 ## Test performance discipline (#975)

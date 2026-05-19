@@ -67,6 +67,14 @@ from typing import Any
 # ``scripts/policy_set.py`` so we can do ``import candidates_log``.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+# #1145 / N5: route ``gh`` invocations through the source-aware shim so a
+# future GitLab / Gitea / local consumer sees a loud ``NotImplementedError``
+# pointing at #445 / #935 Workstream 6, not a confusing
+# ``gh: command not found`` deep in the call stack. The shim resolves the
+# binary via the #884 ``ghx`` -> ``gh`` preference ladder, so this also
+# transparently picks up the cached proxy when it is installed.
+import scm  # noqa: E402 -- sibling-first path insertion above is intentional
+
 # Public, frozen interfaces from #845 Story 2 (audit log) + #883 Story 2
 # (unified cache). These imports may fail when an upstream PR has not yet
 # merged onto the consumer's branch -- the module attributes are then
@@ -193,17 +201,34 @@ def _require_cache() -> Any:
 def _run_gh(args: list[str]) -> subprocess.CompletedProcess[str]:
     """Wrapper around ``gh`` so tests can patch a single seam.
 
-    Raises ``UpstreamCloseError`` on non-zero exit so callers can roll back.
+    Routes through :func:`scripts.scm.call` (#1145 / N5) so the binary
+    resolution (the #884 ``ghx`` -> ``gh`` ladder) and the source-aware
+    indirection (GitLab / Gitea / local raise
+    :class:`NotImplementedError`) live in one place. Raises
+    :class:`UpstreamCloseError` on non-zero exit so callers can roll back.
+
+    The ``args`` list begins with the gh verb (e.g. ``"issue"``) followed
+    by its subcommand and flags -- the shim accepts the verb separately
+    so call sites do not have to know whether the underlying binary is
+    ``gh`` or ``ghx``. An empty ``args`` is treated as a programming
+    error and surfaces as :class:`UpstreamCloseError` (mirrors the prior
+    ``FileNotFoundError`` failure mode at the contract layer).
     """
+    if not args:
+        raise UpstreamCloseError("scm.call requires at least a verb; got empty args")
     try:
-        return subprocess.run(
-            ["gh", *args],
+        return scm.call(
+            "github-issue",
+            args[0],
+            args[1:],
             check=True,
             capture_output=True,
             text=True,
         )
     except FileNotFoundError as exc:
         raise UpstreamCloseError(f"gh CLI not found on PATH: {exc}") from exc
+    except scm.ScmStubError as exc:
+        raise UpstreamCloseError(f"gh resolution failed: {exc}") from exc
     except subprocess.CalledProcessError as exc:
         stderr = (exc.stderr or "").strip()
         raise UpstreamCloseError(f"gh {' '.join(args)} failed: {stderr}") from exc
