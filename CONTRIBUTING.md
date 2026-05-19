@@ -164,6 +164,43 @@ To run the installer's tests:
 go test ./cmd/deft-install/
 ```
 
+## Windows CLI_ARGS quoting limitation (#1231)
+
+Every `task` fragment under `tasks/` forwards user-facing flags into the
+backing Python script via go-task's `{{.CLI_ARGS}}` placeholder. The
+placeholder is substituted **bare** -- go-task's `shellQuote` filter
+misbehaves on Windows (#577) so wrapping `{{.CLI_ARGS}}` in double quotes
+is NOT a viable hardening, and changing the substitution shape is
+deferred to a follow-up that switches to a temp-file argv dispatch.
+
+The practical consequence on Windows shells (cmd.exe, PowerShell): an
+argument value that contains spaces may be re-split by the shell before
+`argparse` sees it. For example, this DOES NOT work as written on
+Windows:
+
+```powershell
+task slice:record-existing -- --umbrella=1119 --children=1121,1122 --notes "backfill after N7 landed"
+```
+
+Workarounds, ranked by simplicity:
+
+1. **Single-token values (preferred for routine use):** drop the spaces
+   so the value parses as one argv element regardless of the shell, e.g.
+   `--notes=backfill-after-N7-landed`.
+2. **`=` form with quoting:** `--notes="backfill after N7 landed"` works
+   in PowerShell 7+ and bash but is fragile under cmd.exe; test before
+   adopting in cohort docs.
+3. **WSL / bash / pwsh 7+ shell:** if you must use a multi-word value
+   verbatim, run the task from a POSIX-ish shell where `{{.CLI_ARGS}}`
+   substitution preserves quoting.
+
+The limitation is **repo-wide**: every `tasks/*.yml` fragment uses the
+same bare-`{{.CLI_ARGS}}` shape, so the workarounds above apply to every
+`task triage:* `, `task scope:*`, `task slice:*`, etc. verb. The verb's
+`task --list` description (and each script's `--help`) name the
+limitation in their summary when a multi-word value is a plausible
+operator input.
+
 ## Adding a new triage / scope verb (#1150 / N10)
 
 Every `task triage:*` and `task scope:*` verb is documented in one place:

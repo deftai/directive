@@ -508,3 +508,193 @@ def test_duplicate_child_aborts(
     assert rc == 2
     captured = capsys.readouterr()
     assert "duplicate" in captured.err.lower()
+
+
+# ---------------------------------------------------------------------------
+# Greptile P2 cleanup (#1230) -- _summarise_waves double-count fix
+# ---------------------------------------------------------------------------
+
+
+def test_summarise_waves_default_only() -> None:
+    """No --wave-N flags -> plain default-only summary."""
+    summary = slice_record_existing._summarise_waves({}, 3)
+    assert summary == "3 in wave 1 (default)"
+
+
+def test_summarise_waves_no_fallthrough() -> None:
+    """Every child explicitly placed; the wave count matches the keys."""
+    summary = slice_record_existing._summarise_waves({1: [2], 2: [3, 4]}, total_children=3)
+    assert summary == "2 wave(s): wave-1=1, wave-2=2"
+
+
+def test_summarise_waves_explicit_plus_fallthrough_merges_into_wave_1() -> None:
+    """Greptile P2 (#1230): --wave-1=2 + one unassigned must NOT render a
+    second `wave-1=N (default)` segment. Pre-fix output was
+    `3 wave(s): wave-1=1, wave-2=1, wave-1=1 (default)`; canonical is
+    `2 wave(s): wave-1=2, wave-2=1`."""
+    # --children=2,3,4 --wave-1=2 --wave-2=3 (child 4 unassigned -> wave 1)
+    wave_map = {1: [2], 2: [3]}
+    summary = slice_record_existing._summarise_waves(wave_map, total_children=3)
+    assert summary == "2 wave(s): wave-1=2, wave-2=1"
+    assert "(default)" not in summary
+    assert summary.count("wave-1=") == 1
+
+
+def test_summarise_waves_only_higher_waves_with_fallthrough_creates_wave_1() -> None:
+    """--wave-2=3,4 with one unassigned still renders `wave-1=1` (the
+    unassigned child) but only ONCE."""
+    # --children=2,3,4 --wave-2=3,4 (child 2 unassigned -> wave 1)
+    wave_map = {2: [3, 4]}
+    summary = slice_record_existing._summarise_waves(wave_map, total_children=3)
+    assert summary == "2 wave(s): wave-1=1, wave-2=2"
+    assert "(default)" not in summary
+
+
+def test_record_existing_emits_corrected_summary_on_explicit_plus_fallthrough(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """End-to-end: a real write of an explicit+fallthrough cohort surfaces
+    the corrected summary line (Greptile #1230 P2)."""
+    root = _make_consumer_root(tmp_path)
+    monkeypatch.setattr(scm, "call", _fake_call_factory(existing={1, 2, 3, 4}))
+    rc = _run(
+        [
+            "record-existing",
+            "--umbrella=1",
+            "--children=2,3,4",
+            "--wave-1=2",
+            "--wave-2=3",  # child 4 falls through to wave 1
+            "--repo=owner/repo",
+            f"--project-root={root}",
+        ]
+    )
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "wave-1=2" in out
+    assert "wave-2=1" in out
+    assert "(default)" not in out
+    # Double-check the count: there should be exactly ONE 'wave-1=' segment.
+    assert out.count("wave-1=") == 1
+
+
+# ---------------------------------------------------------------------------
+# Greptile P2 cleanup (#1230) -- python -O safety guard
+# ---------------------------------------------------------------------------
+
+
+def test_repo_none_guard_raises_runtime_error_not_assert(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The post-resolve guard must use an explicit RuntimeError (which
+    survives `python -O`) rather than a bare `assert` statement -- the
+    latter is stripped under optimisation. Force the impossible state by
+    monkey-patching _resolve_root_and_repo to return (root, None, 0) and
+    confirm the explicit-guard path fires with a clear RuntimeError.
+    """
+    root = _make_consumer_root(tmp_path)
+    monkeypatch.setattr(
+        slice_record_existing,
+        "_resolve_root_and_repo",
+        lambda *args, **kwargs: (root, None, 0),
+    )
+    args = type(
+        "Args",
+        (),
+        {
+            "project_root": str(root),
+            "repo": None,
+            "umbrella": 1,
+            "children": "2",
+            "actor": "manual:operator",
+            "expected_close_signal": "all-children-merged",
+            "sliced_at": None,
+            "notes": None,
+            "dry_run": False,
+            "force": False,
+            "skip_validation": True,
+        },
+    )()
+    with pytest.raises(RuntimeError) as excinfo:
+        slice_record_existing._run_record_existing(args, {})
+    assert "repo is None" in str(excinfo.value)
+
+
+# ---------------------------------------------------------------------------
+# Atomic idempotency under concurrent invocation (#1231 / P1 TOCTOU fix)
+# ---------------------------------------------------------------------------
+
+
+def test_concurrent_invocations_write_exactly_one_record(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two threads invoke `record-existing` with the same args (no
+    --force). Without the atomic file-lock fix from #1231 they would
+    both observe "no duplicate" and both append; with the fix exactly
+    ONE record lands.
+
+    The test is deterministic: an instrumented `_find_duplicate` wrapper
+    barriers both threads to the duplicate-check point before either is
+    allowed to proceed. Without the lock, both threads would observe an
+    empty file and both append. With the lock, one thread enters first,
+    appends, releases; the second then sees the existing record and
+    no-ops.
+    """
+    import threading
+
+    root = _make_consumer_root(tmp_path)
+    monkeypatch.setattr(scm, "call", _fake_call_factory(existing={1, 2, 3}))
+
+    barrier = threading.Barrier(2, timeout=15.0)
+    real_find_duplicate = slice_record_existing._find_duplicate
+    call_count = {"value": 0}
+    call_count_lock = threading.Lock()
+
+    def _barriered_find_duplicate(*args, **kwargs):
+        with call_count_lock:
+            call_count["value"] += 1
+            # Only barrier the first two calls (the authoritative
+            # under-lock check is the second invocation per thread; we
+            # only need to ensure both threads have entered the
+            # idempotency region before either appends).
+            should_barrier = call_count["value"] <= 2
+        if should_barrier:
+            barrier.wait()
+        return real_find_duplicate(*args, **kwargs)
+
+    monkeypatch.setattr(
+        slice_record_existing, "_find_duplicate", _barriered_find_duplicate
+    )
+
+    results: list[int] = []
+    results_lock = threading.Lock()
+
+    def _runner() -> None:
+        rc = _run(
+            [
+                "record-existing",
+                "--umbrella=1",
+                "--children=2,3",
+                "--repo=owner/repo",
+                f"--project-root={root}",
+            ]
+        )
+        with results_lock:
+            results.append(rc)
+
+    threads = [threading.Thread(target=_runner) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=30.0)
+        assert not t.is_alive(), "thread did not finish in time -- possible deadlock"
+
+    assert results == [0, 0], f"both threads should exit 0; got {results!r}"
+    records = slice_record.read_all(path=_slices_path(root))
+    # The acceptance criterion from #1231: exactly one record must be
+    # written even though both invocations observed an empty file
+    # before either appended.
+    assert (
+        len(records) == 1
+    ), f"expected exactly 1 record under concurrent invocation; got {len(records)}: {records!r}"
+    assert records[0]["umbrella"] == 1
+    assert {c["n"] for c in records[0]["children"]} == {2, 3}

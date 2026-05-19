@@ -1,0 +1,25 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1231",
+    "updated": "2026-05-19T18:12:07Z"
+  },
+  "plan": {
+    "title": "fix(slice): atomic idempotency + Windows quoting (#1147 follow-up)",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(slice): atomic idempotency + Windows quoting (#1147 follow-up)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1231",
+      "Overview": "# fix(slice): atomic idempotency for slice_record_existing + Windows quoting hardening (#1147 follow-up)\r\n\r\n## Context\r\n\r\nSLizard v0.3.582 raised 2× P1 + 1× P2 findings on PR #1229 (N7 / #1147) head `12efb85`. Per the AGENTS.md / handoff rule, SLizard is a non-required check, so PR #1229 was merged on the strength of Greptile's \"Safe to merge\" verdict (4/5 confidence) and the green required-check set. The P1 findings flag a real check-then-act race that deserves a proper fix; tracking here so it gets one.\r\n\r\n## Findings to address\r\n\r\n### 1. P1 — `slices.jsonl` idempotency is a TOCTOU race\r\n\r\n`scripts/slice_record_existing.py:408-409` and `scripts/slice_record_existing.py:493-538`\r\n\r\n`_find_duplicate` reads `slices.jsonl`, decides \"no duplicate\", and `slice_record.write_slice` appends — without a lock. Two concurrent invocations of `task slice:record-existing` (without `--force`) can both observe \"no duplicate\" and both append a logically identical entry.\r\n\r\nIn practice the verb is operator-invoked at human cadence, so the race window is rarely hit. But the idempotency guarantee in #1147's acceptance criteria is unconditional (\"re-running with same umbrella + children set is a no-op\"). Make it atomic.\r\n\r\nSuggested fix: wrap the read-decide-write under a file lock on the `slices.jsonl` path (project already has `vbrief/.eval/scope-lifecycle.jsonl.lock` precedent — same approach is fine here). Re-check duplicate detection after acquiring the lock so the decision happens under the same critical section as the append.\r\n\r\nAdd a test that exercises the concurrent-invocation path (e.g. two threads, both with same args, neither passing `--force`) and asserts exactly one record is written.\r\n\r\n### 2. P2 — `go-task` `{{.CLI_ARGS}}` quoting on Windows\r\n\r\n`tasks/slice.yml:41`\r\n\r\n`go-task` substitutes `{{.CLI_ARGS}}` directly into the command line. On Windows, arguments containing spaces (e.g. `--notes \"A note with spaces\"`) can be re-split by the shell before `argparse` sees them. Either:\r\n\r\n- Document the limitation in the verb's `--help` text and CONTRIBUTING.md, or\r\n- Switch the dispatch to a pattern that quotes safely (e.g. write CLI args to a temp file, pass the path).\r\n\r\nThe same concern applies to any verb under `tasks/slice.yml` / `tasks/triage.yml` that consumes `{{.CLI_ARGS}}` — audit and apply the same hardening.\r\n\r\n## Scope\r\n\r\n- Apply the lock-based atomic idempotency fix in `scripts/slice_record_existing.py`.\r\n- Add a concurrent-invocation test.\r\n- Decide between docs-only or code-fix for the Windows quoting concern and apply.\r\n- Confirm `task check` remains green.\r\n\r\n## Not in scope\r\n\r\n- Re-architecting the `slices.jsonl` writer entirely (the append-only JSONL shape is fine; only the read-decide-write loop needs to become atomic).\r\n- Cross-platform shell quoting overhaul beyond `tasks/slice.yml` (track separately if the audit surfaces a broader issue).\r\n\r\n## Refs\r\n\r\n- Parent: #1119 (#1147 follow-up)\r\n- Spec: #1147\r\n- Merged PR: #1229\r\n- SLizard review on head `12efb85` — `deft-slizard[bot]` `CHANGES_REQUESTED` decision, P1=2 / P2=2 / P3=3, finding_count=7, merge_impact `blocking` (overridden because SLizard is non-required per AGENTS.md).\r\n- Companion follow-up: #1230 (Greptile-flagged P2 issues on the same script).\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1231",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1231: fix(slice): atomic idempotency + Windows quoting (#1147 follow-up)"
+      }
+    ],
+    "updated": "2026-05-19T18:11:53Z"
+  }
+}

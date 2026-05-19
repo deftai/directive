@@ -1,0 +1,25 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1230",
+    "updated": "2026-05-19T18:12:03Z"
+  },
+  "plan": {
+    "title": "fix(slice): address P2 Greptile findings on slice_record_existing (#1147 follow-up)",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(slice): address P2 Greptile findings on slice_record_existing (#1147 follow-up)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1230",
+      "Overview": "# fix(slice): address P2 Greptile findings on slice_record_existing (#1147 follow-up)\r\n\r\n## Context\r\n\r\nPR #1229 (N7 / #1147) landed the `task slice:record-existing` backfill verb. Greptile rated the PR \"Safe to merge\" (4/5 confidence) and CI was fully green on the rebased SHA `12efb85`. Three P2 inline findings were deferred to keep the Wave-2d-3 cohort moving and are tracked here for cleanup.\r\n\r\n## Findings to address\r\n\r\n### 1. `_summarise_waves` double-counts when explicit `--wave-1` mixes with default fallthrough\r\n\r\n`scripts/slice_record_existing.py:628` (pre-rebase line) — when `--wave-1` is passed explicitly AND at least one child is unassigned (falls through to wave 1 default), the helper renders:\r\n\r\n```\r\n\"3 wave(s): wave-1=1, wave-2=1, wave-1=1 (default)\"\r\n```\r\n\r\nExpected:\r\n\r\n```\r\n\"2 wave(s): wave-1=2, wave-2=1\"\r\n```\r\n\r\nStored `slices.jsonl` is unaffected — this is a display-only bug in the summary line. Add a test case for the explicit-plus-fallthrough scenario in `tests/test_slice_record_existing.py`.\r\n\r\n### 2. Module docstring wrongly implies `--dry-run` skips the issue probe\r\n\r\n`scripts/slice_record_existing.py:47` (pre-rebase line) — module docstring suggests `--dry-run` participates in skipping the issue-existence probe; in fact `--skip-validation` is the sole gate. Update the docstring to match actual behaviour.\r\n\r\n### 3. `assert repo is not None` used for flow control\r\n\r\n`scripts/slice_record_existing.py:512` (pre-rebase line) — bare `assert` is stripped by `python -O`. Replace with an explicit `RuntimeError` (or equivalent runtime guard) so the safety check survives optimised runs.\r\n\r\n## Scope\r\n\r\n- Apply the three fixes above and add the missing test case for finding #1.\r\n- Confirm `task check` remains green.\r\n\r\n## Not in scope\r\n\r\n- Re-architecting the wave assignment logic. The current shape is correct; only the summary helper has the display bug.\r\n\r\n## Refs\r\n\r\n- Parent: #1119 (#1147 follow-up)\r\n- Spec: #1147\r\n- PR that introduced the findings: #1229\r\n- Greptile findings on PR #1229 (pre-rebase head `34122f07103060d59e62ac4a7c1c00b499a83bfa`): inline review comments on `scripts/slice_record_existing.py` lines 47, 512, 628.\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1230",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1230: fix(slice): address P2 Greptile findings on slice_record_existing (#1147 follow-up)"
+      }
+    ],
+    "updated": "2026-05-19T18:11:48Z"
+  }
+}

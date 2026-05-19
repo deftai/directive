@@ -234,6 +234,17 @@ def _append_lock(log_path: Path) -> Iterator[None]:
 
     Sibling implementation of :func:`candidates_log._append_lock` --
     sidecar ``<log>.lock`` byte-range exclusive lock.
+
+    Also exported as :func:`append_lock` for callers (e.g.
+    :mod:`slice_record_existing` per #1231) that need to wrap a
+    read-decide-write critical section -- specifically the duplicate
+    detection + :func:`write_slice_unlocked` pair -- under the SAME
+    lock so concurrent invocations cannot both observe "no duplicate"
+    before either appends. The lock is NOT reentrant (the underlying
+    ``threading.Lock`` + ``msvcrt.locking`` / ``fcntl.flock`` would
+    deadlock on re-entry); callers wrapping a critical section MUST
+    use :func:`write_slice_unlocked` rather than :func:`write_slice`
+    while holding the lock.
     """
     lock_path = log_path.parent / (log_path.name + ".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
@@ -372,27 +383,55 @@ def write_slice(
     if notes is not None:
         record["notes"] = notes
 
-    _validate_record(record)
+    log_path = _resolve_path(path)
+    with _append_lock(log_path):
+        return write_slice_unlocked(record=record, path=log_path)
 
+
+def write_slice_unlocked(
+    *,
+    record: dict[str, Any],
+    path: Path | str | None = None,
+) -> str:
+    """Validate + append ``record`` without acquiring the sidecar lock.
+
+    Companion to :func:`write_slice` for callers that wrap their own
+    read-decide-write critical section under :func:`append_lock`
+    directly (see :mod:`slice_record_existing` per #1231 -- the
+    duplicate-detection + append pair must run under one lock for
+    atomic idempotency).
+
+    Behaviour mirrors :func:`write_slice`:
+
+    * Validates ``record`` against the schema; raises
+      :class:`SliceRecordError` before any bytes hit disk.
+    * Idempotent retry: if ``record['slice_id']`` is already present
+      in the log, returns it without re-writing.
+    * Otherwise appends one JSONL line, fsync'd.
+
+    The caller is responsible for holding :func:`append_lock` for the
+    same ``path``. Use :func:`write_slice` instead when you do NOT
+    need to compose with another read under the same lock.
+    """
+    _validate_record(record)
     log_path = _resolve_path(path)
     log_path.parent.mkdir(parents=True, exist_ok=True)
-
+    resolved_id = record["slice_id"]
     line = json.dumps(record, sort_keys=True, ensure_ascii=False)
-    with _append_lock(log_path):
-        # Re-check under the lock so a concurrent appender that wrote
-        # the same slice_id between the validation pass and the append
-        # cannot produce a duplicate.
-        existing = _existing_slice_ids(log_path)
-        if resolved_id in existing:
-            LOG.info(
-                "slices.jsonl: slice_id %s already present; write_slice is a no-op",
-                resolved_id,
-            )
-            return resolved_id
-        with open(log_path, "a", encoding="utf-8", newline="") as fh:
-            fh.write(line + "\n")
-            fh.flush()
-            os.fsync(fh.fileno())
+    # Re-check under the lock so a concurrent appender that wrote the
+    # same slice_id between the validation pass and the append cannot
+    # produce a duplicate.
+    existing = _existing_slice_ids(log_path)
+    if resolved_id in existing:
+        LOG.info(
+            "slices.jsonl: slice_id %s already present; write_slice is a no-op",
+            resolved_id,
+        )
+        return resolved_id
+    with open(log_path, "a", encoding="utf-8", newline="") as fh:
+        fh.write(line + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
     return resolved_id
 
 
@@ -452,14 +491,23 @@ def find_by_umbrella(
     return [r for r in read_all(path=path) if r.get("umbrella") == umbrella]
 
 
+# Public alias for the sidecar-file lock. Callers that need to wrap a
+# read-decide-write critical section (`slice_record_existing` per #1231)
+# can import this directly without reaching for the private name; the
+# underscore form is preserved for in-module readability.
+append_lock = _append_lock
+
+
 __all__ = [
     "DEFAULT_LOG_PATH",
     "SCHEMA_PATH",
     "SliceRecordError",
+    "append_lock",
     "find_by_slice_id",
     "find_by_umbrella",
     "new_slice_id",
     "now_iso",
     "read_all",
     "write_slice",
+    "write_slice_unlocked",
 ]

@@ -19,6 +19,18 @@ vars:
 # script owns argv parsing (including the dynamic `--wave-N=<csv>` flag
 # shape that argparse cannot natively model).
 #
+# Windows quoting limitation (#1231 / SLizard P2): because CLI_ARGS is
+# substituted bare, arguments containing spaces (e.g. `--notes "A note
+# with spaces"`) may be re-split by the shell before `argparse` sees
+# them. The operator-facing workaround is to either avoid spaces in flag
+# values (use a single token like `--notes=backfill-after-N7`) or to
+# write the rationale to a file and embed a pointer. The fully-quoted
+# `{{.CLI_ARGS | shellQuote}}` form misbehaves on Windows go-task per
+# #577; switching to a temp-file dispatch is the long-term fix and is
+# tracked under #1231. The same caveat applies to every other verb that
+# forwards `{{.CLI_ARGS}}` bare under `tasks/` (audit list: every fragment
+# in this directory does -- the pattern is repo-wide).
+#
 # `dir: '{{.USER_WORKING_DIR}}'` keeps Python CWD at the consumer project
 # root so `--project-root` / `--repo` resolution lands in the consumer
 # tree, not in deft's own checkout (#535 path-resolution invariant).
@@ -32,7 +44,7 @@ vars:
 
 tasks:
   record-existing:
-    desc: "Retrofit a slices.jsonl entry for a hand-filed cohort (#1147 / N7). -- task slice:record-existing -- --umbrella=N --children=A,B,C [--wave-1=A,B] [--wave-2=C] [--actor=manual:operator] [--expected-close-signal=all-children-merged] [--sliced-at=ISO] [--notes=TEXT] [--dry-run] [--force] [--skip-validation] [--repo OWNER/NAME]"
+    desc: "Retrofit a slices.jsonl entry for a hand-filed cohort (#1147 / N7). Windows note (#1231): CLI_ARGS is forwarded bare to argparse so values containing spaces (e.g. --notes \"A note with spaces\") may be re-split by the shell -- prefer hyphenated single-token values like --notes=backfill-after-N7. -- task slice:record-existing -- --umbrella=N --children=A,B,C [--wave-1=A,B] [--wave-2=C] [--actor=manual:operator] [--expected-close-signal=all-children-merged] [--sliced-at=ISO] [--notes=TEXT] [--dry-run] [--force] [--skip-validation] [--repo OWNER/NAME]"
     internal: true
     dir: '{{.USER_WORKING_DIR}}'
     env:

@@ -41,10 +41,11 @@ Validation
 
 * Umbrella + each child issue number must exist (probed via
   ``scm.call("github-issue", "issue", ["view", str(N), ...])`` per N5
-  / #1145). The probe is skipped on ``--dry-run`` only when the
-  consumer also passes ``--skip-validation`` (an escape hatch for
-  cohorts whose issues live in a private mirror -- documented but
-  not advertised).
+  / #1145). The probe is skipped only when ``--skip-validation`` is
+  passed (an escape hatch for cohorts whose issues live in a private
+  mirror -- documented but not advertised). ``--dry-run`` alone does
+  NOT bypass the probe; validation still fires so the preview reflects
+  the actual reachability of each issue (#1230 -- Greptile P2).
 * Idempotency: a record with the same ``umbrella`` AND the same
   ``children`` set (compared by ``{n}`` set, order-insensitive) is
   treated as already-present -- the verb is a no-op with
@@ -445,7 +446,13 @@ def _run_record_existing(args: argparse.Namespace, wave_map: dict[int, list[int]
     )
     if exit_code != 0:
         return exit_code
-    assert repo is not None
+    if repo is None:  # pragma: no cover -- guaranteed non-None when require_repo=True
+        # Explicit guard so this safety check survives `python -O` (where
+        # bare ``assert`` is stripped). See #1230 -- Greptile P2.
+        raise RuntimeError(
+            "repo is None despite require_repo=True; this is a bug in "
+            "_resolve_root_and_repo"
+        )
 
     try:
         children = _parse_children_csv(args.children)
@@ -488,7 +495,11 @@ def _run_record_existing(args: argparse.Namespace, wave_map: dict[int, list[int]
             return 1
 
     # Idempotency: refuse to duplicate a record with the same umbrella +
-    # child set unless --force.
+    # child set unless --force. Pre-lock peek is a fast-path optimisation
+    # for the common no-concurrency case (no file IO under the lock when
+    # an obvious duplicate exists); the authoritative re-check fires
+    # under the file lock below so two concurrent invocations cannot
+    # both observe "no duplicate" and both append (P1 TOCTOU per #1231).
     slices_path = _issues_jsonl_path(project_root)
     duplicate = _find_duplicate(args.umbrella, children, slices_path=slices_path)
     if duplicate is not None and not args.force:
@@ -503,7 +514,8 @@ def _run_record_existing(args: argparse.Namespace, wave_map: dict[int, list[int]
 
     child_dicts = _build_children(children, wave_map, repo)
 
-    # Dry-run path: build the proposed record without writing.
+    # Dry-run path: build the proposed record without writing. No lock
+    # needed -- dry-run is read-only and does not race against itself.
     if args.dry_run:
         proposed = {
             "slice_id": "<dry-run>",
@@ -525,17 +537,47 @@ def _run_record_existing(args: argparse.Namespace, wave_map: dict[int, list[int]
         )
         return 0
 
+    # Atomic idempotency (#1231 / P1 TOCTOU fix): the duplicate check
+    # AND the append must run under one critical section so two
+    # concurrent invocations of `task slice:record-existing` (neither
+    # passing --force) cannot both observe "no duplicate" between the
+    # check and the append. Acquire the sidecar lock that already
+    # serialises every slice_record.write_slice call, run a second
+    # _find_duplicate inside the lock (this is the authoritative pass
+    # -- the pre-lock peek above is only a fast path for the common
+    # uncontended case), and then call write_slice_unlocked so we do
+    # not deadlock on re-entry into the same lock.
+    record: dict = {
+        "slice_id": slice_record.new_slice_id(),
+        "umbrella": args.umbrella,
+        "umbrella_url": _repo_slug_to_url(repo, args.umbrella),
+        "sliced_at": args.sliced_at or slice_record.now_iso(),
+        "actor": args.actor,
+        "children": child_dicts,
+        "expected_close_signal": args.expected_close_signal,
+    }
+    if args.notes is not None:
+        record["notes"] = args.notes
+
+    slices_path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        slice_id = slice_record.write_slice(
-            umbrella=args.umbrella,
-            umbrella_url=_repo_slug_to_url(repo, args.umbrella),
-            actor=args.actor,
-            children=child_dicts,
-            expected_close_signal=args.expected_close_signal,
-            sliced_at=args.sliced_at,
-            notes=args.notes,
-            path=slices_path,
-        )
+        with slice_record.append_lock(slices_path):
+            authoritative_dup = _find_duplicate(
+                args.umbrella, children, slices_path=slices_path
+            )
+            if authoritative_dup is not None and not args.force:
+                print(
+                    f"slice:record-existing: umbrella #{args.umbrella} "
+                    f"already has a matching record (slice_id="
+                    f"{authoritative_dup.get('slice_id')}, actor="
+                    f"{authoritative_dup.get('actor')}). Re-run with "
+                    "--force to write a second record.",
+                    file=sys.stderr,
+                )
+                return 0
+            slice_id = slice_record.write_slice_unlocked(
+                record=record, path=slices_path
+            )
     except slice_record.SliceRecordError as exc:
         print(f"error: invalid record -- {exc}", file=sys.stderr)
         return 1
@@ -550,17 +592,26 @@ def _run_record_existing(args: argparse.Namespace, wave_map: dict[int, list[int]
 
 
 def _summarise_waves(wave_map: dict[int, list[int]], total_children: int) -> str:
+    """Render the operator-facing wave-distribution summary.
+
+    Children declared in ``--children`` but absent from every ``--wave-N``
+    flag fall through to wave 1 (the default). Per #1230 -- Greptile P2,
+    the unassigned-default count is MERGED into the wave-1 entry rather
+    than rendered as a second ``wave-1=N (default)`` segment, so a caller
+    passing ``--wave-1=2 --wave-2=3`` with one unassigned child sees
+    ``"2 wave(s): wave-1=2, wave-2=1"`` rather than the pre-fix
+    ``"3 wave(s): wave-1=1, wave-2=1, wave-1=1 (default)"``.
+    """
     if not wave_map:
         return f"{total_children} in wave 1 (default)"
-    parts = []
-    placed = 0
-    for wave_n in sorted(wave_map):
-        members = wave_map[wave_n]
-        parts.append(f"wave-{wave_n}={len(members)}")
-        placed += len(members)
-    unassigned = total_children - placed
+    placed_by_wave: dict[int, int] = {
+        wave_n: len(members) for wave_n, members in wave_map.items()
+    }
+    placed_total = sum(placed_by_wave.values())
+    unassigned = total_children - placed_total
     if unassigned > 0:
-        parts.append(f"wave-1={unassigned} (default)")
+        placed_by_wave[1] = placed_by_wave.get(1, 0) + unassigned
+    parts = [f"wave-{wave_n}={placed_by_wave[wave_n]}" for wave_n in sorted(placed_by_wave)]
     return f"{len(parts)} wave(s): " + ", ".join(parts)
 
 
