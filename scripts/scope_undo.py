@@ -580,6 +580,19 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--latest",
+        action="store_true",
+        help=(
+            "Reverse the most-recent reversible audit entry (demote / "
+            "cancel / restore / undo) that has not already been undone. "
+            "Consumed by the N6 / #1146 triage:smoketest contract "
+            "(stage 8) so the smoketest can exercise scope:undo "
+            "idempotency without threading a decision_id through. "
+            "Mutually exclusive with --decision-id, --batch-id, and "
+            "the positional <decision_id>."
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Preview the reversals without writing.",
@@ -604,7 +617,7 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0911,PLR0912
     except SystemExit as exc:
         return int(exc.code) if isinstance(exc.code, int) else 2
 
-    # Coalesce positional + --decision-id; reject mutex with --batch-id.
+    # Coalesce positional + --decision-id; reject mutex with --batch-id / --latest.
     decision_id = args.decision_id or args.decision_id_positional
     if decision_id and args.batch_id:
         print(
@@ -622,10 +635,17 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0911,PLR0912
             file=sys.stderr,
         )
         return 2
-    if not decision_id and not args.batch_id:
+    if args.latest and (decision_id or args.batch_id):
         print(
-            "Error: provide a <decision_id> (positional or --decision-id) "
-            "or --batch-id.",
+            "Error: --latest is mutually exclusive with --decision-id, "
+            "--batch-id, and the positional <decision_id>.",
+            file=sys.stderr,
+        )
+        return 2
+    if not decision_id and not args.batch_id and not args.latest:
+        print(
+            "Error: provide a <decision_id> (positional or --decision-id), "
+            "--batch-id, or --latest.",
             file=sys.stderr,
         )
         return 2
@@ -664,8 +684,39 @@ def main(argv: list[str] | None = None) -> int:  # noqa: PLR0911,PLR0912
             print(f"  skipped: {line}")
         return 0
 
-    # Single-entry undo.
+    # --latest: resolve to the most-recent reversible audit entry that
+    # hasn't already been undone. Used by N6 / #1146 triage:smoketest.
     log_entries = read_all(log_path=log_path)
+    if args.latest:
+        candidate: dict | None = None
+        for entry in reversed(log_entries):
+            action = entry.get("action")
+            if action not in REVERSIBLE_ACTIONS:
+                continue
+            entry_id = entry.get("decision_id")
+            if not isinstance(entry_id, str):
+                continue
+            if _is_already_undone(entry_id, log_entries):
+                continue
+            candidate = entry
+            break
+        if candidate is None:
+            print(
+                "Error: --latest found no reversible audit entry "
+                "(demote / cancel / restore / undo) that has not already "
+                "been undone.",
+                file=sys.stderr,
+            )
+            return 1
+        decision_id = candidate.get("decision_id")
+        if not isinstance(decision_id, str):
+            print(
+                "Error: --latest candidate is missing a decision_id.",
+                file=sys.stderr,
+            )
+            return 1
+
+    # Single-entry undo.
     entry = _find_by_decision_id(decision_id, log_entries)
     if entry is None:
         print(
