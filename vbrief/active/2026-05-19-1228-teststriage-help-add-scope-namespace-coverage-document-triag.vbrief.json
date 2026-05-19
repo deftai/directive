@@ -1,0 +1,25 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1228",
+    "updated": "2026-05-19T18:11:58Z"
+  },
+  "plan": {
+    "title": "tests(triage_help): add scope-namespace coverage + document triage_subscribe __default__ fallback (#1150 follow-up)",
+    "status": "running",
+    "narratives": {
+      "Description": "tests(triage_help): add scope-namespace coverage + document triage_subscribe __default__ fallback (#1150 follow-up)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1228",
+      "Overview": "# tests(triage_help): add scope-namespace coverage + document triage_subscribe `__default__` fallback\r\n\r\n## Context\r\n\r\nPR #1227 (N10 / #1150) landed the categorized `task triage` / `task scope` help surface. Greptile rated the PR \"Safe to merge\" (4/5 confidence) and CI was fully green, but flagged two P2 gaps that were deferred to keep the Wave-2d-3 cohort moving:\r\n\r\n1. **Scope-namespace coverage gap** — `tests/test_triage_help.py` exercises `intercept_help` for triage verbs but does not directly exercise `scope_demote`, `scope_lifecycle`, or `scope_undo`. The N10 acceptance criteria on #1150 explicitly required `--help` coverage for representative scope verbs (`scope:demote`, `scope:promote`). The bare `task scope` output format is tested; per-verb intercept invocation on scope scripts is not.\r\n\r\n2. **`triage_subscribe __default__` fallback semantics** — `scripts/triage_help.py:1515` (in the merged PR) has a `__default__` fallback that may show incorrect help when the Taskfile omits the subcommand. Behaviour and intended semantics are undocumented.\r\n\r\n## Scope\r\n\r\n- Add per-verb `intercept_help` tests for `scope_demote`, `scope_lifecycle`, `scope_promote`, `scope_undo` (and any other scope script reachable through the registry) in `tests/test_triage_help.py`.\r\n- Document the `triage_subscribe` `__default__` fallback's intended semantics (in code comment + the registry entry), and add a test that pins the current behaviour. If the current behaviour is wrong, fix it and assert the corrected output.\r\n- Confirm `task verify:scm-boundary` and `task check` remain green.\r\n\r\n## Not in scope\r\n\r\n- Re-architecting the registry. The current shape is fine; this is a coverage / docs gap only.\r\n\r\n## Refs\r\n\r\n- Parent: #1119 (#1150 follow-up)\r\n- Spec: #1150\r\n- PR that introduced the gap: #1227\r\n- Greptile findings: PR #1227 inline review comments id 3267953544 (scope coverage), 3267953653 (`__default__` fallback)\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1228",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1228: tests(triage_help): add scope-namespace coverage + document triage_subscribe __default__ fallback (#1150 follow-up)"
+      }
+    ],
+    "updated": "2026-05-19T18:11:42Z"
+  }
+}

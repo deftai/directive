@@ -1342,6 +1342,20 @@ SCRIPT_SUBCOMMAND_MAP: dict[str, dict[str, str]] = {
     "triage_classify": {"__default__": "task triage:classify"},
     "triage_scope": {"__default__": "task triage:scope"},
     "triage_scope_drift": {"__default__": "task triage:scope-drift"},
+    # ``triage_subscribe`` is the ONLY multi-subcommand entry that also
+    # declares ``__default__``. The Taskfile (``tasks/triage-subscribe.yml``)
+    # always passes the positional (``subscribe`` or ``unsubscribe``) as the
+    # first arg, so under the documented user-facing surface the fallback
+    # never fires. The fallback exists for two off-Taskfile paths:
+    #   (1) direct invocations like ``python scripts/triage_subscribe.py --help``
+    #       (no positional) -- the operator sees ``task triage:subscribe`` help,
+    #       which is the canonical/primary verb in the subscribe<->unsubscribe
+    #       pair (you subscribe first; unsubscribe is the inverse).
+    #   (2) a hypothetical alternate Taskfile that drops the positional --
+    #       same behaviour, documented contract.
+    # Pinned by ``test_intercept_help_triage_subscribe_*`` in
+    # ``tests/test_triage_help.py``; Greptile finding 3267953653 on PR #1227.
+    # Refs #1228 (this PR's docs/coverage gap).
     "triage_subscribe": {
         "subscribe": "task triage:subscribe",
         "unsubscribe": "task triage:unsubscribe",
