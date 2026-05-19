@@ -164,6 +164,67 @@ To run the installer's tests:
 go test ./cmd/deft-install/
 ```
 
+## CHANGELOG entry style (#1242)
+
+`CHANGELOG.md` `[Unreleased]` entries are released as the body of the
+GitHub release for the next version. **GitHub caps release bodies at
+125,000 characters** -- the v0.32.0 release-blocker (#1242 recurrence
+anchor) was that the auto-generated body for the promoted `[Unreleased]`
+section blew past that cap because the entries had drifted into
+engineering-log territory (multi-paragraph file-by-file walkthroughs).
+The rule below keeps that ceiling out of reach forever.
+
+! `[Unreleased]` and promoted-version entries MUST be brief release-notes,
+not implementation detail. Target 2-4 sentences per entry (roughly
+300-800 characters), max one paragraph.
+
+! Each entry MUST reference the canonical PR and/or issue number(s) so
+readers who want implementation detail can follow the link. `Closes #N`
+and `Refs #N` tails at the end of the entry MUST be preserved when
+rewriting.
+
+! Each entry MUST describe the user-visible change in plain English, not
+the conventional-commit subject or internal change name. Mirrors the
+personal ship-report convention.
+
+⊗ MUST NOT inline file paths, file lists, test counts, schema fragments,
+function signatures, or implementation walkthroughs in CHANGELOG
+entries -- that detail belongs in the PR body where the reviewer needs
+it, not in the release-notes surface readers consume.
+
+⊗ MUST NOT exceed roughly 800 characters per entry. If the change
+genuinely needs more, split into multiple distinct user-visible bullets
+or move the detail to the PR body and link it.
+
+~ Entries SHOULD lead with the user-visible benefit, then the mechanism,
+then the link.
+
+Example (good):
+
+> **feat(cache): REST writer migration (#1239)** -- `task
+> triage:bootstrap` is now ~99% faster on large repos (~13s vs ~504s for
+> 396 issues). Cache fetch now uses paginated REST instead of GraphQL,
+> and the queue reader defensively lowercases the cached `state` field
+> so pre-migration caches still surface. Closes #1239. Refs #1119.
+
+Example (bad):
+
+> **feat(cache):
+> scripts/cache.py::cache:fetch-all migrated to paginated REST via
+> scripts/scm.py::call('github-issue', 'api', ...). Backward-compat
+> reader normalizes uppercase state. New test fixtures at
+> tests/cli/test_gh_rest.py exercise...** [continues for 4 paragraphs of
+> file paths, function names, and per-test assertions]
+
+The load-bearing difference: the bad version is what the PR body should
+carry; the good version is what the release notes carry. A reader who
+wants the bad version's detail clicks through to the PR via the
+`#1239` link.
+
+A deterministic-tier lint gate that enforces this at commit time is a
+separate follow-up; for now the rule is prose-tier and enforced via
+code review on every PR that touches `CHANGELOG.md`.
+
 ## Windows CLI_ARGS quoting limitation (#1231)
 
 Every `task` fragment under `tasks/` forwards user-facing flags into the

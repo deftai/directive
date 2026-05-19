@@ -118,6 +118,19 @@ When user input matches a trigger keyword, read the corresponding skill:
 - When running a review cycle on a PR, follow `skills/deft-directive-review-cycle/SKILL.md`
 - ! After squash merge, verify issues actually closed: `gh issue view <N> --json state --jq .state`. Squash merges can silently fail to process closing keywords (`Closes #N`). If still open, close manually with a comment referencing the merged PR (#167)
 
+## CHANGELOG entry style (#1242)
+
+**Why this rule exists:** GitHub release bodies are capped at 125,000 characters. The release pipeline (`scripts/release.py::_section_for_version`) auto-flows the promoted `CHANGELOG.md` `[<version>]` section into the GitHub release body, so a `[Unreleased]` section that accumulates engineering-log-style entries hard-caps the release. The 2026-05-19 v0.32.0 Phase 3 e2e rehearsal hit this -- `gh release create` exited HTTP 422 "body is too long (maximum is 125000 characters)" because ~22 Wave-2d entries had drifted into multi-paragraph implementation walkthroughs that summed to ~140K chars. This rule keeps the ceiling out of reach.
+
+- ! CHANGELOG `[Unreleased]` and promoted-version entries MUST be brief release-notes (2-4 sentences, roughly 300-800 chars), not implementation detail.
+- ! Each entry MUST reference its canonical PR / issue number(s); preserve `Closes #N` / `Refs #N` tails when rewriting.
+- ! Each entry MUST describe the user-visible change in plain English (not the conventional-commit subject, not the internal change name).
+- ⊗ MUST NOT inline file paths, file lists, test counts, schema fragments, function signatures, or implementation walkthroughs in CHANGELOG entries -- they belong in the PR body.
+- ⊗ MUST NOT exceed roughly 800 chars per entry. If the change genuinely needs more, split into multiple distinct user-visible bullets or move detail to the PR body and link it.
+- ~ Lead with the user-visible benefit, then the mechanism, then the link. Mirrors the personal `ship-report` convention.
+
+Canonical write-up + good / bad example: `CONTRIBUTING.md` `## CHANGELOG entry style (#1242)`. A deterministic-tier lint gate is a separate follow-up; v1 is prose-tier and enforced at code review on every PR touching `CHANGELOG.md`.
+
 ## Commands
 
 - /deft:change <name>        — Propose a scoped change
