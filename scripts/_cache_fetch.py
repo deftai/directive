@@ -1,21 +1,37 @@
 #!/usr/bin/env python3
-"""_cache_fetch.py -- cache:fetch-all orchestrator (#883 Story 2).
+"""_cache_fetch.py -- cache:fetch-all orchestrator (#883 Story 2 + #1239 REST migration).
 
-Extracted from :mod:`cache` to keep the parent module under the 1000-line
-MUST limit from deft/main.md. The orchestrator owns:
+Drives the per-repo bootstrap mirror that writes one
+``.deft-cache/github-issue/<owner>/<repo>/<N>/`` entry per upstream
+issue. Lives in a separate module from :mod:`cache` to keep the parent
+under the 1000-line MUST limit from ``coding/coding.md``.
 
-- ``task scm:issue:list`` enumeration (one call per fetch-all run).
-- ``task scm:issue:view`` per-issue fetches with batch + delay knobs.
-- 429 / Retry-After detection + one retry (M1).
-- TTL-based skip-fresh idempotency (M2).
-- Partial-failure recovery with structured ``{succeeded, failed, skipped}``
-  exit shape.
+#1239 / Writer-side REST migration
+----------------------------------
+Pre-#1239 the orchestrator drained the GraphQL bucket via ``task
+scm:issue:list`` + ``task scm:issue:view`` (one round trip per issue,
+~1.27s/issue on the 2026-05-19 dogfood). The 396-issue cohort burned
+~8.5 minutes and ~400 GraphQL points while the REST ``core`` bucket
+sat idle. This module now drives the enumeration through the paginated
+REST endpoint :func:`gh_rest.rest_issue_list_paginated` (a 396-issue
+cohort fans out to 4 round trips at ``per_page=100``) and consumes the
+full REST issue payload directly -- no per-issue follow-up fetch is
+needed because ``GET /repos/.../issues`` returns ``title`` / ``body`` /
+``state`` / ``labels`` / ``updated_at`` inline.
 
-The dispatch indirection (``_run_subprocess`` / ``_sleep`` module-level
-references) is the test seam: unit tests inject fakes via
-``monkeypatch.setattr(_cache_fetch, "_run_subprocess", fake_run)`` rather
-than mocking the global ``subprocess.run`` so the patching is visible
-and scoped.
+Cached payloads now carry the canonical lowercase ``"state": "open"``
+(REST shape) -- this is the writer-side fix that #1236's reader-side
+defensive lowercase compare also addresses for any pre-migration cache
+still on disk.
+
+Test seams
+----------
+- :data:`_paginated_lister` -- callable matching ``rest_issue_list_paginated``.
+  Tests rebind it to deterministic fakes via ``monkeypatch.setattr``.
+- :data:`_sleep` -- ``time.sleep``. Tests rebind for hermetic per-issue
+  delay coverage.
+- :data:`_run_subprocess` -- legacy alias preserved for tests still
+  pinning the GraphQL flow. New paths route through the REST seam.
 """
 
 from __future__ import annotations
@@ -30,13 +46,36 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-# Module-level test seams. Tests rebind these to deterministic fakes; the
-# defaults route to real subprocess + real sleep.
-_run_subprocess: Callable[..., Any] = subprocess.run
+# Make sibling ``scripts`` modules importable when this script is
+# executed via ``python scripts/_cache_fetch.py`` from a Taskfile
+# dispatch.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from gh_rest import (  # noqa: E402  -- intentional sys.path tweak
+    GhRestError,
+    InvalidRepoError,
+    rest_issue_list_paginated,
+)
+
+# ---------------------------------------------------------------------------
+# Test seams (module-level callables; monkeypatched by tests)
+# ---------------------------------------------------------------------------
+
+#: Paginated REST issue lister. Tests rebind to a deterministic fake via
+#: ``monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake)``.
+_paginated_lister: Callable[..., list[dict[str, Any]]] = rest_issue_list_paginated
+
+#: Sleep callable; tests rebind to a no-op so the per-issue delay loop
+#: doesn't burn wall-clock.
 _sleep: Callable[[float], None] = time.sleep
 
+#: Legacy subprocess seam preserved for back-compat with tests that
+#: pinned the pre-#1239 GraphQL flow. Unused on the REST path.
+_run_subprocess: Callable[..., Any] = subprocess.run
+
 #: Compiled rate-limit detector. Matches the canonical 429 surfaces
-#: emitted by gh / ghx in stderr.
+#: emitted by gh / ghx in stderr; retained for the REST flow because
+#: the REST core bucket can also throttle (5,000/hr/user).
 _RATE_LIMIT_RE: re.Pattern[str] = re.compile(
     r"(?:HTTP\s*429|API rate limit exceeded|rate limit exceeded)", re.IGNORECASE
 )
@@ -52,7 +91,7 @@ class CacheFetchError(RuntimeError):
 
 
 # ---------------------------------------------------------------------------
-# Rate-limit detection
+# Rate-limit detection (REST core bucket recovery)
 # ---------------------------------------------------------------------------
 
 
@@ -74,84 +113,30 @@ def detect_rate_limit(stderr: str) -> tuple[bool, int]:
 
 
 # ---------------------------------------------------------------------------
-# Subprocess wrappers (task scm:issue:*)
+# REST normalisation
 # ---------------------------------------------------------------------------
 
 
-def scm_view_issue(repo: str, number: int) -> tuple[dict[str, Any], str]:
-    """Invoke ``task scm:issue:view`` and return ``(parsed_json, stderr)``.
+def _normalise_rest_issue(raw: dict[str, Any]) -> dict[str, Any]:
+    """Return a defensive copy of the REST issue payload with canonical fields.
 
-    Raises :class:`CacheFetchError` on non-zero exit (rate-limit
-    detection happens at the caller against ``stderr``) or unparseable
-    JSON.
+    REST already emits the field shapes downstream consumers want
+    (``state`` lowercase, ``updated_at`` snake_case, ``labels`` as list
+    of objects). We only:
+
+    * Ensure ``state`` is lowercase (defensive -- the REST API is
+      lowercase by contract, but a future gh / ghx version that
+      capitalised the value would otherwise re-introduce the #1236
+      reader-side regression).
+
+    The dict is shallow-copied so callers can mutate further without
+    aliasing the underlying ``gh api`` response.
     """
-    fields = "number,title,body,state,author,createdAt,updatedAt,labels,comments,url"
-    cmd = [
-        "task",
-        "scm:issue:view",
-        "--",
-        str(number),
-        "--repo",
-        repo,
-        "--json",
-        fields,
-    ]
-    proc = _run_subprocess(cmd, capture_output=True, text=True, check=False)
-    if proc.returncode != 0:
-        raise CacheFetchError(
-            f"task scm:issue:view exit={proc.returncode} for repo={repo} "
-            f"issue={number}: {proc.stderr.strip()}"
-        )
-    try:
-        data = json.loads(proc.stdout or "{}")
-    except json.JSONDecodeError as exc:
-        raise CacheFetchError(
-            f"task scm:issue:view emitted non-JSON for repo={repo} issue={number}: {exc}"
-        ) from exc
-    if not isinstance(data, dict):
-        raise CacheFetchError(
-            f"task scm:issue:view emitted unexpected shape for repo={repo} issue={number}: "
-            f"expected object, got {type(data).__name__}"
-        )
-    return data, proc.stderr or ""
-
-
-def scm_list_issues(
-    repo: str, state: str = "open", limit: int = 1000
-) -> list[dict[str, Any]]:
-    """Invoke ``task scm:issue:list`` and return the parsed JSON list."""
-    fields = "number,title,state,updatedAt"
-    cmd = [
-        "task",
-        "scm:issue:list",
-        "--",
-        "--repo",
-        repo,
-        "--state",
-        state,
-        "--limit",
-        str(limit),
-        "--json",
-        fields,
-    ]
-    proc = _run_subprocess(cmd, capture_output=True, text=True, check=False)
-    if proc.returncode != 0:
-        raise CacheFetchError(
-            f"task scm:issue:list exit={proc.returncode} for repo={repo}: "
-            f"{proc.stderr.strip()}"
-        )
-    try:
-        data = json.loads(proc.stdout or "[]")
-    except json.JSONDecodeError as exc:
-        raise CacheFetchError(
-            f"task scm:issue:list emitted non-JSON for repo={repo}: {exc}"
-        ) from exc
-    if not isinstance(data, list):
-        raise CacheFetchError(
-            f"task scm:issue:list emitted unexpected shape for repo={repo}: "
-            f"expected array, got {type(data).__name__}"
-        )
-    return data
+    out = dict(raw)
+    state = out.get("state")
+    if isinstance(state, str):
+        out["state"] = state.lower()
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -197,27 +182,44 @@ def run_fetch_all(
     state: str,
     limit: int,
 ) -> FetchAllReport:
-    """Drive the per-issue fetch loop. Returns a :class:`FetchAllReport`.
+    """Drive the cache:fetch-all loop via paginated REST.
 
     Args:
         repo: Validated ``owner/repo`` slug.
-        is_fresh: Callable ``meta_path -> bool`` that returns True when the
-            on-disk meta.json is fresh per its TTL. Caller-supplied so this
-            module does not import the cache layer's validator directly.
-        entry_dir_for: Callable ``key -> Path`` that maps a cache key to the
-            entry directory path.
-        do_put: Callable ``(key, raw) -> None`` that persists a successful
-            fetch via cache:put. Raises on failure.
-        batch_size: Issues per checkpoint. Validated > 0 by the caller.
-        delay_ms: Per-issue inter-call delay. Validated >= 0 by the caller.
-        state: Forwarded to ``scm:issue:list --state``.
-        limit: Forwarded to ``scm:issue:list --limit``.
+        is_fresh: Callable ``meta_path -> bool`` that returns True when
+            the on-disk meta.json is fresh per its TTL. Caller-supplied
+            so this module does not import the cache layer's validator
+            directly.
+        entry_dir_for: Callable ``key -> Path`` that maps a cache key to
+            the entry directory path.
+        do_put: Callable ``(key, raw) -> None`` that persists the issue
+            via cache:put. Raises on failure.
+        batch_size: Per-issue checkpoint cadence for the inter-issue
+            delay. Validated > 0 by the caller. Pre-#1239 this also
+            controlled the GraphQL fan-out; on the REST path the
+            enumeration cost is amortised across pages so the parameter
+            only paces the local cache:put loop.
+        delay_ms: Per-issue inter-call delay (ms). Validated >= 0 by the
+            caller.
+        state: Forwarded to ``rest_issue_list_paginated --state``
+            (``open``/``closed``/``all``).
+        limit: Forwarded to ``rest_issue_list_paginated --limit``.
+
+    Returns:
+        :class:`FetchAllReport` with per-issue success / failure /
+        skipped counts and a structured failures list.
+
+    Raises:
+        CacheFetchError: When the REST enumeration itself fails (the
+            cohort cannot be listed). Per-issue ``cache:put`` failures
+            are captured on the report, not raised.
     """
-    issues = scm_list_issues(repo, state=state, limit=limit)
+    issues = _list_issues_rest(repo, state=state, limit=limit)
     report = FetchAllReport()
 
     for i, issue in enumerate(issues):
-        number = issue.get("number")
+        raw = _normalise_rest_issue(issue)
+        number = raw.get("number")
         if not isinstance(number, int) or number <= 0:
             report.failed += 1
             report.failures.append(
@@ -231,10 +233,6 @@ def run_fetch_all(
             report.skipped += 1
             continue
 
-        raw = _fetch_one_issue(repo, number, key, report, delay_ms)
-        if raw is None:
-            continue
-
         try:
             do_put(key, raw)
             report.succeeded += 1
@@ -242,7 +240,10 @@ def run_fetch_all(
             report.failed += 1
             report.failures.append({"key": key, "reason": str(exc)})
 
-        # Per-issue delay; batch-size checkpoint adds an extra pause.
+        # Per-issue delay; batch-size checkpoint adds an extra pause so a
+        # quota-pressured run still has a chance to recover between
+        # cache:put writes (the REST core bucket can throttle just like
+        # GraphQL, even though it has a 10x larger headroom).
         _maybe_sleep(delay_ms)
         if (i + 1) % batch_size == 0:
             _maybe_sleep(delay_ms)
@@ -250,52 +251,39 @@ def run_fetch_all(
     return report
 
 
-def _fetch_one_issue(
-    repo: str,
-    number: int,
-    key: str,
-    report: FetchAllReport,
-    delay_ms: int,
-) -> dict[str, Any] | None:
-    """Wrap :func:`scm_view_issue` with 429 retry + post-success rate-limit detection.
+def _list_issues_rest(
+    repo: str, *, state: str, limit: int
+) -> list[dict[str, Any]]:
+    """Wrap :func:`rest_issue_list_paginated` with retry on REST 429.
 
-    Returns the raw issue dict on success, or ``None`` after recording
-    the failure on ``report``.
+    REST's ``core`` bucket has a 5000/hr/user budget -- much larger than
+    GraphQL's, but still throttleable on hot swarm sessions. On a 429
+    we honour the gh-reported Retry-After (or the fallback constant)
+    and try once more before surfacing the failure.
     """
     try:
-        raw, stderr = scm_view_issue(repo, number)
-    except CacheFetchError as exc:
-        is_429, retry_after = detect_rate_limit(str(exc))
+        return _paginated_lister(repo, state=state, limit=limit)
+    except InvalidRepoError as exc:
+        raise CacheFetchError(
+            f"invalid --repo {repo!r} for REST list enumeration: {exc}"
+        ) from exc
+    except GhRestError as exc:
+        is_429, retry_after = detect_rate_limit(str(exc) or exc.stderr or "")
         if not is_429:
-            report.failed += 1
-            report.failures.append({"key": key, "reason": str(exc)})
-            _maybe_sleep(delay_ms)
-            return None
+            raise CacheFetchError(
+                f"rest_issue_list_paginated failed for repo={repo}: {exc}"
+            ) from exc
         sys.stderr.write(
-            f"cache:fetch-all rate-limited on {key}; sleeping {retry_after}s "
-            "before retry\n"
+            f"cache:fetch-all rate-limited on enumeration ({repo}); sleeping "
+            f"{retry_after}s before retry\n"
         )
         _sleep(retry_after)
         try:
-            raw, stderr = scm_view_issue(repo, number)
-        except CacheFetchError as exc2:
-            report.failed += 1
-            report.failures.append({"key": key, "reason": str(exc2)})
-            _maybe_sleep(delay_ms)
-            return None
-
-    # 429 may also arrive on a 0-exit (gh sometimes prints the warning to
-    # stderr while still producing a partial JSON body on stdout). Detect
-    # post-success and back off before the next iteration.
-    is_429, retry_after = detect_rate_limit(stderr)
-    if is_429:
-        sys.stderr.write(
-            f"cache:fetch-all post-success rate-limit on {key}; sleeping "
-            f"{retry_after}s before next call\n"
-        )
-        _sleep(retry_after)
-
-    return raw
+            return _paginated_lister(repo, state=state, limit=limit)
+        except GhRestError as exc2:
+            raise CacheFetchError(
+                f"rest_issue_list_paginated failed twice for repo={repo}: {exc2}"
+            ) from exc2
 
 
 def _maybe_sleep(delay_ms: int) -> None:

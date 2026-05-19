@@ -1,0 +1,25 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1239",
+    "updated": "2026-05-19T19:35:55Z"
+  },
+  "plan": {
+    "title": "perf(cache): triage:bootstrap is GraphQL-heavy; #954 mandates REST-first",
+    "status": "running",
+    "narratives": {
+      "Description": "perf(cache): triage:bootstrap is GraphQL-heavy; #954 mandates REST-first",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1239",
+      "Overview": "# perf(cache): P2 — `task triage:bootstrap` is GraphQL-heavy; cached payloads carry uppercase `state: \"OPEN\"`; #954 mandates REST-first\r\n\r\n## Severity\r\nP2 — performance + cohort-wide rate-limit risk. Also the root cause of the P1 `triage:queue` case-mismatch (separate issue) downstream.\r\n\r\n## Repro\r\n\r\n```pwsh\r\ngh api rate_limit --jq '{core: .resources.core, graphql: .resources.graphql}'\r\ntask triage:bootstrap -- --json --state=open\r\ngh api rate_limit --jq '{core: .resources.core, graphql: .resources.graphql}'\r\nGet-Content .deft-cache/github-issue/deftai/directive/100/raw.json -Raw | python -c \"import sys, json; print(json.loads(sys.stdin.read())['state'])\"\r\n```\r\n\r\nObservations from the 2026-05-19 dogfood (396 issues, 504s wall-clock):\r\n\r\n- REST core `used` delta = 0 over the full run. Bootstrap did not touch REST `core` quota.\r\n- Cached payloads carry `state: \"OPEN\"` (uppercase, GraphQL convention).\r\n- 1.27s/issue average — suggests no batching even on GraphQL.\r\n\r\nThe GraphQL bucket is shared across all workers under the same identity and is the operational bottleneck per AGENTS.md §\"Multi-agent orchestration discipline (#954)\". Swarm cohorts that bootstrap on top of each other will saturate the GraphQL quota long before they touch REST.\r\n\r\n## Fix\r\n\r\nMigrate `scripts/cache.py::cache:fetch-all` (and any helper that does single-issue fetches during bootstrap) to use the REST surface via `scripts/scm.py::call(\"github-issue\", \"api\", [f\"repos/<owner>/<name>/issues/<N>\"], ...)`. N5 / #1145 already routes these through the source-aware shim; switch the URL shape from the GraphQL surface to REST.\r\n\r\nREST cached payloads use lowercase `\"state\": \"open\"`, which incidentally fixes the P1 reader case-mismatch (see linked P1 issue) without any reader-side change.\r\n\r\nAdd batching where the REST surface supports it (e.g. paginated `/issues?state=open`) so a 396-issue bootstrap does not require 396 round trips.\r\n\r\n## Acceptance criteria\r\n\r\n- After `task triage:bootstrap -- --json --state=open`, `gh api rate_limit` shows non-zero REST `core` burn and zero GraphQL burn (or negligible compared to REST).\r\n- Cached `raw.json` files carry lowercase `\"state\": \"open\"`.\r\n- Bootstrap wall-clock improves materially on 396-issue cohort (target: < 2 minutes; current: ~8.5 minutes).\r\n- Backward-compat: existing uppercase-`\"OPEN\"` cached payloads continue to work after the writer flip (reader normalizes or one-shot migrator runs at first bootstrap).\r\n- `task check` + `task verify:scm-boundary` remain green.\r\n\r\n## Refs\r\n\r\n- Parent: #1119\r\n- Hard rule: AGENTS.md §\"Multi-agent orchestration discipline (#954)\" — prefer REST\r\n- Cohort dependency: N5 / #1145 (`scripts/scm.py::call` shim is the seam for the REST switch)\r\n- Downstream symptom: linked P1 issue (\"triage:queue returns zero items after bootstrap\") is fully eliminated once the writer emits lowercase state\r\n- Dogfood run that surfaced this: orchestrator session 2026-05-19T19:14Z\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1239",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1239: perf(cache): triage:bootstrap is GraphQL-heavy; #954 mandates REST-first"
+      }
+    ],
+    "updated": "2026-05-19T19:35:42Z"
+  }
+}

@@ -25,6 +25,24 @@ Exit codes (three-state):
   -bootstrapped project (operator runs ``task triage:bootstrap``) from
   a stale-cache project (operator runs ``task cache:fetch-all``).
 
+State machine (#1240):
+
+Three user-visible states the OK message must distinguish post-#1240
+because ``task triage:bootstrap`` now seeds an empty audit log:
+
+1. **No cache yet** -- ``.deft-cache/<source>/`` absent. This is the
+   never-bootstrapped state; the gate exits 2 (or 0 + bootstrap-state
+   message when ``--allow-missing-bootstrap`` is passed).
+2. **Cache present + audit log empty** -- consumer just ran
+   ``task triage:bootstrap`` but has not yet executed any triage
+   action. The gate exits 0 with a ``fresh bootstrap, no triage
+   actions yet`` message. Pre-#1240 this state was unreachable because
+   bootstrap left the audit log absent -- the gate fell through to
+   the config-error branch and printed ``treating as bootstrap state``
+   on a freshly-bootstrapped consumer.
+3. **Cache present + audit log non-empty** -- canonical fresh state.
+   The gate exits 0 with the ``actively triaging`` message.
+
 Subscription-awareness (#1131 / D12 of #1119):
 
 The freshness check is scoped to the consumer's
@@ -614,13 +632,47 @@ def evaluate(
         if for_issue_result.code != 0:
             return for_issue_result
 
+    # #1240: distinguish "fresh bootstrap, no triage actions yet" from
+    # "actively triaging". A zero-length audit log indicates the consumer
+    # just ran ``task triage:bootstrap`` (step 5 seeded the empty file)
+    # but has not yet emitted any triage decision; the gate is still
+    # clean but the language acknowledges the operator's mental state.
+    audit_state = _audit_log_state(candidates)
+    if audit_state == "empty":
+        state_phrase = "fresh bootstrap, no triage actions yet"
+    else:
+        state_phrase = "actively triaging"
     msg = (
         f"✓ deft cache-fresh: {resolved_repo} -- {len(scoped_meta_paths)} entry/ies "
-        f"in scope; newest fetched {age_h:.1f}h ago (max-age={max_age_h}h)."
+        f"in scope; newest fetched {age_h:.1f}h ago (max-age={max_age_h}h); "
+        f"{state_phrase}."
     )
     if for_issue is not None:
         msg += f" Issue #{for_issue} latest decision = accept; in subscription scope."
     return GateResult(0, msg)
+
+
+def _audit_log_state(candidates: Path) -> str:
+    """Return one of ``"empty"`` / ``"populated"`` (#1240).
+
+    A zero-length file (post-#1240 bootstrap seed) is ``empty``; any
+    file that parses at least one non-blank line is ``populated``.
+    Errors reading the file fall back to ``empty`` so a corrupted
+    audit log doesn't claim the consumer is actively triaging.
+    """
+    try:
+        if candidates.stat().st_size == 0:
+            return "empty"
+    except OSError:
+        return "empty"
+    try:
+        with candidates.open(encoding="utf-8") as fh:
+            for raw_line in fh:
+                if raw_line.strip():
+                    return "populated"
+    except OSError:
+        return "empty"
+    return "empty"
 
 
 def _gate_for_issue(

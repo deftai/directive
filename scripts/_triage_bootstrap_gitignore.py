@@ -1,10 +1,10 @@
-"""_triage_bootstrap_gitignore.py -- gitignore-ensure helpers (#883 Story 3).
+"""_triage_bootstrap_gitignore.py -- gitignore-ensure + audit-log seed helpers.
 
 Extracted from :mod:`triage_bootstrap` under #952 to keep the parent
 module under the 1000-line MUST limit from ``coding/coding.md``. The
 helpers are pure (no module-level state) and operate on the consumer
-project's ``.gitignore`` only; nothing here touches the cache, audit
-log, or scope vBRIEF state.
+project's ``.gitignore`` and ``vbrief/.eval/`` scratch directory only;
+nothing here touches the cache or scope vBRIEF state.
 
 Public surface (stable for :mod:`triage_bootstrap` re-exports):
 
@@ -12,6 +12,7 @@ Public surface (stable for :mod:`triage_bootstrap` re-exports):
 - :data:`GITIGNORE_EVAL_LINE` -- canonical ``vbrief/.eval/`` line.
 - :func:`step_ensure_gitignore_entry` -- bootstrap step 3.
 - :func:`step_ensure_gitignore_eval_dir` -- bootstrap step 4.
+- :func:`step_seed_candidates_log` -- bootstrap step 5 (#1240).
 
 Internal helpers (underscore-prefixed) MUST NOT be imported from
 outside :mod:`triage_bootstrap`. The companion ``StepOutcome`` dataclass
@@ -204,4 +205,68 @@ def step_ensure_gitignore_eval_dir(project_root: Path) -> StepOutcome:
             f"{GITIGNORE_EVAL_LINE} is commented out (operator opt-in to "
             "commit triage audit/eval scratch; not re-adding)"
         ),
+    )
+
+
+#: Canonical relative location of the audit log; mirrors
+#: :data:`triage_bootstrap.AUDIT_LOG_RELPATH` (re-stated here to avoid an
+#: import cycle with the parent module).
+_CANDIDATES_RELPATH: Path = Path("vbrief") / ".eval" / "candidates.jsonl"
+
+
+def step_seed_candidates_log(project_root: Path) -> StepOutcome:
+    """Ensure ``vbrief/.eval/candidates.jsonl`` exists (#1240 option A).
+
+    Bootstrap previously left the audit log absent on the happy path
+    (no items to backfill). ``task verify:cache-fresh`` then exited
+    with the ``treating as bootstrap state`` message because it could
+    not distinguish a never-bootstrapped consumer from a freshly-
+    bootstrapped one. Per issue #1240 option A we seed an empty
+    zero-length ``candidates.jsonl`` so the two surfaces agree on a
+    single state machine: post-bootstrap the gate sees both the cache
+    AND the audit log, and reports ``fresh bootstrap, no triage
+    actions yet`` (or the canonical fresh / actively-triaging message
+    once decisions are recorded).
+
+    Idempotent: a pre-existing audit log (zero-length or filled) is
+    left untouched. The step succeeds with a no-op message in that
+    case so a re-run of ``task triage:bootstrap`` does not perturb
+    existing audit state.
+    """
+    outcome_cls = _outcome_cls()
+    audit_path = project_root / _CANDIDATES_RELPATH
+    audit_dir = audit_path.parent
+    try:
+        audit_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        return outcome_cls(
+            name="seed_candidates_log",
+            ok=False,
+            message=f"could not create {audit_dir}",
+            error=str(exc),
+        )
+    if audit_path.exists():
+        return outcome_cls(
+            name="seed_candidates_log",
+            ok=True,
+            message=f"{audit_path.relative_to(project_root)} already present (no-op)",
+            details={"created": False, "already_present": True},
+        )
+    try:
+        # Zero-byte touch: open in append mode + close. open("a") is
+        # the canonical "create if missing, otherwise noop" primitive
+        # and avoids race conditions on concurrent bootstrap runs.
+        audit_path.touch()
+    except OSError as exc:
+        return outcome_cls(
+            name="seed_candidates_log",
+            ok=False,
+            message=f"could not seed {audit_path}",
+            error=str(exc),
+        )
+    return outcome_cls(
+        name="seed_candidates_log",
+        ok=True,
+        message=f"created empty {audit_path.relative_to(project_root)}",
+        details={"created": True, "already_present": False},
     )

@@ -19,10 +19,10 @@ Three integration scenarios per the vBRIEF Test narrative:
    record with scan_passed=false, and the meta.json validates against
    the schema with the credentials flag recorded.
 
-These tests are hermetic (no network, no real gh) -- the fake-gh shim
-is injected via :data:`_cache_fetch._run_subprocess`. Skips when
-``DEFT_NO_NETWORK=1`` are NOT applied here because the tests do not
-touch the network even by mistake.
+These tests are hermetic (no network, no real gh) -- the fake REST
+lister is injected via :data:`_cache_fetch._paginated_lister` (#1239).
+Skips when ``DEFT_NO_NETWORK=1`` are NOT applied here because the tests
+do not touch the network even by mistake.
 """
 
 from __future__ import annotations
@@ -32,7 +32,6 @@ import json
 import sys
 from pathlib import Path
 from typing import Any
-from unittest import mock
 
 import pytest
 
@@ -45,61 +44,44 @@ cache = importlib.import_module("cache")
 _cache_fetch = importlib.import_module("_cache_fetch")
 
 
-def _proc(stdout: str, stderr: str = "", returncode: int = 0) -> mock.Mock:
-    m = mock.Mock()
-    m.stdout = stdout
-    m.stderr = stderr
-    m.returncode = returncode
-    return m
-
-
 def _issue(number: int, body: str = "Plain body.") -> dict[str, Any]:
+    """Return a REST-shape issue payload (lowercase state, snake_case timestamps)."""
     return {
         "number": number,
         "title": f"Issue {number}",
         "body": body,
-        "state": "OPEN",
-        "author": {"login": "tester"},
-        "createdAt": "2026-05-01T00:00:00Z",
-        "updatedAt": "2026-05-05T00:00:00Z",
+        "state": "open",
+        "user": {"login": "tester"},
+        "created_at": "2026-05-01T00:00:00Z",
+        "updated_at": "2026-05-05T00:00:00Z",
         "labels": [],
-        "comments": [],
-        "url": f"https://github.com/deftai/directive/issues/{number}",
+        "comments": 0,
+        "html_url": f"https://github.com/deftai/directive/issues/{number}",
     }
 
 
 def test_fetch_all_rate_limit_recovers(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Integration: 429 on first view, success on retry, entry persisted."""
-    issues_listing = json.dumps(
-        [
-            {
-                "number": 10,
-                "title": "rate-limited",
-                "state": "OPEN",
-                "updatedAt": "2026-05-05T00:00:00Z",
-            }
-        ]
-    )
-    view_attempts = {"count": 0}
+    """Integration: REST 429 on first list, success on retry, entry persisted."""
+    import gh_rest
 
-    def fake_run(cmd: list[str], **_: object) -> mock.Mock:
-        if "scm:issue:list" in cmd:
-            return _proc(issues_listing)
-        if "scm:issue:view" in cmd:
-            view_attempts["count"] += 1
-            if view_attempts["count"] == 1:
-                return _proc(
-                    "",
-                    stderr="HTTP 429 too many requests\nRetry-After: 3\n",
-                    returncode=1,
-                )
-            return _proc(json.dumps(_issue(10)))
-        return _proc("", returncode=1)
+    attempts = {"count": 0}
+
+    def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            raise gh_rest.GhRestError(
+                stderr="HTTP 429 too many requests\nRetry-After: 3\n",
+                exit_code=1,
+                endpoint="repos/deftai/directive/issues",
+                payload=None,
+                hint="",
+            )
+        return [_issue(10)]
 
     sleeps: list[float] = []
-    monkeypatch.setattr(_cache_fetch, "_run_subprocess", fake_run)
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
     monkeypatch.setattr(_cache_fetch, "_sleep", lambda s: sleeps.append(s))
 
     report = cache.cache_fetch_all(
@@ -129,42 +111,25 @@ def test_fetch_all_rate_limit_recovers(
 def test_fetch_all_partial_failure_recovery(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Integration: mid-batch error never aborts; surviving entries persist."""
-    issues_listing = json.dumps(
-        [
-            {
-                "number": 21,
-                "title": "ok-1",
-                "state": "OPEN",
-                "updatedAt": "2026-05-05T00:00:00Z",
-            },
-            {
-                "number": 22,
-                "title": "fail",
-                "state": "OPEN",
-                "updatedAt": "2026-05-05T00:00:00Z",
-            },
-            {
-                "number": 23,
-                "title": "ok-2",
-                "state": "OPEN",
-                "updatedAt": "2026-05-05T00:00:00Z",
-            },
-        ]
-    )
+    """Integration: mid-batch cache:put failure never aborts; surviving entries persist.
 
-    def fake_run(cmd: list[str], **_: object) -> mock.Mock:
-        if "scm:issue:list" in cmd:
-            return _proc(issues_listing)
-        if "scm:issue:view" in cmd:
-            num = int(cmd[cmd.index("--") + 1])
-            if num == 22:
-                # Hard 500 -- not rate-limited, no retry.
-                return _proc("", stderr="HTTP 500 internal error", returncode=1)
-            return _proc(json.dumps(_issue(num)))
-        return _proc("", returncode=1)
+    Under the #1239 REST flow, the enumeration is one round trip and
+    cohort-level failures are surfaced as :class:`CacheFetchError`. Per-issue
+    failures land on the report when ``cache_put`` rejects a payload --
+    here we simulate that by passing an issue with a non-int ``number``
+    field, which :func:`cache._render_content` defensively rejects.
+    """
+    rest_payload = [
+        _issue(21),
+        # Malformed: cache_put rejects non-int number, recorded as failure.
+        {**_issue(22), "number": "not-an-int"},
+        _issue(23),
+    ]
 
-    monkeypatch.setattr(_cache_fetch, "_run_subprocess", fake_run)
+    def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+        return rest_payload
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
     monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
 
     report = cache.cache_fetch_all(
@@ -181,7 +146,6 @@ def test_fetch_all_partial_failure_recovery(
     payload = json.loads(report.to_json())
     assert payload["succeeded"] == 2
     assert payload["failed"] == 1
-    assert any("deftai/directive/22" in f["key"] for f in payload["failures"])
 
     # Issues 21 and 23 must be persisted; issue 22 must NOT have a meta.json.
     for ok_num in (21, 23):
@@ -248,27 +212,10 @@ def test_fetch_all_triggers_eviction_on_entry_cap(
     monkeypatch.setenv("DEFT_CACHE_MAX_BYTES", "0")
     monkeypatch.setenv("DEFT_CACHE_MAX_ENTRIES", "2")
 
-    issues_listing = json.dumps(
-        [
-            {
-                "number": n,
-                "title": f"i{n}",
-                "state": "OPEN",
-                "updatedAt": "2026-05-05T00:00:00Z",
-            }
-            for n in (40, 41, 42, 43)
-        ]
-    )
+    def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+        return [_issue(n) for n in (40, 41, 42, 43)]
 
-    def fake_run(cmd: list[str], **_: object) -> mock.Mock:
-        if "scm:issue:list" in cmd:
-            return _proc(issues_listing)
-        if "scm:issue:view" in cmd:
-            num = int(cmd[cmd.index("--") + 1])
-            return _proc(json.dumps(_issue(num)))
-        return _proc("", returncode=1)
-
-    monkeypatch.setattr(_cache_fetch, "_run_subprocess", fake_run)
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
     monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
 
     report = cache.cache_fetch_all(

@@ -1,0 +1,25 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1240",
+    "updated": "2026-05-19T19:36:01Z"
+  },
+  "plan": {
+    "title": "bug(verify:cache-fresh): still reports 'bootstrap state' after a successful triage:bootstrap",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(verify:cache-fresh): still reports 'bootstrap state' after a successful triage:bootstrap",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1240",
+      "Overview": "# bug(verify:cache-fresh): P3 — gate still says \"treating as bootstrap state\" after a successful `task triage:bootstrap`\r\n\r\n## Severity\r\nP3 — wording / surface coherence. Not blocking, but the two surfaces (`triage:bootstrap` and `verify:cache-fresh`) disagree on what \"bootstrap\" means.\r\n\r\n## Repro\r\n\r\n```pwsh\r\ntask triage:bootstrap -- --json --state=open\r\ntask verify:cache-fresh\r\n```\r\n\r\nBootstrap creates 396 issue dirs at `.deft-cache/github-issue/deftai/directive/`. `verify:cache-fresh` then prints:\r\n\r\n```\r\n✓ deft cache-fresh: vbrief\\.eval\\candidates.jsonl absent and --allow-missing-bootstrap was passed -- treating as bootstrap state.\r\n```\r\n\r\nThe user's mental model is: \"I just bootstrapped — why does the gate still call me a bootstrap consumer?\" Answer: `verify:cache-fresh` also requires `vbrief/.eval/candidates.jsonl`, which `triage:bootstrap` does not seed.\r\n\r\n## Fix candidates\r\n\r\n- **A.** `triage:bootstrap` seeds an empty `vbrief/.eval/candidates.jsonl` (zero-length file) as part of step 4 (the same step that already mutates `.gitignore`). After bootstrap, the gate sees both the cache AND the audit log and stops claiming \"bootstrap state\".\r\n- **B.** `verify:cache-fresh` rewrites the message so it doesn't conflate \"no audit log yet\" with \"consumer hasn't bootstrapped\". Distinguish: cache present + audit log absent = \"fresh bootstrap, no triage actions yet\" (not \"bootstrap state\").\r\n\r\nOption A is cleaner because it brings the two surfaces into agreement on a single state machine. Option B is the smaller change.\r\n\r\nEither way, the message should accurately describe the underlying state.\r\n\r\n## Acceptance criteria\r\n\r\n- After `task triage:bootstrap`, `task verify:cache-fresh` no longer claims \"treating as bootstrap state\" if the cache was populated successfully.\r\n- The message correctly distinguishes \"no cache yet\" / \"fresh bootstrap, no triage actions yet\" / \"actively triaging\" states.\r\n- Regression test exercises each of the three states.\r\n\r\n## Refs\r\n\r\n- Parent: #1119\r\n- Source: `scripts/preflight_cache.py` (gate), `scripts/triage_bootstrap.py` (writer)\r\n- Dogfood run that surfaced this: orchestrator session 2026-05-19T19:14Z\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1240",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1240: bug(verify:cache-fresh): still reports 'bootstrap state' after a successful triage:bootstrap"
+      }
+    ],
+    "updated": "2026-05-19T19:35:46Z"
+  }
+}

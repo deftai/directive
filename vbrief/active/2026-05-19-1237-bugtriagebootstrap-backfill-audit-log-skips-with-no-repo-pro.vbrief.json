@@ -1,0 +1,25 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1237",
+    "updated": "2026-05-19T19:37:32Z"
+  },
+  "plan": {
+    "title": "bug(triage:bootstrap): backfill_audit_log skips with 'no --repo provided' while step 1 inferred the repo",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(triage:bootstrap): backfill_audit_log skips with 'no --repo provided' while step 1 inferred the repo",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1237",
+      "Overview": "# bug(triage:bootstrap): P2 — `backfill_audit_log` step skips with \"no --repo provided\" while step 1 in the same run inferred the repo\r\n\r\n## Severity\r\nP2 — bootstrap UX gap. The bootstrap completes ok=true overall but a step silently no-ops on the happy path.\r\n\r\n## Repro\r\n\r\n```pwsh\r\ntask triage:bootstrap -- --json --state=open\r\n```\r\n\r\n(no explicit `--repo`)\r\n\r\nObserve in the JSON recap:\r\n\r\n- Step 1 `populate_cache`: `ok=true`, `details.repo=\"deftai/directive\"` — inferred from `git remote get-url origin`.\r\n- Step 2 `backfill_audit_log`: `ok=true`, `details.skipped=\"no-repo\"`, message `\"no --repo provided; pass --repo OWNER/NAME to backfill\"`.\r\n\r\nSo step 1's fallback chain (explicit flag → env var → git origin) successfully resolves the repo, but step 2 does not consult the same chain and silently skips on the no-explicit-flag path.\r\n\r\n## Fix\r\n\r\nRefactor `scripts/triage_bootstrap.py` so each step that needs a repo slug uses a shared resolver (the one step 1 already uses, or `scripts/preflight_cache.py::_infer_repo_from_git`). All steps should arrive at the same answer for the same invocation.\r\n\r\n## Acceptance criteria\r\n\r\n- `task triage:bootstrap -- --json --state=open` (no `--repo`) produces a recap where every step that needs a repo reports the same inferred slug.\r\n- The \"no-repo\" skip path only fires when none of explicit-flag / env-var / git-origin can resolve.\r\n- Regression test: bootstrap from a clean clone with `origin` set; assert no step skipped with `details.skipped=\"no-repo\"`.\r\n\r\n## Refs\r\n\r\n- Parent: #1119\r\n- Source: `scripts/triage_bootstrap.py` (step 2), `scripts/preflight_cache.py::_infer_repo_from_git` (canonical resolver)\r\n- Dogfood run that surfaced this: orchestrator session 2026-05-19T19:14Z\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1237",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1237: bug(triage:bootstrap): backfill_audit_log skips with 'no --repo provided' while step 1 inferred the repo"
+      }
+    ],
+    "updated": "2026-05-19T19:37:25Z"
+  }
+}

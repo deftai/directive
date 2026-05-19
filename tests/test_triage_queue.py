@@ -390,6 +390,87 @@ def test_load_cached_issues_include_closed(tmp_path: Path):
 
 
 # ---------------------------------------------------------------------------
+# #1236 regression: pre-migration cached payloads carry uppercase ``"OPEN"``
+# state (GraphQL convention). The reader-side defensive normalization must
+# treat both ``"OPEN"`` and ``"open"`` as equivalent so any consumer who
+# bootstrapped before the #1239 writer migration still surfaces open issues.
+# Without the lowercase compare, ``task triage:queue`` returned
+# ``(no cached issues -- run task triage:bootstrap first)`` even with 396
+# entries on disk (the dogfood failure documented in #1236).
+# ---------------------------------------------------------------------------
+
+
+def test_load_cached_issues_handles_uppercase_open_state(tmp_path: Path):
+    """#1236: uppercase ``"OPEN"`` from pre-migration cache MUST surface as open."""
+    cache_root = tmp_path / ".deft-cache"
+    # Simulate the pre-#1239 GraphQL-shape cached payload: state field is
+    # the canonical GraphQL uppercase form.
+    _write_cached_issue(cache_root, REPO, _issue(401, state="OPEN"))
+    _write_cached_issue(cache_root, REPO, _issue(402, state="OPEN"))
+    issues = triage_queue.load_cached_issues(REPO, project_root=tmp_path)
+    nums = sorted(i["number"] for i in issues)
+    assert nums == [401, 402], (
+        "reader-side lowercase normalization (#1236) must accept the legacy "
+        f"uppercase OPEN state; got {nums!r}"
+    )
+    # Normalised state on the returned dict is lowercase so downstream
+    # consumers can rely on the canonical form.
+    for issue in issues:
+        assert issue["state"] == "open"
+
+
+def test_load_cached_issues_handles_uppercase_closed_excluded_by_default(
+    tmp_path: Path,
+):
+    """#1236: uppercase ``"CLOSED"`` is still treated as a closed exclusion."""
+    cache_root = tmp_path / ".deft-cache"
+    _write_cached_issue(cache_root, REPO, _issue(403, state="OPEN"))
+    _write_cached_issue(cache_root, REPO, _issue(404, state="CLOSED"))
+    issues = triage_queue.load_cached_issues(REPO, project_root=tmp_path)
+    nums = sorted(i["number"] for i in issues)
+    assert nums == [403]
+
+
+def test_load_cached_issues_mixed_case_payloads_surface_together(tmp_path: Path):
+    """#1236: a cache with both pre- and post-migration entries works.
+
+    During the migration window, a consumer's cache will carry both
+    legacy uppercase ``"OPEN"`` entries (from prior bootstraps) AND new
+    lowercase ``"open"`` entries (written by #1239). Both must surface.
+    """
+    cache_root = tmp_path / ".deft-cache"
+    _write_cached_issue(cache_root, REPO, _issue(501, state="OPEN"))  # pre-migration
+    _write_cached_issue(cache_root, REPO, _issue(502, state="open"))  # post-migration
+    issues = triage_queue.load_cached_issues(REPO, project_root=tmp_path)
+    nums = sorted(i["number"] for i in issues)
+    assert nums == [501, 502]
+
+
+def test_load_cached_issues_build_queue_surfaces_uppercase_entries(
+    tmp_path: Path,
+):
+    """#1236 end-to-end: load + build_queue returns the upper-case items.
+
+    This is the regression that exactly mirrors the dogfood failure
+    (``task triage:queue`` returned zero items despite 396 cached
+    issues). Building the queue against an uppercase-state fixture must
+    surface every issue, not drop them silently.
+    """
+    cache_root = tmp_path / ".deft-cache"
+    for n in (601, 602, 603):
+        _write_cached_issue(cache_root, REPO, _issue(n, state="OPEN"))
+    issues = triage_queue.load_cached_issues(REPO, project_root=tmp_path)
+    items = triage_queue.build_queue(
+        issues,
+        [],
+        repo=REPO,
+        options=triage_queue.QueueBuildOptions(limit=10),
+    )
+    nums = sorted(i.number for i in items)
+    assert nums == [601, 602, 603]
+
+
+# ---------------------------------------------------------------------------
 # Show renderer
 # ---------------------------------------------------------------------------
 

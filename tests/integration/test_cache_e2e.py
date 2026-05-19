@@ -24,8 +24,9 @@ hard-fail + 429 recovery), but covers the full happy-path E2E:
    meta.json freshness check); zero new ``cache:put`` audit records are
    written.
 
-All tests are hermetic via the ``_cache_fetch._run_subprocess`` test seam
-established under #883 Story 2 -- no real ``gh`` / ``ghx`` / network.
+All tests are hermetic via the ``_cache_fetch._paginated_lister`` test
+seam established under #1239 (REST migration) -- no real ``gh`` / ``ghx``
+/ network.
 """
 
 from __future__ import annotations
@@ -35,7 +36,6 @@ import json
 import sys
 from pathlib import Path
 from typing import Any
-from unittest import mock
 
 import pytest
 
@@ -58,7 +58,7 @@ FAKE_NUMBERS: tuple[int, ...] = (101, 102, 103, 104, 105)
 
 
 def _fake_issue(number: int) -> dict[str, Any]:
-    """Return a clean fake-gh issue payload that passes the scanner."""
+    """Return a clean REST-shape issue payload that passes the scanner."""
 
     return {
         "number": number,
@@ -68,62 +68,26 @@ def _fake_issue(number: int) -> dict[str, Any]:
             f"End-to-end integration fixture for issue {number}.\n"
             "No credentials, no injection-heading tokens, no invisible Unicode.\n"
         ),
-        "state": "OPEN",
-        "author": {"login": "tester"},
-        "createdAt": "2026-05-01T00:00:00Z",
-        "updatedAt": "2026-05-05T00:00:00Z",
+        "state": "open",
+        "user": {"login": "tester"},
+        "created_at": "2026-05-01T00:00:00Z",
+        "updated_at": "2026-05-05T00:00:00Z",
         "labels": [{"name": "triage"}],
-        "comments": [],
-        "url": f"https://github.com/{REPO}/issues/{number}",
+        "comments": 0,
+        "html_url": f"https://github.com/{REPO}/issues/{number}",
     }
-
-
-def _proc(stdout: str, stderr: str = "", returncode: int = 0) -> mock.Mock:
-    m = mock.Mock()
-    m.stdout = stdout
-    m.stderr = stderr
-    m.returncode = returncode
-    return m
-
-
-def _make_fake_run() -> Any:
-    """Build a fake _run_subprocess driver covering scm:issue:list + view."""
-
-    listing = json.dumps(
-        [
-            {
-                "number": n,
-                "title": f"Fake issue {n}",
-                "state": "OPEN",
-                "updatedAt": "2026-05-05T00:00:00Z",
-            }
-            for n in FAKE_NUMBERS
-        ]
-    )
-
-    def fake_run(cmd: list[str], **_: object) -> mock.Mock:
-        if "scm:issue:list" in cmd:
-            return _proc(listing)
-        if "scm:issue:view" in cmd:
-            # The first positional argv after '--' is the issue number.
-            try:
-                idx = cmd.index("--")
-                number = int(cmd[idx + 1])
-            except (ValueError, IndexError):
-                return _proc("", stderr="malformed scm:issue:view cmd", returncode=1)
-            return _proc(json.dumps(_fake_issue(number)))
-        return _proc("", stderr=f"unexpected cmd: {cmd!r}", returncode=1)
-
-    return fake_run
 
 
 @pytest.fixture
 def fake_cache_root(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> Path:
-    """Wire the fake-gh shim into _cache_fetch and yield a tmp cache root."""
+    """Wire the fake REST lister into _cache_fetch and yield a tmp cache root."""
 
-    monkeypatch.setattr(_cache_fetch, "_run_subprocess", _make_fake_run())
+    def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+        return [_fake_issue(n) for n in FAKE_NUMBERS]
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
     monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
     return tmp_path
 
@@ -170,7 +134,9 @@ def test_fetch_all_populates_unified_layout(fake_cache_root: Path) -> None:
         # raw.json round-trips the fake-gh payload.
         raw = json.loads((edir / "raw.json").read_text(encoding="utf-8"))
         assert raw["number"] == n
-        assert raw["url"].endswith(f"/{REPO}/issues/{n}")
+        assert raw["html_url"].endswith(f"/{REPO}/issues/{n}")
+        # #1239: REST canonical shape persists lowercase state.
+        assert raw["state"] == "open"
 
 
 def test_cache_get_returns_meta_envelope(fake_cache_root: Path) -> None:

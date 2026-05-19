@@ -33,8 +33,8 @@ This test file enforces three guarantees from the fix:
    process. This is the load-bearing property for #952.
 
 Hermeticity: the cache layer is plumbed via the
-``_cache_fetch._run_subprocess`` test seam established under #883
-Story 2 (see :mod:`tests.integration.test_cache_e2e`). No real ``gh``,
+``_cache_fetch._paginated_lister`` REST seam established under #1239
+(see :mod:`tests.integration.test_cache_e2e`). No real ``gh``,
 ``ghx``, ``task``, or ``git`` invocations.
 """
 
@@ -42,7 +42,6 @@ from __future__ import annotations
 
 import importlib
 import io
-import json
 import sys
 import threading
 import time
@@ -74,6 +73,7 @@ SCALE_ISSUE_COUNT: int = 60
 
 
 def _fake_issue(number: int) -> dict[str, Any]:
+    """REST-shape issue payload (#1239 migration)."""
     return {
         "number": number,
         "title": f"Scale fixture issue {number}",
@@ -82,60 +82,26 @@ def _fake_issue(number: int) -> dict[str, Any]:
             f"Scale-smoke regression body for issue {number}.\n"
             "No credentials, no injection-heading tokens, no invisible Unicode.\n"
         ),
-        "state": "OPEN",
-        "author": {"login": "tester"},
-        "createdAt": "2026-05-01T00:00:00Z",
-        "updatedAt": "2026-05-05T00:00:00Z",
+        "state": "open",
+        "user": {"login": "tester"},
+        "created_at": "2026-05-01T00:00:00Z",
+        "updated_at": "2026-05-05T00:00:00Z",
         "labels": [{"name": "triage"}],
-        "comments": [],
-        "url": f"https://github.com/{REPO}/issues/{number}",
+        "comments": 0,
+        "html_url": f"https://github.com/{REPO}/issues/{number}",
     }
-
-
-def _proc(stdout: str, stderr: str = "", returncode: int = 0) -> mock.Mock:
-    m = mock.Mock()
-    m.stdout = stdout
-    m.stderr = stderr
-    m.returncode = returncode
-    return m
-
-
-def _make_fake_run(numbers: tuple[int, ...]) -> Any:
-    """Build a fake ``_run_subprocess`` driver covering scm:issue:list + view."""
-
-    listing = json.dumps(
-        [
-            {
-                "number": n,
-                "title": f"Scale fixture issue {n}",
-                "state": "OPEN",
-                "updatedAt": "2026-05-05T00:00:00Z",
-            }
-            for n in numbers
-        ]
-    )
-
-    def fake_run(cmd: list[str], **_: object) -> mock.Mock:
-        if "scm:issue:list" in cmd:
-            return _proc(listing)
-        if "scm:issue:view" in cmd:
-            try:
-                idx = cmd.index("--")
-                number = int(cmd[idx + 1])
-            except (ValueError, IndexError):
-                return _proc("", stderr="malformed scm:issue:view cmd", returncode=1)
-            return _proc(json.dumps(_fake_issue(number)))
-        return _proc("", stderr=f"unexpected cmd: {cmd!r}", returncode=1)
-
-    return fake_run
 
 
 @pytest.fixture
 def fake_cache(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Wire the fake-gh shim + zero-delay sleep into ``_cache_fetch``."""
+    """Wire the fake REST lister + zero-delay sleep into ``_cache_fetch``."""
 
     numbers = tuple(range(1, SCALE_ISSUE_COUNT + 1))
-    monkeypatch.setattr(_cache_fetch, "_run_subprocess", _make_fake_run(numbers))
+
+    def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+        return [_fake_issue(n) for n in numbers]
+
+    monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
     monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
 
 
@@ -180,12 +146,13 @@ def test_run_bootstrap_completes_within_wall_clock_cap(
         f"bootstrap exceeded the 30s hermetic wall-clock cap (elapsed={elapsed:.2f}s); "
         "the #952 fix must keep the orchestrator bounded for backlog-scale runs"
     )
-    assert len(result.steps) == 4
+    assert len(result.steps) == 5
     assert [s.name for s in result.steps] == [
         "populate_cache",
         "backfill_audit_log",
         "ensure_gitignore_entry",
         "ensure_gitignore_eval_dir",
+        "seed_candidates_log",
     ]
     assert all(s.ok for s in result.steps), (
         f"every step must report ok=True; got {[(s.name, s.ok) for s in result.steps]}"
@@ -238,16 +205,18 @@ def test_run_bootstrap_emits_per_step_progress(
     # Every step should have a start + done line. The fake fixture is
     # clean, so no step should hit the 'error' / 'timeout' branches.
     expected_starts = [
-        "triage:bootstrap step 1/4 populate_cache -- starting",
-        "triage:bootstrap step 2/4 backfill_audit_log -- starting",
-        "triage:bootstrap step 3/4 ensure_gitignore_entry -- starting",
-        "triage:bootstrap step 4/4 ensure_gitignore_eval_dir -- starting",
+        "triage:bootstrap step 1/5 populate_cache -- starting",
+        "triage:bootstrap step 2/5 backfill_audit_log -- starting",
+        "triage:bootstrap step 3/5 ensure_gitignore_entry -- starting",
+        "triage:bootstrap step 4/5 ensure_gitignore_eval_dir -- starting",
+        "triage:bootstrap step 5/5 seed_candidates_log -- starting",
     ]
     expected_dones = [
-        "triage:bootstrap step 1/4 populate_cache -- done",
-        "triage:bootstrap step 2/4 backfill_audit_log -- done",
-        "triage:bootstrap step 3/4 ensure_gitignore_entry -- done",
-        "triage:bootstrap step 4/4 ensure_gitignore_eval_dir -- done",
+        "triage:bootstrap step 1/5 populate_cache -- done",
+        "triage:bootstrap step 2/5 backfill_audit_log -- done",
+        "triage:bootstrap step 3/5 ensure_gitignore_entry -- done",
+        "triage:bootstrap step 4/5 ensure_gitignore_eval_dir -- done",
+        "triage:bootstrap step 5/5 seed_candidates_log -- done",
     ]
     for stem in expected_starts + expected_dones:
         assert any(ln.startswith(stem) for ln in lines), (
@@ -356,8 +325,8 @@ def test_run_bootstrap_watchdog_emits_timeout_progress_and_structured_exit(
     elapsed = time.monotonic() - started
 
     # (a) Watchdog fired on the populate step.
-    assert len(result.steps) == 4, (
-        f"orchestrator must continue past the wedged fetch and run all four "
+    assert len(result.steps) == 5, (
+        f"orchestrator must continue past the wedged fetch and run all five "
         f"steps; got {[(s.name, s.ok) for s in result.steps]}"
     )
     populate = result.steps[0]
@@ -386,12 +355,12 @@ def test_run_bootstrap_watchdog_emits_timeout_progress_and_structured_exit(
     # gone unnoticed.
     lines = [ln for ln in sink.getvalue().splitlines() if ln.strip()]
     assert any(
-        ln.startswith("triage:bootstrap step 1/4 populate_cache -- starting")
+        ln.startswith("triage:bootstrap step 1/5 populate_cache -- starting")
         for ln in lines
     ), f"missing starting line; emitted={lines!r}"
     timeout_lines = [
         ln for ln in lines
-        if ln.startswith("triage:bootstrap step 1/4 populate_cache -- timeout")
+        if ln.startswith("triage:bootstrap step 1/5 populate_cache -- timeout")
     ]
     assert timeout_lines, (
         f"orchestrator must emit a ``timeout`` progress line for the wedged "
@@ -400,7 +369,7 @@ def test_run_bootstrap_watchdog_emits_timeout_progress_and_structured_exit(
     # The non-fetch steps still emit their own progress; this confirms
     # the orchestrator did not bail out at the watchdog.
     assert any(
-        ln.startswith("triage:bootstrap step 3/4 ensure_gitignore_entry -- done")
+        ln.startswith("triage:bootstrap step 3/5 ensure_gitignore_entry -- done")
         for ln in lines
     ), f"post-watchdog steps must still run; emitted={lines!r}"
 

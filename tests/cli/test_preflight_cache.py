@@ -759,6 +759,87 @@ class TestCLI:
 
 
 # ---------------------------------------------------------------------------
+# Suite 7b: #1240 three-state messaging (no cache / fresh bootstrap / triaging)
+# ---------------------------------------------------------------------------
+
+
+class TestThreeStateMessaging:
+    """Pin the #1240 state machine: the OK message distinguishes three
+    consumer states so ``task verify:cache-fresh`` no longer claims
+    ``treating as bootstrap state`` after a successful
+    ``task triage:bootstrap``.
+    """
+
+    def test_no_cache_exits_two_or_bootstrap_state_on_override(
+        self, preflight, tmp_path
+    ):
+        """State 1 (no cache): exit 2 by default, exit 0 + bootstrap-state on override."""
+        # No cache directory at all.
+        result = preflight.evaluate(tmp_path, repo="deftai/directive")
+        assert result.code == 2
+        assert "not present" in result.message or "not populated" in result.message
+
+        # With --allow-missing-bootstrap, exit 0 with bootstrap-state hint.
+        result_override = preflight.evaluate(
+            tmp_path,
+            repo="deftai/directive",
+            allow_missing_bootstrap=True,
+        )
+        assert result_override.code == 0
+        assert "bootstrap state" in result_override.message
+
+    def test_cache_present_audit_empty_says_fresh_bootstrap(
+        self, preflight, tmp_path
+    ):
+        """State 2 (cache + empty audit log): "fresh bootstrap, no triage actions yet".
+
+        Mirrors the post-#1240 ``task triage:bootstrap`` end state where
+        step 5 has seeded ``vbrief/.eval/candidates.jsonl`` as a zero-length
+        file. The gate must exit 0 AND its message must accurately describe
+        the state.
+        """
+        now = datetime(2026, 5, 19, 19, tzinfo=UTC)
+        _write_meta(tmp_path, "deftai/directive", 1239, now - timedelta(hours=1))
+        # Empty audit log -- the bootstrap step-5 seed shape.
+        audit_path = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
+        audit_path.parent.mkdir(parents=True, exist_ok=True)
+        audit_path.touch()
+        assert audit_path.stat().st_size == 0
+
+        result = preflight.evaluate(
+            tmp_path, repo="deftai/directive", now=now
+        )
+        assert result.code == 0
+        assert "fresh bootstrap, no triage actions yet" in result.message, (
+            f"#1240 state 2 message wrong; got {result.message!r}"
+        )
+        # CRITICAL: must NOT use the pre-#1240 "bootstrap state" phrasing
+        # that conflated never-bootstrapped with freshly-bootstrapped.
+        assert "treating as bootstrap state" not in result.message
+
+    def test_cache_present_audit_populated_says_actively_triaging(
+        self, preflight, tmp_path
+    ):
+        """State 3 (cache + populated audit log): "actively triaging"."""
+        now = datetime(2026, 5, 19, 19, tzinfo=UTC)
+        _write_meta(tmp_path, "deftai/directive", 1239, now - timedelta(hours=1))
+        _write_candidates(
+            tmp_path,
+            [_decision("deftai/directive", 1239, "accept", timestamp=now)],
+        )
+
+        result = preflight.evaluate(
+            tmp_path, repo="deftai/directive", now=now
+        )
+        assert result.code == 0
+        assert "actively triaging" in result.message, (
+            f"#1240 state 3 message wrong; got {result.message!r}"
+        )
+        # "fresh bootstrap" phrasing is reserved for state 2 only.
+        assert "fresh bootstrap" not in result.message
+
+
+# ---------------------------------------------------------------------------
 # Suite 8: `task check` aggregate wiring smoke
 # ---------------------------------------------------------------------------
 

@@ -279,21 +279,30 @@ def test_ensure_gitignore_respects_commented_opt_in(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_run_bootstrap_appends_four_step_outcomes(tmp_path: Path) -> None:
+def test_run_bootstrap_appends_five_step_outcomes(tmp_path: Path) -> None:
+    """#1240: bootstrap now ships five steps; step 5 seeds the audit log."""
     cache = _build_fake_cache()
     result = triage_bootstrap.run_bootstrap(
         project_root=tmp_path,
         repo="deftai/directive",
         cache_module=cache,
     )
-    assert len(result.steps) == 4
+    assert len(result.steps) == 5
     assert [s.name for s in result.steps] == [
         "populate_cache",
         "backfill_audit_log",
         "ensure_gitignore_entry",
         "ensure_gitignore_eval_dir",
+        "seed_candidates_log",
     ]
     assert result.exit_code == 0
+    # #1240: audit log is seeded post-bootstrap (zero-length file exists).
+    audit_path = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
+    assert audit_path.exists(), (
+        "step 5 (seed_candidates_log) MUST leave candidates.jsonl present "
+        "so verify:cache-fresh can distinguish never-bootstrapped from "
+        "freshly-bootstrapped"
+    )
 
 
 def test_run_bootstrap_idempotent_re_run(tmp_path: Path) -> None:
@@ -319,3 +328,124 @@ def test_run_bootstrap_idempotent_re_run(tmp_path: Path) -> None:
     assert result2.exit_code == 0
     assert audit_first == audit_second
     assert git_first == git_second
+
+
+# ---------------------------------------------------------------------------
+# #1237 regression: backfill_audit_log must inherit the git-inferred repo
+# from the dispatcher when no explicit --repo is passed. Pre-#1237 step 2
+# silently skipped with details.skipped="no-repo" while step 1 used git
+# remote get-url origin to populate the cache.
+# ---------------------------------------------------------------------------
+
+
+def test_run_bootstrap_step2_inherits_git_inferred_repo(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#1237: every step that needs a repo sees the same inferred slug.
+
+    Reproduces the dogfood failure: ``task triage:bootstrap`` without an
+    explicit ``--repo`` flag, but with a git checkout whose ``origin``
+    resolves to ``deftai/directive``. The pre-#1237 behaviour was for
+    step 1 to infer + use the slug but step 2 to skip with
+    ``details.skipped="no-repo"`` -- this assertion pins the new
+    behaviour: step 2 sees the same slug step 1 saw, and the
+    ``"no-repo"`` skip branch is unreachable on the happy path.
+    """
+    cache = _build_fake_cache()
+    # Seed a scope vBRIEF so backfill has something to log against the
+    # inferred repo.
+    _scope_vbrief(tmp_path / "vbrief" / "proposed", "story-a", 100)
+
+    monkeypatch.setattr(
+        triage_bootstrap,
+        "_infer_repo_from_git",
+        lambda cwd=None: "deftai/directive",
+    )
+
+    result = triage_bootstrap.run_bootstrap(
+        project_root=tmp_path,
+        repo=None,  # force the dispatcher's git-inference path
+        cache_module=cache,
+    )
+
+    assert result.exit_code == 0
+    assert result.repo == "deftai/directive"
+    # Every step that needs a repo MUST see the same slug.
+    backfill = next(
+        s for s in result.steps if s.name == "backfill_audit_log"
+    )
+    assert backfill.ok is True
+    assert backfill.details.get("skipped") != "no-repo", (
+        "backfill_audit_log must inherit the inferred repo from the "
+        "dispatcher (#1237); pre-fix it would skip with no-repo"
+    )
+    assert backfill.details.get("appended", 0) >= 1
+
+    # No step in the recap has details.skipped=no-repo.
+    no_repo_skips = [
+        s.name
+        for s in result.steps
+        if s.details.get("skipped") == "no-repo"
+    ]
+    assert no_repo_skips == [], (
+        f"#1237: no step should skip with no-repo on the happy path; got {no_repo_skips!r}"
+    )
+
+
+def test_run_bootstrap_no_git_inference_keeps_backfill_skip(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#1237: when git can't resolve, every step skips with no-repo (no regression)."""
+    cache = _build_fake_cache()
+    monkeypatch.setattr(
+        triage_bootstrap, "_infer_repo_from_git", lambda cwd=None: None
+    )
+
+    result = triage_bootstrap.run_bootstrap(
+        project_root=tmp_path,
+        repo=None,
+        cache_module=cache,
+    )
+
+    # Both steps that need a repo skip with no-repo (or no-vbrief for
+    # backfill when vbrief/ is empty -- pre-existing behaviour).
+    populate = next(s for s in result.steps if s.name == "populate_cache")
+    backfill = next(s for s in result.steps if s.name == "backfill_audit_log")
+    assert populate.details.get("skipped") == "no-repo"
+    assert backfill.details.get("skipped") == "no-repo"
+
+
+# ---------------------------------------------------------------------------
+# #1240 regression: step 5 seeds an empty candidates.jsonl so
+# verify:cache-fresh can distinguish never-bootstrapped from freshly-
+# bootstrapped consumers.
+# ---------------------------------------------------------------------------
+
+
+def test_step_seed_candidates_log_creates_empty_file(tmp_path: Path) -> None:
+    """#1240: step 5 creates an empty candidates.jsonl when absent."""
+    outcome = triage_bootstrap.step_seed_candidates_log(tmp_path)
+    assert outcome.ok is True
+    assert outcome.details["created"] is True
+    audit_path = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
+    assert audit_path.exists()
+    assert audit_path.stat().st_size == 0
+
+
+def test_step_seed_candidates_log_idempotent_when_present(tmp_path: Path) -> None:
+    """#1240: step 5 is a no-op when candidates.jsonl already exists."""
+    audit_dir = tmp_path / "vbrief" / ".eval"
+    audit_dir.mkdir(parents=True)
+    audit_path = audit_dir / "candidates.jsonl"
+    audit_path.write_text(
+        '{"decision": "accept", "issue_number": 1}\n', encoding="utf-8"
+    )
+    original_bytes = audit_path.read_bytes()
+
+    outcome = triage_bootstrap.step_seed_candidates_log(tmp_path)
+
+    assert outcome.ok is True
+    assert outcome.details["already_present"] is True
+    assert outcome.details["created"] is False
+    # File content untouched: idempotent re-run must not perturb existing data.
+    assert audit_path.read_bytes() == original_bytes

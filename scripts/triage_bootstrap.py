@@ -29,6 +29,12 @@ Steps (in order):
 4. ``ensure_gitignore_eval_dir`` -- append ``vbrief/.eval/`` to
    ``.gitignore`` when absent (#915 audit-log scratch directory).
 
+5. ``seed_candidates_log`` -- ensure ``vbrief/.eval/candidates.jsonl``
+   exists as a zero-length file so ``task verify:cache-fresh`` can
+   distinguish a never-bootstrapped consumer (no cache) from a
+   freshly-bootstrapped one (cache + empty audit log). Option A of
+   issue #1240.
+
 Exit codes (three-state, mirrors ``scripts/preflight_branch.py``):
 
 - ``0`` -- bootstrap completed (or all steps were no-ops on a re-run).
@@ -140,8 +146,8 @@ class StepOutcome:
 
 #: Total number of steps executed by :func:`run_bootstrap`. Update if a
 #: step is added or removed so the ``step <i>/<TOTAL>`` numerator stays
-#: accurate.
-_TOTAL_STEPS: int = 4
+#: accurate. v0.32.0 (#1240): add step 5 ``seed_candidates_log``.
+_TOTAL_STEPS: int = 5
 
 
 def _emit_progress(
@@ -727,6 +733,7 @@ from _triage_bootstrap_gitignore import (  # noqa: E402, F401 -- re-exported pub
     GITIGNORE_LINE,
     step_ensure_gitignore_entry,
     step_ensure_gitignore_eval_dir,
+    step_seed_candidates_log,
 )
 
 # ---------------------------------------------------------------------------
@@ -755,11 +762,21 @@ def run_bootstrap(
 ) -> BootstrapResult:
     """Run the bootstrap pipeline, returning the aggregate result.
 
-    Dispatches the four mutating steps documented in the module
+    Dispatches the five mutating steps documented in the module
     docstring (populate_cache, backfill_audit_log,
-    ensure_gitignore_entry, ensure_gitignore_eval_dir) and appends one
-    :class:`StepOutcome` per step. ``len(result.steps) == 4`` is the
-    expected post-condition.
+    ensure_gitignore_entry, ensure_gitignore_eval_dir, seed_eval_dir)
+    and appends one :class:`StepOutcome` per step. ``len(result.steps)
+    == 5`` is the expected post-condition.
+
+    Repo resolution (#1237): the explicit ``repo`` argument takes
+    priority. When ``None``, the dispatcher infers from ``git remote
+    get-url origin`` ONCE up-front and threads the result through every
+    downstream step. Pre-#1237 the populate step did the inference
+    inside itself but the backfill step did not, so step 2 silently
+    no-op'd with ``details.skipped="no-repo"`` on the happy path even
+    when step 1 had resolved a slug from git origin. Lifting the
+    resolution makes the four steps see the same answer for the same
+    invocation.
 
     ``fetch_timeout_s`` is forwarded to :func:`step_populate_cache` and
     bounds the cache:fetch-all step so the orchestrator always exits
@@ -773,9 +790,20 @@ def run_bootstrap(
 
     progress_sink: Any = sys.stderr if progress is _PROGRESS_DEFAULT else progress
 
-    result = BootstrapResult(project_root=project_root, repo=repo)
+    # #1237: resolve the repo ONCE so every downstream step sees the
+    # same answer. Mirrors the precedence chain used by
+    # ``step_populate_cache`` pre-#1237 (explicit -> git remote);
+    # consolidating it here eliminates the step-2 ``skipped=no-repo``
+    # gap documented on issue #1237.
+    effective_repo: str | None = repo
+    if effective_repo is None:
+        effective_repo = _infer_repo_from_git(cwd=project_root)
 
-    repo_detail = f"repo={repo}" if repo else "repo=<infer-from-git>"
+    result = BootstrapResult(project_root=project_root, repo=effective_repo)
+
+    repo_detail = (
+        f"repo={effective_repo}" if effective_repo else "repo=<unresolved>"
+    )
     effective_timeout = (
         fetch_timeout_s if fetch_timeout_s is not None else DEFAULT_FETCH_TIMEOUT_S
     )
@@ -787,7 +815,7 @@ def run_bootstrap(
     )
     populate = step_populate_cache(
         project_root,
-        repo,
+        effective_repo,
         cache_module=cache_module,
         batch_size=batch_size,
         delay_ms=delay_ms,
@@ -804,7 +832,7 @@ def run_bootstrap(
     )
 
     _emit_progress(progress_sink, 2, "backfill_audit_log", "starting", repo_detail)
-    backfill = step_backfill_audit_log(project_root, repo)
+    backfill = step_backfill_audit_log(project_root, effective_repo)
     result.steps.append(backfill)
     _emit_progress(
         progress_sink, 2, "backfill_audit_log",
@@ -825,6 +853,17 @@ def run_bootstrap(
     _emit_progress(
         progress_sink, 4, "ensure_gitignore_eval_dir",
         "done" if gi_eval.ok else "error", gi_eval.message,
+    )
+
+    # #1240 step 5: seed the audit log so verify:cache-fresh can tell
+    # "never bootstrapped" from "freshly bootstrapped, no triage
+    # actions yet". Always runs; independent of repo resolution.
+    _emit_progress(progress_sink, 5, "seed_candidates_log", "starting")
+    seed = step_seed_candidates_log(project_root)
+    result.steps.append(seed)
+    _emit_progress(
+        progress_sink, 5, "seed_candidates_log",
+        "done" if seed.ok else "error", seed.message,
     )
 
     if any(not step.ok for step in result.steps):

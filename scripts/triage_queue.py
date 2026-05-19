@@ -438,7 +438,13 @@ def load_cached_issues(
                 n = int(entry.name)
         if not isinstance(n, int):
             continue
-        state = payload.get("state") or "open"
+        # #1236 defensive normalisation: pre-#1239 cached payloads carry
+        # GraphQL-shape uppercase ``"state": "OPEN"``; post-#1239 the REST
+        # writer canonicalises to lowercase. The reader MUST treat both
+        # as equivalent so any existing cache populated before the
+        # writer migration still surfaces open issues.
+        state_raw = payload.get("state") or "open"
+        state = state_raw.lower() if isinstance(state_raw, str) else "open"
         if state != "open" and not include_closed:
             continue
         title = payload.get("title") or ""

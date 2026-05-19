@@ -747,6 +747,7 @@ class TestPublicSurfaceContract:
         "rest_issue_view",
         "rest_pr_view",
         "rest_issue_list",
+        "rest_issue_list_paginated",  # #1239 -- cache:fetch-all REST migration
     )
 
     def test_public_helpers_constant_matches_expected(self) -> None:

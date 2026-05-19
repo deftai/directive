@@ -1,0 +1,25 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1236",
+    "updated": "2026-05-19T19:35:51Z"
+  },
+  "plan": {
+    "title": "bug(triage): triage:queue returns zero items after bootstrap (case mismatch on cached state field)",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(triage): triage:queue returns zero items after bootstrap (case mismatch on cached state field)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1236",
+      "Overview": "# bug(triage): P1 — `triage:queue` returns zero items after a successful bootstrap (case mismatch on cached `state` field)\r\n\r\n## Severity\r\n**P1 — release blocker.** The dogfood criterion from #1186 (\"the framework should be able to bootstrap its own issues and rank them\") fails as the last user-visible step.\r\n\r\n## Repro\r\n\r\n```pwsh\r\ntask triage:bootstrap -- --json --state=open\r\ntask triage:queue -- --repo deftai/directive --limit=5\r\n```\r\n\r\nExpected: ranked list of 5 cached open issues.\r\nActual: `(no cached issues -- run task triage:bootstrap first)`. Exit 0, but the message is a false negative — 396 issue directories exist under `.deft-cache/github-issue/deftai/directive/`.\r\n\r\n## Root cause\r\n\r\n`task triage:bootstrap` writes cached payloads via the GraphQL-shaped `gh` issue surface (see also #1119 follow-up Bug 4). The cached `raw.json` carries `\"state\": \"OPEN\"` (uppercase, GraphQL convention). `scripts/triage_queue.py::load_cached_issues` filters on `state != \"open\"` (lowercase), so every cached issue is discarded.\r\n\r\n## Fix candidates\r\n\r\n- **Reader-side (smaller change):** lowercase-compare in `scripts/triage_queue.py::load_cached_issues`. Add a regression test that loads a cached `state: \"OPEN\"` fixture and asserts the issue surfaces.\r\n- **Writer-side (more correct):** normalize the `state` field on write in `scripts/cache.py` (and any other writers), so cached payloads carry the canonical lowercase form. Add a backfill test that migrates existing uppercase entries on read.\r\n\r\nRecommend reader-side for the immediate release-blocker fix; writer-side as part of #954 follow-up (Bug 4 below) when the GraphQL → REST migration happens.\r\n\r\n## Acceptance criteria\r\n\r\n- `task triage:bootstrap -- --state=open` followed by `task triage:queue -- --repo deftai/directive --limit=5` returns 5 ranked issues with no other intervention.\r\n- Regression test exercises both `state: \"OPEN\"` and `state: \"open\"` cached payloads.\r\n- `task check` remains green.\r\n\r\n## Refs\r\n\r\n- Parent: #1119 (architectural altitude correction; cache-as-operator-working-set is the umbrella whose closing dogfood surfaced this)\r\n- Source readers / writers: `scripts/triage_queue.py`, `scripts/cache.py`, `scripts/triage_bootstrap.py`\r\n- Related: #1186 (consumer-example closing criterion), #954 (REST over GraphQL — Bug 4 in this dogfood report)\r\n- Dogfood run that surfaced this: orchestrator session 2026-05-19T19:14Z, bootstrap exit 0, 396 issues cached, queue returned zero\r\n"
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1236",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1236: bug(triage): triage:queue returns zero items after bootstrap (case mismatch on cached state field)"
+      }
+    ],
+    "updated": "2026-05-19T19:35:37Z"
+  }
+}

@@ -141,8 +141,9 @@ import scm  # noqa: E402
 #: scripts/release.py (60s) so a hung gh process never wedges the caller.
 DEFAULT_TIMEOUT_S: int = 60
 
-#: Public surface -- the eight helpers exported by this module (seven
-#: from #961 plus :func:`rest_issue_list` from #976). The module-level
+#: Public surface -- the nine helpers exported by this module (seven
+#: from #961, :func:`rest_issue_list` from #976, plus the paginating
+#: :func:`rest_issue_list_paginated` from #1239). The module-level
 #: test TestPublicSurfaceContract pins this set; adding a helper requires
 #: updating the test in lockstep.
 PUBLIC_HELPERS: tuple[str, ...] = (
@@ -154,7 +155,20 @@ PUBLIC_HELPERS: tuple[str, ...] = (
     "rest_issue_view",
     "rest_pr_view",
     "rest_issue_list",
+    "rest_issue_list_paginated",
 )
+
+#: Maximum ``per_page`` permitted by the GitHub REST API. Hardcoded by
+#: the upstream contract; documented at
+#: https://docs.github.com/en/rest/issues/issues#list-repository-issues.
+REST_MAX_PER_PAGE: int = 100
+
+#: Hard safety cap on the number of pages :func:`rest_issue_list_paginated`
+#: will fetch before raising. 100 pages * 100 per page = 10,000 issues;
+#: any cohort larger than that is a runaway and should be sliced by the
+#: caller via ``limit`` rather than silently consuming the REST core
+#: bucket.
+REST_PAGINATION_MAX_PAGES: int = 100
 
 
 # ---------------------------------------------------------------------------
@@ -732,14 +746,117 @@ def rest_pr_view(repo: str, n: int) -> dict[str, Any]:
     )
 
 
+def rest_issue_list_paginated(
+    repo: str,
+    *,
+    state: str = "open",
+    labels: tuple[str, ...] = (),
+    per_page: int = REST_MAX_PER_PAGE,
+    limit: int | None = None,
+    exclude_pulls: bool = True,
+) -> list[dict[str, Any]]:
+    """Paginated ``GET /repos/{owner}/{repo}/issues`` -- list ALL issues.
+
+    Added in #1239 to give the Story 2 ``cache:fetch-all`` enumeration
+    step a single REST surface that auto-paginates through the full
+    issue cohort (vs the prior GraphQL ``gh issue list`` path that
+    drained the GraphQL bucket and the per-issue ``gh issue view``
+    cascade that imposed N round trips for an N-issue cohort).
+
+    A 396-issue cohort at ``per_page=100`` is 4 round trips end-to-end;
+    a 1000-issue cohort is 10. This is the load-bearing performance
+    fix for the #1239 acceptance criterion ("target: < 2 minutes" for
+    the 396-issue bootstrap, vs the ~8.5 minute GraphQL baseline).
+
+    Args:
+        repo: ``"owner/repo"`` slug.
+        state: Forwarded to :func:`rest_issue_list` per-page.
+        labels: Forwarded to :func:`rest_issue_list` per-page.
+        per_page: Items per page. Clamped to
+            :data:`REST_MAX_PER_PAGE` (100). Smaller values produce
+            more round trips; larger values are silently capped.
+        limit: Optional global cap on returned items. When set,
+            pagination stops as soon as ``len(out) >= limit`` (the
+            list is truncated to exactly ``limit`` entries before
+            return).
+        exclude_pulls: When ``True`` (default), drops entries that
+            carry a ``pull_request`` key (REST returns PRs alongside
+            issues; the cache layer's source enum is ``github-issue``
+            so PRs are out of scope). Pass ``False`` for callers that
+            want the full REST shape.
+
+    Returns:
+        Flat list of REST issue payloads. Empty list when the repo
+        has no matching issues.
+
+    Raises:
+        InvalidRepoError: Malformed ``repo`` argument.
+        GhRestError: Non-zero ``gh api`` exit on any page, or
+            ``REST_PAGINATION_MAX_PAGES`` exceeded without exhausting
+            the cohort (caller should slice via ``limit`` or open a
+            follow-up to add explicit ``page`` cursor support).
+    """
+    capped_per_page = min(max(1, int(per_page)), REST_MAX_PER_PAGE)
+    owner, name = _split_repo(repo)
+    endpoint = f"repos/{owner}/{name}/issues"
+    out: list[dict[str, Any]] = []
+    for page in range(1, REST_PAGINATION_MAX_PAGES + 1):
+        args: list[str] = [endpoint, "--method", "GET"]
+        args.extend(["--raw-field", f"state={state}"])
+        args.extend(["--raw-field", f"per_page={capped_per_page}"])
+        args.extend(["--raw-field", f"page={page}"])
+        if labels:
+            args.extend(["--raw-field", f"labels={','.join(labels)}"])
+        page_payload = _exec(
+            args,
+            endpoint=endpoint,
+            payload=None,
+            hint=(
+                "verify repo, state value (open|closed|all), labels exist, "
+                "and core REST bucket has remaining quota"
+            ),
+            expect_list=True,
+        )
+        if not isinstance(page_payload, list) or not page_payload:
+            return out
+        for item in page_payload:
+            if not isinstance(item, dict):
+                continue
+            if exclude_pulls and "pull_request" in item:
+                continue
+            out.append(item)
+            if limit is not None and len(out) >= limit:
+                return out[:limit]
+        if len(page_payload) < capped_per_page:
+            # Short page -- by REST contract this is the last page.
+            return out
+    raise GhRestError(
+        stderr=(
+            f"pagination exceeded REST_PAGINATION_MAX_PAGES={REST_PAGINATION_MAX_PAGES} "
+            f"({REST_PAGINATION_MAX_PAGES * capped_per_page} items collected; "
+            "the cohort is larger than this safety cap)"
+        ),
+        exit_code=0,
+        endpoint=endpoint,
+        payload=None,
+        hint=(
+            "pass an explicit `limit` to bound the run, or open a follow-up "
+            "to add explicit `page` cursor support to rest_issue_list_paginated"
+        ),
+    )
+
+
 __all__ = [
     "DEFAULT_TIMEOUT_S",
     "GhRestError",
     "InvalidRepoError",
     "PUBLIC_HELPERS",
+    "REST_MAX_PER_PAGE",
+    "REST_PAGINATION_MAX_PAGES",
     "rest_close_issue",
     "rest_create_issue",
     "rest_issue_list",
+    "rest_issue_list_paginated",
     "rest_issue_view",
     "rest_merge_pr",
     "rest_open_pr",

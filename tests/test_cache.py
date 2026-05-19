@@ -81,6 +81,26 @@ def _good_raw(number: int = 883, body: str = "Plain body.") -> dict[str, Any]:
     }
 
 
+def _rest_issue(number: int, *, body: str = "Plain body.", state: str = "open") -> dict[str, Any]:
+    """Return a minimal REST issue payload as emitted by
+    ``GET /repos/{owner}/{repo}/issues``. The cache:fetch-all writer
+    path (#1239) consumes this shape directly so the per-issue follow-up
+    fetch is no longer needed.
+    """
+    return {
+        "number": number,
+        "title": f"feat(cache): rest entry {number}",
+        "body": body,
+        "state": state,
+        "user": {"login": "tester"},
+        "created_at": "2026-05-01T00:00:00Z",
+        "updated_at": "2026-05-05T00:00:00Z",
+        "labels": [],
+        "comments": 0,
+        "html_url": f"https://github.com/deftai/directive/issues/{number}",
+    }
+
+
 # ---------------------------------------------------------------------------
 # Schema validation
 # ---------------------------------------------------------------------------
@@ -607,22 +627,15 @@ class TestCacheFetchAll:
     def test_happy_path_two_issues(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        list_payload = json.dumps(
-            [
-                {"number": 1, "title": "a", "state": "OPEN", "updatedAt": "2026-05-05T00:00:00Z"},
-                {"number": 2, "title": "b", "state": "OPEN", "updatedAt": "2026-05-05T00:00:00Z"},
-            ]
-        )
+        """#1239: REST paginated list returns full payloads; no per-issue fetch."""
+        rest_payload = [_rest_issue(1), _rest_issue(2)]
+        calls: list[dict[str, Any]] = []
 
-        def fake_run(cmd: list[str], **_: object) -> mock.Mock:
-            if "scm:issue:list" in cmd:
-                return _fake_proc(list_payload)
-            if "scm:issue:view" in cmd:
-                num = int(cmd[cmd.index("--") + 1])
-                return _fake_proc(json.dumps(_good_raw(number=num)))
-            return _fake_proc("", returncode=1)
+        def fake_lister(repo: str, **kwargs: Any) -> list[dict[str, Any]]:
+            calls.append({"repo": repo, **kwargs})
+            return rest_payload
 
-        monkeypatch.setattr(_cache_fetch, "_run_subprocess", fake_run)
+        monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
         monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
         report = cache.cache_fetch_all(
             source="github-issue",
@@ -634,6 +647,16 @@ class TestCacheFetchAll:
         assert report.succeeded == 2
         assert report.failed == 0
         assert report.skipped == 0
+        # Exactly one REST list call regardless of cohort size -- the
+        # load-bearing perf fix for #1239 (no per-issue round trip).
+        assert len(calls) == 1
+        # Cached payloads carry lowercase state (REST canonical shape).
+        for n in (1, 2):
+            edir = cache.entry_dir(
+                "github-issue", f"deftai/directive/{n}", cache_root=tmp_path
+            )
+            raw_on_disk = json.loads((edir / "raw.json").read_text(encoding="utf-8"))
+            assert raw_on_disk["state"] == "open"
 
     def test_skip_fresh_idempotency(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -645,25 +668,20 @@ class TestCacheFetchAll:
             _good_raw(number=1),
             cache_root=tmp_path,
         )
-        list_payload = json.dumps(
-            [
-                {"number": 1, "title": "a", "state": "OPEN", "updatedAt": "2026-05-05T00:00:00Z"},
-                {"number": 2, "title": "b", "state": "OPEN", "updatedAt": "2026-05-05T00:00:00Z"},
-            ]
-        )
-        view_calls: list[int] = []
+        put_keys: list[str] = []
 
-        def fake_run(cmd: list[str], **_: object) -> mock.Mock:
-            if "scm:issue:list" in cmd:
-                return _fake_proc(list_payload)
-            if "scm:issue:view" in cmd:
-                num = int(cmd[cmd.index("--") + 1])
-                view_calls.append(num)
-                return _fake_proc(json.dumps(_good_raw(number=num)))
-            return _fake_proc("", returncode=1)
+        def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+            return [_rest_issue(1), _rest_issue(2)]
 
-        monkeypatch.setattr(_cache_fetch, "_run_subprocess", fake_run)
+        original_put = cache.cache_put
+
+        def tracking_put(source: str, key: str, raw: dict[str, Any], **kwargs: Any) -> Any:
+            put_keys.append(key)
+            return original_put(source, key, raw, **kwargs)
+
+        monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
         monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
+        monkeypatch.setattr(cache, "cache_put", tracking_put)
         report = cache.cache_fetch_all(
             source="github-issue",
             repo="deftai/directive",
@@ -674,33 +692,29 @@ class TestCacheFetchAll:
         assert report.succeeded == 1
         assert report.skipped == 1
         assert report.failed == 0
-        # Issue 1 was fresh -> not viewed.
-        assert view_calls == [2]
+        # Issue 1 was fresh -> not re-put.
+        assert put_keys == ["deftai/directive/2"]
 
     def test_partial_failure_exit_shape(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        list_payload = json.dumps(
-            [
-                {"number": 1, "title": "a", "state": "OPEN", "updatedAt": "2026-05-05T00:00:00Z"},
-                {"number": 2, "title": "b", "state": "OPEN", "updatedAt": "2026-05-05T00:00:00Z"},
-            ]
-        )
+        """Per-issue cache:put failures are captured on the report (not raised).
 
-        def fake_run(cmd: list[str], **_: object) -> mock.Mock:
-            if "scm:issue:list" in cmd:
-                return _fake_proc(list_payload)
-            if "scm:issue:view" in cmd:
-                num = int(cmd[cmd.index("--") + 1])
-                if num == 2:
-                    # Hard 500-style failure (no rate-limit signal).
-                    return _fake_proc(
-                        "", stderr="HTTP 500 server error", returncode=1
-                    )
-                return _fake_proc(json.dumps(_good_raw(number=num)))
-            return _fake_proc("", returncode=1)
+        A REST payload with a non-int ``number`` field exercises the
+        report's failures list without needing a real subprocess error.
+        """
+        rest_payload = [
+            _rest_issue(1),
+            # Malformed payload: cache.cache_put rejects non-int ``number``
+            # via _render_content's defensive check, so the orchestrator
+            # records a failure on the report and continues.
+            {**_rest_issue(2), "number": "not-an-int"},
+        ]
 
-        monkeypatch.setattr(_cache_fetch, "_run_subprocess", fake_run)
+        def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+            return rest_payload
+
+        monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
         monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
         report = cache.cache_fetch_all(
             source="github-issue",
@@ -712,7 +726,6 @@ class TestCacheFetchAll:
         assert report.succeeded == 1
         assert report.failed == 1
         assert report.skipped == 0
-        assert any("deftai/directive/2" in f["key"] for f in report.failures)
         # JSON shape is structured.
         payload = json.loads(report.to_json())
         assert payload["succeeded"] == 1
@@ -721,34 +734,25 @@ class TestCacheFetchAll:
     def test_429_retry_with_retry_after(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        list_payload = json.dumps(
-            [
-                {
-                    "number": 5,
-                    "title": "rate",
-                    "state": "OPEN",
-                    "updatedAt": "2026-05-05T00:00:00Z",
-                }
-            ]
-        )
-        attempts = {"view": 0}
+        """#1239: REST 429 from gh_rest is retried once after Retry-After sleep."""
+        import gh_rest  # local import: optional dep in slim checkouts
 
-        def fake_run(cmd: list[str], **_: object) -> mock.Mock:
-            if "scm:issue:list" in cmd:
-                return _fake_proc(list_payload)
-            if "scm:issue:view" in cmd:
-                attempts["view"] += 1
-                if attempts["view"] == 1:
-                    return _fake_proc(
-                        "",
-                        stderr="HTTP 429 too many requests\nRetry-After: 7\n",
-                        returncode=1,
-                    )
-                return _fake_proc(json.dumps(_good_raw(number=5)))
-            return _fake_proc("", returncode=1)
+        attempts = {"list": 0}
+
+        def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+            attempts["list"] += 1
+            if attempts["list"] == 1:
+                raise gh_rest.GhRestError(
+                    stderr="HTTP 429 too many requests\nRetry-After: 7\n",
+                    exit_code=1,
+                    endpoint="repos/deftai/directive/issues",
+                    payload=None,
+                    hint="",
+                )
+            return [_rest_issue(5)]
 
         sleeps: list[float] = []
-        monkeypatch.setattr(_cache_fetch, "_run_subprocess", fake_run)
+        monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
         monkeypatch.setattr(_cache_fetch, "_sleep", lambda s: sleeps.append(s))
         report = cache.cache_fetch_all(
             source="github-issue",
@@ -765,32 +769,25 @@ class TestCacheFetchAll:
     def test_429_no_retry_after_uses_fallback(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        list_payload = json.dumps(
-            [
-                {
-                    "number": 6,
-                    "title": "ratenoheader",
-                    "state": "OPEN",
-                    "updatedAt": "2026-05-05T00:00:00Z",
-                }
-            ]
-        )
-        attempts = {"view": 0}
+        """#1239: REST 429 without Retry-After header falls back to 60s."""
+        import gh_rest
 
-        def fake_run(cmd: list[str], **_: object) -> mock.Mock:
-            if "scm:issue:list" in cmd:
-                return _fake_proc(list_payload)
-            if "scm:issue:view" in cmd:
-                attempts["view"] += 1
-                if attempts["view"] == 1:
-                    return _fake_proc(
-                        "", stderr="API rate limit exceeded", returncode=1
-                    )
-                return _fake_proc(json.dumps(_good_raw(number=6)))
-            return _fake_proc("", returncode=1)
+        attempts = {"list": 0}
+
+        def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+            attempts["list"] += 1
+            if attempts["list"] == 1:
+                raise gh_rest.GhRestError(
+                    stderr="API rate limit exceeded",
+                    exit_code=1,
+                    endpoint="repos/deftai/directive/issues",
+                    payload=None,
+                    hint="",
+                )
+            return [_rest_issue(6)]
 
         sleeps: list[float] = []
-        monkeypatch.setattr(_cache_fetch, "_run_subprocess", fake_run)
+        monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
         monkeypatch.setattr(_cache_fetch, "_sleep", lambda s: sleeps.append(s))
         cache.cache_fetch_all(
             source="github-issue",
@@ -936,24 +933,31 @@ class TestCLI:
         monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
-        """CacheFetchError from the scm:issue:list enumeration phase must surface
+        """CacheFetchError from the REST list enumeration phase must surface
         as ``cache: error: ...`` with exit-code 1, not as a raw Python traceback.
 
         ``CacheFetchError`` extends ``RuntimeError`` directly (sibling of
         ``CacheError``, not subclass) to keep ``_cache_fetch.py`` free of a
-        circular import. ``main()`` catches both so a ``task scm:issue:list``
-        failure -- network down, ``task`` not on PATH, non-JSON output --
-        produces the same clean exit shape every other failure path emits.
-        Regression for the Greptile P1 finding on a480d88 (#883 Story 2).
+        circular import. ``main()`` catches both so a list-enumeration
+        failure -- 404, auth failure, non-JSON response -- produces the
+        same clean exit shape every other failure path emits. Regression
+        for the Greptile P1 finding on a480d88 (#883 Story 2); migrated
+        to the REST seam in #1239.
         """
         monkeypatch.chdir(tmp_path)
 
-        def fake_run(cmd: list[str], **_: object) -> mock.Mock:
-            if "scm:issue:list" in cmd:
-                return _fake_proc("", stderr="task: not found", returncode=127)
-            return _fake_proc("", returncode=1)
+        import gh_rest
 
-        monkeypatch.setattr(_cache_fetch, "_run_subprocess", fake_run)
+        def fake_lister(repo: str, **_: Any) -> list[dict[str, Any]]:
+            raise gh_rest.GhRestError(
+                stderr="HTTP 404: Not Found",
+                exit_code=1,
+                endpoint=f"repos/{repo}/issues",
+                payload=None,
+                hint="verify repo exists and the token has read access",
+            )
+
+        monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake_lister)
         monkeypatch.setattr(_cache_fetch, "_sleep", lambda _s: None)
         rc = cache.main(
             ["fetch-all", "--source", "github-issue", "--repo", "deftai/directive"]
@@ -961,7 +965,7 @@ class TestCLI:
         assert rc == 1
         captured = capsys.readouterr()
         assert "cache: error:" in captured.err
-        assert "scm:issue:list" in captured.err
+        assert "rest_issue_list_paginated" in captured.err
         assert "Traceback" not in captured.err
 
 
