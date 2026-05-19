@@ -628,6 +628,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:  # noqa: PLR0911,PLR0912
+    # N10 (#1150): structured --help via scripts/triage_help.REGISTRY.
+    from triage_help import intercept_help
+
+    rc = intercept_help("scope_undo", argv)
+    if rc is not None:
+        return rc
     parser = _build_parser()
     try:
         args = parser.parse_args(argv)

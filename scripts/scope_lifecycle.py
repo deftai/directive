@@ -456,6 +456,12 @@ def _resolve_file_path(raw: str, cli_project_root: str | None) -> tuple[Path | N
 
 
 def main(argv: list[str] | None = None) -> int:
+    # N10 (#1150): structured --help via scripts/triage_help.REGISTRY.
+    from triage_help import intercept_help
+
+    rc = intercept_help("scope_lifecycle", argv)
+    if rc is not None:
+        return rc
     parser = _build_parser()
     # argparse prints its own usage; convert its SystemExit(2) into our
     # documented usage-error exit code (2).

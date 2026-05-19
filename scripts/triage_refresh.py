@@ -602,6 +602,12 @@ def _reconfigure_utf8() -> None:
 
 def main(argv: list[str] | None = None) -> int:
     _reconfigure_utf8()
+    # N10 (#1150): structured --help via scripts/triage_help.REGISTRY.
+    from triage_help import intercept_help
+
+    rc = intercept_help("triage_refresh", argv)
+    if rc is not None:
+        return rc
     args = _build_parser().parse_args(argv)
     project_root = Path(args.project_root).resolve()
     refresh_active(project_root)

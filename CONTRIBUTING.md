@@ -163,3 +163,69 @@ To run the installer's tests:
 ```bash
 go test ./cmd/deft-install/
 ```
+
+## Adding a new triage / scope verb (#1150 / N10)
+
+Every `task triage:*` and `task scope:*` verb is documented in one place:
+the registry in `scripts/triage_help.py`. The bare `task triage` /
+`task scope` invocations and per-verb `--help` flag both render from this
+registry, so a new verb without a registry entry will not appear in the
+operator-facing catalog.
+
+To add a new verb (call it `task triage:foo`):
+
+1. **Implement the verb script** under `scripts/` (e.g.
+   `scripts/triage_foo.py`) following the existing `triage:*` / `scope:*`
+   pattern (argparse, project-root resolution, audit-log append where
+   applicable). Route any `gh` invocation through `scripts.scm.call`
+   (#1145 / N5); raw `gh` subprocess calls outside `scripts/scm.py` are
+   rejected by `task verify:scm-boundary`.
+
+2. **Add a Taskfile fragment** (or extend an existing one) under `tasks/`
+   that wires the script. Expose the verb as a `task triage:foo` /
+   `task scope:foo` alias at the root of `Taskfile.yml`, mirroring the
+   existing aliases.
+
+3. **Register the help metadata** in `scripts/triage_help.py`:
+
+   - Add one `REGISTRY["task triage:foo"] = _entry(...)` entry with
+     `summary`, `refs`, `description`, `usage`, `flags`, `examples`, and
+     `see_also`. Keep `summary` <= 70 chars so the bare-list view stays
+     scannable.
+   - Add the verb name under the appropriate role in
+     `CATEGORIES_TRIAGE` (or `CATEGORIES_SCOPE` for scope verbs). The
+     category structure is stable across umbrella waves; do NOT
+     re-organize existing categories without an explicit umbrella amendment.
+   - Add the script-to-subcommand mapping under
+     `SCRIPT_SUBCOMMAND_MAP[<script_name>]`. Use `"__default__"` for a
+     single-verb script; use the subcommand keyword for a multi-verb
+     dispatcher (`triage_actions` / `scope_lifecycle` / etc.).
+
+4. **Wire the help intercept** at the top of the script's `main()`:
+
+   ```python
+   def main(argv: list[str] | None = None) -> int:
+       from triage_help import intercept_help
+
+       rc = intercept_help("triage_foo", argv)
+       if rc is not None:
+           return rc
+       # ... existing argparse + dispatch ...
+   ```
+
+   The shim returns `0` and prints the structured help when `--help` /
+   `-h` is in `argv`; returns `None` otherwise so argparse takes over.
+
+5. **Add forward coverage tests** in `tests/test_triage_foo.py` exercising
+   the new verb's happy path AND its `--help` output via the
+   `triage_help.intercept_help` shim. The existing
+   `tests/test_triage_help.py` already covers registry shape invariants
+   so a missing entry is a deterministic test failure.
+
+6. **CHANGELOG entry** under `[Unreleased]` referencing the umbrella and
+   the verb's child issue.
+
+Forward-looking placeholders (verbs whose implementation has not landed
+yet) carry `placeholder=True` so the structured help prints a
+"(not yet implemented)" note. Replace the placeholder entry's metadata
+when the verb's implementation child merges.

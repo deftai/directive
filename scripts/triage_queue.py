@@ -1025,6 +1025,13 @@ def main(argv: list[str] | None = None) -> int:
     """CLI entry point. Delegates to :mod:`_triage_queue_cli`."""
     import sys as _sys
 
+    # N10 (#1150): structured --help via scripts/triage_help.REGISTRY.
+    from triage_help import intercept_help
+
+    rc = intercept_help("triage_queue", argv)
+    if rc is not None:
+        return rc
+
     from _triage_queue_cli import run_cli  # local import: 1000-line cap
 
     return run_cli(argv, _sys.modules[__name__])

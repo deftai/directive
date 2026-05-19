@@ -547,6 +547,39 @@ tasks:
   # The unified cache:* surface (cache:fetch-all, cache:get) is the
   # canonical replacement; see UPGRADING.md for migration text.
 
+  # ------------------------------------------------------------------
+  # N10 (#1150): bare-invocation `task triage` / `task scope` print a
+  # categorized verb list grouped by role (Session-start, State verbs,
+  # Read verbs, Lifecycle, Subscription mutation, Archive-rotation /
+  # Promote-demote, Activate-complete, Reversibility, Decomposition).
+  # The registry + renderer live in scripts/triage_help.py so every
+  # verb is documented in one place. Each existing `triage:X` /
+  # `scope:X` alias forwards `--help` to the same registry via the
+  # `intercept_help` shim called from each verb script's `main()`.
+  #
+  # Defined at the root Taskfile (not in a fragment) because the bare
+  # target shares the `triage:` / `scope:` prefix with the documented
+  # alias surface and must coexist with `triage:accept`,
+  # `scope:promote`, etc. go-task v3 treats `triage` and `triage:accept`
+  # as distinct task names; the same precedent established by `release`
+  # + `release:publish` in this file (see #718 root-cause rationale).
+  # ------------------------------------------------------------------
+  triage:
+    desc: "Print the categorized triage verb list (#1150 / N10). Run `task triage:<verb> --help` for usage examples."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.TASKFILE_DIR}}" run python -m scripts.triage_help triage
+
+  scope:
+    desc: "Print the categorized scope verb list (#1150 / N10). Run `task scope:<verb> --help` for usage examples."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.TASKFILE_DIR}}" run python -m scripts.triage_help scope
+
   triage:accept:
     desc: "Accept an issue for triage. Records an audit entry. (#845 Story 3)"
     cmds:

@@ -580,6 +580,12 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # N10 (#1150): structured --help via scripts/triage_help.REGISTRY.
+    from triage_help import intercept_help
+
+    rc = intercept_help("scope_decompose", argv)
+    if rc is not None:
+        return rc
     args = _parse_args(sys.argv[1:] if argv is None else argv)
     project_root = Path(args.project_root).resolve()
     parent_path = _resolve_path(project_root, args.parent)

@@ -719,6 +719,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # N10 (#1150): structured --help via scripts/triage_help.REGISTRY.
+    from triage_help import intercept_help
+
+    rc = intercept_help("triage_actions", argv)
+    if rc is not None:
+        return rc
     parser = _build_parser()
     args = parser.parse_args(argv)
     n = int(args.issue)
