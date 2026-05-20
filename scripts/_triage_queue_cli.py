@@ -4,6 +4,17 @@ Extracted from ``scripts/triage_queue.py`` so the parent module stays
 under the 1000-line MUST cap documented in ``coding/coding.md``. The
 public surface lives in ``triage_queue``; this module is the argparse
 shim and command dispatcher only.
+
+Repo resolution (#1246)
+-----------------------
+The ``triage:queue`` / ``triage:show`` / ``triage:audit`` CLI surfaces
+resolve ``--repo`` with the precedence: explicit ``--repo`` flag >
+``$DEFT_TRIAGE_REPO`` env var > auto-detection from
+``git remote get-url origin`` (run inside ``--project-root``) > error.
+The auto-detection step removes the most-common-path papercut where an
+operator inside an unambiguous clone had to repeat the repo slug on
+every invocation. Cross-repo invocations remain supported via the
+explicit flag (highest precedence).
 """
 
 from __future__ import annotations
@@ -11,6 +22,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import os
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -38,9 +50,7 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--repo",
         default=os.environ.get("DEFT_TRIAGE_REPO"),
-        help=(
-            "Upstream repo slug 'owner/name'. Falls back to $DEFT_TRIAGE_REPO."
-        ),
+        help=("Upstream repo slug 'owner/name'. Falls back to $DEFT_TRIAGE_REPO."),
     )
     parser.add_argument(
         "--cache-root",
@@ -68,9 +78,7 @@ def _add_common_args(parser: argparse.ArgumentParser) -> None:
 def build_parser(default_limit: int) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="triage_queue.py",
-        description=(
-            "Ranked triage queue + per-item show + audit-log surface (#1128)."
-        ),
+        description=("Ranked triage queue + per-item show + audit-log surface (#1128)."),
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -81,8 +89,7 @@ def build_parser(default_limit: int) -> argparse.ArgumentParser:
         type=int,
         default=default_limit,
         help=(
-            "Cap the number of rows printed (default: "
-            f"{default_limit}). Pass 0 to disable the cap."
+            f"Cap the number of rows printed (default: {default_limit}). Pass 0 to disable the cap."
         ),
     )
 
@@ -213,8 +220,99 @@ def build_parser(default_limit: int) -> argparse.ArgumentParser:
     return parser
 
 
+#: subprocess.run timeout for ``git remote get-url origin`` auto-detection
+#: (#1246). Defensive: a stuck ``git`` proxy (corporate VPN re-auth) would
+#: otherwise hang every ``task triage:queue`` invocation indefinitely.
+_GIT_INFER_TIMEOUT_S: int = 10
+
+
+def _detect_origin_repo(project_root: Path | None) -> str | None:
+    """Return ``owner/name`` parsed from ``git remote get-url origin``, or ``None``.
+
+    Run inside ``project_root`` (or the current working directory when
+    ``project_root`` is ``None``). Returns ``None`` on any of:
+
+    * ``git`` not on PATH.
+    * ``git remote get-url origin`` exits non-zero (outside a git working
+      tree, or no ``origin`` remote configured).
+    * The subprocess hangs past :data:`_GIT_INFER_TIMEOUT_S` seconds --
+      defensive against a wedged credential helper / VPN re-auth.
+    * The origin URL is not a recognised ``github.com`` form (https /
+      ssh / git@ shapes).
+
+    Delegated to ``scripts/_project_context.py::_detect_repo_from_git``
+    where importable so the framework keeps a single origin-detection
+    grammar; falls back to an inline implementation only on slim test
+    checkouts that have not yet rebased onto that module.
+    """
+    try:
+        from _project_context import _detect_repo_from_git
+    except ImportError:  # pragma: no cover -- slim-checkout fallback
+        return _detect_origin_repo_inline(project_root)
+    return _detect_repo_from_git(project_root)
+
+
+def _detect_origin_repo_inline(project_root: Path | None) -> str | None:
+    """Fallback origin-detector used when ``_project_context`` is unimportable.
+
+    Mirrors the precedence + parsing rules of the canonical helper so
+    consumers on a slim test checkout still get the #1246 papercut
+    eliminated. Returns ``None`` when detection fails so the caller can
+    surface the canonical "--repo required" error.
+    """
+    cwd = str(project_root) if project_root is not None else None
+    try:
+        result = subprocess.run(  # noqa: S603 -- argv is a literal
+            ["git", "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=cwd,
+            timeout=_GIT_INFER_TIMEOUT_S,
+        )
+    except (FileNotFoundError, OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    url = (result.stdout or "").strip()
+    if not url:
+        return None
+    import re
+
+    match = re.search(
+        r"github\.com[:/]([A-Za-z0-9][A-Za-z0-9._-]*)/"
+        r"([A-Za-z0-9][A-Za-z0-9._-]*?)(?:\.git)?/?\s*$",
+        url,
+    )
+    if not match:
+        return None
+    return f"{match.group(1)}/{match.group(2)}"
+
+
 def _resolve_repo(args: argparse.Namespace) -> str | None:
-    return args.repo or os.environ.get("DEFT_TRIAGE_REPO")
+    """Resolve the effective ``--repo`` slug for triage_queue CLI verbs.
+
+    Precedence (#1246):
+
+    1. ``args.repo`` -- the explicit ``--repo`` flag, which also picks up
+       ``$DEFT_TRIAGE_REPO`` because the argparse default reads the env
+       var. Highest precedence; preserved for cross-repo invocations.
+    2. ``git remote get-url origin`` parsed from inside
+       ``--project-root`` (or the current working directory). Removes
+       the papercut where an operator inside an unambiguous clone had
+       to repeat the repo slug on every ``task triage:queue`` call.
+    3. ``None`` -- the caller emits the canonical
+       ``triage:<verb>: --repo OWNER/NAME (or $DEFT_TRIAGE_REPO) is
+       required.`` error so the operator sees an actionable next step
+       rather than a silent empty-cache walk.
+    """
+    if args.repo:
+        return args.repo
+    project_root: Path | None = None
+    if getattr(args, "project_root", None):
+        with contextlib.suppress(OSError):
+            project_root = Path(args.project_root).resolve()
+    return _detect_origin_repo(project_root)
 
 
 def _override_cache_root(project_root: Path, cache_root: Path) -> None:
@@ -250,21 +348,15 @@ def _cmd_queue(args: argparse.Namespace, tq: Any) -> int:
     # can see closed umbrellas; the queue itself still filters to open
     # children via the QueueBuildOptions.orphan_issue_numbers set.
     issues_for_queue = tq.load_cached_issues(repo, project_root=project_root)
-    issues_with_closed = tq.load_cached_issues(
-        repo, project_root=project_root, include_closed=True
-    )
+    issues_with_closed = tq.load_cached_issues(repo, project_root=project_root, include_closed=True)
     issues_by_number = {i["number"]: i for i in issues_with_closed}
     audit_entries = tq.read_audit_entries(repo, audit_path=args.audit_log)
     ranking_labels = tuple(tq.resolve_ranking_labels(project_root))
     active_refs = frozenset(tq._active_referenced_issue_numbers(project_root))
     orphan_numbers: frozenset[int] = frozenset()
     if slice_audit is not None:
-        records = slice_audit.load_slice_records(
-            tq.slice_record, path=args.slices_log
-        )
-        orphan_numbers = slice_audit.collect_orphan_issue_numbers(
-            records, issues_by_number
-        )
+        records = slice_audit.load_slice_records(tq.slice_record, path=args.slices_log)
+        orphan_numbers = slice_audit.collect_orphan_issue_numbers(records, issues_by_number)
     limit = None if args.limit == 0 else max(0, int(args.limit))
     options = tq.QueueBuildOptions(
         ranking_labels=ranking_labels,
@@ -272,9 +364,7 @@ def _cmd_queue(args: argparse.Namespace, tq: Any) -> int:
         orphan_issue_numbers=orphan_numbers,
         limit=limit,
     )
-    items = tq.build_queue(
-        issues_for_queue, audit_entries, repo=repo, options=options
-    )
+    items = tq.build_queue(issues_for_queue, audit_entries, repo=repo, options=options)
     print(
         tq.render_queue(
             items,
@@ -299,18 +389,12 @@ def _cmd_show(args: argparse.Namespace, tq: Any) -> int:
         _override_cache_root(project_root, Path(args.cache_root).resolve())
     issues = {
         i["number"]: i
-        for i in tq.load_cached_issues(
-            repo, project_root=project_root, include_closed=True
-        )
+        for i in tq.load_cached_issues(repo, project_root=project_root, include_closed=True)
     }
     issue = issues.get(int(args.number))
     history: list[dict[str, Any]] = []
     if tq.candidates_log is not None:
-        history = list(
-            tq.candidates_log.find_by_issue(
-                int(args.number), repo, path=args.audit_log
-            )
-        )
+        history = list(tq.candidates_log.find_by_issue(int(args.number), repo, path=args.audit_log))
     history_sorted = sorted(history, key=lambda r: r.get("timestamp", ""))
     latest = history_sorted[-1] if history_sorted else None
     active_refs = tq._active_referenced_issue_numbers(project_root)
@@ -393,11 +477,7 @@ def _cmd_audit(args: argparse.Namespace, tq: Any) -> int:
     if args.vbrief_staleness:
         active_refs = frozenset(tq._active_referenced_issue_numbers(project_root))
         latest = tq.latest_decisions_by_issue(entries)
-        entries = [
-            entry
-            for entry in latest.values()
-            if tq.is_stale_acceptance(entry, active_refs)
-        ]
+        entries = [entry for entry in latest.values() if tq.is_stale_acceptance(entry, active_refs)]
         entries.sort(key=lambda r: r.get("timestamp", ""))
     if args.format == "json":
         print(
@@ -448,12 +528,8 @@ def _slice_inputs(
             file=sys.stderr,
         )
         return None
-    records = slice_audit.load_slice_records(
-        tq.slice_record, path=args.slices_log
-    )
-    issues = tq.load_cached_issues(
-        repo, project_root=project_root, include_closed=True
-    )
+    records = slice_audit.load_slice_records(tq.slice_record, path=args.slices_log)
+    issues = tq.load_cached_issues(repo, project_root=project_root, include_closed=True)
     issues_by_number = {i["number"]: i for i in issues}
     return records, issues_by_number
 
