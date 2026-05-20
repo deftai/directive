@@ -125,19 +125,52 @@ _EVAL_ENTRIES_RATIONALE: str = (
     "# rebase note.\n"
 )
 _GITATTRIBUTES_EVAL_RATIONALE: str = (
-    "# Append-only JSON-lines logs under vbrief/.eval/ use the union merge driver\n"
+    "\n# Append-only JSON-lines logs under vbrief/.eval/ use the union merge driver\n"
     "# (#1144, N4 of #1119). Both branches' appended lines are concatenated on\n"
     "# auto-merge so single-operator rebases of two append branches resolve\n"
     "# without manual conflict surgery. Note: merge=union does NOT dedupe; see\n"
     "# vbrief/.eval/README.md for the operator-facing semantics.\n"
 )
 
+#: First line of ``_EVAL_ENTRIES_RATIONALE`` used as the dedup sentinel
+#: when deciding whether to prepend the comment block on partial re-runs
+#: (Greptile P2 finding on PR #1256 -- a partial-state .gitignore that
+#: already carries the rationale block but is missing one or more
+#: selective entries should not get a duplicated comment block).
+_EVAL_ENTRIES_RATIONALE_SENTINEL: str = (
+    "# vbrief/.eval/ tracking governance (#1144, N4 of #1119)."
+)
+
+
+def _strip_gitignore_inline_comment(line: str) -> str:
+    """Strip an inline ``# ...`` comment from a gitignore line.
+
+    Returns the line content with any trailing comment removed and
+    surrounding whitespace stripped. A line whose entire content is a
+    comment (after leading whitespace) returns an empty string. Used
+    to detect forbidden blanket lines like ``vbrief/.eval/  # legacy``
+    that would otherwise slip past the set-membership check (SLizard
+    P1 finding on PR #1256).
+    """
+    stripped = line.strip()
+    if not stripped:
+        return ""
+    if stripped.startswith("#"):
+        return ""
+    comment_idx = stripped.find("#")
+    if comment_idx == -1:
+        return stripped
+    return stripped[:comment_idx].rstrip()
+
 
 def _gitignore_already_covers(gitignore_text: str, line: str) -> bool:
     """Return True when ``gitignore_text`` already includes ``line``."""
 
     target = line.strip()
-    return any(raw.strip() == target for raw in gitignore_text.splitlines())
+    return any(
+        _strip_gitignore_inline_comment(raw) == target
+        for raw in gitignore_text.splitlines()
+    )
 
 
 def _is_commented_gitignore_line(raw: str, gitignore_line: str) -> bool:
@@ -354,6 +387,13 @@ def step_ensure_gitignore_eval_entries(project_root: Path) -> StepOutcome:
         if created_readme:
             parts.append("vbrief/.eval/README.md")
         message = "wrote " + " + ".join(parts) + " per #1144 hybrid policy"
+    # Greptile P1 on PR #1256: propagate the stale-blanket warning
+    # through to the outer step's message so it reaches
+    # ``run_bootstrap``'s progress emit + the recap (the sub-step's
+    # message was discarded by the aggregator before this fix).
+    message = message + _format_blanket_warning(
+        bool(details.get("blanket_present", False))
+    )
     return outcome_cls(
         name=step_name,
         ok=True,
@@ -406,22 +446,39 @@ def _ensure_gitignore_selective_entries(
             details={"gitignore_appended_lines": 0},
         )
 
-    existing_lines = {line.strip() for line in existing.splitlines()}
+    # SLizard P1 finding on PR #1256: the previous detector used the
+    # whole stripped line (including inline comments) for set
+    # membership, so a blanket entry like ``vbrief/.eval/  # legacy``
+    # slipped past the forbidden check. Now strip the inline comment
+    # before building the membership set + scanning for forbidden
+    # blanket lines.
+    existing_lines = {
+        stripped
+        for raw in existing.splitlines()
+        if (stripped := _strip_gitignore_inline_comment(raw))
+    }
     blanket_present = any(
         forbidden in existing_lines
         for forbidden in _FORBIDDEN_BLANKET_EVAL_LINES
     )
+    # Greptile P2 finding on PR #1256: dedup the rationale comment
+    # block across partial re-runs (operator deleted one of the three
+    # entries manually; re-run should append the missing entry without
+    # re-prepending the rationale).
+    rationale_already_present = _EVAL_ENTRIES_RATIONALE_SENTINEL in existing
 
     missing = [
         entry for entry in GITIGNORE_EVAL_ENTRIES
         if entry not in existing_lines
     ]
+    blanket_warning = _format_blanket_warning(blanket_present)
     if not missing:
         return outcome_cls(
             name=step_name,
             ok=True,
             message=(
                 "all #1144 selective entries already in .gitignore (no-op)"
+                + blanket_warning
             ),
             details={
                 "gitignore_appended_lines": 0,
@@ -431,7 +488,10 @@ def _ensure_gitignore_selective_entries(
         )
 
     suffix = "" if existing.endswith("\n") or existing == "" else "\n"
-    appended_block = _EVAL_ENTRIES_RATIONALE + "\n".join(missing) + "\n"
+    if rationale_already_present:
+        appended_block = "\n".join(missing) + "\n"
+    else:
+        appended_block = _EVAL_ENTRIES_RATIONALE + "\n".join(missing) + "\n"
     new_content = existing + suffix + appended_block
     try:
         gitignore_path.write_text(new_content, encoding="utf-8")
@@ -449,12 +509,35 @@ def _ensure_gitignore_selective_entries(
         message=(
             f"appended {len(missing)} selective .gitignore "
             f"entr{'y' if len(missing) == 1 else 'ies'}"
+            + blanket_warning
         ),
         details={
             "gitignore_appended_lines": len(missing),
             "gitignore_appended_entries": list(missing),
             "blanket_present": blanket_present,
+            "rationale_already_present": rationale_already_present,
         },
+    )
+
+
+def _format_blanket_warning(blanket_present: bool) -> str:
+    """Return the operator-visible warning suffix when a blanket line is detected.
+
+    Greptile P1 finding on PR #1256: when an operator who ran the
+    pre-#1251 bootstrap upgrades, their ``.gitignore`` still carries
+    the stale ``vbrief/.eval/`` blanket line that hides ``slices.jsonl``
+    from git. Detecting it but reporting only ``hybrid policy
+    satisfied; no-op`` left the operator unaware their repo was still
+    broken. The warning surfaces in ``StepOutcome.message`` so it
+    flows through ``run_bootstrap`` 's progress emit AND the recap.
+    The forbidden line is NEVER auto-rewritten (concurrency safety);
+    the operator removes it manually per the #1251 workaround.
+    """
+    if not blanket_present:
+        return ""
+    return (
+        " WARNING: stale blanket vbrief/.eval/ line detected in .gitignore -- "
+        "remove it manually (it hides tracked slices.jsonl from git per #1251)"
     )
 
 

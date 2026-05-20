@@ -510,21 +510,33 @@ def step_populate_cache(
     failed = getattr(report, "failed", None)
     skipped = getattr(report, "skipped", None)
     summary_line = getattr(report, "summary_line", None)
+    legacy_message = (
+        f"cache:fetch-all source={_CACHE_SOURCE} repo={effective_repo} "
+        f"succeeded={succeeded} failed={failed} skipped={skipped}"
+    )
+    message = legacy_message
     if callable(summary_line):
+        # Greptile P2 finding on PR #1256: pre-flight the kwarg shape
+        # via ``inspect.signature(...).bind(...)`` so a future
+        # signature change is the ONLY thing that re-routes us to the
+        # legacy path. A ``TypeError`` from inside ``summary_line()``
+        # itself (post-#1254 implementation bug) now propagates rather
+        # than silently falling back to a cryptic
+        # ``succeeded=None failed=None skipped=None`` recap.
+        import inspect
+
         try:
+            sig = inspect.signature(summary_line)
+        except (TypeError, ValueError):
+            sig = None
+        kwargs_ok = True
+        if sig is not None:
+            try:
+                sig.bind(source=_CACHE_SOURCE, repo=effective_repo)
+            except TypeError:
+                kwargs_ok = False
+        if kwargs_ok:
             message = summary_line(source=_CACHE_SOURCE, repo=effective_repo)
-        except TypeError:
-            # The signature may evolve; fall through to the legacy form
-            # rather than crash the recap if the kwargs change shape.
-            message = (
-                f"cache:fetch-all source={_CACHE_SOURCE} repo={effective_repo} "
-                f"succeeded={succeeded} failed={failed} skipped={skipped}"
-            )
-    else:
-        message = (
-            f"cache:fetch-all source={_CACHE_SOURCE} repo={effective_repo} "
-            f"succeeded={succeeded} failed={failed} skipped={skipped}"
-        )
     return StepOutcome(
         name="populate_cache",
         ok=True,
