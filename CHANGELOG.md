@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
-- **fix(triage): `task triage:welcome` now reliably populates `vbrief/.eval/candidates.jsonl` (#1244)** -- the welcome ritual no longer silently skips Phase 3 bootstrap when a partially-populated `.deft-cache/` exists from a prior run. Phase 3 now keys off the canonical audit log (`vbrief/.eval/candidates.jsonl`) -- the same signal `task triage:queue` and `task verify:cache-fresh` consume -- so the first-session onboarding contract holds. Dry-mode runs (`--no-subprocess`) loudly surface that the cache will remain absent, and operators can explicitly decline bootstrap via a new `--skip-bootstrap` flag that emits a visible audit message. Closes #1244.
+- **fix(triage): `task triage:welcome` no longer silently skips bootstrap (#1244)** -- the welcome ritual now reliably populates the triage cache on first-session runs. Phase 3 keys off the canonical "bootstrap finished" audit log the same way downstream verbs (`task triage:queue`, `task verify:cache-fresh`) do, so a partial cache from a prior run cannot trick the ritual into reporting completion while the cache is empty. Dry-mode runs loudly surface the cache gap, and operators can explicitly decline bootstrap with a new opt-out flag that records a persistent audit trail. Closes #1244.
 
 ### Removed
 
