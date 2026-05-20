@@ -1,6 +1,6 @@
 """Tests for scripts/triage_bootstrap.py (#883 Story 3 rebind).
 
-Covers the four-step orchestration:
+Covers the five-step orchestration:
 
 1. ``populate_cache`` invokes :func:`cache.cache_fetch_all` with
    ``--source=github-issue`` (or skips with a friendly message when the
@@ -8,7 +8,14 @@ Covers the four-step orchestration:
 2. ``backfill_audit_log`` writes one ``accept`` entry per scope vBRIEF
    in ``proposed/`` / ``pending/`` / ``active/`` (skips ``cancelled/``).
 3. ``ensure_gitignore_entry`` adds ``.deft-cache/`` to ``.gitignore``.
-4. ``ensure_gitignore_eval_dir`` adds ``vbrief/.eval/`` to ``.gitignore``.
+4. ``ensure_gitignore_eval_entries`` writes the #1144 selective entries
+   (``candidates.jsonl`` / ``summary-history.jsonl`` /
+   ``scope-lifecycle.jsonl``) to ``.gitignore``, ensures the
+   ``vbrief/.eval/*.jsonl  merge=union`` rule lives in
+   ``.gitattributes``, and writes ``vbrief/.eval/README.md`` when
+   absent. Renamed from ``ensure_gitignore_eval_dir`` under #1251.
+5. ``seed_candidates_log`` ensures ``vbrief/.eval/candidates.jsonl``
+   exists as a zero-length file (#1240).
 
 The pipeline is idempotent: a second invocation produces no new audit
 entries and adds no duplicate ``.gitignore`` lines.
@@ -218,7 +225,7 @@ def test_backfill_audit_log_skips_when_no_vbrief_dir(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# step_ensure_gitignore_entry / step_ensure_gitignore_eval_dir
+# step_ensure_gitignore_entry / step_ensure_gitignore_eval_entries (#1251)
 # ---------------------------------------------------------------------------
 
 
@@ -237,23 +244,185 @@ def test_ensure_gitignore_entry_idempotent(tmp_path: Path) -> None:
     assert first == second
 
 
-def test_ensure_gitignore_eval_dir_appends_when_present(tmp_path: Path) -> None:
-    triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
-    outcome = triage_bootstrap.step_ensure_gitignore_eval_dir(tmp_path)
-    assert outcome.ok is True
-    text = (tmp_path / ".gitignore").read_text(encoding="utf-8")
-    assert "vbrief/.eval/" in text
-    assert ".deft-cache/" in text
-
-
-def test_ensure_gitignore_eval_dir_fails_without_existing_gitignore(
+def test_ensure_gitignore_eval_entries_writes_selective_lines(
     tmp_path: Path,
 ) -> None:
-    """The eval-dir step refuses to create .gitignore on its own."""
+    """#1251: step writes the three selective #1144 entries."""
+    triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
+    outcome = triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
+    assert outcome.ok is True
+    text = (tmp_path / ".gitignore").read_text(encoding="utf-8")
+    # All three selective lines present.
+    assert "vbrief/.eval/candidates.jsonl" in text
+    assert "vbrief/.eval/summary-history.jsonl" in text
+    assert "vbrief/.eval/scope-lifecycle.jsonl" in text
+    # The .deft-cache/ line from step 3 is preserved.
+    assert ".deft-cache/" in text
+    # The pre-#1251 blanket line MUST NOT be appended.
+    lines = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    assert "vbrief/.eval/" not in lines, (
+        "#1251 forbids the blanket vbrief/.eval/ line; the selective "
+        "entries replace it"
+    )
+    assert "vbrief/.eval" not in lines
+    assert outcome.details.get("gitignore_appended_lines") == 3
 
-    outcome = triage_bootstrap.step_ensure_gitignore_eval_dir(tmp_path)
+
+def test_ensure_gitignore_eval_entries_idempotent_when_selective_present(
+    tmp_path: Path,
+) -> None:
+    """#1251: no-op when the three selective entries are already present."""
+    triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
+    # Seed the selective entries by hand so the step sees them on entry.
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text(
+        gitignore.read_text(encoding="utf-8")
+        + "\nvbrief/.eval/candidates.jsonl\n"
+        + "vbrief/.eval/summary-history.jsonl\n"
+        + "vbrief/.eval/scope-lifecycle.jsonl\n",
+        encoding="utf-8",
+    )
+    # Also seed the .gitattributes rule + README so all three sub-ops
+    # are individually no-op for a true byte-identity check.
+    (tmp_path / ".gitattributes").write_text(
+        "vbrief/.eval/*.jsonl  merge=union\n", encoding="utf-8"
+    )
+    eval_dir = tmp_path / "vbrief" / ".eval"
+    eval_dir.mkdir(parents=True)
+    (eval_dir / "README.md").write_text("pre-existing", encoding="utf-8")
+
+    before_gi = gitignore.read_text(encoding="utf-8")
+    before_ga = (tmp_path / ".gitattributes").read_text(encoding="utf-8")
+    before_readme = (eval_dir / "README.md").read_text(encoding="utf-8")
+
+    outcome = triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
+    assert outcome.ok is True
+    assert outcome.details.get("gitignore_appended_lines") == 0
+    assert outcome.details.get("gitignore_already_selective") is True
+    assert outcome.details.get("gitattributes_appended") is False
+    assert outcome.details.get("gitattributes_already_present") is True
+    assert outcome.details.get("readme_created") is False
+    assert outcome.details.get("readme_already_present") is True
+
+    # Byte-identical files after the no-op call.
+    assert gitignore.read_text(encoding="utf-8") == before_gi
+    assert (tmp_path / ".gitattributes").read_text(encoding="utf-8") == before_ga
+    assert (eval_dir / "README.md").read_text(encoding="utf-8") == before_readme
+
+
+def test_ensure_gitignore_eval_entries_never_appends_blanket(
+    tmp_path: Path,
+) -> None:
+    """#1251 root-cause: no run shape may append the blanket line."""
+    triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
+    # Run a few times against different starting states; the blanket
+    # line MUST never appear as an active (non-comment) entry.
+    triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
+    triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
+    text = (tmp_path / ".gitignore").read_text(encoding="utf-8")
+    active = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    assert "vbrief/.eval/" not in active
+    assert "vbrief/.eval" not in active
+
+
+def test_ensure_gitignore_eval_entries_adds_gitattributes_when_missing(
+    tmp_path: Path,
+) -> None:
+    """#1251: missing `.gitattributes` is created with merge=union."""
+    triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
+    assert not (tmp_path / ".gitattributes").exists()
+
+    outcome = triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
+    assert outcome.ok is True
+    ga = (tmp_path / ".gitattributes").read_text(encoding="utf-8")
+    assert "vbrief/.eval/*.jsonl" in ga
+    assert "merge=union" in ga
+    assert outcome.details.get("gitattributes_appended") is True
+    assert outcome.details.get("gitattributes_created") is True
+
+
+def test_ensure_gitignore_eval_entries_appends_gitattributes_rule_when_absent(
+    tmp_path: Path,
+) -> None:
+    """#1251: pre-existing .gitattributes without the rule gets it appended."""
+    triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
+    (tmp_path / ".gitattributes").write_text(
+        "*.go diff=golang\n", encoding="utf-8"
+    )
+
+    outcome = triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
+    assert outcome.ok is True
+    ga = (tmp_path / ".gitattributes").read_text(encoding="utf-8")
+    # The pre-existing rule is preserved.
+    assert "*.go diff=golang" in ga
+    # The merge=union rule is appended.
+    assert "vbrief/.eval/*.jsonl" in ga
+    assert "merge=union" in ga
+    assert outcome.details.get("gitattributes_appended") is True
+    assert outcome.details.get("gitattributes_created") is False
+
+
+def test_ensure_gitignore_eval_entries_writes_readme_when_missing(
+    tmp_path: Path,
+) -> None:
+    """#1251: missing `vbrief/.eval/README.md` is created with #1144 policy body."""
+    triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
+    outcome = triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
+    assert outcome.ok is True
+    readme = tmp_path / "vbrief" / ".eval" / "README.md"
+    assert readme.is_file()
+    body = readme.read_text(encoding="utf-8")
+    # Mirrors tests/test_eval_governance.py contract for the README.
+    assert "slices.jsonl" in body
+    assert "candidates.jsonl" in body
+    assert "summary-history.jsonl" in body
+    assert "task triage:bootstrap" in body
+    assert "merge=union" in body
+    assert "dedup" in body.lower()
+    assert outcome.details.get("readme_created") is True
+
+
+def test_ensure_gitignore_eval_entries_fails_without_existing_gitignore(
+    tmp_path: Path,
+) -> None:
+    """#1251: the eval-entries step refuses to create .gitignore on its own."""
+    outcome = triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
     assert outcome.ok is False
     assert outcome.details.get("skipped") == "no-gitignore"
+
+
+def test_ensure_gitignore_eval_entries_flags_pre_existing_blanket(
+    tmp_path: Path,
+) -> None:
+    """#1251: surface (but do NOT auto-rewrite) a stale blanket line.
+
+    The step's documented behaviour is to add the selective entries
+    and report ``blanket_present=True`` in ``details`` so the operator
+    can act on the workaround (manual removal of the trailing blanket).
+    Auto-rewriting the file is intentionally out of scope -- it races
+    with concurrent operator edits.
+    """
+    triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text(
+        gitignore.read_text(encoding="utf-8") + "\nvbrief/.eval/\n",
+        encoding="utf-8",
+    )
+
+    outcome = triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
+    assert outcome.ok is True
+    assert outcome.details.get("blanket_present") is True
+    # Selective entries were still added.
+    text = gitignore.read_text(encoding="utf-8")
+    assert "vbrief/.eval/candidates.jsonl" in text
 
 
 def test_ensure_gitignore_respects_commented_opt_in(tmp_path: Path) -> None:
@@ -292,7 +461,7 @@ def test_run_bootstrap_appends_five_step_outcomes(tmp_path: Path) -> None:
         "populate_cache",
         "backfill_audit_log",
         "ensure_gitignore_entry",
-        "ensure_gitignore_eval_dir",
+        "ensure_gitignore_eval_entries",
         "seed_candidates_log",
     ]
     assert result.exit_code == 0

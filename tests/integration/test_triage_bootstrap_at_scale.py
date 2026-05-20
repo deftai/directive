@@ -151,7 +151,7 @@ def test_run_bootstrap_completes_within_wall_clock_cap(
         "populate_cache",
         "backfill_audit_log",
         "ensure_gitignore_entry",
-        "ensure_gitignore_eval_dir",
+        "ensure_gitignore_eval_entries",
         "seed_candidates_log",
     ]
     assert all(s.ok for s in result.steps), (
@@ -173,10 +173,21 @@ def test_run_bootstrap_completes_within_wall_clock_cap(
     cached = sorted(int(p.name) for p in base.iterdir() if p.is_dir())
     assert cached == list(range(1, SCALE_ISSUE_COUNT + 1))
 
-    # Gitignore lines were written.
+    # Gitignore lines were written. #1251: the eval step now writes the
+    # three selective entries (NOT a blanket `vbrief/.eval/` line).
     gitignore = (tmp_path / ".gitignore").read_text(encoding="utf-8")
     assert ".deft-cache/" in gitignore
-    assert "vbrief/.eval/" in gitignore
+    assert "vbrief/.eval/candidates.jsonl" in gitignore
+    assert "vbrief/.eval/summary-history.jsonl" in gitignore
+    assert "vbrief/.eval/scope-lifecycle.jsonl" in gitignore
+    active_gitignore = [
+        line.strip()
+        for line in gitignore.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    assert "vbrief/.eval/" not in active_gitignore, (
+        "#1251 forbids the blanket vbrief/.eval/ line in .gitignore"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -208,14 +219,14 @@ def test_run_bootstrap_emits_per_step_progress(
         "triage:bootstrap step 1/5 populate_cache -- starting",
         "triage:bootstrap step 2/5 backfill_audit_log -- starting",
         "triage:bootstrap step 3/5 ensure_gitignore_entry -- starting",
-        "triage:bootstrap step 4/5 ensure_gitignore_eval_dir -- starting",
+        "triage:bootstrap step 4/5 ensure_gitignore_eval_entries -- starting",
         "triage:bootstrap step 5/5 seed_candidates_log -- starting",
     ]
     expected_dones = [
         "triage:bootstrap step 1/5 populate_cache -- done",
         "triage:bootstrap step 2/5 backfill_audit_log -- done",
         "triage:bootstrap step 3/5 ensure_gitignore_entry -- done",
-        "triage:bootstrap step 4/5 ensure_gitignore_eval_dir -- done",
+        "triage:bootstrap step 4/5 ensure_gitignore_eval_entries -- done",
         "triage:bootstrap step 5/5 seed_candidates_log -- done",
     ]
     for stem in expected_starts + expected_dones:
@@ -382,7 +393,7 @@ def test_run_bootstrap_watchdog_emits_timeout_progress_and_structured_exit(
     # still succeed (gitignore is purely local); otherwise the
     # ``partial bootstrap`` invariant from the #952 fix is broken.
     assert result.steps[2].ok is True  # ensure_gitignore_entry
-    assert result.steps[3].ok is True  # ensure_gitignore_eval_dir
+    assert result.steps[3].ok is True  # ensure_gitignore_eval_entries
 
 
 # ---------------------------------------------------------------------------

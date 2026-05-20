@@ -12,7 +12,64 @@
       "Overview": "## Summary\r\n\r\n`task triage:bootstrap` step 4 (`ensure_gitignore_eval_dir`) appends a blanket `vbrief/.eval/` line to `.gitignore`, ignoring the entire eval directory. This directly violates the #1144 hybrid policy (\"vbrief/.eval/ tracking governance\"), which specifies that selective files (`candidates.jsonl`, `summary-history.jsonl`, `scope-lifecycle.jsonl`) are gitignored while `slices.jsonl` is TRACKED. The blanket ignore defeats the hybrid policy and breaks the maintainer-design test `tests/test_eval_governance.py::test_gitignore_does_not_blanket_ignore_eval_directory`.\r\n\r\n## Reproduction (2026-05-20 dogfood session)\r\n\r\n1. Fresh `.gitignore` with the proper #1144 selective entries in place:\r\n```\r\nvbrief/.eval/candidates.jsonl\r\nvbrief/.eval/summary-history.jsonl\r\nvbrief/.eval/scope-lifecycle.jsonl\r\n```\r\n2. Run `task triage:bootstrap` (any path; step 4 fires unconditionally on first bootstrap).\r\n3. Observe `.gitignore` diff:\r\n```\r\n+# Triage v1 audit/eval scratch (#915). Holds candidates.jsonl + transient\r\n+# evaluation artefacts written by triage actions. Per-machine operator state;\r\n+# never versioned (would leak triage timing/identity). Comment this line out\r\n+# to opt in to committing the audit log.\r\n+vbrief/.eval/\r\n```\r\n4. Run `task check` (or `pytest tests/test_eval_governance.py::test_gitignore_does_not_blanket_ignore_eval_directory`). Result:\r\n\r\n```\r\nAssertionError: blanket gitignore of vbrief/.eval/ defeats the hybrid policy (#1144)\r\n```\r\n\r\nThe PR carrying this change (#1249) is unmergeable until the blanket ignore is removed.\r\n\r\n## Expected\r\n\r\n`task triage:bootstrap` step 4 should be idempotent w.r.t. the #1144 hybrid policy:\r\n- Check whether `.gitignore` already carries the three selective entries (`candidates.jsonl`, `summary-history.jsonl`, `scope-lifecycle.jsonl`).\r\n- If yes: no-op. The policy is already satisfied.\r\n- If no: append the SELECTIVE entries (not a blanket `vbrief/.eval/`), plus the `.gitattributes merge=union` rule for any tracked-but-mergeable eval files, plus a `vbrief/.eval/README.md` documenting the policy.\r\n- Step name should be renamed from `ensure_gitignore_eval_dir` to `ensure_gitignore_eval_entries` to reflect the per-file semantics.\r\n\r\n## Actual\r\n\r\nStep 4 appends a blanket `vbrief/.eval/` line regardless of whether the selective entries are already present. This:\r\n- Ignores tracked eval files (e.g. `slices.jsonl` per #1132 / D13) that the hybrid policy explicitly requires to be team-shared.\r\n- Creates `.gitignore` precedence ambiguity (more-specific selective entries above + less-specific blanket below — git resolves to blanket).\r\n- Breaks the `task check` deterministic gate against #1144 violations.\r\n\r\n## Impact\r\n\r\n- Breaks `task check` on any session that runs `task triage:bootstrap` against the framework's own repo (the dogfood case).\r\n- Defeats the #1144 hybrid policy: tracked eval files become invisible to git.\r\n- Companion bug to #1250 (`triage:welcome wipCap` materialization). Both surfaced in the same dogfood walk when the test suite caught the contract violations on PR #1249.\r\n\r\n## Suggested investigation\r\n\r\n- `scripts/triage_bootstrap.py` step 4 (`ensure_gitignore_eval_dir`): replace the blanket-line append with the per-file convention from #1144 Current Shape v3.\r\n- Check whether step 4 is supposed to be a no-op when `.gitignore` already has the #1144 entries (likely yes; this is the consumer-clone case).\r\n- Verify the step also adds `.gitattributes merge=union vbrief/.eval/*.jsonl` for the tracked-and-mergeable case if missing.\r\n\r\n## Related\r\n\r\n- #1144: original hybrid policy + Current Shape comment (canonical decision).\r\n- #1132 / D13: `slices.jsonl` is the TRACKED team-shared cohort record that the blanket ignore would silently hide.\r\n- #1244 / #1245 / #1246 / #1247 / #1248 / #1250: companion bugs filed in the same dogfood walk; this is #7 of 7.\r\n\r\n## Workaround\r\n\r\nAfter running `task triage:bootstrap`, manually edit `.gitignore` to remove the trailing `# Triage v1 audit/eval scratch ... vbrief/.eval/` block. The selective entries higher in the file already cover the #1144 hybrid policy.\r\n",
       "Labels": "bug, determinism, adoption-blocker"
     },
-    "items": [],
+    "items": [
+      {
+        "id": "1251-ac-1-selective-gitignore",
+        "title": "Replace blanket vbrief/.eval/ append with three selective entries",
+        "status": "completed",
+        "narratives": {
+          "Action": "scripts/_triage_bootstrap_gitignore.py exposes GITIGNORE_EVAL_ENTRIES tuple (candidates.jsonl, summary-history.jsonl, scope-lifecycle.jsonl) and _ensure_gitignore_selective_entries() appends only the missing entries with a #1144 rationale comment block. The blanket vbrief/.eval/ line is never appended; if an operator left one behind manually the step reports details.blanket_present=True without auto-rewriting (concurrency safety)."
+        }
+      },
+      {
+        "id": "1251-ac-2-rename-step",
+        "title": "Rename step_ensure_gitignore_eval_dir -> step_ensure_gitignore_eval_entries",
+        "status": "completed",
+        "narratives": {
+          "Action": "Renamed the step function, removed the legacy GITIGNORE_EVAL_LINE blanket constant, updated all consumers (triage_bootstrap.py module docstring, run_bootstrap dispatcher, progress-emit step labels) and tests (tests/test_triage_bootstrap.py + tests/integration/test_triage_bootstrap_at_scale.py)."
+        }
+      },
+      {
+        "id": "1251-ac-3-gitattributes-merge-union",
+        "title": "Add .gitattributes vbrief/.eval/*.jsonl merge=union rule when missing",
+        "status": "completed",
+        "narratives": {
+          "Action": "_ensure_gitattributes_merge_union() creates .gitattributes on a fresh clone with the canonical rule + rationale comment block, OR appends the rule to a pre-existing file that lacks it. Idempotent: a file with the rule already present (any whitespace between glob and attribute, plus trailing comments) is a no-op via _gitattributes_has_eval_merge_union() tokenizer."
+        }
+      },
+      {
+        "id": "1251-ac-4-readme-write",
+        "title": "Write canonical vbrief/.eval/README.md on fresh clone",
+        "status": "completed",
+        "narratives": {
+          "Action": "_ensure_eval_readme() writes the canonical #1144 hybrid-policy README when absent. Body matches the on-disk vbrief/.eval/README.md byte-for-byte and satisfies the deterministic gates in tests/test_eval_governance.py::test_eval_readme_documents_policy (the three filenames, task triage:bootstrap regen command, merge=union policy, no-dedupe qualifier). Existing READMEs are left untouched."
+        }
+      },
+      {
+        "id": "1251-ac-5-idempotent-no-op",
+        "title": "Re-run against already-configured repo is a true no-op",
+        "status": "completed",
+        "narratives": {
+          "Action": "All three sub-operations short-circuit when their target state is satisfied. test_ensure_gitignore_eval_entries_idempotent_when_selective_present pins byte-identity on .gitignore + .gitattributes + README after a no-op re-run. The framework's own task check stays green when the bootstrap runs against its own repo."
+        }
+      },
+      {
+        "id": "1251-ac-6-unit-tests",
+        "title": "Unit tests cover fresh-clone, idempotent, and never-blanket paths",
+        "status": "completed",
+        "narratives": {
+          "Action": "tests/test_triage_bootstrap.py grows nine new tests under TestEnsureGitignoreEvalEntries: writes_selective_lines, idempotent_when_selective_present, never_appends_blanket, adds_gitattributes_when_missing, appends_gitattributes_rule_when_absent, writes_readme_when_missing, fails_without_existing_gitignore, flags_pre_existing_blanket. tests/test_eval_governance.py::test_gitignore_does_not_blanket_ignore_eval_directory + test_gitignore_has_selective_eval_entries both pass."
+        }
+      },
+      {
+        "id": "1251-ac-7-summary-line-shim",
+        "title": "Addendum: FetchAllReport.summary_line() compatibility shim",
+        "status": "completed",
+        "narratives": {
+          "Action": "scripts/triage_bootstrap.py step_populate_cache recap line now delegates to report.summary_line(source=..., repo=...) when available (PR #1254 counter rename) and falls back to the legacy succeeded/failed/skipped hand-formatted string otherwise. Single-line getattr/hasattr check; lands safely regardless of #1254 merge order."
+        }
+      }
+    ],
     "tags": [
       "bug",
       "determinism",
