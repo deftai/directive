@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -277,8 +278,6 @@ def _detect_origin_repo_inline(project_root: Path | None) -> str | None:
     url = (result.stdout or "").strip()
     if not url:
         return None
-    import re
-
     match = re.search(
         r"github\.com[:/]([A-Za-z0-9][A-Za-z0-9._-]*)/"
         r"([A-Za-z0-9][A-Za-z0-9._-]*?)(?:\.git)?/?\s*$",
