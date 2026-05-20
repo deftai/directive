@@ -77,6 +77,14 @@ PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json"
 CACHE_DIR_NAME: str = ".deft-cache"
 CACHE_SOURCE: str = "github-issue"
 
+#: Canonical "bootstrap finished" audit log (#1244). Mirrors
+#: :data:`scripts.preflight_cache.CANDIDATES_RELPATH` and
+#: :data:`scripts.triage_bootstrap.AUDIT_LOG_RELPATH`. Downstream verbs
+#: (`task triage:queue`, `task verify:cache-fresh`) all key off this
+#: file's presence rather than the raw ``.deft-cache/`` entry count, so
+#: welcome's Phase 3 idempotency probe MUST use the same signal.
+CANDIDATES_RELPATH: tuple[str, ...] = ("vbrief", ".eval", "candidates.jsonl")
+
 #: vBRIEF lifecycle folders that contribute to the WIP count.
 WIP_LIFECYCLE_DIRS: tuple[str, ...] = ("pending", "active")
 
@@ -132,7 +140,11 @@ WELCOME_AUDIT_TAG: str = "triage-welcome"
 
 @dataclass(frozen=True)
 class PriorState:
-    """Snapshot of the four state probes Phase 1 needs."""
+    """Snapshot of the state probes Phase 1 needs.
+
+    ``audit_log_present`` is the canonical "bootstrap finished" signal
+    (#1244); the raw ``.deft-cache/`` entry count is diagnostic only.
+    """
 
     triage_scope_set: bool
     triage_scope_summary: str  # human-readable label (e.g. "unset" / "Mid")
@@ -141,6 +153,7 @@ class PriorState:
     wip_cap_set: bool
     wip_cap: int  # current value OR the DEFAULT_WIP_CAP fallback
     wip_count: int  # pending/ + active/
+    audit_log_present: bool  # vbrief/.eval/candidates.jsonl exists (#1244)
 
 
 # ---------------------------------------------------------------------------
@@ -212,6 +225,16 @@ def _count_cache_entries(project_root: Path) -> int:
     return count
 
 
+def candidates_log_path(project_root: Path) -> Path:
+    """Absolute path to ``vbrief/.eval/candidates.jsonl`` (#1244)."""
+    return project_root.joinpath(*CANDIDATES_RELPATH)
+
+
+def _audit_log_present(project_root: Path) -> bool:
+    """True iff ``vbrief/.eval/candidates.jsonl`` exists (zero-length OK)."""
+    return candidates_log_path(project_root).is_file()
+
+
 def _count_wip(project_root: Path) -> int:
     total = 0
     root = project_root / "vbrief"
@@ -274,6 +297,7 @@ def detect_prior_state(project_root: Path) -> PriorState:
         wip_cap_set=wip_cap_set,
         wip_cap=wip_cap,
         wip_count=_count_wip(project_root),
+        audit_log_present=_audit_log_present(project_root),
     )
 
 
@@ -514,6 +538,7 @@ __all__ = [
     "AUDIT_LOG_REL_PATH",
     "CACHE_DIR_NAME",
     "CACHE_SOURCE",
+    "CANDIDATES_RELPATH",
     "TRIAGE_SKILL_PATH",
     "WELCOME_AUDIT_TAG",
     "PROJECT_DEFINITION_REL_PATH",
@@ -531,6 +556,7 @@ __all__ = [
     "default_output",
     "append_audit_entry",
     "project_definition_path",
+    "candidates_log_path",
 ]
 
 # Backward-compatible private aliases kept for any future call site.
@@ -543,9 +569,23 @@ _default_output = default_output
 # ---------------------------------------------------------------------------
 
 
+#: ``WelcomeOutcome.bootstrap_action`` tokens (#1244). Compare via these
+#: constants -- a rename then surfaces as a NameError at import time.
+BOOTSTRAP_ACTION_RAN = "ran"
+BOOTSTRAP_ACTION_SKIPPED_ALREADY_BOOTSTRAPPED = "skipped:already-bootstrapped"
+BOOTSTRAP_ACTION_SKIPPED_DECLINED = "skipped:declined"
+BOOTSTRAP_ACTION_SKIPPED_DRY_MODE = "skipped:dry-mode"
+
+
 @dataclass
 class WelcomeOutcome:
-    """End-of-run summary for tests / dispatcher consumers."""
+    """End-of-run summary for tests / dispatcher consumers.
+
+    ``bootstrap_action`` (#1244) surfaces whether Phase 3 invoked
+    ``task triage:bootstrap`` or skipped it (and why). One of the
+    ``BOOTSTRAP_ACTION_*`` constants above, or ``None`` if the ritual
+    exited before Phase 3 (e.g. Discuss / Back at Phase 2).
+    """
 
     phases_run: list[int] = field(default_factory=list)
     phases_skipped: list[int] = field(default_factory=list)
@@ -555,6 +595,7 @@ class WelcomeOutcome:
     relief_confirmed: bool = False
     discussed_at_phase: int | None = None
     exit_code: int = 0
+    bootstrap_action: str | None = None
 
 
 def run_welcome(
@@ -563,18 +604,25 @@ def run_welcome(
     input_fn: Callable[[str], str] | None = None,
     output_fn: Callable[[str], None] | None = None,
     run_subprocess: bool = True,
+    skip_bootstrap: bool = False,
 ) -> WelcomeOutcome:
     """Execute the 6-phase ritual. Returns a structured outcome.
 
-    Phases 1-6 run inside a single ``while True`` loop driven by a
-    ``phase`` counter so the deterministic-questions ``Back`` semantic
-    ("re-render the prior question") works correctly: a Back selection
-    at Phase 4 rewinds to Phase 2 and the loop re-enters the interactive
-    menu (the ``force_re_prompt_*`` flags override the
-    already-set-skip on the rewind iteration). A Discuss selection halts
-    the loop and returns immediately. Subprocess failures in Phases 3
-    and 5 set ``outcome.exit_code = 2`` so callers learn the ritual
-    encountered a problem, matching Phase 2 / Phase 4 writer semantics.
+    Phases 1-6 run inside a single ``while True`` loop so the
+    deterministic-questions ``Back`` semantic re-renders the prior
+    question (a Back at Phase 4 rewinds to Phase 2 with
+    ``force_re_prompt_*`` overriding the already-set-skip). A Discuss
+    selection returns immediately. Subprocess failures in Phases 3 and
+    5 set ``outcome.exit_code = 2``.
+
+    Phase 3 bootstrap-skip semantics (#1244): the canonical "bootstrap
+    already finished" signal is ``vbrief/.eval/candidates.jsonl`` (the
+    audit log seeded by ``task triage:bootstrap`` step 5), NOT the raw
+    ``.deft-cache/`` entry count. When the audit log is absent the
+    ritual MUST (a) run bootstrap (the default, idempotent), (b) loudly
+    surface dry-mode suppression when ``run_subprocess=False``, or
+    (c) record an explicit operator decline via ``skip_bootstrap=True``
+    and append a visible audit entry.
     """
     in_fn = input_fn or default_input
     out_fn = output_fn or default_output
@@ -608,8 +656,13 @@ def run_welcome(
             state = detect_prior_state(project_root)
             out_fn(f"  triageScope: {state.triage_scope_summary}")
             out_fn(
-                f"  cache: {state.cache_entry_count} entry/entries "
+                f"  cache: {state.cache_entry_count} raw entry/entries "
                 f"({'empty' if state.cache_empty else 'populated'})"
+            )
+            out_fn(
+                f"  candidates.jsonl: "
+                f"{'present' if state.audit_log_present else 'absent'} "
+                f"({'/'.join(CANDIDATES_RELPATH)})"
             )
             if state.wip_cap_set:
                 out_fn(f"  wipCap: set ({state.wip_cap})")
@@ -685,31 +738,77 @@ def run_welcome(
             continue
 
         if phase == 3:
+            # #1244: audit log presence (NOT raw cache count) is the
+            # canonical "bootstrap finished" signal; see run_welcome
+            # docstring for the full rationale.
             refreshed = detect_prior_state(project_root)
-            if not refreshed.cache_empty:
+            audit_rel = "/".join(CANDIDATES_RELPATH)
+            if refreshed.audit_log_present:
                 out_fn(
-                    f"[3/6] Cache already populated "
-                    f"({refreshed.cache_entry_count} entries); "
-                    "skipping bootstrap."
+                    f"[3/6] Bootstrap audit log already present "
+                    f"({audit_rel}, {refreshed.cache_entry_count} raw cache "
+                    "entry/entries); skipping `task triage:bootstrap`."
+                )
+                outcome.bootstrap_action = (
+                    BOOTSTRAP_ACTION_SKIPPED_ALREADY_BOOTSTRAPPED
                 )
                 _record_skipped(3)
+            elif skip_bootstrap:
+                out_fn(
+                    "[3/6] `task triage:bootstrap` explicitly declined "
+                    "via --skip-bootstrap."
+                )
+                out_fn(
+                    f"  ! {audit_rel} remains absent; downstream verbs "
+                    "(`task triage:queue`, `task verify:cache-fresh`) "
+                    "will refuse to run."
+                )
+                out_fn(
+                    "  ! Run `task triage:bootstrap` separately when "
+                    "ready to populate the cache."
+                )
+                append_audit_entry(
+                    project_root,
+                    (
+                        f"actor={WELCOME_AUDIT_TAG} "
+                        "action=bootstrap-declined "
+                        "reason=explicit-skip-flag "
+                        f"audit_log={audit_rel} "
+                        "audit_log_present=false"
+                    ),
+                )
+                outcome.bootstrap_action = BOOTSTRAP_ACTION_SKIPPED_DECLINED
+                _record_skipped(3)
+            elif not run_subprocess:
+                # Test-mode -- loudly surface the cache gap so dispatchers
+                # don't mistake dry-mode for a populated cache (#1244).
+                out_fn(
+                    "[3/6] `task triage:bootstrap` suppressed by "
+                    "--no-subprocess (test-mode)."
+                )
+                out_fn(
+                    f"  ! {audit_rel} remains absent; downstream verbs "
+                    "(`task triage:queue`, `task verify:cache-fresh`) "
+                    "will refuse to run until bootstrap is invoked."
+                )
+                outcome.bootstrap_action = BOOTSTRAP_ACTION_SKIPPED_DRY_MODE
+                _record_skipped(3)
             else:
+                # Audit log absent, no decline, subprocess enabled.
+                # Bootstrap is idempotent so re-running over a
+                # partially-populated `.deft-cache/` is safe.
                 out_fn("[3/6] Running `task triage:bootstrap`...")
-                if run_subprocess:
-                    rc = _run_task(["triage:bootstrap"], cwd=project_root)
-                    if rc != 0:
-                        out_fn(
-                            f"  ! `task triage:bootstrap` exited {rc}; "
-                            "see stderr above. Setting outcome.exit_code=2 "
-                            "so the dispatcher learns the ritual hit a "
-                            "downstream failure (re-run welcome after "
-                            "fixing bootstrap to resume)."
-                        )
-                        outcome.exit_code = 2
-                else:
+                rc = _run_task(["triage:bootstrap"], cwd=project_root)
+                if rc != 0:
                     out_fn(
-                        "  [dry-mode] bootstrap subprocess suppressed by caller."
+                        f"  ! `task triage:bootstrap` exited {rc}; "
+                        "see stderr above. Setting outcome.exit_code=2 "
+                        "so the dispatcher learns the ritual hit a "
+                        "downstream failure (re-run welcome after "
+                        "fixing bootstrap to resume)."
                     )
+                    outcome.exit_code = 2
+                outcome.bootstrap_action = BOOTSTRAP_ACTION_RAN
                 _record_run(3)
             phase = 4
             continue
@@ -853,16 +952,9 @@ def run_welcome(
             out_fn("[6/6] Final state:")
             if run_subprocess:
                 _run_task(["triage:summary"], cwd=project_root)
-                # TODO(#1148 / N8): wire `task policy:show --changed-only`
-                # here as the canonical consolidated typed-policy
-                # inspector for the post-ritual summary. The inspector
-                # landed on master via N8 (#1148) but this Phase 6 hop
-                # is intentionally NOT updated in that same PR because
-                # N3 (#1143) was already merged when N8 shipped -- a
-                # follow-up amendment PR (or operator) closes the loop
-                # by adding ``_run_task(["policy:show", "--",
-                # "--changed-only"], cwd=project_root)`` immediately
-                # after the triage:summary call above.
+                # TODO(#1148 / N8): follow-up to add `_run_task(["policy:show",
+                # "--", "--changed-only"])` here once N3's PR has shipped --
+                # the inspector landed via N8 after N3 merged.
             else:
                 out_fn(
                     "  [dry-mode] triage:summary subprocess suppressed by caller."
