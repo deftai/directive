@@ -102,9 +102,3 @@ history/post-issue.py
 
 # One-off operator scripts left at root from prior sessions -- move to history/ or delete.
 poll-fetch.ps1
-
-# Triage v1 audit/eval scratch (#915). Holds candidates.jsonl + transient
-# evaluation artefacts written by triage actions. Per-machine operator state;
-# never versioned (would leak triage timing/identity). Comment this line out
-# to opt in to committing the audit log.
-vbrief/.eval/
