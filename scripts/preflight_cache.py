@@ -518,42 +518,66 @@ def evaluate(
     # --- Step 4: subscription filter (#1131) -----------------------------
     scope_rules = _resolve_scope_rules(project_root)
     scoped_meta_paths = _filter_scoped_meta_paths(meta_paths, scope_rules, project_root)
-    # When the subscription excludes EVERY cached entry, the cache is
-    # effectively empty for this scope -- treat as stale (exit 1) so the
-    # operator widens the subscription or runs fetch-all.
+    # #1245: distinguish a ``backfill-only cache`` state (the cache
+    # contains entries but none currently match the active subscription,
+    # AND the consumer has emitted at least one triage decision
+    # -- including ``triage:bootstrap``'s backfilled ``accept`` history
+    # rows) from a genuine misconfiguration (no in-scope cached entries
+    # AND no triage activity). The backfill-only state is the expected
+    # post-bootstrap shape on a repo whose currently-cached open issues
+    # do not happen to match the operator's narrow subscription; the
+    # session-start gate should pass so the pre-``start_agent`` gate
+    # stack composes cleanly. Downstream ``--for-issue`` dispatch still
+    # enforces per-issue scope + decision via :func:`_gate_for_issue`,
+    # so this relaxation only affects the cache-wide session check.
+    backfill_only_cache = False
     if not scoped_meta_paths:
-        msg = (
-            "❌ deft cache-fresh: every cached entry is outside the active "
-            "plan.policy.triageScope[] subscription.\n"
-            "  Recovery: widen the subscription (see `task triage:scope --list`) "
-            "or repopulate via `task cache:fetch-all`."
-        )
-        if allow_stale:
-            # Mirror the Step 5 stale-cache pattern: --allow-stale MUST NOT
-            # silently paper over a defer/reject/missing --for-issue
-            # decision. Run the per-issue gate FIRST and propagate any
-            # refusal; only fall through to the allow-stale exit 0 when
-            # the per-issue check is clean (or no --for-issue was passed).
-            if for_issue is not None:
-                for_issue_result = _gate_for_issue(
-                    resolved_repo,
-                    for_issue,
-                    candidates=candidates,
-                    scope_rules=scope_rules,
-                    source_dir=source_dir,
-                    project_root=project_root,
-                )
-                if for_issue_result.code != 0:
-                    return for_issue_result
-            return GateResult(
-                0,
-                (
-                    "⚠ deft cache-fresh: --allow-stale honoured but every "
-                    "cached entry is out of scope; downstream tooling may "
-                    "still refuse work."
-                ),
+        audit_state = _audit_log_state(candidates)
+        if audit_state == "populated":
+            # Fall through to Step 5's freshness window using the FULL
+            # ``meta_paths`` (not the empty scoped list) so a stale
+            # cache still fails loudly even when every entry is out
+            # of subscription. The Step 6 OK message uses the
+            # ``backfill_only_cache`` flag to emit a state-aware line.
+            backfill_only_cache = True
+            scoped_meta_paths = meta_paths
+        else:
+            msg = (
+                "❌ deft cache-fresh: every cached entry is outside the active "
+                "plan.policy.triageScope[] subscription, and the audit log "
+                "is empty (no triage decisions yet).\n"
+                "  Recovery: widen the subscription (see "
+                "`task triage:scope --list`), repopulate via "
+                "`task cache:fetch-all`, or accept at least one candidate "
+                "via `task triage:accept` once the cache has matching entries."
             )
-        return GateResult(1, msg)
+            if allow_stale:
+                # Mirror the Step 5 stale-cache pattern: --allow-stale
+                # MUST NOT silently paper over a defer/reject/missing
+                # --for-issue decision. Run the per-issue gate FIRST
+                # and propagate any refusal; only fall through to the
+                # allow-stale exit 0 when the per-issue check is clean
+                # (or no --for-issue was passed).
+                if for_issue is not None:
+                    for_issue_result = _gate_for_issue(
+                        resolved_repo,
+                        for_issue,
+                        candidates=candidates,
+                        scope_rules=scope_rules,
+                        source_dir=source_dir,
+                        project_root=project_root,
+                    )
+                    if for_issue_result.code != 0:
+                        return for_issue_result
+                return GateResult(
+                    0,
+                    (
+                        "⚠ deft cache-fresh: --allow-stale honoured but every "
+                        "cached entry is out of scope; downstream tooling may "
+                        "still refuse work."
+                    ),
+                )
+            return GateResult(1, msg)
 
     # --- Step 5: freshness window ----------------------------------------
     max_fetched: datetime | None = None
@@ -637,13 +661,27 @@ def evaluate(
     # just ran ``task triage:bootstrap`` (step 5 seeded the empty file)
     # but has not yet emitted any triage decision; the gate is still
     # clean but the language acknowledges the operator's mental state.
+    # #1245: the ``backfill_only_cache`` flag set during Step 4 supplies
+    # a third state -- the cache holds entries but none match the active
+    # subscription, AND the audit log is populated (consumer is actively
+    # triaging). The gate passes so downstream tooling can run; the
+    # message names the state so the operator is not surprised that
+    # ``triage:queue`` etc. show zero in-scope rows.
     audit_state = _audit_log_state(candidates)
-    if audit_state == "empty":
+    if backfill_only_cache:
+        state_phrase = (
+            "backfill-only cache (no entries match "
+            "plan.policy.triageScope[]; audit log populated)"
+        )
+        in_scope_count = 0
+    elif audit_state == "empty":
         state_phrase = "fresh bootstrap, no triage actions yet"
+        in_scope_count = len(scoped_meta_paths)
     else:
         state_phrase = "actively triaging"
+        in_scope_count = len(scoped_meta_paths)
     msg = (
-        f"✓ deft cache-fresh: {resolved_repo} -- {len(scoped_meta_paths)} entry/ies "
+        f"✓ deft cache-fresh: {resolved_repo} -- {in_scope_count} entry/ies "
         f"in scope; newest fetched {age_h:.1f}h ago (max-age={max_age_h}h); "
         f"{state_phrase}."
     )
