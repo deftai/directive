@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1250"
+  },
+  "plan": {
+    "title": "bug(triage,policy): task triage:welcome materializes plan.policy.wipCap, violating #1186 Deliverable 1",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(triage,policy): task triage:welcome materializes plan.policy.wipCap, violating #1186 Deliverable 1",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1250",
+      "Overview": "## Summary\r\n\r\n`task triage:welcome` materializes `plan.policy.wipCap=10` into `vbrief/PROJECT-DEFINITION.vbrief.json` and appends an entry to `meta/policy-changes.log`. This directly violates the existing policy contract documented in #1186 Deliverable 1 (\"deft accepts the framework default 10 -- the typed field is omitted from PROJECT-DEFINITION\") and breaks the maintainer-design test `tests/content/test_consumer_config_example.py::test_policy_omits_wip_cap`.\r\n\r\n## Reproduction (2026-05-20 dogfood session)\r\n\r\n1. Fresh `vbrief/PROJECT-DEFINITION.vbrief.json` with no `plan.policy.wipCap` key.\r\n2. Run `task triage:welcome` (or `task triage:welcome -- --no-subprocess`). Accept default `wipCap=10` when prompted.\r\n3. Observe `vbrief/PROJECT-DEFINITION.vbrief.json` diff: `+      \"wipCap\": 10` materialized at the end of `plan.policy`.\r\n4. Observe new file `meta/policy-changes.log` with row `2026-05-20T12:51:16Z actor=triage-welcome field=plan.policy.wipCap value=10 previous=None changed=true`.\r\n5. Run `task check` (or `pytest tests/content/test_consumer_config_example.py::test_policy_omits_wip_cap`). Result:\r\n\r\n```\r\nAssertionError: plan.policy.wipCap must remain unset -- deft accepts the framework default 10 per #1186 Deliverable 1\r\n```\r\n\r\nThe PR carrying this materialization (#1249) is unmergeable until the materialization is undone.\r\n\r\n## Expected\r\n\r\n`task triage:welcome` step 4 (wipCap prompt) should:\r\n- Read the current `plan.policy.wipCap` if present.\r\n- If unset and the operator confirms the framework default, EXIT THE STEP WITHOUT WRITING THE FIELD. The default is read from framework defaults; consumers do not need an explicit setting.\r\n- Only write the typed field when the operator changes the value to something other than the default, AND only if `#1186` permits the consumer to opt out of the default.\r\n- Skip the `meta/policy-changes.log` audit row when no actual change is being made.\r\n\r\n## Actual\r\n\r\nThe ritual writes the field unconditionally on operator confirmation, regardless of whether the value matches the framework default. The `meta/policy-changes.log` audit row is appended even when `value=10 previous=None` (no actual change).\r\n\r\n## Impact\r\n\r\n- Breaks `task check` on any session that runs `task triage:welcome` against the framework's own repo (the dogfood case).\r\n- Breaks the policy contract from #1186: consumers SHOULD inherit the default without materialization. The materialization changes the typed shape and reads as a deliberate consumer-side override to downstream tooling.\r\n- Creates unnecessary `meta/policy-changes.log` audit churn for no-op policy state.\r\n\r\n## Suggested investigation\r\n\r\n- `scripts/triage_welcome.py` step 4 (wipCap prompt): check whether the write is gated on `value != default`.\r\n- `scripts/policy.py` (if it has a `set` API): does the underlying setter no-op when the new value matches the default? It should.\r\n- `meta/policy-changes.log` writer: skip rows where `previous == None AND value == framework_default`.\r\n\r\n## Related\r\n\r\n- #1186: original Deliverable 1 contract (deft accepts the framework default; typed field omitted).\r\n- #1244: companion bug filed the same session (`triage:welcome` silently skips bootstrap). Both touch `triage_welcome.py`.\r\n\r\n## Workaround\r\n\r\nAfter running `task triage:welcome`, manually revert the `plan.policy.wipCap` field from `PROJECT-DEFINITION.vbrief.json` and delete the corresponding `meta/policy-changes.log` row.\r\n",
+      "Labels": "bug, determinism, adoption-blocker"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "determinism",
+      "adoption-blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1250",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1250: bug(triage,policy): task triage:welcome materializes plan.policy.wipCap, violating #1186 Deliverable 1"
+      }
+    ],
+    "updated": "2026-05-20T14:37:52Z"
+  }
+}

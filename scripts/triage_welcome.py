@@ -382,7 +382,23 @@ def write_wip_cap(
     *,
     actor: str = WELCOME_AUDIT_TAG,
 ) -> tuple[bool, str]:
-    """In-place set ``plan.policy.wipCap`` to *wip_cap*.
+    """Persist (or omit / clear) ``plan.policy.wipCap`` per #1250.
+
+    Behaviour matrix (#1250 + #1186 Deliverable 1):
+
+    * ``previous is None`` and ``wip_cap == DEFAULT_WIP_CAP`` -- **no-op**.
+      The operator confirmed the framework default; consumers inherit the
+      default without materializing the typed field. Returns
+      ``(False, "")`` and skips the ``meta/policy-changes.log`` audit row
+      so a default-confirm produces zero churn on disk.
+    * ``previous is not None`` and ``wip_cap == DEFAULT_WIP_CAP`` --
+      **cleanup**. Removes the typed field so the consumer falls back to
+      the framework default. Appends an audit row tagging the cleanup.
+    * ``previous == wip_cap`` (already-typed, no semantic change) --
+      rewrite the value in place and append an audit row with
+      ``changed=false`` (kept for the explicit re-confirm trail).
+    * Otherwise (``wip_cap != DEFAULT_WIP_CAP``) -- write the typed
+      field and audit ``changed=true``.
 
     Hand-rolled because D4 (#1124) ships in parallel; once D4's
     ``policy_set.py wip-cap`` subcommand lands the body here becomes a
@@ -401,6 +417,29 @@ def write_wip_cap(
     if not isinstance(policy, dict):
         raise ValueError("plan.policy is not an object")
     previous = policy.get("wipCap")
+
+    # Case 1: default-confirm on a fresh consumer -- the field stays
+    # omitted (#1250 / #1186 Deliverable 1). No JSON write, no audit row.
+    if previous is None and wip_cap == DEFAULT_WIP_CAP:
+        return False, ""
+
+    # Case 2: operator cleared back to the framework default -- remove the
+    # typed field so downstream resolvers report ``source=default``.
+    if previous is not None and wip_cap == DEFAULT_WIP_CAP:
+        del policy["wipCap"]
+        path.write_text(
+            json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        audit_entry = (
+            f"actor={actor} field=plan.policy.wipCap "
+            f"action=cleared-to-default value={wip_cap} "
+            f"previous={previous!r} changed=true"
+        )
+        append_audit_entry(project_root, audit_entry)
+        return True, audit_entry
+
+    # Case 3: explicit non-default write (including same-value re-confirm).
     policy["wipCap"] = wip_cap
     path.write_text(
         json.dumps(data, indent=2, ensure_ascii=False) + "\n",

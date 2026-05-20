@@ -310,7 +310,10 @@ def test_clean_install_runs_all_phases(tmp_path: Path) -> None:
     assert 4 in outcome.phases_run
     assert 5 in outcome.phases_skipped  # WIP 0 <= cap 10
     assert 6 in outcome.phases_run
-    # Subscription + cap landed on PROJECT-DEFINITION.
+    # Subscription landed; #1250: wipCap MUST remain unset when the
+    # operator accepts the framework default on a fresh consumer
+    # (per #1186 Deliverable 1 -- the field is omitted, consumers
+    # inherit the default).
     data = json.loads(
         (tmp_path / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(
             encoding="utf-8"
@@ -319,7 +322,19 @@ def test_clean_install_runs_all_phases(tmp_path: Path) -> None:
     assert data["plan"]["policy"]["triageScope"] == triage_welcome.SUBSCRIPTION_PRESETS[
         "mid"
     ]
-    assert data["plan"]["policy"]["wipCap"] == 10
+    assert "wipCap" not in data["plan"]["policy"], (
+        "plan.policy.wipCap must remain unset when the operator accepts "
+        "the framework default 10 on a fresh consumer (#1250 / #1186 "
+        "Deliverable 1)."
+    )
+    # And the no-op MUST NOT append a row to meta/policy-changes.log
+    # for the wipCap default-confirm -- only the triageScope write does.
+    audit_log = (tmp_path / triage_welcome.AUDIT_LOG_REL_PATH).read_text(
+        encoding="utf-8"
+    )
+    assert "field=plan.policy.wipCap" not in audit_log, (
+        "#1250: default-confirm wipCap must not write a policy-changes.log row"
+    )
 
 
 def test_partial_install_skips_completed_phases(tmp_path: Path) -> None:
@@ -499,7 +514,7 @@ def test_back_at_phase_4_rewinds_to_phase_2_and_completes(tmp_path: Path) -> Non
     )
     joined = output.joined()
     assert outcome.exit_code == 0
-    # Phase 4 actually wrote wipCap this time (P1 #2 regression guard).
+    # Phase 4 visited and the operator picked the default (P1 #2 regression guard).
     assert outcome.wip_cap_choice == 10
     # Phase 2 was visited (Back forced the re-prompt), Phase 4 ran, Phase 6 ran.
     assert 2 in outcome.phases_run
@@ -507,8 +522,9 @@ def test_back_at_phase_4_rewinds_to_phase_2_and_completes(tmp_path: Path) -> Non
     assert 6 in outcome.phases_run
     # Operator-visible Back-rewind line was emitted.
     assert "[back] Rewinding to Phase 2" in joined
-    # Persisted state: subscription changed mid (orig) -> small (post-Back),
-    # wipCap=10 set.
+    # Persisted state: subscription changed mid (orig) -> small (post-Back).
+    # #1250: wipCap MUST remain unset because the operator picked the
+    # framework default on a previously-unset consumer.
     data = json.loads(
         (tmp_path / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(
             encoding="utf-8"
@@ -518,7 +534,9 @@ def test_back_at_phase_4_rewinds_to_phase_2_and_completes(tmp_path: Path) -> Non
         data["plan"]["policy"]["triageScope"]
         == triage_welcome.SUBSCRIPTION_PRESETS["small"]
     )
-    assert data["plan"]["policy"]["wipCap"] == 10
+    assert "wipCap" not in data["plan"]["policy"], (
+        "#1250: default-confirm at Phase 4 must not materialize wipCap"
+    )
 
 
 def test_back_at_phase_2_rewinds_to_phase_1_without_recursion(
@@ -866,3 +884,153 @@ def test_cli_skip_bootstrap_flag_threads_through(
     )
     assert rc == 0
     assert captured.get("skip_bootstrap") is True
+
+
+# ---------------------------------------------------------------------------
+# #1250 -- wipCap default-confirm must NOT materialize the typed field
+# ---------------------------------------------------------------------------
+
+
+def test_write_wip_cap_default_on_fresh_consumer_is_noop(tmp_path: Path) -> None:
+    """#1250: ``write_wip_cap(root, DEFAULT_WIP_CAP)`` on a fresh consumer
+    (no ``plan.policy.wipCap`` key) MUST leave the field omitted, return
+    ``(False, "")``, and MUST NOT create ``meta/policy-changes.log``.
+
+    This is the canonical default-inheritance contract from #1186
+    Deliverable 1 -- consumers accept the framework default by *not*
+    materializing the typed field; only an explicit non-default value
+    surfaces a typed override.
+    """
+    _seed_project_definition(tmp_path)
+    changed, audit = triage_welcome.write_wip_cap(
+        tmp_path, triage_welcome.DEFAULT_WIP_CAP
+    )
+    assert changed is False
+    assert audit == ""
+    data = json.loads(
+        (tmp_path / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    # policy block may be present from triageScope seeding, but wipCap
+    # MUST NOT have been materialized.
+    policy = data["plan"].get("policy", {})
+    assert "wipCap" not in policy, (
+        "#1250: default-confirm on a fresh consumer must not materialize wipCap"
+    )
+    # No audit-log file should have been created -- the no-op path skips
+    # both the JSON write and the policy-changes.log append.
+    assert not (tmp_path / triage_welcome.AUDIT_LOG_REL_PATH).exists(), (
+        "#1250: default-confirm must not append a row to "
+        "meta/policy-changes.log"
+    )
+
+
+def test_write_wip_cap_explicit_non_default_writes_and_audits(
+    tmp_path: Path,
+) -> None:
+    """#1250: explicit non-default values DO materialize the typed field
+    and DO append a ``meta/policy-changes.log`` audit row. Mirrors the
+    pre-fix behaviour for the genuine override path.
+    """
+    _seed_project_definition(tmp_path)
+    changed, audit = triage_welcome.write_wip_cap(tmp_path, 25)
+    assert changed is True
+    assert "value=25" in audit
+    assert "changed=true" in audit
+    data = json.loads(
+        (tmp_path / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert data["plan"]["policy"]["wipCap"] == 25
+    log = (tmp_path / triage_welcome.AUDIT_LOG_REL_PATH).read_text(
+        encoding="utf-8"
+    )
+    assert "field=plan.policy.wipCap" in log
+    assert "value=25" in log
+
+
+def test_write_wip_cap_clears_typed_field_when_set_to_default(
+    tmp_path: Path,
+) -> None:
+    """#1250: operator changing an existing typed override back to the
+    framework default REMOVES the typed field (cleanup to inherited
+    default) and appends an ``action=cleared-to-default`` audit row.
+    """
+    _seed_project_definition(tmp_path, wip_cap=25)
+    changed, audit = triage_welcome.write_wip_cap(
+        tmp_path, triage_welcome.DEFAULT_WIP_CAP
+    )
+    assert changed is True
+    assert "action=cleared-to-default" in audit
+    assert "previous=25" in audit
+    data = json.loads(
+        (tmp_path / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert "wipCap" not in data["plan"]["policy"], (
+        "#1250: cleanup-to-default must remove the typed field so "
+        "downstream resolvers report source=default"
+    )
+    log = (tmp_path / triage_welcome.AUDIT_LOG_REL_PATH).read_text(
+        encoding="utf-8"
+    )
+    assert "action=cleared-to-default" in log
+    assert "field=plan.policy.wipCap" in log
+
+
+def test_write_wip_cap_same_typed_value_rewrites_with_changed_false(
+    tmp_path: Path,
+) -> None:
+    """#1250: a re-confirm of an already-typed non-default value (e.g.
+    operator re-runs welcome and re-picks 25 with wipCap=25 already set)
+    keeps the field, audits ``changed=false``. The materialized override
+    is preserved.
+    """
+    _seed_project_definition(tmp_path, wip_cap=25)
+    changed, audit = triage_welcome.write_wip_cap(tmp_path, 25)
+    assert changed is False
+    assert "changed=false" in audit
+    data = json.loads(
+        (tmp_path / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert data["plan"]["policy"]["wipCap"] == 25
+
+
+def test_custom_wip_cap_default_value_is_still_noop(tmp_path: Path) -> None:
+    """#1250: even the ``custom`` menu path collapses to a no-op when the
+    operator types the framework default (10) at the custom prompt.
+
+    This guards against a sneaky bypass where the menu's default-option
+    short-circuit would be the only gated path; the ``custom`` branch
+    must honour the same #1186 contract.
+    """
+    _seed_project_definition(
+        tmp_path,
+        triage_scope=triage_welcome.SUBSCRIPTION_PRESETS["small"],
+    )
+    # Phase 4 menu options: 8/10/15/custom + Discuss + Back. 4 = custom;
+    # follow-up prompt accepts an int -- type the framework default.
+    inputs = _ScriptedInput(["4", str(triage_welcome.DEFAULT_WIP_CAP)])
+    output = _CapturedOutput()
+    outcome = triage_welcome.run_welcome(
+        tmp_path,
+        input_fn=inputs,
+        output_fn=output,
+        run_subprocess=False,
+    )
+    assert outcome.exit_code == 0
+    assert outcome.wip_cap_choice == triage_welcome.DEFAULT_WIP_CAP
+    data = json.loads(
+        (tmp_path / "vbrief" / "PROJECT-DEFINITION.vbrief.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert "wipCap" not in data["plan"]["policy"], (
+        "#1250: custom path typing the framework default must still be "
+        "a no-op (no typed-field materialization)"
+    )
