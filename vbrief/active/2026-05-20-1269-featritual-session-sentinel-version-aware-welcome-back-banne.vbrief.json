@@ -1,0 +1,65 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1269"
+  },
+  "plan": {
+    "title": "feat(ritual): session sentinel + version-aware welcome-back banner for returning users",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(ritual): session sentinel + version-aware welcome-back banner for returning users",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1269",
+      "Overview": "## Why\r\n\r\nThe 4-step session-start ritual (#1149) is intentionally minimal and deterministic. Two failure modes for returning users are not currently covered:\r\n\r\n1. **Recently-returning user (hours to ~1 week)** — gets the `task triage:summary` one-liner but no pointer back to their own in-flight work or to what changed in the last 24h. Has to recall trigger phrases (`what's next`, `queue`, `continue X`) to rehydrate state.\r\n2. **Long-absence user (multiple minor versions behind)** — has no signal that the framework has moved. Picks up the new ritual but is silently unaware of new skills (gh-arch, cost, release, ...), new rules (#810, #798, #884, #954, #975, #1149, #1152, #1242), and new gates. Discovers the gap only when something fails.\r\n\r\nBoth gaps share one piece of missing infrastructure: a **per-clone session sentinel** that records what the user last saw, so the ritual can compute a delta deterministically instead of asking the LLM to guess from cache headers (which the cache-as-authoritative rule explicitly forbids).\r\n\r\n## What ships in v1\r\n\r\n### 1. Session sentinel\r\n\r\nA per-clone, gitignored JSON file written at ritual exit:\r\n\r\n```\r\n.deft/last-session.json\r\n{\r\n  \"schemaVersion\": 1,\r\n  \"deftVersion\": \"0.32.0\",\r\n  \"timestamp\": \"2026-05-20T20:00:00Z\",\r\n  \"lastActiveVbrief\": \"vbrief/active/2026-05-13-1125-followup-scope-complete-and-spec-render.vbrief.json\",\r\n  \"lastBranch\": \"feat/foo-bar\"\r\n}\r\n```\r\n\r\n- Written by a hook at the end of the session-start ritual (or by a dedicated `task ritual:sentinel-write` invoked by the ritual)\r\n- Read at the start of the next session-start ritual to compute the delta\r\n- Failure mode: missing/corrupt sentinel → fail open, treat as fresh user, do not block the ritual\r\n- Privacy: never committed; add `.deft/` to `.gitignore`; do not store anything beyond version + timestamp + path + branch\r\n\r\n### 2. Welcome-back banner (version-aware)\r\n\r\nA 5th conditional line in the session-start ritual, fired only when the sentinel exists and the deft version has moved:\r\n\r\n- `sentinel.version < HEAD.version` (any minor delta) →\r\n  `[deft] Welcome back -- directive moved v0.28 -> v0.32 since your last session. Run task whats-new --since=v0.28 for the digest.`\r\n- `sentinel.version == HEAD.version` → silent (no banner; ritual stays at 4 steps)\r\n- `sentinel.version > HEAD.version` (shouldn't happen, but fail open) → silent\r\n\r\nThe banner is **a pointer**, not a digest. v1 ships the banner referencing `task whats-new --since=<version>`; the digest verb itself is a follow-up issue. The banner is still useful before the digest exists because it gives the user the signal that the framework moved.\r\n\r\n## Non-goals for v1\r\n\r\n- The `task whats-new --since=<version>` digest verb (separate follow-up; depends on #1242 CHANGELOG-entry-style maturity)\r\n- In-flight resume nudge / `task vbrief:resume <path>` verb (separate follow-up; closes the symmetric resume-rehydration gap)\r\n- 24h activity delta line for Cohort 1 (follow-up; needs sentinel as dependency)\r\n- Stale-vBRIEF migration nudge for Cohort 2-deep (follow-up; needs sentinel as dependency)\r\n- Auto-chain into `skills/deft-directive-sync/SKILL.md` for >90d absences (follow-up)\r\n\r\nThese all build on the sentinel. v1 lands the sentinel + the banner so downstream verbs become natural follow-ups.\r\n\r\n## Acceptance criteria\r\n\r\n- [ ] `.deft/` added to `.gitignore`\r\n- [ ] Sentinel reader + writer module (e.g. `scripts/ritual_sentinel.py`) with `read()` / `write()` / `compute_delta()` functions\r\n- [ ] Sentinel writer invoked at end of session-start ritual (hook into the existing ritual orchestration; if no hook exists, add one)\r\n- [ ] Welcome-back banner emission gated on `sentinel.version < HEAD.version`; silent otherwise\r\n- [ ] Failure modes: missing sentinel, corrupt JSON, schema-version mismatch all fail open (no banner, no exception bubble-up)\r\n- [ ] HEAD version source matches `Taskfile.yml VERSION` (or whatever the canonical version constant is); document the source\r\n- [ ] AGENTS.md `## Session-start ritual (#1149)` updated to mention the 5th conditional step + cross-link this issue\r\n- [ ] Unit tests covering: fresh-clone (no sentinel), same-version session, minor-bump session, major-bump session, corrupt sentinel, missing version field\r\n- [ ] `task check` passes\r\n- [ ] CHANGELOG entry under `[Unreleased]` in #1242-compliant style (lead with user-visible benefit, 2-4 sentences)\r\n\r\n## Risks\r\n\r\n- **Sentinel corruption** — must fail open under all conditions; never let a bad sentinel block the ritual\r\n- **Version-source drift** — if `Taskfile.yml VERSION` and the version embedded in the sentinel disagree on shape, the version-compare must degrade gracefully (treat unparseable as \"unknown\" → silent)\r\n- **Banner fatigue** — banner fires once per version-bump, not per session; document this so users don't expect a recap on every restart\r\n- **Privacy** — sentinel is per-clone and gitignored; do not add identifying data beyond version + timestamp + path + branch\r\n\r\n## Refs\r\n\r\n- AGENTS.md `## Session-start ritual (#1149)` — the 4-step deterministic ritual this 5th conditional step extends\r\n- AGENTS.md `## Cache-as-authoritative work selection (#1149)` — explains why this gap exists today (cache-driven, no memory-based recommendations)\r\n- #1242 — CHANGELOG entry style; gates the future `task whats-new` digest verb that this banner points at\r\n- Follow-ups (to be filed separately): `task vbrief:resume <path>`, `task whats-new --since=<version>`, 24h activity delta, stale-vBRIEF migration nudge\r\n"
+    },
+    "items": [
+      {
+        "title": "added to",
+        "status": "proposed"
+      },
+      {
+        "title": "Sentinel reader + writer module (e.g. ) with  /  /  functions",
+        "status": "proposed"
+      },
+      {
+        "title": "Sentinel writer invoked at end of session-start ritual (hook into the existing ritual orchestration; if no hook exists, add one)",
+        "status": "proposed"
+      },
+      {
+        "title": "Welcome-back banner emission gated on ; silent otherwise",
+        "status": "proposed"
+      },
+      {
+        "title": "Failure modes: missing sentinel, corrupt JSON, schema-version mismatch all fail open (no banner, no exception bubble-up)",
+        "status": "proposed"
+      },
+      {
+        "title": "HEAD version source matches  (or whatever the canonical version constant is); document the source",
+        "status": "proposed"
+      },
+      {
+        "title": "AGENTS.md  updated to mention the 5th conditional step + cross-link this issue",
+        "status": "proposed"
+      },
+      {
+        "title": "Unit tests covering: fresh-clone (no sentinel), same-version session, minor-bump session, major-bump session, corrupt sentinel, missing version field",
+        "status": "proposed"
+      },
+      {
+        "title": "passes",
+        "status": "proposed"
+      },
+      {
+        "title": "CHANGELOG entry under  in #1242-compliant style (lead with user-visible benefit, 2-4 sentences)",
+        "status": "proposed"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1269",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1269: feat(ritual): session sentinel + version-aware welcome-back banner for returning users"
+      }
+    ],
+    "updated": "2026-05-20T20:22:53Z"
+  }
+}
