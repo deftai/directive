@@ -425,6 +425,111 @@ def test_ensure_gitignore_eval_entries_flags_pre_existing_blanket(
     assert "vbrief/.eval/candidates.jsonl" in text
 
 
+def test_ensure_gitignore_eval_entries_blanket_warning_in_message(
+    tmp_path: Path,
+) -> None:
+    """#1256 Greptile P1: blanket_present surfaces in StepOutcome.message.
+
+    When all three selective entries are already present BUT a stale
+    blanket line is detected, the step previously reported
+    ``hybrid policy satisfied; no-op`` -- silently leaving the
+    operator's repo broken because git honours the blanket pattern
+    for the entire directory. The warning must reach
+    ``StepOutcome.message`` so it flows through ``run_bootstrap``'s
+    progress emit AND the recap.
+    """
+    triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
+    gitignore = tmp_path / ".gitignore"
+    # Seed all three selective entries AND a stale blanket line.
+    gitignore.write_text(
+        gitignore.read_text(encoding="utf-8")
+        + "\nvbrief/.eval/candidates.jsonl\n"
+        + "vbrief/.eval/summary-history.jsonl\n"
+        + "vbrief/.eval/scope-lifecycle.jsonl\n"
+        + "vbrief/.eval/\n",
+        encoding="utf-8",
+    )
+
+    outcome = triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
+    assert outcome.ok is True
+    assert outcome.details.get("blanket_present") is True
+    # Warning surfaces in the message, not just in details.
+    assert "WARNING" in outcome.message
+    assert "blanket" in outcome.message.lower()
+    assert "slices.jsonl" in outcome.message
+    assert "#1251" in outcome.message
+
+
+def test_ensure_gitignore_eval_entries_blanket_detection_robust_to_inline_comment(
+    tmp_path: Path,
+) -> None:
+    """#1256 SLizard P1: forbidden-blanket detector strips inline comments.
+
+    The pre-#1256 detector used ``line.strip()`` as the set-membership
+    key, so a blanket entry like ``vbrief/.eval/  # legacy`` slipped
+    past the forbidden check. The post-fix detector strips the inline
+    comment before checking, so the operator gets the warning AND the
+    selective entries are still added.
+    """
+    triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text(
+        gitignore.read_text(encoding="utf-8")
+        + "\nvbrief/.eval/  # legacy entry from old bootstrap\n",
+        encoding="utf-8",
+    )
+
+    outcome = triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
+    assert outcome.ok is True
+    assert outcome.details.get("blanket_present") is True, (
+        "the detector must strip inline comments before the membership "
+        "check; pre-#1256 the trailing comment hid the forbidden line"
+    )
+    assert "WARNING" in outcome.message
+
+
+def test_ensure_gitignore_eval_entries_no_rationale_duplication_on_partial_re_run(
+    tmp_path: Path,
+) -> None:
+    """#1256 Greptile P2: rationale comment block is not duplicated.
+
+    An operator who runs bootstrap, then manually deletes ONE of the
+    three selective entries, then re-runs bootstrap. The re-run should
+    add only the missing entry, NOT a second copy of the multi-line
+    rationale comment block.
+    """
+    triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
+    # First run: writes all three entries + rationale.
+    triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
+    after_first = (tmp_path / ".gitignore").read_text(encoding="utf-8")
+    rationale_count_first = after_first.count(
+        "# vbrief/.eval/ tracking governance"
+    )
+    assert rationale_count_first == 1
+
+    # Operator manually deletes one of the selective entries.
+    perturbed = after_first.replace(
+        "vbrief/.eval/summary-history.jsonl\n", ""
+    )
+    (tmp_path / ".gitignore").write_text(perturbed, encoding="utf-8")
+
+    # Re-run: should re-add the missing entry but NOT a duplicate rationale.
+    outcome = triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
+    assert outcome.ok is True
+    assert outcome.details.get("gitignore_appended_lines") == 1
+    assert outcome.details.get("rationale_already_present") is True
+    after_second = (tmp_path / ".gitignore").read_text(encoding="utf-8")
+    rationale_count_second = after_second.count(
+        "# vbrief/.eval/ tracking governance"
+    )
+    assert rationale_count_second == 1, (
+        "rationale comment block was duplicated on partial re-run; "
+        "#1256 Greptile P2"
+    )
+    # And the missing selective entry is back.
+    assert "vbrief/.eval/summary-history.jsonl" in after_second
+
+
 def test_ensure_gitignore_respects_commented_opt_in(tmp_path: Path) -> None:
     """Commented-out form is the operator opt-in to commit the cache."""
 
