@@ -745,11 +745,12 @@ def test_skip_bootstrap_emits_visible_audit_message(
     )
     # Audit log absent; operator passes --skip-bootstrap (skip_bootstrap=True).
     calls: list[list[str]] = []
-    monkeypatch.setattr(
-        triage_welcome,
-        "_run_task",
-        lambda args, *, cwd: calls.append(list(args)) or 0,
-    )
+
+    def _record_run_task(args: list[str], *, cwd: Path) -> int:
+        calls.append(list(args))
+        return 0
+
+    monkeypatch.setattr(triage_welcome, "_run_task", _record_run_task)
     output = _CapturedOutput()
     outcome = triage_welcome.run_welcome(
         tmp_path,
