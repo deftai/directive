@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **fix(ingest): `task issue:ingest` enriches vBRIEFs from issue body (#1248)** -- the ingester no longer produces stub-only scope vBRIEFs. `narratives.Overview` continues to carry the issue body verbatim, and `plan.items[]` is now populated from Markdown task-list checkboxes (`- [ ] ...`) or from a numbered / bulleted list under an `Acceptance Criteria` heading. Closing-keyword cross-refs in the body (`Closes #N`, `Refs #N`, `Blocked by #N`) lift into typed `plan.references[]` entries (`x-vbrief/closes`, `x-vbrief/refs`, `x-vbrief/blocks`); code-fenced examples and self-references are skipped. Closes #1248.
 
 ### Removed
 

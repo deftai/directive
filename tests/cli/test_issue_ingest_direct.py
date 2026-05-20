@@ -490,9 +490,11 @@ class TestBodyFidelityAndTags:
         )
         assert "tags" not in vbrief["plan"]
 
-    def test_plan_items_remains_empty_per_988_non_goals(self):
-        """#988 Non-goals: section-parsing into ``plan.items`` is explicitly a
-        follow-up. ``plan.items`` MUST remain ``[]`` from this fix.
+    def test_plan_items_populated_from_checklist_per_1248(self):
+        """#1248 supersedes the #988 Non-goal: checkbox / AC-section content
+        on the issue body MUST land as ``plan.items[]`` entries so the
+        refinement workflow has structured input to project from instead
+        of having to re-read the GitHub issue body by hand.
         """
         body = (
             "## Acceptance Criteria\n- [ ] thing one\n- [ ] thing two\n"
@@ -502,7 +504,9 @@ class TestBodyFidelityAndTags:
             "proposed",
             "",
         )
-        assert vbrief["plan"]["items"] == []
+        items = vbrief["plan"]["items"]
+        assert [i["title"] for i in items] == ["thing one", "thing two"]
+        assert all(i["status"] == "proposed" for i in items)
 
 
 # ---------------------------------------------------------------------------

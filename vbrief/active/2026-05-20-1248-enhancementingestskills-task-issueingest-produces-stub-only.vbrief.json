@@ -12,7 +12,56 @@
       "Overview": "## Summary\r\n\r\n`task issue:ingest` produces vBRIEFs with only three narratives (`Description`, `Origin`, `Labels`) and zero `plan.items` — essentially a structural echo of the GH issue title + labels. The resulting `proposed/*.vbrief.json` files contribute almost nothing to the refinement workflow that's supposed to consume them; an operator running `deft-directive-refinement` must reconstruct the substance from scratch by re-reading the GH issue.\r\n\r\n## Reproduction (audit pass of `vbrief/proposed/` on 2026-05-20)\r\n\r\nOf 46 vBRIEFs in `vbrief/proposed/`, **40 are stub-only** (no `Overview` narrative, `len(plan.items) == 0`). The pattern is uniform:\r\n\r\n```json\r\n{\r\n  \"vBRIEFInfo\": { \"version\": \"0.6\", \"description\": \"Scope vBRIEF ingested from GitHub issue #100\" },\r\n  \"plan\": {\r\n    \"title\": \"[Compliance] Evidence collection automation hooks\",\r\n    \"status\": \"proposed\",\r\n    \"narratives\": {\r\n      \"Description\": \"[Compliance] Evidence collection automation hooks\",\r\n      \"Origin\": \"Ingested from https://api.github.com/repos/deftai/directive/issues/100\",\r\n      \"Labels\": \"enhancement, compliance, soc2\"\r\n    },\r\n    \"items\": [],\r\n    \"references\": [ { ... } ]\r\n  }\r\n}\r\n```\r\n\r\n`Description` is just the issue title verbatim; `Origin` is the API URL; `Labels` is a comma-joined list. None of the issue body content makes it in.\r\n\r\n## Expected\r\n\r\n`task issue:ingest` should at minimum:\r\n- Populate `narratives.Overview` from the issue body's first paragraph (or full body, truncated to a sensible length).\r\n- Surface acceptance criteria / checklists from the issue body as initial `plan.items[]` entries (one item per checkbox or numbered AC).\r\n- Preserve issue body cross-refs (`Closes #N`, `Refs #N`, `Blocked by #N`) as additional `plan.references[]` entries with appropriate types (`x-vbrief/closes`, `x-vbrief/refs`, `x-vbrief/blocks`).\r\n\r\n## Impact\r\n\r\n- Refinement workflow consumes garbage-quality input. Operators effectively re-do the ingest by hand.\r\n- The \"save proposed, refine later\" model loses most of its value because there's nothing to refine FROM.\r\n- `task triage:queue` collision check with existing proposed vBRIEFs (the intended deduplication mechanism) is moot when the proposed files contain no substantive content to compare against.\r\n\r\n## Possibly related\r\n\r\nThis may be the issue tracked elsewhere — search for prior work on `issue_ingest.py` body parsing. If a richer ingester exists behind a flag (e.g. `--full-body`) that should be the default.\r\n\r\n## Suggested investigation\r\n\r\n- `scripts/issue_ingest.py`: does the existing code already fetch issue body via REST? If yes, why is it discarded?\r\n- Are there length/safety concerns blocking a richer ingest? Issue bodies can be large; truncation rules are a legitimate concern.\r\n- Schema check: does `vbrief-core.schema.json` v0.6 support a `narratives.Overview` value of arbitrary length, or are there structural constraints to honor?\r\n",
       "Labels": "enhancement, skills"
     },
-    "items": [],
+    "items": [
+      {
+        "id": "1248.populate-overview",
+        "title": "Populate narratives.Overview from the issue body",
+        "status": "completed",
+        "narrative": {
+          "Description": "Carry the GitHub issue body verbatim into plan.narratives.Overview so the refinement workflow has source text to project from. Already present from the #988 cache-first fix; #1248 preserves the behaviour and widens the surface."
+        }
+      },
+      {
+        "id": "1248.extract-checklist-items",
+        "title": "Derive plan.items[] from issue-body task-list checkboxes",
+        "status": "completed",
+        "narrative": {
+          "Description": "Each `- [ ] ...` line becomes a PlanItem with status `proposed`; `- [x] ...` becomes `completed`. Deduped while preserving document order."
+        }
+      },
+      {
+        "id": "1248.extract-ac-section-items",
+        "title": "Fall back to numbered / bulleted list under an Acceptance Criteria heading",
+        "status": "completed",
+        "narrative": {
+          "Description": "When the body has no checkbox list, parse the Acceptance Criteria section (any heading level, case-insensitive) and emit each bullet / numbered item as a PlanItem with status `proposed`. Section is bounded by the next equal-or-higher-level heading."
+        }
+      },
+      {
+        "id": "1248.extract-cross-refs",
+        "title": "Lift Closes / Refs / Blocked-by cross-refs into plan.references[]",
+        "status": "completed",
+        "narrative": {
+          "Description": "`Closes/Fixes/Resolves #N` -> `x-vbrief/closes`; `Refs/References/See also/Related #N` -> `x-vbrief/refs`; `Blocked by #N` -> `x-vbrief/blocks`. Skips matches inside fenced or inline code spans and excludes the provenance issue itself to avoid self-reference duplication."
+        }
+      },
+      {
+        "id": "1248.graceful-degradation",
+        "title": "Graceful degradation when body has no structured content",
+        "status": "completed",
+        "narrative": {
+          "Description": "An empty body produces no Overview, empty items, and no body-derived references. A prose-only body still emits Overview but leaves items empty so downstream tooling does not consume invented structure."
+        }
+      },
+      {
+        "id": "1248.tests",
+        "title": "Pin the four AC scenarios with regression tests",
+        "status": "completed",
+        "narrative": {
+          "Description": "tests/cli/test_issue_ingest_body_parsing.py covers: (a) body + AC checklist, (b) body only no checklist, (c) empty body, (d) closing-keyword cross-ref extraction. Plus code-block immunity and self-reference exclusion guards."
+        }
+      }
+    ],
     "tags": [
       "enhancement",
       "skills"
