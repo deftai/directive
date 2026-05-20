@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-20T13:15:05Z"
+    "updated": "2026-05-20T13:37:35Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -974,6 +974,22 @@
               "uri": "https://github.com/deftai/directive/issues/1248",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1248: enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-20-1251-bugtriagepolicy-task-triagebootstrap-blanket-ignores-vbriefe",
+        "title": "bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-05-20-1251-bugtriagepolicy-task-triagebootstrap-blanket-ignores-vbriefe.vbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1251",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1251: bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy"
             }
           ]
         }

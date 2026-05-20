@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1251"
+  },
+  "plan": {
+    "title": "bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1251",
+      "Overview": "## Summary\r\n\r\n`task triage:bootstrap` step 4 (`ensure_gitignore_eval_dir`) appends a blanket `vbrief/.eval/` line to `.gitignore`, ignoring the entire eval directory. This directly violates the #1144 hybrid policy (\"vbrief/.eval/ tracking governance\"), which specifies that selective files (`candidates.jsonl`, `summary-history.jsonl`, `scope-lifecycle.jsonl`) are gitignored while `slices.jsonl` is TRACKED. The blanket ignore defeats the hybrid policy and breaks the maintainer-design test `tests/test_eval_governance.py::test_gitignore_does_not_blanket_ignore_eval_directory`.\r\n\r\n## Reproduction (2026-05-20 dogfood session)\r\n\r\n1. Fresh `.gitignore` with the proper #1144 selective entries in place:\r\n```\r\nvbrief/.eval/candidates.jsonl\r\nvbrief/.eval/summary-history.jsonl\r\nvbrief/.eval/scope-lifecycle.jsonl\r\n```\r\n2. Run `task triage:bootstrap` (any path; step 4 fires unconditionally on first bootstrap).\r\n3. Observe `.gitignore` diff:\r\n```\r\n+# Triage v1 audit/eval scratch (#915). Holds candidates.jsonl + transient\r\n+# evaluation artefacts written by triage actions. Per-machine operator state;\r\n+# never versioned (would leak triage timing/identity). Comment this line out\r\n+# to opt in to committing the audit log.\r\n+vbrief/.eval/\r\n```\r\n4. Run `task check` (or `pytest tests/test_eval_governance.py::test_gitignore_does_not_blanket_ignore_eval_directory`). Result:\r\n\r\n```\r\nAssertionError: blanket gitignore of vbrief/.eval/ defeats the hybrid policy (#1144)\r\n```\r\n\r\nThe PR carrying this change (#1249) is unmergeable until the blanket ignore is removed.\r\n\r\n## Expected\r\n\r\n`task triage:bootstrap` step 4 should be idempotent w.r.t. the #1144 hybrid policy:\r\n- Check whether `.gitignore` already carries the three selective entries (`candidates.jsonl`, `summary-history.jsonl`, `scope-lifecycle.jsonl`).\r\n- If yes: no-op. The policy is already satisfied.\r\n- If no: append the SELECTIVE entries (not a blanket `vbrief/.eval/`), plus the `.gitattributes merge=union` rule for any tracked-but-mergeable eval files, plus a `vbrief/.eval/README.md` documenting the policy.\r\n- Step name should be renamed from `ensure_gitignore_eval_dir` to `ensure_gitignore_eval_entries` to reflect the per-file semantics.\r\n\r\n## Actual\r\n\r\nStep 4 appends a blanket `vbrief/.eval/` line regardless of whether the selective entries are already present. This:\r\n- Ignores tracked eval files (e.g. `slices.jsonl` per #1132 / D13) that the hybrid policy explicitly requires to be team-shared.\r\n- Creates `.gitignore` precedence ambiguity (more-specific selective entries above + less-specific blanket below — git resolves to blanket).\r\n- Breaks the `task check` deterministic gate against #1144 violations.\r\n\r\n## Impact\r\n\r\n- Breaks `task check` on any session that runs `task triage:bootstrap` against the framework's own repo (the dogfood case).\r\n- Defeats the #1144 hybrid policy: tracked eval files become invisible to git.\r\n- Companion bug to #1250 (`triage:welcome wipCap` materialization). Both surfaced in the same dogfood walk when the test suite caught the contract violations on PR #1249.\r\n\r\n## Suggested investigation\r\n\r\n- `scripts/triage_bootstrap.py` step 4 (`ensure_gitignore_eval_dir`): replace the blanket-line append with the per-file convention from #1144 Current Shape v3.\r\n- Check whether step 4 is supposed to be a no-op when `.gitignore` already has the #1144 entries (likely yes; this is the consumer-clone case).\r\n- Verify the step also adds `.gitattributes merge=union vbrief/.eval/*.jsonl` for the tracked-and-mergeable case if missing.\r\n\r\n## Related\r\n\r\n- #1144: original hybrid policy + Current Shape comment (canonical decision).\r\n- #1132 / D13: `slices.jsonl` is the TRACKED team-shared cohort record that the blanket ignore would silently hide.\r\n- #1244 / #1245 / #1246 / #1247 / #1248 / #1250: companion bugs filed in the same dogfood walk; this is #7 of 7.\r\n\r\n## Workaround\r\n\r\nAfter running `task triage:bootstrap`, manually edit `.gitignore` to remove the trailing `# Triage v1 audit/eval scratch ... vbrief/.eval/` block. The selective entries higher in the file already cover the #1144 hybrid policy.\r\n",
+      "Labels": "bug, determinism, adoption-blocker"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "determinism",
+      "adoption-blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1251",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1251: bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy"
+      }
+    ],
+    "updated": "2026-05-20T13:37:34Z"
+  }
+}
