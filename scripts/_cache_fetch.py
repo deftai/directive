@@ -146,23 +146,129 @@ def _normalise_rest_issue(raw: dict[str, Any]) -> dict[str, Any]:
 
 @dataclass
 class FetchAllReport:
-    """Aggregate counts returned by :func:`run_fetch_all`."""
+    """Aggregate counts returned by :func:`run_fetch_all`.
 
-    succeeded: int = 0
-    failed: int = 0
-    skipped: int = 0
+    Counter terminology (#1247)
+    ---------------------------
+    Pre-#1247 the report exposed three counters named ``succeeded`` /
+    ``failed`` / ``skipped``. Operators read the recap line
+    ``cache:fetch-all ... succeeded=1 failed=0 skipped=396`` as "1 of
+    397 items processed, 396 dropped" and assumed something was wrong
+    -- when in fact ``succeeded`` counted per-issue cache writes that
+    actually landed on disk (a fresh fetch + put), ``skipped`` counted
+    per-issue entries that were already-fresh in the cache (TTL window
+    still valid, so no re-fetch was needed), and ``failed`` counted
+    per-issue write errors. The terminology was at three different
+    levels of abstraction.
+
+    The canonical attribute names are now ``issues_written`` /
+    ``already_fresh`` / ``issues_failed``. The legacy ``succeeded`` /
+    ``failed`` / ``skipped`` attributes remain as backward-compatible
+    aliases (read-write) so external callers and tests that still
+    reference the old names keep working until they migrate.
+
+    :meth:`to_json` emits the new keys as the primary surface and
+    duplicates them under the legacy keys for one release. The
+    :meth:`summary_line` renderer produces the unambiguous human-
+    readable string the triage:bootstrap recap and ``task
+    cache:fetch-all`` direct invocations consume.
+    """
+
+    #: Per-issue cache writes that landed (fresh fetch + put). Was named
+    #: ``succeeded`` pre-#1247.
+    issues_written: int = 0
+    #: Per-issue cache writes that errored out. Was named ``failed``
+    #: pre-#1247.
+    issues_failed: int = 0
+    #: Per-issue entries skipped because the on-disk cache was still
+    #: within its TTL window (no re-fetch needed). Was named ``skipped``
+    #: pre-#1247 -- the source of the misleading "why are 396 things
+    #: skipped?" first-read.
+    already_fresh: int = 0
     failures: list[dict[str, str]] = field(default_factory=list)
 
+    # ----- Backward-compat property aliases (#1247) -----
+    #
+    # External callers (scripts/triage_bootstrap.py recap line,
+    # tests/test_cache.py, tests/integration/test_cache_*.py) still
+    # read ``report.succeeded`` / ``report.failed`` / ``report.skipped``.
+    # The aliases below preserve that surface so the rename is non-
+    # breaking; new code SHOULD use the canonical names above.
+
+    @property
+    def succeeded(self) -> int:
+        """Legacy alias for :attr:`issues_written` (#1247)."""
+        return self.issues_written
+
+    @succeeded.setter
+    def succeeded(self, value: int) -> None:
+        self.issues_written = value
+
+    @property
+    def failed(self) -> int:
+        """Legacy alias for :attr:`issues_failed` (#1247)."""
+        return self.issues_failed
+
+    @failed.setter
+    def failed(self, value: int) -> None:
+        self.issues_failed = value
+
+    @property
+    def skipped(self) -> int:
+        """Legacy alias for :attr:`already_fresh` (#1247)."""
+        return self.already_fresh
+
+    @skipped.setter
+    def skipped(self, value: int) -> None:
+        self.already_fresh = value
+
     def to_json(self) -> str:
+        """Serialise the report.
+
+        v1 emits both the canonical (#1247) and legacy keys so existing
+        consumers (``tests/test_cache.py::test_partial_failure_exit_shape``
+        asserts ``payload["succeeded"]`` / ``payload["failed"]``) keep
+        passing while the framework completes the rename rollout. The
+        legacy duplicates are removed in a future release once the rest
+        of the consumer tree has migrated.
+        """
         return json.dumps(
             {
-                "succeeded": self.succeeded,
-                "failed": self.failed,
-                "skipped": self.skipped,
+                # Canonical (#1247) -- the unambiguous noun-level surface.
+                "issues_written": self.issues_written,
+                "already_fresh": self.already_fresh,
+                "issues_failed": self.issues_failed,
+                # Legacy aliases preserved one release for back-compat.
+                "succeeded": self.issues_written,
+                "failed": self.issues_failed,
+                "skipped": self.already_fresh,
                 "failures": self.failures,
             },
             ensure_ascii=False,
             sort_keys=True,
+        )
+
+    def summary_line(self, *, source: str, repo: str) -> str:
+        """Render the unambiguous human-readable recap line (#1247).
+
+        Replaces the misleading ``succeeded=1 failed=0 skipped=396``
+        formatting with explicit per-issue counter names so an operator
+        reading the first signal of a bootstrap run does not have to
+        ask "why are 396 things skipped?". The naming follows the GH
+        issue body's 'Expected' suggestion:
+
+            cache:fetch-all source=github-issue repo=owner/name
+            issues_written=1 already_fresh=396 issues_failed=0
+
+        Operators / orchestrators / recap formatters that need a
+        single-line, machine-greppable status string SHOULD prefer this
+        method over hand-formatting against the individual attributes.
+        """
+        return (
+            f"cache:fetch-all source={source} repo={repo} "
+            f"issues_written={self.issues_written} "
+            f"already_fresh={self.already_fresh} "
+            f"issues_failed={self.issues_failed}"
         )
 
 
@@ -251,9 +357,7 @@ def run_fetch_all(
     return report
 
 
-def _list_issues_rest(
-    repo: str, *, state: str, limit: int
-) -> list[dict[str, Any]]:
+def _list_issues_rest(repo: str, *, state: str, limit: int) -> list[dict[str, Any]]:
     """Wrap :func:`rest_issue_list_paginated` with retry on REST 429.
 
     REST's ``core`` bucket has a 5000/hr/user budget -- much larger than
@@ -264,9 +368,7 @@ def _list_issues_rest(
     try:
         return _paginated_lister(repo, state=state, limit=limit)
     except InvalidRepoError as exc:
-        raise CacheFetchError(
-            f"invalid --repo {repo!r} for REST list enumeration: {exc}"
-        ) from exc
+        raise CacheFetchError(f"invalid --repo {repo!r} for REST list enumeration: {exc}") from exc
     except GhRestError as exc:
         is_429, retry_after = detect_rate_limit(str(exc) or exc.stderr or "")
         if not is_429:

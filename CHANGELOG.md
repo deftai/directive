@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- `task triage:queue` (and the sibling `triage:show` / `triage:audit` verbs) now auto-detect `--repo` from the current clone's `origin` remote, so operators inside an unambiguous repository no longer have to repeat the `OWNER/NAME` slug on every invocation. The explicit `--repo` flag and `$DEFT_TRIAGE_REPO` env var still take precedence; an outside-git-tree invocation continues to surface the canonical "--repo required" error. Closes #1246.
+- `cache:fetch-all` now reports per-issue counters under unambiguous noun names (`issues_written`, `already_fresh`, `issues_failed`) instead of the misleading `succeeded` / `failed` / `skipped` triple that made `skipped=396` read as "396 items dropped" on a healthy bootstrap. The JSON output keeps the legacy keys for one release of back-compat; a new `FetchAllReport.summary_line()` renderer produces the unambiguous human-readable recap consumers should adopt. Closes #1247.
 
 ### Removed
 

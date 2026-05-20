@@ -16,8 +16,10 @@ Covers the read-only triage queue + show + audit surface:
 
 from __future__ import annotations
 
+import argparse
 import importlib
 import json
+import subprocess
 import sys
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -109,9 +111,7 @@ def _write_cached_issue(
     # Emulate the unified-cache labels shape: list of {name: ...} dicts.
     raw = dict(issue)
     raw["labels"] = [{"name": label} for label in issue.get("labels", [])]
-    (edir / "raw.json").write_text(
-        json.dumps(raw, sort_keys=True), encoding="utf-8"
-    )
+    (edir / "raw.json").write_text(json.dumps(raw, sort_keys=True), encoding="utf-8")
     return edir
 
 
@@ -152,9 +152,7 @@ def test_validate_ranking_labels_rejects_empty_entry():
 
 
 def test_validate_ranking_labels_warns_duplicate():
-    _errors, warnings = triage_queue.validate_ranking_labels(
-        ["urgent", "urgent"]
-    )
+    _errors, warnings = triage_queue.validate_ranking_labels(["urgent", "urgent"])
     assert any("duplicate label" in w for w in warnings)
 
 
@@ -366,9 +364,7 @@ def test_load_cached_issues_walks_repo_dir(tmp_path: Path):
     cache_root = tmp_path / ".deft-cache"
     _write_cached_issue(cache_root, REPO, _issue(1, title="First"))
     _write_cached_issue(cache_root, REPO, _issue(2, title="Second"))
-    _write_cached_issue(
-        cache_root, REPO, _issue(3, title="Closed", state="closed")
-    )
+    _write_cached_issue(cache_root, REPO, _issue(3, title="Closed", state="closed"))
     issues = triage_queue.load_cached_issues(REPO, project_root=tmp_path)
     # Closed excluded by default; sort by number for assertion stability.
     nums = sorted(i["number"] for i in issues)
@@ -383,9 +379,7 @@ def test_load_cached_issues_include_closed(tmp_path: Path):
     cache_root = tmp_path / ".deft-cache"
     _write_cached_issue(cache_root, REPO, _issue(1, state="open"))
     _write_cached_issue(cache_root, REPO, _issue(2, state="closed"))
-    issues = triage_queue.load_cached_issues(
-        REPO, project_root=tmp_path, include_closed=True
-    )
+    issues = triage_queue.load_cached_issues(REPO, project_root=tmp_path, include_closed=True)
     assert sorted(i["number"] for i in issues) == [1, 2]
 
 
@@ -656,9 +650,7 @@ def test_cli_audit_json_emits_stable_schema(capsys, tmp_path: Path):
     assert payload["repo"] == REPO
 
 
-def test_cli_audit_vbrief_staleness_filters_to_stale_accepts(
-    capsys, tmp_path: Path
-):
+def test_cli_audit_vbrief_staleness_filters_to_stale_accepts(capsys, tmp_path: Path):
     audit_path = tmp_path / "vbrief" / ".eval" / "candidates.jsonl"
     entries = [
         _audit_entry(200, "accept", timestamp="2026-05-15T10:00:00Z"),  # stale
@@ -746,9 +738,7 @@ def test_cli_show_returns_0_with_decision_history(capsys, tmp_path: Path):
 
 def test_cli_queue_requires_repo(capsys, tmp_path: Path, monkeypatch):
     monkeypatch.delenv("DEFT_TRIAGE_REPO", raising=False)
-    rc = triage_queue.main(
-        ["queue", "--project-root", str(tmp_path)]
-    )
+    rc = triage_queue.main(["queue", "--project-root", str(tmp_path)])
     assert rc == 2
     assert "--repo" in capsys.readouterr().err
 
@@ -1069,3 +1059,113 @@ def test_cli_audit_no_flags_preserves_d11_behaviour(capsys, tmp_path: Path):
     payload = json.loads(capsys.readouterr().out)
     # _seed_cache_and_log writes two entries; both should pass.
     assert payload["entry_count"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Repo auto-detection (#1246)
+# ---------------------------------------------------------------------------
+
+
+def _init_fake_git_origin(tmp_path: Path, url: str) -> None:
+    """Initialise a bare-bones git working tree in ``tmp_path`` with ``origin=url``.
+
+    Used by the #1246 autodetect tests so we can exercise the
+    ``git remote get-url origin`` path without depending on the host
+    working copy's remote configuration.
+    """
+    subprocess.run(
+        ["git", "init", "--quiet", str(tmp_path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    subprocess.run(
+        ["git", "-C", str(tmp_path), "remote", "add", "origin", url],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _make_args(*, repo: str | None = None, project_root: str = ".") -> argparse.Namespace:
+    return argparse.Namespace(repo=repo, project_root=project_root)
+
+
+def test_resolve_repo_returns_explicit_flag_first(monkeypatch, tmp_path: Path):
+    # Explicit flag wins even when the env var is set and origin is detectable.
+    monkeypatch.setenv("DEFT_TRIAGE_REPO", "env/repo")
+    _init_fake_git_origin(tmp_path, "https://github.com/auto/detect.git")
+    args = _make_args(repo="explicit/win", project_root=str(tmp_path))
+    assert triage_queue_cli._resolve_repo(args) == "explicit/win"
+
+
+def test_resolve_repo_falls_back_to_env_var(monkeypatch, tmp_path: Path):
+    # No explicit flag -> DEFT_TRIAGE_REPO is captured by argparse default,
+    # so args.repo carries the env var value; autodetect is not consulted.
+    monkeypatch.setenv("DEFT_TRIAGE_REPO", "env/wins")
+    _init_fake_git_origin(tmp_path, "https://github.com/auto/detect.git")
+    # argparse parses the queue subcommand with the env default applied.
+    parser = triage_queue_cli.build_parser(default_limit=25)
+    args = parser.parse_args(["queue", "--project-root", str(tmp_path)])
+    assert triage_queue_cli._resolve_repo(args) == "env/wins"
+
+
+def test_resolve_repo_autodetects_from_origin_https(monkeypatch, tmp_path: Path):
+    monkeypatch.delenv("DEFT_TRIAGE_REPO", raising=False)
+    _init_fake_git_origin(tmp_path, "https://github.com/deftai/directive.git")
+    args = _make_args(repo=None, project_root=str(tmp_path))
+    assert triage_queue_cli._resolve_repo(args) == "deftai/directive"
+
+
+def test_resolve_repo_autodetects_from_origin_ssh(monkeypatch, tmp_path: Path):
+    monkeypatch.delenv("DEFT_TRIAGE_REPO", raising=False)
+    _init_fake_git_origin(tmp_path, "git@github.com:owner/with.dots.git")
+    args = _make_args(repo=None, project_root=str(tmp_path))
+    # The name component preserves dots (Greptile P1 on #562 lesson).
+    assert triage_queue_cli._resolve_repo(args) == "owner/with.dots"
+
+
+def test_resolve_repo_returns_none_outside_git_tree(monkeypatch, tmp_path: Path):
+    monkeypatch.delenv("DEFT_TRIAGE_REPO", raising=False)
+    # tmp_path has no .git/ and no origin remote -- detection must fail
+    # so the caller can surface the canonical --repo error.
+    args = _make_args(repo=None, project_root=str(tmp_path))
+    assert triage_queue_cli._resolve_repo(args) is None
+
+
+def test_cli_queue_autodetects_repo_no_flag_no_env(monkeypatch, capsys, tmp_path: Path):
+    """`task triage:queue` without --repo / env var must succeed when origin resolves.
+
+    Acceptance criterion (a) from the issue body: the most-common-path
+    papercut is gone. Cache is empty so the queue prints the bootstrap
+    hint; the load-bearing assertion is `rc == 0` (no --repo error).
+    """
+    monkeypatch.delenv("DEFT_TRIAGE_REPO", raising=False)
+    _init_fake_git_origin(tmp_path, "https://github.com/deftai/directive.git")
+    rc = triage_queue.main(["queue", "--project-root", str(tmp_path)])
+    out = capsys.readouterr()
+    assert rc == 0, f"stdout={out.out!r} stderr={out.err!r}"
+    # The render_queue header names the auto-detected repo.
+    assert "deftai/directive" in out.out
+
+
+def test_cli_queue_outside_git_tree_still_errors(monkeypatch, capsys, tmp_path: Path):
+    """Acceptance criterion (d): no --repo + outside-git-repo -> error preserved."""
+    monkeypatch.delenv("DEFT_TRIAGE_REPO", raising=False)
+    rc = triage_queue.main(["queue", "--project-root", str(tmp_path)])
+    assert rc == 2
+    assert "--repo" in capsys.readouterr().err
+
+
+def test_detect_origin_repo_returns_none_on_missing_git(monkeypatch):
+    """`_detect_origin_repo` returns None when git is absent / blows up."""
+    # Force the canonical helper to return None via a monkeypatched
+    # _project_context._detect_repo_from_git.
+    import _project_context  # type: ignore[import-not-found]
+
+    monkeypatch.setattr(
+        _project_context,
+        "_detect_repo_from_git",
+        lambda _root: None,
+    )
+    assert triage_queue_cli._detect_origin_repo(None) is None
