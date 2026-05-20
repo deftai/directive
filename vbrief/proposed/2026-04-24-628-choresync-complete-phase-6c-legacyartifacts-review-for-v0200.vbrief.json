@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #628"
+  },
+  "plan": {
+    "title": "chore(sync): complete Phase 6c LegacyArtifacts review for v0.20.0 self-migration (120 sections deferred)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "chore(sync): complete Phase 6c LegacyArtifacts review for v0.20.0 self-migration (120 sections deferred)",
+      "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/628",
+      "Labels": "chore, skills, operational"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2",
+        "PhaseDescription": "Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files."
+      }
+    },
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#628",
+        "url": "https://api.github.com/repos/deftai/directive/issues/628"
+      }
+    ],
+    "updated": "2026-05-20T12:38:34Z"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #630"
+  },
+  "plan": {
+    "title": "migrator: auto-invoke render tasks at end of task migrate:vbrief",
+    "status": "proposed",
+    "narratives": {
+      "Description": "migrator: auto-invoke render tasks at end of task migrate:vbrief",
+      "Origin": "Ingested from https://api.github.com/repos/deftai/directive/issues/630",
+      "Labels": "enhancement"
+    },
+    "items": [],
+    "metadata": {
+      "x-migrator": {
+        "Phase": "Phase 2",
+        "PhaseDescription": "Near-up structural priority -- post-cutover stabilization, structural unblockers (items gating many others), and cross-cutting items whose effect spans multiple skills, strategies, or files."
+      }
+    },
+    "references": [
+      {
+        "type": "github-issue",
+        "id": "#630",
+        "url": "https://api.github.com/repos/deftai/directive/issues/630"
+      }
+    ],
+    "updated": "2026-05-20T12:38:34Z"
+  }
+}
