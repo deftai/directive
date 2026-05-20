@@ -162,6 +162,35 @@ class TestBodyWithChecklist:
         titles = [i["title"] for i in vbrief["plan"]["items"]]
         assert titles == ["Top-level task A", "Top-level task B"]
 
+    def test_numbered_ac_section_preserves_checked_status_mix(self):
+        """Numbered AC list with ``[x]`` markers preserves the checked state.
+
+        Greptile finding on PR #1252: previously ``_extract_ac_section_items``
+        stripped the ``[x]`` / ``[ ]`` checkbox prefix but always emitted
+        ``status = "proposed"`` even for completed items, silently inflating
+        the refinement / ``triage:queue`` work queue. These items do NOT
+        satisfy ``_CHECKBOX_RE`` (which requires a ``[-*+]`` bullet, not a
+        numbered marker), so they reach the AC-section fallback and exercise
+        the defensive checkbox-prefix strip.
+        """
+        body = (
+            "## Acceptance Criteria\n"
+            "1. [x] First criterion done\n"
+            "2. [ ] Second criterion pending\n"
+            "3. [X] Third criterion also done\n"
+        )
+        vbrief, _ = issue_ingest._build_issue_vbrief(
+            _issue(503, "Mixed AC numbered+checkbox", body=body),
+            status="proposed",
+            repo_url="https://github.com/owner/repo",
+        )
+        items = vbrief["plan"]["items"]
+        assert items == [
+            {"title": "First criterion done", "status": "completed"},
+            {"title": "Second criterion pending", "status": "proposed"},
+            {"title": "Third criterion also done", "status": "completed"},
+        ]
+
 
 # ---------------------------------------------------------------------------
 # (b) Issue with body but no checklist -> graceful degradation
@@ -373,6 +402,34 @@ class TestCrossRefExtraction:
         ]
         numbers = sorted(int(r["uri"].rsplit("/", 1)[-1]) for r in closes)
         assert numbers == [3001]
+
+    def test_tilde_fenced_code_block_mentions_ignored(self):
+        """``~~~``-fenced code blocks strip identically to triple-backticks.
+
+        Greptile finding on PR #1252: previously ``_CODE_FENCE_RE`` only
+        matched triple-backtick fences, so a body that quoted the closing-
+        keyword grammar inside a tilde-fenced block (a valid GitHub
+        Flavoured Markdown alternative) produced spurious cross-references.
+        """
+        body = (
+            "## Summary\n"
+            "Document the closing-keyword grammar with a tilde fence.\n\n"
+            "~~~\nCloses #4000\nFixes #4001\n~~~\n\n"
+            "Real cross-ref:\n\nCloses #4002\n"
+        )
+        vbrief, _ = issue_ingest._build_issue_vbrief(
+            _issue(902, "Tilde fence docs", body=body),
+            status="proposed",
+            repo_url="https://github.com/owner/repo",
+        )
+        closes = [
+            r for r in vbrief["plan"]["references"]
+            if r["type"] == "x-vbrief/closes"
+        ]
+        numbers = sorted(int(r["uri"].rsplit("/", 1)[-1]) for r in closes)
+        # Only the real cross-ref (#4002) lifts; #4000 + #4001 are inside
+        # the ``~~~`` fence and must be stripped before pattern matching.
+        assert numbers == [4002]
 
     def test_cross_refs_skipped_when_repo_url_unknown(self):
         """No ``repo_url`` -> no cross-refs (cannot synthesise a honest URI)."""

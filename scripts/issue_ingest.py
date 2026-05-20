@@ -161,11 +161,14 @@ _CROSS_REF_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
 )
 
-# Fenced code block (triple-backtick) and inline code span (single
-# backtick, no embedded backtick / newline). Stripped before cross-ref
-# / plan-item extraction so a body that quotes ``Closes #N`` as an
-# illustration does not produce a real cross-ref.
-_CODE_FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
+# Fenced code block (triple-backtick OR tilde-fence) and inline code
+# span (single backtick, no embedded backtick / newline). Stripped
+# before cross-ref / plan-item extraction so a body that quotes
+# ``Closes #N`` as an illustration does not produce a real cross-ref.
+# The capturing group + ``\1`` backreference enforces matching
+# delimiters (a ``~~~`` fence cannot be closed by ``\`\`\``) per the
+# GitHub Flavoured Markdown spec.
+_CODE_FENCE_RE = re.compile(r"(```|~~~).*?\1", re.DOTALL)
 _INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 
 
@@ -262,14 +265,21 @@ def _extract_ac_section_items(text: str) -> list[dict]:
         title_text = li.group(1).strip()
         # Defensive: strip a leftover ``[ ]`` / ``[x]`` checkbox prefix
         # if a maintainer mixed checkbox + numbered shapes inside the
-        # AC section.
+        # AC section. Preserve the checked state so a completed item
+        # in a numbered+checkbox mixed AC list lands as ``completed``
+        # rather than being silently demoted to ``proposed`` (downstream
+        # consumers ``deft-directive-refinement`` / ``task triage:queue``
+        # treat ``status`` as signal for remaining work).
+        status = "proposed"
         cb = re.match(r"\[([ xX])\]\s+(.+)", title_text)
         if cb:
             title_text = cb.group(2).strip()
+            if cb.group(1).lower() == "x":
+                status = "completed"
         if not title_text or title_text in seen:
             continue
         seen.add(title_text)
-        items.append({"title": title_text, "status": "proposed"})
+        items.append({"title": title_text, "status": status})
     return items
 
 
