@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(triage,skills): task triage:welcome silently skips bootstrap; candidates.jsonl remains absent",
-    "status": "pending",
+    "status": "running",
     "narratives": {
       "Description": "bug(triage,skills): task triage:welcome silently skips bootstrap; candidates.jsonl remains absent",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1244",
@@ -25,6 +25,6 @@
         "title": "Issue #1244: bug(triage,skills): task triage:welcome silently skips bootstrap; candidates.jsonl remains absent"
       }
     ],
-    "updated": "2026-05-20T13:05:54Z"
+    "updated": "2026-05-20T13:14:45Z"
   }
 }

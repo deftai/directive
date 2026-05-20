@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators",
-    "status": "proposed",
+    "status": "running",
     "narratives": {
       "Description": "bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1247",
@@ -22,6 +22,7 @@
         "type": "x-vbrief/github-issue",
         "title": "Issue #1247: bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators"
       }
-    ]
+    ],
+    "updated": "2026-05-20T13:14:56Z"
   }
 }
