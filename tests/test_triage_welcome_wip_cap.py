@@ -1,17 +1,20 @@
 """#1250 regressions for ``task triage:welcome`` wipCap handling."""
+# ruff: noqa: E402,I001
 
 from __future__ import annotations
 
 import json
 import sys
+import threading
+import time
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO_ROOT / "scripts"))
-
-import triage_welcome  # noqa: E402,I001  -- after sys.path tweak above
+from _project_definition_io import project_definition_mutation_lock
+import triage_welcome
 
 
 def _seed_project_definition(
@@ -157,6 +160,62 @@ def test_default_wip_cap_menu_value_reports_not_materialized(
     assert outcome.wip_cap_choice == triage_welcome.DEFAULT_WIP_CAP
     assert "wipCap" not in _project_definition(tmp_path)["plan"]["policy"]
     _assert_default_not_materialized_message(output)
+
+
+def test_clear_to_default_entry_reports_cleared_not_written(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """A cleanup audit entry must not produce a misleading write message."""
+    _seed_project_definition(
+        tmp_path,
+        triage_scope=triage_welcome.SUBSCRIPTION_PRESETS["small"],
+    )
+
+    def _fake_write(_root: Path, _cap: int) -> tuple[bool, str]:
+        return True, "actor=triage-welcome action=cleared-to-default"
+
+    monkeypatch.setattr(triage_welcome, "write_wip_cap", _fake_write)
+    output = _CapturedOutput()
+    outcome = triage_welcome.run_welcome(
+        tmp_path,
+        input_fn=_ScriptedInput([""]),
+        output_fn=output,
+        run_subprocess=False,
+    )
+
+    joined = output.joined()
+    assert outcome.exit_code == 0
+    assert "Cleared plan.policy.wipCap override" in joined
+    assert "Wrote plan.policy.wipCap" not in joined
+
+
+def test_write_wip_cap_waits_for_project_definition_lock(tmp_path: Path) -> None:
+    """Concurrent welcome writers serialize on the PROJECT-DEFINITION lock."""
+    _seed_project_definition(tmp_path, wip_cap=25)
+    started = threading.Event()
+    finished = threading.Event()
+    errors: list[BaseException] = []
+
+    def _worker() -> None:
+        started.set()
+        try:
+            triage_welcome.write_wip_cap(tmp_path, 20)
+        except BaseException as exc:  # pragma: no cover -- surfaced below
+            errors.append(exc)
+        finally:
+            finished.set()
+
+    with project_definition_mutation_lock(tmp_path):
+        thread = threading.Thread(target=_worker)
+        thread.start()
+        assert started.wait(timeout=5.0)
+        time.sleep(0.1)
+        assert not finished.is_set()
+
+    thread.join(timeout=5.0)
+    assert finished.is_set()
+    assert not errors
+    assert _project_definition(tmp_path)["plan"]["policy"]["wipCap"] == 20
 
 
 def test_custom_wip_cap_default_value_reports_not_materialized(

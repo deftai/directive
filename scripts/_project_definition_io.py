@@ -18,11 +18,16 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import sys
 import tempfile
+import threading
+import time
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 _PROJECT_DEFINITION_REL_PATH = "vbrief/PROJECT-DEFINITION.vbrief.json"
+_mutation_thread_lock = threading.Lock()
 
 
 class ProjectDefinitionIOError(Exception):
@@ -31,6 +36,48 @@ class ProjectDefinitionIOError(Exception):
 
 def project_definition_path(project_root: Path) -> Path:
     return project_root / _PROJECT_DEFINITION_REL_PATH
+
+
+@contextlib.contextmanager
+def project_definition_mutation_lock(project_root: Path) -> Iterator[None]:
+    """Serialise PROJECT-DEFINITION read-modify-write critical sections."""
+    path = project_definition_path(project_root)
+    lock_path = path.parent / (path.name + ".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with _mutation_thread_lock, open(lock_path, "a+b") as fh:
+        if not lock_path.stat().st_size:
+            fh.write(b"\0")
+            fh.flush()
+        fh.seek(0)
+        if sys.platform == "win32":
+            import msvcrt
+
+            acquired = False
+            deadline = time.monotonic() + 30.0
+            while True:
+                try:
+                    msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+                    acquired = True
+                    break
+                except OSError:
+                    if time.monotonic() > deadline:
+                        raise
+                    time.sleep(0.02)
+            try:
+                yield
+            finally:
+                if acquired:
+                    fh.seek(0)
+                    with contextlib.suppress(OSError):
+                        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
 
 
 def load_project_definition_for_mutation(

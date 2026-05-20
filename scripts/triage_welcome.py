@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """``task triage:welcome`` 6-phase onboarding ritual (#1143).
 
-The ritual consolidates triage bootstrap, subscription scope, wipCap,
-WIP relief, summary, and triage-skill handoff into one idempotent
-walkthrough. Each phase is detection-bound so a partial re-run resumes
-cleanly, and every prompt accepts injected IO for deterministic tests.
-
+Consolidates triage bootstrap, subscription scope, wipCap, WIP relief,
+summary, and triage-skill handoff into one idempotent walkthrough.
 D4 (#1124) will replace the hand-rolled wipCap writer with the dedicated
 policy-set surface once that parallel-wave work merges.
 """
@@ -25,6 +22,11 @@ from typing import Any
 # Make sibling scripts importable when invoked as
 # ``python scripts/triage_welcome.py``.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from _project_definition_io import (  # noqa: E402  (after sys.path tweak)
+    atomic_write_project_definition,
+    project_definition_mutation_lock,
+)
 
 # UTF-8 self-reconfigure -- the prompts emit ⊗ / · / arrows / checkmarks.
 for _stream in (sys.stdout, sys.stderr):
@@ -311,31 +313,29 @@ def write_triage_scope(
             joined = "; ".join(errors)
             raise ValueError(f"plan.policy.triageScope schema errors: {joined}")
 
-    data = json.loads(path.read_text(encoding="utf-8"))
-    plan = data.setdefault("plan", {})
-    if not isinstance(plan, dict):
-        raise ValueError("PROJECT-DEFINITION 'plan' is not an object")
-    policy = plan.setdefault("policy", {})
-    if not isinstance(policy, dict):
-        raise ValueError("plan.policy is not an object")
-    previous = policy.get("triageScope")
-    policy["triageScope"] = rules
-    path.write_text(
-        json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
+    with project_definition_mutation_lock(project_root):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        plan = data.setdefault("plan", {})
+        if not isinstance(plan, dict):
+            raise ValueError("PROJECT-DEFINITION 'plan' is not an object")
+        policy = plan.setdefault("policy", {})
+        if not isinstance(policy, dict):
+            raise ValueError("plan.policy is not an object")
+        previous = policy.get("triageScope")
+        policy["triageScope"] = rules
+        atomic_write_project_definition(path, data)
 
-    changed = previous != rules
-    audit_parts = [
-        f"actor={actor}",
-        "field=plan.policy.triageScope",
-        f"preset={preset_label}",
-        f"rule_count={len(rules)}",
-        f"changed={'true' if changed else 'false'}",
-    ]
-    audit_entry = " ".join(audit_parts)
-    append_audit_entry(project_root, audit_entry)
-    return changed, audit_entry
+        changed = previous != rules
+        audit_parts = [
+            f"actor={actor}",
+            "field=plan.policy.triageScope",
+            f"preset={preset_label}",
+            f"rule_count={len(rules)}",
+            f"changed={'true' if changed else 'false'}",
+        ]
+        audit_entry = " ".join(audit_parts)
+        append_audit_entry(project_root, audit_entry)
+        return changed, audit_entry
 
 
 # ---------------------------------------------------------------------------
@@ -363,51 +363,46 @@ def write_wip_cap(
     path = project_definition_path(project_root)
     if not path.is_file():
         raise FileNotFoundError(f"PROJECT-DEFINITION not found at {path}")
-    data = json.loads(path.read_text(encoding="utf-8"))
-    plan = data.setdefault("plan", {})
-    if not isinstance(plan, dict):
-        raise ValueError("PROJECT-DEFINITION 'plan' is not an object")
-    policy = plan.setdefault("policy", {})
-    if not isinstance(policy, dict):
-        raise ValueError("plan.policy is not an object")
-    previous = policy.get("wipCap")
+    with project_definition_mutation_lock(project_root):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        plan = data.setdefault("plan", {})
+        if not isinstance(plan, dict):
+            raise ValueError("PROJECT-DEFINITION 'plan' is not an object")
+        policy = plan.setdefault("policy", {})
+        if not isinstance(policy, dict):
+            raise ValueError("plan.policy is not an object")
+        previous = policy.get("wipCap")
 
-    # Case 1: default-confirm on a fresh consumer -- the field stays
-    # omitted (#1250 / #1186 Deliverable 1). No JSON write, no audit row.
-    if previous is None and wip_cap == DEFAULT_WIP_CAP:
-        return False, ""
+        # Case 1: default-confirm on a fresh consumer -- the field stays
+        # omitted (#1250 / #1186 Deliverable 1). No JSON write, no audit row.
+        if previous is None and wip_cap == DEFAULT_WIP_CAP:
+            return False, ""
 
-    # Case 2: operator cleared back to the framework default -- remove the
-    # typed field so downstream resolvers report ``source=default``.
-    if previous is not None and wip_cap == DEFAULT_WIP_CAP:
-        del policy["wipCap"]
-        path.write_text(
-            json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
+        # Case 2: operator cleared back to the framework default -- remove the
+        # typed field so downstream resolvers report ``source=default``.
+        if previous is not None and wip_cap == DEFAULT_WIP_CAP:
+            del policy["wipCap"]
+            atomic_write_project_definition(path, data)
+            audit_entry = (
+                f"actor={actor} field=plan.policy.wipCap "
+                f"action=cleared-to-default value={wip_cap} "
+                f"previous={previous!r} changed=true"
+            )
+            append_audit_entry(project_root, audit_entry)
+            return True, audit_entry
+
+        # Case 3: explicit non-default write (including same-value re-confirm).
+        policy["wipCap"] = wip_cap
+        atomic_write_project_definition(path, data)
+
+        changed = previous != wip_cap
         audit_entry = (
             f"actor={actor} field=plan.policy.wipCap "
-            f"action=cleared-to-default value={wip_cap} "
-            f"previous={previous!r} changed=true"
+            f"value={wip_cap} previous={previous!r} "
+            f"changed={'true' if changed else 'false'}"
         )
         append_audit_entry(project_root, audit_entry)
-        return True, audit_entry
-
-    # Case 3: explicit non-default write (including same-value re-confirm).
-    policy["wipCap"] = wip_cap
-    path.write_text(
-        json.dumps(data, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
-
-    changed = previous != wip_cap
-    audit_entry = (
-        f"actor={actor} field=plan.policy.wipCap "
-        f"value={wip_cap} previous={previous!r} "
-        f"changed={'true' if changed else 'false'}"
-    )
-    append_audit_entry(project_root, audit_entry)
-    return changed, audit_entry
+        return changed, audit_entry
 
 
 # ---------------------------------------------------------------------------
@@ -864,7 +859,12 @@ def run_welcome(
                 out_fn(f"  ! Failed to write plan.policy.wipCap: {exc}")
                 outcome.exit_code = 2
                 return outcome
-            if _entry:
+            if "action=cleared-to-default" in _entry:
+                out_fn(
+                    "  Cleared plan.policy.wipCap override "
+                    f"(inheriting framework default {cap_choice})"
+                )
+            elif _entry:
                 out_fn(f"  Wrote plan.policy.wipCap = {cap_choice}")
             else:
                 out_fn(
