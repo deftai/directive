@@ -96,8 +96,234 @@ _STATUS_MAP: dict[str, tuple[str, str]] = {
     "active": ("active", "running"),
 }
 
+# #1248: body-parsing patterns. The ingester previously emitted stub-only
+# vBRIEFs (no ``Overview``, ``plan.items == []``) which forced the
+# refinement workflow to re-read the GitHub issue body by hand. The
+# patterns below extract acceptance-criteria checklists, numbered AC
+# items, and Closes / Refs / Blocked-by cross-references from the issue
+# body so downstream consumers (``deft-directive-refinement``,
+# ``task triage:queue`` dedup) have substantive content to project from.
+
+# GitHub-flavoured Markdown task-list line. Captures the marker (space /
+# x / X) and the trailing title text. The trailing ``$`` anchors against
+# trailing whitespace so a multi-line list item only contributes the
+# first line; deeper nesting / continuation lines are explicitly out of
+# scope for v1 and noted as a follow-up in the issue body.
+_CHECKBOX_RE = re.compile(
+    r"^\s*[-*+]\s+\[([ xX])\]\s+(.+?)\s*$",
+    re.MULTILINE,
+)
+
+# Heading whose text contains "Acceptance Criteria" (case-insensitive).
+# Used as the entry point for the AC-section fallback when the body
+# carries no checkbox-style task list.
+_AC_HEADING_RE = re.compile(
+    r"^(#{1,6})\s+.*\bacceptance\s+criteria\b.*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+# Bullet- or numbered-list item. Used inside the AC section after the
+# heading match -- both ``- foo`` / ``* foo`` / ``+ foo`` and
+# ``1. foo`` / ``1) foo`` shapes are accepted.
+_LIST_ITEM_RE = re.compile(
+    r"^\s*(?:[-*+]|\d+[.)])\s+(.+?)\s*$",
+    re.MULTILINE,
+)
+
+# Closing / referencing / blocking keyword -> canonical ``x-vbrief/*``
+# reference type. Ordering is significant: ``blocked by`` is matched
+# before ``blocks`` would be (the latter is intentionally absent because
+# ``Blocks #N`` on the source issue has the inverse semantic of the
+# ingested issue being blocked). Patterns are applied against a body
+# stripped of fenced and inline code spans so Markdown examples don't
+# produce spurious cross-refs.
+_CROSS_REF_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "x-vbrief/closes",
+        re.compile(
+            r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "x-vbrief/blocks",
+        re.compile(
+            r"\bblocked[\s\-]+by\s+#(\d+)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "x-vbrief/refs",
+        re.compile(
+            r"\b(?:refs?|references?|see\s+also|related(?:\s+to)?)\s+#(\d+)\b",
+            re.IGNORECASE,
+        ),
+    ),
+)
+
+# Fenced code block (triple-backtick) and inline code span (single
+# backtick, no embedded backtick / newline). Stripped before cross-ref
+# / plan-item extraction so a body that quotes ``Closes #N`` as an
+# illustration does not produce a real cross-ref.
+_CODE_FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
+_INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
+
 
 # --- Helpers ----------------------------------------------------------------
+
+
+def _strip_code_blocks(body: str) -> str:
+    """Return ``body`` with Markdown code spans elided (#1248).
+
+    Fenced code blocks (triple-backtick) and inline single-backtick code
+    spans are replaced with the empty string before cross-ref / plan-item
+    extraction. This prevents an issue body that *quotes* ``Closes #N``
+    as a syntax example (the #1248 body is itself an example -- it
+    embeds a JSON block illustrating the stub-only shape) from producing
+    spurious cross-refs or plan-items.
+    """
+    if not body:
+        return ""
+    return _INLINE_CODE_RE.sub("", _CODE_FENCE_RE.sub("", body))
+
+
+def _extract_plan_items(body: str) -> list[dict]:
+    """Extract ``plan.items[]`` entries from a GitHub issue body (#1248).
+
+    Detection ladder:
+
+    1. Markdown task-list checkboxes (``- [ ] foo`` / ``- [x] bar``) --
+       the GitHub-native shape that ``deft-directive-refinement`` and
+       ``task triage:queue`` both project from. Unchecked boxes map to
+       ``status = "proposed"``; checked boxes map to
+       ``status = "completed"`` so an issue that ships partial progress
+       is reflected honestly.
+    2. Bullet- / numbered-list items underneath an ``Acceptance
+       Criteria`` heading -- the second-most-common shape across the
+       2026-05-20 audit cohort. Stops at the next heading at the same
+       or higher level.
+    3. Graceful degradation: when neither shape is present, return an
+       empty list. The vBRIEF still carries ``narratives.Overview`` so
+       refinement can refine *something*; ``plan.items`` is only ever
+       populated when there is structured source material to project
+       from.
+
+    Every emitted item carries the schema-required ``title`` + ``status``
+    keys (``minLength: 1`` on ``title``; ``status`` from the canonical
+    ``Status`` enum). Duplicate titles are de-duped while preserving
+    document order.
+    """
+    if not body:
+        return []
+    text = _strip_code_blocks(body)
+
+    items: list[dict] = []
+    seen: set[str] = set()
+    for match in _CHECKBOX_RE.finditer(text):
+        marker = match.group(1)
+        title_text = match.group(2).strip()
+        if not title_text or title_text in seen:
+            continue
+        seen.add(title_text)
+        status = "completed" if marker.lower() == "x" else "proposed"
+        items.append({"title": title_text, "status": status})
+    if items:
+        return items
+
+    # Fallback: numbered / bulleted list under an Acceptance Criteria heading.
+    return _extract_ac_section_items(text)
+
+
+def _extract_ac_section_items(text: str) -> list[dict]:
+    """Extract list items from an Acceptance Criteria section (#1248 fallback).
+
+    Walks for an ``Acceptance Criteria`` heading (any level 1-6,
+    case-insensitive). When found, slices the body to the section --
+    bounded by the next heading at the same-or-higher level -- and
+    returns each bullet / numbered list item as a PlanItem dict with
+    ``status = "proposed"``.
+    """
+    heading_match = _AC_HEADING_RE.search(text)
+    if not heading_match:
+        return []
+    heading_level = len(heading_match.group(1))
+    section_start = heading_match.end()
+    next_heading_re = re.compile(
+        rf"^#{{1,{heading_level}}}\s+\S",
+        re.MULTILINE,
+    )
+    after = text[section_start:]
+    next_match = next_heading_re.search(after)
+    section_text = after[: next_match.start()] if next_match else after
+
+    items: list[dict] = []
+    seen: set[str] = set()
+    for li in _LIST_ITEM_RE.finditer(section_text):
+        title_text = li.group(1).strip()
+        # Defensive: strip a leftover ``[ ]`` / ``[x]`` checkbox prefix
+        # if a maintainer mixed checkbox + numbered shapes inside the
+        # AC section.
+        cb = re.match(r"\[([ xX])\]\s+(.+)", title_text)
+        if cb:
+            title_text = cb.group(2).strip()
+        if not title_text or title_text in seen:
+            continue
+        seen.add(title_text)
+        items.append({"title": title_text, "status": "proposed"})
+    return items
+
+
+def _extract_cross_refs(
+    body: str,
+    repo_url: str,
+    *,
+    exclude: set[int] | None = None,
+) -> list[dict]:
+    """Extract Closes / Refs / Blocked-by cross-refs from issue body (#1248).
+
+    Returns a list of canonical ``VBriefReference`` dicts (``{uri, type,
+    title}``) ready to append to ``plan.references[]``. Reference types:
+
+    - ``x-vbrief/closes`` for ``Closes / Fixes / Resolves #N`` (inflected
+      forms ``closed`` / ``fixed`` / ``resolved`` accepted).
+    - ``x-vbrief/blocks`` for ``Blocked by #N`` -- the dependency
+      direction the issue body expresses (this scope is blocked by #N).
+    - ``x-vbrief/refs`` for ``Refs / References / See also / Related #N``.
+
+    Skips matches that fall inside fenced or inline code spans (the
+    body is passed through :func:`_strip_code_blocks` first) and any
+    issue number in ``exclude`` -- callers pass the provenance issue
+    number itself so a self-reference (e.g. ``Closes #1248`` in #1248's
+    own body) does not produce a duplicate reference to the canonical
+    ``x-vbrief/github-issue`` origin.
+
+    Returns an empty list when ``repo_url`` is empty -- the canonical
+    ``VBriefReference`` shape requires ``uri``, and synthesising a
+    URL without a repo handle would be dishonest.
+    """
+    if not body or not repo_url:
+        return []
+    text = _strip_code_blocks(body)
+    refs: list[dict] = []
+    seen: set[tuple[str, int]] = set()
+    excluded = exclude or set()
+    for ref_type, pattern in _CROSS_REF_PATTERNS:
+        for match in pattern.finditer(text):
+            number = int(match.group(1))
+            if number in excluded:
+                continue
+            key = (ref_type, number)
+            if key in seen:
+                continue
+            seen.add(key)
+            refs.append(
+                {
+                    "uri": f"{repo_url}/issues/{number}",
+                    "type": ref_type,
+                    "title": f"Issue #{number}",
+                }
+            )
+    return refs
 
 
 def _provenance_issue_number(data: dict) -> int | None:
@@ -281,35 +507,56 @@ def _build_issue_vbrief(
     if body_str:
         # #988: carry the issue body verbatim to ``narratives.Overview`` so
         # the swarm Phase 0 "acceptance criteria present" check has source
-        # text to project from. We do NOT parse sections into ``plan.items``
-        # here -- that is explicitly a follow-up per the issue's Non-goals.
+        # text to project from. #1248 widens this surface by ALSO emitting
+        # structured ``plan.items[]`` + ``plan.references[]`` cross-refs
+        # derived from the body, so refinement / triage:queue have more
+        # than just an opaque blob to work with.
         narratives["Overview"] = body_str
     if label_names:
         narratives["Labels"] = ", ".join(label_names)
+
+    # #1248: derive ``plan.items[]`` from the issue body's task-list /
+    # acceptance-criteria checklist (graceful degradation to ``[]`` when
+    # neither shape is present).
+    plan_items = _extract_plan_items(body_str) if body_str else []
 
     plan: dict = {
         "title": title,
         "status": plan_status,
         "narratives": narratives,
-        "items": [],
+        "items": plan_items,
     }
     if label_names:
         # #988: structured-surface mirror of ``narratives.Labels`` so
         # consumers can filter by tag without parsing the freeform string.
         plan["tags"] = list(label_names)
 
-    # #639: canonical v0.6 VBriefReference shape. Only emit when we have a
-    # resolvable URL -- the schema requires ``uri`` and we must not forge
-    # one. Matches ``scripts/_vbrief_build.py::create_scope_vbrief`` and
-    # ``conventions/references.md``.
+    # #639 + #1248: canonical v0.6 VBriefReference shape, with the body-
+    # derived Closes / Refs / Blocked-by cross-refs appended after the
+    # canonical ``x-vbrief/github-issue`` origin. Only emit when we have
+    # a resolvable URL -- the schema requires ``uri`` and we must not
+    # forge one. Matches ``scripts/_vbrief_build.py::create_scope_vbrief``
+    # and ``conventions/references.md``.
     if url:
-        plan["references"] = [
+        references: list[dict] = [
             {
                 "uri": url,
                 "type": "x-vbrief/github-issue",
                 "title": f"Issue #{number}: {title}",
             }
         ]
+        if body_str and repo_url:
+            # Use ``repo_url`` (not ``url``) so cross-refs target sibling
+            # issues under the same repo even when ``url`` already
+            # resolves a specific issue; exclude ``number`` so a
+            # self-referencing ``Closes #N`` in the body does not
+            # duplicate the canonical origin reference above.
+            references.extend(
+                _extract_cross_refs(
+                    body_str, repo_url, exclude={number}
+                )
+            )
+        plan["references"] = references
 
     return {
         "vBRIEFInfo": {
