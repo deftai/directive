@@ -406,4 +406,11 @@
 - **#1239** -- perf(cache): triage:bootstrap is GraphQL-heavy; #954 mandates REST-first -- `[completed]`
 - **#1240** -- bug(verify:cache-fresh): still reports 'bootstrap state' after a successful triage:bootstrap -- `[completed]`
 - **#1242** -- docs(changelog): entries MUST be brief release-notes, not implementation detail (v0.32.0 release-blocker) -- `[completed]`
+- **#1244** -- bug(triage,skills): task triage:welcome silently skips bootstrap; candidates.jsonl remains absent -- `[completed]`
+- **#1245** -- bug(triage,determinism): verify:cache-fresh false-fails on backfill-only cache state -- `[completed]`
+- **#1246** -- enhancement(triage): triage:queue should auto-detect --repo from origin remote -- `[completed]`
+- **#1247** -- bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators -- `[completed]`
+- **#1248** -- enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items) -- `[completed]`
+- **#1250** -- bug(triage,policy): task triage:welcome materializes plan.policy.wipCap, violating #1186 Deliverable 1 -- `[completed]`
+- **#1251** -- bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy -- `[completed]`
 

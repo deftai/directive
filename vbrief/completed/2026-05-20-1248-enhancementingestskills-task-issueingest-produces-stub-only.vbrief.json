@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1248",
@@ -73,6 +73,6 @@
         "title": "Issue #1248: enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items)"
       }
     ],
-    "updated": "2026-05-20T13:14:57Z"
+    "updated": "2026-05-20T19:24:33Z"
   }
 }

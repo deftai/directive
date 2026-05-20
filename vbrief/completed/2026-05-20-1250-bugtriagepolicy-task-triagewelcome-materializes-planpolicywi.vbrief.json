@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(triage,policy): task triage:welcome materializes plan.policy.wipCap, violating #1186 Deliverable 1",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(triage,policy): task triage:welcome materializes plan.policy.wipCap, violating #1186 Deliverable 1",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1250",
@@ -25,6 +25,6 @@
         "title": "Issue #1250: bug(triage,policy): task triage:welcome materializes plan.policy.wipCap, violating #1186 Deliverable 1"
       }
     ],
-    "updated": "2026-05-20T14:37:52Z"
+    "updated": "2026-05-20T19:24:34Z"
   }
 }

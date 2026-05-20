@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-20T13:37:35Z"
+    "updated": "2026-05-20T19:24:51Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -894,102 +894,6 @@
               "uri": "https://github.com/deftai/directive/pull/1125",
               "type": "x-vbrief/github-pr",
               "title": "PR #1125: feat(skills): add deft-directive-gh-arch (re-land of #442) -- merged predecessor"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-20-1244-bugtriageskills-task-triagewelcome-silently-skips-bootstrap",
-        "title": "bug(triage,skills): task triage:welcome silently skips bootstrap; candidates.jsonl remains absent",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-20-1244-bugtriageskills-task-triagewelcome-silently-skips-bootstrap.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1244",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1244: bug(triage,skills): task triage:welcome silently skips bootstrap; candidates.jsonl remains absent"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-20-1245-bugtriagedeterminism-verifycache-fresh-false-fails-on-backfi",
-        "title": "bug(triage,determinism): verify:cache-fresh false-fails on backfill-only cache state",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-20-1245-bugtriagedeterminism-verifycache-fresh-false-fails-on-backfi.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1245",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1245: bug(triage,determinism): verify:cache-fresh false-fails on backfill-only cache state"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-20-1246-enhancementtriage-triagequeue-should-auto-detect-repo-from-o",
-        "title": "enhancement(triage): triage:queue should auto-detect --repo from origin remote",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-20-1246-enhancementtriage-triagequeue-should-auto-detect-repo-from-o.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1246",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1246: enhancement(triage): triage:queue should auto-detect --repo from origin remote"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-20-1247-bugtriagebootstrap-populate-cache-counter-terminology-succee",
-        "title": "bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-20-1247-bugtriagebootstrap-populate-cache-counter-terminology-succee.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1247",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1247: bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-20-1248-enhancementingestskills-task-issueingest-produces-stub-only",
-        "title": "enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items)",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-20-1248-enhancementingestskills-task-issueingest-produces-stub-only.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1248",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1248: enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-05-20-1251-bugtriagepolicy-task-triagebootstrap-blanket-ignores-vbriefe",
-        "title": "bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-05-20-1251-bugtriagepolicy-task-triagebootstrap-blanket-ignores-vbriefe.vbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1251",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1251: bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy"
             }
           ]
         }
@@ -8514,6 +8418,118 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-05-20-1244-bugtriageskills-task-triagewelcome-silently-skips-bootstrap",
+        "title": "bug(triage,skills): task triage:welcome silently skips bootstrap; candidates.jsonl remains absent",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-20-1244-bugtriageskills-task-triagewelcome-silently-skips-bootstrap.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1244",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1244: bug(triage,skills): task triage:welcome silently skips bootstrap; candidates.jsonl remains absent"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-20-1245-bugtriagedeterminism-verifycache-fresh-false-fails-on-backfi",
+        "title": "bug(triage,determinism): verify:cache-fresh false-fails on backfill-only cache state",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-20-1245-bugtriagedeterminism-verifycache-fresh-false-fails-on-backfi.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1245",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1245: bug(triage,determinism): verify:cache-fresh false-fails on backfill-only cache state"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-20-1246-enhancementtriage-triagequeue-should-auto-detect-repo-from-o",
+        "title": "enhancement(triage): triage:queue should auto-detect --repo from origin remote",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-20-1246-enhancementtriage-triagequeue-should-auto-detect-repo-from-o.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1246",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1246: enhancement(triage): triage:queue should auto-detect --repo from origin remote"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-20-1247-bugtriagebootstrap-populate-cache-counter-terminology-succee",
+        "title": "bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-20-1247-bugtriagebootstrap-populate-cache-counter-terminology-succee.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1247",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1247: bug(triage,bootstrap): populate_cache counter terminology (succeeded=1 skipped=396) misleads operators"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-20-1248-enhancementingestskills-task-issueingest-produces-stub-only",
+        "title": "enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-20-1248-enhancementingestskills-task-issueingest-produces-stub-only.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1248",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1248: enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-20-1250-bugtriagepolicy-task-triagewelcome-materializes-planpolicywi",
+        "title": "bug(triage,policy): task triage:welcome materializes plan.policy.wipCap, violating #1186 Deliverable 1",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-20-1250-bugtriagepolicy-task-triagewelcome-materializes-planpolicywi.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1250",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1250: bug(triage,policy): task triage:welcome materializes plan.policy.wipCap, violating #1186 Deliverable 1"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-20-1251-bugtriagepolicy-task-triagebootstrap-blanket-ignores-vbriefe",
+        "title": "bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-20-1251-bugtriagepolicy-task-triagebootstrap-blanket-ignores-vbriefe.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1251",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1251: bug(triage,policy): task triage:bootstrap blanket-ignores vbrief/.eval/, violating #1144 hybrid policy"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
@@ -8536,6 +8552,7 @@
         "Narrative 'OpenQuestions' may be stale: completed scope 'feat(triage-scope): milestone rule any-of + is-open variants (#1181)' shares topics (open)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'fix(scripts/reconcile_issues.py, scripts/release.py): vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues' shares topics (open)",
         "Narrative 'Overview' may be stale: completed scope 'bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready' shares topics (overview)",
+        "Narrative 'Overview' may be stale: completed scope 'enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items)' shares topics (overview)",
         "Narrative 'Overview' may be stale: completed scope 'fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key' shares topics (overview)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Automatically check for updates to cloned repos in a project -- detect stale cloned dependencies, notify user; part of future `deft doctor`/`deft update` (new CLI tooling)' shares topics (project)",
         "Narrative 'ProjectConfig' may be stale: completed scope 'Branching requirement too prescriptive -- context-aware solo-project qualifier' shares topics (project)",

@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "enhancement(triage): triage:queue should auto-detect --repo from origin remote",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "enhancement(triage): triage:queue should auto-detect --repo from origin remote",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1246",
@@ -23,6 +23,6 @@
         "title": "Issue #1246: enhancement(triage): triage:queue should auto-detect --repo from origin remote"
       }
     ],
-    "updated": "2026-05-20T13:14:56Z"
+    "updated": "2026-05-20T19:24:33Z"
   }
 }

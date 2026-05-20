@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(triage,determinism): verify:cache-fresh false-fails on backfill-only cache state",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(triage,determinism): verify:cache-fresh false-fails on backfill-only cache state",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1245",
@@ -25,6 +25,6 @@
         "title": "Issue #1245: bug(triage,determinism): verify:cache-fresh false-fails on backfill-only cache state"
       }
     ],
-    "updated": "2026-05-20T13:14:45Z"
+    "updated": "2026-05-20T19:24:32Z"
   }
 }
