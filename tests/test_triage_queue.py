@@ -1160,8 +1160,12 @@ def test_cli_queue_outside_git_tree_still_errors(monkeypatch, capsys, tmp_path: 
 def test_detect_origin_repo_returns_none_on_missing_git(monkeypatch):
     """`_detect_origin_repo` returns None when git is absent / blows up."""
     # Force the canonical helper to return None via a monkeypatched
-    # _project_context._detect_repo_from_git.
-    import _project_context  # type: ignore[import-not-found]
+    # _project_context._detect_repo_from_git. Use ``pytest.importorskip``
+    # so a slim test checkout that does not vendor _project_context skips
+    # cleanly instead of raising ``ModuleNotFoundError`` at collection
+    # time (Greptile P2 on PR #1254 -- mirrors the ``except ImportError``
+    # guard the production code already carries on the same import).
+    _project_context = pytest.importorskip("_project_context")
 
     monkeypatch.setattr(
         _project_context,

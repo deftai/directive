@@ -327,7 +327,7 @@ def run_fetch_all(
         raw = _normalise_rest_issue(issue)
         number = raw.get("number")
         if not isinstance(number, int) or number <= 0:
-            report.failed += 1
+            report.issues_failed += 1
             report.failures.append(
                 {"key": f"{repo}/?", "reason": f"invalid 'number' field: {number!r}"}
             )
@@ -336,14 +336,14 @@ def run_fetch_all(
         key = f"{repo}/{number}"
         edir = entry_dir_for(key)
         if is_fresh(edir / "meta.json"):
-            report.skipped += 1
+            report.already_fresh += 1
             continue
 
         try:
             do_put(key, raw)
-            report.succeeded += 1
+            report.issues_written += 1
         except Exception as exc:  # noqa: BLE001 -- caller's CacheError variants
-            report.failed += 1
+            report.issues_failed += 1
             report.failures.append({"key": key, "reason": str(exc)})
 
         # Per-issue delay; batch-size checkpoint adds an extra pause so a
