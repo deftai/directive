@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **fix(triage,bootstrap): selective `vbrief/.eval/` entries replace the blanket gitignore line (#1251)** -- `task triage:bootstrap` no longer appends a blanket `vbrief/.eval/` line that silently hid the tracked team-shared `slices.jsonl` cohort record from git. Step 4 now writes the three operator-private selective entries (`candidates.jsonl`, `summary-history.jsonl`, `scope-lifecycle.jsonl`), adds the `vbrief/.eval/*.jsonl  merge=union` rule to `.gitattributes`, and seeds `vbrief/.eval/README.md` on a fresh clone; re-runs against an already-configured repo are no-ops so `task check` stays green. Renamed the step from `ensure_gitignore_eval_dir` to `ensure_gitignore_eval_entries` to reflect the per-file semantics. Closes #1251. Refs #1144, #1132.
 
 ### Removed
 

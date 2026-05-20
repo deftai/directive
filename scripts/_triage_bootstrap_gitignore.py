@@ -1,17 +1,30 @@
+# ruff: noqa: E501  -- the canonical README literal at the bottom of this
+# file contains markdown table rows that intentionally run past the 100-char
+# ceiling so the rendered README is byte-identical to the on-disk
+# `vbrief/.eval/README.md`. Splitting the table cells across lines breaks
+# Markdown rendering. The rest of the module respects the project ceiling.
 """_triage_bootstrap_gitignore.py -- gitignore-ensure + audit-log seed helpers.
 
 Extracted from :mod:`triage_bootstrap` under #952 to keep the parent
 module under the 1000-line MUST limit from ``coding/coding.md``. The
 helpers are pure (no module-level state) and operate on the consumer
-project's ``.gitignore`` and ``vbrief/.eval/`` scratch directory only;
-nothing here touches the cache or scope vBRIEF state.
+project's ``.gitignore``, ``.gitattributes``, and ``vbrief/.eval/``
+scratch directory only; nothing here touches the cache or scope vBRIEF
+state.
 
 Public surface (stable for :mod:`triage_bootstrap` re-exports):
 
 - :data:`GITIGNORE_LINE` -- canonical ``.deft-cache/`` line.
-- :data:`GITIGNORE_EVAL_LINE` -- canonical ``vbrief/.eval/`` line.
+- :data:`GITIGNORE_EVAL_ENTRIES` -- canonical selective per-file lines
+  for the #1144 hybrid policy (``candidates.jsonl`` /
+  ``summary-history.jsonl`` / ``scope-lifecycle.jsonl``).
+- :data:`GITATTRIBUTES_EVAL_RULE` -- canonical
+  ``vbrief/.eval/*.jsonl  merge=union`` line for #1144.
 - :func:`step_ensure_gitignore_entry` -- bootstrap step 3.
-- :func:`step_ensure_gitignore_eval_dir` -- bootstrap step 4.
+- :func:`step_ensure_gitignore_eval_entries` -- bootstrap step 4.
+  Replaces the pre-#1251 ``step_ensure_gitignore_eval_dir`` which
+  appended a blanket ``vbrief/.eval/`` line that violated the
+  hybrid-policy decision recorded on #1144.
 - :func:`step_seed_candidates_log` -- bootstrap step 5 (#1240).
 
 Internal helpers (underscore-prefixed) MUST NOT be imported from
@@ -48,9 +61,35 @@ def _outcome_cls() -> type:
 #: the existing ``.gitignore`` (e.g. ``dist/``, ``.deft/``).
 GITIGNORE_LINE: str = ".deft-cache/"
 
-#: Canonical gitignore line for the per-machine triage audit / eval
-#: scratch directory (#915).
-GITIGNORE_EVAL_LINE: str = "vbrief/.eval/"
+#: Canonical selective gitignore lines for the #1144 hybrid policy.
+#: Replaces the pre-#1251 blanket ``vbrief/.eval/`` line. The three
+#: files below are operator-private; ``slices.jsonl`` is intentionally
+#: omitted from this tuple because it is TRACKED team-shared cohort
+#: state per #1132 / D13.
+GITIGNORE_EVAL_ENTRIES: tuple[str, ...] = (
+    "vbrief/.eval/candidates.jsonl",
+    "vbrief/.eval/summary-history.jsonl",
+    "vbrief/.eval/scope-lifecycle.jsonl",
+)
+
+#: Canonical ``.gitattributes`` line for the #1144 merge=union rule on
+#: append-only JSONL files under ``vbrief/.eval/``. Two spaces between
+#: the glob and the attribute mirrors the existing repo convention.
+GITATTRIBUTES_EVAL_RULE: str = "vbrief/.eval/*.jsonl  merge=union"
+
+#: Glob the merge=union rule must apply to. Used by the idempotency
+#: detector so we don't append a duplicate rule when an operator has
+#: hand-edited the attribute spacing or trailing comments.
+_GITATTRIBUTES_EVAL_GLOB: str = "vbrief/.eval/*.jsonl"
+
+#: Forbidden blanket gitignore lines. The pre-#1251 step appended
+#: ``vbrief/.eval/`` (or ``vbrief/.eval``) which silently hid the
+#: tracked ``slices.jsonl`` from git. Detected so we can warn loudly if
+#: a re-run encounters a stale entry left behind by a prior bootstrap.
+_FORBIDDEN_BLANKET_EVAL_LINES: tuple[str, ...] = (
+    "vbrief/.eval/",
+    "vbrief/.eval",
+)
 
 
 _DEFT_CACHE_RATIONALE: str = (
@@ -59,11 +98,38 @@ _DEFT_CACHE_RATIONALE: str = (
     "# docs/privacy-nfr.md for the gitignore-default + opt-in-commit-cache\n"
     "# contract. Comment this line out to opt in to committing the cache.\n"
 )
-_EVAL_DIR_RATIONALE: str = (
-    "\n# Triage v1 audit/eval scratch (#915). Holds candidates.jsonl + transient\n"
-    "# evaluation artefacts written by triage actions. Per-machine operator state;\n"
-    "# never versioned (would leak triage timing/identity). Comment this line out\n"
-    "# to opt in to committing the audit log.\n"
+#: Comment block written above the selective eval entries on a fresh
+#: clone. Captures the #1144 hybrid policy in-line so an operator
+#: reading ``.gitignore`` sees why ``slices.jsonl`` is intentionally
+#: NOT listed (it is TRACKED team-shared cohort state).
+_EVAL_ENTRIES_RATIONALE: str = (
+    "\n# vbrief/.eval/ tracking governance (#1144, N4 of #1119).\n"
+    "# Hybrid policy from the Current Shape comment on #1144:\n"
+    "#   - candidates.jsonl       -> gitignored (operator-private triage\n"
+    "#                               decisions; re-derive via\n"
+    "#                               `task triage:bootstrap` on a fresh\n"
+    "#                               clone). #845 Story 2 + #915.\n"
+    "#   - summary-history.jsonl  -> gitignored (operator-private\n"
+    "#                               observability; not load-bearing for\n"
+    "#                               any decision).\n"
+    "#   - scope-lifecycle.jsonl  -> gitignored (operator-private\n"
+    "#                               scope-lifecycle audit decisions;\n"
+    "#                               D1 / #1121). Per-operator demote\n"
+    "#                               stream; sharing would conflate\n"
+    "#                               operators' demote timing across the\n"
+    "#                               team.\n"
+    "#   - slices.jsonl           -> TRACKED (team-shared cohort records\n"
+    "#                               produced by slicing skills; see\n"
+    "#                               #1132 / D13).\n"
+    "# See vbrief/.eval/README.md for the full policy + merge=union\n"
+    "# rebase note.\n"
+)
+_GITATTRIBUTES_EVAL_RATIONALE: str = (
+    "# Append-only JSON-lines logs under vbrief/.eval/ use the union merge driver\n"
+    "# (#1144, N4 of #1119). Both branches' appended lines are concatenated on\n"
+    "# auto-merge so single-operator rebases of two append branches resolve\n"
+    "# without manual conflict surgery. Note: merge=union does NOT dedupe; see\n"
+    "# vbrief/.eval/README.md for the operator-facing semantics.\n"
 )
 
 
@@ -192,20 +258,447 @@ def step_ensure_gitignore_entry(project_root: Path) -> StepOutcome:
     )
 
 
-def step_ensure_gitignore_eval_dir(project_root: Path) -> StepOutcome:
-    """Append ``vbrief/.eval/`` to ``.gitignore`` when absent (#915)."""
+def step_ensure_gitignore_eval_entries(project_root: Path) -> StepOutcome:
+    """Ensure the #1144 hybrid policy is encoded in the repo (idempotent).
 
-    return _ensure_gitignore_line(
-        project_root / ".gitignore",
-        GITIGNORE_EVAL_LINE,
-        step_name="ensure_gitignore_eval_dir",
-        create_if_missing=False,
-        rationale_block=_EVAL_DIR_RATIONALE,
-        opt_in_message=(
-            f"{GITIGNORE_EVAL_LINE} is commented out (operator opt-in to "
-            "commit triage audit/eval scratch; not re-adding)"
-        ),
+    Three sub-operations run unconditionally; each is independently
+    idempotent and the aggregate StepOutcome reports the union of work
+    done:
+
+    1. ``.gitignore`` -- append the three selective entries
+       (``candidates.jsonl`` / ``summary-history.jsonl`` /
+       ``scope-lifecycle.jsonl``) when any are missing. NEVER appends
+       the blanket ``vbrief/.eval/`` line that violated #1144 -- the
+       pre-#1251 behaviour. Refuses to create ``.gitignore`` from
+       scratch; step 3 owns that responsibility.
+    2. ``.gitattributes`` -- append the ``vbrief/.eval/*.jsonl
+       merge=union`` rule when absent. Creates the file on a fresh
+       clone.
+    3. ``vbrief/.eval/README.md`` -- write the canonical hybrid-policy
+       README when absent so operators reading the directory in
+       isolation discover the tracking contract.
+
+    All three operations are no-ops when the surface is already
+    correctly configured (the framework's own repo case). The step is
+    safe to re-run on every ``task triage:bootstrap`` invocation.
+    """
+    outcome_cls = _outcome_cls()
+    gitignore_path = project_root / ".gitignore"
+    gitattributes_path = project_root / ".gitattributes"
+    readme_path = project_root / "vbrief" / ".eval" / "README.md"
+    step_name = "ensure_gitignore_eval_entries"
+
+    details: dict[str, object] = {}
+
+    # Sub-op 1 -- .gitignore selective entries.
+    gi_result = _ensure_gitignore_selective_entries(
+        gitignore_path, step_name=step_name,
     )
+    if not gi_result.ok:
+        details.update(gi_result.details)
+        return outcome_cls(
+            name=step_name,
+            ok=False,
+            message=gi_result.message,
+            error=gi_result.error,
+            details=details,
+        )
+    details.update(gi_result.details)
+
+    # Sub-op 2 -- .gitattributes merge=union rule.
+    ga_result = _ensure_gitattributes_merge_union(
+        gitattributes_path, step_name=step_name,
+    )
+    if not ga_result.ok:
+        details.update(ga_result.details)
+        return outcome_cls(
+            name=step_name,
+            ok=False,
+            message=ga_result.message,
+            error=ga_result.error,
+            details=details,
+        )
+    details.update(ga_result.details)
+
+    # Sub-op 3 -- README documents the policy.
+    rd_result = _ensure_eval_readme(readme_path, step_name=step_name)
+    if not rd_result.ok:
+        details.update(rd_result.details)
+        return outcome_cls(
+            name=step_name,
+            ok=False,
+            message=rd_result.message,
+            error=rd_result.error,
+            details=details,
+        )
+    details.update(rd_result.details)
+
+    appended_lines = int(details.get("gitignore_appended_lines", 0))
+    appended_attr = bool(details.get("gitattributes_appended", False))
+    created_readme = bool(details.get("readme_created", False))
+    if not appended_lines and not appended_attr and not created_readme:
+        message = (
+            ".gitignore selective entries, .gitattributes merge=union, "
+            "and vbrief/.eval/README.md already present (#1144 hybrid "
+            "policy satisfied; no-op)"
+        )
+    else:
+        parts: list[str] = []
+        if appended_lines:
+            parts.append(
+                f"{appended_lines} selective .gitignore "
+                f"entr{'y' if appended_lines == 1 else 'ies'}"
+            )
+        if appended_attr:
+            parts.append(".gitattributes merge=union rule")
+        if created_readme:
+            parts.append("vbrief/.eval/README.md")
+        message = "wrote " + " + ".join(parts) + " per #1144 hybrid policy"
+    return outcome_cls(
+        name=step_name,
+        ok=True,
+        message=message,
+        details=details,
+    )
+
+
+def _ensure_gitignore_selective_entries(
+    gitignore_path: Path,
+    *,
+    step_name: str,
+) -> StepOutcome:
+    """Append any missing #1144 selective entries to ``.gitignore``.
+
+    Idempotent: when every selective entry is already present, the
+    file is left untouched. When the ``.gitignore`` itself is absent
+    we refuse (step 3 owns creation) so an out-of-order call surfaces
+    loudly. The forbidden blanket line ``vbrief/.eval/`` is never
+    appended and a warning is logged in ``details`` when an operator
+    has left one behind manually (the bootstrap does NOT rewrite it --
+    the workaround documented on #1251 is for the operator to remove
+    it; auto-rewriting risks racing with concurrent edits).
+    """
+    outcome_cls = _outcome_cls()
+
+    if not gitignore_path.exists():
+        return outcome_cls(
+            name=step_name,
+            ok=False,
+            message=(
+                ".gitignore not present after the prior gitignore step; "
+                "selective eval entries not written -- re-run bootstrap"
+            ),
+            error="prior gitignore step did not create .gitignore",
+            details={
+                "gitignore_appended_lines": 0,
+                "skipped": "no-gitignore",
+            },
+        )
+
+    try:
+        existing = gitignore_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        return outcome_cls(
+            name=step_name,
+            ok=False,
+            message="could not read .gitignore",
+            error=str(exc),
+            details={"gitignore_appended_lines": 0},
+        )
+
+    existing_lines = {line.strip() for line in existing.splitlines()}
+    blanket_present = any(
+        forbidden in existing_lines
+        for forbidden in _FORBIDDEN_BLANKET_EVAL_LINES
+    )
+
+    missing = [
+        entry for entry in GITIGNORE_EVAL_ENTRIES
+        if entry not in existing_lines
+    ]
+    if not missing:
+        return outcome_cls(
+            name=step_name,
+            ok=True,
+            message=(
+                "all #1144 selective entries already in .gitignore (no-op)"
+            ),
+            details={
+                "gitignore_appended_lines": 0,
+                "gitignore_already_selective": True,
+                "blanket_present": blanket_present,
+            },
+        )
+
+    suffix = "" if existing.endswith("\n") or existing == "" else "\n"
+    appended_block = _EVAL_ENTRIES_RATIONALE + "\n".join(missing) + "\n"
+    new_content = existing + suffix + appended_block
+    try:
+        gitignore_path.write_text(new_content, encoding="utf-8")
+    except OSError as exc:
+        return outcome_cls(
+            name=step_name,
+            ok=False,
+            message="could not write .gitignore",
+            error=str(exc),
+            details={"gitignore_appended_lines": 0},
+        )
+    return outcome_cls(
+        name=step_name,
+        ok=True,
+        message=(
+            f"appended {len(missing)} selective .gitignore "
+            f"entr{'y' if len(missing) == 1 else 'ies'}"
+        ),
+        details={
+            "gitignore_appended_lines": len(missing),
+            "gitignore_appended_entries": list(missing),
+            "blanket_present": blanket_present,
+        },
+    )
+
+
+def _ensure_gitattributes_merge_union(
+    gitattributes_path: Path,
+    *,
+    step_name: str,
+) -> StepOutcome:
+    """Ensure the ``vbrief/.eval/*.jsonl  merge=union`` rule is present.
+
+    Idempotent. Detects an existing rule that targets the canonical
+    glob ``vbrief/.eval/*.jsonl`` with ``merge=union`` (regardless of
+    whitespace between the glob and the attribute) so a hand-edited
+    file with single-space spacing or trailing comments is recognised
+    as already-satisfied. Creates the file on a fresh clone.
+    """
+    outcome_cls = _outcome_cls()
+
+    if gitattributes_path.exists():
+        try:
+            existing = gitattributes_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            return outcome_cls(
+                name=step_name,
+                ok=False,
+                message="could not read .gitattributes",
+                error=str(exc),
+                details={"gitattributes_appended": False},
+            )
+        if _gitattributes_has_eval_merge_union(existing):
+            return outcome_cls(
+                name=step_name,
+                ok=True,
+                message=(
+                    "vbrief/.eval/*.jsonl merge=union already in "
+                    ".gitattributes (no-op)"
+                ),
+                details={
+                    "gitattributes_appended": False,
+                    "gitattributes_already_present": True,
+                },
+            )
+        suffix = "" if existing.endswith("\n") or existing == "" else "\n"
+        new_content = (
+            existing
+            + suffix
+            + _GITATTRIBUTES_EVAL_RATIONALE
+            + GITATTRIBUTES_EVAL_RULE
+            + "\n"
+        )
+        try:
+            gitattributes_path.write_text(new_content, encoding="utf-8")
+        except OSError as exc:
+            return outcome_cls(
+                name=step_name,
+                ok=False,
+                message="could not write .gitattributes",
+                error=str(exc),
+                details={"gitattributes_appended": False},
+            )
+        return outcome_cls(
+            name=step_name,
+            ok=True,
+            message=(
+                "appended vbrief/.eval/*.jsonl merge=union to .gitattributes"
+            ),
+            details={
+                "gitattributes_appended": True,
+                "gitattributes_created": False,
+            },
+        )
+
+    new_content = (
+        _GITATTRIBUTES_EVAL_RATIONALE + GITATTRIBUTES_EVAL_RULE + "\n"
+    )
+    try:
+        gitattributes_path.write_text(new_content, encoding="utf-8")
+    except OSError as exc:
+        return outcome_cls(
+            name=step_name,
+            ok=False,
+            message="could not create .gitattributes",
+            error=str(exc),
+            details={"gitattributes_appended": False},
+        )
+    return outcome_cls(
+        name=step_name,
+        ok=True,
+        message=(
+            "created .gitattributes with vbrief/.eval/*.jsonl merge=union"
+        ),
+        details={
+            "gitattributes_appended": True,
+            "gitattributes_created": True,
+        },
+    )
+
+
+def _gitattributes_has_eval_merge_union(body: str) -> bool:
+    """Return True when ``body`` already carries the merge=union rule.
+
+    Tolerant of arbitrary whitespace between the glob and the attribute
+    plus trailing comments / extra attributes on the same line. A
+    line beginning with ``#`` does not satisfy the rule.
+    """
+    for raw in body.splitlines():
+        stripped = raw.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        # Tokenise on whitespace; first token is the pattern.
+        parts = stripped.split()
+        if not parts:
+            continue
+        if parts[0] != _GITATTRIBUTES_EVAL_GLOB:
+            continue
+        if "merge=union" in parts[1:]:
+            return True
+    return False
+
+
+def _ensure_eval_readme(
+    readme_path: Path,
+    *,
+    step_name: str,
+) -> StepOutcome:
+    """Write ``vbrief/.eval/README.md`` when absent.
+
+    Idempotent: a pre-existing README (operator-edited or framework-
+    shipped) is left untouched. The bootstrap is intentionally
+    non-destructive here -- if the framework's canonical README drifts
+    relative to a consumer's edited copy, that's an upgrade-time
+    concern, not a bootstrap-time concern.
+    """
+    outcome_cls = _outcome_cls()
+    if readme_path.exists():
+        return outcome_cls(
+            name=step_name,
+            ok=True,
+            message="vbrief/.eval/README.md already present (no-op)",
+            details={
+                "readme_created": False,
+                "readme_already_present": True,
+            },
+        )
+    try:
+        readme_path.parent.mkdir(parents=True, exist_ok=True)
+        readme_path.write_text(_EVAL_README_BODY, encoding="utf-8")
+    except OSError as exc:
+        return outcome_cls(
+            name=step_name,
+            ok=False,
+            message=f"could not create {readme_path}",
+            error=str(exc),
+            details={"readme_created": False},
+        )
+    return outcome_cls(
+        name=step_name,
+        ok=True,
+        message="created vbrief/.eval/README.md (#1144 hybrid policy)",
+        details={"readme_created": True},
+    )
+
+
+#: Canonical README body written on a fresh clone. Mirrors the on-disk
+#: copy at ``vbrief/.eval/README.md`` so the framework's own repo and
+#: a consumer's fresh clone produce byte-identical files. The content
+#: satisfies the deterministic gates in
+#: ``tests/test_eval_governance.py::test_eval_readme_documents_policy``
+#: (the three filenames, the ``task triage:bootstrap`` regen command,
+#: the ``merge=union`` policy, and the no-dedupe qualifier). The
+#: markdown table rows below intentionally run past the 100-char
+#: ceiling so the rendered README mirrors the canonical on-disk file;
+#: see the module-level lint exemption at the top of this file for
+#: the rationale.
+_EVAL_README_BODY: str = """# `vbrief/.eval/` -- triage + slicing evaluation artefacts
+
+This directory holds the append-only JSON-lines logs that the triage and
+slicing skills emit. The framework governs which files in here are tracked
+by git versus gitignored using a **hybrid policy** (#1144, child of #1119).
+
+## Tracking policy
+
+| File | Tracked? | Why |
+| --- | --- | --- |
+| `slices.jsonl` | Yes -- **committed** | Team-shared cohort records produced by slicing skills (D13 / #1132). New operators joining the team need to see prior cohort outputs to detect orphans and avoid re-slicing the same scope. |
+| `candidates.jsonl` | No -- **gitignored** | Operator-private triage decisions (#845 Story 2). Each operator's local accept / defer / reject stream is per-machine state; sharing it would conflate operators' timing + identity across the team. Re-derive on a fresh clone via `task triage:bootstrap`. |
+| `summary-history.jsonl` | No -- **gitignored** | Operator-private observability for `task triage:summary` output time-series. Not load-bearing for any decision. |
+| `scope-lifecycle.jsonl` | No -- **gitignored** | Operator-private scope-lifecycle audit decisions (D1 / #1121). Each demote (`task scope:demote`) appends one entry including a `demote_meta` block (`was_promoted`, `original_promotion_decision_id`, `days_in_pending`, `demote_reason`, `demoted_from`). Per-operator stream; sharing would conflate operators' demote timing across the team. Lightweight metrics over this log are tracked separately at #1180. |
+
+The gitignore lines live in the repo-root `.gitignore` (`vbrief/.eval/candidates.jsonl`,
+`vbrief/.eval/summary-history.jsonl`, and `vbrief/.eval/scope-lifecycle.jsonl`);
+everything else under `vbrief/.eval/` is committed by default.
+
+## Fresh-clone regeneration
+
+On a fresh clone (or any machine that has never run triage), `candidates.jsonl`
+is absent. Regenerate it with:
+
+```
+task triage:bootstrap
+```
+
+The bootstrap path detects the missing file, runs the auto-classifier, and
+writes a fresh `vbrief/.eval/candidates.jsonl`. It does NOT touch the tracked
+`slices.jsonl`; cohort records remain a team-shared resource.
+
+## `merge=union` policy for `*.jsonl`
+
+The repo-root `.gitattributes` declares:
+
+```
+vbrief/.eval/*.jsonl  merge=union
+```
+
+The `union` merge driver concatenates both sides' appended lines on
+auto-merge, so two branches that each appended a different record to the
+same JSON-lines file rebase cleanly without operator surgery. Two things
+operators should know:
+
+- **Concatenation, not set-union.** When two branches append DIFFERENT
+  records to the file, the merge driver concatenates both sides' lines
+  -- there is no smart deduplication of "semantically similar" records.
+  (Identical line-for-line appends collapse because git's three-way
+  merge sees them as the same change, but distinct records always
+  survive verbatim, even if a downstream reader would consider them
+  redundant.) The append-only writers in `scripts/candidates_log.py`
+  mint a fresh `decision_id` per call, so genuinely duplicate records
+  are not the expected case, but downstream readers MUST tolerate
+  multiple records describing the same logical decision.
+- **Single-operator scope only.** This is the foundational rebase
+  ergonomic for the single-operator case (operator A rebases their
+  feature branch onto a master that grew while they were AFK).
+  Multi-operator merge-conflict resolution is explicitly out of scope per
+  #1119 R4 (tracked separately as M1-M4 in #1183).
+
+## See also
+
+- Current Shape comment on #1144 for the canonical decisions (the source
+  of truth this README documents).
+- `.gitignore` -- selective gitignore entries for the operator-private
+  files.
+- `.gitattributes` -- the `merge=union` rule.
+- `scripts/candidates_log.py` -- the writer for `candidates.jsonl`.
+"""
 
 
 #: Canonical relative location of the audit log; mirrors

@@ -26,8 +26,15 @@ Steps (in order):
 3. ``ensure_gitignore_entry`` -- append ``.deft-cache/`` to
    ``.gitignore`` when absent.
 
-4. ``ensure_gitignore_eval_dir`` -- append ``vbrief/.eval/`` to
-   ``.gitignore`` when absent (#915 audit-log scratch directory).
+4. ``ensure_gitignore_eval_entries`` -- ensure the #1144 hybrid policy
+   is encoded: append the selective ``candidates.jsonl`` /
+   ``summary-history.jsonl`` / ``scope-lifecycle.jsonl`` entries to
+   ``.gitignore`` when missing, add the
+   ``vbrief/.eval/*.jsonl  merge=union`` rule to ``.gitattributes``,
+   and write the canonical ``vbrief/.eval/README.md``. Replaces the
+   pre-#1251 ``ensure_gitignore_eval_dir`` which appended a blanket
+   ``vbrief/.eval/`` line that silently ignored the tracked
+   ``slices.jsonl`` (#1132 / D13).
 
 5. ``seed_candidates_log`` -- ensure ``vbrief/.eval/candidates.jsonl``
    exists as a zero-length file so ``task verify:cache-fresh`` can
@@ -493,16 +500,35 @@ def step_populate_cache(
             },
         )
 
+    # #1247: FetchAllReport's counter names are being renamed to
+    # ``issues_written`` / ``already_fresh`` / ``issues_failed`` (PR
+    # #1254). When the new ``summary_line()`` renderer is available we
+    # delegate so the recap stays unambiguous; otherwise we fall back
+    # to the legacy hand-formatted string. The compatibility shim lets
+    # this PR land before or after #1254 without an ordering coupling.
     succeeded = getattr(report, "succeeded", None)
     failed = getattr(report, "failed", None)
     skipped = getattr(report, "skipped", None)
+    summary_line = getattr(report, "summary_line", None)
+    if callable(summary_line):
+        try:
+            message = summary_line(source=_CACHE_SOURCE, repo=effective_repo)
+        except TypeError:
+            # The signature may evolve; fall through to the legacy form
+            # rather than crash the recap if the kwargs change shape.
+            message = (
+                f"cache:fetch-all source={_CACHE_SOURCE} repo={effective_repo} "
+                f"succeeded={succeeded} failed={failed} skipped={skipped}"
+            )
+    else:
+        message = (
+            f"cache:fetch-all source={_CACHE_SOURCE} repo={effective_repo} "
+            f"succeeded={succeeded} failed={failed} skipped={skipped}"
+        )
     return StepOutcome(
         name="populate_cache",
         ok=True,
-        message=(
-            f"cache:fetch-all source={_CACHE_SOURCE} repo={effective_repo} "
-            f"succeeded={succeeded} failed={failed} skipped={skipped}"
-        ),
+        message=message,
         details={
             "repo": effective_repo,
             "source": _CACHE_SOURCE,
@@ -724,15 +750,18 @@ def step_backfill_audit_log(project_root: Path, repo: str | None) -> StepOutcome
 # ``...eval_dir``) stays exactly as Story 3 shipped.
 
 # Re-export the gitignore step functions and the canonical line
-# constants. ``GITIGNORE_LINE`` and ``GITIGNORE_EVAL_LINE`` are part of
-# the module's public surface (consumers / tests reference
-# ``triage_bootstrap.GITIGNORE_LINE``); the ``__all__``-style guard
-# below keeps ruff F401 silent without losing the re-export.
+# constants. ``GITIGNORE_LINE`` / ``GITIGNORE_EVAL_ENTRIES`` /
+# ``GITATTRIBUTES_EVAL_RULE`` are part of the module's public surface
+# (consumers / tests reference ``triage_bootstrap.GITIGNORE_LINE``);
+# the ``__all__``-style guard below keeps ruff F401 silent without
+# losing the re-export. ``step_ensure_gitignore_eval_entries`` is the
+# #1251 rename of the pre-existing ``step_ensure_gitignore_eval_dir``.
 from _triage_bootstrap_gitignore import (  # noqa: E402, F401 -- re-exported public surface
-    GITIGNORE_EVAL_LINE,
+    GITATTRIBUTES_EVAL_RULE,
+    GITIGNORE_EVAL_ENTRIES,
     GITIGNORE_LINE,
     step_ensure_gitignore_entry,
-    step_ensure_gitignore_eval_dir,
+    step_ensure_gitignore_eval_entries,
     step_seed_candidates_log,
 )
 
@@ -764,9 +793,9 @@ def run_bootstrap(
 
     Dispatches the five mutating steps documented in the module
     docstring (populate_cache, backfill_audit_log,
-    ensure_gitignore_entry, ensure_gitignore_eval_dir, seed_eval_dir)
-    and appends one :class:`StepOutcome` per step. ``len(result.steps)
-    == 5`` is the expected post-condition.
+    ensure_gitignore_entry, ensure_gitignore_eval_entries,
+    seed_candidates_log) and appends one :class:`StepOutcome` per
+    step. ``len(result.steps) == 5`` is the expected post-condition.
 
     Repo resolution (#1237): the explicit ``repo`` argument takes
     priority. When ``None``, the dispatcher infers from ``git remote
@@ -847,11 +876,11 @@ def run_bootstrap(
         "done" if gi_cache.ok else "error", gi_cache.message,
     )
 
-    _emit_progress(progress_sink, 4, "ensure_gitignore_eval_dir", "starting")
-    gi_eval = step_ensure_gitignore_eval_dir(project_root)
+    _emit_progress(progress_sink, 4, "ensure_gitignore_eval_entries", "starting")
+    gi_eval = step_ensure_gitignore_eval_entries(project_root)
     result.steps.append(gi_eval)
     _emit_progress(
-        progress_sink, 4, "ensure_gitignore_eval_dir",
+        progress_sink, 4, "ensure_gitignore_eval_entries",
         "done" if gi_eval.ok else "error", gi_eval.message,
     )
 
