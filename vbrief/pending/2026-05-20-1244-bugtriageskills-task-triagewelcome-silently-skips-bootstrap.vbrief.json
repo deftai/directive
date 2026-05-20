@@ -1,0 +1,30 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1244"
+  },
+  "plan": {
+    "title": "bug(triage,skills): task triage:welcome silently skips bootstrap; candidates.jsonl remains absent",
+    "status": "pending",
+    "narratives": {
+      "Description": "bug(triage,skills): task triage:welcome silently skips bootstrap; candidates.jsonl remains absent",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1244",
+      "Overview": "## Summary\r\n\r\n`task triage:welcome` claims to execute its bootstrap phase (step 3 of the 6-phase ritual per N3/#1143), but in practice `candidates.jsonl` remains absent on exit. The ritual exits 0 with a \"completed\" status while the cache is empty, so the next step in the operator workflow (`task triage:queue`) silently has nothing to rank.\r\n\r\n## Reproduction (2026-05-20 session, master @ pre-#1143 follow-up)\r\n\r\nStarting state: fresh checkout, `vbrief/.eval/candidates.jsonl` absent.\r\n\r\n```\r\n$ task verify:cache-fresh\r\n✓ deft cache-fresh: vbrief\\.eval\\candidates.jsonl absent and --allow-missing-bootstrap was passed -- treating as bootstrap state.\r\n\r\n$ task triage:welcome -- --no-subprocess\r\n[6-phase ritual completes, exit 0]\r\n\r\n$ if (Test-Path vbrief\\.eval\\candidates.jsonl) { ... } else { Write-Host \"NOT PRESENT\" }\r\nNOT PRESENT\r\n\r\n$ task triage:bootstrap   # the same step welcome SHOULD have run\r\ntriage:bootstrap step 1/5 populate_cache -- starting (repo=deftai/directive; fetch_timeout_s=3600)\r\ntriage:bootstrap step 1/5 populate_cache -- done (cache:fetch-all source=github-issue repo=deftai/directive succeeded=1 failed=0 skipped=396)\r\n[populates candidates.jsonl]\r\n```\r\n\r\n## Expected\r\n\r\n`task triage:welcome` step 3 either:\r\n- runs `task triage:bootstrap` unconditionally (it is documented as idempotent) and produces a populated cache, OR\r\n- announces clearly that bootstrap was skipped (and why), so the operator does not assume the cache is hot.\r\n\r\n## Actual\r\n\r\nWelcome ritual finishes \"successfully\" without populating the cache and without surfacing that bootstrap was skipped. The operator has to discover the gap by independently invoking `verify:cache-fresh` or by `Test-Path vbrief\\.eval\\candidates.jsonl`.\r\n\r\n## Impact\r\n\r\n- Breaks the documented onboarding contract for first-session operators.\r\n- Composability of the pre-`start_agent` gate stack (#1149) silently breaks: `verify:cache-fresh` later fails because the cache was never populated, but the operator believes welcome completed its job.\r\n- Wastes the most important user-trust window — the first interactive session.\r\n\r\n## Suggested investigation\r\n\r\n- `scripts/triage_welcome.py` step 3: does the bootstrap subprocess invocation suppress non-zero exit codes? Does an interactive prompt default to \"decline bootstrap\" when no TTY?\r\n- Cross-check against the `--no-subprocess` flag — does it short-circuit step 3?\r\n- Consider making bootstrap unconditional (it is idempotent per its docstring); the only reason to skip is if the operator explicitly declines.\r\n\r\n## Workaround\r\n\r\n```\r\ntask triage:bootstrap\r\n```\r\n\r\nRun explicitly after `triage:welcome` until fixed.\r\n",
+      "Labels": "bug, skills, adoption-blocker"
+    },
+    "items": [],
+    "tags": [
+      "bug",
+      "skills",
+      "adoption-blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1244",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1244: bug(triage,skills): task triage:welcome silently skips bootstrap; candidates.jsonl remains absent"
+      }
+    ],
+    "updated": "2026-05-20T13:05:54Z"
+  }
+}

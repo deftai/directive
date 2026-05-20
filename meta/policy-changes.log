@@ -1,0 +1,2 @@
+# meta/policy-changes.log -- audit trail for PROJECT-DEFINITION plan.policy.* mutations (#746 / #1143)
+2026-05-20T12:51:16Z actor=triage-welcome field=plan.policy.wipCap value=10 previous=None changed=true
