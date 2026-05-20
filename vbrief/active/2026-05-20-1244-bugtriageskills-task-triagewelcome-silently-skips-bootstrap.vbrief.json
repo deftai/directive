@@ -12,7 +12,40 @@
       "Overview": "## Summary\r\n\r\n`task triage:welcome` claims to execute its bootstrap phase (step 3 of the 6-phase ritual per N3/#1143), but in practice `candidates.jsonl` remains absent on exit. The ritual exits 0 with a \"completed\" status while the cache is empty, so the next step in the operator workflow (`task triage:queue`) silently has nothing to rank.\r\n\r\n## Reproduction (2026-05-20 session, master @ pre-#1143 follow-up)\r\n\r\nStarting state: fresh checkout, `vbrief/.eval/candidates.jsonl` absent.\r\n\r\n```\r\n$ task verify:cache-fresh\r\n✓ deft cache-fresh: vbrief\\.eval\\candidates.jsonl absent and --allow-missing-bootstrap was passed -- treating as bootstrap state.\r\n\r\n$ task triage:welcome -- --no-subprocess\r\n[6-phase ritual completes, exit 0]\r\n\r\n$ if (Test-Path vbrief\\.eval\\candidates.jsonl) { ... } else { Write-Host \"NOT PRESENT\" }\r\nNOT PRESENT\r\n\r\n$ task triage:bootstrap   # the same step welcome SHOULD have run\r\ntriage:bootstrap step 1/5 populate_cache -- starting (repo=deftai/directive; fetch_timeout_s=3600)\r\ntriage:bootstrap step 1/5 populate_cache -- done (cache:fetch-all source=github-issue repo=deftai/directive succeeded=1 failed=0 skipped=396)\r\n[populates candidates.jsonl]\r\n```\r\n\r\n## Expected\r\n\r\n`task triage:welcome` step 3 either:\r\n- runs `task triage:bootstrap` unconditionally (it is documented as idempotent) and produces a populated cache, OR\r\n- announces clearly that bootstrap was skipped (and why), so the operator does not assume the cache is hot.\r\n\r\n## Actual\r\n\r\nWelcome ritual finishes \"successfully\" without populating the cache and without surfacing that bootstrap was skipped. The operator has to discover the gap by independently invoking `verify:cache-fresh` or by `Test-Path vbrief\\.eval\\candidates.jsonl`.\r\n\r\n## Impact\r\n\r\n- Breaks the documented onboarding contract for first-session operators.\r\n- Composability of the pre-`start_agent` gate stack (#1149) silently breaks: `verify:cache-fresh` later fails because the cache was never populated, but the operator believes welcome completed its job.\r\n- Wastes the most important user-trust window — the first interactive session.\r\n\r\n## Suggested investigation\r\n\r\n- `scripts/triage_welcome.py` step 3: does the bootstrap subprocess invocation suppress non-zero exit codes? Does an interactive prompt default to \"decline bootstrap\" when no TTY?\r\n- Cross-check against the `--no-subprocess` flag — does it short-circuit step 3?\r\n- Consider making bootstrap unconditional (it is idempotent per its docstring); the only reason to skip is if the operator explicitly declines.\r\n\r\n## Workaround\r\n\r\n```\r\ntask triage:bootstrap\r\n```\r\n\r\nRun explicitly after `triage:welcome` until fixed.\r\n",
       "Labels": "bug, skills, adoption-blocker"
     },
-    "items": [],
+    "items": [
+      {
+        "id": "1244-1",
+        "title": "Audit-log-aware Phase 3 idempotency probe",
+        "status": "completed",
+        "narrative": {
+          "Description": "scripts/triage_welcome.py uses vbrief/.eval/candidates.jsonl (the canonical 'bootstrap finished' signal that downstream verbs key off) instead of raw .deft-cache/<source>/.../<N>/ entry count to decide whether Phase 3 should skip task triage:bootstrap. Pre-fix, a partially-populated .deft-cache from a prior run made Phase 3 skip while candidates.jsonl remained absent, silently breaking the contract task triage:queue / task verify:cache-fresh assume."
+        }
+      },
+      {
+        "id": "1244-2",
+        "title": "Loud dry-mode + explicit-decline paths",
+        "status": "completed",
+        "narrative": {
+          "Description": "When --no-subprocess suppresses bootstrap, Phase 3 emits a clearly visible warning naming vbrief/.eval/candidates.jsonl and downstream verbs that will refuse to run. New --skip-bootstrap CLI flag records an explicit operator decline with a persistent audit entry on meta/policy-changes.log AND a visible operator-facing message."
+        }
+      },
+      {
+        "id": "1244-3",
+        "title": "PriorState.audit_log_present + WelcomeOutcome.bootstrap_action surfaces",
+        "status": "completed",
+        "narrative": {
+          "Description": "PriorState gains audit_log_present so the Phase 1 readout surfaces candidates.jsonl state alongside the raw cache count. WelcomeOutcome gains bootstrap_action with four canonical tokens (ran / skipped:already-bootstrapped / skipped:declined / skipped:dry-mode) so dispatchers can distinguish the four Phase 3 paths programmatically."
+        }
+      },
+      {
+        "id": "1244-4",
+        "title": "Test coverage: bug-repro state + explicit-decline + dry-mode + Phase 1 readout + CLI flag",
+        "status": "completed",
+        "narrative": {
+          "Description": "tests/test_triage_welcome.py adds five #1244 regression tests: (a) bootstrap MUST run when audit log absent even with .deft-cache populated; (b) --skip-bootstrap emits visible audit message + persists to meta/policy-changes.log; (c) --no-subprocess loudly surfaces the cache gap; (d) Phase 1 readout includes candidates.jsonl line; (e) CLI flag threads through to run_welcome."
+        }
+      }
+    ],
     "tags": [
       "bug",
       "skills",

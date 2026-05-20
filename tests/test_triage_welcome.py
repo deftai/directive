@@ -74,6 +74,19 @@ def _seed_cache_entry(root: Path, owner: str, repo: str, issue: int) -> Path:
     return path
 
 
+def _seed_candidates_log(root: Path) -> Path:
+    """Create a zero-length ``vbrief/.eval/candidates.jsonl`` audit log (#1244).
+
+    Mirrors :func:`scripts.triage_bootstrap.step_seed_candidates_log`: the
+    file's presence (not its contents) is the canonical "bootstrap
+    finished" signal welcome's Phase 3 keys off.
+    """
+    path = root.joinpath(*triage_welcome.CANDIDATES_RELPATH)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.touch()
+    return path
+
+
 def _seed_vbrief(root: Path, folder: str, slug: str, *, age_days: int = 0) -> Path:
     """Create a synthetic vBRIEF file in ``vbrief/<folder>/``."""
     d = root / "vbrief" / folder
@@ -127,6 +140,16 @@ def test_detect_prior_state_empty_project(tmp_path: Path) -> None:
     assert state.wip_cap_set is False
     assert state.wip_cap == triage_welcome.DEFAULT_WIP_CAP
     assert state.wip_count == 0
+    assert state.audit_log_present is False
+
+
+def test_detect_prior_state_audit_log_present(tmp_path: Path) -> None:
+    """#1244: PriorState surfaces candidates.jsonl independent of cache state."""
+    _seed_candidates_log(tmp_path)
+    state = triage_welcome.detect_prior_state(tmp_path)
+    assert state.audit_log_present is True
+    # Cache stays empty -- audit log is a separate, canonical signal.
+    assert state.cache_empty is True
 
 
 def test_detect_prior_state_populated(tmp_path: Path) -> None:
@@ -278,7 +301,12 @@ def test_clean_install_runs_all_phases(tmp_path: Path) -> None:
     assert outcome.discussed_at_phase is None
     assert 1 in outcome.phases_run
     assert 2 in outcome.phases_run
-    assert 3 in outcome.phases_run
+    # #1244: Phase 3 skipped in dry-mode (candidates.jsonl absent).
+    assert 3 in outcome.phases_skipped
+    assert (
+        outcome.bootstrap_action
+        == triage_welcome.BOOTSTRAP_ACTION_SKIPPED_DRY_MODE
+    )
     assert 4 in outcome.phases_run
     assert 5 in outcome.phases_skipped  # WIP 0 <= cap 10
     assert 6 in outcome.phases_run
@@ -295,13 +323,15 @@ def test_clean_install_runs_all_phases(tmp_path: Path) -> None:
 
 
 def test_partial_install_skips_completed_phases(tmp_path: Path) -> None:
-    """Pre-set scope + cap + cache => phases 2/3/4 all skipped on re-run."""
+    """Pre-set scope + cap + cache + audit log => phases 2/3/4 all skipped."""
     _seed_project_definition(
         tmp_path,
         triage_scope=triage_welcome.SUBSCRIPTION_PRESETS["small"],
         wip_cap=10,
     )
     _seed_cache_entry(tmp_path, "deftai", "directive", 1)
+    # #1244: audit log presence is the canonical "bootstrap finished" signal.
+    _seed_candidates_log(tmp_path)
     output = _CapturedOutput()
     outcome = triage_welcome.run_welcome(
         tmp_path,
@@ -314,6 +344,10 @@ def test_partial_install_skips_completed_phases(tmp_path: Path) -> None:
     assert outcome.phases_skipped == [2, 3, 4, 5]
     assert outcome.subscription_choice is None
     assert outcome.wip_cap_choice is None
+    assert (
+        outcome.bootstrap_action
+        == triage_welcome.BOOTSTRAP_ACTION_SKIPPED_ALREADY_BOOTSTRAPPED
+    )
 
 
 def test_wip_exceeds_cap_offers_relief_dry_run_first(tmp_path: Path) -> None:
@@ -324,6 +358,7 @@ def test_wip_exceeds_cap_offers_relief_dry_run_first(tmp_path: Path) -> None:
         wip_cap=2,
     )
     _seed_cache_entry(tmp_path, "deftai", "directive", 42)
+    _seed_candidates_log(tmp_path)  # #1244: skip Phase 3 cleanly
     # WIP=3 (1 pending old + 2 active) > cap=2
     _seed_vbrief(tmp_path, "pending", "2026-03-01-old", age_days=60)
     _seed_vbrief(tmp_path, "active", "2026-05-18-foo")
@@ -353,6 +388,7 @@ def test_wip_exceeds_cap_relief_confirmed(tmp_path: Path) -> None:
         wip_cap=1,
     )
     _seed_cache_entry(tmp_path, "deftai", "directive", 99)
+    _seed_candidates_log(tmp_path)  # #1244: skip Phase 3 cleanly
     _seed_vbrief(tmp_path, "pending", "2026-03-01-old", age_days=60)
     _seed_vbrief(tmp_path, "active", "2026-05-18-a")
     _seed_vbrief(tmp_path, "active", "2026-05-18-b")
@@ -532,7 +568,7 @@ def test_phase_3_bootstrap_failure_propagates_exit_code(
         triage_scope=triage_welcome.SUBSCRIPTION_PRESETS["small"],
         wip_cap=10,
     )
-    # Cache empty so Phase 3 actually runs.
+    # Cache empty + audit log absent so Phase 3 actually runs (#1244).
     monkeypatch.setattr(triage_welcome, "_run_task", lambda *a, **kw: 17)
     output = _CapturedOutput()
     outcome = triage_welcome.run_welcome(
@@ -543,6 +579,7 @@ def test_phase_3_bootstrap_failure_propagates_exit_code(
     )
     assert outcome.exit_code == 2
     assert "`task triage:bootstrap` exited 17" in output.joined()
+    assert outcome.bootstrap_action == triage_welcome.BOOTSTRAP_ACTION_RAN
 
 
 def test_phase_5_scope_demote_failure_propagates_exit_code(
@@ -559,6 +596,9 @@ def test_phase_5_scope_demote_failure_propagates_exit_code(
         wip_cap=1,
     )
     _seed_cache_entry(tmp_path, "deftai", "directive", 42)
+    # #1244: seed audit log so Phase 3 cleanly skips; we want to isolate
+    # the Phase 5 scope:demote failure surface.
+    _seed_candidates_log(tmp_path)
     _seed_vbrief(tmp_path, "pending", "2026-03-01-old", age_days=60)
     _seed_vbrief(tmp_path, "active", "2026-05-18-a")
     _seed_vbrief(tmp_path, "active", "2026-05-18-b")
@@ -630,9 +670,198 @@ def test_main_runs_no_subprocess_mode(tmp_path: Path, monkeypatch: pytest.Monkey
         wip_cap=10,
     )
     _seed_cache_entry(tmp_path, "deftai", "directive", 1)
+    # #1244: seed audit log so Phase 3 skips cleanly without needing the
+    # subprocess hop; otherwise dry-mode would still surface the cache gap.
+    _seed_candidates_log(tmp_path)
     # All phases are skipped via state detection -> no input needed.
     monkeypatch.setattr("builtins.input", lambda _prompt="": "")
     rc = triage_welcome.main(
         ["--project-root", str(tmp_path), "--no-subprocess"]
     )
     assert rc == 0
+
+
+# ---------------------------------------------------------------------------
+# #1244 -- Phase 3 candidates.jsonl-aware bootstrap-skip semantics
+# ---------------------------------------------------------------------------
+
+
+def test_bootstrap_runs_when_audit_log_absent_even_with_cache_entries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#1244 (a): the non-interactive bootstrap path MUST run even when
+    ``.deft-cache/`` has raw entries -- so long as ``candidates.jsonl``
+    is absent. This is the exact failure mode in the bug report
+    reproduction: a partially-populated cache from a prior run made
+    Phase 3 skip bootstrap while ``candidates.jsonl`` (the downstream
+    contract) remained absent.
+    """
+    _seed_project_definition(
+        tmp_path,
+        triage_scope=triage_welcome.SUBSCRIPTION_PRESETS["small"],
+        wip_cap=10,
+    )
+    # Raw cache present (1 issue) but audit log ABSENT -- the bug-report
+    # repro state. Pre-#1244 the welcome ritual skipped Phase 3 here.
+    _seed_cache_entry(tmp_path, "deftai", "directive", 7)
+    invocations: list[list[str]] = []
+
+    def _stub_run_task(args: list[str], *, cwd: Path) -> int:
+        invocations.append(list(args))
+        # Simulate a real bootstrap by seeding the audit log so Phase 6's
+        # summary call (also routed through _run_task) sees fresh state.
+        if args == ["triage:bootstrap"]:
+            _seed_candidates_log(tmp_path)
+        return 0
+
+    monkeypatch.setattr(triage_welcome, "_run_task", _stub_run_task)
+    output = _CapturedOutput()
+    outcome = triage_welcome.run_welcome(
+        tmp_path,
+        input_fn=_ScriptedInput([]),
+        output_fn=output,
+        run_subprocess=True,
+    )
+    assert outcome.exit_code == 0
+    assert outcome.bootstrap_action == triage_welcome.BOOTSTRAP_ACTION_RAN
+    assert ["triage:bootstrap"] in invocations
+    assert 3 in outcome.phases_run
+    # Post-condition the bug report demands: the canonical audit log is
+    # populated (the test stub seeds it as the subprocess would).
+    assert (tmp_path / "vbrief" / ".eval" / "candidates.jsonl").is_file()
+
+
+def test_skip_bootstrap_emits_visible_audit_message(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#1244 (b): the explicit-decline path skips bootstrap with a clearly
+    visible audit message AND records the decline in
+    ``meta/policy-changes.log``.
+    """
+    _seed_project_definition(
+        tmp_path,
+        triage_scope=triage_welcome.SUBSCRIPTION_PRESETS["small"],
+        wip_cap=10,
+    )
+    # Audit log absent; operator passes --skip-bootstrap (skip_bootstrap=True).
+    calls: list[list[str]] = []
+    monkeypatch.setattr(
+        triage_welcome,
+        "_run_task",
+        lambda args, *, cwd: calls.append(list(args)) or 0,
+    )
+    output = _CapturedOutput()
+    outcome = triage_welcome.run_welcome(
+        tmp_path,
+        input_fn=_ScriptedInput([]),
+        output_fn=output,
+        run_subprocess=True,
+        skip_bootstrap=True,
+    )
+    assert outcome.exit_code == 0
+    assert (
+        outcome.bootstrap_action
+        == triage_welcome.BOOTSTRAP_ACTION_SKIPPED_DECLINED
+    )
+    assert 3 in outcome.phases_skipped
+    # _run_task was NOT called for bootstrap (only Phase 6's summary).
+    assert ["triage:bootstrap"] not in calls
+    joined = output.joined()
+    # Operator-facing visible audit message surfaces the decline AND
+    # explains the cache-impact for downstream verbs.
+    assert "explicitly declined" in joined
+    assert "--skip-bootstrap" in joined
+    assert "vbrief/.eval/candidates.jsonl" in joined
+    assert "task triage:queue" in joined
+    # Persistent audit entry written to meta/policy-changes.log.
+    audit_log = (tmp_path / triage_welcome.AUDIT_LOG_REL_PATH).read_text(
+        encoding="utf-8"
+    )
+    assert "action=bootstrap-declined" in audit_log
+    assert "reason=explicit-skip-flag" in audit_log
+    assert "actor=triage-welcome" in audit_log
+
+
+def test_no_subprocess_surfaces_cache_gap_loudly(tmp_path: Path) -> None:
+    """#1244: ``--no-subprocess`` MUST loudly surface that
+    ``candidates.jsonl`` will remain absent -- the bug report's exact
+    failure mode was that dry-mode emitted a soft "suppressed" line that
+    let dispatchers mistake the run for a populated cache.
+    """
+    _seed_project_definition(
+        tmp_path,
+        triage_scope=triage_welcome.SUBSCRIPTION_PRESETS["small"],
+        wip_cap=10,
+    )
+    output = _CapturedOutput()
+    outcome = triage_welcome.run_welcome(
+        tmp_path,
+        input_fn=_ScriptedInput([]),
+        output_fn=output,
+        run_subprocess=False,
+    )
+    assert outcome.exit_code == 0
+    assert (
+        outcome.bootstrap_action
+        == triage_welcome.BOOTSTRAP_ACTION_SKIPPED_DRY_MODE
+    )
+    assert 3 in outcome.phases_skipped
+    joined = output.joined()
+    assert "--no-subprocess" in joined
+    assert "vbrief/.eval/candidates.jsonl" in joined
+    assert "refuse to run" in joined  # downstream-verb warning surfaces
+
+
+def test_phase_1_readout_surfaces_audit_log_state(tmp_path: Path) -> None:
+    """#1244: Phase 1's detection readout MUST include the
+    ``candidates.jsonl`` presence so operators see the canonical
+    "bootstrap finished" signal alongside the raw cache count.
+    """
+    _seed_project_definition(
+        tmp_path,
+        triage_scope=triage_welcome.SUBSCRIPTION_PRESETS["small"],
+        wip_cap=10,
+    )
+    _seed_candidates_log(tmp_path)
+    output = _CapturedOutput()
+    triage_welcome.run_welcome(
+        tmp_path,
+        input_fn=_ScriptedInput([]),
+        output_fn=output,
+        run_subprocess=False,
+    )
+    joined = output.joined()
+    assert "candidates.jsonl: present" in joined
+    assert "vbrief/.eval/candidates.jsonl" in joined
+
+
+def test_cli_skip_bootstrap_flag_threads_through(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#1244: the CLI ``--skip-bootstrap`` flag reaches
+    :func:`run_welcome` and is honoured.
+    """
+    _seed_project_definition(
+        tmp_path,
+        triage_scope=triage_welcome.SUBSCRIPTION_PRESETS["small"],
+        wip_cap=10,
+    )
+    captured: dict[str, object] = {}
+    real_run = triage_welcome.run_welcome
+
+    def _spy(*args: object, **kwargs: object) -> object:
+        captured.update(kwargs)
+        return real_run(*args, **kwargs)
+
+    monkeypatch.setattr(triage_welcome, "run_welcome", _spy)
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "")
+    rc = triage_welcome.main(
+        [
+            "--project-root",
+            str(tmp_path),
+            "--no-subprocess",
+            "--skip-bootstrap",
+        ]
+    )
+    assert rc == 0
+    assert captured.get("skip_bootstrap") is True

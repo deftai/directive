@@ -178,6 +178,18 @@ def build_parser() -> argparse.ArgumentParser:
             "in production runs."
         ),
     )
+    parser.add_argument(
+        "--skip-bootstrap",
+        action="store_true",
+        help=(
+            "Explicitly decline the Phase 3 `task triage:bootstrap` "
+            "invocation (#1244). The ritual still completes but emits a "
+            "visible audit message AND records the decline in "
+            "`meta/policy-changes.log`; downstream verbs that depend on "
+            "`vbrief/.eval/candidates.jsonl` will refuse to run until "
+            "bootstrap is invoked separately."
+        ),
+    )
     return parser
 
 
@@ -199,5 +211,6 @@ def run_cli(argv: list[str] | None, tw_module: Any) -> int:
     outcome = tw_module.run_welcome(
         project_root,
         run_subprocess=not args.no_subprocess,
+        skip_bootstrap=args.skip_bootstrap,
     )
     return outcome.exit_code
