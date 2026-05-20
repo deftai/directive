@@ -83,6 +83,7 @@ vbrief/*.premigrate.*
 vbrief/.eval/candidates.jsonl
 vbrief/.eval/summary-history.jsonl
 vbrief/.eval/scope-lifecycle.jsonl
+vbrief/.eval/*.lock
 
 # N6 (#1146) triage:smoketest assert log -- runtime artefact, never committed.
 # The fixture itself (tests/fixtures/triage_smoketest/{issues.json,
