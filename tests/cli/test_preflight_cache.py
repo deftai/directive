@@ -633,11 +633,18 @@ class TestEmptyScopeAllowStaleForIssueGuard:
     def test_allow_stale_clears_empty_scope_when_no_for_issue(
         self, preflight, tmp_path,
     ):
-        """Baseline preserved: empty-scope + --allow-stale (no --for-issue)
-        still exits 0 with the warning. The fix only affects the
-        --for-issue path."""
+        """Baseline preserved: empty-scope + EMPTY audit log + --allow-stale
+        (no --for-issue) still exits 0 with the warning.
+
+        Post-#1245 the fixture uses ``issue_decision=None`` (audit log
+        empty) so the empty-scope branch falls into the widen-subscription
+        path that ``--allow-stale`` can clear -- a populated audit log
+        triggers the #1245 backfill-only-cache exit-0 path instead and
+        bypasses ``--allow-stale`` entirely (see
+        :class:`TestBackfillOnlyCacheState`).
+        """
         now = datetime(2026, 5, 17, 12, tzinfo=UTC)
-        self._empty_scope_fixture(tmp_path, now, issue_decision="accept")
+        self._empty_scope_fixture(tmp_path, now, issue_decision=None)
         result = preflight.evaluate(
             tmp_path,
             repo="deftai/directive",
@@ -647,6 +654,277 @@ class TestEmptyScopeAllowStaleForIssueGuard:
         assert result.code == 0
         assert "\u26a0" in result.message  # ⚠ warning glyph
         assert "--allow-stale" in result.message
+
+
+# ---------------------------------------------------------------------------
+# Suite 5c: #1245 backfill-only cache state
+# ---------------------------------------------------------------------------
+
+
+class TestBackfillOnlyCacheState:
+    """Empty-scope + populated audit log exits 0 (#1245).
+
+    The pre-#1245 gate iterated ``meta_paths`` from ``.deft-cache/`` and
+    refused any state where every cached entry was outside the active
+    ``plan.policy.triageScope[]`` subscription -- even when the consumer
+    had just run ``task triage:bootstrap`` and the backfilled ``accept``
+    audit-log rows showed they were actively triaging. The recommended
+    recovery ("widen the subscription") was wrong; the actual state was a
+    ``backfill-only cache`` (cached open issues simply did not happen to
+    match the operator's narrow subscription) and the session-start gate
+    should pass so the pre-``start_agent`` stack composes.
+
+    Downstream ``--for-issue`` dispatch still enforces per-issue scope +
+    decision via :func:`_gate_for_issue`, so the relaxation only affects
+    the cache-wide session check.
+    """
+
+    @staticmethod
+    def _backfill_fixture(
+        tmp_path,
+        now,
+        *,
+        issue_number=999,
+        raw_labels=None,
+        meta_age_hours=1,
+        audit_decision="accept",
+    ):
+        """Populate cache + audit log so the empty-scope branch fires.
+
+        ``raw_labels`` defaults to ``["bug"]`` so the cached issue is
+        out of scope under a ``priority/p0`` ``labels`` rule. The audit
+        log carries one decision per ``audit_decision`` (or none when
+        ``audit_decision is None``).
+        """
+        labels = raw_labels if raw_labels is not None else ["bug"]
+        _write_meta(
+            tmp_path,
+            "deftai/directive",
+            issue_number,
+            now - timedelta(hours=meta_age_hours),
+            raw_labels=labels,
+        )
+        if audit_decision is None:
+            _write_candidates(tmp_path, [])
+        else:
+            kwargs = {"timestamp": now}
+            if audit_decision == "reject":
+                kwargs["reason"] = "duplicate"
+            _write_candidates(
+                tmp_path,
+                [_decision(
+                    "deftai/directive", issue_number, audit_decision, **kwargs,
+                )],
+            )
+        _write_project_definition(
+            tmp_path,
+            {
+                "vBRIEFInfo": {"version": "0.6"},
+                "plan": {
+                    "title": "T",
+                    "status": "running",
+                    "items": [],
+                    "policy": {
+                        "triageScope": [
+                            {"rule": "labels", "any-of": ["priority/p0"]}
+                        ]
+                    },
+                },
+            },
+        )
+
+    def test_backfill_only_cache_with_populated_audit_log_exits_zero(
+        self, preflight, tmp_path,
+    ):
+        """Primary #1245 DoD: empty-scope + populated audit log -> exit 0."""
+        now = datetime(2026, 5, 20, 13, tzinfo=UTC)
+        self._backfill_fixture(tmp_path, now)
+        result = preflight.evaluate(
+            tmp_path, repo="deftai/directive", now=now
+        )
+        assert result.code == 0, (
+            f"expected exit 0 on backfill-only cache, got {result.code}: "
+            f"{result.message!r}"
+        )
+
+    def test_backfill_only_cache_message_names_state(
+        self, preflight, tmp_path,
+    ):
+        """OK message must surface the backfill-only-cache state so the
+        operator is not surprised that ``triage:queue`` etc. show zero
+        in-scope rows."""
+        now = datetime(2026, 5, 20, 13, tzinfo=UTC)
+        self._backfill_fixture(tmp_path, now)
+        result = preflight.evaluate(
+            tmp_path, repo="deftai/directive", now=now
+        )
+        assert result.code == 0
+        assert "backfill-only cache" in result.message
+        # 0 in-scope rows must be reported, not the total cache size.
+        assert "0 entry/ies in scope" in result.message
+        # Do NOT use the #1240 state-2/state-3 phrasing for this state.
+        assert "fresh bootstrap, no triage actions yet" not in result.message
+        assert "actively triaging" not in result.message
+
+    def test_empty_scope_empty_audit_log_still_blocks(
+        self, preflight, tmp_path,
+    ):
+        """Regression guard: when the audit log is empty AND scope is empty,
+        the gate still refuses (exit 1) -- the consumer has not triaged
+        anything AND nothing is in subscription, which IS a misconfiguration.
+        """
+        now = datetime(2026, 5, 20, 13, tzinfo=UTC)
+        self._backfill_fixture(tmp_path, now, audit_decision=None)
+        result = preflight.evaluate(
+            tmp_path, repo="deftai/directive", now=now
+        )
+        assert result.code == 1
+        # Updated remediation now also names task triage:accept and is
+        # explicit about the audit log being empty.
+        assert "audit log" in result.message.lower()
+        assert "task triage:scope" in result.message
+        assert "task cache:fetch-all" in result.message
+
+    def test_backfill_only_for_issue_in_scope_accept_passes(
+        self, preflight, tmp_path,
+    ):
+        """--for-issue=N with N in scope + accept decision still clears.
+
+        Sets up a backfill-only cache (issue 999 out of scope with
+        accept history) AND a second cached issue 1245 carrying the
+        in-scope label + an accept decision. The session gate clears
+        on the backfill-only relaxation; --for-issue=1245 then clears
+        independently via :func:`_gate_for_issue`.
+        """
+        now = datetime(2026, 5, 20, 13, tzinfo=UTC)
+        self._backfill_fixture(tmp_path, now, issue_number=999)
+        # Add a second cached issue that IS in scope.
+        _write_meta(
+            tmp_path, "deftai/directive", 1245, now - timedelta(hours=1),
+            raw_labels=["priority/p0"],
+        )
+        # Append the second decision to the candidates log.
+        with (tmp_path / "vbrief" / ".eval" / "candidates.jsonl").open(
+            "a", encoding="utf-8",
+        ) as fh:
+            fh.write(json.dumps(
+                _decision("deftai/directive", 1245, "accept", timestamp=now),
+                sort_keys=True,
+            ) + "\n")
+        result = preflight.evaluate(
+            tmp_path, repo="deftai/directive", for_issue=1245, now=now,
+        )
+        assert result.code == 0
+        assert "Issue #1245" in result.message
+
+    def test_backfill_only_for_issue_out_of_scope_refuses(
+        self, preflight, tmp_path,
+    ):
+        """--for-issue=N with N out of scope still refuses even when the
+        cache-wide session check passes on the backfill-only relaxation.
+        """
+        now = datetime(2026, 5, 20, 13, tzinfo=UTC)
+        self._backfill_fixture(tmp_path, now, issue_number=999)
+        result = preflight.evaluate(
+            tmp_path, repo="deftai/directive", for_issue=999, now=now,
+        )
+        assert result.code == 1
+        assert (
+            "OUTSIDE" in result.message
+            or "outside the active" in result.message
+        )
+
+    @pytest.mark.parametrize("decision", ["defer", "reject", "needs-ac"])
+    def test_backfill_only_for_issue_non_accept_decision_refuses(
+        self, preflight, tmp_path, decision,
+    ):
+        """--for-issue=N with a non-accept latest decision still refuses
+        on the backfill-only relaxation path. The scope check fires
+        first (issue is out-of-scope under the fixture) so the OUTSIDE
+        message is the canonical surface; the contract this test pins
+        is "non-zero exit" rather than a specific message.
+        """
+        now = datetime(2026, 5, 20, 13, tzinfo=UTC)
+        self._backfill_fixture(
+            tmp_path, now, issue_number=999, audit_decision=decision,
+        )
+        result = preflight.evaluate(
+            tmp_path, repo="deftai/directive", for_issue=999, now=now,
+        )
+        assert result.code == 1
+
+    def test_backfill_only_stale_cache_still_fails(
+        self, preflight, tmp_path,
+    ):
+        """Stale cache + backfill-only state still surfaces as stale.
+
+        The relaxation only covers "every cached entry is out of
+        subscription", not "every cached entry is also expired". When
+        the cache is older than the max-age window the operator MUST
+        re-fetch regardless of subscription overlap.
+        """
+        now = datetime(2026, 5, 20, 13, tzinfo=UTC)
+        self._backfill_fixture(tmp_path, now, meta_age_hours=72)
+        result = preflight.evaluate(
+            tmp_path, repo="deftai/directive", now=now,
+        )
+        assert result.code == 1
+        assert "max-age" in result.message or "stale" in result.message.lower()
+        assert "task cache:fetch-all" in result.message
+
+    def test_candidates_jsonl_entries_not_evaluated_against_scope(
+        self, preflight, tmp_path,
+    ):
+        """Document the candidate-vs-audit-log separation (#1245 Q1).
+
+        The scope filter iterates ``.deft-cache/<source>/<repo>/*/meta.json``
+        + ``raw.json`` (the live candidate set), NOT
+        ``vbrief/.eval/candidates.jsonl`` (the immutable decision audit
+        log). Audit-log entries are NEVER subject to subscription
+        filtering. This test pins the separation by populating the
+        audit log with decisions whose ``issue_number`` does NOT
+        correspond to any cached ``meta.json`` and confirming the gate
+        still treats the cache as backfill-only-with-audit-populated.
+        """
+        now = datetime(2026, 5, 20, 13, tzinfo=UTC)
+        # Cache: issue 999 (out of scope under priority/p0).
+        _write_meta(
+            tmp_path, "deftai/directive", 999, now - timedelta(hours=1),
+            raw_labels=["bug"],
+        )
+        # Audit log: decisions for OTHER issue numbers (no matching cache).
+        # If the gate evaluated candidates.jsonl against scope it would
+        # have to attempt scope-resolve on these issue numbers, fail
+        # because no raw.json exists, and emit a different message.
+        _write_candidates(
+            tmp_path,
+            [
+                _decision("deftai/directive", 100, "accept", timestamp=now),
+                _decision("deftai/directive", 101, "accept", timestamp=now),
+                _decision("deftai/directive", 102, "accept", timestamp=now),
+            ],
+        )
+        _write_project_definition(
+            tmp_path,
+            {
+                "vBRIEFInfo": {"version": "0.6"},
+                "plan": {
+                    "title": "T",
+                    "status": "running",
+                    "items": [],
+                    "policy": {
+                        "triageScope": [
+                            {"rule": "labels", "any-of": ["priority/p0"]}
+                        ]
+                    },
+                },
+            },
+        )
+        result = preflight.evaluate(
+            tmp_path, repo="deftai/directive", now=now,
+        )
+        assert result.code == 0
+        assert "backfill-only cache" in result.message
 
 
 # ---------------------------------------------------------------------------

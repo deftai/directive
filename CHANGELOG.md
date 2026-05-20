@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **fix(triage,determinism): `task verify:cache-fresh` no longer false-fails on a backfill-only cache state (#1245)** -- the pre-`start_agent` freshness gate previously refused a fresh `task triage:bootstrap` whenever every cached open issue happened to fall outside the active `plan.policy.triageScope[]` subscription, even though the backfilled `accept` audit-log rows showed the consumer was actively triaging. The recovery hint ("widen the subscription") was wrong for that state. The gate now distinguishes a backfill-only cache (cached entries present, none in subscription, audit log populated) from a genuine misconfiguration (no in-scope entries AND no triage activity); the first state exits 0 with a state-aware message so the pre-`start_agent` gate stack composes, while downstream `--for-issue` dispatch still enforces per-issue scope + decision. Closes #1245.
 
 ### Removed
 
