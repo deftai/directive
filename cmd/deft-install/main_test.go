@@ -577,11 +577,20 @@ func TestWriteAgentsMD_Idempotent(t *testing.T) {
 	tmp := t.TempDir()
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
 
-	// Write twice.
-	WriteAgentsMD(w, tmp)
-	WriteAgentsMD(w, tmp)
+	// Write twice. Surface any write error so a regression in WriteAgentsMD
+	// fails the test loudly rather than masquerading as a sentinel-count
+	// mismatch (#1281).
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatalf("first WriteAgentsMD failed: %v", err)
+	}
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatalf("second WriteAgentsMD failed: %v", err)
+	}
 
-	data, _ := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	data, err := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	if err != nil {
+		t.Fatalf("could not read AGENTS.md: %v", err)
+	}
 	count := strings.Count(string(data), agentsMDSentinel)
 	if count != 1 {
 		t.Errorf("expected exactly 1 deft entry, found %d", count)

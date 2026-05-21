@@ -117,7 +117,7 @@ name: deft
 description: ...
 ---
 
-Read and follow: deft/SKILL.md
+Read and follow: .deft/core/SKILL.md
 ```
 
 **Root SKILL.md** (`SKILL.md`) is the canonical skill; files under `.agents/skills/` are thin pointers only.

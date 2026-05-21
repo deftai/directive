@@ -29,9 +29,14 @@ type DriveInfo struct {
 
 // EnumerateDrives returns all fixed drives with their labels and free space.
 func EnumerateDrives() ([]DriveInfo, error) {
-	mask, _, _ := procGetLogicalDrives.Call()
+	// procGetLogicalDrives returns a bitmask of drive letters in r1; r3 is
+	// the Win32 LastError. Per the Win32 contract, a non-zero r1 is success
+	// even when r3 carries a non-nil syscall.Errno (LazyProc.Call surfaces
+	// the LastError unconditionally). Only inspect the error when r1 == 0
+	// so we don't false-positive on a successful call (#1281).
+	mask, _, callErr := procGetLogicalDrives.Call()
 	if mask == 0 {
-		return nil, fmt.Errorf("GetLogicalDrives returned 0")
+		return nil, fmt.Errorf("GetLogicalDrives returned 0: %v", callErr)
 	}
 
 	var drives []DriveInfo
@@ -41,7 +46,15 @@ func EnumerateDrives() ([]DriveInfo, error) {
 		}
 		letter := string(rune('A' + i))
 		root := letter + ":\\"
-		rootPtr, _ := syscall.UTF16PtrFromString(root)
+		rootPtr, err := syscall.UTF16PtrFromString(root)
+		if err != nil {
+			// syscall.UTF16PtrFromString only fails when the input
+			// contains an embedded NUL byte; that can't happen for a
+			// drive-letter root like "C:\\", but skip rather than panic
+			// if someone hand-constructs a pathological enumeration
+			// (#1281).
+			continue
+		}
 
 		// Only include fixed drives.
 		dt, _, _ := procGetDriveType.Call(uintptr(unsafe.Pointer(rootPtr)))

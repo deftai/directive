@@ -153,7 +153,11 @@ func readRegistryString(hkey syscall.Handle, subKey, valueName string) (string, 
 	}
 
 	var k syscall.Handle
-	r0, _, _ := procRegOpenKeyExW.Call(
+	// procRegOpenKeyExW.Call returns LSTATUS in r1 (non-zero = error). The
+	// third return is the Win32 LastError surfaced by LazyProc.Call; capture
+	// it so a failed open surfaces both the LSTATUS code and the OS-level
+	// errno for diagnosis (#1281).
+	r0, _, callErr := procRegOpenKeyExW.Call(
 		uintptr(hkey),
 		uintptr(unsafe.Pointer(subKeyPtr)),
 		0,
@@ -161,7 +165,7 @@ func readRegistryString(hkey syscall.Handle, subKey, valueName string) (string, 
 		uintptr(unsafe.Pointer(&k)),
 	)
 	if r0 != errorSuccess {
-		return "", fmt.Errorf("RegOpenKeyEx %s: error %d", subKey, r0)
+		return "", fmt.Errorf("RegOpenKeyEx %s: status %d (%v)", subKey, r0, callErr)
 	}
 	defer procRegCloseKey.Call(uintptr(k))
 
