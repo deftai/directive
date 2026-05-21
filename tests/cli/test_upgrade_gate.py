@@ -214,6 +214,15 @@ class TestRunningInsideDeftRepo:
     def test_deft_repo_detected(self, tmp_path, deft_run_module):
         # Simulates the deft repo: root main.md present, no ./deft/ subdir
         (tmp_path / "main.md").write_text("# Deft\n", encoding="utf-8")
+        # #1303 pass-2: heuristic also requires the positive framework markers.
+        (tmp_path / "templates").mkdir()
+        (tmp_path / "templates" / "agents-entry.md").write_text(
+            "# fake agents-entry template\n", encoding="utf-8"
+        )
+        (tmp_path / "skills" / "deft-directive-build").mkdir(parents=True)
+        (tmp_path / "skills" / "deft-directive-build" / "SKILL.md").write_text(
+            "# fake deft-directive-build SKILL\n", encoding="utf-8"
+        )
         assert deft_run_module._running_inside_deft_repo(tmp_path)
 
 
@@ -239,6 +248,15 @@ class TestUpgradeGate:
     def test_skip_inside_deft_repo(self, tmp_path, deft_run_module, monkeypatch):
         """In the deft source repo, the gate is always a no-op."""
         (tmp_path / "main.md").write_text("# Deft\n", encoding="utf-8")
+        # #1303 pass-2: heuristic also requires the positive framework markers.
+        (tmp_path / "templates").mkdir()
+        (tmp_path / "templates" / "agents-entry.md").write_text(
+            "# fake agents-entry template\n", encoding="utf-8"
+        )
+        (tmp_path / "skills" / "deft-directive-build").mkdir(parents=True)
+        (tmp_path / "skills" / "deft-directive-build" / "SKILL.md").write_text(
+            "# fake deft-directive-build SKILL\n", encoding="utf-8"
+        )
         # Even with legacy artifacts the gate should skip for the deft repo itself
         (tmp_path / "SPECIFICATION.md").write_text("# real\n", encoding="utf-8")
         monkeypatch.chdir(tmp_path)

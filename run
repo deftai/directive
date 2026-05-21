@@ -706,14 +706,63 @@ def _detect_pre_cutover_legacy(project_root: Path) -> List[str]:
     return legacy
 
 
+# Positive framework-repo markers used by `_running_inside_deft_repo` to
+# distinguish the deft source checkout from a consumer project that happens
+# to carry a root-level `main.md` for unrelated reasons. Both must resolve
+# under `project_root` for the heuristic to fire as "yes, this is the deft
+# framework repo itself" -- a consumer mirroring even one of these paths is
+# vanishingly unlikely (each is purely framework-internal), and requiring
+# BOTH defends against accidental drift if a future consumer convention
+# starts colliding with a single name. See #1303 review (SLizard P1 +
+# Greptile carryover).
+_DEFT_REPO_POSITIVE_MARKERS = (
+    Path("templates") / "agents-entry.md",
+    Path("skills") / "deft-directive-build" / "SKILL.md",
+)
+
+
 def _running_inside_deft_repo(project_root: Path) -> bool:
     """Heuristic: True when `run` is invoked from inside the deft repo itself.
 
-    Consumer projects embed deft as `./deft/`; the deft source repo has
-    `main.md` at its root and no `./deft/` subdirectory.  Skipping the gate
-    here avoids nagging deft maintainers on every `run` invocation.
+    Consumer projects embed deft as ``./deft/`` (legacy) or ``./.deft/core/``
+    (canonical) and consume the framework's published surface; the deft
+    source repo carries ``main.md`` at its root, has neither install
+    location materialised inside its own checkout, AND ships a set of
+    framework-internal artefacts (notably ``templates/agents-entry.md`` and
+    ``skills/deft-directive-build/SKILL.md``) a consumer would have no
+    reason to mirror.
+
+    The heuristic fires only when ALL of the following hold:
+      * ``main.md`` is present at ``project_root`` (the documented entry
+        point a consumer never reproduces verbatim).
+      * NEITHER ``./deft`` (legacy install) NOR ``./.deft/core`` (canonical
+        install) exists at the project root -- both indicate the deft
+        framework was installed INTO this directory rather than that this
+        directory IS the framework.
+      * ALL of the markers in ``_DEFT_REPO_POSITIVE_MARKERS`` resolve --
+        framework-internal paths a consumer would never reproduce.
+
+    The original heuristic (#1272 baseline) checked only ``main.md`` plus
+    the absence of ``./deft``; that mis-fired on a consumer who happened
+    to carry a root-level ``main.md`` for unrelated reasons OR who
+    installed canonically to ``./.deft/core`` and so genuinely had no
+    ``./deft`` subdirectory -- doctor would then silently skip the
+    Taskfile-include diagnostic in exactly the place it was meant to
+    surface (#1303 review SLizard P1, Greptile carryover).
+
+    Skipping the gate here avoids nagging deft maintainers on every
+    ``run`` invocation against the framework checkout itself.
     """
-    return (project_root / "main.md").is_file() and not (project_root / "deft").is_dir()
+    if not (project_root / "main.md").is_file():
+        return False
+    if (project_root / "deft").is_dir():
+        return False
+    if (project_root / ".deft" / "core").is_dir():
+        return False
+    for marker in _DEFT_REPO_POSITIVE_MARKERS:
+        if not (project_root / marker).is_file():
+            return False
+    return True
 
 
 # Commands for which the gate is silent -- they never touch project state.
@@ -4673,7 +4722,18 @@ def cmd_doctor(args: List[str]):
                 suggestion=_format_missing_include_snippet(),
             )
         elif include_status == "unreadable":
-            taskfile_path = project_root / "Taskfile.yml"
+            # Resolve the actual Taskfile path so a consumer who chose the
+            # ``.yaml`` spelling sees the right file name in the error
+            # message and in the JSON `file` field (#1303 review,
+            # Greptile #2). Falls back to ``Taskfile.yml`` only if the
+            # resolver returns None -- which shouldn't happen here
+            # because the `unreadable` branch is only reached when a
+            # candidate file was found, but the fallback keeps the
+            # diagnostic informative under any future code drift.
+            taskfile_path = (
+                _resolve_consumer_taskfile(project_root)
+                or (project_root / "Taskfile.yml")
+            )
             message = (
                 f"Root Taskfile.yml at {taskfile_path} "
                 "exists but could not be read -- check file permissions."

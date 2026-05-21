@@ -909,8 +909,15 @@ func TestWriteConsumerVbrief_LifecycleDirs_Idempotent(t *testing.T) {
 		t.Error("expected changed=false on idempotent re-run")
 	}
 
-	// Operator-edited .gitkeep preserved.
-	got, _ := os.ReadFile(activeKeep)
+	// Operator-edited .gitkeep preserved. Fail loudly on a read error
+	// rather than silently turning a permission/IO failure into a
+	// "clobbered" assertion against an empty body -- the sibling test in
+	// main_test.go was tightened the same way in this PR (#1303 review,
+	// Greptile #3 / SLizard P1).
+	got, err := os.ReadFile(activeKeep)
+	if err != nil {
+		t.Fatalf("read %s: %v", activeKeep, err)
+	}
 	if string(got) != string(sentinel) {
 		t.Errorf("operator-edited .gitkeep was clobbered; got:\n%s", got)
 	}

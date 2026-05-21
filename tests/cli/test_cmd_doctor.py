@@ -473,18 +473,43 @@ def test_doctor_fix_decline_does_not_write(
     )
 
 
+def _seed_deft_repo_markers(root: Path) -> None:
+    """Seed the positive markers required by the tightened heuristic.
+
+    The pass-2 review tightened ``_running_inside_deft_repo`` to require
+    BOTH ``templates/agents-entry.md`` and
+    ``skills/deft-directive-build/SKILL.md`` in addition to the existing
+    ``main.md`` + no-install-dir checks (#1303 pass-2 SLizard P1 +
+    Greptile carryover). Tests that simulate "inside the deft repo"
+    MUST seed both files so the heuristic fires; consumer-shaped
+    fixtures that lack these files are correctly classified as NOT the
+    deft repo.
+    """
+    (root / "templates").mkdir(parents=True, exist_ok=True)
+    (root / "templates" / "agents-entry.md").write_text(
+        "# fake agents-entry template\n", encoding="utf-8"
+    )
+    (root / "skills" / "deft-directive-build").mkdir(parents=True, exist_ok=True)
+    (root / "skills" / "deft-directive-build" / "SKILL.md").write_text(
+        "# fake deft-directive-build SKILL\n", encoding="utf-8"
+    )
+
+
 def test_doctor_inside_deft_repo_skips_taskfile_check(
     run_command, deft_run_module, monkeypatch, tmp_path
 ):
     """When invoked from inside the deft framework repo itself, skip the Taskfile diagnostic.
 
-    ``_running_inside_deft_repo`` returns True when ``main.md`` is
-    present at the project root AND no ``./deft`` subdir exists. Doctor
-    must skip the consumer-side include diagnostic in that case so
+    The tightened ``_running_inside_deft_repo`` heuristic fires only
+    when ALL of: ``main.md`` present, no ``./deft`` AND no
+    ``./.deft/core`` install dir, AND every entry in
+    ``_DEFT_REPO_POSITIVE_MARKERS`` resolves. Doctor must skip the
+    consumer-side include diagnostic when the heuristic fires so
     framework maintainers do not see spurious errors against the
-    framework's own Taskfile.yml.
+    framework's own Taskfile.yml (#1303 pass-2 review).
     """
     (tmp_path / "main.md").write_text("# fake framework root\n", encoding="utf-8")
+    _seed_deft_repo_markers(tmp_path)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
     monkeypatch.setattr(
@@ -503,6 +528,57 @@ def test_doctor_inside_deft_repo_skips_taskfile_check(
     assert "Root Taskfile.yml missing" not in result.stdout, (
         "Doctor MUST NOT diagnose the framework repo's own Taskfile state "
         "as missing -- the framework's Taskfile.yml IS the surface."
+    )
+
+
+def test_running_inside_deft_repo_requires_positive_markers(
+    deft_run_module, tmp_path
+):
+    """Tightened heuristic: ``main.md`` alone is NOT enough (#1303 pass-2 review).
+
+    Regression guard for the pass-2 SLizard P1 + Greptile carryover:
+    the pre-fix heuristic returned True for any directory that carried
+    ``main.md`` and no ``./deft`` subdir, which mis-fired on consumer
+    projects whose canonical install lived at ``./.deft/core/`` (no
+    legacy ``./deft`` to negate) AND on consumers who happened to ship
+    their own root-level ``main.md`` for unrelated reasons.
+
+    The fix requires the presence of ``templates/agents-entry.md`` AND
+    ``skills/deft-directive-build/SKILL.md`` -- framework-internal
+    artefacts a consumer would have no reason to mirror. This test
+    pins the negative direction: a tree carrying ONLY ``main.md`` MUST
+    NOT classify as the deft framework repo.
+    """
+    (tmp_path / "main.md").write_text("# consumer's root main.md\n", encoding="utf-8")
+    # Intentionally do NOT seed the positive markers -- this is a
+    # consumer-shaped tree, not the framework checkout.
+    assert deft_run_module._running_inside_deft_repo(tmp_path) is False, (
+        "Consumer project with only main.md (no framework-internal "
+        "markers) MUST NOT be classified as the deft framework repo."
+    )
+
+
+def test_running_inside_deft_repo_negates_canonical_install_dir(
+    deft_run_module, tmp_path
+):
+    """Canonical ``./.deft/core/`` install also blocks the heuristic (#1303 pass-2).
+
+    Pre-fix the heuristic only negated ``./deft``; a consumer who
+    installed canonically at ``./.deft/core/`` had no legacy ``./deft``
+    subdir, so any ``main.md`` at their root tripped the heuristic and
+    silently skipped the Taskfile-include diagnostic. The fix also
+    negates ``./.deft/core``.
+    """
+    (tmp_path / "main.md").write_text("# consumer's root main.md\n", encoding="utf-8")
+    _seed_deft_repo_markers(tmp_path)
+    # The presence of an installed framework at ``./.deft/core/``
+    # signals this directory has deft INSTALLED into it -- it is not
+    # the framework repo itself.
+    (tmp_path / ".deft" / "core").mkdir(parents=True)
+    assert deft_run_module._running_inside_deft_repo(tmp_path) is False, (
+        "A consumer with ``./.deft/core/`` installed MUST NOT be "
+        "classified as the deft framework repo even when main.md and "
+        "the positive markers are also present."
     )
 
 

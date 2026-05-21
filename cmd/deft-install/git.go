@@ -46,10 +46,15 @@ const (
 var installerHTTPClient = &http.Client{Timeout: installerHTTPTimeout}
 
 // installerDownloadClient is the shared *http.Client used for the LARGE
-// git-for-windows installer download. Unlike installerHTTPClient it does NOT
-// set http.Client.Timeout (whole-request deadline); instead it relies on
-// transport-level timeouts so the body stream can run as long as bytes keep
-// flowing. See the installerDownload*Timeout constants above for rationale.
+// git-for-windows installer download. Unlike installerHTTPClient (which uses
+// a tight 60s whole-request deadline appropriate for the small release-metadata
+// JSON), this client primarily relies on transport-level timeouts (dial / TLS /
+// header) so the body-streaming phase can run as long as bytes keep flowing.
+// It DOES set http.Client.Timeout, but only as a generous 15-minute backstop
+// against truly wedged streams -- not as a per-request deadline -- so a
+// multi-hundred-MB download on a slow link still completes while a hung edge
+// eventually unwedges the installer. See the installerDownload*Timeout
+// constants above for the per-phase rationale (#1303 review, Greptile #1).
 var installerDownloadClient = &http.Client{
 	Timeout: installerDownloadOverallTimeout,
 	Transport: &http.Transport{
