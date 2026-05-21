@@ -4245,7 +4245,14 @@ def _classify_taskfile_include(project_root: Path) -> str:
     if taskfile is None:
         return "missing-file"
     try:
-        text = taskfile.read_text(encoding="utf-8", errors="replace")
+        # ``utf-8-sig`` transparently strips a leading UTF-8 BOM if present.
+        # Windows editors (Notepad, some VS Code configurations) persist YAML
+        # with a BOM byte at the head; ``utf-8`` would keep the ``\ufeff``
+        # prefix in ``text`` and defeat the ``^[\t ]*includes`` anchor in
+        # :func:`_includes_block_has_deft_taskfile`, producing a spurious
+        # ``missing-include`` diagnostic on a legitimately wired Taskfile.
+        # See #1303 pass-2 review.
+        text = taskfile.read_text(encoding="utf-8-sig", errors="replace")
     except OSError:
         return "unreadable"
     if _includes_block_has_deft_taskfile(text):

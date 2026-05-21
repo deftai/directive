@@ -534,3 +534,30 @@ def test_classify_taskfile_include_yaml_extension(deft_run_module, tmp_path):
         encoding="utf-8",
     )
     assert deft_run_module._classify_taskfile_include(tmp_path) == "ok"
+
+
+def test_classify_taskfile_include_strips_utf8_bom(deft_run_module, tmp_path):
+    """Taskfile.yml persisted with a UTF-8 BOM must still classify as ``ok``.
+
+    Regression guard for the #1303 pass-2 correctness finding: Windows editors
+    (Notepad and some VS Code configurations) persist YAML with a leading
+    ``\ufeff`` byte. Reading via plain ``utf-8`` would keep the BOM in the
+    decoded text, defeat the ``^[\\t ]*includes`` anchor in
+    :func:`_includes_block_has_deft_taskfile`, and produce a spurious
+    ``missing-include`` diagnostic on a legitimately wired Taskfile.
+
+    Reading via ``utf-8-sig`` strips the BOM transparently. This test writes
+    the BOM bytes EXPLICITLY (not via ``encoding="utf-8-sig"``) so the
+    production read path is what's actually under test.
+    """
+    canonical = (
+        "version: '3'\n"
+        "includes:\n"
+        "  deft:\n"
+        "    taskfile: ./.deft/core/Taskfile.yml\n"
+        "    optional: true\n"
+    )
+    target = tmp_path / "Taskfile.yml"
+    target.write_bytes(b"\xef\xbb\xbf" + canonical.encode("utf-8"))
+
+    assert deft_run_module._classify_taskfile_include(tmp_path) == "ok"
