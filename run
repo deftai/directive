@@ -4655,15 +4655,20 @@ def cmd_doctor(args: List[str]):
             if not json_mode:
                 print()
                 print(_TASKFILE_INCLUDE_SNIPPET)
-            # Interactive repair path. Four gates MUST all hold before
-            # any write: (1) --fix was requested, (2) not --session,
-            # (3) stdin is a TTY (so we can prompt), and (4) we are
-            # not emitting JSON (JSON mode is diagnose-only). Even
-            # then, the operator must explicitly approve at the
-            # prompt.
+            # Interactive repair path. All gates MUST hold before any
+            # write: (1) --fix was requested AND we are not under
+            # --session (both folded into ``fix_mode`` -- see
+            # ``fix_mode = flags["fix"] and not session_mode`` above);
+            # (2) stdin is a TTY (so we can prompt); (3) we are not
+            # emitting JSON (JSON mode is diagnose-only). Even then,
+            # the operator must explicitly approve at the prompt.
+            # #1303 pass-3 review (Greptile run:4664-4669 -- redundant
+            # session_mode guard): the prior shape repeated
+            # ``and not session_mode`` here, but fix_mode already
+            # incorporates that condition; the duplicate gate could
+            # never change the outcome and invited confusion.
             if (
                 fix_mode
-                and not session_mode
                 and not json_mode
                 and sys.stdin.isatty()
             ):
