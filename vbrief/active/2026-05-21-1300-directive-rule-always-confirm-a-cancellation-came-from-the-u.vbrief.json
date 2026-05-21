@@ -1,0 +1,86 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1300",
+    "updated": "2026-05-21T20:27:00Z"
+  },
+  "plan": {
+    "title": "Directive rule: ALWAYS confirm a cancellation came from the user (not a runtime glitch) before attributing intent",
+    "status": "running",
+    "narratives": {
+      "Description": "Agents currently over-attribute tool cancellation signals to user intent, which loses the real runtime failure mode. This story adds an explicit cancellation-attribution rule so future agents retry or investigate runtime cancellations before saying the user cancelled work.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1300",
+      "Overview": "## Problem\r\n\r\nDirective agents currently treat any tool-reported \"cancelled\" signal as user intent, with no requirement to distinguish a real user cancellation from a transient runtime glitch. This causes false reports of \"you cancelled X\" to the user when in fact the user did nothing ? they simply observed a tool runtime hiccup (batch failure, network blip, server 502, parallel-call limit, etc.).\r\n\r\nThe agent then communicates the false attribution to the user as if it were ground truth, which (a) blames the user for something they did not do, (b) loses information about the actual failure mode, and (c) drops the legitimate next action (retry, investigate the real cause) in favor of a phantom \"user changed their mind\" framing.\r\n\r\n## Live example surfaced this session\r\n\r\nWhile labeling four directive issues in a single batch via parallel `gh issue edit` calls, three of the four returned `{\"cancelled\":true}` while the first succeeded. The agent told the user verbatim:\r\n\r\n> Only #1272 got applied (adoption-blocker + enhancement). You cancelled the other three.\r\n\r\nThe user corrected:\r\n\r\n> i id not cancel anything something else happpened. please retry\r\n\r\nA sequential retry succeeded on all three immediately. The original \"cancellation\" was a runtime-side parallel-batch artifact, not a user action. The agent had no rule requiring it to verify the source before attributing intent.\r\n\r\n## Proposed rule\r\n\r\nAdd to the directive framework guidelines (likely in `.deft/core/main.md` under Agent Behavior or a new \"Cancellation Attribution\" section, and surface via the coding-standards / determinism layers):\r\n\r\n> ! Before reporting a cancellation to the user or treating it as user intent, the agent MUST verify the cancellation source. Tool-reported `cancelled` / `aborted` / `killed` signals are NOT proof of user action ? they may originate from runtime infrastructure (batch limits, network glitches, server-side failures, timeouts, scheduler interruptions).\r\n>\r\n> ! When a cancellation signal is observed, the default assumption is **runtime glitch, not user intent.** The agent MUST:\r\n> 1. Retry the affected operation sequentially (one at a time) before concluding anything.\r\n> 2. If the retry succeeds, treat the original event as a runtime glitch ? NOT a user cancellation. Do not tell the user they cancelled.\r\n> 3. If the retry also fails the same way, surface the actual error to the user and ask whether they intended to cancel, rather than asserting they did.\r\n> 4. Reserve the phrasing \"you cancelled X\" for cases where the user explicitly performed a cancellation gesture (Ctrl-C in a terminal session, an explicit \"stop\" instruction in chat, an explicit decline of a confirmation prompt).\r\n>\r\n> ? Attribute a tool-reported `cancelled` signal to the user without retrying or asking.\r\n> ? Use phrases like \"you cancelled\", \"you stopped\", \"you declined\" unless the user's preceding turn contained an explicit cancellation directive.\r\n> ~ When reporting a runtime cancellation that is not user-attributed, name the likely cause (e.g. \"three parallel calls returned cancelled ? likely a batch / runtime hiccup; retrying sequentially\").\r\n\r\n## Why this matters beyond politeness\r\n\r\n- **Trust accounting**: false attribution of cancellation degrades the user's trust in the agent's read of the conversation state. Subsequent suggestions are filtered through \"did this agent just blame me for something I didn't do?\"\r\n- **Lost signal**: the actual failure mode (parallel-call limit, transient server error) is the operationally useful information. \"You cancelled\" loses it.\r\n- **Dropped retries**: the rule's automatic retry-sequentially step would have rescued the example session without the user having to type the correction. The agent only acted because the user explicitly disagreed; without that pushback the labels would have stayed unapplied.\r\n- **Approval-fatigue defense parallel**: this is the same class as the existing rule (`.deft/core/main.md` ## Agent Trap Defenses) that requires surfacing anomalies rather than burying them in polished prose. \"You cancelled\" is a buried mis-attribution; the rule above is the same kind of fail-loud correction applied to a different surface.\r\n\r\n## Acceptance criteria\r\n\r\n- `.deft/core/main.md` (or appropriate authoritative location) carries a Cancellation Attribution rule with the MUST / MUST NOT / SHOULD shape above.\r\n- The rule explicitly names the retry-sequentially-before-attributing pattern.\r\n- The rule explicitly bans \"you cancelled\" phrasing without user-side evidence.\r\n- Examples cite at least one runtime-source class (parallel batch, network glitch, timeout, server error).\r\n- A short skill or contract entry (or a coding-standards entry) carries the same rule so it propagates into the agent's working-memory layer the way other interaction rules do.\r\n\r\n## Cross-references\r\n\r\n- Live incident: this session's `deftai/directive` issue labeling pass (Issues #1272, #1274, #1275, #1281).\r\n- Companion onboarding / UX gaps from the same dogfood session: deftai/directive#1272 (Taskfile.yml include), #1274 (strategy emission discoverability + emit symmetry), #1275 (`vbrief:validate` false-positive on rendered spec), #1281 (deft-install 19 P1 defects).\r\n- Related framework rule pattern: `.deft/core/main.md` ## Agent Trap Defenses (approval-fatigue defense). The Cancellation Attribution rule is the same class applied to a different surface.\r\n",
+      "Labels": "enhancement, coding-standards, determinism",
+      "UserStory": "As a Deft operator, I want agents to verify cancellation sources before attributing intent, so that runtime glitches are retried instead of blamed on me.",
+      "ImplementationPlan": "1. Add a Cancellation Attribution rule to the guidance file `main.md` near the agent behavior or trap-defense guidance with explicit MUST and MUST NOT language.\n2. Propagate the same rule to the prompt template file `templates/agent-prompt-preamble.md` or the relevant agent prompt surface so orchestrated workers inherit it.\n3. Add or update content tests under `tests/content/`, then run targeted validation evidence proving that the rule is present and non-conflicting.",
+      "Traces": "Traces to GitHub issue #1300 and the session incident where tool-level cancelled results were incorrectly attributed to the user."
+    },
+    "items": [
+      {
+        "title": "Rule bans false attribution",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When a tool result reports cancelled, the rendered guidance states that agents must not say the user cancelled without direct user-side evidence.",
+          "Traces": "Traces to GitHub issue #1300 and the session incident where tool-level cancelled results were incorrectly attributed to the user."
+        }
+      },
+      {
+        "title": "Rule requires retry or investigation",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When cancellation could be runtime-originated, the rendered guidance instructs agents to retry sequentially or surface the real error before concluding intent.",
+          "Traces": "Traces to GitHub issue #1300 and the session incident where tool-level cancelled results were incorrectly attributed to the user."
+        }
+      },
+      {
+        "title": "Worker prompt propagation",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "The validation command validates that orchestrated agent prompt guidance includes the cancellation-attribution rule so sub-agents follow the same behavior.",
+          "Traces": "Traces to GitHub issue #1300 and the session incident where tool-level cancelled results were incorrectly attributed to the user."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "coding-standards",
+      "determinism"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1300",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1300: Directive rule: ALWAYS confirm a cancellation came from the user (not a runtime glitch) before attributing intent"
+      }
+    ],
+    "updated": "2026-05-21T20:18:32Z",
+    "id": "story-1300-cancellation-attribution-rule",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "main.md",
+          "templates/agent-prompt-preamble.md",
+          "tests/content/test_main_guidance.py"
+        ],
+        "verify_commands": [
+          "task validate",
+          "uv --project . run pytest tests/content"
+        ],
+        "expected_outputs": [
+          "main guidance contains cancellation-attribution rule",
+          "agent preamble propagates the rule",
+          "content validation passes for touched guidance"
+        ],
+        "conflict_group": "agent-behavior-guidance",
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "depends_on": []
+      }
+    }
+  }
+}

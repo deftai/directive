@@ -1,0 +1,95 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1272",
+    "updated": "2026-05-21T20:27:00Z"
+  },
+  "plan": {
+    "title": "Onboarding: detect missing root Taskfile.yml include and either auto-create or loud-fail with the fix",
+    "status": "running",
+    "narratives": {
+      "Description": "Fresh Deft installs need one deterministic health surface that works even when the root Taskfile is missing. This story makes `.deft/core/run doctor` the canonical entry point for diagnosing and repairing task-surface wiring, while leaving `task` as a convenience shim only after the task surface works.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1272",
+      "Overview": "## Problem\r\n\r\nA freshly installed directive project does not have a working `task X` surface from the project root. The deft framework installs everything it needs in `.deft/core/` (including `.deft/core/Taskfile.yml`), but does NOT create or modify a project-root `Taskfile.yml`. Every user-facing entry point in directive's own documentation assumes `task X` is resolvable from the project root, so the failure mode is uniform across every new project.\r\n\r\n## Failure surface\r\n\r\nDocumented entry points that fail until the consumer manually wires up a root `Taskfile.yml`:\r\n\r\n- `task vbrief:preflight` -- the Implementation Intent Gate in `AGENTS.md` Development Process\r\n- `task spec:render` -- the speckit Phase 3 -> Phase 4 hash-match transition gate\r\n- `task prd:render` -- the optional PRD render\r\n- `task check` -- the pre-commit / pre-PR aggregate gate\r\n- `task migrate:vbrief` -- the pre-v0.20 migration command\r\n- `task scope:{promote,activate,complete,cancel,restore,block,unblock}` -- the vBRIEF lifecycle transitions\r\n- `task deft:issue:ingest`, `task deft:reconcile:issues`, `task swarm:readiness`, `task roadmap:render`, `task project:render`\r\n\r\nWithout the include, all of these surface as `task: <name>: command not available`. That is not a directive-specific error; it is the generic Taskfile \"no such task\" message. The user has no obvious next step.\r\n\r\n## The fix the docs already describe\r\n\r\n`.deft/core/main.md` (Migrating from pre-v0.20 section) tells the user the correct YAML to add:\r\n\r\n```yaml\r\nversion: '3'\r\n\r\nincludes:\r\n  deft:\r\n    taskfile: ./.deft/core/Taskfile.yml\r\n    optional: true\r\n```\r\n\r\nSo the framework already knows the right answer. The gap is that the framework does not actively help the user reach it.\r\n\r\n## The tension\r\n\r\n`main.md` correctly prohibits install-step mutation of the consumer `Taskfile.yml`:\r\n\r\n> ? Do NOT add an `install`-step mutation that writes migrate-task content into the project Taskfile.\r\n\r\nThat policy is right for projects that already have a `Taskfile.yml` (you can't safely append to a user-owned file). It is wrong for projects that have no `Taskfile.yml` at all. The current install conflates the two cases by refusing both.\r\n\r\n## Proposed scope\r\n\r\nIn increasing order of intervention:\r\n\r\n1. **Loud-fail in the framework gate.** `.deft/core/run gate` already runs at session start. Detect \"no root `Taskfile.yml`\" OR \"root Taskfile present but no `deft:` include directive\" and print a one-line warning with the exact YAML to paste. Zero file mutation, ~10 lines of code. Closes ~80% of the UX pain because the user sees the fix at the exact moment they hit the wall.\r\n\r\n2. **Print the include snippet at the end of install output.** Directive's installer ends with a \"Next step: add this to your `Taskfile.yml`\" block including the snippet. ~5 lines.\r\n\r\n3. **Generate a root `Taskfile.yml` only when missing.** Respects the install-mutation prohibition by never overwriting. Only creates the file when it does not exist. ~15 lines plus a test that verifies the existing-file case is preserved.\r\n\r\n4. **Ship a `deft bootstrap` verb.** One-shot setup verb that creates the Taskfile when missing, prints the snippet when present-but-not-including, sets `.gitignore` entries for `.deft/core/`, etc. New module.\r\n\r\n## Recommendation\r\n\r\nLand **option 1 (gate loud-fail) + option 3 (create-when-missing)** together. Option 1 catches the case where a Taskfile already exists; option 3 catches the brand-new-project case. Option 2 is implied by option 1. Option 4 is a v0.2+ candidate if onboarding remains painful.\r\n\r\n## Acceptance criteria\r\n\r\n- A freshly cloned project with no root `Taskfile.yml` lands a working `task spec:render` / `task vbrief:preflight` / `task check` after directive install completes (or after the first session-start gate run).\r\n- A project that already has a root `Taskfile.yml` is NEVER mutated by the install or by the gate.\r\n- The session-start gate emits a clear warning with the canonical include snippet when the include is missing.\r\n- A test covers both the no-existing-Taskfile case and the existing-Taskfile case.\r\n\r\n## Related observation (statusreport)\r\n\r\n`deftai/statusreport` (a sister PM cockpit) defines a Definition gauge that goes red when the rendered `SPECIFICATION.md` hash does not match the source. In a directive project without the Taskfile include, that gauge would go red because the user cannot run `task spec:render` -- but the cause is upstream in directive's setup, not downstream in the spec. Closing this gap inside directive prevents statusreport (and every other downstream consumer of the `task X` surface) from inheriting the symptom.\r\n\r\n## Cross-references\r\n\r\n- `.deft/core/main.md` \"Publishing deft tasks in your project root\" (the existing documentation that describes the manual fix).\r\n- `.deft/core/main.md` Development Process (Implementation Intent Gate) -- one of the entry points that fails when the include is missing.\r\n- speckit Phase 3 -> Phase 4 transition (the `task spec:render` hash-match gate) -- the user-visible failure surface that exposed this gap during statusreport's Phase 3 work.\r\n",
+      "Labels": "enhancement, adoption-blocker",
+      "UserStory": "As a new Deft user, I want doctor to diagnose and repair missing Taskfile wiring, so that my first install exposes a working task surface.",
+      "ImplementationPlan": "1. Update `run` so doctor distinguishes session diagnostics from interactive repair and detects missing or incomplete root Taskfile includes without depending on `task`.\n2. Update `Taskfile.yml` and `tasks/framework.yml` so `task doctor` is only a shim to `run doctor` and `task framework:doctor` emits the redacted guidance.\n3. Add or update CLI tests under `tests/cli/` that prove missing Taskfile, existing Taskfile without the Deft include, and deprecated framework doctor behavior produce observable diagnostic evidence.",
+      "Traces": "Traces to GitHub issue #1272 and the installer-funnel discussion about missing root Taskfile.yml includes."
+    },
+    "items": [
+      {
+        "title": "Canonical run doctor task surface",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a project without a root Taskfile, `run doctor --session` emits a diagnostic that names the missing Taskfile include and exits without mutating files.",
+          "Traces": "Traces to GitHub issue #1272 and the installer-funnel discussion about missing root Taskfile.yml includes."
+        }
+      },
+      {
+        "title": "Interactive repair path",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When `run doctor` finds a missing root Taskfile, it offers to create the canonical include and only writes the file after explicit user approval.",
+          "Traces": "Traces to GitHub issue #1272 and the installer-funnel discussion about missing root Taskfile.yml includes."
+        }
+      },
+      {
+        "title": "Task shims",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When `task doctor` is available, it returns the same doctor diagnostics as `.deft/core/run doctor`, and `task framework:doctor` returns only `redacted use run doctor instead`.",
+          "Traces": "Traces to GitHub issue #1272 and the installer-funnel discussion about missing root Taskfile.yml includes."
+        }
+      },
+      {
+        "title": "Regression coverage",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "The regression test suite validates the missing-Taskfile, existing-Taskfile-without-include, task-doctor shim, and framework-doctor redaction cases.",
+          "Traces": "Traces to GitHub issue #1272 and the installer-funnel discussion about missing root Taskfile.yml includes."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "adoption-blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1272",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1272: Onboarding: detect missing root Taskfile.yml include and either auto-create or loud-fail with the fix"
+      }
+    ],
+    "updated": "2026-05-21T20:08:44Z",
+    "id": "story-1272-run-doctor-task-surface",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "run",
+          "Taskfile.yml",
+          "tasks/framework.yml",
+          "tests/cli/test_cmd_doctor.py",
+          "tests/cli/test_doctor.py",
+          "tests/cli/test_framework_doctor.py"
+        ],
+        "verify_commands": [
+          "uv --project . run pytest tests/cli/test_cmd_doctor.py tests/cli/test_doctor.py tests/cli/test_framework_doctor.py"
+        ],
+        "expected_outputs": [
+          "run doctor reports Taskfile include health",
+          "task doctor is a thin shim",
+          "task framework:doctor prints the redacted guidance"
+        ],
+        "conflict_group": "doctor-task-surface",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "depends_on": []
+      }
+    }
+  }
+}

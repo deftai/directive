@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1179",
+    "updated": "2026-05-21T20:24:00Z"
+  },
+  "plan": {
+    "title": "Installer leaves vbrief/ in partial state -> AGENTS.md pre-cutover guard fires on every fresh install",
+    "status": "running",
+    "narratives": {
+      "Description": "The Go installer currently deposits a partial `vbrief/` tree that trips AGENTS.md pre-cutover detection on the first agent turn. This story makes the installer produce the full lifecycle folder layout and preserves those empty folders so fresh installs do not dead-end before setup starts.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1179",
+      "Overview": "## Summary\r\n\r\nA fresh greenfield install via `install-windows-amd64.exe` (v0.30.0 / framework v0.30.0) trips the AGENTS.md pre-cutover guard immediately on first session and routes the agent to `task migrate:vbrief` -- on a project that has nothing to migrate. The migration-preflight checks then fail because `task` and `uv` are not on PATH and there is no consumer `Taskfile.yml`, so the agent dead-ends before Phase 2 of `deft-directive-setup` ever runs.\r\n\r\nThis blocks **every** new consumer install on a clean machine.\r\n\r\n## Reproduction\r\n\r\n1. Clean Windows machine (no prior deft install, no `task`, no `uv`).\r\n2. `mkdir ~/repos/test && cd ~/repos/test`\r\n3. Download and run `install-windows-amd64.exe` from the latest GitHub release. Wizard: project name `test`, install in this directory, accept defaults.\r\n4. Install completes. Manifest at `.deft/core/VERSION` reports `tag: 'v0.30.0'`, `fetched_by: 'deft-install'`.\r\n5. Open an AI assistant in the project root and tell it `read AGENTS.md and follow it`.\r\n\r\n## Observed agent trace\r\n\r\n```\r\n1. Loads AGENTS.md, confirms Deft alignment.\r\n2. Runs pre-cutover check (AGENTS.md condition 3):\r\n   \"./vbrief/ exists but any of the five lifecycle subfolders\r\n    (proposed/, pending/, active/, completed/, cancelled/) is missing\"\r\n   -> Project state: vbrief/ exists, only schemas/ + vbrief.md present.\r\n   -> Guard FIRES.\r\n3. Reads .deft/core/skills/deft-directive-setup/SKILL.md Pre-Cutover Detection Guard.\r\n4. Runs environment preflight:\r\n   (a) task migrate:vbrief resolvable     -> FAIL (task not on PATH, no Taskfile.yml)\r\n   (b) uv on PATH                         -> FAIL\r\n   (c) .deft/core/scripts/migrate_vbrief.py present -> PASS\r\n5. Per skill: \"If any check fails, do NOT offer to run migration until it is resolved.\"\r\n   Agent dead-ends. Phase 2 (project definition) never runs.\r\n```\r\n\r\n## Root cause\r\n\r\n`cmd/deft-install/setup.go::WriteConsumerVbrief` (added in #1020) creates `vbrief/`, copies `vbrief/schemas/` from the framework deposit, and writes `vbrief/vbrief.md` -- but never creates the five lifecycle subdirectories that AGENTS.md and `deft-directive-setup` SKILL.md treat as the canonical v0.20 layout:\r\n\r\n```go\r\n// cmd/deft-install/setup.go (around line 644)\r\nfunc WriteConsumerVbrief(w *Wizard, projectDir, deftDir string) (bool, error) {\r\n    consumerVbrief := filepath.Join(projectDir, \"vbrief\")\r\n    ...\r\n    if err := os.MkdirAll(consumerVbrief, 0o755); err != nil { ... }\r\n    // copies framework schemas/, writes vbrief.md\r\n    // <-- never creates proposed/, pending/, active/, completed/, cancelled/\r\n}\r\n```\r\n\r\nThe function's own stub `vbriefReadmeBody` (lines 619-634) documents the five lifecycle folders it fails to create. Two contracts disagree about who owns lifecycle-folder creation:\r\n\r\n- **Installer side** assumes Phase 2 of setup will materialise lifecycle folders later.\r\n- **AGENTS.md pre-cutover guard + setup-skill Greenfield contract** assume a v0.20 install ships with all five lifecycle folders from the start. Half a `vbrief/` is treated as partial migration (QUICK-START Case I).\r\n\r\nThe webinstaller (`deftai/webinstaller` -- internal) deposits **only** `.deft/core/<framework>`, `.deft/VERSION`, and `AGENTS.md`, with `vbrief/` entirely absent. That avoids the guard because condition 3 requires `vbrief/` to exist. Phase 2 of setup then creates the full layout downstream. So the webinstaller rail works by default, and the Go installer is the only rail that ships the broken half-state.\r\n\r\n## Cross-references\r\n\r\n- `cmd/deft-install/setup.go::WriteConsumerVbrief` (#1020)\r\n- `templates/agents-entry.md` -- the AGENTS.md trampoline whose pre-cutover guard fires on condition 3\r\n- `skills/deft-directive-setup/SKILL.md` \"Pre-Cutover Detection Guard\" + \"Greenfield Projects (No Migration Needed)\"\r\n- `QUICK-START.md` Case I \"Partial migration repair\"\r\n- Webinstaller deposit shape: `deftai/webinstaller/src/lib/bootstrap/dryRunArtifacts.ts` (3-artifact set)\r\n\r\n## Proposed fix\r\n\r\nSmallest delta. In `WriteConsumerVbrief`, immediately after `os.MkdirAll(consumerVbrief, ...)`, add:\r\n\r\n```go\r\nfor _, sub := range []string{\"proposed\", \"pending\", \"active\", \"completed\", \"cancelled\"} {\r\n    if err := os.MkdirAll(filepath.Join(consumerVbrief, sub), 0o755); err != nil {\r\n        return false, fmt.Errorf(\"could not create vbrief/%s: %w\", sub, err)\r\n    }\r\n}\r\n```\r\n\r\nPlus:\r\n\r\n- Drop a `.gitkeep` (or equivalent) in each so empty dirs survive `git add`.\r\n- Regression test in `cmd/deft-install/setup_test.go` asserting all five lifecycle directories exist after `WriteConsumerVbrief` returns. The fixture should also assert the AGENTS.md pre-cutover guard would NOT fire on the resulting tree.\r\n- Conformance audit `docs/audit-2026-05-1?-installer-conformance-recheck.md` follow-up: add \"five lifecycle dirs present at consumer root\" to the per-rail checklist so this can't regress silently.\r\n\r\nAlternative considered and rejected:\r\n\r\n- **Match webinstaller exactly** (remove `WriteConsumerVbrief`, let Phase 2 create everything): cleaner unification across rails but requires Phase 2 to also mirror `vbrief/schemas/` from the framework deposit. Bigger blast radius and changes the \"after install, here's your starter workspace\" UX. Park as a follow-up RFC if desired.\r\n- **Loosen pre-cutover condition 3** (only fire when scope vBRIEFs are present alongside missing lifecycle folders): couples the guard to whatever the installer happens to ship at any given version. Brittle.\r\n\r\n## Repro environment\r\n\r\n- OS: Windows 11\r\n- Shell: PowerShell 5.1\r\n- Installer: `install-windows-amd64.exe` SHA from `<latest release>`, framework v0.30.0\r\n- Fresh user: no prior `~/.config/deft/` or `%APPDATA%\\deft\\`, no `task`, no `uv`, no `gh`, no `git` on PATH before installer wizard ran.\r\n\r\n## Severity\r\n\r\nAdoption blocker. Every new install on a clean machine hits this on the very first agent turn. No documented workaround short of manually `mkdir`-ing the five lifecycle folders before the agent reads AGENTS.md.\r\n",
+      "Labels": "bug, adoption-blocker, installer",
+      "UserStory": "As a first-time Deft installer, I want vbrief lifecycle folders created during install, so that AGENTS.md does not misclassify my fresh project as a partial migration.",
+      "ImplementationPlan": "1. Update the source file `cmd/deft-install/setup.go` so `WriteConsumerVbrief` creates the five lifecycle directories and keeps them durable in git when appropriate.\n2. Extend the test file `cmd/deft-install/setup_test.go` with fixtures that assert the lifecycle directories exist after `WriteConsumerVbrief` and that the resulting tree avoids the pre-cutover partial-vbrief condition.\n3. Run targeted Go tests for `cmd/deft-install` and capture verification evidence that fresh installs no longer leave a half-created vbrief layout.",
+      "Traces": "Traces to GitHub issue #1179 and the reported fresh Windows install dead-end caused by partial vbrief output."
+    },
+    "items": [
+      {
+        "title": "Lifecycle folders are created",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a fresh installer target, `WriteConsumerVbrief` creates proposed, pending, active, completed, and cancelled directories under `vbrief/`.",
+          "Traces": "Traces to GitHub issue #1179 and the reported fresh Windows install dead-end caused by partial vbrief output."
+        }
+      },
+      {
+        "title": "Empty folders survive",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the installer creates lifecycle directories, each empty directory stores a marker file so the directory is copied or committed without disappearing.",
+          "Traces": "Traces to GitHub issue #1179 and the reported fresh Windows install dead-end caused by partial vbrief output."
+        }
+      },
+      {
+        "title": "Pre-cutover guard is not triggered",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "A test fixture representing installer output validates that the partial-vbrief pre-cutover condition returns false.",
+          "Traces": "Traces to GitHub issue #1179 and the reported fresh Windows install dead-end caused by partial vbrief output."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1179",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1179: Installer leaves vbrief/ in partial state -> AGENTS.md pre-cutover guard fires on every fresh install"
+      }
+    ],
+    "updated": "2026-05-21T20:18:09Z",
+    "id": "story-1179-installer-vbrief-lifecycle-dirs",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "cmd/deft-install/setup.go",
+          "cmd/deft-install/setup_test.go"
+        ],
+        "verify_commands": [
+          "go test ./cmd/deft-install -run 'WriteConsumerVbrief|PreCutover|Vbrief'"
+        ],
+        "expected_outputs": [
+          "installer creates all vbrief lifecycle directories",
+          "regression test covers fresh install tree"
+        ],
+        "conflict_group": "go-installer-setup-state",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard",
+        "depends_on": []
+      }
+    }
+  }
+}

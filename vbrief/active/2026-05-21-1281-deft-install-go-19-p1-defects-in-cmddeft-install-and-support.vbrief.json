@@ -1,0 +1,98 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1281",
+    "updated": "2026-05-21T20:27:00Z"
+  },
+  "plan": {
+    "title": "deft-install (Go): 19 P1 defects in cmd/deft-install/* and supporting docs (timeouts, discarded errors, error-wrap, doc/code mismatch)",
+    "status": "running",
+    "narratives": {
+      "Description": "The Go installer has reliability findings that can hang, hide errors, or lose root-cause context during first install. This story hardens the non-setup installer files and supporting pointer docs while coordinating setup.go lifecycle work through the related #1179 story.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1281",
+      "Overview": "## Problem\r\n\r\nWhile dogfooding directive into `deftai/statusreport`, a SLizard review of the vendored framework drop surfaced 19 P1 defects across `cmd/deft-install/*.go` and two supporting docs. They are not blocking the consumer (statusreport) PR because the consumer does not modify these files, but they ARE real defects in the directive installer and supporting framework that the consumer ships unchanged. Filing here so they can be triaged and fixed upstream.\r\n\r\nSource: SLizard v0.3.522 review of `deftai/statusreport#1`, prior HEAD `47ecd5b`. Confidence on each item is captured below.\r\n\r\n## Findings grouped by class\r\n\r\n### Class 1 -- HTTP calls without timeouts (`http.Get`)\r\n\r\nLong-running installer runs can block indefinitely if the remote GitHub API hangs or is slow. Default `http.Client` has no timeout.\r\n\r\n- `cmd/deft-install/git.go:134` (conf 0.50) -- `http.Get` to fetch GitHub release info; also hits at lines 158, 141, 169\r\n- `cmd/deft-install/git.go:119` (conf 0.50) -- `downloadGitInstaller` calls `http.Get` without timeout; also at line 139\r\n\r\n**Fix:** use a `&http.Client{Timeout: 30 * time.Second}` (or context-aware `http.NewRequestWithContext`) for all installer HTTP calls. Apply uniformly to every download / release-metadata fetch.\r\n\r\n### Class 2 -- Discarded errors via `_` assignment\r\n\r\nThe error return is silently dropped, masking failure modes that should at least be logged.\r\n\r\n- `cmd/deft-install/drives_windows.go:32` (conf 0.95) -- error from `.Call()` discarded\r\n- `cmd/deft-install/drives_windows.go:44` (conf 0.95) -- error from `.UTF16PtrFromString()` discarded\r\n- `cmd/deft-install/path_windows.go:156` (conf 0.95) -- error from `.Call()` discarded\r\n- `cmd/deft-install/setup.go:847` (conf 0.95) -- error from `.UserHomeDir()` discarded\r\n- `cmd/deft-install/main_test.go:584` (conf 0.95) -- error from `.ReadFile()` discarded\r\n- `cmd/deft-install/setup_test.go:344` (conf 0.95) -- error from `.ReadFile()` discarded\r\n- `cmd/deft-install/setup_test.go:399` (conf 0.95) -- error from `.Stat()` discarded\r\n- `cmd/deft-install/wizard.go:399` (conf 0.95) -- error from `.readLine()` discarded\r\n\r\n**Fix:** check each error and either return / log / propagate. For test files, at minimum surface unexpected errors via `t.Fatalf` so the test fails loud rather than silently passing under degraded conditions.\r\n\r\n### Class 3 -- `if err == nil` without `else` branch\r\n\r\nNon-nil errors silently dropped because the only path that handles the result is the nil-error path.\r\n\r\n- `cmd/deft-install/main_test.go:601` (conf 0.95) -- after `.Stat()`\r\n- `cmd/deft-install/setup.go:567` (conf 0.95) -- after `.ReadFile()`\r\n- `cmd/deft-install/setup.go:650` (conf 0.95) -- after `.Stat()`\r\n- `cmd/deft-install/wizard.go:110` (conf 0.95) -- `if statErr == nil` after `.Stat()`\r\n\r\n**Fix:** invert the condition to `if err != nil { return err }` (or equivalent log + continue, depending on intent), OR add an explicit `else` branch that handles the error path. Don't let non-nil errors flow off the cliff.\r\n\r\n### Class 4 -- Missing error context wrapping (`fmt.Errorf` without `%w`)\r\n\r\nError returned to caller does not preserve the root cause; downstream `errors.Is` / `errors.As` and stack-trace tooling lose information.\r\n\r\n- `cmd/deft-install/wizard.go:525` (conf 0.95) -- `if err != nil` checked, but the returned `fmt.Errorf` does not include `%w` to wrap `err`\r\n\r\n**Fix:** `return fmt.Errorf(\"... : %w\", err)` so the chain is preserved.\r\n\r\n### Class 5 -- Scanner without error check\r\n\r\n`bufio.NewScanner` silently truncates lines longer than its default 64 KB buffer, and the loop never checks `scanner.Err()`.\r\n\r\n- `cmd/deft-install/setup.go:639` (conf 0.50) -- `EnsureGitignoreLines` loop\r\n\r\n**Fix:** call `scanner.Err()` after the loop and surface any error. Consider `scanner.Buffer(make([]byte, 1024*1024), 1024*1024)` if larger lines are realistic for `.gitignore` (unlikely but cheap insurance).\r\n\r\n### Class 6 -- Comment claims logging but no log call exists\r\n\r\nInline comment says \"log this and continue\" (or similar), but no `slog.Error` / `log.Printf` is present before the next `return`. Either the comment is stale and should be removed, or the log is missing and should be added.\r\n\r\n- `cmd/deft-install/setup.go:383` (conf 0.95)\r\n\r\n**Fix:** decide intent. If logging is desired, add the call. If not, remove the misleading comment.\r\n\r\n### Class 7 -- Doc/code mismatch about thin-pointer pattern\r\n\r\nDocumentation describes `Read and follow: deft/SKILL.md` but the implemented pattern is `Read and follow: .deft/core/SKILL.md`. Onboarding readers following the docs hit a broken pointer.\r\n\r\n- `.deft/core/.planning/codebase/CONVENTIONS.md:125` (conf 0.50)\r\n- `.deft/core/.planning/codebase/CONVENTIONS.md:56` (conf 0.50)\r\n- `.deft/core/.planning/codebase/CONVENTIONS.md:64` (conf 0.50)\r\n- `.deft/core/.planning/codebase/CONVENTIONS.md:129` (conf 0.50)\r\n\r\n**Fix:** rewrite `CONVENTIONS.md` to use `.deft/core/SKILL.md` consistently, OR file an upstream decision to revert the implementation to match the docs. Pick one source of truth.\r\n\r\n### Class 8 -- `python3` PATH invariant in framework gate\r\n\r\nThe framework gate at `.deft/core/SKILL.md:5` (and line 1) invokes `python3 .deft/core/run gate`, but `python3` is not on PATH on every host (notably default Windows installs). If `python3` resolves to a Microsoft-Store stub or is absent, the gate is silently bypassed.\r\n\r\n- `.deft/core/SKILL.md:5` (conf 0.50)\r\n- `.deft/core/SKILL.md:1` (conf 0.50)\r\n\r\n**Fix:** detect platform and try `py -3` (Windows Python Launcher) before falling back to `python3`. Surface a loud error if no Python 3 is found. The framework already has the Windows-Python-Launcher pattern internally (`py -3 .deft/core/run gate` works in this consumer environment); the SKILL.md instructions should match.\r\n\r\n## Why all in one issue\r\n\r\nThese nineteen findings are tightly coupled by domain (the Go installer + the framework-entry doc), and the fixes are mechanical. Splitting them into 19 issues would create churn; splitting by class (the 8 classes above) is reasonable if the maintainer prefers smaller PRs. As a single tracking issue, this captures the full surface from one SLizard pass.\r\n\r\n## Acceptance criteria\r\n\r\n- All `http.Get` calls in `cmd/deft-install/*.go` carry an explicit timeout.\r\n- All `_`-discarded errors in `cmd/deft-install/*.go` (production AND tests) either propagate, log, or `t.Fatalf`.\r\n- All `if err == nil` patterns are inverted or gain an `else` branch.\r\n- `wizard.go:525` wraps the source error with `%w`.\r\n- `setup.go:639` scanner loop checks `scanner.Err()`.\r\n- `setup.go:383` either gains the missing log call or loses the stale comment.\r\n- `CONVENTIONS.md` thin-pointer text matches the implemented `.deft/core/SKILL.md` pattern (or vice versa).\r\n- `.deft/core/SKILL.md` framework-gate invocation works on Windows hosts where only `py -3` resolves Python 3.\r\n\r\n## Cross-references\r\n\r\n- SLizard verdict (substantive, prior HEAD): `deftai/statusreport#1` review by `deft-slizard[bot]`, decision-confidence 0.7958.\r\n- Companion onboarding gaps surfaced during the same statusreport dogfood: deftai/directive#1272 (Taskfile.yml include), deftai/directive#1274 (strategy emission discoverability + emit symmetry), deftai/directive#1275 (vbrief:validate false-positive on rendered spec).\r\n- Possible 5th gap to file separately (not in this issue): `task deft:check` runs framework-internal tests against consumer projects, surfacing failures that are about `.deft/core/` files that are not part of the consumer install (e.g. `.github/workflows/release.yml`, `.deft/core/.gitignore`). Surfaced while running `task deft:check` in `deftai/statusreport` during PR #1 review.\r\n",
+      "Labels": "bug, operational, adoption-blocker",
+      "UserStory": "As a Deft maintainer, I want the Go installer to fail loudly and time out safely, so that first-install users are not left with silent or hanging setup failures.",
+      "ImplementationPlan": "1. Replace unbounded HTTP calls in `cmd/deft-install/git.go` with timeout-aware client or request helpers and add targeted tests where seams exist.\n2. Fix discarded errors and missing error wrapping in `cmd/deft-install/drives_windows.go`, `cmd/deft-install/path_windows.go`, `cmd/deft-install/wizard.go`, and related installer tests.\n3. Align pointer documentation in `.planning/codebase/CONVENTIONS.md` and `SKILL.md`, then run targeted Go tests plus documentation validation evidence for the touched files.",
+      "Traces": "Traces to GitHub issue #1281. The setup.go-specific lifecycle directory work is intentionally coordinated through #1179 to avoid concurrent edits to the same file."
+    },
+    "items": [
+      {
+        "title": "HTTP calls time out",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When release metadata or downloads stall, installer HTTP calls return an error instead of blocking indefinitely.",
+          "Traces": "Traces to GitHub issue #1281. The setup.go-specific lifecycle directory work is intentionally coordinated through #1179 to avoid concurrent edits to the same file."
+        }
+      },
+      {
+        "title": "Windows/path errors surface",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When Windows drive or PATH API calls fail, the installer propagates or logs the error instead of discarding it silently.",
+          "Traces": "Traces to GitHub issue #1281. The setup.go-specific lifecycle directory work is intentionally coordinated through #1179 to avoid concurrent edits to the same file."
+        }
+      },
+      {
+        "title": "Wizard error context is preserved",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When wizard file or prompt handling fails, returned errors wrap the source error so callers can inspect the cause.",
+          "Traces": "Traces to GitHub issue #1281. The setup.go-specific lifecycle directory work is intentionally coordinated through #1179 to avoid concurrent edits to the same file."
+        }
+      },
+      {
+        "title": "Pointer docs match implementation",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "The validation command validates that the codebase convention and root skill pointer text reference the implemented `.deft/core/SKILL.md` pattern consistently.",
+          "Traces": "Traces to GitHub issue #1281. The setup.go-specific lifecycle directory work is intentionally coordinated through #1179 to avoid concurrent edits to the same file."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "operational",
+      "adoption-blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1281",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1281: deft-install (Go): 19 P1 defects in cmd/deft-install/* and supporting docs (timeouts, discarded errors, error-wrap, doc/code mismatch)"
+      }
+    ],
+    "updated": "2026-05-21T20:18:19Z",
+    "id": "story-1281-go-installer-hardening",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "cmd/deft-install/git.go",
+          "cmd/deft-install/drives_windows.go",
+          "cmd/deft-install/path_windows.go",
+          "cmd/deft-install/wizard.go",
+          "cmd/deft-install/main_test.go",
+          ".planning/codebase/CONVENTIONS.md",
+          "SKILL.md"
+        ],
+        "verify_commands": [
+          "go test ./cmd/deft-install",
+          "task validate"
+        ],
+        "expected_outputs": [
+          "installer HTTP calls have explicit timeout behavior",
+          "discarded installer errors are handled",
+          "pointer docs match the current install layout"
+        ],
+        "conflict_group": "go-installer-hardening",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "standard",
+        "depends_on": []
+      }
+    }
+  }
+}
