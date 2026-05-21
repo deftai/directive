@@ -383,6 +383,25 @@ tasks:
     cmds:
       - task: core:stats
 
+  # #1272: canonical doctor surface -- thin shim that forwards to
+  # ``.deft/core/run doctor``. The ``run`` CLI owns the diagnostic
+  # logic (system deps, framework layout, root Taskfile.yml include
+  # health) and the optional interactive repair path. The task
+  # accepts user-facing flags (``--session`` / ``--fix`` / ``--json``
+  # / ``--quiet``) via ``{{.CLI_ARGS}}`` so per
+  # ``conventions/task-caching.md`` (#574) MUST NOT declare
+  # ``sources:`` / ``generates:`` -- a cached cmds skip would silently
+  # swallow the flags. The deprecated ``task framework:doctor`` task
+  # in ``tasks/framework.yml`` now prints a redaction notice pointing
+  # the operator at this surface.
+  doctor:
+    desc: "Canonical doctor surface (#1272) -- task doctor [-- --session | --fix | --json | --quiet]. Shim for `.deft/core/run doctor`."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/run" doctor {{.CLI_ARGS}}
+
   setup:
     desc: "Idempotent local-dev setup: configure git hooks (#747); detect-and-prompt ghx (#884). Sets core.hooksPath=.githooks so .githooks/pre-commit + .githooks/pre-push run."
     dir: '{{.USER_WORKING_DIR}}'
