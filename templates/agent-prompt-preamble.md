@@ -162,6 +162,23 @@ The `--allow-missing-bootstrap` flag exists for the framework's own `task check`
 
 Reference: the gate is implemented at `scripts/preflight_cache.py` and exposed via `task verify:cache-fresh`; the subscription scope is read via the D12 surface `scripts/triage_scope.py` so a consumer that has tightened `plan.policy.triageScope[]` is not gated by stale entries outside their subscription.
 
+## 13. Cancellation Attribution (#1300)
+
+When a tool result reports `cancelled` / `aborted` / `killed`, default to **runtime glitch, not user intent.** Tool-runtime signals (parallel-batch limits, network glitches, server 5xx, timeouts, scheduler interruptions, IPC drops) look identical to a real user-issued cancel and MUST NOT be attributed to the user without direct user-side evidence. The canonical rule body lives at `main.md` `## Cancellation Attribution (#1300)`; this section is the worker-side propagation so dispatched sub-agents inherit the behavior.
+
+Required flow on any `cancelled` / `aborted` / `killed` tool result:
+
+1. Retry the affected operation SEQUENTIALLY (one at a time) before drawing any conclusion about user intent.
+2. If the retry succeeds, treat the original event as a runtime glitch -- do NOT tell the user they cancelled.
+3. If the retry also fails the same way, surface the actual error to the user and ASK whether they intended to cancel -- do not assert it.
+4. Reserve "you cancelled" / "you stopped" / "you declined" phrasing for cases where the user explicitly performed a cancellation gesture (terminal Ctrl-C, an explicit "stop" / "cancel" / "abort" instruction in chat, an explicit decline of a confirmation prompt).
+
+Dispatchers reading lifecycle events: the platform-emitted `cancelled` lifecycle state (see §10) is also subject to this rule -- a worker that the platform reports as `cancelled` is NOT necessarily a worker the user cancelled. Probe before attributing; the live incident motivating this rule was a parallel `gh issue edit` batch where three of four calls returned `{"cancelled":true}` from the runtime, the orchestrator told the operator "you cancelled the other three", and a sequential retry rescued all three immediately.
+
+Anti-pattern: a parallel batch returns `{"cancelled":true}` on N-1 of N calls, the agent reports "you cancelled the other N-1", and the operator has to correct the agent before a sequential retry rescues the work. The sequential retry is the rule; reaching for user-intent attribution before retrying is the failure mode.
+
+Forbidden phrasing without direct user-side evidence: `you cancelled`, `you stopped`, `you declined`. SHOULD phrasing when reporting a probable runtime cancellation: "N parallel calls returned cancelled -- likely a runtime hiccup; retrying sequentially."
+
 ## Footer
 
 If any rule above conflicts with the user's explicit in-conversation directive, ASK rather than improvise. Rules represent the project's institutional memory; the user can override on a case-by-case basis but the dispatcher should surface the conflict, not silently bypass.
