@@ -7,34 +7,48 @@
   },
   "plan": {
     "id": "1290-reconcile-state-reason",
-    "title": "reconcile_issues.py honors stateReason (NOT_PLANNED -> cancelled/)",
+    "title": "reconcile_issues.py honors stateReason + primary-reference filter (NOT_PLANNED -> cancelled/, Axis B canonical-issue resolution)",
     "status": "proposed",
     "planRef": "#1290",
     "narratives": {
-      "Description": "Extend scripts/reconcile_issues.py --apply-lifecycle-fixes to consult GitHub's stateReason field. Routes CLOSED+NOT_PLANNED to cancelled/ and CLOSED+COMPLETED to completed/. Required for the #742 close to operate deterministically without manual scope:cancel pre-step.",
-      "ImplementationPlan": "Extend the GraphQL query to include stateReason. Add mapping table. Preserve idempotency + existing report-only behavior for REOPENED.",
-      "UserStory": "As the framework, I want closed-as-not-planned umbrellas to route their dependent vBRIEFs to cancelled/ automatically so I don't need a manual pre-step."
+      "Description": "Two coordinated fixes to scripts/reconcile_issues.py --apply-lifecycle-fixes. (1) stateReason routing: consult GitHub's stateReason field so CLOSED+NOT_PLANNED routes to cancelled/, CLOSED+DUPLICATE routes to cancelled/, and CLOSED+COMPLETED routes to completed/ -- removes the manual scope:cancel pre-step that the #742 close required. (2) Axis B primary-reference filter: today the reconciler treats every plan.references[] entry as a lifecycle anchor, so a vBRIEF that merely refs an umbrella gets dragged through the umbrella's terminal state (the #742 close pulled #1283/#1284/#1285/#1291 into completed/ even though their own planRef issues were still open). The fix prefers plan.planRef as the canonical issue for lifecycle resolution and falls back to references[] only when planRef is absent. Both fixes ship together because the #742-class recurrence requires both: without (1) the operator runs scope:cancel by hand; without (2) the reconciler false-positives across the cohort on every umbrella close.",
+      "ImplementationPlan": "Phase A (stateReason): extend the GraphQL query in fetch_issue_states to include stateReason; add the routing mapping (CLOSED+NOT_PLANNED -> cancelled/, CLOSED+DUPLICATE -> cancelled/, CLOSED+COMPLETED -> completed/); preserve idempotency + existing report-only behavior for REOPENED. Phase B (Axis B primary-reference filter): refactor the lifecycle-fix resolver in reconcile_issues.py to read plan.planRef first when determining which issue's state drives the vBRIEF's lifecycle; only fall back to scanning references[] when planRef is unset or unresolvable; emit a structured log line naming which axis (planRef vs references[]) was used for each vBRIEF so the recovery audit is reviewable. Tests cover both phases in one suite.",
+      "UserStory": "As the framework, I want closed-as-not-planned umbrellas to route their dependent vBRIEFs to cancelled/ automatically AND I want the reconciler to follow each vBRIEF's primary plan.planRef instead of dragging unrelated references[] siblings through the umbrella's terminal state, so an umbrella close cannot false-positive across an entire cohort."
     },
     "items": [
       {
-        "title": "Add stateReason to the GraphQL query in fetch_issue_states",
+        "title": "Phase A: Add stateReason to the GraphQL query in fetch_issue_states",
         "status": "pending",
         "narrative": {
           "Acceptance": "Returns dict mapping issue_number -> (state, stateReason)."
         }
       },
       {
-        "title": "Update --apply-lifecycle-fixes routing per mapping",
+        "title": "Phase A: Update --apply-lifecycle-fixes routing per stateReason mapping",
         "status": "pending",
         "narrative": {
-          "Acceptance": "CLOSED+NOT_PLANNED -> cancelled/, CLOSED+DUPLICATE -> cancelled/."
+          "Acceptance": "CLOSED+NOT_PLANNED -> cancelled/, CLOSED+DUPLICATE -> cancelled/, CLOSED+COMPLETED -> completed/; REOPENED report-only behavior preserved."
         }
       },
       {
-        "title": "Tests for new mapping; existing tests unchanged",
+        "title": "Phase B: Prefer plan.planRef over references[] for canonical lifecycle resolution (Axis B primary-reference filter)",
         "status": "pending",
         "narrative": {
-          "Acceptance": "task check passes; no regression on completed/ path."
+          "Acceptance": "The lifecycle-fix resolver consults plan.planRef first; references[] is consulted only when planRef is absent or unresolvable. A vBRIEF that merely refs an unrelated closed issue is no longer dragged into that issue's terminal state."
+        }
+      },
+      {
+        "title": "Phase B: Structured per-vBRIEF audit log line naming the axis used (planRef vs references[])",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Each lifecycle-fix decision emits a log line carrying the resolved axis so a recovery audit can confirm the reconciler routed off the correct anchor."
+        }
+      },
+      {
+        "title": "Tests for both phases; existing tests unchanged",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task check passes; new tests cover stateReason routing AND the planRef-preferred axis; no regression on completed/ path; recurrence-record test pins the #742-class case (vBRIEF refs closed umbrella, planRef points at a still-open issue, vBRIEF stays in its current folder)."
         }
       }
     ],

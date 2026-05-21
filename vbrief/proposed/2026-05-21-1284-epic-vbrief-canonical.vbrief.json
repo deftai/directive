@@ -38,6 +38,11 @@
       },
       {
         "from": "1284-epic-vbrief-canonical",
+        "to": "1274-task-deft-issue-emit",
+        "type": "contains"
+      },
+      {
+        "from": "1284-epic-vbrief-canonical",
         "to": "1287-vbrief-reconcile-graph",
         "type": "contains"
       },
