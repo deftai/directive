@@ -3,12 +3,12 @@
     "version": "0.6",
     "description": "Scope vBRIEF (#742 child): Empirical validation of ADR-001 (vBRIEF-as-master). Two-gate evidence pack (comprehension parity + CRUD determinism) addressing Visionik's Apr-30 review concerns. Bench infrastructure lives in deftai/deft-agent-bench (internal); production CRUD tooling lives in deft-directive.",
     "created": "2026-05-01T16:00:00Z",
-    "updated": "2026-05-01T16:00:00Z"
+    "updated": "2026-05-21T16:35:48Z"
   },
   "plan": {
     "id": "742-adr-001-empirical-validation",
     "title": "ADR-001 empirical validation: comprehension parity + CRUD determinism gates",
-    "status": "proposed",
+    "status": "cancelled",
     "planRef": "#742",
     "narratives": {
       "Problem": "ADR-001 (#742) proposes vBRIEF-as-master for the agentic-consumed surface. Visionik's Apr-30 review approved-with-conditions, raising two empirical prerequisites that block final approval: (1) cross-model/harness comprehension validation -- verify that {Opus, ChatGPT, Gemini, etc.} and harnesses {Claude Code, Warp, opencode, pi.dev} consume vBRIEF JSON as well as Markdown; (2) deterministic CRUD tooling as a hard prerequisite -- without typed CRUD operations on vBRIEF JSON, agents 'innovate' within the structure, undermining the reliability claim. Both must be answered empirically before ADR approval and Phase 1 can ship.",
@@ -150,6 +150,7 @@
         "type": "x-vbrief/related-repo",
         "title": "deft-agent-bench (internal): bench infrastructure for this validation effort"
       }
-    ]
+    ],
+    "updated": "2026-05-21T16:33:43Z"
   }
 }

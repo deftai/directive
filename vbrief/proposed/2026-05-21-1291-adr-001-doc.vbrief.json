@@ -1,0 +1,80 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1291 (doc(adr): ADR-001 -- vBRIEF-as-canonical); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:35:48Z"
+  },
+  "plan": {
+    "id": "1291-adr-001-doc",
+    "title": "ADR-001 doc deliverable: vBRIEF-as-canonical (write the doc)",
+    "status": "proposed",
+    "planRef": "#1291",
+    "narratives": {
+      "Description": "Write docs/decisions/ADR-001.md per the #665 ADR convention. Inherits the approved sections of #742's rationale prose verbatim (token-economics, qualifier, two-axis context, defense-in-depth layers, counter-arguments, operational-state carve-out, strategic positioning).",
+      "ImplementationPlan": "Author the ADR file per the #665 template. Add a cross-reference line to main.md's AXIOM section. Run task check (encoding gate + any doc-link checks).",
+      "UserStory": "As a future reviewer asking 'why is vBRIEF canonical?', I want a single ADR I can cite, so debates don't reopen."
+    },
+    "items": [
+      {
+        "title": "Draft docs/decisions/ADR-001.md per #665 template",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "File exists; template structure followed."
+        }
+      },
+      {
+        "title": "Inherit approved sections from #742 verbatim",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Token-economics, qualifier, two-axis, defense-in-depth, counter-args, operational-state, strategic positioning all present."
+        }
+      },
+      {
+        "title": "Cross-link from main.md AXIOM section",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "main.md gets a 'See ADR-001' line; encoding gate passes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1291",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1291",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1291: doc(adr): ADR-001 -- vBRIEF-as-canonical"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/742",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #742: doc(adr): source ADR (decomposed)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/665",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #665: ADR convention"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/401",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #401: AXIOM ship-PR"
+      }
+    ],
+    "updated": "2026-05-21T16:33:43Z"
+  }
+}

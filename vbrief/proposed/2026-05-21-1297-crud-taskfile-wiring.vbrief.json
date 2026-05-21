@@ -1,0 +1,60 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1297 (feat(taskfile): wire vbrief CRUD into task surface); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
+  },
+  "plan": {
+    "id": "1297-crud-taskfile-wiring",
+    "title": "Wire vBRIEF CRUD into task surface",
+    "status": "proposed",
+    "planRef": "#1297",
+    "narratives": {
+      "Description": "Blocked placeholder. Operator-facing wrappers for the CRUD tool. Scope finalizes when Child 2.1 lands.",
+      "ImplementationPlan": "Defer detailed plan until 2.1 lands. Expected: task vbrief:create / read / update / delete entries in the Taskfile, with arg passthrough to scripts/vbrief_crud.py.",
+      "UserStory": "As an operator, I want task verbs for CRUD operations so I don't memorize the Python entry-point signature."
+    },
+    "items": [
+      {
+        "title": "Wait for #2.1 to land",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "scripts/vbrief_crud.py shipped."
+        }
+      },
+      {
+        "title": "Add Taskfile entries with arg passthrough",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task vbrief:* verbs work; tests cover passthrough."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1297",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready",
+        "depends_on": [
+          "1293-vbrief-crud-tool"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1297",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1297: feat(taskfile): wire vbrief CRUD into task surface"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1285",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1285: epic(vbrief,crud): CRUD harness"
+      }
+    ]
+  }
+}

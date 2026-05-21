@@ -1,0 +1,64 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1286 (feat(triage): demote vBRIEF-status:blocked items in triage:queue); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
+  },
+  "plan": {
+    "id": "1286-triage-queue-blocked-filter",
+    "title": "Demote vBRIEF-status:blocked items in triage:queue",
+    "status": "proposed",
+    "planRef": "#1286",
+    "narratives": {
+      "Description": "The triage queue (scripts/triage_queue.py) groups items by triage-decision history (ORPHAN / RESUME / URGENT / untriaged / other) and does not consult vBRIEF dependency state, so blocked children pollute the queue. Extend it to consult the linked vBRIEF's status:blocked / unresolved swarm.depends_on and demote those items.",
+      "ImplementationPlan": "Read the linked vBRIEF via existing triage_scope (D12 / #1131). Add a BLOCKED group (or demote into other). Add --include-blocked opt-back-in flag. Cover new behavior with tests.",
+      "UserStory": "As an operator running task triage:queue, I want blocked children to be hidden or demoted so the queue only surfaces grabbable work."
+    },
+    "items": [
+      {
+        "title": "Extend triage_queue.py to consult vBRIEF state via triage_scope",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Function exists; returns demote-recommendation per item."
+        }
+      },
+      {
+        "title": "Add BLOCKED group (or demote into other) + --include-blocked opt-in",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Queue render shows blocked items demoted by default; --include-blocked surfaces them."
+        }
+      },
+      {
+        "title": "Tests: blocked demoted; unblocked surfaces; opt-in flag",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task check passes; new tests cover all three paths."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1286",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1286",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1286: feat(triage): demote vBRIEF-status:blocked items in triage:queue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      }
+    ]
+  }
+}

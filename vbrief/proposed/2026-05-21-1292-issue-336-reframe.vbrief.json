@@ -1,0 +1,62 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1292 (chore: reframe #336); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
+  },
+  "plan": {
+    "id": "1292-issue-336-reframe",
+    "title": "Reframe #336: documentation-tier AXIOM application (drop 5 new core content types)",
+    "status": "proposed",
+    "planRef": "#1292",
+    "narratives": {
+      "Description": "Edit #336's body to drop the obsolete '5 new core content types' mechanism and reframe as documentation-tier AXIOM application with implementation via #714 tier-3 packs. Apply labels: determinism, rfc, design.",
+      "ImplementationPlan": "Edit #336 body via gh issue edit --body-file; verify labels; add cross-references to this umbrella + Child 1.4 (rules-pack-0.1 / Phase 3).",
+      "UserStory": "As a contributor reading #336 after the decomposition lands, I want its body to match the current architecture so I don't waste cycles on obsolete mechanisms."
+    },
+    "items": [
+      {
+        "title": "Draft reframed #336 body",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "No '5 new core content types' language; AXIOM framing present."
+        }
+      },
+      {
+        "title": "Apply the edit + verify labels",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "#336 body matches the draft; determinism/rfc/design labels applied."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1292",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1292",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1292: chore: reframe #336"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/336",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #336: migration umbrella (reframe target)"
+      }
+    ]
+  }
+}

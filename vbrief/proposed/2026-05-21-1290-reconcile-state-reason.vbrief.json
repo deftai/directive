@@ -1,0 +1,64 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1290 (feat(vbrief): reconcile_issues.py honors stateReason); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
+  },
+  "plan": {
+    "id": "1290-reconcile-state-reason",
+    "title": "reconcile_issues.py honors stateReason (NOT_PLANNED -> cancelled/)",
+    "status": "proposed",
+    "planRef": "#1290",
+    "narratives": {
+      "Description": "Extend scripts/reconcile_issues.py --apply-lifecycle-fixes to consult GitHub's stateReason field. Routes CLOSED+NOT_PLANNED to cancelled/ and CLOSED+COMPLETED to completed/. Required for the #742 close to operate deterministically without manual scope:cancel pre-step.",
+      "ImplementationPlan": "Extend the GraphQL query to include stateReason. Add mapping table. Preserve idempotency + existing report-only behavior for REOPENED.",
+      "UserStory": "As the framework, I want closed-as-not-planned umbrellas to route their dependent vBRIEFs to cancelled/ automatically so I don't need a manual pre-step."
+    },
+    "items": [
+      {
+        "title": "Add stateReason to the GraphQL query in fetch_issue_states",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Returns dict mapping issue_number -> (state, stateReason)."
+        }
+      },
+      {
+        "title": "Update --apply-lifecycle-fixes routing per mapping",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "CLOSED+NOT_PLANNED -> cancelled/, CLOSED+DUPLICATE -> cancelled/."
+        }
+      },
+      {
+        "title": "Tests for new mapping; existing tests unchanged",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task check passes; no regression on completed/ path."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1290",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1290",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1290: feat(vbrief): reconcile_issues.py honors stateReason"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      }
+    ]
+  }
+}

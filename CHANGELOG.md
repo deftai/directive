@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **chore(vbrief): decompose #742 (ADR-001 alignment vehicle) into three homes (#1283, #1284, #1285)** -- closed #742 as `not planned` and split into a pack-slicing RFC (#1283), the vBRIEF-as-canonical epic umbrella (#1284), and the deterministic CRUD harness epic (#1285). Filed 17 new GitHub issues + authored 17 matching scope vBRIEFs in `vbrief/proposed/`, including 6 blocked placeholders carrying `plan.metadata.swarm.depends_on` for cascade-unblock semantics. Adopted existing #1274 as Epic-1 Child 1.0b (renderer write-path). Cancelled the obsolete `742-adr-001-empirical-validation` scope vBRIEF (Gates 1+2 dropped per the decomposition). New `status:blocked` label created. Closes #742; refs #1273 (research-strategy lifecycle), #1167 (CRUD-tool architecture), #1119 (operational-state carve-out).
 
 ### Changed
 

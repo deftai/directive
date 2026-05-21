@@ -1,0 +1,60 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1299 (doc(contributing): when to use CRUD tool vs direct vBRIEF authoring); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
+  },
+  "plan": {
+    "id": "1299-crud-contributor-doc",
+    "title": "When to use CRUD tool vs direct vBRIEF authoring (contributor doc)",
+    "status": "proposed",
+    "planRef": "#1299",
+    "narratives": {
+      "Description": "Blocked placeholder. Document the boundary: fresh vBRIEF authoring is fine; mutating an existing vBRIEF must go through CRUD. Cross-reference the AGENTS.md Rule Authority section.",
+      "ImplementationPlan": "Defer detailed plan until 2.1 lands. Expected: add a section to CONTRIBUTING.md (or coding/coding.md) with the rule + worked examples; cross-reference from AGENTS.md.",
+      "UserStory": "As a contributor about to edit a vBRIEF, I want clear guidance on which surface to use so I don't accidentally regress the determinism guarantees."
+    },
+    "items": [
+      {
+        "title": "Wait for #2.1 to land",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "scripts/vbrief_crud.py shipped."
+        }
+      },
+      {
+        "title": "Author the contributor section + worked examples",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "CONTRIBUTING / coding doc reflects the rule; cross-refs from AGENTS.md."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1299",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready",
+        "depends_on": [
+          "1293-vbrief-crud-tool"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1299",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1299: doc(contributing): when to use CRUD tool vs direct vBRIEF authoring"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1285",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1285: epic(vbrief,crud): CRUD harness"
+      }
+    ]
+  }
+}

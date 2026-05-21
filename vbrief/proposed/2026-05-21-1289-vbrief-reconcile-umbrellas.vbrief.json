@@ -1,0 +1,64 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1289 (feat(vbrief,scm): task vbrief:reconcile:umbrellas); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
+  },
+  "plan": {
+    "id": "1289-vbrief-reconcile-umbrellas",
+    "title": "task vbrief:reconcile:umbrellas -- umbrella current-shape auto-update",
+    "status": "proposed",
+    "planRef": "#1289",
+    "narratives": {
+      "Description": "Auto-update each kind=epic vBRIEF's linked SCM umbrella's current-shape comment per AGENTS.md sec.1152. Edits in place to preserve permalink; amendment trail untouched.",
+      "ImplementationPlan": "New verb + module. Reads each kind=epic vBRIEF, walks children, computes wave structure, builds the canonical body, calls scm shim to edit the current-shape comment in place.",
+      "UserStory": "As a fresh contributor reading an umbrella, I want the current-shape comment to be accurate so I can find the queue without reading the audit trail."
+    },
+    "items": [
+      {
+        "title": "Implement current-shape body generator from epic vBRIEF state",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Output matches sec.1152 canonical body structure."
+        }
+      },
+      {
+        "title": "Edit-in-place via scm shim (preserve permalink)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Idempotent; second run is a no-op when state unchanged."
+        }
+      },
+      {
+        "title": "Tests for pass-N bump + child added/closed cases",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task check passes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1289",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1289",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1289: feat(vbrief,scm): task vbrief:reconcile:umbrellas"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      }
+    ]
+  }
+}

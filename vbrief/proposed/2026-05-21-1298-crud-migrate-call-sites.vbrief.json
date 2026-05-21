@@ -1,0 +1,67 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1298 (chore: migrate existing free-form vBRIEF edit call sites to CRUD tool); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
+  },
+  "plan": {
+    "id": "1298-crud-migrate-call-sites",
+    "title": "Migrate existing free-form vBRIEF edit call sites to CRUD tool",
+    "status": "proposed",
+    "planRef": "#1298",
+    "narratives": {
+      "Description": "Blocked placeholder. Sweep scripts/ for places that read+rewrite vBRIEF JSON inline and replace those call sites with vbrief_crud.py invocations. Removes free-form JSON editing as a maintenance hazard.",
+      "ImplementationPlan": "Defer detailed plan until 2.1 lands. Expected: grep for json.load+json.dump patterns on vBRIEF files; replace each with CRUD calls; test that behavior is preserved.",
+      "UserStory": "As a future maintainer, I want all vBRIEF edits to go through the CRUD tool so the round-trip / schema guarantees hold uniformly."
+    },
+    "items": [
+      {
+        "title": "Wait for #2.1 to land",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "scripts/vbrief_crud.py shipped."
+        }
+      },
+      {
+        "title": "Identify all call sites",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Inventory exists; each site classified (must-migrate vs out-of-scope)."
+        }
+      },
+      {
+        "title": "Migrate each call site; preserve behavior",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task check passes; existing tests unchanged."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1298",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready",
+        "depends_on": [
+          "1293-vbrief-crud-tool"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1298",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1298: chore: migrate existing free-form vBRIEF edit call sites to CRUD tool"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1285",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1285: epic(vbrief,crud): CRUD harness"
+      }
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1288 (feat(vbrief,scm): task vbrief:reconcile:labels); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
+  },
+  "plan": {
+    "id": "1288-vbrief-reconcile-labels",
+    "title": "task vbrief:reconcile:labels -- SCM label reconciliation",
+    "status": "proposed",
+    "planRef": "#1288",
+    "narratives": {
+      "Description": "Apply/remove SCM labels based on vBRIEF state. Routes through scripts/scm.py (#1145) to stay forge-agnostic. Closes the missing reverse direction of the existing GitHub-state-to-vBRIEF reconciler.",
+      "ImplementationPlan": "New verb + module. Mappings: status=blocked / unresolved depends_on -> status:blocked label; kind=epic -> epic + status:tracker; kind=research -> rfc. Idempotent.",
+      "UserStory": "As the framework, I want the SCM-side label state to mirror canonical vBRIEF state so reviewers don't see drift."
+    },
+    "items": [
+      {
+        "title": "Implement label reconciliation per mapping table",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "All mappings apply correctly; idempotent."
+        }
+      },
+      {
+        "title": "Route through scm.call shim (no direct gh calls)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task verify:scm-boundary passes."
+        }
+      },
+      {
+        "title": "Tests for each mapping + idempotency",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task check passes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1288",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1288",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1288: feat(vbrief,scm): task vbrief:reconcile:labels"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      }
+    ]
+  }
+}

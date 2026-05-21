@@ -1,0 +1,67 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1295 (feat(packs): skills-pack-0.1); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
+  },
+  "plan": {
+    "id": "1295-skills-pack",
+    "title": "skills-pack-0.1 -- second tier-3 pack",
+    "status": "proposed",
+    "planRef": "#1295",
+    "narratives": {
+      "Description": "Blocked placeholder. Phase 2 of the vBRIEF-as-canonical rollout. Scope finalizes after Phase 1 (lessons-pack-0.1) closes.",
+      "ImplementationPlan": "Defer detailed implementation plan until Phase 1 closes. Expected items: define schema based on Phase 1 lessons, ship renderer + slice API, migrate ONE skill as proof, iterate.",
+      "UserStory": "As an agent loading skill content, I want structured slice access to phases / anti-patterns / gates / chaining so I pay only for the slice I query."
+    },
+    "items": [
+      {
+        "title": "Wait for Phase 1 (lessons-pack-0.1) to close",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Lessons-pack proves the pattern."
+        }
+      },
+      {
+        "title": "Define skills-pack-0.1 schema",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Schema vendored."
+        }
+      },
+      {
+        "title": "Migrate ONE skill as proof, then iterate",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task skill:slice <name> works on the proof skill."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1295",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready",
+        "depends_on": [
+          "1294-lessons-pack-pilot"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1295",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1295: feat(packs): skills-pack-0.1"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      }
+    ]
+  }
+}

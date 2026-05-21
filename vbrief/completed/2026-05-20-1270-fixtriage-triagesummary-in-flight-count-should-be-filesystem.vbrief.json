@@ -2,11 +2,11 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Scope vBRIEF ingested from GitHub issue #1270",
-    "updated": "2026-05-20T21:07:00Z"
+    "updated": "2026-05-21T16:33:43Z"
   },
   "plan": {
     "title": "fix(triage): triage:summary in-flight count should be filesystem-truth with conditional scope-discrepancy line",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(triage): triage:summary in-flight count should be filesystem-truth with conditional scope-discrepancy line",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1270",
@@ -61,6 +61,6 @@
         "title": "Issue #1270: fix(triage): triage:summary in-flight count should be filesystem-truth with conditional scope-discrepancy line"
       }
     ],
-    "updated": "2026-05-20T21:07:00Z"
+    "updated": "2026-05-21T16:33:43Z"
   }
 }

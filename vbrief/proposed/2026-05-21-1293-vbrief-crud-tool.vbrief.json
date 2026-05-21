@@ -1,0 +1,76 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1293 (feat(vbrief): scripts/vbrief_crud.py); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
+  },
+  "plan": {
+    "id": "1293-vbrief-crud-tool",
+    "title": "scripts/vbrief_crud.py -- typed CRUD tool for vBRIEF JSON",
+    "status": "proposed",
+    "planRef": "#1293",
+    "narratives": {
+      "Description": "Build the deterministic CRUD tool. Round-trip-preserving writes, schema-validation-on-the-spot, byte-stable output. Foundation of Epic 2; the rest of Epic 2's children depend on it.",
+      "ImplementationPlan": "Typed entry points (create, read, update, delete). Schema-validate via existing vbrief_validate.py. Deterministic JSON encoder configuration. Path-based addressing for nested fields. Architecture per #1167.",
+      "UserStory": "As an agent editing a vBRIEF, I want a typed CRUD surface so I don't 'innovate' within the structure and so writes round-trip cleanly."
+    },
+    "items": [
+      {
+        "title": "Implement create/read/update/delete entry points",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Typed Python functions; path-based addressing works on nested fields."
+        }
+      },
+      {
+        "title": "Round-trip preservation + byte-stable output",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Read-write-read produces identical bytes; no key reordering or whitespace drift."
+        }
+      },
+      {
+        "title": "Schema validation on every write",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Invalid mutations fail at the CRUD boundary, not downstream."
+        }
+      },
+      {
+        "title": "Tests for happy-path, schema-rejection, non-ASCII, large-file, concurrent-edit",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task check passes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1293",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1293",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1293: feat(vbrief): scripts/vbrief_crud.py"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1285",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1285: epic(vbrief,crud): CRUD harness"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1167",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1167: code-abstraction-over-flat-tools architecture"
+      }
+    ]
+  }
+}

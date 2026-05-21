@@ -1,0 +1,64 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1287 (feat(vbrief): task vbrief:reconcile:graph); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
+  },
+  "plan": {
+    "id": "1287-vbrief-reconcile-graph",
+    "title": "task vbrief:reconcile:graph -- cascade-unblock walker",
+    "status": "proposed",
+    "planRef": "#1287",
+    "narratives": {
+      "Description": "Build the cascade-unblock walker: a verb that promotes vBRIEFs whose swarm.depends_on[] all resolve to completed/ or cancelled/. Pure vBRIEF; forge-agnostic. Composes with the existing swarm_readiness.py dep-graph machinery.",
+      "ImplementationPlan": "New verb + module under scripts/. Walks vbrief/proposed/, resolves depends_on against current state, runs task scope:promote on eligible candidates (respects WIP cap). Idempotent.",
+      "UserStory": "As the framework, I want blocked children whose upstream resolved to auto-promote so the decomposition operates deterministically."
+    },
+    "items": [
+      {
+        "title": "Define verb interface + Taskfile entry",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task vbrief:reconcile:graph runs; idempotent."
+        }
+      },
+      {
+        "title": "Compose with swarm_readiness.py dep-graph + scope_lifecycle.promote",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Single-dep, multi-dep, cycle, WIP-cap cases all behave per spec."
+        }
+      },
+      {
+        "title": "Tests for cascade, cycle detection, WIP cap interaction",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task check passes."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1287",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1287",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1287: feat(vbrief): task vbrief:reconcile:graph"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      }
+    ]
+  }
+}

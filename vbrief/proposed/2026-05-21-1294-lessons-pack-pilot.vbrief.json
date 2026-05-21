@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for #1294 (feat(packs): lessons-pack-0.1 pilot); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:32:24Z"
+  },
+  "plan": {
+    "id": "1294-lessons-pack-pilot",
+    "title": "lessons-pack-0.1 pilot -- first tier-3 extension pack",
+    "status": "proposed",
+    "planRef": "#1294",
+    "narratives": {
+      "Description": "Blocked placeholder. Phase 1 of the vBRIEF-as-canonical rollout. Scope finalizes when the pack-slicing RFC and the reconcile suite land. See the GitHub issue body for details.",
+      "ImplementationPlan": "Defer detailed implementation plan until upstream design (#1283) converges and the reconcile suite (#1287/#1288/#1289) lands. Scope-locked at that point; expected items: define lessons-pack schema, build renderer, build slice surface, migrate framework's lessons.md, wire drift detection.",
+      "UserStory": "As an agent loading lessons context, I want structured slice access to lessons by recency / tag / author so I pay only for the slice I query."
+    },
+    "items": [
+      {
+        "title": "Wait for upstream blockers to land",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Pack-slicing RFC closed (approved); reconcile suite shipped."
+        }
+      },
+      {
+        "title": "Define lessons-pack-0.1 schema (per tier-3 model)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Schema vendored; round-trip preservation production-grade."
+        }
+      },
+      {
+        "title": "Build renderer + slice API + drift detection + migrate lessons.md",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "task check passes; lessons.md is derivative; task lessons:slice works."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1294",
+        "decomposition_origin": "#742"
+      },
+      "swarm": {
+        "readiness": "not-ready",
+        "depends_on": [
+          "1283-pack-slicing-rfc",
+          "1287-vbrief-reconcile-graph",
+          "1288-vbrief-reconcile-labels",
+          "1289-vbrief-reconcile-umbrellas"
+        ]
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1294",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1294: feat(packs): lessons-pack-0.1 pilot"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1274",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1274: task deft:issue:emit (adopted as Child 1.0b; renderer prerequisite)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/714",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #714: tier-3 model"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/715",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #715: round-trip preservation"
+      }
+    ]
+  }
+}

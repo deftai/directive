@@ -1,0 +1,79 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Epic umbrella vBRIEF for #1285 (epic(vbrief,crud): CRUD harness epic); part of the #742 decomposition.",
+    "created": "2026-05-21T16:32:24Z",
+    "updated": "2026-05-21T16:35:48Z"
+  },
+  "plan": {
+    "id": "1285-epic-crud-harness",
+    "title": "Epic 2 umbrella: deterministic CRUD harness for vBRIEF JSON (approved, non-gating)",
+    "status": "proposed",
+    "planRef": "#1285",
+    "narratives": {
+      "Description": "Approved, non-gating. The CRUD tool is required infrastructure (per #1167's code-abstraction-over-flat-tools) independent of Gate-2 evidence. Gate 2 (synthetic 3-arm evaluation) is dropped as part of the #742 decomposition.",
+      "Overview": "Umbrella tracking the CRUD-harness work. 4 children across 2 waves. Wave-1: #1293 (core tool). Wave-2: #1297, #1298, #1299. Cascade-unblock for Wave-2 depends on Epic 1 Child #1287 (`task vbrief:reconcile:graph`)."
+    },
+    "items": [
+      {
+        "title": "Decompose to children + maintain current-shape comment",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Children are filed; §1152 current-shape comment is seeded and kept current via task vbrief:reconcile:umbrellas once Child 1.0e lands."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "epic",
+      "x-tracking": {
+        "parent_issue": "#1285",
+        "decomposition_origin": "#742"
+      }
+    },
+    "edges": [
+      {
+        "from": "1285-epic-crud-harness",
+        "to": "1293-vbrief-crud-tool",
+        "type": "contains"
+      },
+      {
+        "from": "1285-epic-crud-harness",
+        "to": "1297-crud-taskfile-wiring",
+        "type": "contains"
+      },
+      {
+        "from": "1285-epic-crud-harness",
+        "to": "1298-crud-migrate-call-sites",
+        "type": "contains"
+      },
+      {
+        "from": "1285-epic-crud-harness",
+        "to": "1299-crud-contributor-doc",
+        "type": "contains"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1285",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1285: epic(vbrief,crud): CRUD harness epic"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/742",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #742: doc(adr): ADR-001 (decomposed)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1284",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1284: epic(vbrief): vBRIEF-as-canonical"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1167",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1167: code-abstraction-over-flat-tools architecture"
+      }
+    ],
+    "updated": "2026-05-21T16:33:43Z"
+  }
+}
