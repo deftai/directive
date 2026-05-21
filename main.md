@@ -104,6 +104,22 @@ Source material: AI Agent Traps paper (`docs/ssrn-6372438.pdf`, Franklin et al.,
 - ⊗ Produce a summary that reads as fully successful when any anomaly, deferral, security concern, or refusal occurred -- the surface MUST match the underlying state, not a polished best-case projection
 - ⊗ Hide a refusal ("I did not run X because Y") in a closing footnote -- refusals belong in the lead bullet alongside their reason
 
+## Cancellation Attribution (#1300)
+
+**Why this rule exists:** Tool runtimes (parallel-batch dispatchers, network stacks, shell drivers, IPC channels, scheduler timeouts) can surface `cancelled` / `aborted` / `killed` results that look identical to a real user-issued cancel signal. Agents that treat the tool-side signal as proof of user intent (a) blame the user for actions they did not take, (b) drop the legitimate next action (retry sequentially, investigate the runtime failure), and (c) lose the actual failure-mode signal (parallel-call limit, transient 5xx, network glitch). Live incident motivating this rule: a parallel `gh issue edit` batch on directive issues returned `{"cancelled":true}` on three of four calls; the agent told the operator "you cancelled the other three"; a sequential retry rescued all three immediately. The original "cancellation" was a runtime-side parallel-batch artifact, not a user action. This rule prevents the false attribution at the source.
+
+- ! Before reporting a cancellation to the user or treating it as user intent, the agent MUST verify the cancellation source. Tool-reported `cancelled` / `aborted` / `killed` signals are NOT proof of user action -- they may originate from runtime infrastructure (parallel-batch limits, network glitches, server 5xx, timeouts, scheduler interruptions, IPC drops)
+- ! When a cancellation signal is observed on a tool result, the default assumption is **runtime glitch, not user intent**. The agent MUST:
+  1. Retry the affected operation SEQUENTIALLY (one at a time) before drawing any conclusion about user intent
+  2. If the retry succeeds, treat the original event as a runtime glitch -- NOT a user cancellation. Do NOT tell the user they cancelled
+  3. If the retry also fails the same way, surface the actual error to the user and ASK whether they intended to cancel, rather than asserting they did
+  4. Reserve the phrasing "you cancelled" / "you stopped" / "you declined" for cases where the user explicitly performed a cancellation gesture (terminal Ctrl-C, an explicit "stop" / "cancel" / "abort" instruction in chat, an explicit decline of a confirmation prompt)
+- ⊗ Attribute a tool-reported `cancelled` / `aborted` / `killed` signal to the user without retrying sequentially or asking first -- the tool layer is not the user layer
+- ⊗ Use the phrases "you cancelled", "you stopped", or "you declined" unless the user's preceding turn contained an explicit cancellation directive (terminal Ctrl-C, explicit `stop` / `cancel` / `abort` word, or explicit no/decline to a confirmation prompt)
+- ~ When reporting a runtime cancellation that is not user-attributed, name the likely cause (e.g. "three parallel calls returned cancelled -- likely a batch / runtime hiccup; retrying sequentially") so the operationally useful signal is not lost
+
+Propagation: the canonical orchestrator preamble at [templates/agent-prompt-preamble.md](./templates/agent-prompt-preamble.md) carries the same rule so dispatched workers inherit the behavior. This is the same class as the approval-fatigue defense above (`## Agent Trap Defenses`) applied to a different surface -- "you cancelled" is a buried mis-attribution that the rule corrects with the same fail-loud / surface-the-anomaly discipline.
+
 ## vBRIEF Persistence
 
 - ! All vBRIEF files MUST be stored in `./vbrief/` or its lifecycle subfolders — never in workspace root
