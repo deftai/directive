@@ -635,12 +635,16 @@ is covered by the canonical .gitignore baseline deposited by deft-install.
 
 // vbriefLifecycleDirs is the canonical v0.20 layout of scope-vBRIEF lifecycle
 // subdirectories the consumer's `vbrief/` workspace must carry on a fresh
-// install. AGENTS.md pre-cutover condition 3 (`./vbrief/` exists but any of
-// the five lifecycle subfolders is missing) fires when the installer ships a
-// half-state, so #1179 reverses the #1020 4g "do not pre-create" contract and
-// has the Go installer create all five on first deposit.
+// install. The deft-directive-setup skill's pre-cutover condition 3 -- see
+// `skills/deft-directive-setup/SKILL.md:32` and `main.md:159` for the
+// canonical text -- fires when `./vbrief/` exists but any of the five
+// lifecycle subfolders is missing. AGENTS.md does NOT enumerate this
+// condition; the canonical source lives in the skill body and main.md.
+// #1179 reverses the #1020 4g "do not pre-create" contract and has the Go
+// installer create all five on first deposit so the guard stays silent on a
+// fresh install.
 //
-// Order matches the AGENTS.md narrative (proposed -> pending -> active ->
+// Order matches the canonical narrative (proposed -> pending -> active ->
 // completed -> cancelled) and is intentionally stable so doctor / conformance
 // surfaces can iterate it deterministically.
 var vbriefLifecycleDirs = []string{
@@ -657,7 +661,8 @@ var vbriefLifecycleDirs = []string{
 // used elsewhere in the framework deposit. Body is documented for grepability
 // (#1179) and small enough to round-trip cleanly through any packaging tool.
 const vbriefLifecycleGitkeepBody = `# This file keeps the lifecycle directory present in version control and
-# survives installer packaging so AGENTS.md pre-cutover detection (condition 3)
+# survives installer packaging so the deft-directive-setup pre-cutover guard
+# (condition 3, see skills/deft-directive-setup/SKILL.md:32 and main.md:159)
 # does not fire on a fresh install. See #1179.
 `
 
@@ -726,12 +731,14 @@ func vbriefLifecycleDirsPresent(consumerVbrief string) bool {
 // to the conformance audit (#1020).
 //
 // #1179 reverses the original #1020 4g "do not pre-create lifecycle dirs"
-// contract: a fresh install that ships only schemas/ + vbrief.md trips
-// AGENTS.md pre-cutover condition 3 ("vbrief/ exists but any of the five
-// lifecycle subfolders is missing") on the very first agent turn and routes
-// the operator into a `task migrate:vbrief` dead-end on a project that has
-// nothing to migrate. Materialising the lifecycle dirs at install time keeps
-// the guard quiet and the install greenfield-ready.
+// contract: a fresh install that ships only schemas/ + vbrief.md trips the
+// deft-directive-setup pre-cutover condition 3 ("vbrief/ exists but any of
+// the five lifecycle subfolders is missing" -- see
+// `skills/deft-directive-setup/SKILL.md:32` and `main.md:159` for the
+// canonical text) and routes the operator into a `task migrate:vbrief`
+// dead-end on a project that has nothing to migrate. Materialising the
+// lifecycle dirs at install time keeps the guard quiet and the install
+// greenfield-ready.
 func WriteConsumerVbrief(w *Wizard, projectDir, deftDir string) (bool, error) {
 	consumerVbrief := filepath.Join(projectDir, "vbrief")
 	schemasDst := filepath.Join(consumerVbrief, "schemas")
