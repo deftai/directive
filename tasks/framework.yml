@@ -61,13 +61,14 @@ tasks:
     env:
       PYTHONUTF8: "1"
     cmds:
-      # Cross-platform redaction line. PowerShell on Windows resolves
-      # ``echo`` to ``Write-Output`` (preserves the literal quotes if any),
-      # so use the explicit ``Write-Output`` invocation. POSIX shells use
-      # ``echo`` which strips the double quotes around the single string
-      # argument. Both emit the canonical phrase exactly:
+      # Cross-platform redaction line. go-task runs every ``cmd:`` through
+      # its embedded mvdan/sh POSIX-sh interpreter on every host (Windows,
+      # macOS, Linux), so a single ``echo`` invocation is portable and
+      # strips the surrounding quotes uniformly -- emitting exactly:
       #     redacted use run doctor instead
-      - cmd: pwsh -NoProfile -Command "Write-Output 'redacted use run doctor instead'"
-        platforms: [windows]
-      - cmd: echo "redacted use run doctor instead"
-        platforms: [linux, darwin]
+      # The previous Windows branch shelled out to ``pwsh`` (PowerShell 7+),
+      # which is NOT present on stock Windows 10 / 11 (only ``powershell.exe``
+      # ships out of the box) so any consumer without PowerShell 7+ installed
+      # would see ``pwsh: not found`` instead of the redaction notice. Letting
+      # mvdan/sh handle the echo sidesteps the shell-dependence entirely.
+      - echo "redacted use run doctor instead"
