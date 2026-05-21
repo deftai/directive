@@ -1110,10 +1110,14 @@ func TestWriteConsumerVbrief_CreatesNew(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(projectDir, "vbrief", "vbrief.md")); err != nil {
 		t.Errorf("vbrief.md was not deposited: %v", err)
 	}
-	// Lifecycle dirs MUST NOT be pre-created (#1020 4g contract).
+	// Lifecycle dirs MUST be pre-created (#1179 reverses the #1020 4g
+	// "do not pre-create" contract -- AGENTS.md pre-cutover condition 3
+	// fires on a fresh install when any of the five lifecycle subfolders is
+	// missing, dead-ending the very first agent turn before Phase 2 of
+	// deft-directive-setup runs).
 	for _, lifecycle := range []string{"active", "pending", "proposed", "completed", "cancelled"} {
-		if _, err := os.Stat(filepath.Join(projectDir, "vbrief", lifecycle)); err == nil {
-			t.Errorf("consumer-root vbrief/%s/ MUST NOT be auto-created", lifecycle)
+		if info, err := os.Stat(filepath.Join(projectDir, "vbrief", lifecycle)); err != nil || !info.IsDir() {
+			t.Errorf("consumer-root vbrief/%s/ MUST be auto-created (#1179): %v", lifecycle, err)
 		}
 	}
 }
