@@ -633,14 +633,105 @@ Do not commit vbrief/.eval/ -- it is the local audit-log private state and
 is covered by the canonical .gitignore baseline deposited by deft-install.
 `
 
+// vbriefLifecycleDirs is the canonical v0.20 layout of scope-vBRIEF lifecycle
+// subdirectories the consumer's `vbrief/` workspace must carry on a fresh
+// install. AGENTS.md pre-cutover condition 3 (`./vbrief/` exists but any of
+// the five lifecycle subfolders is missing) fires when the installer ships a
+// half-state, so #1179 reverses the #1020 4g "do not pre-create" contract and
+// has the Go installer create all five on first deposit.
+//
+// Order matches the AGENTS.md narrative (proposed -> pending -> active ->
+// completed -> cancelled) and is intentionally stable so doctor / conformance
+// surfaces can iterate it deterministically.
+var vbriefLifecycleDirs = []string{
+	"proposed",
+	"pending",
+	"active",
+	"completed",
+	"cancelled",
+}
+
+// vbriefLifecycleGitkeepBody is the placeholder content written into each
+// empty lifecycle directory's `.gitkeep` so the empty directories survive
+// `git add` / `tar` / installer packaging. Mirrors the `.gitkeep` convention
+// used elsewhere in the framework deposit. Body is documented for grepability
+// (#1179) and small enough to round-trip cleanly through any packaging tool.
+const vbriefLifecycleGitkeepBody = `# This file keeps the lifecycle directory present in version control and
+# survives installer packaging so AGENTS.md pre-cutover detection (condition 3)
+# does not fire on a fresh install. See #1179.
+`
+
+// ensureVbriefLifecycleDirs creates the canonical v0.20 lifecycle
+// subdirectories under `vbrief/` and drops a `.gitkeep` placeholder into each
+// empty one so the directory is durable across `git add` / installer packaging.
+// Idempotent -- MkdirAll on an existing dir is a no-op, and an existing
+// `.gitkeep` is left in place so operator edits (or directory contents added
+// later) are preserved. When a lifecycle directory already contains files
+// (e.g. the operator has filed scope vBRIEFs there) the `.gitkeep` is skipped
+// because the directory is no longer empty.
+func ensureVbriefLifecycleDirs(consumerVbrief string) error {
+	for _, sub := range vbriefLifecycleDirs {
+		dir := filepath.Join(consumerVbrief, sub)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("could not create vbrief/%s/: %w", sub, err)
+		}
+		gitkeep := filepath.Join(dir, ".gitkeep")
+		if _, err := os.Stat(gitkeep); err == nil {
+			continue
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("could not stat vbrief/%s/.gitkeep: %w", sub, err)
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return fmt.Errorf("could not list vbrief/%s/: %w", sub, err)
+		}
+		if len(entries) > 0 {
+			// Directory already carries content (e.g. operator-filed scope
+			// vBRIEFs); the placeholder is unnecessary.
+			continue
+		}
+		if err := os.WriteFile(gitkeep, []byte(vbriefLifecycleGitkeepBody), 0o644); err != nil {
+			return fmt.Errorf("could not write vbrief/%s/.gitkeep: %w", sub, err)
+		}
+	}
+	return nil
+}
+
+// vbriefLifecycleDirsPresent reports whether all canonical lifecycle
+// subdirectories under `consumerVbrief` already exist. Used by the
+// idempotency probe in WriteConsumerVbrief so a half-state install (schemas/
+// + vbrief.md present, lifecycle dirs missing -- i.e. the pre-#1179 shape)
+// still triggers the lifecycle-dir creation pass on a re-run.
+func vbriefLifecycleDirsPresent(consumerVbrief string) bool {
+	for _, sub := range vbriefLifecycleDirs {
+		info, err := os.Stat(filepath.Join(consumerVbrief, sub))
+		if err != nil || !info.IsDir() {
+			return false
+		}
+	}
+	return true
+}
+
 // WriteConsumerVbrief deposits a consumer-side `vbrief/` workspace at the
-// project root containing `vbrief/schemas/` and a `vbrief/vbrief.md` template.
+// project root containing `vbrief/schemas/`, a `vbrief/vbrief.md` template,
+// and the five canonical lifecycle subdirectories (proposed, pending, active,
+// completed, cancelled) each carrying a `.gitkeep` placeholder so empty
+// directories survive `git add` / installer packaging.
+//
 // Schemas are copied from the freshly-deposited framework copy at
 // `<deftDir>/vbrief/schemas/` so the consumer's schema files stay in lockstep
 // with the framework version they installed. If the framework copy is missing
 // for any reason the function falls back to creating the directories with a
 // placeholder README so the deposit is observable to downstream tooling and
 // to the conformance audit (#1020).
+//
+// #1179 reverses the original #1020 4g "do not pre-create lifecycle dirs"
+// contract: a fresh install that ships only schemas/ + vbrief.md trips
+// AGENTS.md pre-cutover condition 3 ("vbrief/ exists but any of the five
+// lifecycle subfolders is missing") on the very first agent turn and routes
+// the operator into a `task migrate:vbrief` dead-end on a project that has
+// nothing to migrate. Materialising the lifecycle dirs at install time keeps
+// the guard quiet and the install greenfield-ready.
 func WriteConsumerVbrief(w *Wizard, projectDir, deftDir string) (bool, error) {
 	consumerVbrief := filepath.Join(projectDir, "vbrief")
 	schemasDst := filepath.Join(consumerVbrief, "schemas")
@@ -654,7 +745,8 @@ func WriteConsumerVbrief(w *Wizard, projectDir, deftDir string) (bool, error) {
 	if info, err := os.Stat(vbriefMDDst); err == nil && info.Mode().IsRegular() {
 		vbriefMDPresent = true
 	}
-	if schemasPresent && vbriefMDPresent {
+	lifecyclePresent := vbriefLifecycleDirsPresent(consumerVbrief)
+	if schemasPresent && vbriefMDPresent && lifecyclePresent {
 		w.printf("vbrief/ already present at project root — skipping.\n")
 		return false, nil
 	}
@@ -692,7 +784,14 @@ func WriteConsumerVbrief(w *Wizard, projectDir, deftDir string) (bool, error) {
 		}
 	}
 
-	w.printf("vbrief/ deposited at project root (schemas + vbrief.md).\n")
+	// Materialise the canonical lifecycle directories (#1179). Done
+	// unconditionally on every call so a half-state install left behind by
+	// an older installer rail is repaired on the next re-run.
+	if err := ensureVbriefLifecycleDirs(consumerVbrief); err != nil {
+		return false, err
+	}
+
+	w.printf("vbrief/ deposited at project root (schemas + vbrief.md + lifecycle dirs).\n")
 	return true, nil
 }
 

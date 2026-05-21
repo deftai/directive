@@ -703,3 +703,252 @@ func TestResolveInstallManifestFields_BranchRefDoesNotProduceVmasterManifest(t *
 		t.Errorf("expected empty `tag: ''` in body, got:\n%s", body)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// #1179 vbrief lifecycle-dir regression tests
+// ---------------------------------------------------------------------------
+
+// vbriefLifecycleDirsExpected mirrors the canonical lifecycle list the setup.go
+// var carries; duplicated here so the test stays a pure black-box assertion
+// of the contract (a typo in the production list would otherwise be invisible
+// to the test).
+var vbriefLifecycleDirsExpected = []string{"proposed", "pending", "active", "completed", "cancelled"}
+
+// simulatesPartialVbriefPreCutover models the AGENTS.md pre-cutover condition
+// 3 check the deft-directive-setup skill runs on every interactive session:
+// `./vbrief/` exists but any of the five lifecycle subfolders is missing.
+// The function returns true when the guard would FIRE on the given
+// projectDir's vbrief tree. Kept tiny on purpose -- the production guard
+// lives in `skills/deft-directive-setup/SKILL.md` (Markdown) and is not a
+// Go function, so this is the closest faithful simulation the Go test layer
+// can carry.
+func simulatesPartialVbriefPreCutover(projectDir string) bool {
+	vbriefRoot := filepath.Join(projectDir, "vbrief")
+	if info, err := os.Stat(vbriefRoot); err != nil || !info.IsDir() {
+		return false
+	}
+	for _, sub := range vbriefLifecycleDirsExpected {
+		if info, err := os.Stat(filepath.Join(vbriefRoot, sub)); err != nil || !info.IsDir() {
+			return true
+		}
+	}
+	return false
+}
+
+// TestWriteConsumerVbrief_CreatesLifecycleDirs is the positive #1179
+// regression: a fresh install MUST materialise all five lifecycle
+// subdirectories under `vbrief/` so AGENTS.md pre-cutover condition 3 does
+// not fire on the very first agent turn. Each lifecycle directory carries a
+// `.gitkeep` placeholder so the empty directories survive `git add` and
+// installer packaging.
+func TestWriteConsumerVbrief_CreatesLifecycleDirs(t *testing.T) {
+	tmp := t.TempDir()
+	projectDir := filepath.Join(tmp, "proj")
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	deftDir := filepath.Join(projectDir, ".deft", "core")
+	fwSchemas := filepath.Join(deftDir, "vbrief", "schemas")
+	if err := os.MkdirAll(fwSchemas, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(fwSchemas, "vbrief-core.schema.json"), []byte(`{"name":"fixture"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(deftDir, "vbrief", "vbrief.md"), []byte("# fixture vbrief\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	changed, err := WriteConsumerVbrief(w, projectDir, deftDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Error("expected changed=true on first deposit")
+	}
+
+	for _, sub := range vbriefLifecycleDirsExpected {
+		dir := filepath.Join(projectDir, "vbrief", sub)
+		info, err := os.Stat(dir)
+		if err != nil {
+			t.Errorf("lifecycle directory vbrief/%s/ was not created: %v", sub, err)
+			continue
+		}
+		if !info.IsDir() {
+			t.Errorf("vbrief/%s exists but is not a directory", sub)
+			continue
+		}
+		gitkeep := filepath.Join(dir, ".gitkeep")
+		if _, err := os.Stat(gitkeep); err != nil {
+			t.Errorf("vbrief/%s/.gitkeep placeholder missing: %v", sub, err)
+		}
+	}
+
+	if simulatesPartialVbriefPreCutover(projectDir) {
+		t.Error("AGENTS.md pre-cutover condition 3 would still fire on the resulting tree (#1179 not closed)")
+	}
+}
+
+// TestWriteConsumerVbrief_RepairsHalfState_LifecycleDirs models the pre-#1179
+// installer output: schemas/ and vbrief.md already exist but the lifecycle
+// directories are missing (the exact half-state the v0.30.0 installer rail
+// shipped). A re-run of WriteConsumerVbrief must add the lifecycle
+// directories without overwriting the existing schemas + vbrief.md and must
+// flip the pre-cutover guard from fire to silent.
+func TestWriteConsumerVbrief_RepairsHalfState_LifecycleDirs(t *testing.T) {
+	tmp := t.TempDir()
+	projectDir := filepath.Join(tmp, "proj")
+	deftDir := filepath.Join(projectDir, ".deft", "core")
+	if err := os.MkdirAll(deftDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Pre-seed the pre-#1179 half-state: vbrief/ + schemas/ + vbrief.md
+	// present, lifecycle dirs absent.
+	consumerVbrief := filepath.Join(projectDir, "vbrief")
+	if err := os.MkdirAll(filepath.Join(consumerVbrief, "schemas"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	operatorVbriefMD := []byte("# operator-edited\n")
+	if err := os.WriteFile(filepath.Join(consumerVbrief, "vbrief.md"), operatorVbriefMD, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if !simulatesPartialVbriefPreCutover(projectDir) {
+		t.Fatal("test fixture sanity: half-state must trip the pre-cutover guard before the fix runs")
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	changed, err := WriteConsumerVbrief(w, projectDir, deftDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Error("expected changed=true when repairing a half-state install")
+	}
+
+	for _, sub := range vbriefLifecycleDirsExpected {
+		if info, err := os.Stat(filepath.Join(consumerVbrief, sub)); err != nil || !info.IsDir() {
+			t.Errorf("lifecycle directory vbrief/%s/ was not repaired: %v", sub, err)
+		}
+	}
+
+	// Operator-edited vbrief.md MUST NOT be clobbered.
+	got, _ := os.ReadFile(filepath.Join(consumerVbrief, "vbrief.md"))
+	if string(got) != string(operatorVbriefMD) {
+		t.Errorf("operator vbrief.md edits were clobbered during half-state repair; got:\n%s", got)
+	}
+
+	if simulatesPartialVbriefPreCutover(projectDir) {
+		t.Error("AGENTS.md pre-cutover condition 3 still fires after half-state repair (#1179 regression)")
+	}
+}
+
+// TestWriteConsumerVbrief_LifecycleDirs_Idempotent verifies that re-running
+// WriteConsumerVbrief on a fully-populated tree returns changed=false and
+// does not overwrite the operator's `.gitkeep` placeholders (so an operator
+// who tweaked a placeholder body, or who has filed real scope vBRIEFs in a
+// lifecycle directory, will see those preserved on the next install pass).
+func TestWriteConsumerVbrief_LifecycleDirs_Idempotent(t *testing.T) {
+	tmp := t.TempDir()
+	projectDir := filepath.Join(tmp, "proj")
+	deftDir := filepath.Join(projectDir, ".deft", "core")
+	if err := os.MkdirAll(deftDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if _, err := WriteConsumerVbrief(w, projectDir, deftDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Stash an operator edit in one of the lifecycle .gitkeep files.
+	activeKeep := filepath.Join(projectDir, "vbrief", "active", ".gitkeep")
+	sentinel := []byte("# operator note\n")
+	if err := os.WriteFile(activeKeep, sentinel, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Drop a fake scope vBRIEF in proposed/ so .gitkeep is no longer needed
+	// there -- a follow-up call must NOT create a stray .gitkeep alongside
+	// real content.
+	proposedDir := filepath.Join(projectDir, "vbrief", "proposed")
+	if err := os.Remove(filepath.Join(proposedDir, ".gitkeep")); err != nil {
+		t.Fatal(err)
+	}
+	scopePath := filepath.Join(proposedDir, "fixture.vbrief.json")
+	if err := os.WriteFile(scopePath, []byte("{}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	changed, err := WriteConsumerVbrief(w, projectDir, deftDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed {
+		t.Error("expected changed=false on idempotent re-run")
+	}
+
+	// Operator-edited .gitkeep preserved.
+	got, _ := os.ReadFile(activeKeep)
+	if string(got) != string(sentinel) {
+		t.Errorf("operator-edited .gitkeep was clobbered; got:\n%s", got)
+	}
+
+	// proposed/ has real content + no recreated .gitkeep.
+	if _, err := os.Stat(filepath.Join(proposedDir, ".gitkeep")); err == nil {
+		t.Error(".gitkeep was recreated alongside real scope vBRIEF content -- should be skipped")
+	}
+	if _, err := os.Stat(scopePath); err != nil {
+		t.Errorf("operator-filed scope vBRIEF was lost during idempotent re-run: %v", err)
+	}
+}
+
+// TestEnsureVbriefLifecycleDirs_DirectCall is a focused unit test on the
+// helper so future refactors that touch the helper (without touching
+// WriteConsumerVbrief) still get covered.
+func TestEnsureVbriefLifecycleDirs_DirectCall(t *testing.T) {
+	tmp := t.TempDir()
+	if err := ensureVbriefLifecycleDirs(tmp); err != nil {
+		t.Fatal(err)
+	}
+	for _, sub := range vbriefLifecycleDirsExpected {
+		if info, err := os.Stat(filepath.Join(tmp, sub)); err != nil || !info.IsDir() {
+			t.Errorf("ensureVbriefLifecycleDirs did not create %s: %v", sub, err)
+		}
+		if _, err := os.Stat(filepath.Join(tmp, sub, ".gitkeep")); err != nil {
+			t.Errorf("ensureVbriefLifecycleDirs did not drop .gitkeep in %s: %v", sub, err)
+		}
+	}
+
+	// Calling again must be a no-op on the filesystem.
+	if err := ensureVbriefLifecycleDirs(tmp); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestVbriefLifecycleDirsPresent_DetectsHalfState verifies the half-state
+// detector returns false when any single lifecycle directory is absent and
+// true only when all five are present. Pins the contract the
+// WriteConsumerVbrief idempotency probe relies on.
+func TestVbriefLifecycleDirsPresent_DetectsHalfState(t *testing.T) {
+	tmp := t.TempDir()
+	if vbriefLifecycleDirsPresent(tmp) {
+		t.Error("empty tree should not report lifecycle dirs as present")
+	}
+	for _, sub := range vbriefLifecycleDirsExpected[:len(vbriefLifecycleDirsExpected)-1] {
+		if err := os.MkdirAll(filepath.Join(tmp, sub), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if vbriefLifecycleDirsPresent(tmp) {
+		t.Error("4 of 5 lifecycle dirs should still report half-state (false)")
+	}
+	if err := os.MkdirAll(filepath.Join(tmp, vbriefLifecycleDirsExpected[len(vbriefLifecycleDirsExpected)-1]), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if !vbriefLifecycleDirsPresent(tmp) {
+		t.Error("all 5 lifecycle dirs present but detector returned false")
+	}
+}
