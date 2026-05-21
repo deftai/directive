@@ -360,3 +360,53 @@ class TestUtf8Reconfigure:
         assert rc == fd.EXIT_CLEAN
         # Output bytes contain the UTF-8 encoded U+2713.
         assert b"\xe2\x9c\x93" in buf.getvalue()
+
+
+# ---------------------------------------------------------------------------
+# #1272: ``task framework:doctor`` is now a redacted shim.
+# ---------------------------------------------------------------------------
+#
+# The legacy ``task framework:doctor`` surface (which used to dispatch the
+# python probe above) is redacted in favour of ``task doctor`` ->
+# ``.deft/core/run doctor``. The redacted shim MUST emit the canonical
+# phrase ``redacted use run doctor instead`` exactly. This is a
+# YAML-text assertion -- a true end-to-end shell-out would require
+# go-task to be available in the test environment, which we don't
+# guarantee.
+
+
+class TestFrameworkDoctorTaskRedaction:
+    """Verify ``tasks/framework.yml`` task ``doctor`` is the #1272 redaction shim."""
+
+    FRAMEWORK_TASKFILE = REPO_ROOT / "tasks" / "framework.yml"
+    REDACTION_PHRASE = "redacted use run doctor instead"
+
+    def test_framework_yml_doctor_task_emits_redaction_phrase(self):
+        """The framework:doctor task body MUST emit the canonical phrase."""
+        body = self.FRAMEWORK_TASKFILE.read_text(encoding="utf-8")
+        assert self.REDACTION_PHRASE in body, (
+            f"task framework:doctor MUST emit exactly "
+            f"'{self.REDACTION_PHRASE}' (#1272). tasks/framework.yml:\n{body}"
+        )
+
+    def test_framework_yml_doctor_task_no_longer_dispatches_python_probe(self):
+        """The redaction shim MUST NOT dispatch the legacy python probe."""
+        body = self.FRAMEWORK_TASKFILE.read_text(encoding="utf-8")
+        # The shim invokes a one-line ``echo`` / ``Write-Output``; the
+        # legacy probe invocation used ``scripts/framework_doctor.py``.
+        # Locate the ``doctor:`` task header, then inspect everything
+        # below it up to the next top-level task or EOF. Strip comment
+        # lines so the assertion is on the actual task body (the docstring
+        # comments correctly reference the legacy probe by name).
+        marker = "\n  doctor:\n"
+        assert marker in body, body
+        tail = body.split(marker, 1)[1]
+        non_comment = "\n".join(
+            line for line in tail.splitlines()
+            if not line.lstrip().startswith("#")
+        )
+        assert "framework_doctor.py" not in non_comment, (
+            "task framework:doctor MUST be redacted to a one-line shim "
+            "(#1272); the task body (excluding comments) must not invoke "
+            "scripts/framework_doctor.py."
+        )

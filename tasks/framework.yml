@@ -46,30 +46,28 @@ tasks:
         {{regexReplaceAll "(^|\\s)--force(\\s|$)" .CLI_ARGS " "}}
 
   doctor:
-    # #1046 PR-B AC-3: local install-integrity probe. Four checks:
-    # QUICK-START resolves, skill paths resolve, manifest agreement,
-    # install-path consistency. Three-state exit (0 clean / 1 drift /
-    # 2 config error). Pure stdlib via scripts/framework_doctor.py;
-    # mirrors the scripts/preflight_branch.py (#747) shape with the
-    # #814 UTF-8 self-reconfigure at main() entry. Read-only -- the
-    # probe NEVER mutates filesystem state. Mutation belongs to
-    # ``task upgrade``.
-    #
-    # Per ``conventions/task-caching.md`` (#574): the doctor task
-    # accepts user-facing flags (--json, --quiet, --project-root)
-    # forwarded via ``{{.CLI_ARGS}}`` and therefore MUST NOT declare
-    # ``sources:`` / ``generates:`` -- a cached cmds skip would silently
-    # swallow the flags.
-    desc: "Local install-integrity probe (#1046 PR-B AC-3) -- task framework:doctor [-- --json | --quiet | --project-root <path>]. Three-state exit: 0 clean / 1 drift / 2 config error."
+    # #1272: the legacy ``task framework:doctor`` surface is REDACTED.
+    # ``task doctor`` (root Taskfile.yml shim for ``.deft/core/run doctor``)
+    # is now the canonical doctor entry point and owns the install-integrity
+    # probe, the root Taskfile.yml include diagnostics, and the optional
+    # interactive repair path. This shim prints a single-line redaction
+    # notice and exits 0 so legacy callers do not crash, while operators are
+    # nudged at the canonical surface. The Python probe at
+    # ``scripts/framework_doctor.py`` is still exercised internally by the
+    # upgrade gate's ``_maybe_run_framework_doctor`` advisory; nothing about
+    # that pathway changes.
+    desc: "Deprecated doctor surface (#1272) -- prints redaction; use `task doctor` (or `.deft/core/run doctor`) instead."
     dir: '{{.USER_WORKING_DIR}}'
     env:
       PYTHONUTF8: "1"
     cmds:
-      # #1059: invoke Python through `uv --project "{{.DEFT_ROOT}}" run python`
-      # rather than a bare `python3`. See the #1059 comment on the
-      # `check-updates` task above for the full rationale -- in short, the
-      # bare `python3` form resolves to the Microsoft Store app-execution
-      # alias stub on Windows hosts and the wrapper exits 49 before the
-      # probe runs. The `uv` form mirrors every other tasks/*.yml file in
-      # the framework.
-      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/framework_doctor.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+      # Cross-platform redaction line. PowerShell on Windows resolves
+      # ``echo`` to ``Write-Output`` (preserves the literal quotes if any),
+      # so use the explicit ``Write-Output`` invocation. POSIX shells use
+      # ``echo`` which strips the double quotes around the single string
+      # argument. Both emit the canonical phrase exactly:
+      #     redacted use run doctor instead
+      - cmd: pwsh -NoProfile -Command "Write-Output 'redacted use run doctor instead'"
+        platforms: [windows]
+      - cmd: echo "redacted use run doctor instead"
+        platforms: [linux, darwin]

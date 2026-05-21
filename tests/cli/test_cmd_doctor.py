@@ -1,5 +1,5 @@
 """
-test_cmd_doctor.py -- Tests for cmd_doctor (#792).
+test_cmd_doctor.py -- Tests for cmd_doctor (#792, #1272).
 
 Covers:
   * `_check_uv_available` helper -- the shared uv-detection seam #793
@@ -13,17 +13,35 @@ Covers:
     warnings against the live framework checkout (locks the v0.20+
     canonical layout into a regression test) and refuses any pre-v0.20
     legacy entry.
+  * #1272 root Taskfile include diagnostics:
+      - missing root Taskfile.yml in a consumer project: diagnose + print
+        canonical snippet; default mode MUST NOT mutate filesystem state.
+      - existing root Taskfile.yml without the deft include: diagnose +
+        print snippet; doctor MUST NEVER mutate an existing user-owned
+        Taskfile.
+      - existing root Taskfile.yml WITH the deft include: ok.
+      - `--session` flag: diagnose-only; even when ``--fix`` is also
+        passed, MUST NOT prompt or write.
+      - `--fix` interactive consent: when stdin is a TTY AND the user
+        approves, the canonical snippet is written verbatim.
+      - `--fix` decline: when stdin is a TTY but the user declines, no
+        write.
+      - the deft framework repo itself (cwd has ``main.md`` and no
+        ``deft/``) skips the Taskfile diagnostic entirely.
 
 Sibling to `test_doctor.py` (the broad happy-path smoke test from
 Subphase 3.5 of the CLI regression suite). Author: Deft Directive
-agent (msadams) -- 2026-05-03.
+agent (msadams) -- 2026-05-03; #1272 coverage added 2026-05-21.
 
-Refs: #792, related #793.
+Refs: #792, #1272, related #793.
 """
 
 from __future__ import annotations
 
 import shutil
+from pathlib import Path
+
+import pytest
 
 
 def _make_fake_which(presence: dict[str, bool]):
@@ -184,3 +202,310 @@ def test_doctor_expected_dirs_drops_pre_v020_entries(
             "(#792 dropped it from expected_dirs). stdout:\n"
             f"{result.stdout}"
         )
+
+
+# ---------------------------------------------------------------------------
+# #1272 root Taskfile.yml include diagnostics
+# ---------------------------------------------------------------------------
+#
+# Helpers + fixtures for the consumer-project shape: a tmp directory the
+# test ``chdir``s into. Critically, we DO NOT create ``main.md`` at the
+# root -- the ``_running_inside_deft_repo`` heuristic would otherwise
+# short-circuit the include diagnostic to keep deft maintainers from
+# nagging on every doctor invocation against the framework checkout
+# itself.
+
+
+CANONICAL_INCLUDE_FRAGMENT = "taskfile: ./.deft/core/Taskfile.yml"
+
+# Sample of an existing user-owned Taskfile.yml that does NOT yet wire
+# in the deft framework. The test asserts doctor surfaces this state
+# and does NOT mutate the file.
+USER_TASKFILE_WITHOUT_INCLUDE = (
+    "version: '3'\n"
+    "\n"
+    "tasks:\n"
+    "  hello:\n"
+    "    cmds:\n"
+    "      - echo \"hi\"\n"
+)
+
+# Sample of a Taskfile that ALREADY includes deft -- doctor should report
+# the include as OK.
+USER_TASKFILE_WITH_INCLUDE = (
+    "version: '3'\n"
+    "\n"
+    "includes:\n"
+    "  deft:\n"
+    "    taskfile: ./.deft/core/Taskfile.yml\n"
+    "    optional: true\n"
+)
+
+
+@pytest.fixture
+def consumer_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Set up a tmp directory shaped like a consumer project (no ``main.md``).
+
+    The fixture chdirs into the tmp path so ``Path.cwd()`` inside
+    ``cmd_doctor`` resolves to the consumer-project shape, which is
+    what makes the ``_running_inside_deft_repo`` heuristic return False
+    and exercise the Taskfile-include diagnostic.
+    """
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
+
+
+def test_doctor_missing_taskfile_yml_diagnoses_with_snippet(
+    run_command, deft_run_module, monkeypatch, consumer_project
+):
+    """Missing root Taskfile.yml: diagnose + print canonical snippet; no mutation."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    monkeypatch.setattr(
+        deft_run_module.shutil,
+        "which",
+        _make_fake_which({"uv": True, "git": True}),
+    )
+
+    result = run_command("cmd_doctor", [])
+
+    assert "Root Taskfile.yml missing" in result.stdout, (
+        "cmd_doctor must surface the missing-Taskfile diagnostic for the "
+        "adoption-blocker shape (#1272). stdout:\n" + result.stdout
+    )
+    assert CANONICAL_INCLUDE_FRAGMENT in result.stdout, (
+        "Diagnostic MUST emit the canonical include snippet so the operator "
+        "can paste it without leaving the terminal. stdout:\n" + result.stdout
+    )
+    # Default mode (no --fix) MUST NOT mutate filesystem state.
+    assert not (consumer_project / "Taskfile.yml").exists(), (
+        "Default `run doctor` invocation MUST NOT create Taskfile.yml -- "
+        "only the interactive `--fix` path with explicit consent may write."
+    )
+    # The error must surface in the summary so the run exits non-zero.
+    assert result.return_code == 1, (
+        f"Missing Taskfile.yml is a doctor-detected error; expected rc=1, "
+        f"got {result.return_code}\n{result.stdout}"
+    )
+
+
+def test_doctor_existing_taskfile_without_include_diagnoses_no_mutation(
+    run_command, deft_run_module, monkeypatch, consumer_project
+):
+    """Existing root Taskfile.yml without the deft include: diagnose; never mutate."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    monkeypatch.setattr(
+        deft_run_module.shutil,
+        "which",
+        _make_fake_which({"uv": True, "git": True}),
+    )
+    taskfile = consumer_project / "Taskfile.yml"
+    taskfile.write_text(USER_TASKFILE_WITHOUT_INCLUDE, encoding="utf-8")
+    original_bytes = taskfile.read_bytes()
+
+    result = run_command("cmd_doctor", ["--fix"])
+
+    assert "does not include the deft framework" in result.stdout, (
+        "Doctor MUST surface the missing-include diagnostic when a root "
+        "Taskfile.yml exists but has no deft include. stdout:\n" + result.stdout
+    )
+    assert CANONICAL_INCLUDE_FRAGMENT in result.stdout, (
+        "The paste-ready snippet MUST be emitted so the operator can wire "
+        "the include without leaving the terminal. stdout:\n" + result.stdout
+    )
+    # The install-policy prohibition is load-bearing: even with --fix
+    # passed, doctor MUST NEVER mutate an existing user-owned Taskfile.
+    assert taskfile.read_bytes() == original_bytes, (
+        "Doctor MUST NEVER mutate an existing user-owned Taskfile.yml -- "
+        "even with `--fix` passed. The install policy in main.md is "
+        "explicit on this; doctor mirrors it."
+    )
+    assert result.return_code == 1
+
+
+def test_doctor_existing_taskfile_with_include_reports_ok(
+    run_command, deft_run_module, monkeypatch, consumer_project
+):
+    """Existing root Taskfile.yml WITH the deft include reports the diagnostic green."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    monkeypatch.setattr(
+        deft_run_module.shutil,
+        "which",
+        _make_fake_which({"uv": True, "git": True}),
+    )
+    (consumer_project / "Taskfile.yml").write_text(
+        USER_TASKFILE_WITH_INCLUDE, encoding="utf-8"
+    )
+
+    result = run_command("cmd_doctor", [])
+
+    assert "Root Taskfile.yml includes the deft framework" in result.stdout, (
+        "With the canonical include wired in, doctor MUST report it green. "
+        "stdout:\n" + result.stdout
+    )
+    assert "Root Taskfile.yml missing" not in result.stdout
+    assert "does not include the deft framework" not in result.stdout
+
+
+def test_doctor_session_mode_diagnoses_only_no_prompt_no_mutation(
+    run_command, deft_run_module, monkeypatch, consumer_project
+):
+    """--session never prompts and never mutates, even when --fix is also passed."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    monkeypatch.setattr(
+        deft_run_module.shutil,
+        "which",
+        _make_fake_which({"uv": True, "git": True}),
+    )
+
+    # Wire read_yn to a sentinel that raises if called. --session MUST
+    # never reach the prompt; if it does, the test surfaces the bug
+    # loudly rather than silently writing under a fake "yes".
+    def _explode(*_args, **_kwargs):
+        raise AssertionError(
+            "--session MUST NOT prompt for repair confirmation -- "
+            "session-safe mode is diagnose-only by contract (#1272)"
+        )
+
+    monkeypatch.setattr(deft_run_module, "read_yn", _explode)
+
+    result = run_command("cmd_doctor", ["--session", "--fix"])
+
+    # Diagnostic still surfaces.
+    assert "Root Taskfile.yml missing" in result.stdout
+    # No mutation.
+    assert not (consumer_project / "Taskfile.yml").exists(), (
+        "--session MUST NOT write any files. The Taskfile.yml was created "
+        "in a session-safe invocation, which violates the #1272 contract."
+    )
+
+
+def test_doctor_fix_with_consent_creates_canonical_taskfile(
+    run_command, deft_run_module, monkeypatch, consumer_project
+):
+    """--fix + TTY + explicit consent writes the canonical snippet verbatim."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    monkeypatch.setattr(
+        deft_run_module.shutil,
+        "which",
+        _make_fake_which({"uv": True, "git": True}),
+    )
+
+    # Fake TTY so the interactive repair gate opens.
+    class _FakeStdin:
+        @staticmethod
+        def isatty() -> bool:
+            return True
+
+    monkeypatch.setattr(deft_run_module.sys, "stdin", _FakeStdin())
+    # Operator approves.
+    monkeypatch.setattr(
+        deft_run_module, "read_yn", lambda *_args, **_kwargs: True
+    )
+
+    result = run_command("cmd_doctor", ["--fix"])
+
+    target = consumer_project / "Taskfile.yml"
+    assert target.is_file(), (
+        "Interactive --fix with explicit consent MUST create Taskfile.yml. "
+        f"stdout:\n{result.stdout}"
+    )
+    written = target.read_text(encoding="utf-8")
+    # Must match the canonical snippet byte-for-byte so the docs and the
+    # write path do not drift over time.
+    assert written == deft_run_module._TASKFILE_INCLUDE_SNIPPET
+    # Drift decrement: after a successful in-session repair, the summary
+    # should report success rather than 1 error.
+    assert "Wrote" in result.stdout
+
+
+def test_doctor_fix_decline_does_not_write(
+    run_command, deft_run_module, monkeypatch, consumer_project
+):
+    """--fix + TTY + decline leaves Taskfile.yml absent."""
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    monkeypatch.setattr(
+        deft_run_module.shutil,
+        "which",
+        _make_fake_which({"uv": True, "git": True}),
+    )
+
+    class _FakeStdin:
+        @staticmethod
+        def isatty() -> bool:
+            return True
+
+    monkeypatch.setattr(deft_run_module.sys, "stdin", _FakeStdin())
+    monkeypatch.setattr(
+        deft_run_module, "read_yn", lambda *_args, **_kwargs: False
+    )
+
+    result = run_command("cmd_doctor", ["--fix"])
+
+    assert not (consumer_project / "Taskfile.yml").exists(), (
+        "Decline at the --fix prompt MUST leave Taskfile.yml absent. "
+        f"stdout:\n{result.stdout}"
+    )
+    assert "Skipped" in result.stdout or "snippet above" in result.stdout
+
+
+def test_doctor_inside_deft_repo_skips_taskfile_check(
+    run_command, deft_run_module, monkeypatch, tmp_path
+):
+    """When invoked from inside the deft framework repo itself, skip the Taskfile diagnostic.
+
+    ``_running_inside_deft_repo`` returns True when ``main.md`` is
+    present at the project root AND no ``./deft`` subdir exists. Doctor
+    must skip the consumer-side include diagnostic in that case so
+    framework maintainers do not see spurious errors against the
+    framework's own Taskfile.yml.
+    """
+    (tmp_path / "main.md").write_text("# fake framework root\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+    monkeypatch.setattr(
+        deft_run_module.shutil,
+        "which",
+        _make_fake_which({"uv": True, "git": True}),
+    )
+
+    result = run_command("cmd_doctor", [])
+
+    assert "Skipping Taskfile include check" in result.stdout, (
+        "Inside the deft framework repo, doctor MUST emit the skip line so "
+        "maintainers see why the diagnostic is silent. stdout:\n"
+        + result.stdout
+    )
+    assert "Root Taskfile.yml missing" not in result.stdout, (
+        "Doctor MUST NOT diagnose the framework repo's own Taskfile state "
+        "as missing -- the framework's Taskfile.yml IS the surface."
+    )
+
+
+def test_classify_taskfile_include_recognises_legacy_deft_path(
+    deft_run_module, tmp_path
+):
+    """_classify_taskfile_include recognises both ``./.deft/core`` and ``./deft`` includes."""
+    legacy_form = (
+        "version: '3'\n"
+        "includes:\n"
+        "  deft:\n"
+        "    taskfile: ./deft/Taskfile.yml\n"
+        "    optional: true\n"
+    )
+    (tmp_path / "Taskfile.yml").write_text(legacy_form, encoding="utf-8")
+
+    assert deft_run_module._classify_taskfile_include(tmp_path) == "ok"
+
+
+def test_classify_taskfile_include_missing_file_status(deft_run_module, tmp_path):
+    """Missing root Taskfile.yml AND Taskfile.yaml -> missing-file."""
+    assert deft_run_module._classify_taskfile_include(tmp_path) == "missing-file"
+
+
+def test_classify_taskfile_include_yaml_extension(deft_run_module, tmp_path):
+    """Resolver accepts the ``.yaml`` spelling as well as ``.yml``."""
+    (tmp_path / "Taskfile.yaml").write_text(
+        "version: '3'\nincludes:\n  deft:\n    taskfile: ./.deft/core/Taskfile.yml\n",
+        encoding="utf-8",
+    )
+    assert deft_run_module._classify_taskfile_include(tmp_path) == "ok"
