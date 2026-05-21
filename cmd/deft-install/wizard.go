@@ -396,7 +396,16 @@ func (w *Wizard) askUpdate(deftDir string) (bool, error) {
 
 func (w *Wizard) confirmExit() bool {
 	w.printf("Are you sure you want to exit? [y/N]: ")
-	input, _ := w.readLine()
+	// An I/O error on the readLine here is treated as "do not exit" so the
+	// wizard remains responsive on EOF / piped-input corner cases; surface
+	// the error in debug mode rather than swallowing it entirely (#1281).
+	input, err := w.readLine()
+	if err != nil {
+		if w.debug {
+			w.printf("[debug] confirmExit readLine: %v\n", err)
+		}
+		return false
+	}
 	return strings.TrimSpace(strings.ToLower(input)) == "y"
 }
 
@@ -522,7 +531,10 @@ func CheckWritePermission(dir string) error {
 	tmp := filepath.Join(check, ".deft-install-write-test")
 	f, err := os.Create(tmp)
 	if err != nil {
-		return fmt.Errorf("no write permission on %s — try running as administrator", check)
+		// Wrap the underlying os.Create error so callers can match it
+		// with errors.Is (e.g. fs.ErrPermission) and tooling preserves
+		// the root cause for diagnostics (#1281).
+		return fmt.Errorf("no write permission on %s — try running as administrator: %w", check, err)
 	}
 	f.Close()
 	os.Remove(tmp)

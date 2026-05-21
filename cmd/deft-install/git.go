@@ -10,7 +10,22 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
+
+// installerHTTPTimeout bounds every HTTP call the installer makes against
+// GitHub release infrastructure (#1281). The default net/http.Client has no
+// timeout, so without this the installer can hang indefinitely if api.github
+// or objects.githubusercontent.com stalls mid-stream. 60s is generous enough
+// to allow the ~70-100 MB git-for-windows installer download to complete on a
+// modest broadband link while still bounding the worst-case stall.
+const installerHTTPTimeout = 60 * time.Second
+
+// installerHTTPClient is the shared *http.Client used by every installer HTTP
+// call. It is a var (not a const-shaped struct literal at call site) so tests
+// or future flag-driven overrides can swap it out without rewriting call
+// sites; the default value is what production uses.
+var installerHTTPClient = &http.Client{Timeout: installerHTTPTimeout}
 
 // Function variables — replaceable in tests.
 var (
@@ -120,7 +135,7 @@ func installGitWindows(w *Wizard) error {
 func downloadGitInstaller(w *Wizard) error {
 	w.printf("Fetching latest git release info...\n")
 
-	resp, err := http.Get("https://api.github.com/repos/git-for-windows/git/releases/latest")
+	resp, err := installerHTTPClient.Get("https://api.github.com/repos/git-for-windows/git/releases/latest")
 	if err != nil {
 		return fmt.Errorf("failed to check latest git version: %w", err)
 	}
@@ -150,7 +165,7 @@ func downloadGitInstaller(w *Wizard) error {
 	}
 
 	w.printf("Downloading %s ...\n", dlURL)
-	resp2, err := http.Get(dlURL)
+	resp2, err := installerHTTPClient.Get(dlURL)
 	if err != nil {
 		return fmt.Errorf("download failed: %w", err)
 	}
