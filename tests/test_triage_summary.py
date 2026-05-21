@@ -106,6 +106,56 @@ def _set_wip_cap(project_root: Path, cap: int) -> None:
     )
 
 
+def _set_triage_scope(
+    project_root: Path, scope: list[dict[str, Any]] | None
+) -> None:
+    """Write ``plan.policy.triageScope`` on PROJECT-DEFINITION (#1270 helper).
+
+    Passing ``None`` writes a PROJECT-DEFINITION with no ``policy.triageScope``
+    key (i.e. the framework default applies). Passing a list writes that
+    list verbatim. Used by the #1270 discrepancy-line tests to flip
+    between the "configured" and "not configured" wording variants.
+    """
+    pd = project_root / triage_summary.PROJECT_DEFINITION_REL_PATH
+    pd.parent.mkdir(parents=True, exist_ok=True)
+    policy: dict[str, Any] = {}
+    if scope is not None:
+        policy["triageScope"] = scope
+    pd.write_text(
+        json.dumps(
+            {
+                "vBRIEFInfo": {"version": "0.6"},
+                "plan": {"policy": policy},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def _write_active_vbrief(
+    project_root: Path, name: str, *, status: str = "running"
+) -> Path:
+    """Write a minimal ``vbrief/active/<name>.vbrief.json`` (#1270 helper).
+
+    The #1270 filesystem-truth in-flight counter only inspects
+    ``plan.status``; the rest of the vBRIEF shape is irrelevant for the
+    count so we keep the fixture intentionally small.
+    """
+    folder = project_root / "vbrief" / "active"
+    folder.mkdir(parents=True, exist_ok=True)
+    target = folder / f"{name}.vbrief.json"
+    target.write_text(
+        json.dumps(
+            {
+                "vBRIEFInfo": {"version": "0.6"},
+                "plan": {"status": status, "title": name},
+            }
+        ),
+        encoding="utf-8",
+    )
+    return target
+
+
 # ---------------------------------------------------------------------------
 # Empty / missing cache contract
 # ---------------------------------------------------------------------------
@@ -137,6 +187,16 @@ def test_present_but_empty_cache_dir_emits_empty_cache_prompt(tmp_path: Path) ->
 
 
 def test_populated_cache_zero_wip_no_warning(tmp_path: Path) -> None:
+    """Populated cache, 0 WIP, audit-log accepts -- but no active/ vBRIEFs.
+
+    Post-#1270 the headline ``in-flight`` is filesystem-truth, so the 2
+    audit-log ``accept`` decisions surface only via
+    :attr:`SummaryResult.in_flight_cache_scoped` (the divergence-detection
+    field). Filesystem count is 0 because no active/ vBRIEFs exist on
+    tmp_path. The two counts diverge -- the discrepancy line therefore
+    appears in :func:`format_summary`. :func:`format_one_liner` still
+    returns only the headline (single physical line).
+    """
     cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
     _make_cached_issue(cache_root, "deftai/directive", 100)
     _make_cached_issue(cache_root, "deftai/directive", 101)
@@ -165,14 +225,20 @@ def test_populated_cache_zero_wip_no_warning(tmp_path: Path) -> None:
     result = triage_summary.compute_summary(tmp_path)
     assert result.cache_empty is False
     assert result.untriaged == 1
-    assert result.in_flight == 2
+    # #1270: headline `in_flight` == filesystem count (0 active/ vBRIEFs
+    # on tmp_path); the legacy audit-log-derived count (2 accepts) is
+    # preserved on `in_flight_cache_scoped` for divergence detection.
+    assert result.in_flight == 0
+    assert result.in_flight_filesystem == 0
+    assert result.in_flight_cache_scoped == 2
+    assert result.triage_scope_configured is False
     assert result.stale_defer == 0
     assert result.wip_count == 0
     assert result.wip_cap == triage_summary.DEFAULT_WIP_CAP
 
     line = triage_summary.format_one_liner(result)
     assert line.startswith("[triage] 1 untriaged")
-    assert "2 in-flight" in line
+    assert "0 in-flight" in line  # filesystem-truth headline
     assert f"WIP 0/{triage_summary.DEFAULT_WIP_CAP}" in line
     # Stale-defer suppressed when count is 0.
     assert "stale-defer" not in line
@@ -552,6 +618,14 @@ def test_cli_json_mode_emits_record(
 
 
 def test_audit_log_tolerates_malformed_lines(tmp_path: Path) -> None:
+    """Malformed audit-log lines must be skipped while the legitimate
+    ``accept`` still classifies the cached issue.
+
+    Post-#1270 the headline ``in_flight`` is filesystem-truth, so the
+    audit-log-derived count surfaces via
+    :attr:`SummaryResult.in_flight_cache_scoped` -- that's the field
+    this test pins.
+    """
     cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
     _make_cached_issue(cache_root, "deftai/directive", 1000)
     log = tmp_path / triage_summary.CANDIDATES_LOG_REL_PATH
@@ -570,7 +644,7 @@ def test_audit_log_tolerates_malformed_lines(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     result = triage_summary.compute_summary(tmp_path)
-    assert result.in_flight == 1
+    assert result.in_flight_cache_scoped == 1
     assert result.untriaged == 0
 
 
@@ -754,3 +828,378 @@ def test_is_pos_int_dir_predicate_rejects_unicode_digit(tmp_path: Path) -> None:
     # the regression scenario this test guards.
     assert "\u00b2".isdigit() is True
     assert "\u00b2".isdecimal() is False
+
+
+# ---------------------------------------------------------------------------
+# #1270: filesystem-truth in-flight + scope discrepancy line
+# ---------------------------------------------------------------------------
+
+
+def test_count_filesystem_in_flight_counts_only_running_status(
+    tmp_path: Path,
+) -> None:
+    """Only ``plan.status == "running"`` active/ vBRIEFs count."""
+    _write_active_vbrief(tmp_path, "a-running", status="running")
+    _write_active_vbrief(tmp_path, "b-running", status="running")
+    _write_active_vbrief(tmp_path, "c-done", status="done")
+    _write_active_vbrief(tmp_path, "d-cancelled", status="cancelled")
+    _write_active_vbrief(tmp_path, "e-blocked", status="blocked")
+    assert triage_summary.count_filesystem_in_flight(tmp_path) == 2
+
+
+def test_count_filesystem_in_flight_missing_folder_returns_zero(
+    tmp_path: Path,
+) -> None:
+    """A fresh consumer with no ``vbrief/active/`` folder contributes 0."""
+    assert triage_summary.count_filesystem_in_flight(tmp_path) == 0
+
+
+def test_count_filesystem_in_flight_tolerates_malformed_vbriefs(
+    tmp_path: Path,
+) -> None:
+    """Corrupt vBRIEFs MUST NOT crash the ritual; they're just skipped."""
+    folder = tmp_path / "vbrief" / "active"
+    folder.mkdir(parents=True)
+    # Truncated JSON.
+    (folder / "a-torn.vbrief.json").write_text(
+        '{"plan": {"status":', encoding="utf-8"
+    )
+    # Non-dict top level.
+    (folder / "b-list.vbrief.json").write_text("[]", encoding="utf-8")
+    # Missing plan key.
+    (folder / "c-no-plan.vbrief.json").write_text(
+        json.dumps({"vBRIEFInfo": {}}), encoding="utf-8"
+    )
+    # plan.status is a non-string.
+    (folder / "d-status-int.vbrief.json").write_text(
+        json.dumps({"plan": {"status": 42}}), encoding="utf-8"
+    )
+    # Legit running vBRIEF -- this is the only one that counts.
+    _write_active_vbrief(tmp_path, "e-good", status="running")
+    # Non-.vbrief.json file in the folder -- ignored.
+    (folder / "README.md").write_text("scratch", encoding="utf-8")
+    assert triage_summary.count_filesystem_in_flight(tmp_path) == 1
+
+
+def test_is_triage_scope_explicitly_configured_true_for_non_empty_list(
+    tmp_path: Path,
+) -> None:
+    """A non-empty list of dict rules is the "configured" signal."""
+    _set_triage_scope(tmp_path, [{"rule": "labels", "any-of": ["phase-1"]}])
+    assert (
+        triage_summary._is_triage_scope_explicitly_configured(tmp_path) is True
+    )
+
+
+def test_is_triage_scope_explicitly_configured_false_for_default(
+    tmp_path: Path,
+) -> None:
+    """Absent / empty / non-list / list-of-non-dicts all collapse to False.
+
+    The framework default (``[{"rule": "all-open"}]`` applied by
+    :func:`scripts.triage_scope.resolve_scope_rules` when the field is
+    unset) is treated as "not configured" -- the operator hasn't
+    explicitly tightened scope. An explicitly-written ``all-open``
+    rule, by contrast, is treated as configured because the operator
+    wrote it on purpose.
+    """
+    # Case 1: no PROJECT-DEFINITION at all.
+    assert (
+        triage_summary._is_triage_scope_explicitly_configured(tmp_path) is False
+    )
+
+    # Case 2: PROJECT-DEFINITION exists but no triageScope field.
+    _set_triage_scope(tmp_path, None)
+    assert (
+        triage_summary._is_triage_scope_explicitly_configured(tmp_path) is False
+    )
+
+    # Case 3: triageScope is an empty list.
+    _set_triage_scope(tmp_path, [])
+    assert (
+        triage_summary._is_triage_scope_explicitly_configured(tmp_path) is False
+    )
+
+    # Case 4: triageScope is a list of non-dicts (malformed config).
+    pd = tmp_path / triage_summary.PROJECT_DEFINITION_REL_PATH
+    pd.write_text(
+        json.dumps(
+            {
+                "vBRIEFInfo": {"version": "0.6"},
+                "plan": {"policy": {"triageScope": ["all-open", 42]}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert (
+        triage_summary._is_triage_scope_explicitly_configured(tmp_path) is False
+    )
+
+
+def test_is_triage_scope_explicitly_configured_tolerates_malformed_json(
+    tmp_path: Path,
+) -> None:
+    """A corrupt PROJECT-DEFINITION must not crash the ritual."""
+    pd = tmp_path / triage_summary.PROJECT_DEFINITION_REL_PATH
+    pd.parent.mkdir(parents=True, exist_ok=True)
+    pd.write_text("{not json", encoding="utf-8")
+    assert (
+        triage_summary._is_triage_scope_explicitly_configured(tmp_path) is False
+    )
+
+
+def test_compute_summary_in_flight_is_filesystem_truth(tmp_path: Path) -> None:
+    """#1270: the headline ``in_flight`` is the filesystem-truth count.
+
+    Setup: 3 cached issues with audit-log accepts on 2 of them (would
+    yield ``in_flight=2`` under the legacy contract). Filesystem has 1
+    active/ vBRIEF with ``status=="running"``. Headline must report 1,
+    cache-scoped must report 2.
+    """
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 600)
+    _make_cached_issue(cache_root, "deftai/directive", 601)
+    _make_cached_issue(cache_root, "deftai/directive", 602)
+    _write_audit_log(
+        tmp_path,
+        [
+            _make_audit_entry(
+                "deftai/directive", 600, "accept",
+                decision_id="66666666-6666-6666-6666-666666666600",
+            ),
+            _make_audit_entry(
+                "deftai/directive", 601, "accept",
+                decision_id="66666666-6666-6666-6666-666666666601",
+            ),
+        ],
+    )
+    _write_active_vbrief(tmp_path, "only-running", status="running")
+
+    result = triage_summary.compute_summary(tmp_path)
+    assert result.in_flight == 1               # filesystem-truth headline
+    assert result.in_flight_filesystem == 1
+    assert result.in_flight_cache_scoped == 2  # legacy audit-log count
+
+
+def test_format_scope_discrepancy_line_none_when_aligned() -> None:
+    """Aligned counts -> no second line emitted."""
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=4,
+        stale_defer=0,
+        in_flight=3,
+        wip_count=3,
+        wip_cap=10,
+        in_flight_filesystem=3,
+        in_flight_cache_scoped=3,
+        triage_scope_configured=True,
+    )
+    assert triage_summary.format_scope_discrepancy_line(result) is None
+
+
+def test_format_scope_discrepancy_line_none_on_cache_empty() -> None:
+    """Cache-empty -> no second line (headline switches to EMPTY_CACHE_LINE)."""
+    result = triage_summary.SummaryResult(
+        cache_empty=True,
+        untriaged=0,
+        stale_defer=0,
+        in_flight=2,
+        wip_count=0,
+        wip_cap=10,
+        in_flight_filesystem=2,
+        in_flight_cache_scoped=0,
+        triage_scope_configured=False,
+    )
+    assert triage_summary.format_scope_discrepancy_line(result) is None
+
+
+def test_format_scope_discrepancy_line_configured_wording() -> None:
+    """Configured scope -> "outside plan.policy.triageScope[]" wording."""
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=4,
+        stale_defer=0,
+        in_flight=3,
+        wip_count=3,
+        wip_cap=10,
+        in_flight_filesystem=3,
+        in_flight_cache_scoped=2,
+        triage_scope_configured=True,
+    )
+    line = triage_summary.format_scope_discrepancy_line(result)
+    assert line is not None
+    assert line == (
+        "[triage:scope] 1 in-flight outside "
+        "plan.policy.triageScope[] (uncounted in queue ranking)"
+    )
+
+
+def test_format_scope_discrepancy_line_not_configured_wording() -> None:
+    """Default / empty scope -> "not configured" wording."""
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=359,
+        stale_defer=0,
+        in_flight=3,
+        wip_count=3,
+        wip_cap=10,
+        in_flight_filesystem=3,
+        in_flight_cache_scoped=38,
+        triage_scope_configured=False,
+    )
+    line = triage_summary.format_scope_discrepancy_line(result)
+    assert line is not None
+    assert line == (
+        "[triage:scope] 35 in-flight; "
+        "plan.policy.triageScope[] not configured "
+        "(uncounted in queue ranking)"
+    )
+
+
+def test_format_scope_discrepancy_line_uses_absolute_delta() -> None:
+    """The delta is the absolute value -- direction agnostic.
+
+    Either side (filesystem > cache or cache > filesystem) surfaces as
+    a positive ``N``; the operator can investigate further from there.
+    """
+    # filesystem(5) > cache(2): delta = 3
+    fs_high = triage_summary.SummaryResult(
+        cache_empty=False, untriaged=0, stale_defer=0, in_flight=5,
+        wip_count=0, wip_cap=10,
+        in_flight_filesystem=5, in_flight_cache_scoped=2,
+        triage_scope_configured=True,
+    )
+    # cache(38) > filesystem(3): delta = 35
+    cache_high = triage_summary.SummaryResult(
+        cache_empty=False, untriaged=0, stale_defer=0, in_flight=3,
+        wip_count=0, wip_cap=10,
+        in_flight_filesystem=3, in_flight_cache_scoped=38,
+        triage_scope_configured=True,
+    )
+    fs_line = triage_summary.format_scope_discrepancy_line(fs_high)
+    cache_line = triage_summary.format_scope_discrepancy_line(cache_high)
+    assert fs_line is not None and "3 in-flight outside" in fs_line
+    assert cache_line is not None and "35 in-flight outside" in cache_line
+
+
+def test_format_summary_appends_discrepancy_line_when_diverged() -> None:
+    """``format_summary`` returns ``headline\\n[triage:scope] ...`` on divergence."""
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=359,
+        stale_defer=0,
+        in_flight=3,
+        wip_count=3,
+        wip_cap=10,
+        in_flight_filesystem=3,
+        in_flight_cache_scoped=38,
+        triage_scope_configured=False,
+    )
+    full = triage_summary.format_summary(result)
+    lines = full.split("\n")
+    assert len(lines) == 2
+    assert lines[0].startswith("[triage] 359 untriaged")
+    assert "3 in-flight" in lines[0]
+    assert lines[1].startswith("[triage:scope] 35 in-flight")
+    assert "not configured" in lines[1]
+
+
+def test_format_summary_single_line_when_aligned() -> None:
+    """Aligned counts -> ``format_summary`` returns just the headline."""
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=4,
+        stale_defer=0,
+        in_flight=2,
+        wip_count=1,
+        wip_cap=10,
+        in_flight_filesystem=2,
+        in_flight_cache_scoped=2,
+        triage_scope_configured=True,
+    )
+    full = triage_summary.format_summary(result)
+    assert "\n" not in full
+    assert "[triage:scope]" not in full
+
+
+def test_format_summary_single_line_when_cache_empty() -> None:
+    """Cache-empty headline always single-line, no discrepancy line."""
+    result = triage_summary.SummaryResult(
+        cache_empty=True,
+        untriaged=0,
+        stale_defer=0,
+        in_flight=2,
+        wip_count=0,
+        wip_cap=10,
+        in_flight_filesystem=2,
+        in_flight_cache_scoped=0,
+        triage_scope_configured=False,
+    )
+    full = triage_summary.format_summary(result)
+    assert full == triage_summary.EMPTY_CACHE_LINE
+    assert "\n" not in full
+
+
+def test_compute_summary_configured_scope_emits_configured_wording(
+    tmp_path: Path,
+) -> None:
+    """End-to-end: a configured scope + divergence -> "outside" wording."""
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, "deftai/directive", 700)
+    _write_audit_log(
+        tmp_path,
+        [
+            _make_audit_entry(
+                "deftai/directive", 700, "accept",
+                decision_id="77777777-7777-7777-7777-777777777700",
+            ),
+        ],
+    )
+    _set_triage_scope(tmp_path, [{"rule": "labels", "any-of": ["phase-1"]}])
+    _write_active_vbrief(tmp_path, "one-running", status="running")
+    _write_active_vbrief(tmp_path, "two-running", status="running")
+
+    result = triage_summary.compute_summary(tmp_path)
+    assert result.triage_scope_configured is True
+    assert result.in_flight_filesystem == 2
+    assert result.in_flight_cache_scoped == 1
+    full = triage_summary.format_summary(result)
+    assert "outside plan.policy.triageScope[]" in full
+    assert "not configured" not in full
+
+
+def test_to_record_includes_new_in_flight_fields() -> None:
+    """#1270 dataclass fields are persisted in the history JSONL record."""
+    result = triage_summary.SummaryResult(
+        cache_empty=False,
+        untriaged=10,
+        stale_defer=0,
+        in_flight=3,
+        wip_count=3,
+        wip_cap=10,
+        in_flight_filesystem=3,
+        in_flight_cache_scoped=38,
+        triage_scope_configured=True,
+    )
+    rec = result.to_record(emitted_at="2026-05-21T12:00:00Z", line="[triage] ...")
+    assert rec["in_flight_filesystem"] == 3
+    assert rec["in_flight_cache_scoped"] == 38
+    assert rec["triage_scope_configured"] is True
+    # The original alias survives.
+    assert rec["in_flight"] == 3
+
+
+def test_to_record_defaults_for_pre_1270_constructors() -> None:
+    """Constructors that omit the #1270 fields still produce a record."""
+    result = triage_summary.SummaryResult(
+        cache_empty=True,
+        untriaged=0,
+        stale_defer=0,
+        in_flight=0,
+        wip_count=0,
+        wip_cap=10,
+    )
+    rec = result.to_record(emitted_at="2026-05-21T12:00:00Z", line="...")
+    assert rec["in_flight_filesystem"] == 0
+    assert rec["in_flight_cache_scoped"] == 0
+    assert rec["triage_scope_configured"] is False

@@ -118,6 +118,20 @@ EMPTY_CACHE_LINE: str = "[triage] cache empty -- run task triage:bootstrap"
 #: D4 / #1124's `pending/ + active/` cap target.
 WIP_LIFECYCLE_DIRS: tuple[str, ...] = ("pending", "active")
 
+#: Lifecycle folder whose ``plan.status == "running"`` vBRIEFs are
+#: counted as the *filesystem-truth* in-flight set (#1270). The active/
+#: folder is the single source of truth for activated work; the
+#: audit-log decision count (``IN_FLIGHT_DECISIONS``) below is retained
+#: only for divergence detection vs. the cache-scoped view.
+FILESYSTEM_IN_FLIGHT_FOLDER: str = "active"
+
+#: ``plan.status`` value that classifies an active/ vBRIEF as in-flight
+#: under the #1270 filesystem-truth contract. The activation verb
+#: (``task vbrief:activate``) flips this field to ``running`` when it
+#: moves a scope into ``vbrief/active/``; any other status (``done``,
+#: ``cancelled``, ``blocked``) MUST NOT count toward the headline.
+FILESYSTEM_IN_FLIGHT_STATUS: str = "running"
+
 #: Glyph appended when the WIP count meets-or-exceeds the cap. Plain
 #: U+26A0 (no variation selector) so the byte width matches the
 #: 120-char contract on every renderer.
@@ -171,6 +185,20 @@ class SummaryResult:
     would join the cache if every currently-detected unsubscribed
     label/milestone were opted into. Suppressed from the one-liner
     when zero; surfaced as ``[scope-drift] N`` when positive.
+
+    ``in_flight`` (#1270) is the *filesystem-truth* count: live
+    ``vbrief/active/*.vbrief.json`` files with ``plan.status ==
+    "running"``. It mirrors :attr:`in_flight_filesystem` and is kept
+    under the historical name so existing call-sites / history
+    records / tests stay green.  :attr:`in_flight_cache_scoped` carries
+    the legacy audit-log-derived count (cached issues whose latest
+    decision is ``accept``) -- retained only so the renderer can
+    detect divergence between the cache view and the filesystem and
+    surface a ``[triage:scope]`` line. :attr:`triage_scope_configured`
+    discriminates the two discrepancy-line variants -- ``True`` means
+    the operator has set a non-empty ``plan.policy.triageScope[]``;
+    ``False`` means the framework default (``[{"rule":"all-open"}]``)
+    is in effect (or no PROJECT-DEFINITION exists).
     """
 
     cache_empty: bool
@@ -189,6 +217,22 @@ class SummaryResult:
     #: backward compatibility with pre-D14 callers / tests that
     #: construct :class:`SummaryResult` directly.
     scope_drift: int = 0
+    #: #1270: filesystem-truth in-flight count (live
+    #: ``vbrief/active/*.vbrief.json`` with ``plan.status == "running"``).
+    #: Defaults to 0 so pre-#1270 :class:`SummaryResult` constructors
+    #: in existing tests continue to work; production callers go
+    #: through :func:`compute_summary` which always sets this.
+    in_flight_filesystem: int = 0
+    #: #1270: legacy audit-log-derived in-flight count (cached issues
+    #: with latest decision ``accept``). Used only for divergence
+    #: detection against :attr:`in_flight_filesystem`.
+    in_flight_cache_scoped: int = 0
+    #: #1270: True iff ``plan.policy.triageScope`` is a non-empty list
+    #: of dict rules on PROJECT-DEFINITION (i.e. the consumer has
+    #: opted past the framework ``all-open`` default). Discriminates
+    #: the ``outside scope`` vs ``not configured`` discrepancy-line
+    #: variant.
+    triage_scope_configured: bool = False
 
     def to_record(self, *, emitted_at: str, line: str) -> dict[str, Any]:
         """Render as the ``summary-history.jsonl`` record shape."""
@@ -200,6 +244,9 @@ class SummaryResult:
             "untriaged": self.untriaged,
             "stale_defer": self.stale_defer,
             "in_flight": self.in_flight,
+            "in_flight_filesystem": self.in_flight_filesystem,
+            "in_flight_cache_scoped": self.in_flight_cache_scoped,
+            "triage_scope_configured": self.triage_scope_configured,
             "wip_count": self.wip_count,
             "wip_cap": self.wip_cap,
             "repos": list(self.repos),
@@ -353,6 +400,96 @@ def count_vbrief_wip(project_root: Path) -> int:
     return total
 
 
+def count_filesystem_in_flight(project_root: Path) -> int:
+    """Count *filesystem-truth* in-flight vBRIEFs (#1270).
+
+    Walks ``vbrief/active/*.vbrief.json``, parses each, and counts
+    those whose ``plan.status`` equals
+    :data:`FILESYSTEM_IN_FLIGHT_STATUS` (``"running"``). Tolerant of:
+
+    * Missing ``vbrief/active/`` folder -- contributes 0.
+    * Malformed JSON files -- skipped (per the D2 "never crash the
+      ritual" contract; mirrors :func:`read_audit_log`).
+    * Files where ``plan`` / ``plan.status`` is absent or a non-string
+      -- counted as NOT running (excluded from the total).
+    * Non-``.vbrief.json`` files in the folder -- ignored (same
+      sidecar-tolerance as :func:`count_vbrief_wip`).
+
+    This is the new primary source of truth for the ritual's
+    ``in-flight`` headline. The legacy audit-log-derived count
+    (cached issues with latest decision ``accept``) is retained in
+    :func:`compute_summary` for divergence detection only.
+    """
+    folder = project_root / "vbrief" / FILESYSTEM_IN_FLIGHT_FOLDER
+    if not folder.is_dir():
+        return 0
+    total = 0
+    for child in folder.iterdir():
+        if not (child.is_file() and child.name.endswith(".vbrief.json")):
+            continue
+        # The whole parse is wrapped so a corrupt vBRIEF (torn write,
+        # bad encoding, OS-level read refusal) does not crash the
+        # ritual. The cost of a missed count is far less than the cost
+        # of a session-start exception.
+        with contextlib.suppress(Exception):
+            data = json.loads(child.read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                continue
+            plan = data.get("plan")
+            if not isinstance(plan, dict):
+                continue
+            status = plan.get("status")
+            if isinstance(status, str) and status == FILESYSTEM_IN_FLIGHT_STATUS:
+                total += 1
+    return total
+
+
+def _is_triage_scope_explicitly_configured(project_root: Path) -> bool:
+    """Return ``True`` iff ``plan.policy.triageScope`` is a non-empty
+    list of dict rules on PROJECT-DEFINITION.
+
+    Discriminator for the #1270 discrepancy-line variant:
+
+    * ``True``  -> ``[triage:scope] N in-flight outside
+      plan.policy.triageScope[] (uncounted in queue ranking)``.
+    * ``False`` -> ``[triage:scope] N in-flight; plan.policy.triageScope[]
+      not configured (uncounted in queue ranking)``.
+
+    The framework default (``[{"rule": "all-open"}]``) and the absent /
+    empty / malformed cases all surface as "not configured" -- the
+    operator hasn't tightened scope, so the discrepancy line nudges
+    them toward configuring it rather than implying their explicit
+    config is wrong.
+
+    Tolerant of every failure mode (missing file, malformed JSON,
+    non-dict shapes) -- a config-read failure must NOT crash the
+    ritual; we fall back to ``False`` so the "not configured" wording
+    fires (the conservative reading).
+    """
+    path = project_root / PROJECT_DEFINITION_REL_PATH
+    if not path.is_file():
+        return False
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    if not isinstance(data, dict):
+        return False
+    plan = data.get("plan")
+    if not isinstance(plan, dict):
+        return False
+    policy = plan.get("policy")
+    if not isinstance(policy, dict):
+        return False
+    scope = policy.get("triageScope")
+    if not isinstance(scope, list) or not scope:
+        return False
+    # At least one rule must be a dict for the field to count as
+    # "configured" -- a list of non-dicts is malformed config and
+    # collapses to the same "not configured" path.
+    return any(isinstance(rule, dict) for rule in scope)
+
+
 def resolve_wip_cap(project_root: Path) -> int:
     """Read ``plan.policy.wipCap`` from PROJECT-DEFINITION; fall back to the framework default.
 
@@ -405,26 +542,39 @@ def compute_summary(
     repos = sorted({repo for repo, _n in cached})
     wip_cap = resolve_wip_cap(project_root)
     wip_count = count_vbrief_wip(project_root)
+    # #1270: the filesystem-truth in-flight count is the new headline
+    # source. Computed unconditionally (even on empty cache) so a
+    # consumer who has activated work before bootstrapping the cache
+    # still sees their actual WIP reflected in observability records.
+    in_flight_filesystem = count_filesystem_in_flight(project_root)
+    triage_scope_configured = _is_triage_scope_explicitly_configured(project_root)
 
     if not cached:
-        # Cache empty -- ALL numeric fields are zero, the discriminator
-        # is the boolean. Callers MUST render the empty-cache prompt.
+        # Cache empty -- the renderer emits the canonical empty-cache
+        # prompt regardless of the numeric counts. We still surface
+        # the filesystem count via :attr:`in_flight_filesystem` and
+        # :attr:`in_flight` so downstream observability / JSON
+        # consumers see truthful values; ``in_flight_cache_scoped``
+        # stays at 0 because there's no cache view to disagree with.
         return SummaryResult(
             cache_empty=True,
             untriaged=0,
             stale_defer=0,
-            in_flight=0,
+            in_flight=in_flight_filesystem,
             wip_count=wip_count,
             wip_cap=wip_cap,
             repos=tuple(repos[:8]),
             scope_drift=0,
+            in_flight_filesystem=in_flight_filesystem,
+            in_flight_cache_scoped=0,
+            triage_scope_configured=triage_scope_configured,
         )
 
     entries = read_audit_log(resolved_log_path)
     decisions = latest_decisions(entries)
 
     untriaged = 0
-    in_flight = 0
+    in_flight_cache_scoped = 0
     stale_defer = 0
     for repo, issue_number in cached:
         decision = decisions.get((repo, issue_number))
@@ -434,7 +584,11 @@ def compute_summary(
             # counted in the untriaged bucket.
             untriaged += 1
         elif decision in IN_FLIGHT_DECISIONS:
-            in_flight += 1
+            # #1270: this count is now the *cache-scoped* view, used
+            # only for divergence detection against the
+            # filesystem-truth count above. The headline
+            # :attr:`in_flight` is filesystem-truth.
+            in_flight_cache_scoped += 1
         if decision in STALE_DEFER_DECISIONS:
             # D3 (#1123): cached issues whose latest decision is
             # ``resume-eligible`` ARE the count the one-liner surfaces.
@@ -449,11 +603,17 @@ def compute_summary(
         cache_empty=False,
         untriaged=untriaged,
         stale_defer=stale_defer,
-        in_flight=in_flight,
+        # #1270: ``in_flight`` is now an alias for the filesystem-truth
+        # count. The cache-scoped count surfaces only via
+        # :attr:`in_flight_cache_scoped` and the discrepancy line.
+        in_flight=in_flight_filesystem,
         wip_count=wip_count,
         wip_cap=wip_cap,
         repos=tuple(repos[:8]),
         scope_drift=scope_drift,
+        in_flight_filesystem=in_flight_filesystem,
+        in_flight_cache_scoped=in_flight_cache_scoped,
+        triage_scope_configured=triage_scope_configured,
     )
 
 
@@ -552,6 +712,66 @@ def format_one_liner(result: SummaryResult, *, max_chars: int = MAX_LINE_CHARS) 
             return candidate
 
     return _truncate(candidate, max_chars)
+
+
+def format_scope_discrepancy_line(result: SummaryResult) -> str | None:
+    """Return the ``[triage:scope]`` discrepancy line, or ``None`` if aligned.
+
+    Emitted when the filesystem-truth in-flight count diverges from the
+    cache-scoped audit-log count (#1270). Two wording variants -- the
+    canonical strings are defined inline in the function body below:
+
+    * ``triage_scope_configured = True`` -> ``outside
+      plan.policy.triageScope[]`` wording (operator has set a non-empty
+      ``plan.policy.triageScope[]``).
+    * ``triage_scope_configured = False`` -> ``not configured`` wording
+      (framework default ``all-open`` OR absent / empty / malformed
+      config).
+
+    ``N`` is the *absolute* delta between the two counts. Returns
+    ``None`` (no second line) when the counts agree -- the common case
+    when scope is aligned. Cache-empty summaries also return ``None``
+    because the headline switches to ``EMPTY_CACHE_LINE`` and the
+    discrepancy semantics no longer apply.
+    """
+    if result.cache_empty:
+        return None
+    delta = abs(result.in_flight_filesystem - result.in_flight_cache_scoped)
+    if delta == 0:
+        return None
+    if result.triage_scope_configured:
+        return (
+            f"[triage:scope] {delta} in-flight outside "
+            "plan.policy.triageScope[] (uncounted in queue ranking)"
+        )
+    return (
+        f"[triage:scope] {delta} in-flight; "
+        "plan.policy.triageScope[] not configured "
+        "(uncounted in queue ranking)"
+    )
+
+
+def format_summary(result: SummaryResult, *, max_chars: int = MAX_LINE_CHARS) -> str:
+    """Render the full (possibly multi-line) summary string.
+
+    Composes the headline one-liner (delegated to
+    :func:`format_one_liner`, which retains the original
+    single-physical-line + 120-char-cap contract from #1122) plus,
+    when applicable, a second physical line produced by
+    :func:`format_scope_discrepancy_line` (#1270).
+
+    The 120-char cap is applied per physical line, not to the combined
+    string -- the discrepancy line is informational and intentionally
+    longer than the cap would allow when collapsed into one line. CLI
+    callers print this verbatim; the history-JSONL ``line`` field also
+    receives the full multi-line content so offline replay sees the
+    same view the operator did.
+    """
+    headline = format_one_liner(result, max_chars=max_chars)
+    extra = format_scope_discrepancy_line(result)
+    if extra is None:
+        return headline
+    return f"{headline}\n{extra}"
 
 
 def append_history(
@@ -668,7 +888,11 @@ def main(argv: list[str] | None = None) -> int:
     cache_root = Path(args.cache_root).resolve() if args.cache_root else None
 
     result = compute_summary(project_root, cache_root=cache_root)
-    line = format_one_liner(result)
+    # #1270: ``format_summary`` returns the headline plus, when
+    # filesystem-vs-cache counts diverge, a second ``[triage:scope]``
+    # line. The headline retains the #1122 single-line + 120-char-cap
+    # contract via :func:`format_one_liner`.
+    line = format_summary(result)
     emitted_at = _utc_iso()
 
     if args.json:

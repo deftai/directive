@@ -37,7 +37,7 @@ Note: A true UI indicator (e.g. Warp status bar) is deferred to Phase 5. This is
 
 1. **Deft alignment confirmation** -- see `### Deft Alignment Confirmation` above (#134).
 2. **Branch-policy disclosure** -- see the `Branch Policy Disclosure (session start)` block under `## Development Process` (#746 / #747).
-3. **`task triage:summary` one-line state** -- emit the current triage-cache one-liner (D2 / #1122). D2 suppresses repeat emission within 4 hours unless the cache state changed.
+3. **`task triage:summary` one-line state** -- emit the current triage-cache one-liner (D2 / #1122). D2 suppresses repeat emission within 4 hours unless the cache state changed. The headline `in-flight` count is **filesystem-truth** -- a live count of `vbrief/active/*.vbrief.json` files with `plan.status == "running"` (#1270). When that count diverges from the legacy audit-log-derived cache-scoped view, a second `[triage:scope]` line surfaces the gap; the wording distinguishes whether `plan.policy.triageScope[]` is explicitly configured (`outside plan.policy.triageScope[]`) or absent/empty/default (`not configured`).
 4. **`task verify:cache-fresh` warning** -- printed only when the cache is stale (D5 / #1127); silent on a fresh cache.
 
 ⊗ Reorder, skip, or merge the four steps above without an explicit operator override -- the canonical order is what makes the downstream gate stack composable.

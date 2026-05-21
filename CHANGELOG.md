@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **fix(triage): filesystem-truth in-flight count + scope-discrepancy line (#1270)** -- the session-start `task triage:summary` headline now reflects activated work correctly. `in-flight` reads from live `vbrief/active/*.vbrief.json` with `plan.status == "running"` (filesystem-truth) instead of the audit-log-scoped cache view, so activating a vBRIEF moves the count in lockstep with `WIP`. When the filesystem-truth and cache-scoped counts diverge, a second `[triage:scope]` line surfaces the gap and distinguishes whether `plan.policy.triageScope[]` is configured (`outside ...`) or absent/default (`not configured`). Closes #1270.
 
 ### Removed
 

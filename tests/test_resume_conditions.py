@@ -645,7 +645,15 @@ def test_summary_stale_defer_counts_resume_eligible(tmp_path: Path) -> None:
     result = triage_summary.compute_summary(tmp_path)
     assert result.cache_empty is False
     assert result.stale_defer == 1
-    assert result.in_flight == 1
+    # #1270: ``in_flight`` is now filesystem-truth (live
+    # ``vbrief/active/*.vbrief.json`` with ``plan.status == "running"``);
+    # this fixture seeds no active/ vBRIEFs so the headline count is 0.
+    # The semantic intent of this assertion -- that ``accept`` is
+    # classified into the cache-scoped in-flight bucket (NOT counted as
+    # ``resume-eligible`` or ``defer``) -- now lives on
+    # :attr:`SummaryResult.in_flight_cache_scoped`.
+    assert result.in_flight == 0
+    assert result.in_flight_cache_scoped == 1
     # #2 has a defer decision (not in TRIAGED_DECISIONS' untriaged set);
     # the original summary semantics keep it OUT of "untriaged" because
     # ``defer`` IS in TRIAGED_DECISIONS. So untriaged == 0.
