@@ -398,6 +398,21 @@ class TestFrameworkDoctorTaskRedaction:
         # below it up to the next top-level task or EOF. Strip comment
         # lines so the assertion is on the actual task body (the docstring
         # comments correctly reference the legacy probe by name).
+        #
+        # Limitation (tests reviewer MINOR-4): this filter only drops
+        # WHOLE-LINE comments (lines whose first non-whitespace character
+        # is ``#``). A YAML line carrying an INLINE trailing comment
+        # (e.g. ``cmds: [echo done]  # framework_doctor.py ran here``)
+        # would NOT be stripped and would (correctly) fail this
+        # assertion -- the goal is to forbid actual probe dispatch, so
+        # mentioning the legacy name in a trailing comment on a real
+        # task line is a yellow flag worth surfacing. We deliberately do
+        # NOT try to strip inline ``#`` comments from the middle of YAML
+        # lines: that would require a quote-aware parser to avoid
+        # corrupting ``#`` characters inside quoted strings, which is
+        # brittle for the value gained. If a future maintainer needs to
+        # carry an inline reference to the legacy probe name, route it
+        # to a whole-line comment instead.
         marker = "\n  doctor:\n"
         assert marker in body, body
         tail = body.split(marker, 1)[1]
