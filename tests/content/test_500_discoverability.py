@@ -40,20 +40,32 @@ _PRECUTOVER_SECTION_HEADING = "## Migrating from pre-v0.20"
 
 
 def test_main_md_documents_taskfile_include_pattern() -> None:
-    """deft/main.md must document the `includes: deft: deft/Taskfile.yml` pattern.
+    """deft/main.md must document the canonical Taskfile include pattern.
 
     The pattern is how consumer projects make `task migrate:vbrief`
-    resolvable from the project root (#506 D6 primary path).
+    resolvable from the project root (#506 D6 primary path). Per
+    #1281 / #1303 review the canonical include snippet flipped from
+    the pre-v0.27 ``./deft/Taskfile.yml`` form to the canonical
+    ``./.deft/core/Taskfile.yml`` form so the documented snippet stays
+    byte-aligned with ``run::_TASKFILE_INCLUDE_SNIPPET`` (the literal
+    string the ``run doctor --fix`` repair path writes). The
+    ``_FALLBACK_CMD`` assertions elsewhere in this file deliberately
+    retain the legacy ``./deft/Taskfile.yml`` path because main.md
+    line 192 (the explicit-taskfile fallback invocation) keeps the
+    pre-flip form to preserve the v0.19 -> v0.20 backward-compat
+    surface; do not mass-rename the two together.
     """
     text = _MAIN_MD.read_text(encoding="utf-8")
-    # Heading + code block + ./deft/Taskfile.yml include target.
+    # Heading + code block + canonical ./.deft/core/Taskfile.yml include target.
     assert "Publishing deft tasks in your project root" in text, (
         "main.md: missing 'Publishing deft tasks in your project root' section "
         "(Task 500-A, #506 D6 primary path)"
     )
-    assert "taskfile: ./deft/Taskfile.yml" in text, (
-        "main.md: the Taskfile include snippet must reference "
-        "`taskfile: ./deft/Taskfile.yml` so consumers can copy-paste (#500)"
+    assert "taskfile: ./.deft/core/Taskfile.yml" in text, (
+        "main.md: the Taskfile include snippet must reference the canonical "
+        "`taskfile: ./.deft/core/Taskfile.yml` path so consumers copy-paste "
+        "a snippet that matches `run::_TASKFILE_INCLUDE_SNIPPET` byte-for-byte "
+        "(#500; #1281 / #1303 review for the canonical-path flip)"
     )
     # Must name `includes:` so readers spot the Taskfile include key.
     assert "includes:" in text, (

@@ -1114,10 +1114,21 @@ func TestWriteConsumerVbrief_CreatesNew(t *testing.T) {
 	// "do not pre-create" contract -- AGENTS.md pre-cutover condition 3
 	// fires on a fresh install when any of the five lifecycle subfolders is
 	// missing, dead-ending the very first agent turn before Phase 2 of
-	// deft-directive-setup runs).
-	for _, lifecycle := range []string{"active", "pending", "proposed", "completed", "cancelled"} {
-		if info, err := os.Stat(filepath.Join(projectDir, "vbrief", lifecycle)); err != nil || !info.IsDir() {
+	// deft-directive-setup runs). Order matches the canonical setup.go
+	// `vbriefLifecycleDirs` (proposed -> pending -> active -> completed ->
+	// cancelled); imported via `vbriefLifecycleDirsExpected` from
+	// `setup_test.go` (same package) so a typo here cannot drift away
+	// from the production contract. Each lifecycle directory MUST also
+	// carry the `.gitkeep` placeholder so the empty directory survives
+	// `git add` and installer packaging (#1179 / tests reviewer MINOR-5).
+	for _, lifecycle := range vbriefLifecycleDirsExpected {
+		dir := filepath.Join(projectDir, "vbrief", lifecycle)
+		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
 			t.Errorf("consumer-root vbrief/%s/ MUST be auto-created (#1179): %v", lifecycle, err)
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(dir, ".gitkeep")); err != nil {
+			t.Errorf("consumer-root vbrief/%s/.gitkeep MUST be deposited so the empty lifecycle dir survives packaging (#1179): %v", lifecycle, err)
 		}
 	}
 }

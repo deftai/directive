@@ -357,6 +357,23 @@ def test_doctor_session_mode_diagnoses_only_no_prompt_no_mutation(
         _make_fake_which({"uv": True, "git": True}),
     )
 
+    # Force-stub stdin.isatty() to True so the production gate at
+    # ``run`` ~4374-4378 (``fix_mode and not session_mode and
+    # sys.stdin.isatty()``) cannot short-circuit on ``isatty()=False``
+    # under pytest's stdin capture. Without this stub the test would
+    # pass even if the ``not session_mode`` clause silently regressed,
+    # because pytest's captured stdin reports ``isatty()=False`` and
+    # the gate would never reach ``read_yn`` regardless of the
+    # ``--session`` flag. Mirrors the ``_FakeStdin`` pattern used by
+    # the ``--fix`` consent / decline tests below so the assertion
+    # discriminates the ``--session`` bypass from the isatty bypass.
+    class _FakeStdin:
+        @staticmethod
+        def isatty() -> bool:
+            return True
+
+    monkeypatch.setattr(deft_run_module.sys, "stdin", _FakeStdin())
+
     # Wire read_yn to a sentinel that raises if called. --session MUST
     # never reach the prompt; if it does, the test surfaces the bug
     # loudly rather than silently writing under a fake "yes".
@@ -445,7 +462,15 @@ def test_doctor_fix_decline_does_not_write(
         "Decline at the --fix prompt MUST leave Taskfile.yml absent. "
         f"stdout:\n{result.stdout}"
     )
-    assert "Skipped" in result.stdout or "snippet above" in result.stdout
+    # Both substrings co-occur on the production decline path (see the
+    # ``info(...)`` block in ``run`` around the canonical-include
+    # diagnostic), so ``or`` would pass even if one of them silently
+    # regressed. Use ``and`` so a drift in either token surfaces here.
+    assert "Skipped" in result.stdout and "snippet above" in result.stdout, (
+        "Decline-path output must include BOTH the 'Skipped' lead-in and the "
+        "'snippet above' paste-pointer so the operator sees the full "
+        f"recovery message. stdout:\n{result.stdout}"
+    )
 
 
 def test_doctor_inside_deft_repo_skips_taskfile_check(
