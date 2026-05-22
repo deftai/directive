@@ -79,10 +79,16 @@ vbrief/*.premigrate.*
 #                               operators' demote timing across the team.
 #   - slices.jsonl           -> TRACKED (team-shared cohort records produced
 #                               by slicing skills; see #1132 / D13).
+#   - doctor-state.json      -> gitignored (operator-private doctor throttle
+#                               state; persisted by `run doctor` /
+#                               `task doctor` per #1308 to gate the 24h/4h
+#                               re-probe window. Local to each clone; never
+#                               committed).
 # See vbrief/.eval/README.md for the full policy + merge=union rebase note.
 vbrief/.eval/candidates.jsonl
 vbrief/.eval/summary-history.jsonl
 vbrief/.eval/scope-lifecycle.jsonl
+vbrief/.eval/doctor-state.json
 vbrief/.eval/*.lock
 
 # N6 (#1146) triage:smoketest assert log -- runtime artefact, never committed.

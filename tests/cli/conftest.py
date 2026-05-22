@@ -109,6 +109,29 @@ def isolated_env(isolated_env_no_user: Path) -> Path:
 # (`_run_remote_probe`, `_maybe_emit_remote_drift_warning`) directly with
 # their own `subprocess.run` mocks and are unaffected by this default.
 @pytest.fixture(autouse=True)
+def _isolate_doctor_state_path(
+    tmp_path_factory: pytest.TempPathFactory,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Pin ``DEFT_DOCTOR_STATE_PATH`` to a per-test temp file (#1308).
+
+    cmd_doctor persists ``vbrief/.eval/doctor-state.json`` after every
+    full run so the next invocation can short-circuit the 24h/4h
+    throttle. Without this fixture, CLI tests that exercise cmd_doctor
+    against the live framework checkout would leave a state file in
+    the worktree AND poison subsequent tests by hitting the throttle
+    gate. Redirecting the path to a tmp file per test eliminates both
+    side-effects.
+
+    Tests that need the real path resolution (the
+    ``test_doctor_throttle.py`` integration tests) set their own
+    override via ``monkeypatch.setenv`` and so override this default.
+    """
+    state_path = tmp_path_factory.mktemp("doctor-state") / "doctor-state.json"
+    monkeypatch.setenv("DEFT_DOCTOR_STATE_PATH", str(state_path))
+
+
+@pytest.fixture(autouse=True)
 def _disable_remote_probe(
     deft_run_module, monkeypatch: pytest.MonkeyPatch  # noqa: ANN001
 ) -> None:

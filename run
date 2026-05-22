@@ -4367,6 +4367,7 @@ def _parse_doctor_flags(args: List[str]) -> dict:
         "fix": False,
         "json": False,
         "quiet": False,
+        "full": False,
         "help": False,
         "project_root": None,
         "unknown": [],
@@ -4382,6 +4383,13 @@ def _parse_doctor_flags(args: List[str]) -> dict:
             flags["json"] = True
         elif token == "--quiet":
             flags["quiet"] = True
+        elif token == "--full":
+            # #1308: bypass the 24h/4h throttle and always run the full
+            # check. Operators reach for this when the prior run was
+            # dirty (errors) and they want to re-probe after fixing,
+            # OR when they want to re-confirm a clean run before
+            # publishing a swarm.
+            flags["full"] = True
         elif token in ("-h", "--help"):
             flags["help"] = True
         elif token == "--project-root":
@@ -4413,11 +4421,230 @@ _DOCTOR_ALLOWED_FLAGS = (
     "--repair-taskfile",
     "--json",
     "--quiet",
+    "--full",
     "--project-root",
     "-h",
     "--help",
 )
 
+
+def _load_doctor_state_module():
+    """Lazy-import ``scripts/_doctor_state`` (#1308)."""
+    try:
+        scripts_dir = get_script_dir() / "scripts"
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+        import _doctor_state  # type: ignore[import-not-found]
+        return _doctor_state
+    except Exception:  # noqa: BLE001 -- state load MUST NOT break doctor
+        return None
+
+
+def _evaluate_doctor_throttle(project_root: Path):
+    """Read doctor state and compute the 24h/4h throttle decision (#1308)."""
+    mod = _load_doctor_state_module()
+    if mod is None:
+        return None
+    try:
+        state = mod.read_state(project_root)
+        return mod.decide_throttle(state)
+    except Exception:  # noqa: BLE001 -- state read MUST NOT break doctor
+        return None
+
+
+def _format_iso_z(when) -> str:
+    """Render a UTC-aware datetime as YYYY-MM-DDTHH:MM:SSZ."""
+    if when is None:
+        return ""
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return when.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _render_doctor_status_line(decision) -> str:
+    """Render the human-readable throttle-skip line (#1308)."""
+    age_h = max(int(decision.age_hours), 0)
+    if decision.dirty:
+        errs = decision.last_error_count
+        warns = max(decision.last_finding_count - decision.last_error_count, 0)
+        err_phrase = f"{errs} error{'s' if errs != 1 else ''}"
+        warn_phrase = f"{warns} warning{'s' if warns != 1 else ''}"
+        return (
+            f"[doctor] ran {age_h}h ago, {err_phrase} / {warn_phrase} "
+            "-- UNRESOLVED; run `task doctor --full` to re-probe or "
+            "address findings."
+        )
+    remaining = decision.next_eligible_at - _now_utc()
+    remaining_h = max(int(remaining.total_seconds() // 3600), 0)
+    return (
+        f"[doctor] ran {age_h}h ago, clean; next eligible in "
+        f"{remaining_h}h; --full forces."
+    )
+
+
+def _emit_doctor_throttle_skip(decision, *, json_mode: bool) -> int:
+    """Print the throttle-skip surface and return the gated exit code (#1308)."""
+    hint = (
+        "run `task doctor --full` to re-probe or address findings"
+        if decision.dirty
+        else "--full forces"
+    )
+    if json_mode:
+        payload = {
+            "status": "throttle-skipped",
+            "last_run_at": _format_iso_z(decision.last_run_at),
+            "last_exit_code": decision.last_exit_code,
+            "last_error_count": decision.last_error_count,
+            "last_finding_count": decision.last_finding_count,
+            "next_eligible_at": _format_iso_z(decision.next_eligible_at),
+            "hint": hint,
+        }
+        print(json.dumps(payload, sort_keys=True))
+    else:
+        print(_render_doctor_status_line(decision))
+    return 1 if decision.dirty else 0
+
+
+def _persist_doctor_state(
+    project_root: Path,
+    *,
+    exit_code: int,
+    findings: List[dict],
+) -> None:
+    """Best-effort write of doctor-state.json after a full check (#1308)."""
+    mod = _load_doctor_state_module()
+    if mod is None:
+        return
+    try:
+        mod.write_state(
+            project_root,
+            exit_code=int(exit_code),
+            finding_count=len(findings),
+            error_count=sum(1 for f in findings if f.get("severity") == "error"),
+        )
+    except Exception:  # noqa: BLE001 -- state write MUST NOT break doctor
+        return
+
+
+def _run_install_integrity_checks(
+    project_root: Path,
+    *,
+    emit_success,
+    emit_warn,
+    emit_error,
+    emit_info,
+    add_finding,
+) -> None:
+    """Fold framework_doctor's install-integrity checks into cmd_doctor (#1308)."""
+    if _running_inside_deft_repo(project_root):
+        emit_info(
+            "Skipping install-integrity checks -- running inside the deft "
+            "framework repo (no install manifest in the source checkout)."
+        )
+        return
+    try:
+        scripts_dir = get_script_dir() / "scripts"
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+        import framework_doctor  # type: ignore[import-not-found]
+        result = framework_doctor.run_checks(project_root)
+    except Exception as exc:  # noqa: BLE001 -- probe failure is a warning
+        message = f"Install-integrity probe unavailable: {type(exc).__name__}: {exc}"
+        emit_warn(message)
+        add_finding("warning", message, check="install-integrity")
+        return
+    for entry in result.get("checks", []) or []:
+        name = entry.get("name", "install-integrity")
+        status = entry.get("status", "")
+        detail = entry.get("detail", "")
+        if status == "pass":
+            emit_success(f"{name}: pass")
+            continue
+        if status == "skip":
+            emit_info(f"{name}: skip -- {detail}")
+            continue
+        if status == "error":
+            emit_error(f"{name}: error -- {detail}")
+        else:
+            emit_error(f"{name}: fail -- {detail}")
+        add_finding(
+            "error",
+            detail or f"{name} {status}",
+            check=f"install-integrity:{name}",
+            install_check=name,
+            status=status,
+            data=entry.get("data", {}),
+        )
+
+
+def _has_v3_managed_marker(project_root: Path) -> bool:
+    """True iff AGENTS.md carries a deft:managed-section v3 marker (#1308)."""
+    agents_md = project_root / "AGENTS.md"
+    if not agents_md.is_file():
+        return False
+    try:
+        text = agents_md.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return re.search(
+        r"<!--\s*deft:managed-section\s+v3(?:\s+[^>]*?)?\s*-->",
+        text,
+    ) is not None
+
+
+def _run_agents_md_freshness_check(
+    project_root: Path,
+    *,
+    emit_success,
+    emit_warn,
+    emit_info,
+    add_finding,
+) -> None:
+    """Probe AGENTS.md managed-section freshness via cmd_agents_refresh internals (#1308)."""
+    check_name = "agents-md-managed-section-fresh"
+    if _running_inside_deft_repo(project_root) or not _has_v3_managed_marker(
+        project_root
+    ):
+        skip_reason = "no managed-section markers (likely maintainer repo)"
+        emit_info(f"{check_name}: skip -- {skip_reason}")
+        add_finding(
+            "skip",
+            skip_reason,
+            check=check_name,
+            status="skip",
+        )
+        return
+    try:
+        plan = _agents_refresh_plan(project_root)
+    except Exception as exc:  # noqa: BLE001 -- never break doctor
+        message = f"{check_name}: probe failed -- {type(exc).__name__}: {exc}"
+        emit_warn(message)
+        add_finding("warning", message, check=check_name)
+        return
+    state = plan.get("state", "")
+    if state == "current":
+        emit_success(f"{check_name}: current")
+        return
+    if state in ("stale", "missing", "absent"):
+        message = (
+            f"AGENTS.md managed section is {state} -- "
+            "run `task agents:refresh` to bring it to the current template."
+        )
+        emit_warn(message)
+        add_finding(
+            "warning",
+            message,
+            check=check_name,
+            status=state,
+            suggestion="task agents:refresh",
+        )
+        return
+    message = (
+        f"AGENTS.md freshness check could not run (state={state!r}). "
+        "Inspect the framework template or AGENTS.md file permissions."
+    )
+    emit_warn(message)
+    add_finding("warning", message, check=check_name, status=state)
 
 def cmd_doctor(args: List[str]):
     """Canonical doctor surface for task-surface health (#1272, #1303 review).
@@ -4488,6 +4715,7 @@ def cmd_doctor(args: List[str]):
     fix_mode = flags["fix"] and not session_mode
     json_mode = flags["json"]
     quiet_mode = flags["quiet"]
+    full_mode = flags["full"]
 
     # ``--project-root`` lets operators invoke doctor against an
     # arbitrary directory rather than ``Path.cwd``. Defaults to the
@@ -4500,6 +4728,16 @@ def cmd_doctor(args: List[str]):
         project_root = resolve_path(project_root_arg)
     else:
         project_root = Path.cwd()
+
+    # #1308: throttle gate. Default = full check, but a recent run
+    # within the 24h-clean / 4h-dirty window short-circuits to a
+    # one-line status surface. ``--full`` bypasses the throttle. The
+    # ritual halts on a dirty-within-window state (exit 1) so a
+    # persistent-dirty install is never silently ignored.
+    if not full_mode:
+        decision = _evaluate_doctor_throttle(project_root)
+        if decision is not None and decision.skip:
+            return _emit_doctor_throttle_skip(decision, json_mode=json_mode)
 
     # Findings are the single source of truth for the summary, the
     # JSON payload, and the exit code (#1303 review #1 / #4). Replaces
@@ -4587,6 +4825,42 @@ def cmd_doctor(args: List[str]):
     check_command("python3", "python3")
     check_command("go", "go")
     check_command("node", "node")
+
+    # #1308: install-integrity (the four checks from
+    # scripts/framework_doctor.py -- quick-start-resolves,
+    # skill-paths-resolve, manifest-agreement, install-path-consistency).
+    # framework_doctor.run_checks is the implementation home; cmd_doctor
+    # folds the per-check entries into its own findings list under the
+    # ``install-integrity:<name>`` check key. Skipped in the deft
+    # maintainer repo (no install manifest in the source checkout).
+    if not json_mode:
+        print()
+    _emit_info("Checking install integrity...")
+    _run_install_integrity_checks(
+        project_root,
+        emit_success=_emit_success,
+        emit_warn=_emit_warn,
+        emit_error=_emit_error,
+        emit_info=_emit_info,
+        add_finding=_add_finding,
+    )
+
+    # #1308: AGENTS.md managed-section freshness. Reuses the
+    # cmd_agents_refresh --check byte-compare via _agents_refresh_plan;
+    # emits a skip finding with reason "no managed-section markers
+    # (likely maintainer repo)" when AGENTS.md carries no v3 markers.
+    # Stale templates surface as a warning (zero exit) -- the operator
+    # runs `task agents:refresh` to bring them current.
+    if not json_mode:
+        print()
+    _emit_info("Checking AGENTS.md managed-section freshness...")
+    _run_agents_md_freshness_check(
+        project_root,
+        emit_success=_emit_success,
+        emit_warn=_emit_warn,
+        emit_info=_emit_info,
+        add_finding=_add_finding,
+    )
 
     # Check directory structure.  Updated to the v0.20+ canonical
     # layout (#792); pre-v0.20 entries (core, interfaces, tools, swarm,
@@ -4755,8 +5029,19 @@ def cmd_doctor(args: List[str]):
     warning_count = sum(1 for f in findings if f["severity"] == "warning")
     exit_code = 1 if error_count else 0
 
+    # #1308: persist doctor-state.json so the next invocation can
+    # consult the throttle gate. Best-effort -- a write failure is
+    # silently swallowed by the state module so the doctor itself
+    # never breaks because of a state-file bug.
+    _persist_doctor_state(
+        project_root,
+        exit_code=exit_code,
+        findings=findings,
+    )
+
     if json_mode:
         payload = {
+            "status": "completed",
             "ok": exit_code == 0,
             "findings": findings,
             "summary": {
