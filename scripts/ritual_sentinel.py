@@ -159,11 +159,21 @@ def read(project_root: Path) -> Sentinel | None:
     raises -- the ritual MUST continue silently on any adverse case.
     """
     sentinel_file = _sentinel_path(project_root)
-    if not sentinel_file.is_file():
+    try:
+        if not sentinel_file.is_file():
+            return None
+    except OSError as exc:
+        # ``.deft/`` parent has restrictive permissions or is otherwise
+        # unreadable -- fail open so the documented never-raise contract
+        # holds even on a hostile filesystem.
+        LOG.debug("ritual_sentinel.read: is_file failed at %s: %s", sentinel_file, exc)
         return None
     try:
         raw_text = sentinel_file.read_text(encoding="utf-8")
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
+        # ValueError (UnicodeDecodeError subclass) -- sentinel file
+        # contains non-UTF-8 bytes or truncated multi-byte sequence.
+        # OSError -- transient filesystem error. Fail open in both.
         LOG.debug("ritual_sentinel.read: read failed at %s: %s", sentinel_file, exc)
         return None
     try:

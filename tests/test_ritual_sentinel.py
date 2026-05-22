@@ -499,6 +499,54 @@ def test_detect_latest_active_vbrief_skips_unreadable_stat(
     assert result == good
 
 
+def test_read_unicode_decode_error_returns_none(tmp_path: Path) -> None:
+    # Sentinel file contains non-UTF-8 bytes -- read() MUST fail open
+    # rather than propagate the UnicodeDecodeError (ValueError subclass).
+    sentinel_dir = tmp_path / ".deft"
+    sentinel_dir.mkdir(parents=True, exist_ok=True)
+    (sentinel_dir / "last-session.json").write_bytes(b"\xff\xfe\x00invalid utf-8")
+    assert ritual_sentinel.read(tmp_path) is None
+
+
+def test_read_is_file_raises_returns_none(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # When sentinel_file.is_file() raises OSError, read() MUST fail open
+    # (return None) rather than propagating the exception.
+    sentinel_dir = tmp_path / ".deft"
+    sentinel_dir.mkdir(parents=True, exist_ok=True)
+    (sentinel_dir / "last-session.json").write_text("{}", encoding="utf-8")
+
+    def boom(self: Path) -> bool:
+        raise PermissionError("simulated is_file failure")
+
+    monkeypatch.setattr(Path, "is_file", boom)
+    assert ritual_sentinel.read(tmp_path) is None
+
+
+def test_session_start_hook_resolve_version_failure_returns_two(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # When resolve_version.resolve_version() raises, main() MUST return 2
+    # with the canonical diagnostic on stderr (parallel coverage to the
+    # no-branch and no-active-vBRIEF precondition cases per Greptile).
+    _make_active_vbrief(tmp_path)
+    monkeypatch.setattr(
+        _session_start_hook, "_detect_branch", lambda _root: "feat/foo"
+    )
+
+    def boom() -> str:
+        raise RuntimeError("simulated resolve_version failure")
+
+    monkeypatch.setattr(
+        _session_start_hook.resolve_version, "resolve_version", boom
+    )
+    rc = _session_start_hook.main(["--write", "--project-root", str(tmp_path)])
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "resolve_version failed" in captured.err
+
+
 def test_compute_resume_signal_is_file_raises_returns_none(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
