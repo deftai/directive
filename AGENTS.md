@@ -93,7 +93,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - "improve architecture" / "deep modules" / "interface design" / "refactor RFC" → `skills/deft-directive-gh-arch/SKILL.md` — explores codebase for shallow modules, designs competing interfaces in parallel via sub-agents, files a refactor RFC as a GitHub Issue (#442 re-land)
 - "triage hygiene" / "work the cache" → `skills/deft-directive-triage/SKILL.md`
 - "what's next" / "queue" / "build a cohort" → `skills/deft-directive-triage/SKILL.md`
-- "welcome" / "onboard triage" → invokes `task triage:welcome` (N3 / #1143)
+- "welcome" / "onboard triage" → invokes `task triage:welcome --onboard` (N3 / #1143)
 
 ## Development Process (always follow)
 

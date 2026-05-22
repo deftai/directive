@@ -242,7 +242,10 @@ def test_managed_section_implementation_intent_gate_uses_required_tokens() -> No
 # ---------------------------------------------------------------------------
 
 _PROPAGATION_COMMAND_MARKERS: tuple[str, ...] = (
-    "task triage:welcome",
+    # ``task triage:welcome --onboard`` is explicit on both sides (it's also a
+    # substring containing ``task triage:welcome``, so the bare-form marker
+    # would silently pass a divergence -- per Greptile P1 on the #1309 PR).
+    "task triage:welcome --onboard",
     "task triage:queue",
     "task verify:cache-fresh",
     "task verify:branch",
