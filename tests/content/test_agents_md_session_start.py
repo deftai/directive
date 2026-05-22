@@ -47,7 +47,8 @@ def _extract_section(text: str, heading_pattern: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# 1. Session-start ritual header + canonical 4-step preamble order (#1149)
+# 1. Session-start ritual header + canonical 5-step preamble order
+#    (#1149 + #1308 task doctor as step 2 + #1309 task triage:welcome as step 4)
 # ---------------------------------------------------------------------------
 
 
@@ -60,30 +61,45 @@ def test_session_start_ritual_header_present(agents_md_text: str) -> None:
     ), "missing '## Session-start ritual (#1149)' header"
 
 
-def test_session_start_ritual_lists_four_steps_in_canonical_order(
+def test_session_start_ritual_lists_five_steps_in_canonical_order(
     agents_md_text: str,
 ) -> None:
-    """The 4 preamble lines must appear in canonical order under the ritual section."""
+    """The 5 preamble lines must appear in canonical order under the ritual section.
+
+    Canonical order extended to 5 steps with `task doctor` at step 2 (#1308) and
+    `task triage:welcome` replacing `task triage:summary` at step 4 (#1309). The
+    composability contract from the original #1149 4-step ordering is preserved --
+    each downstream gate still assumes the previous step has cleared.
+    """
     section = _extract_section(agents_md_text, r"Session-start ritual \(#1149\)")
     assert section, "Session-start ritual section not isolatable"
     step1 = section.find("Deft alignment confirmation")
-    step2 = section.find("Branch-policy disclosure")
-    step3 = section.find("`task triage:summary`")
-    step4 = section.find("`task verify:cache-fresh`")
-    assert 0 <= step1 < step2 < step3 < step4, (
+    step2 = section.find("`task doctor`")
+    step3 = section.find("Branch-policy disclosure")
+    step4 = section.find("`task triage:welcome`")
+    step5 = section.find("`task verify:cache-fresh`")
+    assert 0 <= step1 < step2 < step3 < step4 < step5, (
         "Session-start ritual steps out of canonical order: "
-        f"deft={step1}, branch={step2}, triage_summary={step3}, cache_fresh={step4}"
+        f"deft={step1}, doctor={step2}, branch={step3}, "
+        f"triage_welcome={step4}, cache_fresh={step5}"
     )
 
 
 def test_session_start_ritual_documents_d2_suppression_window(
     agents_md_text: str,
 ) -> None:
-    """D2's 4-hour suppression window must be documented in the ritual section."""
+    """D2's 4-hour suppression window must remain documented after #1309 step 4 swap.
+
+    `task triage:welcome` (default mode, #1309) subsumes the prior
+    `task triage:summary` invocation and inherits D2's 4-hour suppression
+    contract; the section must continue to surface the suppression window
+    so consumers know repeat emissions are debounced.
+    """
     section = _extract_section(agents_md_text, r"Session-start ritual \(#1149\)")
-    assert re.search(r"4 hours", section), (
+    assert re.search(r"4[ -]hour", section), (
         "Session-start ritual must document the D2 4-hour suppression window "
-        "(suppress repeat emission within 4 hours unless cache state changed)"
+        "(suppress repeat emission within 4 hours unless cache state changed; "
+        "#1309 step 4 swap to `task triage:welcome` inherits the same contract)"
     )
 
 

@@ -887,9 +887,199 @@ def test_cli_skip_bootstrap_flag_threads_through(
             "--project-root",
             str(tmp_path),
             "--no-subprocess",
+            "--onboard",
             "--skip-bootstrap",
         ]
     )
     assert rc == 0
     assert captured.get("skip_bootstrap") is True
+
+
+# ---------------------------------------------------------------------------
+# #1309 -- default-mode summary + nudge surface
+# ---------------------------------------------------------------------------
+
+
+def _seed_oneliner_environment(tmp_path: Path) -> None:
+    """Minimum scaffolding so ``triage_summary.compute_summary`` returns cleanly.
+
+    The default-mode emit invokes ``triage_summary.compute_summary``; on a
+    completely empty workspace that path still resolves (cache-empty
+    headline). Adding a PROJECT-DEFINITION lets us exercise the
+    triage_scope_set / wip_cap_set branches independently.
+    """
+    _seed_project_definition(tmp_path)
+
+
+def test_classify_onboarding_first_time(tmp_path: Path) -> None:
+    """All three signals absent -> ``first-time`` label."""
+    state = triage_welcome.detect_prior_state(tmp_path)
+    label, missing = triage_welcome._classify_onboarding(state)
+    assert label == "first-time"
+    assert set(missing) == {"candidates.jsonl", "triageScope", "wipCap"}
+
+
+def test_classify_onboarding_incomplete(tmp_path: Path) -> None:
+    """Audit log present but scope / cap absent -> ``incomplete``."""
+    _seed_project_definition(tmp_path)
+    _seed_candidates_log(tmp_path)
+    state = triage_welcome.detect_prior_state(tmp_path)
+    label, missing = triage_welcome._classify_onboarding(state)
+    assert label == "incomplete"
+    assert "triageScope" in missing
+    assert "wipCap" in missing
+    assert "candidates.jsonl" not in missing
+
+
+def test_classify_onboarding_fully_set_up(tmp_path: Path) -> None:
+    """All three signals present -> ``fully-set-up`` + empty missing list."""
+    _seed_project_definition(
+        tmp_path,
+        triage_scope=triage_welcome.SUBSCRIPTION_PRESETS["small"],
+        wip_cap=10,
+    )
+    _seed_candidates_log(tmp_path)
+    state = triage_welcome.detect_prior_state(tmp_path)
+    label, missing = triage_welcome._classify_onboarding(state)
+    assert label == "fully-set-up"
+    assert missing == []
+
+
+def test_run_default_mode_first_time_emits_nudge(tmp_path: Path) -> None:
+    """#1309: first-time consumer sees the summary line + first-time nudge."""
+    _seed_oneliner_environment(tmp_path)
+    output = _CapturedOutput()
+    outcome = triage_welcome.run_default_mode(
+        tmp_path, output_fn=output, write_history=False
+    )
+    assert outcome.exit_code == 0
+    assert outcome.phases_run == [0]
+    joined = output.joined()
+    # Summary line always present (cache-empty path is fine for the contract).
+    assert "[triage]" in joined
+    # First-time nudge follows the summary.
+    assert triage_welcome.FIRST_TIME_NUDGE in joined
+
+
+def test_run_default_mode_incomplete_emits_missing_pieces(tmp_path: Path) -> None:
+    """#1309: partial-onboarding consumer sees the templated missing-piece nudge."""
+    _seed_project_definition(tmp_path)
+    _seed_candidates_log(tmp_path)
+    output = _CapturedOutput()
+    outcome = triage_welcome.run_default_mode(
+        tmp_path, output_fn=output, write_history=False
+    )
+    assert outcome.exit_code == 0
+    joined = output.joined()
+    assert "[welcome] Onboarding incomplete:" in joined
+    # Stable ordering: missing pieces joined by " + ".
+    assert "triageScope + wipCap" in joined
+    # First-time wording MUST NOT fire in the incomplete branch.
+    assert triage_welcome.FIRST_TIME_NUDGE not in joined
+
+
+def test_run_default_mode_fully_set_up_is_silent_after_summary(tmp_path: Path) -> None:
+    """#1309: a fully-set-up consumer sees only the summary line."""
+    _seed_project_definition(
+        tmp_path,
+        triage_scope=triage_welcome.SUBSCRIPTION_PRESETS["small"],
+        wip_cap=10,
+    )
+    _seed_candidates_log(tmp_path)
+    output = _CapturedOutput()
+    outcome = triage_welcome.run_default_mode(
+        tmp_path, output_fn=output, write_history=False
+    )
+    assert outcome.exit_code == 0
+    joined = output.joined()
+    assert "[triage]" in joined
+    assert "[welcome]" not in joined
+
+
+def test_emit_oneliner_writes_history_when_enabled(tmp_path: Path) -> None:
+    """#1309: ``write_history=True`` appends the JSONL sidecar."""
+    _seed_oneliner_environment(tmp_path)
+    output = _CapturedOutput()
+    triage_welcome.emit_oneliner(
+        tmp_path, output_fn=output, write_history=True
+    )
+    history = tmp_path / "vbrief" / ".eval" / "summary-history.jsonl"
+    assert history.is_file()
+    contents = history.read_text(encoding="utf-8").strip().splitlines()
+    assert len(contents) == 1
+    assert "\"line\":" in contents[0]
+
+
+def test_emit_oneliner_skips_history_when_disabled(tmp_path: Path) -> None:
+    """#1309: ``write_history=False`` keeps the JSONL sidecar absent."""
+    _seed_oneliner_environment(tmp_path)
+    output = _CapturedOutput()
+    triage_welcome.emit_oneliner(
+        tmp_path, output_fn=output, write_history=False
+    )
+    history = tmp_path / "vbrief" / ".eval" / "summary-history.jsonl"
+    assert not history.exists()
+
+
+def test_main_default_mode_no_flag_routes_to_run_default_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#1309: invoking ``triage_welcome.main`` without ``--onboard`` runs the
+    non-interactive default-mode surface (not the 6-phase ritual).
+    """
+    _seed_oneliner_environment(tmp_path)
+    invocations: dict[str, int] = {"default": 0, "ritual": 0}
+    real_default = triage_welcome.run_default_mode
+    real_run_welcome = triage_welcome.run_welcome
+
+    def _spy_default(*args: object, **kwargs: object) -> object:
+        invocations["default"] += 1
+        return real_default(*args, **kwargs)
+
+    def _spy_ritual(*args: object, **kwargs: object) -> object:
+        invocations["ritual"] += 1
+        return real_run_welcome(*args, **kwargs)
+
+    monkeypatch.setattr(triage_welcome, "run_default_mode", _spy_default)
+    monkeypatch.setattr(triage_welcome, "run_welcome", _spy_ritual)
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "")
+    rc = triage_welcome.main(
+        ["--project-root", str(tmp_path), "--no-history"]
+    )
+    assert rc == 0
+    assert invocations["default"] == 1
+    assert invocations["ritual"] == 0
+
+
+def test_main_onboard_flag_routes_to_run_welcome(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """#1309: ``--onboard`` dispatches to the original 6-phase ritual."""
+    _seed_project_definition(
+        tmp_path,
+        triage_scope=triage_welcome.SUBSCRIPTION_PRESETS["small"],
+        wip_cap=10,
+    )
+    _seed_candidates_log(tmp_path)
+    invocations: dict[str, int] = {"default": 0, "ritual": 0}
+    real_default = triage_welcome.run_default_mode
+    real_run_welcome = triage_welcome.run_welcome
+
+    def _spy_default(*args: object, **kwargs: object) -> object:
+        invocations["default"] += 1
+        return real_default(*args, **kwargs)
+
+    def _spy_ritual(*args: object, **kwargs: object) -> object:
+        invocations["ritual"] += 1
+        return real_run_welcome(*args, **kwargs)
+
+    monkeypatch.setattr(triage_welcome, "run_default_mode", _spy_default)
+    monkeypatch.setattr(triage_welcome, "run_welcome", _spy_ritual)
+    monkeypatch.setattr("builtins.input", lambda _prompt="": "")
+    rc = triage_welcome.main(
+        ["--project-root", str(tmp_path), "--no-subprocess", "--onboard"]
+    )
+    assert rc == 0
+    assert invocations["default"] == 0
+    assert invocations["ritual"] == 1
 

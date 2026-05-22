@@ -505,51 +505,37 @@ def _run_task(args: list[str], *, cwd: Path) -> int:
 # reference them via ``triage_welcome.<name>``.
 # ---------------------------------------------------------------------------
 
-from _triage_welcome_cli import (  # noqa: E402  (sibling import after sys.path tweak)
+from _triage_welcome_cli import (  # noqa: E402,F401  (sibling import after sys.path tweak; _classify_onboarding re-exported for tests)
+    FIRST_TIME_NUDGE,
+    INCOMPLETE_NUDGE_TEMPLATE,
     PromptOutcome,
+    _classify_onboarding,
     default_input,
     default_output,
+    emit_oneliner,
     prompt_int,
     prompt_menu,
     prompt_yes_no,
+    run_default_mode,
 )
 
-# Re-export names for callers / tests that read them off this module.
-__all__ = [
-    "PromptOutcome",
-    "PriorState",
-    "ReliefPreview",
-    "WelcomeOutcome",
-    "SUBSCRIPTION_PRESETS",
-    "DEFAULT_WIP_CAP",
-    "DEFAULT_RELIEF_AGE_DAYS",
-    "AUDIT_LOG_REL_PATH",
-    "CACHE_DIR_NAME",
-    "CACHE_SOURCE",
-    "CANDIDATES_RELPATH",
-    "TRIAGE_SKILL_PATH",
-    "WELCOME_AUDIT_TAG",
-    "PROJECT_DEFINITION_REL_PATH",
-    "WIP_LIFECYCLE_DIRS",
-    "detect_prior_state",
-    "write_triage_scope",
-    "write_wip_cap",
-    "preview_wip_relief",
-    "run_welcome",
-    "main",
-    "prompt_menu",
-    "prompt_yes_no",
-    "prompt_int",
-    "default_input",
-    "default_output",
-    "append_audit_entry",
-    "project_definition_path",
-    "candidates_log_path",
-]
-
-# Backward-compatible private aliases kept for any future call site.
-_default_input = default_input
-_default_output = default_output
+# Re-export names for callers / tests reading them off this module. Kept
+# compact (single sorted tuple) so the file stays under the 1000-line
+# MUST cap from ``coding/coding.md`` while still serving any future
+# ``from triage_welcome import *`` consumer.
+__all__ = (
+    "AUDIT_LOG_REL_PATH", "CACHE_DIR_NAME", "CACHE_SOURCE",
+    "CANDIDATES_RELPATH", "DEFAULT_RELIEF_AGE_DAYS", "DEFAULT_WIP_CAP",
+    "FIRST_TIME_NUDGE", "INCOMPLETE_NUDGE_TEMPLATE",
+    "PROJECT_DEFINITION_REL_PATH", "PriorState", "PromptOutcome",
+    "ReliefPreview", "SUBSCRIPTION_PRESETS", "TRIAGE_SKILL_PATH",
+    "WELCOME_AUDIT_TAG", "WIP_LIFECYCLE_DIRS", "WelcomeOutcome",
+    "append_audit_entry", "candidates_log_path", "default_input",
+    "default_output", "detect_prior_state", "emit_oneliner", "main",
+    "preview_wip_relief", "project_definition_path", "prompt_int",
+    "prompt_menu", "prompt_yes_no", "run_default_mode", "run_welcome",
+    "write_triage_scope", "write_wip_cap",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -974,7 +960,11 @@ def run_welcome(
 
 
 # ---------------------------------------------------------------------------
-# CLI entry point (argparse shim lives in _triage_welcome_cli.py)
+# CLI entry point (argparse shim lives in _triage_welcome_cli.py).
+# The default-mode (non-onboard) helpers (#1309) live in the sibling
+# module so this file stays under the 1000-line MUST cap from
+# ``coding/coding.md`` -- they are re-imported above for backward
+# compatibility.
 # ---------------------------------------------------------------------------
 
 

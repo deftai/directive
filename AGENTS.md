@@ -33,14 +33,29 @@ Note: A true UI indicator (e.g. Warp status bar) is deferred to Phase 5. This is
 
 ## Session-start ritual (#1149)
 
-! On every interactive session start, the agent performs these four steps in the canonical order below. Each step is a hand-off into a more specific rule documented elsewhere in this file; the ordering itself is the rule and downstream gates (Implementation Intent Gate, branch-policy gate, the pre-`start_agent` gate stack) rely on it.
+! On every interactive session start, the agent performs these five steps in the canonical order below. Each step is a hand-off into a more specific rule documented elsewhere in this file; the ordering itself is the rule and downstream gates (Implementation Intent Gate, branch-policy gate, the pre-`start_agent` gate stack) rely on it.
 
 1. **Deft alignment confirmation** -- see `### Deft Alignment Confirmation` above (#134).
-2. **Branch-policy disclosure** -- see the `Branch Policy Disclosure (session start)` block under `## Development Process` (#746 / #747).
-3. **`task triage:summary` one-line state** -- emit the current triage-cache one-liner (D2 / #1122). D2 suppresses repeat emission within 4 hours unless the cache state changed. The headline `in-flight` count is **filesystem-truth** -- a live count of `vbrief/active/*.vbrief.json` files with `plan.status == "running"` (#1270). When that count diverges from the legacy audit-log-derived cache-scoped view, a second `[triage:scope]` line surfaces the gap; the wording distinguishes whether `plan.policy.triageScope[]` is explicitly configured (`outside plan.policy.triageScope[]`) or absent/empty/default (`not configured`).
-4. **`task verify:cache-fresh` warning** -- printed only when the cache is stale (D5 / #1127); silent on a fresh cache.
+2. **`task doctor`** -- install-integrity + toolchain + AGENTS.md managed-section freshness probe (#1308). Halts the ritual on a persistent-dirty state and surfaces remediation hints; when the managed-section is stale the doctor points the operator at `task agents:refresh` to regenerate AGENTS.md from `templates/agents-entry.md`.
+3. **Branch-policy disclosure** -- see the `Branch Policy Disclosure (session start)` block under `## Development Process` (#746 / #747).
+4. **`task triage:welcome` one-line state + nudge** -- emit the current triage-cache one-liner via the consolidated welcome surface (N3 / #1143); default mode is non-interactive and subsumes the prior `task triage:summary` step (D2 / #1122). When state is incomplete (no `vbrief/.eval/candidates.jsonl`, no `triageScope`, no `wipCap` -- or any partial subset), an additional nudge line points the operator at `task triage:welcome --onboard` to set up or resume triage. D2's 4-hour suppression window still governs the headline. The headline `in-flight` count is **filesystem-truth** -- a live count of `vbrief/active/*.vbrief.json` files with `plan.status == "running"` (#1270). When that count diverges from the legacy audit-log-derived cache-scoped view, a second `[triage:scope]` line surfaces the gap; the wording distinguishes whether `plan.policy.triageScope[]` is explicitly configured (`outside plan.policy.triageScope[]`) or absent/empty/default (`not configured`). `task triage:summary` stays as a composable primitive for non-session-start callers (`deft-directive-sync`, scripts) -- not deprecated.
+5. **`task verify:cache-fresh` warning** -- printed only when the cache is stale (D5 / #1127); silent on a fresh cache.
 
-⊗ Reorder, skip, or merge the four steps above without an explicit operator override -- the canonical order is what makes the downstream gate stack composable.
+## Resume nudge (conditional, #1269)
+
+Reserved placement for the optional 6th conditional step (resume nudge from the ritual sentinel) tracked by #1269. The substance lands with that PR; this anchor exists today so dispatched agents see the canonical placement once #1269 merges and the sentinel becomes available.
+
+⊗ Reorder, skip, or merge the five steps above without an explicit operator override -- the canonical order is what makes the downstream gate stack composable.
+
+## Template propagation discipline (#1309)
+
+! When a maintainer-side rule lands in this `AGENTS.md` that is consumer-relevant (welcome / WIP cap / triage / install integrity / branch policy / encoding gates / canonical commands / skill routing), the same PR MUST update `templates/agents-entry.md` to mirror it, then run `task agents:refresh` so consumer-side AGENTS.md inherits the change. The deterministic gate `tests/content/test_agents_entry_contract.py` enforces this with a whitespace-normalized substring containment check over a curated marker list (commands, policy keys, distinctive headers, action-verb directive list); adding a new consumer-relevant rule means extending that marker list in the same PR.
+
+⊗ Land a consumer-relevant rule on `AGENTS.md` without mirroring it into `templates/agents-entry.md` -- the consumer AGENTS.md is rendered from the template, not from the maintainer file, so an un-propagated rule is invisible to every consumer.
+
+## WIP cap
+
+The `plan.policy.wipCap` field caps the number of in-flight scope vBRIEFs (`vbrief/pending/` + `vbrief/active/`); the framework default is 10 (per umbrella #1119 Current Shape v3 / D4 / #1124). When the cap is reached, `task scope:promote` refuses with a relief hint pointing at `task scope:demote --batch --older-than-days 30` (D1 / #1121); the `--force` flag is the documented override for emergency promotions. Consumers configure the cap via `task triage:welcome --onboard` (Phase 4 wipCap prompt) or by inspecting / editing the typed field via `task policy:show --field=wipCap`; the framework's own `task check` aggregate runs `verify:wip-cap` with `--allow-over-cap` so the maintainer's own landing-day overage does not break self-check, while consumer projects depend on `verify:wip-cap` directly.
 
 ## Skill Completion Gate
 
@@ -219,3 +234,5 @@ Cross-references: `skills/deft-directive-gh-slice/SKILL.md` (final phase -- file
 
 Note: paths here are root-relative — this repo IS the deft directory.
 Install-generated AGENTS.md uses deft/-prefixed paths.
+
+When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).

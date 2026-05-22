@@ -23,6 +23,7 @@ from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _TEMPLATE = _REPO_ROOT / "templates" / "agents-entry.md"
+_AGENTS_MD = _REPO_ROOT / "AGENTS.md"
 _PLACEHOLDER_SPEC = _REPO_ROOT / "templates" / "agents-entry.placeholders.md"
 
 _OPEN_MARKER = "<!-- deft:managed-section v3 -->"
@@ -224,4 +225,146 @@ def test_managed_section_implementation_intent_gate_uses_required_tokens() -> No
     assert forbid_count >= 2, (
         f"Implementation Intent Gate MUST have at least 2 `⊗` bullets "
         f"(found {forbid_count}). Refs #810."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Maintainer <-> template propagation gate (#1309)
+#
+# Curated marker list shared by both `AGENTS.md` (maintainer) and
+# `templates/agents-entry.md` (consumer template). Match is whitespace-
+# normalised substring containment so em-dash spacing churn cannot poison
+# the gate, but the markers themselves are distinctive enough (header
+# anchors with issue numbers, full command-and-flag strings) to avoid
+# substring collisions. Add a new marker here in the same PR that adds a
+# consumer-relevant rule to either file -- see the maintainer
+# `## Template propagation discipline (#1309)` block for the rule body.
+# ---------------------------------------------------------------------------
+
+_PROPAGATION_COMMAND_MARKERS: tuple[str, ...] = (
+    "task triage:welcome",
+    "task triage:queue",
+    "task verify:cache-fresh",
+    "task verify:branch",
+    "task doctor",
+    "task agents:refresh",
+)
+
+_PROPAGATION_POLICY_KEY_MARKERS: tuple[str, ...] = (
+    "plan.policy.wipCap",
+    "plan.policy.allowDirectCommitsToMaster",
+)
+
+_PROPAGATION_HEADER_MARKERS: tuple[str, ...] = (
+    "## Session-start ritual (#1149)",
+    "## Cache-as-authoritative work selection (#1149)",
+    "## Skill Routing",
+    "## WIP cap",
+)
+
+#: The action-verb directive list (#810) is a SINGLE assertion -- the list
+#: itself is the gate, not each verb individually. Each token MUST appear in
+#: both files within the same managed-section / discoverable surface.
+_PROPAGATION_ACTION_VERBS: tuple[str, ...] = (
+    "build",
+    "implement",
+    "ship",
+    "swarm",
+    "run agents",
+    "start agent",
+)
+
+
+def _normalize_whitespace(text: str) -> str:
+    """Collapse all runs of whitespace (incl. tabs, CRLF, NBSP) to single spaces.
+
+    Matches the whitespace-normalisation contract from the #1309 vBRIEF:
+    the propagation gate keys off content, not formatting drift, so any
+    span of one-or-more whitespace characters compares equal to a single
+    ASCII space. NBSP (U+00A0) is folded into ASCII space too because em-dash
+    spacing in markdown rendering occasionally substitutes one for the other.
+    """
+    folded = text.replace("\u00a0", " ")
+    return " ".join(folded.split())
+
+
+def _read_agents_md() -> str:
+    return _AGENTS_MD.read_text(encoding="utf-8")
+
+
+def _missing_markers(haystack_text: str, markers: tuple[str, ...]) -> list[str]:
+    """Return every marker absent from ``haystack_text`` (whitespace-normalised)."""
+    haystack = _normalize_whitespace(haystack_text)
+    return [m for m in markers if _normalize_whitespace(m) not in haystack]
+
+
+def test_propagation_command_markers_present_in_both_files() -> None:
+    """#1309: every curated command MUST appear in AGENTS.md AND the template."""
+    template = _read_template()
+    agents = _read_agents_md()
+    template_missing = _missing_markers(template, _PROPAGATION_COMMAND_MARKERS)
+    agents_missing = _missing_markers(agents, _PROPAGATION_COMMAND_MARKERS)
+    assert not template_missing, (
+        "templates/agents-entry.md missing command marker(s) from the #1309 "
+        f"propagation gate: {template_missing}. Extend the template or the "
+        "_PROPAGATION_COMMAND_MARKERS list in the same PR."
+    )
+    assert not agents_missing, (
+        "AGENTS.md missing command marker(s) from the #1309 propagation "
+        f"gate: {agents_missing}. Add the rule on the maintainer side or "
+        "trim the marker list -- the two files MUST stay in lockstep."
+    )
+
+
+def test_propagation_policy_key_markers_present_in_both_files() -> None:
+    """#1309: typed `plan.policy.*` keys MUST be named in both surfaces."""
+    template = _read_template()
+    agents = _read_agents_md()
+    template_missing = _missing_markers(template, _PROPAGATION_POLICY_KEY_MARKERS)
+    agents_missing = _missing_markers(agents, _PROPAGATION_POLICY_KEY_MARKERS)
+    assert not template_missing, (
+        "templates/agents-entry.md missing policy-key marker(s) from the "
+        f"#1309 propagation gate: {template_missing}."
+    )
+    assert not agents_missing, (
+        "AGENTS.md missing policy-key marker(s) from the #1309 propagation "
+        f"gate: {agents_missing}."
+    )
+
+
+def test_propagation_header_markers_present_in_both_files() -> None:
+    """#1309: distinctive headers MUST appear verbatim in both files."""
+    template = _read_template()
+    agents = _read_agents_md()
+    template_missing = _missing_markers(template, _PROPAGATION_HEADER_MARKERS)
+    agents_missing = _missing_markers(agents, _PROPAGATION_HEADER_MARKERS)
+    assert not template_missing, (
+        "templates/agents-entry.md missing distinctive header(s) from the "
+        f"#1309 propagation gate: {template_missing}. The header itself is "
+        "the marker; mirror the maintainer wording exactly."
+    )
+    assert not agents_missing, (
+        "AGENTS.md missing distinctive header(s) from the #1309 propagation "
+        f"gate: {agents_missing}."
+    )
+
+
+def test_propagation_action_verb_list_present_in_both_files() -> None:
+    """#1309: the #810 action-verb directive list MUST appear in both files.
+
+    Single combined assertion -- the LIST is the gate, not each verb in
+    isolation. The verbs land together inside the Implementation Intent
+    Gate's `!` MUST rule on both surfaces.
+    """
+    template = _read_template()
+    agents = _read_agents_md()
+    template_missing = _missing_markers(template, _PROPAGATION_ACTION_VERBS)
+    agents_missing = _missing_markers(agents, _PROPAGATION_ACTION_VERBS)
+    assert not template_missing, (
+        "templates/agents-entry.md missing action-verb directive list "
+        f"token(s) from the #1309 propagation gate (#810): {template_missing}."
+    )
+    assert not agents_missing, (
+        "AGENTS.md missing action-verb directive list token(s) from the "
+        f"#1309 propagation gate (#810): {agents_missing}."
     )
