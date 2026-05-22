@@ -462,6 +462,67 @@ def test_session_start_hook_no_active_vbrief_returns_two(
     assert "no active vBRIEF" in captured.err
 
 
+def test_session_start_hook_no_branch_returns_two(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # _detect_branch returns None on detached HEAD outside a git repo or
+    # when git is missing; main() MUST return 2 with the canonical
+    # diagnostic on stderr (parallel coverage to the missing-vBRIEF case).
+    _make_active_vbrief(tmp_path)
+    monkeypatch.setattr(_session_start_hook, "_detect_branch", lambda _root: None)
+    rc = _session_start_hook.main(["--write", "--project-root", str(tmp_path)])
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "could not determine current git branch" in captured.err
+
+
+def test_detect_latest_active_vbrief_skips_unreadable_stat(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # When ``stat()`` raises on one candidate (TOCTOU delete, permission
+    # denied), the helper MUST skip it rather than crashing.
+    good = _make_active_vbrief(tmp_path, name="2026-05-13-good.vbrief.json")
+    # Create a second file that will trip stat() via the monkeypatched
+    # method below.
+    bad_path = tmp_path / "vbrief" / "active" / "2026-05-13-bad.vbrief.json"
+    bad_path.write_text("{}", encoding="utf-8")
+    real_stat = Path.stat
+
+    def stat_with_selective_failure(self: Path, *args: Any, **kwargs: Any) -> Any:
+        if self == bad_path:
+            raise PermissionError("simulated stat failure")
+        return real_stat(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "stat", stat_with_selective_failure)
+    result = _session_start_hook._detect_latest_active_vbrief(tmp_path)
+    # The good file survives; the bad file is skipped silently.
+    assert result == good
+
+
+def test_compute_resume_signal_is_file_raises_returns_none(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # When ``vbrief_path.is_file()`` raises OSError, compute_resume_signal
+    # MUST fail open (return None) rather than propagating the exception.
+    vbrief_rel = _make_active_vbrief(tmp_path)
+    last_session = datetime(2026, 5, 22, 10, 0, 0, tzinfo=UTC)
+    ritual_sentinel.write(
+        tmp_path,
+        deft_version="0.32.1",
+        last_active_vbrief=vbrief_rel,
+        last_branch="feat/foo",
+        now=last_session,
+    )
+    sentinel = ritual_sentinel.read(tmp_path)
+
+    def boom(self: Path) -> bool:
+        raise PermissionError("simulated is_file failure")
+
+    monkeypatch.setattr(Path, "is_file", boom)
+    now = last_session + timedelta(hours=8)
+    assert ritual_sentinel.compute_resume_signal(sentinel, now, tmp_path) is None
+
+
 def test_session_start_hook_writes_sentinel(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

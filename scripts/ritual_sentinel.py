@@ -244,8 +244,11 @@ def write(
         suffix=".json.tmp",
         dir=str(sentinel_file.parent),
     )
+    fdopen_succeeded = False
     try:
-        with os.fdopen(tmp_fd, "w", encoding="utf-8", newline="\n") as fh:
+        fh = os.fdopen(tmp_fd, "w", encoding="utf-8", newline="\n")
+        fdopen_succeeded = True
+        try:
             json.dump(payload, fh, indent=2, sort_keys=True)
             fh.write("\n")
             fh.flush()
@@ -254,11 +257,18 @@ def write(
             # the load-bearing durability guarantee.
             with contextlib.suppress(OSError):
                 os.fsync(fh.fileno())
+        finally:
+            fh.close()
         os.replace(tmp_name, sentinel_file)
     except Exception:
         # Roll back the partial temp file so it does not accumulate on
         # repeated failure paths. Best-effort -- if the unlink itself
-        # fails we still want to surface the original exception.
+        # fails we still want to surface the original exception. If
+        # os.fdopen never ran, ownership of the raw fd never moved off
+        # ``tmp_fd``, so we close it explicitly to avoid an fd leak.
+        if not fdopen_succeeded:
+            with contextlib.suppress(OSError):
+                os.close(tmp_fd)
         with contextlib.suppress(OSError):
             os.unlink(tmp_name)
         raise
@@ -306,7 +316,13 @@ def compute_resume_signal(
     if elapsed < MIN_RESUME_AGE:
         return None
     vbrief_path = project_root / last_active
-    if not vbrief_path.is_file():
+    try:
+        exists_on_disk = vbrief_path.is_file()
+    except OSError:
+        # Permission denied or transient filesystem error -- fail open
+        # so the never-raise contract holds even on a hostile mount.
+        return None
+    if not exists_on_disk:
         return None
     elapsed_label = _format_elapsed(elapsed)
     return (

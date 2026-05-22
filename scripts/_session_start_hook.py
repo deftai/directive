@@ -17,7 +17,8 @@ The ``--write`` flag derives the sentinel payload from the current
 * ``deftVersion`` -- resolved via :mod:`resolve_version` (the same
   priority chain ``task build`` consumes; #723).
 * ``lastBranch`` -- ``git symbolic-ref --short HEAD`` (with
-  ``git rev-parse HEAD`` as the detached-HEAD fallback).
+  ``git rev-parse --short HEAD`` as the detached-HEAD fallback,
+  recorded as ``"detached:<short-sha>"`` when HEAD is detached).
 * ``lastActiveVbrief`` -- the most-recently-modified
   ``vbrief/active/*.vbrief.json`` file, recorded as a POSIX-style
   relative path. If no candidate file exists, the hook exits ``2``
@@ -95,19 +96,42 @@ def _detect_branch(project_root: Path) -> str | None:
 
 
 def _detect_latest_active_vbrief(project_root: Path) -> str | None:
-    """Return the most-recently-modified active vBRIEF as a POSIX relpath."""
+    """Return the most-recently-modified active vBRIEF as a POSIX relpath.
+
+    Fail-open across OSError -- a vBRIEF whose ``stat()`` raises
+    (TOCTOU delete between ``glob()`` and ``stat()``, permission
+    denied, broken symlink) is skipped rather than crashing the
+    ritual. Returns ``None`` when no readable candidate survives.
+    """
     active_dir = project_root / "vbrief" / "active"
-    if not active_dir.is_dir():
+    try:
+        if not active_dir.is_dir():
+            return None
+    except OSError:
         return None
-    candidates = sorted(
-        (child for child in active_dir.glob("*.vbrief.json") if child.is_file()),
-        key=lambda c: c.stat().st_mtime,
-        reverse=True,
-    )
+    candidates: list[tuple[float, Path]] = []
+    try:
+        children = list(active_dir.glob("*.vbrief.json"))
+    except OSError:
+        return None
+    for child in children:
+        try:
+            if not child.is_file():
+                continue
+            mtime = child.stat().st_mtime
+        except OSError:
+            # Race with another process deleting the file between glob
+            # and stat, or permission denied on a specific entry. Skip.
+            continue
+        candidates.append((mtime, child))
     if not candidates:
         return None
-    latest = candidates[0]
-    return latest.relative_to(project_root).as_posix()
+    candidates.sort(key=lambda pair: pair[0], reverse=True)
+    latest = candidates[0][1]
+    try:
+        return latest.relative_to(project_root).as_posix()
+    except ValueError:
+        return None
 
 
 def _build_arg_parser() -> argparse.ArgumentParser:
