@@ -1076,10 +1076,10 @@ def test_deft_directive_swarm_takeover_prespawn_verification() -> None:
 
 
 def test_deft_directive_swarm_duplicate_tab_failure_mode() -> None:
-    """deft-directive-swarm must document the duplicate-tab failure mode."""
+    """deft-directive-swarm must document the (generalized) duplicate-agent / duplicate-tab failure mode for all platforms including spawn_subagent (#1342 slice 3)."""
     text = _read_skill(_SWARM_PATH)
-    assert "Duplicate-Tab Failure Mode" in text and "tool_use" in text and "tool_result" in text, (
-        f"{_SWARM_PATH}: missing Duplicate-Tab Failure Mode documentation (#261, t1.13.1)"
+    assert "Duplicate-Agent Failure Mode" in text and "Duplicate-Tab" in text and "tool_use" in text and "tool_result" in text and "worktree" in text.lower(), (
+        f"{_SWARM_PATH}: missing generalized Duplicate-Agent / Duplicate-Tab Failure Mode documentation (worktree + spawn_subagent support, #261 / #1342 slice 3, t1.13.1)"
     )
 
 

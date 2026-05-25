@@ -31,7 +31,7 @@ missed two specific parsing bugs (markdown-link `Last reviewed commit:`,
 raw `\b(P0|P1)\b` substring scan with negation false-positive); the body
 below encodes the fixes inline. See #727 (canonical encoding) and
 `skills/deft-directive-swarm/SKILL.md` Phase 6 Sub-Agent Role Separation
-for the rules that mandate using this template instead of hand-authoring.
+(#1342 platform-aware updates) for the rules that mandate using this template instead of hand-authoring.
 
 NOTE on `.format()` escaping: every literal curly brace in this file is
 doubled (`{{` / `}}`) so it survives the `str.format(...)` pass. The five
