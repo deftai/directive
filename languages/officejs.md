@@ -173,7 +173,7 @@ async function applyValidation(range: Excel.Range, context: Excel.RequestContext
 - ~ Prefer the unified JSON manifest (Teams-compatible, modern) over the XML manifest (legacy)
 - ! Declare the minimum API requirement set your add-in actually needs — do not over-declare
 - ! Declare all permissions your add-in requires (read/write document, network access)
-- ! Set `<SupportsSharedFolders>true</SupportsSharedFolders>` if the add-in works in shared/coauthoring scenarios
+- ! If the add-in works in shared/coauthoring scenarios: in XML manifests set `<SupportsSharedFolders>true</SupportsSharedFolders>`; in JSON manifests set `"authorization": { "permissions": { "supportsSharedFolders": true } }` in the extension definition
 
 ### Testing
 See [testing.md](../coding/testing.md).
