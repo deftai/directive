@@ -69,6 +69,7 @@ When user input matches a trigger keyword, read the corresponding skill (paths a
 - "swarm" / "parallel agents" / "run agents" -> `.deft/core/skills/deft-directive-swarm/SKILL.md`
 - "decompose" / "story decomposition" / "swarm readiness" -> `.deft/core/skills/deft-directive-decompose/SKILL.md`
 - "refinement" / "reprioritize" / "refine" -> `.deft/core/skills/deft-directive-refinement/SKILL.md`
+- "triage <N>" / "triage issue" / "ingest issue" -> `.deft/core/skills/deft-directive-refinement/SKILL.md`
 - "build" / "implement" / "implement spec" -> `.deft/core/skills/deft-directive-build/SKILL.md`
 - "cost" / "budget" / "pre-build cost" / "how much will this cost" -> `.deft/core/skills/deft-directive-cost/SKILL.md`
 - "setup" / "bootstrap" / "onboard" -> `.deft/core/skills/deft-directive-setup/SKILL.md`

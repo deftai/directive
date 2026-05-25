@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Removed
+- Bare `triage <N>` (and "triage issue" / "ingest issue") now routes to the canonical refinement skill, yielding a deterministic vBRIEF proposal instead of a parallel GitHub issue plan. The orphaned gh-triage skill (a pre-vBRIEF verbatim port) is removed; the canonical vBRIEF-as-intake model has no competing surface. Historical references in completed vBRIEFs and prior CHANGELOG entries remain as record. Refs #1349.
 
 ## [0.33.0] - 2026-05-22
 

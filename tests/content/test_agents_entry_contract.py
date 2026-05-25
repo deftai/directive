@@ -247,6 +247,7 @@ _PROPAGATION_COMMAND_MARKERS: tuple[str, ...] = (
     # would silently pass a divergence -- per Greptile P1 on the #1309 PR).
     "task triage:welcome --onboard",
     "task triage:queue",
+    "triage <N>",
     "task verify:cache-fresh",
     "task verify:branch",
     "task doctor",
