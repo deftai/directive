@@ -32,7 +32,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 | Skill type | Naming pattern | Example |
 |---|---|---|
 | Framework / meta | `deft-{verb}` | `deft-build`, `deft-setup` |
-| GitHub-integrated | `deft-gh-{verb}` | `deft-gh-triage`, `deft-gh-slice` |
+| GitHub-integrated | `deft-directive-gh-{verb}` | `deft-directive-gh-slice` (triage verb reclaims to `deft-directive-refinement`) |
 | Domain / project-specific | `{project}-{verb}` | `my-app-deploy` |
 
 ---
