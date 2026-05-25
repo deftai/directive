@@ -94,7 +94,7 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 ! **MCP capability probe** (mirrors deft-directive-swarm Phase 3 pattern): Before attempting MCP `get_review_comments`, probe whether MCP GitHub tools are available in the current session. Detection: attempt a lightweight MCP call (e.g. list available tools or a no-op query) -- if it succeeds, MCP is available; if it errors or the tool is not in the available set, MCP is unavailable.
 
 - **MCP available**: ! Use MCP `get_review_comments` as the second source to catch Comments Outside Diff.
-- **MCP unavailable** (e.g. `start_agent` agents, cloud agents, `oz agent run`): ! Use `gh api repos/<owner>/<repo>/pulls/<number>/comments` as the explicit fallback for the second review source. Document in the commit message or PR comment why MCP was skipped (e.g. "MCP unavailable in this session -- used gh api fallback for review comments").
+- **MCP unavailable** (e.g. non-MCP agents including `start_agent` / `spawn_subagent` ("grok-build") dispatch, cloud agents, `oz agent run`): ! Use `gh api repos/<owner>/<repo>/pulls/<number>/comments` as the explicit fallback for the second review source. Document in the commit message or PR comment why MCP was skipped (e.g. "MCP unavailable in this session -- used gh api fallback for review comments"). The platform descriptor from runtime detection determines MCP availability independently of the dispatch primitive.
 
 ⊗ Report "all comments resolved" without verifying both sources.
 ⊗ Skip the second review source without probing for MCP capability and documenting the fallback used.
@@ -289,7 +289,7 @@ If the exit condition is not met, go back to Step 2.
 
 Choose whichever minimizes steps and maximizes clarity for the given task.
 
-~ When MCP is unavailable (`start_agent` agents, cloud agents, `oz agent run`), `gh` CLI is sufficient as the sole interface. The dual-source requirement (MCP + `gh`) in Step 1 applies only when both are available -- agents without MCP access should use `gh pr view --comments` and `gh api` as their primary and only review detection surface.
+~ When MCP is unavailable (agents without MCP tools in their dispatch environment, including `start_agent` / `spawn_subagent` ("grok-build") cases, cloud agents, `oz agent run`), `gh` CLI is sufficient as the sole interface. The dual-source requirement (MCP + `gh`) in Step 1 applies only when both are available -- agents without MCP access should use `gh pr view --comments` and `gh api` as their primary and only review detection surface. Runtime capability detection (swarm Phase 3 matrix) informs both orchestration tier and MCP surface choice.
 
 ## Framework Events Emitted Here
 

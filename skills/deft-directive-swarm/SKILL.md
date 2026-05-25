@@ -260,18 +260,21 @@ git worktree add <path> -b <branch-name> <configured-base-branch>
 
 ### Step 1: Runtime Capability Detection
 
-! Before selecting a launch method, probe the environment to determine the best available path.
+! Before selecting a launch method, probe the environment using the canonical detection matrix (extended for hybrid swarm per #1342) to determine the best available path **and return a stable platform descriptor**. The probe inspects the caller's available tool set for orchestration primitives plus relevant environment variables. This matrix (and the returned descriptor) is the single source of truth for launch/monitoring/sub-agent dispatch decisions in both the swarm skill and the aligned review-cycle skill.
 
 1. ! **Probe for `start_agent` tool** — check the available tool set for `start_agent` (or equivalent agent-orchestration tool). Its presence indicates a Warp environment with native orchestration support.
-2. ! **Probe for Warp environment** — if `start_agent` is not available, check for `WARP_*` environment variables (e.g. `WARP_TERMINAL_SESSION`, `WARP_IS_WARP_TERMINAL`). Their presence indicates Warp without orchestration.
-3. ! **Select launch path automatically** based on detection results — do NOT present static options:
-   - **`start_agent` available** → Orchestrated launch (Step 2a) — preferred path, fully automated, no manual tab management
-   - **`start_agent` unavailable, Warp detected** → Interactive Warp tabs (Step 2b) — full MCP, global rules, warm index; requires manual tab management
-   - **No Warp detected** → Manual terminal launch (Step 2b fallback) — paste prompt into any terminal with access to the worktree
-4. ? **Cloud escape hatch** — use `oz agent run-cloud` (Step 2c) ONLY if the user explicitly requests cloud execution. Never default to cloud.
+2. ! **Probe for Warp environment** — check for `WARP_*` environment variables (e.g. `WARP_TERMINAL_SESSION`, `WARP_IS_WARP_TERMINAL`). Their presence (without `start_agent`) indicates Warp without orchestration.
+3. ! **Probe for `spawn_subagent` tool (Grok Build / TUI)** — check the available tool set for `spawn_subagent` **in the explicit absence of both `start_agent` and any `WARP_*` variables**. Its presence under those absences indicates a spawn_subagent-based runtime (Grok Build TUI / this environment) with native sub-agent dispatch capability equivalent to `start_agent` for orchestration purposes.
+4. ! **Return stable platform descriptor + capabilities** (do not hard-code ad-hoc checks downstream):
+   - `"warp-orchestrated"` (or legacy equiv.) when `start_agent` present → Orchestrated launch via `start_agent` (Step 2a)
+   - `"warp-manual"` when `WARP_*` present and no `start_agent` → Interactive Warp tabs (Step 2b)
+   - `"grok-build"` (preferred) or `"spawn_subagent"` when `spawn_subagent` present + the two absences → platform-appropriate orchestrated launch (adapter follows in subsequent slices of #1342; uses `spawn_subagent` + worktree + canonical preamble)
+   - `"manual"` / `"other"` (or cloud escape only on explicit request) otherwise → paste prompt into any terminal (Step 2b fallback)
+5. ! **Select launch path automatically** based on the descriptor — do NOT present static options. Cloud (`oz agent run-cloud`) is an escape hatch ONLY on explicit user request; never default.
 
-⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime.
-⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate on `WARP_*` environment variables or `start_agent` tool presence.
+⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime — always apply the full matrix (including `spawn_subagent` presence + explicit absence of `start_agent` and `WARP_*` vars) before choosing a launch path.
+⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate strictly on the matrix (WARP_* vars or `start_agent` tool presence); never offer them for `"grok-build"` descriptor.
+⊗ Hard-code assumptions about `start_agent` (or any single dispatch primitive) for sub-agent spawning / monitoring without consulting the platform descriptor returned by this step (or equivalent matrix in review-cycle). The descriptor enables portable orchestration across Warp, Grok Build, and future runtimes.
 
 ### Step 2a: Orchestrated Launch (start_agent available)
 
@@ -677,8 +680,9 @@ CONSTRAINTS:
 - ⊗ Launch agents without checking vBRIEF acceptance criteria first
 - ⊗ Skip the file-overlap audit in Phase 1
 - ⊗ Use `git reset --hard` or force-push in any worktree (swarm agents only -- monitor may `--force-with-lease` after rebase cascade per Phase 6 Step 1)
-- ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime — always probe for `start_agent` and Warp environment variables before choosing a launch path
-- ⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate on `WARP_*` environment variables or `start_agent` tool presence
+- ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime — always apply the full Runtime Capability Detection matrix (Step 1) including `spawn_subagent` presence + explicit absence checks for `start_agent` and `WARP_*` vars, and use the returned stable platform descriptor (`"grok-build"`, `"warp-orchestrated"`, etc.) before choosing any launch path
+- ⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate strictly on the matrix (WARP_* vars or `start_agent` tool); never offer for `"grok-build"` / `spawn_subagent` descriptor environments
+- ⊗ Ignore or fail to document the `spawn_subagent` + absence case (Grok Build / TUI) in the detection matrix or platform descriptor — this is first-class per #1342 slice 1; the matrix and descriptor are the contract for hybrid swarms across runtimes (aligns swarm + review-cycle)
 - ⊗ Default to `oz agent run-cloud` — cloud is an explicit user-requested escape hatch, not a default path
 - ⊗ Use `oz agent run-cloud` when the user expects local execution — `run-cloud` routes to remote VMs with no local context
 - ⊗ Proceed to Phase 1 (Select) without completing Phase 0 (Allocate) and receiving explicit user approval
