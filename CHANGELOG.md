@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **chore(deps): bump arduino/setup-task SHA pin (#1223)** -- pure SHA-pin refresh on the one `arduino/setup-task@...` invocation in `ci.yml` (Windows task-dispatch regression job). The upstream `v2.0.0` tag is unchanged; only the action's internal install script changed. The Task binary it installs is unaffected. Maintains the #1072 SHA-pinning convention.
 
 ### Fixed
+- **fix(skills): review-cycle fully supports `spawn_subagent` / "grok-build" monitoring path (P1 surfaced on #1344)** -- Approach 1, tier detection, and poller launch now use the platform descriptor + launch adapter from #1342 slices 1-2. Grok Build / TUI agents (spawn_subagent + get_command_or_subagent_output + canonical preamble) are first-class alongside Warp/start_agent. Swarm and review-cycle orchestration are aligned for hybrid non-Warp environments. Refs #1342 (TDD plan), #1344 (Greptile P1). Subagent CHANGELOG entries for the slices were present and followed the prompt template; this entry records the cross-slice alignment debt closure.
+
+
 
 ### Removed
 
