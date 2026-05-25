@@ -173,6 +173,16 @@ Public Sub Restore()
 End Sub
 ```
 
+```vb
+' mod_AppGuard — factory: creates a cls_ApplicationState, captures state, and returns it
+' Call at the top of any bulk operation; call guard.Restore in the error handler
+Public Function GuardApplicationState() As cls_ApplicationState
+    Dim guard As New cls_ApplicationState
+    guard.Capture
+    Set GuardApplicationState = guard
+End Function
+```
+
 ### Array-Based Range Operations
 ```vb
 ' ! Read/write ranges as arrays — never cell-by-cell
@@ -231,11 +241,15 @@ End Sub
 ```vb
 ' ! Always check existence before referencing a named range
 Public Function NamedRangeExists(ByVal wb As Workbook, ByVal rangeName As String) As Boolean
+    On Error GoTo ErrHandler
     Dim rng As Range
-    On Error Resume Next
+    On Error Resume Next               ' scoped: existence check only
     Set rng = wb.Names(rangeName).RefersToRange
-    On Error GoTo 0
+    On Error GoTo ErrHandler           ' restore labeled handler
     NamedRangeExists = Not rng Is Nothing
+    Exit Function
+ErrHandler:
+    NamedRangeExists = False
 End Function
 ```
 
