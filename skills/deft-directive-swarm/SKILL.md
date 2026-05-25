@@ -167,7 +167,7 @@ Cross-references:
 - ! Read only readiness-approved story fields for allocation: `plan.title`, `plan.status`, non-empty `plan.items`, `planRef`, `references`, `plan.metadata.kind`, and `plan.metadata.swarm`.
 - ! Read `vbrief/PROJECT-DEFINITION.vbrief.json` for project-wide context (narratives, scope registry)
 - ! Determine the base branch: ask the user which branch to target for worktree creation, PR targets, and rebase cascade (default: `master`). Record this as the **configured base branch** for all subsequent phases.
-- ⊗ Spawn an implementation agent (via `start_agent`, `oz agent run`, Warp tab dispatch, or any other path) for a vBRIEF that has not passed `task vbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- the gate is the only authorization signal; affirmative continuation phrases and workflow-shape vocabulary are NOT (#810).
+- ⊗ Spawn an implementation agent (via `start_agent`, `spawn_subagent` (grok-build descriptor), `oz agent run`, Warp tab dispatch, or any other path per the Phase 3 runtime capability matrix / platform descriptor) for a vBRIEF that has not passed `task vbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- the gate is the only authorization signal; affirmative continuation phrases and workflow-shape vocabulary are NOT (#810).
 - ⊗ Allocate concurrent workers unless candidates are swarm-ready `kind=story` vBRIEFs with non-empty executable `plan.items` and `task swarm:readiness` exits 0.
 - ⊗ Use manual file-overlap reasoning as the only safety check; use the readiness report first, then explain any additional human judgment.
 
@@ -268,7 +268,7 @@ git worktree add <path> -b <branch-name> <configured-base-branch>
 4. ! **Return stable platform descriptor + capabilities** (do not hard-code ad-hoc checks downstream):
    - `"warp-orchestrated"` (or legacy equiv.) when `start_agent` present → Orchestrated launch via `start_agent` (Step 2a)
    - `"warp-manual"` when `WARP_*` present and no `start_agent` → Interactive Warp tabs (Step 2b)
-   - `"grok-build"` (preferred) or `"spawn_subagent"` when `spawn_subagent` present + the two absences → platform-appropriate orchestrated launch (adapter follows in subsequent slices of #1342; uses `spawn_subagent` + worktree + canonical preamble)
+   - `"grok-build"` (preferred) or `"spawn_subagent"` when `spawn_subagent` present + the two absences → platform-appropriate orchestrated launch via spawn_subagent adapter (Step 2d; uses the tool + canonical `templates/agent-prompt-preamble.md` foundation + worktree-adapted prompt per #1342 slice 2)
    - `"manual"` / `"other"` (or cloud escape only on explicit request) otherwise → paste prompt into any terminal (Step 2b fallback)
 5. ! **Select launch path automatically** based on the descriptor — do NOT present static options. Cloud (`oz agent run-cloud`) is an escape hatch ONLY on explicit user request; never default.
 
@@ -321,7 +321,44 @@ Agents execute on remote VMs without local MCP servers, codebase indexing, or Wa
 ⊗ Default to cloud launch — it is an escape hatch, not a default path.
 ⊗ Use `oz agent run-cloud` when the user expects local execution — `run-cloud` routes to remote VMs with no local context.
 
-## Phase 4 — Monitor
+### Step 2d: Grok Build / spawn_subagent Orchestrated Launch (grok-build / spawn_subagent platform)
+
+! When the platform descriptor is `"grok-build"` (or `"spawn_subagent"`), use the available `spawn_subagent` tool to launch each agent. This implements the first-class Grok Build launch path (slice 2 of #1342). It replaces the hybrid manual workaround documented in `swarm_grok_issue.md`.
+
+- ! **Canonical preamble as foundation (mandatory)**: Read `templates/agent-prompt-preamble.md` (from project root or worktree templates/). The full worker prompt dispatched via `spawn_subagent` MUST begin with (or embed verbatim) its 8 section bodies as binding rules:
+  1. Read AGENTS.md before any other tool call (with confirmation "Deft Directive active -- AGENTS.md loaded.")
+  2. #810 vBRIEF Implementation Intent Gate (locate/activate/preflight the assigned story vBRIEF before any code writes)
+  3. PowerShell 5.1 non-ASCII rule (Python pathlib route for edits)
+  4. pre-pr and review-cycle skills (run end-to-end before push and on PR)
+  5. REST-by-default for read-only gh calls (avoid GraphQL bucket drain)
+  6. No Draft re-toggling within a single review cycle
+  7. Rate-limit-aware throttle (probe graphql.remaining)
+  8. Identity separation -- consume dispatcher credential
+  Orchestrators MAY trim demonstrably out-of-scope sections for a worker but MUST NOT drop the AGENTS.md read mandate, the #810 gate, or the PS 5.1 rule. Copy the bodies into the prompt envelope; the worker reads them as authoritative (per preamble and AGENTS.md).
+
+- ! **Adapted prompt for worktree context**: Append (after the preamble) the task-specific portion, adapted from the Prompt Template below. Specialize for this dispatch:
+  - Explicit worktree: "You are operating inside the isolated git worktree created for this agent at: `<worktree-path-from-Phase-2>`. The `spawn_subagent` invocation (or your runtime) sets this as your CWD; if not, your first action after reading directives must be `cd <worktree-path>`. All file reads/writes, git commands, and the vBRIEF live relative to (or accessible from) this worktree. The main deft tree (with vbrief/active/ and shared templates/) remains accessible via absolute paths or `..` navigation as needed for the story."
+  - Specific vBRIEF(s): "Your assigned story vBRIEF is `vbrief/active/<exact-filename>.vbrief.json` (the one activated for this cohort member). Complete every item in `plan.items` exactly. See the full vBRIEF for acceptance criteria, references, and narratives."
+  - The imperative TASK: ... + STEPs 1-6 + CONSTRAINTS (no overlap with sibling agents' files, new sources need tests, conventional commits, task check before commit, never force-push, run pre-pr + review-cycle).
+  - Include "DO NOT STOP until all steps are complete" and reference to review-cycle skill.
+  - Platform note: "This launch used the native `spawn_subagent` path on the grok-build platform. You have the full preamble rules + this adapted task. Follow the hybrid swarm coordination in `swarm/swarm.md` (compositional fragment defense, explicit context, provenance)."
+
+- ! **Dispatch via the tool**: Invoke the available `spawn_subagent` tool (exact call shape per the current Grok Build / TUI runtime contract, analogous to `start_agent` usage elsewhere). Supply:
+  - `prompt`: the complete envelope (preamble sections + adapted worktree TASK above)
+  - Agent identifier/name (e.g. `agent-2-1342-launch-adapter` or per allocation)
+  - `cwd` / `working_dir` / equivalent param set to the agent's worktree path (for context isolation and correct relative paths)
+  - Any additional context/env (the dispatcher credential per patterns/multi-agent.md if applicable)
+  The tool launches the sub-agent; the monitor receives lifecycle/status via the platform's messaging (tool results, send_message_to_agent equivalents).
+
+- ! The launched worker will, as its mandatory first action (per preamble §1), read the (worktree or main) `AGENTS.md`, confirm alignment, then satisfy the #810 gate on its vBRIEF before any writes — exactly as in Warp `start_agent` dispatches.
+
+- ! No manual tab/paste management; fully automated, with the canonical preamble guaranteeing consistent rules (AGENTS, gates, pre-pr/review-cycle, REST, rate limits, identity) + worktree-specific adaptation.
+
+- ~ This is the native path for Grok Build environments. It directly addresses the adoption blocker in #1342 and obsoletes the manual "hybrid workaround" steps in `swarm_grok_issue.md` (Phase 0/1/2/5/6 remain shared; only Phase 3/4 dispatch now has the adapter).
+
+- ~ Aligns with review-cycle skill's tiered monitoring (Approach 1 spawn for pollers can use the same descriptor + spawn_subagent when in grok-build).
+
+### Phase 4 — Monitor
 
 ### Polling Cadence
 
@@ -618,15 +655,16 @@ When a monitor session crashes or a new session must take over an in-progress sw
 
 ## Prompt Template
 
-! Use this template for all agent prompts. The first line MUST be an imperative task statement.
+! **Foundation for all platforms (including Grok Build / spawn_subagent, Warp start_agent, etc.)**: Every worker prompt (whether constructed for `spawn_subagent`, `start_agent`, manual paste, or cloud) MUST use the full content of `templates/agent-prompt-preamble.md` as its required foundation. Copy the 8 section bodies verbatim into the dispatch envelope before the platform/task-specific portion (see Phase 3 Step 2d and the preamble itself for rules on trimming). The worker treats the preamble as binding (AGENTS.md read + confirmation, #810 vBRIEF gate before writes, PS 5.1 encoding, pre-pr + review-cycle, REST gh, rate-limit throttle, identity separation). This is non-negotiable per #954 and #1342.
+
+! Use the template below for the *task-specific* imperative portion that follows the preamble. The first line of the task portion MUST be an imperative TASK statement.
 
 ```
 TASK: You must complete N [type] fixes on this branch ([branch-name]) in the deft directive repo.
-This is a git worktree. Do NOT just read files and stop — you must implement all changes,
-run task check, commit, push, create a PR, and run the review cycle.
+This is a git worktree at <worktree-path>. [Platform-specific: launched via spawn_subagent on grok-build / start_agent on Warp etc. CWD is the worktree; cd if needed.]
 DO NOT STOP until all steps are complete.
 
-STEP 1 — Read directives: Read AGENTS.md, vbrief/vbrief.md, and the assigned vBRIEF(s) from vbrief/active/.
+STEP 1 — Read directives: (After preamble §1) Read AGENTS.md (confirm "Deft Directive active -- AGENTS.md loaded."), vbrief/vbrief.md if present, and the assigned vBRIEF(s) from vbrief/active/.
 Read skills/deft-directive-review-cycle/SKILL.md.
 
 STEP 2 — Implement these N tasks (see assigned vBRIEF(s) for full acceptance criteria):
@@ -659,12 +697,14 @@ CONSTRAINTS:
 
 ### Template Rules
 
-- ! First line MUST start with `TASK:` followed by an imperative statement
+- ! The *complete* dispatch prompt for any launch path (spawn_subagent, start_agent, etc.) MUST start with / embed the verbatim sections from `templates/agent-prompt-preamble.md` as the foundation before the task-specific template above.
+- ! First line of the task-specific portion MUST start with `TASK:` followed by an imperative statement
 - ! Include `DO NOT STOP until all steps are complete` in the preamble
 - ! Each task MUST include its vBRIEF filename and origin issue number
 - ! CONSTRAINTS section MUST list files the agent must not touch (other agents' scope)
 - ! Review cycle step MUST reference `skills/deft-directive-review-cycle/SKILL.md` explicitly
 - ⊗ Start the prompt with context ("You are working in...") — agents treat this as passive setup and may stop after reading
+- ⊗ Dispatch a worker (via spawn_subagent or any path) without the canonical preamble as the leading foundation — the preamble encodes the institutional memory and gates learned from prior swarms (#954, #1342)
 
 ## Push Autonomy
 
