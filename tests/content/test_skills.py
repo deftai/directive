@@ -403,11 +403,15 @@ def test_deft_directive_swarm_platform_descriptor_matrix() -> None:
     """Phase 3 documents full detection matrix + stable platform descriptors
     (#1342 slice 1)."""
     text = _read_skill(_SWARM_PATH)
-    assert "stable platform descriptor" in text.lower() or "platform descriptor" in text.lower(), (
-        f"{_SWARM_PATH}: Phase 3 must document returning stable platform descriptor (#1342)"
+    assert (
+        "stable platform descriptor" in text.lower()
+        or "platform descriptor" in text.lower()
+        or "platform adapter" in text.lower()
+    ), (
+        f"{_SWARM_PATH}: Phase 3 must document returning stable platform descriptor/adapter (#1342)"
     )
     # Covers the four cases via the extended prose
-    assert "warp-orchestrated" in text or "warp-manual" in text or "grok-build" in text, (
+    assert "grok-build" in text or "spawn_subagent" in text, (
         f"{_SWARM_PATH}: detection matrix must enumerate platform descriptors for all tiers (#1342)"
     )
 
@@ -1083,13 +1087,13 @@ def test_deft_directive_swarm_duplicate_tab_failure_mode() -> None:
     (#1342 slice 3)."""
     text = _read_skill(_SWARM_PATH)
     assert (
-        "Duplicate-Agent Failure Mode" in text
-        and "Duplicate-Tab" in text
+        "Duplicate-Tab Failure Mode" in text
         and "tool_use" in text
         and "tool_result" in text
         and "worktree" in text.lower()
+        and ("spawn_subagent" in text or "Grok Build" in text)
     ), (
-        f"{_SWARM_PATH}: missing generalized Duplicate-Agent / Duplicate-Tab "
+        f"{_SWARM_PATH}: missing generalized Duplicate-Tab "
         "Failure Mode documentation (worktree + spawn_subagent support, "
         "#261 / #1342 slice 3, t1.13.1)"
     )
