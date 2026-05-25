@@ -3,9 +3,16 @@ templates/swarm-greptile-poller-prompt.md
 
 Canonical Greptile review-cycle / poller sub-agent prompt body.
 
-Used by parent monitor agents when delegating post-PR work via `start_agent`.
+Used by parent monitor agents when delegating post-PR work via the platform
+dispatch primitive per the parent's Phase 3 runtime capability detection
+(`spawn_subagent` for "grok-build" / Grok Build TUI, `start_agent` for
+Warp-orchestrated, or equivalent in other environments). See
+`skills/deft-directive-swarm/SKILL.md` Phase 3 + #1342 slices 1-3 and the
+review-cycle skill's updated Approach 1.
+
 The parent reads this file and applies Python `str.format(...)` to substitute
-five placeholders, then passes the formatted prompt to `start_agent`:
+five placeholders, then passes the formatted prompt via the chosen dispatch
+primitive (spawn_subagent, start_agent, etc.):
 
     from pathlib import Path
     prompt = Path("templates/swarm-greptile-poller-prompt.md").read_text(encoding="utf-8").format(
@@ -15,6 +22,8 @@ five placeholders, then passes the formatted prompt to `start_agent`:
         poll_cap_minutes=30,
         parent_agent_id="<parent-id>",
     )
+    # Dispatch via the detected primitive (example for start_agent shown;
+    # use spawn_subagent + the launch adapter for grok-build per #1342)
     start_agent(name=f"greptile-poller-{{N}}", prompt=prompt, execution_mode="local")
 
 This file is the proven prompt body. Hand-authored variants have repeatedly
