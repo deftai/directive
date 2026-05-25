@@ -35,25 +35,29 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 ```typescript path=null start=null
 // ✓ Correct: batch reads, sync, compute, batch writes, sync
 await Excel.run(async (context) => {
-  const revenue = sheet.getRange("B5:B16");
-  const growthRate = sheet.getRange("C3");
+  const revenue = context.workbook.names.getItem("in_base_revenue").getRange();
+  const growthRate = context.workbook.names.getItem("as_growth_rate").getRange();
   revenue.load("values");
   growthRate.load("values");
   await context.sync();
 
   const projected = computeProjection(revenue.values, growthRate.values[0][0]);
 
-  const output = sheet.getRange("D5:D16");
+  const output = context.workbook.names.getItem("calc_projected_revenue").getRange();
   output.values = projected;
   await context.sync();
 });
 
 // ⊗ Wrong: sync inside loop
 await Excel.run(async (context) => {
-  for (let i = 0; i < 12; i++) {
-    const cell = sheet.getRange(`B${5 + i}`);
-    cell.load("values");
-    await context.sync(); // ⊗ 12 round trips instead of 1
+  const table = context.workbook.tables.getItem("RevenueTable");
+  const rows = table.rows;
+  rows.load("count");
+  await context.sync();
+  for (let i = 0; i < rows.count; i++) {
+    const row = rows.getItemAt(i);
+    row.load("values");
+    await context.sync(); // ⊗ N round trips instead of 1
     // ...
   }
 });
