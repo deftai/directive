@@ -145,7 +145,7 @@ Public Sub ProcessData(ByVal ws As Worksheet)
     appState.Restore
     Exit Sub
 ErrHandler:
-    appState.Restore
+    If Not appState Is Nothing Then appState.Restore
     Err.Raise Err.Number, "mod_DataProcessor.ProcessData", _
         "Failed to process data on " & ws.Name & ": " & Err.Description
 End Sub
