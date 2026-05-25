@@ -362,30 +362,61 @@ def test_deft_directive_swarm_flexible_allocation() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 14. deft-directive-swarm Phase 3 — Runtime capability detection (#188, t1.9.3)
+# 14. deft-directive-swarm Phase 3 — Runtime capability detection
+# (#188, t1.9.3; extended #1342 slice 1 for spawn_subagent + grok-build matrix)
 # ---------------------------------------------------------------------------
 
 def test_deft_directive_swarm_runtime_start_agent_detection() -> None:
-    """Phase 3 must probe for start_agent tool."""
+    """Phase 3 must probe for start_agent tool (part of full matrix)."""
     text = _read_skill(_SWARM_PATH)
     assert "start_agent" in text, (
-        f"{_SWARM_PATH}: Phase 3 must probe for start_agent tool (#188)"
+        f"{_SWARM_PATH}: Phase 3 must probe for start_agent tool (#188, #1342)"
     )
 
 
 def test_deft_directive_swarm_warp_env_detection() -> None:
-    """Phase 3 must detect Warp via WARP_* environment variables."""
+    """Phase 3 must detect Warp via WARP_* environment variables (part of full matrix)."""
     text = _read_skill(_SWARM_PATH)
     assert "WARP_*" in text or "WARP_TERMINAL_SESSION" in text, (
-        f"{_SWARM_PATH}: Phase 3 must detect Warp via WARP_* env vars (#188)"
+        f"{_SWARM_PATH}: Phase 3 must detect Warp via WARP_* env vars (#188, #1342)"
+    )
+
+
+def test_deft_directive_swarm_spawn_subagent_grok_build_detection() -> None:
+    """Phase 3 must detect spawn_subagent + absences for Grok Build / TUI ( #1342 slice 1)."""
+    text = _read_skill(_SWARM_PATH)
+    assert "spawn_subagent" in text, (
+        f"{_SWARM_PATH}: Phase 3 must detect spawn_subagent tool for grok-build (#1342)"
+    )
+    # Explicit absence checks + platform descriptor
+    assert "grok-build" in text or "spawn_subagent" in text, (
+        f"{_SWARM_PATH}: Phase 3 must return stable platform descriptor "
+        f"including grok-build (#1342)"
+    )
+    assert "absence" in text.lower() or "absences" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 3 must document explicit absence checks "
+        f"for start_agent + WARP_* (#1342)"
+    )
+
+
+def test_deft_directive_swarm_platform_descriptor_matrix() -> None:
+    """Phase 3 documents full detection matrix + stable platform descriptors
+    (#1342 slice 1)."""
+    text = _read_skill(_SWARM_PATH)
+    assert "stable platform descriptor" in text.lower() or "platform descriptor" in text.lower(), (
+        f"{_SWARM_PATH}: Phase 3 must document returning stable platform descriptor (#1342)"
+    )
+    # Covers the four cases via the extended prose
+    assert "warp-orchestrated" in text or "warp-manual" in text or "grok-build" in text, (
+        f"{_SWARM_PATH}: detection matrix must enumerate platform descriptors for all tiers (#1342)"
     )
 
 
 def test_deft_directive_swarm_no_static_abc_antipattern() -> None:
-    """Anti-patterns must prohibit static A/B/C option presentation."""
+    """Anti-patterns must prohibit static A/B/C option presentation (updated for matrix)."""
     text = _read_skill(_SWARM_PATH)
     assert "static launch options" in text.lower() or "static launch options (A/B/C)" in text, (
-        f"{_SWARM_PATH}: must have anti-pattern against static A/B/C options (#188)"
+        f"{_SWARM_PATH}: must have anti-pattern against static A/B/C options (#188, #1342)"
     )
 
 
@@ -876,10 +907,10 @@ def test_deft_review_cycle_start_agent_approach() -> None:
 
 
 def test_deft_review_cycle_fallback_approach() -> None:
-    """Review cycle must document tool-call polling fallback when start_agent unavailable."""
+    """Review cycle must document yield-based Approach 2 fallback (#195, #1342)."""
     text = _read_skill(_REVIEW_CYCLE_PATH)
-    assert "run_shell_command" in text and "yield" in text.lower(), (
-        f"{_REVIEW_CYCLE_PATH}: must document run_shell_command + yield fallback (#195)"
+    assert "yield" in text.lower() and ("run_terminal_command" in text or "Approach 2" in text), (
+        f"{_REVIEW_CYCLE_PATH}: must document yield-based Approach 2 fallback (#195, #1342)"
     )
 
 
@@ -1045,10 +1076,20 @@ def test_deft_directive_swarm_takeover_prespawn_verification() -> None:
 
 
 def test_deft_directive_swarm_duplicate_tab_failure_mode() -> None:
-    """deft-directive-swarm must document the duplicate-tab failure mode."""
+    """deft-directive-swarm must document the generalized duplicate-agent /
+    duplicate-tab failure mode for all platforms including spawn_subagent
+    (#1342 slice 3)."""
     text = _read_skill(_SWARM_PATH)
-    assert "Duplicate-Tab Failure Mode" in text and "tool_use" in text and "tool_result" in text, (
-        f"{_SWARM_PATH}: missing Duplicate-Tab Failure Mode documentation (#261, t1.13.1)"
+    assert (
+        "Duplicate-Agent Failure Mode" in text
+        and "Duplicate-Tab" in text
+        and "tool_use" in text
+        and "tool_result" in text
+        and "worktree" in text.lower()
+    ), (
+        f"{_SWARM_PATH}: missing generalized Duplicate-Agent / Duplicate-Tab "
+        "Failure Mode documentation (worktree + spawn_subagent support, "
+        "#261 / #1342 slice 3, t1.13.1)"
     )
 
 

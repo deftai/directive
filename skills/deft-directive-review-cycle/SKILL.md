@@ -94,7 +94,7 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 ! **MCP capability probe** (mirrors deft-directive-swarm Phase 3 pattern): Before attempting MCP `get_review_comments`, probe whether MCP GitHub tools are available in the current session. Detection: attempt a lightweight MCP call (e.g. list available tools or a no-op query) -- if it succeeds, MCP is available; if it errors or the tool is not in the available set, MCP is unavailable.
 
 - **MCP available**: ! Use MCP `get_review_comments` as the second source to catch Comments Outside Diff.
-- **MCP unavailable** (e.g. `start_agent` agents, cloud agents, `oz agent run`): ! Use `gh api repos/<owner>/<repo>/pulls/<number>/comments` as the explicit fallback for the second review source. Document in the commit message or PR comment why MCP was skipped (e.g. "MCP unavailable in this session -- used gh api fallback for review comments").
+- **MCP unavailable** (e.g. non-MCP agents including `start_agent` / `spawn_subagent` ("grok-build") dispatch, cloud agents, `oz agent run`): ! Use `gh api repos/<owner>/<repo>/pulls/<number>/comments` as the explicit fallback for the second review source. Document in the commit message or PR comment why MCP was skipped (e.g. "MCP unavailable in this session -- used gh api fallback for review comments"). The platform descriptor from runtime detection determines MCP availability independently of the dispatch primitive.
 
 ⊗ Report "all comments resolved" without verifying both sources.
 ⊗ Skip the second review source without probing for MCP capability and documenting the fallback used.
@@ -180,36 +180,38 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 ### Review Monitoring
 
-! Select the monitoring approach based on runtime capability detection. Probe the environment to distinguish three tiers:
+! Select the monitoring approach based on runtime capability detection (the matrix in `skills/deft-directive-swarm/SKILL.md` Phase 3 Step 1, extended per #1342 slices 1-2 for `spawn_subagent` / "grok-build" as a first-class tier). Probe the environment (tool set + env vars) to obtain the stable platform descriptor (`grok-build`, `warp-orchestrated`, `warp-interactive`, etc.) from the launch adapter / `get_platform_capabilities` and map the descriptor to the appropriate tier + dispatch primitive (start_agent or spawn_subagent). The descriptor (not hard-coded tool presence) is the single source of truth for both launch and review monitoring.
 
-- **Tier 1 -- `start_agent` available** → Approach 1 (spawn sub-agent monitor)
-- **Tier 2 -- no `start_agent`, but scheduler/timer/auto-reinvocation available** → Approach 2 (yield-between-polls)
-- **Tier 3 -- interactive session, no `start_agent`, no timer/scheduler** → Approach 3 (blocking sleep loop as last resort)
+- **Tier 1 (orchestrated sub-agent)** → Approach 1 (spawn review-monitor sub-agent via the primitive matching the descriptor: `start_agent` or `spawn_subagent`)
+- **Tier 2 (no sub-agent primitive, but scheduler/timer/auto-reinvocation)** → Approach 2 (yield-between-polls)
+- **Tier 3 (interactive session, nothing else)** → Approach 3 (blocking sleep loop as last resort)
 
-! Detection: probe for `start_agent` in the available tool set (same pattern as deft-directive-swarm Phase 3). If absent, check whether the runtime supports auto-reinvocation after yield (timer, scheduler, or CI trigger). If neither is available and the session is interactive, fall through to Approach 3.
+! Detection: use the full runtime capability matrix (swarm Phase 3 + launch adapter from #1342 slice 2). The old single-probe for `start_agent` is superseded; the returned platform descriptor determines both the orchestration path and the MCP surface (see MCP probe below). If the descriptor is `grok-build` (spawn_subagent present, start_agent + WARP_* absent), treat as Tier 1 with the spawn_subagent poller path.
 
-! Swarm agents launched via `start_agent` SHOULD prefer Approach 1 (spawn their own review-monitor sub-agent) when `start_agent` is available. Approach 2's yield-between-polls mechanism is not self-sustaining for swarm agents (see Approach 2 warning below).
+! Swarm agents (whether launched via `start_agent` or `spawn_subagent` per the platform descriptor) SHOULD prefer Approach 1 for their own review-monitor sub-agent. Approach 2's yield-between-polls is not self-sustaining for swarm agents (see warning below). Always include the canonical `templates/agent-prompt-preamble.md` (AGENTS.md read mandate, #810 vBRIEF gate, #798 PowerShell UTF-8, pre-PR + review-cycle mandates) when spawning a poller sub-agent.
 
-**Approach 1 (preferred -- `start_agent` available):**
+**Approach 1 (preferred -- sub-agent orchestration available per platform descriptor):**
 
-! When `start_agent` is detected in the available tool set, spawn a sub-agent review monitor:
+! When the platform descriptor indicates Tier 1 (sub-agent support), spawn a review-monitor sub-agent using the primitive matching the descriptor:
 
-1. ! Launch a sub-agent via `start_agent` with a prompt instructing it to poll for Greptile review completion
-2. ! The sub-agent polls `gh pr view <number> --repo <owner>/<repo> --comments` and `gh pr checks <number>` using adaptive cadence: ~20-30 seconds for the first check after push, ~60 seconds for the second check, ~90 seconds thereafter (Greptile reviews typically land in 3-7 minutes; front-loading the first check catches fast reviews without wasting cycles on long waits)
-3. ! When the exit condition is met (Greptile review current matching HEAD commit SHA, confidence > 3, no P0/P1 issues remaining), the sub-agent sends a message to the parent agent via `send_message_to_agent`
-4. ! The main conversation pane stays fully interactive during monitoring -- the user can continue other work
-5. ! On receiving the sub-agent's completion message, the parent agent re-fetches findings and proceeds to Step 5
+1. ! Launch via the matching primitive: `start_agent` (Warp) **or** `spawn_subagent` (grok-build / TUI / non-Warp) with a prompt that instructs it to poll for Greptile completion. For `spawn_subagent` the prompt MUST reference the canonical poller template `templates/swarm-greptile-poller-prompt.md` (with placeholders filled) plus the agent preamble; the working directory / context must be the PR branch (worktree or equivalent for hybrid).
+2. ! The sub-agent polls using the mechanism for its primitive: for `spawn_subagent` use `get_command_or_subagent_output` (adaptive cadence: ~20-30s first check after push, ~60s second, ~90s thereafter; Greptile typically lands in 3-7 min); for `start_agent` the native messaging path. Front-load the first check to catch fast reviews.
+3. ! When the exit condition is met (Greptile review current on the HEAD commit SHA, confidence > 3, no P0/P1 remaining), the sub-agent reports completion back to the parent (via `send_message_to_agent` or the spawn_subagent result channel).
+4. ! The main conversation pane stays fully interactive during monitoring -- the user (or parent monitor) can continue other work.
+5. ! On receiving the completion message / result, the parent re-fetches findings (both gh pr view --comments and the secondary source) and proceeds to Step 5.
 
-**Approach 2 (fallback -- `start_agent` not available):**
+**Approach 2 (fallback -- no sub-agent primitive for the descriptor):**
 
-! When `start_agent` is not available, use discrete tool calls with a yield between checks:
+! When the platform descriptor indicates no sub-agent orchestration (or the primitive is unavailable), use discrete tool calls with a yield between checks. For `grok-build` / spawn_subagent descriptor this path is normally avoided in favor of Approach 1; it exists for pure interactive or limited runtimes.
 
-1. ! Use `run_shell_command` (wait mode) to run `gh pr view <number> --comments` and `gh pr checks <number>`
-2. ! After each check, yield control (end all tool calls, do not hold a shell open) -- the agent runtime will re-invoke you after ~60 seconds or on the next system/user interaction, whichever comes first
-3. ! Target adaptive cadence where the runtime permits: ~20-30 seconds for the first poll, ~60 seconds for the second, ~90 seconds thereafter. Note: in pure yield mode the re-invocation interval is runtime-controlled (~60s typical), so the 20-30s first check is achievable only if the runtime or a user nudge triggers sooner. The full 20-30s/60s/90s cadence is achievable in Approach 1 (sub-agent sleep) and Approach 3 (blocking sleep)
-4. ! No blocking shell pane lock -- the conversation remains interactive between checks
-5. ~ Approach 2 requires a periodic re-invocation trigger (timer, scheduler, or user nudge) -- if the runtime lacks an auto-trigger, each poll cycle may require a user interaction to resume; this is a known tradeoff vs. Approach 1's fully autonomous sub-agent
-6. ! When the exit condition is met, proceed to Step 5
+1. ! Use the current shell execution tool (`run_terminal_command` or equivalent in the runtime) in wait mode to run `gh pr view <number> --comments` and `gh pr checks <number>`.
+2. ! After each check, yield control (end all tool calls) -- the agent runtime will re-invoke after its interval or on next interaction.
+3. ! Target adaptive cadence (20-30s / 60s / 90s) where the runtime permits. The full cadence is easiest in Approach 1 (sub-agent) or 3 (blocking); pure yield is runtime-controlled.
+4. ! No blocking shell pane lock -- the conversation remains interactive between checks.
+5. ~ Approach 2 requires a periodic re-invocation trigger (timer, scheduler, user nudge, or external orchestrator for hybrid/worktree cases). Without it the poller stops after the first yield.
+6. ! When the exit condition is met, proceed to Step 5.
+
+⚠️ **Swarm / hybrid limitation**: Approach 2 is NOT autonomous for swarm agents or manual worktree setups. Yielding ends the turn with no self-wake; the parent monitor (or external scheduler) must detect idle and re-trigger or send a message. For true `grok-build` / spawn_subagent hybrids, prefer Approach 1 (spawn_subagent + get_command_or_subagent_output poller) exactly as the swarm launch adapter does.
 
 ⚠️ **Swarm agent limitation**: Approach 2 is NOT autonomous for swarm agents. Yielding (ending all tool calls) terminates the agent's turn with no self-wake mechanism -- the agent will not resume unless the monitor detects the idle lifecycle event and re-triggers it. For swarm agents, the polling loop silently stops after the first yield unless external orchestration re-invokes the agent. The monitor (or parent agent) must detect the idle state and send a message or re-trigger the agent to continue polling.
 
@@ -287,7 +289,7 @@ If the exit condition is not met, go back to Step 2.
 
 Choose whichever minimizes steps and maximizes clarity for the given task.
 
-~ When MCP is unavailable (`start_agent` agents, cloud agents, `oz agent run`), `gh` CLI is sufficient as the sole interface. The dual-source requirement (MCP + `gh`) in Step 1 applies only when both are available -- agents without MCP access should use `gh pr view --comments` and `gh api` as their primary and only review detection surface.
+~ When MCP is unavailable (agents without MCP tools in their dispatch environment, including `start_agent` / `spawn_subagent` ("grok-build") cases, cloud agents, `oz agent run`), `gh` CLI is sufficient as the sole interface. The dual-source requirement (MCP + `gh`) in Step 1 applies only when both are available -- agents without MCP access should use `gh pr view --comments` and `gh api` as their primary and only review detection surface. Runtime capability detection (swarm Phase 3 matrix) informs both orchestration tier and MCP surface choice.
 
 ## Framework Events Emitted Here
 

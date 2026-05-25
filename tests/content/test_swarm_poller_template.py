@@ -1293,3 +1293,10 @@ def test_template_recurrence_record_cites_1039(template_text: str) -> None:
     assert "5794b0e7" in template_text, (
         "template must cite the wedged poller agent id `5794b0e7-...` (#1039)"
     )
+
+
+def test_template_platform_adapter_unification_1342_phase6(template_text: str) -> None:
+    """#1342 Phase 6 unification (slices 4+5): poller template must document platform-adapter spawn (spawn_subagent / Grok Build support) instead of hardcoding start_agent; pins the refactor of duplication and docs update."""
+    assert "platform adapter" in template_text, "Phase 6 poller template must reference the unified platform adapter (#1342)"
+    assert "spawn_subagent" in template_text or "Grok Build" in template_text, "template must mention non-Warp spawn_subagent path post-unification"
+    assert "#1342" in template_text, "template must cite the #1342 unification for the spawn change"
