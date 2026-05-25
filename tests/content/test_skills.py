@@ -907,7 +907,9 @@ def test_deft_review_cycle_start_agent_approach() -> None:
 
 
 def test_deft_review_cycle_fallback_approach() -> None:
-    """Review cycle must document yield-based polling fallback when no sub-agent orchestration primitive is available."""
+    """Review cycle must document yield-based polling fallback when no
+    sub-agent orchestration primitive is available.
+    """
     text = _read_skill(_REVIEW_CYCLE_PATH)
     assert "yield" in text.lower() and ("run_terminal_command" in text or "Approach 2" in text), (
         f"{_REVIEW_CYCLE_PATH}: must document yield-based Approach 2 fallback (#195, #1342)"
