@@ -134,7 +134,7 @@ task check             # Pre-commit: export + compile-check + test
 Public Sub ProcessData(ByVal ws As Worksheet)
     On Error GoTo ErrHandler
 
-    Dim appState As ApplicationState
+    Dim appState As cls_ApplicationState
     Set appState = GuardApplicationState()   ' see Application State Guard
 
     Dim data As Variant
@@ -142,6 +142,7 @@ Public Sub ProcessData(ByVal ws As Worksheet)
 
     ' ... business logic ...
 
+    appState.Restore
     Exit Sub
 ErrHandler:
     appState.Restore
