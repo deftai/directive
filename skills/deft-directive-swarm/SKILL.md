@@ -167,7 +167,7 @@ Cross-references:
 - ! Read only readiness-approved story fields for allocation: `plan.title`, `plan.status`, non-empty `plan.items`, `planRef`, `references`, `plan.metadata.kind`, and `plan.metadata.swarm`.
 - ! Read `vbrief/PROJECT-DEFINITION.vbrief.json` for project-wide context (narratives, scope registry)
 - ! Determine the base branch: ask the user which branch to target for worktree creation, PR targets, and rebase cascade (default: `master`). Record this as the **configured base branch** for all subsequent phases.
-- ⊗ Spawn an implementation agent (via `start_agent`, `spawn_subagent`, `oz agent run`, Warp tab dispatch, or any other platform path) for a vBRIEF that has not passed `task vbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- the gate is the only authorization signal; affirmative continuation phrases and workflow-shape vocabulary are NOT (#810).
+- ⊗ Spawn an implementation agent (via `start_agent`, `oz agent run`, Warp tab dispatch, or any other path) for a vBRIEF that has not passed `task vbrief:preflight` (which wraps `scripts/preflight_implementation.py`) -- the gate is the only authorization signal; affirmative continuation phrases and workflow-shape vocabulary are NOT (#810).
 - ⊗ Allocate concurrent workers unless candidates are swarm-ready `kind=story` vBRIEFs with non-empty executable `plan.items` and `task swarm:readiness` exits 0.
 - ⊗ Use manual file-overlap reasoning as the only safety check; use the readiness report first, then explain any additional human judgment.
 
@@ -260,20 +260,18 @@ git worktree add <path> -b <branch-name> <configured-base-branch>
 
 ### Step 1: Runtime Capability Detection
 
-! Before selecting a launch method, probe the environment to determine the best available path. This detection is the foundation for platform-aware launch (Phase 3), monitoring/takeover (Phase 4), and sub-agent dispatch (Phase 6) — see #1342 TDD slices 1-4.
+! Before selecting a launch method, probe the environment to determine the best available path.
 
 1. ! **Probe for `start_agent` tool** — check the available tool set for `start_agent` (or equivalent agent-orchestration tool). Its presence indicates a Warp environment with native orchestration support.
-2. ! **Probe for `spawn_subagent` tool** — check the available tool set for `spawn_subagent` (or equivalent sub-agent dispatch primitive). Its presence indicates a Grok Build / non-Warp environment with worktree-based orchestration + messaging (the target for this #1342 slice 3 monitoring-takeover work).
-3. ! **Probe for Warp environment** — if neither orchestration primitive is present, check for `WARP_*` environment variables (e.g. `WARP_TERMINAL_SESSION`, `WARP_IS_WARP_TERMINAL`). Their presence indicates Warp without orchestration.
-4. ! **Select launch path automatically** based on detection results — do NOT present static options:
-   - **`start_agent` available** → Orchestrated launch (Step 2a) — preferred path for Warp, fully automated, no manual tab management
-   - **`spawn_subagent` available** → Orchestrated launch via spawn_subagent (Step 2d) — preferred path for Grok Build / non-Warp; uses worktree state + sub-agent messaging; enables the Phase 4 worktree-polling + review-cycle tiered monitoring in this slice
-   - **`start_agent` unavailable, Warp detected (no spawn_subagent)`** → Interactive Warp tabs (Step 2b) — full MCP, global rules, warm index; requires manual tab management
-   - **No Warp, no spawn_subagent** → Manual terminal launch (Step 2b fallback) — paste prompt into any terminal with access to the worktree
-5. ? **Cloud escape hatch** — use `oz agent run-cloud` (Step 2c) ONLY if the user explicitly requests cloud execution. Never default to cloud.
+2. ! **Probe for Warp environment** — if `start_agent` is not available, check for `WARP_*` environment variables (e.g. `WARP_TERMINAL_SESSION`, `WARP_IS_WARP_TERMINAL`). Their presence indicates Warp without orchestration.
+3. ! **Select launch path automatically** based on detection results — do NOT present static options:
+   - **`start_agent` available** → Orchestrated launch (Step 2a) — preferred path, fully automated, no manual tab management
+   - **`start_agent` unavailable, Warp detected** → Interactive Warp tabs (Step 2b) — full MCP, global rules, warm index; requires manual tab management
+   - **No Warp detected** → Manual terminal launch (Step 2b fallback) — paste prompt into any terminal with access to the worktree
+4. ? **Cloud escape hatch** — use `oz agent run-cloud` (Step 2c) ONLY if the user explicitly requests cloud execution. Never default to cloud.
 
 ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime.
-⊗ Offer Warp-specific launch paths (tabs, `start_agent`) or hard-code assumptions when not running inside the matching environment — always gate on the full probe matrix (`start_agent`, `spawn_subagent`, `WARP_*`).
+⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate on `WARP_*` environment variables or `start_agent` tool presence.
 
 ### Step 2a: Orchestrated Launch (start_agent available)
 
@@ -320,78 +318,54 @@ Agents execute on remote VMs without local MCP servers, codebase indexing, or Wa
 ⊗ Default to cloud launch — it is an escape hatch, not a default path.
 ⊗ Use `oz agent run-cloud` when the user expects local execution — `run-cloud` routes to remote VMs with no local context.
 
-### Step 2d: Orchestrated Launch (spawn_subagent available)
-
-! When `spawn_subagent` is detected in the tool set (Grok Build / non-Warp platform per Phase 3 Step 1), use it directly to launch each agent. This is the native dispatch for the target environment of #1342 slice 3 (monitoring-takeover).
-
-- ! Launch one agent per worktree using `spawn_subagent` (or the platform equivalent), supplying:
-  - The generated prompt, which **MUST** begin with or reference the canonical `templates/agent-prompt-preamble.md` (per #954 and AGENTS.md multi-agent discipline).
-  - The worktree path as the execution context / working directory.
-- ! Agents operate using worktree filesystem for all state (git, source edits, checkpoints) and platform-native sub-agent messaging for coordination with the parent monitor. No reliance on Warp tab UI state or `start_agent` lifecycle events.
-- ! The launch prompt (adapted in the generator) instructs the worker to:
-  - Write periodic, structured checkpoints (e.g. JSON to `.swarm/agent-status.json` or append-only log in the worktree) describing current phase, last action, PR status, etc. — enabling reliable worktree polling by the monitor.
-  - Emit status messages via the platform messaging channel when available (for responsive takeover probes).
-- ! No user intervention needed — launch is fully automated via the platform primitive.
-- ~ This is the preferred path for Grok Build environments: enables the portable Phase 4 worktree-polling + review-cycle tiered monitoring/takeover without Warp coupling. Matches the hybrid workaround in the #1342 TDD until native support lands.
-
-**Tradeoff:** Full sub-agent orchestration and messaging, but the exact MCP surface / context inheritance depends on the Grok Build runtime (typically lighter than Warp Drive; the portable preamble + worktree discipline compensates).
-
-⊗ Use `spawn_subagent` without the canonical preamble in the dispatch envelope, or without instructing the worker on worktree checkpointing — this defeats the monitoring takeover contract for this platform.
-
 ## Phase 4 — Monitor
-
-The monitoring model is deliberately portable across platforms (#1342): **worktree state is the source of truth** for checkpoints, progress, and takeover decisions for spawn_subagent-dispatched agents (Grok Build), Warp agents, manual launches, and cloud. Lifecycle events (Warp) or messaging (spawn_subagent) are secondary signals. The review-cycle skill's existing tiered monitoring approaches (Approach 1/2/3 in its Step 4) are reused for review-phase watches, status probes, and takeover helpers.
 
 ### Polling Cadence
 
-- ~ Check each agent's worktree every 2–3 minutes: `git status --short`, `git log --oneline -3`, and any `.swarm/` checkpoint files or `.swarm/agent-status.json` written by the worker (instructed in the platform-specific launch prompt / preamble).
-- ~ After 5 minutes with no changes, escalate to a platform-appropriate status probe helper (see Takeover Triggers below; uses review-cycle tiers when dispatch primitive available).
+- ~ Check each agent's worktree every 2–3 minutes: `git status --short` and `git log --oneline -3`
+- ~ After 5 minutes with no changes, check if the agent process is still running
 
 ### Checkpoints
 
-Track each agent through these stages (all observable via portable worktree polling for spawn_subagent-dispatched agents and others):
+Track each agent through these stages:
 
-1. **Reading** — agent is loading AGENTS.md, vBRIEF files, project files (no file changes yet; canonical preamble read per `templates/agent-prompt-preamble.md` and this skill).
-2. **Implementing** — working tree shows modified files (or checkpoint indicates "implementing").
-3. **Validating** — agent running `task check` (or checkpoint + shell activity).
-4. **Committed** — new commit(s) in `git log`.
-5. **Pushed** — branch exists on `origin`.
-6. **PR Created** — PR visible via `gh pr list --head <branch>`.
-7. **Review Cycling** — additional commits after PR creation (Greptile fix rounds; monitor delegates watches to review-cycle tiered monitoring per Phase 6).
+1. **Reading** — agent is loading AGENTS.md, vBRIEF files, project files (no file changes yet)
+2. **Implementing** — working tree shows modified files
+3. **Validating** — agent running `task check`
+4. **Committed** — new commit(s) in `git log`
+5. **Pushed** — branch exists on `origin`
+6. **PR Created** — PR visible via `gh pr list --head <branch>`
+7. **Review Cycling** — additional commits after PR creation (Greptile fix rounds)
 
-### Takeover Triggers (platform-aware, worktree-first per #1342 slice 3)
+### Takeover Triggers
 
-! **Pre-spawn verification (mandatory for spawn_subagent and all platforms):** Before spawning a replacement agent on a worktree (via `spawn_subagent`, `start_agent`, or any other path), verify the original is truly unresponsive by:
+! **Pre-spawn verification:** Before spawning a replacement agent, verify the original is truly unresponsive by waiting for an idle/blocked lifecycle event (e.g. the agent's Warp tab shows no tool calls in progress, no pending shell commands, and no recent output). Do NOT spawn a replacement based solely on message timing, absence of recent commits, or a perceived delay — original Warp tabs can resume after apparent failure, and spawning a new agent creates two concurrent agents on the same worktree (see Duplicate-Tab Failure Mode below).
 
-- **Primary signal (all platforms):** Worktree polling for recent changes (git log --since, file mtimes on source + any worker-written checkpoints in `.swarm/`, absence of expected progress markers per the launch prompt).
-- **Secondary signal (when platform dispatch available):** Spawn a short-lived status-probe helper sub-agent via the detected primitive (`spawn_subagent` preferred for Grok Build, `start_agent` for Warp) using the review-cycle skill's tiered monitoring approach (Approach 1 when possible: the helper polls and reports back via messaging; falls back to Approach 2 yield or 3 per review-cycle SKILL.md). The probe confirms idle / blocked / unresponsive state.
-- Do NOT spawn a replacement based solely on message timing, absence of recent commits, or a perceived delay — original agents (Warp tabs or spawn_subagent workers) can resume after apparent failure (network, context pressure, platform glitch), and spawning a new agent creates two concurrent agents on the same worktree (see Duplicate-Agent Failure Mode below).
+! Take over an agent's workflow if ANY of these occur:
 
-! Take over an agent's workflow if ANY of these occur (all detectable via worktree polling + review-cycle tiers for the review phase; no Warp tab state or start_agent lifecycle required for the primary workers):
+- Agent process has exited and PR has not been created
+- Agent process has exited and Greptile review cycle was not started
+- Agent is idle for >5 minutes after PR creation with no review activity
+- Agent is stuck in an error loop (same error 3+ times)
 
-- No worktree changes (git, files, checkpoints) for >5 minutes and PR has not been created.
-- Worker has exited (process indicators where reported by platform) and PR has not been created / Greptile review cycle was not started.
-- No review activity after PR creation for >5 minutes (confirmed via review-cycle tiered monitor per `skills/deft-directive-review-cycle/SKILL.md` Step 4 Review Monitoring).
-- Agent is stuck in an error loop (same error 3+ times visible in worktree logs, checkpoints, or status).
+When taking over: read the agent's current state (git log, diff, PR comments), complete remaining steps manually following the same deft process.
 
-When taking over: read the agent's current state from the worktree (git log, diff, PR comments, `.swarm/agent-status.json` or other checkpoints), complete remaining steps manually following the same deft process (read directives → implement → task check → CHANGELOG → commit → PR → review cycle).
+### Duplicate-Tab Failure Mode
 
-### Duplicate-Tab / Duplicate-Agent Failure Mode
+⚠️ **Root cause of #261 and #263:** Original Warp agent tabs may resume after apparent failure (network hiccup, temporary Warp UI freeze, context window pressure). If the monitor spawns a new agent for the same worktree, two concurrent agents execute on the same branch simultaneously. This corrupts the `tool_use`/`tool_result` message chain — both agents issue tool calls, but responses are interleaved unpredictably, causing one or both agents to act on stale or incorrect state.
 
-⚠️ **Root cause of #261 and #263 (generalized to spawn_subagent + all platforms):** Original agents (Warp tabs or spawn_subagent-dispatched workers on Grok Build / non-Warp) may resume after apparent failure (network hiccup, temporary platform freeze, context window pressure). If the monitor spawns a new agent for the same worktree, two concurrent agents execute on the same branch simultaneously. This corrupts the tool_use/tool_result / messaging chain — both agents issue actions, responses are interleaved unpredictably, causing one or both to act on stale or incorrect state.
-
-**Recovery guidance (portable across platforms):**
-- ! Keep original agent dispatches (tabs or spawn_subagent instances) open / alive until their PR is merged — do not terminate ones that appear stalled.
-- ! If an agent appears stalled, use platform-appropriate resume (for Warp: direct instruction in the tab; for spawn_subagent: messaging / status probe to the agent_id) rather than spawning a replacement.
-- ! If the original is truly unrecoverable (crash, explicit termination, confirmed unresponsive via the pre-spawn verification above), only then create a new agent — and first verify the worktree state (`git status`, `git log`, `gh pr list`, checkpoint files) to avoid conflicting with any in-flight work.
+**Recovery guidance:**
+- ! Keep original agent tabs open until their PR is merged — do not close tabs that appear stalled
+- ! If an agent appears stalled, go to its original Warp tab and tell it to resume (e.g. "continue from where you left off") rather than spawning a replacement
+- ! If the original tab is truly unrecoverable (Warp crash, tab closed), only then create a new agent — and first verify the worktree state (`git status`, `git log`, `gh pr list`) to avoid conflicting with any in-flight work
 
 ### Context-Length Warning
 
-! Long monitoring sessions accumulate large conversation history (hundreds of tool_use/tool_result pairs or messaging exchanges) and are susceptible to conversation corruption — the tool_use/tool_result mismatch observed in #263 occurred at approximately message 158 in a single monitor conversation. To mitigate:
+! Long monitoring sessions accumulate large conversation history (hundreds of tool_use/tool_result pairs) and are susceptible to conversation corruption — the tool_use/tool_result mismatch observed in #263 occurred at approximately message 158 in a single monitor conversation. To mitigate:
 
-- ! Offload rebase, review-watch, and merge sub-tasks to ephemeral sub-agents using the tiered approach from `skills/deft-directive-review-cycle/SKILL.md` (spawn via the platform dispatch primitive — `start_agent` or `spawn_subagent` — when available per Phase 3 detection; discrete tool calls with yield otherwise) — this keeps the monitor conversation shallow.
-- ~ Target <100 tool-call round-trips in any single monitor conversation before considering a fresh session handoff.
-- ! If the monitor detects degraded output (repeated errors, inconsistent state references, tool call failures), stop and hand off to a fresh session with a state summary rather than continuing in a corrupted context.
+- ! Offload rebase, review-watch, and merge sub-tasks to ephemeral sub-agents using the tiered approach from `skills/deft-directive-review-cycle/SKILL.md` (spawn via the platform adapter's dispatch primitive when available (e.g. `spawn_subagent` for Grok Build), discrete tool calls with yield otherwise) — this keeps the monitor conversation shallow
+- ~ Target <100 tool-call round-trips in any single monitor conversation before considering a fresh session handoff
+- ! If the monitor detects degraded output (repeated errors, inconsistent state references, tool call failures), stop and hand off to a fresh session with a state summary rather than continuing in a corrupted context
 
 ## Phase 5 — Review & Complete
 
@@ -457,7 +431,7 @@ All PRs meet ALL of:
 
 ! **Post-PR sub-agents are review-cycle agents (#727):** Sub-agents addressing review findings, waiting for re-review, and iterating to clean MUST embody `skills/deft-directive-review-cycle/SKILL.md` end-to-end as a single coherent role. Do NOT split the review-cycle into separate "poll" and "fix" agents -- pollers that spawn separate fix agents create cross-agent state-handoff hazards and double the chance of an agent exiting at the wrong lifecycle boundary.
 
-! **Post-PR monitoring runs in a fresh sub-agent (#727):** Post-PR monitoring (Greptile, CI checks, downloadCount drift, lifecycle events, etc.) MUST be done by spawning a fresh short-lived sub-agent via `start_agent`. The parent yields with no tool calls and waits for the sub-agent's messages -- this preserves conversation steerability so the user can interrupt or redirect while the watch is pending. The only Warp runtime surface with a true async callback channel is `start_agent` + messaging; every Taskfile / shell-sleep / `time.sleep` / synchronous tool-call alternative blocks the parent's turn for the duration of the watch.
+! **Post-PR monitoring runs in a fresh sub-agent (#727):** Post-PR monitoring (Greptile, CI checks, downloadCount drift, lifecycle events, etc.) MUST be done by spawning a fresh short-lived sub-agent via the platform adapter's dispatch primitive for the detected runtime (e.g. `spawn_subagent` when the Grok Build / non-Warp platform is active, `start_agent` for Warp-orchestrated environments). The parent yields with no tool calls and waits for the sub-agent's messages -- this preserves conversation steerability so the user can interrupt or redirect while the watch is pending. The platform adapter (introduced in slices 1-3 of #1342) supplies the appropriate async callback channel and spawn surface per the runtime capability detection matrix; every Taskfile / shell-sleep / `time.sleep` / synchronous tool-call alternative blocks the parent's turn for the duration of the watch.
 
 ! **Canonical poller template (#727):** When delegating to a poller / review-cycle sub-agent, MUST use the canonical poller-prompt template at `templates/swarm-greptile-poller-prompt.md` with placeholders (`{pr_number}`, `{repo}`, `{poll_interval_seconds}`, `{poll_cap_minutes}`, `{parent_agent_id}`) filled in. Do NOT hand-author per-watch prompts -- the template encodes parsing fixes (markdown-link `Last reviewed commit:` regex, badge-based / negation-aware P0/P1 detection) that hand-authored variants have repeatedly missed (Agent D, post-#721 swarm; #727 comment 2).
 
@@ -467,7 +441,7 @@ All PRs meet ALL of:
 
 ⊗ Run a poll loop in the parent's own turn (via `task`, shell sleep, `time.sleep`, or any synchronous tool call). The conversation must remain user-steerable while watches are pending.
 
-⊗ Bundle "watch for Greptile" / "monitor CI" instructions into an implementation agent's `start_agent` prompt -- implementation agents exit at PR-open via the `succeeded` lifecycle, so any post-exit monitoring instruction is unreachable.
+⊗ Bundle "watch for Greptile" / "monitor CI" instructions into an implementation agent's dispatch prompt (regardless of the platform adapter's spawn primitive) -- implementation agents exit at PR-open via the `succeeded` lifecycle, so any post-exit monitoring instruction is unreachable.
 
 ⊗ Spawn a "pure poller" sub-agent for a PR that has likely findings. Pure pollers are appropriate ONLY when no fixes are expected (CI watch on known-good HEAD, post-merge state checks, lifecycle observers). Default for post-PR work is review-cycle, NOT poller.
 
@@ -509,7 +483,7 @@ If any protected (umbrella / staying-OPEN) issue number appears in the output, t
 
 ! **Greptile re-review on rebase force-push:** Force-pushing a rebased branch triggers a **full** Greptile re-review (not an incremental diff), even if the rebase introduced no logic changes. Expected latency is ~2-5 minutes per PR in the cascade. Factor this into merge sequencing.
 
-! **Autonomous re-review monitoring after force-push:** After each `--force-with-lease` push of a rebased branch in the cascade, the monitor MUST autonomously wait for the Greptile re-review to complete before proceeding to the next merge. Use the tiered monitoring approach defined in `skills/deft-directive-review-cycle/SKILL.md` Step 4 Review Monitoring (Approach 1: spawn sub-agent via `start_agent` to poll and report back; Approach 2 fallback: discrete `run_shell_command` wait-mode calls with yield between polls, adaptive cadence -- see deft-directive-review-cycle SKILL.md). Do NOT duplicate the full monitoring logic here -- follow the canonical skill.
+! **Autonomous re-review monitoring after force-push:** After each `--force-with-lease` push of a rebased branch in the cascade, the monitor MUST autonomously wait for the Greptile re-review to complete before proceeding to the next merge. Use the tiered monitoring approach defined in `skills/deft-directive-review-cycle/SKILL.md` Step 4 Review Monitoring (Approach 1: spawn sub-agent via the platform adapter's dispatch primitive (e.g. `spawn_subagent` or `start_agent`) to poll and report back; Approach 2 fallback: discrete `run_shell_command` wait-mode calls with yield between polls, adaptive cadence -- see deft-directive-review-cycle SKILL.md). Do NOT duplicate the full monitoring logic here -- follow the canonical skill.
 
 ! **Gate:** Do NOT proceed to the next merge in the cascade until the Greptile review for the rebased branch is current (pushed SHA matches "Last reviewed commit" SHA) AND the exit condition is met (confidence > 3, no P0/P1 issues remaining). A stale or in-progress review is not sufficient; an errored review is also not sufficient; follow the escalation procedure below.
 
@@ -531,7 +505,7 @@ Retry ONCE via an `@greptileai review` comment with a 10-minute cap. If the retr
 
 ~ To minimize cascades: rebase ALL remaining PRs onto latest master before starting any merges, then merge in rapid succession.
 
-~ **Parallel rebase + review monitoring (start_agent available):** When `start_agent` is available during the merge cascade, the monitor MAY launch parallel sub-agents to overlap rebase and review monitoring work. For example: while Greptile re-reviews PR #A after a rebase push, spawn a sub-agent to begin rebasing PR #B onto the latest master. Each sub-agent reports back via `send_message_to_agent` when its task (rebase complete, review passed) is done. This reduces total cascade wall-clock time from serial (rebase + review per PR) to overlapped. The gate remains: do NOT merge PR #B until its own Greptile review passes the exit condition.
+~ **Parallel rebase + review monitoring (platform dispatch available):** When the platform adapter reports a dispatch primitive is available during the merge cascade, the monitor MAY launch parallel sub-agents to overlap rebase and review monitoring work. For example: while Greptile re-reviews PR #A after a rebase push, spawn a sub-agent to begin rebasing PR #B onto the latest master. Each sub-agent reports back via `send_message_to_agent` when its task (rebase complete, review passed) is done. This reduces total cascade wall-clock time from serial (rebase + review per PR) to overlapped. The gate remains: do NOT merge PR #B until its own Greptile review passes the exit condition.
 
 - ! Undraft PRs: `gh pr ready <number> --repo <owner/repo>`
 - ! Squash merge: `gh pr merge <number> --squash --delete-branch --admin` (if branch protection requires)
@@ -703,15 +677,16 @@ CONSTRAINTS:
 - ⊗ Launch agents without checking vBRIEF acceptance criteria first
 - ⊗ Skip the file-overlap audit in Phase 1
 - ⊗ Use `git reset --hard` or force-push in any worktree (swarm agents only -- monitor may `--force-with-lease` after rebase cascade per Phase 6 Step 1)
-- ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime — always probe the full matrix (`start_agent`, `spawn_subagent`, `WARP_*`) before choosing a launch path (see Phase 3 Step 1 and #1342)
-- ⊗ Offer Warp-specific launch paths (tabs, `start_agent`) or spawn_subagent paths when not running inside the matching environment — gate on the runtime capability probes
+- ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime — always probe for `start_agent` and Warp environment variables before choosing a launch path
+- ⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate on `WARP_*` environment variables or `start_agent` tool presence
 - ⊗ Default to `oz agent run-cloud` — cloud is an explicit user-requested escape hatch, not a default path
 - ⊗ Use `oz agent run-cloud` when the user expects local execution — `run-cloud` routes to remote VMs with no local context
 - ⊗ Proceed to Phase 1 (Select) without completing Phase 0 (Allocate) and receiving explicit user approval
 - ⊗ Begin merge cascade without presenting the version bump proposal and receiving explicit user approval — the Phase 5→6 gate is mandatory
 - ⊗ Ignore Greptile re-review latency when planning merge cascade timing -- each rebase force-push triggers a full re-review (~2-5 min), not an incremental diff
 - ⊗ Proceed to the next merge in the rebase cascade before confirming the Greptile re-review is current (SHA match) and exit condition is met (confidence > 3, no P0/P1) on the rebased branch -- see `skills/deft-directive-review-cycle/SKILL.md` Step 4 for the monitoring approach
-- ⊗ Spawn a replacement sub-agent without confirming the original is unresponsive via the platform-aware pre-spawn verification (worktree polling + review-cycle tiered probe per Phase 4) — original agents (Warp tabs or spawn_subagent workers) can resume after apparent failure, and two concurrent agents on the same worktree will corrupt the action/messaging chain (#261, #263, #1342 slice 3)
+- ⊗ Spawn a replacement sub-agent without confirming the original is unresponsive via a lifecycle event (idle/blocked) — original agents (Warp tabs or Grok Build / spawn_subagent processes) can resume after apparent failure, and two concurrent agents on the same worktree will corrupt the tool_use/tool_result call chain (#261, #263)
+- ⊗ Hardcode `start_agent` (or any single primitive) for Phase 6 review-cycle poller / post-PR sub-agent dispatch -- always delegate spawn to the platform adapter (per runtime detection from slices 1-3) so Grok Build / spawn_subagent and future platforms are first-class (#1342 Phase 6 unification)
 - ⊗ Skip Phase 5 or the Phase 5→6 confirmation gate under time pressure or due to long context — the gate is mandatory regardless of conversation length, elapsed time, or context-window pressure
 - ⊗ Run `git add` on a conflict-resolved file without re-reading and verifying structural integrity (no conflict markers, no collapsed lines, no encoding artifacts) -- see Phase 6 Step 1 read-back verification rule (#288)
 - ⊗ Use shell regex (`sed`, `Select-String -replace`) to resolve `CHANGELOG.md` rebase conflicts -- prefer `task changelog:resolve-unreleased` (#911) for `[Unreleased]` conflicts; fall back to `edit_files` for encoding safety and exact match verification when the helper exits 1 (#288, #911)
