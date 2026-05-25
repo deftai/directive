@@ -141,7 +141,8 @@ Run these three checks, in order:
 ## Available Languages
 
 C, C++, C#, Dart, Delphi, Elixir, Go, Java, JavaScript, Julia, Kotlin,
-Python, R, Rust, SQL, Swift, TypeScript, VHDL, Visual Basic, Zig, 6502-DASM
+Office.js (Excel JavaScript API), Python, R, Rust, SQL, Swift, TypeScript,
+VBA (Excel macros), VHDL, Visual Basic (.NET), Zig, 6502-DASM
 
 - ? Read `deft/languages/{name}.md` when generating output — not before asking
 

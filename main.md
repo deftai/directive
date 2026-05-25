@@ -28,7 +28,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - `./vbrief/PROJECT-DEFINITION.vbrief.json` - Project identity gestalt and scope registry
 
 **Coding-Specific:**
-- Languages: [languages/cpp.md](./languages/cpp.md), [languages/go.md](./languages/go.md), [languages/python.md](./languages/python.md), [languages/typescript.md](./languages/typescript.md)
+- Languages: [languages/cpp.md](./languages/cpp.md), [languages/go.md](./languages/go.md), [languages/officejs.md](./languages/officejs.md), [languages/python.md](./languages/python.md), [languages/typescript.md](./languages/typescript.md), [languages/vba.md](./languages/vba.md)
 - Interfaces: [interfaces/cli.md](./interfaces/cli.md), [interfaces/tui.md](./interfaces/tui.md), [interfaces/web.md](./interfaces/web.md), [interfaces/rest.md](./interfaces/rest.md)
 - Tools: [tools/taskfile.md](./tools/taskfile.md), [scm/git.md](./scm/git.md), [scm/github.md](./scm/github.md), [tools/telemetry.md](./tools/telemetry.md)
 - Testing: [coding/testing.md](./coding/testing.md)

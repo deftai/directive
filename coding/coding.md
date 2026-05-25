@@ -168,8 +168,10 @@ See [../patterns/llm-app.md](../patterns/llm-app.md) for the full standards: pro
 **Languages:**
 - C++: [../languages/cpp.md](../languages/cpp.md)
 - Go: [../languages/go.md](../languages/go.md)
+- Office.js: [../languages/officejs.md](../languages/officejs.md)
 - Python: [../languages/python.md](../languages/python.md)
 - TypeScript: [../languages/typescript.md](../languages/typescript.md)
+- VBA: [../languages/vba.md](../languages/vba.md)
 
 **Interface Types:**
 - CLI: [../interfaces/cli.md](../interfaces/cli.md)

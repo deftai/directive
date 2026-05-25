@@ -29,7 +29,9 @@
    - [languages/python.md](./languages/python.md) - When writing Python
    - [languages/go.md](./languages/go.md) - When writing Go
    - [languages/typescript.md](./languages/typescript.md) - When writing TypeScript/JavaScript
+   - [languages/officejs.md](./languages/officejs.md) - When writing Office.js add-ins (Excel JavaScript API)
    - [languages/cpp.md](./languages/cpp.md) - When writing C++
+   - [languages/vba.md](./languages/vba.md) - When writing VBA (Excel macros)
 
 3. **[vbrief/PROJECT-DEFINITION.vbrief.json](./vbrief/vbrief.md#project-definitionvbriefjson)** - Project identity gestalt
    - Load: When unsure about project standards (tech stack, architecture, risks)
