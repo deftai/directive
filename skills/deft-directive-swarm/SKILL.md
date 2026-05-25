@@ -268,7 +268,9 @@ git worktree add <path> -b <branch-name> <configured-base-branch>
    - **`start_agent` available** → Orchestrated launch (Step 2a) — preferred path, fully automated, no manual tab management
    - **`start_agent` unavailable, Warp detected** → Interactive Warp tabs (Step 2b) — full MCP, global rules, warm index; requires manual tab management
    - **No Warp detected** → Manual terminal launch (Step 2b fallback) — paste prompt into any terminal with access to the worktree
-4. ? **Cloud escape hatch** — use `oz agent run-cloud` (Step 2c) ONLY if the user explicitly requests cloud execution. Never default to cloud.
+4. ! **Probe for `spawn_subagent` tool** — when neither `start_agent` nor `WARP_*` is present, check for `spawn_subagent` (Grok Build / non-Warp TUI launch adapter, #1342 slice 2). Its presence indicates the grok-build platform.
+5. ! **Return a stable platform descriptor** for downstream phases — one of `warp-orchestrated` (start_agent available), `warp-manual` (Warp without start_agent), `grok-build` (spawn_subagent available, non-Warp), or `generic-terminal` (no orchestration primitives). The detection matrix MUST include explicit absence checks for `start_agent` and `WARP_*` so the four descriptors are unambiguous. Phase 4 monitoring and Phase 6 sub-agent dispatch read this stable platform descriptor as a single source of truth instead of re-running detection per call.
+6. ? **Cloud escape hatch** — use `oz agent run-cloud` (Step 2c) ONLY if the user explicitly requests cloud execution. Never default to cloud.
 
 ⊗ Present static launch options (A/B/C) instead of detecting capabilities at runtime.
 ⊗ Offer Warp-specific launch paths (tabs, `start_agent`) when not running inside Warp — gate on `WARP_*` environment variables or `start_agent` tool presence.
@@ -350,9 +352,9 @@ Track each agent through these stages:
 
 When taking over: read the agent's current state (git log, diff, PR comments), complete remaining steps manually following the same deft process.
 
-### Duplicate-Tab Failure Mode
+### Duplicate-Agent Failure Mode (a.k.a. Duplicate-Tab Failure Mode)
 
-⚠️ **Root cause of #261 and #263:** Original Warp agent tabs may resume after apparent failure (network hiccup, temporary Warp UI freeze, context window pressure). If the monitor spawns a new agent for the same worktree, two concurrent agents execute on the same branch simultaneously. This corrupts the `tool_use`/`tool_result` message chain — both agents issue tool calls, but responses are interleaved unpredictably, causing one or both agents to act on stale or incorrect state.
+⚠️ **Root cause of #261 and #263 (generalized for #1342 slice 3):** This is the **Duplicate-Agent Failure Mode** -- it fires on every platform descriptor, not just Warp tabs. Original Warp agent tabs may resume after apparent failure (network hiccup, temporary Warp UI freeze, context window pressure); the same failure mode applies to `spawn_subagent`-launched grok-build sub-agents that appear stalled but later resume. If the monitor spawns a new agent for the same worktree, two concurrent agents execute on the same branch simultaneously. This corrupts the `tool_use`/`tool_result` message chain — both agents issue tool calls, but responses are interleaved unpredictably, causing one or both agents to act on stale or incorrect state.
 
 **Recovery guidance:**
 - ! Keep original agent tabs open until their PR is merged — do not close tabs that appear stalled
