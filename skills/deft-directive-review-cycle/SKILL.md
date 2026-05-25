@@ -213,8 +213,6 @@ Both commands extract the "Comments Outside Diff" section with surrounding conte
 
 ⚠️ **Swarm / hybrid limitation**: Approach 2 is NOT autonomous for swarm agents or manual worktree setups. Yielding ends the turn with no self-wake; the parent monitor (or external scheduler) must detect idle and re-trigger or send a message. For true `grok-build` / spawn_subagent hybrids, prefer Approach 1 (spawn_subagent + get_command_or_subagent_output poller) exactly as the swarm launch adapter does.
 
-⚠️ **Swarm agent limitation**: Approach 2 is NOT autonomous for swarm agents. Yielding (ending all tool calls) terminates the agent's turn with no self-wake mechanism -- the agent will not resume unless the monitor detects the idle lifecycle event and re-triggers it. For swarm agents, the polling loop silently stops after the first yield unless external orchestration re-invokes the agent. The monitor (or parent agent) must detect the idle state and send a message or re-trigger the agent to continue polling.
-
 ⊗ Use blocking `Start-Sleep` shell loops or `time.sleep()` loops EXCEPT as Approach 3 (see below) -- these lock the conversation and prevent user interaction.
 ⊗ Poll more frequently than every 20 seconds -- use a real delay between checks, not back-to-back calls. Adaptive cadence (20-30s / 60s / 90s) replaces the fixed 60s minimum.
 
