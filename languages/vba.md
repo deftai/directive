@@ -180,6 +180,13 @@ Public Function SumColumn(ByVal rng As Range) As Double
     Dim data As Variant
     data = rng.Value2
 
+    ' Wrap scalar (single-cell range) into a 2-D array so the loop is uniform
+    If Not IsArray(data) Then
+        Dim tmp(1 To 1, 1 To 1) As Variant
+        tmp(1, 1) = data
+        data = tmp
+    End If
+
     Dim total As Double
     Dim i As Long
     For i = LBound(data, 1) To UBound(data, 1)

@@ -126,16 +126,14 @@ export function projectedRevenue(
 - ~ Use helper functions that centralize range resolution from config or named ranges
 
 ```typescript path=null start=null
-async function getNamedRange(
+// ✓ Batching-friendly: no internal sync — load all named items and call context.sync() once in the caller
+function loadNamedItem(
   context: Excel.RequestContext,
   name: string
-): Promise<Excel.Range | null> {
-  const namedItem = context.workbook.names.getItemOrNullObject(name);
-  namedItem.load("name");
-  await context.sync();
-
-  if (namedItem.isNullObject) return null;
-  return namedItem.getRange();
+): Excel.NamedItem {
+  const item = context.workbook.names.getItemOrNullObject(name);
+  item.load("isNullObject");
+  return item; // caller must await context.sync() before checking isNullObject
 }
 ```
 
@@ -228,32 +226,35 @@ task check              # Pre-commit: lint + typecheck + test
 export async function updateRevenueSection(modelConfig: ModelConfig): Promise<void> {
   try {
     await Excel.run(async (context) => {
-      // 1. Load — batch all reads
-      const revenueRange = await getNamedRange(context, "in_base_revenue");
-      const growthRange = await getNamedRange(context, "as_revenue_growth_rate");
-      if (!revenueRange || !growthRange) {
-        throw new ModelConfigError("Missing required named ranges: in_base_revenue, as_revenue_growth_rate");
-      }
+      // 1. Load — batch ALL reads in one sync: existence flags + range values
+      // getItemOrNullObject chains are safe: null objects propagate through getRange()
+      const revenueItem = loadNamedItem(context, "in_base_revenue");
+      const growthItem = loadNamedItem(context, "as_revenue_growth_rate");
+      const outputItem = loadNamedItem(context, "calc_projected_revenue");
+      const revenueRange = revenueItem.getRange(); // safe before sync: null objects chain
+      const growthRange = growthItem.getRange();
       revenueRange.load("values");
       growthRange.load("values");
-      await context.sync();
+      await context.sync(); // sync 1 — existence flags + range values
 
-      // 2. Compute — pure logic, no API calls
+      // 2. Check existence after sync
+      if (revenueItem.isNullObject || growthItem.isNullObject || outputItem.isNullObject) {
+        throw new ModelConfigError(
+          "Missing required named ranges: in_base_revenue, as_revenue_growth_rate, calc_projected_revenue"
+        );
+      }
+
+      // 3. Compute — pure logic, no API calls
       const baseRevenue = revenueRange.values[0][0] as number;
       const growthRate = growthRange.values[0][0] as number;
       const projected = projectRevenue(baseRevenue, growthRate, modelConfig.projectionYears);
 
-      // 3. Write — batch all writes
-      const outputRange = await getNamedRange(context, "calc_projected_revenue");
-      if (!outputRange) {
-        throw new ModelConfigError("Missing named range: calc_projected_revenue");
-      }
+      // 4. Write — batch all writes
+      const outputRange = outputItem.getRange();
       outputRange.values = projected.map((v) => [v]);
-
-      // 4. Format — apply role-based formatting
       outputRange.format.font.bold = false; // formula role: no bold
       outputRange.numberFormat = [["#,##0"]];
-      await context.sync();
+      await context.sync(); // sync 2 — all writes committed
     });
   } catch (error) {
     handleOfficeError(error, "updateRevenueSection");

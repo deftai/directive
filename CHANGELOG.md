@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(languages): add VBA and Office.js language modules (#1333)** -- agents working on Excel automation now have first-class standards for both VBA and Office.js (Excel JavaScript API). Coverage includes error handling, type safety, range operations, application state guards, sync batching, platform awareness, custom functions, and testing patterns for each environment. PR #1333.
 
 ### Changed
 - **fix(scripts,vbrief): canonical scratch path + input hardening for `task scope:decompose` (#1267)** -- `task scope:decompose` now validates inputs more strictly (parent + draft pair, `--date` format, parent writability) and `task vbrief:validate` fails when a decomposition draft JSON file is found at the workspace root. Drafts have a canonical scratch path under `vbrief/.eval/decompositions/<parent-slug>.json`; generated child story vBRIEFs still land in `vbrief/pending/`. Closes the operator-trap where agents left `decomposition.json` at the workspace root. PR #1267.
