@@ -52,7 +52,7 @@ A project is **pre-cutover or strategy-nonconformant** if ANY of the following a
 1. `SPECIFICATION.md` exists and does NOT contain the `<!-- deft:deprecated-redirect -->` sentinel (real content, not a deprecation redirect)
 2. `PROJECT.md` exists and does NOT contain the `<!-- deft:deprecated-redirect -->` sentinel (real content, not a deprecation redirect)
 3. `vbrief/specification.vbrief.json` exists but the lifecycle folders (`vbrief/proposed/`, `vbrief/pending/`, `vbrief/active/`, `vbrief/completed/`, `vbrief/cancelled/`) do NOT exist
-4. Strategy output shape violations (run `task verify:strategy-output` -- the canonical gate -- or the direct form `python .deft/core/scripts/validate_strategy_output.py --project-root <path>` after `deft` install):
+4. Strategy output shape violations (run `task verify-strategy-output` -- the canonical gate -- or the direct form `python .deft/core/scripts/validate_strategy_output.py --project-root <path>` after `deft` install):
    - Any scope vBRIEF under `vbrief/proposed/` (or other lifecycle dirs) lacks the required `YYYY-MM-DD-` date prefix in its filename (e.g. bare `scaffold.vbrief.json`).
    - `vbrief/PROJECT-DEFINITION.vbrief.json` is missing.
    - `vbrief/specification.vbrief.json` exists as a legacy dual-write in a user-generated project (the framework source tree is the only tolerated exception).
@@ -61,7 +61,7 @@ A project is **pre-cutover or strategy-nonconformant** if ANY of the following a
 
 ! If pre-cutover or strategy-nonconformant state is detected, **stop immediately** and display an actionable message that cites the exact validator:
 
-> "This project was generated with pre-v0.20 or non-conformant strategy output. Run the deterministic validator and follow its remediation: `task verify:strategy-output` (works in source and after `deft` package install) or `python .deft/core/scripts/validate_strategy_output.py --project-root .` . Then `task migrate:vbrief` / `task project:render` / strategy re-run as indicated."
+> "This project was generated with pre-v0.20 or non-conformant strategy output. Run the deterministic validator and follow its remediation: `task verify-strategy-output` (works in source and after `deft` package install) or `python .deft/core/scripts/validate_strategy_output.py --project-root .` . Then `task migrate:vbrief` / `task project:render` / strategy re-run as indicated."
 
 ! Include specific details about what was detected (the validator output is authoritative):
 
