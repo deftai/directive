@@ -26,9 +26,9 @@ This file is not a standalone strategy — it is a shared guard referenced by ot
 
 ## Spec-Generating Guard (Full)
 
-Applies to strategies that write to `specification.vbrief.json` or `PROJECT-DEFINITION.vbrief.json`: **speckit**, **enterprise**, **rapid** (see v0.20 contract strategies/v0-20-contract.md).
+Applies to strategies that write to `PROJECT-DEFINITION.vbrief.json` (⊗ never `specification.vbrief.json` per [v0-20-contract.md](./v0-20-contract.md)): **speckit**, **enterprise**, **rapid**.
 
-! Before writing to `vbrief/specification.vbrief.json` or `vbrief/PROJECT-DEFINITION.vbrief.json`, the strategy MUST perform the following checks:
+! Before writing to `vbrief/PROJECT-DEFINITION.vbrief.json`, the strategy MUST perform the following checks (⊗ Never target the legacy `specification.vbrief.json`):
 
 1. ! **Check existence**: Does the target file already exist?
    - If NO: proceed with the write — no guard needed.
@@ -72,7 +72,7 @@ Applies to strategies that write scoped vBRIEFs to `vbrief/proposed/`: **bdd**, 
 
 ## Anti-Patterns
 
-- ⊗ Writing to `specification.vbrief.json` or `PROJECT-DEFINITION.vbrief.json` without checking the file's current status
+- ⊗ Writing to `PROJECT-DEFINITION.vbrief.json` without checking the file's current status (⊗ never write `specification.vbrief.json` at all per v0-20-contract.md)
 - ⊗ Silently overwriting an `approved` or `completed` artifact — this discards locked decisions and approval state
 - ⊗ Replacing all `PROJECT-DEFINITION.vbrief.json` narratives when the strategy only contributes one narrative key (e.g. `Principles`)
 - ⊗ Overwriting a scope vBRIEF in `vbrief/proposed/` without checking if one already exists for the same scope

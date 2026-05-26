@@ -30,8 +30,7 @@ Every strategy has a **Type** that determines its behavior in the
   via `/deft:run:<name>` — when invoked outside an interview context, they present their
   own next-step options instead of returning to the chaining gate. See each strategy file
   for standalone support.
-- **`spec-generating`** — Produces a SPECIFICATION.md (or equivalent). Selecting one at
-  the chaining gate switches the pipeline to that strategy’s spec flow.
+- **`spec-generating`** — Produces v0.20-conformant output per [v0-20-contract.md](./v0-20-contract.md) (lifecycle folders + PROJECT-DEFINITION.vbrief.json + date-prefixed proposed/ scope vBRIEFs only; SPECIFICATION.md/PROJECT.md as deprecation stubs or omitted). Selecting one at the chaining gate switches the pipeline to that strategy’s spec flow.
 
 Custom strategies MUST declare their type in this table. If the `Type` column is missing,
 the chaining gate cannot include the strategy.
