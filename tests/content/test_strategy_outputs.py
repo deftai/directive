@@ -119,12 +119,13 @@ class TestDiscussVbriefOutput:
             "strategies/discuss.md must reference vbrief/proposed/ for discuss output"
         )
 
-    def test_no_context_md_as_primary_output(self) -> None:
-        """Output section must not reference {scope}-context.md as primary artifact."""
+    def test_no_legacy_context_md_as_primary_output(self) -> None:
+        """Output section must not reference legacy {scope}-context.md
+        (vBRIEF is v0.20 primary; this guards absence of legacy .md form)."""
         output_section = self._text.split("## Output")[1].split("##")[0]
         assert "context.md" not in output_section.replace("context.vbrief.json", ""), (
-            "strategies/discuss.md Output must not reference "
-            "{scope}-context.md as a primary artifact"
+            "strategies/discuss.md must not reference legacy context.md "
+            "(vBRIEF form allowed/required)"
         )
 
     def test_locked_decisions_narrative(self) -> None:

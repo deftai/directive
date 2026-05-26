@@ -407,7 +407,7 @@ Each task SHOULD include:
 
 - ! All requirements mapped to tasks
 - ! Dependencies form a valid DAG (no cycles)
-- ! Scope vBRIEF(s) exist in `./vbrief/proposed/` (or promoted to pending) with date-prefixed filenames and `status: approved` / `pending`
+- ! Scope vBRIEF(s) exist in `./vbrief/proposed/` (with date-prefixed filenames and `status: "proposed"`) or promoted to pending/active (with `status: "approved" / "pending"`)
 - ! `./vbrief/PROJECT-DEFINITION.vbrief.json` is present (populated via `task project:render`)
 - ! `SPECIFICATION.md` has been rendered via `task spec:render`
 - ! Proceed to [Acceptance Gate](#acceptance-gate)
