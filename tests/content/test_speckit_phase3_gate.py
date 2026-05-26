@@ -34,9 +34,11 @@ class TestSpeckitPhase3TransitionGate:
         assert "1. ! Run `task spec:render`" in self._text or "task spec:render" in self._text, (
             "Transition gate must invoke task spec:render for derivatives (#432, s5)"
         )
-        assert "Confirm any rendered `SPECIFICATION.md` (if emitted as derivative)" in self._text or "derivative" in self._text, (
-            "Step 2 must reference derivative SPECIFICATION.md (v0.20, #432, s5)"
+        has_deriv = (
+            "Confirm any rendered `SPECIFICATION.md`" in self._text
+            or "derivative" in self._text
         )
+        assert has_deriv, "Step 2 must reference derivative SPECIFICATION.md (v0.20, s5)"
 
     def test_transition_criterion_references_specification_md(self) -> None:
         assert "Phase 3 -> Phase 4 transition criterion" in self._text, (
@@ -44,7 +46,7 @@ class TestSpeckitPhase3TransitionGate:
             "criterion (#432)"
         )
         assert "without review of the v0.20 artifacts" in self._text, (
-            "Transition criterion must reference v0.20 artifacts and proposed/ + PROJECT-DEFINITION (v0.20, s5 migration)"
+            "Transition must reference v0.20 artifacts + proposed/ + PROJECT-DEFINITION (s5)"
         )
 
     def test_gate_references_setup_skill_invocation(self) -> None:

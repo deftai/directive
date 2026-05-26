@@ -182,8 +182,8 @@ def test_cli_invoked_via_subprocess(tmp_path: Path):
     assert proc.returncode == 1
     assert "vbrief/" in proc.stderr or "PROJECT-DEFINITION" in proc.stderr
 
-    # Exercise the previously untested --strict branch for entirely missing vbrief/ dir
-    # (per Greptile review on #1363; the strict error is only raised when vbrief/ does not exist at all)
+    # Exercise the --strict branch for entirely missing vbrief/ dir
+    # (per Greptile review on #1363; strict error only when vbrief/ is absent)
     nob = tmp_path / "nob"
     nob.mkdir()
     # deliberately create no vbrief/ subdirectory

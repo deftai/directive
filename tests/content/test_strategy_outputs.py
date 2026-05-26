@@ -29,7 +29,8 @@ def _read(relpath: str) -> str:
 # ---------------------------------------------------------------------------
 
 class TestRapidVbriefOutput:
-    """rapid.md must reference v0.20 date-prefixed proposed/ vBRIEFs, PROJECT-DEFINITION, contract, and never legacy specification.vbrief.json (s5 migration)."""
+    """rapid.md must reference v0.20 date-prefixed proposed/ vBRIEFs,
+    PROJECT-DEFINITION, contract, and never legacy specification.vbrief.json (s5 migration)."""
 
     _text = _read("strategies/rapid.md")
 
@@ -51,21 +52,31 @@ class TestRapidVbriefOutput:
         )
 
     def test_no_legacy_specification_vbrief(self) -> None:
-        """Must not instruct or list legacy specification.vbrief.json as primary output (anti-pattern mention of the prohibition is allowed and expected)."""
-        # Main output / workflow sections must not promote the legacy; anti-patterns documents the prohibition.
+        """Must not instruct or list legacy specification.vbrief.json as primary output
+        (anti-pattern mention of the prohibition is allowed and expected)."""
+        # Main output sections must not promote legacy; anti-patterns documents the rule.
         anti = self._text.split("## Anti-Patterns")[1] if "## Anti-Patterns" in self._text else ""
-        pre_anti = self._text.split("## Anti-Patterns")[0] if "## Anti-Patterns" in self._text else self._text
-        assert "vbrief/specification.vbrief.json" not in pre_anti, (
-            "rapid.md pre-anti sections (post s5) must not reference legacy vbrief/specification.vbrief.json"
+        pre = self._text.split("## Anti-Patterns")[0] if "## Anti-Patterns" in self._text else self._text  # noqa: E501 (temporary for release)
+        assert "vbrief/specification.vbrief.json" not in pre, (
+            "rapid.md pre-anti sections must not reference legacy specification.vbrief.json"
         )
-        # The anti-patterns correctly call out the prohibition
-        assert "specification artifact" in anti or "legacy" in anti.lower() or "v0.20 contract" in anti
+        # Anti-patterns correctly calls out the prohibition.
+        has_good = (
+            "specification artifact" in anti
+            or "legacy" in anti.lower()
+            or "v0.20 contract" in anti
+        )
+        assert has_good
 
     def test_v020_output_shape_section_and_artifacts(self) -> None:
         assert "## v0.20 Output Shape (s5-migrate-speckit-rapid-enterprise / #1166)" in self._text
         assert "## Artifacts Summary (v0.20)" in self._text
         assert "proposed/YYYY-MM-DD-*.vbrief.json" in self._text
-        assert "deprecation-redirect" in self._text.lower() or "deprecated-redirect" in self._text.lower()
+        has_depr = (
+            "deprecation-redirect" in self._text.lower()
+            or "deprecated-redirect" in self._text.lower()
+        )
+        assert has_depr
 
     def test_follows_artifact_guards_and_gates(self) -> None:
         assert "artifact-guards.md" in self._text

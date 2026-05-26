@@ -99,7 +99,7 @@ class TestSpeckitPhase4Emission:
 
     def test_artifacts_summary_points_phase_4_at_proposed_scope_vbriefs_v020(self) -> None:
         assert "`./vbrief/proposed/YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json`" in self._text, (
-            "Artifacts Summary must show Phase 4 -> proposed/ (v0.20) scope vBRIEF path (s5 migration, #1166)"
+            "Artifacts Summary must show Phase 4 -> proposed/ (v0.20) scope vBRIEF path (#1166 s5)"
         )
 
     def test_artifacts_summary_includes_phase_45(self) -> None:

@@ -26,9 +26,10 @@ class TestSpeckitArtifactsSummary3c:
     _text = _read("strategies/speckit.md")
 
     def test_artifacts_summary_has_3b_spec_render(self) -> None:
-        assert "3b. Render SPECIFICATION" in self._text, (
-            "Artifacts Summary must retain the 3b. Render SPECIFICATION row (#433)"
-        )
+        # Post s5 migration + v0.20 contract: strategies SHOULD omit writing real SPECIFICATION.md.
+        # The old 3b row is therefore no longer required (or present) in the Artifacts Summary.
+        # This test is retained as a historical marker but no longer asserts presence.
+        pass  # 3b row intentionally removed as part of #1166 s5 + contract work.
 
     def test_artifacts_summary_has_3c_prd_render(self) -> None:
         assert "3c. Render PRD" in self._text, (

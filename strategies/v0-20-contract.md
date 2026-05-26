@@ -91,6 +91,23 @@ All five lifecycle folders MUST be present (even if empty). This is the cutover 
 
 The s3/s4/s5 stories migrate the individual strategy files (and their emitted examples) to the shape defined here. This contract document is the target spec they implement against; do not change strategies first.
 
+## When to Use
+
+Use this contract when:
+- Authoring a new spec-generating strategy (interview, yolo, speckit, rapid, enterprise, etc.).
+- Migrating an existing strategy to v0.20 (the s3/s4/s5 work).
+- Implementing or updating the deterministic validation gate (s2) or build pre-cutover guards.
+- Writing migration tooling (`migrate_vbrief.py`, reconcile scripts, etc.).
+- Auditing a generated project for v0.20 conformance.
+
+## Workflow
+
+1. Read the Canonical v0.20 Output Shape section.
+2. Ensure your strategy (or migration) writes exactly the required folders + `PROJECT-DEFINITION.vbrief.json` + dated proposed/ vBRIEFs.
+3. Never write the legacy `specification.vbrief.json` or real-content `SPECIFICATION.md`/`PROJECT.md`.
+4. Cite this contract explicitly in your strategy's "Artifacts" / "Output" section (see the Per-Strategy Summary Table).
+5. Run `task check` (or the deterministic gate once s2 lands) to validate.
+
 ---
 
 **Owned by**: `vbrief/active/2026-05-26-define-canonical-v020-strategy-output-contract.vbrief.json` (s1-contract of #1166 strategy consistency decomposition)
