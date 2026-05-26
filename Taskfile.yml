@@ -297,6 +297,7 @@ tasks:
       - verify:cache-fresh
       - verify-wip-cap-framework-self-check
       - vbrief:validate
+      - verify-strategy-output
     cmds:
       - echo "All checks passed"
 
@@ -318,6 +319,18 @@ tasks:
       - task: verify:wip-cap
         vars:
           CLI_ARGS: "--allow-over-cap"
+
+  # s2-deterministic-gate (#1166): deterministic validation gate for strategy
+  # output shape. Runs on every `task check` (including CI). Implemented in
+  # scripts/validate_strategy_output.py. Respects Grok Build Windows rules
+  # (plain uv python invocation, no pipes in this Taskfile context).
+  verify-strategy-output:
+    desc: "Deterministic v0.20 strategy output shape gate (#1166 s2). Fails on non-date-prefixed vBRIEFs in lifecycle dirs, missing PROJECT-DEFINITION.vbrief.json, or legacy specification.vbrief.json in user projects."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.TASKFILE_DIR}}" run python "{{.TASKFILE_DIR}}/scripts/validate_strategy_output.py" --project-root "{{.USER_WORKING_DIR}}"
 
   # `task check:slow` runs the @pytest.mark.slow lane that the default
   # `task check` skips (#975). The slow lane is dominated by the
