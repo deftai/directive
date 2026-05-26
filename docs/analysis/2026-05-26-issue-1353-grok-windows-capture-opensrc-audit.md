@@ -41,7 +41,7 @@ The fundamental issue is that **redirecting a child process's output to a file a
 
 **When to use:** If grok-build is open to adopting a Rust library (or can bind via FFI).
 
-**Code path to examine:** https://github.com/wez/wezterm/blob/main/wezterm-backend/src/pty.rs
+**Code path to examine:** https://github.com/wezterm/wezterm/tree/main/pty
 
 ---
 
@@ -85,8 +85,8 @@ proc.onData(data => console.log(data)); // Clean stdout, no wrapper leakage
 
 **Code example:**
 ```python
-from pywinpty import PythonPtyProcess
-proc = PythonPtyProcess.spawn('pwsh')
+from winpty import PtyProcess
+proc = PtyProcess.spawn('pwsh')
 output = proc.read()  # Clean output, no wrapper text
 ```
 
@@ -150,7 +150,7 @@ Without explicit command-boundary markers, the harness has to guess (timeouts, h
 ### Reference Consumer Implementation: `cline/cline` / `VscodeTerminalProcess.ts`
 
 **Repository:** https://github.com/cline/cline  
-**File:** `apps/vscode/src/hosts/vscode/terminal/VscodeTerminalProcess.ts`  
+**File:** `src/hosts/vscode/terminal/VscodeTerminalProcess.ts`  
 **Language:** TypeScript  
 **License:** Apache-2.0  
 **Key features:**
