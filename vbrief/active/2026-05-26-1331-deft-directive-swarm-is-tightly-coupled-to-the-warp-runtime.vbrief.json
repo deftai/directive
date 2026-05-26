@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Scope vBRIEF ingested from GitHub issue #1331",
-    "updated": "2026-05-26T12:56:03Z"
+    "updated": "2026-05-26T13:30:00Z"
   },
   "plan": {
     "title": "deft-directive-swarm is tightly coupled to the Warp runtime, making it hard to use in other agent environments (Grok Build, etc.)",
@@ -19,25 +19,25 @@
         "id": "item-1",
         "title": "Add Phase 3 Step 2d: Grok Build launch adapter (spawn_subagent)",
         "description": "In skills/deft-directive-swarm/SKILL.md Phase 3, add a concrete Step 2d block for the grok-build platform descriptor. When spawn_subagent is the detected primitive, the skill dispatches each worker agent via spawn_subagent with: the canonical agent-prompt-preamble + the standard worktree prompt. Update the Step 1 detection decision tree so 'grok-build' routes to Step 2d explicitly (not fall-through to the manual terminal path). Note: spawn_subagent check in Step 1 must be elevated so it is evaluated before the 'No Warp detected -> manual fallback' branch.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "item-2",
         "title": "Update Phase 4 monitoring language to be platform-agnostic",
         "description": "In Phase 4 (Monitor), replace Warp-tab-specific language in takeover triggers and pre-spawn verification with platform-agnostic equivalents. Specifically: 'original Warp tab shows no tool calls in progress' -> reference worktree state polling (git status, git log) and sub-agent lifecycle signals as the primary signals for both Warp and grok-build. Add a parenthetical for grok-build: polling is via worktree state + get_command_or_subagent_output rather than tab observation.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "item-3",
         "title": "Add Grok Build quick-start note to skill preamble or Phase 3",
         "description": "Add a short 'Running swarms in Grok Build / non-Warp environments' note to the skill. Document the minimal runtime contract: one worktree per agent, spawn_subagent dispatch, worktree-state polling for monitoring, review-cycle sub-agents via spawn_subagent. Cross-reference #1342 as the originating platform work. This closes the documentation gap called out in #1331 item 4.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "id": "item-4",
         "title": "Run task check and add CHANGELOG entry",
         "description": "Run task check. All gates must pass. Add CHANGELOG.md [Unreleased] entry per #1242 style: user-visible benefit (swarm skill now works natively in Grok Build / non-Warp environments), mechanism (Phase 3 Step 2d + Phase 4 platform-agnostic monitoring), refs #1331, #1342.",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "tags": [
@@ -53,6 +53,6 @@
         "title": "Issue #1331: deft-directive-swarm is tightly coupled to the Warp runtime, making it hard to use in other agent environments (Grok Build, etc.)"
       }
     ],
-    "updated": "2026-05-26T12:09:43Z"
+    "updated": "2026-05-26T13:30:00Z"
   }
 }

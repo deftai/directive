@@ -378,9 +378,9 @@ When taking over: read the agent's current state (git log, diff, PR comments), c
 ⚠️ **Root cause of #261 and #263 (generalized for #1342 slice 3):** This is the **Duplicate-Agent Failure Mode** -- it fires on every platform descriptor, not just Warp tabs. Original Warp agent tabs may resume after apparent failure (network hiccup, temporary Warp UI freeze, context window pressure); the same failure mode applies to `spawn_subagent`-launched grok-build sub-agents that appear stalled but later resume. If the monitor spawns a new agent for the same worktree, two concurrent agents execute on the same branch simultaneously. This corrupts the `tool_use`/`tool_result` message chain — both agents issue tool calls, but responses are interleaved unpredictably, causing one or both agents to act on stale or incorrect state.
 
 **Recovery guidance:**
-- ! Keep original agent tabs open until their PR is merged — do not close tabs that appear stalled
-- ! If an agent appears stalled, go to its original Warp tab and tell it to resume (e.g. "continue from where you left off") rather than spawning a replacement
-- ! If the original tab is truly unrecoverable (Warp crash, tab closed), only then create a new agent — and first verify the worktree state (`git status`, `git log`, `gh pr list`) to avoid conflicting with any in-flight work
+- ! Keep original agents active until their PR is merged — do not terminate agent processes that appear stalled (for Warp tabs: keep the tab open; for grok-build / spawn_subagent agents: verify via `get_command_or_subagent_output` before replacing)
+- ! If an agent appears stalled, attempt to resume it in its original context (for Warp: go to the original Warp tab and say "continue from where you left off"; for grok-build: re-query via `get_command_or_subagent_output` or send a resume message) rather than spawning a replacement
+- ! If the original agent is truly unrecoverable (Warp crash, tab closed, or spawn_subagent process terminated), only then create a new agent — and first verify the worktree state (`git status`, `git log`, `gh pr list`) to avoid conflicting with any in-flight work
 
 ### Context-Length Warning
 
