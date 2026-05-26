@@ -36,6 +36,19 @@ Every strategy has a **Type** that determines its behavior in the
 Custom strategies MUST declare their type in this table. If the `Type` column is missing,
 the chaining gate cannot include the strategy.
 
+## v0.20 Output Contract (for spec-generating strategies)
+
+All spec-generating strategies (interview, yolo, speckit, rapid, enterprise) MUST produce output conforming to [v0-20-contract.md](./v0-20-contract.md):
+
+- Five vbrief/ lifecycle folders (proposed/ pending/ active/ completed/ cancelled/)
+- vbrief/PROJECT-DEFINITION.vbrief.json (full)
+- Scope vBRIEFs ONLY as date-prefixed in vbrief/proposed/YYYY-MM-DD-*.vbrief.json
+- Never dual-write legacy vbrief/specification.vbrief.json
+- SPECIFICATION.md/PROJECT.md only as deprecation-redirect stubs (banner + sentinel) or omitted
+
+This contract is the single source of truth for s1-contract and the #1166 migrations (s3-s5). Preparatory strategies follow the same dated proposed/ rule when emitting vBRIEFs.
+
+
 ## Selecting a Strategy
 
 Use a slash command:

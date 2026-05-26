@@ -4,7 +4,7 @@ Shared guard rules for strategies that write to vBRIEF artifacts. Referenced by 
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [vbrief/vbrief.md](../vbrief/vbrief.md) | [strategies/interview.md](./interview.md)
+**⚠️ See also**: [vbrief/vbrief.md](../vbrief/vbrief.md) | [strategies/v0-20-contract.md](./v0-20-contract.md) | [strategies/interview.md](./interview.md)
 
 ---
 
@@ -26,7 +26,7 @@ This file is not a standalone strategy — it is a shared guard referenced by ot
 
 ## Spec-Generating Guard (Full)
 
-Applies to strategies that write to `specification.vbrief.json` or `PROJECT-DEFINITION.vbrief.json`: **speckit**, **enterprise**, **rapid**.
+Applies to strategies that write to `specification.vbrief.json` or `PROJECT-DEFINITION.vbrief.json`: **speckit**, **enterprise**, **rapid** (see v0.20 contract strategies/v0-20-contract.md).
 
 ! Before writing to `vbrief/specification.vbrief.json` or `vbrief/PROJECT-DEFINITION.vbrief.json`, the strategy MUST perform the following checks:
 
