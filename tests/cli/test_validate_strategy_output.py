@@ -170,10 +170,10 @@ def test_cli_invoked_via_subprocess(tmp_path: Path):
     )
     assert proc.returncode == 0
 
-    # Bad case
+    # Bad case (non-strict signals still error even under --strict)
     bad = tmp_path / "bad2"
     bad.mkdir()
-    (bad / "vbrief").mkdir()  # missing everything
+    (bad / "vbrief").mkdir()  # vbrief/ exists but empty -> hits missing PROJECT-DEF etc.
     proc = subprocess.run(
         [sys.executable, str(SCRIPT_PATH), "--project-root", str(bad), "--strict"],
         capture_output=True,
@@ -181,3 +181,17 @@ def test_cli_invoked_via_subprocess(tmp_path: Path):
     )
     assert proc.returncode == 1
     assert "vbrief/" in proc.stderr or "PROJECT-DEFINITION" in proc.stderr
+
+    # Exercise the previously untested --strict branch for entirely missing vbrief/ dir
+    # (per Greptile review on #1363; the strict error is only raised when vbrief/ does not exist at all)
+    nob = tmp_path / "nob"
+    nob.mkdir()
+    # deliberately create no vbrief/ subdirectory
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), "--project-root", str(nob), "--strict"],
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode == 1
+    assert "vbrief/ directory missing entirely" in proc.stderr
+    assert "v0.20 strategies must emit at least" in proc.stderr

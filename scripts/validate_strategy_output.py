@@ -56,7 +56,6 @@ def _is_deft_framework_root(project_root: Path) -> bool:
         (project_root / "AGENTS.md").exists()
         and (project_root / "Taskfile.yml").exists()
         and (project_root / "strategies").is_dir()
-        and (project_root / "vbrief" / "specification.vbrief.json").exists()
     )
 
 
