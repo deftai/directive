@@ -70,6 +70,8 @@ Each iteration proceeds through all phases in order. Do NOT skip phases or reord
 - ! Fix all failures before proceeding to Phase 3b
 - ~ If a lint fix requires changing a file, that counts as a change for the Loop phase
 
+~ **Windows + Grok Build (#1353):** Avoid `|`, `>`, or `2>&1` in `run_terminal_command` strings -- use Python `pathlib`/`subprocess` or plain task commands instead.
+
 ### Phase 3b -- Auto-Render Exports
 
 ! If `vbrief/specification.vbrief.json` exists, refresh rendered exports before the diff check:

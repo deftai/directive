@@ -91,6 +91,8 @@ gh pr view <number> --comments
 
 Both commands extract the "Comments Outside Diff" section with surrounding context, avoiding the need to process the full output.
 
+~ **Windows + Grok Build (#1353):** Avoid `|`, `>`, or `2>&1` in `run_terminal_command` strings -- use Python `pathlib`/`subprocess` or plain task commands instead.
+
 ! **MCP capability probe** (mirrors deft-directive-swarm Phase 3 pattern): Before attempting MCP `get_review_comments`, probe whether MCP GitHub tools are available in the current session. Detection: attempt a lightweight MCP call (e.g. list available tools or a no-op query) -- if it succeeds, MCP is available; if it errors or the tool is not in the available set, MCP is unavailable.
 
 - **MCP available**: ! Use MCP `get_review_comments` as the second source to catch Comments Outside Diff.

@@ -35,6 +35,15 @@ The corruption happens on the READ side (`Get-Content -Raw` decodes via cp1252 /
 
 This is the recurrence with four prior occurrences (#236 / #240 / #283 / PR #795); do not be the fifth.
 
+## 3.5 Windows Grok Build harness capture limitations (observed 2026-05, #1353)
+
+When running under the Grok Build runtime on Windows + pwsh 7+, `run_terminal_command` leaks internal wrapper text (Get-Content and redirection fragments) whenever the command string contains `|`, `2>&1`, `| cat`, `>`, or similar metacharacters. Non-piped commands execute cleanly.
+
+**Directive rule:** Never emit commands containing pipes or redirections through the agent shell tool on this platform. For anything requiring a pipe, use one of:
+- Python one-liners with `pathlib` / `subprocess.run(capture_output=True)` (preferred -- bypasses the wrapper at the OS level)
+- Run the operation in the user's native terminal and paste the result back
+- Isolate the work in a dedicated worktree and mark the step as "user shell required"
+
 ## 4. pre-pr and review-cycle skills
 
 Before pushing any branch:

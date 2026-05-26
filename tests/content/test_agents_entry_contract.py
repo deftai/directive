@@ -264,6 +264,8 @@ _PROPAGATION_HEADER_MARKERS: tuple[str, ...] = (
     "## Cache-as-authoritative work selection (#1149)",
     "## Skill Routing",
     "## WIP cap",
+    # #1353: Grok Build Windows capture limitations rule propagation
+    "Grok Build Windows capture limitations",
 )
 
 #: The action-verb directive list (#810) is a SINGLE assertion -- the list

@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1353"
+    "description": "Scope vBRIEF ingested from GitHub issue #1353",
+    "updated": "2026-05-26T12:56:04Z"
   },
   "plan": {
     "title": "grok-build (Windows): run_terminal_command leaks Get-Content / wrapper noise on any pipeline or redirection (pwsh 7+)",
-    "status": "pending",
+    "status": "running",
     "narratives": {
       "Description": "grok-build (Windows): run_terminal_command leaks Get-Content / wrapper noise on any pipeline or redirection (pwsh 7+)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1353",
