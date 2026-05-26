@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(skills): swarm skill natively supports Grok Build / non-Warp environments via Phase 3 Step 2d (#1331)** -- The deft-directive-swarm skill now includes a concrete launch adapter (Step 2d) for Grok Build and other non-Warp agent runtimes: when spawn_subagent is detected (no start_agent, no WARP_*), the monitor dispatches workers via spawn_subagent with the canonical preamble and standard STEP 1-6 prompt. Phase 3 Step 1 detection order is updated so spawn_subagent is probed before the decision tree, and grok-build routes to Step 2d explicitly rather than falling through to the manual-terminal fallback. Phase 4 pre-spawn verification language is now platform-agnostic (worktree state + sub-agent lifecycle signals instead of Warp-tab observations), with a grok-build parenthetical for get_command_or_subagent_output polling. A quick-start section documents the minimal runtime contract for non-Warp swarms. Refs #1331, #1342.
 
 ### Changed
 

@@ -1,11 +1,12 @@
 {
   "vBRIEFInfo": {
     "version": "0.6",
-    "description": "Scope vBRIEF ingested from GitHub issue #1331"
+    "description": "Scope vBRIEF ingested from GitHub issue #1331",
+    "updated": "2026-05-26T12:56:03Z"
   },
   "plan": {
     "title": "deft-directive-swarm is tightly coupled to the Warp runtime, making it hard to use in other agent environments (Grok Build, etc.)",
-    "status": "pending",
+    "status": "running",
     "narratives": {
       "Description": "deft-directive-swarm is tightly coupled to the Warp runtime, making it hard to use in other agent environments (Grok Build, etc.)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1331",

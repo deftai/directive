@@ -39,6 +39,17 @@ or invoke `task verify:branch`. The swarm skill creates branches per agent so th
 - Multiple independent story-level vBRIEFs in `vbrief/active/` need to be worked on simultaneously
 - A batch of stories are ready and have no mutual dependencies
 
+## Running Swarms in Grok Build / Non-Warp Environments
+
+Minimal runtime contract for running swarms outside Warp:
+
+- One isolated git worktree per agent (identical to the Warp path — see Phase 2)
+- Workers launched via `spawn_subagent` dispatch (Phase 3 Step 2d)
+- Monitor coordination via worktree-state polling (`git status`, `git log`) and `get_command_or_subagent_output`
+- Review-cycle sub-agents spawned via `spawn_subagent` (not `start_agent`)
+
+This path became first-class in #1342 (platform adapter slices 1-3) and is fully documented in Phase 3 Step 2d and Phase 4. Grok Build + Windows users should also see #1353 (§3.5 in `templates/agent-prompt-preamble.md`) for shell output capture limitations that affect `get_command_or_subagent_output` in PowerShell 5.1 contexts. Refs #1342, #1331.
+
 ## Prerequisites
 
 - ! `vbrief/active/` contains one or more story-level vBRIEFs with status `running`
@@ -264,11 +275,12 @@ git worktree add <path> -b <branch-name> <configured-base-branch>
 
 1. ! **Probe for `start_agent` tool** — check the available tool set for `start_agent` (or equivalent agent-orchestration tool). Its presence indicates a Warp environment with native orchestration support.
 2. ! **Probe for Warp environment** — if `start_agent` is not available, check for `WARP_*` environment variables (e.g. `WARP_TERMINAL_SESSION`, `WARP_IS_WARP_TERMINAL`). Their presence indicates Warp without orchestration.
-3. ! **Select launch path automatically** based on detection results — do NOT present static options:
+3. ! **Probe for `spawn_subagent` tool** — when neither `start_agent` nor `WARP_*` is present, check for `spawn_subagent` (Grok Build / non-Warp TUI launch adapter, #1342 slice 2). Its presence indicates the grok-build platform.
+4. ! **Select launch path automatically** based on detection results — do NOT present static options:
    - **`start_agent` available** → Orchestrated launch (Step 2a) — preferred path, fully automated, no manual tab management
    - **`start_agent` unavailable, Warp detected** → Interactive Warp tabs (Step 2b) — full MCP, global rules, warm index; requires manual tab management
-   - **No Warp detected** → Manual terminal launch (Step 2b fallback) — paste prompt into any terminal with access to the worktree
-4. ! **Probe for `spawn_subagent` tool** — when neither `start_agent` nor `WARP_*` is present, check for `spawn_subagent` (Grok Build / non-Warp TUI launch adapter, #1342 slice 2). Its presence indicates the grok-build platform.
+   - **`grok-build` (`spawn_subagent` available, no `start_agent`, no `WARP_*`)** → Grok Build launch (Step 2d) — first-class non-Warp path
+   - **No orchestration primitive detected** → Manual terminal launch (Step 2b fallback) — paste prompt into any terminal with access to the worktree
 5. ! **Return a stable platform descriptor** for downstream phases — one of `warp-orchestrated` (start_agent available), `warp-manual` (Warp without start_agent), `grok-build` (spawn_subagent available, non-Warp), or `generic-terminal` (no orchestration primitives). The detection matrix MUST include explicit absence checks for `start_agent` and `WARP_*` so the four descriptors are unambiguous. Phase 4 monitoring and Phase 6 sub-agent dispatch read this stable platform descriptor as a single source of truth instead of re-running detection per call.
 6. ? **Cloud escape hatch** — use `oz agent run-cloud` (Step 2c) ONLY if the user explicitly requests cloud execution. Never default to cloud.
 
@@ -320,6 +332,15 @@ Agents execute on remote VMs without local MCP servers, codebase indexing, or Wa
 ⊗ Default to cloud launch — it is an escape hatch, not a default path.
 ⊗ Use `oz agent run-cloud` when the user expects local execution — `run-cloud` routes to remote VMs with no local context.
 
+### Step 2d: Grok Build Launch (spawn_subagent available)
+
+! When the platform descriptor is `grok-build` (spawn_subagent detected, no start_agent, no WARP_*), dispatch each worker via `spawn_subagent` with:
+1. The canonical `templates/agent-prompt-preamble.md` content as the preamble
+2. The standard worktree prompt (STEP 1-6 from the Prompt Template below), adapted to use `get_command_or_subagent_output` for polling rather than `start_agent` lifecycle events
+3. The worktree path set to the agent's isolated git worktree
+
+~ This is the first-class non-Warp path. Workers use worktree state polling (`git status`, `git log`) and `get_command_or_subagent_output` as their coordination channel instead of Warp tab state.
+
 ## Phase 4 — Monitor
 
 ### Polling Cadence
@@ -341,7 +362,7 @@ Track each agent through these stages:
 
 ### Takeover Triggers
 
-! **Pre-spawn verification:** Before spawning a replacement agent, verify the original is truly unresponsive by waiting for an idle/blocked lifecycle event (e.g. the agent's Warp tab shows no tool calls in progress, no pending shell commands, and no recent output). Do NOT spawn a replacement based solely on message timing, absence of recent commits, or a perceived delay — original Warp tabs can resume after apparent failure, and spawning a new agent creates two concurrent agents on the same worktree (see Duplicate-Tab Failure Mode below).
+! **Pre-spawn verification:** Before spawning a replacement agent, verify the original is truly unresponsive by waiting for an idle/blocked lifecycle event — verified via worktree state (`git status`, `git log --oneline -3`) and sub-agent lifecycle signals showing no in-flight work (for grok-build / spawn_subagent agents: polling is via worktree state + `get_command_or_subagent_output` rather than tab observation). Do NOT spawn a replacement based solely on message timing, absence of recent commits, or a perceived delay — original agents (Warp tabs or spawn_subagent processes) can resume after apparent failure, and spawning a new agent creates two concurrent agents on the same worktree (see Duplicate-Tab Failure Mode below).
 
 ! Take over an agent's workflow if ANY of these occur:
 
@@ -706,3 +727,4 @@ CONSTRAINTS:
 - ⊗ Run `git checkout` (any branch) -- including the brief `cd <other-worktree>; git checkout master --quiet` shape -- in a worktree the merging agent does not own during Phase 6 Step 3 (Update Master) or Step 4 (Clean Up). Post-merge state-update semantics MUST be performed via `git fetch origin <base-branch>` from the merger's OWN worktree, never by switching HEAD on a sibling worktree another agent is actively using. Recurrence record: PR #797 merge session (2026-05-01); companion to the Sub-Agent Role Separation rules (#727) -- this anti-pattern extends the same boundary discipline from sub-agent spawn shape to worktree HEAD operations (#800)
 - ⊗ Skip the Phase 0 Step 0.5 lifecycle bridge (#1025) and let the Step 1 preflight gate reject candidate scope vBRIEFs wholesale. The setup skill deposits scope vBRIEFs in `vbrief/proposed/` and the refinement skill leaves them in `vbrief/pending/`; the swarm Phase 0 Step 1 preflight only accepts `vbrief/active/` with `plan.status == "running"`. The bridge step (`task scope:promote -- <path>` then `task scope:activate -- <path>`) is the contract that converts proposed/pending candidates to active before allocation -- bypassing it re-surfaces the originating 2026-05-10 first-session consumer-swarm failure mode (`Invalid transition: 'activate' requires file in pending/`)
 - ⊗ Auto-promote + activate every candidate in `vbrief/proposed/` or `vbrief/pending/` during the Phase 0 Step 0.5 bridge without explicit user approval (#1025). Proposed-stage vBRIEFs may be in a deliberate refinement queue (`skills/deft-directive-refinement/SKILL.md` Phase 4); silent promotion bypasses the user's lifecycle intent and may flip `plan.status` to `running` on scopes the user has not yet refined. Broad affirmatives (`proceed`, `do it`, `go ahead`) do NOT satisfy the bridge approval gate -- require an explicit `yes` / `confirmed` / `approve`
+- ⊗ Fall through to the manual-terminal fallback (Step 2b) when spawn_subagent is available -- Step 2d is the first-class grok-build launch path; manual terminal is for environments with no orchestration primitive at all (#1331)
