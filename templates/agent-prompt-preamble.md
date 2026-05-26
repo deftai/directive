@@ -44,6 +44,8 @@ When running under the Grok Build runtime on Windows + pwsh 7+, `run_terminal_co
 - Run the operation in the user's native terminal and paste the result back
 - Isolate the work in a dedicated worktree and mark the step as "user shell required"
 
+This rule applies to the Grok Build runtime (pwsh 7+); Warp + Claude (PTY-based) is not affected by this wrapper leakage.
+
 ## 4. pre-pr and review-cycle skills
 
 Before pushing any branch:
