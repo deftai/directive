@@ -4,9 +4,11 @@ Auto-pilot interview: the agent plays both sides, always picking the recommended
 option. Same workflow as [interview.md](./interview.md) (including the sizing
 gate) but the agent answers its own questions via "Johnbot."
 
+**v0.20 note (s3-migrate-yolo / #1166):** Yolo now emits only the canonical v0.20 shape (date-prefixed story vBRIEFs in proposed/, full PROJECT-DEFINITION.vbrief.json via task project:render, seeded lifecycle folders, no legacy specification.vbrief.json). See the dedicated ## v0.20 Output Shape section.
+
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [strategies/interview.md](./interview.md) | [strategies/discuss.md](./discuss.md) | [core/glossary.md](../core/glossary.md)
+**⚠️ See also**: [strategies/interview.md](./interview.md) | [strategies/discuss.md](./discuss.md) | [core/glossary.md](../core/glossary.md) | [vbrief/vbrief.md](../vbrief/vbrief.md) | [artifact-guards.md](./artifact-guards.md)
 
 ---
 
@@ -44,7 +46,7 @@ flowchart LR
         I_L["💬 Auto-Interview<br/><i>Light path</i>"]
         I_F["💬 Auto-Interview<br/><i>Full path</i>"]
         P["📄 PRD<br/><i>Auto-approved</i>"]
-        S["📋 SPECIFICATION<br/><i>How to build it</i>"]
+        S["📁 vbrief/proposed/ (YYYY-MM-DD-*.vbrief.json)<br/>📋 PROJECT-DEFINITION.vbrief.json<br/><i>v0.20 shape</i>"]
     end
 
     G -->|"Light"| I_L
@@ -61,6 +63,8 @@ flowchart LR
     style S fill:#6ee7b7,stroke:#059669,color:#000
     style IMPL fill:#7dd3fc,stroke:#0284c7,color:#000
 ```
+
+(See ## v0.20 Output Shape for exact artifact rules and the mandatory `task project:render` call.)
 
 ---
 
@@ -96,16 +100,46 @@ but Johnbot answers all questions and auto-approves the PRD.
 
 ---
 
-## SPECIFICATION Guidelines
+## v0.20 Output Shape (s3-migrate-yolo / #1166)
 
-Same as [interview.md](./interview.md#specification-guidelines-both-paths).
+This strategy has been migrated to the full v0.20 output shape so yolo-generated projects are accepted by the build skill Pre-Cutover Detection Guard with zero errors on first attempt (resolves the yolo row from the #1166 inconsistency table).
+
+- ! Seed the five lifecycle folders under `vbrief/` if any are missing: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`.
+- ! Emit story scope items exclusively as date-prefixed scope vBRIEFs: `vbrief/proposed/YYYY-MM-DD-<kebab-slug>.vbrief.json` (use the run's creation date for the prefix; choose descriptive slugs). Decompose the yolo plan into one or more focused, buildable story vBRIEFs (v0.6 schema) rather than a monolithic legacy spec.
+- ! After the proposed/ stories are written, invoke `task project:render` (run from the repo root) to generate/refresh the complete `vbrief/PROJECT-DEFINITION.vbrief.json` (items registry is derived from the lifecycle folders).
+- ⊗ Never emit `vbrief/specification.vbrief.json` (or any legacy dual-write).
+- ~ `SPECIFICATION.md` at the project root, if produced at all, must be only a read-only derivative (e.g. via `task spec:render` after the vbriefs exist) that includes the v0.20 deprecated-redirect sentinel. The source of truth is the vbrief/ lifecycle stories + PROJECT-DEFINITION.
+- ! Before writing any proposed/ stories or PROJECT-DEFINITION, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for scope items in proposed/; Spec-Generating Guard for PROJECT-DEFINITION).
+- ! Final output tree must pass the deterministic v0.20 strategy output validation gate (s2-deterministic-gate) and the build Pre-Cutover Detection Guard with zero warnings/errors. See full acceptance in the yolo migration vBRIEF and the 1166 decomposition.
+- ~ Once available, cite the canonical contract `strategies/v0-20-contract.md` (s1-contract) for the exact shape.
 
 ---
 
-## Artifacts Summary
+## SPECIFICATION Guidelines
 
-Same as [interview.md](./interview.md#artifacts-summary) — identical for both
-Light and Full paths (PRD is auto-approved on Full path).
+Yolo expresses "specification" work via the v0.20 date-prefixed story vBRIEFs emitted to `vbrief/proposed/` (see v0.20 Output Shape section above).
+
+The detailed guidelines from [interview.md](./interview.md#specification-guidelines-both-paths) for content quality, requirements IDs, phasing, parallelism, test-first, task sizing, and format still apply — but the *delivery mechanism* is the discrete vBRIEF stories + PROJECT-DEFINITION (never the legacy specification.vbrief.json).
+
+---
+
+## Artifacts Summary (v0.20)
+
+**Light path and Full path (identical under yolo; PRD auto-approved on Full):**
+
+| Artifact | Purpose | Created By |
+|----------|---------|------------|
+| `vbrief/proposed/YYYY-MM-DD-*.vbrief.json` (one or more) | Focused story scope items (date-prefixed per vbrief convention) | Yolo (Johnbot) |
+| `vbrief/PROJECT-DEFINITION.vbrief.json` | Project identity gestalt + complete scope items registry | `task project:render` (invoked by Yolo) |
+| `vbrief/{proposed,pending,active,completed,cancelled}/` | All five lifecycle folders seeded | Yolo |
+| (optional derivative) `SPECIFICATION.md` | Human-readable plan (includes deprecated-redirect sentinel) | `task spec:render` (if invoked) |
+
+**Pre-v0.20 / legacy artifacts that MUST NOT be produced by this strategy:**
+
+- `vbrief/specification.vbrief.json`
+- Primary handoff `SPECIFICATION.md` at project root
+
+---
 
 ## Invoking This Strategy
 
@@ -119,8 +153,10 @@ Or explicitly:
 Use the yolo strategy to plan [project].
 ```
 
-After completion:
+After completion (v0.20 shape):
 
 ```
-implement SPECIFICATION.md
+task project:render
+# Review date-prefixed stories in vbrief/proposed/ + the generated PROJECT-DEFINITION.vbrief.json
+# Implement per the v0.20 artifacts (build skill accepts cleanly on first try)
 ```

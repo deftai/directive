@@ -208,3 +208,38 @@ class TestVbriefSchemaDocumentation:
         assert "runCount" in self._text, (
             "vbrief/vbrief.md does not document 'runCount' field"
         )
+
+
+# ---------------------------------------------------------------------------
+# 5. yolo.md v0.20 migration assertions (s3-migrate-yolo / #1166)
+# ---------------------------------------------------------------------------
+
+def test_yolo_md_emits_v020_output_shape() -> None:
+    """Yolo strategy prompt must declare the full v0.20 output shape and forbid legacy artifacts.
+
+    This satisfies the yolo-related test update requirement in the s3 vBRIEF acceptance:
+    the tests assert that the generated artifacts (per the prompt) follow v0.20 and would
+    pass the deterministic gate / Pre-Cutover Detection Guard.
+    """
+    text = _read("strategies/yolo.md")
+
+    # New v0.20 section and instructions present (core of the migration)
+    assert "v0.20 Output Shape (s3-migrate-yolo / #1166)" in text
+    assert "task project:render" in text
+    assert "PROJECT-DEFINITION.vbrief.json" in text
+    assert "vbrief/proposed/YYYY-MM-DD-" in text or "date-prefixed" in text.lower()
+    assert "five lifecycle folders" in text.lower() or "proposed/, pending/, active/" in text
+
+    # Legacy artifacts explicitly forbidden
+    assert "Never emit `vbrief/specification.vbrief.json`" in text
+    assert "specification.vbrief.json" in text  # still mentioned to call out the ban
+    assert "Primary handoff `SPECIFICATION.md` at project root" in text or "MUST NOT be produced" in text
+
+    # Guards, validation, and cross-refs for the shape
+    assert "artifact-guards.md" in text
+    assert "Pre-Cutover Detection Guard" in text
+    assert "deterministic v0.20" in text.lower() or "v0.20 strategy output" in text.lower()
+
+    # Mermaid and invoking updated for v0.20 handoff
+    assert "v0.20 shape" in text.lower()
+    assert "task project:render" in text  # repeated in invoking section

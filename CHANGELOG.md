@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs: add canonical v0.20 strategy output contract (Refs #1166)** -- Strategy authors and users now have one unambiguous source of truth for v0.20-conformant output (lifecycle folders, project definition, dated proposed scope vBRIEFs, deprecation redirects only for spec docs). Closes the inconsistency where most generated projects were immediately rejected by the build pre-cutover guard. Refs #1166.
 
 ### Changed
+- **feat(strategies): migrate yolo strategy to full v0.20 output shape (#1166)** -- Updated `strategies/yolo.md` (plus the yolo-exercising test `tests/content/test_strategy_chaining.py`) so the yolo strategy now emits only `vbrief/proposed/YYYY-MM-DD-*.vbrief.json` story scope items, invokes `task project:render` to produce a complete `PROJECT-DEFINITION.vbrief.json`, seeds the five lifecycle folders under `vbrief/`, and never emits the legacy `specification.vbrief.json` (or primary root `SPECIFICATION.md`). The prompt, workflow diagram, artifacts table, invoking instructions, and guards cross-refs were revised for v0.20 conformance. Added dedicated test assertions that the yolo prompt now instructs the correct shape (satisfies s3 acceptance for yolo-related tests exercising the v0.20 gate). Yolo-generated projects now pass the Pre-Cutover Detection Guard cleanly. Resolves the yolo row from the #1166 inconsistency table. Work performed in isolated worktree per swarm dispatch. Refs #1166 (s3-migrate-yolo vBRIEF + parent decomposition).
 
 ### Fixed
 
