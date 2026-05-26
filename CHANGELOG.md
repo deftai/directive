@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+### Refinement
+- **chore(vbrief): refinement session 2026-05-26 -- ingest #1364, #1365, #1366, #1368, #1369 from the #1166 swarm post-mortem** -- five OPEN issues land as scope vBRIEFs in `vbrief/proposed/`. #1365 / #1366 / #1368 / #1369 carry a new `cluster:grok-harness` tag and a `Cluster` narrative documenting the wave order (Wave 1 root cause #1366 -- subprocess UTF-8 decode in `gh`-shelling tools; Wave 2 #1365 sub-agent visibility + #1368 `pr_merge_readiness.py` hardening; Wave 3 #1369 cascade automation) without filing a separate GitHub umbrella issue. #1364 (cohort-level CLEAN gate for swarm Phase 5→6) ingested as standalone scope. #1367 skipped (merged PR, not an issue). Refs #1364, #1365, #1366, #1368, #1369; cross-refs #1166, #1353.
+
 ## [0.36.0] - 2026-05-26
 
 > Fix P1 strategy inconsistency (#1166): new canonical v0.20 contract + gate, plus migrations for yolo, interview, and speckit families. Consistent output from every strategy.

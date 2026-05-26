@@ -1,0 +1,32 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1365"
+  },
+  "plan": {
+    "title": "swarm: spawn_subagent review-cycle sub-agents can go completely dark with no visibility or monitoring from the parent",
+    "status": "proposed",
+    "narratives": {
+      "Description": "swarm: spawn_subagent review-cycle sub-agents can go completely dark with no visibility or monitoring from the parent",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1365",
+      "Overview": "## Problem\n\nWhen using the Grok Build hybrid swarm path (`spawn_subagent` + isolated worktrees), long-running review-cycle sub-agents can become completely invisible and unresponsive from the monitor's perspective.\n\n### Observed symptoms (from #1166 swarm)\n\n- Launched three parallel review-cycle sub-agents (one per remaining PR) with the explicit goal of driving them to 5/5.\n- One agent (#1360) completed successfully and reported back with full details.\n- The other two (#1362 and #1363) produced **zero visible output**:\n  - No new commits in their worktrees\n  - No comments posted to the PRs\n  - No progress reports sent back to the parent\n  - No completion notifications\n\nFrom the monitor's point of view, they were indistinguishable from dead/stalled agents. Multiple manual checks (worktree git state + PR comments) showed no activity.\n\nThis is a recurring pattern when leaving review-cycle sub-agents running autonomously in the Grok Build environment.\n\n## Root Cause / Contributing Factors\n\n- `spawn_subagent` in the current Grok Build setup is intentionally low-visibility (background processes in worktrees).\n- There is no built-in heartbeat, progress channel, or status reporting mechanism that the monitor can reliably poll.\n- The canonical review-cycle poller prompt expects agents to post updates, but if an agent gets stuck (analysis, waiting for Greptile, tool issues, context pressure, silent failure), it can go completely silent.\n- The swarm skill's monitoring phase has very weak support for observing or recovering from silent sub-agents.\n- The only signals available are side effects (commits or PR comments). If the agent produces neither, the parent has almost no diagnostic power.\n\nThis is significantly worse than the Warp `start_agent` experience, where tabs provide at least some live visibility.\n\n## Impact\n\n- Makes parallel review work (a common swarm pattern) fragile and hard to manage.\n- Forces the monitor into constant manual polling of worktrees and PRs.\n- Increases risk of \"zombie\" review agents that consume resources without the parent knowing.\n- Makes it difficult to know when to intervene, re-spawn, or take over manually.\n\n## Proposed Improvements\n\nWe should improve handling in one or more of these areas:\n\n1. **Standardized sub-agent reporting contract**\n   - Define a lightweight expected behavior for long-running sub-agents (e.g., periodic status comments, or a simple `.deft-scratch/subagent-status/` file the monitor can poll).\n   - Update the canonical review-cycle / poller template and `templates/agent-prompt-preamble.md` to include this expectation.\n\n2. **Monitor-side tooling / patterns**\n   - Add helpers (possibly in the swarm skill or a new `scripts/subagent_monitor.py`) that can watch a set of sub-agents by their worktrees + parent dispatch context.\n   - Surface \"last heard from\", worktree activity, and basic health.\n   - Time-based escalation (e.g., \"no activity in 30+ minutes → flag to monitor\").\n\n3. **Better integration in the swarm skill**\n   - Phase 4 (Monitor) and Phase 6 (post-PR review) should have explicit guidance and primitives for tracking review-cycle sub-agents.\n   - Clear recovery paths when agents go dark (re-spawn with context, manual takeover, etc.).\n\n4. **Grok Build platform improvements (longer term)**\n   - If possible, expose some minimal status / lifecycle signals from `spawn_subagent` dispatches back to the parent conversation (even just \"still alive\" heartbeats).\n\n## References\n\n- Recent occurrence during 1166 swarm (attempt to drive remaining PRs to 5/5 via parallel review sub-agents).\n- Related prior work: #1342 (Grok Build hybrid swarm support), #1353 (Windows Grok Build run_terminal_command limitations), #727 (sub-agent role separation and canonical poller template).\n- AGENTS.md sections on sub-agent hygiene (#954), monitoring, and the current spawn_subagent model.\n\nThis feels like a missing piece in making the hybrid swarm path robust for real review work.\n\n**Labels suggestion**: swarm, grok-build, review-cycle, determinism, monitoring\n",
+      "Labels": "swarm, determinism, review-cycle, grok-build",
+      "Cluster": "Wave 2 (visibility, depends on #1366 Wave 1) of the Grok Build harness fragility cluster. Sibling Wave 2: #1368 (monitor reliability, parallelizable). Wave 3 dependent: #1369 (cascade automation). Cross-ref #1353. Cluster tracked via the `cluster:grok-harness` tag across four vBRIEFs (no GitHub umbrella issue filed)."
+    },
+    "items": [],
+    "tags": [
+      "swarm",
+      "determinism",
+      "review-cycle",
+      "grok-build",
+      "cluster:grok-harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1365",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1365: swarm: spawn_subagent review-cycle sub-agents can go completely dark with no visibility or monitoring from the parent"
+      }
+    ]
+  }
+}

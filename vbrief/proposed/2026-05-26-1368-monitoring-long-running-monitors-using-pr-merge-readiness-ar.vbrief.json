@@ -1,0 +1,38 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1368"
+  },
+  "plan": {
+    "title": "monitoring: long-running monitors using pr_merge_readiness are unreliable in Grok Build due to harness fragility",
+    "status": "proposed",
+    "narratives": {
+      "Description": "monitoring: long-running monitors using pr_merge_readiness are unreliable in Grok Build due to harness fragility",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1368",
+      "Overview": "## Problem\n\nDuring the 1166 swarm merge cascade, a background monitor was launched to automatically merge #1363 (once it became mergeable after rebase) and then the Wave 3 PRs.\n\nThe monitor kept reporting for ~15+ minutes:\n\n> #1363 mergeable_state = blocked\n> (last reviewed: none, head: None)\n\nEven though:\n- The rebase and force-push had succeeded.\n- A direct manual check confirmed the head was correct and the state was genuinely \"blocked\" (required checks hadn't run yet on the new commit).\n\nThe monitor was effectively blind the entire time.\n\n## Root Cause\n\nThe monitor script depended on repeatedly calling:\n\n```bash\npython scripts/pr_merge_readiness.py <N> --repo deftai/directive --json\n```\n\nThis script (and similar tools) internally uses `subprocess.run(..., capture_output=True, text=True)` to call `gh`.\n\nIn the Grok Build harness on Windows, this frequently triggers:\n\n```\nException in thread Thread-3 (_readerthread):\n...\nUnicodeDecodeError: 'cp1252' codec can't decode byte ...\n```\n\n(See also #1353 and #1366 for the broader class of harness output capture problems.)\n\nWhen this happens:\n- The readiness script returns no valid JSON.\n- Any dependent monitor sees `head: None` and cannot make progress decisions.\n\nThis is not a bug in the monitor logic itself — it is being fed broken data by an unreliable underlying tool in this environment.\n\n## Impact\n\n- Reliable long-running automation (merge cascades, review monitoring, etc.) becomes extremely difficult.\n- The hybrid Grok Build swarm path (`spawn_subagent`) already has visibility challenges (#1365). This makes monitoring even worse.\n- We end up having to fall back to manual checks and human intervention even when we tried to automate.\n\n## Proposed Solutions\n\n1. **Make monitoring tools resilient (high priority)**\n   - `pr_merge_readiness.py` and similar scripts should have multiple fallback paths:\n     - Primary: current logic\n     - Fallback 1: Direct `gh api` REST calls + manual parsing of the Greptile comment (bypassing the full script when it fails)\n     - Fallback 2: Simple `gh pr view` + check-run status as a last resort (with clear warnings)\n   - Always return structured output even on partial failure (e.g. `{ \"error\": \"...\", \"partial_data\": {...} }`).\n\n2. **Create a safe monitoring helper**\n   - Add something like `scripts/monitor_pr.py` or a small library that long-running monitors can use.\n   - It should handle the common failure modes gracefully and provide reliable \"current state\" information.\n\n3. **Better patterns for the swarm skill**\n   - Document recommended ways to build reliable long-running monitors in the Grok Build hybrid path.\n   - Consider adding built-in support for \"merge when ready\" style automation that is resilient to these harness issues.\n\n4. **Platform-side (Grok Build)**\n   - Improve subprocess output capture reliability on Windows (UTF-8 + better error handling in reader threads).\n   - This is the same underlying class of problem reported in #1353.\n\n## References\n\n- This specific occurrence: 1166 swarm auto-merge monitor for #1363 (after rebase).\n- #1353 (original harness Windows capture issues)\n- #1365 (sub-agents going dark / visibility problems)\n- #1366 (harness UnicodeDecodeError breaking monitoring tools)\n- The monitor script and repeated \"head: None\" failures observed live during this session.\n\nThis makes the current hybrid swarm + review-cycle workflow significantly less reliable for anything that requires waiting on external state (Greptile, CI, etc.).\n",
+      "Labels": "swarm, determinism, review-cycle, grok-build, monitoring",
+      "Cluster": "Wave 2 (monitor reliability, depends on #1366 Wave 1) of the Grok Build harness fragility cluster. Sibling Wave 2: #1365 (sub-agent visibility, parallelizable). Wave 3 dependent: #1369 (cascade automation). Cross-ref #1353. Cluster tracked via the `cluster:grok-harness` tag across four vBRIEFs (no GitHub umbrella issue filed)."
+    },
+    "items": [],
+    "tags": [
+      "swarm",
+      "determinism",
+      "review-cycle",
+      "grok-build",
+      "monitoring",
+      "cluster:grok-harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1368",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1368: monitoring: long-running monitors using pr_merge_readiness are unreliable in Grok Build due to harness fragility"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1353",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1353"
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1369"
+  },
+  "plan": {
+    "title": "swarm: Improve reliability and tooling for long-running merge/review cascade automation in Grok Build hybrid path",
+    "status": "proposed",
+    "narratives": {
+      "Description": "swarm: Improve reliability and tooling for long-running merge/review cascade automation in Grok Build hybrid path",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1369",
+      "Overview": "## Context\n\nDuring the 1166 strategy consistency swarm, we reached the merge phase with all five PRs at 5/5.\n\nWe attempted to use an automated background monitor (following the \"auto-merge when ready\" pattern) to:\n- Wait for #1363 to become mergeable after its rebase.\n- Automatically squash-merge it with admin rights.\n- Then immediately merge the three Wave 3 PRs.\n\nThis approach had to be abandoned. The monitor ran for a long time reporting the PR as blocked (with no usable head data), even though direct inspection showed the state was genuinely blocked due to checks not having completed on the new head after the force-push.\n\nWe eventually killed the monitor and performed the remaining work manually.\n\n## Problem\n\nThe current tooling and patterns for reliable long-running automation in the Grok Build hybrid swarm path are insufficient:\n\n- `pr_merge_readiness.py` (and similar tools) are fragile in the harness (see #1366).\n- There are no first-class, resilient primitives for \"wait until this PR is mergeable, then merge it\".\n- Visibility into background `spawn_subagent` processes is very limited (#1365).\n- Long-running monitors have no good way to stay healthy when individual data sources become temporarily unreliable.\n\nThis makes automated merge cascades (a natural part of swarm work) painful and unreliable.\n\n## Impact\n\n- Forces monitors to either babysit manually or risk the automation getting stuck for long periods.\n- Increases cognitive load and error surface during the critical merge phase of a swarm.\n- Makes the hybrid Grok Build swarm path feel less mature for real, multi-PR work.\n\n## Proposed Improvements\n\n1. **Resilient PR state monitoring helper**\n   - Create a more robust utility (e.g. in `scripts/`) for polling PR mergeability / review state that gracefully handles transient failures from `pr_merge_readiness.py` and falls back to direct REST parsing of the Greptile comment + check runs.\n   - Expose a simple \"is this PR currently mergeable on its latest head?\" function with clear diagnostics.\n\n2. **First-class cascade automation support in the swarm skill**\n   - Add recommended patterns / small helpers for \"merge cascade\" automation.\n   - Consider a `task pr:wait-mergeable-and-merge` style surface (or equivalent in Python) that is resilient in the Grok Build environment.\n\n3. **Better visibility & signaling for sub-agents**\n   - Improve the contract and tooling around long-running `spawn_subagent` processes so monitors can more reliably detect whether agents are alive, making progress, or stuck (building on #1365).\n\n4. **Documentation & patterns**\n   - Add clear guidance in the swarm skill and AGENTS.md for how to safely build and run long-running merge/review automation in the hybrid path, including known limitations and workarounds.\n\n5. **Platform feedback (Grok Build side)**\n   - The underlying harness fragility around subprocess output capture on Windows (recurring `UnicodeDecodeError` in reader threads, see #1353 and #1366) makes this class of tooling inherently brittle. This should be raised as platform feedback.\n\n## References\n\n- This specific occurrence: 1166 swarm merge cascade monitoring for #1363 + Wave 3.\n- #1365 (sub-agents going dark / visibility)\n- #1366 (harness fragility breaking monitoring tools)\n- #1368 (detailed root cause of this exact monitor failure)\n- #1353 (original Windows harness capture issues)\n\nThis feels like an important area to strengthen if we want the hybrid Grok Build swarm path to support serious, multi-wave review + merge workflows reliably.\n",
+      "Labels": "swarm, determinism, review-cycle, grok-build, monitoring",
+      "Cluster": "Wave 3 (cascade automation, depends on #1366 Wave 1 + #1365/#1368 Wave 2) of the Grok Build harness fragility cluster. Cross-ref #1353 (original Windows capture limitation). Cluster tracked via the `cluster:grok-harness` tag across four vBRIEFs (no GitHub umbrella issue filed)."
+    },
+    "items": [],
+    "tags": [
+      "swarm",
+      "determinism",
+      "review-cycle",
+      "grok-build",
+      "monitoring",
+      "cluster:grok-harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1369",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1369: swarm: Improve reliability and tooling for long-running merge/review cascade automation in Grok Build hybrid path"
+      }
+    ]
+  }
+}
