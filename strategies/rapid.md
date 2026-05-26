@@ -1,13 +1,15 @@
 # Rapid Strategy
 
-Quick prototyping workflow -- SPECIFICATION-only output with minimal gates and fast iteration.
+Quick prototyping workflow -- v0.20 date-prefixed story vBRIEF output with minimal gates and fast iteration.
+
+**v0.20 note (s5-migrate-speckit-rapid-enterprise / #1166):** Rapid now emits only the canonical v0.20 shape (date-prefixed story vBRIEFs in proposed/, full PROJECT-DEFINITION.vbrief.json via task project:render, seeded lifecycle folders, no legacy specification.vbrief.json). See the dedicated ## v0.20 Output Shape section and the canonical contract `strategies/v0-20-contract.md` (s1-contract of #1166).
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [strategies/interview.md](./interview.md) | [strategies/yolo.md](./yolo.md) | [strategies/README.md](./README.md)
+**⚠️ See also**: [strategies/interview.md](./interview.md) | [strategies/yolo.md](./yolo.md) | [strategies/README.md](./README.md) | [strategies/v0-20-contract.md](./v0-20-contract.md) | [artifact-guards.md](./artifact-guards.md)
 
 > Ship a throwaway prototype fast. Skip the PRD, skip approval gates, produce a
-> SPECIFICATION.md and start building. Suited for spikes, proof-of-concepts, and
+> date-prefixed vBRIEF in proposed/ + PROJECT-DEFINITION and start building. Suited for spikes, proof-of-concepts, and
 > disposable experiments where learning speed matters more than long-term quality.
 
 ---
@@ -28,7 +30,7 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ! Describe the prototype goal in one sentence: what are you trying to learn or prove?
 
-- ! Record the goal in `vbrief/specification.vbrief.json` (e.g. as the plan title or a brief narrative)
+- ! Record the goal in a new date-prefixed story vBRIEF written to `vbrief/proposed/YYYY-MM-DD-<kebab-slug>.vbrief.json` (e.g. as the plan title or a brief narrative in the v0.6 schema). Use today's date for the prefix and a descriptive slug.
 - ~ Include a time-box if applicable (e.g. "4-hour spike")
 - ⊗ Skip this step -- even throwaway work needs a clear objective
 
@@ -40,18 +42,18 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ~ 3-5 questions maximum -- bias toward defaults and moving fast
 - ⊗ Run the full interview questionnaire -- that defeats the purpose of rapid
 
-### Step 3: Generate specification.vbrief.json (Forced-Light Path)
+### Step 3: Generate date-prefixed vBRIEF in proposed/ (Forced-Light Path)
 
-! Before writing output artifacts, follow the [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full).
+! Before writing output artifacts, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for proposed/ scope items; Spec-Generating Guard for PROJECT-DEFINITION).
 
-! Write a slim `vbrief/specification.vbrief.json` -- no PRD, no approval gate.
+! Write a slim story scope vBRIEF to `vbrief/proposed/YYYY-MM-DD-<kebab-slug>.vbrief.json` -- no PRD, no approval gate. Decompose the rapid plan into one or more focused, buildable story vBRIEFs (v0.6 schema) rather than a monolithic legacy spec.
 
 - ! Use the Light path from [interview.md](./interview.md) unconditionally
 - ! Mark `plan.status` as `draft` (not `approved`) to signal prototype quality
-- ! Run `task spec:render` to produce `SPECIFICATION.md` as a read-only export
+- ! After the proposed/ vBRIEF(s) are written, invoke `task project:render` (from repo root) to generate/refresh the complete `vbrief/PROJECT-DEFINITION.vbrief.json`
 - ~ Keep tasks coarse-grained -- 3-5 tasks is typical for a spike
 - ⊗ Generate a PRD or require approval -- rapid skips both
-- ⊗ Hand-author `SPECIFICATION.md` directly -- it is a rendered artifact, not a source file
+- ⊗ Hand-author `SPECIFICATION.md` directly -- it is a rendered derivative only (see v0.20 Output Shape)
 
 ### Step 4: Build
 
@@ -74,16 +76,18 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Output Artifacts
 
-- `vbrief/specification.vbrief.json` -- lightweight scope vBRIEF with `draft` status (primary artifact)
-- `SPECIFICATION.md` -- read-only rendered export via `task spec:render`
+- `vbrief/proposed/YYYY-MM-DD-*.vbrief.json` (one or more) -- lightweight story scope vBRIEF(s) with `draft` status (primary artifact; date-prefixed per v0.20 contract)
+- `vbrief/PROJECT-DEFINITION.vbrief.json` -- complete project gestalt + items registry (via `task project:render` invoked by Rapid)
+- `vbrief/{proposed,pending,active,completed,cancelled}/` -- all five lifecycle folders seeded
+- (optional derivative) `SPECIFICATION.md` -- read-only human-readable export (includes deprecated-redirect sentinel; via `task spec:render` if invoked)
 - Prototype code (may be discarded)
-- Findings summary (inline in spec or as a separate note)
+- Findings summary (inline in the proposed/ vBRIEF or as a separate note)
 
 ---
 
 ## Fits into Chaining Gate
 
-Rapid is a **spec-generating** strategy. Selecting it at the chaining gate produces a `vbrief/specification.vbrief.json` (and renders `SPECIFICATION.md` via `task spec:render`) and moves directly to implementation. There is no chaining back to preparatory strategies.
+Rapid is a **spec-generating** strategy. Selecting it at the chaining gate produces date-prefixed story vBRIEF(s) in `vbrief/proposed/` (and refreshes `vbrief/PROJECT-DEFINITION.vbrief.json` via `task project:render`) and moves directly to implementation. There is no chaining back to preparatory strategies. See the v0.20 Output Shape section below for the exact contract.
 
 ---
 
@@ -94,3 +98,50 @@ Rapid is a **spec-generating** strategy. Selecting it at the chaining gate produ
 - ⊗ Running the full interview or PRD path -- that's interview strategy, not rapid
 - ⊗ Skipping `task check` -- even prototypes must pass basic quality checks
 - ⊗ Omitting the goal statement -- undirected spikes waste time
+- ⊗ Emitting the legacy singular specification artifact or bare-named vBRIEFs -- violates the v0.20 contract (see strategies/v0-20-contract.md)
+
+---
+
+## v0.20 Output Shape (s5-migrate-speckit-rapid-enterprise / #1166)
+
+This strategy has been migrated to the full v0.20 output shape so rapid-generated projects are accepted by the build skill Pre-Cutover Detection Guard with zero errors on first attempt (resolves the rapid row from the #1166 inconsistency table and the s5 story acceptance criteria).
+
+- ! Seed the five lifecycle folders under `vbrief/` if any are missing: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`.
+- ! Emit story scope items exclusively as date-prefixed scope vBRIEFs: `vbrief/proposed/YYYY-MM-DD-<kebab-slug>.vbrief.json` (use the run's creation date for the prefix; choose descriptive slugs). Decompose the rapid plan into one or more focused, buildable story vBRIEFs (v0.6 schema) rather than a monolithic legacy spec.
+- ! After the proposed/ stories are written, invoke `task project:render` (run from the repo root) to generate/refresh the complete `vbrief/PROJECT-DEFINITION.vbrief.json` (items registry is derived from the lifecycle folders).
+- ⊗ Never emit `vbrief/specification.vbrief.json` (or any legacy dual-write).
+- ~ `SPECIFICATION.md` at the project root, if produced at all, must be only a read-only derivative (e.g. via `task spec:render` after the vbriefs exist) that includes the v0.20 deprecated-redirect sentinel. The source of truth is the vbrief/ lifecycle stories + PROJECT-DEFINITION.
+- ! Before writing any proposed/ stories or PROJECT-DEFINITION, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for scope items in proposed/; Spec-Generating Guard for PROJECT-DEFINITION).
+- ! Final output tree must pass the deterministic v0.20 strategy output validation gate (s2-deterministic-gate) and the build Pre-Cutover Detection Guard with zero warnings/errors. See full acceptance in the s5 vBRIEF and the 1166 decomposition.
+- ! Cite the canonical contract `strategies/v0-20-contract.md` (s1-contract) for the exact shape and the per-strategy table row.
+
+---
+
+## Artifacts Summary (v0.20)
+
+**Rapid (Forced-Light path):**
+
+| Artifact | Purpose | Created By |
+|----------|---------|------------|
+| `vbrief/proposed/YYYY-MM-DD-*.vbrief.json` (one or more) | Focused story scope items (date-prefixed per vbrief convention and v0.20 contract) | Rapid |
+| `vbrief/PROJECT-DEFINITION.vbrief.json` | Project identity gestalt + complete scope items registry | `task project:render` (invoked by Rapid) |
+| `vbrief/{proposed,pending,active,completed,cancelled}/` | All five lifecycle folders seeded | Rapid |
+| (optional derivative) `SPECIFICATION.md` | Human-readable plan (includes deprecated-redirect sentinel) | `task spec:render` (if invoked) |
+
+**Pre-v0.20 / legacy artifacts that MUST NOT be produced by this strategy:**
+
+- `vbrief/specification.vbrief.json`
+- Primary handoff `SPECIFICATION.md` at project root (without sentinel)
+- Bare-named vBRIEFs in proposed/
+
+See the full table and rules in `strategies/v0-20-contract.md` (rapid row: Must Create Lifecycle Folders: Yes; Must Write PROJECT-DEFINITION: Yes; Scope vBRIEFs Location: proposed/YYYY-MM-DD-*.vbrief.json only; specification.vbrief.json: Never; SPECIFICATION.md / PROJECT.md: Omit or deprecation redirect only).
+
+---
+
+## Invoking This Strategy
+
+```
+ /deft:run:rapid [project name]
+```
+
+Or explicitly:

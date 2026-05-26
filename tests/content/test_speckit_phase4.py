@@ -97,9 +97,9 @@ class TestSpeckitPhase4Emission:
             "speckit.md Artifacts Summary must include a 3c. Render PRD row (#433)"
         )
 
-    def test_artifacts_summary_points_phase_4_at_pending_scope_vbriefs(self) -> None:
-        assert "`./vbrief/pending/YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json`" in self._text, (
-            "Artifacts Summary must show Phase 4 -> pending scope vBRIEF path (#436)"
+    def test_artifacts_summary_points_phase_4_at_proposed_scope_vbriefs_v020(self) -> None:
+        assert "`./vbrief/proposed/YYYY-MM-DD-ip<NNN>-<slug>.vbrief.json`" in self._text, (
+            "Artifacts Summary must show Phase 4 -> proposed/ (v0.20) scope vBRIEF path (s5 migration, #1166)"
         )
 
     def test_artifacts_summary_includes_phase_45(self) -> None:

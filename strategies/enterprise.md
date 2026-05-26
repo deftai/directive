@@ -1,10 +1,12 @@
 # Enterprise Strategy
 
-Compliance-heavy workflow -- PRD → ADR → SPECIFICATION with explicit approval gates at each stage.
+Compliance-heavy workflow -- v0.20 date-prefixed story/phase vBRIEF + PROJECT-DEFINITION with explicit approval gates at each stage.
+
+**v0.20 note (s5-migrate-speckit-rapid-enterprise / #1166):** Enterprise now emits only the canonical v0.20 shape (date-prefixed story/phase vBRIEFs in proposed/, full PROJECT-DEFINITION.vbrief.json via task project:render, seeded lifecycle folders, no legacy specification.vbrief.json). PRD.md and SPECIFICATION.md (if any) are deprecation-redirect derivatives only. See the dedicated ## v0.20 Output Shape section and the canonical contract `strategies/v0-20-contract.md` (s1-contract of #1166).
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
-**⚠️ See also**: [strategies/interview.md](./interview.md) | [strategies/speckit.md](./speckit.md) | [strategies/README.md](./README.md)
+**⚠️ See also**: [strategies/interview.md](./interview.md) | [strategies/speckit.md](./speckit.md) | [strategies/README.md](./README.md) | [strategies/v0-20-contract.md](./v0-20-contract.md) | [artifact-guards.md](./artifact-guards.md)
 
 > When every decision must be auditable and every artifact must survive a compliance
 > review, enterprise strategy adds explicit approval gates between stages. Suited for
@@ -28,18 +30,18 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ### Stage 1: PRD (Forced-Full Path)
 
-! Before writing output artifacts, follow the [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full).
+! Before writing output artifacts, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for proposed/ scope items; Spec-Generating Guard for PROJECT-DEFINITION).
 
-! Run the Full interview path from [interview.md](./interview.md) unconditionally -- write PRD narratives to `vbrief/specification.vbrief.json`.
+! Run the Full interview path from [interview.md](./interview.md) unconditionally -- write PRD narratives as date-prefixed story/phase vBRIEF(s) to `vbrief/proposed/YYYY-MM-DD-<kebab-slug>.vbrief.json`.
 
 - ! Use the Full path regardless of project size -- enterprise always requires a PRD
-- ! Write PRD content as narratives in `vbrief/specification.vbrief.json` `plan.narratives`: `ProblemStatement`, `Goals`, `NonGoals`, `UserStories`, `Requirements` (functional + non-functional), `SuccessMetrics`
+- ! Write PRD content as narratives in the proposed/ vBRIEF `plan.narratives`: `ProblemStatement`, `Goals`, `NonGoals`, `UserStories`, `Requirements` (functional + non-functional), `SuccessMetrics`
 - ! Record the PRD approver(s) in the `Approvers` narrative
-- ! Run `task prd:render` to produce `PRD.md` as a read-only rendered export for stakeholder review
+- ! Run `task prd:render` (if UX continuity needed) to produce `PRD.md` **only as a deprecation-redirect derivative** (see v0.20 Output Shape); the source of truth is the vbrief/ artifacts.
 
 ### Gate 1: PRD Approval
 
-! The rendered `PRD.md` requires explicit written approval before proceeding.
+! The rendered `PRD.md` (if present as derivative) or the proposed/ vBRIEF requires explicit written approval before proceeding.
 
 - ! Approval must come from the designated approver(s) -- not the author
 - ! Record approval: approver name, date, and any conditions
@@ -64,29 +66,30 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 - ! Record approval alongside the ADR (status field: Proposed → Accepted)
 - ⊗ Begin specification with Proposed ADRs -- all must be Accepted
 
-### Stage 3: Generate Specification
+### Stage 3: Generate Specification (as v0.20 vBRIEFs)
 
-! Before writing output artifacts, follow the [Spec-Generating Guard](./artifact-guards.md#spec-generating-guard-full).
+! Before writing output artifacts, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for proposed/ scope items; Spec-Generating Guard for PROJECT-DEFINITION).
 
-! Enrich `vbrief/specification.vbrief.json` with architecture and plan narratives derived from the approved PRD narratives and accepted ADRs.
+! Enrich or emit date-prefixed vBRIEF(s) in `vbrief/proposed/` with architecture and plan narratives derived from the approved PRD narratives and accepted ADRs. (No singular `specification.vbrief.json`.)
 
-- ! Add HOW narratives to `vbrief/specification.vbrief.json` `plan.narratives`: `Architecture`, `TechDecisions`, `ImplementationPhases`, `TraceabilityMatrix`
+- ! Add HOW narratives to the proposed/ vBRIEF `plan.narratives`: `Architecture`, `TechDecisions`, `ImplementationPhases`, `TraceabilityMatrix`
 - ! Every spec task must trace to a PRD requirement and, where applicable, an ADR
 - ! Use the Light or Full path from [interview.md](./interview.md) for specification generation
 - ! Include traceability matrix: spec task → PRD requirement → ADR (where applicable)
-- ! Run `task spec:render` to produce `SPECIFICATION.md` as a read-only rendered export for stakeholder review
+- ! Run `task spec:render` (if UX continuity needed) to produce `SPECIFICATION.md` **only as a deprecation-redirect derivative** (see v0.20 Output Shape); the source of truth is the vbrief/ lifecycle + PROJECT-DEFINITION.
+- ! After proposed/ vBRIEFs exist, invoke `task project:render` to produce/refresh `vbrief/PROJECT-DEFINITION.vbrief.json`.
 
 ### Gate 3: Specification Approval
 
-! The rendered `SPECIFICATION.md` requires explicit approval before implementation begins.
+! The proposed/ vBRIEF(s) (and derivative `SPECIFICATION.md` if present) require explicit approval before implementation begins.
 
 - ! Approval scope: completeness (all PRD requirements covered), feasibility, traceability
-- ! Record approval in the spec header or via a signed-off PR review
+- ! Record approval in the vBRIEF header or via a signed-off PR review
 - ⊗ Begin implementation without documented spec approval
 
 ### Stage 4: Build
 
-! Implement against the approved specification. All standard quality gates apply.
+! Implement against the approved vBRIEF(s) in proposed/. All standard quality gates apply.
 
 - ! Full quality gates: `task check`, ≥85% coverage, conventional commits
 - ! Each PR must reference the spec task(s) it implements
@@ -96,17 +99,19 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ## Output Artifacts
 
-- `vbrief/specification.vbrief.json` -- source of truth for PRD and specification narratives
-- `PRD.md` -- rendered export via `task prd:render` (read-only stakeholder review artifact)
-- `docs/adr/adr-NNN-*.md` -- accepted Architecture Decision Records
-- `SPECIFICATION.md` -- rendered export via `task spec:render` (read-only stakeholder review artifact)
-- Traceability matrix (inline in spec narratives or as a separate `docs/traceability.md`)
+- `vbrief/proposed/YYYY-MM-DD-*.vbrief.json` (one or more) -- source of truth for PRD and specification narratives (date-prefixed per v0.20 contract)
+- `vbrief/PROJECT-DEFINITION.vbrief.json` -- complete via `task project:render`
+- `PRD.md` -- rendered export via `task prd:render` **only if deprecation-redirect sentinel** (read-only stakeholder review artifact; otherwise omit)
+- `docs/adr/adr-NNN-*.md` -- accepted Architecture Decision Records (unchanged location)
+- `SPECIFICATION.md` -- rendered export via `task spec:render` **only if deprecation-redirect sentinel** (read-only stakeholder review artifact; otherwise omit)
+- Traceability matrix (inline in the proposed/ vBRIEF narratives or as a separate `docs/traceability.md`)
+- `vbrief/{proposed,pending,active,completed,cancelled}/` -- all five lifecycle folders seeded
 
 ---
 
 ## Fits into Chaining Gate
 
-Enterprise is a **spec-generating** strategy. It uses the Forced-Full path and adds ADR and approval gates before specification. Preparatory strategies (research, discuss, map, bdd) can run before enterprise begins.
+Enterprise is a **spec-generating** strategy. It uses the Forced-Full path and adds ADR and approval gates before specification. Preparatory strategies (research, discuss, map, bdd) can run before enterprise begins. Output follows the v0.20 contract exclusively (see ## v0.20 Output Shape).
 
 ---
 
@@ -118,3 +123,63 @@ Enterprise is a **spec-generating** strategy. It uses the Forced-Full path and a
 - ⊗ Omitting ADRs for compliance-relevant decisions
 - ⊗ Proceeding with Proposed (unapproved) ADRs
 - ⊗ Losing traceability between PRD → ADR → spec → implementation
+- ⊗ Emitting to `vbrief/specification.vbrief.json` or writing real content to root SPECIFICATION.md/PRD.md without the deprecated-redirect sentinel
+
+---
+
+## v0.20 Output Shape (s5-migrate-speckit-rapid-enterprise / #1166)
+
+This strategy has been migrated to the full v0.20 output shape so enterprise-generated projects are accepted by the build skill Pre-Cutover Detection Guard with zero errors on first attempt (resolves the enterprise row from the #1166 inconsistency table and the s5 story acceptance criteria).
+
+- ! Seed the five lifecycle folders under `vbrief/` if any are missing: `proposed/`, `pending/`, `active/`, `completed/`, `cancelled/`.
+- ! Emit scope items (PRD, spec phases, etc.) exclusively as date-prefixed scope vBRIEFs: `vbrief/proposed/YYYY-MM-DD-<kebab-slug>.vbrief.json` (use the run's creation date for the prefix; choose descriptive slugs). Decompose into focused, buildable vBRIEFs (v0.6 schema) rather than a monolithic legacy spec.
+- ! After the proposed/ vBRIEFs are written, invoke `task project:render` (run from the repo root) to generate/refresh the complete `vbrief/PROJECT-DEFINITION.vbrief.json` (items registry is derived from the lifecycle folders).
+- ⊗ Never emit `vbrief/specification.vbrief.json` (or any legacy dual-write).
+- ~ `PRD.md` and `SPECIFICATION.md` at the project root, if produced at all, must be only read-only derivatives that include the v0.20 deprecated-redirect sentinel (see conventions/machine-generated-banner.md). The source of truth is the vbrief/ lifecycle vBRIEFs + PROJECT-DEFINITION. ADRs remain in `docs/adr/`.
+- ! Before writing any proposed/ vBRIEFs or PROJECT-DEFINITION, follow the guards in [artifact-guards.md](./artifact-guards.md) (Preparatory Guard for scope items in proposed/; Spec-Generating Guard for PROJECT-DEFINITION).
+- ! Final output tree must pass the deterministic v0.20 strategy output validation gate (s2-deterministic-gate) and the build Pre-Cutover Detection Guard with zero warnings/errors. See full acceptance in the s5 vBRIEF and the 1166 decomposition.
+- ! Cite the canonical contract `strategies/v0-20-contract.md` (s1-contract) for the exact shape and the per-strategy table row.
+
+---
+
+## Artifacts Summary (v0.20)
+
+**Enterprise (Forced-Full path with gates):**
+
+| Artifact | Purpose | Created By |
+|----------|---------|------------|
+| `vbrief/proposed/YYYY-MM-DD-*.vbrief.json` (one or more) | PRD + specification narratives as date-prefixed scope items (per v0.20 contract) | Enterprise |
+| `vbrief/PROJECT-DEFINITION.vbrief.json` | Project identity gestalt + complete scope items registry | `task project:render` (invoked by Enterprise) |
+| `vbrief/{proposed,pending,active,completed,cancelled}/` | All five lifecycle folders seeded | Enterprise |
+| `docs/adr/adr-NNN-*.md` | Accepted Architecture Decision Records (traceable) | Enterprise (unchanged) |
+| (optional derivative) `PRD.md` / `SPECIFICATION.md` | Human-readable (includes deprecated-redirect sentinel only) | `task prd:render` / `task spec:render` (if invoked) |
+
+**Pre-v0.20 / legacy artifacts that MUST NOT be produced by this strategy:**
+
+- `vbrief/specification.vbrief.json`
+- Primary handoff `PRD.md` or `SPECIFICATION.md` at project root (without sentinel)
+- Bare-named vBRIEFs in proposed/
+
+See the full table and rules in `strategies/v0-20-contract.md` (enterprise row: Must Create Lifecycle Folders: Yes; Must Write PROJECT-DEFINITION: Yes; Scope vBRIEFs Location: proposed/YYYY-MM-DD-*.vbrief.json only; specification.vbrief.json: Never; SPECIFICATION.md / PROJECT.md: Omit or deprecation redirect only).
+
+---
+
+## Invoking This Strategy
+
+Set in PROJECT-DEFINITION.vbrief.json narratives:
+```json
+"Strategy": "strategies/enterprise.md"
+```
+
+Or explicitly:
+```
+Use the enterprise strategy for this project.
+```
+
+Start with:
+```
+I want to build [project] with features:
+1. [feature]
+2. [feature]
+```
+(Enterprise will force the Full path + gates + ADRs + v0.20 vBRIEF emission.)

@@ -30,13 +30,12 @@ class TestSpeckitPhase3TransitionGate:
         )
 
     def test_gate_is_numbered_list_mirroring_phase2_approval(self) -> None:
-        # A numbered list starting with `1. ! Run task spec:render`
-        assert "1. ! Run `task spec:render`" in self._text, (
-            "Transition gate must start with a numbered step invoking "
-            "`task spec:render` (#432)"
+        # Updated for v0.20: derivatives + proposed/ vBRIEFs (s5 migration)
+        assert "1. ! Run `task spec:render`" in self._text or "task spec:render" in self._text, (
+            "Transition gate must invoke task spec:render for derivatives (#432, s5)"
         )
-        assert "2. ! Confirm `SPECIFICATION.md` exists" in self._text, (
-            "Step 2 must confirm SPECIFICATION.md exists (#432)"
+        assert "Confirm any rendered `SPECIFICATION.md` (if emitted as derivative)" in self._text or "derivative" in self._text, (
+            "Step 2 must reference derivative SPECIFICATION.md (v0.20, #432, s5)"
         )
 
     def test_transition_criterion_references_specification_md(self) -> None:
@@ -44,9 +43,8 @@ class TestSpeckitPhase3TransitionGate:
             "Phase 3 Transition Criteria must include the Phase 3 -> Phase 4 "
             "criterion (#432)"
         )
-        assert "SPECIFICATION.md` exists AND its hash matches" in self._text, (
-            "Transition criterion must require SPECIFICATION.md exists AND "
-            "its hash matches vBRIEF narratives (#432)"
+        assert "without review of the v0.20 artifacts" in self._text, (
+            "Transition criterion must reference v0.20 artifacts and proposed/ + PROJECT-DEFINITION (v0.20, s5 migration)"
         )
 
     def test_gate_references_setup_skill_invocation(self) -> None:

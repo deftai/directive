@@ -29,40 +29,53 @@ def _read(relpath: str) -> str:
 # ---------------------------------------------------------------------------
 
 class TestRapidVbriefOutput:
-    """rapid.md must reference vbrief/specification.vbrief.json and task spec:render."""
+    """rapid.md must reference v0.20 date-prefixed proposed/ vBRIEFs, PROJECT-DEFINITION, contract, and never legacy specification.vbrief.json (s5 migration)."""
 
     _text = _read("strategies/rapid.md")
 
-    def test_references_specification_vbrief_json(self) -> None:
-        assert "vbrief/specification.vbrief.json" in self._text, (
-            "strategies/rapid.md must reference vbrief/specification.vbrief.json"
+    def test_v020_note_and_contract_citation(self) -> None:
+        assert "v0.20 note (s5-migrate-speckit-rapid-enterprise / #1166)" in self._text
+        assert "strategies/v0-20-contract.md" in self._text, (
+            "rapid.md must cite the canonical v0.20 contract"
         )
 
-    def test_references_task_spec_render(self) -> None:
-        assert "task spec:render" in self._text, (
-            "strategies/rapid.md must reference 'task spec:render' for rendering SPECIFICATION.md"
+    def test_references_proposed_date_prefixed_vbrief(self) -> None:
+        assert "vbrief/proposed/YYYY-MM-DD-" in self._text, (
+            "rapid.md must reference date-prefixed vBRIEFs in proposed/ per v0.20 contract"
         )
 
-    def test_specification_md_not_direct_output(self) -> None:
-        """SPECIFICATION.md should appear only as a rendered export, not as the primary artifact."""
-        output_section = self._text.split("## Output Artifacts")[1].split("##")[0]
-        # The primary artifact line should be vbrief, not SPECIFICATION.md
-        lines = output_section.strip().splitlines()
-        first_artifact_line = next(
-            (ln for ln in lines if ln.strip().startswith("- ")), ""
-        )
-        assert "vbrief/specification.vbrief.json" in first_artifact_line, (
-            "The first output artifact in rapid.md must be vbrief/specification.vbrief.json, "
-            "not SPECIFICATION.md"
+    def test_references_project_definition_and_task_project_render(self) -> None:
+        assert "vbrief/PROJECT-DEFINITION.vbrief.json" in self._text
+        assert "task project:render" in self._text, (
+            "rapid.md must reference task project:render for PROJECT-DEFINITION (v0.20)"
         )
 
-    def test_step1_does_not_direct_write_to_specification_md(self) -> None:
-        """Step 1 must not instruct agents to write directly to SPECIFICATION.md."""
+    def test_no_legacy_specification_vbrief(self) -> None:
+        """Must not instruct or list legacy specification.vbrief.json as primary output (anti-pattern mention of the prohibition is allowed and expected)."""
+        # Main output / workflow sections must not promote the legacy; anti-patterns documents the prohibition.
+        anti = self._text.split("## Anti-Patterns")[1] if "## Anti-Patterns" in self._text else ""
+        pre_anti = self._text.split("## Anti-Patterns")[0] if "## Anti-Patterns" in self._text else self._text
+        assert "vbrief/specification.vbrief.json" not in pre_anti, (
+            "rapid.md pre-anti sections (post s5) must not reference legacy vbrief/specification.vbrief.json"
+        )
+        # The anti-patterns correctly call out the prohibition
+        assert "specification artifact" in anti or "legacy" in anti.lower() or "v0.20 contract" in anti
+
+    def test_v020_output_shape_section_and_artifacts(self) -> None:
+        assert "## v0.20 Output Shape (s5-migrate-speckit-rapid-enterprise / #1166)" in self._text
+        assert "## Artifacts Summary (v0.20)" in self._text
+        assert "proposed/YYYY-MM-DD-*.vbrief.json" in self._text
+        assert "deprecation-redirect" in self._text.lower() or "deprecated-redirect" in self._text.lower()
+
+    def test_follows_artifact_guards_and_gates(self) -> None:
+        assert "artifact-guards.md" in self._text
+        assert "Preparatory Guard" in self._text or "Spec-Generating Guard" in self._text
+
+    def test_step1_writes_to_proposed_vbrief_not_spec(self) -> None:
+        """Step 1 must instruct date-prefixed proposed/ vBRIEF, not legacy spec."""
         step1_section = self._text.split("### Step 1:")[1].split("### Step 2:")[0]
-        assert "Record the goal at the top of the SPECIFICATION.md" not in step1_section, (
-            "rapid.md Step 1 must not instruct agents to write to SPECIFICATION.md directly -- "
-            "this contradicts the Step 3 rule against hand-authoring SPECIFICATION.md"
-        )
+        assert "vbrief/proposed/YYYY-MM-DD-" in step1_section
+        assert "specification.vbrief.json" not in step1_section
 
 
 # ---------------------------------------------------------------------------
