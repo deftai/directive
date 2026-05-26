@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **feat(strategies): migrate interview (light + full) to v0.20 (#1166)** -- The most common spec strategy now emits date-prefixed scope vBRIEFs under proposed/, triggers task project:render for a complete PROJECT-DEFINITION.vbrief.json, seeds the lifecycle folders, and treats specification.vbrief.json as legacy (no longer primary). Interview-generated projects now pass the v0.20 Pre-Cutover Detection Guard on first build. Refs #1166.
+
 ### Fixed
 
 ### Removed

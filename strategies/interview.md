@@ -182,16 +182,17 @@ flowchart LR
 
 ## Light Path (small/medium projects)
 
-Interview → SPECIFICATION with embedded Requirements.
+Interview → scope vBRIEFs (date-prefixed in proposed/) + PROJECT-DEFINITION.vbrief.json + rendered SPECIFICATION (v0.20 contract).
 
 ### Flow
 
 1. Sizing gate selects Light
 2. Interview (rules above)
-3. Write `./vbrief/specification.vbrief.json` with `status: draft`
-4. Summarize decisions, ask user to review
-5. On approval, update `status` to `approved`
-6. Run `task spec:render` (or generate `SPECIFICATION.md` directly if task unavailable)
+3. Write scope vBRIEF(s) to `./vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json` (date-prefixed per vbrief filename convention) with `status: proposed`
+4. Run `task project:render` to create/update `./vbrief/PROJECT-DEFINITION.vbrief.json` (full project identity + items registry) and ensure all five lifecycle folders exist
+5. Summarize decisions, ask user to review
+6. On approval, use `task scope:promote` (or equivalent) to move scope vBRIEF(s) to `./vbrief/pending/` with `status: pending` / `approved`
+7. Run `task spec:render` (SPECIFICATION.md is a rendered derivative with deprecation sentinel; `specification.vbrief.json` is legacy and is NOT written by this strategy on the v0.20 path)
 
 ### SPECIFICATION Structure (Light)
 
@@ -243,17 +244,18 @@ How to ship it.
 
 ## Full Path (large/complex projects)
 
-Interview → PRD → SPECIFICATION with traceability.
+Interview → PRD → scope vBRIEFs (date-prefixed in proposed/) + PROJECT-DEFINITION.vbrief.json + rendered SPECIFICATION (v0.20 contract).
 
 ### Flow
 
 1. Sizing gate selects Full
 2. Interview (rules above)
 3. Generate `PRD.md` — user approval gate
-4. Write `./vbrief/specification.vbrief.json` with `status: draft`
-5. Summarize decisions, ask user to review
-6. On approval, update `status` to `approved`
-7. Run `task spec:render` (or generate `SPECIFICATION.md` directly if task unavailable)
+4. Write scope vBRIEF(s) to `./vbrief/proposed/YYYY-MM-DD-<slug>.vbrief.json` (date-prefixed per vbrief filename convention) with `status: proposed`
+5. Run `task project:render` to create/update `./vbrief/PROJECT-DEFINITION.vbrief.json` (full project identity + items registry) and ensure all five lifecycle folders exist
+6. Summarize decisions, ask user to review
+7. On approval, use `task scope:promote` (or equivalent) to move scope vBRIEF(s) to `./vbrief/pending/` with `status: pending` / `approved`
+8. Run `task spec:render` (SPECIFICATION.md is a rendered derivative with deprecation sentinel; `specification.vbrief.json` is legacy and is NOT written by this strategy on the v0.20 path)
 
 ### PRD Structure (Full path only)
 
@@ -405,7 +407,8 @@ Each task SHOULD include:
 
 - ! All requirements mapped to tasks
 - ! Dependencies form a valid DAG (no cycles)
-- ! `./vbrief/specification.vbrief.json` status is `approved`
+- ! Scope vBRIEF(s) exist in `./vbrief/proposed/` (or promoted to pending) with date-prefixed filenames and `status: approved` / `pending`
+- ! `./vbrief/PROJECT-DEFINITION.vbrief.json` is present (populated via `task project:render`)
 - ! `SPECIFICATION.md` has been rendered via `task spec:render`
 - ! Proceed to [Acceptance Gate](#acceptance-gate)
 
@@ -504,16 +507,20 @@ diff only on the second pass or when the user explicitly asks for it.
 
 | Artifact | Purpose | Created By |
 |----------|---------|------------|
-| `./vbrief/specification.vbrief.json` | Spec source of truth | Interview |
-| `SPECIFICATION.md` | Generated plan with embedded Requirements | Rendered |
+| `./vbrief/proposed/YYYY-MM-DD-*.vbrief.json` | Scope story vBRIEFs (date-prefixed, v0.20 contract) | Interview |
+| `./vbrief/PROJECT-DEFINITION.vbrief.json` | Project identity gestalt + items registry | `task project:render` (triggered by strategy) |
+| `SPECIFICATION.md` | Generated plan with embedded Requirements (rendered derivative; deprecation sentinel) | `task spec:render` |
+| (no `specification.vbrief.json`) | Legacy artifact — omitted on v0.20 path | — |
 
 **Full path:**
 
 | Artifact | Purpose | Created By |
 |----------|---------|------------|
 | `PRD.md` | What to build (approval gate) | Interview |
-| `./vbrief/specification.vbrief.json` | Spec source of truth | Post-PRD |
-| `SPECIFICATION.md` | Generated implementation plan | Rendered |
+| `./vbrief/proposed/YYYY-MM-DD-*.vbrief.json` | Scope story vBRIEFs (date-prefixed, v0.20 contract) | Post-PRD interview |
+| `./vbrief/PROJECT-DEFINITION.vbrief.json` | Project identity gestalt + items registry | `task project:render` (triggered by strategy) |
+| `SPECIFICATION.md` | Generated implementation plan (rendered derivative; deprecation sentinel) | `task spec:render` |
+| (no `specification.vbrief.json`) | Legacy artifact — omitted on v0.20 path | — |
 
 ## Invoking This Strategy
 

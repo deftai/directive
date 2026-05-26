@@ -145,3 +145,47 @@ class TestDiscussVbriefOutput:
         pytest.fail(
             "strategies/discuss.md must contain a 'Persist decisions as vBRIEF narratives' rule"
         )
+
+
+# ---------------------------------------------------------------------------
+# interview.md — v0.20 migration (s4 from #1166)
+# ---------------------------------------------------------------------------
+
+class TestInterviewV020Output:
+    """interview.md (light + full) must follow v0.20 contract: date-prefixed
+    scope vBRIEFs in proposed/, task project:render for PROJECT-DEFINITION,
+    no primary write of legacy specification.vbrief.json.
+    """
+
+    _text = _read("strategies/interview.md")
+
+    def test_references_date_prefixed_proposed_vbrief(self) -> None:
+        assert (
+            "YYYY-MM-DD-<slug>.vbrief.json" in self._text
+            or "vbrief/proposed/YYYY-MM-DD" in self._text
+        ), "interview.md must document date-prefixed vBRIEF filenames in proposed/"
+        assert "date-prefixed" in self._text.lower() or "date prefix" in self._text.lower(), (
+            "interview.md must mention date prefix convention for scope vBRIEFs"
+        )
+
+    def test_references_task_project_render(self) -> None:
+        msg = "interview.md must reference 'task project:render' at correct point in flows"
+        assert "task project:render" in self._text, msg
+
+    def test_references_project_definition_vbrief(self) -> None:
+        msg = "interview.md must reference PROJECT-DEFINITION.vbrief.json via project:render"
+        assert "PROJECT-DEFINITION.vbrief.json" in self._text, msg
+
+    def test_no_primary_write_of_specification_vbrief(self) -> None:
+        """Must not instruct writing specification.vbrief.json as primary step."""
+        assert "Write `./vbrief/specification.vbrief.json`" not in self._text, (
+            "no Write specification.vbrief (use scope vBRIEFs for v0.20)"
+        )
+        assert "Write scope vBRIEF" in self._text, (
+            "must contain v0.20 scope vBRIEF write instruction"
+        )
+
+    def test_artifacts_table_mentions_v0_20_and_legacy(self) -> None:
+        assert "v0.20 contract" in self._text or "Legacy artifact" in self._text, (
+            "Artifacts Summary must document v0.20 shape + legacy note"
+        )
