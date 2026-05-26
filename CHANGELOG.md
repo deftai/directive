@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+### Refinement
+- **chore(vbrief): refinement session 2026-05-26 -- ingest and promote #1353 (grok-build Windows capture leakage) and #1331 (swarm skill grok-build portability gap)** -- two new scope vBRIEFs promoted to `vbrief/pending/` with structured items and acceptance criteria, ready for swarm dispatch. #1353 tracks the directive-only mitigation: add §3.5 to `templates/agent-prompt-preamble.md`, mirror into `AGENTS.md` and `templates/agents-entry.md`, and add one-liner callouts to the swarm/review-cycle/pre-pr skills. #1331 tracks the remaining Phase 3/4 swarm skill portability gap not covered by v0.34 (#1342): add a concrete Step 2d grok-build launch adapter and make Phase 4 monitoring language platform-agnostic. Analysis doc at `docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md`. Refs #1353, #1331, #1342, #798.
+
 ## [0.34.0] - 2026-05-25
 
 > Phase 6 swarm/review-cycle dispatch unifies behind the platform adapter (Grok Build / non-Warp first-class via spawn_subagent), plus first-class VBA + Office.js language modules and CI action SHA refreshes.

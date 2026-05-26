@@ -1,0 +1,57 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1331"
+  },
+  "plan": {
+    "title": "deft-directive-swarm is tightly coupled to the Warp runtime, making it hard to use in other agent environments (Grok Build, etc.)",
+    "status": "pending",
+    "narratives": {
+      "Description": "deft-directive-swarm is tightly coupled to the Warp runtime, making it hard to use in other agent environments (Grok Build, etc.)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1331",
+      "Overview": "# `deft-directive-swarm` is tightly coupled to the Warp runtime, making it hard to use in other agent environments (Grok Build, etc.)\n\n## Summary\n\nThe current `deft-directive-swarm` skill works very well when running inside Warp terminals because it is deeply integrated with Warp-specific primitives (`start_agent`, Warp tabs, `WARP_*` environment variables, Warp Drive context, etc.).\n\nHowever, this coupling makes the skill difficult or impossible to use effectively in other agent orchestration environments — most notably **Grok Build** sessions and plain CLI-based agent workflows.\n\n## Current Problem\n\nThe swarm skill's **Phase 3 (Launch)** assumes one of these paths:\n\n- `start_agent` tool is available (Warp orchestration)\n- Running inside a Warp terminal (for interactive tabs)\n- Falling back to manual terminal instructions\n\nIn a Grok Build / non-Warp CLI agent session, none of these are available:\n\n- There is no `start_agent` tool.\n- There are no Warp tabs or `WARP_*` variables.\n- The available primitives are things like `spawn_subagent`, `run_terminal_command`, background task management, and `get_command_or_subagent_output`.\n\nAs a result, when a user tries to follow the official swarm skill in Grok Build, they hit a hard wall at the launch phase and are forced to abandon the skill and build a custom swarm instead.\n\n## What Actually Worked (Grok Build Custom Approach)\n\nIn this session we successfully ran a small 2-agent swarm on two story-level vBRIEFs by:\n\n- Using the existing worktree setup pattern from the skill\n- Spawning two background sub-agents via the native `spawn_subagent` mechanism\n- Giving each sub-agent a self-contained prompt tied to one story vBRIEF\n- Coordinating/monitoring from the main agent using `get_command_or_subagent_output`\n- Enforcing \"one PR per slice vBRIEF\" (as requested by the user)\n\nThis worked cleanly, but it completely bypassed the official `deft-directive-swarm` skill.\n\n## Requested Improvements\n\nThe swarm skill would be much more useful if it became more **runtime-agnostic**. Suggested directions:\n\n1. **Separate coordination from execution**\n   - Keep the allocation, worktree management, file-overlap audit, monitoring, and review cycle logic in the core skill.\n   - Make the actual \"launch an agent in an environment\" step pluggable or configurable.\n\n2. **Better launch mechanism detection / abstraction**\n   - Detect available agent launch primitives at runtime instead of hard-coding Warp assumptions.\n   - Support common patterns:\n     - `spawn_subagent` style (Grok)\n     - Direct subprocess / CLI agent launch\n     - Cloud agent execution (`oz agent run-cloud`, etc.)\n     - Manual instructions as last resort\n\n3. **Improved Phase 3 (Launch)**\n   - Instead of presenting static Warp-centric options, the monitor should probe capabilities and choose (or let the user choose) an appropriate launch strategy.\n   - Provide clear extension points or documented \"alternative launch modes\".\n\n4. **Documentation**\n   - Add guidance on running swarms in non-Warp environments (Grok Build, Cursor, plain terminal + sub-agents, etc.).\n   - Document the minimal contract a runtime needs to satisfy to participate in a swarm (worktree per agent, prompt delivery, output streaming back to monitor, etc.).\n\n## Why This Matters\n\nMany teams and individuals are using (or want to use) Deft's powerful swarm coordination patterns, but they are not (or cannot be) running inside Warp. The current tight coupling limits adoption of one of Deft's most powerful capabilities.\n\nWe were able to get a working custom swarm going quickly once we stopped trying to force the official skill to fit. It would be much better if the official skill supported this natively.\n\n## Proposed Next Steps\n\n- Discuss decoupling launch mechanisms from the core swarm coordination logic.\n- Consider adding a small \"agent launcher\" abstraction or configuration option.\n- Add at least one documented non-Warp launch path (e.g., using `spawn_subagent` or equivalent).\n\nHappy to provide more details or collaborate on a design.\n\n---\n\n**Related context** (from the session where this came up):\n- We were working on a large foundational epic (#538 in a consumer project).\n- We had already decomposed work into story vBRIEFs.\n- The official swarm skill became unusable once we left the Warp assumption.\n- We successfully ran a small custom swarm using Grok's native agent spawning tools instead.\n\nWould love to see the swarm skill become a first-class, portable orchestration capability rather than being tied to one specific terminal/agent runtime.\n",
+      "Labels": "enhancement, design, swarm",
+      "AcceptanceCriteria": "1. Phase 3 (Launch) has a concrete Step 2d: Grok Build launch adapter. When the platform descriptor is 'grok-build' (spawn_subagent detected, no start_agent, no WARP_*), the skill dispatches workers via spawn_subagent with the canonical preamble + adapted prompt. The launch decision tree in Step 1 explicitly routes grok-build to Step 2d.\n2. Phase 4 (Monitor) takeover triggers and polling cadence are expressed in platform-agnostic terms (worktree state polling, sub-agent messaging) not Warp-tab-specific language. Warp-specific references ('original Warp tab shows no tool calls') are replaced or annotated with grok-build equivalents.\n3. Phase 3 Step 1 detection order is unambiguous: spawn_subagent check is promoted alongside start_agent/WARP_* so grok-build is a first-class path, not an afterthought after the manual fallback.\n4. A 'How to use in Grok Build' quick-start note is added (Phase 3 or skill preamble) documenting the minimal contract: worktree per agent, spawn_subagent dispatch, worktree-state polling for monitoring.\n5. Existing tests still pass and task check succeeds.\n6. The fix does NOT regress Warp-orchestrated (start_agent) or Warp-manual (tabs) paths."
+    },
+    "items": [
+      {
+        "id": "item-1",
+        "title": "Add Phase 3 Step 2d: Grok Build launch adapter (spawn_subagent)",
+        "description": "In skills/deft-directive-swarm/SKILL.md Phase 3, add a concrete Step 2d block for the grok-build platform descriptor. When spawn_subagent is the detected primitive, the skill dispatches each worker agent via spawn_subagent with: the canonical agent-prompt-preamble + the standard worktree prompt. Update the Step 1 detection decision tree so 'grok-build' routes to Step 2d explicitly (not fall-through to the manual terminal path). Note: spawn_subagent check in Step 1 must be elevated so it is evaluated before the 'No Warp detected -> manual fallback' branch.",
+        "status": "proposed"
+      },
+      {
+        "id": "item-2",
+        "title": "Update Phase 4 monitoring language to be platform-agnostic",
+        "description": "In Phase 4 (Monitor), replace Warp-tab-specific language in takeover triggers and pre-spawn verification with platform-agnostic equivalents. Specifically: 'original Warp tab shows no tool calls in progress' -> reference worktree state polling (git status, git log) and sub-agent lifecycle signals as the primary signals for both Warp and grok-build. Add a parenthetical for grok-build: polling is via worktree state + get_command_or_subagent_output rather than tab observation.",
+        "status": "proposed"
+      },
+      {
+        "id": "item-3",
+        "title": "Add Grok Build quick-start note to skill preamble or Phase 3",
+        "description": "Add a short 'Running swarms in Grok Build / non-Warp environments' note to the skill. Document the minimal runtime contract: one worktree per agent, spawn_subagent dispatch, worktree-state polling for monitoring, review-cycle sub-agents via spawn_subagent. Cross-reference #1342 as the originating platform work. This closes the documentation gap called out in #1331 item 4.",
+        "status": "proposed"
+      },
+      {
+        "id": "item-4",
+        "title": "Run task check and add CHANGELOG entry",
+        "description": "Run task check. All gates must pass. Add CHANGELOG.md [Unreleased] entry per #1242 style: user-visible benefit (swarm skill now works natively in Grok Build / non-Warp environments), mechanism (Phase 3 Step 2d + Phase 4 platform-agnostic monitoring), refs #1331, #1342.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "design",
+      "swarm",
+      "grok-build",
+      "enhancement"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1331",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1331: deft-directive-swarm is tightly coupled to the Warp runtime, making it hard to use in other agent environments (Grok Build, etc.)"
+      }
+    ],
+    "updated": "2026-05-26T12:09:43Z"
+  }
+}
