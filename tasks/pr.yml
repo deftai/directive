@@ -61,3 +61,31 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pr_merge_readiness.py" {{.CLI_ARGS}}
+
+  # pr:wait-mergeable-and-merge -- cascade automation surface (#1369).
+  # Wraps scripts/pr_wait_mergeable.py which composes the resilient
+  # wait-until-ready monitor (#1368) and the Layer-3 protected-issue
+  # link inspector (#701) into a single end-to-end primitive so a swarm
+  # monitor can request "wait until this PR is mergeable, then merge it"
+  # without hand-rolling the loop. The companion script invokes
+  # scripts/pr_check_protected_issues.py (Layer-3 #701) BEFORE the wait
+  # loop when --protected is supplied, so a persistent
+  # closingIssuesReferences link short-circuits the cascade with exit 1
+  # ahead of any gh pr merge call. Cascade automation on the Grok Build
+  # hybrid path MUST go through this surface per the AGENTS.md
+  # `## Cascade automation surface (#1369)` rule.
+  #
+  # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+  # because user-facing flags (`--cap-minutes` / `--protected` / `--repo`
+  # / `--json`) MUST NOT be silently swallowed by go-task's incremental-
+  # build cache.
+  #
+  # Companion script: scripts/pr_wait_mergeable.py
+  # Companion test:   tests/cli/test_pr_wait_mergeable.py
+  wait-mergeable-and-merge:
+    desc: "Wait until PR is mergeable (resilient cascade, #1368) and squash-merge with admin (#1369); Layer-3 protected-issue check (#701) chains before any merge call"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/pr_wait_mergeable.py" {{.CLI_ARGS}}
