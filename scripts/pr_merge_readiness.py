@@ -32,6 +32,35 @@ What it checks
    ``skills/deft-directive-review-cycle/SKILL.md`` Phase 2 Step 6 and do
    NOT gate the loop.
 
+Layered fallback chain (#1368)
+------------------------------
+Long-running monitors that polled ``pr_merge_readiness.py --json`` saw
+``head: None`` for ~15+ minutes during the #1166 swarm cascade because
+the primary ``gh api ... --jq ...`` capture path occasionally returned
+empty / malformed stdout under the Grok Build harness on Windows. The
+#1366 ``_safe_subprocess.run_text`` helper closes the
+``Thread-3 (_readerthread) UnicodeDecodeError`` root cause; #1368 adds a
+layered fallback so a *single* gh failure on the primary path no longer
+blinds the dependent monitor. Every response carries a ``via``
+discriminator so callers can detect degraded mode:
+
+- ``via: "primary"``   -- canonical Greptile rolling-summary parse path
+- ``via: "fallback1"`` -- gh api REST + manual Python-side comment parse
+  (no ``--jq``, so a jq decode hiccup on the primary cannot mask the
+  comment list). Same gate evaluation as the primary; CLEAN verdicts are
+  authoritative.
+- ``via: "fallback2"`` -- coarse PR-view + check-run signal. Reports
+  ``state``, ``head_sha``, and a flattened check-run summary so callers
+  know the *PR* state even when no Greptile rolling-summary comment is
+  reachable. ! Never produces a CLEAN verdict -- always merge-blocked
+  with the failure ``"fallback2 is a coarse signal, not a CLEAN verdict"``.
+  Use for monitor heartbeat only; merge cascade MUST continue waiting
+  for a primary or fallback1 CLEAN.
+- ``via: "error"``     -- every layer failed externally. Response
+  carries ``error`` (one-line summary) + ``partial_data`` (whatever was
+  observable across the cascade attempts) so the monitor can step
+  forward instead of going blind.
+
 Usage
 -----
     uv run python scripts/pr_merge_readiness.py <pr-number> [--repo OWNER/REPO]
@@ -39,9 +68,12 @@ Usage
 
 Exit codes
 ----------
-    0 -- merge-ready (all gates pass)
-    1 -- merge-blocked (one or more gates failed; see structured failure)
-    2 -- external / config error (gh missing, gh failed, parse error, ...)
+    0 -- merge-ready (all gates pass; via primary or fallback1)
+    1 -- merge-blocked (one or more gates failed; OR fallback2 reached;
+         see structured failure list in --json output)
+    2 -- external / config error (every layer failed; gh missing,
+         total gh failure, ...; --json output still emits a structured
+         envelope with via="error")
 
 Pure stdlib + ``gh`` CLI; no third-party deps.
 """
@@ -314,29 +346,66 @@ def fetch_greptile_comment_body(pr_number: int, repo: str | None) -> str | None:
 
 # ---- Gate evaluation --------------------------------------------------------
 
+# Layered-fallback discriminator values (#1368). Always emitted on every
+# response so a long-running monitor can detect degraded mode without
+# inspecting the failure list.
+VIA_PRIMARY = "primary"
+VIA_FALLBACK1 = "fallback1"
+VIA_FALLBACK2 = "fallback2"
+VIA_ERROR = "error"
+
+# Sentinel failure prepended to every fallback2 verdict so a monitor that
+# only inspects ``failures`` cannot accidentally treat the coarse signal as
+# CLEAN. The merge cascade MUST keep waiting for a primary/fallback1 CLEAN.
+_FALLBACK2_NOT_CLEAN_MSG = (
+    "fallback2 is a coarse signal, not a CLEAN verdict -- the Greptile "
+    "rolling-summary comment was not reachable on either the primary or "
+    "fallback1 path. PR state / check-runs reported below as a heartbeat "
+    "only; do NOT merge on this verdict alone (#1368)."
+)
+
 
 @dataclass
 class GateResult:
-    """Aggregate result of all merge-readiness gates."""
+    """Aggregate result of all merge-readiness gates.
+
+    The ``via`` discriminator (#1368) lets monitors detect which layer of
+    the fallback chain produced this result. ``partial_data`` carries
+    fallback-specific observations (PR state, check-run summary, raw error
+    messages from each attempted layer) so a monitor stepping forward on a
+    degraded response still has actionable context.
+    """
     pr_number: int
     repo: str | None
     head_sha: str | None
     verdict: GreptileVerdict
     failures: list[str] = field(default_factory=list)
+    via: str = VIA_PRIMARY
+    partial_data: dict = field(default_factory=dict)
+    error: str | None = None
 
     @property
     def merge_ready(self) -> bool:
+        # fallback2 + error paths carry sentinel failures so merge_ready is
+        # already False by construction; this property collapses to the
+        # documented "no failures" check.
         return not self.failures
 
     def to_dict(self) -> dict:
-        return {
+        payload: dict = {
             "pr_number": self.pr_number,
             "repo": self.repo,
             "head_sha": self.head_sha,
             "verdict": asdict(self.verdict),
             "failures": list(self.failures),
             "merge_ready": self.merge_ready,
+            "via": self.via,
         }
+        if self.partial_data:
+            payload["partial_data"] = dict(self.partial_data)
+        if self.error is not None:
+            payload["error"] = self.error
+        return payload
 
 
 def evaluate_gates(pr_number: int, head_sha: str | None, verdict: GreptileVerdict) -> list[str]:
@@ -418,51 +487,460 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# ---- Layered fallback chain (#1368) -----------------------------------------
+#
+# The primary path (existing #796 logic) calls ``gh api ... --jq ...`` to
+# pull the Greptile rolling-summary comment body. When jq is invoked on
+# the Grok Build harness and the gh stdout pipe carries non-cp1252 bytes,
+# the helper-thread decode is now safe (#1366), but the jq filter itself
+# can still emit empty output on a transient gh failure (rate-limit, 5xx,
+# pagination boundary). Fallback1 routes around that by fetching the raw
+# ``/issues/<N>/comments`` REST endpoint and parsing the comment list in
+# Python so a jq glitch on the primary cannot blind the monitor.
+#
+# Fallback2 is the coarse last-resort signal: it asks for the PR's own
+# state + check-runs via REST so we can at least report ``state``,
+# ``head_sha``, and a flattened check summary even when no Greptile
+# rolling-summary comment is reachable. It is NEVER CLEAN; the merge
+# cascade MUST continue waiting on a primary/fallback1 verdict.
+
+
+def _empty_verdict() -> GreptileVerdict:
+    """Return the canonical not-found Greptile verdict for fallback paths."""
+    return GreptileVerdict(
+        found=False,
+        errored=False,
+        last_reviewed_sha=None,
+        confidence=None,
+        p0_count=0,
+        p1_count=0,
+        p2_count=0,
+    )
+
+
+def _resolve_repo(repo: str | None) -> tuple[str | None, str]:
+    """Resolve --repo (or detect from cwd). Returns (repo, error_msg)."""
+    if repo:
+        return repo, ""
+    rc, out, err = _run_gh(
+        ["gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"]
+    )
+    if rc != 0:
+        return None, f"could not resolve --repo from cwd: {err.strip()}"
+    resolved = out.strip()
+    if not resolved:
+        return None, "empty repo from gh repo view (specify --repo OWNER/REPO)"
+    return resolved, ""
+
+
+def _compute_primary(
+    pr_number: int, repo: str | None,
+) -> tuple[GateResult | None, dict]:
+    """Run the primary path; return (result, partial_data_on_failure).
+
+    Returns (GateResult, {}) on success (gh calls all returned 0, body
+    parsed); returns (None, partial_data) when an external/gh failure
+    prevents the primary path from producing a verdict at all.
+
+    A merge-blocked verdict with a parsed body is still a successful
+    primary -- only external failures (head_sha unreachable, comment
+    fetch failed) demote to fallback1.
+    """
+    partial: dict = {}
+
+    head_sha = fetch_pr_head_sha(pr_number, repo)
+    if head_sha is None:
+        partial["primary_error"] = "gh pr view headRefOid returned non-zero"
+        return None, partial
+    partial["head_sha"] = head_sha
+
+    body = fetch_greptile_comment_body(pr_number, repo)
+    if body is None:
+        partial["primary_error"] = (
+            "gh api /issues/<N>/comments --jq returned non-zero"
+        )
+        return None, partial
+
+    verdict = parse_greptile_body(body)
+    failures = evaluate_gates(pr_number, head_sha, verdict)
+    return (
+        GateResult(
+            pr_number=pr_number,
+            repo=repo,
+            head_sha=head_sha,
+            verdict=verdict,
+            failures=failures,
+            via=VIA_PRIMARY,
+        ),
+        partial,
+    )
+
+
+def _fetch_greptile_body_rest(
+    pr_number: int, repo: str,
+) -> tuple[str | None, str]:
+    """Fallback1 helper: fetch issue comments via REST, parse Python-side.
+
+    Unlike the primary, this does NOT invoke ``--jq``; a jq decode hiccup
+    on the primary cannot mask the comment list here. Returns (body, err)
+    where ``body == ""`` means "no Greptile comment exists yet" and
+    ``body is None`` means an external/gh failure prevented retrieval.
+    """
+    cmd = [
+        "gh", "api",
+        f"repos/{repo}/issues/{pr_number}/comments",
+        "--paginate",
+    ]
+    rc, out, err = _run_gh(cmd)
+    if rc != 0:
+        return None, f"gh api /issues/{pr_number}/comments failed: {err.strip()}"
+    if not out.strip():
+        return "", ""
+    # ``gh api --paginate`` concatenates pages as separate JSON arrays
+    # back-to-back without delimiters. Parse forgivingly with raw_decode
+    # so a multi-page response collapses to one combined comment list.
+    decoder = json.JSONDecoder()
+    comments: list = []
+    idx = 0
+    text = out.strip()
+    while idx < len(text):
+        # Skip whitespace between concatenated arrays.
+        while idx < len(text) and text[idx].isspace():
+            idx += 1
+        if idx >= len(text):
+            break
+        try:
+            obj, end = decoder.raw_decode(text, idx)
+        except json.JSONDecodeError as exc:
+            return None, f"could not parse REST comments JSON: {exc}"
+        if isinstance(obj, list):
+            comments.extend(obj)
+        elif isinstance(obj, dict):
+            comments.append(obj)
+        idx = end
+
+    greptile_bodies = [
+        c.get("body", "")
+        for c in comments
+        if isinstance(c, dict)
+        and isinstance(c.get("user"), dict)
+        and c["user"].get("login") == _GREPTILE_LOGIN
+    ]
+    if not greptile_bodies:
+        return "", ""
+    return greptile_bodies[-1] or "", ""
+
+
+def _fetch_pr_head_sha_rest(
+    pr_number: int, repo: str,
+) -> tuple[str | None, str]:
+    """Fallback1/2 helper: fetch PR head SHA via REST (no jq)."""
+    rc, out, err = _run_gh(
+        ["gh", "api", f"repos/{repo}/pulls/{pr_number}"],
+    )
+    if rc != 0:
+        return None, f"gh api /pulls/{pr_number} failed: {err.strip()}"
+    if not out.strip():
+        return None, "empty body from gh api /pulls/<N>"
+    try:
+        payload = json.loads(out)
+    except json.JSONDecodeError as exc:
+        return None, f"could not parse PR JSON: {exc}"
+    if not isinstance(payload, dict):
+        return None, "unexpected PR JSON shape (not a dict)"
+    head = payload.get("head")
+    if isinstance(head, dict):
+        sha = head.get("sha")
+        if isinstance(sha, str) and sha:
+            return sha, ""
+    return None, "PR JSON missing head.sha"
+
+
+def _compute_fallback1(
+    pr_number: int, repo: str | None, primary_partial: dict,
+) -> tuple[GateResult | None, dict]:
+    """Fallback 1: gh api REST + Python-side comment parse (no --jq)."""
+    partial: dict = dict(primary_partial)
+
+    resolved_repo, repo_err = _resolve_repo(repo)
+    if resolved_repo is None:
+        partial["fallback1_error"] = repo_err
+        return None, partial
+
+    # Prefer the cached primary head SHA if we got one before the comment
+    # fetch failed; otherwise re-fetch via REST.
+    head_sha = partial.get("head_sha")
+    if not head_sha:
+        head_sha, head_err = _fetch_pr_head_sha_rest(pr_number, resolved_repo)
+        if head_sha is None:
+            partial["fallback1_error"] = head_err
+            return None, partial
+        partial["head_sha"] = head_sha
+
+    body, body_err = _fetch_greptile_body_rest(pr_number, resolved_repo)
+    if body is None:
+        partial["fallback1_error"] = body_err
+        return None, partial
+
+    verdict = parse_greptile_body(body)
+    failures = evaluate_gates(pr_number, head_sha, verdict)
+    return (
+        GateResult(
+            pr_number=pr_number,
+            repo=resolved_repo,
+            head_sha=head_sha,
+            verdict=verdict,
+            failures=failures,
+            via=VIA_FALLBACK1,
+            partial_data={
+                k: v for k, v in partial.items()
+                if k not in ("head_sha",)  # head_sha is a first-class field
+            },
+        ),
+        partial,
+    )
+
+
+def _fetch_check_runs_rest(
+    sha: str, repo: str,
+) -> tuple[dict | None, str]:
+    """Fallback2 helper: flatten check-runs for the given commit."""
+    rc, out, err = _run_gh(
+        ["gh", "api", f"repos/{repo}/commits/{sha}/check-runs"],
+    )
+    if rc != 0:
+        return None, f"gh api /commits/<sha>/check-runs failed: {err.strip()}"
+    if not out.strip():
+        return None, "empty body from gh api /commits/<sha>/check-runs"
+    try:
+        payload = json.loads(out)
+    except json.JSONDecodeError as exc:
+        return None, f"could not parse check-runs JSON: {exc}"
+    if not isinstance(payload, dict):
+        return None, "unexpected check-runs JSON shape (not a dict)"
+    runs = payload.get("check_runs")
+    if not isinstance(runs, list):
+        return None, "check-runs JSON missing check_runs list"
+    summary = {
+        "total": len(runs),
+        "by_status": {},
+        "by_conclusion": {},
+        "greptile_review": None,
+    }
+    for run in runs:
+        if not isinstance(run, dict):
+            continue
+        status = run.get("status") or "unknown"
+        conclusion = run.get("conclusion") or "none"
+        summary["by_status"][status] = summary["by_status"].get(status, 0) + 1
+        summary["by_conclusion"][conclusion] = (
+            summary["by_conclusion"].get(conclusion, 0) + 1
+        )
+        if run.get("name") == "Greptile Review":
+            summary["greptile_review"] = {
+                "status": status,
+                "conclusion": conclusion,
+            }
+    return summary, ""
+
+
+def _compute_fallback2(
+    pr_number: int, repo: str | None, prior_partial: dict,
+) -> tuple[GateResult | None, dict]:
+    """Fallback 2: coarse PR-view + check-run signal. NEVER CLEAN."""
+    partial: dict = dict(prior_partial)
+
+    resolved_repo, repo_err = _resolve_repo(repo)
+    if resolved_repo is None:
+        partial["fallback2_error"] = repo_err
+        return None, partial
+
+    # Hit /pulls/<N> directly so we capture state, mergeable, and head SHA
+    # in one REST call. This is the structural last-resort observation.
+    rc, out, err = _run_gh(
+        ["gh", "api", f"repos/{resolved_repo}/pulls/{pr_number}"],
+    )
+    if rc != 0:
+        partial["fallback2_error"] = (
+            f"gh api /pulls/{pr_number} failed: {err.strip()}"
+        )
+        return None, partial
+
+    try:
+        pr_payload = json.loads(out) if out.strip() else None
+    except json.JSONDecodeError as exc:
+        partial["fallback2_error"] = f"could not parse PR JSON: {exc}"
+        return None, partial
+
+    if not isinstance(pr_payload, dict):
+        partial["fallback2_error"] = "unexpected PR JSON shape (not a dict)"
+        return None, partial
+
+    state = pr_payload.get("state")
+    merged = bool(pr_payload.get("merged"))
+    mergeable = pr_payload.get("mergeable")
+    mergeable_state = pr_payload.get("mergeable_state")
+    head_block = pr_payload.get("head")
+    head_sha = None
+    if isinstance(head_block, dict):
+        candidate = head_block.get("sha")
+        if isinstance(candidate, str) and candidate:
+            head_sha = candidate
+    if head_sha is None and partial.get("head_sha"):
+        head_sha = partial["head_sha"]
+
+    # Check-runs are best-effort -- a missing endpoint must not down-rank
+    # this layer to error, because the PR state/headSHA alone is still a
+    # useful heartbeat for the monitor.
+    check_summary: dict | None = None
+    if head_sha:
+        check_summary, check_err = _fetch_check_runs_rest(head_sha, resolved_repo)
+        if check_summary is None and check_err:
+            partial["fallback2_check_runs_error"] = check_err
+
+    fallback_partial = {
+        "pr_state": state,
+        "merged": merged,
+        "mergeable": mergeable,
+        "mergeable_state": mergeable_state,
+        "check_runs": check_summary,
+    }
+    # Carry forward the earlier layer error context so a monitor inspecting
+    # the response sees both "why did we degrade?" and "what did the coarse
+    # layer see?" in one envelope.
+    for key in (
+        "primary_error",
+        "fallback1_error",
+        "fallback2_check_runs_error",
+    ):
+        if key in partial:
+            fallback_partial[key] = partial[key]
+
+    failures = [_FALLBACK2_NOT_CLEAN_MSG]
+    return (
+        GateResult(
+            pr_number=pr_number,
+            repo=resolved_repo,
+            head_sha=head_sha,
+            verdict=_empty_verdict(),
+            failures=failures,
+            via=VIA_FALLBACK2,
+            partial_data=fallback_partial,
+        ),
+        partial,
+    )
+
+
+def _error_result(
+    pr_number: int, repo: str | None, partial: dict,
+) -> GateResult:
+    """Build the structured-error envelope when every layer failed."""
+    # Compose a one-line error string from whichever layer-level errors
+    # accumulated through the cascade.
+    pieces = []
+    for key in ("primary_error", "fallback1_error", "fallback2_error"):
+        if key in partial:
+            pieces.append(f"{key}={partial[key]}")
+    error = (
+        "; ".join(pieces)
+        if pieces
+        else "every fallback layer failed without a reportable error"
+    )
+    return GateResult(
+        pr_number=pr_number,
+        repo=repo,
+        head_sha=partial.get("head_sha"),
+        verdict=_empty_verdict(),
+        failures=[
+            "pr_merge_readiness external error -- every fallback layer "
+            "failed; see partial_data for diagnostic detail (#1368)."
+        ],
+        via=VIA_ERROR,
+        partial_data=dict(partial),
+        error=error,
+    )
+
+
+def compute_gate_result(pr_number: int, repo: str | None) -> GateResult:
+    """Run the primary->fallback1->fallback2 cascade and return a result.
+
+    The result ALWAYS carries a ``via`` discriminator. ``via="error"``
+    means every layer failed; the monitor MUST treat that as merge-blocked
+    rather than CLEAN, but the response still carries ``partial_data`` so
+    the monitor can step forward without going blind.
+    """
+    result, partial = _compute_primary(pr_number, repo)
+    if result is not None:
+        return result
+
+    result, partial = _compute_fallback1(pr_number, repo, partial)
+    if result is not None:
+        return result
+
+    result, partial = _compute_fallback2(pr_number, repo, partial)
+    if result is not None:
+        return result
+
+    return _error_result(pr_number, repo, partial)
+
+
+def _print_human(result: GateResult) -> None:
+    """Print the merge-readiness check result in human-readable form."""
+    print(f"PR #{result.pr_number} merge-readiness check  (via={result.via})")
+    print(f"  HEAD SHA:           {result.head_sha or '<unknown>'}")
+    print(
+        f"  Greptile reviewed:  "
+        f"{result.verdict.last_reviewed_sha or '<not parsed>'}"
+    )
+    confidence_str = (
+        str(result.verdict.confidence)
+        if result.verdict.confidence is not None
+        else "<not parsed>"
+    )
+    print(f"  Confidence:         {confidence_str}/5")
+    print(
+        f"  Findings:           P0={result.verdict.p0_count}  "
+        f"P1={result.verdict.p1_count}  P2={result.verdict.p2_count}"
+    )
+    print(f"  Errored sentinel:   {result.verdict.errored}")
+    if result.via == VIA_FALLBACK2 and result.partial_data:
+        print("  Fallback2 signal:")
+        for key in ("pr_state", "merged", "mergeable", "mergeable_state"):
+            if key in result.partial_data:
+                print(f"    {key}: {result.partial_data[key]}")
+        check_runs = result.partial_data.get("check_runs")
+        if isinstance(check_runs, dict):
+            greptile = check_runs.get("greptile_review")
+            if greptile:
+                print(f"    Greptile Review check: {greptile}")
+    if result.merge_ready:
+        print("\nResult: MERGE-READY")
+    else:
+        label = "MERGE-BLOCKED" if result.via != VIA_ERROR else "EXTERNAL-ERROR"
+        print(f"\nResult: {label}")
+        for i, fail in enumerate(result.failures, 1):
+            print(f"  [{i}] {fail}")
+        if result.error:
+            print(f"\nUnderlying error: {result.error}")
+
+
+def _exit_code_for(result: GateResult) -> int:
+    if result.via == VIA_ERROR:
+        return EXIT_EXTERNAL_ERROR
+    return EXIT_OK if result.merge_ready else EXIT_MERGE_BLOCKED
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
 
-    head_sha = fetch_pr_head_sha(args.pr_number, args.repo)
-    if head_sha is None:
-        return EXIT_EXTERNAL_ERROR
-
-    body = fetch_greptile_comment_body(args.pr_number, args.repo)
-    if body is None:
-        return EXIT_EXTERNAL_ERROR
-
-    verdict = parse_greptile_body(body)
-    failures = evaluate_gates(args.pr_number, head_sha, verdict)
-
-    result = GateResult(
-        pr_number=args.pr_number,
-        repo=args.repo,
-        head_sha=head_sha,
-        verdict=verdict,
-        failures=failures,
-    )
+    result = compute_gate_result(args.pr_number, args.repo)
 
     if args.emit_json:
         print(json.dumps(result.to_dict(), indent=2))
     else:
-        print(f"PR #{args.pr_number} merge-readiness check")
-        print(f"  HEAD SHA:           {head_sha or '<unknown>'}")
-        print(f"  Greptile reviewed:  {verdict.last_reviewed_sha or '<not parsed>'}")
-        confidence_str = (
-            str(verdict.confidence) if verdict.confidence is not None else "<not parsed>"
-        )
-        print(f"  Confidence:         {confidence_str}/5")
-        print(
-            f"  Findings:           P0={verdict.p0_count}  "
-            f"P1={verdict.p1_count}  P2={verdict.p2_count}"
-        )
-        print(f"  Errored sentinel:   {verdict.errored}")
-        if result.merge_ready:
-            print("\nResult: MERGE-READY")
-        else:
-            print("\nResult: MERGE-BLOCKED")
-            for i, fail in enumerate(failures, 1):
-                print(f"  [{i}] {fail}")
+        _print_human(result)
 
-    return EXIT_OK if result.merge_ready else EXIT_MERGE_BLOCKED
+    return _exit_code_for(result)
 
 
 if __name__ == "__main__":
