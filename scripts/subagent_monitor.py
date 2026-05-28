@@ -102,11 +102,14 @@ EXIT_EXTERNAL_ERROR = 2
 # ``--threshold-minutes``.
 DEFAULT_THRESHOLD_MINUTES = 30
 
-# Canonical phase taxonomy from docs/subagent-heartbeat.md. The monitor
-# does not REJECT records with unknown phases (forward-compat) but it does
-# flag them so a typo surfaces immediately. Keep this in sync with the
-# docs file -- the tests pin the doc + script as the same authoritative
-# enumeration.
+# Canonical phase taxonomy from docs/subagent-heartbeat.md. An unknown
+# phase flags the record as MALFORMED (exit 1) -- the docs declare the
+# enum as a hard contract (`phase` MUST be one of the listed values), so
+# the monitor surfaces an unknown phase as a typo + the operator fixes
+# the agent that's writing it. Forward-compat extension is an additive
+# enum bump under the contract, NOT silent acceptance at read time.
+# Keep this in sync with the docs file -- the tests pin the doc + script
+# as the same authoritative enumeration.
 CANONICAL_PHASES = frozenset({
     "starting",
     "implementing",
@@ -298,7 +301,11 @@ def parse_heartbeat_file(
             rec.last_heartbeat_at = parsed_ts
             rec.age_seconds = (now - parsed_ts).total_seconds()
 
-    # Phase validity check (warning, not a hard failure -- forward-compat).
+    # Phase validity check: an unknown phase flags the record as MALFORMED
+    # (see CANONICAL_PHASES docstring above for rationale). The contract in
+    # docs/subagent-heartbeat.md declares the enum as a hard MUST, so an
+    # unknown phase is treated as a writer-side typo, not a forward-compat
+    # signal -- the operator fixes the agent writing it.
     if rec.phase is not None and rec.phase not in CANONICAL_PHASES:
         rec.failures.append(
             f"unknown phase {rec.phase!r}; expected one of "
