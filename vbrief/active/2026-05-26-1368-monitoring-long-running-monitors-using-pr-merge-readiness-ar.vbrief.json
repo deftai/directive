@@ -1,0 +1,115 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1368",
+    "updated": "2026-05-28T16:08:39Z"
+  },
+  "plan": {
+    "title": "monitoring: long-running monitors using pr_merge_readiness are unreliable in Grok Build due to harness fragility",
+    "status": "running",
+    "narratives": {
+      "Description": "monitoring: long-running monitors using pr_merge_readiness are unreliable in Grok Build due to harness fragility. When the underlying gh capture decodes badly, the readiness script returns no JSON and dependent monitors see head: None forever, even though the actual PR state is determinable via REST or check runs.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1368",
+      "Overview": "## Problem\n\nDuring the 1166 swarm merge cascade, a background monitor was launched to automatically merge #1363 (once it became mergeable after rebase) and then the Wave 3 PRs.\n\nThe monitor kept reporting for ~15+ minutes:\n\n> #1363 mergeable_state = blocked\n> (last reviewed: none, head: None)\n\nEven though:\n- The rebase and force-push had succeeded.\n- A direct manual check confirmed the head was correct and the state was genuinely \"blocked\" (required checks hadn't run yet on the new commit).\n\nThe monitor was effectively blind the entire time.\n\n## Root Cause\n\nThe monitor script depended on repeatedly calling:\n\n```bash\npython scripts/pr_merge_readiness.py <N> --repo deftai/directive --json\n```\n\nThis script (and similar tools) internally uses `subprocess.run(..., capture_output=True, text=True)` to call `gh`.\n\nIn the Grok Build harness on Windows, this frequently triggers:\n\n```\nException in thread Thread-3 (_readerthread):\n...\nUnicodeDecodeError: 'cp1252' codec can't decode byte ...\n```\n\n(See also #1353 and #1366 for the broader class of harness output capture problems.)\n\nWhen this happens:\n- The readiness script returns no valid JSON.\n- Any dependent monitor sees `head: None` and cannot make progress decisions.\n\nThis is not a bug in the monitor logic itself — it is being fed broken data by an unreliable underlying tool in this environment.\n\n## Impact\n\n- Reliable long-running automation (merge cascades, review monitoring, etc.) becomes extremely difficult.\n- The hybrid Grok Build swarm path (`spawn_subagent`) already has visibility challenges (#1365). This makes monitoring even worse.\n- We end up having to fall back to manual checks and human intervention even when we tried to automate.\n\n## Proposed Solutions\n\n1. **Make monitoring tools resilient (high priority)**\n   - `pr_merge_readiness.py` and similar scripts should have multiple fallback paths:\n     - Primary: current logic\n     - Fallback 1: Direct `gh api` REST calls + manual parsing of the Greptile comment (bypassing the full script when it fails)\n     - Fallback 2: Simple `gh pr view` + check-run status as a last resort (with clear warnings)\n   - Always return structured output even on partial failure (e.g. `{ \"error\": \"...\", \"partial_data\": {...} }`).\n\n2. **Create a safe monitoring helper**\n   - Add something like `scripts/monitor_pr.py` or a small library that long-running monitors can use.\n   - It should handle the common failure modes gracefully and provide reliable \"current state\" information.\n\n3. **Better patterns for the swarm skill**\n   - Document recommended ways to build reliable long-running monitors in the Grok Build hybrid path.\n   - Consider adding built-in support for \"merge when ready\" style automation that is resilient to these harness issues.\n\n4. **Platform-side (Grok Build)**\n   - Improve subprocess output capture reliability on Windows (UTF-8 + better error handling in reader threads).\n   - This is the same underlying class of problem reported in #1353.\n\n## References\n\n- This specific occurrence: 1166 swarm auto-merge monitor for #1363 (after rebase).\n- #1353 (original harness Windows capture issues)\n- #1365 (sub-agents going dark / visibility problems)\n- #1366 (harness UnicodeDecodeError breaking monitoring tools)\n- The monitor script and repeated \"head: None\" failures observed live during this session.\n\nThis makes the current hybrid swarm + review-cycle workflow significantly less reliable for anything that requires waiting on external state (Greptile, CI, etc.).\n",
+      "Labels": "swarm, determinism, review-cycle, grok-build, monitoring",
+      "Cluster": "Wave 2 (monitor reliability, depends on #1366 Wave 1) of the Grok Build harness fragility cluster. Sibling Wave 2: #1365 (sub-agent visibility, parallelizable). Wave 3 dependent: #1369 (cascade automation). Cross-ref #1353. Cluster tracked via the `cluster:grok-harness` tag across four vBRIEFs (no GitHub umbrella issue filed).",
+      "UserStory": "As a swarm monitor running cascade automation on Grok Build, I want pr_merge_readiness.py to keep returning structured output through transient gh failures, so that long-running monitors never blind on a single decode crash or partial response.",
+      "ImplementationPlan": "1. Add a layered fallback chain to scripts/pr_merge_readiness.py: primary path stays as-is (Greptile rolling-summary comment parsing), fallback 1 calls gh api repos/<owner>/<repo>/pulls/<N> (REST) and parses the comment list directly, fallback 2 uses gh pr view <N> --json state + check-run status as a coarse last-resort signal. Each layer emits structured JSON with a `via` discriminator.\n2. Ensure every failure path returns structured JSON (never raw exception text); partial failures emit { error, partial_data, via } so a monitor can keep stepping forward instead of going blind.\n3. Add scripts/monitor_pr.py as a thin 'wait until ready' helper that loops pr_merge_readiness.py with adaptive cadence (1m -> 3m -> 5m), tolerates fallback responses, and exits when the canonical CLEAN exit fires.\n4. Update skills/deft-directive-swarm/SKILL.md Phase 5/6 to cite scripts/monitor_pr.py as the resilient long-running monitor surface and document what each `via` value implies (fallback2 is a coarse signal, not a CLEAN verdict).\n5. Add tests/cli/test_pr_merge_readiness_fallbacks.py covering primary success, primary-failure -> fallback1, primary+fallback1-failure -> fallback2, and total-failure (structured error). Tests route subprocess capture through the #1366 helper.\n6. Add CHANGELOG.md [Unreleased] entry referencing #1368 and the #1366 dependency.",
+      "Traces": "Traces to GitHub issue #1368 and the #1166 swarm cascade monitor failure on PR #1363. Depends on #1366 safe-subprocess helper."
+    },
+    "items": [
+      {
+        "title": "pr_merge_readiness layered fallback chain",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the primary parse path raises or returns empty, the script falls back to REST + manual parsing (fallback1), then to a coarse PR-view + check-run signal (fallback2), and every response emits structured JSON with a `via` discriminator so callers can detect degraded mode.",
+          "Traces": "Traces to GitHub issue #1368 -- pr_merge_readiness layered fallback chain."
+        }
+      },
+      {
+        "title": "Structured-error contract on every failure path",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When every fallback fails, the script still returns valid JSON on stdout shaped { error, partial_data, via }; raw stack traces never leak to stdout; stderr carries diagnostic detail.",
+          "Traces": "Traces to GitHub issue #1368 -- Structured-error contract on every failure path."
+        }
+      },
+      {
+        "title": "scripts/monitor_pr.py wait-until-ready helper",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When invoked against a non-merged PR, the helper loops with adaptive cadence (1m / 3m / 5m), accepts fallback responses without aborting, and exits 0 when the canonical CLEAN exit fires on the underlying readiness call.",
+          "Traces": "Traces to GitHub issue #1368 -- scripts/monitor_pr.py wait-until-ready helper."
+        }
+      },
+      {
+        "title": "Swarm skill documents the monitor and fallback contract",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When the swarm skill Phase 5/6 surfaces, it shows scripts/monitor_pr.py as the canonical long-running readiness monitor, documents what each `via` value emits, and rejects fallback2 as a CLEAN verdict (it is a coarse signal only).",
+          "Traces": "Traces to GitHub issue #1368 -- Swarm skill documents the monitor and fallback contract."
+        }
+      },
+      {
+        "title": "Tests cover primary, fallback1, fallback2, and total-failure paths",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When pytest runs tests/cli/test_pr_merge_readiness_fallbacks.py, it validates each of the primary, fallback1, fallback2, and total-failure paths, and asserts that each response emits the documented JSON shape, exit code, and `via` discriminator.",
+          "Traces": "Traces to GitHub issue #1368 -- Tests cover primary, fallback1, fallback2, and total-failure paths."
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "determinism",
+      "review-cycle",
+      "grok-build",
+      "monitoring",
+      "cluster:grok-harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1368",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1368: monitoring: long-running monitors using pr_merge_readiness are unreliable in Grok Build due to harness fragility"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1353",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1353"
+      }
+    ],
+    "updated": "2026-05-28T16:08:39Z",
+    "id": "issue-1368",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/pr_merge_readiness.py",
+          "scripts/monitor_pr.py",
+          "tests/cli/test_pr_merge_readiness_fallbacks.py",
+          "skills/deft-directive-swarm/SKILL.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check",
+          "uv --project . run pytest tests/cli/test_pr_merge_readiness_fallbacks.py -v"
+        ],
+        "expected_outputs": [
+          "pr_merge_readiness.py emits structured JSON on every path with a `via` discriminator",
+          "scripts/monitor_pr.py loops with adaptive cadence and survives fallback responses",
+          "swarm SKILL.md documents the monitor and the fallback contract"
+        ],
+        "depends_on": [
+          "issue-1366"
+        ],
+        "conflict_group": "pr-readiness",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    }
+  }
+}

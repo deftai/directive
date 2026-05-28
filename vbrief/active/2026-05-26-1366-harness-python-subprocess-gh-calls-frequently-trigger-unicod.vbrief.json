@@ -1,0 +1,102 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1366",
+    "updated": "2026-05-28T16:08:39Z"
+  },
+  "plan": {
+    "title": "harness: Python subprocess + gh calls frequently trigger UnicodeDecodeError in reader threads on Windows, breaking monitoring and readiness tools",
+    "status": "running",
+    "narratives": {
+      "Description": "harness: Python subprocess + gh calls frequently trigger UnicodeDecodeError in reader threads on Windows, breaking monitoring and readiness tools. The default subprocess.run(..., capture_output=True, text=True) binding uses the host codepage (cp1252/cp437) to decode Greptile bot output, and reader-thread crashes leave dependent monitors with head: None state.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1366",
+      "Overview": "## Symptom\n\nDuring the #1166 swarm, a background monitor was started to watch for Greptile to re-review a fix on PR #1363.\n\nThe monitor kept printing:\n> Still waiting... (last reviewed: none, head: None)\n\neven after direct checks confirmed that Greptile had already updated the PR to **5/5**.\n\n## Root Cause\n\nThe monitor script (`tmp_monitor_1363.py`) relies on:\n```python\nsubprocess.run([\"python\", \"scripts/pr_merge_readiness.py\", ..., \"--json\"], capture_output=True, text=True, ...)\n```\n\nWhen this runs inside the Grok Build harness on Windows:\n\n1. `pr_merge_readiness.py` (and similar tools) internally call `gh` via `subprocess.run(..., capture_output=True, text=True)` without forcing UTF-8.\n2. Greptile rolling-summary bodies frequently contain characters that don't decode cleanly under the harness's default encoding (cp1252/cp437).\n3. One of the harness's reader threads (`Thread-3 (_readerthread)`) crashes with `UnicodeDecodeError`.\n4. The script returns no valid JSON on stdout (or crashes).\n5. Any tool that depends on the JSON output (including the monitor and `pr_merge_readiness.py` itself when called programmatically) sees `head: None` / empty data.\n\nWe reproduced the exact failure by running the same command the monitor uses:\n\n```\nException in thread Thread-3 (_readerthread):\n...\nUnicodeDecodeError: 'cp1252' codec can't decode byte ...\n```\n\nThis is the **same class of harness fragility** we've hit repeatedly during this swarm whenever tools try to parse rich bot output or run complex gh + Python combinations.\n\n## Why This Matters\n\n- Makes reliable long-running monitors extremely difficult to build.\n- Breaks deterministic tooling (`pr_merge_readiness.py`, custom watchers, etc.) in the exact environment where we most need them (Grok Build hybrid swarms).\n- The \"sub-agents going dark\" problem (#1365) is made significantly worse because even the parent monitor can't reliably observe state.\n\n## Proposed Solutions (ranked)\n\n1. **Immediate / Directive-side (high impact, low cost)**\n   - Add a safe subprocess helper (e.g. `scripts/_safe_subprocess.py`) that all our tools should use:\n     ```python\n     subprocess.run(cmd, capture_output=True, text=True, encoding=\"utf-8\", errors=\"replace\", ...)\n     ```\n   - Audit and update the worst offenders (`pr_merge_readiness.py`, various triage/build scripts, etc.).\n   - Add a lightweight \"safe gh\" wrapper that prefers REST and uses the above.\n\n2. **Documentation**\n   - Add an explicit section in AGENTS.md + `templates/agent-prompt-preamble.md` about this known harness limitation and the required mitigation for any long-running monitoring or complex tooling.\n\n3. **Platform / Longer term**\n   - Work with the Grok Build team on more robust output capture for Python subprocesses (or expose better ways to run background tools without harness interference).\n   - Consider making `pr_merge_readiness.py` more defensive (multiple fallback paths, direct REST + parsing, etc.).\n\n## References\n\n- This specific occurrence: 1166 swarm, monitor for #1363 after task name fix.\n- Related: #1365 (spawn_subagent sub-agents going dark / poor visibility).\n- Recurrence of the exact `Thread-3 (_readerthread) UnicodeDecodeError` across many scripts during this and prior sessions on Grok Build Windows.\n\nThis class of problem makes the hybrid swarm path significantly less robust than it needs to be for real review-cycle and monitoring work.\n",
+      "Labels": "swarm, determinism, review-cycle, grok-build, harness",
+      "Cluster": "Wave 1 (root cause) of the Grok Build harness fragility cluster. Fix here unblocks Wave 2 (#1365 sub-agent visibility, #1368 pr_merge_readiness hardening) and Wave 3 (#1369 cascade automation). Cross-ref #1353 (original Windows capture limitation). No GitHub umbrella issue filed -- cluster tracked via the `cluster:grok-harness` tag across these four vBRIEFs.",
+      "UserStory": "As a swarm operator on Windows / Grok Build, I want Python subprocess calls to gh to use UTF-8 with replacement-error handling, so that long-running monitors and readiness tools no longer crash on Greptile rolling-summary text decoded under cp1252/cp437.",
+      "ImplementationPlan": "1. Add scripts/_safe_subprocess.py exposing a run_text(cmd, **kwargs) wrapper that forces encoding='utf-8', errors='replace', capture_output=True; preserve returncode, stdout, stderr and accept input, timeout, cwd.\n2. Refactor the highest-risk offenders to route through the helper: scripts/pr_merge_readiness.py and any other script on the #1166 hot path that captures gh / python subprocess output for parsing. Keep PR scope tight.\n3. Add tests/cli/test_safe_subprocess.py covering ASCII round-trip, non-cp1252 byte tolerance, timeout enforcement, returncode preservation, and stderr capture without raising UnicodeDecodeError.\n4. Add a 'Safe subprocess on Windows' section to templates/agent-prompt-preamble.md documenting the helper and the harness limitation it works around.\n5. Add an AGENTS.md project rule citing #1366 that mandates _safe_subprocess.run_text for any script that captures gh or python subprocess output for parsing.\n6. Add CHANGELOG.md [Unreleased] entry referencing #1366 and cross-referencing #1353, #1365, #1368, #1369.",
+      "Traces": "Traces to GitHub issue #1366 and the #1166 swarm session where Thread-3 _readerthread UnicodeDecodeError repeatedly broke monitors. Cross-refs #1353 (Windows capture limitation) and the Wave-2 dependents #1365 and #1368."
+    },
+    "items": [
+      {
+        "title": "scripts/_safe_subprocess.py helper with UTF-8 + replace defaults",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given run_text(['gh', 'api', '...']), when the called process emits a stream containing non-cp1252 bytes, the helper returns a CompletedProcess whose stdout is a decoded string with replacement chars in place of undecodable bytes, returncode preserved, no UnicodeDecodeError raised, and Thread-3 (_readerthread) does not crash.",
+          "Traces": "Traces to GitHub issue #1366 -- scripts/_safe_subprocess.py helper with UTF-8 + replace defaults."
+        }
+      },
+      {
+        "title": "pr_merge_readiness.py adopts the helper",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When scripts/pr_merge_readiness.py is invoked against a PR whose Greptile rolling-summary contains non-cp1252 glyphs on Grok Build Windows, the script returns valid JSON on stdout, exits non-zero only when the parsed body fails the CLEAN check (not from a decode crash), and tests exercise the post-refactor surface.",
+          "Traces": "Traces to GitHub issue #1366 -- pr_merge_readiness.py adopts the helper."
+        }
+      },
+      {
+        "title": "Tests cover ASCII, non-cp1252 bytes, timeout, and non-zero exits",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When pytest runs tests/cli/test_safe_subprocess.py, it validates ASCII round-trip, non-cp1252 byte tolerance, timeout enforcement, returncode preservation, and stderr capture, and emits no UnicodeDecodeError on any test path.",
+          "Traces": "Traces to GitHub issue #1366 -- Tests cover ASCII, non-cp1252 bytes, timeout, and non-zero exits."
+        }
+      },
+      {
+        "title": "Documentation in agent-prompt-preamble.md and AGENTS.md",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When an agent reads templates/agent-prompt-preamble.md, the file shows a 'Safe subprocess on Windows' section citing the helper; AGENTS.md updates to carry a project-level rule that rejects scripts which capture gh/python subprocess output for parsing without routing through _safe_subprocess.run_text.",
+          "Traces": "Traces to GitHub issue #1366 -- Documentation in agent-prompt-preamble.md and AGENTS.md."
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "determinism",
+      "review-cycle",
+      "grok-build",
+      "harness",
+      "cluster:grok-harness"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1366",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1366: harness: Python subprocess + gh calls frequently trigger UnicodeDecodeError in reader threads on Windows, breaking monitoring and readiness tools"
+      }
+    ],
+    "updated": "2026-05-28T16:08:39Z",
+    "id": "issue-1366",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/_safe_subprocess.py",
+          "scripts/pr_merge_readiness.py",
+          "tests/cli/test_safe_subprocess.py",
+          "templates/agent-prompt-preamble.md",
+          "AGENTS.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check",
+          "uv --project . run pytest tests/cli/test_safe_subprocess.py -v",
+          "uv --project . run pytest tests/cli/test_pr_merge_readiness.py -v"
+        ],
+        "expected_outputs": [
+          "scripts/_safe_subprocess.py is importable and run_text round-trips non-cp1252 bytes safely",
+          "scripts/pr_merge_readiness.py routes its gh capture through the helper and no longer raises UnicodeDecodeError",
+          "AGENTS.md and templates/agent-prompt-preamble.md document the helper and harness limitation"
+        ],
+        "depends_on": [],
+        "conflict_group": "safe-subprocess",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    }
+  }
+}

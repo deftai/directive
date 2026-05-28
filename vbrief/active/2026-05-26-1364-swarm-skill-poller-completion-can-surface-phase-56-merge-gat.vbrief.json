@@ -1,0 +1,106 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1364",
+    "updated": "2026-05-28T16:08:39Z"
+  },
+  "plan": {
+    "title": "swarm skill: poller completion can surface Phase 5→6 merge gate while PRs remain unclean (confidence=3 holdouts)",
+    "status": "running",
+    "narratives": {
+      "Description": "swarm skill: poller completion can surface Phase 5→6 merge gate while PRs remain unclean (confidence=3 holdouts). The monitor currently keys the transition to merge discussion on sub-agent lifecycle completion rather than on objective cohort-wide CLEAN state, so a poller that exits with clean_gate_holdout=confidence still lets the orchestrator raise the merge gate.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1364",
+      "Overview": "## Problem\n\nDuring the #1166 strategy consistency swarm, after spawning canonical poller sub-agents (via templates/swarm-greptile-poller-prompt.md), the monitor moved to \"suggest next step\" and presented the Phase 5→6 merge-cascade gate recommendation even though multiple PRs had not reached the skill's own strict exit criteria:\n\n- Several pollers exited with confidence=3 holdout (explicitly reported via clean_gate_holdout=confidence).\n- At least one was left in \"awaiting re-review\" state after a fix batch.\n- One worktree still had uncommitted changes from the poller batch.\n- No PR had a final \"PR #N CLEAN -- ready for merge\" with confidence > 3 on the current HEAD.\n\nThe orchestrator treated \"all pollers have reported back\" as sufficient to discuss merging.\n\n## Root Cause\n\nThe skills/deft-directive-swarm/SKILL.md correctly documents a strong Phase 5 Exit Condition (all PRs must simultaneously have confidence > 3 + no P0/P1 + task check + CHANGELOG) and a mandatory Phase 5→6 gate.\n\nHowever, when using the post-#727 pattern of short-lived poller sub-agents (Phase 6), there is no *mandatory deterministic gate* the monitor must pass after the pollers terminate before it is allowed to present or discuss the merge decision.\n\nThe pollers correctly implement the full triple-tier detector + evaluate_clean_gate + clean_gate_holdout instrumentation (#1039) and can exit on several non-CLEAN terminal conditions (TIMEOUT, STALL, \"awaiting re-review\", one-shot snapshots, etc.). The skill currently keys the transition to merge discussion on sub-agent lifecycle completion rather than on objective cohort-wide CLEAN state.\n\nExisting per-PR infrastructure (scripts/pr_merge_readiness.py + task pr:merge-ready) is excellent but is only invoked later, per-merge in Phase 6 Step 1 — too late to prevent the monitor from offering the merge gate in the first place.\n\n## Proposed Deterministic Solutions (ranked)\n\n**1. Mandatory cohort-level script gate (strongest, recommended)**\n\nAdd `task swarm:verify-review-clean` (new `scripts/swarm_verify_review_clean.py` that re-uses the parser from `pr_merge_readiness.py`).\n\n- Takes list of PRs (or the active vBRIEF cohort).\n- Requires *every* PR to pass full CLEAN (SHA match + confidence > 3 + zero P0/P1 + no errored + CI clean) on current HEAD.\n- Three-state exit (0 = clean, 1 = blocked with per-PR diagnostics, 2 = error).\n- Mandate in swarm skill Phase 5: after pollers report, the monitor **MUST** run this command and **MUST NOT** present the Phase 5→6 gate until it exits 0.\n\n**2. Strengthen poller terminal contract**\n\nDeclare in the swarm skill and poller template that, for swarm-orchestrated cycles, the *only* acceptable \"review complete\" terminal message from a poller is the exact (1) CLEAN subject line with confidence > 3 on current HEAD. All other exits require either fresh poller re-dispatch or explicit user escalation *before* any merge discussion is allowed.\n\n**3. Explicit post-poller barrier in skill + monitor prompt**\n\nAdd a required \"CLEAN report collection\" sub-step in Phase 5. The monitor must have received and logged a distinct CLEAN message for every PR at the final HEAD before the Phase 5→6 gate conversation is reachable.\n\n**4. Minor supporting changes**\n\n- Mark one-shot/limited poller modes as non-authoritative for merge readiness.\n- Consider a small `.deft-scratch` collection file for auditability of CLEAN reports.\n\n## Why deterministic matters here\n\nThis is exactly the class of failure the framework has worked hard to close elsewhere (task verify:* gates, #810 preflight, #1039 clean_gate_holdout instrumentation, pr_merge_readiness.py, etc.). The swarm skill should not be the exception.\n\nThe fix should make it *structurally difficult* for a monitor (human or agent) to propose merging while any PR in the cohort is still below the documented exit bar.\n\nRefs: #1166 swarm execution, poller artifacts showing multiple conf=3 + clean_gate_holdout=confidence exits, existing scripts/pr_merge_readiness.py and templates/swarm-greptile-poller-prompt.md.\n",
+      "Labels": "swarm, determinism, review-cycle, process",
+      "UserStory": "As a swarm monitor, I want a cohort-level CLEAN verification gate before the Phase 5→6 merge discussion, so that I cannot surface a merge cascade while any PR is still below the documented exit bar.",
+      "ImplementationPlan": "1. Add scripts/swarm_verify_review_clean.py that accepts a list of PRs (or the active vBRIEF cohort), parses each PR's Greptile rolling-summary using the existing parser from scripts/pr_merge_readiness.py, and exits 0 only when every PR has SHA match, confidence > 3, zero P0/P1, not errored, and CI clean on current HEAD; exits 1 with per-PR diagnostics otherwise, exits 2 on config error.\n2. Register task swarm:verify-review-clean (new file tasks/swarm.yml or extend the existing one) that wraps the script with bare {{.CLI_ARGS}} forwarding per the established Taskfile convention.\n3. Update skills/deft-directive-swarm/SKILL.md Phase 5 Exit Condition and the Phase 5→6 gate to mandate task swarm:verify-review-clean after pollers report and before any merge discussion; add an anti-pattern that forbids basing the merge gate on poller lifecycle completion alone.\n4. Update templates/swarm-greptile-poller-prompt.md to declare that the only acceptable swarm-orchestrated CLEAN terminal message is the exact subject line with confidence > 3 on current HEAD; all other exits require fresh poller re-dispatch or explicit user escalation before merge discussion.\n5. Add tests/cli/test_swarm_verify_review_clean.py covering all-clean cohort (exit 0), confidence=3 holdout (exit 1), SHA-stale HEAD (exit 1), Greptile-errored sentinel (exit 1), and empty cohort or malformed config (exit 2).\n6. Add a CHANGELOG.md [Unreleased] entry referencing #1364.",
+      "Traces": "Traces to GitHub issue #1364 and the #1166 swarm execution where pollers exited with confidence=3 holdouts. Reuses the parser from scripts/pr_merge_readiness.py and updates templates/swarm-greptile-poller-prompt.md."
+    },
+    "items": [
+      {
+        "title": "swarm:verify-review-clean script with three-state exit",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "Given a list of PRs, when the script runs, it parses each PR's Greptile rolling-summary on current HEAD and exits 0 only when every PR has SHA match, confidence > 3, zero P0/P1, not errored, and CI clean; otherwise exits 1 with per-PR diagnostics or exits 2 on config error.",
+          "Traces": "Traces to GitHub issue #1364 -- swarm:verify-review-clean script with three-state exit."
+        }
+      },
+      {
+        "title": "Taskfile target task swarm:verify-review-clean",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When invoked via `task swarm:verify-review-clean -- <args>`, the target forwards CLI_ARGS via the established bare-{{.CLI_ARGS}} convention and surfaces the script's exit code unchanged.",
+          "Traces": "Traces to GitHub issue #1364 -- Taskfile target task swarm:verify-review-clean."
+        }
+      },
+      {
+        "title": "Swarm skill Phase 5→6 gate cites the new verifier",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When all pollers have reported and the monitor reaches the Phase 5→6 gate, the swarm skill rejects any merge discussion until task swarm:verify-review-clean exits 0, and an anti-pattern explicitly blocks keying the transition on poller lifecycle completion alone.",
+          "Traces": "Traces to GitHub issue #1364 -- Swarm skill Phase 5→6 gate cites the new verifier."
+        }
+      },
+      {
+        "title": "Poller template strengthened terminal contract",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When a swarm-orchestrated poller terminates, templates/swarm-greptile-poller-prompt.md rejects any 'review complete' signal other than the CLEAN subject line with confidence > 3 on current HEAD, and any other exit forces fresh poller re-dispatch or explicit user escalation before merge discussion.",
+          "Traces": "Traces to GitHub issue #1364 -- Poller template strengthened terminal contract."
+        }
+      },
+      {
+        "title": "Tests cover clean, blocked, errored, and config-error paths",
+        "status": "proposed",
+        "narrative": {
+          "Acceptance": "When pytest runs tests/cli/test_swarm_verify_review_clean.py, it validates the all-clean cohort path (exit 0), the confidence=3 holdout path (exit 1 with diagnostics), the SHA-stale HEAD path (exit 1), the Greptile-errored sentinel path (exit 1), and the empty-cohort / malformed-config path (exit 2).",
+          "Traces": "Traces to GitHub issue #1364 -- Tests cover clean, blocked, errored, and config-error paths."
+        }
+      }
+    ],
+    "tags": [
+      "swarm",
+      "determinism",
+      "review-cycle",
+      "process"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1364",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1364: swarm skill: poller completion can surface Phase 5→6 merge gate while PRs remain unclean (confidence=3 holdouts)"
+      }
+    ],
+    "updated": "2026-05-28T16:08:39Z",
+    "id": "issue-1364",
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/swarm_verify_review_clean.py",
+          "tests/cli/test_swarm_verify_review_clean.py",
+          "tasks/swarm.yml",
+          "skills/deft-directive-swarm/SKILL.md",
+          "templates/swarm-greptile-poller-prompt.md",
+          "CHANGELOG.md"
+        ],
+        "verify_commands": [
+          "task check",
+          "uv --project . run pytest tests/cli/test_swarm_verify_review_clean.py -v"
+        ],
+        "expected_outputs": [
+          "task swarm:verify-review-clean exits 0 on a clean cohort and 1 on any unclean PR with diagnostic body",
+          "swarm SKILL.md Phase 5→6 gate references task swarm:verify-review-clean and an anti-pattern forbids merge discussion before exit 0",
+          "swarm-greptile-poller-prompt.md restricts swarm-cycle CLEAN terminal message to confidence > 3 on current HEAD"
+        ],
+        "depends_on": [],
+        "conflict_group": "swarm-skill-cluster",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    }
+  }
+}
