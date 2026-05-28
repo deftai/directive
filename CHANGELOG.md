@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **fix(scripts,tests,docs): safe-subprocess helper closes the Windows `Thread-3 (_readerthread) UnicodeDecodeError` hole on `gh` capture (#1366)** -- swarm operators on Windows / Grok Build no longer see `Still waiting... (last reviewed: none, head: None)` from background monitors when Greptile rolling-summary bodies contain non-cp1252 glyphs. New `scripts/_safe_subprocess.py::run_text` forces `encoding="utf-8", errors="replace"` so undecodable bytes become U+FFFD instead of crashing Python's internal reader thread; `scripts/pr_merge_readiness.py` is the reference adopter. `AGENTS.md` and `templates/agent-prompt-preamble.md` carry the new rule so future scripts that shell out for parsable output route through the helper from day one. Closes #1366; cross-refs #1353, #1365, #1368, #1369.
 - **fix(gate): generated SPECIFICATION.md no longer trips pre-cutover migration** -- root `SPECIFICATION.md` exports from `task spec:render` are now recognised as current vBRIEF artifacts when they point at `vbrief/specification.vbrief.json` and the lifecycle folders exist. The shared detector feeds the CLI gate, vBRIEF validator, migration preflight, and session-start prose. Migration preflight and `task doctor` now run uv with `--frozen` so read-only safety checks cannot rewrite `uv.lock`.
 
 ### Removed

@@ -66,6 +66,15 @@ except ImportError:
     # _stdio_utf8 is optional; some test contexts load this module directly.
     pass
 
+# UTF-8-safe subprocess capture (#1366). Greptile rolling-summary bodies
+# frequently include non-cp1252 glyphs (smart quotes, em dashes, arrows);
+# under the default ``text=True`` decode path on Windows + Grok Build,
+# that crashes Python's internal reader thread with UnicodeDecodeError and
+# leaves the caller with empty / malformed stdout. ``_safe_subprocess.run_text``
+# forces encoding="utf-8", errors="replace" so any undecodable byte is
+# substituted with U+FFFD rather than aborting the read.
+from _safe_subprocess import run_text  # noqa: E402
+
 # ---- Exit codes -------------------------------------------------------------
 
 EXIT_OK = 0
@@ -225,11 +234,19 @@ def parse_greptile_body(body: str) -> GreptileVerdict:
 def _run_gh(cmd: list[str]) -> tuple[int, str, str]:
     """Run a gh subcommand and return (returncode, stdout, stderr).
 
+    Routes through ``_safe_subprocess.run_text`` so the captured stdout /
+    stderr are decoded as UTF-8 with ``errors="replace"`` (#1366). The
+    default ``text=True`` binding decodes via the host codepage on
+    Windows + Grok Build, which crashes Python's internal reader thread
+    with ``UnicodeDecodeError`` whenever the Greptile rolling-summary
+    body contains non-cp1252 bytes -- the exact failure mode behind the
+    ``head: None`` symptom on the #1166 swarm monitor.
+
     Returns (-1, "", message) on FileNotFoundError / TimeoutExpired so the
     caller can map either to EXIT_EXTERNAL_ERROR uniformly.
     """
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        result = run_text(cmd, timeout=60)
     except FileNotFoundError:
         return -1, "", "gh CLI not found. Install GitHub CLI."
     except subprocess.TimeoutExpired:

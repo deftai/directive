@@ -176,7 +176,18 @@ Canonical write-up + good / bad example: `CONTRIBUTING.md` `## CHANGELOG entry s
 - ! Never emit commands containing pipes or redirections through the agent shell tool on this platform. For anything requiring a pipe, use one of: Python one-liners with `pathlib` / `subprocess.run(capture_output=True)` (preferred -- bypasses the wrapper at the OS level), run the operation in the user's native terminal and paste the result back, or isolate the work in a dedicated worktree and mark the step as "user shell required".
 - ! This rule applies to the Grok Build runtime (pwsh 7+); Warp + Claude (PTY-based) is not affected by this wrapper leakage.
 
-Cross-reference: `docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md` (root-cause analysis). Refs #1353.
+Cross-references: `docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md` (root-cause analysis). Refs #1353.
+
+## Safe subprocess capture (#1366)
+
+**Why this rule exists:** the 2026-05-26 #1166 swarm session repeatedly hit `Thread-3 (_readerthread) UnicodeDecodeError` from inside Python's `subprocess.run(..., capture_output=True, text=True)` whenever a tool (most often `scripts/pr_merge_readiness.py`) captured `gh api` output containing a Greptile rolling-summary body. The default `text=True` decode path uses the host codepage (cp1252 / cp437 on Windows), and Greptile bodies routinely carry glyphs (em dashes, smart quotes, arrows) that the codepage cannot decode. Once the reader thread crashes, the script returns empty / malformed stdout and any dependent monitor sees `head: None`. The structural fix is to force `encoding="utf-8", errors="replace"` on every text-capturing subprocess call so undecodable bytes become U+FFFD instead of crashing the read.
+
+- ! Any deft script that captures `gh` output or another Python subprocess for parsing MUST route the call through `scripts/_safe_subprocess.py::run_text` (or pass `encoding="utf-8", errors="replace"` to `subprocess.run` directly). The helper FORCES `capture_output=True`, `text=True`, `encoding="utf-8"`, `errors="replace"`, and `shell=False` -- callers cannot regress the safety contract via kwargs.
+- ! New scripts under `scripts/` that shell out for parsable output (gh, git, python, task) MUST adopt the helper from day one. Existing scripts are migrated opportunistically; `scripts/pr_merge_readiness.py` is the #1366 reference adopter.
+- ⊗ Pass `text=True` to `subprocess.run` without an explicit `encoding="utf-8", errors="replace"` pair when the captured output may carry non-ASCII glyphs (Greptile bodies, gh REST bodies, user-authored commit messages, web fetches). The default locale-codepage decode is the bug.
+- ⊗ Catch and silently swallow `UnicodeDecodeError` from a subprocess capture site -- the helper makes the error unreachable; if a future caller hits it, the right response is to fix the call site to route through the helper, not to swallow.
+
+**Recurrence record:** observed across multiple gh-shelling scripts during the #1166 swarm (`pr_merge_readiness.py`, `tmp_monitor_1363.py`, ad-hoc monitor scripts). The class of bug also bit prior PowerShell-encoding work (#236 / #240 / #283 / #795) on the file-edit side; the subprocess-capture side is the structural complement covered by #1366. Cross-references: `templates/agent-prompt-preamble.md` § 3.6, `docs/analysis/2026-05-26-issue-1353-grok-windows-capture-opensrc-audit.md` (related #1353 wrapper-leakage analysis), Wave-2 dependents #1365 (sub-agent visibility) and #1368 (`pr_merge_readiness.py` hardening), Wave-3 dependent #1369 (cascade automation).
 
 ## SCM tooling -- prefer ghx (#884)
 

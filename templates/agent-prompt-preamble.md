@@ -46,6 +46,25 @@ When running under the Grok Build runtime on Windows + pwsh 7+, `run_terminal_co
 
 This rule applies to the Grok Build runtime (pwsh 7+); Warp + Claude (PTY-based) is not affected by this wrapper leakage.
 
+## 3.6 Safe subprocess on Windows -- UTF-8 capture helper (#1366)
+
+Windows hosts running deft tooling (Grok Build, native PowerShell, scheduled / cloud agents) inherit the locale codepage (cp1252 / cp437) as the default `text=True` decode encoding for `subprocess.run`. When the child process (most commonly `gh api` returning a Greptile rolling-summary body) emits bytes that are not valid in that codepage, Python's internal `Thread-3 (_readerthread)` crashes with `UnicodeDecodeError`. The calling script then returns empty / malformed stdout, and any monitor parsing the JSON sees `head: None` -- the exact failure mode behind the #1166 swarm `Still waiting... (last reviewed: none, head: None)` symptom.
+
+**Directive rule:** Any deft script that captures `gh` output or another Python subprocess for parsing MUST route its capture through `scripts/_safe_subprocess.py::run_text` (or pass `encoding="utf-8", errors="replace"` to `subprocess.run` directly). The helper FORCES `capture_output=True`, `text=True`, `encoding="utf-8"`, `errors="replace"`, and `shell=False`; callers cannot regress the safety contract via kwargs.
+
+```python path=null start=null
+# WRONG -- crashes Thread-3 (_readerthread) on Windows when output contains non-cp1252 bytes
+result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+
+# RIGHT -- bytes that don't decode under utf-8 become U+FFFD; the reader thread never crashes
+from _safe_subprocess import run_text
+result = run_text(cmd, timeout=60)
+```
+
+This rule applies on every platform but BITES on Windows + Grok Build / cmd / PowerShell hosts where the locale codepage is not UTF-8. Linux / macOS hosts generally default to UTF-8 already and so do not reproduce the crash, but routing through `run_text` keeps the behavior identical across platforms.
+
+Reference: AGENTS.md `## Safe subprocess capture (#1366)`. Recurrence record: the #1166 swarm session repeatedly observed `Thread-3 (_readerthread) UnicodeDecodeError` across multiple gh-shelling tools; #1366 is the structural fix.
+
 ## 4. pre-pr and review-cycle skills
 
 Before pushing any branch:
