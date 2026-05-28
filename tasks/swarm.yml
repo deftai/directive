@@ -12,3 +12,22 @@ tasks:
     cmds:
       # Keep CLI_ARGS bare; go-task shell-escapes pass-through args and quoting breaks globs/multi-arg calls.
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/swarm_readiness.py" {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
+  # swarm:verify-review-clean -- cohort-level CLEAN verification gate (#1364).
+  # Mandate the monitor invokes this after Phase 6 pollers report and BEFORE
+  # the Phase 5 -> 6 merge discussion. Re-uses the Greptile rolling-summary
+  # parser from scripts/pr_merge_readiness.py so the per-PR merge gate and
+  # the cohort gate stay in lockstep -- a parser fix lands in both surfaces
+  # at once. The companion script writes its own diagnostics; this Taskfile
+  # target just forwards CLI_ARGS bare per the established convention.
+  #
+  # Companion script: scripts/swarm_verify_review_clean.py
+  # Companion test:   tests/cli/test_swarm_verify_review_clean.py
+  # Skill citation:   skills/deft-directive-swarm/SKILL.md Phase 5 Exit Condition + Phase 5 -> 6 gate
+  verify-review-clean:
+    desc: "Verify EVERY PR in a swarm cohort is CLEAN on current HEAD (confidence > 3, no P0/P1, not errored) before raising the Phase 5 -> 6 merge gate (#1364)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/swarm_verify_review_clean.py" {{.CLI_ARGS}}

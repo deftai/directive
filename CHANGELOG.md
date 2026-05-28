@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(scripts,tasks,skills,templates): `task swarm:verify-review-clean` cohort gate before Phase 5→6 (#1364)** -- swarm monitors now have a deterministic cohort-level CLEAN gate that holds the Phase 5→6 merge discussion until every PR in the cohort is objectively CLEAN on its current HEAD (SHA match + confidence > 3 + zero P0/P1 + not errored). The new `scripts/swarm_verify_review_clean.py` re-uses the Greptile rolling-summary parser from `scripts/pr_merge_readiness.py` so the per-PR merge gate and the cohort gate stay in lockstep; three-state exit (0 clean / 1 unclean with per-PR diagnostics / 2 config error). The swarm SKILL Phase 5 Exit Condition + Phase 5→6 gate now cite the verifier, a new anti-pattern forbids keying the merge transition on poller-lifecycle completion alone, and the poller template's (1) CLEAN section declares the exact subject line + `confidence > 3` on current HEAD as the only acceptable swarm-cycle review-complete signal. Closes #1364.
 
 ### Changed
 
