@@ -350,6 +350,27 @@ Agents execute on remote VMs without local MCP servers, codebase indexing, or Wa
 - ~ Check each agent's worktree every 2–3 minutes: `git status --short` and `git log --oneline -3`
 - ~ After 5 minutes with no changes, check if the agent process is still running
 
+### Heartbeat liveness check (#1365)
+
+! On the Grok Build hybrid path (`spawn_subagent` dispatch, no native lifecycle channel back to the monitor), worktree git state alone is INSUFFICIENT to distinguish a healthy mid-poll sub-agent from a stalled one. Long-running review-cycle pollers spend most of their wall-clock waiting on Greptile and emit no commits during that wait -- the #1166 swarm session is the recurrence record (two of three dispatched pollers went silent with zero observable signals; the monitor could not tell).
+
+! The canonical alive-check on the Grok Build hybrid path is the heartbeat contract documented in `docs/subagent-heartbeat.md`. Every long-running sub-agent (pollers, watchdogs, implementation agents whose tool loop exceeds ~3 min) writes a JSON heartbeat to `.deft-scratch/subagent-status/<agent-id>.json` per the canonical poller template + agent preamble; the monitor reads those records via `scripts/subagent_monitor.py` (three-state exit 0 ok / 1 stale-or-malformed / 2 config error). Default threshold is 30 minutes; `--threshold-minutes` overrides.
+
+```pwsh path=null start=null
+# Scan all worktrees in the cohort
+uv --project . run python scripts/subagent_monitor.py \
+  --scratch-dir <worktree-1>/.deft-scratch/subagent-status \
+  --scratch-dir <worktree-2>/.deft-scratch/subagent-status
+```
+
+! Run the heartbeat sweep alongside the worktree git checks at every monitor polling iteration (~2-3 min). When a record is reported STALE (mid-flight, terminal_state unpopulated, age > threshold), treat it as a candidate for the Takeover Triggers below; when it is reported MALFORMED, surface the diagnostics to the user and re-dispatch the agent with a fresh prompt that re-establishes the heartbeat contract. A TERMINAL record (terminal_state set) is NEVER stale -- the agent reached its exit on its own terms.
+
+~ The heartbeat is filesystem-only by design; a network partition or rate-limit ceiling cannot mask agent liveness. Pair the on-disk sweep with the worktree git checks (`git status --short`, `git log --oneline -3`) and the per-PR readiness gate (`task pr:merge-ready`) for the full alive + progressing + clean picture.
+
+⊗ Spawn a replacement sub-agent for a worktree where the heartbeat record reports OK or TERMINAL -- the agent is alive (or finished cleanly) and a replacement would re-trigger the Duplicate-Agent Failure Mode below.
+
+⊗ Treat the absence of a `.deft-scratch/subagent-status/<agent-id>.json` record on the Grok Build hybrid path as "agent is alive but quiet" -- a sub-agent that never wrote a heartbeat is either pre-startup (acceptable for the first ~30s) OR violated the contract (treat as stalled and verify via worktree state before any replacement decision).
+
 ### Checkpoints
 
 Track each agent through these stages:
@@ -467,6 +488,8 @@ All PRs meet ALL of:
 ### Sub-Agent Role Separation (#727)
 
 ! **Post-PR sub-agents are review-cycle agents (#727):** Sub-agents addressing review findings, waiting for re-review, and iterating to clean MUST embody `skills/deft-directive-review-cycle/SKILL.md` end-to-end as a single coherent role. Do NOT split the review-cycle into separate "poll" and "fix" agents -- pollers that spawn separate fix agents create cross-agent state-handoff hazards and double the chance of an agent exiting at the wrong lifecycle boundary.
+
+! **Sub-agents MUST emit a heartbeat (#1365):** every long-running review-cycle / poller sub-agent dispatched under Phase 6 MUST write a heartbeat record to `.deft-scratch/subagent-status/<agent-id>.json` per the contract in `docs/subagent-heartbeat.md`. The canonical poller template (`templates/swarm-greptile-poller-prompt.md` bounded poll loop) already encodes the per-iteration heartbeat write and the final terminal heartbeat, and the canonical orchestrator preamble (`templates/agent-prompt-preamble.md` § 10.5) restates the contract for any non-poller long-running sub-agent. The monitor watches via `scripts/subagent_monitor.py` -- see Phase 4 Heartbeat liveness check. Without the heartbeat, a `spawn_subagent`-dispatched poller that stalls is indistinguishable from a healthy mid-poll one (the #1166 recurrence).
 
 ! **Post-PR monitoring runs in a fresh sub-agent (#727):** Post-PR monitoring (Greptile, CI checks, downloadCount drift, lifecycle events, etc.) MUST be done by spawning a fresh short-lived sub-agent via the platform adapter's dispatch primitive for the detected runtime (e.g. `spawn_subagent` when the Grok Build / non-Warp platform is active, `start_agent` for Warp-orchestrated environments). The parent yields with no tool calls and waits for the sub-agent's messages -- this preserves conversation steerability so the user can interrupt or redirect while the watch is pending. The platform adapter (introduced in slices 1-3 of #1342) supplies the appropriate async callback channel and spawn surface per the runtime capability detection matrix; every Taskfile / shell-sleep / `time.sleep` / synchronous tool-call alternative blocks the parent's turn for the duration of the watch.
 

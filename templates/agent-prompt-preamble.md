@@ -165,6 +165,22 @@ Workers must therefore be all-or-nothing on their dispatch envelope. Approval ga
 
 Reference: scope-expansion comment 4399553752 on issue #954.
 
+## 10.5 Heartbeat contract (#1365)
+
+Long-running `spawn_subagent` review-cycle agents on the Grok Build hybrid swarm path can go completely dark from the monitor's perspective -- no commits, no PR comments, no completion notifications. The #1166 swarm session demonstrated the failure mode: two of three dispatched pollers produced zero observable signals; the monitor could not distinguish stalled from healthy.
+
+The heartbeat contract closes that gap. Any sub-agent whose tool loop is expected to run for more than ~3 minutes (review-cycle pollers, watchdogs, long-running implementation agents) MUST emit a small JSON heartbeat at `<project-root>/.deft-scratch/subagent-status/<agent-id>.json` per `docs/subagent-heartbeat.md`.
+
+The contract in one paragraph:
+
+- Write a heartbeat IMMEDIATELY on startup (`phase: "starting"`).
+- Re-write the heartbeat at minimum every 2-3 minutes during normal operation. The canonical poller template's 90s poll cadence satisfies this for free -- one heartbeat per poll iteration.
+- Write a FINAL heartbeat right before exiting with `phase: "terminal"` and `terminal_state` populated with the canonical exit name (`CLEAN` / `ERRORED` / `TIMEOUT` / `STALL` / `FAILED` / `BLOCKED`). The terminal heartbeat is what tells the monitor "finished cleanly" vs "went silent".
+- The record is JSON with at least `agent_id` (matches filename), `parent_id`, `last_heartbeat_at` (ISO-8601 UTC, `Z`-suffix), `last_message` (one human-readable line), `phase` (one of `starting | implementing | validating | committing | pushing | polling | fixing | terminal`), and optional `terminal_state`.
+- Writes MUST be atomic (write-to-temp + rename) so the monitor never reads a half-written file.
+
+The parent monitor watches via `scripts/subagent_monitor.py` (three-state exit 0 ok / 1 stale-or-malformed / 2 config error). Skipping the heartbeat is a hard `⊗` for any long-running sub-agent: a stalled agent with no heartbeat surface is the exact #1166 failure mode this contract closes.
+
 ## 11. Mandatory DONE message even on early exit
 
 Every worker MUST send a final status message before exiting its tool loop, regardless of outcome:

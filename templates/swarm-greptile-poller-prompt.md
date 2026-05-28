@@ -56,6 +56,7 @@ DO NOT STOP until ONE of the five terminal exit conditions below fires.
 - Poll interval: `{poll_interval_seconds}` seconds between checks (recommended default 90s -- Greptile reviews land in 3-7 min, so faster polling adds noise without information).
 - Total budget: `{poll_cap_minutes}` minutes (recommended default 30 min).
 - Use a Python script with `time.sleep(...)` driven by an internal timer -- do NOT use shell `while true; sleep`-style loops, and do NOT yield between polls (yielding ends the agent's turn with no self-wake; #195 lesson).
+- **Heartbeat write per iteration (#1365):** every poll iteration MUST also atomically write a heartbeat record to `.deft-scratch/subagent-status/<agent-id>.json` per the contract in `docs/subagent-heartbeat.md`. The record carries `agent_id`, `parent_id` (= `{parent_agent_id}`), `last_heartbeat_at` (ISO-8601 UTC with `Z`), `last_message`, `phase = "polling"` (or `"fixing"` when addressing P0/P1 findings), and `terminal_state = null`. The terminal exit conditions ((1) CLEAN / (2) NEW P0/P1 FINDINGS escalation / (3) ERRORED / (4) TIMEOUT / (5) STALL) MUST also write ONE final heartbeat with `phase = "terminal"` and `terminal_state` set to the canonical exit name BEFORE sending the parent message and exiting. The 90s poll cadence naturally satisfies the 2-3 min cadence floor in `docs/subagent-heartbeat.md`; the per-iteration heartbeat is what lets `scripts/subagent_monitor.py` detect a stalled poller within the threshold instead of waiting on the `{poll_cap_minutes}`-minute cap.
 
 ## Per-poll fetch
 
