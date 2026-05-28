@@ -520,11 +520,34 @@ def render_text(result: SweepResult) -> str:
     else:
         stale = sum(1 for r in result.records if r.is_stale)
         malformed = sum(1 for r in result.records if r.failures)
-        lines.append(
-            f"Result: ATTENTION -- {stale} stale, {malformed} malformed "
-            f"record(s). Inspect diagnostics above and either re-dispatch "
-            f"the stalled agent(s) or take over manually."
-        )
+        dir_errors = len(result.sweep_errors)
+        # When the only blocker is a directory-load failure but every
+        # record present is healthy, surface that as a CONFIG remediation
+        # rather than "re-dispatch stalled agents" -- the misleading
+        # phrasing was flagged on the #1375 review (the previous
+        # ``ATTENTION -- 0 stale, 0 malformed`` line pushed the operator
+        # at the wrong fix surface; the real action is to verify the
+        # scratch-dir paths). The two failure modes -- agents-actually-
+        # stale-or-malformed vs scratch-dir-unreadable -- now produce
+        # distinct, actionable summary lines.
+        if dir_errors and not stale and not malformed:
+            healthy = len(result.records)
+            lines.append(
+                f"Result: ATTENTION -- {dir_errors} scratch dir "
+                f"error(s); {healthy} record(s) healthy. Verify each "
+                f"--scratch-dir path; correct the misconfigured or "
+                f"missing directories surfaced above."
+            )
+        else:
+            dir_tail = (
+                f", {dir_errors} scratch dir error(s)" if dir_errors else ""
+            )
+            lines.append(
+                f"Result: ATTENTION -- {stale} stale, {malformed} "
+                f"malformed record(s){dir_tail}. Inspect diagnostics "
+                f"above and either re-dispatch the stalled agent(s) "
+                f"or take over manually."
+            )
     return "\n".join(lines)
 
 

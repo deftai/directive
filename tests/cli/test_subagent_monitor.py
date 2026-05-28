@@ -489,6 +489,46 @@ class TestMultiScratchDir:
         assert "agent-a -- OK" in out
         assert "agent-b -- OK" in out
 
+    def test_dir_errors_with_healthy_records_yield_actionable_summary(
+        self, tmp_path, capsys
+    ):
+        """When sweep_errors coexist with healthy records, the summary line
+        MUST point the operator at scratch-dir paths, not at stalled agents.
+
+        Greptile P1 on PR #1375 (#1365): the previous code printed
+        ``ATTENTION -- 0 stale, 0 malformed record(s). Inspect diagnostics
+        above and either re-dispatch the stalled agent(s) or take over
+        manually.`` for the case where one --scratch-dir was missing but
+        another carried healthy records. The recovery advice was wrong
+        (no agents are actually stalled; the misconfigured path is the
+        issue). The fix surfaces a CONFIG-flavoured summary that names
+        the directory-error count and points the operator at the
+        --scratch-dir flags.
+        """
+        worktree_a = tmp_path / "worktree-a" / "subagent-status"
+        missing = tmp_path / "worktree-b" / "does-not-exist"
+        _write_record(worktree_a, "agent-healthy", minutes_ago=1.0)
+        rc = sam.main([
+            "--scratch-dir",
+            str(worktree_a),
+            "--scratch-dir",
+            str(missing),
+        ])
+        # Mixed-state: healthy record found AND a missing scratch dir.
+        # The latter is the only blocker, so we exit STALE (not config
+        # error -- config error is reserved for "no records anywhere").
+        assert rc == sam.EXIT_STALE
+        out = capsys.readouterr().out
+        assert "agent-healthy -- OK" in out
+        # The new actionable summary names the directory-error count
+        # and the --scratch-dir surface.
+        assert "scratch dir error(s)" in out
+        assert "1 record(s) healthy" in out
+        assert "--scratch-dir path" in out
+        # And the OLD misleading wording is GONE for this state.
+        assert "0 stale, 0 malformed" not in out
+        assert "re-dispatch the stalled agent(s)" not in out
+
     def test_one_stale_in_two_worktrees_blocks(self, tmp_path, capsys):
         worktree_a = tmp_path / "worktree-a" / "subagent-status"
         worktree_b = tmp_path / "worktree-b" / "subagent-status"
