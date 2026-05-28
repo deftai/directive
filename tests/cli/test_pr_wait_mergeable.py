@@ -457,6 +457,50 @@ class TestMergeFailureAndSiblingMerge:
         assert result.outcome == "merged-by-sibling"
         # No double-merge attempt.
         assert merge_fn.calls == []
+        # Critical (Greptile P2 on PR #1377): a SUCCESS path (exit_code
+        # 0) MUST NOT carry a non-None ``error`` field. A consumer
+        # parsing the JSON envelope and seeing ``exit_code: 0`` AND
+        # ``error: "monitor exited 3 ..."`` would treat the two fields
+        # as self-contradictory.
+        assert result.error is None
+        envelope = result.to_dict()
+        assert envelope["exit_code"] == 0
+        assert "error" not in envelope  # to_dict() omits None error
+
+    def test_gh_missing_at_merge_stage_exits_two_not_one(self):
+        # Greptile P1 on PR #1377: ``run_gh_merge`` returns rc=-1 on
+        # FileNotFoundError (gh CLI not installed) AND on TimeoutExpired
+        # (gh wrapper failed at OS layer). Both are CONFIGURATION
+        # errors -- the gate cannot run -- and MUST surface as exit 2,
+        # NOT exit 1. Automated callers keying on exit 2 to skip
+        # retries (vs exit 1 = "try again later") would loop
+        # indefinitely on a host where gh is permanently absent if
+        # this mapped to exit 1. Mirrors the rc=-1 contract that
+        # ``run_protected_check`` already upholds.
+        protected_fn = _make_protected_fn(returncode=0)
+        monitor_fn = _make_monitor_fn(returncode=0, payload=_clean_monitor_payload())
+        merge_fn = _make_merge_fn(
+            returncode=-1,
+            stderr="gh CLI not found. Install GitHub CLI.",
+        )
+
+        result = pwm.wait_mergeable_and_merge(
+            pr_number=1370,
+            repo="deftai/directive",
+            cap_minutes=30,
+            protected=[],
+            protected_fn=protected_fn,
+            monitor_fn=monitor_fn,
+            merge_fn=merge_fn,
+        )
+
+        assert result.exit_code == pwm.EXIT_CONFIG_ERROR
+        assert result.outcome == "config-error"
+        assert merge_fn.calls == [(1370, "deftai/directive")]
+        assert "gh pr merge wrapper failed at OS layer" in (result.error or "")
+        # Stderr from the wrapper survives so a parent monitor can
+        # surface the canonical "gh CLI not found" message.
+        assert "gh CLI not found" in (result.error or "")
 
 
 # ---------------------------------------------------------------------------

@@ -515,6 +515,21 @@ def wait_mergeable_and_merge(
 
     if outcome != "clean":
         # cap-reached, pr-closed, config-error, merged-by-sibling.
+        # The merged-by-sibling outcome is a SUCCESS path (exit_code 0)
+        # even though it lives in the non-clean branch, so it MUST NOT
+        # carry an ``error`` string -- a downstream consumer parsing the
+        # JSON envelope sees ``exit_code: 0`` and would treat a non-None
+        # ``error`` field as a self-contradiction (Greptile P2 finding
+        # on PR #1377).
+        if monitor_exit == EXIT_MERGED:
+            error_payload: str | None = None
+        else:
+            error_payload = (
+                f"monitor exited {mon_rc} (outcome={outcome}). "
+                f"stderr tail: {mon_stderr.strip()[-200:]}"
+                if mon_stderr.strip()
+                else f"monitor exited {mon_rc} (outcome={outcome})"
+            )
         return WaitMergeableResult(
             pr_number=pr_number,
             repo=repo,
@@ -522,12 +537,7 @@ def wait_mergeable_and_merge(
             exit_code=monitor_exit,
             monitor_result=monitor_payload,
             protected_check=protected_check_payload,
-            error=(
-                f"monitor exited {mon_rc} (outcome={outcome}). "
-                f"stderr tail: {mon_stderr.strip()[-200:]}"
-                if mon_stderr.strip()
-                else f"monitor exited {mon_rc} (outcome={outcome})"
-            ),
+            error=error_payload,
         )
 
     # --- Step 3: Squash-merge --------------------------------------------
@@ -544,9 +554,37 @@ def wait_mergeable_and_merge(
             merge_stderr=merge_stderr,
         )
 
-    # gh pr merge failed -- could be a sibling rebase that landed in the
-    # freshness window, a branch-protection refusal, or a gh runtime
-    # error. The cascade goal was not reached; surface as escalation.
+    # gh pr merge failed. The ``run_gh_merge`` wrapper signals "gh
+    # binary missing" (FileNotFoundError) and "gh runtime/IO timeout"
+    # by returning ``returncode == -1`` -- these are CONFIGURATION
+    # errors (the cascade gate cannot run), NOT merge-time escalations,
+    # and MUST surface as EXIT_CONFIG_ERROR per the documented
+    # three-state contract so automated callers keying on exit 2 to
+    # skip retries do not loop indefinitely (Greptile P1 finding on
+    # PR #1377). Mirrors ``run_protected_check``'s rc=-1 path that
+    # already collapses to EXIT_CONFIG_ERROR a few lines above.
+    if merge_rc == -1:
+        return WaitMergeableResult(
+            pr_number=pr_number,
+            repo=repo,
+            outcome="config-error",
+            exit_code=EXIT_CONFIG_ERROR,
+            monitor_result=monitor_payload,
+            protected_check=protected_check_payload,
+            merge_stdout=merge_stdout,
+            merge_stderr=merge_stderr,
+            error=(
+                f"gh pr merge wrapper failed at OS layer (rc=-1). "
+                f"stderr: {merge_stderr.strip()[-200:]}"
+                if merge_stderr.strip()
+                else "gh pr merge wrapper failed at OS layer (rc=-1)."
+            ),
+        )
+
+    # Non-zero non-sentinel exit -- sibling rebase landed in the
+    # freshness window, branch-protection refusal, network blip mid-
+    # merge, etc. The cascade goal was not reached but a retry MAY
+    # succeed; surface as escalation (exit 1).
     return WaitMergeableResult(
         pr_number=pr_number,
         repo=repo,
