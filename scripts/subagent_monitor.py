@@ -260,6 +260,30 @@ def parse_heartbeat_file(
     if missing:
         rec.failures.append(f"missing required field(s): {', '.join(missing)}")
 
+    # Required-field TYPE check. The presence check above only tests that
+    # the key exists (`f not in payload`), so a payload like
+    # ``{"last_heartbeat_at": null, ...}`` or
+    # ``{"last_heartbeat_at": 1716906470, ...}`` passes the presence gate
+    # while the downstream ``isinstance(..., str)`` guards silently skip
+    # the field assignment WITHOUT recording a failure. The record's
+    # ``.ok`` then evaluates to True and the monitor reports ALL ALIVE
+    # for an agent whose timestamp / id / phase is structurally invalid.
+    # Surface the type gap explicitly so writers cannot silently emit a
+    # broken record (Greptile review, #1365). All five REQUIRED_FIELDS
+    # are declared as strings in docs/subagent-heartbeat.md, so a
+    # non-string value is a schema violation regardless of which field.
+    wrong_type = [
+        f for f in REQUIRED_FIELDS
+        if f in payload and not isinstance(payload[f], str)
+    ]
+    if wrong_type:
+        types = ", ".join(
+            f"{f}={type(payload[f]).__name__}" for f in wrong_type
+        )
+        rec.failures.append(
+            f"required field(s) must be string, got: {types}"
+        )
+
     # Populate fields opportunistically even when malformed -- the operator
     # benefits from seeing whatever partial state is present (e.g. agent_id
     # parsed but timestamp invalid).

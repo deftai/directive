@@ -366,6 +366,45 @@ class TestMalformedRecord:
         assert "agent-localtz -- MALFORMED" in out
         assert "ISO-8601 UTC" in out
 
+    def test_required_field_wrong_type_flags_malformed(self, tmp_path, capsys):
+        """Required string fields that hold null / non-string values MUST be
+        surfaced as MALFORMED.
+
+        Greptile review on #1375 (#1365): the original implementation
+        only checked key PRESENCE in ``payload`` and then silently skipped
+        the downstream ``isinstance(..., str)`` assignment for non-string
+        values. That left the record's ``.ok`` property evaluating to
+        ``True`` for an agent whose ``last_heartbeat_at`` was an integer
+        epoch or JSON ``null`` -- a structurally broken record
+        masquerading as ALL ALIVE. The fix appends an explicit
+        "required field(s) must be string" failure so writers cannot
+        emit a broken record without the monitor surfacing it.
+        """
+        scratch = tmp_path / "subagent-status"
+        _write_record(
+            scratch,
+            "agent-typed-bad",
+            payload_override={
+                "agent_id": "agent-typed-bad",
+                "parent_id": "parent",
+                # Integer epoch instead of ISO-8601 string -- the exact
+                # silent-pass mode Greptile flagged.
+                "last_heartbeat_at": 1716906470,
+                # null instead of string -- second flavour of the same gap.
+                "last_message": None,
+                "phase": "polling",
+            },
+        )
+        rc = sam.main(["--scratch-dir", str(scratch)])
+        assert rc == sam.EXIT_STALE
+        out = capsys.readouterr().out
+        assert "agent-typed-bad -- MALFORMED" in out
+        assert "required field(s) must be string" in out
+        # Both bad fields surface together in one diagnostic (the failure
+        # collects all gaps so the operator sees the full picture).
+        assert "last_heartbeat_at=int" in out
+        assert "last_message=NoneType" in out
+
     def test_terminal_phase_without_terminal_state_flags_malformed(self, tmp_path):
         scratch = tmp_path / "subagent-status"
         _write_record(
