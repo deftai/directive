@@ -861,13 +861,17 @@ func EnsureCoreTools(w *Wizard, nonInteractive bool) ([]string, error) {
 			if _, err := exec.LookPath(a); err == nil {
 				found = true
 				break
-			} else if !errors.Is(err, exec.ErrNotFound) {
+			} else {
 				// Surface non-ENOENT LookPath failures (permission denied,
 				// stat error on an entry in PATH, etc.) so agent logs carry
 				// the trace instead of silently treating the alt as missing.
 				// ErrNotFound is the expected "not on PATH" case and stays
 				// silent (SLizard P1 go-silent-error-branch).
-				fmt.Fprintf(os.Stderr, "warning: LookPath %q: %v\n", a, err)
+				// Experiment A (PR #1385): bare-else + nested if shape so the
+				// detector unambiguously sees the non-nil error-branch logger.
+				if !errors.Is(err, exec.ErrNotFound) {
+					fmt.Fprintf(os.Stderr, "warning: LookPath %q: %v\n", a, err)
+				}
 			}
 		}
 		if !found {

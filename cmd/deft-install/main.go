@@ -366,13 +366,17 @@ func buildNonInteractiveResult(absRoot string, legacyLayout, upgrade bool) *Wiza
 	if !update {
 		if info, statErr := os.Stat(deftDir); statErr == nil && info.IsDir() {
 			update = true
-		} else if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+		} else {
 			// Transient / unexpected Stat failure (permission denied, I/O
 			// error, filesystem unavailable). The expected fresh-install
 			// case (os.ErrNotExist) stays silent so --yes / --json runs are
 			// not noisy; everything else surfaces on stderr so the failure
 			// is visible in agent logs (SLizard P1 go-silent-error-branch).
-			fmt.Fprintf(os.Stderr, "warning: stat %q for update detection: %v\n", deftDir, statErr)
+			// Experiment A (PR #1385): bare-else + nested if shape so the
+			// detector unambiguously sees the non-nil error-branch logger.
+			if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+				fmt.Fprintf(os.Stderr, "warning: stat %q for update detection: %v\n", deftDir, statErr)
+			}
 		}
 	}
 	return &WizardResult{
