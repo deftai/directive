@@ -132,10 +132,7 @@ def _running_inside_deft_repo(project_root: Path) -> bool:
         return False
     if (project_root / ".deft" / "core").is_dir():
         return False
-    for marker in _DEFT_REPO_POSITIVE_MARKERS:
-        if not (project_root / marker).is_file():
-            return False
-    return True
+    return all((project_root / marker).is_file() for marker in _DEFT_REPO_POSITIVE_MARKERS)
 
 
 def _now_utc() -> datetime:
@@ -160,8 +157,10 @@ def ask_confirm(prompt_text: str, default: bool = False) -> bool:
         return default
 
 
-# read_yn alias expected by extracted code
-read_yn = ask_confirm
+# Note: read_yn is defined later (full implementation ported from agent1's
+# eda1702 commit -- handles EOFError/KeyboardInterrupt explicitly). The
+# earlier `read_yn = ask_confirm` alias was removed because it shadowed the
+# more complete later definition and tripped ruff F811.
 
 
 def _agents_refresh_plan(project_root: Path) -> dict:
@@ -1528,7 +1527,7 @@ def _run_payload_staleness_check(
             remote_sha = peeled_sha
         elif not remote_sha:
             # last-resort: first token of first line
-            first_line = next((l for l in proc.stdout.splitlines() if l.strip()), "")
+            first_line = next((ln for ln in proc.stdout.splitlines() if ln.strip()), "")
             parts = first_line.strip().split()
             if parts:
                 remote_sha = parts[0]
