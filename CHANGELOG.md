@@ -16,8 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Installer (`cmd/deft-install`) now calls `scripts/doctor.py --session --json` at the very end of every successful install/update (deterministic handoff for agents and humans). Doctor reads the `<install>/VERSION` manifest and, when the recorded sha lags the remote ref, surfaces a clear recommendation: "Framework payload is stale ... re-run the installer to pull the latest payload." Closes #1339 (Epic-5 of #1334).
+
 ### Changed
 - Doctor surfaces consolidated under single implementation: `scripts/doctor.py` now owns the core doctor logic (install-integrity checks + diagnostics). `run doctor` and `task doctor` are thin shims; `--session` mode supports gate callers. Legacy `framework_doctor.py`, `_maybe_run_framework_doctor` hook, and `task framework:doctor` fully retired (no production imports or calls remain). Closes #1335, #1336.
+- Documentation / skills / agent guidance collapsed to the unified installer + doctor path (#1340 Epic-6): AGENTS.md + template, README, UPGRADING.md, and `deft-directive-sync` skill now direct agents to the published installer binary as the canonical (re)bootstrap mechanism, with the automatic doctor --session --json handoff providing staleness detection and next-step recommendations. Old paths (git submodule, `run upgrade`, legacy doctor surfaces) de-emphasized and marked legacy. Clear agent examples provided. Closes #1340.
 
 ### Fixed
 

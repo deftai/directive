@@ -39,6 +39,8 @@ Download the installer for your platform from [GitHub Releases](https://github.c
 > **📢 Cloned manually (no installer)?** Tell your agent: `Read deft/QUICK-START.md and follow it.` It creates your project's `AGENTS.md` and starts the setup flow automatically.
 
 > **🔄 Upgrading from a previous version?** Read [UPGRADING.md](./UPGRADING.md) before proceeding. **Agents:** ! Read [UPGRADING.md](./UPGRADING.md) on the first session after a framework update.
+>
+> **Canonical path (Epic-5/6 #1339 #1340):** The published installer binary is the single deterministic entrypoint for install and update. At the end of a successful run it invokes `scripts/doctor.py --session --json`; the doctor reads the `<install>/VERSION` manifest and emits a clear recommendation to "re-run the installer" when the payload is stale. Old paths (submodule, `run upgrade`, legacy doctor surfaces) are de-emphasized/legacy. See the installer-doctor handoff and collapsed guidance in the linked epics.
 
 > **📦 Brownfield adoption:** Adding Deft to an existing project with pre-v0.20 `SPECIFICATION.md` / `PROJECT.md`? See [docs/BROWNFIELD.md](./docs/BROWNFIELD.md) for the migration path (`task migrate:vbrief`) and what to expect.
 

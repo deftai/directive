@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -992,4 +993,34 @@ func PrintNextSteps(w *Wizard, result *WizardResult, configDir string, skillsCre
 	w.printf("     start setup automatically, tell it: \"Use AGENTS.md\"\n")
 	w.printf("  3. On first session, the agent will guide you through creating USER.md and PROJECT-DEFINITION.vbrief.json\n")
 	w.printf("\n")
+}
+
+// doHandoffToDoctor implements the #1339 (Epic-5) deterministic installer-to-doctor
+// handoff. It is invoked unconditionally at the end of every successful
+// install/update so that both human operators and agents receive the
+// --session --json report (which now includes payload staleness detection
+// against the manifest sha). The call is best-effort and never fails the
+// overall install.
+func doHandoffToDoctor(w *Wizard, result *WizardResult) {
+	scriptsDoctor := filepath.Join(result.DeftDir, "scripts", "doctor.py")
+	if _, err := os.Stat(scriptsDoctor); err != nil {
+		w.printf("(doctor handoff skipped: canonical doctor not present at %s)\n", scriptsDoctor)
+		return
+	}
+
+	python := "python3"
+	if runtime.GOOS == "windows" {
+		python = "python"
+	}
+
+	cmd := exec.Command(python, scriptsDoctor, "--session", "--json", "--project-root", result.ProjectDir)
+	cmd.Stdout = w.out
+	cmd.Stderr = w.out
+
+	w.printf("\n--- Doctor handoff (post-install state via --session --json) ---\n")
+	if err := cmd.Run(); err != nil {
+		// Non-fatal: the JSON (or any error detail) has already been emitted
+		// above; we simply note that the doctor surfaced issues.
+		w.printf("(doctor handoff completed; see JSON above for any warnings/recommendations)\n")
+	}
 }

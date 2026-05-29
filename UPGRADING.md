@@ -8,6 +8,27 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
+## Canonical installer + doctor handoff (v0.37+ / Epic-5+6 #1339 #1340)
+
+**The single supported path for humans and agents:**
+
+1. Download and run the platform-specific installer binary from GitHub Releases (or the webinstaller).
+2. The installer writes the payload + manifest + AGENTS.md + skills, then **deterministically calls `scripts/doctor.py --session --json`** at the end.
+3. Doctor (now the single owner of all health/install-integrity/staleness logic) reads the `<install>/VERSION` manifest and, when the recorded sha lags the remote ref, emits a **clear recommendation**: "Framework payload is stale ... Recommendation: re-run the installer ... to pull the latest payload."
+4. On subsequent sessions `task doctor` / `run doctor` (thin shims to the canonical `scripts/doctor.py`) continue to surface the same guidance.
+
+**Legacy paths (de-emphasized / marked legacy):**
+- `task framework:doctor`, `run doctor` direct old shims, `scripts/framework_doctor.py` (retired #1336)
+- `task upgrade` / `run upgrade` / `run install --force` as primary update verbs (still work for back-compat but the installer binary + doctor handoff is the documented surface)
+- Manual git submodule updates or cloning `deft/` by hand (the installer is the reproducible, manifest-stamped mechanism)
+- Old AGENTS.md thin pointers and upgrade prose that pre-date the unified handoff
+
+All documentation (README, AGENTS.md, this file, `deft-directive-sync` skill) now points agents at the installer → doctor handoff as the authoritative flow. Old sections below are retained for migration archaeology only.
+
+---
+
+---
+
 <!-- 1046-prb: From v0.27.x -> v0.28 install-manifest transition BEGIN -->
 ## From v0.27.x -> v0.28 (canonical install manifest at `<install>/VERSION`)
 

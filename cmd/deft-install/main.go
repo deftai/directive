@@ -222,6 +222,14 @@ func install(debug bool, branch string, legacyLayout bool) int {
 	}
 
 	PrintNextSteps(w, result, configDir, skillsCreated)
+
+	// #1339 (Epic-5): Installer → Doctor handoff + payload staleness detection.
+	// The installer invokes the canonical doctor (scripts/doctor.py) with
+	// --session --json at the end of every successful run. This makes the
+	// handoff deterministic for agents, surfaces manifest-based staleness
+	// recommendations ("run the installer again"), and keeps humans/agents
+	// on the unified post-install guidance path.
+	doHandoffToDoctor(w, result)
 	return 0
 }
 
