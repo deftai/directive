@@ -128,6 +128,38 @@ def deft_run_module(deft_module):
     return sys.modules["deft_run"]
 
 
+@pytest.fixture(scope="session")
+def doctor_module():
+    """Load scripts/doctor.py -- the canonical doctor implementation (#1335).
+
+    After the Epic-1 extraction, the doctor helpers (``_classify_taskfile_include``,
+    ``_TASKFILE_INCLUDE_SNIPPET``, ``_includes_block_has_deft_taskfile``,
+    ``read_yn``, ``HAS_RICH`` for the doctor surface, etc.) live in
+    ``scripts/doctor.py``. Tests that previously poked at these symbols on
+    the ``run`` (deft_run) module MUST target this fixture instead, because
+    the ``run::cmd_doctor`` shim defers to ``scripts/doctor.py`` and the
+    extracted helpers' globals resolve under the ``doctor`` module's
+    namespace -- monkeypatching ``deft_run`` is invisible to the running
+    code after Epic-1.
+
+    Registers the loaded module as ``sys.modules["doctor"]`` so the
+    ``run::cmd_doctor`` shim's ``import doctor`` picks up the same object
+    the tests are patching (otherwise the shim would re-load a fresh copy
+    via sys.path and the patches would be silently invisible).
+    """
+    import importlib.util
+    from pathlib import Path as _Path
+
+    if "doctor" in sys.modules:
+        return sys.modules["doctor"]
+    doctor_py = _Path(__file__).parent.parent / "scripts" / "doctor.py"
+    spec = importlib.util.spec_from_file_location("doctor", doctor_py)
+    module = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+    sys.modules["doctor"] = module
+    spec.loader.exec_module(module)  # type: ignore[union-attr]
+    return module
+
+
 @pytest.fixture
 def isolated_env(tmp_project_dir: Path, monkeypatch: pytest.MonkeyPatch):
     """Combine tmp_project_dir with env var overrides for CLI isolation.
