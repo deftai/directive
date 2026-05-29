@@ -32,7 +32,8 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCRIPT_PATH = REPO_ROOT / "scripts" / "doctor.py"  # canonical owner per #1335/#1336 (framework_doctor.py retired)
+# canonical owner per #1335/#1336 (framework_doctor.py retired)
+SCRIPT_PATH = REPO_ROOT / "scripts" / "doctor.py"
 
 
 def _load_module():
@@ -204,6 +205,43 @@ class TestSkillPathsResolve:
         check = next(c for c in result["checks"] if c["name"] == "skill-paths-resolve")
         assert check["status"] == "fail"
         assert check["data"]["redirect_stubs"]
+
+    def test_legacy_stub_with_preamble_still_detected_as_redirect(self, fd, tmp_path):
+        """Regression: legacy stub with preamble before sentinel (within header window)
+        must still be flagged (covers the 'legacy stub with preamble fails' case
+        from dbcall2 cross-PR note on #1383 behavior).
+        """
+        _write_agents_md(tmp_path)
+        install = _write_install_tree(tmp_path, skills=("deft-directive-setup",))
+        stub_path = install / "skills" / "deft-directive-setup" / "SKILL.md"
+        # Preamble (e.g. heading) then sentinel within first 200 chars.
+        stub_path.write_text(
+            "# Legacy\n<!-- deft:deprecated-skill-redirect -->\nRedirecting...\n",
+            encoding="utf-8",
+        )
+        result = fd.run_checks(tmp_path)
+        check = next(c for c in result["checks"] if c["name"] == "skill-paths-resolve")
+        assert check["status"] == "fail"
+        assert "deft-directive-setup" in str(check["data"].get("redirect_stubs", []))
+
+    def test_real_skill_mentioning_sentinel_in_body_passes(self, fd, tmp_path):
+        """Regression: a real (non-stub) skill file that merely quotes a sentinel
+        string deep in its prose (after the 200-char header window) must NOT be
+        flagged as redirect stub (the exact #1321 false-positive case fixed in
+        #1383 and required for safe #1380 landing per dbcall2).
+        """
+        _write_agents_md(tmp_path)
+        install = _write_install_tree(tmp_path, skills=("deft-directive-setup",))
+        real_path = install / "skills" / "deft-directive-setup" / "SKILL.md"
+        # Header (no sentinel) + long prose that includes the token later.
+        # (Split to keep <100 cols per ruff E501.)
+        prefix = "Deft Skill\n\n" + ("x" * 250) + "\nExample: use "
+        body = prefix + "<!-- deft:deprecated-redirect --> only in stubs.\n"
+        real_path.write_text(body, encoding="utf-8")
+        result = fd.run_checks(tmp_path)
+        check = next(c for c in result["checks"] if c["name"] == "skill-paths-resolve")
+        assert check["status"] == "pass"
+        assert not check["data"].get("redirect_stubs")
 
 
 class TestManifestAgreement:

@@ -21,11 +21,13 @@ Story: #1335 / #1336 (paired in agent1 worktree).
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -34,6 +36,17 @@ from pathlib import Path
 # Rich is optional; fall back to plain prints. Mirrors run's top-level setup.
 
 HAS_RICH = False
+
+# Safe import of skill-redirect sentinel + window for the bounded exact-header
+# check in _check_skill_paths_resolve. This ports the #1383 / #1321 fix
+# (prevents re-introducing false positives when real skills quote the sentinel
+# in prose/docs after the first 200 chars). Falls back to the literal if the
+# sibling module is not importable in exotic exec contexts.
+try:
+    from _event_detect import DEPRECATED_SKILL_REDIRECT_SENTINEL  # type: ignore[import-not-found]
+except Exception:  # noqa: BLE001 -- graceful fallback
+    DEPRECATED_SKILL_REDIRECT_SENTINEL = "<!-- deft:deprecated-skill-redirect -->"
+_SKILL_SENTINEL_WINDOW = 200
 console = None
 Panel = None
 Markdown = None
@@ -196,6 +209,610 @@ VERSION = _resolve_version()
 
 # UV url constant (the _check_uv_available helper remains in run for other callers)
 UV_INSTALL_URL = "https://docs.astral.sh/uv/"
+
+# --- Install-integrity checks (ported from retired framework_doctor.py #1336) ---
+# Symbols (EXIT_*, run_checks, main, CheckResult, DoctorResult + 4 checks + impl)
+# are inserted below in small batches. Once complete, _run_install_integrity_checks
+# will delegate locally (no more self-import hack or double-scripts path).
+# This satisfies the Greptile P0 (missing symbols for tests + runtime NameError/AttributeError).
+# --- END PORTED CHECKS HEADER ---
+
+# --- Ported from framework_doctor.py: constants, regexes, dataclasses, low-level helpers ---
+EXIT_CLEAN = 0
+EXIT_DRIFT = 1
+EXIT_CONFIG_ERROR = 2
+
+
+# Marker contract -- mirrors run::_AGENTS_MANAGED_OPEN_RE. Kept inline so
+# this script stays pure-stdlib + cross-platform without importing run
+# (which has heavy import-time side effects).
+_AGENTS_MANAGED_OPEN_RE = re.compile(r"<!--\s*deft:managed-section\s+v(2|3)(?:\s+([^>]*?))?\s*-->")
+_AGENTS_MANAGED_CLOSE = "<!-- /deft:managed-section -->"
+
+# The canonical install-root declaration AGENTS.md carries one of:
+#   "Deft is installed in <root>/."
+#   "Full guidelines: <root>/main.md"
+# We parse both. The first match wins.
+_INSTALLED_IN_RE = re.compile(r"Deft is installed in\s+(\S+?)/?\.")
+_FULL_GUIDELINES_RE = re.compile(r"Full guidelines:\s+(\S+)/main\.md")
+
+# Pattern for referenced skill paths. Matches both ``deft/skills/<name>/SKILL.md``
+# (legacy) and ``.deft/core/skills/<name>/SKILL.md`` (canonical).
+_SKILL_PATH_RE = re.compile(r"(?P<root>[\w./-]+?)/skills/(?P<name>[a-z][\w-]*)/SKILL\.md")
+
+# Deprecation-redirect sentinels (#411 / cross-PR #1383 alignment for #1321).
+# Both variants are recognized in the *header window only* (first 200 chars)
+# when checking skill paths referenced from AGENTS.md. This prevents
+# false-positive "redirect stub" failures on real skills that merely quote
+# the sentinel string in body prose or examples (the exact failure mode
+# fixed in #1383 and re-introduced by the initial doctor.py port).
+# Legacy vbrief-style stubs use the first; real skill deprecation stubs use
+# the second (and must appear early per test_deprecated_skill_redirects.py).
+_DEPRECATED_REDIRECT_SENTINEL = "<!-- deft:deprecated-redirect -->"
+
+
+@dataclass
+class CheckResult:
+    """Outcome of a single doctor check.
+
+    ``status`` is one of:
+      * ``"pass"`` -- check succeeded; no action required.
+      * ``"fail"`` -- check failed; drift detected and operator action
+        is required.
+      * ``"skip"`` -- check was skipped because its precondition was
+        not met (e.g. manifest-agreement skips when neither file exists).
+      * ``"error"`` -- check could not run because of a config-level
+        problem (e.g. project root does not exist). Propagates to
+        exit code 2.
+    """
+
+    name: str
+    status: str
+    detail: str
+    data: dict = field(default_factory=dict)
+
+
+@dataclass
+class DoctorResult:
+    """Aggregated doctor outcome consumed by the CLI + gate hook."""
+
+    project_root: str
+    install_root: str | None
+    exit_code: int
+    checks: list[CheckResult]
+    errors: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "project_root": self.project_root,
+            "install_root": self.install_root,
+            "exit_code": self.exit_code,
+            "checks": [
+                {
+                    "name": c.name,
+                    "status": c.status,
+                    "detail": c.detail,
+                    "data": c.data,
+                }
+                for c in self.checks
+            ],
+            "errors": list(self.errors),
+        }
+
+
+# ---------------------------------------------------------------------------
+# Helpers (ported)
+# ---------------------------------------------------------------------------
+
+
+def _read_text_safe(path: Path) -> str | None:
+    """Best-effort UTF-8 read; returns None on OSError."""
+    if not path.is_file():
+        return None
+    try:
+        return path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+
+
+def _parse_install_root_from_agents_md(text: str) -> str | None:
+    """Return the install root AGENTS.md claims (e.g. ``.deft/core``).
+
+    Tries the ``Deft is installed in <root>/.`` form first, then falls back
+    to ``Full guidelines: <root>/main.md``. Returns None when neither matches.
+    Pure -- no I/O.
+    """
+    match = _INSTALLED_IN_RE.search(text)
+    if match:
+        return match.group(1).strip()
+    match = _FULL_GUIDELINES_RE.search(text)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def _extract_managed_section(text: str) -> str | None:
+    """Return the bracketed managed-section block, or None when markers are absent."""
+    normalised = text.replace("\r\n", "\n")
+    open_match = _AGENTS_MANAGED_OPEN_RE.search(normalised)
+    if open_match is None:
+        return None
+    open_idx = open_match.start()
+    close_idx = normalised.find(_AGENTS_MANAGED_CLOSE, open_match.end())
+    if close_idx < 0:
+        return None
+    end = close_idx + len(_AGENTS_MANAGED_CLOSE)
+    return normalised[open_idx:end]
+
+
+_MANIFEST_LINE_RE = re.compile(r"^\s*(?P<key>[A-Za-z_][A-Za-z0-9_]*)\s*:\s*(?P<value>.*?)\s*$")
+
+
+def _parse_manifest(text: str) -> dict:
+    """Minimal YAML-ish ``key: value`` parser (#1046 PR-B AC-4).
+
+    Mirrors ``run::_parse_install_manifest``. Pure -- no I/O.
+    """
+    parsed: dict = {}
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        match = _MANIFEST_LINE_RE.match(stripped)
+        if match is None:
+            continue
+        key = match.group("key").strip().lower()
+        value = match.group("value").strip().strip("'\"")
+        if key:
+            parsed[key] = value
+    return parsed
+
+
+def _manifest_tag_to_version(manifest: dict) -> str | None:
+    """Derive the bare ``.deft-version`` value from a manifest dict."""
+    for key in ("tag", "ref"):
+        raw = manifest.get(key)
+        if not isinstance(raw, str):
+            continue
+        candidate = raw.strip().lstrip("v")
+        if candidate:
+            return candidate
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Checks (ported from framework_doctor.py)
+# ---------------------------------------------------------------------------
+
+
+def _check_quick_start_resolves(project_root: Path, install_root: str | None) -> CheckResult:
+    """Check #1: QUICK-START.md resolves from the install root AGENTS.md claims."""
+    if install_root is None:
+        return CheckResult(
+            name="quick-start-resolves",
+            status="skip",
+            detail=(
+                "AGENTS.md does not declare an install root; cannot check "
+                "QUICK-START.md resolution."
+            ),
+        )
+    qs_path = project_root / install_root / "QUICK-START.md"
+    if qs_path.is_file():
+        return CheckResult(
+            name="quick-start-resolves",
+            status="pass",
+            detail=f"Found QUICK-START.md at {qs_path}.",
+            data={"path": str(qs_path), "install_root": install_root},
+        )
+    return CheckResult(
+        name="quick-start-resolves",
+        status="fail",
+        detail=(
+            f"QUICK-START.md not found at {qs_path}. AGENTS.md claims the "
+            f"install root is {install_root!r} but the file is missing. "
+            "Run `.deft/core/run agents:refresh` (Unix) / "
+            "`.deft\\core\\run agents:refresh` (Windows) to align AGENTS.md "
+            "with the on-disk install root, OR run `task upgrade` to "
+            "re-pull the framework if the on-disk install is missing. "
+            "See UPGRADING.md for the canonical drift-repair walkthrough."
+        ),
+        data={
+            "path": str(qs_path),
+            "install_root": install_root,
+            # Dual repair-path contract: ``suggested_fix`` is the AGENTS.md
+            # realignment (preferred when the on-disk framework is correct);
+            # ``suggested_fix_alt`` re-pulls the framework when the on-disk
+            # install is missing entirely. Mirrors the prose's two-option
+            # phrasing so programmatic consumers (sync skill / CI) see the
+            # same dual surface as humans (SLizard P1 on PR #1067).
+            "suggested_fix": ".deft/core/run agents:refresh",
+            "suggested_fix_alt": "task upgrade",
+        },
+    )
+
+
+def _check_skill_paths_resolve(project_root: Path, agents_md_text: str) -> CheckResult:
+    """Check #2: every <install>/skills/<name>/SKILL.md AGENTS.md references resolves."""
+    referenced = sorted({m.group(0) for m in _SKILL_PATH_RE.finditer(agents_md_text)})
+    if not referenced:
+        return CheckResult(
+            name="skill-paths-resolve",
+            status="skip",
+            detail="AGENTS.md references no skill paths to verify.",
+            data={"referenced": []},
+        )
+    missing: list[str] = []
+    redirect_stubs: list[str] = []
+    for rel in referenced:
+        candidate = project_root / rel
+        if not candidate.is_file():
+            missing.append(rel)
+            continue
+        text = _read_text_safe(candidate)
+        if text is not None:
+            # Bounded header-window check (first 200 chars) for *either* sentinel.
+            # This is the exact safe behavior ported from #1383 (via _event_detect
+            # + QUICK-START Step 2b) to close the cross-PR regression flagged by
+            # dbcall2 on the 7a0606c head. Real skills quoting the token in body
+            # (after the window) now correctly pass; legacy stubs (even with
+            # preamble before the token) still fail as expected.
+            head = text[:_SKILL_SENTINEL_WINDOW]
+            if _DEPRECATED_REDIRECT_SENTINEL in head or DEPRECATED_SKILL_REDIRECT_SENTINEL in head:
+                redirect_stubs.append(rel)
+    if not missing and not redirect_stubs:
+        return CheckResult(
+            name="skill-paths-resolve",
+            status="pass",
+            detail=f"All {len(referenced)} skill path(s) resolve.",
+            data={"referenced": referenced},
+        )
+    parts: list[str] = []
+    if missing:
+        parts.append(f"missing: {missing}")
+    if redirect_stubs:
+        parts.append(f"deprecation-redirect stubs: {redirect_stubs}")
+    return CheckResult(
+        name="skill-paths-resolve",
+        status="fail",
+        detail=(
+            f"{len(missing)} skill path(s) do not resolve; "
+            f"{len(redirect_stubs)} stub redirect(s). " + "; ".join(parts)
+            + ". Run `.deft/core/run agents:refresh` (Unix) / "
+            "`.deft\\core\\run agents:refresh` (Windows) to rewrite the "
+            "managed AGENTS.md block so skill paths match the on-disk "
+            "framework, OR run `task upgrade` if the on-disk skills are "
+            "missing entirely. See UPGRADING.md for the drift-repair walkthrough."
+        ),
+        data={
+            "referenced": referenced,
+            "missing": missing,
+            "redirect_stubs": redirect_stubs,
+            # Dual repair-path contract -- see ``_check_quick_start_resolves``
+            # for the rationale (SLizard P1 on PR #1067).
+            "suggested_fix": ".deft/core/run agents:refresh",
+            "suggested_fix_alt": "task upgrade",
+        },
+    )
+
+
+def _check_manifest_agreement(project_root: Path, install_root: str | None) -> CheckResult:
+    """Check #3: <install>/VERSION YAML manifest agrees with <root>/.deft-version."""
+    if install_root is None:
+        return CheckResult(
+            name="manifest-agreement",
+            status="skip",
+            detail="No install root declared in AGENTS.md; cannot locate manifest.",
+        )
+    manifest_path = project_root / install_root / "VERSION"
+    bare_candidates = [
+        project_root / "vbrief" / ".deft-version",
+        project_root / ".deft-version",
+    ]
+    bare_path: Path | None = next((p for p in bare_candidates if p.is_file()), None)
+    manifest_text = _read_text_safe(manifest_path)
+    bare_text = _read_text_safe(bare_path) if bare_path else None
+    if manifest_text is None and bare_text is None:
+        return CheckResult(
+            name="manifest-agreement",
+            status="skip",
+            detail=(
+                "Neither YAML manifest nor bare .deft-version exists; "
+                "nothing to reconcile (greenfield install)."
+            ),
+            data={
+                "manifest_path": str(manifest_path),
+                "bare_path": str(bare_path) if bare_path else None,
+            },
+        )
+    if manifest_text is None:
+        return CheckResult(
+            name="manifest-agreement",
+            status="fail",
+            detail=(
+                f"Bare .deft-version exists at {bare_path} but YAML manifest "
+                f"is missing at {manifest_path}. Run `task upgrade` to write "
+                "the canonical manifest (#1046 PR-B AC-4). See UPGRADING.md "
+                "for the v0.27.x -> v0.28 transition walkthrough."
+            ),
+            data={
+                "manifest_path": str(manifest_path),
+                "bare_path": str(bare_path) if bare_path else None,
+                "bare_value": (bare_text or "").strip() if bare_text else None,
+                "suggested_fix": "task upgrade",
+            },
+        )
+    if bare_text is None:
+        # YAML present, bare missing -- not a drift in itself; cmd_upgrade
+        # will derive the bare file on next run. Report as pass with a note.
+        manifest = _parse_manifest(manifest_text)
+        derived = _manifest_tag_to_version(manifest)
+        return CheckResult(
+            name="manifest-agreement",
+            status="pass",
+            detail=(
+                f"YAML manifest at {manifest_path} present; bare .deft-version "
+                f"absent (derived value: {derived!r} from manifest tag). "
+                "Run `task upgrade` to regenerate the derivative."
+            ),
+            data={
+                "manifest_path": str(manifest_path),
+                "manifest": manifest,
+                "derived_version": derived,
+            },
+        )
+    manifest = _parse_manifest(manifest_text)
+    derived = _manifest_tag_to_version(manifest)
+    bare_value = bare_text.strip()
+    if derived is None:
+        return CheckResult(
+            name="manifest-agreement",
+            status="fail",
+            detail=(
+                f"YAML manifest at {manifest_path} has no parseable tag/ref "
+                "field; cannot reconcile with bare .deft-version."
+            ),
+            data={
+                "manifest_path": str(manifest_path),
+                "bare_path": str(bare_path),
+                "manifest": manifest,
+                "bare_value": bare_value,
+            },
+        )
+    if derived == bare_value:
+        return CheckResult(
+            name="manifest-agreement",
+            status="pass",
+            detail=(
+                f"YAML manifest (tag={derived!r}) agrees with bare .deft-version ({bare_value!r})."
+            ),
+            data={
+                "manifest_path": str(manifest_path),
+                "bare_path": str(bare_path),
+                "derived_version": derived,
+                "bare_value": bare_value,
+            },
+        )
+    return CheckResult(
+        name="manifest-agreement",
+        status="fail",
+        detail=(
+            f"Drift detected: YAML manifest tag={derived!r} does NOT agree "
+            f"with bare .deft-version={bare_value!r}. Per #1046 PR-B AC-4 "
+            "the YAML manifest is the canonical source -- run `task upgrade` "
+            "to regenerate the bare derivative from the manifest, OR "
+            f"manually update {manifest_path} if the bare value is correct. "
+            "See UPGRADING.md for the canonical drift-repair walkthrough."
+        ),
+        data={
+            "manifest_path": str(manifest_path),
+            "bare_path": str(bare_path),
+            "derived_version": derived,
+            "bare_value": bare_value,
+            "authoritative": "manifest",
+            "suggested_fix": "task upgrade",
+        },
+    )
+
+
+def _check_install_path_consistency(project_root: Path, install_root: str | None) -> CheckResult:
+    """Check #4: AGENTS.md install-root claim resolves to an on-disk directory.
+
+    Narrow scope by design (#1046 PR-B Greptile review #1057): this check
+    only verifies that the install root AGENTS.md declares is a real
+    directory on disk. The cross-check that the YAML manifest is
+    **co-located** at that root is the responsibility of check #3
+    (``manifest-agreement``) -- when the manifest lives at a different
+    install root (e.g. legacy ``deft/VERSION`` while AGENTS.md claims
+    ``.deft/core``), check #3 reports the drift with the manifest as the
+    authoritative source. Splitting the responsibility keeps each check
+    independently actionable: this one says "reinstall or fix AGENTS.md",
+    check #3 says "reconcile the manifest with the bare derivative".
+    """
+    effective_install_root = install_root
+    fallback_info_note = ""
+    source = "AGENTS.md"
+    # #1062: prefer the manifest-side ``install_root`` field when present --
+    # it is the single source of truth for the install-layout contract.
+    # Fall back to the legacy AGENTS.md parse only when the manifest exists
+    # but predates the field (legacy v0.28 shape) or no manifest exists.
+    # The ``source`` flag stays sticky across the manifest-found-but-empty
+    # path so the diagnostic prose later accurately names where the
+    # effective install root came from (Greptile P1 on PR #1063 -- prior
+    # heuristic compared values, which mislabelled when manifest and
+    # AGENTS.md happened to agree).
+    for manifest_path in (
+        project_root / ".deft" / "core" / "VERSION",
+        project_root / "deft" / "VERSION",
+    ):
+        manifest_text = _read_text_safe(manifest_path)
+        if manifest_text is None:
+            continue
+        manifest = _parse_manifest(manifest_text)
+        manifest_install_root = manifest.get("install_root")
+        if isinstance(manifest_install_root, str) and manifest_install_root.strip():
+            effective_install_root = manifest_install_root.strip()
+            fallback_info_note = ""
+            source = "manifest"
+            break
+        fallback_info_note = (
+            f" INFO: manifest at {manifest_path} is missing install_root; "
+            "fell back to the legacy AGENTS.md install-root parse."
+        )
+        # source stays "AGENTS.md" -- the manifest was found but did not
+        # carry the install_root field, so the effective value still came
+        # from the AGENTS.md parse.
+        break
+    if effective_install_root is None:
+        return CheckResult(
+            name="install-path-consistency",
+            status="skip",
+            detail=(
+                "AGENTS.md does not declare an install root."
+                + fallback_info_note
+            ),
+            data={
+                "claimed_install_root": install_root,
+                "effective_install_root": effective_install_root,
+                "fallback_info_note": fallback_info_note or None,
+            },
+        )
+    claimed_dir = project_root / effective_install_root
+    if not claimed_dir.is_dir():
+        return CheckResult(
+            name="install-path-consistency",
+            status="fail",
+            detail=(
+                f"Install root is recorded as {effective_install_root!r} "
+                f"(source: {source}) but {claimed_dir} is not a directory. "
+                "Pick one of two repair paths: "
+                "(a) run `.deft/core/run agents:refresh` (Unix) / "
+                "`.deft\\core\\run agents:refresh` (Windows) to rewrite "
+                "AGENTS.md to match the on-disk framework -- pick this if "
+                "the framework on disk is correct; OR "
+                "(b) run `task relocate:relocate -- --confirm` to move the "
+                "framework to the path AGENTS.md / the manifest claims -- "
+                "pick this if AGENTS.md is correct. The YAML manifest (if "
+                "present) is authoritative for the install-layout contract. "
+                "See UPGRADING.md for the canonical drift-repair walkthrough."
+            ),
+            data={
+                "claimed_install_root": install_root,
+                "effective_install_root": effective_install_root,
+                "effective_install_root_source": source,
+                "claimed_dir": str(claimed_dir),
+                "claimed_dir_exists": False,
+                "fallback_info_note": fallback_info_note or None,
+                "suggested_fix": ".deft/core/run agents:refresh",
+                "suggested_fix_alt": "task relocate:relocate -- --confirm",
+            },
+        )
+    # Note: this check intentionally does NOT verify the YAML manifest
+    # is co-located at ``<claimed_dir>/VERSION`` -- that cross-check is
+    # owned by check #3 (``manifest-agreement``). See docstring for the
+    # rationale and the per-check responsibility split.
+    return CheckResult(
+        name="install-path-consistency",
+        status="pass",
+        detail=(
+            f"Install root ({effective_install_root!r}, source: {source}) "
+            f"matches an existing directory at {claimed_dir}."
+            + fallback_info_note
+        ),
+        data={
+            "claimed_install_root": install_root,
+            "effective_install_root": effective_install_root,
+            "effective_install_root_source": source,
+            "claimed_dir": str(claimed_dir),
+            "fallback_info_note": fallback_info_note or None,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Top-level driver (ported) -- provides run_checks for tests + internal use
+# ---------------------------------------------------------------------------
+
+
+def run_checks(project_root: Path) -> dict:
+    """Run all four checks and return a structured payload.
+
+    Public API consumed by ``run::_maybe_run_framework_doctor`` (and tests).
+    Returns the DoctorResult dict shape directly. Best-effort -- any
+    individual check that fails to run converts to an ``error`` status and
+    propagates to exit code 2.
+    """
+    return _run_checks_impl(project_root).to_dict()
+
+
+def _run_checks_impl(project_root: Path) -> DoctorResult:
+    """Internal driver -- returns the dataclass form for richer testing."""
+    errors: list[str] = []
+    if not project_root.is_dir():
+        return DoctorResult(
+            project_root=str(project_root),
+            install_root=None,
+            exit_code=EXIT_CONFIG_ERROR,
+            checks=[],
+            errors=[f"project root does not exist: {project_root}"],
+        )
+
+    agents_md_path = project_root / "AGENTS.md"
+    agents_md_text = _read_text_safe(agents_md_path)
+    install_root: str | None = None
+    if agents_md_text is not None:
+        install_root = _parse_install_root_from_agents_md(agents_md_text)
+
+    checks: list[CheckResult] = []
+
+    # If AGENTS.md is missing entirely, the install-root-dependent checks
+    # all skip; surface this fact in a synthetic check so operators see
+    # the cause.
+    if agents_md_text is None:
+        checks.append(
+            CheckResult(
+                name="agents-md-present",
+                status="fail",
+                detail=(
+                    "AGENTS.md not found at project root -- run "
+                    "`.deft/core/run agents:refresh` to generate it from "
+                    "the canonical template."
+                ),
+                data={"agents_md_path": str(agents_md_path)},
+            )
+        )
+        # Still attempt the manifest agreement check (it can run without
+        # AGENTS.md for the greenfield case).
+        checks.append(_check_manifest_agreement(project_root, None))
+        return DoctorResult(
+            project_root=str(project_root),
+            install_root=None,
+            exit_code=_derive_exit_code(checks, errors),
+            checks=checks,
+            errors=errors,
+        )
+
+    checks.append(_check_quick_start_resolves(project_root, install_root))
+    checks.append(_check_skill_paths_resolve(project_root, agents_md_text))
+    checks.append(_check_manifest_agreement(project_root, install_root))
+    checks.append(_check_install_path_consistency(project_root, install_root))
+
+    return DoctorResult(
+        project_root=str(project_root),
+        install_root=install_root,
+        exit_code=_derive_exit_code(checks, errors),
+        checks=checks,
+        errors=errors,
+    )
+
+
+def _derive_exit_code(checks: list[CheckResult], errors: list[str]) -> int:
+    """Three-state exit code from check results + errors."""
+    if errors or any(c.status == "error" for c in checks):
+        return EXIT_CONFIG_ERROR
+    if any(c.status == "fail" for c in checks):
+        return EXIT_DRIFT
+    return EXIT_CLEAN
+
 
 # --- Extracted doctor logic (from run, markers removed, now owned here) ---
 # (start of logic extracted from monolithic run per #1335)
@@ -489,7 +1106,11 @@ _DOCTOR_ALLOWED_FLAGS = (
 def _load_doctor_state_module():
     """Lazy-import ``scripts/_doctor_state`` (#1308)."""
     try:
-        scripts_dir = get_script_dir() / "scripts"
+        # Inside scripts/doctor.py, get_script_dir() already returns the
+        # scripts/ dir containing sibling _doctor_state.py. Do not append
+        # another "/scripts" (would resolve to scripts/scripts/ and break
+        # throttle state load when doctor.py is the entry point).
+        scripts_dir = get_script_dir()
         if str(scripts_dir) not in sys.path:
             sys.path.insert(0, str(scripts_dir))
         import _doctor_state  # type: ignore[import-not-found]
@@ -509,6 +1130,98 @@ def _evaluate_doctor_throttle(project_root: Path):
     except Exception:  # noqa: BLE001 -- state read MUST NOT break doctor
         return None
 
+
+# --- Ported from run (required by cmd_doctor / freshness / throttle paths) ---
+# These were left behind during the initial extraction; without them every
+# `run doctor` (non-throttled path) hits NameError before any check runs.
+# Small batch ports; supporting constants/defs included where referenced.
+
+# Minimal local read_yn (used only in interactive --fix Taskfile repair path
+# under isatty + fix_mode). Closes the "undefined" gap Greptile summary
+# flagged on the post-7a0606c head. Full ask_confirm lives in run; this is
+# the smallest non-crashing implementation sufficient for doctor.
+def read_yn(prompt_text: str, default: bool = False) -> bool:
+    """Yes/No prompt (read_yn alias to run's ask_confirm)."""
+    try:
+        suffix = " (Y/n): " if default else " (y/N): "
+        resp = input(f"{prompt_text}{suffix}").strip().lower()
+        if not resp:
+            return default
+        return resp[0] in ("y", "yes")
+    except (EOFError, KeyboardInterrupt):
+        return default
+
+
+# Minimal stub for _agents_refresh_plan so the AGENTS.md freshness check
+# (always executed unless early marker skip) does not raise NameError and
+# produce a "probe failed -- NameError" warning on every doctor run.
+# The real (large) implementation and its 10+ helper deps live in run.py;
+# this stub returns a benign state that the existing try/except in
+# _run_agents_md_freshness_check will turn into a warning (acceptable
+# until shared-module extraction). This closes the remaining "undefined"
+# surface from the doctor extraction.
+def _agents_refresh_plan(project_root: Path) -> dict:
+    """Stub -- see docstring above."""
+    return {
+        "state": "unreadable",
+        "path": str(project_root / "AGENTS.md"),
+        "error": "agents helpers not fully ported to scripts/doctor.py (interim)",
+    }
+
+
+def _now_utc() -> datetime:
+    """Return UTC-aware ``datetime.now`` (split out for test monkeypatching)."""
+    return datetime.now(UTC)
+
+
+_DEFT_REPO_POSITIVE_MARKERS = (
+    Path("templates") / "agents-entry.md",
+    Path("skills") / "deft-directive-build" / "SKILL.md",
+)
+
+
+def _running_inside_deft_repo(project_root: Path) -> bool:
+    """Heuristic: True when `run` is invoked from inside the deft repo itself.
+
+    Consumer projects embed deft as ``./deft/`` (legacy) or ``./.deft/core/``
+    (canonical) and consume the framework's published surface; the deft
+    source repo carries ``main.md`` at its root, has neither install
+    location materialised inside its own checkout, AND ships a set of
+    framework-internal artefacts (notably ``templates/agents-entry.md`` and
+    ``skills/deft-directive-build/SKILL.md``) a consumer would have no
+    reason to mirror.
+
+    The heuristic fires only when ALL of the following hold:
+      * ``main.md`` is present at ``project_root`` (the documented entry
+        point a consumer never reproduces verbatim).
+      * NEITHER ``./deft`` (legacy install) NOR ``./.deft/core`` (canonical
+        install) exists at the project root -- both indicate the deft
+        framework was installed INTO this directory rather than that this
+        directory IS the framework.
+      * ALL of the markers in ``_DEFT_REPO_POSITIVE_MARKERS`` resolve --
+        framework-internal paths a consumer would never reproduce.
+
+    The original heuristic (#1272 baseline) checked only ``main.md`` plus
+    the absence of ``./deft``; that mis-fired on a consumer who happened
+    to carry a root-level ``main.md`` for unrelated reasons OR who
+    installed canonically to ``./.deft/core`` and so genuinely had no
+    ``./deft`` subdirectory -- doctor would then silently skip the
+    Taskfile-include diagnostic in exactly the place it was meant to
+    surface (#1303 review SLizard P1, Greptile carryover).
+
+    Skipping the gate here avoids nagging deft maintainers on every
+    ``run`` invocation against the framework checkout itself.
+    """
+    if not (project_root / "main.md").is_file():
+        return False
+    if (project_root / "deft").is_dir():
+        return False
+    if (project_root / ".deft" / "core").is_dir():
+        return False
+    return all((project_root / marker).is_file() for marker in _DEFT_REPO_POSITIVE_MARKERS)
+
+
+# --- Extracted doctor logic (from run, markers removed, now owned here) ---
 
 def _format_iso_z(when) -> str:
     """Render a UTC-aware datetime as YYYY-MM-DDTHH:MM:SSZ."""
@@ -594,7 +1307,8 @@ def _run_install_integrity_checks(
     add_finding,
 ) -> None:
     """Install-integrity checks (ex-framework_doctor.py) folded into
-    canonical doctor (#1308, #1336 retirement)."""
+    canonical doctor (#1308, #1336 retirement).
+    """
     if _running_inside_deft_repo(project_root):
         emit_info(
             "Skipping install-integrity checks -- running inside the deft "
@@ -602,11 +1316,9 @@ def _run_install_integrity_checks(
         )
         return
     try:
-        scripts_dir = get_script_dir() / "scripts"
-        if str(scripts_dir) not in sys.path:
-            sys.path.insert(0, str(scripts_dir))
-        import doctor  # type: ignore[import-not-found]  # now scripts/doctor.py per #1335
-        result = doctor.run_checks(project_root)
+        # Direct call to the local (ported) implementation -- no self-import
+        # hack, no path munging. The four checks now run for real.
+        result = run_checks(project_root)
     except Exception as exc:  # noqa: BLE001 -- probe failure is a warning
         message = f"Install-integrity probe unavailable: {type(exc).__name__}: {exc}"
         emit_warn(message)
@@ -963,10 +1675,9 @@ def cmd_doctor(args: list[str]):
     # path is normalised through :func:`resolve_path` so ``~`` and
     # relative paths work (#1303 review #5).
     project_root_arg = flags.get("project_root")
-    if project_root_arg:
-        project_root = resolve_path(project_root_arg)
-    else:
-        project_root = Path.cwd()
+    project_root = (
+        resolve_path(project_root_arg) if project_root_arg else Path.cwd()
+    )
 
     # #1308: throttle gate. Default = full check, but a recent run
     # within the 24h-clean / 4h-dirty window short-circuits to a
@@ -1123,7 +1834,13 @@ def cmd_doctor(args: list[str]):
         print()
     _emit_info("Checking Deft structure...")
 
-    script_dir = get_script_dir()
+    # Use .parent so the check anchors at the framework root (the directory
+    # containing scripts/doctor.py), restoring the pre-extraction semantics
+    # from run.get_script_dir() (which returned repo root in source layout).
+    # This eliminates the false-positive "Missing directory" warnings for all
+    # seven canonical framework subdirectories on every `run doctor` / `task doctor`
+    # invocation (Greptile framework-layout issue on 7a0606c).
+    framework_root = get_script_dir().parent
     expected_dirs = [
         "languages",
         "strategies",
@@ -1135,7 +1852,7 @@ def cmd_doctor(args: list[str]):
     ]
 
     for dir_name in expected_dirs:
-        dir_path = script_dir / dir_name
+        dir_path = framework_root / dir_name
         if dir_path.is_dir():
             _emit_success(f"Directory: {dir_name}/")
         else:
@@ -1325,6 +2042,97 @@ def cmd_doctor(args: list[str]):
 # extracted region.
 # ===
 # --- End of extracted doctor logic (Epic-1 #1335) ---
+
+# --- Ported CLI surface (main, _build_parser, _format_text_report) from
+# retired framework_doctor.py to satisfy test expectations for fd.main(),
+# UTF-8 reconfigure (#814), --json/--quiet/--project-root, and the 3-state
+# exit codes. The primary user surface remains cmd_doctor (new extraction).
+# ---
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="framework_doctor.py",
+        description=(
+            "Local install-integrity probe (#1046 PR-B AC-3). Four checks: "
+            "QUICK-START resolves, skill paths resolve, manifest agreement, "
+            "install-path consistency. Three-state exit: 0 clean / 1 drift "
+            "detected / 2 config error."
+        ),
+    )
+    parser.add_argument(
+        "--project-root",
+        default=".",
+        help="Project root path (default: current working directory).",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit a single JSON object on stdout instead of human-readable text.",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress the success summary; failure detail still prints.",
+    )
+    return parser
+
+
+def _format_text_report(result: DoctorResult) -> str:
+    """Render a human-readable summary of the doctor result."""
+    lines: list[str] = []
+    if result.exit_code == EXIT_CLEAN:
+        lines.append(
+            "\u2713 deft framework:doctor -- all checks pass "
+            f"(install_root={result.install_root!r})."
+        )
+    elif result.exit_code == EXIT_DRIFT:
+        lines.append(
+            "\u26a0 deft framework:doctor -- drift detected "
+            f"(install_root={result.install_root!r})."
+        )
+    else:
+        lines.append("\u2717 deft framework:doctor -- config error.")
+    for c in result.checks:
+        if c.status == "pass":
+            sym = "\u2713"
+        elif c.status == "skip":
+            sym = "\u2022"
+        elif c.status == "fail":
+            sym = "\u2717"
+        else:  # error
+            sym = "!"
+        lines.append(f"  {sym} {c.name}: {c.detail}")
+    for err in result.errors:
+        lines.append(f"  ! {err}")
+    return "\n".join(lines)
+
+
+def main(argv: list[str] | None = None) -> int:
+    # #814: Force UTF-8 stdout/stderr at script entry. Windows Python
+    # defaults stdout/stderr to cp1252 when invoked under git hooks,
+    # which has no glyph for the U+2713 success marker. Without this
+    # reconfigure the doctor crashes with UnicodeEncodeError on the
+    # success summary. Guarded by hasattr because reconfigure only
+    # exists on TextIOWrapper streams. errors='replace' is a
+    # belt-and-suspenders fallback for the rare environment that still
+    # cannot render UTF-8.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+    project_root = Path(args.project_root).resolve()
+    result = _run_checks_impl(project_root)
+    if args.json:
+        print(json.dumps(result.to_dict(), sort_keys=True))
+    else:
+        if not (args.quiet and result.exit_code == EXIT_CLEAN):
+            print(_format_text_report(result))
+    return result.exit_code
+
 
 if __name__ == "__main__":
     # python -m scripts.doctor [args] or direct python scripts/doctor.py [args]

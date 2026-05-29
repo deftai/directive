@@ -48,7 +48,8 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DOCTOR_SCRIPT = REPO_ROOT / "scripts" / "doctor.py"  # canonical owner per #1335/#1336 (framework_doctor.py retired)
+# canonical owner per #1335/#1336 (framework_doctor.py retired)
+DOCTOR_SCRIPT = REPO_ROOT / "scripts" / "doctor.py"
 RUN_SCRIPT = REPO_ROOT / "run"
 TASKFILE_ROOT = REPO_ROOT / "Taskfile.yml"
 TASKS_DIR = REPO_ROOT / "tasks"
