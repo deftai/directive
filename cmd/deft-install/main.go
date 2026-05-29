@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -333,8 +335,15 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		if err := enc.Encode(out); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: JSON encode failed: %v\n", err)
 		}
-		// Still run PrintNextSteps unless we want zero prose; for agents the
-		// JSON is the primary signal, prose is bonus.
+		// Greptile P1: PrintNextSteps prose was being written to stdout
+		// immediately after the JSON object, poisoning the stream so any
+		// jq / json.loads / json.Unmarshal consumer failed on trailing
+		// non-JSON text. In --json mode the prose is rerouted to stderr
+		// instead -- humans / log scrapers still see it, stdout stays a
+		// single parseable JSON object for the documented agent / CI use.
+		wErr := NewWizardWithLayout(strings.NewReader(""), os.Stderr, debug, legacyLayout)
+		PrintNextSteps(wErr, result, configDir, skillsCreated)
+		return 0
 	}
 
 	PrintNextSteps(w, result, configDir, skillsCreated)
@@ -370,9 +379,19 @@ func buildNonInteractiveResult(absRoot string, legacyLayout, upgrade bool) *Wiza
 		if info, statErr := os.Stat(deftDir); statErr == nil && info.IsDir() {
 			update = true
 		} else {
-			// statErr != nil (incl. os.ErrNotExist) or !IsDir(): treat as fresh
-			// install (expected for first run). Explicit else per SLizard P1
-			// "no else branch" rule; no log to keep non-int/JSON quiet.
+			// Transient / unexpected Stat failure (permission denied, I/O
+			// error, filesystem unavailable). The expected fresh-install
+			// case (os.ErrNotExist) stays silent so --yes / --json runs are
+			// not noisy; everything else surfaces via log.Printf so the
+			// failure is visible in agent logs (SLizard P1
+			// go-silent-error-branch). Experiments A+B (PR #1385): bare-else
+			// + nested-if shape AND log.Printf (the literal call form SLizard's
+			// recommendation text names) so the detector unambiguously sees
+			// the canonical error-branch logger. log uses stderr by default
+			// so the user-visible behaviour is unchanged.
+			if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+				log.Printf("warning: stat %q for update detection: %v", deftDir, statErr)
+			}
 		}
 	}
 	return &WizardResult{

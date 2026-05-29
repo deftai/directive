@@ -1081,3 +1081,189 @@ func TestEnsureTaskfile_PreservesExistingIncludes(t *testing.T) {
 		t.Error("user pre-existing includes were lost")
 	}
 }
+
+// TestEnsureTaskfile_IncludesFollowedByTasksAndVars closes Greptile P0 on
+// PR #1385 (review of head 6f7520c): when an existing Taskfile carries
+// `includes:` followed by other top-level keys (`tasks:` / `vars:`),
+// EnsureTaskfile must insert the deft entry INSIDE the includes: block,
+// not append at EOF -- otherwise the appended `  deft:` lines land under
+// the last opened mapping (e.g. `tasks:`), wiring deft into the wrong
+// block and producing a structurally-broken Taskfile that go-task
+// silently ignores while the installer reports `taskfile_wired:true`.
+//
+// Verifies the canonical fix by asserting that the deft entry appears
+// AFTER `includes:` and BEFORE `tasks:` in the file, that user-authored
+// content under `tasks:` and `vars:` is preserved verbatim, and that the
+// includes: block remains the unique top-level mapping for include
+// declarations.
+func TestEnsureTaskfile_IncludesFollowedByTasksAndVars(t *testing.T) {
+	tmp := t.TempDir()
+	tf := filepath.Join(tmp, "Taskfile.yml")
+	initial := "version: '3'\n" +
+		"\n" +
+		"includes:\n" +
+		"  myapp:\n" +
+		"    taskfile: ./myapp/Taskfile.yml\n" +
+		"\n" +
+		"vars:\n" +
+		"  BUILD_TARGET: release\n" +
+		"  ARTIFACT_DIR: ./dist\n" +
+		"\n" +
+		"tasks:\n" +
+		"  hello:\n" +
+		"    desc: Say hello\n" +
+		"    cmds:\n" +
+		"      - echo hi\n"
+	if err := os.WriteFile(tf, []byte(initial), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
+	changed, err := EnsureTaskfile(w, tmp)
+	if err != nil {
+		t.Fatalf("EnsureTaskfile failed: %v", err)
+	}
+	if !changed {
+		t.Fatal("expected changed=true for includes+tasks+vars case")
+	}
+	content, err := os.ReadFile(tf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(content)
+
+	// Structural assertion: deft entry MUST appear between `includes:` and
+	// `vars:` / `tasks:` so YAML indent-scope rules place it under
+	// includes:. If the entry slid past `vars:` or `tasks:` the fix is
+	// broken and SLizard/go-task would silently drop the include.
+	idxIncludes := strings.Index(s, "\nincludes:")
+	if idxIncludes == -1 {
+		idxIncludes = strings.Index(s, "includes:") // file may start with it
+	}
+	idxDeft := strings.Index(s, "  deft:")
+	idxVars := strings.Index(s, "\nvars:")
+	idxTasks := strings.Index(s, "\ntasks:")
+	if idxIncludes < 0 || idxDeft < 0 || idxVars < 0 || idxTasks < 0 {
+		t.Fatalf("expected all of includes:/  deft:/vars:/tasks: in result; got:\n%s", s)
+	}
+	if !(idxIncludes < idxDeft && idxDeft < idxVars && idxDeft < idxTasks) {
+		t.Errorf("deft entry must be inserted under includes: (after includes:, before vars: and tasks:); ordering broken; got:\n%s", s)
+	}
+
+	// Exactly one top-level includes: key.
+	if strings.Count(s, "\nincludes:")+func() int {
+		if strings.HasPrefix(s, "includes:") {
+			return 1
+		}
+		return 0
+	}() != 1 {
+		t.Errorf("expected exactly one top-level includes:, got duplicates; result:\n%s", s)
+	}
+
+	// User-authored content preserved.
+	for _, fragment := range []string{
+		"  myapp:\n    taskfile: ./myapp/Taskfile.yml",
+		"vars:\n  BUILD_TARGET: release",
+		"  ARTIFACT_DIR: ./dist",
+		"tasks:\n  hello:\n    desc: Say hello",
+		"      - echo hi",
+	} {
+		if !strings.Contains(s, fragment) {
+			t.Errorf("user-authored fragment lost from Taskfile; missing %q; full result:\n%s", fragment, s)
+		}
+	}
+
+	// Canonical include fragment is present (idempotency probe will skip
+	// a re-run after this point).
+	if !strings.Contains(s, canonicalTaskfileIncludeFragment) {
+		t.Errorf("canonical include fragment missing; got:\n%s", s)
+	}
+}
+
+// TestEnsureTaskfile_IncludesFollowedByTasksAndVars_RerunIsIdempotent
+// verifies that running EnsureTaskfile a second time on the now-wired
+// Taskfile is a no-op (no duplicate deft entries, no churn) -- the
+// canonical-fragment short-circuit at the top of EnsureTaskfile owns this
+// path, and the rerun must NOT call insertDeftIncludeAfterIncludesLine
+// again.
+func TestEnsureTaskfile_IncludesFollowedByTasksAndVars_RerunIsIdempotent(t *testing.T) {
+	tmp := t.TempDir()
+	tf := filepath.Join(tmp, "Taskfile.yml")
+	initial := "version: '3'\n" +
+		"includes:\n" +
+		"  myapp:\n" +
+		"    taskfile: ./myapp/Taskfile.yml\n" +
+		"tasks:\n" +
+		"  hello:\n" +
+		"    cmds: [echo hi]\n"
+	if err := os.WriteFile(tf, []byte(initial), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
+	if _, err := EnsureTaskfile(w, tmp); err != nil {
+		t.Fatalf("first EnsureTaskfile failed: %v", err)
+	}
+	firstPass, err := os.ReadFile(tf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed, err := EnsureTaskfile(w, tmp)
+	if err != nil {
+		t.Fatalf("second EnsureTaskfile failed: %v", err)
+	}
+	if changed {
+		t.Error("expected second EnsureTaskfile to be a no-op (idempotent)")
+	}
+	secondPass, err := os.ReadFile(tf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(firstPass) != string(secondPass) {
+		t.Errorf("Taskfile content drifted between EnsureTaskfile calls; first:\n%s\nsecond:\n%s", firstPass, secondPass)
+	}
+	// Exactly one deft: entry under includes:.
+	if n := strings.Count(string(secondPass), "  deft:\n"); n != 1 {
+		t.Errorf("expected exactly one `  deft:` entry; got %d; content:\n%s", n, secondPass)
+	}
+}
+
+// TestInsertDeftIncludeAfterIncludesLine_NoIncludesLine returns (content,
+// false) when the input has no top-level `includes:` line. Pins the
+// fallback contract so EnsureTaskfile can route to the safe append path.
+func TestInsertDeftIncludeAfterIncludesLine_NoIncludesLine(t *testing.T) {
+	content := "version: '3'\ntasks:\n  hello:\n    cmds: [echo hi]\n"
+	out, ok := insertDeftIncludeAfterIncludesLine(content)
+	if ok {
+		t.Error("expected ok=false when no top-level includes: line is present")
+	}
+	if out != content {
+		t.Errorf("expected content unchanged on no-includes input; got:\n%s", out)
+	}
+}
+
+// TestInsertDeftIncludeAfterIncludesLine_IgnoresCommentedLine refuses to
+// match a commented-out `# includes:` line; the structural insertion
+// requires the literal top-level key.
+func TestInsertDeftIncludeAfterIncludesLine_IgnoresCommentedLine(t *testing.T) {
+	content := "version: '3'\n# includes:  -- commented out\ntasks:\n  hello:\n    cmds: [echo hi]\n"
+	_, ok := insertDeftIncludeAfterIncludesLine(content)
+	if ok {
+		t.Error("expected ok=false on commented-out # includes: line")
+	}
+}
+
+// TestInsertDeftIncludeAfterIncludesLine_TolerateInlineComment matches a
+// line shaped like `includes:  # comment` -- the comment is informational
+// and the key is still a real top-level mapping declaration.
+func TestInsertDeftIncludeAfterIncludesLine_TolerateInlineComment(t *testing.T) {
+	content := "version: '3'\nincludes:  # user notes here\n  myapp:\n    taskfile: ./myapp/Taskfile.yml\ntasks:\n  hello:\n    cmds: [echo hi]\n"
+	out, ok := insertDeftIncludeAfterIncludesLine(content)
+	if !ok {
+		t.Fatal("expected ok=true on includes: with inline comment")
+	}
+	idxIncludes := strings.Index(out, "includes:")
+	idxDeft := strings.Index(out, "  deft:")
+	idxTasks := strings.Index(out, "\ntasks:")
+	if !(idxIncludes < idxDeft && idxDeft < idxTasks) {
+		t.Errorf("expected ordering includes: < deft: < tasks:; got:\n%s", out)
+	}
+}

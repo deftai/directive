@@ -1241,3 +1241,92 @@ func TestWriteAgentsSkills_RefinementReplacesRoadmapRefresh(t *testing.T) {
 		t.Error("legacy deft-roadmap-refresh pointer should not be created")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// buildNonInteractiveResult coverage (Epic-3 #1337, SLizard P1 else-branch)
+// ---------------------------------------------------------------------------
+
+// TestBuildNonInteractiveResult_FreshInstall verifies the function reports
+// Update=false when the deft dir does not yet exist (the expected fresh-
+// install case). Exercises the os.ErrNotExist path of the else-if branch
+// added for SLizard P1 go-silent-error-branch.
+func TestBuildNonInteractiveResult_FreshInstall(t *testing.T) {
+	tmp := t.TempDir()
+	res := buildNonInteractiveResult(tmp, false, false)
+	if res == nil {
+		t.Fatal("expected non-nil result")
+	}
+	if res.Update {
+		t.Error("expected Update=false on fresh install (deftDir absent)")
+	}
+	if res.LegacyLayout {
+		t.Error("expected LegacyLayout=false by default")
+	}
+	if res.ProjectDir != tmp {
+		t.Errorf("ProjectDir = %q, want %q", res.ProjectDir, tmp)
+	}
+	wantDeft := filepath.Join(tmp, CanonicalFrameworkSubdir)
+	if res.DeftDir != wantDeft {
+		t.Errorf("DeftDir = %q, want %q", res.DeftDir, wantDeft)
+	}
+}
+
+// TestBuildNonInteractiveResult_ExistingDirSetsUpdate verifies the function
+// reports Update=true when the canonical framework dir already exists --
+// agents re-running the installer over an existing install should land on
+// the update/refresh path automatically (Epic-3 AC: "safe to re-run").
+func TestBuildNonInteractiveResult_ExistingDirSetsUpdate(t *testing.T) {
+	tmp := t.TempDir()
+	deftDir := filepath.Join(tmp, CanonicalFrameworkSubdir)
+	if err := os.MkdirAll(deftDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	res := buildNonInteractiveResult(tmp, false, false)
+	if !res.Update {
+		t.Error("expected Update=true when deftDir already present")
+	}
+}
+
+// TestBuildNonInteractiveResult_UpgradeShortCircuits verifies the --upgrade
+// flag forces Update=true regardless of whether the deft dir exists, so
+// agents that explicitly opt into upgrade don't get downgraded to a fresh
+// install when the framework dir was wiped between runs.
+func TestBuildNonInteractiveResult_UpgradeShortCircuits(t *testing.T) {
+	tmp := t.TempDir() // deftDir absent
+	res := buildNonInteractiveResult(tmp, false, true)
+	if !res.Update {
+		t.Error("expected Update=true when upgrade=true even on fresh install")
+	}
+}
+
+// TestBuildNonInteractiveResult_LegacyLayout verifies the legacy `deft/`
+// subdir is selected when legacyLayout=true.
+func TestBuildNonInteractiveResult_LegacyLayout(t *testing.T) {
+	tmp := t.TempDir()
+	res := buildNonInteractiveResult(tmp, true, false)
+	if !res.LegacyLayout {
+		t.Error("expected LegacyLayout=true")
+	}
+	wantDeft := filepath.Join(tmp, LegacyFrameworkSubdir)
+	if res.DeftDir != wantDeft {
+		t.Errorf("DeftDir = %q, want %q", res.DeftDir, wantDeft)
+	}
+}
+
+// TestBuildNonInteractiveResult_EmptyBasenameFallsBackToProject verifies
+// that when filepath.Base sanitises away to empty (e.g. running under a
+// path made entirely of invalid chars after sanitisation) the project name
+// defaults to "project" instead of returning an empty WizardResult name.
+func TestBuildNonInteractiveResult_EmptyBasenameFallsBackToProject(t *testing.T) {
+	// Use an absolute path whose basename sanitises to empty: "..." trims
+	// to nothing via SanitizeProjectName.
+	tmp := t.TempDir()
+	dotsDir := filepath.Join(tmp, "...")
+	if err := os.MkdirAll(dotsDir, 0o755); err != nil {
+		t.Skipf("could not create dotted dir on this OS: %v", err)
+	}
+	res := buildNonInteractiveResult(dotsDir, false, false)
+	if res.ProjectName == "" {
+		t.Error("ProjectName should never be empty -- expected fallback to \"project\"")
+	}
+}
