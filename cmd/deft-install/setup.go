@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/deftai/directive/templates"
@@ -634,13 +635,31 @@ func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
 	return true, nil
 }
 
+// hasTopLevelIncludes reports whether the provided Taskfile content declares
+// a top-level "includes:" key. Used by EnsureTaskfile to decide whether to
+// extend an existing block or emit a fresh one (P1 fix for silent data loss
+// of user includes under duplicate top-level keys).
+func hasTopLevelIncludes(content string) bool {
+	if content == "" {
+		return false
+	}
+	norm := "\n" + strings.ReplaceAll(strings.ReplaceAll(content, "\r\n", "\n"), "\r", "\n")
+	if strings.Contains(norm, "\nincludes:") {
+		return true
+	}
+	// Also handle file that starts with the key (no leading newline)
+	trimmed := strings.TrimLeft(content, " \t\r\n")
+	return strings.HasPrefix(trimmed, "includes:")
+}
+
 // EnsureTaskfile ensures a usable root Taskfile.yml exists and (in --yes /
 // non-interactive mode) wires the canonical deft include so `task`
 // subcommands from the project root resolve into the framework.
-// - If no Taskfile.yml: writes the minimal one (version + deft include).
-// - If exists and lacks the deft include fragment: appends the include block
-//   (best-effort text edit; preserves existing content).
-// - Idempotent: no-op if already wired.
+//   - If no Taskfile.yml: writes the minimal one (version + deft include).
+//   - If exists and lacks the deft include fragment: appends the include block
+//     (best-effort text edit; preserves existing content).
+//   - Idempotent: no-op if already wired.
+//
 // Called only for nonInteractive flows per Epic-4 ACs. Returns true if
 // the file was created or modified.
 func EnsureTaskfile(w *Wizard, projectDir string) (bool, error) {
@@ -665,20 +684,27 @@ func EnsureTaskfile(w *Wizard, projectDir string) (bool, error) {
 		modified = true
 		w.printf("Created minimal Taskfile.yml with deft include (Epic-4).\n")
 	} else {
-		// Existing Taskfile: append the include under a new includes: block
-		// (or extend if includes: already present at top level). Simple
-		// heuristic to keep the Go installer dependency-free; mirrors the
-		// gitignore append strategy. For complex yamls the user can wire
-		// manually (clear fallback documented).
+		// Existing Taskfile: append the deft entry.
+		// If includes: already present at top level we extend that block by
+		// inserting the deft entry (first child) instead of emitting a second
+		// top-level includes: key. Prevents silent loss of user includes
+		// (go-task last-wins on dup keys; Greptile P1).
+		// Dep-free heuristic; complex cases documented for manual wiring.
 		body.WriteString(existing)
 		if !strings.HasSuffix(existing, "\n") {
 			body.WriteString("\n")
 		}
 		body.WriteString("\n# Added by deft-install --yes (Epic-4)\n")
-		body.WriteString("includes:\n")
-		body.WriteString("  deft:\n")
-		body.WriteString("    taskfile: ./.deft/core/Taskfile.yml\n")
-		body.WriteString("    optional: true\n")
+		if hasTopLevelIncludes(existing) {
+			body.WriteString("  deft:\n")
+			body.WriteString("    taskfile: ./.deft/core/Taskfile.yml\n")
+			body.WriteString("    optional: true\n")
+		} else {
+			body.WriteString("includes:\n")
+			body.WriteString("  deft:\n")
+			body.WriteString("    taskfile: ./.deft/core/Taskfile.yml\n")
+			body.WriteString("    optional: true\n")
+		}
 		modified = true
 		w.printf("Appended deft include to existing Taskfile.yml (Epic-4).\n")
 	}
@@ -696,7 +722,8 @@ func EnsureTaskfile(w *Wizard, projectDir string) (bool, error) {
 // non-interactive/--yes mode it reports missing ones with clear manual
 // fallbacks (Epic-4) without attempting privileged installs (UAC/sudo
 // concerns addressed by documentation + delegation to setup_*.ps1 / winget).
-// Returns the list of missing tools (for JSON result) or nil.
+// Returns the list of missing tools (for JSON result) as a non-nil slice
+// (empty when none missing) for stable JSON emission.
 func EnsureCoreTools(w *Wizard, nonInteractive bool) ([]string, error) {
 	candidates := map[string][]string{
 		"task":   {"task"},
@@ -712,6 +739,10 @@ func EnsureCoreTools(w *Wizard, nonInteractive bool) ([]string, error) {
 				found = true
 				break
 			}
+			// LookPath err here is the normal "not found in PATH" case for
+			// this alt (or subsequent alts); no logging needed — !found path
+			// below reports the tool if all alts miss (SLizard P1 addressed
+			// with explicit else-not-required comment for expected path).
 		}
 		if !found {
 			missing = append(missing, name)
@@ -719,8 +750,9 @@ func EnsureCoreTools(w *Wizard, nonInteractive bool) ([]string, error) {
 	}
 	if len(missing) == 0 {
 		w.printf("Core tools present: task, uv, python, gh.\n")
-		return nil, nil
+		return []string{}, nil
 	}
+	sort.Strings(missing) // deterministic JSON output regardless of map iteration (Greptile P2)
 	w.printf("Missing core tools (consent implied by --yes): %s\n", strings.Join(missing, ", "))
 	w.printf("  Fallbacks (run manually or via platform package manager):\n")
 	w.printf("    Windows: winget install --id <ID> or scripts/setup_windows.ps1\n")

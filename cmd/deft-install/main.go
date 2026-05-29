@@ -101,19 +101,19 @@ Examples:
 // so the standard flag package can parse them.
 func normalizeArgs(args []string) []string {
 	slashFlags := map[string]string{
-		"/?":                 "--help",
-		"/h":                 "--help",
-		"/help":              "--help",
-		"/v":                 "--version",
-		"/version":           "--version",
-		"/debug":             "--debug",
-		"/branch":            "--branch",
-		"/legacy-layout":     "--legacy-layout",
-		"/yes":               "--yes",
-		"/non-interactive":   "--non-interactive",
-		"/upgrade":           "--upgrade",
-		"/repo-root":         "--repo-root",
-		"/json":              "--json",
+		"/?":               "--help",
+		"/h":               "--help",
+		"/help":            "--help",
+		"/v":               "--version",
+		"/version":         "--version",
+		"/debug":           "--debug",
+		"/branch":          "--branch",
+		"/legacy-layout":   "--legacy-layout",
+		"/yes":             "--yes",
+		"/non-interactive": "--non-interactive",
+		"/upgrade":         "--upgrade",
+		"/repo-root":       "--repo-root",
+		"/json":            "--json",
 	}
 	out := make([]string, 0, len(args))
 	for _, a := range args {
@@ -173,62 +173,29 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	if nonInteractive && repoRoot != "" {
 		// Fast path for agents/CI: construct result directly from --repo-root
 		// without any interactive prompts. Derive project name from basename.
-		absRoot, _ := filepath.Abs(repoRoot)
-		projectName := SanitizeProjectName(filepath.Base(absRoot))
-		if projectName == "" {
-			projectName = "project"
+		absRoot, absErr := filepath.Abs(repoRoot)
+		if absErr != nil {
+			fmt.Fprintf(os.Stderr, "Error: resolving --repo-root %q: %v\n", repoRoot, absErr)
+			return 1
 		}
-		deftSub := CanonicalFrameworkSubdir
-		if legacyLayout {
-			deftSub = LegacyFrameworkSubdir
-		}
-		deftDir := filepath.Join(absRoot, deftSub)
-		// Detect update: if the target deft dir already exists, treat as update
-		// unless caller explicitly wants fresh? (upgrade flag forces the update
-		// codepath even on edge cases).
-		update := upgrade
-		if !update {
-			if info, statErr := os.Stat(deftDir); statErr == nil && info.IsDir() {
-				update = true
-			}
-		}
-		result = &WizardResult{
-			ProjectName:  projectName,
-			ProjectDir:   absRoot,
-			DeftDir:      deftDir,
-			Update:       update,
-			LegacyLayout: legacyLayout,
-		}
+		result = buildNonInteractiveResult(absRoot, legacyLayout, upgrade)
 		if debug {
 			fmt.Printf("[debug] non-interactive fast-path: project=%s deft=%s update=%v\n", result.ProjectDir, result.DeftDir, result.Update)
 		}
 	} else if nonInteractive {
 		// --yes without --repo-root: fall back to CWD as repo root (common for
 		// agents running inside an existing project dir).
-		cwd, _ := os.Getwd()
-		absRoot, _ := filepath.Abs(cwd)
-		projectName := SanitizeProjectName(filepath.Base(absRoot))
-		if projectName == "" {
-			projectName = "project"
+		cwd, getErr := os.Getwd()
+		if getErr != nil {
+			fmt.Fprintf(os.Stderr, "Error: cannot determine working directory: %v\n", getErr)
+			return 1
 		}
-		deftSub := CanonicalFrameworkSubdir
-		if legacyLayout {
-			deftSub = LegacyFrameworkSubdir
+		absRoot, absErr := filepath.Abs(cwd)
+		if absErr != nil {
+			fmt.Fprintf(os.Stderr, "Error: resolving CWD %q: %v\n", cwd, absErr)
+			return 1
 		}
-		deftDir := filepath.Join(absRoot, deftSub)
-		update := upgrade
-		if !update {
-			if info, statErr := os.Stat(deftDir); statErr == nil && info.IsDir() {
-				update = true
-			}
-		}
-		result = &WizardResult{
-			ProjectName:  projectName,
-			ProjectDir:   absRoot,
-			DeftDir:      deftDir,
-			Update:       update,
-			LegacyLayout: legacyLayout,
-		}
+		result = buildNonInteractiveResult(absRoot, legacyLayout, upgrade)
 		if debug {
 			fmt.Printf("[debug] non-interactive cwd-fallback: project=%s deft=%s update=%v\n", result.ProjectDir, result.DeftDir, result.Update)
 		}
@@ -323,7 +290,7 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	// Only in non-interactive mode (per ACs: "in --yes mode"). Consent is
 	// implied by the --yes flag; interactive consent is future (or via doctor).
 	var taskfileChanged bool
-	var missingTools []string
+	missingTools := []string{} // non-nil for consistent JSON (never null when --json even without --yes; Greptile P2)
 	if nonInteractive {
 		var tfErr error
 		taskfileChanged, tfErr = EnsureTaskfile(w, result.ProjectDir)
@@ -348,18 +315,18 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		// actions taken for 1337/1338 so callers can react (e.g. re-invoke
 		// doctor after wiring).
 		out := map[string]any{
-			"success":          true,
-			"version":          version,
-			"project_dir":      result.ProjectDir,
-			"deft_dir":         result.DeftDir,
-			"legacy_layout":    result.LegacyLayout,
-			"update":           result.Update,
-			"non_interactive":  nonInteractive,
-			"upgrade":          upgrade,
-			"taskfile_wired":   taskfileChanged,
-			"missing_tools":    missingTools,
-			"user_config_dir":  configDir,
-			"skills_created":   skillsCreated,
+			"success":         true,
+			"version":         version,
+			"project_dir":     result.ProjectDir,
+			"deft_dir":        result.DeftDir,
+			"legacy_layout":   result.LegacyLayout,
+			"update":          result.Update,
+			"non_interactive": nonInteractive,
+			"upgrade":         upgrade,
+			"taskfile_wired":  taskfileChanged,
+			"missing_tools":   missingTools,
+			"user_config_dir": configDir,
+			"skills_created":  skillsCreated,
 		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
@@ -374,6 +341,36 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	return 0
 }
 
+// buildNonInteractiveResult centralises the duplicated non-interactive
+// fast-path / CWD-fallback logic (Greptile P2). Also centralises the
+// update-detection Stat so error handling stays in one place.
+func buildNonInteractiveResult(absRoot string, legacyLayout, upgrade bool) *WizardResult {
+	projectName := SanitizeProjectName(filepath.Base(absRoot))
+	if projectName == "" {
+		projectName = "project"
+	}
+	deftSub := CanonicalFrameworkSubdir
+	if legacyLayout {
+		deftSub = LegacyFrameworkSubdir
+	}
+	deftDir := filepath.Join(absRoot, deftSub)
+	update := upgrade
+	if !update {
+		if info, statErr := os.Stat(deftDir); statErr == nil && info.IsDir() {
+			update = true
+		}
+		// statErr != nil (incl. os.ErrNotExist) or !IsDir() => fresh install;
+		// explicit no-else documents the "treat as create" intent (SLizard P1).
+	}
+	return &WizardResult{
+		ProjectName:  projectName,
+		ProjectDir:   absRoot,
+		DeftDir:      deftDir,
+		Update:       update,
+		LegacyLayout: legacyLayout,
+	}
+}
+
 // resolveInstallManifestFields builds the InstallManifestFields struct the
 // installer writes into <deftDir>/VERSION (#1062). The SHA is resolved via
 // `git rev-parse HEAD` rooted at deftDir; failure (fresh shallow clone, git
@@ -383,7 +380,7 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 //
 // Tag is populated ONLY when the resolved ref looks like a semver release
 // tag (per semverTagPattern). Branch refs (`master`, `main`, `feat/...`)
-// leave Tag empty -- BuildInstallManifestText then renders `tag: ''` rather
+// leave Tag empty -- BuildInstallManifestText then renders `tag: ”` rather
 // than nonsensical values like `vmaster` that would corrupt downstream
 // consumers parsing the field as semver. Ref is still recorded verbatim so
 // the manifest preserves the full provenance trail (Greptile P1 review on

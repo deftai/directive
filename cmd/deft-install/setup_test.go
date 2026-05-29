@@ -205,11 +205,11 @@ func TestWriteInstallManifest_HappyPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	fields := InstallManifestFields{
-		Ref:         "v0.28.0",
-		SHA:         "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
-		Tag:         "v0.28.0",
-		FetchedAt:   "2026-05-12T02:08:16Z",
-		FetchedBy:   "deft-install",
+		Ref:       "v0.28.0",
+		SHA:       "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+		Tag:       "v0.28.0",
+		FetchedAt: "2026-05-12T02:08:16Z",
+		FetchedBy: "deft-install",
 	}
 	path, err := WriteInstallManifest(projectDir, deftDir, fields)
 	if err != nil {
@@ -1035,4 +1035,49 @@ func TestEnsureCoreTools_ReportsMissing(t *testing.T) {
 	// missing may be non-empty on test runner (no task/uv etc); just assert
 	// it is a slice (possibly empty) and function is safe.
 	_ = missing
+}
+
+// TestEnsureTaskfile_PreservesExistingIncludes covers the Greptile P1 fix:
+// when a Taskfile already declares a top-level includes: block (with user
+// namespaces), EnsureTaskfile extends that block rather than appending a
+// second includes: key (which would silently drop the user's entries under
+// go-task's last-wins map merge).
+func TestEnsureTaskfile_PreservesExistingIncludes(t *testing.T) {
+	tmp := t.TempDir()
+	tf := filepath.Join(tmp, "Taskfile.yml")
+	initial := "version: '3'\n" +
+		"includes:\n" +
+		"  myapp:\n" +
+		"    taskfile: ./myapp/Taskfile.yml\n" +
+		"  infra:\n" +
+		"    taskfile: ./infra/Taskfile.yml\n"
+	if err := os.WriteFile(tf, []byte(initial), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
+	changed, err := EnsureTaskfile(w, tmp)
+	if err != nil {
+		t.Fatalf("EnsureTaskfile failed: %v", err)
+	}
+	if !changed {
+		t.Fatal("expected changed=true for pre-existing includes case")
+	}
+	content, err := os.ReadFile(tf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(content)
+	// Exactly one top-level includes: key (no duplicate)
+	if strings.Count(s, "\nincludes:") != 1 && !strings.HasPrefix(strings.TrimLeft(s, " \t\r\n"), "includes:") {
+		// allow starting case too
+		if strings.Count(s, "includes:") != 1 {
+			t.Errorf("expected exactly one includes: key, got duplicates or loss: %s", s)
+		}
+	}
+	if !strings.Contains(s, "deft:") {
+		t.Error("deft include entry missing")
+	}
+	if !strings.Contains(s, "myapp:") || !strings.Contains(s, "infra:") {
+		t.Error("user pre-existing includes were lost")
+	}
 }
