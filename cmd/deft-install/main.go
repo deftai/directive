@@ -341,11 +341,14 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 
 	// #1339 (Epic-5): Installer → Doctor handoff + payload staleness detection.
 	// The installer invokes the canonical doctor (scripts/doctor.py) with
-	// --session --json at the end of every successful run. This makes the
-	// handoff deterministic for agents, surfaces manifest-based staleness
-	// recommendations ("run the installer again"), and keeps humans/agents
-	// on the unified post-install guidance path.
-	doHandoffToDoctor(w, result)
+	// --session [--json] --full at the end of every successful run. This
+	// makes the handoff deterministic for agents, surfaces manifest-based
+	// staleness recommendations ("run the installer again"), and keeps
+	// humans/agents on the unified post-install guidance path. The --json
+	// flag is forwarded only when the installer itself is in --json mode so
+	// interactive humans see the doctor's prose output rather than a raw
+	// JSON blob (Greptile P1 on #1384 head a7266239).
+	doHandoffToDoctor(w, result, jsonOut)
 	return 0
 }
 
