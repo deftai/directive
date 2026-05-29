@@ -242,12 +242,12 @@ class TestWriteInstallManifest:
 
 
 def _load_doctor_module():
-    """Load ``scripts/framework_doctor.py`` for the doctor-side fallback tests."""
-    doctor_path = REPO_ROOT / "scripts" / "framework_doctor.py"
-    spec = importlib.util.spec_from_file_location("framework_doctor_install_root", doctor_path)
+    """Load ``scripts/doctor.py`` (canonical owner per #1335/#1336; framework_doctor.py retired) for the doctor-side fallback tests."""
+    doctor_path = REPO_ROOT / "scripts" / "doctor.py"
+    spec = importlib.util.spec_from_file_location("doctor_install_root", doctor_path)
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
-    sys.modules["framework_doctor_install_root"] = mod
+    sys.modules["doctor_install_root"] = mod
     spec.loader.exec_module(mod)
     return mod
 

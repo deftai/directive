@@ -1,6 +1,6 @@
-"""tests/cli/test_framework_doctor.py -- framework_doctor probe (#1046 PR-B AC-3).
+"""tests/cli/test_framework_doctor.py -- doctor probe (now scripts/doctor.py per #1335/#1336).
 
-Covers ``scripts/framework_doctor.py`` end-to-end:
+Covers ``scripts/doctor.py`` end-to-end (retired framework_doctor.py name):
 
 - Three-state exit code (0 clean / 1 drift / 2 config error).
 - Per-check pass/fail/skip matrix for the four checks (``quick-start-resolves``,
@@ -13,8 +13,8 @@ Covers ``scripts/framework_doctor.py`` end-to-end:
 - UTF-8 self-reconfigure (#814) at ``main()`` entry -- the U+2713 success
   glyph MUST render under Windows git hooks that default stdout to cp1252.
 
-The tests drive :func:`framework_doctor.run_checks` (pure -- no subprocess)
-and :func:`framework_doctor.main` (full CLI with arg parsing + stdout/stderr).
+The tests drive :func:`doctor.run_checks` (pure -- no subprocess)
+and :func:`doctor.main` (full CLI with arg parsing + stdout/stderr).
 Mirrors the ``tests/cli/test_preflight_branch.py`` (#747) shape so the
 test seam is consistent across the deft preflight family.
 
@@ -32,14 +32,14 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SCRIPT_PATH = REPO_ROOT / "scripts" / "framework_doctor.py"
+SCRIPT_PATH = REPO_ROOT / "scripts" / "doctor.py"  # canonical owner per #1335/#1336 (framework_doctor.py retired)
 
 
 def _load_module():
-    spec = importlib.util.spec_from_file_location("framework_doctor", SCRIPT_PATH)
+    spec = importlib.util.spec_from_file_location("doctor", SCRIPT_PATH)
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
-    sys.modules["framework_doctor"] = mod
+    sys.modules["doctor"] = mod
     spec.loader.exec_module(mod)
     return mod
 

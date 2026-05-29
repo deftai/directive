@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- Doctor surfaces consolidated under single implementation: `scripts/doctor.py` now owns the core doctor logic (install-integrity checks + diagnostics). `run doctor` and `task doctor` are thin shims; `--session` mode supports gate callers. Legacy `framework_doctor.py`, `_maybe_run_framework_doctor` hook, and `task framework:doctor` fully retired (no production imports or calls remain). Closes #1335, #1336.
 
 ### Fixed
 

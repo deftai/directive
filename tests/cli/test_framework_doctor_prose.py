@@ -1,6 +1,6 @@
 """tests/cli/test_framework_doctor_prose.py -- doctor FAIL-prose regression (#1061).
 
-Asserts every command string surfaced in :mod:`scripts.framework_doctor`
+Asserts every command string surfaced in :mod:`scripts.doctor` (retired framework_doctor.py)
 FAIL / REPAIR ``detail`` messages either:
 
 (a) exists as a Taskfile target reachable from a consumer install
@@ -31,7 +31,7 @@ The structural contract this test enforces:
 2. The structured ``data.suggested_fix`` / ``data.suggested_fix_alt``
    fields added in #1061 MUST also resolve to a real command surface.
 
-Test seam: each check is driven through ``framework_doctor.run_checks``
+Test seam: each check is driven through ``doctor.run_checks``
 against a contrived drift state so we can capture the real FAIL ``detail``
 strings and assert against the actual production prose.
 
@@ -48,17 +48,17 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DOCTOR_SCRIPT = REPO_ROOT / "scripts" / "framework_doctor.py"
+DOCTOR_SCRIPT = REPO_ROOT / "scripts" / "doctor.py"  # canonical owner per #1335/#1336 (framework_doctor.py retired)
 RUN_SCRIPT = REPO_ROOT / "run"
 TASKFILE_ROOT = REPO_ROOT / "Taskfile.yml"
 TASKS_DIR = REPO_ROOT / "tasks"
 
 
 def _load_module():
-    spec = importlib.util.spec_from_file_location("framework_doctor", DOCTOR_SCRIPT)
+    spec = importlib.util.spec_from_file_location("doctor", DOCTOR_SCRIPT)
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
-    sys.modules["framework_doctor"] = mod
+    sys.modules["doctor"] = mod
     spec.loader.exec_module(mod)
     return mod
 
