@@ -1,0 +1,57 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1334"
+  },
+  "plan": {
+    "title": "Epic: Unified Installer + Single Doctor Surface (Agent-First Bootstrap & Upgrade)",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Epic: Unified Installer + Single Doctor Surface (Agent-First Bootstrap & Upgrade)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1334",
+      "Overview": "## Summary\r\n\r\nThis epic delivers a single, reliable, deterministic path for agents (and humans) to bootstrap or update the directive payload and understand the current state of their project.\r\n\r\n## Current Problems\r\n- Multiple competing doctor surfaces (`task doctor`, `run doctor`, `task framework:doctor`, `scripts/framework_doctor.py`)\r\n- Fragmented and unreliable upgrade paths for agents\r\n- The Go installer is hostile to non-interactive/agent use\r\n- No clear, single surface that tells an agent “here is exactly what to do next”\r\n\r\n## Target State\r\n- The published Go installer becomes the canonical mechanism for installing or updating the directive payload.\r\n- `scripts/doctor.py` becomes the single source of truth for all doctor logic.\r\n- `task doctor` and `run doctor` are thin, consistent shims.\r\n- After the installer runs, `task doctor` is reliably available and gives clear next-step guidance (including when to re-run the installer).\r\n- All legacy doctor surfaces are retired or fully deprecated.\r\n\r\nThis epic will remain open until the full scope is complete (including documentation and deprecation of old surfaces). Work will be done on a single branch (`epic/unified-installer-doctor`).\r\n\r\n## Sub-issues\r\n- [ ] #1335 - Extract `scripts/doctor.py` as the single doctor implementation\r\n- [ ] #1336 - Retire `framework_doctor.py` and legacy doctor surfaces\r\n- [ ] #1337 - Harden Go installer for non-interactive agent use\r\n- [ ] #1338 - Installer – Automatic Taskfile wiring + tool installation\r\n- [ ] #1339 - Installer → Doctor handoff + payload staleness detection\r\n- [ ] #1340 - Documentation, skills, and agent guidance collapse\r\n\r\n## Relationship to Existing Issues\r\nThis epic is intended to be the single, comprehensive solution to the long-standing fragmentation of installer and doctor surfaces.\r\n\r\nThe following open issues are expected to be superseded or closed as part of this work:\r\n- #1322, #1321, #1320, #1112, #689, #1050, #1115, #1306 (and related)\r\n\r\n## Definition of Done\r\n- Only one doctor implementation exists (`scripts/doctor.py`)\r\n- Agents have a single, documented, reliable path to install or update directive and check project health\r\n- Installer + doctor handoff is deterministic and non-interactive friendly\r\n- All legacy doctor surfaces are removed or clearly deprecated\r\n- Documentation and skills point to the new canonical flow\r\n- All changes follow project testing guidelines (new source files must include corresponding tests that exercise the new behavior)\r\n",
+      "Labels": "epic, adoption-blocker, installer, doctor, refactor, agent-experience"
+    },
+    "items": [
+      {
+        "title": "#1335 - Extract  as the single doctor implementation",
+        "status": "proposed"
+      },
+      {
+        "title": "#1336 - Retire  and legacy doctor surfaces",
+        "status": "proposed"
+      },
+      {
+        "title": "#1337 - Harden Go installer for non-interactive agent use",
+        "status": "proposed"
+      },
+      {
+        "title": "#1338 - Installer – Automatic Taskfile wiring + tool installation",
+        "status": "proposed"
+      },
+      {
+        "title": "#1339 - Installer → Doctor handoff + payload staleness detection",
+        "status": "proposed"
+      },
+      {
+        "title": "#1340 - Documentation, skills, and agent guidance collapse",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "epic",
+      "adoption-blocker",
+      "installer",
+      "doctor",
+      "refactor",
+      "agent-experience"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1334",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1334: Epic: Unified Installer + Single Doctor Surface (Agent-First Bootstrap & Upgrade)"
+      }
+    ]
+  }
+}

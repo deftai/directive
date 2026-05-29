@@ -1,0 +1,49 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1335"
+  },
+  "plan": {
+    "title": "Epic-1: Extract scripts/doctor.py as the single doctor implementation",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Epic-1: Extract scripts/doctor.py as the single doctor implementation",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1335",
+      "Overview": "## Summary\nCreate \\scripts/doctor.py\\ as the single, standalone implementation of the doctor.\n\n## Acceptance Criteria\n- \\scripts/doctor.py\\ exists and owns the core doctor logic\n- \\\run doctor\\ becomes a thin shim\n- \\\task doctor\\ remains a thin shim\n- Clear modes defined (\\--session\\ and reporting mode)\n- All new code follows project testing guidelines\n\n## Testing Requirements\n- New source file must include corresponding tests in \\\tests/cli/\\\n- Tests must exercise the new extracted logic (forward coverage required)\n\n## Labels\ndoctor, refactor",
+      "Labels": "doctor, refactor"
+    },
+    "items": [
+      {
+        "title": "\\scripts/doctor.py\\ exists and owns the core doctor logic",
+        "status": "proposed"
+      },
+      {
+        "title": "\\\run doctor\\ becomes a thin shim",
+        "status": "proposed"
+      },
+      {
+        "title": "\\\task doctor\\ remains a thin shim",
+        "status": "proposed"
+      },
+      {
+        "title": "Clear modes defined (\\--session\\ and reporting mode)",
+        "status": "proposed"
+      },
+      {
+        "title": "All new code follows project testing guidelines",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "doctor",
+      "refactor"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1335",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1335: Epic-1: Extract scripts/doctor.py as the single doctor implementation"
+      }
+    ]
+  }
+}

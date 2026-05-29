@@ -1,0 +1,45 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1337"
+  },
+  "plan": {
+    "title": "Epic-3: Harden Go installer for non-interactive agent use",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Epic-3: Harden Go installer for non-interactive agent use",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1337",
+      "Overview": "## Summary\nAdd robust non-interactive support to the published \\deft-install\\ binary so agents can reliably use it for fresh installs and upgrades.\n\n## Acceptance Criteria\n- \\--yes\\ / \\--non-interactive\\ mode works without hanging on prompts\n- \\--upgrade\\ mode supported\n- \\--repo-root\\ and \\--json\\ supported\n- Windows UAC/installer detection issues addressed or documented\n\n## Testing Requirements\n- Go tests in \\cmd/deft-install/*_test.go\\\n- CLI integration tests in \\\tests/cli/\\ exercising installer flows\n\n## Labels\ninstaller, enhancement",
+      "Labels": "enhancement, installer"
+    },
+    "items": [
+      {
+        "title": "\\--yes\\ / \\--non-interactive\\ mode works without hanging on prompts",
+        "status": "proposed"
+      },
+      {
+        "title": "\\--upgrade\\ mode supported",
+        "status": "proposed"
+      },
+      {
+        "title": "\\--repo-root\\ and \\--json\\ supported",
+        "status": "proposed"
+      },
+      {
+        "title": "Windows UAC/installer detection issues addressed or documented",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1337",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1337: Epic-3: Harden Go installer for non-interactive agent use"
+      }
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1340"
+  },
+  "plan": {
+    "title": "Epic-6: Documentation, skills, and agent guidance collapse",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Epic-6: Documentation, skills, and agent guidance collapse",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1340",
+      "Overview": "## Summary\nCollapse all guidance so there is one clear story: use the installer to get/refresh the payload, then use \\\task doctor\\.\n\n## Acceptance Criteria\n- AGENTS.md, README, UPGRADING.md, and \\deft-directive-sync\\ skill point to the new path\n- Old upgrade paths are de-emphasized or marked legacy\n- Clear agent examples provided\n\n## Testing Requirements\n- Update content tests in \\\tests/content/\\ for any changed documentation rules or guidance\n\n## Labels\ndocs, enhancement",
+      "Labels": "enhancement, docs"
+    },
+    "items": [
+      {
+        "title": "AGENTS.md, README, UPGRADING.md, and \\deft-directive-sync\\ skill point to the new path",
+        "status": "proposed"
+      },
+      {
+        "title": "Old upgrade paths are de-emphasized or marked legacy",
+        "status": "proposed"
+      },
+      {
+        "title": "Clear agent examples provided",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "docs"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1340",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1340: Epic-6: Documentation, skills, and agent guidance collapse"
+      }
+    ]
+  }
+}
