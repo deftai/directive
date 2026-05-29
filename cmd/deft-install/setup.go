@@ -1166,7 +1166,11 @@ func doHandoffToDoctor(w *Wizard, result *WizardResult) {
 		python = "python"
 	}
 
-	cmd := exec.Command(python, scriptsDoctor, "--session", "--json", "--project-root", result.ProjectDir)
+	// --full bypasses the 24h/4h throttle gate in scripts/doctor.py so the
+	// installer-doctor handoff always runs the staleness check (Greptile P1
+	// on #1384: throttle could otherwise short-circuit the post-install
+	// report whenever doctor was recently run from another entry point).
+	cmd := exec.Command(python, scriptsDoctor, "--session", "--full", "--json", "--project-root", result.ProjectDir)
 	cmd.Stdout = w.out
 	cmd.Stderr = w.out
 

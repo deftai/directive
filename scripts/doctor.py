@@ -1426,10 +1426,22 @@ def _run_payload_staleness_check(
         return
 
     installed_sha = manifest.get("sha", "").strip()
-    ref = manifest.get("ref") or manifest.get("tag") or "HEAD"
+    # Greptile P1 on #1384: do NOT fall back to "HEAD" when ref/tag are
+    # absent. `git ls-remote origin HEAD` returns the current remote
+    # default-branch tip, which almost certainly differs from the locally
+    # installed sha for development builds without a ref/tag pinned, and
+    # the check would then emit a permanent false-stale warning. Skip
+    # cleanly when the manifest does not declare a ref/tag.
+    ref = (manifest.get("ref") or manifest.get("tag") or "").strip()
     if not installed_sha:
         emit_info(f"{check_name}: skip -- manifest has no sha (incomplete provenance)")
         add_finding("skip", "no sha in manifest", check=check_name, status="skip")
+        return
+    if not ref:
+        emit_info(
+            f"{check_name}: skip -- manifest has no ref or tag (cannot resolve remote sha)"
+        )
+        add_finding("skip", "no ref/tag in manifest", check=check_name, status="skip")
         return
 
     # Resolve current remote SHA for the ref (best effort, may be tag or branch).
