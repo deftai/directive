@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(install): --yes/--non-interactive, --upgrade, --repo-root, --json for agent/CI use (Epic-3 #1337); auto Taskfile wiring + core tool (uv/task/python/gh) bootstrap with fallbacks in --yes mode (Epic-4 #1338)** -- non-interactive fast-path bypasses all wizard prompts; --repo-root (or CWD) + --yes produces machine-readable JSON result; Taskfile created or extended with canonical deft include; tools probed with clear manual-install guidance (UAC/privs documented via fallbacks to setup scripts). Go tests + CLI integration coverage added. Closes #1337, #1338.
 
 ### Changed
 

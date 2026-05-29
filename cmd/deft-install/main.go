@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -55,29 +57,43 @@ Usage:
   deft-install [options]
 
 Options:
-  --branch <name>     Clone from a specific branch (default: repo default)
-  --legacy-layout     Deposit at legacy 'deft/' instead of canonical '.deft/core/'
-                      (back-compat path; pre-v0.27 in-flight migrations only)
-  --debug             Print build target and diagnostic info
-  --version           Print version and exit
-  --help              Show this help message
+  --branch <name>           Clone from a specific branch (default: repo default)
+  --legacy-layout           Deposit at legacy 'deft/' instead of canonical '.deft/core/'
+                            (back-compat path; pre-v0.27 in-flight migrations only)
+  --yes, --non-interactive  Non-interactive/agent mode: skip all prompts; requires
+                            --repo-root for target dir (or uses CWD); auto-confirms
+                            updates and installs; ideal for CI/agents
+  --upgrade                 Force update/upgrade path even if framework dir exists
+  --repo-root <path>        Target project directory (enables fully non-interactive
+                            installs when combined with --yes)
+  --json                    Emit structured JSON result to stdout (success, paths,
+                            actions taken, warnings); suppresses some prose
+  --debug                   Print build target and diagnostic info
+  --version                 Print version and exit
+  --help                    Show this help message
 
 Windows-style aliases:
-  /branch <name>      Same as --branch
-  /legacy-layout      Same as --legacy-layout
-  /debug              Same as --debug
-  /v, /version        Same as --version
-  /?, /h, /help       Same as --help
+  /branch <name>            Same as --branch
+  /legacy-layout            Same as --legacy-layout
+  /yes, /non-interactive    Same as --yes
+  /upgrade                  Same as --upgrade
+  /repo-root <path>         Same as --repo-root
+  /json                     Same as --json
+  /debug                    Same as --debug
+  /v, /version              Same as --version
+  /?, /h, /help             Same as --help
 
 User configuration:
   Config directory : %s
   Override via     : DEFT_USER_PATH environment variable
 
 Examples:
-  deft-install                     Install using the canonical .deft/core/ layout
-  deft-install --branch beta       Install from the beta branch
-  deft-install --legacy-layout     Install at legacy deft/ for back-compat
-  deft-install /branch beta        Same, Windows-style
+  deft-install                              Interactive install (canonical layout)
+  deft-install --branch beta                Install from beta branch
+  deft-install --yes --repo-root C:\proj    Non-interactive agent install
+  deft-install --yes --repo-root . --json   Machine-readable result for scripting
+  deft-install --yes --upgrade --repo-root .  Force refresh of existing install
+  deft-install /yes /repo-root .            Windows-style non-interactive
 `, version, UserConfigDir())
 }
 
@@ -85,14 +101,19 @@ Examples:
 // so the standard flag package can parse them.
 func normalizeArgs(args []string) []string {
 	slashFlags := map[string]string{
-		"/?":             "--help",
-		"/h":             "--help",
-		"/help":          "--help",
-		"/v":             "--version",
-		"/version":       "--version",
-		"/debug":         "--debug",
-		"/branch":        "--branch",
-		"/legacy-layout": "--legacy-layout",
+		"/?":                 "--help",
+		"/h":                 "--help",
+		"/help":              "--help",
+		"/v":                 "--version",
+		"/version":           "--version",
+		"/debug":             "--debug",
+		"/branch":            "--branch",
+		"/legacy-layout":     "--legacy-layout",
+		"/yes":               "--yes",
+		"/non-interactive":   "--non-interactive",
+		"/upgrade":           "--upgrade",
+		"/repo-root":         "--repo-root",
+		"/json":              "--json",
 	}
 	out := make([]string, 0, len(args))
 	for _, a := range args {
@@ -113,6 +134,11 @@ func main() {
 	debug := flag.Bool("debug", false, "print build target and diagnostic info")
 	branch := flag.String("branch", "", "clone from a specific branch")
 	legacyLayout := flag.Bool("legacy-layout", false, "deposit at legacy 'deft/' instead of canonical '.deft/core/' (back-compat only)")
+	yes := flag.Bool("yes", false, "non-interactive mode (no prompts; combine with --repo-root)")
+	nonInteractive := flag.Bool("non-interactive", false, "alias for --yes")
+	upgrade := flag.Bool("upgrade", false, "force update/upgrade of existing install")
+	repoRoot := flag.String("repo-root", "", "target project dir for non-interactive installs")
+	jsonOut := flag.Bool("json", false, "emit JSON result instead of (or with) prose for agents")
 	flag.Usage = printUsage
 	flag.Parse()
 
@@ -125,8 +151,9 @@ func main() {
 	// build-time default (if any).
 	effectiveBranch := resolveBranch(*branch, defaultBranch)
 
-	code := install(*debug, effectiveBranch, *legacyLayout)
-	if runtime.GOOS == "windows" {
+	nonInt := *yes || *nonInteractive
+	code := install(*debug, effectiveBranch, *legacyLayout, nonInt, *upgrade, *repoRoot, *jsonOut)
+	if runtime.GOOS == "windows" && !nonInt {
 		pressEnterToExit()
 	}
 	if code != 0 {
@@ -135,25 +162,102 @@ func main() {
 }
 
 // install runs the full install/update workflow and returns an exit code.
-func install(debug bool, branch string, legacyLayout bool) int {
+func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgrade bool, repoRoot string, jsonOut bool) int {
 	if debug {
 		fmt.Printf("[debug] OS=%s ARCH=%s\n", runtime.GOOS, runtime.GOARCH)
-		fmt.Printf("[debug] defaultBranch=%s branch=%s legacyLayout=%v\n", defaultBranch, branch, legacyLayout)
+		fmt.Printf("[debug] defaultBranch=%s branch=%s legacyLayout=%v nonInteractive=%v upgrade=%v repoRoot=%s json=%v\n", defaultBranch, branch, legacyLayout, nonInteractive, upgrade, repoRoot, jsonOut)
 	}
 
-	w := NewWizardWithLayout(os.Stdin, os.Stdout, debug, legacyLayout)
-	result, err := w.Run()
-	if err != nil {
-		if err == errUserExit {
-			fmt.Println("\nGoodbye!")
-			return 0
+	var result *WizardResult
+	var err error
+	if nonInteractive && repoRoot != "" {
+		// Fast path for agents/CI: construct result directly from --repo-root
+		// without any interactive prompts. Derive project name from basename.
+		absRoot, _ := filepath.Abs(repoRoot)
+		projectName := SanitizeProjectName(filepath.Base(absRoot))
+		if projectName == "" {
+			projectName = "project"
 		}
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		deftSub := CanonicalFrameworkSubdir
+		if legacyLayout {
+			deftSub = LegacyFrameworkSubdir
+		}
+		deftDir := filepath.Join(absRoot, deftSub)
+		// Detect update: if the target deft dir already exists, treat as update
+		// unless caller explicitly wants fresh? (upgrade flag forces the update
+		// codepath even on edge cases).
+		update := upgrade
+		if !update {
+			if info, statErr := os.Stat(deftDir); statErr == nil && info.IsDir() {
+				update = true
+			}
+		}
+		result = &WizardResult{
+			ProjectName:  projectName,
+			ProjectDir:   absRoot,
+			DeftDir:      deftDir,
+			Update:       update,
+			LegacyLayout: legacyLayout,
+		}
+		if debug {
+			fmt.Printf("[debug] non-interactive fast-path: project=%s deft=%s update=%v\n", result.ProjectDir, result.DeftDir, result.Update)
+		}
+	} else if nonInteractive {
+		// --yes without --repo-root: fall back to CWD as repo root (common for
+		// agents running inside an existing project dir).
+		cwd, _ := os.Getwd()
+		absRoot, _ := filepath.Abs(cwd)
+		projectName := SanitizeProjectName(filepath.Base(absRoot))
+		if projectName == "" {
+			projectName = "project"
+		}
+		deftSub := CanonicalFrameworkSubdir
+		if legacyLayout {
+			deftSub = LegacyFrameworkSubdir
+		}
+		deftDir := filepath.Join(absRoot, deftSub)
+		update := upgrade
+		if !update {
+			if info, statErr := os.Stat(deftDir); statErr == nil && info.IsDir() {
+				update = true
+			}
+		}
+		result = &WizardResult{
+			ProjectName:  projectName,
+			ProjectDir:   absRoot,
+			DeftDir:      deftDir,
+			Update:       update,
+			LegacyLayout: legacyLayout,
+		}
+		if debug {
+			fmt.Printf("[debug] non-interactive cwd-fallback: project=%s deft=%s update=%v\n", result.ProjectDir, result.DeftDir, result.Update)
+		}
+	} else {
+		w := NewWizardWithLayout(os.Stdin, os.Stdout, debug, legacyLayout)
+		result, err = w.Run()
+		if err != nil {
+			if err == errUserExit {
+				fmt.Println("\nGoodbye!")
+				return 0
+			}
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			return 1
+		}
+	}
+
+	// For non-interactive paths we never created w; create a stdout-backed
+	// dummy (no scanner input expected) so downstream helpers (EnsureGit,
+	// Write* ) that take *Wizard for debug printf / user feedback continue
+	// to work. In full non-int + json mode we may later suppress some output.
+	w := NewWizardWithLayout(strings.NewReader(""), os.Stdout, debug, legacyLayout)
+	if result == nil {
+		// defensive (should not happen)
+		fmt.Fprintf(os.Stderr, "Error: no install result\n")
 		return 1
 	}
 
 	if debug {
-		fmt.Printf("[debug] project=%s deft=%s legacy=%v\n", result.ProjectDir, result.DeftDir, result.LegacyLayout)
+		fmt.Printf("[debug] project=%s deft=%s legacy=%v update=%v\n", result.ProjectDir, result.DeftDir, result.LegacyLayout, result.Update)
 	}
 
 	// Phase 3: ensure git is available.
@@ -215,10 +319,55 @@ func install(debug bool, branch string, legacyLayout bool) int {
 		return 1
 	}
 
+	// Epic-4 (1338): Automatic Taskfile wiring + core tool bootstrap.
+	// Only in non-interactive mode (per ACs: "in --yes mode"). Consent is
+	// implied by the --yes flag; interactive consent is future (or via doctor).
+	var taskfileChanged bool
+	var missingTools []string
+	if nonInteractive {
+		var tfErr error
+		taskfileChanged, tfErr = EnsureTaskfile(w, result.ProjectDir)
+		if tfErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Taskfile wiring incomplete: %v\n", tfErr)
+		}
+		var toolsErr error
+		missingTools, toolsErr = EnsureCoreTools(w, nonInteractive)
+		if toolsErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: tool probe: %v\n", toolsErr)
+		}
+	}
+
 	configDir, err := CreateUserConfigDir(w)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
+	}
+
+	if jsonOut {
+		// Machine readable result for agents / CI (Epic-3 AC). Includes
+		// actions taken for 1337/1338 so callers can react (e.g. re-invoke
+		// doctor after wiring).
+		out := map[string]any{
+			"success":          true,
+			"version":          version,
+			"project_dir":      result.ProjectDir,
+			"deft_dir":         result.DeftDir,
+			"legacy_layout":    result.LegacyLayout,
+			"update":           result.Update,
+			"non_interactive":  nonInteractive,
+			"upgrade":          upgrade,
+			"taskfile_wired":   taskfileChanged,
+			"missing_tools":    missingTools,
+			"user_config_dir":  configDir,
+			"skills_created":   skillsCreated,
+		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(out); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: JSON encode failed: %v\n", err)
+		}
+		// Still run PrintNextSteps unless we want zero prose; for agents the
+		// JSON is the primary signal, prose is bonus.
 	}
 
 	PrintNextSteps(w, result, configDir, skillsCreated)

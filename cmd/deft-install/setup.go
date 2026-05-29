@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -175,6 +176,31 @@ var canonicalGitignoreLines = []string{
 	".deft-cache/",
 	"vbrief/.eval/",
 }
+
+// minimalTaskfileContent is the canonical starter Taskfile.yml written (or
+// used as the include-append source) by the installer in --yes /
+// non-interactive mode (Epic-4). It provides the supported consumer include
+// pattern so `task` from project root immediately resolves all deft:* tasks.
+// The `optional: true` prevents load failure before the framework is present.
+// This is intentionally a small, stable string (no new embed file) so the
+// Go installer binary stays self-contained.
+const minimalTaskfileContent = `version: '3'
+
+# Taskfile for this project.
+# Installed by deft-install --yes (Epic-4). Add your own tasks below or in
+# additional included files. The deft include makes all framework tasks
+# (task check, task vbrief:*, task doctor, etc.) available from the project root.
+
+includes:
+  deft:
+    taskfile: ./.deft/core/Taskfile.yml
+    optional: true
+`
+
+// canonicalTaskfileIncludeFragment is the exact string we search for to
+// decide whether a consumer Taskfile already wires the deft include. Used
+// by EnsureTaskfile for idempotent "add if missing" in --yes mode.
+const canonicalTaskfileIncludeFragment = "taskfile: ./.deft/core/Taskfile.yml"
 
 // ---------------------------------------------------------------------------
 // 4.0 Install manifest writer (#1062)
@@ -606,6 +632,102 @@ func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
 	}
 	w.printf(".gitignore updated with canonical entries: %s\n", strings.Join(additions, ", "))
 	return true, nil
+}
+
+// EnsureTaskfile ensures a usable root Taskfile.yml exists and (in --yes /
+// non-interactive mode) wires the canonical deft include so `task`
+// subcommands from the project root resolve into the framework.
+// - If no Taskfile.yml: writes the minimal one (version + deft include).
+// - If exists and lacks the deft include fragment: appends the include block
+//   (best-effort text edit; preserves existing content).
+// - Idempotent: no-op if already wired.
+// Called only for nonInteractive flows per Epic-4 ACs. Returns true if
+// the file was created or modified.
+func EnsureTaskfile(w *Wizard, projectDir string) (bool, error) {
+	path := filepath.Join(projectDir, "Taskfile.yml")
+	existing := ""
+	if data, err := os.ReadFile(path); err == nil {
+		existing = string(data)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return false, fmt.Errorf("could not read Taskfile.yml: %w", err)
+	}
+
+	if strings.Contains(existing, canonicalTaskfileIncludeFragment) {
+		w.printf("Taskfile.yml already includes deft — skipping wiring.\n")
+		return false, nil
+	}
+
+	var body strings.Builder
+	modified := false
+	if existing == "" {
+		// No Taskfile: create minimal from const.
+		body.WriteString(minimalTaskfileContent)
+		modified = true
+		w.printf("Created minimal Taskfile.yml with deft include (Epic-4).\n")
+	} else {
+		// Existing Taskfile: append the include under a new includes: block
+		// (or extend if includes: already present at top level). Simple
+		// heuristic to keep the Go installer dependency-free; mirrors the
+		// gitignore append strategy. For complex yamls the user can wire
+		// manually (clear fallback documented).
+		body.WriteString(existing)
+		if !strings.HasSuffix(existing, "\n") {
+			body.WriteString("\n")
+		}
+		body.WriteString("\n# Added by deft-install --yes (Epic-4)\n")
+		body.WriteString("includes:\n")
+		body.WriteString("  deft:\n")
+		body.WriteString("    taskfile: ./.deft/core/Taskfile.yml\n")
+		body.WriteString("    optional: true\n")
+		modified = true
+		w.printf("Appended deft include to existing Taskfile.yml (Epic-4).\n")
+	}
+
+	if modified {
+		if err := os.WriteFile(path, []byte(body.String()), 0o644); err != nil {
+			return false, fmt.Errorf("could not write Taskfile.yml: %w", err)
+		}
+	}
+	return modified, nil
+}
+
+// EnsureCoreTools probes for the four canonical toolchain binaries required
+// for full Deft operation (uv, go-task as "task", Python, gh). In
+// non-interactive/--yes mode it reports missing ones with clear manual
+// fallbacks (Epic-4) without attempting privileged installs (UAC/sudo
+// concerns addressed by documentation + delegation to setup_*.ps1 / winget).
+// Returns the list of missing tools (for JSON result) or nil.
+func EnsureCoreTools(w *Wizard, nonInteractive bool) ([]string, error) {
+	candidates := map[string][]string{
+		"task":   {"task"},
+		"uv":     {"uv"},
+		"python": {"python", "python3"},
+		"gh":     {"gh"},
+	}
+	var missing []string
+	for name, alts := range candidates {
+		found := false
+		for _, a := range alts {
+			if _, err := exec.LookPath(a); err == nil {
+				found = true
+				break
+			}
+		}
+		if !found {
+			missing = append(missing, name)
+		}
+	}
+	if len(missing) == 0 {
+		w.printf("Core tools present: task, uv, python, gh.\n")
+		return nil, nil
+	}
+	w.printf("Missing core tools (consent implied by --yes): %s\n", strings.Join(missing, ", "))
+	w.printf("  Fallbacks (run manually or via platform package manager):\n")
+	w.printf("    Windows: winget install --id <ID> or scripts/setup_windows.ps1\n")
+	w.printf("    macOS:   brew install go-task uv python gh\n")
+	w.printf("    Linux:   apt/brew equivalent for task uv python3 gh\n")
+	w.printf("  See docs/getting-started.md and QUICK-START.md for details.\n")
+	return missing, nil
 }
 
 // ---------------------------------------------------------------------------

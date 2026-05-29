@@ -981,3 +981,58 @@ func TestVbriefLifecycleDirsPresent_DetectsHalfState(t *testing.T) {
 		t.Error("all 5 lifecycle dirs present but detector returned false")
 	}
 }
+
+// TestEnsureTaskfile_CreatesMinimalWhenAbsent exercises Epic-4 item 1:
+// when no Taskfile.yml exists, EnsureTaskfile (called under --yes) writes
+// the minimal version + deft include.
+func TestEnsureTaskfile_CreatesMinimalWhenAbsent(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
+	changed, err := EnsureTaskfile(w, tmp)
+	if err != nil {
+		t.Fatalf("EnsureTaskfile failed: %v", err)
+	}
+	if !changed {
+		t.Error("expected changed=true for fresh create")
+	}
+	data, err := os.ReadFile(filepath.Join(tmp, "Taskfile.yml"))
+	if err != nil {
+		t.Fatalf("Taskfile not created: %v", err)
+	}
+	if !strings.Contains(string(data), canonicalTaskfileIncludeFragment) {
+		t.Errorf("created Taskfile missing include fragment; got:\n%s", data)
+	}
+}
+
+// TestEnsureTaskfile_IdempotentWhenPresent exercises Epic-4 item 2:
+// existing Taskfile with the fragment is left untouched.
+func TestEnsureTaskfile_IdempotentWhenPresent(t *testing.T) {
+	tmp := t.TempDir()
+	tf := filepath.Join(tmp, "Taskfile.yml")
+	content := "version: '3'\nincludes:\n  deft:\n    taskfile: ./.deft/core/Taskfile.yml\n    optional: true\n"
+	if err := os.WriteFile(tf, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
+	changed, err := EnsureTaskfile(w, tmp)
+	if err != nil {
+		t.Fatalf("EnsureTaskfile failed: %v", err)
+	}
+	if changed {
+		t.Error("expected changed=false (idempotent)")
+	}
+}
+
+// TestEnsureCoreTools_ReportsMissing is a smoke for Epic-4 item 3/4:
+// the probe returns a list (possibly empty) and never panics; in real runs
+// the list drives the JSON result and fallback messaging.
+func TestEnsureCoreTools_ReportsMissing(t *testing.T) {
+	w := NewWizardWithLayout(strings.NewReader(""), io.Discard, false, false)
+	missing, err := EnsureCoreTools(w, true)
+	if err != nil {
+		t.Fatalf("EnsureCoreTools errored: %v", err)
+	}
+	// missing may be non-empty on test runner (no task/uv etc); just assert
+	// it is a slice (possibly empty) and function is safe.
+	_ = missing
+}
