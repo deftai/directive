@@ -1,0 +1,46 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1339"
+  },
+  "plan": {
+    "title": "Epic-5: Installer → Doctor handoff + payload staleness detection",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Epic-5: Installer → Doctor handoff + payload staleness detection",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1339",
+      "Overview": "## Summary\nEnsure the installer reliably invokes the doctor at the end of a run. Teach the doctor to detect stale payload and recommend re-running the installer.\n\n## Acceptance Criteria\n- Installer calls \\scripts/doctor.py --session --json\\ at the end\n- Doctor detects payload staleness from the manifest\n- Doctor gives clear recommendation to run the installer again when behind\n- Handoff is deterministic\n\n## Testing Requirements\n- New tests in \\\tests/cli/\\ for staleness detection and recommendations\n- Integration tests covering installer + doctor handoff\n\n## Labels\ninstaller, doctor, enhancement",
+      "Labels": "enhancement, installer, doctor"
+    },
+    "items": [
+      {
+        "title": "Installer calls \\scripts/doctor.py --session --json\\ at the end",
+        "status": "proposed"
+      },
+      {
+        "title": "Doctor detects payload staleness from the manifest",
+        "status": "proposed"
+      },
+      {
+        "title": "Doctor gives clear recommendation to run the installer again when behind",
+        "status": "proposed"
+      },
+      {
+        "title": "Handoff is deterministic",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "installer",
+      "doctor"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1339",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1339: Epic-5: Installer → Doctor handoff + payload staleness detection"
+      }
+    ]
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1336"
+  },
+  "plan": {
+    "title": "Epic-2: Retire framework_doctor.py and legacy doctor surfaces",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Epic-2: Retire framework_doctor.py and legacy doctor surfaces",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1336",
+      "Overview": "## Summary\nRemove all usage of the legacy \\scripts/framework_doctor.py\\, the \\_maybe_run_framework_doctor\\ hook, and the \\\task framework:doctor\\ target.\n\n## Acceptance Criteria\n- \\\framework_doctor.py\\ is no longer imported in production code\n- \\_maybe_run_framework_doctor\\ is deleted\n- \\\task framework:doctor\\ is removed or fully deprecated\n- Upgrade gate no longer calls old logic\n\n## Testing Requirements\n- Update and extend tests in \\\tests/cli/test_framework_doctor*.py\\ and \\\tests/cli/test_cmd_doctor.py\\\n- Verify old code paths are no longer reachable\n\n## Labels\ndoctor, refactor",
+      "Labels": "doctor, refactor"
+    },
+    "items": [
+      {
+        "title": "\\\framework_doctor.py\\ is no longer imported in production code",
+        "status": "proposed"
+      },
+      {
+        "title": "\\_maybe_run_framework_doctor\\ is deleted",
+        "status": "proposed"
+      },
+      {
+        "title": "\\\task framework:doctor\\ is removed or fully deprecated",
+        "status": "proposed"
+      },
+      {
+        "title": "Upgrade gate no longer calls old logic",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "doctor",
+      "refactor"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1336",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1336: Epic-2: Retire framework_doctor.py and legacy doctor surfaces"
+      }
+    ]
+  }
+}

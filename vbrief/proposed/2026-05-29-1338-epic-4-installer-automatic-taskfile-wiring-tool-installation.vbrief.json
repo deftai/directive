@@ -1,0 +1,45 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1338"
+  },
+  "plan": {
+    "title": "Epic-4: Installer – Automatic Taskfile wiring + tool installation",
+    "status": "proposed",
+    "narratives": {
+      "Description": "Epic-4: Installer – Automatic Taskfile wiring + tool installation",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1338",
+      "Overview": "## Summary\nWhen run with \\--yes\\, the installer must automatically ensure a usable Taskfile exists and install missing core tools.\n\n## Acceptance Criteria\n- Creates minimal Taskfile if none exists\n- Automatically adds deft include to existing Taskfile (in --yes mode)\n- Installs missing tools (uv, Task, Python, gh) with consent handling\n- Clear fallbacks for manual installation\n\n## Testing Requirements\n- Tests in \\cmd/deft-install/*_test.go\\ and \\\tests/cli/\\\n\n## Labels\ninstaller, enhancement",
+      "Labels": "enhancement, installer"
+    },
+    "items": [
+      {
+        "title": "Creates minimal Taskfile if none exists",
+        "status": "proposed"
+      },
+      {
+        "title": "Automatically adds deft include to existing Taskfile (in --yes mode)",
+        "status": "proposed"
+      },
+      {
+        "title": "Installs missing tools (uv, Task, Python, gh) with consent handling",
+        "status": "proposed"
+      },
+      {
+        "title": "Clear fallbacks for manual installation",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1338",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1338: Epic-4: Installer – Automatic Taskfile wiring + tool installation"
+      }
+    ]
+  }
+}

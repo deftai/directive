@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-05-26T19:59:02Z"
+    "updated": "2026-05-29T03:31:32Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -1135,86 +1135,113 @@
         }
       },
       {
-        "id": "2026-05-26-1364-swarm-skill-poller-completion-can-surface-phase-56-merge-gat",
-        "title": "swarm skill: poller completion can surface Phase 5→6 merge gate while PRs remain unclean (confidence=3 holdouts)",
+        "id": "2026-05-29-1334-epic-unified-installer-single-doctor-surface-agent-first-boo",
+        "title": "Epic: Unified Installer + Single Doctor Surface (Agent-First Bootstrap & Upgrade)",
         "status": "proposed",
         "metadata": {
-          "source_path": "proposed/2026-05-26-1364-swarm-skill-poller-completion-can-surface-phase-56-merge-gat.vbrief.json",
+          "source_path": "proposed/2026-05-29-1334-epic-unified-installer-single-doctor-surface-agent-first-boo.vbrief.json",
           "lifecycle_folder": "proposed",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1364",
+              "uri": "https://github.com/deftai/directive/issues/1334",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1364: swarm skill: poller completion can surface Phase 5→6 merge gate while PRs remain unclean (confidence=3 holdouts)"
+              "title": "Issue #1334: Epic: Unified Installer + Single Doctor Surface (Agent-First Bootstrap & Upgrade)"
             }
           ]
         }
       },
       {
-        "id": "2026-05-26-1365-swarm-spawn-subagent-review-cycle-sub-agents-can-go-complete",
-        "title": "swarm: spawn_subagent review-cycle sub-agents can go completely dark with no visibility or monitoring from the parent",
+        "id": "2026-05-29-1335-epic-1-extract-scriptsdoctorpy-as-the-single-doctor-implemen",
+        "title": "Epic-1: Extract scripts/doctor.py as the single doctor implementation",
         "status": "proposed",
         "metadata": {
-          "source_path": "proposed/2026-05-26-1365-swarm-spawn-subagent-review-cycle-sub-agents-can-go-complete.vbrief.json",
+          "source_path": "proposed/2026-05-29-1335-epic-1-extract-scriptsdoctorpy-as-the-single-doctor-implemen.vbrief.json",
           "lifecycle_folder": "proposed",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1365",
+              "uri": "https://github.com/deftai/directive/issues/1335",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1365: swarm: spawn_subagent review-cycle sub-agents can go completely dark with no visibility or monitoring from the parent"
+              "title": "Issue #1335: Epic-1: Extract scripts/doctor.py as the single doctor implementation"
             }
           ]
         }
       },
       {
-        "id": "2026-05-26-1366-harness-python-subprocess-gh-calls-frequently-trigger-unicod",
-        "title": "harness: Python subprocess + gh calls frequently trigger UnicodeDecodeError in reader threads on Windows, breaking monitoring and readiness tools",
+        "id": "2026-05-29-1336-epic-2-retire-framework-doctorpy-and-legacy-doctor-surfaces",
+        "title": "Epic-2: Retire framework_doctor.py and legacy doctor surfaces",
         "status": "proposed",
         "metadata": {
-          "source_path": "proposed/2026-05-26-1366-harness-python-subprocess-gh-calls-frequently-trigger-unicod.vbrief.json",
+          "source_path": "proposed/2026-05-29-1336-epic-2-retire-framework-doctorpy-and-legacy-doctor-surfaces.vbrief.json",
           "lifecycle_folder": "proposed",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1366",
+              "uri": "https://github.com/deftai/directive/issues/1336",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1366: harness: Python subprocess + gh calls frequently trigger UnicodeDecodeError in reader threads on Windows, breaking monitoring and readiness tools"
+              "title": "Issue #1336: Epic-2: Retire framework_doctor.py and legacy doctor surfaces"
             }
           ]
         }
       },
       {
-        "id": "2026-05-26-1368-monitoring-long-running-monitors-using-pr-merge-readiness-ar",
-        "title": "monitoring: long-running monitors using pr_merge_readiness are unreliable in Grok Build due to harness fragility",
+        "id": "2026-05-29-1337-epic-3-harden-go-installer-for-non-interactive-agent-use",
+        "title": "Epic-3: Harden Go installer for non-interactive agent use",
         "status": "proposed",
         "metadata": {
-          "source_path": "proposed/2026-05-26-1368-monitoring-long-running-monitors-using-pr-merge-readiness-ar.vbrief.json",
+          "source_path": "proposed/2026-05-29-1337-epic-3-harden-go-installer-for-non-interactive-agent-use.vbrief.json",
           "lifecycle_folder": "proposed",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1368",
+              "uri": "https://github.com/deftai/directive/issues/1337",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1368: monitoring: long-running monitors using pr_merge_readiness are unreliable in Grok Build due to harness fragility"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/1353",
-              "type": "x-vbrief/refs",
-              "title": "Issue #1353"
+              "title": "Issue #1337: Epic-3: Harden Go installer for non-interactive agent use"
             }
           ]
         }
       },
       {
-        "id": "2026-05-26-1369-swarm-improve-reliability-and-tooling-for-long-running-merge",
-        "title": "swarm: Improve reliability and tooling for long-running merge/review cascade automation in Grok Build hybrid path",
+        "id": "2026-05-29-1338-epic-4-installer-automatic-taskfile-wiring-tool-installation",
+        "title": "Epic-4: Installer – Automatic Taskfile wiring + tool installation",
         "status": "proposed",
         "metadata": {
-          "source_path": "proposed/2026-05-26-1369-swarm-improve-reliability-and-tooling-for-long-running-merge.vbrief.json",
+          "source_path": "proposed/2026-05-29-1338-epic-4-installer-automatic-taskfile-wiring-tool-installation.vbrief.json",
           "lifecycle_folder": "proposed",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1369",
+              "uri": "https://github.com/deftai/directive/issues/1338",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1369: swarm: Improve reliability and tooling for long-running merge/review cascade automation in Grok Build hybrid path"
+              "title": "Issue #1338: Epic-4: Installer – Automatic Taskfile wiring + tool installation"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-29-1339-epic-5-installer-doctor-handoff-payload-staleness-detection",
+        "title": "Epic-5: Installer → Doctor handoff + payload staleness detection",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-05-29-1339-epic-5-installer-doctor-handoff-payload-staleness-detection.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1339",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1339: Epic-5: Installer → Doctor handoff + payload staleness detection"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-29-1340-epic-6-documentation-skills-and-agent-guidance-collapse",
+        "title": "Epic-6: Documentation, skills, and agent guidance collapse",
+        "status": "proposed",
+        "metadata": {
+          "source_path": "proposed/2026-05-29-1340-epic-6-documentation-skills-and-agent-guidance-collapse.vbrief.json",
+          "lifecycle_folder": "proposed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1340",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1340: Epic-6: Documentation, skills, and agent guidance collapse"
             }
           ]
         }
@@ -9416,6 +9443,91 @@
               "uri": "https://github.com/deftai/directive/issues/1353",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1353: grok-build (Windows): run_terminal_command leaks Get-Content / wrapper noise on any pipeline or redirection (pwsh 7+)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-26-1364-swarm-skill-poller-completion-can-surface-phase-56-merge-gat",
+        "title": "swarm skill: poller completion can surface Phase 5→6 merge gate while PRs remain unclean (confidence=3 holdouts)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-26-1364-swarm-skill-poller-completion-can-surface-phase-56-merge-gat.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1364",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1364: swarm skill: poller completion can surface Phase 5→6 merge gate while PRs remain unclean (confidence=3 holdouts)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-26-1365-swarm-spawn-subagent-review-cycle-sub-agents-can-go-complete",
+        "title": "swarm: spawn_subagent review-cycle sub-agents can go completely dark with no visibility or monitoring from the parent",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-26-1365-swarm-spawn-subagent-review-cycle-sub-agents-can-go-complete.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1365",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1365: swarm: spawn_subagent review-cycle sub-agents can go completely dark with no visibility or monitoring from the parent"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-26-1366-harness-python-subprocess-gh-calls-frequently-trigger-unicod",
+        "title": "harness: Python subprocess + gh calls frequently trigger UnicodeDecodeError in reader threads on Windows, breaking monitoring and readiness tools",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-26-1366-harness-python-subprocess-gh-calls-frequently-trigger-unicod.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1366",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1366: harness: Python subprocess + gh calls frequently trigger UnicodeDecodeError in reader threads on Windows, breaking monitoring and readiness tools"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-26-1368-monitoring-long-running-monitors-using-pr-merge-readiness-ar",
+        "title": "monitoring: long-running monitors using pr_merge_readiness are unreliable in Grok Build due to harness fragility",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-26-1368-monitoring-long-running-monitors-using-pr-merge-readiness-ar.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1368",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1368: monitoring: long-running monitors using pr_merge_readiness are unreliable in Grok Build due to harness fragility"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1353",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1353"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-05-26-1369-swarm-improve-reliability-and-tooling-for-long-running-merge",
+        "title": "swarm: Improve reliability and tooling for long-running merge/review cascade automation in Grok Build hybrid path",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-05-26-1369-swarm-improve-reliability-and-tooling-for-long-running-merge.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1369",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1369: swarm: Improve reliability and tooling for long-running merge/review cascade automation in Grok Build hybrid path"
             }
           ]
         }
