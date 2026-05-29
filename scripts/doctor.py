@@ -22,15 +22,12 @@ Story: #1335 / #1336 (paired in agent1 worktree).
 from __future__ import annotations
 
 import json
-import os
 import re
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 
 # --- Duplicated minimal CLI / path helpers (avoid importing heavy run) ---
 # These are small, stable, and let doctor.py stay self-contained.
@@ -42,8 +39,8 @@ Panel = None
 Markdown = None
 try:
     from rich.console import Console
-    from rich.panel import Panel as _Panel
     from rich.markdown import Markdown as _Markdown
+    from rich.panel import Panel as _Panel
     console = Console()
     Panel = _Panel
     Markdown = _Markdown
@@ -96,6 +93,75 @@ info = print_info
 success = print_success
 warn = print_warn
 error = print_error
+
+# --- Additional duplicated helpers from run (for self-containment in handoff) ---
+# These were referenced in the extracted doctor logic but not present, causing
+# F821 undefined-name errors under ruff / CI. Duplicated here per the
+# "minimal CLI / path helpers" contract in the module header (#1335/#1336).
+# See main run for authoritative versions; keep in sync on future changes.
+
+_DEFT_REPO_POSITIVE_MARKERS = (
+    Path("templates") / "agents-entry.md",
+    Path("skills") / "deft-directive-build" / "SKILL.md",
+)
+
+
+def _running_inside_deft_repo(project_root: Path) -> bool:
+    """Heuristic: True when running inside the deft framework repo itself.
+
+    Mirrors run._running_inside_deft_repo exactly (see #1303 review).
+    Used to silently skip certain diagnostics (Taskfile include, AGENTS.md
+    freshness) that only apply to consumer projects.
+    """
+    if not (project_root / "main.md").is_file():
+        return False
+    if (project_root / "deft").is_dir():
+        return False
+    if (project_root / ".deft" / "core").is_dir():
+        return False
+    for marker in _DEFT_REPO_POSITIVE_MARKERS:
+        if not (project_root / marker).is_file():
+            return False
+    return True
+
+
+def _now_utc() -> datetime:
+    """UTC-aware 'now' helper (duplicated)."""
+    return datetime.now(UTC)
+
+
+def ask_confirm(prompt_text: str, default: bool = False) -> bool:
+    """Minimal interactive confirm (duplicated from run.ask_confirm).
+
+    Falls back to default when no tty. Used by --fix paths.
+    """
+    if not sys.stdin.isatty():
+        return default
+    try:
+        suffix = " [Y/n]" if default else " [y/N]"
+        resp = input(f"{prompt_text}{suffix} ").strip().lower()
+        if not resp:
+            return default
+        return resp in ("y", "yes")
+    except Exception:  # noqa: BLE001
+        return default
+
+
+# read_yn alias expected by extracted code
+read_yn = ask_confirm
+
+
+def _agents_refresh_plan(project_root: Path) -> dict:
+    """Stub for agents-md freshness plan (full impl in run + _doctor_state).
+
+    Returns a conservative 'skip' plan so doctor does not crash when the
+    check is reached. Real implementation lives in the retired surface;
+    when the carve is complete this will be a thin import.
+    """
+    return {"eligible": False, "reason": "stub-in-doctor-carve (#1335)"}
+
+
+# End duplicated helpers block.
 
 def get_script_dir() -> Path:
     """Get the directory where this script is located (works for import and direct)."""
@@ -209,7 +275,7 @@ def _includes_block_has_deft_taskfile(text: str) -> bool:
     PyYAML is installed. A full YAML walk would be more robust but adds
     a runtime dependency we deliberately avoid here.
     """
-    includes_indent: Optional[int] = None
+    includes_indent: int | None = None
     in_includes = False
     for raw_line in text.splitlines():
         stripped = raw_line.strip()
@@ -235,8 +301,8 @@ def _includes_block_has_deft_taskfile(text: str) -> bool:
 
 
 def _resolve_consumer_taskfile(
-    project_root: Optional[Path] = None,
-) -> Optional[Path]:
+    project_root: Path | None = None,
+) -> Path | None:
     """Return the consumer project's root Taskfile path, or None if absent.
 
     Recognises both ``Taskfile.yml`` and ``Taskfile.yaml`` so the
@@ -316,7 +382,7 @@ def _format_missing_include_snippet() -> str:
     )
 
 
-def _parse_doctor_flags(args: List[str]) -> dict:
+def _parse_doctor_flags(args: list[str]) -> dict:
     """Parse the doctor-specific CLI flags (#1272, #1303 review).
 
     Recognises (whitelist; unknown tokens surface as ``unknown``):
@@ -449,8 +515,8 @@ def _format_iso_z(when) -> str:
     if when is None:
         return ""
     if when.tzinfo is None:
-        when = when.replace(tzinfo=timezone.utc)
-    return when.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        when = when.replace(tzinfo=UTC)
+    return when.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _render_doctor_status_line(decision) -> str:
@@ -501,7 +567,7 @@ def _persist_doctor_state(
     project_root: Path,
     *,
     exit_code: int,
-    findings: List[dict],
+    findings: list[dict],
 ) -> None:
     """Best-effort write of doctor-state.json after a full check (#1308)."""
     mod = _load_doctor_state_module()
@@ -658,7 +724,11 @@ def _run_payload_staleness_check(
     # _running_inside_deft_repo helper that may be scoped inside cmd_doctor).
     try:
         agents = project_root / "AGENTS.md"
-        if agents.exists() and "Deft — Development Framework (deft repo)" in agents.read_text(encoding="utf-8", errors="ignore"):
+        is_deft = agents.exists() and (
+        "Deft — Development Framework (deft repo)" in
+        agents.read_text(encoding="utf-8", errors="ignore")
+    )
+    if is_deft:
             emit_info(f"{check_name}: skip -- running inside deft framework repo")
             add_finding("skip", "inside framework repo (no install manifest)", check=check_name, status="skip")
             return
@@ -722,12 +792,30 @@ def _run_payload_staleness_check(
             add_finding("skip", "ls-remote unavailable", check=check_name, status="skip")
             return
         # Output is "<sha>\t<refname>"
+        # For annotated tags, ls-remote returns TWO lines:
+        #   <tag-object-sha>	refs/tags/<tag>
+        #   <commit-sha>	refs/tags/<tag>^{}
+        # Prefer the peeled ^{} commit SHA when present (the one that matches
+        # what the installer recorded in the manifest). Fall back to first line.
+        # See Greptile P1 on #1384 (annotated-tag false-positive staleness).
         remote_sha = ""
+        peeled_sha = ""
         for line in proc.stdout.splitlines():
             parts = line.strip().split()
-            if len(parts) >= 1:
+            if len(parts) >= 2:
+                refname = parts[1]
+                if refname.endswith("^{}"):
+                    peeled_sha = parts[0]
+                elif not remote_sha:
+                    remote_sha = parts[0]
+        if peeled_sha:
+            remote_sha = peeled_sha
+        elif not remote_sha:
+            # last-resort: first token of first line
+            first_line = next((l for l in proc.stdout.splitlines() if l.strip()), "")
+            parts = first_line.strip().split()
+            if parts:
                 remote_sha = parts[0]
-                break
         if not remote_sha:
             emit_info(f"{check_name}: skip -- ls-remote produced no sha")
             add_finding("skip", "no remote sha", check=check_name, status="skip")
@@ -744,8 +832,10 @@ def _run_payload_staleness_check(
 
     # Stale!
     msg = (
-        f"Framework payload is stale (installed sha {installed_sha[:8]}... behind remote {remote_sha[:8]}... for ref '{ref}'). "
-        "Recommendation: re-run the installer (deft-install binary or equivalent) to pull the latest payload."
+        f"Framework payload is stale (installed sha {installed_sha[:8]}... "
+        f"behind remote {remote_sha[:8]}... for ref '{ref}'). "
+        "Recommendation: re-run the installer (deft-install binary or "
+        "equivalent) to pull the latest payload."
     )
     emit_warn(msg)
     add_finding(
@@ -776,7 +866,7 @@ def _parse_install_manifest(text: str) -> dict:
     return data
 
 
-def cmd_doctor(args: List[str]):
+def cmd_doctor(args: list[str]):
     """Thin shim (#1335) -- core doctor logic now owned by scripts/doctor.py.
 
     This entry point (and therefore `task doctor`) is a thin delegation layer.
@@ -890,7 +980,7 @@ def cmd_doctor(args: List[str]):
     # was brittle when the interactive ``--fix`` path repaired a
     # missing-file finding -- the decrement coupled two unrelated
     # branches and made the summary easy to mis-read.
-    findings: List[dict] = []
+    findings: list[dict] = []
 
     def _add_finding(severity: str, message: str, **extras: object) -> None:
         entry: dict = {"severity": severity, "message": message}
