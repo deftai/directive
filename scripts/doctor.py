@@ -107,73 +107,15 @@ success = print_success
 warn = print_warn
 error = print_error
 
-# --- Additional duplicated helpers from run (for self-containment in handoff) ---
-# These were referenced in the extracted doctor logic but not present, causing
-# F821 undefined-name errors under ruff / CI. Duplicated here per the
-# "minimal CLI / path helpers" contract in the module header (#1335/#1336).
-# See main run for authoritative versions; keep in sync on future changes.
+# Note: the early defensive stubs for `_DEFT_REPO_POSITIVE_MARKERS`,
+# `_running_inside_deft_repo`, `_now_utc`, `ask_confirm`, `read_yn`, and
+# `_agents_refresh_plan` were removed when the canonical ports from agent1's
+# eda1702 commit landed at lines ~1140-1220 below. Python silently uses the
+# last definition in a module, so the early batch had become dead code with a
+# diverging `_agents_refresh_plan` stub return shape -- confusing to readers
+# and flagged as a Greptile P0 on PR #1384 head a7266239. The canonical
+# definitions remain a single screen below in the "Ported from run" section.
 
-_DEFT_REPO_POSITIVE_MARKERS = (
-    Path("templates") / "agents-entry.md",
-    Path("skills") / "deft-directive-build" / "SKILL.md",
-)
-
-
-def _running_inside_deft_repo(project_root: Path) -> bool:
-    """Heuristic: True when running inside the deft framework repo itself.
-
-    Mirrors run._running_inside_deft_repo exactly (see #1303 review).
-    Used to silently skip certain diagnostics (Taskfile include, AGENTS.md
-    freshness) that only apply to consumer projects.
-    """
-    if not (project_root / "main.md").is_file():
-        return False
-    if (project_root / "deft").is_dir():
-        return False
-    if (project_root / ".deft" / "core").is_dir():
-        return False
-    return all((project_root / marker).is_file() for marker in _DEFT_REPO_POSITIVE_MARKERS)
-
-
-def _now_utc() -> datetime:
-    """UTC-aware 'now' helper (duplicated)."""
-    return datetime.now(UTC)
-
-
-def ask_confirm(prompt_text: str, default: bool = False) -> bool:
-    """Minimal interactive confirm (duplicated from run.ask_confirm).
-
-    Falls back to default when no tty. Used by --fix paths.
-    """
-    if not sys.stdin.isatty():
-        return default
-    try:
-        suffix = " [Y/n]" if default else " [y/N]"
-        resp = input(f"{prompt_text}{suffix} ").strip().lower()
-        if not resp:
-            return default
-        return resp in ("y", "yes")
-    except Exception:  # noqa: BLE001
-        return default
-
-
-# Note: read_yn is defined later (full implementation ported from agent1's
-# eda1702 commit -- handles EOFError/KeyboardInterrupt explicitly). The
-# earlier `read_yn = ask_confirm` alias was removed because it shadowed the
-# more complete later definition and tripped ruff F811.
-
-
-def _agents_refresh_plan(project_root: Path) -> dict:
-    """Stub for agents-md freshness plan (full impl in run + _doctor_state).
-
-    Returns a conservative 'skip' plan so doctor does not crash when the
-    check is reached. Real implementation lives in the retired surface;
-    when the carve is complete this will be a thin import.
-    """
-    return {"eligible": False, "reason": "stub-in-doctor-carve (#1335)"}
-
-
-# End duplicated helpers block.
 
 def get_script_dir() -> Path:
     """Get the directory where this script is located (works for import and direct)."""
