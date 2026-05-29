@@ -358,9 +358,11 @@ func buildNonInteractiveResult(absRoot string, legacyLayout, upgrade bool) *Wiza
 	if !update {
 		if info, statErr := os.Stat(deftDir); statErr == nil && info.IsDir() {
 			update = true
+		} else {
+			// statErr != nil (incl. os.ErrNotExist) or !IsDir(): treat as fresh
+			// install (expected for first run). Explicit else per SLizard P1
+			// "no else branch" rule; no log to keep non-int/JSON quiet.
 		}
-		// statErr != nil (incl. os.ErrNotExist) or !IsDir() => fresh install;
-		// explicit no-else documents the "treat as create" intent (SLizard P1).
 	}
 	return &WizardResult{
 		ProjectName:  projectName,

@@ -738,11 +738,11 @@ func EnsureCoreTools(w *Wizard, nonInteractive bool) ([]string, error) {
 			if _, err := exec.LookPath(a); err == nil {
 				found = true
 				break
+			} else {
+				// LookPath err is the normal/expected "not in PATH" for this
+				// alt (not transient). Continue to next alt or report via
+				// !found. Explicit else branch per SLizard P1 rule.
 			}
-			// LookPath err here is the normal "not found in PATH" case for
-			// this alt (or subsequent alts); no logging needed — !found path
-			// below reports the tool if all alts miss (SLizard P1 addressed
-			// with explicit else-not-required comment for expected path).
 		}
 		if !found {
 			missing = append(missing, name)
