@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **fix(install): `--json` stdout is now a single parseable JSON object (PR #1385 review)** -- in `--yes --json` mode `PrintNextSteps` prose used to land on stdout immediately after the JSON, so `jq`, `json.loads`, and `json.Unmarshal` all failed on the trailing non-JSON text. The prose is now routed to stderr in JSON mode; humans / log scrapers still see it, and agents / CI get one clean parseable object on stdout as the documented `--json` contract promised. Companion: explicit logging-by-stderr in the non-`os.ErrNotExist` `Stat` / non-`exec.ErrNotFound` `LookPath` else branches so transient filesystem / PATH errors are visible in agent logs. Refs #1337, #1338.
 
 ### Removed
 
