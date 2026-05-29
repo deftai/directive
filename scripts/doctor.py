@@ -593,7 +593,8 @@ def _run_install_integrity_checks(
     emit_info,
     add_finding,
 ) -> None:
-    """Install-integrity checks (ex-framework_doctor.py) folded into canonical doctor (#1308, #1336 retirement)."""
+    """Install-integrity checks (ex-framework_doctor.py) folded into
+    canonical doctor (#1308, #1336 retirement)."""
     if _running_inside_deft_repo(project_root):
         emit_info(
             "Skipping install-integrity checks -- running inside the deft "
@@ -725,12 +726,15 @@ def _run_payload_staleness_check(
     try:
         agents = project_root / "AGENTS.md"
         is_deft = agents.exists() and (
-        "Deft — Development Framework (deft repo)" in
-        agents.read_text(encoding="utf-8", errors="ignore")
-    )
-    if is_deft:
+            "Deft — Development Framework (deft repo)" in
+            agents.read_text(encoding="utf-8", errors="ignore")
+        )
+        if is_deft:
             emit_info(f"{check_name}: skip -- running inside deft framework repo")
-            add_finding("skip", "inside framework repo (no install manifest)", check=check_name, status="skip")
+            add_finding(
+                "skip", "inside framework repo (no install manifest)",
+                check=check_name, status="skip",
+            )
             return
     except Exception:
         pass
