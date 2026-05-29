@@ -338,11 +338,22 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		// Greptile P1: PrintNextSteps prose was being written to stdout
 		// immediately after the JSON object, poisoning the stream so any
 		// jq / json.loads / json.Unmarshal consumer failed on trailing
-		// non-JSON text. In --json mode the prose is rerouted to stderr
-		// instead -- humans / log scrapers still see it, stdout stays a
-		// single parseable JSON object for the documented agent / CI use.
+		// non-JSON text. In --json mode the prose AND the doctor handoff
+		// JSON are rerouted to stderr instead -- humans / log scrapers
+		// still see it, stdout stays a single parseable JSON object for
+		// the documented agent / CI use.
+		//
+		// Greptile P1 on fa03152: the doctor handoff (Epic-5 staleness
+		// detection -- the central deliverable of this PR) was previously
+		// skipped in --json mode because the early return below ran before
+		// the doHandoffToDoctor call. Agents using `deft-install --yes
+		// --json` never saw staleness verdicts. Routing the handoff to
+		// stderr in --json mode keeps stdout single-JSON-clean for jq /
+		// json.loads consumers while still surfacing the doctor report on
+		// stderr (which agents commonly capture alongside stdout).
 		wErr := NewWizardWithLayout(strings.NewReader(""), os.Stderr, debug, legacyLayout)
 		PrintNextSteps(wErr, result, configDir, skillsCreated)
+		doHandoffToDoctor(wErr, result, jsonOut)
 		return 0
 	}
 
@@ -356,7 +367,9 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	// humans/agents on the unified post-install guidance path. The --json
 	// flag is forwarded only when the installer itself is in --json mode so
 	// interactive humans see the doctor's prose output rather than a raw
-	// JSON blob (Greptile P1 on #1384 head a7266239).
+	// JSON blob (Greptile P1 on #1384 head a7266239). The --json branch
+	// above also calls doHandoffToDoctor (routed to stderr) so the Epic-5
+	// staleness verdict reaches agents on every path.
 	doHandoffToDoctor(w, result, jsonOut)
 	return 0
 }
