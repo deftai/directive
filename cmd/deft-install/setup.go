@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -866,11 +867,14 @@ func EnsureCoreTools(w *Wizard, nonInteractive bool) ([]string, error) {
 				// stat error on an entry in PATH, etc.) so agent logs carry
 				// the trace instead of silently treating the alt as missing.
 				// ErrNotFound is the expected "not on PATH" case and stays
-				// silent (SLizard P1 go-silent-error-branch).
-				// Experiment A (PR #1385): bare-else + nested if shape so the
-				// detector unambiguously sees the non-nil error-branch logger.
+				// silent (SLizard P1 go-silent-error-branch). Experiments A+B
+				// (PR #1385): bare-else + nested-if shape AND log.Printf (the
+				// literal call form SLizard's recommendation text names) so
+				// the detector unambiguously sees the canonical error-branch
+				// logger. log uses stderr by default so the user-visible
+				// behaviour is unchanged.
 				if !errors.Is(err, exec.ErrNotFound) {
-					fmt.Fprintf(os.Stderr, "warning: LookPath %q: %v\n", a, err)
+					log.Printf("warning: LookPath %q: %v", a, err)
 				}
 			}
 		}
