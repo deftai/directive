@@ -107,16 +107,6 @@ success = print_success
 warn = print_warn
 error = print_error
 
-# Note: the early defensive stubs for `_DEFT_REPO_POSITIVE_MARKERS`,
-# `_running_inside_deft_repo`, `_now_utc`, `ask_confirm`, `read_yn`, and
-# `_agents_refresh_plan` were removed when the canonical ports from agent1's
-# eda1702 commit landed at lines ~1140-1220 below. Python silently uses the
-# last definition in a module, so the early batch had become dead code with a
-# diverging `_agents_refresh_plan` stub return shape -- confusing to readers
-# and flagged as a Greptile P0 on PR #1384 head a7266239. The canonical
-# definitions remain a single screen below in the "Ported from run" section.
-
-
 def get_script_dir() -> Path:
     """Get the directory where this script is located (works for import and direct)."""
     return Path(__file__).parent.absolute()
@@ -1533,7 +1523,6 @@ def _parse_install_manifest(text: str) -> dict:
         v = v.strip().strip("'\"")
         data[k] = v
     return data
-
 
 def cmd_doctor(args: list[str]):
     """Thin shim (#1335) -- core doctor logic now owned by scripts/doctor.py.
