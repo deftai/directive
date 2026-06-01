@@ -38,6 +38,22 @@ def template_text() -> str:
     return TEMPLATE.read_text(encoding="utf-8")
 
 
+def _allocation_section(text: str) -> str:
+    """Return only the body of the ``## Allocation context`` section.
+
+    Scopes position-sensitive probes to the text between the
+    ``## ... Allocation context`` heading and the next top-level ``## ``
+    heading, so field-name positions are not skewed by an earlier preamble
+    section that happens to mention a field name.
+    """
+    match = re.search(r"^##\s+.*Allocation context.*$", text, re.MULTILINE)
+    assert match, "allocation-context section heading not found"
+    start = match.end()
+    nxt = re.search(r"^##\s+", text[start:], re.MULTILINE)
+    end = start + nxt.start() if nxt else len(text)
+    return text[start:end]
+
+
 def test_template_exists() -> None:
     assert TEMPLATE.is_file(), (
         f"templates/agent-prompt-preamble.md must exist at {TEMPLATE}"
@@ -68,9 +84,12 @@ def test_fields_documented_in_frozen_order(template_text: str) -> None:
     """The five fields must be documented in the frozen contract order.
 
     Story B / Story C depend on this ordering being stable; a reorder is a
-    breaking schema change and must fail CI.
+    breaking schema change and must fail CI. The search is scoped to the
+    allocation-context section so a field name appearing in an earlier
+    preamble section cannot skew the recorded positions.
     """
-    positions = [template_text.index(field) for field in FROZEN_FIELDS]
+    section = _allocation_section(template_text)
+    positions = [section.index(field) for field in FROZEN_FIELDS]
     assert positions == sorted(positions), (
         "allocation-context fields must be documented in the frozen order: "
         f"{FROZEN_FIELDS}"

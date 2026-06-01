@@ -31,13 +31,13 @@ Every dispatch envelope MUST carry a `## Allocation context` section so any down
 - `allocation_plan_id`: <swarm-monitor session id, or path to the Phase 5 allocation-plan snapshot> | null -- the stable handle for the allocation plan that authorized this dispatch.
 - `batching_rationale`: <one-line rationale from the Phase 5 allocation plan> | null -- the one-line reason the cohort was batched together.
 - `cohort_vbriefs`: [<vbrief-path>, ...] -- the full cohort vBRIEF list; a `solo` dispatch lists just its one vBRIEF.
-- `operator_approval_evidence`: <Phase 5 approval timestamp or session reference> -- the audit handle proving the operator approved the allocation plan.
+- `operator_approval_evidence`: <Phase 5 approval timestamp or session reference> -- the audit handle proving the operator approved the allocation plan (advisory / audit-only -- it is NOT part of the recognition-contract gate below).
 
 **Recognition contract:** a section reporting `dispatch_kind: swarm-cohort` with a NON-NULL `allocation_plan_id` AND a NON-NULL `batching_rationale` satisfies the Story Start Gate consent-token requirement (the #1371 carve-out) -- the worker does NOT re-prompt the operator for batching approval mid-cohort. When the `## Allocation context` section is ABSENT (pre-#1378 dispatches, solo-interactive sessions), fall back to the #1371 prose carve-out in the Story Start Gate.
 
 Worked example (a swarm-cohort member):
 
-```markdown path=null start=null
+```markdown
 ## Allocation context
 
 - dispatch_kind: swarm-cohort
