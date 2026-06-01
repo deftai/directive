@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "feat(skills): recognize + populate ## Allocation context consent token (#1378 Story B)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Teach skills/deft-directive-build/SKILL.md Step 0 to recognize the structured `## Allocation context` section (from Story A) as the canonical consent-token recognition path, keeping the #1371 prose carve-out as the fallback for pre-elevation dispatches; and teach skills/deft-directive-swarm/SKILL.md Phase 3 (Launch) to populate the section in every dispatched prompt (cohort + solo).",
       "Origin": "Decomposed from https://github.com/deftai/directive/issues/1378 (Story B of A/B/C).",
@@ -40,7 +40,12 @@
         }
       }
     ],
-    "tags": ["swarm", "agent-experience", "skills", "cluster:1378-allocation-context"],
+    "tags": [
+      "swarm",
+      "agent-experience",
+      "skills",
+      "cluster:1378-allocation-context"
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/1378",
@@ -69,12 +74,15 @@
           "swarm SKILL Phase 3 populates ## Allocation context on every dispatch",
           "content tests pin both"
         ],
-        "depends_on": ["issue-1378-schema"],
+        "depends_on": [
+          "issue-1378-schema"
+        ],
         "conflict_group": "skills",
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "standard"
       }
-    }
+    },
+    "updated": "2026-06-01T02:39:41Z"
   }
 }
