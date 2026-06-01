@@ -63,6 +63,14 @@ This path became first-class in #1342 (platform adapter slices 1-3) and is fully
 
 ! Before assigning work to agents, build the cohort from the triage queue (queue-driven per #1142 / N2; see Step 0 below), then read project state and plan allocation against the activated cohort.
 
+### Headless cohort fast-path: low-ceremony launch (C1 / #1387)
+
+! When the operator supplies a **pre-approved cohort** via the **C1** `task swarm:launch` CLI, Phase 0 runs in headless / low-ceremony mode: the per-phase interactive approval gates (the Step 0c promote-fill prompts, the Step 0.5 lifecycle-bridge approval, and the Step 4/5 allocation approval) collapse into a SINGLE consent -- the `## Allocation context` token (#1378) carried in the dispatch envelope. The interactive promote-fill loop (Step 0a -- 0d below) is SKIPPED.
+! The **C1** signature is `task swarm:launch -- --stories <ids|paths> [--group <label>] [--worktree-map <path>] [--base-branch <branch>] [--autonomous]`. `--stories` names the pre-approved story ids or vBRIEF paths; `--group` is an optional cohort label; `--worktree-map` points at the pre-created **C3** worktree-map JSON consumed in Phase 2; `--base-branch` overrides the default `master`; `--autonomous` runs without the interactive launch confirmation.
+! The SINGLE consent is the #1378 `## Allocation context` token with `dispatch_kind: swarm-cohort` and a NON-NULL `allocation_plan_id` AND `batching_rationale` (the recognition contract in `templates/agent-prompt-preamble.md` § 2.5). That token IS the batched approval for the whole cohort -- the deterministic-question gates the interactive path runs (per [`../../contracts/deterministic-questions.md`](../../contracts/deterministic-questions.md)) are bypassed wholesale on the headless path, not asked once per phase.
+⊗ Re-prompt the operator for per-phase batching approval, or run the interactive promote-fill loop (Step 0a -- 0d), when a pre-approved cohort is supplied via `task swarm:launch` -- the headless path's single #1378 consent already authorizes the batch, and re-prompting mid-cohort violates the all-or-nothing dispatch-envelope rule (#954).
+? The interactive queue-driven path (Step 0 below) remains the DEFAULT when no pre-approved cohort is supplied; the headless fast-path is the opt-in low-ceremony route for a cohort the operator has already curated and approved upstream.
+
 ### Step 0: Queue-driven cohort selection (#1142 / N2)
 
 ! Phase 0 is queue-driven: consult the triage cache (D2 / #1122 + D11 / #1128) for the ranked promotion candidates, then fill the WIP cap. Do NOT pick the cohort by hand from `vbrief/pending/` or `vbrief/active/` -- the queue is the canonical record of "what's next?" per AGENTS.md `## Cache-as-authoritative work selection (#1149)`. The four sub-phases below run in canonical order; existing Step 0.5 (lifecycle bridge) and Steps 1-5 (readiness / blockers / allocation / present / approval) proceed unchanged after Phase 0d.
@@ -253,6 +261,16 @@ Cross-references:
 
 ### Step 1: Create Worktrees
 
+! **Two modes (C3 / #1387):** Phase 2 either CONSUMES a **pre-created worktree map** (the headless path, when `task swarm:launch --worktree-map <path>` supplied one) or creates worktrees itself (the interactive path). Mode A is preferred whenever a map is present; Mode B is the default otherwise.
+
+#### Mode A -- Pre-created worktree map (C3, headless via `--worktree-map`)
+
+- ! When `task swarm:launch -- ... --worktree-map <path>` supplied a **pre-created worktree map** (**C3**), Phase 2 CONSUMES it instead of running `git worktree add` per agent. The C3 map is a JSON array of `{ "story_id": str, "worktree_path": str, "base_branch": str }`.
+- ! The launch engine resolves the map via `resolve_worktree_map(mapping, base_branch, create_missing=True)` in `scripts/swarm_worktrees.py`, which returns normalized C3 records and RAISES on same-path collisions or base-branch mismatches. The monitor MUST surface any such raise verbatim and HALT setup -- a same-path collision means two agents would share one worktree (the Duplicate-Agent Failure Mode in Phase 4).
+- ! Each resolved record's `worktree_path` and `base_branch` feed straight into Phase 3 dispatch and MUST match the **C2** launch-manifest's `worktree_path` / `branch` fields for the same `story_id`.
+
+#### Mode B -- Monitor-created worktrees (interactive path)
+
 For each agent, create an isolated git worktree:
 
 ```
@@ -279,6 +297,14 @@ git worktree add <path> -b <branch-name> <configured-base-branch>
 - ! For a **solo dispatch**, set `dispatch_kind: solo` and list the single assigned vBRIEF in `cohort_vbriefs`; `allocation_plan_id` and `batching_rationale` MAY be null. Populating the section even for solo dispatches keeps the recognition surface uniform across every launch path.
 
 ⊗ Dispatch a worker prompt (cohort or solo) without a populated `## Allocation context` section -- an absent section forces the worker back onto the #1371 prose carve-out fallback and forfeits the deterministic consent-token recognition the structured section enables (#1378).
+
+### Step 0.5: Consume the launch-manifest before dispatch (headless path, C2 / #1387)
+
+! On the headless path, before dispatching ANY worker, the monitor consumes the **C2** launch-manifest emitted by `task swarm:launch` -- a JSON array of `{ "story_id": str, "vbrief_path": str, "worktree_path": str, "branch": str, "allocation_context": {...} }`, where each record's `allocation_context` is the #1378 token (its five fields `dispatch_kind`, `allocation_plan_id`, `batching_rationale`, `cohort_vbriefs`, `operator_approval_evidence`, per `templates/agent-prompt-preamble.md` § 2.5). Each record carries everything one worker dispatch needs.
+! On the headless path the manifest's per-record `allocation_context` already satisfies Step 0 above -- the consent token is pre-populated, so the monitor READS it from the manifest rather than re-assembling the `## Allocation context` section by hand.
+! **Manifest consumption is PREP ONLY.** It supplies the per-agent dispatch parameters (`worktree_path`, `branch`, `vbrief_path`, `allocation_context`); the spawn itself remains agent-driven via the runtime-detected launch path (Step 2a `start_agent` / Step 2d `spawn_subagent`). `task swarm:launch` emits the manifest and STOPS -- it does NOT spawn agents.
+⊗ Treat the C2 launch-manifest as the spawn itself -- it is dispatch-prep / handoff data, not an agent-launch primitive. The actual dispatch still goes through the platform adapter (Step 2a / 2d per the runtime detection below); the manifest replaces the manual per-agent parameter assembly, NOT the spawn primitive.
+? On the interactive path (no `task swarm:launch`, no manifest), the monitor assembles each dispatch's parameters from the Phase 1 assignment plus the Step 0 token by hand, as before.
 
 ### Step 1: Runtime Capability Detection
 
