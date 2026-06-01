@@ -106,9 +106,10 @@ _NULL_TOKENS = frozenset({"", "null", "none", "n/a"})
 def _git_porcelain(project_root: Path) -> str | None:
     """Return ``git status --porcelain`` output, or None when undeterminable.
 
-    Returns None when git is not on PATH or the directory is not a git work
-    tree (non-zero rc). The caller maps None to a config error (exit 2) --
-    the gate fails closed rather than assuming a clean tree.
+    Returns None when git cannot be spawned (any ``OSError`` -- not on PATH,
+    no execute permission, cwd not a directory) or the directory is not a git
+    work tree (non-zero rc). The caller maps None to a config error (exit 2)
+    -- the gate fails closed rather than assuming a clean tree.
 
     Per AGENTS.md ``## Safe subprocess capture (#1366)`` the capture forces
     ``encoding="utf-8", errors="replace"`` so a commit message / untracked
@@ -125,7 +126,9 @@ def _git_porcelain(project_root: Path) -> str | None:
             errors="replace",
             check=False,
         )
-    except FileNotFoundError:
+    except OSError:
+        # git not on PATH / no execute permission / cwd not a directory --
+        # fail closed (caller maps None to config error exit 2).
         return None
     if proc.returncode != 0:
         return None
@@ -274,6 +277,7 @@ def evaluate(
     git_status: str | None,
     allocation_context: str | None = None,
     allow_dirty: bool = False,
+    parsed: tuple[bool, dict[str, str | None]] | None = None,
 ) -> tuple[int, str]:
     """Pure evaluator -- returns ``(exit_code, human_message)``.
 
@@ -282,6 +286,11 @@ def evaluate(
     raw ``git status --porcelain`` output (empty string == clean), or None
     when it could not be determined. ``allocation_context`` is the raw
     dispatch-envelope text (or None when no envelope was supplied).
+
+    ``parsed`` is an optional pre-parsed :func:`parse_allocation_section`
+    result; when provided it is used as-is so callers that already parsed the
+    envelope (e.g. :func:`main` building the ``--json`` payload) do not parse
+    it a second time. When None the section is parsed here.
     """
     # --- (a) working tree --------------------------------------------------
     if git_status is None:
@@ -296,6 +305,9 @@ def evaluate(
             "existing work (re-run with --allow-dirty after operator approval) "
             "before starting the story."
         )
+    # Accurate tree-state phrase for the OK messages: a dirty-but-allowed tree
+    # must not be reported as "tree clean".
+    tree_note = "dirty tree allowed (--allow-dirty)" if dirty else "tree clean"
 
     # --- (b) target vBRIEF lifecycle --------------------------------------
     ok, reason = _check_vbrief(vbrief_path)
@@ -303,10 +315,10 @@ def evaluate(
         return 1, f"not ready: {reason}."
 
     # --- (c) dispatch-envelope allocation context -------------------------
-    found, fields = parse_allocation_section(allocation_context)
+    found, fields = parsed if parsed is not None else parse_allocation_section(allocation_context)
     if not found:
         return 0, (
-            "OK: ready to start -- tree clean, vBRIEF active+running, no "
+            f"OK: ready to start -- {tree_note}, vBRIEF active+running, no "
             "`## Allocation context` section (solo path, #1371 carve-out)."
         )
 
@@ -324,7 +336,9 @@ def evaluate(
         )
 
     if dispatch_kind == SOLO_KIND:
-        return 0, ("OK: ready to start -- tree clean, vBRIEF active+running, dispatch_kind: solo.")
+        return 0, (
+            f"OK: ready to start -- {tree_note}, vBRIEF active+running, dispatch_kind: solo."
+        )
 
     # swarm-cohort -- the consent token must be complete (#1371 carve-out).
     incomplete = [
@@ -338,7 +352,7 @@ def evaluate(
             "(#1371 carve-out)."
         )
     return 0, (
-        "OK: ready to start -- tree clean, vBRIEF active+running, swarm-cohort "
+        f"OK: ready to start -- {tree_note}, vBRIEF active+running, swarm-cohort "
         "consent token satisfied (allocation_plan_id + batching_rationale present)."
     )
 
@@ -452,16 +466,17 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
     git_status = _git_porcelain(project_root)
+    # Parse the allocation section ONCE and thread it into evaluate() so the
+    # envelope is not parsed twice (evaluate + the --json observability line).
+    parsed = parse_allocation_section(allocation_context)
     code, message = evaluate(
         vbrief_path,
         git_status=git_status,
         allocation_context=allocation_context,
         allow_dirty=args.allow_dirty,
+        parsed=parsed,
     )
-
-    # Surface the parsed dispatch_kind in the JSON payload for observability.
-    _, fields = parse_allocation_section(allocation_context)
-    dispatch_kind = fields.get("dispatch_kind")
+    dispatch_kind = parsed[1].get("dispatch_kind")
 
     if args.emit_json:
         print(_emit_json(vbrief_path, code, message, dispatch_kind=dispatch_kind))

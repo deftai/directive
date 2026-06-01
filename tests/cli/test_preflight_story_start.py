@@ -231,6 +231,48 @@ def test_allow_dirty_overrides_dirty_tree(preflight, tmp_path):
     assert code == 0
 
 
+def test_allow_dirty_message_reflects_dirty_tree(preflight, tmp_path):
+    """P2: a --allow-dirty OK message reports the dirty-allowed state, not 'tree clean'."""
+    path = _write_vbrief(tmp_path)
+    code, msg = preflight.evaluate(path, git_status=DIRTY_TREE, allow_dirty=True)
+    assert code == 0
+    assert "allow-dirty" in msg.lower()
+    assert "tree clean" not in msg.lower()
+
+
+def test_clean_tree_message_says_tree_clean(preflight, tmp_path):
+    """A genuinely clean tree still reports 'tree clean'."""
+    path = _write_vbrief(tmp_path)
+    code, msg = preflight.evaluate(path, git_status=CLEAN_TREE)
+    assert code == 0
+    assert "tree clean" in msg.lower()
+
+
+def test_evaluate_honours_pre_parsed_section(preflight, tmp_path):
+    """P2: evaluate() uses a supplied pre-parsed section instead of re-parsing."""
+    path = _write_vbrief(tmp_path)
+    # `parsed` says solo; the raw text says swarm-cohort. If `parsed` is honored
+    # (single-parse path), the result is the solo ready exit, not a cohort gate.
+    parsed = (True, {"dispatch_kind": "solo"})
+    code, msg = preflight.evaluate(
+        path,
+        git_status=CLEAN_TREE,
+        allocation_context="## Allocation context\n- dispatch_kind: swarm-cohort\n",
+        parsed=parsed,
+    )
+    assert code == 0
+    assert "solo" in msg.lower()
+
+
+def test_git_porcelain_fails_closed_on_oserror(preflight, tmp_path, monkeypatch):
+    """P2: _git_porcelain returns None on any OSError spawning git (not just FileNotFoundError)."""
+    def _raise(*_args, **_kwargs):
+        raise PermissionError("git not executable")
+
+    monkeypatch.setattr(preflight.subprocess, "run", _raise)
+    assert preflight._git_porcelain(tmp_path) is None
+
+
 def test_git_undeterminable_is_config_error(preflight, tmp_path):
     """git_status None (git absent / not a repo) is a config error (exit 2)."""
     path = _write_vbrief(tmp_path)
