@@ -43,8 +43,10 @@ What the resolver guarantees
    ``create_missing`` is false a missing worktree raises
    :class:`MissingWorktreeError` (validation failure, exit 1).
 4. **Collision rejection.** Two stories mapping to the same worktree path
-   raise :class:`WorktreeCollisionError` naming both colliding stories
-   (validation failure, exit 1).
+   raise :class:`WorktreeCollisionError` naming both colliding stories, and a
+   ``story_id`` that appears twice (even on distinct paths) raises
+   :class:`DuplicateStoryError` -- both are validation failures (exit 1) that
+   would otherwise let the launch engine dispatch a story twice.
 
 The created worktree is checked out in DETACHED HEAD at the base-branch tip
 on purpose: the per-story feature branch is the launch engine's concern
@@ -135,6 +137,16 @@ class MissingWorktreeError(WorktreeMapError):
     """A mapped worktree does not exist and creation is disabled."""
 
 
+class DuplicateStoryError(WorktreeMapError):
+    """The same ``story_id`` appears in more than one mapping record.
+
+    Distinct from :class:`WorktreeCollisionError` (two stories on the SAME
+    path): here one story maps to two records (typically distinct paths via a
+    copy-paste error). Returning both would hand the launch engine two C3
+    records for one story and dispatch it twice, so it is rejected.
+    """
+
+
 class WorktreeMapConfigError(Exception):
     """An environment / config error (exit 2).
 
@@ -173,7 +185,9 @@ def parse_worktree_porcelain(text: str) -> dict[str, str | None]:
     Each porcelain stanza opens with a ``worktree <path>`` line and may carry
     a ``branch refs/heads/<name>`` line (absent for a detached / bare entry).
     Returns a mapping from the resolved, case-normalized worktree path to its
-    branch short-name (or ``None`` when detached / bare). Pure -- no I/O.
+    branch short-name (or ``None`` when detached / bare). Note that
+    ``Path.resolve()`` is called on each path, so this issues one
+    ``realpath`` / ``readlink`` syscall per worktree stanza (not pure).
     """
     registered: dict[str, str | None] = {}
     current_path: Path | None = None
@@ -289,6 +303,7 @@ def resolve_worktree_map(
         BaseBranchMismatchError: a record's ``base_branch`` differs from the
             configured cohort ``base_branch``.
         WorktreeCollisionError: two stories map to the same worktree path.
+        DuplicateStoryError: the same ``story_id`` appears more than once.
         MissingWorktreeError: a mapped worktree is absent and
             ``create_missing`` is false.
     """
@@ -307,6 +322,7 @@ def resolve_worktree_map(
     # the (potentially mutating) git creation step so a bad map fails fast.
     resolved: list[dict] = []
     seen_paths: dict[str, str] = {}  # compare_key -> first story_id
+    seen_story_ids: dict[str, str] = {}  # story_id -> first worktree_path
     for index, record in enumerate(mapping):
         if not isinstance(record, dict):
             raise WorktreeMapConfigError(
@@ -344,7 +360,13 @@ def resolve_worktree_map(
                 f"worktree path collision: stories {seen_paths[key]!r} and "
                 f"{story_id!r} both map to {worktree_path.as_posix()!r}"
             )
+        if story_id in seen_story_ids:
+            raise DuplicateStoryError(
+                f"duplicate story_id {story_id!r}: mapped to both "
+                f"{seen_story_ids[story_id]!r} and {worktree_path.as_posix()!r}"
+            )
         seen_paths[key] = story_id
+        seen_story_ids[story_id] = worktree_path.as_posix()
         resolved.append(
             {
                 "story_id": story_id,

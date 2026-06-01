@@ -212,11 +212,36 @@ def test_base_branch_mismatch_rejected(git_repo: Path, tmp_path: Path) -> None:
     assert "master" in message
 
 
+def test_duplicate_story_id_rejected_names_paths(git_repo: Path, tmp_path: Path) -> None:
+    """Two records with the same story_id (distinct paths) are rejected.
+
+    Guards against the launch engine receiving two C3 records for one story
+    and dispatching it twice.
+    """
+    wt_a = tmp_path / "wt-a"
+    wt_b = tmp_path / "wt-b"
+    with pytest.raises(swm.DuplicateStoryError) as excinfo:
+        swm.resolve_worktree_map(
+            [
+                {"story_id": "dup", "worktree_path": str(wt_a)},
+                {"story_id": "dup", "worktree_path": str(wt_b)},
+            ],
+            "master",
+            repo_root=git_repo,
+        )
+    message = str(excinfo.value)
+    assert "dup" in message
+    # Nothing should have been created before the validation failure.
+    assert not wt_a.exists()
+    assert not wt_b.exists()
+
+
 def test_base_branch_mismatch_is_a_validation_error(git_repo: Path, tmp_path: Path) -> None:
     """BaseBranchMismatchError is a WorktreeMapError (exit-1 family), not config."""
     assert issubclass(swm.BaseBranchMismatchError, swm.WorktreeMapError)
     assert issubclass(swm.WorktreeCollisionError, swm.WorktreeMapError)
     assert issubclass(swm.MissingWorktreeError, swm.WorktreeMapError)
+    assert issubclass(swm.DuplicateStoryError, swm.WorktreeMapError)
 
 
 # ---------------------------------------------------------------------------
