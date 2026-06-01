@@ -17,7 +17,7 @@
     "items": [
       {
         "title": "Remove redundant double parse_allocation_section call",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "main() parses the allocation section exactly once and passes the result to evaluate() via an optional `parsed` kwarg; evaluate()'s (exit_code, message) return arity is unchanged and all existing tests pass.",
           "Traces": "Traces to #1378 Story C P2 -- double parse."
@@ -25,7 +25,7 @@
       },
       {
         "title": "Broaden _git_porcelain spawn-failure catch to OSError",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "_git_porcelain returns None (=> config error exit 2) on any OSError spawning git (FileNotFoundError, PermissionError, NotADirectoryError), proven by a test that monkeypatches subprocess.run to raise PermissionError.",
           "Traces": "Traces to #1378 Story C P2 -- OSError catch."
@@ -33,7 +33,7 @@
       },
       {
         "title": "Correct --allow-dirty OK-message wording",
-        "status": "proposed",
+        "status": "completed",
         "narrative": {
           "Acceptance": "When --allow-dirty lets a dirty tree through, the OK message reports 'dirty tree allowed (--allow-dirty)' rather than 'tree clean'; a clean tree still reports 'tree clean'. A test asserts the dirty-allowed wording.",
           "Traces": "Traces to #1378 Story C P2 -- message wording."
