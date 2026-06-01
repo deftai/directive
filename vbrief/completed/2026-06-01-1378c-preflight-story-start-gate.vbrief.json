@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "feat(scripts): scripts/preflight_story_start.py Gate 0 + verify:story-ready (#1378 Story C)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Add a deterministic-tier preflight gate (scripts/preflight_story_start.py, exposed as task verify:story-ready) that inspects working-tree state, target vBRIEF lifecycle state, and the dispatch envelope's `## Allocation context` section (Story A schema), returning the framework three-state exit (0 ready / 1 not ready / 2 config error). Wire it as Gate 0 of the pre-start_agent gate stack and document it in AGENTS.md (+ templates/agents-entry.md mirror per #1309).",
       "Origin": "Decomposed from https://github.com/deftai/directive/issues/1378 (Story C of A/B/C).",
@@ -40,7 +40,12 @@
         }
       }
     ],
-    "tags": ["swarm", "agent-experience", "determinism", "cluster:1378-allocation-context"],
+    "tags": [
+      "swarm",
+      "agent-experience",
+      "determinism",
+      "cluster:1378-allocation-context"
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/1378",
@@ -73,12 +78,15 @@
           "task verify:story-ready wired; AGENTS.md gate stack documents Gate 0; template mirror + contract test updated",
           "behavioral tests cover the four cases"
         ],
-        "depends_on": ["issue-1378-schema"],
+        "depends_on": [
+          "issue-1378-schema"
+        ],
         "conflict_group": "gate",
         "size": "medium",
         "file_scope_confidence": "high",
         "model_tier": "standard"
       }
-    }
+    },
+    "updated": "2026-06-01T02:47:54Z"
   }
 }
