@@ -197,6 +197,11 @@ def _index_active_stories(project_root: Path) -> list[_ActiveStory]:
     """Index every ``vbrief/active/*.vbrief.json`` story for resolution."""
     active_dir = project_root / "vbrief" / "active"
     index: list[_ActiveStory] = []
+    # Guard against an absent directory: Path.glob short-circuits to empty on
+    # Python >= 3.12 but raises FileNotFoundError on < 3.12. main() surfaces
+    # the friendly EXIT_CONFIG_ERROR; this keeps the indexer non-raising.
+    if not active_dir.is_dir():
+        return index
     for path in sorted(active_dir.glob("*.vbrief.json")):
         data = _load_json(path)
         if data is None:
@@ -557,6 +562,14 @@ def main(argv: list[str] | None = None) -> int:
     if not tokens:
         print(
             "Error: no stories supplied. Pass --stories <ids|paths> " "and/or --paths <paths>.",
+            file=sys.stderr,
+        )
+        return EXIT_CONFIG_ERROR
+
+    if not (project_root / "vbrief" / "active").is_dir():
+        print(
+            f"Error: no vbrief/active directory under --project-root {project_root}. "
+            "Point --project-root at a deft project with activated stories.",
             file=sys.stderr,
         )
         return EXIT_CONFIG_ERROR

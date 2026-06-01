@@ -435,3 +435,11 @@ class TestConfigErrors:
         rc = sl.main(["--project-root", str(project)])
         assert rc == sl.EXIT_CONFIG_ERROR
         assert "no stories" in capsys.readouterr().err.lower()
+
+    def test_missing_active_dir_exits_config_error(self, tmp_path: Path, capsys) -> None:
+        # tmp_path deliberately has no vbrief/active directory (the `project`
+        # fixture is not used here) -- a wrong --project-root must surface a
+        # clear config error, not a misleading "no active story" / traceback.
+        rc = sl.main(["--stories", "100", "--project-root", str(tmp_path)])
+        assert rc == sl.EXIT_CONFIG_ERROR
+        assert "vbrief/active" in capsys.readouterr().err
