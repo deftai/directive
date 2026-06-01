@@ -23,6 +23,32 @@ Anti-pattern: editing files before activating the vBRIEF, then activating "to ma
 
 The gate also requires an explicit action-verb directive from the user (`build`, `implement`, `ship`, `swarm`, `run agents`, `start agent`). Affirmative continuation phrases ("yes", "go", "proceed") are NOT authorisation unless the prior turn explicitly proposed implementation.
 
+## 2.5 Allocation context -- swarm-cohort consent token (#1378)
+
+Every dispatch envelope MUST carry a `## Allocation context` section so any downstream skill (the build SKILL Story Start Gate, the `task vbrief:preflight` gate) or deterministic gate can decide whether batched work was operator-approved by reading structured fields instead of pattern-matching free-form prose. The section has exactly five fields, in this order:
+
+- `dispatch_kind`: `solo` | `swarm-cohort` -- whether this worker is a lone dispatch or one member of an operator-approved swarm cohort.
+- `allocation_plan_id`: <swarm-monitor session id, or path to the Phase 5 allocation-plan snapshot> | null -- the stable handle for the allocation plan that authorized this dispatch.
+- `batching_rationale`: <one-line rationale from the Phase 5 allocation plan> | null -- the one-line reason the cohort was batched together.
+- `cohort_vbriefs`: [<vbrief-path>, ...] -- the full cohort vBRIEF list; a `solo` dispatch lists just its one vBRIEF.
+- `operator_approval_evidence`: <Phase 5 approval timestamp or session reference> -- the audit handle proving the operator approved the allocation plan (advisory / audit-only -- it is NOT part of the recognition-contract gate below).
+
+**Recognition contract:** a section reporting `dispatch_kind: swarm-cohort` with a NON-NULL `allocation_plan_id` AND a NON-NULL `batching_rationale` satisfies the Story Start Gate consent-token requirement (the #1371 carve-out) -- the worker does NOT re-prompt the operator for batching approval mid-cohort. When the `## Allocation context` section is ABSENT (pre-#1378 dispatches, solo-interactive sessions), fall back to the #1371 prose carve-out in the Story Start Gate.
+
+Worked example (a swarm-cohort member):
+
+```markdown
+## Allocation context
+
+- dispatch_kind: swarm-cohort
+- allocation_plan_id: orchestrator-run-019e80bd-7328-7636-b283-a2f818243dd9
+- batching_rationale: Three disjoint-file-scope stories from #1378; Story A freezes the schema, Stories B and C build against it in parallel.
+- cohort_vbriefs: [vbrief/active/2026-06-01-1378a-allocation-context-schema.vbrief.json, vbrief/active/2026-06-01-1378b-skill-allocation-context-recognition.vbrief.json, vbrief/active/2026-06-01-1378c-preflight-story-start-gate.vbrief.json]
+- operator_approval_evidence: user directive "swarm 1378 per option a" 2026-06-01T02:26Z
+```
+
+A `solo` dispatch sets `dispatch_kind: solo`, MAY leave `allocation_plan_id` / `batching_rationale` null, and lists only its own vBRIEF in `cohort_vbriefs`; such a section does NOT by itself satisfy the consent token, so the Story Start Gate falls through to the #1371 prose carve-out for a lone interactive dispatch.
+
 ## 3. PowerShell 5.1 non-ASCII rule (#798)
 
 If your shell is `pwsh 5.x` on Windows AND you are editing a file containing any non-ASCII glyph (em dashes, en dashes, arrows, smart quotes, ⊗, ✓, ellipses, emoji, ...), you MUST route the read AND write through Python `pathlib`:

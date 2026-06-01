@@ -271,6 +271,15 @@ git worktree add <path> -b <branch-name> <configured-base-branch>
 
 ## Phase 3 — Launch
 
+### Step 0: Populate the allocation-context consent token (#1378)
+
+! Before dispatching ANY worker prompt -- swarm cohort OR solo -- the dispatcher MUST populate a `## Allocation context` section (the frozen schema defined in `templates/agent-prompt-preamble.md`, Story A of #1378) in every launched agent's dispatch envelope. Populate all five fields in order: `dispatch_kind` (`solo` | `swarm-cohort`), `allocation_plan_id`, `batching_rationale`, `cohort_vbriefs`, and `operator_approval_evidence`.
+
+- ! For a **swarm cohort**, set `dispatch_kind: swarm-cohort` with a non-null `allocation_plan_id` (the Phase 0 allocation-plan snapshot path or the monitor session id) AND a non-null `batching_rationale` (the one-line rationale from the Phase 0 Step 4 allocation plan), and list the full cohort in `cohort_vbriefs`. This is the structured consent token the worker's build-skill Step 0 recognizes mechanically (#1378 Story B), so the worker processes its cohort without re-prompting the parent for batching approval mid-cohort.
+- ! For a **solo dispatch**, set `dispatch_kind: solo` and list the single assigned vBRIEF in `cohort_vbriefs`; `allocation_plan_id` and `batching_rationale` MAY be null. Populating the section even for solo dispatches keeps the recognition surface uniform across every launch path.
+
+⊗ Dispatch a worker prompt (cohort or solo) without a populated `## Allocation context` section -- an absent section forces the worker back onto the #1371 prose carve-out fallback and forfeits the deterministic consent-token recognition the structured section enables (#1378).
+
 ### Step 1: Runtime Capability Detection
 
 ! Before selecting a launch method, probe the environment to determine the best available path.
