@@ -1353,9 +1353,10 @@ def _run_payload_staleness_check(
     """#1339 (Epic-5): Detect when the installed framework payload is behind its
     manifest-recorded ref/sha. Reads the canonical <deftDir>/VERSION manifest
     (single source of truth per #1062), resolves the corresponding remote SHA
-    via git ls-remote, and surfaces a clear "re-run the installer" recommendation
-    when the shas diverge. Skips gracefully inside the deft repo or when git
-    / network / manifest unavailable (non-fatal, best-effort).
+    via git ls-remote, and surfaces the canonical headless upgrade command
+    `deft-install --yes --upgrade --repo-root . --json` (#1409) when the shas
+    diverge. Skips gracefully inside the deft repo or when git / network /
+    manifest unavailable (non-fatal, best-effort).
     """
     check_name = "payload-staleness"
     # Self-contained "inside deft repo" probe (avoids dependency on private
@@ -1483,12 +1484,18 @@ def _run_payload_staleness_check(
         emit_info(f"{check_name}: current (sha matches remote)")
         return
 
-    # Stale!
+    # Stale! Emit the EXACT canonical headless upgrade command (#1409) so a
+    # normal consumer can copy-paste one line and end up with a fresh payload
+    # plus updated metadata -- not just the metadata-only `task upgrade` ack.
+    recommended_command = "deft-install --yes --upgrade --repo-root . --json"
     msg = (
         f"Framework payload is stale (installed sha {installed_sha[:8]}... "
         f"behind remote {remote_sha[:8]}... for ref '{ref}'). "
-        "Recommendation: re-run the installer (deft-install binary or "
-        "equivalent) to pull the latest payload."
+        f"Recommendation: run the canonical headless upgrader "
+        f"`{recommended_command}` from your project root to pull the latest "
+        f"payload (drop `--json` for human-readable output). On an installer "
+        f"binary predating the headless flags, download the latest deft-install "
+        f"from GitHub Releases first."
     )
     emit_warn(msg)
     add_finding(
@@ -1499,7 +1506,7 @@ def _run_payload_staleness_check(
         installed_sha=installed_sha,
         remote_sha=remote_sha,
         ref=ref,
-        suggestion="re-run the installer to update payload",
+        suggestion=recommended_command,
     )
 
 

@@ -251,6 +251,8 @@ _PROPAGATION_COMMAND_MARKERS: tuple[str, ...] = (
     "task verify:story-ready",
     "task doctor",
     "task agents:refresh",
+    # #1409: canonical headless upgrade command surfaced in both files.
+    "deft-install --yes --upgrade --repo-root . --json",
     "git status --short --branch",
     "task scope:promote -- <path>",
     "task scope:activate -- <path>",

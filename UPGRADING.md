@@ -8,22 +8,41 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
-## Canonical installer + doctor handoff (v0.37+ / Epic-5+6 #1339 #1340)
+## Canonical installer + doctor handoff (v0.37+ / Epic-5+6 #1339 #1340, #1409)
 
 **The single supported path for humans and agents:**
 
 1. Download and run the platform-specific installer binary from GitHub Releases (or the webinstaller).
 2. The installer writes the payload + manifest + AGENTS.md + skills, then **deterministically calls `scripts/doctor.py --session --json`** at the end.
-3. Doctor (now the single owner of all health/install-integrity/staleness logic) reads the `<install>/VERSION` manifest and, when the recorded sha lags the remote ref, emits a **clear recommendation**: "Framework payload is stale ... Recommendation: re-run the installer ... to pull the latest payload."
+3. Doctor (now the single owner of all health/install-integrity/staleness logic) reads the `<install>/VERSION` manifest and, when the recorded sha lags the remote ref, emits a **clear recommendation** to run the canonical headless upgrader: `deft-install --yes --upgrade --repo-root . --json`.
 4. On subsequent sessions `task doctor` / `run doctor` (thin shims to the canonical `scripts/doctor.py`) continue to surface the same guidance.
 
-**Legacy paths (de-emphasized / marked legacy):**
+### Canonical headless upgrade command (consumers + CI/agents) (#1409)
+
+! The canonical, one-command payload refresh for an **existing** install is:
+
+```bash
+deft-install --yes --upgrade --repo-root . --json
+```
+
+- `--yes` / `--non-interactive` skips all prompts (ideal for CI / agents).
+- `--upgrade` forces the update path even when the framework dir already exists.
+- `--repo-root .` targets the current project (or pass an explicit path).
+- `--json` emits a single machine-readable result object on stdout; **drop `--json` for human-readable output**.
+
+Run it from your project root. Unlike the legacy metadata-only verbs, this command actually **replaces the framework payload** in `.deft/core/` AND refreshes the manifest + AGENTS.md, so doctor logic, skills, and scripts all advance to the current snapshot. This is the command the doctor's payload-staleness check now recommends verbatim.
+
+**Version-skew note:** consumers on an installer binary that predates the Epic-4/5/6 headless work do not have these flags. Download the latest `deft-install` binary from GitHub Releases first, then run it with `--yes --upgrade --repo-root . --json`.
+
+**Legacy paths (back-compat only / de-emphasized):**
+- `task upgrade` / `run upgrade` -- **metadata-only acknowledgment**: refreshes the `.deft-version` marker, the `<install>/VERSION` manifest, and the AGENTS.md managed section, but does NOT replace the framework payload. Use the headless installer command above for a real payload refresh.
+- `task relocate -- --confirm` (and the `task relocate:relocate -- --confirm` form) -- **back-compat only**: moves / reinstalls the framework dir for the rare install-path-consistency relocate, not for routine upgrades.
+- `run install --force` -- back-compat reinstall path superseded by `--yes --upgrade`.
 - `task framework:doctor`, `run doctor` direct old shims, `scripts/framework_doctor.py` (retired #1336)
-- `task upgrade` / `run upgrade` / `run install --force` as primary update verbs (still work for back-compat but the installer binary + doctor handoff is the documented surface)
 - Manual git submodule updates or cloning `deft/` by hand (the installer is the reproducible, manifest-stamped mechanism)
 - Old AGENTS.md thin pointers and upgrade prose that pre-date the unified handoff
 
-All documentation (README, AGENTS.md, this file, `deft-directive-sync` skill) now points agents at the installer → doctor handoff as the authoritative flow. Old sections below are retained for migration archaeology only.
+All documentation (README, AGENTS.md, this file, `deft-directive-sync` skill) now points agents at the headless installer command + doctor handoff as the authoritative flow. Old sections below are retained for migration archaeology only.
 
 ---
 

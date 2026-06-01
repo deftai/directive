@@ -15,7 +15,7 @@ triggers:
 
 Session-start framework sync -- pull latest deft submodule updates, validate vBRIEF lifecycle structure, and detect stale origins.
 
-> **Canonical bootstrap / update path (post #1334 Epic):** Use the published Go installer binary (`deft-install` / platform-specific `install-*` from releases) to (re)bootstrap or update the framework payload. After install the canonical `scripts/doctor.py --session --json` (or `task doctor`) runs automatically and will recommend "re-run the installer" when the manifest sha shows the payload is stale. Old git-submodule / `run upgrade` / `task framework:doctor` paths are legacy. See UPGRADING.md and the installer-doctor handoff in #1339/#1340.
+> **Canonical bootstrap / update path (post #1334 Epic, #1409):** Use the published Go installer binary (`deft-install` / platform-specific `install-*` from releases) to (re)bootstrap or update the framework payload. The canonical headless one-command refresh for an existing install is `deft-install --yes --upgrade --repo-root . --json` (drop `--json` for human-readable output) -- it actually replaces the framework payload in `.deft/core/` plus the manifest and AGENTS.md. After install the canonical `scripts/doctor.py --session --json` (or `task doctor`) runs automatically and, when the manifest sha shows the payload is stale, recommends that exact command. Legacy `run upgrade` / `task upgrade` are metadata-only acknowledgment (they do NOT replace the payload); git-submodule / `task framework:doctor` paths are back-compat only. See UPGRADING.md and the installer-doctor handoff in #1339/#1340.
 
 Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
