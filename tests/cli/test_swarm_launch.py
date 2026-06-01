@@ -161,6 +161,14 @@ class TestStoryResolution:
         assert errors == []
         assert len(resolved) == 1
 
+    def test_duplicate_story_id_records_error(self, project: Path) -> None:
+        active = project / "vbrief" / "active"
+        _write_story(active, "a.vbrief.json", story_id="dup", issues=[101])
+        _write_story(active, "b.vbrief.json", story_id="dup", issues=[202])
+        resolved, errors = sl.resolve_stories(project, ["dup"])
+        assert resolved == []
+        assert "ambiguous" in errors[0]
+
     def test_main_unresolved_exits_gate_failed(self, project: Path, capsys) -> None:
         rc = sl.main(["--stories", "999", "--project-root", str(project)])
         assert rc == sl.EXIT_GATE_FAILED
@@ -234,8 +242,8 @@ class TestManifestShape:
 
     def test_allocation_context_has_1378_fields(self, project: Path, gates_pass, capsys) -> None:
         active = project / "vbrief" / "active"
-        a = _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])
-        b = _write_story(active, "b.vbrief.json", story_id="sB", issues=[200])
+        _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])
+        _write_story(active, "b.vbrief.json", story_id="sB", issues=[200])
         rc = sl.main(
             ["--stories", "100,200", "--group", "cohort-x", "--project-root", str(project)]
         )
@@ -256,7 +264,6 @@ class TestManifestShape:
         assert manifest[1]["allocation_context"]["cohort_vbriefs"] == ctx["cohort_vbriefs"]
         # branch derivation includes the group label.
         assert manifest[0]["branch"] == "swarm/cohort-x/sA"
-        assert {a.name, b.name}  # both written
 
     def test_solo_dispatch_kind_for_single_story_without_group(
         self, project: Path, gates_pass, capsys

@@ -222,8 +222,7 @@ def _looks_like_path(token: str) -> bool:
 def _resolve_one(
     token: str,
     project_root: Path,
-    index: list[_ActiveStory],
-    by_id: dict[str, _ActiveStory],
+    id_map: dict[str, list[_ActiveStory]],
     issue_map: dict[int, list[_ActiveStory]],
 ) -> tuple[ResolvedStory | None, str | None]:
     """Resolve a single token. Returns ``(story, None)`` or ``(None, error)``."""
@@ -265,8 +264,9 @@ def _resolve_one(
         ids = ", ".join(sorted(m.story_id for m in matches))
         return None, f"#{token}: ambiguous -- {len(matches)} active stories match ({ids})."
 
-    match = by_id.get(token)
-    if match is not None:
+    id_matches = id_map.get(token, [])
+    if len(id_matches) == 1:
+        match = id_matches[0]
         return (
             ResolvedStory(
                 token=token,
@@ -276,7 +276,16 @@ def _resolve_one(
             ),
             None,
         )
-    return None, f"{token!r}: no active story with this id."
+    if not id_matches:
+        return None, f"{token!r}: no active story with this id."
+    # Two+ active vBRIEFs share this plan.id. Fail loud (mirrors the
+    # issue-number ambiguity path) rather than silently last-wins, which
+    # would dispatch the wrong agent with no diagnostic.
+    paths = ", ".join(sorted(_project_rel(project_root, m.path) for m in id_matches))
+    return (
+        None,
+        f"{token!r}: ambiguous -- {len(id_matches)} active stories share this id ({paths}).",
+    )
 
 
 def resolve_stories(project_root: Path, tokens: list[str]) -> tuple[list[ResolvedStory], list[str]]:
@@ -287,9 +296,10 @@ def resolve_stories(project_root: Path, tokens: list[str]) -> tuple[list[Resolve
     preserved) and a list of human-readable errors for unresolved tokens.
     """
     index = _index_active_stories(project_root)
-    by_id: dict[str, _ActiveStory] = {story.story_id: story for story in index}
+    id_map: dict[str, list[_ActiveStory]] = defaultdict(list)
     issue_map: dict[int, list[_ActiveStory]] = defaultdict(list)
     for story in index:
+        id_map[story.story_id].append(story)
         for issue in story.issues:
             issue_map[issue].append(story)
 
@@ -300,7 +310,7 @@ def resolve_stories(project_root: Path, tokens: list[str]) -> tuple[list[Resolve
         token = raw.strip()
         if not token:
             continue
-        story, error = _resolve_one(token, project_root, index, by_id, issue_map)
+        story, error = _resolve_one(token, project_root, id_map, issue_map)
         if error is not None or story is None:
             errors.append(error or f"{token!r}: could not resolve.")
             continue
@@ -610,8 +620,10 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     rendered = json.dumps(manifest, indent=2)
-    print(rendered)
 
+    # Write the --output file BEFORE emitting to stdout so a write failure
+    # aborts cleanly instead of leaving a manifest on stdout paired with a
+    # non-zero exit (Greptile review on PR #1407).
     if args.output:
         try:
             Path(args.output).write_text(rendered + "\n", encoding="utf-8")
@@ -619,6 +631,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Error: could not write --output {args.output}: {exc}", file=sys.stderr)
             return EXIT_CONFIG_ERROR
 
+    print(rendered)
     return EXIT_OK
 
 
