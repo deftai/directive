@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "feat(preamble): first-class ## Allocation context dispatch-envelope schema (#1378 Story A)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Add a structured `## Allocation context` section to the canonical dispatch envelope (templates/agent-prompt-preamble.md) so downstream skills (#1378 Story B) and the deterministic gate (#1378 Story C) can read the swarm-cohort consent token mechanically instead of inferring it from free-form prose. Foundation story: B and C build against the schema this story freezes.",
       "Origin": "Decomposed from https://github.com/deftai/directive/issues/1378 (Story A of A/B/C).",
@@ -32,7 +32,12 @@
         }
       }
     ],
-    "tags": ["swarm", "agent-experience", "preamble", "cluster:1378-allocation-context"],
+    "tags": [
+      "swarm",
+      "agent-experience",
+      "preamble",
+      "cluster:1378-allocation-context"
+    ],
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/1378",
@@ -65,6 +70,7 @@
         "file_scope_confidence": "high",
         "model_tier": "standard"
       }
-    }
+    },
+    "updated": "2026-06-01T02:48:16Z"
   }
 }
