@@ -13,6 +13,27 @@ tasks:
       # Keep CLI_ARGS bare; go-task shell-escapes pass-through args and quoting breaks globs/multi-arg calls.
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/swarm_readiness.py" {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
 
+  # swarm:launch -- deterministic headless launch engine (#1387). Turns an
+  # operator-supplied, pre-approved cohort into a ready-to-spawn launch
+  # manifest: resolves --stories (issue numbers / story ids / paths) against
+  # vbrief/active, enforces the #810 preflight and swarm:readiness gates per
+  # story (exiting non-zero and naming the FIRST failing story), and emits
+  # the C2 launch-manifest JSON carrying the #1378 allocation-context token
+  # for each agent. Bare {{.CLI_ARGS}} per the readiness/verify-review-clean
+  # convention -- go-task already shell-escapes pass-through args, so wrapping
+  # in double quotes breaks multi-arg / path forwarding (see tasks/vbrief.yml
+  # preflight for the full rationale and tests/content/test_taskfile_cli_args.py).
+  #
+  # Companion script: scripts/swarm_launch.py
+  # Companion test:   tests/cli/test_swarm_launch.py
+  launch:
+    desc: "Resolve a pre-approved cohort, enforce the #810 + swarm:readiness gates per story, and emit the launch-manifest JSON (#1387)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/swarm_launch.py" {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"
+
   # swarm:verify-review-clean -- cohort-level CLEAN verification gate (#1364).
   # Mandate the monitor invokes this after Phase 6 pollers report and BEFORE
   # the Phase 5 -> 6 merge discussion. Re-uses the Greptile rolling-summary
