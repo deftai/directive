@@ -221,7 +221,15 @@ def _project_rel(project_root: Path, path: Path) -> str:
 
 
 def _looks_like_path(token: str) -> bool:
-    return token.endswith(".json") or "/" in token or "\\" in token or Path(token).exists()
+    # The bare ``.exists()`` fallback is CWD-relative; restrict it to
+    # ``*.vbrief.json`` names so a stray file named e.g. "1234" in the
+    # working directory cannot shadow a numeric issue-number lookup.
+    return (
+        token.endswith(".json")
+        or "/" in token
+        or "\\" in token
+        or (Path(token).exists() and Path(token).name.endswith(".vbrief.json"))
+    )
 
 
 def _resolve_one(
@@ -406,7 +414,13 @@ def _resolve_worktree_records(
     out: dict[str, dict] = {}
     for record in records:
         if isinstance(record, dict) and isinstance(record.get("story_id"), str):
-            out[record["story_id"]] = record
+            sid = record["story_id"]
+            # Self-defend against a defective resolver: the C3 contract says
+            # it raises on collisions, but until that sibling story ships a
+            # duplicate here would silently record the wrong worktree path.
+            if sid in out:
+                raise ValueError(f"worktree map resolver returned duplicate story_id {sid!r}")
+            out[sid] = record
     return out
 
 

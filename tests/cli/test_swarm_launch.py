@@ -169,6 +169,13 @@ class TestStoryResolution:
         assert resolved == []
         assert "ambiguous" in errors[0]
 
+    def test_numeric_token_not_misclassified_as_path(self) -> None:
+        # A bare numeric issue token must not be treated as a path even if a
+        # same-named file exists in CWD (only *.vbrief.json names qualify).
+        assert sl._looks_like_path("100") is False
+        assert sl._looks_like_path("a.vbrief.json") is True
+        assert sl._looks_like_path("vbrief/active/x.json") is True
+
     def test_main_unresolved_exits_gate_failed(self, project: Path, capsys) -> None:
         rc = sl.main(["--stories", "999", "--project-root", str(project)])
         assert rc == sl.EXIT_GATE_FAILED
@@ -383,6 +390,40 @@ class TestManifestShape:
         assert rc == sl.EXIT_OK
         written = json.loads(out_path.read_text(encoding="utf-8"))
         assert written[0]["story_id"] == "sA"
+
+    def test_output_write_failure_exits_config_error(
+        self, project: Path, gates_pass, capsys, tmp_path: Path
+    ) -> None:
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        # --output points at an existing directory, so write_text raises OSError.
+        out_dir = tmp_path / "manifest.json"
+        out_dir.mkdir()
+        rc = sl.main(["--stories", "100", "--output", str(out_dir), "--project-root", str(project)])
+        assert rc == sl.EXIT_CONFIG_ERROR
+        captured = capsys.readouterr()
+        assert "could not write" in captured.err
+        # Manifest must NOT have been emitted to stdout on write failure.
+        assert captured.out.strip() == ""
+
+    def test_worktree_map_duplicate_story_id_exits_config_error(
+        self, project: Path, gates_pass, monkeypatch, capsys, tmp_path: Path
+    ) -> None:
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        map_path = tmp_path / "wt-map.json"
+        map_path.write_text(json.dumps([{"story_id": "sA"}]), encoding="utf-8")
+
+        def dup_resolver(mapping, base_branch, create_missing=True):
+            return [
+                {"story_id": "sA", "worktree_path": "/wt/a"},
+                {"story_id": "sA", "worktree_path": "/wt/b"},
+            ]
+
+        monkeypatch.setattr(sl, "resolve_worktree_map", dup_resolver)
+        rc = sl.main(
+            ["--stories", "100", "--worktree-map", str(map_path), "--project-root", str(project)]
+        )
+        assert rc == sl.EXIT_CONFIG_ERROR
+        assert "duplicate" in capsys.readouterr().err
 
 
 # ---------------------------------------------------------------------------
