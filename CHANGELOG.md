@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dispatch envelopes now carry a structured `## Allocation context` section (#1378, Story A)** -- swarm-cohort dispatches declare operator approval through a small set of canonical fields instead of free-form prose, so downstream skills and the Story Start Gate can recognise the #1371 batching consent token mechanically rather than by pattern-matching. The canonical orchestrator preamble now documents the frozen schema, a worked swarm-cohort example, and the recognition contract: a `swarm-cohort` dispatch with a non-null allocation-plan id and rationale satisfies the consent token, while an absent section falls back to the existing #1371 prose carve-out. Refs #1378, #1371.
 
 ### Changed
 
