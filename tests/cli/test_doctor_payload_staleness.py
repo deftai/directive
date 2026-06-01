@@ -66,7 +66,7 @@ def _collect(doctor_module, project_root: Path):
     findings: list[dict] = []
 
     def _add_finding(severity: str, message: str, **extras: object) -> None:
-        entry = {"severity": severity, "message": message}
+        entry: dict[str, object] = {"severity": severity, "message": message}
         entry.update(extras)
         findings.append(entry)
 
