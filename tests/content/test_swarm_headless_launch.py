@@ -170,6 +170,9 @@ _PHASE2_TOKENS = (
     "--worktree-map",
     "resolve_worktree_map",
     "scripts/swarm_worktrees.py",
+    # The full C3 record schema -- story_id is the join key tying each C3
+    # worktree-map record to its C2 launch-manifest entry, so pin it too.
+    "story_id",
     "worktree_path",
     "base_branch",
     "same-path collisions",
