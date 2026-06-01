@@ -107,6 +107,21 @@ tasks:
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_scm_boundary.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
+  story-ready:
+    desc: "Deterministic story-start Gate 0 (#1378 Story C). Inspects working-tree cleanliness, the target vBRIEF lifecycle (active/ + plan.status==running), and the dispatch envelope's `## Allocation context` consent token (Story A schema). Three-state exit (0 ready / 1 not ready / 2 config error). -- task verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>] [--allow-dirty] [--json]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+    # because the gate forwards user-facing flags via {{.CLI_ARGS}}
+    # (--vbrief-path / --allocation-context / --allow-dirty / --json) that
+    # go-task's incremental-build cache would silently swallow. Intentionally
+    # NOT wired into the `task check` aggregate: Gate 0 is a pre-`start_agent`
+    # dispatch gate that requires a concrete --vbrief-path, which a generic
+    # `task check` run has no way to supply.
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_story_start.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
   wip-cap:
     desc: "Pre-merge re-validation that pending/+active/ count is within plan.policy.wipCap (#1124 / D4 of #1119). Catches stale-branch merges + --force overrides. Default cap is 10 per umbrella #1119 Current Shape v3. The framework's own task check passes --allow-over-cap during landing-day overage; consumer projects MUST NOT pass that flag."
     dir: '{{.USER_WORKING_DIR}}'

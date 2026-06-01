@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Story starts now have a machine-checkable Gate 0 (#1378)** -- a new `task verify:story-ready` deterministically checks the three story-start preconditions before an implementation sub-agent is dispatched: a clean working tree (or an explicit `--allow-dirty`), the target vBRIEF in `vbrief/active/` with a running plan, and the dispatch envelope's `## Allocation context` consent token. A `swarm-cohort` dispatch is ready only when its allocation-plan id and batching rationale are both present; an absent section is the solo path. Three-state exit (0 ready / 1 not ready / 2 config error) makes the prior prose-only swarm carve-out enforceable instead of trust-based. Refs #1378, #1371.
 
 ### Changed
 

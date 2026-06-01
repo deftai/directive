@@ -119,8 +119,9 @@ When user input matches a trigger keyword, read the corresponding skill:
 - ! If the target story is in `vbrief/proposed/`, run `task scope:promote -- <path>` first; if it is in `vbrief/pending/`, run `task scope:activate -- <path>`. After activation, run `task vbrief:preflight -- <active-story-path>` before code-writing.
 - ! Default to one story per branch/PR. Create a checkpoint commit after each completed story before beginning another story, unless the operator explicitly approved batching.
 - ! After checks pass for the story, complete the lifecycle with `task scope:complete -- <active-story-path>` before final PR handoff.
+- ! Gate 0 (`task verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]`, script `scripts/preflight_story_start.py`, #1378) machine-checks the three preconditions above before code-writing: a clean working tree (or `--allow-dirty` for the sanctioned include-existing-work path), the target vBRIEF in `vbrief/active/` with `plan.status == "running"`, and the dispatch envelope's `## Allocation context` consent token. Three-state exit (0 ready / 1 not ready / 2 config error): a `swarm-cohort` section is ready only when `allocation_plan_id` AND `batching_rationale` are both non-null, and an absent section is the solo path (the #1371 carve-out). This makes the consent token load-bearing rather than prose-trusted.
 
-**Pre-`start_agent` gate stack (#1149):** Before dispatching an implementation sub-agent via `start_agent`, run the gates in the canonical order: (1) vBRIEF implementation-intent gate (#810, `task vbrief:preflight -- <path>`) → (2) `task verify:cache-fresh` (D5 / #1127) → (3) branch-policy gate (existing -- `scripts/preflight_branch.py`, surfaced via `task verify:branch` and the `.githooks/pre-commit` / `pre-push` hooks; see `**Branching:**` below) → (4) `start_agent`. Any non-zero exit aborts dispatch; do NOT spawn the sub-agent past a failed gate. The canonical order makes the four gates composable so each one assumes the previous one has already cleared.
+**Pre-`start_agent` gate stack (#1149):** Before dispatching an implementation sub-agent via `start_agent`, run the gates in the canonical order: (0) story-start Gate 0 (#1378, `task verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]`) → (1) vBRIEF implementation-intent gate (#810, `task vbrief:preflight -- <path>`) → (2) `task verify:cache-fresh` (D5 / #1127) → (3) branch-policy gate (existing -- `scripts/preflight_branch.py`, surfaced via `task verify:branch` and the `.githooks/pre-commit` / `pre-push` hooks; see `**Branching:**` below) → (4) `start_agent`. Any non-zero exit aborts dispatch; do NOT spawn the sub-agent past a failed gate. The canonical order makes the gates composable so each one assumes the previous one has already cleared.
 
 **Before code changes:**
 - ! Check `./vbrief/` lifecycle folders for existing scope vBRIEF coverage of the issue being fixed
@@ -285,7 +286,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=9fd30e76425f refreshed=2026-05-26T13:01:45Z session=aca8e40e5077 -->
+<!-- deft:managed-section v3 sha=410eb67a3453 refreshed=2026-06-01T02:33:09Z session=4fd0c763f495 -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -298,8 +299,8 @@ Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
 
 **Pre-cutover detected** if ANY of the following are true:
 
-- ./SPECIFICATION.md exists and its first 200 characters do NOT contain <!-- deft:deprecated-redirect -->
-- ./PROJECT.md exists and its first 200 characters do NOT contain <!-- deft:deprecated-redirect -->
+- ./SPECIFICATION.md exists and is neither a deprecation redirect nor a current generated spec export. A current generated spec export contains `<!-- Purpose: rendered specification -->` and `<!-- Source of truth: vbrief/specification.vbrief.json -->`, and `./vbrief/specification.vbrief.json` plus all five lifecycle folders exist. This mirrors `.deft/core/scripts/_precutover.py`.
+- ./PROJECT.md exists and is not a deprecation redirect (`<!-- deft:deprecated-redirect -->` or `<!-- Purpose: deprecation redirect -->`).
 - ./vbrief/ exists but any of the five lifecycle subfolders (proposed/, pending/, active/, completed/, cancelled/) is missing
 
 → On detection: read .deft/core/skills/deft-directive-setup/SKILL.md "Pre-Cutover Detection Guard" section and follow the migration path BEFORE any other action. The Migrating from pre-v0.20 section of the full guidelines has the canonical command, the "task -t ./.deft/core/Taskfile.yml migrate:vbrief" fallback (for when "task migrate:vbrief" is not resolvable from the project root), what migration produces, and the available safety flags.
@@ -328,6 +329,9 @@ When all config exists: read the guidelines, your USER.md preferences, and PROJE
 
 1. **Deft alignment confirmation** -- state that Deft Directive is active and AGENTS.md was loaded (the unambiguous confirmation phrase the user expects at the top of every interactive session).
 2. **`task doctor`** -- install-integrity + toolchain + AGENTS.md managed-section freshness probe (#1308). Halts the ritual on a persistent-dirty state; surfaces remediation hints. When the managed-section is stale, the doctor points the operator at `task agents:refresh` to regenerate AGENTS.md from `templates/agents-entry.md`.
+   The canonical `scripts/doctor.py` (single owner post #1335/#1336) also detects payload staleness from the `<install>/VERSION` manifest and emits the deterministic recommendation "re-run the installer" when behind (#1339). The installer itself calls `scripts/doctor.py --session --json` at the end of every run for the unified handoff.
+
+**Canonical bootstrap / update path (#1339 #1340 Epic-5/6):** Use the published platform installer binary (from GitHub Releases) as the single deterministic entrypoint. It deposits the payload + manifest + .agents/skills pointers, then hands off to doctor --session --json. Old git-clone / submodule / `run upgrade` / legacy doctor surfaces are legacy and de-emphasized in UPGRADING.md / README / skills. Agent example: after running the installer binary, start your session; the doctor output (or `task doctor`) tells you the exact state and whether a re-install is needed for freshness.
 3. **Branch-policy disclosure** -- see `## Branch Policy Disclosure (#746)` below; emitted only when `plan.policy.allowDirectCommitsToMaster = true`.
 4. **`task triage:welcome`** -- emits the triage one-liner and, when state is incomplete, nudges the operator at `task triage:welcome --onboard` (#1143). Default mode is non-interactive; the `--onboard` flag runs the 6-phase interactive ritual.
 5. **`task verify:cache-fresh`** -- warning is printed only when the cache is stale (#1127); silent on a fresh cache.
@@ -424,6 +428,7 @@ Cross-reference: `.deft/core/docs/analysis/2026-05-26-issue-1353-grok-windows-ca
 - ! If the target story is in `vbrief/proposed/`, run `task scope:promote -- <path>` first; if it is in `vbrief/pending/`, run `task scope:activate -- <path>`. After activation, run `task vbrief:preflight -- <active-story-path>` before code-writing.
 - ! Default to one story per branch/PR. Create a checkpoint commit after each completed story before beginning another story, unless the operator explicitly approved batching.
 - ! After checks pass for the story, complete the lifecycle with `task scope:complete -- <active-story-path>` before final PR handoff.
+- ! Before dispatching an implementation sub-agent, run the deterministic Gate 0 `task verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]` ahead of `task vbrief:preflight`. It machine-checks a clean working tree (or `--allow-dirty`), the target vBRIEF in `vbrief/active/` with `plan.status == "running"`, and the dispatch envelope's `## Allocation context` consent token; three-state exit (0 ready / 1 not ready / 2 config error). A `swarm-cohort` section is ready only when `allocation_plan_id` AND `batching_rationale` are non-null; an absent section is the solo path. Any non-zero exit aborts dispatch.
 
 ## Commands
 

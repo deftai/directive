@@ -140,6 +140,7 @@ Cross-reference: `.deft/core/docs/analysis/2026-05-26-issue-1353-grok-windows-ca
 - ! If the target story is in `vbrief/proposed/`, run `task scope:promote -- <path>` first; if it is in `vbrief/pending/`, run `task scope:activate -- <path>`. After activation, run `task vbrief:preflight -- <active-story-path>` before code-writing.
 - ! Default to one story per branch/PR. Create a checkpoint commit after each completed story before beginning another story, unless the operator explicitly approved batching.
 - ! After checks pass for the story, complete the lifecycle with `task scope:complete -- <active-story-path>` before final PR handoff.
+- ! Before dispatching an implementation sub-agent, run the deterministic Gate 0 `task verify:story-ready -- --vbrief-path <active-story-path> [--allocation-context <dispatch-envelope-file>]` ahead of `task vbrief:preflight`. It machine-checks a clean working tree (or `--allow-dirty`), the target vBRIEF in `vbrief/active/` with `plan.status == "running"`, and the dispatch envelope's `## Allocation context` consent token; three-state exit (0 ready / 1 not ready / 2 config error). A `swarm-cohort` section is ready only when `allocation_plan_id` AND `batching_rationale` are non-null; an absent section is the solo path. Any non-zero exit aborts dispatch.
 
 ## Commands
 
