@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **doctor warning resolution for consumer installs** -- `scripts/doctor.py` now computes AGENTS.md managed-section freshness using a real template comparison instead of the interim unreadable stub, and payload staleness probing now resolves annotated tags by querying both `<ref>` and `<ref>^{}` so clean tag-based installs no longer report false stale warnings. Refs local install remediation 2026-06-01.
 
 ### Removed
 

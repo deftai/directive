@@ -1085,12 +1085,74 @@ def read_yn(prompt_text: str, default: bool = False) -> bool:
 # _run_agents_md_freshness_check will turn into a warning (acceptable
 # until shared-module extraction). This closes the remaining "undefined"
 # surface from the doctor extraction.
+def _extract_managed_section(text: str) -> str | None:
+    """Return the v3 managed block (inclusive markers), or None when absent."""
+    match = re.search(
+        r"(?s)<!--\s*deft:managed-section\s+v3(?:\s+[^>]*?)?\s*-->.*?<!--\s*/deft:managed-section\s*-->",
+        text,
+    )
+    if match is None:
+        return None
+    # Normalise trailing whitespace/newlines so equivalent content compares equal
+    # across editors/platforms.
+    return "\n".join(line.rstrip() for line in match.group(0).splitlines()).strip()
+
+
 def _agents_refresh_plan(project_root: Path) -> dict:
-    """Stub -- see docstring above."""
+    """Compute AGENTS managed-section freshness state for doctor checks.
+
+    States:
+      - absent: AGENTS.md not present
+      - missing: AGENTS.md present but managed markers absent
+      - unreadable: AGENTS.md or template could not be read
+      - stale: managed section differs from framework template
+      - current: managed section matches framework template
+    """
+    agents_path = project_root / "AGENTS.md"
+    template_path = get_script_dir().parent / "templates" / "agents-entry.md"
+
+    if not agents_path.exists():
+        return {
+            "state": "absent",
+            "path": str(agents_path),
+        }
+
+    try:
+        agents_text = agents_path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return {
+            "state": "unreadable",
+            "path": str(agents_path),
+            "error": str(exc),
+        }
+
+    agents_section = _extract_managed_section(agents_text)
+    if agents_section is None:
+        return {
+            "state": "missing",
+            "path": str(agents_path),
+        }
+
+    try:
+        template_text = template_path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return {
+            "state": "unreadable",
+            "path": str(template_path),
+            "error": str(exc),
+        }
+
+    template_section = _extract_managed_section(template_text)
+    if template_section is None:
+        return {
+            "state": "unreadable",
+            "path": str(template_path),
+            "error": "template managed section missing",
+        }
+
     return {
-        "state": "unreadable",
-        "path": str(project_root / "AGENTS.md"),
-        "error": "agents helpers not fully ported to scripts/doctor.py (interim)",
+        "state": "current" if agents_section == template_section else "stale",
+        "path": str(agents_path),
     }
 
 
@@ -1436,7 +1498,7 @@ def _run_payload_staleness_check(
         deft_dir = manifest_path.parent
         # ls-remote origin <ref> (works for branches and tags)
         proc = subprocess.run(
-            ["git", "-C", str(deft_dir), "ls-remote", "origin", ref],
+            ["git", "-C", str(deft_dir), "ls-remote", "origin", ref, f"{ref}^{{}}"],
             capture_output=True,
             text=True,
             timeout=15,
