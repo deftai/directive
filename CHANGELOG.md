@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Swarm dispatchers and build agents now share a structured consent token (#1378)** -- the build skill's Step 0 now recognizes a structured `## Allocation context` dispatch-envelope section (swarm-cohort with a non-null allocation plan id and batching rationale) as the canonical consent token, so a dispatched agent processes its cohort without re-prompting for batching approval; the free-form #1371 prose carve-out remains the fallback when the section is absent. The swarm skill's Launch phase now requires that section to be populated on every dispatched prompt (cohort and solo). Refs #1378; depends on the #1378 schema (Story A); cross-refs #1371, #954.
 
 ### Changed
 
