@@ -265,6 +265,8 @@ _AGENTS_TOKENS = (
     "C3",
     "#1378",
     "#1387",
+    # The consent-token discriminator that separates swarm-cohort from solo.
+    "dispatch_kind: swarm-cohort",
     # The spawn-stays-agent-driven contract is mirrored too.
     "agent-driven",
     "does NOT spawn agents",
