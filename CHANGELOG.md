@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **README documents the vendored (git-free) vs clone install layouts (#1433)** -- Getting Started and the upgrade banner no longer describe only the clone model; they now explain both payload origins (binary/clone with `.git` vs webinstaller/vendored without `.git`), that `deft-install --upgrade` detects the layout and refreshes accordingly, and that it never runs git against the consumer repo. Refs #1428, #1425.
 
 ### Fixed
 
