@@ -632,33 +632,38 @@ def _check_install_path_consistency(project_root: Path, install_root: str | None
     # effective install root came from (Greptile P1 on PR #1063 -- prior
     # heuristic compared values, which mislabelled when manifest and
     # AGENTS.md happened to agree).
-    # #1427: locate the manifest canonical-first via the shared helper so a
-    # webinstaller-vendored ``.deft/VERSION`` is considered too (the prior
-    # shape probed only ``.deft/core/VERSION`` and legacy ``deft/VERSION``).
-    # ``_locate_manifest`` returns the first existing manifest, so the
-    # "first manifest found wins" semantics of the old two-path loop are
-    # preserved.
-    manifest_path = _locate_manifest(project_root, install_root)
-    if manifest_path is not None:
+    # #1427: probe the manifest canonical-first via the shared candidate
+    # list so a webinstaller-vendored ``.deft/VERSION`` is considered too
+    # (the prior shape probed only ``.deft/core/VERSION`` and legacy
+    # ``deft/VERSION``). Iterate the candidate list rather than call
+    # ``_locate_manifest`` so an existing-but-unreadable manifest (OSError /
+    # permission denial -> ``_read_text_safe`` returns None) falls through
+    # to the next candidate, preserving the ``continue``-on-unreadable
+    # resilience of the original two-path loop (Greptile P2 on PR #1431).
+    # The first READABLE manifest wins, matching the prior
+    # break-on-first-found semantics.
+    for manifest_path in _manifest_candidate_paths(project_root, install_root):
         manifest_text = _read_text_safe(manifest_path)
-        if manifest_text is not None:
-            manifest = _parse_manifest(manifest_text)
-            manifest_install_root = manifest.get("install_root")
-            if isinstance(manifest_install_root, str) and manifest_install_root.strip():
-                effective_install_root = manifest_install_root.strip()
-                fallback_info_note = ""
-                source = "manifest"
-            else:
-                # Manifest found but missing the #1062 ``install_root`` field
-                # (legacy v0.28 shape, or a webinstaller ``.deft/VERSION``
-                # that omits it). Fall back to the AGENTS.md parse and note
-                # it. ``source`` stays "AGENTS.md" -- the manifest was found
-                # but did not carry the install_root field, so the effective
-                # value still came from the AGENTS.md parse.
-                fallback_info_note = (
-                    f" INFO: manifest at {manifest_path} is missing install_root; "
-                    "fell back to the legacy AGENTS.md install-root parse."
-                )
+        if manifest_text is None:
+            continue
+        manifest = _parse_manifest(manifest_text)
+        manifest_install_root = manifest.get("install_root")
+        if isinstance(manifest_install_root, str) and manifest_install_root.strip():
+            effective_install_root = manifest_install_root.strip()
+            fallback_info_note = ""
+            source = "manifest"
+            break
+        # Manifest found but missing the #1062 ``install_root`` field
+        # (legacy v0.28 shape, or a webinstaller ``.deft/VERSION`` that
+        # omits it). Fall back to the AGENTS.md parse and note it.
+        # ``source`` stays "AGENTS.md" -- the manifest was found but did not
+        # carry the install_root field, so the effective value still came
+        # from the AGENTS.md parse.
+        fallback_info_note = (
+            f" INFO: manifest at {manifest_path} is missing install_root; "
+            "fell back to the legacy AGENTS.md install-root parse."
+        )
+        break
     if effective_install_root is None:
         return CheckResult(
             name="install-path-consistency",

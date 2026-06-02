@@ -3,7 +3,7 @@
     "version": "0.6",
     "author": "agent-doctor",
     "description": "Scope vBRIEF for #1427 (doctor half): make scripts/doctor.py a tolerant manifest reader via a centralized canonical-first _locate_manifest helper so webinstaller-vendored installs whose manifest is at .deft/VERSION are detected.",
-    "created": "2026-06-02T22:05:00Z",
+    "created": "2026-06-02T22:00:00Z",
     "updated": "2026-06-02T22:05:00Z"
   },
   "plan": {
@@ -53,7 +53,7 @@
         "title": "Umbrella #1428: vendored-done-right cohort"
       }
     ],
-    "created": "2026-06-02T22:05:00Z",
+    "created": "2026-06-02T22:00:00Z",
     "updated": "2026-06-02T22:04:05Z"
   }
 }

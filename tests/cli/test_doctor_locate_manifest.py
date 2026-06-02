@@ -192,6 +192,37 @@ class TestInstallPathConsistencyDeftVersion:
         assert check.data["effective_install_root"] == ".deft/core"
         assert check.data["effective_install_root_source"] == "manifest"
 
+    def test_unreadable_manifest_falls_through_to_next_candidate(
+        self, doctor_module, tmp_path, monkeypatch
+    ):
+        # An existing-but-unreadable canonical .deft/core/VERSION (OSError /
+        # permission denial -> _read_text_safe returns None) MUST NOT stop
+        # the probe; the check falls through to the next readable candidate
+        # (.deft/VERSION). Regression for the Greptile P2 on PR #1431 that
+        # restored the old two-path loop's continue-on-unreadable behavior.
+        _write(
+            tmp_path / ".deft" / "core" / "VERSION",
+            "tag: 'v0.0.1'\ninstall_root: '.deft/core'\n",
+        )
+        _write(
+            tmp_path / ".deft" / "VERSION",
+            "tag: 'v0.39.2'\ninstall_root: '.deft/legacy'\n",
+        )
+        (tmp_path / ".deft" / "legacy").mkdir(parents=True, exist_ok=True)
+        real_read = doctor_module._read_text_safe
+
+        def _fake_read(path):
+            # Simulate the canonical manifest existing but being unreadable.
+            if str(path).replace("\\", "/").endswith(".deft/core/VERSION"):
+                return None
+            return real_read(path)
+
+        monkeypatch.setattr(doctor_module, "_read_text_safe", _fake_read)
+        check = doctor_module._check_install_path_consistency(tmp_path, None)
+        assert check.status == "pass", check.detail
+        assert check.data["effective_install_root"] == ".deft/legacy"
+        assert check.data["effective_install_root_source"] == "manifest"
+
 
 # ---------------------------------------------------------------------------
 # payload-staleness (#1339) -- .deft/VERSION detection
