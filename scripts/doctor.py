@@ -303,6 +303,62 @@ def _manifest_tag_to_version(manifest: dict) -> str | None:
     return None
 
 
+def _manifest_candidate_paths(
+    project_root: Path, install_root: str | None
+) -> list[Path]:
+    """Return the canonical-first VERSION-manifest probe order (#1427).
+
+    The install provenance manifest is written to divergent paths by two
+    install rails: the Go installer writes the documented canonical
+    ``<install_root>/VERSION`` (``.deft/core/VERSION`` per #1062), while the
+    webinstaller writes ``.deft/VERSION`` (a 5-field manifest that omits the
+    #1062 ``install_root`` field). The ordering below is **canonical-first**
+    so an existing ``.deft/core/VERSION`` always wins over a stale
+    ``.deft/VERSION``:
+
+      1. ``<install_root>/VERSION`` -- the AGENTS.md / manifest-declared
+         install root, when known (skipped when ``install_root`` is None).
+      2. ``.deft/core/VERSION``    -- the v0.27+ canonical install (#1062).
+      3. ``.deft/VERSION``         -- the webinstaller-vendored location
+         (#1427); restores detection for that population.
+      4. ``deft/VERSION``          -- the pre-v0.27 legacy install.
+
+    Duplicates are removed while preserving order so an ``install_root`` of
+    ``.deft/core`` does not probe the same path twice. Pure -- builds paths
+    only; no filesystem access.
+    """
+    raw: list[Path] = []
+    if install_root:
+        raw.append(project_root / install_root / "VERSION")
+    raw.append(project_root / ".deft" / "core" / "VERSION")
+    raw.append(project_root / ".deft" / "VERSION")
+    raw.append(project_root / "deft" / "VERSION")
+    seen: set[str] = set()
+    ordered: list[Path] = []
+    for candidate in raw:
+        key = str(candidate)
+        if key not in seen:
+            seen.add(key)
+            ordered.append(candidate)
+    return ordered
+
+
+def _locate_manifest(project_root: Path, install_root: str | None) -> Path | None:
+    """Return the first existing VERSION manifest, canonical-first (#1427).
+
+    Walks :func:`_manifest_candidate_paths` in canonical-first order and
+    returns the first candidate that exists on disk, or ``None`` when no
+    manifest is present. Centralises the manifest-location contract so
+    ``_check_manifest_agreement``, ``_check_install_path_consistency``, and
+    the #1339 payload-staleness read path all agree on where a manifest may
+    live -- including the webinstaller's ``.deft/VERSION`` location.
+    """
+    for candidate in _manifest_candidate_paths(project_root, install_root):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def _is_deprecation_redirect_stub(text: str) -> bool:
     """Return True when a resolved skill file is an actual redirect stub."""
     lines = text.replace("\r\n", "\n").lstrip().splitlines()
@@ -421,20 +477,30 @@ def _check_skill_paths_resolve(project_root: Path, agents_md_text: str) -> Check
 
 
 def _check_manifest_agreement(project_root: Path, install_root: str | None) -> CheckResult:
-    """Check #3: <install>/VERSION YAML manifest agrees with <root>/.deft-version."""
-    if install_root is None:
-        return CheckResult(
-            name="manifest-agreement",
-            status="skip",
-            detail="No install root declared in AGENTS.md; cannot locate manifest.",
-        )
-    manifest_path = project_root / install_root / "VERSION"
+    """Check #3: <install>/VERSION YAML manifest agrees with <root>/.deft-version.
+
+    The manifest is located via :func:`_locate_manifest` (#1427) so a
+    webinstaller-vendored install whose manifest is at ``.deft/VERSION`` is
+    found, canonical-first. ``install_root`` may be None (the webinstaller
+    population whose manifest omits the #1062 ``install_root`` field and
+    whose AGENTS.md therefore yields no install-root claim) -- the helper
+    still probes the canonical/legacy locations, so detection no longer
+    depends on the AGENTS.md install-root parse.
+    """
+    manifest_path = _locate_manifest(project_root, install_root)
+    # Canonical-first expected location for diagnostics when no manifest is
+    # found on disk (``_manifest_candidate_paths`` always returns >= 1 entry).
+    expected_manifest_path = (
+        manifest_path
+        if manifest_path is not None
+        else _manifest_candidate_paths(project_root, install_root)[0]
+    )
     bare_candidates = [
         project_root / "vbrief" / ".deft-version",
         project_root / ".deft-version",
     ]
     bare_path: Path | None = next((p for p in bare_candidates if p.is_file()), None)
-    manifest_text = _read_text_safe(manifest_path)
+    manifest_text = _read_text_safe(manifest_path) if manifest_path else None
     bare_text = _read_text_safe(bare_path) if bare_path else None
     if manifest_text is None and bare_text is None:
         return CheckResult(
@@ -445,7 +511,7 @@ def _check_manifest_agreement(project_root: Path, install_root: str | None) -> C
                 "nothing to reconcile (greenfield install)."
             ),
             data={
-                "manifest_path": str(manifest_path),
+                "manifest_path": str(manifest_path) if manifest_path else None,
                 "bare_path": str(bare_path) if bare_path else None,
             },
         )
@@ -455,12 +521,13 @@ def _check_manifest_agreement(project_root: Path, install_root: str | None) -> C
             status="fail",
             detail=(
                 f"Bare .deft-version exists at {bare_path} but YAML manifest "
-                f"is missing at {manifest_path}. Run `task upgrade` to write "
+                f"is missing at {expected_manifest_path}. Run `task upgrade` to write "
                 "the canonical manifest (#1046 PR-B AC-4). See UPGRADING.md "
                 "for the v0.27.x -> v0.28 transition walkthrough."
             ),
             data={
-                "manifest_path": str(manifest_path),
+                "manifest_path": str(manifest_path) if manifest_path else None,
+                "expected_manifest_path": str(expected_manifest_path),
                 "bare_path": str(bare_path) if bare_path else None,
                 "bare_value": (bare_text or "").strip() if bare_text else None,
                 "suggested_fix": "task upgrade",
@@ -565,28 +632,33 @@ def _check_install_path_consistency(project_root: Path, install_root: str | None
     # effective install root came from (Greptile P1 on PR #1063 -- prior
     # heuristic compared values, which mislabelled when manifest and
     # AGENTS.md happened to agree).
-    for manifest_path in (
-        project_root / ".deft" / "core" / "VERSION",
-        project_root / "deft" / "VERSION",
-    ):
+    # #1427: locate the manifest canonical-first via the shared helper so a
+    # webinstaller-vendored ``.deft/VERSION`` is considered too (the prior
+    # shape probed only ``.deft/core/VERSION`` and legacy ``deft/VERSION``).
+    # ``_locate_manifest`` returns the first existing manifest, so the
+    # "first manifest found wins" semantics of the old two-path loop are
+    # preserved.
+    manifest_path = _locate_manifest(project_root, install_root)
+    if manifest_path is not None:
         manifest_text = _read_text_safe(manifest_path)
-        if manifest_text is None:
-            continue
-        manifest = _parse_manifest(manifest_text)
-        manifest_install_root = manifest.get("install_root")
-        if isinstance(manifest_install_root, str) and manifest_install_root.strip():
-            effective_install_root = manifest_install_root.strip()
-            fallback_info_note = ""
-            source = "manifest"
-            break
-        fallback_info_note = (
-            f" INFO: manifest at {manifest_path} is missing install_root; "
-            "fell back to the legacy AGENTS.md install-root parse."
-        )
-        # source stays "AGENTS.md" -- the manifest was found but did not
-        # carry the install_root field, so the effective value still came
-        # from the AGENTS.md parse.
-        break
+        if manifest_text is not None:
+            manifest = _parse_manifest(manifest_text)
+            manifest_install_root = manifest.get("install_root")
+            if isinstance(manifest_install_root, str) and manifest_install_root.strip():
+                effective_install_root = manifest_install_root.strip()
+                fallback_info_note = ""
+                source = "manifest"
+            else:
+                # Manifest found but missing the #1062 ``install_root`` field
+                # (legacy v0.28 shape, or a webinstaller ``.deft/VERSION``
+                # that omits it). Fall back to the AGENTS.md parse and note
+                # it. ``source`` stays "AGENTS.md" -- the manifest was found
+                # but did not carry the install_root field, so the effective
+                # value still came from the AGENTS.md parse.
+                fallback_info_note = (
+                    f" INFO: manifest at {manifest_path} is missing install_root; "
+                    "fell back to the legacy AGENTS.md install-root parse."
+                )
     if effective_install_root is None:
         return CheckResult(
             name="install-path-consistency",
@@ -1389,14 +1461,19 @@ def _run_payload_staleness_check(
     except Exception:
         pass
     if manifest_path is None:
-        for cand in [
-            project_root / ".deft" / "core" / "VERSION",
-            project_root / "deft" / "VERSION",
-            project_root / ".deft-version",  # legacy marker, not full manifest
-        ]:
-            if cand.exists():
-                manifest_path = cand
-                break
+        # #1427: probe canonical-first via the shared helper so a
+        # webinstaller-vendored ``.deft/VERSION`` manifest is found too
+        # (the prior list probed only ``.deft/core/VERSION`` and legacy
+        # ``deft/VERSION``).
+        manifest_path = _locate_manifest(project_root, None)
+    if manifest_path is None:
+        # Legacy bare marker -- not a full manifest, but the last-resort
+        # provenance source for a pre-v0.28 install. Kept out of
+        # ``_locate_manifest`` because that helper returns VERSION-manifest
+        # paths only.
+        legacy_marker = project_root / ".deft-version"
+        if legacy_marker.exists():
+            manifest_path = legacy_marker
     if manifest_path is None or not manifest_path.exists():
         emit_info(f"{check_name}: skip -- no install manifest found (pre-v0.28 or legacy state)")
         add_finding("skip", "no manifest", check=check_name, status="skip")

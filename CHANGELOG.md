@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **`deft-install --upgrade` on a tag clone no longer fails with detached-HEAD `git pull` (#1429)** -- migrating a clone payload to vendored runs no git command against the payload or the consumer repo, so the long-standing detached-HEAD `git pull` failure on tag clones can no longer occur. Refs #1428, #1425.
 - **Installer removes an orphaned `.deft/VERSION` on upgrade (#1427)** -- after stamping the canonical manifest at `.deft/core/VERSION`, an `--upgrade` now deletes a stale `.deft/VERSION` left by older installer rails (canonical layout only; the legacy `deft/` layout never touches the consumer's root `VERSION`). Refs #1427, #1428.
+- **`task doctor` now finds a webinstaller-vendored manifest at `.deft/VERSION` (#1427)** -- the doctor locates the install manifest canonical-first (`<install_root>/VERSION`, then `.deft/core/VERSION`, then `.deft/VERSION`, then legacy `deft/VERSION`) across the manifest-agreement, install-path-consistency, and payload-staleness checks, so a webinstaller install whose manifest sits at `.deft/VERSION` is no longer invisible to the doctor (the canonical `.deft/core/VERSION` still wins when both are present). Refs #1428.
 
 ### Removed
 
