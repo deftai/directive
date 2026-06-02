@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`deft-install --upgrade` on a vendored install no longer aborts on the GitHub tarball PAX header (#1433)** -- `extractCoreTarball` captured its content-root name from the first tar entry, which for GitHub source tarballs is the `pax_global_header` global-PAX record, so every git-free vendored refresh failed with `tarball content root "pax_global_header" missing after extract`. The extractor now skips PAX global/extended header entries before resolving the wrapper directory. Refs #1425, #1428.
 
 ### Removed
 

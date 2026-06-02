@@ -373,6 +373,13 @@ func extractCoreTarball(tarballPath, destDir string) (string, error) {
 			continue
 		}
 		parts := strings.Split(name, "/")
+		// GitHub source tarballs lead with a `pax_global_header` global-PAX
+		// record (and may carry per-entry extended headers). These are tar
+		// metadata, not content: skip them entirely so the wrapper directory --
+		// not "pax_global_header" -- is captured as the content root (#1433).
+		if hdr.Typeflag == tar.TypeXGlobalHeader || hdr.Typeflag == tar.TypeXHeader {
+			continue
+		}
 		if rootName == "" {
 			rootName = parts[0]
 		}

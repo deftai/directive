@@ -132,6 +132,96 @@ func TestExtractCoreTarball_ExcludesGitAndExtractsTree(t *testing.T) {
 	}
 }
 
+// makeCoreTarballWithPaxHeader writes a gzipped tar fixture whose FIRST entry
+// is a `pax_global_header` global-PAX record (exactly how GitHub source
+// tarballs lead off), followed by the usual single wrapper directory and its
+// files. Mirrors makeCoreTarball but exercises the #1433 path where the leading
+// PAX header must not be mistaken for the content root.
+func makeCoreTarballWithPaxHeader(t *testing.T, wrapper string, files map[string]string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "fixture-pax.tar.gz")
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("create fixture tarball: %v", err)
+	}
+	gw := gzip.NewWriter(f)
+	tw := tar.NewWriter(gw)
+
+	// Leading global PAX header, as emitted by GitHub's source tarballs.
+	if err := tw.WriteHeader(&tar.Header{
+		Name:       "pax_global_header",
+		Typeflag:   tar.TypeXGlobalHeader,
+		Format:     tar.FormatPAX,
+		PAXRecords: map[string]string{"comment": "0123456789abcdef0123456789abcdef01234567"},
+	}); err != nil {
+		t.Fatalf("write pax global header: %v", err)
+	}
+
+	// Wrapper directory entry, then the wrapped files.
+	if err := tw.WriteHeader(&tar.Header{
+		Name:     wrapper + "/",
+		Typeflag: tar.TypeDir,
+		Mode:     0o755,
+	}); err != nil {
+		t.Fatalf("write wrapper dir header: %v", err)
+	}
+	for rel, content := range files {
+		hdr := &tar.Header{
+			Name:     wrapper + "/" + rel,
+			Typeflag: tar.TypeReg,
+			Mode:     0o644,
+			Size:     int64(len(content)),
+		}
+		if err := tw.WriteHeader(hdr); err != nil {
+			t.Fatalf("write header %s: %v", rel, err)
+		}
+		if _, err := tw.Write([]byte(content)); err != nil {
+			t.Fatalf("write body %s: %v", rel, err)
+		}
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatalf("close tar: %v", err)
+	}
+	if err := gw.Close(); err != nil {
+		t.Fatalf("close gzip: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("close file: %v", err)
+	}
+	return path
+}
+
+// TestExtractCoreTarball_SkipsPaxGlobalHeader is the #1433 regression: GitHub
+// source tarballs lead with a `pax_global_header` global-PAX record. Before the
+// fix the extractor captured that record's name as the content root, so every
+// vendored refresh aborted with `tarball content root "pax_global_header"
+// missing after extract`. The content root must instead resolve to the wrapper
+// directory and the wrapped files must extract.
+func TestExtractCoreTarball_SkipsPaxGlobalHeader(t *testing.T) {
+	tarball := makeCoreTarballWithPaxHeader(t, "deftai-directive-abc1234", map[string]string{
+		"SKILL.md":          "skill body",
+		"scripts/doctor.py": "print('hi')",
+	})
+	dest := t.TempDir()
+	root, err := extractCoreTarball(tarball, dest)
+	if err != nil {
+		t.Fatalf("extract: %v", err)
+	}
+	if filepath.Base(root) != "deftai-directive-abc1234" {
+		t.Errorf("content root = %q, want wrapper dir (must NOT be pax_global_header)", root)
+	}
+	if _, err := os.Stat(filepath.Join(root, "SKILL.md")); err != nil {
+		t.Errorf("SKILL.md not extracted: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "scripts", "doctor.py")); err != nil {
+		t.Errorf("nested scripts/doctor.py not extracted: %v", err)
+	}
+	// The PAX header MUST NOT have been materialised as a filesystem path.
+	if _, err := os.Stat(filepath.Join(dest, "pax_global_header")); !os.IsNotExist(err) {
+		t.Errorf("pax_global_header was materialised but MUST be skipped (err=%v)", err)
+	}
+}
+
 func TestShaFromContentRoot(t *testing.T) {
 	cases := map[string]string{
 		"deftai-directive-6136b66abcdef": "6136b66abcdef",
