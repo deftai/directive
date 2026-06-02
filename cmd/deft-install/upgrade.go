@@ -118,8 +118,11 @@ func UpdateDeft(w *Wizard, result *WizardResult, branch string) (*UpdateOutcome,
 			return &UpdateOutcome{Layout: layout, Strategy: strategyClone}, err
 		}
 		sha, _ := runGitCaptureFunc(result.DeftDir, "rev-parse", "HEAD")
+		// Report the POST-operation layout: a fresh clone now exists, so the
+		// payload is a clone (not absent). Consumers inspecting payload_layout
+		// in --json must see the resulting state, not the pre-clone state.
 		return &UpdateOutcome{
-			Layout:   layout,
+			Layout:   payloadLayoutClone,
 			Strategy: strategyClone,
 			SHA:      sha,
 			Tag:      tagFromRef(branch),
@@ -313,8 +316,11 @@ func extractCoreTarball(tarballPath, destDir string) (string, error) {
 		}
 
 		target := filepath.Join(cleanDest, filepath.FromSlash(name))
-		// Defense-in-depth: the resolved target must stay within destDir.
-		if target != cleanDest && !strings.HasPrefix(target, cleanDest+string(os.PathSeparator)) {
+		// zip-slip / CodeQL go/zipslip canonical barrier: the cleaned target
+		// path MUST stay within destDir. Wrapping the target in filepath.Clean
+		// is the form CodeQL recognises as a sanitizer on the path that flows
+		// into the MkdirAll / OpenFile sinks below.
+		if !strings.HasPrefix(filepath.Clean(target), cleanDest+string(os.PathSeparator)) {
 			return "", fmt.Errorf("tar entry escapes destination: %q", hdr.Name)
 		}
 

@@ -342,3 +342,42 @@ func TestUpdateDeft_VendoredNeverMutatesParentRepo(t *testing.T) {
 		t.Errorf("vendored core not refreshed: data=%q err=%v", data, err)
 	}
 }
+
+// TestUpdateDeft_AbsentReportsCloneLayout pins the Greptile #1426 finding: an
+// --upgrade against a missing payload performs a fresh clone and MUST report
+// the POST-operation layout (clone), not the pre-clone "absent" state, so
+// --json consumers inspecting payload_layout see the resulting state.
+func TestUpdateDeft_AbsentReportsCloneLayout(t *testing.T) {
+	origRun := runCmdFunc
+	origGit := runGitCaptureFunc
+	defer func() {
+		runCmdFunc = origRun
+		runGitCaptureFunc = origGit
+	}()
+
+	tmp := t.TempDir()
+	proj := filepath.Join(tmp, "proj")
+	core := filepath.Join(proj, ".deft", "core") // intentionally absent
+
+	// Simulate `git clone` materialising the payload dir.
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		if name == "git" && len(args) > 0 && args[0] == "clone" {
+			os.MkdirAll(args[len(args)-1], 0o755)
+		}
+		return nil
+	}
+	runGitCaptureFunc = func(string, ...string) (string, error) { return "abc1234", nil }
+
+	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core, Update: true}
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	outcome, err := UpdateDeft(w, result, "v1.2.3")
+	if err != nil {
+		t.Fatalf("UpdateDeft (absent): %v", err)
+	}
+	if outcome.Layout != payloadLayoutClone {
+		t.Errorf("absent->clone must report layout=clone, got %q", outcome.Layout)
+	}
+	if outcome.Strategy != strategyClone {
+		t.Errorf("strategy = %q, want clone", outcome.Strategy)
+	}
+}
