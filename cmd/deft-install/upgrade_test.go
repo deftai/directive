@@ -343,30 +343,35 @@ func TestUpdateDeft_VendoredNeverMutatesParentRepo(t *testing.T) {
 	}
 }
 
-// TestUpdateDeft_AbsentReportsCloneLayout pins the Greptile #1426 finding: an
-// --upgrade against a missing payload performs a fresh clone and MUST report
-// the POST-operation layout (clone), not the pre-clone "absent" state, so
-// --json consumers inspecting payload_layout see the resulting state.
-func TestUpdateDeft_AbsentReportsCloneLayout(t *testing.T) {
+// TestUpdateDeft_AbsentVendorsFreshCopy pins the #1428 behavior: an --upgrade
+// against a MISSING payload performs a git-free vendor install (not a clone)
+// and reports the post-operation vendored layout + vendor strategy.
+func TestUpdateDeft_AbsentVendorsFreshCopy(t *testing.T) {
 	origRun := runCmdFunc
 	origGit := runGitCaptureFunc
+	origFetch := fetchCoreTarballFunc
 	defer func() {
 		runCmdFunc = origRun
 		runGitCaptureFunc = origGit
+		fetchCoreTarballFunc = origFetch
 	}()
 
 	tmp := t.TempDir()
 	proj := filepath.Join(tmp, "proj")
 	core := filepath.Join(proj, ".deft", "core") // intentionally absent
 
-	// Simulate `git clone` materialising the payload dir.
+	tarball := makeCoreTarball(t, "deftai-directive-abc1234", map[string]string{"marker.txt": "new"})
+	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+
+	// Guardrail: there must be NO git command on a vendored fresh install.
+	var gitCalls []string
 	runCmdFunc = func(out io.Writer, name string, args ...string) error {
-		if name == "git" && len(args) > 0 && args[0] == "clone" {
-			os.MkdirAll(args[len(args)-1], 0o755)
+		if name == "git" {
+			gitCalls = append(gitCalls, strings.Join(args, " "))
 		}
 		return nil
 	}
-	runGitCaptureFunc = func(string, ...string) (string, error) { return "abc1234", nil }
+	runGitCaptureFunc = func(string, ...string) (string, error) { return "", fmt.Errorf("not a repo") }
 
 	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core, Update: true}
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
@@ -374,10 +379,151 @@ func TestUpdateDeft_AbsentReportsCloneLayout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpdateDeft (absent): %v", err)
 	}
-	if outcome.Layout != payloadLayoutClone {
-		t.Errorf("absent->clone must report layout=clone, got %q", outcome.Layout)
+	if len(gitCalls) != 0 {
+		t.Errorf("vendored fresh install ran git commands (safety bug): %v", gitCalls)
 	}
-	if outcome.Strategy != strategyClone {
-		t.Errorf("strategy = %q, want clone", outcome.Strategy)
+	if outcome.Layout != payloadLayoutVendored {
+		t.Errorf("absent->vendor must report layout=vendored, got %q", outcome.Layout)
+	}
+	if outcome.Strategy != strategyVendor {
+		t.Errorf("strategy = %q, want %q", outcome.Strategy, strategyVendor)
+	}
+	if data, err := os.ReadFile(filepath.Join(core, "marker.txt")); err != nil || string(data) != "new" {
+		t.Errorf("vendored core missing marker.txt: data=%q err=%v", data, err)
+	}
+	if _, err := os.Stat(filepath.Join(core, ".git")); !os.IsNotExist(err) {
+		t.Errorf("vendored core MUST NOT contain .git (err=%v)", err)
+	}
+}
+
+// TestVendorDeft_FreshInstallNoGit proves the headline #1429 behavior: a fresh
+// install vendors the release tarball into a greenfield .deft/core/ WITHOUT any
+// git command and WITHOUT leaving .git, and re-stamps the framework source SHA
+// recovered from the tarball wrapper.
+func TestVendorDeft_FreshInstallNoGit(t *testing.T) {
+	origFetch := fetchCoreTarballFunc
+	origRun := runCmdFunc
+	defer func() {
+		fetchCoreTarballFunc = origFetch
+		runCmdFunc = origRun
+	}()
+
+	tmp := t.TempDir()
+	proj := filepath.Join(tmp, "proj")
+	core := filepath.Join(proj, ".deft", "core") // greenfield: absent
+
+	tarball := makeCoreTarball(t, "deftai-directive-abc1234", map[string]string{
+		"SKILL.md":    "skill body",
+		".git/config": "[core]", // must be excluded by extraction
+	})
+	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+
+	var gitCalls []string
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		if name == "git" {
+			gitCalls = append(gitCalls, strings.Join(args, " "))
+		}
+		return nil
+	}
+
+	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core}
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	outcome, err := VendorDeft(w, result, "v1.2.3")
+	if err != nil {
+		t.Fatalf("VendorDeft: %v", err)
+	}
+	if len(gitCalls) != 0 {
+		t.Errorf("fresh vendor ran git commands (safety bug): %v", gitCalls)
+	}
+	if outcome.Layout != payloadLayoutVendored || outcome.Strategy != strategyVendor {
+		t.Errorf("outcome layout/strategy = %q/%q, want vendored/%q", outcome.Layout, outcome.Strategy, strategyVendor)
+	}
+	if outcome.SHA != "abc1234" {
+		t.Errorf("SHA = %q, want abc1234 (from tarball wrapper)", outcome.SHA)
+	}
+	if outcome.Tag != "v1.2.3" {
+		t.Errorf("Tag = %q, want v1.2.3", outcome.Tag)
+	}
+	if outcome.Backup != "" {
+		t.Errorf("greenfield vendor should not back up (no prior payload), got %q", outcome.Backup)
+	}
+	if data, err := os.ReadFile(filepath.Join(core, "SKILL.md")); err != nil || string(data) != "skill body" {
+		t.Errorf("vendored core missing SKILL.md: data=%q err=%v", data, err)
+	}
+	// Critical: a vendored payload carries NO .git (the #1428/#1425 invariant).
+	if _, err := os.Stat(filepath.Join(core, ".git")); !os.IsNotExist(err) {
+		t.Errorf("vendored core MUST NOT contain .git (err=%v)", err)
+	}
+}
+
+// TestUpdateDeft_CloneTagDetachedHeadMigratesWithoutGit is the gold-standard
+// #1428 regression: a REAL git clone checked out at a tag (detached HEAD) -- the
+// exact state whose `git pull` failed before this change -- is migrated to a
+// vendored payload via file swap, with NO git command run and no .git left.
+func TestUpdateDeft_CloneTagDetachedHeadMigratesWithoutGit(t *testing.T) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("git not available; skipping real-git migration test")
+	}
+
+	tmp := t.TempDir()
+	proj := filepath.Join(tmp, "proj")
+	core := filepath.Join(proj, ".deft", "core")
+	if err := os.MkdirAll(core, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command(gitPath, append([]string{"-C", core}, args...)...)
+		if out, gerr := cmd.CombinedOutput(); gerr != nil {
+			t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), gerr, out)
+		}
+	}
+	// Build a genuine clone-layout payload: core is itself a git work tree
+	// (toplevel == core) checked out at a TAG -> detached HEAD.
+	runGit("init", "-q")
+	runGit("config", "user.email", "test@example.com")
+	runGit("config", "user.name", "Test")
+	runGit("config", "commit.gpgsign", "false")
+	if err := os.WriteFile(filepath.Join(core, "OLD.txt"), []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGit("add", "-A")
+	runGit("commit", "-q", "-m", "seed")
+	runGit("tag", "v9.9.9")
+	runGit("checkout", "-q", "v9.9.9") // detached HEAD
+
+	origFetch := fetchCoreTarballFunc
+	origRun := runCmdFunc
+	defer func() {
+		fetchCoreTarballFunc = origFetch
+		runCmdFunc = origRun
+	}()
+	tarball := makeCoreTarball(t, "deftai-directive-feed1234", map[string]string{"marker.txt": "new"})
+	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+	runCmdFunc = func(out io.Writer, name string, args ...string) error {
+		if name == "git" {
+			t.Fatalf("migration ran a git command (safety/regression): git %s", strings.Join(args, " "))
+		}
+		return nil
+	}
+
+	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core, Update: true}
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	outcome, err := UpdateDeft(w, result, "v9.9.9")
+	if err != nil {
+		t.Fatalf("UpdateDeft (detached-HEAD clone migration): %v", err)
+	}
+	if outcome.Layout != payloadLayoutVendored {
+		t.Fatalf("expected vendored layout post-migration, got %q", outcome.Layout)
+	}
+	if outcome.Strategy != strategyMigrate {
+		t.Errorf("strategy = %q, want %q", outcome.Strategy, strategyMigrate)
+	}
+	if data, err := os.ReadFile(filepath.Join(core, "marker.txt")); err != nil || string(data) != "new" {
+		t.Errorf("migrated core missing marker.txt: data=%q err=%v", data, err)
+	}
+	if _, err := os.Stat(filepath.Join(core, ".git")); !os.IsNotExist(err) {
+		t.Errorf("migrated core MUST NOT contain .git (err=%v)", err)
 	}
 }

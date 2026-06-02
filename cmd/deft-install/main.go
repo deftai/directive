@@ -235,10 +235,11 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		return 1
 	}
 
-	// Phase 4: clone or update deft. UpdateDeft (#1425) classifies the on-disk
-	// payload layout and chooses a safe strategy: git fetch/checkout for a
-	// genuine clone, a git-free file swap for a vendored (no-.git) payload, or
-	// a fresh clone when the payload is absent.
+	// Phase 4: vendor or update deft. Every deposit is git-free (#1428): a fresh
+	// install vendors the release tarball (VendorDeft); an --upgrade dispatches
+	// via UpdateDeft, which migrates a git-clone payload to vendored, refreshes
+	// an existing vendored payload via file swap, or vendors a fresh copy when
+	// the payload is absent.
 	var updateOutcome *UpdateOutcome
 	if result.Update {
 		o, err := UpdateDeft(w, result, branch)
@@ -248,17 +249,19 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		}
 		updateOutcome = o
 	} else {
-		if err := CloneDeft(w, result, branch); err != nil {
+		o, err := VendorDeft(w, result, branch)
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			return 1
 		}
+		updateOutcome = o
 	}
 
 	// #1062: stamp the canonical YAML install manifest at <deftDir>/VERSION
-	// alongside CloneDeft / UpdateDeft so the framework records the
+	// alongside VendorDeft / UpdateDeft so the framework records the
 	// install_root field as the single source of truth for the install-
 	// layout contract. Best-effort: a failure to resolve git provenance
-	// (fresh shallow clone, git unavailable) falls back to the resolved
+	// (vendored payload, git unavailable) falls back to the resolved
 	// values from the installer binary (defaultBranch + empty SHA) so the
 	// manifest still carries install_root.
 	installFields := resolveInstallManifestFields(result, branch)
@@ -284,6 +287,14 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		// sync skill) will fall back to the AGENTS.md parse for install_root.
 	}
 
+	// #1427: on an upgrade, remove an orphaned .deft/VERSION left by older
+	// installer rails that wrote the manifest one level ABOVE .deft/core/. The
+	// canonical manifest now lives at .deft/core/VERSION (written above), so a
+	// stale .deft/VERSION would shadow it for consumers that read the parent.
+	if result.Update {
+		removeOrphanDeftVersion(w, result)
+	}
+
 	if err := WriteAgentsMD(w, result.ProjectDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
@@ -302,6 +313,14 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		return 1
 	}
+
+	// Phase 4b2 (#1430): deposit the neutralization so the vendored framework
+	// payload at .deft/core/** is treated as packaged framework assets -- not
+	// consumer source -- by linguist (language stats), bot reviewers
+	// (Greptile/CodeQL), and an optional CI guard. Best-effort: a deposit
+	// failure (e.g. a malformed pre-existing config) warns but never aborts the
+	// install, mirroring the WriteInstallManifest contract above.
+	depositNeutralization(w, result.ProjectDir)
 
 	// Phase 4c: consumer-root vbrief/ deposit (canonical contract: scope
 	// vBRIEFs live at the consumer root, not inside the framework copy).
@@ -344,7 +363,7 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		// performed -- and confirm a vendored install used the git-free swap
 		// rather than a git command against the consumer repo.
 		payloadLayout := payloadLayoutAbsent
-		strategy := strategyClone
+		strategy := strategyVendor
 		if updateOutcome != nil {
 			payloadLayout = updateOutcome.Layout
 			strategy = updateOutcome.Strategy
@@ -496,6 +515,34 @@ func resolveDeftHeadSHA(deftDir string) string {
 		return ""
 	}
 	return strings.TrimSpace(string(out))
+}
+
+// removeOrphanDeftVersion deletes an orphaned <project>/.deft/VERSION left by
+// older installer rails that stamped the manifest one level ABOVE the canonical
+// .deft/core/VERSION (#1427). It runs ONLY for the canonical layout -- i.e.
+// when the framework parent dir is named ".deft" -- so the legacy `deft/`
+// layout (whose parent is the project root) can never cause the consumer's own
+// root VERSION file to be removed. Best-effort: a stat miss or non-regular
+// entry is a silent no-op; a removal error is surfaced as a warning only.
+func removeOrphanDeftVersion(w *Wizard, result *WizardResult) {
+	parent := filepath.Dir(result.DeftDir)
+	if filepath.Base(parent) != ".deft" {
+		return
+	}
+	orphan := filepath.Join(parent, installManifestFilename)
+	// Never touch the manifest the installer just wrote at .deft/core/VERSION.
+	if samePath(orphan, filepath.Join(result.DeftDir, installManifestFilename)) {
+		return
+	}
+	info, err := os.Stat(orphan)
+	if err != nil || !info.Mode().IsRegular() {
+		return
+	}
+	if err := os.Remove(orphan); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not remove orphaned %s: %v\n", orphan, err)
+		return
+	}
+	w.printf("Removed orphaned %s (the install manifest now lives at %s).\n", orphan, filepath.Join(result.DeftDir, installManifestFilename))
 }
 
 // pressEnterToExit waits for the user to press Enter before the process exits.

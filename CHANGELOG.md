@@ -15,10 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Installer deposits the framework-payload neutralization on every install (#1430)** -- the Go installer now writes (idempotently, create-if-absent, preserving existing entries) `.gitattributes` linguist `generated`/`vendored` markers for `.deft/core/**`, a Greptile `ignorePatterns` entry in `greptile.json`, a CodeQL `paths-ignore` entry in `.github/codeql/codeql-config.yml`, and an optional `.github/workflows/deft-core-guard.yml` CI guard that fails a PR mixing `.deft/core/**` with non-framework paths. Consumers' language stats, bot reviewers, and CI now treat the vendored framework payload as packaged, machine-managed assets rather than consumer source. Closes #1430. Refs #1428.
 
 ### Changed
+- **Fresh installs vendor the framework via a git-free tarball; `--upgrade` migrates clone payloads to vendored (#1429)** -- `deft-install` no longer `git clone`s the framework on a fresh install. It downloads the release tarball at the resolved ref and extracts it into `.deft/core/` (excluding `.git`/`.github`/`node_modules`), so a fresh deposit never carries a nested `.git`. On `--upgrade`, a legacy git-clone payload is now migrated to vendored via an atomic file swap (timestamped backup, nested `.git` removed) instead of `git fetch`/`checkout`/`pull`. The `--json` `payload_layout`/`strategy` fields report `vendored` with the `vendor` or `clone-to-vendored` strategy. Closes #1429. Refs #1428.
 
 ### Fixed
+- **`deft-install --upgrade` on a tag clone no longer fails with detached-HEAD `git pull` (#1429)** -- migrating a clone payload to vendored runs no git command against the payload or the consumer repo, so the long-standing detached-HEAD `git pull` failure on tag clones can no longer occur. Refs #1428, #1425.
+- **Installer removes an orphaned `.deft/VERSION` on upgrade (#1427)** -- after stamping the canonical manifest at `.deft/core/VERSION`, an `--upgrade` now deletes a stale `.deft/VERSION` left by older installer rails (canonical layout only; the legacy `deft/` layout never touches the consumer's root `VERSION`). Refs #1427, #1428.
 
 ### Removed
 

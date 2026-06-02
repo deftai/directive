@@ -35,8 +35,6 @@ var bareSemverPattern = regexp.MustCompile(`^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$
 var agentsMDEntry = templates.AgentsEntry
 
 const (
-	deftRepoURL = "https://github.com/deftai/directive"
-
 	// agentsMDSentinel detects an existing deft entry in AGENTS.md for the
 	// idempotency probe in WriteAgentsMD. We use the v0.28 marker open token
 	// (the same marker the relocator and `run agents:refresh` use) because it
@@ -313,36 +311,14 @@ func WriteInstallManifest(projectDir, deftDir string, fields InstallManifestFiel
 }
 
 // ---------------------------------------------------------------------------
-// 4.1 Clone deft
+// 4.1 Framework deposit
 // ---------------------------------------------------------------------------
-
-// CloneDeft clones the deft repository into deftDir.
-// The parent directory (projectDir) is created if it does not exist.
-// If branch is non-empty the clone checks out that branch.
-func CloneDeft(w *Wizard, result *WizardResult, branch string) error {
-	// Ensure the project directory exists.
-	if err := os.MkdirAll(result.ProjectDir, 0o755); err != nil {
-		return fmt.Errorf("could not create project directory: %w", err)
-	}
-
-	args := []string{"clone"}
-	if branch != "" {
-		args = append(args, "--branch", branch)
-		w.printf("Cloning deft (branch %s) into %s ...\n", branch, result.DeftDir)
-	} else {
-		w.printf("Cloning deft into %s ...\n", result.DeftDir)
-	}
-	args = append(args, deftRepoURL, result.DeftDir)
-
-	if err := runCmdFunc(w.out, "git", args...); err != nil {
-		w.printf("\nClone failed. Please check your internet connection and try again.\n")
-		return fmt.Errorf("git clone failed: %w", err)
-	}
-	return nil
-}
-
-// UpdateDeft and its payload-classification + vendored file-swap helpers live
-// in upgrade.go (#1425).
+//
+// The framework deposit is git-free (#1428): VendorDeft (fresh tarball vendor
+// install), UpdateDeft (upgrade dispatch), migrateCloneToVendored,
+// refreshVendoredCore, and the payload-layout classification helpers all live
+// in upgrade.go (#1425, #1428). The neutralization deposit (.gitattributes,
+// Greptile/CodeQL bot-ignore, CI guard) lives in deposit.go (#1430).
 
 // ---------------------------------------------------------------------------
 // 4.2 Write AGENTS.md

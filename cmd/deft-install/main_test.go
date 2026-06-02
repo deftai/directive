@@ -361,44 +361,8 @@ func TestEnsureGit_PostInstallReCheck(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Phase 4 — clone and setup
+// Phase 4 — vendor and update
 // ---------------------------------------------------------------------------
-
-func TestCloneDeft_CommandArgs(t *testing.T) {
-	origRun := runCmdFunc
-	defer func() { runCmdFunc = origRun }()
-
-	var gotName string
-	var gotArgs []string
-	runCmdFunc = func(out io.Writer, name string, args ...string) error {
-		gotName = name
-		gotArgs = args
-		return nil
-	}
-
-	tmp := t.TempDir()
-	result := &WizardResult{
-		ProjectName: "myproj",
-		ProjectDir:  filepath.Join(tmp, "myproj"),
-		DeftDir:     filepath.Join(tmp, "myproj", "deft"),
-	}
-
-	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	if err := CloneDeft(w, result, ""); err != nil {
-		t.Fatal(err)
-	}
-
-	if gotName != "git" {
-		t.Errorf("expected command 'git', got %q", gotName)
-	}
-	if len(gotArgs) != 3 || gotArgs[0] != "clone" || gotArgs[1] != deftRepoURL || gotArgs[2] != result.DeftDir {
-		t.Errorf("unexpected args: %v", gotArgs)
-	}
-	// Project dir should have been created.
-	if _, err := os.Stat(result.ProjectDir); err != nil {
-		t.Errorf("project dir was not created: %v", err)
-	}
-}
 
 // forceCloneLayoutGit stubs runGitCaptureFunc so classifyPayloadLayout sees a
 // genuine clone (git toplevel == deftDir) and a deterministic HEAD sha. It
@@ -414,131 +378,86 @@ func forceCloneLayoutGit(deftDir string) func(string, ...string) (string, error)
 	return orig
 }
 
-func TestUpdateDeft_NoBranch(t *testing.T) {
+// TestUpdateDeft_CloneMigratesToVendored proves the #1428 behavior change: an
+// --upgrade against a genuine git-clone payload MIGRATES it to a vendored
+// (git-free) payload via file swap. NO mutating git command runs, the result
+// carries no .git, the old payload is gone, and the outcome reports the
+// post-migration vendored layout + clone-to-vendored strategy.
+func TestUpdateDeft_CloneMigratesToVendored(t *testing.T) {
 	origRun := runCmdFunc
-	defer func() { runCmdFunc = origRun }()
-
-	var cmds []string
-	runCmdFunc = func(out io.Writer, name string, args ...string) error {
-		cmds = append(cmds, name+" "+strings.Join(args, " "))
-		return nil
-	}
+	origFetch := fetchCoreTarballFunc
+	defer func() {
+		runCmdFunc = origRun
+		fetchCoreTarballFunc = origFetch
+	}()
 
 	tmp := t.TempDir()
-	deftDir := filepath.Join(tmp, "myproj", "deft")
-	os.MkdirAll(deftDir, 0o755)
+	deftDir := filepath.Join(tmp, "myproj", ".deft", "core")
+	if err := os.MkdirAll(deftDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Seed an old payload + a nested .git so we can assert both are gone after.
+	if err := os.WriteFile(filepath.Join(deftDir, "OLD.txt"), []byte("old"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(deftDir, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
 	origGit := forceCloneLayoutGit(deftDir)
 	defer func() { runGitCaptureFunc = origGit }()
 
-	result := &WizardResult{
-		ProjectName: "myproj",
-		ProjectDir:  filepath.Join(tmp, "myproj"),
-		DeftDir:     deftDir,
-		Update:      true,
-	}
+	tarball := makeCoreTarball(t, "deftai-directive-abc1234", map[string]string{"marker.txt": "new"})
+	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
 
-	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	outcome, err := UpdateDeft(w, result, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if outcome.Layout != payloadLayoutClone {
-		t.Errorf("expected clone layout, got %q", outcome.Layout)
-	}
-	if outcome.Strategy != strategyGitCheckout {
-		t.Errorf("expected git-checkout strategy, got %q", outcome.Strategy)
-	}
-
-	// Should fetch + pull (no checkout).
-	if len(cmds) != 2 {
-		t.Fatalf("expected 2 commands, got %d: %v", len(cmds), cmds)
-	}
-	if !strings.Contains(cmds[0], "fetch origin") {
-		t.Errorf("expected fetch, got: %s", cmds[0])
-	}
-	if !strings.Contains(cmds[1], "pull") {
-		t.Errorf("expected pull, got: %s", cmds[1])
-	}
-}
-
-func TestUpdateDeft_WithBranch(t *testing.T) {
-	origRun := runCmdFunc
-	defer func() { runCmdFunc = origRun }()
-
-	var cmds []string
+	// Guardrail: record any git command. There MUST be none on the migration.
+	var gitCalls []string
 	runCmdFunc = func(out io.Writer, name string, args ...string) error {
-		cmds = append(cmds, name+" "+strings.Join(args, " "))
-		return nil
-	}
-
-	tmp := t.TempDir()
-	deftDir := filepath.Join(tmp, "myproj", "deft")
-	os.MkdirAll(deftDir, 0o755)
-	origGit := forceCloneLayoutGit(deftDir)
-	defer func() { runGitCaptureFunc = origGit }()
-
-	result := &WizardResult{
-		ProjectName: "myproj",
-		ProjectDir:  filepath.Join(tmp, "myproj"),
-		DeftDir:     deftDir,
-		Update:      true,
-	}
-
-	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	outcome, err := UpdateDeft(w, result, "beta")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if outcome.Layout != payloadLayoutClone {
-		t.Errorf("expected clone layout, got %q", outcome.Layout)
-	}
-
-	// Should fetch + checkout beta + pull.
-	if len(cmds) != 3 {
-		t.Fatalf("expected 3 commands, got %d: %v", len(cmds), cmds)
-	}
-	if !strings.Contains(cmds[0], "fetch origin") {
-		t.Errorf("expected fetch, got: %s", cmds[0])
-	}
-	if !strings.Contains(cmds[1], "checkout beta") {
-		t.Errorf("expected checkout beta, got: %s", cmds[1])
-	}
-	if !strings.Contains(cmds[2], "pull") {
-		t.Errorf("expected pull, got: %s", cmds[2])
-	}
-}
-
-func TestCloneDeft_WithBranch(t *testing.T) {
-	origRun := runCmdFunc
-	defer func() { runCmdFunc = origRun }()
-
-	var gotArgs []string
-	runCmdFunc = func(out io.Writer, name string, args ...string) error {
-		gotArgs = args
-		return nil
-	}
-
-	tmp := t.TempDir()
-	result := &WizardResult{
-		ProjectName: "myproj",
-		ProjectDir:  filepath.Join(tmp, "myproj"),
-		DeftDir:     filepath.Join(tmp, "myproj", "deft"),
-	}
-
-	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	if err := CloneDeft(w, result, "beta"); err != nil {
-		t.Fatal(err)
-	}
-
-	// Expect: clone --branch beta <url> <dir>
-	expected := []string{"clone", "--branch", "beta", deftRepoURL, result.DeftDir}
-	if len(gotArgs) != len(expected) {
-		t.Fatalf("expected %d args, got %d: %v", len(expected), len(gotArgs), gotArgs)
-	}
-	for i, want := range expected {
-		if gotArgs[i] != want {
-			t.Errorf("arg[%d] = %q, want %q", i, gotArgs[i], want)
+		if name == "git" {
+			gitCalls = append(gitCalls, strings.Join(args, " "))
 		}
+		return nil
+	}
+
+	result := &WizardResult{
+		ProjectName: "myproj",
+		ProjectDir:  filepath.Join(tmp, "myproj"),
+		DeftDir:     deftDir,
+		Update:      true,
+	}
+
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	outcome, err := UpdateDeft(w, result, "v9.9.9")
+	if err != nil {
+		t.Fatalf("UpdateDeft (clone->vendored): %v", err)
+	}
+
+	if len(gitCalls) != 0 {
+		t.Errorf("migration ran git commands (safety bug): %v", gitCalls)
+	}
+	if outcome.Layout != payloadLayoutVendored {
+		t.Errorf("layout = %q, want vendored (post-migration)", outcome.Layout)
+	}
+	if outcome.Strategy != strategyMigrate {
+		t.Errorf("strategy = %q, want %q", outcome.Strategy, strategyMigrate)
+	}
+	if outcome.Tag != "v9.9.9" {
+		t.Errorf("tag = %q, want v9.9.9", outcome.Tag)
+	}
+	if outcome.SHA != "abc1234" {
+		t.Errorf("SHA = %q, want abc1234 (from tarball wrapper)", outcome.SHA)
+	}
+	if outcome.Backup == "" {
+		t.Error("expected a backup path on a successful migration")
+	}
+	if data, err := os.ReadFile(filepath.Join(deftDir, "marker.txt")); err != nil || string(data) != "new" {
+		t.Errorf("migrated core missing marker.txt: data=%q err=%v", data, err)
+	}
+	if _, err := os.Stat(filepath.Join(deftDir, "OLD.txt")); !os.IsNotExist(err) {
+		t.Errorf("old payload file should be gone after migration (err=%v)", err)
+	}
+	if _, err := os.Stat(filepath.Join(deftDir, ".git")); !os.IsNotExist(err) {
+		t.Errorf("migrated core MUST NOT contain .git (err=%v)", err)
 	}
 }
 
@@ -820,16 +739,13 @@ func TestInstallPathConsistency_SkillPointersUseCanonicalPrefix(t *testing.T) {
 // workflow creates only AGENTS.md, .agents/, .gitignore, vbrief/, and the
 // canonical .deft/ framework parent at the project root.
 func TestInstallPathConsistency_OnlyExpectedRootFiles(t *testing.T) {
-	origRun := runCmdFunc
-	defer func() { runCmdFunc = origRun }()
+	origFetch := fetchCoreTarballFunc
+	defer func() { fetchCoreTarballFunc = origFetch }()
 
-	// Stub git clone to materialise the framework dir at result.DeftDir.
-	runCmdFunc = func(out io.Writer, name string, args ...string) error {
-		if len(args) > 0 && args[0] == "clone" {
-			os.MkdirAll(args[len(args)-1], 0o755)
-		}
-		return nil
-	}
+	// Vendor a tarball fixture into result.DeftDir (.deft/core) -- git-free, so
+	// the deposit leaves no .git and no stray root files of its own.
+	tarball := makeCoreTarball(t, "deftai-directive-abc1234", map[string]string{"SKILL.md": "skill"})
+	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
 
 	tmp := t.TempDir()
 	projectDir := filepath.Join(tmp, "myproj")
@@ -843,7 +759,7 @@ func TestInstallPathConsistency_OnlyExpectedRootFiles(t *testing.T) {
 
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
 
-	if err := CloneDeft(w, result, ""); err != nil {
+	if _, err := VendorDeft(w, result, ""); err != nil {
 		t.Fatal(err)
 	}
 	if err := WriteAgentsMD(w, result.ProjectDir); err != nil {

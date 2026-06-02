@@ -1,0 +1,86 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF for the v0.39.2 Go-installer vendoring + neutralization deposit (Closes #1429, #1430; Refs #1428, #1427). Part of the #1428 vendored-done-right cohort.",
+    "created": "2026-06-02T22:05:00Z",
+    "updated": "2026-06-02T22:05:00Z"
+  },
+  "plan": {
+    "id": "v0-39-2-installer-vendoring-neutralization-deposit",
+    "title": "v0.39.2 Go-installer vendoring + neutralization deposit",
+    "status": "running",
+    "planRef": "#1429",
+    "narratives": {
+      "Overview": "Make the Go installer (cmd/deft-install) vendor the framework as a git-free tarball payload on fresh install and migrate existing git-clone payloads to vendored on --upgrade, then deposit the neutralization (.gitattributes linguist markers + Greptile/CodeQL bot-ignore + CI guard) so consumers treat .deft/core/** as packaged framework assets.",
+      "Problem": "Fresh installs git-clone the framework, leaving a nested .deft/core/.git that (a) re-introduces the #1425 detached-HEAD `git pull` failure on tag clones and (b) makes the vendored payload mis-classify. The vendored framework payload is also surfaced to linguist language stats and bot reviewers (Greptile/CodeQL) as if it were consumer code.",
+      "ImplementationPlan": "Slice A (#1429): replace fresh-install CloneDeft with a git-free tarball vendor (reuse #1425 helpers downloadCoreTarball/extractCoreTarball/swapInCore/tarPathExcluded); on --upgrade migrate a clone layout to vendored via atomic swap + remove nested .git instead of git fetch/checkout/pull. Slice B (#1430): deposit.go with EnsureGitattributes (linguist-generated/vendored), Greptile ignore + CodeQL paths-ignore, and a CI-guard workflow; wire into the install flow. Orphan (#1427): after WriteInstallManifest on upgrade, remove an orphaned .deft/VERSION.",
+      "Constraint": "Only modify cmd/deft-install/** and the deposit content + CI-guard workflow file. Do NOT touch scripts/doctor.py or tests/cli/test_*doctor*.py (agent-doctor owns them). CHANGELOG additions under [Unreleased] only. Do NOT run project:render / roadmap:render. New source files require sibling tests in the same PR.",
+      "Test": "Go tests: fresh-install-vendors (asserts no .git), clone->vendored migration (incl. detached-HEAD tag clone no longer fails, nested .git removed, parent repo untouched), EnsureGitattributes idempotency, orphan .deft/VERSION removal, Greptile/CodeQL/guard deposits. `task check` green before each commit.",
+      "UserStory": "As a consumer installing or upgrading deft, I want the framework vendored without git so the installer never runs git against my project repo and my language stats / bot reviewers ignore the packaged framework payload."
+    },
+    "items": [
+      {
+        "title": "Slice A: vendor on fresh install + clone->vendored upgrade migration (#1429)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Fresh install vendors via tarball (no .git under .deft/core/); --upgrade on a clone layout migrates to vendored via atomic swap with timestamped backup and removes the nested .git; no mutating git runs against the consumer repo."
+        }
+      },
+      {
+        "title": "Slice B: deposit the neutralization (#1430)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "EnsureGitattributes deposits .deft/core/** linguist-generated/vendored idempotently; Greptile ignore entry + CodeQL paths-ignore + CI-guard workflow deposited; deposit calls wired into the install flow."
+        }
+      },
+      {
+        "title": "Orphan: remove .deft/VERSION on upgrade (#1427 Go part)",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "After WriteInstallManifest writes .deft/core/VERSION on an upgrade, an orphaned .deft/VERSION (canonical layout only) is removed if present."
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "x-tracking": {
+        "parent_issue": "#1428",
+        "closes": [
+          "#1429",
+          "#1430"
+        ],
+        "refs": [
+          "#1428",
+          "#1427"
+        ]
+      },
+      "swarm": {
+        "readiness": "ready",
+        "agent": "agent-installer"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1429",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1429: installer vendor on fresh install + clone->vendored upgrade migration (Slice A)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1430",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1430: deposit the neutralization (.gitattributes + bot-ignore + CI guard) (Slice B)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1428",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1428: umbrella - vendored-done-right cohort"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1427",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1427: orphan .deft/VERSION removal (Go installer part)"
+      }
+    ],
+    "updated": "2026-06-02T22:06:13Z"
+  }
+}

@@ -27,11 +27,14 @@ const (
 	payloadLayoutAbsent   = "absent"
 )
 
-// Upgrade strategies surfaced in --json diagnostics (#1425).
+// Install/upgrade strategies surfaced in --json diagnostics. Every payload the
+// installer deposits is now git-free (#1428 "vendored-done-right"): a fresh
+// install vendors a tarball, an existing vendored payload is refreshed via file
+// swap, and a legacy git-clone payload is migrated to vendored.
 const (
-	strategyGitCheckout = "git-checkout"
-	strategyFileSwap    = "file-swap"
-	strategyClone       = "clone"
+	strategyFileSwap = "file-swap"
+	strategyVendor   = "vendor"
+	strategyMigrate  = "clone-to-vendored"
 )
 
 // deftTarballAPIBase is the GitHub tarball endpoint for the framework repo.
@@ -59,7 +62,7 @@ var tarballExcludedTopLevel = map[string]bool{
 // the parent consumer repo's HEAD (the #1323/#1324 wrong-sha class).
 type UpdateOutcome struct {
 	Layout   string // clone | vendored | absent
-	Strategy string // git-checkout | file-swap | clone
+	Strategy string // file-swap | vendor | clone-to-vendored
 	SHA      string // framework source SHA (best-effort)
 	Tag      string // resolved release tag, when the ref looked like semver
 	Backup   string // path to the pre-swap backup of <core>, when a swap ran
@@ -67,9 +70,10 @@ type UpdateOutcome struct {
 
 // runGitCaptureFunc runs `git -C dir args...` and returns trimmed stdout.
 // Indirected through a var so tests can stub git without a real repo. ONLY
-// read-only git subcommands are ever routed through this helper -- mutating
-// git is confined to updateClonedCore, which runs exclusively on the "clone"
-// layout (#1425 safety guardrail).
+// read-only git subcommands are ever routed through this helper (it is used
+// solely by classifyPayloadLayout to read `git rev-parse --show-toplevel`).
+// No installer code path runs a mutating git command against the payload or
+// the parent consumer repo (#1428 safety guardrail).
 var runGitCaptureFunc = func(dir string, args ...string) (string, error) {
 	full := append([]string{"-C", dir}, args...)
 	out, err := exec.Command("git", full...).Output()
@@ -86,47 +90,27 @@ var fetchCoreTarballFunc = downloadCoreTarball
 
 // UpdateDeft refreshes an existing framework deposit. It classifies the
 // on-disk payload layout FIRST and dispatches to the only safe strategy for
-// that layout (#1425):
+// that layout. Every strategy is now git-free against the consumer repo (#1428
+// "vendored-done-right"):
 //
-//   - clone    -> git fetch/checkout/pull (the only path allowed to run
-//     mutating git, and only because classification proved `git rev-parse
-//     --show-toplevel` resolves to <core> itself).
+//   - clone    -> migrate to vendored (download tarball, atomic swap, drop the
+//     nested .git). This removes the #1425 mutating-git surface and fixes the
+//     detached-HEAD `git pull` failure on tag clones.
 //   - vendored -> git-free file swap (download tarball, atomic replace).
-//   - absent   -> fresh clone (treat --upgrade on a missing payload as install).
+//   - absent   -> fresh git-free vendor (treat --upgrade on a missing payload
+//     as a vendor install).
 //
-// The hard guardrail is structural: a mutating git command can only be reached
-// through updateClonedCore, which is only called from the clone branch.
+// The hard guardrail is structural: no branch runs a mutating git command
+// against the payload or the parent consumer repo.
 func UpdateDeft(w *Wizard, result *WizardResult, branch string) (*UpdateOutcome, error) {
-	layout := classifyPayloadLayout(result.DeftDir)
-	switch layout {
+	switch classifyPayloadLayout(result.DeftDir) {
 	case payloadLayoutClone:
-		if err := updateClonedCore(w, result, branch); err != nil {
-			return &UpdateOutcome{Layout: layout, Strategy: strategyGitCheckout}, err
-		}
-		sha, _ := runGitCaptureFunc(result.DeftDir, "rev-parse", "HEAD")
-		return &UpdateOutcome{
-			Layout:   layout,
-			Strategy: strategyGitCheckout,
-			SHA:      sha,
-			Tag:      tagFromRef(branch),
-		}, nil
+		return migrateCloneToVendored(w, result, branch)
 	case payloadLayoutVendored:
 		return refreshVendoredCore(w, result, branch)
-	default: // absent -- treat --upgrade on a missing payload as a fresh clone.
-		w.printf("No framework payload found at %s; cloning a fresh copy ...\n", result.DeftDir)
-		if err := CloneDeft(w, result, branch); err != nil {
-			return &UpdateOutcome{Layout: layout, Strategy: strategyClone}, err
-		}
-		sha, _ := runGitCaptureFunc(result.DeftDir, "rev-parse", "HEAD")
-		// Report the POST-operation layout: a fresh clone now exists, so the
-		// payload is a clone (not absent). Consumers inspecting payload_layout
-		// in --json must see the resulting state, not the pre-clone state.
-		return &UpdateOutcome{
-			Layout:   payloadLayoutClone,
-			Strategy: strategyClone,
-			SHA:      sha,
-			Tag:      tagFromRef(branch),
-		}, nil
+	default: // absent -- treat --upgrade on a missing payload as a fresh vendor.
+		w.printf("No framework payload found at %s; vendoring a fresh copy ...\n", result.DeftDir)
+		return VendorDeft(w, result, branch)
 	}
 }
 
@@ -155,31 +139,103 @@ func classifyPayloadLayout(deftDir string) string {
 	return payloadLayoutVendored
 }
 
-// updateClonedCore runs the git fetch/checkout/pull refresh for a GENUINE
-// framework clone. The caller MUST have classified the payload as
-// payloadLayoutClone first -- this is the only function permitted to run
-// mutating git commands, and only because classification proved `git rev-parse
-// --show-toplevel` resolves to <core> itself (never the parent repo). (#1425)
-func updateClonedCore(w *Wizard, result *WizardResult, branch string) error {
-	w.printf("Updating deft at %s ...\n", result.DeftDir)
+// VendorDeft performs a fresh, git-free vendor install of the framework: it
+// downloads the release tarball at ref, extracts it (excluding
+// .git/.github/node_modules), and deposits the tree at <core> with NO git
+// metadata of its own (#1428). This replaces the historical `git clone`
+// install so a fresh deposit can never (a) leave a nested .deft/core/.git that
+// re-introduces the #1425 mutating-git surface, nor (b) hit the detached-HEAD
+// `git pull` failure a tag clone produces on the next upgrade.
+//
+// On a greenfield project <core> does not exist yet, so the extracted tree is
+// copied straight in. If a stray payload is already present it is swapped in
+// with a timestamped backup for safety/idempotency. The framework source SHA
+// recovered from the tarball wrapper is reported so the caller can stamp true
+// framework provenance into the VERSION manifest (the #1323/#1324 wrong-sha
+// class).
+func VendorDeft(w *Wizard, result *WizardResult, branch string) (*UpdateOutcome, error) {
+	outcome := &UpdateOutcome{
+		Layout:   payloadLayoutVendored,
+		Strategy: strategyVendor,
+		Tag:      tagFromRef(branch),
+	}
+	if err := os.MkdirAll(result.ProjectDir, 0o755); err != nil {
+		return outcome, fmt.Errorf("vendor install: could not create project directory: %w", err)
+	}
+	w.printf("Vendoring deft into %s (git-free tarball install) ...\n", result.DeftDir)
 
-	if err := runCmdFunc(w.out, "git", "-C", result.DeftDir, "fetch", "origin"); err != nil {
-		return fmt.Errorf("git fetch failed: %w", err)
+	contentRoot, sha, cleanup, err := downloadAndExtractCore(branch)
+	if err != nil {
+		return outcome, fmt.Errorf("vendor install: %w", err)
+	}
+	defer cleanup()
+	if sha != "" {
+		outcome.SHA = sha
 	}
 
-	if branch != "" {
-		w.printf("Switching to branch %s ...\n", branch)
-		if err := runCmdFunc(w.out, "git", "-C", result.DeftDir, "checkout", branch); err != nil {
-			return fmt.Errorf("git checkout %s failed: %w", branch, err)
+	if pathExists(result.DeftDir) {
+		// A previous payload is present (re-run / stray dir): swap it out with a
+		// timestamped backup rather than merging the new tree into the old one.
+		backup, swErr := swapInCore(result.DeftDir, contentRoot)
+		if swErr != nil {
+			return outcome, fmt.Errorf("vendor install: %w", swErr)
+		}
+		outcome.Backup = backup
+	} else {
+		if err := os.MkdirAll(filepath.Dir(result.DeftDir), 0o755); err != nil {
+			return outcome, fmt.Errorf("vendor install: could not create framework parent dir: %w", err)
+		}
+		if err := copyTree(contentRoot, result.DeftDir); err != nil {
+			return outcome, fmt.Errorf("vendor install: %w", err)
 		}
 	}
 
-	if err := runCmdFunc(w.out, "git", "-C", result.DeftDir, "pull"); err != nil {
-		return fmt.Errorf("git pull failed: %w", err)
+	w.printf("Deft vendored at %s.\n", result.DeftDir)
+	return outcome, nil
+}
+
+// migrateCloneToVendored converts a legacy git-clone payload into a vendored
+// (git-free) payload WITHOUT running any git command (#1428). It downloads the
+// release tarball, atomically swaps it in over <core> with a timestamped
+// backup of the old clone, then removes any nested .git so the next --upgrade
+// classifies the payload as vendored (not clone). This fixes the live
+// detached-HEAD `git pull` failure on tag clones the previous git
+// fetch/checkout/pull path hit, and removes the #1425 mutating-git surface.
+func migrateCloneToVendored(w *Wizard, result *WizardResult, branch string) (*UpdateOutcome, error) {
+	outcome := &UpdateOutcome{
+		Layout:   payloadLayoutVendored, // POST-migration layout (#1426 report-resulting-state precedent)
+		Strategy: strategyMigrate,
+		Tag:      tagFromRef(branch),
+	}
+	w.printf("Detected a git-clone framework payload at %s; migrating to a vendored (git-free) payload ...\n", result.DeftDir)
+
+	contentRoot, sha, cleanup, err := downloadAndExtractCore(branch)
+	if err != nil {
+		return outcome, fmt.Errorf("clone->vendored migration: %w", err)
+	}
+	defer cleanup()
+	if sha != "" {
+		outcome.SHA = sha
 	}
 
-	w.printf("Deft updated successfully.\n")
-	return nil
+	backup, err := swapInCore(result.DeftDir, contentRoot)
+	if err != nil {
+		return outcome, fmt.Errorf("clone->vendored migration: %w", err)
+	}
+	outcome.Backup = backup
+
+	// Defensive: extractCoreTarball already excludes .git, so the swapped-in
+	// tree carries none -- but a nested .deft/core/.git left by any other rail
+	// would re-trigger the clone classification (and the #1425 safety bug) on
+	// the next run, so remove it explicitly.
+	if gitDir := filepath.Join(result.DeftDir, ".git"); pathExists(gitDir) {
+		if rmErr := os.RemoveAll(gitDir); rmErr != nil {
+			w.printf("warning: migrated payload but could not remove nested .git at %s: %v\n", gitDir, rmErr)
+		}
+	}
+
+	w.printf("Framework payload migrated to vendored at %s (previous clone backed up at %s).\n", result.DeftDir, backup)
+	return outcome, nil
 }
 
 // refreshVendoredCore upgrades a vendored (no-.git) payload WITHOUT touching
@@ -196,23 +252,12 @@ func refreshVendoredCore(w *Wizard, result *WizardResult, branch string) (*Updat
 	w.printf("Detected a vendored framework payload at %s (no .git of its own).\n", result.DeftDir)
 	w.printf("Refreshing via git-free file swap -- the installer will NOT run git against your project repo ...\n")
 
-	tarballPath, err := fetchCoreTarballFunc(branch)
+	contentRoot, sha, cleanup, err := downloadAndExtractCore(branch)
 	if err != nil {
-		return outcome, fmt.Errorf("vendored refresh: could not download the release tarball for %s: %w", refLabel(branch), err)
+		return outcome, fmt.Errorf("vendored refresh: %w", err)
 	}
-	defer os.Remove(tarballPath)
-
-	staging, err := os.MkdirTemp("", "deft-core-stage-*")
-	if err != nil {
-		return outcome, fmt.Errorf("vendored refresh: could not create staging dir: %w", err)
-	}
-	defer os.RemoveAll(staging)
-
-	contentRoot, err := extractCoreTarball(tarballPath, staging)
-	if err != nil {
-		return outcome, fmt.Errorf("vendored refresh: could not extract tarball: %w", err)
-	}
-	if sha := shaFromContentRoot(contentRoot); sha != "" {
+	defer cleanup()
+	if sha != "" {
 		outcome.SHA = sha
 	}
 
@@ -224,6 +269,35 @@ func refreshVendoredCore(w *Wizard, result *WizardResult, branch string) (*Updat
 
 	w.printf("Vendored framework refreshed at %s (previous payload backed up at %s).\n", result.DeftDir, backup)
 	return outcome, nil
+}
+
+// downloadAndExtractCore downloads the framework source tarball at ref (empty
+// => default branch) and extracts it into a fresh temp staging dir, returning
+// the extracted content root, the framework source SHA recovered from the
+// tarball wrapper (best-effort, may be ""), and a cleanup func the caller MUST
+// defer to remove the tarball + staging dir. On error the cleanup has already
+// run and a no-op func is returned so callers can defer unconditionally.
+func downloadAndExtractCore(ref string) (contentRoot, sha string, cleanup func(), err error) {
+	noop := func() {}
+	tarballPath, err := fetchCoreTarballFunc(ref)
+	if err != nil {
+		return "", "", noop, fmt.Errorf("could not download the release tarball for %s: %w", refLabel(ref), err)
+	}
+	staging, err := os.MkdirTemp("", "deft-core-stage-*")
+	if err != nil {
+		os.Remove(tarballPath)
+		return "", "", noop, fmt.Errorf("could not create staging dir: %w", err)
+	}
+	cleanup = func() {
+		os.Remove(tarballPath)
+		os.RemoveAll(staging)
+	}
+	root, err := extractCoreTarball(tarballPath, staging)
+	if err != nil {
+		cleanup()
+		return "", "", noop, fmt.Errorf("could not extract tarball: %w", err)
+	}
+	return root, shaFromContentRoot(root), cleanup, nil
 }
 
 // downloadCoreTarball fetches the framework source tarball at ref (empty =>
