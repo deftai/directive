@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -105,17 +105,20 @@ func depositNeutralization(w *Wizard, projectDir string) {
 // Mirrors EnsureGitignoreLines (#1430). Returns true if the file was modified.
 func EnsureGitattributes(w *Wizard, projectDir string) (bool, error) {
 	path := filepath.Join(projectDir, ".gitattributes")
-	existing := ""
-	if data, err := os.ReadFile(path); err == nil {
-		existing = string(data)
-	} else if !errors.Is(err, os.ErrNotExist) {
+	data, err := os.ReadFile(path)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return false, fmt.Errorf("could not read .gitattributes: %w", err)
 	}
+	existing := ""
+	if err == nil {
+		existing = string(data)
+	}
 
+	// Build the set of existing lines via strings.Split (not bufio.Scanner) so
+	// an over-long line can never silently truncate the idempotency probe.
 	present := map[string]bool{}
-	scanner := bufio.NewScanner(strings.NewReader(existing))
-	for scanner.Scan() {
-		present[strings.TrimSpace(scanner.Text())] = true
+	for _, line := range strings.Split(existing, "\n") {
+		present[strings.TrimSpace(line)] = true
 	}
 
 	var additions []string
@@ -187,7 +190,7 @@ func EnsureGreptileIgnore(w *Wizard, projectDir string) (bool, error) {
 	patterns := ""
 	if raw, ok := obj["ignorePatterns"]; ok {
 		if err := json.Unmarshal(raw, &patterns); err != nil {
-			return false, fmt.Errorf("greptile.json ignorePatterns is not a newline-separated string; leaving it unchanged")
+			return false, fmt.Errorf("greptile.json ignorePatterns is not a newline-separated string (%w); leaving it unchanged", err)
 		}
 	}
 	if exists && greptilePatternPresent(patterns, coreGlob) {
@@ -200,13 +203,23 @@ func EnsureGreptileIgnore(w *Wizard, projectDir string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("could not encode ignorePatterns: %w", err)
 	}
+
+	// Preserve the consumer's original top-level key order. A Go map emits keys
+	// sorted, which would shuffle the file on first deposit and create diff
+	// noise in consumer repos.
+	orderedKeys, err := orderedTopLevelKeys(data)
+	if err != nil {
+		return false, fmt.Errorf("could not parse greptile.json key order (leaving it unchanged): %w", err)
+	}
+	if _, existed := obj["ignorePatterns"]; !existed {
+		orderedKeys = append(orderedKeys, "ignorePatterns")
+	}
 	obj["ignorePatterns"] = encoded
 
-	out, err := json.MarshalIndent(obj, "", "  ")
+	out, err := marshalObjectOrdered(obj, orderedKeys)
 	if err != nil {
 		return false, fmt.Errorf("could not encode greptile.json: %w", err)
 	}
-	out = append(out, '\n')
 	if err := os.WriteFile(path, out, 0o644); err != nil {
 		return false, fmt.Errorf("could not write greptile.json: %w", err)
 	}
@@ -239,6 +252,96 @@ func appendGreptilePattern(patterns, glob string) string {
 		return patterns + glob
 	}
 	return patterns + "\n" + glob
+}
+
+// orderedTopLevelKeys returns the top-level object keys of a JSON document in
+// document order (encoding/json maps lose order). Used so EnsureGreptileIgnore
+// rewrites greptile.json without reshuffling the consumer's existing fields.
+func orderedTopLevelKeys(data []byte) ([]string, error) {
+	dec := json.NewDecoder(bytes.NewReader(data))
+	tok, err := dec.Token()
+	if err != nil {
+		return nil, err
+	}
+	if d, ok := tok.(json.Delim); !ok || d != '{' {
+		return nil, fmt.Errorf("expected a JSON object")
+	}
+	var keys []string
+	for dec.More() {
+		kt, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		key, ok := kt.(string)
+		if !ok {
+			return nil, fmt.Errorf("expected a string object key")
+		}
+		keys = append(keys, key)
+		if err := skipJSONValue(dec); err != nil {
+			return nil, err
+		}
+	}
+	return keys, nil
+}
+
+// skipJSONValue consumes exactly one JSON value (scalar, object, or array) from
+// dec, tracking nesting depth so nested structures are skipped whole.
+func skipJSONValue(dec *json.Decoder) error {
+	tok, err := dec.Token()
+	if err != nil {
+		return err
+	}
+	if d, ok := tok.(json.Delim); ok && (d == '{' || d == '[') {
+		depth := 1
+		for depth > 0 {
+			t, err := dec.Token()
+			if err != nil {
+				return err
+			}
+			if dd, ok := t.(json.Delim); ok {
+				if dd == '{' || dd == '[' {
+					depth++
+				} else {
+					depth--
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// marshalObjectOrdered serialises obj as indented JSON with keys emitted in the
+// given order (keys absent from obj are skipped). Values are written verbatim
+// from their json.RawMessage, then the whole document is normalised via
+// json.Indent so indentation is consistent.
+func marshalObjectOrdered(obj map[string]json.RawMessage, keys []string) ([]byte, error) {
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	first := true
+	for _, k := range keys {
+		v, ok := obj[k]
+		if !ok {
+			continue
+		}
+		if !first {
+			buf.WriteByte(',')
+		}
+		first = false
+		kb, err := json.Marshal(k)
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(kb)
+		buf.WriteByte(':')
+		buf.Write(v)
+	}
+	buf.WriteByte('}')
+	var pretty bytes.Buffer
+	if err := json.Indent(&pretty, buf.Bytes(), "", "  "); err != nil {
+		return nil, err
+	}
+	pretty.WriteByte('\n')
+	return pretty.Bytes(), nil
 }
 
 // EnsureCodeQLPathsIgnore ensures a CodeQL config at
@@ -296,30 +399,84 @@ func codeqlConfigDefault() string {
 		"  - '" + coreGlob + "'\n"
 }
 
-// codeqlPathsIgnorePresent reports whether content already lists glob as a YAML
-// list item (quoted with either quote style, or bare).
+// codeqlPathsIgnorePresent reports whether glob is already excluded under a
+// top-level `paths-ignore:` key -- either as a YAML list item in a block or as
+// an element of an inline array (`paths-ignore: ['x', 'y']`). A match under any
+// OTHER key (e.g. CodeQL's `paths:` include list) does NOT count, so the
+// idempotency probe never skips adding the exclusion just because the glob
+// happens to appear in an unrelated section of the config.
 func codeqlPathsIgnorePresent(content, glob string) bool {
+	norm := strings.ReplaceAll(strings.ReplaceAll(content, "\r\n", "\n"), "\r", "\n")
 	candidates := []string{
 		"- '" + glob + "'",
 		"- \"" + glob + "\"",
 		"- " + glob,
 	}
-	for _, line := range strings.Split(content, "\n") {
-		trimmed := strings.TrimSpace(line)
-		for _, c := range candidates {
-			if trimmed == c {
-				return true
+	inBlock := false
+	for _, line := range strings.Split(norm, "\n") {
+		// A top-level key (indent 0) opens or closes the paths-ignore context.
+		if len(line) > 0 && line[0] != ' ' && line[0] != '\t' {
+			trimmed := strings.TrimRight(line, " \t")
+			if trimmed == "paths-ignore:" {
+				inBlock = true
+				continue
+			}
+			if strings.HasPrefix(trimmed, "paths-ignore:") {
+				// Inline form: paths-ignore: [ ... ] on the same line.
+				rest := strings.TrimSpace(trimmed[len("paths-ignore:"):])
+				if inlineArrayHasGlob(rest, glob) {
+					return true
+				}
+				inBlock = false
+				continue
+			}
+			// Any other top-level key ends the paths-ignore block.
+			inBlock = false
+			continue
+		}
+		if inBlock {
+			t := strings.TrimSpace(line)
+			for _, c := range candidates {
+				if t == c {
+					return true
+				}
 			}
 		}
 	}
 	return false
 }
 
-// insertCodeQLPathsIgnore inserts the glob as the FIRST child of an existing
-// top-level (indent-0) `paths-ignore:` block, returning (newContent, true). When
-// no such block exists it returns (content, false) so the caller can append a
-// fresh block. Mirrors insertDeftIncludeAfterIncludesLine (setup.go): CR-LF is
-// normalised to LF for the scan and LF is written back.
+// inlineArrayHasGlob reports whether a YAML inline array literal (e.g.
+// `['dist/**', '.deft/core/**']`) contains glob as one of its elements.
+func inlineArrayHasGlob(literal, glob string) bool {
+	literal = strings.TrimSpace(literal)
+	if !strings.HasPrefix(literal, "[") || !strings.HasSuffix(literal, "]") {
+		return false
+	}
+	inner := literal[1 : len(literal)-1]
+	for _, part := range strings.Split(inner, ",") {
+		item := strings.Trim(strings.TrimSpace(part), "'\"")
+		if item == glob {
+			return true
+		}
+	}
+	return false
+}
+
+// insertCodeQLPathsIgnore adds glob to an existing top-level `paths-ignore:` key
+// without creating a duplicate key, returning (newContent, true) on success.
+// Two existing shapes are handled:
+//
+//   - Block form (`paths-ignore:` on its own line) -> insert `  - '<glob>'` as
+//     the first child.
+//   - Inline form (`paths-ignore: ['a', 'b']`) -> append `'<glob>'` to the
+//     inline array, preserving the existing entries. (A second top-level
+//     `paths-ignore:` key would shadow them under YAML last-key-wins, silently
+//     dropping the consumer's existing exclusions.)
+//
+// When no top-level `paths-ignore:` key exists it returns (content, false) so
+// the caller appends a fresh block. Mirrors insertDeftIncludeAfterIncludesLine
+// (setup.go): CR-LF is normalised to LF for the scan and LF is written back.
 func insertCodeQLPathsIgnore(content, glob string) (string, bool) {
 	norm := strings.ReplaceAll(strings.ReplaceAll(content, "\r\n", "\n"), "\r", "\n")
 	lines := strings.Split(norm, "\n")
@@ -328,12 +485,30 @@ func insertCodeQLPathsIgnore(content, glob string) (string, bool) {
 		if len(line) == 0 || line[0] == ' ' || line[0] == '\t' {
 			continue
 		}
-		if strings.TrimRight(line, " \t") == "paths-ignore:" {
+		trimmed := strings.TrimRight(line, " \t")
+		if trimmed == "paths-ignore:" {
+			// Block form -> insert as the first child of the block.
 			out := make([]string, 0, len(lines)+1)
 			out = append(out, lines[:i+1]...)
 			out = append(out, entry)
 			out = append(out, lines[i+1:]...)
 			return strings.Join(out, "\n"), true
+		}
+		if strings.HasPrefix(trimmed, "paths-ignore:") {
+			rest := strings.TrimSpace(trimmed[len("paths-ignore:"):])
+			if strings.HasPrefix(rest, "[") && strings.HasSuffix(rest, "]") {
+				// Inline array form -> append the glob into the existing array.
+				inner := strings.TrimSpace(rest[1 : len(rest)-1])
+				item := "'" + glob + "'"
+				if inner == "" {
+					lines[i] = "paths-ignore: [" + item + "]"
+				} else {
+					lines[i] = "paths-ignore: [" + inner + ", " + item + "]"
+				}
+				return strings.Join(lines, "\n"), true
+			}
+			// Unrecognised inline shape (e.g. trailing comment) -> let the
+			// caller fall back rather than risk corrupting the file.
 		}
 	}
 	return content, false

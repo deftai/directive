@@ -361,3 +361,112 @@ func TestRemoveOrphanDeftVersion_NoOpWhenAbsent(t *testing.T) {
 	result := &WizardResult{ProjectDir: tmp, DeftDir: deftDir, Update: true}
 	removeOrphanDeftVersion(newDepositWizard(), result)
 }
+
+// ---------------------------------------------------------------------------
+// Review-cycle regression fixes (#1432)
+// ---------------------------------------------------------------------------
+
+// TestEnsureGreptileIgnore_PreservesKeyOrder pins the fix for the JSON key-order
+// finding: the merge MUST keep the consumer's original top-level key order
+// rather than the alphabetical order a Go map emits (which created diff noise).
+func TestEnsureGreptileIgnore_PreservesKeyOrder(t *testing.T) {
+	tmp := t.TempDir()
+	// Keys deliberately NOT in alphabetical order; ignorePatterns absent so it
+	// is appended last.
+	pre := "{\n  \"strictness\": 2,\n  \"commentTypes\": [\"logic\"]\n}\n"
+	if err := os.WriteFile(filepath.Join(tmp, "greptile.json"), []byte(pre), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := EnsureGreptileIgnore(newDepositWizard(), tmp); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(filepath.Join(tmp, "greptile.json"))
+	content := string(data)
+	var obj map[string]any
+	if err := json.Unmarshal(data, &obj); err != nil {
+		t.Fatalf("greptile.json no longer valid JSON: %v", err)
+	}
+	iStrict := strings.Index(content, "\"strictness\"")
+	iComment := strings.Index(content, "\"commentTypes\"")
+	iIgnore := strings.Index(content, "\"ignorePatterns\"")
+	if !(iStrict >= 0 && iComment > iStrict && iIgnore > iComment) {
+		t.Errorf("expected key order strictness < commentTypes < ignorePatterns; got positions %d/%d/%d in:\n%s", iStrict, iComment, iIgnore, content)
+	}
+}
+
+// TestEnsureCodeQLPathsIgnore_InlineListAppends pins the fix for the inline-YAML
+// finding: an existing INLINE paths-ignore array is appended to in place (no
+// duplicate top-level key that would shadow the consumer's existing exclusions
+// under YAML last-key-wins).
+func TestEnsureCodeQLPathsIgnore_InlineListAppends(t *testing.T) {
+	tmp := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tmp, filepath.FromSlash(".github/codeql")), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(tmp, filepath.FromSlash(codeqlConfigRelPath))
+	pre := "name: \"app\"\npaths-ignore: ['dist/**']\n"
+	if err := os.WriteFile(path, []byte(pre), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := EnsureCodeQLPathsIgnore(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Error("expected changed=true when the glob is missing from the inline array")
+	}
+	data, _ := os.ReadFile(path)
+	content := string(data)
+	if !strings.Contains(content, "dist/**") {
+		t.Errorf("pre-existing inline exclusion dropped: %q", content)
+	}
+	if !strings.Contains(content, coreGlob) {
+		t.Errorf("CodeQL config missing %q after inline append: %q", coreGlob, content)
+	}
+	if got := strings.Count(content, "paths-ignore:"); got != 1 {
+		t.Errorf("expected a single paths-ignore key (no duplicate), found %d in:\n%s", got, content)
+	}
+	// Idempotent second pass (the inline glob is now recognised as present).
+	changed2, err := EnsureCodeQLPathsIgnore(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed2 {
+		t.Error("expected changed=false on second invocation")
+	}
+}
+
+// TestEnsureCodeQLPathsIgnore_ContextBlindAddsExclusion pins the fix for the
+// context-blind presence finding: the glob appearing under an UNRELATED key
+// (CodeQL's `paths:` include) must NOT be treated as already-excluded; the
+// exclusion is still added under paths-ignore.
+func TestEnsureCodeQLPathsIgnore_ContextBlindAddsExclusion(t *testing.T) {
+	tmp := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tmp, filepath.FromSlash(".github/codeql")), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(tmp, filepath.FromSlash(codeqlConfigRelPath))
+	// The glob is listed under `paths:` (an INCLUDE), not paths-ignore.
+	pre := "name: \"app\"\npaths:\n  - '" + coreGlob + "'\n"
+	if err := os.WriteFile(path, []byte(pre), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if codeqlPathsIgnorePresent(pre, coreGlob) {
+		t.Fatal("context-blind: glob under paths: must NOT count as paths-ignore presence")
+	}
+	changed, err := EnsureCodeQLPathsIgnore(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Error("expected changed=true: exclusion must be added even though glob appears under paths:")
+	}
+	data, _ := os.ReadFile(path)
+	content := string(data)
+	if !strings.Contains(content, "paths-ignore:") {
+		t.Errorf("expected a paths-ignore block to be added; got:\n%s", content)
+	}
+	if !strings.Contains(content, "paths:\n  - '"+coreGlob+"'") {
+		t.Errorf("original paths: include was not preserved:\n%s", content)
+	}
+}
