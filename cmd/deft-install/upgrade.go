@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -298,12 +299,21 @@ func extractCoreTarball(tarballPath, destDir string) (string, error) {
 		if rootName == "" {
 			rootName = parts[0]
 		}
+		// zip-slip / CodeQL go/zipslip: reject any path-traversal segment on the
+		// RAW entry name before it is used in any filesystem operation. GitHub
+		// source tarballs never contain ".." segments, so this is a no-op for
+		// valid input and closes the traversal taint path at the source.
+		for _, seg := range parts {
+			if seg == ".." {
+				return "", fmt.Errorf("tar entry contains a '..' path segment: %q", hdr.Name)
+			}
+		}
 		if tarPathExcluded(parts) {
 			continue
 		}
 
 		target := filepath.Join(cleanDest, filepath.FromSlash(name))
-		// zip-slip guard: the resolved target must stay within destDir.
+		// Defense-in-depth: the resolved target must stay within destDir.
 		if target != cleanDest && !strings.HasPrefix(target, cleanDest+string(os.PathSeparator)) {
 			return "", fmt.Errorf("tar entry escapes destination: %q", hdr.Name)
 		}
@@ -322,8 +332,12 @@ func extractCoreTarball(tarballPath, destDir string) (string, error) {
 				return "", err
 			}
 			if _, err := io.Copy(out, tr); err != nil { //nolint:gosec // size bounded by trusted GitHub tarball
-				out.Close()
-				return "", err
+				// Surface (do not swallow) a close error on the copy-failure
+				// path; a failed flush can itself signal data loss.
+				if cerr := out.Close(); cerr != nil {
+					return "", fmt.Errorf("write %s: %w (also failed to close: %v)", target, err, cerr)
+				}
+				return "", fmt.Errorf("write %s: %w", target, err)
 			}
 			if err := out.Close(); err != nil {
 				return "", err
@@ -368,6 +382,13 @@ func fileModeFromTar(mode int64) os.FileMode {
 	return m
 }
 
+// pathExists reports whether p exists. Wraps the os.Stat existence-check idiom
+// so call sites read as a boolean predicate rather than a bare `err == nil`.
+func pathExists(p string) bool {
+	_, err := os.Stat(p)
+	return err == nil
+}
+
 // shaFromContentRoot extracts the framework source SHA from the GitHub tarball
 // wrapper dir name, which has the shape `<owner>-<repo>-<sha>` (e.g.
 // `deftai-directive-6136b66...`). Returns "" when the trailing component is
@@ -407,7 +428,7 @@ func swapInCore(coreDir, newTree string) (string, error) {
 	}
 
 	backup := coreDir + ".bak-" + time.Now().UTC().Format("20060102-150405")
-	if _, err := os.Stat(backup); err == nil {
+	if pathExists(backup) {
 		// Sub-second reruns: disambiguate so we never clobber a prior backup.
 		backup = fmt.Sprintf("%s-%d", backup, os.Getpid())
 	}
@@ -443,7 +464,9 @@ func copyTree(src, dst string) error {
 		target := filepath.Join(dst, rel)
 		if d.IsDir() {
 			mode := os.FileMode(0o755)
-			if info, ierr := d.Info(); ierr == nil {
+			if info, ierr := d.Info(); ierr != nil {
+				log.Printf("warning: stat dir entry %q for mode (using 0o755): %v", path, ierr)
+			} else {
 				mode = info.Mode().Perm()
 			}
 			return os.MkdirAll(target, mode)
@@ -491,8 +514,11 @@ func canonicalPath(p string) string {
 	if err != nil {
 		return filepath.Clean(p)
 	}
-	if resolved, err := filepath.EvalSymlinks(abs); err == nil {
-		return resolved
+	resolved, symErr := filepath.EvalSymlinks(abs)
+	if symErr != nil {
+		// The path may not exist yet (e.g. a not-yet-created core dir) -- fall
+		// back to the lexically-cleaned absolute path. Not an error condition.
+		return filepath.Clean(abs)
 	}
-	return filepath.Clean(abs)
+	return resolved
 }
