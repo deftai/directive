@@ -102,6 +102,15 @@ EXIT_CONFIG_ERROR = 2
 DEFAULT_REPO = "deftai/directive"
 DEFAULT_BASE_BRANCH = "master"
 
+# #1413: maintainer-mode GitHub releases lead with a standard
+# "Upgrading from an older version?" banner, sourced from this editable
+# template (relative to the project root) and prepended to the release
+# notes that ``gh release create`` receives. The banner is GitHub-release-
+# body-only -- it is NEVER injected into CHANGELOG.md -- and is applied
+# only when cutting the canonical directive framework (repo == DEFAULT_REPO);
+# consumer-mode releases (a non-deftai/directive repo) are unaffected.
+_UPGRADE_BANNER_RELPATH = ".github/release-notes/upgrade-banner.md"
+
 # Strict semver pattern (no pre-release / build metadata; deft tags are X.Y.Z).
 _VERSION_RE = re.compile(r"^\d+\.\d+\.\d+$")
 _TAG_RE = re.compile(r"^v(\d+\.\d+\.\d+)$")
@@ -874,6 +883,48 @@ def _section_for_version(text: str, version: str) -> str:
     if not match:
         return ""
     return match.group("body").strip()
+
+
+def _prepend_upgrade_banner(notes: str, repo: str, project_root: Path) -> str:
+    """Lead maintainer-mode GitHub release notes with the upgrade banner (#1413).
+
+    Pure function: given the assembled release ``notes``, the resolved
+    ``repo`` slug, and the ``project_root``, return ``banner + "\\n\\n" +
+    notes`` when BOTH conditions hold:
+
+    1. **Maintainer mode** -- ``repo`` is the canonical directive framework
+       slug (``DEFAULT_REPO`` == ``deftai/directive``). A consumer-mode
+       cut (any other ``owner/repo``) returns ``notes`` unchanged so a
+       downstream project that vendors the release pipeline never inherits
+       deft's upgrade guidance.
+    2. **Template present** -- the editable banner template exists and is
+       readable at ``<project_root>/.github/release-notes/upgrade-banner.md``.
+
+    The banner is GitHub-release-body-only: it is prepended to the notes
+    passed to ``create_github_release`` and is NEVER written back into
+    CHANGELOG.md. Line endings in the template are normalised to ``\\n``
+    and the trailing whitespace is trimmed so the banner joins the notes
+    with exactly one blank line regardless of how the template was saved
+    (CRLF on a Windows checkout, etc.).
+
+    Graceful degradation: a missing or unreadable template returns
+    ``notes`` unchanged and NEVER raises -- a release must not be blocked
+    because the optional banner could not be loaded.
+    """
+    if repo != DEFAULT_REPO:
+        return notes
+    banner_path = project_root / _UPGRADE_BANNER_RELPATH
+    try:
+        banner = banner_path.read_text(encoding="utf-8")
+    except OSError:
+        # Missing / unreadable template (FileNotFoundError, PermissionError,
+        # IsADirectoryError, ...). The banner is best-effort; never block a
+        # release on its absence.
+        return notes
+    banner = banner.replace("\r\n", "\n").strip()
+    if not banner:
+        return notes
+    return f"{banner}\n\n{notes}"
 
 
 # ---- Step 5 -- ROADMAP refresh ---------------------------------------------
@@ -1879,6 +1930,11 @@ def run_pipeline(config: ReleaseConfig) -> int:
         )
     else:
         notes = _section_for_version(promoted_changelog, version)
+        # #1413: lead maintainer-mode (deftai/directive) release notes with
+        # the standard upgrade-guidance banner sourced from
+        # .github/release-notes/upgrade-banner.md. No-op for consumer-mode
+        # repos and when the template is absent (graceful degradation).
+        notes = _prepend_upgrade_banner(notes, config.repo, project_root)
         ok, reason = create_github_release(
             project_root, version, config.repo, notes, draft=config.draft
         )

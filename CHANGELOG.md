@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Directive release notes now lead with an upgrade-guidance banner (#1413)** -- every maintainer-mode GitHub release for deftai/directive is now prefixed with a standard "Upgrading from an older version?" section pointing at the canonical `deft-install --yes --upgrade --repo-root . --json` command and #1411, sourced from an editable `.github/release-notes/upgrade-banner.md` template. Consumer-mode releases are unaffected. Closes #1413.
 
 ### Changed
 
