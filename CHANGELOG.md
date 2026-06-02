@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`deft-install --upgrade` is now safe and works on vendored (webinstaller) installs (#1425)** -- upgrading a project installed via the webinstaller (a vendored `.deft/core/` with no `.git/` of its own) previously ran `git` against the *consumer's own repository* via git's upward `.git` discovery, failing with a misleading `pathspec` error and risking a silent checkout of the user's project. The installer now classifies the on-disk payload (clone / vendored / absent) before any git operation, refreshes vendored payloads through a git-free tarball file-swap with a timestamped backup, and never runs a mutating git command against anything but a genuine framework clone. `--json` now reports `payload_layout` and `strategy`. Closes #1425.
 
 ### Removed
 

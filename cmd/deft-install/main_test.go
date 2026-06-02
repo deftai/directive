@@ -400,6 +400,20 @@ func TestCloneDeft_CommandArgs(t *testing.T) {
 	}
 }
 
+// forceCloneLayoutGit stubs runGitCaptureFunc so classifyPayloadLayout sees a
+// genuine clone (git toplevel == deftDir) and a deterministic HEAD sha. It
+// returns the original so callers can restore it.
+func forceCloneLayoutGit(deftDir string) func(string, ...string) (string, error) {
+	orig := runGitCaptureFunc
+	runGitCaptureFunc = func(dir string, args ...string) (string, error) {
+		if len(args) >= 2 && args[0] == "rev-parse" && args[1] == "--show-toplevel" {
+			return deftDir, nil
+		}
+		return "deadbeefcafe1234", nil
+	}
+	return orig
+}
+
 func TestUpdateDeft_NoBranch(t *testing.T) {
 	origRun := runCmdFunc
 	defer func() { runCmdFunc = origRun }()
@@ -413,6 +427,8 @@ func TestUpdateDeft_NoBranch(t *testing.T) {
 	tmp := t.TempDir()
 	deftDir := filepath.Join(tmp, "myproj", "deft")
 	os.MkdirAll(deftDir, 0o755)
+	origGit := forceCloneLayoutGit(deftDir)
+	defer func() { runGitCaptureFunc = origGit }()
 
 	result := &WizardResult{
 		ProjectName: "myproj",
@@ -422,8 +438,15 @@ func TestUpdateDeft_NoBranch(t *testing.T) {
 	}
 
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	if err := UpdateDeft(w, result, ""); err != nil {
+	outcome, err := UpdateDeft(w, result, "")
+	if err != nil {
 		t.Fatal(err)
+	}
+	if outcome.Layout != payloadLayoutClone {
+		t.Errorf("expected clone layout, got %q", outcome.Layout)
+	}
+	if outcome.Strategy != strategyGitCheckout {
+		t.Errorf("expected git-checkout strategy, got %q", outcome.Strategy)
 	}
 
 	// Should fetch + pull (no checkout).
@@ -451,6 +474,8 @@ func TestUpdateDeft_WithBranch(t *testing.T) {
 	tmp := t.TempDir()
 	deftDir := filepath.Join(tmp, "myproj", "deft")
 	os.MkdirAll(deftDir, 0o755)
+	origGit := forceCloneLayoutGit(deftDir)
+	defer func() { runGitCaptureFunc = origGit }()
 
 	result := &WizardResult{
 		ProjectName: "myproj",
@@ -460,8 +485,12 @@ func TestUpdateDeft_WithBranch(t *testing.T) {
 	}
 
 	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
-	if err := UpdateDeft(w, result, "beta"); err != nil {
+	outcome, err := UpdateDeft(w, result, "beta")
+	if err != nil {
 		t.Fatal(err)
+	}
+	if outcome.Layout != payloadLayoutClone {
+		t.Errorf("expected clone layout, got %q", outcome.Layout)
 	}
 
 	// Should fetch + checkout beta + pull.

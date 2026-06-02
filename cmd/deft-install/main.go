@@ -235,12 +235,18 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		return 1
 	}
 
-	// Phase 4: clone or update deft.
+	// Phase 4: clone or update deft. UpdateDeft (#1425) classifies the on-disk
+	// payload layout and chooses a safe strategy: git fetch/checkout for a
+	// genuine clone, a git-free file swap for a vendored (no-.git) payload, or
+	// a fresh clone when the payload is absent.
+	var updateOutcome *UpdateOutcome
 	if result.Update {
-		if err := UpdateDeft(w, result, branch); err != nil {
+		o, err := UpdateDeft(w, result, branch)
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			return 1
 		}
+		updateOutcome = o
 	} else {
 		if err := CloneDeft(w, result, branch); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -256,6 +262,22 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	// values from the installer binary (defaultBranch + empty SHA) so the
 	// manifest still carries install_root.
 	installFields := resolveInstallManifestFields(result, branch)
+	// #1425: on a vendored refresh, resolveInstallManifestFields() resolved the
+	// SHA via `git -C <core> rev-parse HEAD`, which on a no-.git payload climbs
+	// to the PARENT consumer repo's HEAD (the #1323/#1324 wrong-sha class).
+	// Override with the framework source SHA/tag recovered from the release
+	// tarball wrapper so the manifest records true framework provenance.
+	if updateOutcome != nil && updateOutcome.Layout == payloadLayoutVendored {
+		if updateOutcome.SHA != "" {
+			installFields.SHA = updateOutcome.SHA
+		}
+		if updateOutcome.Tag != "" {
+			installFields.Tag = updateOutcome.Tag
+			if installFields.Ref == "" {
+				installFields.Ref = updateOutcome.Tag
+			}
+		}
+	}
 	if _, err := WriteInstallManifest(result.ProjectDir, result.DeftDir, installFields); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: could not write install manifest: %v\n", err)
 		// Non-fatal: the install proceeds, but downstream consumers (doctor,
@@ -316,6 +338,17 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		// Machine readable result for agents / CI (Epic-3 AC). Includes
 		// actions taken for 1337/1338 so callers can react (e.g. re-invoke
 		// doctor after wiring).
+		//
+		// #1425: payload_layout (clone|vendored|absent) and strategy
+		// (git-checkout|file-swap|clone) let agents/CI see how the upgrade was
+		// performed -- and confirm a vendored install used the git-free swap
+		// rather than a git command against the consumer repo.
+		payloadLayout := payloadLayoutAbsent
+		strategy := strategyClone
+		if updateOutcome != nil {
+			payloadLayout = updateOutcome.Layout
+			strategy = updateOutcome.Strategy
+		}
 		out := map[string]any{
 			"success":         true,
 			"version":         version,
@@ -329,6 +362,8 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 			"missing_tools":   missingTools,
 			"user_config_dir": configDir,
 			"skills_created":  skillsCreated,
+			"payload_layout":  payloadLayout,
+			"strategy":        strategy,
 		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")

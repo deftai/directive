@@ -1,0 +1,44 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1425"
+  },
+  "plan": {
+    "title": "fix(installer): deft-install --upgrade safe + working on vendored (no-.git) webinstaller installs (#1425)",
+    "status": "completed",
+    "narratives": {
+      "Description": "P0/Upgrade-Blocker/Security: deft-install --upgrade is broken and unsafe on webinstaller (vendored, no-.git) installs because it runs git -C .deft/core which resolves to the parent consumer repo.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1425",
+      "Overview": "The canonical upgrade path `deft-install --yes --upgrade --repo-root .` fails and is unsafe on installs produced by the webinstaller, which vendors the directive tarball into `.deft/core/` and deliberately strips `.git/`. UpdateDeft (cmd/deft-install/setup.go) unconditionally runs `git -C <core> fetch/checkout/pull`; with no `.git` in `<core>`, git's upward discovery resolves to the PARENT consumer repository. The repro errors with a misleading `pathspec 'v0.39.0' did not match` -- but had a colliding ref existed, `git checkout` would have mutated the user's project (detached HEAD / changed tree). Fix: classify payload layout (clone|vendored|absent) before any git op, hard-guardrail so a mutating git command never runs against a repo other than the framework payload, and add a git-free file-swap refresh for vendored installs (download release tarball, atomic replace `<core>` with backup+rollback, never carry `.git/`), re-stamping VERSION with the framework source SHA from the tarball (fixes the #1323/#1324 wrong-sha class) and refreshing the AGENTS.md managed section. Emit `payload_layout` + `strategy` in --json and replace the raw git pathspec error with a classified, actionable message.",
+      "Labels": "bug, security, installer, Upgrade Blocker"
+    },
+    "items": [
+      {
+        "title": "deft-install --upgrade on a vendored (no-.git) install succeeds, refreshing .deft/core, VERSION, and AGENTS.md to the target release.",
+        "status": "proposed"
+      },
+      {
+        "title": "Installer never runs a mutating git command against a repo other than the framework payload (regression test: vendored .deft/core nested in a parent repo with a colliding v* ref).",
+        "status": "proposed"
+      },
+      {
+        "title": "--json reports payload_layout and strategy; the legacy pathspec error is replaced with a classified message.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "security",
+      "installer",
+      "Upgrade Blocker"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1425",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1425: P0/Upgrade Blocker: deft-install --upgrade is broken and unsafe on webinstaller (vendored, no-.git) installs"
+      }
+    ],
+    "updated": "2026-06-02T18:44:08Z"
+  }
+}
