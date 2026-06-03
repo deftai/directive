@@ -71,7 +71,7 @@ When user input matches a trigger keyword, read the corresponding skill (paths a
 - "review cycle" / "check reviews" / "run review cycle" -> `.deft/core/skills/deft-directive-review-cycle/SKILL.md`
 - "swarm" / "parallel agents" / "run agents" -> `.deft/core/skills/deft-directive-swarm/SKILL.md`
 - "decompose" / "story decomposition" / "swarm readiness" -> `.deft/core/skills/deft-directive-decompose/SKILL.md`
-- "refinement" / "reprioritize" / "refine" / "triage" / "work the cache" / "pre-ingest" / "action menu" -> `.deft/core/skills/deft-directive-refinement/SKILL.md`
+- "refinement" / "reprioritize" / "refine" / "triage" / "pre-ingest" / "action menu" -> `.deft/core/skills/deft-directive-refinement/SKILL.md` -- the `work the cache` phrase routes to the dedicated `deft-directive-triage` entry below (#1130), not here, to keep routing unambiguous.
 - "triage <N>" / "triage issue" / "ingest issue" -> `.deft/core/skills/deft-directive-refinement/SKILL.md`
 - "build" / "implement" / "implement spec" -> `.deft/core/skills/deft-directive-build/SKILL.md`
 - "cost" / "budget" / "pre-build cost" / "how much will this cost" -> `.deft/core/skills/deft-directive-cost/SKILL.md`
