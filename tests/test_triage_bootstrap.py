@@ -268,6 +268,7 @@ def test_ensure_gitignore_eval_entries_writes_selective_lines(
     assert "vbrief/.eval/candidates.jsonl" in text
     assert "vbrief/.eval/summary-history.jsonl" in text
     assert "vbrief/.eval/scope-lifecycle.jsonl" in text
+    assert "vbrief/.eval/decompositions/" in text
     assert "vbrief/.eval/doctor-state.json" in text
     # The .deft-cache/ line from step 3 is preserved.
     assert ".deft-cache/" in text
@@ -299,6 +300,7 @@ def test_ensure_gitignore_eval_entries_idempotent_when_selective_present(
         + "\nvbrief/.eval/candidates.jsonl\n"
         + "vbrief/.eval/summary-history.jsonl\n"
         + "vbrief/.eval/scope-lifecycle.jsonl\n"
+        + "vbrief/.eval/decompositions/\n"
         + "vbrief/.eval/doctor-state.json\n",
         encoding="utf-8",
     )
@@ -463,6 +465,7 @@ def test_ensure_gitignore_eval_entries_blanket_warning_in_message(
         + "\nvbrief/.eval/candidates.jsonl\n"
         + "vbrief/.eval/summary-history.jsonl\n"
         + "vbrief/.eval/scope-lifecycle.jsonl\n"
+        + "vbrief/.eval/decompositions/\n"
         + "vbrief/.eval/doctor-state.json\n"
         + "vbrief/.eval/\n",
         encoding="utf-8",

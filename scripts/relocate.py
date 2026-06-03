@@ -570,7 +570,16 @@ def _ensure_gitignore_lines(project_root: Path, lines: Iterable[str] = GITIGNORE
     if kept and existing.endswith("\n"):
         healed += "\n"
 
-    existing_lines = {ln.strip() for ln in kept}
+    # Membership uses the SAME inline-comment strip as the installer (Go
+    # `present` map) and the bootstrap rail (#1464): an operator-annotated
+    # entry like ``vbrief/.eval/candidates.jsonl  # added manually`` must be
+    # recognised as already present so the canonical line is not re-deposited
+    # as a duplicate. A whitespace-only strip would diverge the three rails.
+    existing_lines = {
+        stripped
+        for ln in kept
+        if (stripped := strip_gitignore_inline_comment(ln))
+    }
     additions = [ln for ln in lines if ln.strip() not in existing_lines]
     if not blanket_removed and not additions:
         return False

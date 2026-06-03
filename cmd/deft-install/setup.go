@@ -219,10 +219,12 @@ var agentsMDManagedOpenPattern = regexp.MustCompile(`<!-- deft:managed-section v
 var canonicalGitignoreLines = []string{
 	".deft-cache/",
 	// Selective vbrief/.eval/* entries -- MUST equal GITIGNORE_EVAL_ENTRIES in
-	// scripts/_triage_bootstrap_gitignore.py (parity test pins this).
+	// scripts/_triage_bootstrap_gitignore.py, in the same order (parity test
+	// TestCanonicalGitignoreEvalEntriesMatchPythonSource pins this).
 	"vbrief/.eval/candidates.jsonl",
 	"vbrief/.eval/summary-history.jsonl",
 	"vbrief/.eval/scope-lifecycle.jsonl",
+	"vbrief/.eval/decompositions/",
 	"vbrief/.eval/doctor-state.json",
 	"vbrief/*.lock",
 	".deft/core.bak-*/",

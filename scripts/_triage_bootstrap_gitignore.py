@@ -18,8 +18,8 @@ Public surface (stable for :mod:`triage_bootstrap` re-exports):
 - :data:`GITIGNORE_EVAL_ENTRIES` -- canonical selective per-file lines
   for the #1144 hybrid policy (``candidates.jsonl`` /
   ``summary-history.jsonl`` / ``scope-lifecycle.jsonl`` /
-  ``doctor-state.json``). Single source of truth the installer
-  (``cmd/deft-install/setup.go``) mirrors and the relocator
+  ``decompositions/`` / ``doctor-state.json``). Single source of truth
+  the installer (``cmd/deft-install/setup.go``) mirrors and the relocator
   (``scripts/relocate.py``) imports (#1464).
 - :data:`FORBIDDEN_BLANKET_EVAL_LINES` -- canonical forbidden blanket
   lines (``vbrief/.eval/`` / ``vbrief/.eval``) shared with the installer
@@ -70,17 +70,20 @@ def _outcome_cls() -> type:
 GITIGNORE_LINE: str = ".deft-cache/"
 
 #: Canonical selective gitignore lines for the #1144 hybrid policy.
-#: Replaces the pre-#1251 blanket ``vbrief/.eval/`` line. The files
-#: below are operator-private / per-machine state; ``slices.jsonl`` is
-#: intentionally omitted from this tuple because it is TRACKED
-#: team-shared cohort state per #1132 / D13. ``doctor-state.json`` is
-#: per-machine ``task doctor`` throttle state added under #1464. This
+#: Replaces the pre-#1251 blanket ``vbrief/.eval/`` line. The entries
+#: below are operator-private / per-machine / local-scratch state;
+#: ``slices.jsonl`` is intentionally omitted because it is TRACKED
+#: team-shared cohort state per #1132 / D13. ``decompositions/`` holds
+#: local story-decomposition draft scratch; ``doctor-state.json`` is
+#: per-machine ``task doctor`` throttle state (added under #1464). This
 #: tuple is the single source of truth: the relocator imports it and the
-#: Go installer mirrors it (a parity test pins the two together).
+#: Go installer mirrors it (a parity test pins the two together), and it
+#: stays in lockstep with the ``vbrief/.eval/README.md`` policy table.
 GITIGNORE_EVAL_ENTRIES: tuple[str, ...] = (
     "vbrief/.eval/candidates.jsonl",
     "vbrief/.eval/summary-history.jsonl",
     "vbrief/.eval/scope-lifecycle.jsonl",
+    "vbrief/.eval/decompositions/",
     "vbrief/.eval/doctor-state.json",
 )
 
@@ -136,6 +139,10 @@ _EVAL_ENTRIES_RATIONALE: str = (
     "#                               stream; sharing would conflate\n"
     "#                               operators' demote timing across the\n"
     "#                               team.\n"
+    "#   - decompositions/        -> gitignored (local story-decomposition\n"
+    "#                               draft scratch; generated child story\n"
+    "#                               vBRIEFs live in lifecycle folders via\n"
+    "#                               `task scope:decompose`).\n"
     "#   - doctor-state.json      -> gitignored (per-machine `task doctor`\n"
     "#                               throttle state gating the 24h/4h\n"
     "#                               re-probe window; #1308 / #1464). Local\n"

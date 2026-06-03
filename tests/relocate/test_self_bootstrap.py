@@ -390,6 +390,32 @@ class TestGitignoreHealBlanket:
         # Re-run is a clean no-op (blanket already healed, entries present).
         assert relocate._ensure_gitignore_lines(tmp_path) is False
 
+    def test_inline_commented_entry_is_not_re_deposited(
+        self, relocate: Any, tmp_path: Path
+    ) -> None:
+        # #1464 Greptile P1: the membership check must strip inline comments
+        # (parity with the installer + bootstrap rails) so an operator-
+        # annotated canonical entry is recognised as already present and is
+        # NOT re-deposited as a duplicate.
+        gi = tmp_path / ".gitignore"
+        seeded = (
+            ".deft-cache/\n"
+            "vbrief/.eval/candidates.jsonl  # added manually\n"
+            "vbrief/.eval/summary-history.jsonl\n"
+            "vbrief/.eval/scope-lifecycle.jsonl\n"
+            "vbrief/.eval/decompositions/\n"
+            "vbrief/.eval/doctor-state.json\n"
+        )
+        gi.write_text(seeded, encoding="utf-8")
+        # All canonical entries are present (one carries an inline comment),
+        # so the relocator must report no change and leave the file untouched.
+        assert relocate._ensure_gitignore_lines(tmp_path) is False
+        body = gi.read_text(encoding="utf-8")
+        assert body == seeded
+        assert body.count("vbrief/.eval/candidates.jsonl") == 1, (
+            "inline-commented canonical entry must not be re-deposited (#1464)"
+        )
+
 
 # ---------------------------------------------------------------------------
 # F3 -- rollback removes relocator-created .gitignore residue
