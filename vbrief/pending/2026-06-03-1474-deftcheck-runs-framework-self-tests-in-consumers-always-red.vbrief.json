@@ -42,7 +42,7 @@
         "title": "Issue #1474: deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)"
       },
       {
-        "uri": "pending/2026-06-03-scope-consumer-deftcheck-so-it-does-not-run-framework-self-t.vbrief.json",
+        "uri": "active/2026-06-03-scope-consumer-deftcheck-so-it-does-not-run-framework-self-t.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Scope consumer deft:check so it does not run framework self-tests",
         "TrustLevel": "internal"

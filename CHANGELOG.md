@@ -15,8 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **UPGRADING.md now opens with a big-jump triage entry point for multi-version upgrades (#1115)** -- a consumer jumping several minor versions no longer has to read every section to work out which ones apply. A new top-of-file triage maps version-range buckets to the sections that apply and the order to run them in (oldest applicable first), flags each bucket as auto-handled or manual, and points you at QUICK-START.md and the canonical `deft-install` + `task doctor` finish line. Closes #1115.
+- **QUICK-START.md can now finish a stale-AGENTS.md refresh and a pre-cutover migration in one agent session (#1114)** -- on a big-jump upgrade that trips both Case G (stale AGENTS.md) and Case H (pre-cutover artifacts), the agent used to stop and force a second session between the two. A new combined Case G+H path refreshes AGENTS.md first, runs the migration second, and emits a single restart at the end, removing the wasted session round-trip while producing the same end state. Closes #1114.
 
 ### Changed
+- **`task check` now type-checks the `tests/` tree, so a tests/ type error fails locally instead of only on CI (#1475)** -- the local pre-commit gate (`core:lint`) ran mypy over only `run.py`, while CI runs `mypy tests/`; a type error under `tests/` therefore passed `task check` locally and only reddened master after merge. `core:lint` now runs mypy over `run.py` and `tests/`, sharing the same `[tool.mypy]` config CI uses, bringing the local type-check scope to parity with CI. Closes #1475.
 
 ### Fixed
 - **Consumer `task deft:check` no longer runs the framework's own self-tests (#1474)** -- a vendored install shipped the framework's `.deft/core/tests/` suite and the consumer-facing check executed it, so a clean consumer checkout always went red (14 failed + 6 errors by construction) on framework-repo-only fixtures. The installer now excludes the framework self-test suite from the consumer deposit on every install and upgrade, so those tests are never vendored and the gate reflects real consumer-relevant results. Closes #1474.
