@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -177,10 +176,24 @@ Read and follow: .deft/core/skills/deft-directive-sync/SKILL.md
 // attribute-tolerant. The closing marker (agentsMDFenceClose) is unchanged.
 var agentsMDManagedOpenPattern = regexp.MustCompile(`<!-- deft:managed-section v[23][^>]*-->`)
 
-// canonicalGitignoreLines extends scripts/relocate.py::GITIGNORE_LINES (the F2
-// canonical default from #1015) -- the runtime cache directory and the
-// audit-log private state -- with three leaked-artefact guards so a consumer's
-// `git add -A` never traps installer/render scratch files:
+// canonicalGitignoreLines is the .gitignore baseline the installer deposits.
+// It mirrors scripts/relocate.py::GITIGNORE_LINES (the F2 canonical default
+// from #1015): the runtime cache directory plus the SELECTIVE per-file
+// vbrief/.eval/* entries.
+//
+// #1251 / #1464: the eval state is gitignored via the selective per-file
+// entries (candidates.jsonl / summary-history.jsonl / scope-lifecycle.jsonl /
+// doctor-state.json), NEVER the blanket `vbrief/.eval/` line. The blanket
+// hides the team-shared, TRACKED vbrief/.eval/slices.jsonl and README.md
+// (#1132 / D13) and contradicts the #1144 hybrid policy. The selective list
+// here MUST stay in lockstep with GITIGNORE_EVAL_ENTRIES in
+// scripts/_triage_bootstrap_gitignore.py (the single source of truth the
+// bootstrap + relocator rails consume); the parity test
+// TestCanonicalGitignoreEvalEntriesMatchPythonSource pins the two together,
+// and EnsureGitignoreLines HEALS a pre-existing blanket on upgrade.
+//
+// The three leaked-artefact guards below stop a consumer's `git add -A` from
+// trapping installer/render scratch files:
 //
 //   - vbrief/*.lock          -- the PROJECT-DEFINITION mutation-lock sidecar
 //     (vbrief/PROJECT-DEFINITION.vbrief.json.lock) and any sibling vbrief-root
@@ -205,11 +218,30 @@ var agentsMDManagedOpenPattern = regexp.MustCompile(`<!-- deft:managed-section v
 // itself, only the timestamped backup siblings.
 var canonicalGitignoreLines = []string{
 	".deft-cache/",
-	"vbrief/.eval/",
+	// Selective vbrief/.eval/* entries -- MUST equal GITIGNORE_EVAL_ENTRIES in
+	// scripts/_triage_bootstrap_gitignore.py, in the same order (parity test
+	// TestCanonicalGitignoreEvalEntriesMatchPythonSource pins this).
+	"vbrief/.eval/candidates.jsonl",
+	"vbrief/.eval/summary-history.jsonl",
+	"vbrief/.eval/scope-lifecycle.jsonl",
+	"vbrief/.eval/decompositions/",
+	"vbrief/.eval/doctor-state.json",
 	"vbrief/*.lock",
 	".deft/core.bak-*/",
 	".deft/*.bak-*",
 	"*.premigrate.*",
+}
+
+// forbiddenBlanketEvalLines mirrors FORBIDDEN_BLANKET_EVAL_LINES in
+// scripts/_triage_bootstrap_gitignore.py (#1251 / #1464). A pre-#1251 deposit
+// rail appended the blanket `vbrief/.eval/` (or `vbrief/.eval`) line that hides
+// the tracked slices.jsonl / README.md from git. EnsureGitignoreLines strips
+// any such line on upgrade instead of leaving it, so `task triage:bootstrap`
+// no longer warns. The selective per-file entries above are NEVER matched here
+// because the forbidden set is the bare directory line only.
+var forbiddenBlanketEvalLines = []string{
+	"vbrief/.eval/",
+	"vbrief/.eval",
 }
 
 // minimalTaskfileContent is the canonical starter Taskfile.yml written (or
@@ -620,12 +652,17 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 // 4.2b .gitignore upkeep -- canonical F2 default (#1015, #1020)
 // ---------------------------------------------------------------------------
 
-// EnsureGitignoreLines appends the canonical baseline (`.deft-cache/`,
-// `vbrief/.eval/`) to the consumer's .gitignore if any line is missing. The
-// file is created when absent. Pre-existing lines are preserved byte-for-byte.
-// Mirrors scripts/relocate.py::_ensure_gitignore_lines for parity with the
-// relocator (#1015 F2 canonical default). Returns true if the file was
-// modified, false when no additions were needed.
+// EnsureGitignoreLines ensures the canonical baseline (the runtime cache dir +
+// the SELECTIVE vbrief/.eval/* entries + the leaked-artefact guards) is present
+// in the consumer's .gitignore, creating the file when absent. It also HEALS a
+// pre-existing forbidden blanket `vbrief/.eval/` (or `vbrief/.eval`) line on
+// upgrade (#1464): pre-#1251 rails deposited that blanket, which hides the
+// tracked vbrief/.eval/slices.jsonl + README.md from git; an upgrade now
+// STRIPS it rather than leaving it (so `task triage:bootstrap` no longer
+// warns). Every other line is preserved verbatim. Mirrors
+// scripts/relocate.py::_ensure_gitignore_lines for cross-rail parity (#1015 F2
+// canonical default). Returns true if the file was modified -- a heal with no
+// additions still counts as a modification.
 func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
 	path := filepath.Join(projectDir, ".gitignore")
 	existing := ""
@@ -635,10 +672,30 @@ func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
 		return false, fmt.Errorf("could not read .gitignore: %w", err)
 	}
 
+	// Heal (#1464): drop any forbidden blanket vbrief/.eval/ line (tolerating a
+	// trailing inline comment) so the upgrade removes it. Reconstruct from the
+	// surviving lines; track the original trailing newline so a clean file stays
+	// clean. The selective per-file entries are never matched -- the forbidden
+	// set is the bare directory line only.
+	lines := strings.Split(existing, "\n")
+	trailingNewline := false
+	if strings.HasSuffix(existing, "\n") && len(lines) > 0 && lines[len(lines)-1] == "" {
+		trailingNewline = true
+		lines = lines[:len(lines)-1]
+	}
+	var kept []string
+	blanketRemoved := false
 	present := map[string]bool{}
-	scanner := bufio.NewScanner(strings.NewReader(existing))
-	for scanner.Scan() {
-		present[strings.TrimSpace(scanner.Text())] = true
+	for _, raw := range lines {
+		stripped := stripGitignoreInlineComment(raw)
+		if isForbiddenBlanketEvalLine(stripped) {
+			blanketRemoved = true
+			continue
+		}
+		kept = append(kept, raw)
+		if stripped != "" {
+			present[stripped] = true
+		}
 	}
 
 	var additions []string
@@ -647,30 +704,70 @@ func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
 			additions = append(additions, line)
 		}
 	}
-	if len(additions) == 0 {
-		w.printf(".gitignore already covers deft-cache + vbrief eval lines — skipping.\n")
+	if !blanketRemoved && len(additions) == 0 {
+		w.printf(".gitignore already covers the canonical deft entries — skipping.\n")
 		return false, nil
 	}
 
+	healed := strings.Join(kept, "\n")
+	if len(kept) > 0 && trailingNewline {
+		healed += "\n"
+	}
+
 	var body strings.Builder
-	body.WriteString(existing)
-	if existing != "" && !strings.HasSuffix(existing, "\n") {
-		body.WriteString("\n")
-	}
-	if existing != "" && !strings.HasSuffix(existing, "\n\n") {
-		body.WriteString("\n")
-	}
-	body.WriteString("# Deft framework: ignore local-only caches and scratch directories\n")
-	for _, add := range additions {
-		body.WriteString(add)
-		body.WriteString("\n")
+	body.WriteString(healed)
+	if len(additions) > 0 {
+		if healed != "" && !strings.HasSuffix(healed, "\n") {
+			body.WriteString("\n")
+		}
+		if healed != "" && !strings.HasSuffix(healed, "\n\n") {
+			body.WriteString("\n")
+		}
+		body.WriteString("# Deft framework: ignore local-only caches and scratch directories\n")
+		for _, add := range additions {
+			body.WriteString(add)
+			body.WriteString("\n")
+		}
 	}
 
 	if err := os.WriteFile(path, []byte(body.String()), 0o644); err != nil {
 		return false, fmt.Errorf("could not write .gitignore: %w", err)
 	}
-	w.printf(".gitignore updated with canonical entries: %s\n", strings.Join(additions, ", "))
+	if len(additions) > 0 {
+		w.printf(".gitignore updated with canonical entries: %s\n", strings.Join(additions, ", "))
+	}
+	if blanketRemoved {
+		w.printf(".gitignore healed: removed forbidden blanket vbrief/.eval/ line (#1464).\n")
+	}
 	return true, nil
+}
+
+// isForbiddenBlanketEvalLine reports whether s (an already inline-comment-
+// stripped gitignore line) is one of the forbidden blanket eval lines mirrored
+// from the Python rails (#1464).
+func isForbiddenBlanketEvalLine(s string) bool {
+	for _, f := range forbiddenBlanketEvalLines {
+		if s == f {
+			return true
+		}
+	}
+	return false
+}
+
+// stripGitignoreInlineComment mirrors strip_gitignore_inline_comment in
+// scripts/_triage_bootstrap_gitignore.py: trim surrounding whitespace and drop
+// a trailing `# ...` comment so a blanket entry like `vbrief/.eval/  # legacy`
+// is still recognised by the heal. A whole-line comment (or blank line)
+// returns "".
+func stripGitignoreInlineComment(line string) string {
+	stripped := strings.TrimSpace(line)
+	if stripped == "" || strings.HasPrefix(stripped, "#") {
+		return ""
+	}
+	if idx := strings.Index(stripped, "#"); idx != -1 {
+		return strings.TrimRight(stripped[:idx], " \t")
+	}
+	return stripped
 }
 
 // hasTopLevelIncludes reports whether the provided Taskfile content declares

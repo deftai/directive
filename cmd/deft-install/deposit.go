@@ -89,6 +89,11 @@ func installerManagedMatchers() []installerManagedMatcher {
 	matchers := []installerManagedMatcher{
 		{exact: "AGENTS.md"},
 		{prefix: ".agents/"},
+		// .githooks/ is deposited by WriteConsumerGitHooks (#1463): the
+		// layout-aware pre-commit / pre-push copied to the consumer root. It
+		// is framework-managed, not consumer app code, so the guard exempts it
+		// and frameworkStagePaths stages it with the framework deposit.
+		{prefix: ".githooks/"},
 		{exact: ".gitattributes"},
 		{exact: ".gitignore"},
 		{exact: "greptile.json"},

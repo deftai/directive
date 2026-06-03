@@ -139,12 +139,19 @@ def test_audit_only_preflight_branch_is_hook_invoked():
             stripped = line.strip()
             if stripped.startswith("#"):
                 continue
-            # Match any 'scripts/<name>.py' token in the hook body.
+            # Match any hook-invoked gate script in the hook body. Since #1463
+            # the hooks resolve their helpers layout-aware via
+            # $SCRIPTS_DIR/<name>.py (where $SCRIPTS_DIR is one of scripts/,
+            # .deft/core/scripts/, or deft/scripts/ at runtime), so normalise
+            # both the legacy `scripts/<name>.py` form and the new
+            # `$SCRIPTS_DIR/<name>.py` form to the canonical `scripts/<name>.py`
+            # registry key.
             for token in stripped.replace('"', " ").replace("'", " ").split():
-                # Normalise repo-root and $REPO_ROOT prefixes.
-                if "scripts/" in token and token.endswith(".py"):
-                    suffix = token[token.index("scripts/"):]
-                    referenced.add(suffix)
+                if not token.endswith(".py"):
+                    continue
+                if token.startswith("$SCRIPTS_DIR/") or "scripts/" in token:
+                    name = token.rsplit("/", 1)[-1]
+                    referenced.add("scripts/" + name)
 
     assert referenced, (
         "No scripts/*.py references found under .githooks/ -- the audit "

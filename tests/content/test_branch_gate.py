@@ -30,13 +30,21 @@ def _read(rel: str) -> str:
 
 def test_pre_commit_hook_exists_and_calls_script():
     text = _read(".githooks/pre-commit")
-    assert "scripts/preflight_branch.py" in text
+    # #1463: the hook is layout-aware -- it resolves the gate script under the
+    # install root (own-repo scripts/ or vendored .deft/core/scripts/) via
+    # $SCRIPTS_DIR rather than the hardcoded $REPO_ROOT/scripts/ prefix.
+    assert "preflight_branch.py" in text
     assert "git rev-parse --show-toplevel" in text
+    assert "SCRIPTS_DIR" in text
+    assert ".deft/core/scripts" in text
 
 
 def test_pre_push_hook_exists_and_calls_script():
     text = _read(".githooks/pre-push")
-    assert "scripts/preflight_branch.py" in text
+    # #1463: layout-aware resolution (see test_pre_commit_hook above).
+    assert "preflight_branch.py" in text
+    assert "SCRIPTS_DIR" in text
+    assert ".deft/core/scripts" in text
 
 
 def test_taskfile_check_includes_verify_branch():

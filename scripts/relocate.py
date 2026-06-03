@@ -99,6 +99,11 @@ from _relocate_states import (  # noqa: E402
     iter_files,
 )
 from _stdio_utf8 import reconfigure_stdio  # noqa: E402
+from _triage_bootstrap_gitignore import (  # noqa: E402
+    FORBIDDEN_BLANKET_EVAL_LINES,
+    GITIGNORE_EVAL_ENTRIES,
+    strip_gitignore_inline_comment,
+)
 
 reconfigure_stdio()
 
@@ -193,22 +198,28 @@ VBRIEF_LIFECYCLE_DIRS: tuple[str, ...] = (
 #:
 #: F2 canonical-default decision (#1015): the canonical relocator default
 #: gitignores ``.deft-cache/`` (runtime cache, snapshot tarballs, audit log
-#: -- mirrors the #845 / #883 hidden-namespace gitignore convention) and
-#: ``vbrief/.eval/`` (audit-log private state). The framework deposit at
-#: ``.deft/core/`` is INTENTIONALLY NOT auto-gitignored: per #11 the
+#: -- mirrors the #845 / #883 hidden-namespace gitignore convention) and the
+#: operator-private ``vbrief/.eval/`` audit-log state. The framework deposit
+#: at ``.deft/core/`` is INTENTIONALLY NOT auto-gitignored: per #11 the
 #: ``.deft/core/`` tree is read-only packaged framework assets that ship
 #: with the consumer's repo for reproducibility. Auto-gitignoring it would
 #: silently break that contract on every v0.27.0 install already in the
 #: wild. Active scope vBRIEF Outcome narrative #992 mentions "include
 #: .deft/core/" in passing but the canonical Test narrative + #845
-#: precedent + the v0.27.0-shipped behaviour all align with the
-#: ``.deft-cache/`` + ``vbrief/.eval/`` baseline pinned here. Consumers who
-#: deliberately want their framework dir gitignored can append ``.deft/``
-#: to their own ``.gitignore`` manually -- the relocator does NOT take
-#: that decision on the operator's behalf.
+#: precedent + the v0.27.0-shipped behaviour all align with the baseline
+#: pinned here. Consumers who deliberately want their framework dir
+#: gitignored can append ``.deft/`` to their own ``.gitignore`` manually --
+#: the relocator does NOT take that decision on the operator's behalf.
+#:
+#: #1251 / #1464: the eval state is gitignored via the SELECTIVE per-file
+#: entries imported from ``_triage_bootstrap_gitignore`` (the single source
+#: of truth shared with the bootstrap and installer rails), NOT a blanket
+#: ``vbrief/.eval/`` line -- the blanket would hide the team-shared,
+#: TRACKED ``slices.jsonl`` / ``README.md`` (#1132 / D13). A pre-existing
+#: blanket is healed (stripped) by ``_ensure_gitignore_lines`` on upgrade.
 GITIGNORE_LINES: tuple[str, ...] = (
     ".deft-cache/",
-    "vbrief/.eval/",
+    *GITIGNORE_EVAL_ENTRIES,
 )
 
 #: Sentinel argv flag the relocator passes to its own re-launch from an OS
@@ -526,22 +537,61 @@ def regenerate_agents_md(project_root: Path, framework_source: Path) -> str:
 
 
 def _ensure_gitignore_lines(project_root: Path, lines: Iterable[str] = GITIGNORE_LINES) -> bool:
-    """Append missing ``lines`` to ``<project-root>/.gitignore``. Returns True if changed."""
+    """Ensure ``lines`` are present in ``<project-root>/.gitignore`` and HEAL a
+    pre-existing forbidden blanket ``vbrief/.eval/`` line. Returns True if changed.
+
+    #1464: the pre-#1251 deposit rails appended a blanket ``vbrief/.eval/``
+    line that silently hides the TRACKED ``slices.jsonl`` / ``README.md`` from
+    git. On upgrade the relocator now STRIPS that blanket -- using the same
+    forbidden-set + inline-comment-strip the bootstrap rail uses
+    (``FORBIDDEN_BLANKET_EVAL_LINES`` / ``strip_gitignore_inline_comment``) --
+    before appending the selective per-file entries, so ``task relocate`` heals
+    an already-broken repo instead of re-depositing the blanket. The selective
+    entries themselves (``vbrief/.eval/candidates.jsonl`` etc.) are never
+    treated as the blanket because the forbidden set matches the bare directory
+    line only.
+    """
     gitignore = project_root / ".gitignore"
     existing = ""
     if gitignore.is_file():
         existing = gitignore.read_text(encoding="utf-8", errors="replace")
-    existing_lines = {ln.strip() for ln in existing.splitlines()}
+
+    # Heal: drop any forbidden blanket line, tolerating a trailing inline
+    # comment (e.g. ``vbrief/.eval/  # legacy``). Every other line is kept
+    # verbatim so operator-authored content is preserved byte-for-byte.
+    kept: list[str] = []
+    blanket_removed = False
+    for raw in existing.splitlines():
+        if strip_gitignore_inline_comment(raw) in FORBIDDEN_BLANKET_EVAL_LINES:
+            blanket_removed = True
+            continue
+        kept.append(raw)
+    healed = "\n".join(kept)
+    if kept and existing.endswith("\n"):
+        healed += "\n"
+
+    # Membership uses the SAME inline-comment strip as the installer (Go
+    # `present` map) and the bootstrap rail (#1464): an operator-annotated
+    # entry like ``vbrief/.eval/candidates.jsonl  # added manually`` must be
+    # recognised as already present so the canonical line is not re-deposited
+    # as a duplicate. A whitespace-only strip would diverge the three rails.
+    existing_lines = {
+        stripped
+        for ln in kept
+        if (stripped := strip_gitignore_inline_comment(ln))
+    }
     additions = [ln for ln in lines if ln.strip() not in existing_lines]
-    if not additions:
+    if not blanket_removed and not additions:
         return False
-    body = existing
-    if body and not body.endswith("\n"):
-        body += "\n"
-    if body and not body.endswith("\n\n"):
-        body += "\n"
-    body += "# Added by deft relocator (#992 PR2)\n"
-    body += "\n".join(additions) + "\n"
+
+    body = healed
+    if additions:
+        if body and not body.endswith("\n"):
+            body += "\n"
+        if body and not body.endswith("\n\n"):
+            body += "\n"
+        body += "# Added by deft relocator (#992 PR2; #1464 selective vbrief/.eval/)\n"
+        body += "\n".join(additions) + "\n"
     gitignore.write_text(body, encoding="utf-8", newline="\n")
     return True
 

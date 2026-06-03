@@ -385,6 +385,16 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		return 1
 	}
 
+	// Phase 4d (#1463): wire consumer-root git hooks. The installer copies the
+	// layout-aware .githooks/ from the framework payload to the consumer root
+	// and sets core.hooksPath so the #747 branch gate, #798 encoding gate, and
+	// #1019 destructive-gh-verb gate actually fire in a vendored consumer
+	// project. Best-effort: a wiring failure warns but never aborts the install,
+	// mirroring depositNeutralization above.
+	if _, err := WriteConsumerGitHooks(w, result.ProjectDir, result.DeftDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not wire git hooks: %v\n", err)
+	}
+
 	// Epic-4 (1338): Automatic Taskfile wiring + core tool bootstrap.
 	// Only in non-interactive mode (per ACs: "in --yes mode"). Consent is
 	// implied by the --yes flag; interactive consent is future (or via doctor).

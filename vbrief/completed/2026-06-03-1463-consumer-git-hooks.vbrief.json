@@ -1,0 +1,48 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1463"
+  },
+  "plan": {
+    "title": "fix(installer): wire git hooks in vendored consumer projects (#1463)",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(installer): wire git hooks in vendored consumer projects so the branch/encoding/gh gates fire (#1463)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1463",
+      "Overview": "In a vendored consumer project (framework at .deft/core/), the deft git hooks never become active, so the #747 branch-protection gate, the #798 encoding gate, and the #1019 destructive-gh-verb gate are all silently inert. Three layers: (L1) cmd/deft-install/setup.go never materializes a root .githooks/ nor sets core.hooksPath; (L2) `task setup` hardcodes core.hooksPath=.githooks which is wrong for the .deft/core/ layout; (L3) the hook scripts resolve helpers at $REPO_ROOT/scripts/* which in a vendored consumer live at $REPO_ROOT/.deft/core/scripts/*; (L3b) `task verify:hooks-installed` only checks core.hooksPath==.githooks, so it reports false-green. Fix (Option 1 + L3 + L3b): (a) the installer deposits a consumer-root .githooks/ (copies of the layout-aware hooks) AND sets core.hooksPath; (b) make .githooks/pre-commit + pre-push resolve their helper scripts relative to their own install root -- detect ./scripts/ (own-repo) vs ./.deft/core/scripts/ (vendored) -- so they work in BOTH layouts and honor plan.policy.allowDirectCommitsToMaster + DEFT_ALLOW_DEFAULT_BRANCH_COMMIT; (c) harden verify:hooks-installed to also assert the hooks directory exists AND the referenced gate scripts resolve, so it FAILS when hooks are wired but non-functional. Owner files: cmd/deft-install/setup.go (+deposit.go allowlist), tasks/verify.yml, .githooks/pre-commit, .githooks/pre-push, plus scripts/verify_hooks_installed.py and tests.",
+      "Labels": "bug, adoption-blocker, installer, doctor"
+    },
+    "items": [
+      {
+        "title": "Fresh consumer install + task setup -> committing to the default branch is blocked by the local pre-commit hook (and push by pre-push), honoring plan.policy.allowDirectCommitsToMaster and DEFT_ALLOW_DEFAULT_BRANCH_COMMIT.",
+        "status": "completed"
+      },
+      {
+        "title": "Hook scripts resolve preflight_branch.py / verify_encoding.py / preflight_gh.py correctly in the vendored layout.",
+        "status": "completed"
+      },
+      {
+        "title": "task verify:hooks-installed fails (not passes) when hooks are wired but non-functional.",
+        "status": "completed"
+      },
+      {
+        "title": "Regression coverage for the vendored-consumer layout (not just the directive own-repo layout).",
+        "status": "completed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "installer",
+      "doctor"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1463",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1463: Installer: git hooks never active in vendored consumer projects (branch/encoding/gh gates silently inert)"
+      }
+    ],
+    "updated": "2026-06-03T16:48:21Z"
+  }
+}

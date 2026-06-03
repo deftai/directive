@@ -244,18 +244,32 @@ def test_ensure_gitignore_entry_idempotent(tmp_path: Path) -> None:
     assert first == second
 
 
+def test_gitignore_eval_entries_includes_doctor_state() -> None:
+    """#1464: doctor-state.json joins the selective ignore set."""
+    assert (
+        "vbrief/.eval/doctor-state.json"
+        in triage_bootstrap.GITIGNORE_EVAL_ENTRIES
+    ), (
+        "per-machine task doctor throttle state must be gitignored (#1464); "
+        "GITIGNORE_EVAL_ENTRIES is the single source of truth the installer "
+        "and relocator rails mirror/import"
+    )
+
+
 def test_ensure_gitignore_eval_entries_writes_selective_lines(
     tmp_path: Path,
 ) -> None:
-    """#1251: step writes the three selective #1144 entries."""
+    """#1251 / #1464: step writes the four selective #1144 entries."""
     triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
     outcome = triage_bootstrap.step_ensure_gitignore_eval_entries(tmp_path)
     assert outcome.ok is True
     text = (tmp_path / ".gitignore").read_text(encoding="utf-8")
-    # All three selective lines present.
+    # All four selective lines present.
     assert "vbrief/.eval/candidates.jsonl" in text
     assert "vbrief/.eval/summary-history.jsonl" in text
     assert "vbrief/.eval/scope-lifecycle.jsonl" in text
+    assert "vbrief/.eval/decompositions/" in text
+    assert "vbrief/.eval/doctor-state.json" in text
     # The .deft-cache/ line from step 3 is preserved.
     assert ".deft-cache/" in text
     # The pre-#1251 blanket line MUST NOT be appended.
@@ -269,7 +283,9 @@ def test_ensure_gitignore_eval_entries_writes_selective_lines(
         "entries replace it"
     )
     assert "vbrief/.eval" not in lines
-    assert outcome.details.get("gitignore_appended_lines") == 3
+    assert outcome.details.get("gitignore_appended_lines") == len(
+        triage_bootstrap.GITIGNORE_EVAL_ENTRIES
+    )
 
 
 def test_ensure_gitignore_eval_entries_idempotent_when_selective_present(
@@ -283,7 +299,9 @@ def test_ensure_gitignore_eval_entries_idempotent_when_selective_present(
         gitignore.read_text(encoding="utf-8")
         + "\nvbrief/.eval/candidates.jsonl\n"
         + "vbrief/.eval/summary-history.jsonl\n"
-        + "vbrief/.eval/scope-lifecycle.jsonl\n",
+        + "vbrief/.eval/scope-lifecycle.jsonl\n"
+        + "vbrief/.eval/decompositions/\n"
+        + "vbrief/.eval/doctor-state.json\n",
         encoding="utf-8",
     )
     # Also seed the .gitattributes rule + README so all three sub-ops
@@ -384,6 +402,7 @@ def test_ensure_gitignore_eval_entries_writes_readme_when_missing(
     assert "slices.jsonl" in body
     assert "candidates.jsonl" in body
     assert "summary-history.jsonl" in body
+    assert "doctor-state.json" in body  # #1464
     assert "task triage:bootstrap" in body
     assert "merge=union" in body
     assert "dedup" in body.lower()
@@ -440,12 +459,14 @@ def test_ensure_gitignore_eval_entries_blanket_warning_in_message(
     """
     triage_bootstrap.step_ensure_gitignore_entry(tmp_path)
     gitignore = tmp_path / ".gitignore"
-    # Seed all three selective entries AND a stale blanket line.
+    # Seed all selective entries AND a stale blanket line.
     gitignore.write_text(
         gitignore.read_text(encoding="utf-8")
         + "\nvbrief/.eval/candidates.jsonl\n"
         + "vbrief/.eval/summary-history.jsonl\n"
         + "vbrief/.eval/scope-lifecycle.jsonl\n"
+        + "vbrief/.eval/decompositions/\n"
+        + "vbrief/.eval/doctor-state.json\n"
         + "vbrief/.eval/\n",
         encoding="utf-8",
     )
