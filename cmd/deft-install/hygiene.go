@@ -6,46 +6,66 @@ import (
 	"strings"
 )
 
-// commit-hygiene (#1453) gives the installer a PROACTIVE counterpart to the
-// deposited deft-core-guard CI check (#1430/#1440). The guard is a late,
+// commit-hygiene (#1453, #1458) gives the installer a PROACTIVE counterpart to
+// the deposited deft-core-guard CI check (#1430/#1440). The guard is a late,
 // PR-time, GitHub-only, consumer-deletable backstop that rejects a PR mixing
 // the vendored framework payload (.deft/core/**) with the consumer's own files.
 // Before this change the installer gave no advance warning, so a consumer would
 // only discover the rule after pushing. The two layers below close that gap:
 //
-//   - Layer 1: a dirty-working-tree advisory BEFORE an --upgrade payload swap.
+//   - Layer 1: a dirty-working-tree GATE BEFORE an --upgrade payload swap. As
+//     of #1458 the default is FAIL-LOUD: a dirty tree refuses the upgrade
+//     (non-zero exit, no payload swap) on BOTH the interactive and the
+//     --yes/non-interactive paths. --force / --allow-dirty bypasses it.
 //   - Layer 2: scoped staging + an exact, copy-pasteable scoped commit command
 //     AFTER the deposit (reusing installerManagedMatchers so the installer only
 //     ever stages framework-owned paths, never consumer app files).
 
 // dirtyTreeBlockCode is the stable machine-readable error code surfaced in
-// --json mode when --require-clean refuses an upgrade against a dirty tree, so
-// agents / CI can branch on it deterministically (no interactive hang, no
-// silent abort).
+// --json mode when a dirty tree refuses an upgrade, so agents / CI can branch
+// on it deterministically (no interactive hang, no silent abort). The name is
+// kept verbatim from #1453 for back-compat with any consumer already matching
+// it, even though #1458 made the refusal the default (no --require-clean
+// needed).
 const dirtyTreeBlockCode = "dirty_tree_require_clean"
 
-// dirtyTreeBlockMessage is the human-readable counterpart to dirtyTreeBlockCode.
-const dirtyTreeBlockMessage = "working tree has uncommitted changes and --require-clean was set; commit/stash first or re-run with --force / --allow-dirty"
+// dirtyTreeBlockMessage is the human-readable top-line counterpart to
+// dirtyTreeBlockCode (the --json `error` field).
+const dirtyTreeBlockMessage = "refusing to upgrade: the working tree has uncommitted changes; commit/stash first (recommended) or re-run with --force / --allow-dirty to upgrade a dirty tree"
+
+// dirtyTreeWhy is the short rationale (the --json `why` field) explaining why a
+// clean tree is wanted before an upgrade.
+const dirtyTreeWhy = "an upgrade rewrites the framework payload (.deft/core/**) and installer-managed files; committing those mixed with your own work trips the deft-core-guard CI check, which rejects a PR that mixes the framework payload with your app files"
+
+// dirtyTreeRemediation is the clean-up-first guidance (the --json `remediation`
+// field): the recommended path plus its pros/cons.
+const dirtyTreeRemediation = "clean up first (recommended): commit or stash your own work (git stash / git commit), then re-run the upgrade and commit the framework deposit on its OWN branch/PR. Pros: the framework bump lands as its own reviewable commit, the guard passes, clean history. Cons: you must commit or stash your in-progress work first."
+
+// dirtyTreeForceHint is the exact bypass command + its tradeoff (the --json
+// `force_hint` field).
+const dirtyTreeForceHint = "re-run with --force (or --allow-dirty) to upgrade a dirty tree, e.g. `deft-install --upgrade --force`. Pros: no interruption to your current work. Cons: the framework deposit and your uncommitted changes coexist -- keep them in separate commits yourself or the guard rejects a mixed commit."
 
 // dirtyTreePreviewLimit bounds how many porcelain status lines the prose
 // advisory prints so a large dirty tree does not flood the terminal.
 const dirtyTreePreviewLimit = 20
 
-// commitHygieneOptions carries the #1453 flag state into the dirty-tree
-// advisory. requireClean (--require-clean) turns the default warn-and-proceed
-// advisory into a hard refusal; force (--force / --allow-dirty) escapes that
-// refusal.
+// commitHygieneOptions carries the #1453 / #1458 flag state into the dirty-tree
+// gate. As of #1458 a dirty tree refuses the upgrade by DEFAULT, so force
+// (--force / --allow-dirty) is the only flag that changes the gate decision.
+// requireClean (--require-clean) is retained as an accepted no-op alias for the
+// now-default behavior so passing it neither errors nor changes anything.
 type commitHygieneOptions struct {
-	requireClean bool
-	force        bool
+	requireClean bool // accepted no-op alias since #1458 (refusal is the default)
+	force        bool // --force / --allow-dirty: bypass the refusal and upgrade a dirty tree
 }
 
-// dirtyTreeAdvisory is the result of the pre-swap working-tree probe (#1453).
+// dirtyTreeAdvisory is the result of the pre-swap working-tree probe (#1453,
+// #1458).
 type dirtyTreeAdvisory struct {
 	checked bool     // the probe actually ran (an upgrade inside a git work tree)
 	dirty   bool     // the working tree had uncommitted changes
 	files   []string // `git status --porcelain` lines (verbatim)
-	blocked bool     // --require-clean refused the upgrade (dirty && requireClean && !force)
+	blocked bool     // the dirty tree refused the upgrade (dirty && !force, the #1458 default)
 }
 
 // gitPorcelainStatusFunc returns the `git status --porcelain` lines for the
@@ -105,11 +125,13 @@ func dirtyTreeGate(isUpgrade bool, projectDir string, opts commitHygieneOptions)
 }
 
 // checkDirtyTree probes the consumer working tree before an --upgrade payload
-// swap (#1453). It is a silent no-op for a clean tree, a non-git project, or
-// when git is unavailable. The DEFAULT is warn-and-proceed (dirty reported,
-// never blocked); --require-clean turns a dirty tree into a hard refusal, which
-// --force / --allow-dirty escapes. It NEVER prompts, so the --yes /
-// non-interactive agent/CI path can never hang.
+// swap (#1453, #1458). It is a silent no-op for a clean tree, a non-git
+// project, or when git is unavailable. As of #1458 the DEFAULT is FAIL-LOUD: a
+// dirty tree is blocked (the upgrade refuses, non-zero exit, no payload swap)
+// unless --force / --allow-dirty is set. --require-clean is an accepted no-op
+// alias for this now-default behavior. It NEVER prompts, so the refusal is
+// identical on the interactive and the --yes / non-interactive agent/CI paths
+// (the latter can never hang).
 func checkDirtyTree(projectDir string, opts commitHygieneOptions) dirtyTreeAdvisory {
 	lines, isRepo, err := gitPorcelainStatusFunc(projectDir)
 	if err != nil || !isRepo {
@@ -120,52 +142,78 @@ func checkDirtyTree(projectDir string, opts commitHygieneOptions) dirtyTreeAdvis
 		return dirtyTreeAdvisory{checked: true}
 	}
 	adv := dirtyTreeAdvisory{checked: true, dirty: true, files: lines}
-	if opts.requireClean && !opts.force {
+	// #1458: a dirty tree refuses the upgrade by default; --force / --allow-dirty
+	// is the only escape. --require-clean (opts.requireClean) is now redundant
+	// and intentionally not consulted.
+	if !opts.force {
 		adv.blocked = true
 	}
 	return adv
 }
 
 // printDirtyTreeAdvisory writes the human-readable commit-hygiene advisory for
-// a dirty working tree (#1453). It frames the message as either a hard refusal
-// (blocked, via --require-clean) or a warn-and-proceed notice, and always
-// explains WHY (the deft-core-guard rejects a mixed PR) and WHAT to do
-// (commit/stash first; land the framework deposit on its own branch/PR).
+// a dirty working tree (#1453, #1458). For the default fail-loud refusal
+// (blocked) it prints a LOUD error that explains WHY a clean tree is wanted and
+// spells out the clean-up-vs-force tradeoff with pros/cons. For the --force /
+// --allow-dirty bypass (dirty but not blocked) it prints a short warning that
+// the framework deposit and the consumer's uncommitted changes will coexist.
 func printDirtyTreeAdvisory(w *Wizard, adv dirtyTreeAdvisory) {
 	if !adv.dirty {
 		return
 	}
 	w.printf("\n")
-	if adv.blocked {
-		w.printf("Refusing to upgrade: your working tree has uncommitted changes (--require-clean).\n")
-	} else {
-		w.printf("Warning: your working tree has uncommitted changes before this upgrade.\n")
+	if !adv.blocked {
+		// --force / --allow-dirty: proceeding against a dirty tree.
+		w.printf("Warning: upgrading against a dirty working tree (--force / --allow-dirty).\n")
+		w.printf("The framework deposit and your uncommitted changes will coexist; keep them in\n")
+		w.printf("separate commits or the deft-core-guard CI check rejects a mixed commit.\n\n")
+		w.printf("Uncommitted changes:\n")
+		printDirtyFiles(w, adv.files)
+		w.printf("\n")
+		return
 	}
-	w.printf("This upgrade rewrites the framework payload (.deft/core/**) and installer-managed\n")
-	w.printf("files. Committing those together with your own work trips the deft-core-guard CI\n")
-	w.printf("check, which rejects a PR that mixes .deft/core/** with your project files.\n\n")
-	w.printf("Recommended before upgrading:\n")
-	w.printf("  1. Commit or stash your own work first (git stash  /  git commit).\n")
-	w.printf("  2. Run the upgrade, then commit the framework deposit on its OWN branch.\n")
-	w.printf("  3. Open the framework bump as a separate PR from your app changes.\n\n")
+	// Default fail-loud refusal: explain WHY and the clean-up-vs-force pros/cons.
+	w.printf("Refusing to upgrade: your working tree has uncommitted changes.\n\n")
+	w.printf("Why a clean tree is wanted:\n")
+	w.printf("  An upgrade rewrites the framework payload (.deft/core/**) and installer-managed\n")
+	w.printf("  files. Committing those mixed with your own work trips the deft-core-guard CI\n")
+	w.printf("  check, which rejects a PR that mixes the framework payload with your app files.\n\n")
+	w.printf("Option 1 -- clean up first (recommended):\n")
+	w.printf("  - Commit or stash your own work first (git stash  /  git commit).\n")
+	w.printf("  - Re-run the upgrade, then commit the framework deposit on its OWN branch/PR.\n")
+	w.printf("  Pros: the framework bump lands as its own reviewable commit; the guard passes;\n")
+	w.printf("        clean history.\n")
+	w.printf("  Cons: you must commit or stash your in-progress work first.\n\n")
+	w.printf("Option 2 -- upgrade a dirty tree with --force:\n")
+	w.printf("  - Re-run with --force (or --allow-dirty) to upgrade anyway.\n")
+	w.printf("  Pros: no interruption to your current work.\n")
+	w.printf("  Cons: the framework deposit and your uncommitted changes coexist; you must keep\n")
+	w.printf("        them in separate commits yourself, or risk a mixed commit the guard rejects.\n\n")
 	w.printf("Uncommitted changes:\n")
-	for i, ln := range adv.files {
+	printDirtyFiles(w, adv.files)
+	w.printf("\n")
+}
+
+// printDirtyFiles prints up to dirtyTreePreviewLimit porcelain status lines,
+// summarising any overflow so a large dirty tree does not flood the terminal.
+func printDirtyFiles(w *Wizard, files []string) {
+	for i, ln := range files {
 		if i >= dirtyTreePreviewLimit {
-			w.printf("  ... and %d more\n", len(adv.files)-dirtyTreePreviewLimit)
+			w.printf("  ... and %d more\n", len(files)-dirtyTreePreviewLimit)
 			break
 		}
 		w.printf("  %s\n", ln)
 	}
-	if adv.blocked {
-		w.printf("\nRe-run with --force (or --allow-dirty) to upgrade anyway, or drop --require-clean.\n")
-	}
-	w.printf("\n")
 }
 
 // dirtyTreeBlockResult builds the single machine-readable JSON object emitted on
-// stdout when --require-clean refuses an upgrade in --json mode (#1453). The
-// shape mirrors the success object's dirty_* fields so a consumer parses one
-// schema either way. dirty_files is always a non-nil slice for stable JSON.
+// stdout when a dirty tree refuses an upgrade in --json mode (#1453, #1458).
+// stdout stays a single clean JSON object (#1385), so EVERY actionable signal
+// is a structured field rather than stderr-only prose: alongside the existing
+// error / error_code / dirty_tree / dirty_files it carries `why` (short
+// rationale), `remediation` (clean-up-first guidance), `force_hint` (the exact
+// bypass command), and a `warnings: []` array for non-fatal notices. dirty_files
+// and warnings are always non-nil slices for a stable JSON schema.
 func dirtyTreeBlockResult(adv dirtyTreeAdvisory) map[string]any {
 	files := adv.files
 	if files == nil {
@@ -177,6 +225,10 @@ func dirtyTreeBlockResult(adv dirtyTreeAdvisory) map[string]any {
 		"error_code":  dirtyTreeBlockCode,
 		"dirty_tree":  true,
 		"dirty_files": files,
+		"why":         dirtyTreeWhy,
+		"remediation": dirtyTreeRemediation,
+		"force_hint":  dirtyTreeForceHint,
+		"warnings":    []string{},
 	}
 }
 

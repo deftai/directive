@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -1299,4 +1300,234 @@ func TestBuildNonInteractiveResult_EmptyBasenameFallsBackToProject(t *testing.T)
 	if res.ProjectName == "" {
 		t.Error("ProjectName should never be empty -- expected fallback to \"project\"")
 	}
+}
+
+// ---------------------------------------------------------------------------
+// #1458 -- fail-loud dirty-tree --upgrade default + structured --json signals
+// ---------------------------------------------------------------------------
+
+// newDirtyUpgradeRepo builds a real git work tree with an existing vendored
+// .deft/core payload (marker.txt="orig") and an untracked consumer file so the
+// working tree is dirty. Returns the project dir. Used to drive the install()
+// dirty-tree gate end to end against real git.
+func newDirtyUpgradeRepo(t *testing.T, gitPath string) string {
+	t.Helper()
+	proj := t.TempDir()
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command(gitPath, append([]string{"-C", proj}, args...)...)
+		if out, e := cmd.CombinedOutput(); e != nil {
+			t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), e, out)
+		}
+	}
+	runGit("init", "-q")
+	runGit("config", "user.email", "test@example.com")
+	runGit("config", "user.name", "Test")
+	runGit("config", "commit.gpgsign", "false")
+	core := filepath.Join(proj, ".deft", "core")
+	if err := os.MkdirAll(core, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(core, "marker.txt"), []byte("orig"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// Untracked consumer file -> dirty working tree.
+	if err := os.WriteFile(filepath.Join(proj, "app.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return proj
+}
+
+// TestInstall_DirtyTreeUpgradeFailsLoudNonInteractive is the #1458 headline AC
+// on the --yes/non-interactive path: a dirty-tree --upgrade exits non-zero,
+// performs no payload swap (fetchCoreTarballFunc is never called), and leaves
+// the existing payload untouched. The same dirty-tree gate is used after the
+// interactive wizard resolves result.Update, so the refusal behavior is shared.
+func TestInstall_DirtyTreeUpgradeFailsLoudNonInteractive(t *testing.T) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("git not available; skipping install()-level dirty-tree gate test")
+	}
+	origFetch := fetchCoreTarballFunc
+	defer func() { fetchCoreTarballFunc = origFetch }()
+
+	proj := newDirtyUpgradeRepo(t, gitPath)
+	core := filepath.Join(proj, ".deft", "core")
+	fetchCalled := false
+	fetchCoreTarballFunc = func(string) (string, error) {
+		fetchCalled = true
+		return "", fmt.Errorf("a blocked upgrade must never fetch")
+	}
+	t.Setenv("DEFT_USER_PATH", filepath.Join(t.TempDir(), "cfg"))
+
+	code := install(false, "", false, true, true, proj, false, false, false)
+	if code == 0 {
+		t.Error("dirty-tree --upgrade --yes must exit non-zero (fail loud), got 0")
+	}
+	if fetchCalled {
+		t.Error("a blocked upgrade must not swap the payload (fetchCoreTarballFunc was called)")
+	}
+	if data, err := os.ReadFile(filepath.Join(core, "marker.txt")); err != nil || string(data) != "orig" {
+		t.Errorf("payload must be unchanged on a blocked upgrade: data=%q err=%v", data, err)
+	}
+}
+
+// TestInstall_DirtyTreeUpgradeJSONStructuredObject pins the #1458 / #1385
+// contract on the --json failure path: stdout carries a single structured JSON
+// object including error_code, dirty_files, and the new why / remediation /
+// force_hint / warnings signals so a stdout-only agent gets the full picture.
+func TestInstall_DirtyTreeUpgradeJSONStructuredObject(t *testing.T) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("git not available; skipping install()-level JSON dirty-tree test")
+	}
+	origFetch := fetchCoreTarballFunc
+	defer func() { fetchCoreTarballFunc = origFetch }()
+	proj := newDirtyUpgradeRepo(t, gitPath)
+	fetchCalled := false
+	fetchCoreTarballFunc = func(string) (string, error) {
+		fetchCalled = true
+		return "", fmt.Errorf("a blocked upgrade must never fetch")
+	}
+	t.Setenv("DEFT_USER_PATH", filepath.Join(t.TempDir(), "cfg"))
+
+	oldStdout := os.Stdout
+	r, wPipe, perr := os.Pipe()
+	if perr != nil {
+		t.Fatalf("os.Pipe: %v", perr)
+	}
+	os.Stdout = wPipe
+	code := install(false, "", false, true, true, proj, true, false, false)
+	_ = wPipe.Close()
+	os.Stdout = oldStdout
+	stdout, _ := io.ReadAll(r)
+
+	if code == 0 {
+		t.Error("dirty-tree --upgrade --yes --json must exit non-zero, got 0")
+	}
+	if fetchCalled {
+		t.Error("a blocked upgrade must not swap the payload")
+	}
+
+	var obj map[string]any
+	if err := json.Unmarshal(stdout, &obj); err != nil {
+		t.Fatalf("stdout is not a single JSON object (#1385): %v\nstdout=%q", err, stdout)
+	}
+	if obj["success"] != false {
+		t.Errorf("success = %v, want false", obj["success"])
+	}
+	if obj["error_code"] != dirtyTreeBlockCode {
+		t.Errorf("error_code = %v, want %q", obj["error_code"], dirtyTreeBlockCode)
+	}
+	for _, field := range []string{"error", "why", "remediation", "force_hint"} {
+		if s, ok := obj[field].(string); !ok || s == "" {
+			t.Errorf("expected non-empty string field %q, got %v", field, obj[field])
+		}
+	}
+	if files, ok := obj["dirty_files"].([]any); !ok || len(files) == 0 {
+		t.Errorf("dirty_files must be a non-empty array, got %v", obj["dirty_files"])
+	}
+	if _, ok := obj["warnings"].([]any); !ok {
+		t.Errorf("warnings must be present as an array, got %v", obj["warnings"])
+	}
+}
+
+// TestInstall_ForceUpgradesDirtyTree proves AC #2 end to end: --force performs
+// the upgrade against a dirty working tree. The vendored file-swap runs and the
+// payload is replaced; the install returns success.
+func TestInstall_ForceUpgradesDirtyTree(t *testing.T) {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("git not available; skipping install()-level --force test")
+	}
+	origFetch := fetchCoreTarballFunc
+	origGit := runGitCaptureFunc
+	defer func() {
+		fetchCoreTarballFunc = origFetch
+		runGitCaptureFunc = origGit
+	}()
+
+	proj := newDirtyUpgradeRepo(t, gitPath)
+	core := filepath.Join(proj, ".deft", "core")
+	// Classify the payload as vendored deterministically so the upgrade uses
+	// the git-free file swap.
+	runGitCaptureFunc = func(string, ...string) (string, error) { return "", fmt.Errorf("not a repo") }
+	tarball := makeCoreTarball(t, "deftai-directive-beef1234", map[string]string{"marker.txt": "new"})
+	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+	t.Setenv("DEFT_USER_PATH", filepath.Join(t.TempDir(), "cfg"))
+
+	code := install(false, "", false, true, true, proj, false, false, true)
+	if code != 0 {
+		t.Fatalf("--force upgrade of a dirty tree must succeed (exit 0), got %d", code)
+	}
+	if data, err := os.ReadFile(filepath.Join(core, "marker.txt")); err != nil || string(data) != "new" {
+		t.Errorf("--force must perform the swap: marker.txt data=%q err=%v", data, err)
+	}
+}
+
+// TestInstallSummary_JSONObjectIncludesBackupAndPreviousVersion verifies the
+// #1458 success-object additions: backup_path (the out-of-tree rollback
+// location) and previous_version are present, and the slice fields normalise to
+// non-nil arrays for a stable JSON schema even when constructed from nil.
+func TestInstallSummary_JSONObjectIncludesBackupAndPreviousVersion(t *testing.T) {
+	const backup = "/cache/deft/backups/core.bak-20260603-160000"
+	const prev = "v0.39.6"
+	s := installSummary{
+		result:          &WizardResult{ProjectDir: "/proj", DeftDir: "/proj/.deft/core", Update: true},
+		nonInteractive:  true,
+		upgrade:         true,
+		payloadLayout:   payloadLayoutVendored,
+		strategy:        strategyFileSwap,
+		backupPath:      backup,
+		previousVersion: prev,
+	}
+	obj := s.jsonObject()
+
+	if obj["success"] != true {
+		t.Errorf("success = %v, want true", obj["success"])
+	}
+	if obj["backup_path"] != backup {
+		t.Errorf("backup_path = %v, want %q", obj["backup_path"], backup)
+	}
+	if obj["previous_version"] != prev {
+		t.Errorf("previous_version = %v, want %q", obj["previous_version"], prev)
+	}
+	for _, field := range []string{"missing_tools", "dirty_files", "staged_paths"} {
+		if _, ok := obj[field].([]string); !ok {
+			t.Errorf("%s must be a non-nil []string array, got %T", field, obj[field])
+		}
+	}
+	if _, err := json.Marshal(obj); err != nil {
+		t.Fatalf("success result is not JSON-marshalable: %v", err)
+	}
+}
+
+// TestReadInstallManifestTag covers the #1458 pre-upgrade tag reader: it parses
+// the single-quoted tag value, returns "" when no manifest exists, and returns
+// "" when the manifest carries no tag line.
+func TestReadInstallManifestTag(t *testing.T) {
+	t.Run("reads quoted tag", func(t *testing.T) {
+		dir := t.TempDir()
+		body := "ref: 'v0.39.6'\nsha: 'abc123'\ntag: 'v0.39.6'\ninstall_root: '.deft/core'\n"
+		if err := os.WriteFile(filepath.Join(dir, installManifestFilename), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if got := readInstallManifestTag(dir); got != "v0.39.6" {
+			t.Errorf("readInstallManifestTag = %q, want v0.39.6", got)
+		}
+	})
+	t.Run("missing manifest is empty", func(t *testing.T) {
+		if got := readInstallManifestTag(t.TempDir()); got != "" {
+			t.Errorf("readInstallManifestTag = %q, want empty for a missing manifest", got)
+		}
+	})
+	t.Run("no tag line is empty", func(t *testing.T) {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, installManifestFilename), []byte("ref: 'master'\nsha: 'x'\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if got := readInstallManifestTag(dir); got != "" {
+			t.Errorf("readInstallManifestTag = %q, want empty when no tag line", got)
+		}
+	})
 }
