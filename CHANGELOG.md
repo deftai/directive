@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`deft-install` no longer deposits a redundant `vbrief/.eval/` line when your `.gitignore` already covers it with a `**/vbrief/.eval/` glob (#1452)** -- the installer-managed `.gitignore` block added the bare `vbrief/.eval/` entry unconditionally, which is pure noise when a covering `**/vbrief/.eval/` glob (matching the same path at the repo root and every nested depth) is already present -- the only finding in an otherwise clean review on a real upgrade. The deposit now skips a canonical line when an equivalent `**/`-prefixed glob already covers it, and still adds `vbrief/.eval/` when no such glob exists. Closes #1452.
 
 ### Removed
 

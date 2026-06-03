@@ -1,0 +1,42 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1452"
+  },
+  "plan": {
+    "title": "fix(installer): de-duplicate gitignore deposit when a covering **/ glob already exists (#1452)",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(installer): skip the redundant bare vbrief/.eval/ gitignore line when the consumer .gitignore already carries a covering **/vbrief/.eval/ glob (#1452)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1452",
+      "Overview": "The installer's EnsureGitignoreLines in cmd/deft-install/setup.go deposits canonicalGitignoreLines (which includes the non-globbed vbrief/.eval/). When the consumer .gitignore already contains a covering glob such as **/vbrief/.eval/, the deposited bare vbrief/.eval/ line is strictly redundant noise -- gitignore semantics make a leading **/ match at the repo root and every nested depth, so the **/<x> glob is a superset of bare <x>. This was the only finding in an otherwise clean Greptile review on a real upgrade PR. Fix: add a small coverage helper so the deposit logic treats a present **/<x> glob as covering the bare <x> canonical line and skips the redundant addition, while preserving current behavior (still add vbrief/.eval/) when no covering glob is present. All other canonical lines and the byte-for-byte preservation of pre-existing lines are unchanged.",
+      "Labels": "bug, installer"
+    },
+    "items": [
+      {
+        "title": "Add a coverage helper so a present **/<x> glob is treated as covering the bare <x> canonical line during gitignore deposit.",
+        "status": "proposed"
+      },
+      {
+        "title": "A .gitignore already containing **/vbrief/.eval/ does NOT gain a redundant vbrief/.eval/ line after deposit.",
+        "status": "proposed"
+      },
+      {
+        "title": "A .gitignore WITHOUT the covering glob still gets vbrief/.eval/ deposited (current behavior preserved).",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1452",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1452: Installer-deposited .gitignore has redundant vbrief/.eval/ entry (duplicate of **/vbrief/.eval/)"
+      }
+    ],
+    "updated": "2026-06-03T16:08:06Z"
+  }
+}

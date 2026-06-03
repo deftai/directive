@@ -620,12 +620,42 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 // 4.2b .gitignore upkeep -- canonical F2 default (#1015, #1020)
 // ---------------------------------------------------------------------------
 
+// gitignoreEntryCovers reports whether a pre-existing .gitignore entry
+// (`existing`) already covers a canonical bare entry (`canonical`) via an
+// equivalent leading-`**/` glob. gitignore semantics make a leading `**/`
+// match in EVERY directory, so `**/vbrief/.eval/` matches `vbrief/.eval/` at
+// the repo root (and at every nested depth) -- the glob is a strict superset
+// of the bare form. When the consumer already carries that covering glob the
+// bare line the installer would otherwise deposit is pure noise (#1452). The
+// check is intentionally narrow: only the exact `**/<canonical>` shape counts
+// as a cover, so unrelated globs never silently suppress a canonical deposit.
+func gitignoreEntryCovers(existing, canonical string) bool {
+	return existing == "**/"+canonical
+}
+
+// gitignoreLineCovered reports whether any pre-existing .gitignore entry in
+// `present` already covers the canonical bare `line` via an equivalent
+// leading-`**/` glob (see gitignoreEntryCovers). Used by EnsureGitignoreLines
+// to skip depositing a line that an existing covering glob makes redundant
+// (#1452).
+func gitignoreLineCovered(line string, present map[string]bool) bool {
+	for entry := range present {
+		if gitignoreEntryCovers(entry, line) {
+			return true
+		}
+	}
+	return false
+}
+
 // EnsureGitignoreLines appends the canonical baseline (`.deft-cache/`,
 // `vbrief/.eval/`) to the consumer's .gitignore if any line is missing. The
 // file is created when absent. Pre-existing lines are preserved byte-for-byte.
-// Mirrors scripts/relocate.py::_ensure_gitignore_lines for parity with the
-// relocator (#1015 F2 canonical default). Returns true if the file was
-// modified, false when no additions were needed.
+// A canonical line is also skipped when an existing entry already covers it
+// via an equivalent leading-`**/` glob (e.g. an existing `**/vbrief/.eval/`
+// makes the bare `vbrief/.eval/` deposit redundant, #1452) -- see
+// gitignoreLineCovered. Mirrors scripts/relocate.py::_ensure_gitignore_lines
+// for parity with the relocator (#1015 F2 canonical default). Returns true if
+// the file was modified, false when no additions were needed.
 func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
 	path := filepath.Join(projectDir, ".gitignore")
 	existing := ""
@@ -643,9 +673,15 @@ func EnsureGitignoreLines(w *Wizard, projectDir string) (bool, error) {
 
 	var additions []string
 	for _, line := range canonicalGitignoreLines {
-		if !present[line] {
-			additions = append(additions, line)
+		if present[line] {
+			continue
 		}
+		// Skip a bare canonical line that an existing `**/<line>` glob
+		// already covers -- depositing it would be redundant noise (#1452).
+		if gitignoreLineCovered(line, present) {
+			continue
+		}
+		additions = append(additions, line)
 	}
 	if len(additions) == 0 {
 		w.printf(".gitignore already covers deft-cache + vbrief eval lines — skipping.\n")

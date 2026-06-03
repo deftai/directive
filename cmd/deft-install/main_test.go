@@ -1055,6 +1055,121 @@ func TestEnsureGitignoreLines_LeakedArtifactGuards(t *testing.T) {
 	}
 }
 
+// gitignoreHasExactLine reports whether content has a line that, once trimmed,
+// exactly equals want. Substring checks are insufficient for the #1452 dedup
+// assertions because `**/vbrief/.eval/` contains the substring `vbrief/.eval/`.
+func gitignoreHasExactLine(content, want string) bool {
+	for _, ln := range strings.Split(content, "\n") {
+		if strings.TrimSpace(ln) == want {
+			return true
+		}
+	}
+	return false
+}
+
+// TestEnsureGitignoreLines_SkipsRedundantWhenGlobCovers asserts the #1452 fix:
+// when the consumer .gitignore already carries a covering `**/vbrief/.eval/`
+// glob, the installer MUST NOT deposit the redundant bare `vbrief/.eval/`
+// line, while the covering glob and every other canonical line are preserved /
+// added as usual.
+func TestEnsureGitignoreLines_SkipsRedundantWhenGlobCovers(t *testing.T) {
+	tmp := t.TempDir()
+	pre := "# consumer pre-existing\n**/vbrief/.eval/\n"
+	if err := os.WriteFile(filepath.Join(tmp, ".gitignore"), []byte(pre), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	changed, err := EnsureGitignoreLines(w, tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Other canonical lines (.deft-cache/, vbrief/*.lock, ...) are still
+	// missing, so the deposit is expected to modify the file.
+	if !changed {
+		t.Error("expected changed=true (non-eval canonical lines still need depositing)")
+	}
+	data, err := os.ReadFile(filepath.Join(tmp, ".gitignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	// The redundant bare line MUST NOT be deposited.
+	if gitignoreHasExactLine(content, "vbrief/.eval/") {
+		t.Errorf("redundant bare vbrief/.eval/ line was deposited despite covering **/vbrief/.eval/ glob:\n%s", content)
+	}
+	// The covering glob MUST be preserved.
+	if !gitignoreHasExactLine(content, "**/vbrief/.eval/") {
+		t.Errorf(".gitignore lost the covering **/vbrief/.eval/ glob:\n%s", content)
+	}
+	// Every OTHER canonical line MUST still be deposited.
+	for _, want := range []string{".deft-cache/", "vbrief/*.lock", ".deft/core.bak-*/", ".deft/*.bak-*", "*.premigrate.*"} {
+		if !gitignoreHasExactLine(content, want) {
+			t.Errorf(".gitignore missing canonical line %q after deposit:\n%s", want, content)
+		}
+	}
+}
+
+// TestEnsureGitignoreLines_AddsBareWhenNoGlob asserts the current behavior is
+// preserved when NO covering glob is present: the bare `vbrief/.eval/` line is
+// still deposited (#1452 must not regress the default deposit).
+func TestEnsureGitignoreLines_AddsBareWhenNoGlob(t *testing.T) {
+	tmp := t.TempDir()
+	pre := "# consumer pre-existing\nnode_modules/\n"
+	if err := os.WriteFile(filepath.Join(tmp, ".gitignore"), []byte(pre), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	if _, err := EnsureGitignoreLines(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(tmp, ".gitignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(data)
+	if !gitignoreHasExactLine(content, "vbrief/.eval/") {
+		t.Errorf("bare vbrief/.eval/ line not deposited when no covering glob present:\n%s", content)
+	}
+}
+
+// TestGitignoreEntryCovers exercises the coverage predicate directly: a
+// `**/<x>` glob covers the bare `<x>`, and nothing else does (#1452).
+func TestGitignoreEntryCovers(t *testing.T) {
+	cases := []struct {
+		existing  string
+		canonical string
+		want      bool
+	}{
+		{"**/vbrief/.eval/", "vbrief/.eval/", true},
+		{"**/.deft-cache/", ".deft-cache/", true},
+		{"vbrief/.eval/", "vbrief/.eval/", false},   // exact, not a `**/` cover
+		{"vbrief/.eval", "vbrief/.eval/", false},    // trailing-slash mismatch
+		{"**/other/", "vbrief/.eval/", false},       // unrelated glob
+		{"**vbrief/.eval/", "vbrief/.eval/", false}, // missing slash after **
+	}
+	for _, c := range cases {
+		if got := gitignoreEntryCovers(c.existing, c.canonical); got != c.want {
+			t.Errorf("gitignoreEntryCovers(%q, %q) = %v, want %v", c.existing, c.canonical, got, c.want)
+		}
+	}
+}
+
+// TestGitignoreLineCovered checks the set-level helper against a presence map.
+func TestGitignoreLineCovered(t *testing.T) {
+	present := map[string]bool{
+		"**/vbrief/.eval/": true,
+		"node_modules/":    true,
+	}
+	if !gitignoreLineCovered("vbrief/.eval/", present) {
+		t.Error("expected vbrief/.eval/ to be covered by present **/vbrief/.eval/ glob")
+	}
+	if gitignoreLineCovered(".deft-cache/", present) {
+		t.Error("did not expect .deft-cache/ to be covered (no **/.deft-cache/ present)")
+	}
+}
+
 func TestWriteConsumerVbrief_CreatesNew(t *testing.T) {
 	tmp := t.TempDir()
 	projectDir := filepath.Join(tmp, "proj")
