@@ -35,7 +35,16 @@ tasks:
     desc: Lint and type-check Python code
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run ruff check .
-      - uv --project "{{.DEFT_ROOT}}" run mypy run.py
+      # #1475: bring the local type-check gate to parity with CI. The CI
+      # Python job (.github/workflows/ci.yml) runs `mypy tests/`, but this
+      # local gate previously checked only run.py -- so a type error under
+      # tests/ shipped green locally (task check -> core:lint) and reddened
+      # master after merge. The tests/ tree is now part of the gate; run.py
+      # is retained for its pre-existing local-only coverage. Both surfaces
+      # share the [tool.mypy] config in pyproject.toml, including the
+      # tests.* override that relaxes disallow_untyped_defs while still
+      # failing on real type mismatches under tests/.
+      - uv --project "{{.DEFT_ROOT}}" run mypy run.py tests/
 
 
   build:

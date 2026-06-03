@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **`task check` now type-checks the `tests/` tree, so a tests/ type error fails locally instead of only on CI (#1475)** -- the local pre-commit gate (`core:lint`) ran mypy over only `run.py`, while CI runs `mypy tests/`; a type error under `tests/` therefore passed `task check` locally and only reddened master after merge. `core:lint` now runs mypy over `run.py` and `tests/`, sharing the same `[tool.mypy]` config CI uses, bringing the local type-check scope to parity with CI. Closes #1475.
 
 ### Fixed
 
