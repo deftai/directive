@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 )
 
 // ---------------------------------------------------------------------------
@@ -36,6 +37,13 @@ import (
 // core.hooksPath and the hardened verify:hooks-installed check (#1463 Option 1).
 const consumerHooksDirName = ".githooks"
 
+// hookFileMode is the permission the deposited hooks are written and chmod'd to.
+// The executable bits (0o755) are REQUIRED for git to run the hooks on POSIX
+// hosts -- a non-executable hook is silently skipped, leaving the #747 / #798 /
+// #1019 gates inert on Unix consumers (#1477). On Windows the exec bit is a
+// no-op (chmod there only toggles the read-only attribute), which is harmless.
+const hookFileMode = 0o755
+
 // hookFilenames is the set of git hook scripts the installer materializes at the
 // consumer root. Only hooks the framework actually ships are copied; git
 // silently ignores any hook name it does not recognise, and a payload that does
@@ -62,6 +70,23 @@ var gitConfigGetHooksPathFunc = func(dir string) (string, error) {
 // it after confirming dir is inside a git work tree).
 var setGitHooksPathFunc = func(dir, value string) error {
 	return exec.Command("git", "-C", dir, "config", "core.hooksPath", value).Run()
+}
+
+// gitIndexChmodExecFunc records the executable bit (git mode 100755) for the
+// given repo-relative paths in the index of the repo at dir, via
+// `git update-index --add --chmod=+x`. Indirected for tests. This is what makes
+// the TRACKED hook deposit executable cross-platform: on Windows the
+// working-tree exec bit is invisible to git, so without this a consumer's
+// `git add` would stage the hooks as mode 100644 and git would silently skip
+// them on Unix checkouts (#1477). Best-effort by contract -- the caller only
+// invokes it after confirming dir is inside a git work tree and treats a
+// failure as non-fatal.
+var gitIndexChmodExecFunc = func(dir string, relPaths ...string) error {
+	if len(relPaths) == 0 {
+		return nil
+	}
+	args := append([]string{"-C", dir, "update-index", "--add", "--chmod=+x"}, relPaths...)
+	return exec.Command("git", args...).Run()
 }
 
 // WriteConsumerGitHooks copies the framework payload's .githooks/ hook scripts
@@ -92,6 +117,8 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 	}
 
 	deposited := false
+	healed := false           // a present hook was non-executable and the chmod repaired it (#1477)
+	var hookRelPaths []string // POSIX repo-relative paths of hooks present on disk
 	for _, name := range hookFilenames {
 		data, err := os.ReadFile(filepath.Join(srcDir, name))
 		if err != nil {
@@ -101,7 +128,7 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 			return false, fmt.Errorf("could not read hook %s: %w", name, err)
 		}
 		dst := filepath.Join(dstDir, name)
-		// Idempotency probe: skip the write ONLY when the hook is already present
+		// Idempotency probe: skip the WRITE ONLY when the hook is already present
 		// byte-for-byte. A read error (os.ErrNotExist on first deposit, or an
 		// unreadable existing hook) is intentionally folded into upToDate=false so
 		// the canonical hook is (re)written either way; the WriteFile below is the
@@ -109,17 +136,43 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 		// caller, so a failed read here needs no separate handling.
 		existing, rerr := os.ReadFile(dst)
 		upToDate := rerr == nil && bytes.Equal(existing, data)
-		if upToDate {
-			continue // already up-to-date byte-for-byte
+		if !upToDate {
+			if err := os.WriteFile(dst, data, hookFileMode); err != nil {
+				return false, fmt.Errorf("could not write hook %s: %w", name, err)
+			}
+			deposited = true
 		}
-		// 0o755: the hook MUST be executable for git to run it on POSIX hosts.
-		if err := os.WriteFile(dst, data, 0o755); err != nil {
-			return false, fmt.Errorf("could not write hook %s: %w", name, err)
+		// Detect a non-executable hook BEFORE the heal so the caller can report
+		// it -- otherwise a byte-identical 0o644 hook (the precise #1477 bug state
+		// for existing consumers) is silently repaired and the run reports
+		// "already wired -- skipping". The exec bit is meaningless on Windows
+		// (Stat reports no 0o111 bits there), so the probe is POSIX-only to avoid
+		// a spurious heal on every Windows re-run.
+		if runtime.GOOS != "windows" {
+			if info, serr := os.Stat(dst); serr != nil {
+				// Non-fatal: the chmod below still runs; warn so a transient
+				// stat failure leaves a trace rather than silently skipping the
+				// heal-detection probe.
+				w.printf("Warning: could not stat hook %s to check its exec bit: %v\n", name, serr)
+			} else if info.Mode().Perm()&0o111 == 0 {
+				healed = true
+			}
 		}
-		deposited = true
+		// Enforce the executable bit even on a byte-identical re-deposit:
+		// os.WriteFile applies its perm ONLY when CREATING a file (an O_TRUNC
+		// rewrite of a pre-existing 0o644 hook keeps 0o644) and the create-time
+		// perm is subject to umask. An explicit chmod guarantees the on-disk hook
+		// is executable so the #747 / #798 / #1019 gates fire on Unix consumers,
+		// and heals a hook an older installer deposited non-executable (#1477).
+		if err := os.Chmod(dst, hookFileMode); err != nil {
+			w.printf("Warning: could not mark hook %s executable: %v\n", name, err)
+		}
+		hookRelPaths = append(hookRelPaths, consumerHooksDirName+"/"+name)
 	}
 
-	// Point core.hooksPath at the consumer-root hooks dir so git runs them.
+	// Point core.hooksPath at the consumer-root hooks dir so git runs them, and
+	// record the hooks' exec bit (mode 100755) in the git index so the tracked
+	// deposit is executable on every platform (#1477).
 	hooksWired := false
 	if _, isRepo, _ := gitPorcelainStatusFunc(projectDir); isRepo {
 		current, _ := gitConfigGetHooksPathFunc(projectDir)
@@ -130,10 +183,23 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 				hooksWired = true
 			}
 		}
+		if len(hookRelPaths) > 0 {
+			if err := gitIndexChmodExecFunc(projectDir, hookRelPaths...); err != nil {
+				w.printf("Warning: could not record hook exec bit in git index: %v\n", err)
+			}
+		}
 	}
 
 	if deposited || hooksWired {
 		w.printf("✓ git hooks wired: %s/ deposited and core.hooksPath=%s (#1463 branch gate active).\n", consumerHooksDirName, consumerHooksDirName)
+		return true, nil
+	}
+	if healed {
+		// Content was already current but a hook had lost its exec bit; the
+		// chmod above repaired it. Surface the heal rather than reporting a
+		// no-op so a consumer who re-ran the installer to fix dead hooks sees
+		// confirmation (#1477).
+		w.printf("✓ git hooks healed: marked %s/ hooks executable (mode 100755) (#1477).\n", consumerHooksDirName)
 		return true, nil
 	}
 	w.printf("git hooks already wired (%s/ + core.hooksPath) — skipping.\n", consumerHooksDirName)

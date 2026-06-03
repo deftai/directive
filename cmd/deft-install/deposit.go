@@ -32,6 +32,18 @@ const (
 	coreGuardWorkflowRelPath = ".github/workflows/deft-core-guard.yml"
 )
 
+// frameworkSelfTestRelPath is the framework's own pytest suite as vendored into
+// a consumer install at .deft/core/tests/. Those tests validate the framework
+// inside its OWN repo (deftai/directive) and depend on framework-repo-only
+// fixtures (the framework CI workflows, the framework's vbrief/.eval/README.md,
+// the dev version string), so they fail by construction in any consumer
+// checkout -- the always-red `task deft:check` reported 14 failed + 6 errors
+// (#1474). pruneFrameworkSelfTests excludes the suite from the consumer deposit
+// so the framework-repo-only self-tests are never vendored (and therefore never
+// executed) in a consumer project. The canonical .deft/core/ layout is assumed,
+// mirroring coreGlob.
+const frameworkSelfTestRelPath = ".deft/core/tests"
+
 // installerManagedMatcher classifies a single repo-relative (POSIX-separated)
 // changed path as installer-managed -- i.e. deposited and maintained by
 // deft-install / upgrade outside .deft/core/, not consumer app code. A matcher
@@ -230,9 +242,11 @@ jobs:
 // depositNeutralization performs the #1430 deposit so the vendored framework
 // payload at .deft/core/** is treated as packaged framework assets rather than
 // consumer source by linguist, the Greptile/CodeQL bot reviewers, and an
-// optional CI guard. Every step is best-effort: a deposit failure (e.g. a
-// malformed pre-existing config the installer refuses to rewrite) is logged as a
-// warning and never aborts the install, mirroring WriteInstallManifest.
+// optional CI guard. It also prunes the framework's own self-test suite from the
+// consumer deposit (#1474) so `task deft:check` never runs framework-repo-only
+// tests. Every step is best-effort: a deposit failure (e.g. a malformed
+// pre-existing config the installer refuses to rewrite) is logged as a warning
+// and never aborts the install, mirroring WriteInstallManifest.
 func depositNeutralization(w *Wizard, projectDir string) {
 	if _, err := EnsureGitattributes(w, projectDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: could not deposit .gitattributes: %v\n", err)
@@ -246,6 +260,38 @@ func depositNeutralization(w *Wizard, projectDir string) {
 	if _, err := EnsureCoreGuardWorkflow(w, projectDir); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: could not deposit CI guard workflow: %v\n", err)
 	}
+	if _, err := pruneFrameworkSelfTests(w, projectDir); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: could not prune framework self-tests: %v\n", err)
+	}
+}
+
+// pruneFrameworkSelfTests removes the vendored framework self-test suite
+// (.deft/core/tests/) from a consumer install so the framework-repo-only tests
+// are never shipped -- and therefore never executed by the consumer-facing
+// `task deft:check` (#1474). It runs on every install (fresh + upgrade), after
+// the payload deposit, so a re-vendored tree is re-pruned. Returns true when the
+// suite was present and removed; an absent suite is a clean no-op (false, nil).
+// The canonical .deft/core/ layout is assumed, matching the rest of this
+// neutralization deposit (coreGlob). Best-effort by contract: the caller treats
+// a removal failure as non-fatal, mirroring depositNeutralization.
+func pruneFrameworkSelfTests(w *Wizard, projectDir string) (bool, error) {
+	path := filepath.Join(projectDir, filepath.FromSlash(frameworkSelfTestRelPath))
+	info, err := os.Stat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("could not stat %s: %w", frameworkSelfTestRelPath, err)
+	}
+	if !info.IsDir() {
+		// A regular file at that path is not the framework test suite; leave it.
+		return false, nil
+	}
+	if err := os.RemoveAll(path); err != nil {
+		return false, fmt.Errorf("could not remove %s: %w", frameworkSelfTestRelPath, err)
+	}
+	w.printf("Removed vendored framework self-tests (%s) from the consumer deposit (#1474).\n", frameworkSelfTestRelPath)
+	return true, nil
 }
 
 // EnsureGitattributes appends the linguist generated/vendored markers for
@@ -663,20 +709,60 @@ func insertCodeQLPathsIgnore(content, glob string) (string, bool) {
 	return content, false
 }
 
+// coreGuardWorkflowMarker is the distinctive header every deft-rendered guard
+// carries (coreGuardWorkflowContent always begins `name: deft-core-guard`). It
+// is the recognition token EnsureCoreGuardWorkflow uses to decide whether a
+// pre-existing file at coreGuardWorkflowRelPath is a deft-managed guard (safe to
+// refresh) versus an unrelated consumer file that merely shares the path (#1478).
+const coreGuardWorkflowMarker = "name: deft-core-guard"
+
 // EnsureCoreGuardWorkflow deposits the optional CI guard workflow at
-// coreGuardWorkflowRelPath create-if-absent (#1430). It is never overwritten so
-// a consumer who customised or deleted it keeps their choice. Returns true if
-// the file was created.
+// coreGuardWorkflowRelPath (#1430). It is create-if-absent AND refresh-on-stale:
+//
+//   - absent              -> the current guard is written (fresh install).
+//   - present + current   -> no-op (content already matches).
+//   - present + STALE deft guard -> rewritten to the current content so an
+//     allowlist change (e.g. the #1463 .githooks/ exemption added after the
+//     consumer first installed) reaches the consumer on the next --upgrade
+//     (#1478). Before this, the create-if-absent contract left v0.40.0 consumers
+//     pinned to a guard whose allowlist omitted .githooks/, so every framework
+//     upgrade PR was rejected by construction.
+//   - present + NOT a deft guard -> left untouched, so a consumer file that
+//     happens to share the path is never clobbered (the guard remains safe to
+//     delete or replace).
+//
+// Returns true if the file was created or refreshed.
 func EnsureCoreGuardWorkflow(w *Wizard, projectDir string) (bool, error) {
 	path := filepath.Join(projectDir, filepath.FromSlash(coreGuardWorkflowRelPath))
-	if pathExists(path) {
-		w.printf("%s already present — skipping.\n", coreGuardWorkflowRelPath)
-		return false, nil
+	desired := coreGuardWorkflowContent()
+
+	data, err := os.ReadFile(path)
+	if err == nil {
+		existing := string(data)
+		if existing == desired {
+			w.printf("%s already current — skipping.\n", coreGuardWorkflowRelPath)
+			return false, nil
+		}
+		if !strings.Contains(existing, coreGuardWorkflowMarker) {
+			// Not a deft-managed guard -- never clobber a consumer file that
+			// merely shares the deposit path.
+			w.printf("%s present but not deft-managed — leaving unchanged.\n", coreGuardWorkflowRelPath)
+			return false, nil
+		}
+		if err := os.WriteFile(path, []byte(desired), 0o644); err != nil {
+			return false, fmt.Errorf("could not refresh %s: %w", coreGuardWorkflowRelPath, err)
+		}
+		w.printf("%s refreshed: deft-core-guard allowlist updated (#1478).\n", coreGuardWorkflowRelPath)
+		return true, nil
 	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return false, fmt.Errorf("could not read %s: %w", coreGuardWorkflowRelPath, err)
+	}
+
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return false, fmt.Errorf("could not create workflows dir: %w", err)
 	}
-	if err := os.WriteFile(path, []byte(coreGuardWorkflowContent()), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(desired), 0o644); err != nil {
 		return false, fmt.Errorf("could not write %s: %w", coreGuardWorkflowRelPath, err)
 	}
 	w.printf("%s created: CI refuses PRs mixing %s with app files.\n", coreGuardWorkflowRelPath, coreGlob)

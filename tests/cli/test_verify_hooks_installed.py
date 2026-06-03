@@ -17,6 +17,7 @@ pytest's ``tmp_path`` (the Windows cleanup-race concern from #281).
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
 from pathlib import Path
 
@@ -53,7 +54,12 @@ def _make_hooks_dir(root: Path, rel: str = ".githooks") -> Path:
     hooks = root / rel
     hooks.mkdir(parents=True, exist_ok=True)
     for name in ("pre-commit", "pre-push"):
-        (hooks / name).write_text("#!/usr/bin/env sh\nexit 0\n", encoding="utf-8")
+        hook = hooks / name
+        hook.write_text("#!/usr/bin/env sh\nexit 0\n", encoding="utf-8")
+        # Mark executable so the #1477 POSIX-executability gate sees a
+        # functional hook (chmod is a harmless no-op for the exec bit on
+        # Windows).
+        hook.chmod(0o755)
     return hooks
 
 
@@ -83,6 +89,35 @@ def test_vendored_layout_passes(gate, tmp_path, monkeypatch):
     code, msg = gate.evaluate(tmp_path)
     assert code == 0
     assert "installed and functional" in msg
+
+
+def test_posix_executable_hooks_pass(gate, tmp_path, monkeypatch):
+    """POSIX: present + executable hooks pass the #1477 exec check."""
+    if os.name != "posix":
+        pytest.skip("exec-bit check is POSIX-only")
+    _make_hooks_dir(tmp_path)  # helper chmods 0o755
+    _make_scripts_dir(tmp_path, "scripts")
+    _stub_hooks_path(monkeypatch, gate, ".githooks")
+    code, msg = gate.evaluate(tmp_path)
+    assert code == 0
+    assert "installed and functional" in msg
+
+
+def test_posix_non_executable_hooks_fail(gate, tmp_path, monkeypatch):
+    """POSIX: present but NON-executable hooks are the #1477 inert-gate class."""
+    if os.name != "posix":
+        pytest.skip("exec-bit check is POSIX-only")
+    hooks = tmp_path / ".githooks"
+    hooks.mkdir()
+    for name in ("pre-commit", "pre-push"):
+        hook = hooks / name
+        hook.write_text("#!/usr/bin/env sh\nexit 0\n", encoding="utf-8")
+        hook.chmod(0o644)  # NON-executable
+    _make_scripts_dir(tmp_path, "scripts")
+    _stub_hooks_path(monkeypatch, gate, ".githooks")
+    code, msg = gate.evaluate(tmp_path)
+    assert code == 1
+    assert "not executable" in msg
 
 
 def test_hooks_path_unset_is_not_installed(gate, tmp_path, monkeypatch):
