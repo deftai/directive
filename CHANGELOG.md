@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **UPGRADING.md now opens with a big-jump triage entry point for multi-version upgrades (#1115)** -- a consumer jumping several minor versions no longer has to read every section to work out which ones apply. A new top-of-file triage maps version-range buckets to the sections that apply and the order to run them in (oldest applicable first), flags each bucket as auto-handled or manual, and points you at QUICK-START.md and the canonical `deft-install` + `task doctor` finish line. Closes #1115.
+- **QUICK-START.md can now finish a stale-AGENTS.md refresh and a pre-cutover migration in one agent session (#1114)** -- on a big-jump upgrade that trips both Case G (stale AGENTS.md) and Case H (pre-cutover artifacts), the agent used to stop and force a second session between the two. A new combined Case G+H path refreshes AGENTS.md first, runs the migration second, and emits a single restart at the end, removing the wasted session round-trip while producing the same end state. Closes #1114.
 
 ### Changed
 

@@ -37,6 +37,8 @@ Three checks here, in this order. The first match wins; later checks only run wh
 
 Priority ordering: Case G (byte-different content) always wins over Case K (install-path mismatch) because the refresh path is the higher-priority remediation -- when the template content has moved on, the refresh closes BOTH the content drift and any incidental install-path mismatch that the new content might re-introduce. Case K only fires when the content is byte-current AND the path is unresolved -- the exact "refresh would be a no-op" failure class issue #1046 documents.
 
+**Big-jump joint check (Case G+H gate).** Before acting on ANY Case G routing above (a byte-different managed section, or an unresolved / redirect-stub legacy skill path), first ALSO evaluate the 2c pre-cutover check below against `../`. ! If 2c ALSO holds (real pre-v0.20 `SPECIFICATION.md` / `PROJECT.md` present), the project is in the **joint big-jump state** where both the AGENTS.md refresh (Case G) and the pre-cutover migration (Case H) are due — jump to **Case G+H** (combined single-session remediation) in Step 3 instead of Case G. The combined path runs the refresh and the migration in one session and emits a single restart, avoiding the wasted Case G → restart → Case H round-trip. If 2c does not hold, route to Case G as usual.
+
 ### 2c. Are there pre-v0.20 artifacts at the user's project root?
 
 Check both of these files at `../` (the user's project root), using the same
@@ -86,6 +88,18 @@ Pick exactly one case from Step 2 and follow its instructions. Do not mix cases.
 7. After migration completes, re-run Step 2 of this QUICK-START — the project state has changed. Most likely you land in Case G (AGENTS.md still references old paths) or Case J.
 8. When AGENTS.md is refreshed, ! instruct the user: **"Framework updated. Start a new agent session to pick up the changes. The current session has stale context."**
 
+### Case G+H — Combined stale AGENTS.md + pre-cutover migration (big-jump, one session)
+
+Reached only via the **Big-jump joint check** in 2b: the managed section in `../AGENTS.md` is stale (Case G) AND pre-v0.20 artifacts are present at `../` (Case H). This is the typical shape of a multi-version "big jump" that crossed both the AGENTS.md managed-section refresh and the pre-v0.20 document-model cutover. Running Case G and Case H as two separate sessions wastes an agent-session round-trip, because `task migrate:vbrief` re-reads filesystem state directly and does NOT depend on the refreshed `AGENTS.md` being in the current agent's context. Both remediations therefore complete safely in **one session**.
+
+! Run the two remediations in this exact order — **AGENTS.md refresh first, migration second** — then emit a **single** restart instruction at the very end:
+
+1. **Refresh AGENTS.md first (Case G work).** Perform Case G steps 1-4 verbatim: identify the managed section, append when the sentinel is absent or byte-replace it when present, and preserve everything outside the managed region. ⊗ Do NOT emit the Case G step-5 restart instruction here — the combined path defers the single restart to step 3.
+2. **Run migration second (Case H work).** Perform Case H steps 1-6 verbatim: run the environment preflight, report each result, ask for explicit approval, and on approval run `task migrate:vbrief` (or the `task -t ./deft/Taskfile.yml migrate:vbrief` fallback) from the project root. ⊗ Do NOT perform Case H step 7 (re-run Step 2) or step 8 (restart): the AGENTS.md refresh is already done in step 1, and the single restart is emitted in step 3. The migration reads filesystem state directly, so refreshing AGENTS.md first does not change its inputs — the ordering is safe.
+3. **Single restart, exactly once.** Only after BOTH the refresh and the migration have completed, ! instruct the user EXACTLY ONCE: **"Framework updated and project migrated. Start a new agent session to pick up the changes. The current session has stale context."** ⊗ Do NOT emit a second restart instruction — the deferred Case G restart and the Case H restart collapse into this one.
+
+The end state is byte-identical to running Case G and Case H separately: the same managed-section refresh against `./templates/agents-entry.md` and the same `task migrate:vbrief` output (deprecation-redirect stubs plus the five `vbrief/` lifecycle folders). The only thing removed is the wasted intermediate session restart. For the version-by-version context of a big jump, see the [big-jump triage entry point](./UPGRADING.md#big-jump-triage--multi-version-upgrades-start-here) in UPGRADING.md.
+
 ### Case I — Partial migration repair
 
 1. Tell the user: "Your project has a partial vBRIEF layout. Missing lifecycle folders: <list the absent ones>. Shall I complete the migration by running `task migrate:vbrief`? It is idempotent and safe to re-run."
@@ -112,7 +126,7 @@ Read and follow `../AGENTS.md`. This starts the normal first-session flow (user 
 
 **Brownfield pointer:** For users retrofitting Deft onto an existing project (existing code, existing docs, or pre-v0.20 Deft layout), the authoritative adoption guide is [docs/BROWNFIELD.md](./docs/BROWNFIELD.md). It covers install options, migration, post-migration checks, and troubleshooting in more depth than the Case H flow above.
 
-**Upgrade pointer:** Users moving between framework versions should also read [UPGRADING.md](./UPGRADING.md) in the repo root for the version-by-version guide.
+**Upgrade pointer:** Users moving between framework versions should also read [UPGRADING.md](./UPGRADING.md) in the repo root for the version-by-version guide. For a multi-version "big jump", start at its [big-jump triage entry point](./UPGRADING.md#big-jump-triage--multi-version-upgrades-start-here), which names which version buckets apply and in what order. An agent on a big jump that hits both a stale AGENTS.md and pre-cutover artifacts should follow [Case G+H](#case-gh--combined-stale-agentsmd--pre-cutover-migration-big-jump-one-session) above to complete both in one session.
 
 ## Update notifications
 
