@@ -35,20 +35,36 @@ def _mypy_invocations(text: str) -> list[str]:
     ]
 
 
+# mypy flags that consume the following token as their value. Only these can
+# legitimately "swallow" a `tests/` token so that it is NOT a positional
+# target (e.g. `--exclude tests/`). Boolean flags (e.g. `--strict`) do NOT
+# consume the next token, so `--strict tests/` still targets tests/. Extend
+# this set if the gate ever adds another value-taking flag before a target.
+_VALUE_TAKING_FLAGS = frozenset({"--exclude", "--config-file"})
+
+
 def _targets_tests_tree(invocation: str) -> bool:
     """Return True only when `tests` is a positional mypy target.
 
     Guards against a loose substring match: ``tests`` appearing as the value of
-    a flag (e.g. ``--exclude tests/``) or anywhere other than a positional
-    argument must NOT count as covering the tests/ tree.
+    a value-taking flag (e.g. ``--exclude tests/``) or anywhere other than a
+    positional argument must NOT count as covering the tests/ tree. Boolean
+    flags between targets (e.g. ``--strict tests/``) are handled correctly --
+    only flags in ``_VALUE_TAKING_FLAGS`` consume their following token.
     """
     after_mypy = invocation.split(" mypy ", 1)[-1] if " mypy " in invocation else ""
     tokens = after_mypy.split()
-    for index, token in enumerate(tokens):
+    skip_next = False
+    for token in tokens:
+        if skip_next:
+            skip_next = False
+            continue
+        if token in _VALUE_TAKING_FLAGS:
+            skip_next = True
+            continue
         if token.startswith("-"):
             continue
-        previous = tokens[index - 1] if index > 0 else ""
-        if token.rstrip("/") == "tests" and not previous.startswith("-"):
+        if token.rstrip("/") == "tests":
             return True
     return False
 
