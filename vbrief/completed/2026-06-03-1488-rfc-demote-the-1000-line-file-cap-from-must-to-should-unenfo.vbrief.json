@@ -18,7 +18,7 @@
         "status": "proposed"
       },
       {
-        "title": "If Option A: , , and the  comment are updated; content tests referencing the cap (if any) are updated.",
+        "title": "If Option A: `coding/coding.md:43`, `coding/coding.md:202`, and the `pyproject.toml` comment are updated; content tests referencing the cap (if any) are updated.",
         "status": "proposed"
       },
       {
