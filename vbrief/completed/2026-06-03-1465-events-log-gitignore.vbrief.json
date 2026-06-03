@@ -1,0 +1,46 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1465"
+  },
+  "plan": {
+    "title": "fix(events): relocate default event log out of the no-longer-gitignored .deft/ so it stops leaking untracked in consumers (#1465)",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(events): relocate default event log out of the no-longer-gitignored .deft/ so it stops leaking untracked in consumers (#1465)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1465",
+      "Overview": "## Problem\r\n\r\nThe framework's behavioral event log, `.deft/events.jsonl`, leaks into consumer working trees as an untracked file. `scripts/_events.py` sets `DEFAULT_EVENT_LOG = Path(\".deft\") / \"events.jsonl\"` and documents `.deft/` as gitignored -- an assumption that was true in the #401 era but went stale when #11 made `.deft/core/` a committed payload. `.deft/` is therefore no longer blanket-gitignored, so `emit()` (which writes to `DEFAULT_EVENT_LOG` unless a path is injected) leaves an untracked `.deft/events.jsonl`. Observed live in `deftai/statusreport`: 4 `legacy:detected` records left an untracked file after a migration -- the migrator `scripts/migrate_vbrief.py` hardcodes `project_root / .deft / events.jsonl`.\r\n\r\n## Proposed remediation (Option 1)\r\n\r\nRelocate `DEFAULT_EVENT_LOG` to an already-gitignored location under `.deft-cache/` (the canonical gitignore already covers `.deft-cache/`): `.deft-cache/events.jsonl`. Update the in-repo writer `scripts/migrate_vbrief.py` to reference the `DEFAULT_EVENT_LOG` constant instead of the hardcoded `.deft/events.jsonl` path, and correct the stale module docstring + the `gitignored` comment on `DEFAULT_EVENT_LOG` plus the `events/README.md` storage path so they describe current reality.\r\n\r\n## Conflict avoidance\r\n\r\nA concurrent sibling worker (#1464) owns the canonical gitignore lists in `cmd/deft-install/setup.go` (`canonicalGitignoreLines`) and `scripts/relocate.py` (`GITIGNORE_LINES`). This fix is confined to `scripts/_events.py` (+ tests), `scripts/migrate_vbrief.py`, and `events/README.md`; it does NOT touch those gitignore lists.\r\n\r\n## Acceptance criteria\r\n\r\n- [ ] After a behavioral-event emission, the default event log is not surfaced as an untracked file (written to an already-ignored `.deft-cache/` path).\r\n- [ ] `scripts/_events.py` docstring/comment accurately describes the current gitignore reality (`.deft/` no longer blanket-ignored; log lives under `.deft-cache/`).\r\n- [ ] Regression coverage asserting the default event-log path is relocated to an already-ignored location and that `git check-ignore` treats it as ignored in the vendored consumer layout.\r\n\r\n## Related\r\n\r\n- #635 (events epic), #401 (the now-stale `.deft/`-gitignored assumption), #11 (committed `.deft/core/` payload).\r\n- Sibling gitignore-deposit bugs: #1463, #1464.\r\n",
+      "Labels": "bug, installer"
+    },
+    "items": [
+      {
+        "title": "DEFAULT_EVENT_LOG in scripts/_events.py is relocated to an already-gitignored location under .deft-cache/ (.deft-cache/events.jsonl).",
+        "status": "proposed"
+      },
+      {
+        "title": "scripts/_events.py module docstring + the comment on DEFAULT_EVENT_LOG accurately describe the current gitignore reality (no longer claim .deft/ is gitignored).",
+        "status": "proposed"
+      },
+      {
+        "title": "In-repo writers/readers of the old path (scripts/migrate_vbrief.py, events/README.md) reference the constant / new path so nothing leaks to .deft/.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression tests assert the default event-log path is relocated to an already-ignored path and that emit() writes there by default in the vendored consumer layout.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1465",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1465: events: .deft/events.jsonl leaks untracked in consumers (stale .deft/-gitignored assumption in _events.py)"
+      }
+    ],
+    "updated": "2026-06-03T16:55:17Z"
+  }
+}

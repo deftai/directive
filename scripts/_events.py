@@ -18,10 +18,14 @@ describes the contract.
 
 Storage
 -------
-Events are appended to ``.deft/events.jsonl`` under the project root.
-``.deft/`` is gitignored as "Generated Deft exports" (#401 trim arc); the
-file is project-local and ephemeral. Tests inject a temp path to keep
-tests hermetic.
+Events are appended to ``.deft-cache/events.jsonl`` under the project
+root. The log lives under ``.deft-cache/`` (already covered by the
+canonical gitignore deposit) rather than ``.deft/`` because, since #11
+made the ``.deft/core/`` payload a committed artifact, ``.deft/`` is no
+longer blanket-gitignored. The old #401-era assumption that ``.deft/``
+was gitignored went stale, so a default log under ``.deft/`` leaked as an
+untracked file in consumers (#1465). The file is project-local and
+ephemeral. Tests inject a temp path to keep tests hermetic.
 
 Pairing
 -------
@@ -71,8 +75,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-# Default event log location (project-local, gitignored).
-DEFAULT_EVENT_LOG: Path = Path(".deft") / "events.jsonl"
+# Default event log location (project-local). Lives under ``.deft-cache/``
+# -- which the canonical gitignore deposit already covers -- rather than
+# ``.deft/``, which is no longer blanket-gitignored now that ``.deft/core/``
+# is a committed payload (#11). The prior ``.deft/events.jsonl`` default
+# leaked as an untracked file in consumers (#1465).
+DEFAULT_EVENT_LOG: Path = Path(".deft-cache") / "events.jsonl"
 
 # Path to the unified events registry (data file). Resolved relative to
 # this module so tests and direct script invocations both find it without

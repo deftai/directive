@@ -34,6 +34,7 @@ Issue: #635 (epic), #642 (workflow umbrella), #709 (Repair Authority
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -45,6 +46,7 @@ sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
 import _events  # noqa: E402
 from _events import (  # noqa: E402
+    DEFAULT_EVENT_LOG,
     KNOWN_EVENTS,
     REQUIRED_PAYLOAD,
     emit,
@@ -648,6 +650,109 @@ class TestSkillReferences:
             "(acceptance criterion 4 in vbrief/proposed/"
             "2026-04-27-635-events-behavioral-wiring.vbrief.json)"
         )
+
+
+# =============================================================================
+# #1465: default event-log path must be gitignored in the vendored consumer
+# layout (relocated out of the no-longer-blanket-ignored .deft/)
+# =============================================================================
+
+
+def _git(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+    """Run a git subcommand in ``cwd`` and return the completed process."""
+    return subprocess.run(
+        ["git", *args],
+        cwd=str(cwd),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=30,
+    )
+
+
+class TestDefaultEventLogGitignored:
+    """Regression for #1465: the default behavioral event log leaked as an
+    untracked ``.deft/events.jsonl`` in consumers because ``_events.py``
+    assumed ``.deft/`` was gitignored -- an assumption that went stale when
+    #11 made ``.deft/core/`` a committed payload (so ``.deft/`` is no longer
+    blanket-ignored). The fix relocates the default to the already-ignored
+    ``.deft-cache/`` directory."""
+
+    def test_default_event_log_is_under_deft_cache(self) -> None:
+        """The constant points at the already-ignored ``.deft-cache/`` dir,
+        not the no-longer-blanket-ignored ``.deft/``."""
+        assert DEFAULT_EVENT_LOG.as_posix() == ".deft-cache/events.jsonl"
+        assert DEFAULT_EVENT_LOG.parts[0] == ".deft-cache"
+        assert DEFAULT_EVENT_LOG.parts[0] != ".deft"
+
+    def test_emit_default_writes_under_deft_cache(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """With no injected ``log_path`` and no ``DEFT_EVENT_LOG`` override,
+        ``emit`` writes to ``.deft-cache/events.jsonl`` -- never the old
+        leaky ``.deft/events.jsonl``."""
+        monkeypatch.delenv("DEFT_EVENT_LOG", raising=False)
+        monkeypatch.chdir(tmp_path)
+        emit(
+            "plan:approved",
+            {"plan_ref": "https://example/pr/1", "approver": "msadams"},
+        )
+        assert (tmp_path / ".deft-cache" / "events.jsonl").exists()
+        assert not (tmp_path / ".deft" / "events.jsonl").exists()
+
+    def test_default_path_ignored_in_vendored_consumer_layout(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """End-to-end: in a consumer repo whose ``.gitignore`` mirrors the
+        canonical deposit (covers ``.deft-cache/`` but NOT ``.deft/``, since
+        ``.deft/core/`` is a committed payload post-#11), the default event
+        log lands in an ignored location while the OLD ``.deft/`` path would
+        have leaked as untracked."""
+        if shutil.which("git") is None:
+            pytest.skip("git not available")
+        repo = tmp_path
+        assert _git(["init"], repo).returncode == 0
+        # Consumer layout: .deft/ is NOT blanket-ignored (it holds the
+        # committed .deft/core/ payload); only .deft-cache/ is ignored.
+        (repo / ".gitignore").write_text(".deft-cache/\n", encoding="utf-8")
+
+        monkeypatch.delenv("DEFT_EVENT_LOG", raising=False)
+        monkeypatch.chdir(repo)
+        emit(
+            "plan:approved",
+            {"plan_ref": "https://example/pr/1", "approver": "msadams"},
+        )
+        rel = DEFAULT_EVENT_LOG.as_posix()
+        assert (repo / rel).exists()
+
+        # The relocated default IS ignored (check-ignore exits 0).
+        ignored = _git(["check-ignore", rel], repo)
+        assert ignored.returncode == 0, (
+            f"{rel} MUST be gitignored in the consumer layout; "
+            f"stdout={ignored.stdout!r} stderr={ignored.stderr!r}"
+        )
+
+        # Control: the OLD default path would NOT be ignored (exit 1) --
+        # exactly the #1465 leak the relocation fixes.
+        old_path = (Path(".deft") / "events.jsonl").as_posix()
+        not_ignored = _git(["check-ignore", old_path], repo)
+        assert not_ignored.returncode == 1, (
+            f"control: {old_path} is NOT ignored in the consumer layout "
+            "(this is the #1465 leak the relocation avoids)"
+        )
+
+        # The relocated event log must be reported as IGNORED, never as an
+        # untracked (`??`) file -- the untracked leak was the #1465 symptom.
+        # `git status --porcelain --ignored` may collapse the wholly-ignored
+        # directory to `!! .deft-cache/`, so match the `!!` prefix tolerantly
+        # instead of pinning the exact path.
+        status = _git(["status", "--porcelain", "--ignored"], repo)
+        ignored = [ln for ln in status.stdout.splitlines() if ln.startswith("!!")]
+        assert any(".deft-cache" in ln for ln in ignored), (
+            f"relocated event log MUST be reported ignored; got {status.stdout!r}"
+        )
+        assert "?? .deft-cache/events.jsonl" not in status.stdout
 
 
 # Suppress the unused-import lint for the module-import shim.
