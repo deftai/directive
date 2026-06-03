@@ -748,8 +748,10 @@ class TestDefaultEventLogGitignored:
         # directory to `!! .deft-cache/`, so match the `!!` prefix tolerantly
         # instead of pinning the exact path.
         status = _git(["status", "--porcelain", "--ignored"], repo)
-        ignored = [ln for ln in status.stdout.splitlines() if ln.startswith("!!")]
-        assert any(".deft-cache" in ln for ln in ignored), (
+        ignored_lines = [
+            ln for ln in status.stdout.splitlines() if ln.startswith("!!")
+        ]
+        assert any(".deft-cache" in ln for ln in ignored_lines), (
             f"relocated event log MUST be reported ignored; got {status.stdout!r}"
         )
         assert "?? .deft-cache/events.jsonl" not in status.stdout
