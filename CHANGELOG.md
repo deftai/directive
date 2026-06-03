@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`deft-core-guard` no longer rejects `deft-install --upgrade` PRs (#1440)** -- the deposited guard counted every installer-managed root file as consumer "app" code, so a `deft-install --upgrade` could never land as a single green PR. The guard now treats installer-managed deposits (`AGENTS.md`, `.agents/`, `.gitattributes`/`.gitignore`, `greptile.json`, the CodeQL config, the guard workflow itself, and the `vbrief/` scaffolding plus `vbrief/.deft-version`) as part of the framework deposit, so an upgrade-only PR passes. Mixing `.deft/core/**` with genuine app files or consumer vBRIEF data (`vbrief/**/*.vbrief.json`) still fails, and the allowlist is rendered from a single in-installer source so the guard and the installer cannot drift. Closes #1440.
 
 ### Removed
 
