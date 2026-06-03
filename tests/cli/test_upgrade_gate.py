@@ -142,6 +142,10 @@ class TestProjectLifecycleSubdirs:
     ):
         """#410 companion: first setup writes .deft-version so the gate is quiet."""
         monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        # #1454: pin VERSION to a real value so the no-persist-sentinel guard
+        # does not suppress the marker write under a dev/shallow checkout
+        # (where the ambient VERSION resolves to 0.0.0-dev, e.g. CI).
+        monkeypatch.setattr(deft_run_module, "VERSION", "1.2.3")
         (isolated_env / "deft").mkdir(exist_ok=True)
         project_path = isolated_env / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
         mock_user_input(_project_responses(project_path))
@@ -164,7 +168,13 @@ class TestVersionMarkerHelpers:
     def test_read_missing_marker_returns_none(self, tmp_path, deft_run_module):
         assert deft_run_module._read_version_marker(tmp_path) is None
 
-    def test_write_and_read_marker_round_trip(self, tmp_path, deft_run_module):
+    def test_write_and_read_marker_round_trip(
+        self, tmp_path, deft_run_module, monkeypatch
+    ):
+        # #1454: pin VERSION to a real value so the no-persist-sentinel guard
+        # does not suppress the write under a dev/shallow checkout (where the
+        # ambient VERSION resolves to 0.0.0-dev, e.g. CI).
+        monkeypatch.setattr(deft_run_module, "VERSION", "1.2.3")
         vbrief_root = tmp_path / "vbrief"
         deft_run_module._write_version_marker(vbrief_root)
         assert (vbrief_root / ".deft-version").is_file()
@@ -383,6 +393,9 @@ class TestCmdUpgrade:
         self, run_command, isolated_env, deft_run_module, monkeypatch
     ):
         monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        # #1454: pin VERSION so the no-persist-sentinel guard does not
+        # suppress the marker write under a dev/shallow checkout.
+        monkeypatch.setattr(deft_run_module, "VERSION", "1.2.3")
         (isolated_env / "vbrief").mkdir(exist_ok=True)
         result = run_command("cmd_upgrade", [])
         assert result.return_code in (0, None)
@@ -404,6 +417,9 @@ class TestCmdUpgrade:
 
     def test_updates_marker_on_drift(self, run_command, isolated_env, deft_run_module, monkeypatch):
         monkeypatch.setattr(deft_run_module, "HAS_RICH", False)
+        # #1454: pin VERSION so the no-persist-sentinel guard does not
+        # suppress the marker update under a dev/shallow checkout.
+        monkeypatch.setattr(deft_run_module, "VERSION", "1.2.3")
         (isolated_env / "vbrief").mkdir(exist_ok=True)
         (isolated_env / "vbrief" / ".deft-version").write_text("0.19.0\n", encoding="utf-8")
         result = run_command("cmd_upgrade", [])

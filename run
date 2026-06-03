@@ -47,6 +47,12 @@ from typing import List, Optional
 #       you change one, change the other -- regression coverage in
 #       tests/cli/test_run_version.py and tests/cli/test_resolve_version.py
 #       pins both surfaces to the same chain.
+#
+# The dev-checkout sentinel returned when no real version resolves (#741).
+# Defined once so the #1454 git-root guard and the no-persist marker/manifest
+# guards reference a single spelling instead of scattering the bare literal.
+_DEV_VERSION_SENTINEL = "0.0.0-dev"
+
 _VERSION_MANIFEST_TAG_RE = re.compile(
     r"^(?:tag|ref):\s*['\"]?v?([\d.][\w.-]*)['\"]?\s*$",
     re.MULTILINE,
@@ -81,6 +87,45 @@ def _version_from_deft_version_file(base_dir: Path) -> Optional[str]:
         version = version[1:]
     return version or None
 
+
+def _payload_is_own_git_root(payload_dir: Path) -> bool:
+    """Return True iff ``payload_dir`` is itself a git top-level (#1454).
+
+    Guards the ``git describe`` version fallback so a vendored
+    ``.deft/core/`` install (no VERSION manifest, no ``.deft-version``)
+    does NOT walk up into the consumer repo and report the CONSUMER's
+    tag as the framework version. ``git rev-parse --show-toplevel`` run
+    from ``payload_dir`` resolves to the enclosing repo's root; only when
+    that root IS ``payload_dir`` (framework-self-dev, where the payload
+    directory is the repo) do we trust ``git describe``.
+
+    Best-effort: a missing ``git`` binary, a timeout, a non-zero exit
+    (``payload_dir`` is not inside any repo), or empty output all return
+    False so the caller falls through to the dev sentinel rather than
+    raising. Mirrors ``scripts/resolve_version.py::_payload_is_own_git_root``.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+            cwd=str(payload_dir),
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+    if result.returncode != 0:
+        return False
+    toplevel = (result.stdout or "").strip()
+    if not toplevel:
+        return False
+    try:
+        return Path(toplevel).resolve() == payload_dir.resolve()
+    except OSError:
+        return False
+
+
 def _resolve_version() -> str:
     """Resolve `run`'s VERSION using the documented priority chain.
 
@@ -103,6 +148,13 @@ def _resolve_version() -> str:
     deft_version_value = _version_from_deft_version_file(script_dir_path)
     if deft_version_value:
         return deft_version_value
+    # #1454: only trust `git describe` when the framework payload dir is
+    # itself the git top-level. On a vendored `.deft/core/` install the
+    # payload is a SUBDIRECTORY of the consumer repo, so an unguarded
+    # `git describe` would walk up and report the CONSUMER's tag as the
+    # framework version. Skip git and fall through to the dev sentinel.
+    if not _payload_is_own_git_root(script_dir_path):
+        return _DEV_VERSION_SENTINEL
     script_dir = str(script_dir_path)
     try:
         result = subprocess.run(
@@ -116,13 +168,13 @@ def _resolve_version() -> str:
     except (subprocess.TimeoutExpired, OSError):
         # OSError covers FileNotFoundError (subclass) raised when `git`
         # is not on PATH plus other unexpected I/O failures.
-        return "0.0.0-dev"
+        return _DEV_VERSION_SENTINEL
     if result.returncode != 0:
-        return "0.0.0-dev"
+        return _DEV_VERSION_SENTINEL
     tag = (result.stdout or "").strip()
     if tag.startswith("v"):
         tag = tag[1:]
-    return tag or "0.0.0-dev"
+    return tag or _DEV_VERSION_SENTINEL
 
 
 VERSION = _resolve_version()
@@ -722,7 +774,17 @@ def _read_version_marker(project_root: Path) -> Optional[str]:
 
 
 def _write_version_marker(vbrief_root: Path) -> None:
-    """Write VERSION into `vbrief/.deft-version` (best-effort, never raises)."""
+    """Write VERSION into `vbrief/.deft-version` (best-effort, never raises).
+
+    #1454: refuses to persist the ``0.0.0-dev`` dev-checkout sentinel into a
+    consumer marker -- writing it would clobber a real recorded version on a
+    dev checkout (or a vendored install whose git context could not be
+    trusted). The prior marker value, if any, is preserved. It remains fine
+    for ``_resolve_version`` to RETURN the sentinel in-process; the rule is
+    only about not WRITING it.
+    """
+    if VERSION == _DEV_VERSION_SENTINEL:
+        return
     try:
         vbrief_root.mkdir(parents=True, exist_ok=True)
         (vbrief_root / ".deft-version").write_text(VERSION + "\n", encoding="utf-8")
@@ -2221,6 +2283,12 @@ def _write_install_manifest(
     the two stay in sync on every install.
     """
     effective_tag = tag if tag is not None else VERSION
+    # #1454: never persist the dev-checkout sentinel into a consumer
+    # manifest -- a `0.0.0-dev` resolution must not clobber the real
+    # `<install>/VERSION` provenance. Preserve any prior manifest by
+    # skipping the write (return None, mirroring the OSError degrade).
+    if effective_tag.lstrip("v") == _DEV_VERSION_SENTINEL:
+        return None
     effective_sha = sha if sha is not None else _resolve_framework_sha(install_root)
     effective_fetched_at = fetched_at if fetched_at is not None else _now_utc_iso()
     effective_project_root = project_root if project_root is not None else install_root.parent

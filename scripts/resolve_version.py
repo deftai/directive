@@ -262,13 +262,58 @@ def _from_deft_version(base_dir: Path | None = None) -> str | None:
     return version or None
 
 
+def _payload_is_own_git_root(payload_dir: Path) -> bool:
+    """Return True iff ``payload_dir`` is itself a git top-level (#1454).
+
+    Guards the ``git describe`` version fallback so a vendored
+    ``.deft/core/`` install (no VERSION manifest, no ``.deft-version``)
+    does NOT walk up into the consumer repo and report the CONSUMER's
+    tag as the framework version. ``git rev-parse --show-toplevel`` run
+    from ``payload_dir`` resolves to the enclosing repo's root; only when
+    that root IS ``payload_dir`` (framework-self-dev, where the payload
+    directory is the repo) do we trust ``git describe``.
+
+    Best-effort: a missing ``git`` binary, a timeout, a non-zero exit
+    (``payload_dir`` is not inside any repo), or empty output all return
+    False so the caller falls through to the dev fallback rather than
+    raising. Mirrors ``run::_payload_is_own_git_root``.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+            cwd=str(payload_dir),
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+    if result.returncode != 0:
+        return False
+    toplevel = (result.stdout or "").strip()
+    if not toplevel:
+        return False
+    try:
+        return Path(toplevel).resolve() == payload_dir.resolve()
+    except OSError:
+        return False
+
+
 def _from_git() -> str | None:
     """Return the latest annotated tag (without leading ``v``) or None.
 
     Rooted at the framework root so a vendored ``.deft/core/`` install does
     not pick up the consumer repo's tags (the manifest / ``.deft-version``
     branches catch that case first; this is the framework-self-dev path).
+
+    #1454: additionally guarded so the fallback only fires when the
+    framework root is ITSELF the git top-level. On a vendored install with
+    no manifest the payload is a subdirectory of the consumer repo, so an
+    unguarded ``git describe`` would bleed the consumer's tag.
     """
+    if not _payload_is_own_git_root(_FRAMEWORK_ROOT):
+        return None
     try:
         result = subprocess.run(
             ["git", "describe", "--tags", "--abbrev=0"],

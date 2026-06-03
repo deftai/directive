@@ -300,6 +300,10 @@ class TestLegacyManifestMigration:
         self, run_command, deft_run_module, monkeypatch, tmp_path
     ):
         monkeypatch.chdir(tmp_path)
+        # #1454: pin VERSION to a real value so the no-persist-sentinel guard
+        # does not suppress the canonical manifest write under a dev/shallow
+        # checkout (where the ambient VERSION resolves to 0.0.0-dev, e.g. CI).
+        monkeypatch.setattr(deft_run_module, "VERSION", "0.39.6")
         # Canonical install dir exists; legacy parent-level manifest disagrees.
         (tmp_path / ".deft" / "core").mkdir(parents=True)
         legacy = tmp_path / ".deft" / "VERSION"

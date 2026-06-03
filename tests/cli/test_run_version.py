@@ -43,6 +43,8 @@ from __future__ import annotations
 
 import importlib.machinery
 import importlib.util
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -106,6 +108,13 @@ class TestPriorityChain:
         monkeypatch.delenv("DEFT_RELEASE_VERSION", raising=False)
 
         def fake_run(cmd, **kwargs):
+            # #1454: the resolver first probes the payload's git root, then
+            # runs `git describe`. Report the payload dir as its own
+            # top-level so the describe branch is reached.
+            if cmd[:3] == ["git", "rev-parse", "--show-toplevel"]:
+                return SimpleNamespace(
+                    stdout=str(REPO_ROOT) + "\n", stderr="", returncode=0
+                )
             assert cmd[:2] == ["git", "describe"], (
                 f"unexpected subprocess call: {cmd!r}"
             )
@@ -123,6 +132,10 @@ class TestPriorityChain:
         monkeypatch.delenv("DEFT_RELEASE_VERSION", raising=False)
 
         def fake_run(cmd, **kwargs):
+            if cmd[:3] == ["git", "rev-parse", "--show-toplevel"]:
+                return SimpleNamespace(
+                    stdout=str(REPO_ROOT) + "\n", stderr="", returncode=0
+                )
             return SimpleNamespace(stdout="0.21.0\n", stderr="", returncode=0)
 
         monkeypatch.setattr(subprocess, "run", fake_run)
@@ -230,6 +243,10 @@ class TestPriorityChain:
         monkeypatch.setenv("DEFT_RELEASE_VERSION", "   \n")
 
         def fake_run(cmd, **kwargs):
+            if cmd[:3] == ["git", "rev-parse", "--show-toplevel"]:
+                return SimpleNamespace(
+                    stdout=str(REPO_ROOT) + "\n", stderr="", returncode=0
+                )
             return SimpleNamespace(stdout="v0.21.0\n", stderr="", returncode=0)
 
         monkeypatch.setattr(subprocess, "run", fake_run)
@@ -302,3 +319,228 @@ def test_imported_version_is_non_empty_string() -> None:
     # time varies (CI on a tagged commit will see e.g. "0.21.0";
     # contributors on a feature branch see whatever the last reachable
     # tag is). The chain MUST always produce something usable.
+    assert run_mod.VERSION  # non-empty sentinel-or-semver string
+
+
+# ---------------------------------------------------------------------------
+# #1454: git-describe fallback is gated on the payload's OWN git root
+# ---------------------------------------------------------------------------
+
+
+_HAS_GIT = shutil.which("git") is not None
+
+
+def _init_git_repo(repo: Path, tag: str | None = None) -> None:
+    """Initialise a throwaway git repo at ``repo`` with one (optionally
+    tagged) empty commit. Author/committer identity is injected via env so
+    the helper works on CI runners with no global git config.
+    """
+    repo.mkdir(parents=True, exist_ok=True)
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@example.com",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@example.com",
+    }
+
+    def _git(*args: str) -> None:
+        subprocess.run(
+            ["git", "-C", str(repo), *args],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+
+    _git("init", "-q")
+    _git("commit", "--allow-empty", "-q", "-m", "init")
+    if tag is not None:
+        _git("tag", tag)
+
+
+def _load_run_module_from(run_file: Path) -> ModuleType:
+    """Load a COPY of ``run`` from an arbitrary on-disk location.
+
+    The #1454 guard keys off ``Path(__file__).parent`` (the payload dir),
+    so the only faithful way to exercise the vendored-install path is to
+    place a copy of ``run`` inside a synthetic ``.deft/core/`` tree and
+    import it from there -- the module name is derived from the path so
+    repeated loads do not clobber one another.
+    """
+    name = f"deft_run_copy_{abs(hash(str(run_file)))}"
+    loader = importlib.machinery.SourceFileLoader(name, str(run_file))
+    spec = importlib.util.spec_from_loader(name, loader, origin=str(run_file))
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    module.__file__ = str(run_file)
+    sys.modules[name] = module
+    loader.exec_module(module)
+    return module
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="git binary not available")
+class TestGitRootGuard:
+    """`_resolve_version` only trusts ``git describe`` when the framework
+    payload directory is itself the git top-level. A vendored ``.deft/core/``
+    install (no VERSION manifest, no ``.deft-version``) sitting inside a
+    tagged consumer repo MUST resolve to the dev sentinel, NOT the
+    consumer's tag (#1454, salvaged from #1447).
+    """
+
+    def test_payload_is_own_git_root_true_for_repo_root(self, tmp_path: Path) -> None:
+        run_mod = _load_run_module()
+        repo = tmp_path / "repo"
+        _init_git_repo(repo, tag="v1.2.3")
+        assert run_mod._payload_is_own_git_root(repo) is True
+
+    def test_payload_is_own_git_root_false_for_subdir(self, tmp_path: Path) -> None:
+        run_mod = _load_run_module()
+        repo = tmp_path / "repo"
+        _init_git_repo(repo, tag="v1.2.3")
+        payload = repo / ".deft" / "core"
+        payload.mkdir(parents=True)
+        assert run_mod._payload_is_own_git_root(payload) is False
+
+    def test_payload_is_own_git_root_false_outside_any_repo(
+        self, tmp_path: Path
+    ) -> None:
+        run_mod = _load_run_module()
+        loose = tmp_path / "loose"
+        loose.mkdir()
+        assert run_mod._payload_is_own_git_root(loose) is False
+
+    def test_vendored_install_does_not_bleed_consumer_tag(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Headline #1454 regression: consumer tag must NOT leak into the
+        framework version on a vendored install with no manifest."""
+        monkeypatch.delenv("DEFT_RELEASE_VERSION", raising=False)
+        consumer = tmp_path / "consumer"
+        _init_git_repo(consumer, tag="v9.9.9")
+        payload = consumer / ".deft" / "core"
+        payload.mkdir(parents=True)
+        shutil.copy2(RUN_PATH, payload / "run")
+        run_mod = _load_run_module_from(payload / "run")
+        assert run_mod.VERSION == "0.0.0-dev"
+
+    def test_self_dev_payload_uses_git_describe(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """When the payload IS its own git root (framework self-dev), the
+        ``git describe`` fallback still resolves the real tag."""
+        monkeypatch.delenv("DEFT_RELEASE_VERSION", raising=False)
+        payload = tmp_path / "framework"
+        _init_git_repo(payload, tag="v3.2.1")
+        shutil.copy2(RUN_PATH, payload / "run")
+        run_mod = _load_run_module_from(payload / "run")
+        assert run_mod.VERSION == "3.2.1"
+
+
+# ---------------------------------------------------------------------------
+# #1454: never PERSIST the 0.0.0-dev sentinel into consumer markers/manifests
+# ---------------------------------------------------------------------------
+
+
+class TestNoPersistDevSentinel:
+    """`_write_version_marker` / `_write_install_manifest` must refuse to
+    write the ``0.0.0-dev`` sentinel so a dev-checkout (or a vendored
+    install whose git context could not be trusted) never clobbers a real
+    recorded version. The in-process VERSION may still be the sentinel;
+    only the WRITE is suppressed (#1454).
+    """
+
+    def test_marker_not_written_when_version_is_dev_sentinel(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        run_mod = _load_run_module()
+        monkeypatch.setattr(run_mod, "VERSION", "0.0.0-dev")
+        vbrief_root = tmp_path / "vbrief"
+        run_mod._write_version_marker(vbrief_root)
+        assert not (vbrief_root / ".deft-version").exists()
+
+    def test_marker_preserves_prior_value_when_dev_sentinel(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        run_mod = _load_run_module()
+        vbrief_root = tmp_path / "vbrief"
+        vbrief_root.mkdir()
+        marker = vbrief_root / ".deft-version"
+        marker.write_text("0.39.6\n", encoding="utf-8")
+        monkeypatch.setattr(run_mod, "VERSION", "0.0.0-dev")
+        run_mod._write_version_marker(vbrief_root)
+        assert marker.read_text(encoding="utf-8").strip() == "0.39.6"
+
+    def test_marker_written_for_real_version(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        run_mod = _load_run_module()
+        monkeypatch.setattr(run_mod, "VERSION", "1.2.3")
+        vbrief_root = tmp_path / "vbrief"
+        run_mod._write_version_marker(vbrief_root)
+        assert (
+            (vbrief_root / ".deft-version").read_text(encoding="utf-8").strip()
+            == "1.2.3"
+        )
+
+    def test_install_manifest_not_written_for_explicit_dev_tag(
+        self, tmp_path: Path
+    ) -> None:
+        run_mod = _load_run_module()
+        install = tmp_path / ".deft" / "core"
+        install.mkdir(parents=True)
+        result = run_mod._write_install_manifest(
+            install,
+            fetched_by="run-upgrade",
+            project_root=tmp_path,
+            tag="0.0.0-dev",
+        )
+        assert result is None
+        assert not (install / "VERSION").exists()
+
+    def test_install_manifest_skips_default_dev_version(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        run_mod = _load_run_module()
+        monkeypatch.setattr(run_mod, "VERSION", "0.0.0-dev")
+        install = tmp_path / ".deft" / "core"
+        install.mkdir(parents=True)
+        result = run_mod._write_install_manifest(
+            install,
+            fetched_by="run-upgrade",
+            project_root=tmp_path,
+        )
+        assert result is None
+        assert not (install / "VERSION").exists()
+
+    def test_install_manifest_preserves_prior_when_dev_tag(
+        self, tmp_path: Path
+    ) -> None:
+        run_mod = _load_run_module()
+        install = tmp_path / ".deft" / "core"
+        install.mkdir(parents=True)
+        prior = install / "VERSION"
+        prior.write_text("tag: 'v0.39.6'\n", encoding="utf-8")
+        result = run_mod._write_install_manifest(
+            install,
+            fetched_by="run-upgrade",
+            project_root=tmp_path,
+            tag="v0.0.0-dev",
+        )
+        assert result is None
+        assert prior.read_text(encoding="utf-8") == "tag: 'v0.39.6'\n"
+
+    def test_install_manifest_written_for_real_tag(self, tmp_path: Path) -> None:
+        run_mod = _load_run_module()
+        install = tmp_path / ".deft" / "core"
+        install.mkdir(parents=True)
+        result = run_mod._write_install_manifest(
+            install,
+            fetched_by="run-upgrade",
+            project_root=tmp_path,
+            tag="v1.2.3",
+            sha="deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+            fetched_at="2026-01-01T00:00:00Z",
+        )
+        assert result is not None
+        assert (install / "VERSION").is_file()

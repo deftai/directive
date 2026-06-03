@@ -25,6 +25,8 @@ Also covers the canonical PEP 440 normalization helper added in #771:
 from __future__ import annotations
 
 import importlib.util
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -86,6 +88,16 @@ class TestFromEnv:
 
 
 class TestFromGit:
+    @pytest.fixture(autouse=True)
+    def _trust_git_root(self, monkeypatch):
+        # #1454: `_from_git` now gates on the payload being its own git
+        # top-level. These tests exercise the describe-parsing logic, so
+        # stub the guard to True; the guard itself is covered by
+        # ``TestGitRootGuard``.
+        monkeypatch.setattr(
+            resolve_version, "_payload_is_own_git_root", lambda *a, **k: True
+        )
+
     def test_strips_leading_v(self, monkeypatch):
         def fake_run(cmd, **kwargs):
             return SimpleNamespace(stdout="v0.20.2\n", stderr="", returncode=0)
@@ -156,6 +168,11 @@ class TestResolveVersion:
 
     def test_git_used_when_env_missing(self, monkeypatch):
         monkeypatch.delenv("DEFT_RELEASE_VERSION", raising=False)
+        # #1454: stub the git-root guard to True so the describe branch is
+        # reached (the guard is covered directly by TestGitRootGuard).
+        monkeypatch.setattr(
+            resolve_version, "_payload_is_own_git_root", lambda *a, **k: True
+        )
 
         def fake_run(cmd, **kwargs):
             return SimpleNamespace(stdout="v0.20.2\n", stderr="", returncode=0)
@@ -422,3 +439,85 @@ class TestPep440PhaseCExtensionHook:
             )
         with pytest.raises(resolve_version.NonPublishableVersionError):
             resolve_version.to_pep440("v0.0.0-test.1")
+
+
+# ---------------------------------------------------------------------------
+# #1454: git-describe fallback gated on the payload's OWN git root
+# ---------------------------------------------------------------------------
+
+
+_HAS_GIT = shutil.which("git") is not None
+
+
+def _init_git_repo(repo: Path, tag: str | None = None) -> None:
+    """Initialise a throwaway git repo at ``repo`` with one (optionally
+    tagged) empty commit. Identity is injected via env so the helper works
+    on CI runners with no global git config.
+    """
+    repo.mkdir(parents=True, exist_ok=True)
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@example.com",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@example.com",
+    }
+
+    def _git(*args: str) -> None:
+        subprocess.run(
+            ["git", "-C", str(repo), *args],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+
+    _git("init", "-q")
+    _git("commit", "--allow-empty", "-q", "-m", "init")
+    if tag is not None:
+        _git("tag", tag)
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="git binary not available")
+class TestGitRootGuard:
+    """``_from_git`` only trusts ``git describe`` when ``_FRAMEWORK_ROOT`` is
+    itself the git top-level. A vendored ``.deft/core/`` payload inside a
+    tagged consumer repo MUST NOT pick up the consumer's tag (#1454). This
+    mirrors the identical guard pinned at the ``run`` surface in
+    ``tests/cli/test_run_version.py::TestGitRootGuard``.
+    """
+
+    def test_payload_is_own_git_root_true(self, tmp_path):
+        repo = tmp_path / "repo"
+        _init_git_repo(repo, tag="v1.2.3")
+        assert resolve_version._payload_is_own_git_root(repo) is True
+
+    def test_payload_is_own_git_root_false_for_subdir(self, tmp_path):
+        repo = tmp_path / "repo"
+        _init_git_repo(repo, tag="v1.2.3")
+        payload = repo / ".deft" / "core"
+        payload.mkdir(parents=True)
+        assert resolve_version._payload_is_own_git_root(payload) is False
+
+    def test_from_git_skips_when_not_own_root(self, tmp_path, monkeypatch):
+        consumer = tmp_path / "consumer"
+        _init_git_repo(consumer, tag="v9.9.9")
+        payload = consumer / ".deft" / "core"
+        payload.mkdir(parents=True)
+        monkeypatch.setattr(resolve_version, "_FRAMEWORK_ROOT", payload)
+        assert resolve_version._from_git() is None
+
+    def test_from_git_uses_when_own_root(self, tmp_path, monkeypatch):
+        payload = tmp_path / "framework"
+        _init_git_repo(payload, tag="v3.2.1")
+        monkeypatch.setattr(resolve_version, "_FRAMEWORK_ROOT", payload)
+        assert resolve_version._from_git() == "3.2.1"
+
+    def test_resolve_version_no_consumer_tag_bleed(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("DEFT_RELEASE_VERSION", raising=False)
+        consumer = tmp_path / "consumer"
+        _init_git_repo(consumer, tag="v9.9.9")
+        payload = consumer / ".deft" / "core"
+        payload.mkdir(parents=True)
+        monkeypatch.setattr(resolve_version, "_FRAMEWORK_ROOT", payload)
+        assert resolve_version.resolve_version() == resolve_version.DEV_FALLBACK
