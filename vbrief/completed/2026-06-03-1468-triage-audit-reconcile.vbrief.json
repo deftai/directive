@@ -1,0 +1,43 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1468"
+  },
+  "plan": {
+    "title": "triage: reconcile/self-heal audit log from proposed/pending/active vBRIEF inventory (#1468)",
+    "status": "completed",
+    "narratives": {
+      "Description": "triage: audit log can desync from proposed/ vBRIEFs with no self-heal (issues show untriaged after accept)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1468",
+      "Overview": "The triage audit log vbrief/.eval/candidates.jsonl is the single source of truth for 'has issue #N been triaged?', yet it can silently desync from the ingested vBRIEF inventory in vbrief/proposed/ / pending/ / active/. The audit log is operator-private and gitignored (sibling #1464), so branch churn or a vbrief/.eval/ cleanup can wipe it without git noticing. Bootstrap backfill (scripts/triage_bootstrap.py::step_backfill_audit_log) is point-in-time only: it writes one accept per vBRIEF present at the instant it runs and skips issue numbers already logged, so later-ingested vBRIEFs are never re-backfilled. The net effect is that a proposed/pending/active vBRIEF for #N carrying a valid x-vbrief/github-issue reference but no accept decision in the log is an internally inconsistent state that triage:summary faithfully (but confusingly) counts as untriaged, with no discoverable repair path short of a full task triage:bootstrap re-run (which also re-fetches the cache). This scope adds a discoverable, idempotent self-heal: a new `task triage:reconcile` verb that derives the missing accept decisions from the on-disk vBRIEF inventory without a cache re-fetch, plus a `[triage:reconcile] N` divergence hint emitted by triage:summary (mirroring the existing [triage:scope] line) so the operator is pointed at the repair verb. Coordinates with #1464: because the audit log is silently wipeable, the filesystem vBRIEF inventory must remain a recoverable source for lost accept decisions.",
+      "Labels": "bug, test-debt, triage"
+    },
+    "items": [
+      {
+        "title": "A consumer whose candidates.jsonl is reset/lost can recover full triage state from the on-disk vBRIEF inventory via a single, discoverable repair verb (no manual JSONL editing, no full cache re-fetch required).",
+        "status": "proposed"
+      },
+      {
+        "title": "task triage:summary does not report an issue as untriaged when a proposed/pending/active vBRIEF for it exists with a valid x-vbrief/github-issue reference (either via self-heal or via a surfaced reconcile hint).",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression coverage: reset the audit log to a single backfill entry while N proposed/ vBRIEFs exist; assert the reconcile path restores N accept decisions and the summary untriaged count returns to 0.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "test-debt",
+      "triage"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1468",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1468: triage audit log can desync from proposed/ vBRIEFs with no self-heal"
+      }
+    ],
+    "updated": "2026-06-03T17:23:47Z"
+  }
+}

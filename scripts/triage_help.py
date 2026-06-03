@@ -607,6 +607,35 @@ REGISTRY: dict[str, VerbHelp] = {
             "#1119 / N3",
         ),
     ),
+    "task triage:reconcile": _entry(
+        name="task triage:reconcile",
+        summary="Self-heal audit log from on-disk vBRIEFs",
+        refs="(#1468)",
+        description=(
+            "Idempotent repair verb: derive missing `accept` decisions "
+            "for proposed/pending/active vBRIEFs that carry an "
+            "x-vbrief/github-issue reference but have no entry in "
+            "vbrief/.eval/candidates.jsonl. Recovers triage state after "
+            "the gitignored audit log is reset/lost (#1464) without a "
+            "full cache re-fetch. Never overrides an existing decision, "
+            "so a re-run is a no-op."
+        ),
+        usage="task triage:reconcile [-- --repo owner/name] [--dry-run] [--json]",
+        flags=(
+            ("--repo owner/name", "(ref URI / git remote)", "Fallback repo for refs lacking owner/name."),
+            ("--dry-run", "(off)", "Report what would be restored without writing."),
+            ("--json", "(off)", "Structured JSON output."),
+        ),
+        examples=(
+            "task triage:reconcile -- --dry-run",
+            "task triage:reconcile -- --repo deftai/directive",
+        ),
+        see_also=(
+            "task triage:summary",
+            "task triage:bootstrap",
+            "#1119 / #1468",
+        ),
+    ),
     # --- Bulk variants (#845 Story 4) ------------------------------------
     "task triage:bulk-accept": _entry(
         name="task triage:bulk-accept",
@@ -1245,6 +1274,7 @@ CATEGORIES_TRIAGE: list[tuple[str, list[str]]] = [
         [
             "task triage:bootstrap",
             "task triage:welcome",
+            "task triage:reconcile",
         ],
     ),
     (
@@ -1371,6 +1401,7 @@ SCRIPT_SUBCOMMAND_MAP: dict[str, dict[str, str]] = {
         "__default__": "task triage:subscribe",
     },
     "triage_summary": {"__default__": "task triage:summary"},
+    "triage_reconcile": {"__default__": "task triage:reconcile"},
     "triage_queue": {
         "queue": "task triage:queue",
         "show": "task triage:show",

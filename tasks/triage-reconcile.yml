@@ -1,0 +1,30 @@
+version: '3'
+
+# tasks/triage-reconcile.yml -- `task triage:reconcile` audit-log self-heal (#1468).
+#
+# Wired into the parent Taskfile.yml via the `includes:` block under namespace
+# key `triage-reconcile`. The inner task `reconcile` is reachable as
+# `task triage-reconcile:reconcile`; the parent Taskfile exposes the documented
+# `task triage:reconcile` alias.
+#
+# Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+# declarations because user-facing flags (`--repo`, `--dry-run`, `--json`,
+# `--project-root`) are forwarded via {{.CLI_ARGS}} and go-task's
+# incremental-build cache layer would silently swallow them.
+#
+# Companion script: scripts/triage_reconcile.py
+# Companion tests:  tests/test_triage_reconcile.py
+# Pattern reference: tasks/triage-bootstrap.yml (#845 Story 6).
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  reconcile:
+    desc: "Self-heal the triage audit log (#1468): backfill missing `accept` decisions for proposed/pending/active vBRIEFs carrying an x-vbrief/github-issue reference, without a cache re-fetch. Idempotent. -- task triage:reconcile [-- --repo OWNER/NAME] [--dry-run] [--json]"
+    internal: true
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/triage_reconcile.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

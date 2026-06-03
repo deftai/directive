@@ -184,6 +184,12 @@ includes:
   triage-bootstrap:
     taskfile: ./tasks/triage-bootstrap.yml
     optional: true
+  # #1468: `task triage:reconcile` audit-log self-heal. Inner task
+  # `reconcile` is exposed as the user-facing alias `task triage:reconcile`
+  # in the alias block below.
+  triage-reconcile:
+    taskfile: ./tasks/triage-reconcile.yml
+    optional: true
   # D12 (#1131): typed plan.policy.triageScope[] subscription surface.
   # Inner task `scope` is exposed as the user-facing alias `task triage:scope`
   # in the alias block below.
@@ -719,6 +725,13 @@ tasks:
     desc: "Run the triage v1 idempotent installer (#845 Story 6)."
     cmds:
       - task: triage-bootstrap:bootstrap
+        vars:
+          CLI_ARGS: "{{.CLI_ARGS}}"
+
+  triage:reconcile:
+    desc: "Self-heal the triage audit log (#1468): backfill missing `accept` decisions for proposed/pending/active vBRIEFs carrying an x-vbrief/github-issue reference, without a cache re-fetch. Idempotent. -- task triage:reconcile [-- --repo OWNER/NAME] [--dry-run] [--json]"
+    cmds:
+      - task: triage-reconcile:reconcile
         vars:
           CLI_ARGS: "{{.CLI_ARGS}}"
 

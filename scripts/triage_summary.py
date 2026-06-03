@@ -233,6 +233,16 @@ class SummaryResult:
     #: the ``outside scope`` vs ``not configured`` discrepancy-line
     #: variant.
     triage_scope_configured: bool = False
+    #: #1468: count of cached issues currently counted ``untriaged``
+    #: (no audit decision at all) that have a matching
+    #: ``proposed/`` / ``pending/`` / ``active/`` vBRIEF carrying an
+    #: ``x-vbrief/github-issue`` reference -- i.e. the issues a
+    #: ``task triage:reconcile`` run would heal. Suppressed from the
+    #: one-liner; surfaced as a second-line ``[triage:reconcile] N``
+    #: hint (mirrors the ``[triage:scope]`` divergence line). Defaults
+    #: to 0 for pre-#1468 callers / tests that construct
+    #: :class:`SummaryResult` directly.
+    reconcilable: int = 0
 
     def to_record(self, *, emitted_at: str, line: str) -> dict[str, Any]:
         """Render as the ``summary-history.jsonl`` record shape."""
@@ -251,6 +261,7 @@ class SummaryResult:
             "wip_cap": self.wip_cap,
             "repos": list(self.repos),
             "scope_drift": self.scope_drift,
+            "reconcilable": self.reconcilable,
         }
 
 
@@ -576,6 +587,12 @@ def compute_summary(
     untriaged = 0
     in_flight_cache_scoped = 0
     stale_defer = 0
+    # #1468: cached issues with NO audit decision at all -- the subset of
+    # ``untriaged`` that ``task triage:reconcile`` can heal when a
+    # matching on-disk vBRIEF exists. ``reset`` / other non-triaged
+    # decisions are deliberate operator actions and are NOT collected
+    # here (reconcile never overrides a real decision).
+    no_decision_keys: list[tuple[str, int]] = []
     for repo, issue_number in cached:
         decision = decisions.get((repo, issue_number))
         if decision is None or decision == "reset" or decision not in TRIAGED_DECISIONS:
@@ -583,6 +600,8 @@ def compute_summary(
             # docstring) so a reset-back-to-untriaged is correctly
             # counted in the untriaged bucket.
             untriaged += 1
+        if decision is None:
+            no_decision_keys.append((repo, issue_number))
         elif decision in IN_FLIGHT_DECISIONS:
             # #1270: this count is now the *cache-scoped* view, used
             # only for divergence detection against the
@@ -598,6 +617,9 @@ def compute_summary(
             stale_defer += 1
 
     scope_drift = _read_scope_drift_total(project_root, resolved_cache_root)
+    reconcilable = _read_reconcilable_total(
+        project_root, resolved_log_path, no_decision_keys
+    )
 
     return SummaryResult(
         cache_empty=False,
@@ -614,7 +636,39 @@ def compute_summary(
         in_flight_filesystem=in_flight_filesystem,
         in_flight_cache_scoped=in_flight_cache_scoped,
         triage_scope_configured=triage_scope_configured,
+        reconcilable=reconcilable,
     )
+
+
+def _read_reconcilable_total(
+    project_root: Path,
+    audit_log_path: Path,
+    no_decision_keys: list[tuple[str, int]],
+) -> int:
+    """Return the #1468 reconcilable count -- 0 on any import / runtime failure.
+
+    Intersects the cached, currently-untriaged-because-no-decision issues
+    (``no_decision_keys``) with the set ``task triage:reconcile`` would
+    heal (proposed/pending/active vBRIEFs carrying an
+    ``x-vbrief/github-issue`` reference with no audit entry). The reconcile
+    detector lives at ``scripts/triage_reconcile.py`` and is read-only.
+    Failures (missing module, malformed vBRIEFs, etc.) silently degrade to
+    0 so the one-liner contract (always exits 0) is preserved -- mirrors
+    :func:`_read_scope_drift_total`.
+    """
+    if not no_decision_keys:
+        return 0
+    try:
+        from triage_reconcile import count_reconcilable  # noqa: I001
+        return int(
+            count_reconcilable(
+                project_root,
+                audit_log_path=audit_log_path,
+                restrict_to=no_decision_keys,
+            )
+        )
+    except Exception:  # pragma: no cover -- broad on purpose; status surface
+        return 0
 
 
 def _read_scope_drift_total(project_root: Path, cache_root: Path) -> int:
@@ -751,6 +805,31 @@ def format_scope_discrepancy_line(result: SummaryResult) -> str | None:
     )
 
 
+def format_reconcile_hint_line(result: SummaryResult) -> str | None:
+    """Return the ``[triage:reconcile]`` hint line, or ``None`` if aligned.
+
+    Emitted (#1468) when ``result.reconcilable`` is positive -- i.e. one
+    or more cached issues are counted as ``untriaged`` (no audit
+    decision) yet a matching ``proposed/`` / ``pending/`` / ``active/``
+    vBRIEF carrying an ``x-vbrief/github-issue`` reference exists on
+    disk. Those issues were accepted (the surviving vBRIEF is the proof)
+    but their audit-log decision was lost; the line points the operator
+    at the discoverable repair verb. Mirrors the
+    :func:`format_scope_discrepancy_line` second-line pattern.
+
+    Returns ``None`` (no line) when ``reconcilable == 0`` -- the common
+    case once the audit log and the on-disk inventory agree, and always
+    on a cache-empty summary (the headline switches to
+    ``EMPTY_CACHE_LINE`` and there is nothing cached to reconcile).
+    """
+    if result.cache_empty or result.reconcilable <= 0:
+        return None
+    return (
+        f"[triage:reconcile] {result.reconcilable} accepted on disk but "
+        "missing from the audit log -- run `task triage:reconcile` to restore"
+    )
+
+
 def format_summary(result: SummaryResult, *, max_chars: int = MAX_LINE_CHARS) -> str:
     """Render the full (possibly multi-line) summary string.
 
@@ -761,17 +840,24 @@ def format_summary(result: SummaryResult, *, max_chars: int = MAX_LINE_CHARS) ->
     :func:`format_scope_discrepancy_line` (#1270).
 
     The 120-char cap is applied per physical line, not to the combined
-    string -- the discrepancy line is informational and intentionally
-    longer than the cap would allow when collapsed into one line. CLI
-    callers print this verbatim; the history-JSONL ``line`` field also
-    receives the full multi-line content so offline replay sees the
-    same view the operator did.
+    string -- the discrepancy / reconcile lines are informational and
+    intentionally longer than the cap would allow when collapsed into
+    one line. CLI callers print this verbatim; the history-JSONL
+    ``line`` field also receives the full multi-line content so offline
+    replay sees the same view the operator did.
+
+    Line order (when present): headline, then the #1270
+    ``[triage:scope]`` divergence line, then the #1468
+    ``[triage:reconcile]`` hint line.
     """
-    headline = format_one_liner(result, max_chars=max_chars)
-    extra = format_scope_discrepancy_line(result)
-    if extra is None:
-        return headline
-    return f"{headline}\n{extra}"
+    lines = [format_one_liner(result, max_chars=max_chars)]
+    scope_line = format_scope_discrepancy_line(result)
+    if scope_line is not None:
+        lines.append(scope_line)
+    reconcile_line = format_reconcile_hint_line(result)
+    if reconcile_line is not None:
+        lines.append(reconcile_line)
+    return "\n".join(lines)
 
 
 def append_history(
