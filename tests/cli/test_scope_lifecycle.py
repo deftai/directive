@@ -778,3 +778,26 @@ class TestDecomposedParentBackReference:
             data, child, new_child, tmp_path / "vbrief"
         )
         assert updated == []
+
+    def test_helper_swallows_parent_write_failure(self, tmp_path, monkeypatch):
+        """A parent write failure is swallowed -- best-effort, never raises.
+
+        The child move has already succeeded by the time the parent is
+        rewritten, so a disk-write error (disk full, EROFS, PermissionError)
+        must not escape ``run_transition``'s ``tuple[bool, str]`` contract.
+        """
+        import pathlib
+
+        parent_path, child_path = make_decomposed_pair(tmp_path)
+        child_data = read_vbrief(child_path)
+        new_child = tmp_path / "vbrief" / "active" / CHILD_NAME
+
+        def boom(self, *args, **kwargs):
+            raise OSError("simulated disk-write failure")
+
+        monkeypatch.setattr(pathlib.Path, "write_text", boom)
+        # Must not raise; reports no rewrite because the write failed.
+        updated = update_decomposed_parent_back_references(
+            child_data, child_path, new_child, tmp_path / "vbrief"
+        )
+        assert updated == []

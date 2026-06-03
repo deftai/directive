@@ -364,10 +364,17 @@ def _rewrite_parent_child_reference(
             changed = True
 
     if changed:
-        parent_path.write_text(
-            json.dumps(parent_data, indent=2, ensure_ascii=False) + "\n",
-            encoding="utf-8",
-        )
+        try:
+            parent_path.write_text(
+                json.dumps(parent_data, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+        except OSError:
+            # Best-effort: the child move has already succeeded, so a parent
+            # write failure (disk full, EROFS, PermissionError) MUST NOT
+            # escape run_transition's tuple[bool, str] "never raises"
+            # contract. Report no rewrite rather than propagating.
+            return False
     return changed
 
 
