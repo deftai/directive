@@ -19,6 +19,20 @@ The script is intentionally stdlib-only -- it ships with the framework
 distribution itself, so any external dependency would be a chicken-and-egg
 problem during release.
 
+Windows installer manifest resources (#1441)
+--------------------------------------------
+This script packages the *framework* archive; it does NOT build the Go
+``deft-install`` binaries (the release workflow's ``go build`` matrix does).
+The Windows binaries embed an ``asInvoker`` application manifest so Windows'
+installer-detection heuristic does not auto-elevate the ``install-*.exe``
+asset (which would pop a UAC prompt and break headless ``--yes`` runs). The
+manifest is carried by the committed per-arch resource objects
+``cmd/deft-install/resource_windows_{amd64,arm64}.syso``; ``go build`` links
+them automatically for ``GOOS=windows`` and ignores them elsewhere, so no
+step here (and no extra release tooling) is required. To regenerate them
+after editing ``cmd/deft-install/deft-install.manifest`` or
+``versioninfo.json``, run ``go generate ./cmd/deft-install/``.
+
 Usage
 -----
     uv run python scripts/build_dist.py --version 0.22.0

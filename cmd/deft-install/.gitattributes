@@ -1,0 +1,11 @@
+# Generated Windows COFF resource objects (issue #1441). They are binary
+# artifacts linked verbatim by `go build` for GOOS=windows; git must never
+# apply text/EOL normalization or attempt textual diffs/merges on them.
+*.syso binary
+
+# Pin the embedded application manifest and its goversioninfo config to LF so
+# `go generate ./cmd/deft-install/` produces byte-identical .syso regardless of
+# the developer's core.autocrlf setting (the manifest bytes are embedded as-is
+# into the .syso resource).
+deft-install.manifest text eol=lf
+versioninfo.json text eol=lf

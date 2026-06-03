@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Windows installer no longer triggers a UAC prompt; headless `--yes` works (#1441)** -- the Windows binaries now embed an `asInvoker` application manifest, so Windows' installer-detection heuristic no longer auto-elevates the `install-*.exe` asset purely because its name contains "install". `deft-install --yes --upgrade --repo-root . --json` now runs unattended on Windows with no elevation prompt and no "requires elevation" failure, restoring the agent/CI upgrade flow. Closes #1441.
 
 ### Removed
 
