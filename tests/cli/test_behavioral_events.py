@@ -748,10 +748,9 @@ class TestDefaultEventLogGitignored:
         # directory to `!! .deft-cache/`, so match the `!!` prefix tolerantly
         # instead of pinning the exact path.
         status = _git(["status", "--porcelain", "--ignored"], repo)
-        # Distinct name from the `ignored` CompletedProcess above so mypy does
-        # not see a list[str] reassigned onto a CompletedProcess[str] binding
-        # (#1465 follow-up: the reused name failed the CI `mypy tests/` gate).
-        ignored_lines = [ln for ln in status.stdout.splitlines() if ln.startswith("!!")]
+        ignored_lines = [
+            ln for ln in status.stdout.splitlines() if ln.startswith("!!")
+        ]
         assert any(".deft-cache" in ln for ln in ignored_lines), (
             f"relocated event log MUST be reported ignored; got {status.stdout!r}"
         )
