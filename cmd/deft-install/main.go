@@ -66,6 +66,9 @@ Options:
                             --repo-root for target dir (or uses CWD); auto-confirms
                             updates and installs; ideal for CI/agents
   --upgrade                 Force update/upgrade path even if framework dir exists
+  --require-clean           On --upgrade, refuse to proceed if the working tree has
+                            uncommitted changes (default: warn and proceed)
+  --force, --allow-dirty    Escape --require-clean and upgrade a dirty working tree
   --repo-root <path>        Target project directory (enables fully non-interactive
                             installs when combined with --yes)
   --json                    Emit structured JSON result to stdout (success, paths,
@@ -79,6 +82,8 @@ Windows-style aliases:
   /legacy-layout            Same as --legacy-layout
   /yes, /non-interactive    Same as --yes
   /upgrade                  Same as --upgrade
+  /require-clean            Same as --require-clean
+  /force, /allow-dirty      Same as --force
   /repo-root <path>         Same as --repo-root
   /json                     Same as --json
   /debug                    Same as --debug
@@ -114,6 +119,9 @@ func normalizeArgs(args []string) []string {
 		"/yes":             "--yes",
 		"/non-interactive": "--non-interactive",
 		"/upgrade":         "--upgrade",
+		"/require-clean":   "--require-clean",
+		"/force":           "--force",
+		"/allow-dirty":     "--allow-dirty",
 		"/repo-root":       "--repo-root",
 		"/json":            "--json",
 	}
@@ -139,6 +147,9 @@ func main() {
 	yes := flag.Bool("yes", false, "non-interactive mode (no prompts; combine with --repo-root)")
 	nonInteractive := flag.Bool("non-interactive", false, "alias for --yes")
 	upgrade := flag.Bool("upgrade", false, "force update/upgrade of existing install")
+	requireClean := flag.Bool("require-clean", false, "on --upgrade, refuse a dirty working tree (default: warn and proceed)")
+	force := flag.Bool("force", false, "escape --require-clean and upgrade a dirty working tree")
+	allowDirty := flag.Bool("allow-dirty", false, "alias for --force")
 	repoRoot := flag.String("repo-root", "", "target project dir for non-interactive installs")
 	jsonOut := flag.Bool("json", false, "emit JSON result instead of (or with) prose for agents")
 	flag.Usage = printUsage
@@ -154,7 +165,10 @@ func main() {
 	effectiveBranch := resolveBranch(*branch, defaultBranch)
 
 	nonInt := *yes || *nonInteractive
-	code := install(*debug, effectiveBranch, *legacyLayout, nonInt, *upgrade, *repoRoot, *jsonOut)
+	// --force and --allow-dirty are synonyms: either escapes the #1453
+	// --require-clean refusal of a dirty working tree on --upgrade.
+	forceDirty := *force || *allowDirty
+	code := install(*debug, effectiveBranch, *legacyLayout, nonInt, *upgrade, *repoRoot, *jsonOut, *requireClean, forceDirty)
 	if runtime.GOOS == "windows" && !nonInt {
 		pressEnterToExit()
 	}
@@ -164,7 +178,9 @@ func main() {
 }
 
 // install runs the full install/update workflow and returns an exit code.
-func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgrade bool, repoRoot string, jsonOut bool) int {
+// requireClean / force carry the #1453 commit-hygiene flag state
+// (--require-clean and --force / --allow-dirty respectively).
+func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgrade bool, repoRoot string, jsonOut, requireClean, force bool) int {
 	if debug {
 		fmt.Printf("[debug] OS=%s ARCH=%s\n", runtime.GOOS, runtime.GOARCH)
 		fmt.Printf("[debug] defaultBranch=%s branch=%s legacyLayout=%v nonInteractive=%v upgrade=%v repoRoot=%s json=%v\n", defaultBranch, branch, legacyLayout, nonInteractive, upgrade, repoRoot, jsonOut)
@@ -232,6 +248,30 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	// Phase 3: ensure git is available.
 	if err := EnsureGit(w); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		return 1
+	}
+
+	// #1453 Layer 1: dirty-working-tree advisory BEFORE an --upgrade payload
+	// swap. Gated on result.Update so an INITIAL install is never probed or
+	// blocked. Default is warn-and-proceed; --require-clean turns a dirty tree
+	// into a hard refusal that --force / --allow-dirty escapes. The probe never
+	// prompts, so the --yes / CI path can never hang. In --json mode the prose
+	// advisory is routed to stderr (stdout stays single-JSON-clean) and a
+	// refusal emits one machine-readable error object on stdout.
+	dirtyAdv := dirtyTreeGate(result.Update, result.ProjectDir, commitHygieneOptions{requireClean: requireClean, force: force})
+	advWriter := w
+	if jsonOut {
+		advWriter = NewWizardWithLayout(strings.NewReader(""), os.Stderr, debug, legacyLayout)
+	}
+	printDirtyTreeAdvisory(advWriter, dirtyAdv)
+	if dirtyAdv.blocked {
+		if jsonOut {
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			if encErr := enc.Encode(dirtyTreeBlockResult(dirtyAdv)); encErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: JSON encode failed: %v\n", encErr)
+			}
+		}
 		return 1
 	}
 
@@ -353,6 +393,16 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		return 1
 	}
 
+	// #1453 Layer 2: scoped staging + commit guidance. After every deposit,
+	// best-effort stage ONLY the framework + installer-managed paths (never
+	// `git add -A`, never consumer app files) and (below) print the exact scoped
+	// commit command. A staging failure is best-effort and never fails install.
+	stagePaths := frameworkStagePaths(result.ProjectDir, result.DeftDir)
+	staged, stageErr := stageFrameworkPaths(result.ProjectDir, stagePaths)
+	if stageErr != nil && debug {
+		fmt.Fprintf(os.Stderr, "[debug] scoped staging best-effort error: %v\n", stageErr)
+	}
+
 	if jsonOut {
 		// Machine readable result for agents / CI (Epic-3 AC). Includes
 		// actions taken for 1337/1338 so callers can react (e.g. re-invoke
@@ -367,6 +417,16 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		if updateOutcome != nil {
 			payloadLayout = updateOutcome.Layout
 			strategy = updateOutcome.Strategy
+		}
+		// #1453: surface the commit-hygiene advisory + scoped staging so agents /
+		// CI can react. Slices are non-nil for a stable JSON schema (never null).
+		dirtyFiles := dirtyAdv.files
+		if dirtyFiles == nil {
+			dirtyFiles = []string{}
+		}
+		stagedOut := []string{}
+		if staged {
+			stagedOut = stagePaths
 		}
 		out := map[string]any{
 			"success":         true,
@@ -383,6 +443,9 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 			"skills_created":  skillsCreated,
 			"payload_layout":  payloadLayout,
 			"strategy":        strategy,
+			"dirty_tree":      dirtyAdv.dirty,
+			"dirty_files":     dirtyFiles,
+			"staged_paths":    stagedOut,
 		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
@@ -407,11 +470,13 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		// stderr (which agents commonly capture alongside stdout).
 		wErr := NewWizardWithLayout(strings.NewReader(""), os.Stderr, debug, legacyLayout)
 		PrintNextSteps(wErr, result, configDir, skillsCreated)
+		printCommitGuidance(wErr, stagePaths, staged)
 		doHandoffToDoctor(wErr, result, jsonOut)
 		return 0
 	}
 
 	PrintNextSteps(w, result, configDir, skillsCreated)
+	printCommitGuidance(w, stagePaths, staged)
 
 	// #1339 (Epic-5): Installer → Doctor handoff + payload staleness detection.
 	// The installer invokes the canonical doctor (scripts/doctor.py) with
