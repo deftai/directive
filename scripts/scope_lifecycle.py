@@ -278,9 +278,14 @@ def detect_lifecycle_folder(file_path: Path) -> str | None:
 # reference to the child's new path on every move, so ``task vbrief:validate``
 # passes with no manual repair. The reference-resolution rules mirror
 # ``scripts/vbrief_validate.py`` (relative-to-vbrief-dir, ``file://`` support).
+#
+# ``resolve_vbrief_ref``, ``collect_plan_refs``, and ``collect_child_uris``
+# (below) are the PUBLIC decomposed-reference surface: cross-module consumers
+# such as ``scripts/swarm_complete_cohort.py`` (#1487) call them directly, so
+# they carry no leading underscore. The ``_rewrite_*`` helpers remain private.
 
 
-def _resolve_vbrief_ref(uri: object, vbrief_dir: Path) -> Path | None:
+def resolve_vbrief_ref(uri: object, vbrief_dir: Path) -> Path | None:
     """Resolve a vBRIEF reference URI to an absolute path, or None.
 
     Mirrors ``vbrief_validate._resolve_ref_path``: ``file://`` and bare
@@ -298,7 +303,7 @@ def _resolve_vbrief_ref(uri: object, vbrief_dir: Path) -> Path | None:
     return (vbrief_dir / rel).resolve()
 
 
-def _collect_plan_refs(plan: dict) -> list[str]:
+def collect_plan_refs(plan: dict) -> list[str]:
     """Collect planRef values from the plan root and top-level items.
 
     Matches ``vbrief_validate._collect_plan_refs``: ``planRef`` is valid at
@@ -351,7 +356,7 @@ def _rewrite_parent_child_reference(
         if ref.get("type") != "x-vbrief/plan":
             continue
         uri = ref.get("uri")
-        resolved = _resolve_vbrief_ref(uri, vbrief_dir)
+        resolved = resolve_vbrief_ref(uri, vbrief_dir)
         if resolved is None or resolved != old_child_resolved:
             continue
         new_uri = (
@@ -407,8 +412,8 @@ def update_decomposed_parent_back_references(
 
     updated: list[Path] = []
     seen: set[Path] = set()
-    for plan_ref in _collect_plan_refs(plan):
-        parent_path = _resolve_vbrief_ref(plan_ref, vbrief_dir)
+    for plan_ref in collect_plan_refs(plan):
+        parent_path = resolve_vbrief_ref(plan_ref, vbrief_dir)
         if parent_path is None or parent_path in seen:
             continue
         seen.add(parent_path)
@@ -437,7 +442,7 @@ def update_decomposed_parent_back_references(
 # manual repair. Reference resolution mirrors ``scripts/vbrief_validate.py``.
 
 
-def _collect_child_uris(plan: dict) -> list[str]:
+def collect_child_uris(plan: dict) -> list[str]:
     """Collect ``x-vbrief/plan`` child reference uris from a parent plan.
 
     Matches ``vbrief_validate.validate_epic_story_links``: a forward child
@@ -472,7 +477,7 @@ def _rewrite_one_plan_ref(
     """
     if not isinstance(value, str) or not value:
         return value, False  # type: ignore[return-value]
-    resolved = _resolve_vbrief_ref(value, vbrief_dir)
+    resolved = resolve_vbrief_ref(value, vbrief_dir)
     if resolved is None or resolved != old_parent_resolved:
         return value, False
     new_value = (
@@ -571,8 +576,8 @@ def update_decomposed_child_back_references(
 
     updated: list[Path] = []
     seen: set[Path] = set()
-    for child_uri in _collect_child_uris(plan):
-        child_path = _resolve_vbrief_ref(child_uri, vbrief_dir)
+    for child_uri in collect_child_uris(plan):
+        child_path = resolve_vbrief_ref(child_uri, vbrief_dir)
         if child_path is None or child_path in seen:
             continue
         seen.add(child_path)

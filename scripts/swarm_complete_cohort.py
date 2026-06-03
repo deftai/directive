@@ -181,7 +181,7 @@ def resolve_cohort_paths(
         abs_pattern = pattern
         if not Path(pattern).is_absolute():
             abs_pattern = str(project_root / pattern)
-        matched = sorted(Path(p) for p in glob.glob(abs_pattern))
+        matched = sorted(Path(p) for p in glob.glob(abs_pattern, recursive=True))
         if not matched:
             errors.append(f"glob matched no files: {pattern!r}")
             continue
@@ -237,11 +237,11 @@ def _all_children_settled(
     dry_run: bool,
 ) -> bool:
     """True when the parent has >=1 child ref and every child is settled."""
-    child_uris = _sl._collect_child_uris(parent_plan)
+    child_uris = _sl.collect_child_uris(parent_plan)
     if not child_uris:
         return False
     for uri in child_uris:
-        child_path = _sl._resolve_vbrief_ref(uri, vbrief_dir)
+        child_path = _sl.resolve_vbrief_ref(uri, vbrief_dir)
         if child_path is None:
             return False
         if not _child_is_settled(child_path, settled, dry_run):
@@ -255,8 +255,8 @@ def _parent_candidates_from(
 ) -> list[Path]:
     """Resolve a vBRIEF's planRef back-pointers to existing parent paths."""
     out: list[Path] = []
-    for plan_ref in _sl._collect_plan_refs(plan):
-        parent = _sl._resolve_vbrief_ref(plan_ref, vbrief_dir)
+    for plan_ref in _sl.collect_plan_refs(plan):
+        parent = _sl.resolve_vbrief_ref(plan_ref, vbrief_dir)
         if parent is not None and parent.is_file():
             out.append(parent.resolve())
     return out
