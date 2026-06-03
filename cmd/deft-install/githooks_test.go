@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -42,10 +43,12 @@ func TestWriteConsumerGitHooks_DepositsAndConfigures(t *testing.T) {
 	origStatus := gitPorcelainStatusFunc
 	origGet := gitConfigGetHooksPathFunc
 	origSet := setGitHooksPathFunc
+	origIdx := gitIndexChmodExecFunc
 	defer func() {
 		gitPorcelainStatusFunc = origStatus
 		gitConfigGetHooksPathFunc = origGet
 		setGitHooksPathFunc = origSet
+		gitIndexChmodExecFunc = origIdx
 	}()
 
 	proj := t.TempDir()
@@ -59,6 +62,11 @@ func TestWriteConsumerGitHooks_DepositsAndConfigures(t *testing.T) {
 		gotDir, gotVal = dir, value
 		return nil
 	}
+	var gotIdxPaths []string
+	gitIndexChmodExecFunc = func(_ string, relPaths ...string) error {
+		gotIdxPaths = relPaths
+		return nil
+	}
 
 	changed, err := WriteConsumerGitHooks(newGithooksWizard(), proj, deftDir)
 	if err != nil {
@@ -66,6 +74,13 @@ func TestWriteConsumerGitHooks_DepositsAndConfigures(t *testing.T) {
 	}
 	if !changed {
 		t.Error("expected changed=true on a fresh wire")
+	}
+
+	// The tracked hook deposit MUST be git-index-recorded with the exec bit so
+	// it is mode 100755 cross-platform (#1477).
+	wantIdx := []string{".githooks/pre-commit", ".githooks/pre-push"}
+	if strings.Join(gotIdxPaths, ",") != strings.Join(wantIdx, ",") {
+		t.Errorf("git-index chmod called with %v, want %v", gotIdxPaths, wantIdx)
 	}
 
 	// Hooks copied byte-for-byte to the consumer root .githooks/.
@@ -100,10 +115,12 @@ func TestWriteConsumerGitHooks_Idempotent(t *testing.T) {
 	origStatus := gitPorcelainStatusFunc
 	origGet := gitConfigGetHooksPathFunc
 	origSet := setGitHooksPathFunc
+	origIdx := gitIndexChmodExecFunc
 	defer func() {
 		gitPorcelainStatusFunc = origStatus
 		gitConfigGetHooksPathFunc = origGet
 		setGitHooksPathFunc = origSet
+		gitIndexChmodExecFunc = origIdx
 	}()
 
 	proj := t.TempDir()
@@ -115,6 +132,7 @@ func TestWriteConsumerGitHooks_Idempotent(t *testing.T) {
 	gitConfigGetHooksPathFunc = func(string) (string, error) { return consumerHooksDirName, nil }
 	setCalls := 0
 	setGitHooksPathFunc = func(string, string) error { setCalls++; return nil }
+	gitIndexChmodExecFunc = func(string, ...string) error { return nil }
 
 	// First wire deposits the hooks (config already set, so config is skipped).
 	if _, err := WriteConsumerGitHooks(newGithooksWizard(), proj, deftDir); err != nil {
@@ -185,6 +203,86 @@ func TestWriteConsumerGitHooks_MissingSourceSkips(t *testing.T) {
 	}
 	if pathExists(filepath.Join(proj, ".githooks")) {
 		t.Error("no consumer .githooks/ should be created when the source is absent")
+	}
+}
+
+// TestWriteConsumerGitHooks_DepositsExecutableMode pins #1477: the deposited
+// consumer hooks are written executable (the mode carries the 0o111 bits) so
+// git runs them on POSIX hosts. POSIX-only -- Windows has no executable bit.
+func TestWriteConsumerGitHooks_DepositsExecutableMode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("executable-bit semantics are POSIX-only")
+	}
+	origStatus := gitPorcelainStatusFunc
+	defer func() { gitPorcelainStatusFunc = origStatus }()
+	// Non-git project: hooks are still deposited on disk; the git-index path is
+	// skipped so no git stub is needed.
+	gitPorcelainStatusFunc = func(string) ([]string, bool, error) { return nil, false, nil }
+
+	proj := t.TempDir()
+	deftDir := filepath.Join(proj, ".deft", "core")
+	seedPayloadHooks(t, deftDir)
+
+	if _, err := WriteConsumerGitHooks(newGithooksWizard(), proj, deftDir); err != nil {
+		t.Fatalf("WriteConsumerGitHooks: %v", err)
+	}
+	for _, name := range []string{"pre-commit", "pre-push"} {
+		info, err := os.Stat(filepath.Join(proj, ".githooks", name))
+		if err != nil {
+			t.Fatalf("stat deposited %s: %v", name, err)
+		}
+		if info.Mode().Perm()&0o111 == 0 {
+			t.Errorf("deposited hook %s is not executable (mode %o)", name, info.Mode().Perm())
+		}
+	}
+}
+
+// TestWriteConsumerGitHooks_HealsNonExecutableExistingHook pins #1477: when an
+// older installer left a hook non-executable (0o644), a re-run heals the exec
+// bit even though the content is byte-identical -- the WRITE is skipped but the
+// chmod is not. POSIX-only.
+func TestWriteConsumerGitHooks_HealsNonExecutableExistingHook(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("executable-bit semantics are POSIX-only")
+	}
+	origStatus := gitPorcelainStatusFunc
+	defer func() { gitPorcelainStatusFunc = origStatus }()
+	gitPorcelainStatusFunc = func(string) ([]string, bool, error) { return nil, false, nil }
+
+	proj := t.TempDir()
+	deftDir := filepath.Join(proj, ".deft", "core")
+	preCommit, prePush := seedPayloadHooks(t, deftDir)
+
+	// Pre-existing consumer hooks: identical content, but NON-executable (the
+	// #1477 bug state from an older installer or a Windows-origin commit).
+	dstDir := filepath.Join(proj, ".githooks")
+	if err := os.MkdirAll(dstDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dstDir, "pre-commit"), []byte(preCommit), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dstDir, "pre-push"), []byte(prePush), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	changed, err := WriteConsumerGitHooks(newGithooksWizard(), proj, deftDir)
+	if err != nil {
+		t.Fatalf("WriteConsumerGitHooks: %v", err)
+	}
+	// A heal-only run (content already current, exec bit repaired) must report
+	// changed=true so the consumer sees confirmation rather than a no-op (#1477).
+	if !changed {
+		t.Error("expected changed=true when a non-executable hook is healed")
+	}
+	for _, name := range []string{"pre-commit", "pre-push"} {
+		info, err := os.Stat(filepath.Join(dstDir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if info.Mode().Perm()&0o111 == 0 {
+			t.Errorf("byte-identical non-executable hook %s was not healed to executable (mode %o)", name, info.Mode().Perm())
+		}
 	}
 }
 

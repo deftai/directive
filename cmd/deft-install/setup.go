@@ -1261,17 +1261,39 @@ func filepathWalk(root string, fn func(string, bool) error) error {
 // the underlying flush at Close() fails) surfaces to the caller rather than
 // being swallowed by a bare `defer out.Close()`. The named return `err` lets
 // the deferred close-error override a nil return when io.Copy succeeded.
+//
+// The source file's permission bits are preserved (#1477): the git-free payload
+// swap (upgrade.go copyTree -> copyFile) and the vbrief schema seed (copyDir ->
+// copyFile) must not strip the executable bit from vendored executables -- the
+// .githooks/ hooks, the `run` launcher, and shebang scripts ship mode 100755 in
+// the framework tarball and were silently flattened to 0o644 before this. Fall
+// back to 0o644 when the source mode cannot be stat'd.
 func copyFile(src, dst string) (err error) {
 	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer in.Close()
-	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	mode := os.FileMode(0o644)
+	if info, serr := in.Stat(); serr != nil {
+		// Stat failure is non-fatal -- fall back to 0o644 -- but log it so a
+		// transient error leaves a trace rather than silently dropping the
+		// source mode (mirrors copyTree's stat-for-mode handling in upgrade.go).
+		log.Printf("warning: stat %q for mode (using 0o644): %v", src, serr)
+	} else {
+		mode = info.Mode().Perm()
+	}
+	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
 	if err != nil {
 		return err
 	}
-	return copyStream(in, out)
+	if err := copyStream(in, out); err != nil {
+		return err
+	}
+	// O_CREATE applies the perm only when the file did not already exist and is
+	// subject to umask; chmod guarantees dst ends with the source's mode
+	// regardless (e.g. a pre-existing 0o644 dst being refreshed). (#1477)
+	return os.Chmod(dst, mode)
 }
 
 // copyStream is the I/O orchestration half of copyFile, split out so the
