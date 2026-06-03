@@ -283,8 +283,8 @@ func TestWriteConsumerGitHooks_VendoredCommitBlocked_RealGit(t *testing.T) {
 
 	env := append(os.Environ(), "DEFT_PYTHON="+pyPath)
 
-	// (a) Commit on master with policy=false MUST be blocked by the wired hook,
-	// proving the helper resolved under .deft/core/scripts/ in the vendored layout.
+	// (a) A `git commit` on master with policy=false MUST be blocked by the wired
+	// hook, proving the helper resolved under .deft/core/scripts/ in the vendored layout.
 	out, err := gitCommitWithEnv(gitPath, proj, env, "should be blocked")
 	if err == nil {
 		t.Fatalf("expected the pre-commit hook to BLOCK a master commit in the vendored layout; commit succeeded.\nHook output:\n%s", out)
@@ -314,20 +314,31 @@ func lookPython(t *testing.T) string {
 	t.Helper()
 	validate := func(p string) bool {
 		out, err := exec.Command(p, "-c", "import sys; sys.stdout.write('ok')").Output()
-		return err == nil && strings.Contains(string(out), "ok")
+		if err != nil {
+			return false // interpreter not runnable (e.g. Windows Store alias stub)
+		}
+		return strings.Contains(string(out), "ok")
 	}
 	for _, name := range []string{"python3", "python"} {
-		if p, err := exec.LookPath(name); err == nil && validate(p) {
+		p, err := exec.LookPath(name)
+		if err != nil {
+			continue // not on PATH; try the next candidate
+		}
+		if validate(p) {
 			return p
 		}
 	}
 	// Windows py launcher -> resolve the real interpreter path behind it.
-	if pyl, err := exec.LookPath("py"); err == nil {
-		if out, err := exec.Command(pyl, "-3", "-c", "import sys; sys.stdout.write(sys.executable)").Output(); err == nil {
-			if exe := strings.TrimSpace(string(out)); exe != "" && validate(exe) {
-				return exe
-			}
-		}
+	pyl, err := exec.LookPath("py")
+	if err != nil {
+		return "" // no direct interpreter and no py launcher; caller will t.Skip loudly
+	}
+	out, err := exec.Command(pyl, "-3", "-c", "import sys; sys.stdout.write(sys.executable)").Output()
+	if err != nil {
+		return "" // `py -3` failed; caller will t.Skip loudly
+	}
+	if exe := strings.TrimSpace(string(out)); exe != "" && validate(exe) {
+		return exe
 	}
 	return ""
 }

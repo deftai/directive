@@ -15,19 +15,19 @@
     "items": [
       {
         "title": "Fresh consumer install + task setup -> committing to the default branch is blocked by the local pre-commit hook (and push by pre-push), honoring plan.policy.allowDirectCommitsToMaster and DEFT_ALLOW_DEFAULT_BRANCH_COMMIT.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Hook scripts resolve preflight_branch.py / verify_encoding.py / preflight_gh.py correctly in the vendored layout.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "task verify:hooks-installed fails (not passes) when hooks are wired but non-functional.",
-        "status": "proposed"
+        "status": "completed"
       },
       {
         "title": "Regression coverage for the vendored-consumer layout (not just the directive own-repo layout).",
-        "status": "proposed"
+        "status": "completed"
       }
     ],
     "tags": [

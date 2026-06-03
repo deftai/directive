@@ -101,7 +101,15 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 			return false, fmt.Errorf("could not read hook %s: %w", name, err)
 		}
 		dst := filepath.Join(dstDir, name)
-		if existing, rerr := os.ReadFile(dst); rerr == nil && bytes.Equal(existing, data) {
+		// Idempotency probe: skip the write ONLY when the hook is already present
+		// byte-for-byte. A read error (os.ErrNotExist on first deposit, or an
+		// unreadable existing hook) is intentionally folded into upToDate=false so
+		// the canonical hook is (re)written either way -- the WriteFile below is the
+		// authoritative action and surfaces any real filesystem failure, so there is
+		// deliberately nothing to log or recover at the read site.
+		existing, rerr := os.ReadFile(dst)
+		upToDate := rerr == nil && bytes.Equal(existing, data)
+		if upToDate {
 			continue // already up-to-date byte-for-byte
 		}
 		// 0o755: the hook MUST be executable for git to run it on POSIX hosts.
