@@ -1275,7 +1275,12 @@ func copyFile(src, dst string) (err error) {
 	}
 	defer in.Close()
 	mode := os.FileMode(0o644)
-	if info, serr := in.Stat(); serr == nil {
+	if info, serr := in.Stat(); serr != nil {
+		// Stat failure is non-fatal -- fall back to 0o644 -- but log it so a
+		// transient error leaves a trace rather than silently dropping the
+		// source mode (mirrors copyTree's stat-for-mode handling in upgrade.go).
+		log.Printf("warning: stat %q for mode (using 0o644): %v", src, serr)
+	} else {
 		mode = info.Mode().Perm()
 	}
 	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)

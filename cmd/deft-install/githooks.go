@@ -149,7 +149,12 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 		// (Stat reports no 0o111 bits there), so the probe is POSIX-only to avoid
 		// a spurious heal on every Windows re-run.
 		if runtime.GOOS != "windows" {
-			if info, serr := os.Stat(dst); serr == nil && info.Mode().Perm()&0o111 == 0 {
+			if info, serr := os.Stat(dst); serr != nil {
+				// Non-fatal: the chmod below still runs; warn so a transient
+				// stat failure leaves a trace rather than silently skipping the
+				// heal-detection probe.
+				w.printf("Warning: could not stat hook %s to check its exec bit: %v\n", name, serr)
+			} else if info.Mode().Perm()&0o111 == 0 {
 				healed = true
 			}
 		}
