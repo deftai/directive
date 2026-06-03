@@ -8,6 +8,35 @@ Legend (from RFC2119): !=MUST, ~=SHOULD, ≉=SHOULD NOT, ⊗=MUST NOT, ?=MAY.
 
 ---
 
+## Big-jump triage — multi-version upgrades (start here)
+
+> **Multi-version jump?** Start here. This guide is ordered newest-first, so a consumer jumping several minor versions otherwise has to read every section to infer which ones apply and in what order. This entry point maps **version-range buckets** to the sections that apply and the **apply-order** to run them in.
+
+**How to use this triage:**
+
+1. Find the bucket for the version you are upgrading **from** (your current `.deft-version`, or the `tag` field in `<install>/VERSION`).
+2. Apply the listed transitions in **apply-order: oldest applicable first**, working forward to the newest. Because the sections in this file are ordered newest-first, that means working **bottom-up** through the file.
+3. Each bucket is flagged **auto-handled** (the canonical installer / `task doctor` / `task upgrade` does it for you) or **manual** (you run a migration / relocate / cache step yourself).
+
+**Version-range buckets (apply-order, oldest applicable first):**
+
+- **From pre-v0.20 (very old) — manual.** Run the pre-cutover migration, then refresh AGENTS.md: [From any pre-v0.20 version → v0.20.0](#from-any-pre-v020-version--v0200) and [From pre-#768 AGENTS.md → managed-section AGENTS.md](#from-pre-768-agentsmd--managed-section-agentsmd). Agents: when the project shows BOTH a stale AGENTS.md and pre-cutover artifacts, follow [QUICK-START.md Case G+H](./QUICK-START.md#case-gh--combined-stale-agentsmd--pre-cutover-migration-big-jump-one-session) to complete both in one session instead of two.
+- **From v0.20–v0.24 — auto-handled (opt-in).** Triage v1 is purely additive; nothing breaks if you skip it: [Migration to triage v1](#migration-to-triage-v1).
+- **From v0.25.x — manual (breaking).** The deft-cache on-disk layout changed: [From v0.25.x → v0.26.0](#from-v025x--v0260-deft-cache-unified-layer-breaking).
+- **From v0.26.x — auto-handled (interactive).** Run the triage adoption ritual: [From v0.26.x → v0.27](#from-v026x---v027-triage-adoption-via-task-triagewelcome).
+- **From v0.27.x — mostly auto-handled.** Pick up the install manifest and the `deft/` → `.deft/core/` layout: [From v0.27.x → v0.28](#from-v027x---v028-canonical-install-manifest-at-installversion), [From deft/ → .deft/core/](#from-deft---deftcore), and [From drifted AGENTS.md → current install](#from-drifted-agentsmd---current-install-task-upgrade-repair-path-1061).
+- **From v0.28–v0.36 (and the final hop to current) — auto-handled.** The canonical installer + doctor handoff is the single supported path: [Canonical installer + doctor handoff](#canonical-installer--doctor-handoff-v037--epic-56-1339-1340-1409).
+
+**Final step for every bucket.** Finish on the canonical headless upgrade command, then let the doctor confirm you are current:
+
+```bash
+deft-install --yes --upgrade --repo-root . --json
+```
+
+Then run `task doctor` (or `run doctor`): it reads `<install>/VERSION`, compares against the remote ref, and tells you whether any further hop is still due. See [Canonical installer + doctor handoff](#canonical-installer--doctor-handoff-v037--epic-56-1339-1340-1409) for the full handoff contract.
+
+---
+
 ## Canonical installer + doctor handoff (v0.37+ / Epic-5+6 #1339 #1340, #1409)
 
 **The single supported path for humans and agents:**
