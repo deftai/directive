@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`deft-core-guard` no longer rejects `deft-install --upgrade` PRs (#1440)** -- the deposited guard counted every installer-managed root file as consumer "app" code, so a `deft-install --upgrade` could never land as a single green PR. The guard now treats installer-managed deposits (`AGENTS.md`, `.agents/`, `.gitattributes`/`.gitignore`, `greptile.json`, the CodeQL config, the guard workflow itself, and the `vbrief/` scaffolding plus `vbrief/.deft-version`) as part of the framework deposit, so an upgrade-only PR passes. Mixing `.deft/core/**` with genuine app files or consumer vBRIEF data (`vbrief/**/*.vbrief.json`) still fails, and the allowlist is rendered from a single in-installer source so the guard and the installer cannot drift. Closes #1440.
 - **Windows installer no longer triggers a UAC prompt; headless `--yes` works (#1441)** -- the Windows binaries now embed an `asInvoker` application manifest, so Windows' installer-detection heuristic no longer auto-elevates the `install-*.exe` asset purely because its name contains "install". `deft-install --yes --upgrade --repo-root . --json` now runs unattended on Windows with no elevation prompt and no "requires elevation" failure, restoring the agent/CI upgrade flow. Closes #1441.
 
 ### Removed
