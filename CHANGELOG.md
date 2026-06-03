@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **Consumer `task deft:check` no longer runs the framework's own self-tests (#1474)** -- a vendored install shipped the framework's `.deft/core/tests/` suite and the consumer-facing check executed it, so a clean consumer checkout always went red (14 failed + 6 errors by construction) on framework-repo-only fixtures. The installer now excludes the framework self-test suite from the consumer deposit on every install and upgrade, so those tests are never vendored and the gate reflects real consumer-relevant results. Closes #1474.
+- **Wired git hooks now actually fire on Linux and macOS consumers (#1477)** -- the installer deposited `.githooks/pre-commit` and `.githooks/pre-push` without the executable bit, so git silently skipped them and the branch-protection and destructive-push gates never ran for Unix consumers. The installer now deposits the hooks executable and records mode 100755 in the git index so the exec bit is tracked cross-platform, and `task verify:hooks-installed` now fails instead of reporting green when a wired hook is non-executable. Closes #1477.
+- **Framework-only `deft-install --upgrade` PRs are no longer rejected by `deft-core-guard` (#1478)** -- the deposited guard's allowlist omitted `.githooks/` and the guard was create-if-absent, so existing consumers kept a stale guard and every upgrade PR that deposited the wired hooks alongside `.deft/core/**` was rejected. The installer now refreshes a stale deft-managed guard on upgrade and the allowlist exempts the wired `.githooks/` deposit, so a framework-only upgrade lands as a single green PR. Closes #1478.
 
 ### Removed
 

@@ -629,3 +629,185 @@ func TestEnsureCodeQLPathsIgnore_ContextBlindAddsExclusion(t *testing.T) {
 		t.Errorf("original paths: include was not preserved:\n%s", content)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Framework self-test pruning (#1474)
+// ---------------------------------------------------------------------------
+
+// TestPruneFrameworkSelfTests_RemovesVendoredSuite pins #1474 acceptance (a2):
+// the consumer deposit excludes the framework's own .deft/core/tests/ suite so
+// the always-red framework-repo-only self-tests are never vendored/executed.
+func TestPruneFrameworkSelfTests_RemovesVendoredSuite(t *testing.T) {
+	tmp := t.TempDir()
+	testsDir := filepath.Join(tmp, filepath.FromSlash(frameworkSelfTestRelPath))
+	if err := os.MkdirAll(filepath.Join(testsDir, "unit"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(testsDir, "test_x.py"), []byte("def test_x():\n    assert True\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// A non-test framework file MUST survive -- only tests/ is pruned.
+	scriptsDir := filepath.Join(tmp, filepath.FromSlash(".deft/core/scripts"))
+	if err := os.MkdirAll(scriptsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(scriptsDir, "doctor.py"), []byte("# keep\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	removed, err := pruneFrameworkSelfTests(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !removed {
+		t.Error("expected removed=true when the vendored tests/ suite is present")
+	}
+	if pathExists(testsDir) {
+		t.Errorf("%s must be removed from the consumer deposit", frameworkSelfTestRelPath)
+	}
+	if !pathExists(filepath.Join(scriptsDir, "doctor.py")) {
+		t.Error("non-test framework files (.deft/core/scripts/) must be preserved")
+	}
+}
+
+// TestPruneFrameworkSelfTests_NoOpWhenAbsent: a consumer with no vendored tests/
+// is a clean no-op (no error, removed=false).
+func TestPruneFrameworkSelfTests_NoOpWhenAbsent(t *testing.T) {
+	tmp := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(tmp, filepath.FromSlash(".deft/core")), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	removed, err := pruneFrameworkSelfTests(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatalf("absent suite must not error: %v", err)
+	}
+	if removed {
+		t.Error("expected removed=false when there is no vendored tests/ suite")
+	}
+}
+
+// TestPruneFrameworkSelfTests_LeavesRegularFile: a regular file at the tests/
+// path (not a directory) is not the framework suite and must be left intact.
+func TestPruneFrameworkSelfTests_LeavesRegularFile(t *testing.T) {
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, filepath.FromSlash(frameworkSelfTestRelPath))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("not a dir\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	removed, err := pruneFrameworkSelfTests(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed {
+		t.Error("a regular file at the tests/ path must NOT be treated as the suite")
+	}
+	if !pathExists(path) {
+		t.Error("the regular file must be left intact")
+	}
+}
+
+// TestDepositNeutralization_PrunesFrameworkTests pins #1474 acceptance (a1/a2)
+// at the integration boundary: the full neutralization deposit removes the
+// vendored framework self-tests while leaving the rest of the payload intact.
+func TestDepositNeutralization_PrunesFrameworkTests(t *testing.T) {
+	tmp := t.TempDir()
+	testsDir := filepath.Join(tmp, filepath.FromSlash(frameworkSelfTestRelPath))
+	if err := os.MkdirAll(testsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(testsDir, "test_self.py"), []byte("def test():\n    assert False\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	coreFile := filepath.Join(tmp, filepath.FromSlash(".deft/core/main.md"))
+	if err := os.MkdirAll(filepath.Dir(coreFile), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(coreFile, []byte("# framework\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	depositNeutralization(newDepositWizard(), tmp)
+
+	if pathExists(testsDir) {
+		t.Errorf("depositNeutralization must prune %s", frameworkSelfTestRelPath)
+	}
+	if !pathExists(coreFile) {
+		t.Error("depositNeutralization must NOT remove non-test framework files")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// deft-core-guard refresh-on-upgrade + .githooks/ classification (#1478)
+// ---------------------------------------------------------------------------
+
+// TestEnsureCoreGuardWorkflow_RefreshesStaleDeftGuard pins #1478 acceptance
+// (a2): an existing consumer whose deposited guard predates the .githooks/
+// allowlist entry gets the guard REFRESHED on the next install/upgrade rather
+// than skipped, so the framework-only upgrade PR stops being rejected.
+func TestEnsureCoreGuardWorkflow_RefreshesStaleDeftGuard(t *testing.T) {
+	tmp := t.TempDir()
+	path := filepath.Join(tmp, filepath.FromSlash(coreGuardWorkflowRelPath))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// A recognisably deft-managed guard (carries the marker) but STALE: its
+	// allowlist omits the .githooks/ atom the current renderer emits.
+	stale := "name: deft-core-guard\n# old guard rendered before the .githooks/ allowlist entry (#1463)\n"
+	if err := os.WriteFile(path, []byte(stale), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	changed, err := EnsureCoreGuardWorkflow(newDepositWizard(), tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Error("expected changed=true: a stale deft-managed guard must be refreshed on upgrade")
+	}
+	data, _ := os.ReadFile(path)
+	if string(data) != coreGuardWorkflowContent() {
+		t.Errorf("stale guard was not refreshed to the current content:\n%s", string(data))
+	}
+	// The refreshed guard now exempts .githooks/ (the rendered ERE atom).
+	if !strings.Contains(string(data), "^\\.githooks/") {
+		t.Errorf("refreshed guard missing the .githooks/ allowlist atom:\n%s", string(data))
+	}
+}
+
+// TestEnsureCoreGuardWorkflow_CleanReRunIsNoOp: re-running over an already-current
+// guard is a no-op (content already matches the renderer).
+func TestEnsureCoreGuardWorkflow_CleanReRunIsNoOp(t *testing.T) {
+	tmp := t.TempDir()
+	w := newDepositWizard()
+	if _, err := EnsureCoreGuardWorkflow(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := EnsureCoreGuardWorkflow(w, tmp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if changed {
+		t.Error("expected changed=false when the deposited guard already matches the current content")
+	}
+}
+
+// TestCoreGuard_GithooksClassifyInstallerManaged pins #1478 acceptance (a3): the
+// wired .githooks/pre-commit and .githooks/pre-push classify as installer-managed
+// (not app), so a framework-deposit PR carrying them alongside .deft/core/**
+// passes the guard instead of being rejected.
+func TestCoreGuard_GithooksClassifyInstallerManaged(t *testing.T) {
+	changed := []string{".deft/core/VERSION", ".githooks/pre-commit", ".githooks/pre-push"}
+	_, managed, app := classifyChangedPaths(changed)
+	if len(app) != 0 {
+		t.Errorf(".githooks/ hooks must NOT classify as app; got app=%v", app)
+	}
+	if len(managed) != 2 {
+		t.Errorf("expected both .githooks/ hooks installer-managed; got managed=%v", managed)
+	}
+	if guardWouldFail(changed) {
+		t.Error("guard must PASS a framework-deposit PR mixing .deft/core/** with .githooks/* (#1478)")
+	}
+}

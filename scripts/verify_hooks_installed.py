@@ -16,7 +16,10 @@ This gate now asserts the hooks are not merely *configured* but *functional*:
 1. ``core.hooksPath`` is set (non-empty).
 2. The resolved hooks directory exists.
 3. The ``pre-commit`` and ``pre-push`` hooks are present in it.
-4. The gate scripts the hooks reference resolve in THIS layout -- own-repo
+4. On POSIX, those hooks are EXECUTABLE -- git silently skips a non-executable
+   hook, so a present-but-mode-100644 hook is the #1477 inert-gate class (the
+   exec bit is meaningless on Windows, so the check is POSIX-only).
+5. The gate scripts the hooks reference resolve in THIS layout -- own-repo
    ``scripts/``, canonical vendored ``.deft/core/scripts/``, or legacy
    ``deft/scripts/``.
 
@@ -32,6 +35,7 @@ Exit codes (three-state, mirrors ``scripts/preflight_branch.py`` and friends):
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -129,6 +133,21 @@ def evaluate(project_root: Path) -> tuple[int, str]:
             f"{', '.join(missing_hooks)} (#1463 false-green).\n"
             "  Recovery: re-run the deft installer / `task setup`."
         )
+
+    # On POSIX the hooks MUST be executable or git silently skips them, leaving
+    # the branch / encoding / destructive-gh-verb gates inert (#1477). The exec
+    # bit does not exist on Windows, so this check is POSIX-only.
+    if os.name == "posix":
+        non_exec = [h for h in REQUIRED_HOOKS if not os.access(hooks_dir / h, os.X_OK)]
+        if non_exec:
+            return 1, (
+                f"❌ deft hooks wired but NON-FUNCTIONAL: {hooks_dir} hook(s) "
+                f"{', '.join(non_exec)} are not executable (git mode is not "
+                "100755); git silently skips non-executable hooks on Unix "
+                "(#1477).\n"
+                "  Recovery: re-run the deft installer / `task setup`, or "
+                "`chmod +x .githooks/pre-commit .githooks/pre-push`."
+            )
 
     scripts_dir = _resolve_scripts_dir(project_root)
     if scripts_dir is None:
