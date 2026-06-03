@@ -1,0 +1,52 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1464"
+  },
+  "plan": {
+    "title": "fix(installer): installer + relocator deposit selective vbrief/.eval/ ignores and heal the forbidden blanket (#1464, supersedes #1452)",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(installer): make the Go installer (canonicalGitignoreLines) and the relocator (GITIGNORE_LINES) deposit the selective per-file vbrief/.eval/* ignores instead of the forbidden blanket vbrief/.eval/ line, add vbrief/.eval/doctor-state.json to the selective set, and heal a pre-existing blanket on upgrade across both rails.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1464 (supersedes #1452)",
+      "Overview": "Three deposit rails disagree on the vbrief/.eval/ gitignore policy. The bootstrap rail (scripts/_triage_bootstrap_gitignore.py) is correct post-#1251: it deposits selective per-file entries (candidates.jsonl / summary-history.jsonl / scope-lifecycle.jsonl) and treats the blanket vbrief/.eval/ as forbidden. The Go installer (cmd/deft-install/setup.go::canonicalGitignoreLines) and the relocator (scripts/relocate.py::GITIGNORE_LINES) still ship the blanket, so every fresh install / upgrade / relocate re-introduces the exact line the bootstrap step then warns the operator to remove -- silently hiding the team-shared slices.jsonl and README.md that #1144 / #1132 (D13) want tracked. This change: (1) replaces the blanket in both stale rails with the selective entries, reusing GITIGNORE_EVAL_ENTRIES as the single source of truth (the relocator imports it; the Go installer mirrors it with a parity test); (2) adds vbrief/.eval/doctor-state.json (per-machine task doctor throttle state) to the selective ignore set and the README table; (3) adds a forbidden-blanket heal so deft-install --upgrade and task relocate strip a pre-existing blanket vbrief/.eval/ (and vbrief/.eval) line instead of leaving it. Regression coverage spans all three rails (installer, relocator, bootstrap) asserting #1144 / #1251 parity, the heal behaviour, and doctor-state.json membership.",
+      "Labels": "bug, adoption-blocker, installer"
+    },
+    "items": [
+      {
+        "title": "canonicalGitignoreLines (setup.go) and GITIGNORE_LINES (relocate.py) deposit the selective vbrief/.eval/* entries, never the blanket vbrief/.eval/.",
+        "status": "proposed"
+      },
+      {
+        "title": "vbrief/.eval/doctor-state.json is in the selective ignore set (GITIGNORE_EVAL_ENTRIES) and the vbrief/.eval/README.md table.",
+        "status": "proposed"
+      },
+      {
+        "title": "deft-install --upgrade and task relocate strip a pre-existing blanket vbrief/.eval/ (and vbrief/.eval) line on upgrade (heal), so task triage:bootstrap no longer warns.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression parity across all three rails (installer, relocator, bootstrap) asserting #1144 / #1251 policy + the heal behaviour + doctor-state.json membership.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "adoption-blocker",
+      "installer"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1464",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1464: Installer/relocator re-deposit the forbidden blanket vbrief/.eval/ gitignore (contradicts #1144/#1251, hides slices.jsonl)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1452",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1452: superseded by #1464"
+      }
+    ],
+    "updated": "2026-06-03T16:54:32Z"
+  }
+}

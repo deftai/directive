@@ -49,6 +49,9 @@ def test_gitignore_has_selective_eval_entries() -> None:
     assert "vbrief/.eval/decompositions/" in body, (
         "temporary decomposition proposal drafts must be gitignored"
     )
+    assert "vbrief/.eval/doctor-state.json" in body, (
+        "per-machine task doctor throttle state must be gitignored (#1464)"
+    )
 
 
 def test_gitignore_does_not_blanket_ignore_eval_directory() -> None:
@@ -101,6 +104,7 @@ def test_eval_readme_documents_policy() -> None:
     assert "decompositions/" in body
     assert "Temporary story-decomposition proposal drafts" in body
     assert "not vBRIEFs" in body
+    assert "doctor-state.json" in body  # #1464 per-machine doctor throttle state
     # Fresh-clone regeneration command
     assert "task triage:bootstrap" in body
     # merge=union policy + the load-bearing "no dedupe" qualifier so future

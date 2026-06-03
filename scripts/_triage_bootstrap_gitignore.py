@@ -17,7 +17,15 @@ Public surface (stable for :mod:`triage_bootstrap` re-exports):
 - :data:`GITIGNORE_LINE` -- canonical ``.deft-cache/`` line.
 - :data:`GITIGNORE_EVAL_ENTRIES` -- canonical selective per-file lines
   for the #1144 hybrid policy (``candidates.jsonl`` /
-  ``summary-history.jsonl`` / ``scope-lifecycle.jsonl``).
+  ``summary-history.jsonl`` / ``scope-lifecycle.jsonl`` /
+  ``decompositions/`` / ``doctor-state.json``). Single source of truth
+  the installer (``cmd/deft-install/setup.go``) mirrors and the relocator
+  (``scripts/relocate.py``) imports (#1464).
+- :data:`FORBIDDEN_BLANKET_EVAL_LINES` -- canonical forbidden blanket
+  lines (``vbrief/.eval/`` / ``vbrief/.eval``) shared with the installer
+  and relocator deposit rails so all three agree on what to heal (#1464).
+- :func:`strip_gitignore_inline_comment` -- public inline-comment strip
+  reused by the installer/relocator heal rails (#1464).
 - :data:`GITATTRIBUTES_EVAL_RULE` -- canonical
   ``vbrief/.eval/*.jsonl  merge=union`` line for #1144.
 - :func:`step_ensure_gitignore_entry` -- bootstrap step 3.
@@ -62,14 +70,21 @@ def _outcome_cls() -> type:
 GITIGNORE_LINE: str = ".deft-cache/"
 
 #: Canonical selective gitignore lines for the #1144 hybrid policy.
-#: Replaces the pre-#1251 blanket ``vbrief/.eval/`` line. The three
-#: files below are operator-private; ``slices.jsonl`` is intentionally
-#: omitted from this tuple because it is TRACKED team-shared cohort
-#: state per #1132 / D13.
+#: Replaces the pre-#1251 blanket ``vbrief/.eval/`` line. The entries
+#: below are operator-private / per-machine / local-scratch state;
+#: ``slices.jsonl`` is intentionally omitted because it is TRACKED
+#: team-shared cohort state per #1132 / D13. ``decompositions/`` holds
+#: local story-decomposition draft scratch; ``doctor-state.json`` is
+#: per-machine ``task doctor`` throttle state (added under #1464). This
+#: tuple is the single source of truth: the relocator imports it and the
+#: Go installer mirrors it (a parity test pins the two together), and it
+#: stays in lockstep with the ``vbrief/.eval/README.md`` policy table.
 GITIGNORE_EVAL_ENTRIES: tuple[str, ...] = (
     "vbrief/.eval/candidates.jsonl",
     "vbrief/.eval/summary-history.jsonl",
     "vbrief/.eval/scope-lifecycle.jsonl",
+    "vbrief/.eval/decompositions/",
+    "vbrief/.eval/doctor-state.json",
 )
 
 #: Canonical ``.gitattributes`` line for the #1144 merge=union rule on
@@ -86,10 +101,16 @@ _GITATTRIBUTES_EVAL_GLOB: str = "vbrief/.eval/*.jsonl"
 #: ``vbrief/.eval/`` (or ``vbrief/.eval``) which silently hid the
 #: tracked ``slices.jsonl`` from git. Detected so we can warn loudly if
 #: a re-run encounters a stale entry left behind by a prior bootstrap.
-_FORBIDDEN_BLANKET_EVAL_LINES: tuple[str, ...] = (
+#: Public (#1464) so the installer (mirrored) and relocator (imported)
+#: deposit rails share one forbidden-blanket policy and HEAL a
+#: pre-existing blanket on upgrade instead of leaving it.
+FORBIDDEN_BLANKET_EVAL_LINES: tuple[str, ...] = (
     "vbrief/.eval/",
     "vbrief/.eval",
 )
+#: Backwards-compatible private alias for internal call sites that
+#: predate the public name promoted in #1464.
+_FORBIDDEN_BLANKET_EVAL_LINES: tuple[str, ...] = FORBIDDEN_BLANKET_EVAL_LINES
 
 
 _DEFT_CACHE_RATIONALE: str = (
@@ -118,6 +139,14 @@ _EVAL_ENTRIES_RATIONALE: str = (
     "#                               stream; sharing would conflate\n"
     "#                               operators' demote timing across the\n"
     "#                               team.\n"
+    "#   - decompositions/        -> gitignored (local story-decomposition\n"
+    "#                               draft scratch; generated child story\n"
+    "#                               vBRIEFs live in lifecycle folders via\n"
+    "#                               `task scope:decompose`).\n"
+    "#   - doctor-state.json      -> gitignored (per-machine `task doctor`\n"
+    "#                               throttle state gating the 24h/4h\n"
+    "#                               re-probe window; #1308 / #1464). Local\n"
+    "#                               to each clone; never committed.\n"
     "#   - slices.jsonl           -> TRACKED (team-shared cohort records\n"
     "#                               produced by slicing skills; see\n"
     "#                               #1132 / D13).\n"
@@ -161,6 +190,13 @@ def _strip_gitignore_inline_comment(line: str) -> str:
     if comment_idx == -1:
         return stripped
     return stripped[:comment_idx].rstrip()
+
+
+#: Public alias for the inline-comment strip (#1464). The installer's
+#: Go heal mirrors this behaviour and the relocator's Python heal imports
+#: this exact helper so all three rails detect a forbidden blanket -- even
+#: one carrying a trailing ``# legacy`` comment -- identically.
+strip_gitignore_inline_comment = _strip_gitignore_inline_comment
 
 
 def _gitignore_already_covers(gitignore_text: str, line: str) -> bool:
@@ -706,12 +742,12 @@ def _ensure_eval_readme(
 #: a consumer's fresh clone produce byte-identical files. The content
 #: satisfies the deterministic gates in
 #: ``tests/test_eval_governance.py::test_eval_readme_documents_policy``
-#: (the three filenames, the ``task triage:bootstrap`` regen command,
-#: the ``merge=union`` policy, and the no-dedupe qualifier). The
-#: markdown table rows below intentionally run past the 100-char
-#: ceiling so the rendered README mirrors the canonical on-disk file;
-#: see the module-level lint exemption at the top of this file for
-#: the rationale.
+#: (the tracked/gitignored filenames including ``doctor-state.json``,
+#: the ``task triage:bootstrap`` regen command, the ``merge=union``
+#: policy, and the no-dedupe qualifier). The markdown table rows below
+#: intentionally run past the 100-char ceiling so the rendered README
+#: mirrors the canonical on-disk file; see the module-level lint
+#: exemption at the top of this file for the rationale.
 _EVAL_README_BODY: str = """# `vbrief/.eval/` -- triage + slicing evaluation artefacts
 
 This directory holds the append-only JSON-lines logs that the triage and
@@ -726,10 +762,13 @@ by git versus gitignored using a **hybrid policy** (#1144, child of #1119).
 | `candidates.jsonl` | No -- **gitignored** | Operator-private triage decisions (#845 Story 2). Each operator's local accept / defer / reject stream is per-machine state; sharing it would conflate operators' timing + identity across the team. Re-derive on a fresh clone via `task triage:bootstrap`. |
 | `summary-history.jsonl` | No -- **gitignored** | Operator-private observability for `task triage:summary` output time-series. Not load-bearing for any decision. |
 | `scope-lifecycle.jsonl` | No -- **gitignored** | Operator-private scope-lifecycle audit decisions (D1 / #1121). Each demote (`task scope:demote`) appends one entry including a `demote_meta` block (`was_promoted`, `original_promotion_decision_id`, `days_in_pending`, `demote_reason`, `demoted_from`). Per-operator stream; sharing would conflate operators' demote timing across the team. Lightweight metrics over this log are tracked separately at #1180. |
+| `decompositions/` | No -- **gitignored** | Temporary story-decomposition proposal drafts. These JSON drafts are local scratch artifacts, not vBRIEFs; generated child story vBRIEFs are created by `task scope:decompose` in lifecycle folders, defaulting to `vbrief/pending/`. |
+| `doctor-state.json` | No -- **gitignored** | Per-machine `task doctor` throttle state (last exit code + timestamps) persisted to gate the 24h/4h re-probe window (#1308 / #1464). Local to each clone; never committed. |
 
 The gitignore lines live in the repo-root `.gitignore` (`vbrief/.eval/candidates.jsonl`,
-`vbrief/.eval/summary-history.jsonl`, and `vbrief/.eval/scope-lifecycle.jsonl`);
-everything else under `vbrief/.eval/` is committed by default.
+`vbrief/.eval/summary-history.jsonl`, `vbrief/.eval/scope-lifecycle.jsonl`,
+`vbrief/.eval/decompositions/`, and `vbrief/.eval/doctor-state.json`). All paths
+not listed above remain committed by default.
 
 ## Fresh-clone regeneration
 

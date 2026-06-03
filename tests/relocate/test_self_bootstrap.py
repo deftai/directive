@@ -12,10 +12,12 @@ Owned by the v0.27.1 follow-up issue #1015. Covers four behaviour blocks:
   references is present in ``UPGRADING.md`` under the v0.27 migration section.
 
 - **F2 canonical default** -- the canonical ``.gitignore`` baseline is
-  ``.deft-cache/`` + ``vbrief/.eval/`` (NOT ``.deft/core/``). A small
+  ``.deft-cache/`` + the SELECTIVE ``vbrief/.eval/*`` entries (#1251 / #1464;
+  NOT the blanket ``vbrief/.eval/`` and NOT ``.deft/core/``). A small
   parametrised test pins consistency across the relocator implementation,
   the pre-existing state-matrix fixture assertions, and the relocator-side
-  test fixture (``test_state_matrix.py::_assert_canonical_end_state``).
+  test fixture (``test_state_matrix.py::_assert_canonical_end_state``). The
+  relocator also HEALS a pre-existing blanket on upgrade (#1464).
 
 - **F3 rollback residue** -- after a rollback the relocator-created
   ``.gitignore`` is removed when the pre-relocate project had none. The
@@ -288,15 +290,27 @@ class TestF1UpgradingNote:
 
 
 class TestF2GitignoreDefault:
-    """The canonical default is ``.deft-cache/`` + ``vbrief/.eval/`` only.
+    """The canonical default is ``.deft-cache/`` + the selective eval entries.
 
-    The framework deposit at ``.deft/core/`` is INTENTIONALLY NOT in the
-    default ``.gitignore`` baseline because it ships read-only packaged
-    framework assets that consumers commit for reproducibility.
+    #1251 / #1464: the eval state is gitignored via the SELECTIVE per-file
+    entries (the single source of truth ``GITIGNORE_EVAL_ENTRIES``), NEVER the
+    blanket ``vbrief/.eval/`` line which would hide the tracked
+    ``slices.jsonl`` / ``README.md``. The framework deposit at ``.deft/core/``
+    is INTENTIONALLY NOT in the default ``.gitignore`` baseline because it
+    ships read-only packaged framework assets that consumers commit for
+    reproducibility.
     """
 
     def test_relocator_constant_pins_canonical_default(self, relocate: Any) -> None:
-        assert relocate.GITIGNORE_LINES == (".deft-cache/", "vbrief/.eval/")
+        # Single source of truth: GITIGNORE_LINES == .deft-cache/ + the
+        # imported GITIGNORE_EVAL_ENTRIES tuple (#1464).
+        expected = (".deft-cache/", *relocate.GITIGNORE_EVAL_ENTRIES)
+        assert expected == relocate.GITIGNORE_LINES
+        # The forbidden blanket is gone; the selective entries replace it.
+        assert "vbrief/.eval/" not in relocate.GITIGNORE_LINES
+        assert "vbrief/.eval" not in relocate.GITIGNORE_LINES
+        assert "vbrief/.eval/candidates.jsonl" in relocate.GITIGNORE_LINES
+        assert "vbrief/.eval/doctor-state.json" in relocate.GITIGNORE_LINES
 
     def test_dot_deft_core_is_intentionally_absent(self, relocate: Any) -> None:
         # If a future PR adds .deft/core/ to GITIGNORE_LINES it MUST first
@@ -309,7 +323,7 @@ class TestF2GitignoreDefault:
         "expected_line",
         [
             ".deft-cache/",
-            "vbrief/.eval/",
+            "vbrief/.eval/candidates.jsonl",
         ],
     )
     def test_relocator_constant_aligns_with_state_matrix_fixture(
@@ -325,6 +339,82 @@ class TestF2GitignoreDefault:
         # not re-litigate the question. Pin the marker text.
         source = SCRIPT_PATH.read_text(encoding="utf-8")
         assert "F2 canonical-default decision (#1015)" in source
+
+
+class TestGitignoreHealBlanket:
+    """#1464: ``_ensure_gitignore_lines`` strips a pre-existing blanket.
+
+    The pre-#1251 rails deposited a blanket ``vbrief/.eval/`` line that hides
+    the tracked ``slices.jsonl`` / ``README.md`` from git. On upgrade the
+    relocator MUST remove it (matching the bootstrap rail's forbidden set)
+    rather than leaving it, then deposit the selective per-file entries.
+    """
+
+    def test_heal_strips_blanket_and_adds_selective(
+        self, relocate: Any, tmp_path: Path
+    ) -> None:
+        gi = tmp_path / ".gitignore"
+        gi.write_text(
+            "# consumer\nnode_modules/\nvbrief/.eval/  # legacy blanket\n.deft-cache/\n",
+            encoding="utf-8",
+        )
+        changed = relocate._ensure_gitignore_lines(tmp_path)
+        assert changed is True
+        active = [
+            line.strip()
+            for line in gi.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        # Blanket (even with the inline comment) stripped.
+        assert "vbrief/.eval/" not in active
+        assert "vbrief/.eval" not in active
+        # Operator lines preserved; selective entries added.
+        assert "node_modules/" in active
+        assert ".deft-cache/" in active
+        assert "vbrief/.eval/candidates.jsonl" in active
+        assert "vbrief/.eval/doctor-state.json" in active
+
+    def test_heal_only_blanket_then_idempotent(
+        self, relocate: Any, tmp_path: Path
+    ) -> None:
+        gi = tmp_path / ".gitignore"
+        gi.write_text("vbrief/.eval\n", encoding="utf-8")
+        assert relocate._ensure_gitignore_lines(tmp_path) is True
+        active = [
+            line.strip()
+            for line in gi.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+        assert "vbrief/.eval" not in active
+        assert "vbrief/.eval/candidates.jsonl" in active
+        # Re-run is a clean no-op (blanket already healed, entries present).
+        assert relocate._ensure_gitignore_lines(tmp_path) is False
+
+    def test_inline_commented_entry_is_not_re_deposited(
+        self, relocate: Any, tmp_path: Path
+    ) -> None:
+        # #1464 Greptile P1: the membership check must strip inline comments
+        # (parity with the installer + bootstrap rails) so an operator-
+        # annotated canonical entry is recognised as already present and is
+        # NOT re-deposited as a duplicate.
+        gi = tmp_path / ".gitignore"
+        seeded = (
+            ".deft-cache/\n"
+            "vbrief/.eval/candidates.jsonl  # added manually\n"
+            "vbrief/.eval/summary-history.jsonl\n"
+            "vbrief/.eval/scope-lifecycle.jsonl\n"
+            "vbrief/.eval/decompositions/\n"
+            "vbrief/.eval/doctor-state.json\n"
+        )
+        gi.write_text(seeded, encoding="utf-8")
+        # All canonical entries are present (one carries an inline comment),
+        # so the relocator must report no change and leave the file untouched.
+        assert relocate._ensure_gitignore_lines(tmp_path) is False
+        body = gi.read_text(encoding="utf-8")
+        assert body == seeded
+        assert body.count("vbrief/.eval/candidates.jsonl") == 1, (
+            "inline-commented canonical entry must not be re-deposited (#1464)"
+        )
 
 
 # ---------------------------------------------------------------------------

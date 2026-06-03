@@ -295,7 +295,17 @@ def _assert_canonical_end_state(
     assert "<!-- /deft:managed-section -->" in agents, "v2 marker close absent"
     gitignore = (project_root / ".gitignore").read_text(encoding="utf-8")
     assert ".deft-cache/" in gitignore, ".gitignore missing .deft-cache/ entry"
-    assert "vbrief/.eval/" in gitignore, ".gitignore missing vbrief/.eval/ entry"
+    assert "vbrief/.eval/candidates.jsonl" in gitignore, (
+        ".gitignore missing selective vbrief/.eval/ entry"
+    )
+    active_eval = [
+        line.strip()
+        for line in gitignore.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    assert "vbrief/.eval/" not in active_eval, (
+        "relocator must not deposit the forbidden blanket vbrief/.eval/ line (#1464)"
+    )
 
 
 class TestRelocateAcrossStates:
