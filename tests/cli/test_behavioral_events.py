@@ -742,10 +742,17 @@ class TestDefaultEventLogGitignored:
             "(this is the #1465 leak the relocation avoids)"
         )
 
-        # The working tree surfaces no untracked event log.
-        status = _git(["status", "--porcelain"], repo)
-        assert ".deft-cache/events.jsonl" not in status.stdout
-        assert ".deft/events.jsonl" not in status.stdout
+        # The relocated event log must be reported as IGNORED, never as an
+        # untracked (`??`) file -- the untracked leak was the #1465 symptom.
+        # `git status --porcelain --ignored` may collapse the wholly-ignored
+        # directory to `!! .deft-cache/`, so match the `!!` prefix tolerantly
+        # instead of pinning the exact path.
+        status = _git(["status", "--porcelain", "--ignored"], repo)
+        ignored = [ln for ln in status.stdout.splitlines() if ln.startswith("!!")]
+        assert any(".deft-cache" in ln for ln in ignored), (
+            f"relocated event log MUST be reported ignored; got {status.stdout!r}"
+        )
+        assert "?? .deft-cache/events.jsonl" not in status.stdout
 
 
 # Suppress the unused-import lint for the module-import shim.
