@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`task verify:cache-fresh` is no longer slow on large triage caches (#1424)** -- when the active subscription used a `milestone {is-open: true}` rule, the cache-freshness gate re-fetched the open-milestones list from GitHub once per cached issue, so a 500-entry cache took ~92 seconds and the cost was paid on every session start and before every agent dispatch. The subscription filter now evaluates the rule set a single time across the whole cache, collapsing those N network round-trips to one and bringing the gate back under a second with identical results. Closes #1424.
 
 ### Removed
 
