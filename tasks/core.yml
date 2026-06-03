@@ -59,7 +59,19 @@ tasks:
       # share the [tool.mypy] config in pyproject.toml, including the
       # tests.* override that relaxes disallow_untyped_defs while still
       # failing on real type mismatches under tests/.
-      - uv --project "{{.DEFT_ROOT}}" run mypy run.py tests/
+      #
+      # #1474: the same vendored-consumer guard core:test uses. The installer
+      # (#1482) prunes the vendored .deft/core/tests/, and `task deft:check`
+      # runs core:lint too, so an unconditional `mypy run.py tests/` would
+      # fail on the now-absent tests/ path. The cross-platform pathlib guard
+      # (no bare shell conditional, per the AGENTS.md Windows rules) appends
+      # tests/ to the mypy target list only when it exists; run.py (always in
+      # the payload) stays checked either way.
+      - cmd: >-
+          uv --project "{{.DEFT_ROOT}}" run python -c "import sys, subprocess;
+          from pathlib import Path;
+          targets = ['run.py'] + (['tests'] if Path('tests').exists() else []);
+          sys.exit(subprocess.run([sys.executable, '-m', 'mypy', *targets]).returncode)"
 
 
   build:

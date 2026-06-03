@@ -1,16 +1,21 @@
-"""Regression tests for #1475 -- local `task check` mypy scope parity with CI.
+"""Regression tests for the deft self-check mypy scope (#1475) and its
+vendored-consumer tolerance (#1474).
 
 The CI Python job runs `mypy tests/` (.github/workflows/ci.yml). Before #1475
 the local pre-commit gate `core:lint` (tasks/core.yml, run via `task check`)
 only ran `mypy run.py`, so a type error under tests/ passed locally and only
-reddened master after merge. These tests pin two invariants:
+reddened master after merge. These tests pin:
 
-1. core:lint's mypy invocation covers the tests/ tree (scope parity with CI).
-2. A deliberately introduced type error in a tests/-scoped module makes mypy
+1. core:lint type-checks the tests/ tree (scope parity with CI).
+2. core:lint AND core:test both tolerate a missing tests/ directory so a
+   vendored consumer -- whose bundled tests/ the installer (#1482) prunes --
+   does not fail `task deft:check` (#1474).
+3. A deliberately introduced type error in a tests/-scoped module makes mypy
    FAIL (non-zero exit) under the project's pyproject.toml config -- i.e. the
    broadened gate fails rather than advises.
 
-Refs https://github.com/deftai/directive/issues/1475.
+Refs https://github.com/deftai/directive/issues/1475,
+https://github.com/deftai/directive/issues/1474.
 """
 
 from __future__ import annotations
@@ -26,57 +31,56 @@ PYPROJECT = REPO_ROOT / "pyproject.toml"
 CI_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
 
 
-def _mypy_invocations(text: str) -> list[str]:
-    """Return non-comment lines that invoke mypy (`run mypy ...`)."""
-    return [
-        line.strip()
-        for line in text.splitlines()
-        if "run mypy" in line and not line.strip().startswith("#")
-    ]
+def _task_block(text: str, task_name: str) -> str:
+    """Return the raw YAML text of the top-level core.yml ``task_name`` block.
 
-
-# mypy flags that consume the following token as their value. Only these can
-# legitimately "swallow" a `tests/` token so that it is NOT a positional
-# target (e.g. `--exclude tests/`). Boolean flags (e.g. `--strict`) do NOT
-# consume the next token, so `--strict tests/` still targets tests/. Extend
-# this set if the gate ever adds another value-taking flag before a target.
-_VALUE_TAKING_FLAGS = frozenset({"--exclude", "--config-file"})
-
-
-def _targets_tests_tree(invocation: str) -> bool:
-    """Return True only when `tests` is a positional mypy target.
-
-    Guards against a loose substring match: ``tests`` appearing as the value of
-    a value-taking flag (e.g. ``--exclude tests/``) or anywhere other than a
-    positional argument must NOT count as covering the tests/ tree. Boolean
-    flags between targets (e.g. ``--strict tests/``) are handled correctly --
-    only flags in ``_VALUE_TAKING_FLAGS`` consume their following token.
+    The block spans from the task header to (but excluding) the next top-level
+    (exactly-2-space-indented) task header, so only the requested task's body
+    is inspected.
     """
-    after_mypy = invocation.split(" mypy ", 1)[-1] if " mypy " in invocation else ""
-    tokens = after_mypy.split()
-    skip_next = False
-    for token in tokens:
-        if skip_next:
-            skip_next = False
-            continue
-        if token in _VALUE_TAKING_FLAGS:
-            skip_next = True
-            continue
-        if token.startswith("-"):
-            continue
-        if token.rstrip("/") == "tests":
-            return True
-    return False
+    lines = text.splitlines()
+    header = f"  {task_name}:"
+    start = next((i for i, line in enumerate(lines) if line == header), None)
+    assert start is not None, f"core.yml must define a `{task_name}` task"
+    block: list[str] = []
+    for line in lines[start + 1 :]:
+        is_top_level_header = (
+            line.startswith("  ")
+            and not line.startswith("   ")
+            and line.rstrip().endswith(":")
+        )
+        if is_top_level_header:
+            break
+        block.append(line)
+    return "\n".join(block)
 
 
-def test_core_lint_mypy_invocation_covers_tests_tree() -> None:
-    """core:lint must run mypy over the tests/ tree to match CI (#1475)."""
-    invocations = _mypy_invocations(CORE_YML.read_text(encoding="utf-8"))
-    assert invocations, "core.yml must invoke mypy in the lint task"
-    assert any(_targets_tests_tree(inv) for inv in invocations), (
-        "core:lint mypy invocation must pass tests/ as a positional target for "
-        f"CI parity (#1475); got: {invocations}"
+def test_core_lint_type_checks_tests_tree() -> None:
+    """core:lint must type-check the tests/ tree to match CI (#1475)."""
+    block = _task_block(CORE_YML.read_text(encoding="utf-8"), "lint")
+    assert "mypy" in block, "core:lint must invoke mypy"
+    assert "'tests'" in block, (
+        "core:lint must include tests as a mypy target for CI parity (#1475); "
+        f"lint block:\n{block}"
     )
+
+
+def test_core_lint_and_test_tolerate_missing_tests_tree() -> None:
+    """core:lint and core:test must guard a missing tests/ dir (#1474).
+
+    The installer (#1482) prunes the vendored tests/ from a consumer deposit,
+    and `task deft:check` runs BOTH core:lint and core:test, so each must build
+    its target set conditionally instead of passing an absent tests/ path. This
+    pins the two gates staying in lockstep so neither regresses the vendored
+    consumer back to a hard failure.
+    """
+    core_yml = CORE_YML.read_text(encoding="utf-8")
+    for task_name in ("lint", "test"):
+        block = _task_block(core_yml, task_name)
+        assert "Path('tests').exists()" in block, (
+            f"core:{task_name} must guard the tests/ path so a vendored consumer "
+            f"(no tests/) does not fail (#1474); block:\n{block}"
+        )
 
 
 def test_ci_workflow_runs_mypy_over_tests() -> None:
