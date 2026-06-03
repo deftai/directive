@@ -1030,6 +1030,31 @@ func TestEnsureGitignoreLines_Idempotent(t *testing.T) {
 	}
 }
 
+// TestEnsureGitignoreLines_LeakedArtifactGuards asserts the canonical deposit
+// carries every leaked-artefact guard so a consumer's `git add -A` never traps
+// installer/render scratch files (#1311 locks, #1445 backups, #1450 migration
+// snapshots). The `*.premigrate.*` glob is leading-slash-free so it matches
+// both the repo-root snapshots (ROADMAP.premigrate.md) and the nested
+// vbrief/specification.premigrate.vbrief.json at any depth.
+func TestEnsureGitignoreLines_LeakedArtifactGuards(t *testing.T) {
+	tmp := t.TempDir()
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+
+	if _, err := EnsureGitignoreLines(w, tmp); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(tmp, ".gitignore"))
+	if err != nil {
+		t.Fatalf("missing .gitignore: %v", err)
+	}
+	content := string(data)
+	for _, want := range []string{"vbrief/*.lock", ".deft/core.bak-*/", ".deft/*.bak-*", "*.premigrate.*"} {
+		if !strings.Contains(content, want) {
+			t.Errorf(".gitignore deposit missing leaked-artefact guard %q", want)
+		}
+	}
+}
+
 func TestWriteConsumerVbrief_CreatesNew(t *testing.T) {
 	tmp := t.TempDir()
 	projectDir := filepath.Join(tmp, "proj")

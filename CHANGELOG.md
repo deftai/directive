@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`deft-install` now gitignores `*.premigrate.*` migration snapshots so they are not left as an untracked, guard-tripping artefact (#1450)** -- the vBRIEF migration / spec-render step run during install/upgrade writes pre-migration safety snapshots (`ROADMAP.premigrate.md`, `SPECIFICATION.premigrate.md`, `vbrief/specification.premigrate.vbrief.json`) into the consumer working tree, but the installer's canonical `.gitignore` deposit did not cover them -- so `git add -A` swept them in and, mixed with a `.deft/core/**` change, they tripped the deft-core-guard (#1440) as "app" files. The installer deposit now includes the leading-slash-free `*.premigrate.*` glob (matching both the repo-root snapshots and the nested `vbrief/` one at any depth), the same leaked-artefact hygiene class as the `vbrief/*.lock` (#1311) and `.deft/*.bak-*` (#1445) guards. Closes #1450.
 
 ### Removed
 

@@ -179,7 +179,7 @@ var agentsMDManagedOpenPattern = regexp.MustCompile(`<!-- deft:managed-section v
 
 // canonicalGitignoreLines extends scripts/relocate.py::GITIGNORE_LINES (the F2
 // canonical default from #1015) -- the runtime cache directory and the
-// audit-log private state -- with two leaked-artefact guards so a consumer's
+// audit-log private state -- with three leaked-artefact guards so a consumer's
 // `git add -A` never traps installer/render scratch files:
 //
 //   - vbrief/*.lock          -- the PROJECT-DEFINITION mutation-lock sidecar
@@ -189,6 +189,15 @@ var agentsMDManagedOpenPattern = regexp.MustCompile(`<!-- deft:managed-section v
 //   - .deft/core.bak-*/ + .deft/*.bak-* -- pre-swap payload backups. The
 //     installer now writes them OUTSIDE the working tree (#1445), so these
 //     only catch backups left by a pre-#1445 installer already in the tree.
+//   - *.premigrate.* -- pre-migration safety snapshots written by the vBRIEF
+//     migration / spec-render step during install/upgrade (e.g.
+//     ROADMAP.premigrate.md, SPECIFICATION.premigrate.md,
+//     vbrief/specification.premigrate.vbrief.json). The leading-slash-free
+//     glob matches at any depth, so it covers both the repo-root snapshots
+//     and the nested vbrief/ one. Same hygiene class as the lock/backup
+//     guards above (#1450; the migrator already writes this pattern to the
+//     consumer .gitignore on the Python path per #497/#530 -- this closes the
+//     installer-deposit gap for the binary install/upgrade rail).
 //
 // The framework deposit at .deft/core/ is INTENTIONALLY NOT auto-gitignored --
 // per #11 .deft/core/ ships read-only packaged framework assets that consumers
@@ -200,6 +209,7 @@ var canonicalGitignoreLines = []string{
 	"vbrief/*.lock",
 	".deft/core.bak-*/",
 	".deft/*.bak-*",
+	"*.premigrate.*",
 }
 
 // minimalTaskfileContent is the canonical starter Taskfile.yml written (or
