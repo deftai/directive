@@ -623,26 +623,52 @@ def stage_triage_summary(project_root: Path, log: AssertLog) -> None:
         )
     out = proc.stdout.strip()
     lines = [line for line in out.splitlines() if line.strip()]
-    if len(lines) != 1:
+    if not lines:
         raise log.fail(
             stage, name,
-            expected="single line of output",
-            actual=f"{len(lines)} lines",
-            cause="multi-line output",
+            expected="at least the bounded headline",
+            actual="no output",
+            cause="triage:summary emitted nothing",
         )
-    line = lines[0]
-    if len(line) > SUMMARY_MAX_CHARS:
+    # #1122 bounds the HEADLINE (the first physical line). #1270
+    # ([triage:scope]) and #1468 ([triage:reconcile]) add intentional
+    # informational lines BELOW the headline; the fixture has a proposed
+    # vBRIEF (test-1, issue #1) with no audit decision, which is a
+    # legitimate reconcile divergence, so the summary correctly emits a
+    # second line. Validate the bounded headline and assert any extra
+    # lines are ONLY the recognized informational divergence/hint lines
+    # (genuine multi-line garbage still fails).
+    headline = lines[0]
+    extra_lines = lines[1:]
+    unexpected = [
+        ln
+        for ln in extra_lines
+        if not ln.startswith(("[triage:scope]", "[triage:reconcile]"))
+    ]
+    if unexpected:
+        raise log.fail(
+            stage, name,
+            expected=(
+                "only [triage:scope] / [triage:reconcile] informational "
+                "lines below the headline"
+            ),
+            actual=f"{len(unexpected)} unexpected extra line(s): {unexpected[0][:60]!r}",
+            cause="unexpected multi-line output",
+        )
+    if len(headline) > SUMMARY_MAX_CHARS:
         raise log.fail(
             stage, name,
             expected=f"<= {SUMMARY_MAX_CHARS} chars",
-            actual=f"{len(line)} chars",
+            actual=f"{len(headline)} chars",
             cause="exceeded MAX_LINE_CHARS budget",
         )
-    if WARN_GLYPH in line:
+    if WARN_GLYPH in headline:
         raise log.fail(
             stage, name,
             expected="no warning glyph (WIP under cap)",
             actual="warning glyph U+26A0 present",
             cause="emitted U+26A0 against under-cap fixture",
         )
-    log.passed(stage, name, detail=f"chars={len(line)}")
+    log.passed(
+        stage, name, detail=f"chars={len(headline)} extra_lines={len(extra_lines)}"
+    )
