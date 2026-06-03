@@ -23,6 +23,7 @@ from scope_lifecycle import (  # noqa: E402, I001
     LIFECYCLE_FOLDERS,
     detect_lifecycle_folder,
     run_transition,
+    update_decomposed_parent_back_references,
 )
 
 
@@ -66,6 +67,88 @@ def make_vbrief(
 def read_vbrief(path: Path) -> dict:
     """Read and parse a vBRIEF file."""
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+PARENT_NAME = "2026-06-03-parent-epic.vbrief.json"
+CHILD_NAME = "2026-06-03-child-story.vbrief.json"
+
+
+def make_decomposed_pair(
+    tmp_path: Path,
+    *,
+    parent_folder: str = "active",
+    parent_status: str = "running",
+    child_folder: str = "pending",
+    child_status: str = "pending",
+    child_ref_uri: str | None = None,
+) -> tuple[Path, Path]:
+    """Create a schema-valid parent epic + decomposed child pair.
+
+    Mirrors the shape ``scripts/scope_decompose.py`` produces: the parent
+    lists the child via an ``x-vbrief/plan`` reference whose ``uri`` is the
+    child's current lifecycle path (relative to vbrief/), and the child
+    carries a plan-level ``planRef`` back to the parent. Returns
+    ``(parent_path, child_path)``.
+    """
+    vbrief_root = tmp_path / "vbrief"
+    for folder in LIFECYCLE_FOLDERS:
+        (vbrief_root / folder).mkdir(parents=True, exist_ok=True)
+
+    parent_rel = f"{parent_folder}/{PARENT_NAME}"
+    if child_ref_uri is None:
+        child_ref_uri = f"{child_folder}/{CHILD_NAME}"
+
+    origin_ref = {
+        "uri": "https://github.com/deftai/directive/issues/1485",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1485",
+    }
+    parent = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {
+            "title": "Parent epic",
+            "status": parent_status,
+            "items": [],
+            "metadata": {"kind": "epic"},
+            "references": [
+                origin_ref,
+                {"uri": child_ref_uri, "type": "x-vbrief/plan", "title": "Child story"},
+            ],
+        },
+    }
+    child = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {
+            "title": "Child story",
+            "status": child_status,
+            "items": [],
+            "planRef": parent_rel,
+            "metadata": {"kind": "story"},
+            "references": [origin_ref],
+        },
+    }
+    parent_path = vbrief_root / parent_folder / PARENT_NAME
+    child_path = vbrief_root / child_folder / CHILD_NAME
+    parent_path.write_text(json.dumps(parent, indent=2) + "\n", encoding="utf-8")
+    child_path.write_text(json.dumps(child, indent=2) + "\n", encoding="utf-8")
+    return parent_path, child_path
+
+
+def parent_child_ref_uri(parent_path: Path) -> str | None:
+    """Return the parent's x-vbrief/plan reference uri (the child back-ref)."""
+    data = read_vbrief(parent_path)
+    for ref in data["plan"].get("references", []):
+        if isinstance(ref, dict) and ref.get("type") == "x-vbrief/plan":
+            return ref.get("uri")
+    return None
+
+
+def validate_errors(tmp_path: Path) -> list[str]:
+    """Run the full vBRIEF validator over tmp_path/vbrief and return errors."""
+    import vbrief_validate
+
+    errors, _warnings, _count = vbrief_validate.validate_all(tmp_path / "vbrief")
+    return errors
 
 
 # ---------------------------------------------------------------------------
@@ -598,3 +681,100 @@ class TestCLI:
         # "ERROR" (D4 cap-check prefix) so a future re-ordering doesn't
         # silently break this regression guard.
         assert "rror" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# Decomposed parent back-reference maintenance (#1485)
+# ---------------------------------------------------------------------------
+
+class TestDecomposedParentBackReference:
+    """Regression coverage for #1485.
+
+    A lifecycle move of a decomposed child (``scope:activate``,
+    ``scope:complete``, ...) must rewrite the parent epic's ``x-vbrief/plan``
+    forward reference to the child's NEW path, keeping the D4 bidirectional-
+    linkage check green with no manual repair. Before this fix the parent
+    reference pointed at the child's old lifecycle path and
+    ``task vbrief:validate`` failed.
+    """
+
+    def test_baseline_pair_validates(self, tmp_path):
+        """Sanity: the fixture pair is schema- and D4-valid before any move."""
+        parent_path, _child_path = make_decomposed_pair(tmp_path)
+        assert parent_child_ref_uri(parent_path) == f"pending/{CHILD_NAME}"
+        assert validate_errors(tmp_path) == []
+
+    def test_activate_updates_parent_reference(self, tmp_path):
+        parent_path, child_path = make_decomposed_pair(tmp_path)
+
+        ok, _ = run_transition("activate", child_path)
+        assert ok
+        # Child moved pending/ -> active/ ...
+        assert (tmp_path / "vbrief" / "active" / CHILD_NAME).exists()
+        # ... and the parent's forward reference followed it.
+        assert parent_child_ref_uri(parent_path) == f"active/{CHILD_NAME}"
+        # D4 bidirectional linkage holds with no manual repair.
+        assert validate_errors(tmp_path) == []
+
+    def test_complete_updates_parent_reference(self, tmp_path):
+        parent_path, child_path = make_decomposed_pair(tmp_path)
+        ok, _ = run_transition("activate", child_path)
+        assert ok
+        active_child = tmp_path / "vbrief" / "active" / CHILD_NAME
+
+        ok, _ = run_transition("complete", active_child)
+        assert ok
+        assert (tmp_path / "vbrief" / "completed" / CHILD_NAME).exists()
+        assert parent_child_ref_uri(parent_path) == f"completed/{CHILD_NAME}"
+        assert validate_errors(tmp_path) == []
+
+    def test_activate_then_complete_round_trip_validates(self, tmp_path):
+        """The full activate -> complete round trip leaves validation clean."""
+        parent_path, child_path = make_decomposed_pair(tmp_path)
+        ok, _ = run_transition("activate", child_path)
+        assert ok
+        ok, _ = run_transition(
+            "complete", tmp_path / "vbrief" / "active" / CHILD_NAME
+        )
+        assert ok
+        assert parent_child_ref_uri(parent_path) == f"completed/{CHILD_NAME}"
+        assert validate_errors(tmp_path) == []
+
+    def test_file_uri_prefix_is_preserved(self, tmp_path):
+        """A ``file://`` reference prefix is preserved across the rewrite."""
+        parent_path, child_path = make_decomposed_pair(
+            tmp_path, child_ref_uri=f"file://pending/{CHILD_NAME}"
+        )
+        ok, _ = run_transition("activate", child_path)
+        assert ok
+        assert parent_child_ref_uri(parent_path) == f"file://active/{CHILD_NAME}"
+        assert validate_errors(tmp_path) == []
+
+    def test_non_decomposed_child_move_is_noop(self, tmp_path):
+        """A plain child with no planRef moves cleanly and touches no parent."""
+        child = make_vbrief(tmp_path, "pending", "pending")
+        ok, _ = run_transition("activate", child)
+        assert ok
+        assert (tmp_path / "vbrief" / "active" / child.name).exists()
+
+    def test_helper_returns_rewritten_parent(self, tmp_path):
+        """The helper reports the parent path whose reference it rewrote."""
+        parent_path, child_path = make_decomposed_pair(tmp_path)
+        child_data = read_vbrief(child_path)
+        new_child = tmp_path / "vbrief" / "active" / CHILD_NAME
+        updated = update_decomposed_parent_back_references(
+            child_data, child_path, new_child, tmp_path / "vbrief"
+        )
+        assert updated == [parent_path.resolve()]
+        assert parent_child_ref_uri(parent_path) == f"active/{CHILD_NAME}"
+
+    def test_helper_noop_when_parent_missing(self, tmp_path):
+        """A planRef to a non-existent parent yields no rewrite (no raise)."""
+        child = make_vbrief(tmp_path, "pending", "pending")
+        data = read_vbrief(child)
+        data["plan"]["planRef"] = "active/2026-06-03-missing-parent.vbrief.json"
+        new_child = tmp_path / "vbrief" / "active" / child.name
+        updated = update_decomposed_parent_back_references(
+            data, child, new_child, tmp_path / "vbrief"
+        )
+        assert updated == []

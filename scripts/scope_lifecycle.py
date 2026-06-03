@@ -263,6 +263,155 @@ def detect_lifecycle_folder(file_path: Path) -> str | None:
     return None
 
 
+# ---------------------------------------------------------------------------
+# Decomposed parent <-> child back-reference maintenance (#1485)
+# ---------------------------------------------------------------------------
+#
+# A decomposed child vBRIEF carries a ``planRef`` (plan-level and/or item-
+# level) pointing at its parent epic. The parent epic, in turn, lists the
+# child via a ``plan.references[]`` entry of ``type == "x-vbrief/plan"`` whose
+# ``uri`` points at the child's *current* lifecycle path. When a lifecycle
+# move relocates the child between folders, that forward ``uri`` goes stale --
+# it still names the child's old path -- which breaks the D4 bidirectional-
+# linkage check in ``scripts/vbrief_validate.py`` (the parent references a
+# non-existent path). The helpers below rewrite the parent's forward
+# reference to the child's new path on every move, so ``task vbrief:validate``
+# passes with no manual repair. The reference-resolution rules mirror
+# ``scripts/vbrief_validate.py`` (relative-to-vbrief-dir, ``file://`` support).
+
+
+def _resolve_vbrief_ref(uri: object, vbrief_dir: Path) -> Path | None:
+    """Resolve a vBRIEF reference URI to an absolute path, or None.
+
+    Mirrors ``vbrief_validate._resolve_ref_path``: ``file://`` and bare
+    relative URIs resolve against *vbrief_dir*; ``http(s)://`` / ``#``
+    anchors are external and return None.
+    """
+    if not isinstance(uri, str) or not uri:
+        return None
+    if uri.startswith("file://"):
+        rel = uri[len("file://") :]
+    elif uri.startswith(("http://", "https://", "#")):
+        return None
+    else:
+        rel = uri
+    return (vbrief_dir / rel).resolve()
+
+
+def _collect_plan_refs(plan: dict) -> list[str]:
+    """Collect planRef values from the plan root and top-level items.
+
+    Matches ``vbrief_validate._collect_plan_refs``: ``planRef`` is valid at
+    the plan root and top-level item levels only (subItems are not scanned).
+    """
+    refs: list[str] = []
+    root_ref = plan.get("planRef")
+    if isinstance(root_ref, str) and root_ref:
+        refs.append(root_ref)
+    items = plan.get("items")
+    if isinstance(items, list):
+        for item in items:
+            if isinstance(item, dict):
+                item_ref = item.get("planRef")
+                if isinstance(item_ref, str) and item_ref:
+                    refs.append(item_ref)
+    return refs
+
+
+def _rewrite_parent_child_reference(
+    parent_path: Path,
+    old_child_resolved: Path,
+    new_child_rel: str,
+    vbrief_dir: Path,
+) -> bool:
+    """Rewrite *parent_path*'s x-vbrief/plan ref from old to new child path.
+
+    Loads the parent, finds every ``x-vbrief/plan`` reference whose ``uri``
+    resolves to *old_child_resolved*, and rewrites it to *new_child_rel*
+    (preserving a ``file://`` prefix when the original used one). Returns
+    True when at least one reference was changed and the parent re-written.
+    """
+    try:
+        parent_data = json.loads(parent_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(parent_data, dict):
+        return False
+    parent_plan = parent_data.get("plan")
+    if not isinstance(parent_plan, dict):
+        return False
+    refs = parent_plan.get("references")
+    if not isinstance(refs, list):
+        return False
+
+    changed = False
+    for ref in refs:
+        if not isinstance(ref, dict):
+            continue
+        if ref.get("type") != "x-vbrief/plan":
+            continue
+        uri = ref.get("uri")
+        resolved = _resolve_vbrief_ref(uri, vbrief_dir)
+        if resolved is None or resolved != old_child_resolved:
+            continue
+        new_uri = (
+            f"file://{new_child_rel}"
+            if isinstance(uri, str) and uri.startswith("file://")
+            else new_child_rel
+        )
+        if new_uri != uri:
+            ref["uri"] = new_uri
+            changed = True
+
+    if changed:
+        parent_path.write_text(
+            json.dumps(parent_data, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+    return changed
+
+
+def update_decomposed_parent_back_references(
+    child_data: dict,
+    old_child_path: Path,
+    new_child_path: Path,
+    vbrief_dir: Path,
+) -> list[Path]:
+    """Sync decomposed parents' forward references after a child move (#1485).
+
+    If *child_data* is a decomposed child (carries a ``planRef`` to a parent
+    epic), rewrite each existing parent's ``x-vbrief/plan`` reference uri from
+    the child's old lifecycle path to its new path. Non-decomposed children
+    (no resolvable parent on disk) are a no-op. Best-effort: the caller has
+    already moved the file, so this never raises -- a malformed or missing
+    parent is simply skipped.
+
+    Returns the list of parent paths whose references were rewritten.
+    """
+    plan = child_data.get("plan")
+    if not isinstance(plan, dict):
+        return []
+    old_resolved = old_child_path.resolve()
+    try:
+        new_rel = new_child_path.resolve().relative_to(vbrief_dir.resolve()).as_posix()
+    except ValueError:
+        # Child resolved outside vbrief/ -- nothing safe to rewrite.
+        return []
+
+    updated: list[Path] = []
+    seen: set[Path] = set()
+    for plan_ref in _collect_plan_refs(plan):
+        parent_path = _resolve_vbrief_ref(plan_ref, vbrief_dir)
+        if parent_path is None or parent_path in seen:
+            continue
+        seen.add(parent_path)
+        if not parent_path.is_file():
+            continue
+        if _rewrite_parent_child_reference(parent_path, old_resolved, new_rel, vbrief_dir):
+            updated.append(parent_path)
+    return updated
+
+
 def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
     """Execute a lifecycle transition on a vBRIEF file.
 
@@ -350,6 +499,14 @@ def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
         dest_path = dest_dir / file_path.name
         # Path.replace() is portable; Path.rename() raises FileExistsError on Windows
         file_path.replace(dest_path)
+        # Keep decomposed parent <-> child linkage intact (#1485): a moved
+        # decomposed child leaves its parent epic's x-vbrief/plan reference
+        # pointing at the child's old path, which fails the D4 bidirectional-
+        # linkage check. Rewrite the parent's forward reference to the new
+        # path. Best-effort (never raises) -- the move has already succeeded.
+        update_decomposed_parent_back_references(
+            data, file_path, dest_path, vbrief_root
+        )
         _move_labels = {
             "promote": "Promoted",
             "activate": "Activated",
