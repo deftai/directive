@@ -121,6 +121,15 @@ AUDIT_LOG_REL_PATH = "vbrief/.eval/candidates.jsonl"
 #: Label applied to a rejected upstream issue alongside ``gh issue close``.
 REJECTED_LABEL = "triage-rejected"
 
+#: Default color (6-hex, no leading '#') applied when auto-creating
+#: :data:`REJECTED_LABEL` on a repository that lacks it (#1420). GitHub's
+#: own ``invalid`` / ``wontfix`` palette red; chosen so an auto-created
+#: label reads as a negative-disposition marker at a glance.
+REJECTED_LABEL_COLOR = "B60205"
+
+#: Description applied when auto-creating :data:`REJECTED_LABEL` (#1420).
+REJECTED_LABEL_DESCRIPTION = "Issue rejected during deft triage"
+
 #: Decision values we treat as terminal for idempotency purposes. Repeating
 #: the SAME terminal decision against an issue already in that state is a
 #: no-op (returns the prior decision_id, no audit / no upstream call).
@@ -430,7 +439,7 @@ def reject(
     actor: str | None = None,
     project_root: Path | None = None,
 ) -> str:
-    """Close upstream + label + record. Roll the audit entry back on gh failure.
+    """Close upstream + best-effort label + record. Roll back only on close failure.
 
     Performs (in order):
 
@@ -438,10 +447,20 @@ def reject(
        prior decision_id without re-calling gh.
     2. Append the audit entry, capturing ``decision_id``.
     3. ``gh issue close <n> --comment <reason> --reason 'not planned'``.
-    4. ``gh issue edit <n> --add-label triage-rejected``.
-    5. On step 3 OR step 4 failure: roll back the audit entry from the JSONL
-       (per Story 3 vBRIEF Constraint) and re-raise as
+    4. Best-effort ``gh issue edit <n> --add-label triage-rejected`` via
+       :func:`_ensure_rejected_label_applied` -- self-healing when the
+       label is missing on the repo (#1420).
+    5. On step 3 (close) failure ONLY: roll back the audit entry from the
+       JSONL (per Story 3 vBRIEF Constraint) and re-raise as
        :class:`UpstreamCloseError`.
+
+    #1420 -- label-application is NOT load-bearing. The close-with-reason
+    is the decision that takes effect; once it succeeds the audit entry
+    MUST persist. A repository that lacks the ``triage-rejected`` label
+    used to fail step 4 and roll back the whole reject even though the
+    issue was already closed. The reject flow now auto-creates the label
+    when absent and, failing that, tolerates the missing label with a
+    stderr warning -- it never rolls back a successful close.
     """
     actor_str = _resolve_actor(actor)
     prior = _is_idempotent_repeat(n, repo, "reject")
@@ -450,6 +469,8 @@ def reject(
     log = _require_log()
     entry = _build_entry("reject", n, repo, actor=actor_str, reason=reason)
     decision_id = str(log.append(entry))
+    # Step 3: the close-with-reason is the load-bearing action -- a close
+    # failure is the ONLY condition that rolls back the audit entry.
     try:
         _run_gh(
             [
@@ -464,21 +485,93 @@ def reject(
                 "not planned",
             ]
         )
-        _run_gh(
-            [
-                "issue",
-                "edit",
-                str(n),
-                "--repo",
-                repo,
-                "--add-label",
-                REJECTED_LABEL,
-            ]
-        )
     except UpstreamCloseError:
         _rollback_audit_entry(decision_id, project_root=project_root)
         raise
+    # Step 4: label application is best-effort and self-healing. A missing
+    # ``triage-rejected`` label MUST NOT roll back a successful close (#1420).
+    _ensure_rejected_label_applied(n, repo)
     return decision_id
+
+
+def _looks_like_missing_label(exc: UpstreamCloseError) -> bool:
+    """Heuristic: did ``gh issue edit --add-label`` fail because the label is absent?
+
+    ``gh`` surfaces a missing label as ``"'triage-rejected' not found"`` (or
+    a ``label ... not found`` variant). The check is intentionally broad --
+    a false positive only triggers a (harmless, idempotent) label-create
+    attempt, while a false negative would leave the #1420 bug unfixed.
+    """
+    text = str(exc).lower()
+    return "not found" in text or "could not add label" in text
+
+
+def _ensure_label_exists(repo: str) -> None:
+    """Create :data:`REJECTED_LABEL` on ``repo`` when it is missing (#1420).
+
+    ``gh label create`` exits non-zero when the label already exists; that
+    specific case is swallowed so a concurrent create or a pre-existing
+    label is not treated as an error. Any other failure propagates as
+    :class:`UpstreamCloseError` for the caller to tolerate (it must never
+    roll back the already-closed issue).
+    """
+    try:
+        _run_gh(
+            [
+                "label",
+                "create",
+                REJECTED_LABEL,
+                "--repo",
+                repo,
+                "--description",
+                REJECTED_LABEL_DESCRIPTION,
+                "--color",
+                REJECTED_LABEL_COLOR,
+            ]
+        )
+    except UpstreamCloseError as exc:
+        if "already exists" in str(exc).lower():
+            return
+        raise
+
+
+def _ensure_rejected_label_applied(n: int, repo: str) -> None:
+    """Apply :data:`REJECTED_LABEL` to issue ``n``, auto-creating it if missing.
+
+    Best-effort by contract (#1420): the caller has already closed the
+    issue, so this helper MUST NOT raise -- a failure to label is surfaced
+    on stderr but never rolls back the decision. The flow is:
+
+    1. Try ``gh issue edit --add-label triage-rejected``.
+    2. On a missing-label failure, create the label once and re-attempt.
+    3. On any continued failure, warn on stderr and return.
+    """
+    try:
+        _run_gh(
+            ["issue", "edit", str(n), "--repo", repo, "--add-label", REJECTED_LABEL]
+        )
+        return
+    except UpstreamCloseError as add_exc:
+        if not _looks_like_missing_label(add_exc):
+            print(
+                f"triage_actions: reject #{n} ({repo}) closed successfully but "
+                f"the {REJECTED_LABEL!r} label could not be applied: {add_exc}",
+                file=sys.stderr,
+            )
+            return
+    # The label is absent on the repo -- create it once, then re-add.
+    try:
+        _ensure_label_exists(repo)
+        _run_gh(
+            ["issue", "edit", str(n), "--repo", repo, "--add-label", REJECTED_LABEL]
+        )
+    except UpstreamCloseError as heal_exc:
+        print(
+            f"triage_actions: reject #{n} ({repo}) closed successfully but the "
+            f"{REJECTED_LABEL!r} label is missing and auto-create/re-add "
+            f"failed: {heal_exc}",
+            file=sys.stderr,
+        )
 
 
 def defer(

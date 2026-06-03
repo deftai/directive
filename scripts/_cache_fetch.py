@@ -55,6 +55,7 @@ from gh_rest import (  # noqa: E402  -- intentional sys.path tweak
     GhRestError,
     InvalidRepoError,
     rest_issue_list_paginated,
+    rest_issue_view,
 )
 
 # ---------------------------------------------------------------------------
@@ -64,6 +65,12 @@ from gh_rest import (  # noqa: E402  -- intentional sys.path tweak
 #: Paginated REST issue lister. Tests rebind to a deterministic fake via
 #: ``monkeypatch.setattr(_cache_fetch, "_paginated_lister", fake)``.
 _paginated_lister: Callable[..., list[dict[str, Any]]] = rest_issue_list_paginated
+
+#: Single-issue REST reader used by the #1476 state-refresh path to
+#: resolve the live state of a cached-open entry that vanished from the
+#: default open-only enumeration. Tests rebind to a deterministic fake
+#: via ``monkeypatch.setattr(_cache_fetch, "_single_issue_fetcher", fake)``.
+_single_issue_fetcher: Callable[[str, int], dict[str, Any]] = rest_issue_view
 
 #: Sleep callable; tests rebind to a no-op so the per-issue delay loop
 #: doesn't burn wall-clock.
@@ -391,3 +398,148 @@ def _list_issues_rest(repo: str, *, state: str, limit: int) -> list[dict[str, An
 def _maybe_sleep(delay_ms: int) -> None:
     if delay_ms > 0:
         _sleep(delay_ms / 1000.0)
+
+
+# ---------------------------------------------------------------------------
+# State-refresh path (#1476) -- reconcile cached-open entries that closed
+# upstream against the default open-only enumeration.
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class StateRefreshReport:
+    """Aggregate counts returned by :func:`run_state_refresh` (#1476).
+
+    The default ``cache:fetch-all`` enumeration is ``state=open``; once an
+    issue closes upstream it drops out of that enumeration and its cached
+    ``raw.json`` is never rewritten -- so a closed issue keeps showing up
+    as actionable ``triage:queue`` work for the full 7-day cache TTL
+    (the #1322 shape). This report records the reconciliation that fixes
+    that: each cached-open entry that is no longer in the open enumeration
+    is revisited individually and rewritten to its live state.
+    """
+
+    #: Cached-open entries that were revisited because they were absent
+    #: from the open enumeration (i.e. closed-upstream candidates).
+    revisited: int = 0
+    #: Revisited entries confirmed closed upstream and rewritten to
+    #: ``state=closed`` on disk.
+    closed_rewritten: int = 0
+    #: Revisited entries that were still open upstream (a transient drop
+    #: from the enumeration, e.g. pagination race) -- left untouched.
+    still_open: int = 0
+    #: Revisited entries whose single-issue fetch or rewrite errored.
+    refresh_failed: int = 0
+    failures: list[dict[str, str]] = field(default_factory=list)
+
+    def to_json(self) -> str:
+        return json.dumps(
+            {
+                "revisited": self.revisited,
+                "closed_rewritten": self.closed_rewritten,
+                "still_open": self.still_open,
+                "refresh_failed": self.refresh_failed,
+                "failures": self.failures,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+
+    def summary_line(self, *, source: str, repo: str) -> str:
+        return (
+            f"cache:refresh-closed source={source} repo={repo} "
+            f"revisited={self.revisited} "
+            f"closed_rewritten={self.closed_rewritten} "
+            f"still_open={self.still_open} "
+            f"refresh_failed={self.refresh_failed}"
+        )
+
+
+def list_open_issue_numbers(
+    repo: str, *, state: str = "open", limit: int = 1000
+) -> set[int]:
+    """Return the set of issue numbers for ``repo`` from the REST enumeration.
+
+    Wraps :func:`_list_issues_rest` (so it shares the 429-retry path and
+    the ``_paginated_lister`` test seam) and projects the result down to
+    the integer ``number`` field. Used by the #1476 state-refresh path in
+    :mod:`cache` to learn which cached entries are still open upstream.
+    """
+    numbers: set[int] = set()
+    for issue in _list_issues_rest(repo, state=state, limit=limit):
+        number = issue.get("number") if isinstance(issue, dict) else None
+        if isinstance(number, int) and number > 0:
+            numbers.add(number)
+    return numbers
+
+
+def run_state_refresh(
+    *,
+    repo: str,
+    open_numbers: set[int],
+    cached_open: list[tuple[int, dict[str, Any]]],
+    do_put: Callable[[str, dict[str, Any]], None],
+    fetch_single: Callable[[str, int], dict[str, Any]] | None = None,
+    delay_ms: int = 0,
+) -> StateRefreshReport:
+    """Reconcile cached-open entries that dropped out of the open enumeration.
+
+    Args:
+        repo: Validated ``owner/repo`` slug.
+        open_numbers: Issue numbers currently returned by the upstream
+            open-only enumeration (e.g. from :func:`list_open_issue_numbers`).
+        cached_open: ``(number, raw)`` pairs for on-disk cache entries
+            whose ``raw.json`` currently says ``state=open``. Supplied by
+            the caller (the :mod:`cache` layer owns the disk walk).
+        do_put: Callable ``(key, raw) -> None`` that rewrites the cache
+            entry. Bound to ``cache_put`` by the caller. Raises on failure.
+        fetch_single: Callable ``(repo, n) -> dict`` returning the live
+            single-issue REST payload. Defaults to the module seam
+            :data:`_single_issue_fetcher`.
+        delay_ms: Per-revisit inter-call delay (ms) so a large reconcile
+            does not hammer the REST core bucket.
+
+    Returns:
+        :class:`StateRefreshReport` with revisit / rewrite / failure
+        counts and a structured failures list.
+
+    A cached-open entry whose number IS in ``open_numbers`` is still open
+    upstream and skipped entirely (no fetch). Only the entries that
+    vanished from the enumeration are revisited: their live state is
+    fetched and, when ``closed``, the entry's ``raw.json`` is rewritten
+    via ``do_put`` so the next ``triage:queue`` walk excludes it.
+    """
+    fetcher = fetch_single if fetch_single is not None else _single_issue_fetcher
+    report = StateRefreshReport()
+    for number, _raw in cached_open:
+        if number in open_numbers:
+            # Still open upstream -- nothing to reconcile.
+            continue
+        report.revisited += 1
+        key = f"{repo}/{number}"
+        try:
+            live = fetcher(repo, number)
+        except Exception as exc:  # noqa: BLE001 -- any fetch failure is recorded
+            report.refresh_failed += 1
+            report.failures.append({"key": key, "reason": f"fetch failed: {exc}"})
+            _maybe_sleep(delay_ms)
+            continue
+        live_state_raw = live.get("state") if isinstance(live, dict) else None
+        live_state = (
+            live_state_raw.lower() if isinstance(live_state_raw, str) else None
+        )
+        if live_state == "closed":
+            try:
+                do_put(key, _normalise_rest_issue(live))
+                report.closed_rewritten += 1
+            except Exception as exc:  # noqa: BLE001 -- any rewrite failure recorded
+                report.refresh_failed += 1
+                report.failures.append(
+                    {"key": key, "reason": f"rewrite failed: {exc}"}
+                )
+        else:
+            # Live state is open (or unparseable) -- leave the cache as-is
+            # rather than risk dropping a genuinely-open issue.
+            report.still_open += 1
+        _maybe_sleep(delay_ms)
+    return report

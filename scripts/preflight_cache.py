@@ -458,6 +458,38 @@ def _resolve_max_age_hours(explicit: int | None) -> int:
     return max(0, parsed)
 
 
+def is_fetched_at_stale(
+    fetched_at: str | None,
+    *,
+    max_age_hours: int | None = None,
+    now: datetime | None = None,
+) -> bool:
+    """Return True when a cache entry's ``fetched_at`` is older than the window.
+
+    Pure, side-effect-free predicate shared with the #1476 triage:queue
+    defensive stale-state path so the freshness window is resolved the
+    same way everywhere (flag / ``DEFT_CACHE_MAX_AGE_HOURS`` env / 24h
+    default, via :func:`_resolve_max_age_hours`).
+
+    A missing / empty / unparseable ``fetched_at`` is treated as stale
+    (the cache cannot vouch for the entry's age). When the resolved
+    window is ``0`` (freshness disabled) nothing is stale. A negative
+    age (clock skew -- ``fetched_at`` in the future) is clamped to
+    fresh.
+    """
+    if not isinstance(fetched_at, str) or not fetched_at.strip():
+        return True
+    max_age_h = _resolve_max_age_hours(max_age_hours)
+    if max_age_h <= 0:
+        return False
+    try:
+        fetched = _parse_iso(fetched_at)
+    except ValueError:
+        return True
+    age_h = ((now or _utc_now()) - fetched).total_seconds() / 3600.0
+    return age_h > max_age_h
+
+
 # ---------------------------------------------------------------------------
 # Core evaluator
 # ---------------------------------------------------------------------------
