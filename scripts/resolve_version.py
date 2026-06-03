@@ -72,9 +72,26 @@ import os
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 DEV_FALLBACK = "0.0.0-dev"
 ENV_VAR = "DEFT_RELEASE_VERSION"
+
+# Framework install root for the vendored-install metadata lookups (#1323).
+# This script lives at ``<install>/scripts/resolve_version.py``; its parent's
+# parent is the framework deposit (``<install>``) where the Go installer
+# writes the canonical ``VERSION`` manifest and the bare ``.deft-version``
+# derivative. In framework-self-dev the same path resolves to the repo root.
+_FRAMEWORK_ROOT = Path(__file__).resolve().parent.parent
+
+# Parses the ``tag``/``ref`` field of the ``<install>/VERSION`` YAML manifest.
+# Multiline so a single ``re.search`` finds whichever of the two lines comes
+# first (they carry the same value in a well-formed manifest). Mirrors the
+# inline regex in ``run::_VERSION_MANIFEST_TAG_RE``.
+_MANIFEST_TAG_RE = re.compile(
+    r"^(?:tag|ref):\s*['\"]?v?([\d.][\w.-]*)['\"]?\s*$",
+    re.MULTILINE,
+)
 
 # ---------------------------------------------------------------------------
 # PEP 440 normalization (#771)
@@ -205,8 +222,53 @@ def _from_env() -> str | None:
     return value or None
 
 
+def _from_manifest(base_dir: Path | None = None) -> str | None:
+    """Return the version from ``<base_dir>/VERSION`` manifest, or None (#1323).
+
+    Reads the canonical install manifest's ``tag``/``ref`` field so a vendored
+    ``.deft/core/`` install (no nested ``.git``) resolves its real version
+    rather than ``0.0.0-dev``. ``base_dir`` defaults to the framework root.
+    """
+    base = base_dir if base_dir is not None else _FRAMEWORK_ROOT
+    manifest = base / "VERSION"
+    try:
+        if not manifest.is_file():
+            return None
+        text = manifest.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    match = _MANIFEST_TAG_RE.search(text)
+    if match is None:
+        return None
+    return match.group(1).strip() or None
+
+
+def _from_deft_version(base_dir: Path | None = None) -> str | None:
+    """Return the version from ``<base_dir>/.deft-version`` plaintext, or None (#1323).
+
+    Strips a leading ``v`` so the value matches the bare ``X.Y.Z`` shape.
+    ``base_dir`` defaults to the framework root.
+    """
+    base = base_dir if base_dir is not None else _FRAMEWORK_ROOT
+    marker = base / ".deft-version"
+    try:
+        if not marker.is_file():
+            return None
+        version = marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    if version.startswith("v"):
+        version = version[1:]
+    return version or None
+
+
 def _from_git() -> str | None:
-    """Return the latest annotated tag (without leading ``v``) or None."""
+    """Return the latest annotated tag (without leading ``v``) or None.
+
+    Rooted at the framework root so a vendored ``.deft/core/`` install does
+    not pick up the consumer repo's tags (the manifest / ``.deft-version``
+    branches catch that case first; this is the framework-self-dev path).
+    """
     try:
         result = subprocess.run(
             ["git", "describe", "--tags", "--abbrev=0"],
@@ -214,6 +276,7 @@ def _from_git() -> str | None:
             text=True,
             timeout=10,
             check=False,
+            cwd=str(_FRAMEWORK_ROOT),
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
@@ -228,10 +291,24 @@ def _from_git() -> str | None:
 
 
 def resolve_version() -> str:
-    """Resolve the version using the documented priority chain."""
+    """Resolve the version using the documented priority chain.
+
+    Priority (first match wins -- mirrors ``run::_resolve_version``):
+        1. ``$DEFT_RELEASE_VERSION`` env override.
+        2. ``<install>/VERSION`` manifest ``tag``/``ref`` field (#1323).
+        3. ``<install>/.deft-version`` plaintext (#1323).
+        4. ``git describe --tags --abbrev=0`` rooted at the framework root.
+        5. ``0.0.0-dev`` fallback.
+    """
     env_value = _from_env()
     if env_value:
         return env_value
+    manifest_value = _from_manifest()
+    if manifest_value:
+        return manifest_value
+    deft_version_value = _from_deft_version()
+    if deft_version_value:
+        return deft_version_value
     git_value = _from_git()
     if git_value:
         return git_value

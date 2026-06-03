@@ -140,14 +140,26 @@ class TestManifestAgreementDeftVersion:
         assert check.status == "fail", check.detail
         assert check.data["authoritative"] == "manifest"
 
-    def test_canonical_core_version_wins_over_stale_deft_version(
-        self, doctor_module, tmp_path
-    ):
-        # Both manifests present: the canonical .deft/core/VERSION (0.39.2)
-        # must win over a stale .deft/VERSION (0.0.1). Agreement with the
-        # bare 0.39.2 marker therefore PASSES.
+    def test_dual_manifest_disagreement_flagged(self, doctor_module, tmp_path):
+        # #1325: when BOTH the canonical .deft/core/VERSION (0.39.2) and a
+        # stale legacy .deft/VERSION (0.0.1) exist AND disagree, the check
+        # FAILS (was: canonical silently won). The stale parent-level file is
+        # a source-of-truth hazard that `task upgrade` migrates.
         _write(tmp_path / ".deft" / "core" / "VERSION", "tag: 'v0.39.2'\n")
         _write(tmp_path / ".deft" / "VERSION", "tag: 'v0.0.1'\n")
+        _write(tmp_path / ".deft-version", "0.39.2\n")
+        check = doctor_module._check_manifest_agreement(tmp_path, None)
+        assert check.status == "fail", check.detail
+        assert check.data["dual_manifest_drift"] is True
+        assert check.data["core_version"] == "0.39.2"
+        assert check.data["legacy_version"] == "0.0.1"
+
+    def test_dual_manifest_agreement_passes(self, doctor_module, tmp_path):
+        # When both manifests AGREE (same version), there is no stale
+        # source-of-truth -- the canonical-vs-bare reconciliation proceeds
+        # and PASSES against a matching bare marker.
+        _write(tmp_path / ".deft" / "core" / "VERSION", "tag: 'v0.39.2'\n")
+        _write(tmp_path / ".deft" / "VERSION", "tag: 'v0.39.2'\n")
         _write(tmp_path / ".deft-version", "0.39.2\n")
         check = doctor_module._check_manifest_agreement(tmp_path, None)
         assert check.status == "pass", check.detail

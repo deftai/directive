@@ -486,7 +486,42 @@ def _check_manifest_agreement(project_root: Path, install_root: str | None) -> C
     whose AGENTS.md therefore yields no install-root claim) -- the helper
     still probes the canonical/legacy locations, so detection no longer
     depends on the AGENTS.md install-root parse.
+
+    #1325: before the canonical-vs-bare reconciliation, detect when BOTH the
+    canonical ``.deft/core/VERSION`` and the legacy parent-level
+    ``.deft/VERSION`` exist AND disagree. Two install manifests that name
+    different versions is a stale source-of-truth hazard -- ``task upgrade``
+    migrates the legacy file (backing it up as ``.deft/VERSION.premigrate``).
     """
+    core_manifest = project_root / ".deft" / "core" / "VERSION"
+    legacy_manifest = project_root / ".deft" / "VERSION"
+    core_dual_text = _read_text_safe(core_manifest)
+    legacy_dual_text = _read_text_safe(legacy_manifest)
+    if core_dual_text is not None and legacy_dual_text is not None:
+        core_ver = _manifest_tag_to_version(_parse_manifest(core_dual_text))
+        legacy_ver = _manifest_tag_to_version(_parse_manifest(legacy_dual_text))
+        if core_ver != legacy_ver:
+            return CheckResult(
+                name="manifest-agreement",
+                status="fail",
+                detail=(
+                    f"Two install manifests disagree: .deft/core/VERSION "
+                    f"(tag={core_ver!r}) vs legacy .deft/VERSION "
+                    f"(tag={legacy_ver!r}). The canonical manifest is "
+                    ".deft/core/VERSION -- run `task upgrade` to migrate the "
+                    "stale .deft/VERSION (backed up as .deft/VERSION.premigrate). "
+                    "See UPGRADING.md for the canonical drift-repair walkthrough."
+                ),
+                data={
+                    "dual_manifest_drift": True,
+                    "core_manifest_path": str(core_manifest),
+                    "legacy_manifest_path": str(legacy_manifest),
+                    "core_version": core_ver,
+                    "legacy_version": legacy_ver,
+                    "authoritative": "manifest",
+                    "suggested_fix": "task upgrade",
+                },
+            )
     manifest_path = _locate_manifest(project_root, install_root)
     # Canonical-first expected location for diagnostics when no manifest is
     # found on disk (``_manifest_candidate_paths`` always returns >= 1 entry).

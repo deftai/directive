@@ -186,20 +186,33 @@ class TestOkAndBehind:
 class TestEdgeCases:
     """No upstream / timeout / no-tags / detached HEAD."""
 
-    def test_no_upstream_when_origin_lookup_fails(
+    def test_never_probes_consumer_origin_uses_baked_in_upstream(
         self, run_command, deft_run_module, monkeypatch
     ):
+        """#1320: the probe resolves the baked-in upstream and NEVER the
+        consumer's ``origin`` remote. With no manifest in cwd the upstream
+        is ``DEFT_UPSTREAM_URL`` (so the legacy NO-UPSTREAM status -- which
+        depended on a failed origin lookup -- is no longer reachable).
+        """
         monkeypatch.delenv("DEFT_NO_NETWORK", raising=False)
-        monkeypatch.setattr(
-            deft_run_module.subprocess,
-            "run",
-            _make_subprocess_run(remote_url=None, tag_lines=None),
-        )
+
+        def _fake_run(cmd, *args, **kwargs):  # noqa: ANN001
+            if "remote" in cmd and "get-url" in cmd:
+                raise AssertionError(
+                    "check-updates must NOT probe the consumer origin (#1320)"
+                )
+            if "ls-remote" in cmd:
+                return _CompletedMock(returncode=0, stdout="")
+            return _CompletedMock(returncode=128, stdout="", stderr="unhandled")
+
+        monkeypatch.setattr(deft_run_module.subprocess, "run", _fake_run)
 
         result = run_command("cmd_check_updates", [])
 
         assert result.return_code == 0
-        assert "NO-UPSTREAM" in result.stdout
+        assert "NO-UPSTREAM" not in result.stdout
+        assert "NO-TAGS" in result.stdout
+        assert deft_run_module.DEFT_UPSTREAM_URL in result.stdout
 
     def test_timeout_returns_error_status(
         self, run_command, deft_run_module, monkeypatch

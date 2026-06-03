@@ -47,6 +47,40 @@ from typing import List, Optional
 #       you change one, change the other -- regression coverage in
 #       tests/cli/test_run_version.py and tests/cli/test_resolve_version.py
 #       pins both surfaces to the same chain.
+_VERSION_MANIFEST_TAG_RE = re.compile(
+    r"^(?:tag|ref):\s*['\"]?v?([\d.][\w.-]*)['\"]?\s*$",
+    re.MULTILINE,
+)
+
+
+def _version_from_install_manifest(base_dir: Path) -> Optional[str]:
+    """Return the version from ``<base_dir>/VERSION`` manifest, or None (#1323)."""
+    manifest = base_dir / "VERSION"
+    try:
+        if not manifest.is_file():
+            return None
+        text = manifest.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    match = _VERSION_MANIFEST_TAG_RE.search(text)
+    if match is None:
+        return None
+    return match.group(1).strip() or None
+
+
+def _version_from_deft_version_file(base_dir: Path) -> Optional[str]:
+    """Return the version from ``<base_dir>/.deft-version``, or None (#1323)."""
+    marker = base_dir / ".deft-version"
+    try:
+        if not marker.is_file():
+            return None
+        version = marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    if version.startswith("v"):
+        version = version[1:]
+    return version or None
+
 def _resolve_version() -> str:
     """Resolve `run`'s VERSION using the documented priority chain.
 
@@ -59,11 +93,17 @@ def _resolve_version() -> str:
     env_value = os.environ.get("DEFT_RELEASE_VERSION", "").strip()
     if env_value:
         return env_value
-    # Run `git describe` rooted at the directory containing this script
-    # so the lookup is independent of the operator's current working
-    # directory (which can be any consumer project when `run` is invoked
-    # via `./.deft/core/run <command>`).
-    script_dir = str(Path(__file__).parent.absolute())
+    # Root lookups at the directory containing this script so a vendored
+    # `.deft/core/run` reads `.deft/core/VERSION` rather than consumer repo
+    # metadata.
+    script_dir_path = Path(__file__).parent.absolute()
+    manifest_value = _version_from_install_manifest(script_dir_path)
+    if manifest_value:
+        return manifest_value
+    deft_version_value = _version_from_deft_version_file(script_dir_path)
+    if deft_version_value:
+        return deft_version_value
+    script_dir = str(script_dir_path)
     try:
         result = subprocess.run(
             ["git", "describe", "--tags", "--abbrev=0"],
@@ -846,6 +886,20 @@ _REMOTE_NOTIFY_CADENCE_HOURS = 24
 # DEFT_REMOTE_PROBE_TIMEOUT env var (float seconds; non-positive falls back).
 _REMOTE_PROBE_DEFAULT_TIMEOUT = 5.0
 
+# Baked-in canonical upstream for the directive framework (#1320). The
+# remote-version probe resolves the upstream from the install manifest's
+# ``url`` field first, then falls back to this constant -- and NEVER to the
+# consumer's ``origin`` remote. On a vendored ``.deft/core/`` install (no
+# nested ``.git``) the consumer's origin is the ONLY git context, so probing
+# it would mistake the consumer's repo for the framework upstream.
+DEFT_UPSTREAM_URL = "https://github.com/deftai/directive.git"
+
+# Manifest fields that may carry the framework upstream URL (a ``source.url``
+# equivalent). The flat ``key: value`` manifest parser lower-cases keys and
+# cannot represent dotted YAML paths, so we accept a small set of flat
+# spellings any writer rail (Go installer / oz-agent-upgrade) might emit.
+_MANIFEST_UPSTREAM_URL_KEYS = ("source_url", "url", "upstream_url", "upstream", "origin")
+
 
 def _remote_probe_state_path(project_root: Path) -> Path:
     """Return the throttle file path for the given project root."""
@@ -961,54 +1015,73 @@ def _max_semver_tag(tags: List[str]) -> Optional[str]:
     return parsed[-1][1]
 
 
+def _read_vendored_manifest(project_root: Path) -> Optional[dict]:
+    """Read the install manifest canonical-first for probe/version resolution (#1320).
+
+    A vendored install deposits the framework at ``.deft/core`` (or legacy
+    ``deft``) with no nested ``.git``; the only canonical version / upstream
+    metadata lives in ``<install>/VERSION``. Probes the canonical location
+    first, then the webinstaller-vendored ``.deft/VERSION``, then the legacy
+    ``deft/VERSION``. Returns the parsed dict, or None when no manifest
+    exists. Best-effort -- never raises.
+    """
+    for candidate in (
+        project_root / ".deft" / "core" / "VERSION",
+        project_root / ".deft" / "VERSION",
+        project_root / "deft" / "VERSION",
+    ):
+        if candidate.is_file():
+            try:
+                text = candidate.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            return _parse_install_manifest(text)
+    return None
+
+
+def _resolve_probe_current_version(project_root: Path) -> str:
+    """Resolve the version the probe should treat as ``current`` (#1320).
+
+    On a vendored install the in-process ``VERSION`` may resolve to
+    ``0.0.0-dev`` (no nested ``.git``); the install manifest's ``tag`` /
+    ``ref`` is the authoritative installed version. Prefer it, falling back
+    to the in-process ``VERSION`` when no manifest is present.
+    """
+    manifest = _read_vendored_manifest(project_root)
+    if manifest:
+        derived = _install_manifest_tag_to_version(manifest)
+        if derived:
+            return derived
+    return VERSION
+
+
 def _resolve_upstream_url(
     project_root: Path,
     *,
     timeout: Optional[float] = None,
 ) -> Optional[str]:
-    """Resolve the directive framework's upstream remote URL.
+    """Resolve the directive framework's upstream remote URL (#1320).
 
     Resolution priority:
-        1. ``./deft`` submodule's ``origin`` remote (consumer projects)
-        2. ``origin`` remote of the run-rooted repo (framework checkout)
+        1. The ``url`` (``source.url`` equivalent) field of the
+           ``<install>/VERSION`` manifest, when present.
+        2. The baked-in framework constant ``DEFT_UPSTREAM_URL``.
 
-    ``timeout`` -- subprocess timeout in seconds for each ``git remote
-    get-url origin`` call. Defaults to ``DEFT_REMOTE_PROBE_TIMEOUT``
-    (resolved via :func:`_resolve_probe_timeout`) when ``None`` so the
-    env-var override applies to URL resolution and ``ls-remote`` alike
-    -- a slow-remote environment that bumps the env to e.g. ``30`` gets
-    a uniform 30 s budget across both subprocess calls instead of being
-    silently capped at 5 s here. Greptile P2 on PR #811.
-
-    Returns None when neither candidate yields a remote URL -- callers
-    surface this as a ``no-upstream`` status rather than treating it as
-    an error.
+    The consumer's ``origin`` remote is NEVER consulted: on a vendored
+    ``.deft/core/`` install (no nested ``.git``) the only git context is the
+    CONSUMER's repo, so probing ``git remote get-url origin`` would mistake
+    the consumer's origin for the framework upstream (#1320). ``timeout`` is
+    retained for call-site compatibility but is unused now that resolution
+    is filesystem + constant only (no subprocess).
     """
-    if timeout is None:
-        timeout = _resolve_probe_timeout()
-    candidates: List[Path] = []
-    deft_dir = project_root / "deft"
-    if deft_dir.is_dir():
-        candidates.append(deft_dir)
-    candidates.append(get_script_dir())
-    for candidate in candidates:
-        try:
-            result = subprocess.run(
-                ["git", "remote", "get-url", "origin"],
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                check=False,
-                cwd=str(candidate),
-            )
-        except (subprocess.TimeoutExpired, OSError):
-            continue
-        if result.returncode != 0:
-            continue
-        url = (result.stdout or "").strip()
-        if url:
-            return url
-    return None
+    del timeout  # no subprocess: resolution is manifest field + baked-in constant
+    manifest = _read_vendored_manifest(project_root)
+    if manifest:
+        for key in _MANIFEST_UPSTREAM_URL_KEYS:
+            value = manifest.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return DEFT_UPSTREAM_URL
 
 
 def _ls_remote_tags(upstream_url: str, timeout: float) -> List[str]:
@@ -1071,29 +1144,33 @@ def _run_remote_probe(project_root: Path) -> dict:
         ``no-tags``     -- upstream resolved but produced no semver tags
         ``error``       -- subprocess timeout / git missing / other I/O
     """
+    # #1320: resolve ``current`` from the install manifest (ref/tag) before
+    # the in-process VERSION so a vendored install (no nested .git) reports
+    # its installed version rather than the 0.0.0-dev fallback.
+    current = _resolve_probe_current_version(project_root)
     if _no_network_active():
         return {
             "status": "skipped",
             "reason": "DEFT_NO_NETWORK=1",
-            "current": VERSION,
+            "current": current,
         }
     timeout = _resolve_probe_timeout()
     upstream_url = _resolve_upstream_url(project_root, timeout=timeout)
     if not upstream_url:
-        return {"status": "no-upstream", "current": VERSION}
+        return {"status": "no-upstream", "current": current}
     try:
         tags = _ls_remote_tags(upstream_url, timeout)
     except subprocess.TimeoutExpired:
         return {
             "status": "error",
-            "current": VERSION,
+            "current": current,
             "upstream_url": upstream_url,
             "error": "timeout",
         }
     except OSError as exc:
         return {
             "status": "error",
-            "current": VERSION,
+            "current": current,
             "upstream_url": upstream_url,
             "error": f"{type(exc).__name__}: {exc}",
         }
@@ -1101,11 +1178,11 @@ def _run_remote_probe(project_root: Path) -> dict:
     if remote_tag is None:
         return {
             "status": "no-tags",
-            "current": VERSION,
+            "current": current,
             "upstream_url": upstream_url,
         }
     remote_key = _parse_semver_tag(remote_tag)
-    current_key = _parse_semver_tag(VERSION)
+    current_key = _parse_semver_tag(current)
     if (
         current_key is not None
         and remote_key is not None
@@ -1113,13 +1190,13 @@ def _run_remote_probe(project_root: Path) -> dict:
     ):
         return {
             "status": "behind",
-            "current": VERSION,
+            "current": current,
             "remote": remote_tag,
             "upstream_url": upstream_url,
         }
     return {
         "status": "ok",
-        "current": VERSION,
+        "current": current,
         "remote": remote_tag,
         "upstream_url": upstream_url,
     }
@@ -1488,7 +1565,7 @@ from _agents_md import (  # noqa: E402  -- pure module; intentional post-path im
     _parse_managed_section_attrs,
     _read_agents_template,
     _render_managed_section,
-    _resolve_framework_sha,
+    _resolve_framework_sha as _resolve_framework_sha_git,
     _strip_managed_section_attrs,
 )
 from _agents_md import _agents_refresh_plan as _shared_agents_refresh_plan  # noqa: E402
@@ -2008,6 +2085,32 @@ def _read_install_manifest(install_root: Path) -> Optional[dict]:
     return _parse_install_manifest(text)
 
 
+def _resolve_framework_sha(install_root: Optional[Path] = None) -> str:
+    """Resolve the framework checkout's sha, manifest-first (#1332).
+
+    On a vendored ``.deft/core/`` install with no nested ``.git``, running
+    ``git rev-parse HEAD`` rooted at the framework dir walks up to the
+    CONSUMER repo and returns the consumer's HEAD -- the wrong sha. The
+    canonical install manifest's ``sha`` field records the framework's true
+    sha, so prefer it. Falls back to the git resolver (used for
+    framework-self-dev, where the framework root IS a git checkout) when no
+    manifest sha is available.
+    """
+    candidates: List[Path] = []
+    if install_root is not None:
+        candidates.append(install_root)
+    else:
+        cwd = Path.cwd()
+        candidates.extend([cwd / ".deft" / "core", cwd / "deft"])
+    for root in candidates:
+        manifest = _read_install_manifest(root)
+        if manifest:
+            sha = (manifest.get("sha") or "").strip()
+            if sha:
+                return sha
+    return _resolve_framework_sha_git()
+
+
 def _install_manifest_tag_to_version(manifest: dict) -> Optional[str]:
     """Derive the bare ``.deft-version`` value from a manifest (#1046 PR-B AC-4).
 
@@ -2118,7 +2221,7 @@ def _write_install_manifest(
     the two stay in sync on every install.
     """
     effective_tag = tag if tag is not None else VERSION
-    effective_sha = sha if sha is not None else _resolve_framework_sha()
+    effective_sha = sha if sha is not None else _resolve_framework_sha(install_root)
     effective_fetched_at = fetched_at if fetched_at is not None else _now_utc_iso()
     effective_project_root = project_root if project_root is not None else install_root.parent
     install_root_str = _derive_install_root_string(install_root, effective_project_root)
@@ -2136,6 +2239,50 @@ def _write_install_manifest(
     except OSError:
         return None
     return path
+
+
+def _migrate_legacy_install_manifest(
+    project_root: Path, canonical_manifest_path: Optional[Path]
+) -> None:
+    """Back up a stale parent-level ``.deft/VERSION`` after migration (#1325).
+
+    The canonical install manifest lives at ``.deft/core/VERSION``. A legacy
+    parent-level ``.deft/VERSION`` (e.g. left by an older webinstaller) that
+    DIFFERS from the canonical manifest is a stale source-of-truth: doctor's
+    manifest-agreement check would flag it and downstream version resolution
+    could read the wrong value. Rename it to ``.deft/VERSION.premigrate`` so
+    the canonical manifest is the sole authority, emitting one info line.
+
+    Only fires when the canonical manifest is the ``.deft/core/VERSION``
+    deposit (the parent-of-install relationship that defines "legacy"); a
+    legacy state-A ``deft/`` install has no such parent-level file to
+    migrate. Best-effort -- never raises.
+    """
+    if canonical_manifest_path is None:
+        return
+    canonical = Path(canonical_manifest_path)
+    legacy = project_root / ".deft" / "VERSION"
+    try:
+        if canonical.resolve().parent != (project_root / ".deft" / "core").resolve():
+            return
+        if not legacy.is_file():
+            return
+        legacy_version = _install_manifest_tag_to_version(
+            _parse_install_manifest(legacy.read_text(encoding="utf-8"))
+        )
+        canonical_version = _install_manifest_tag_to_version(
+            _parse_install_manifest(canonical.read_text(encoding="utf-8"))
+        )
+        if legacy_version is not None and legacy_version == canonical_version:
+            return  # manifests agree -> nothing stale to migrate
+        backup = project_root / ".deft" / "VERSION.premigrate"
+        legacy.replace(backup)
+        info(
+            "Moved legacy install manifest from .deft/VERSION -> "
+            f".deft/core/VERSION. Backup at {backup}."
+        )
+    except OSError:
+        return
 
 
 def _agents_refresh_plan(project_root: Path) -> dict:
@@ -2364,17 +2511,24 @@ def cmd_upgrade(args: List[str]):
     # ``deft`` for legacy state-A installs). Best-effort -- a missing
     # install directory silently skips the write (the bare
     # ``.deft-version`` is still recorded above).
+    written_manifest_path: Optional[Path] = None
     for install_candidate in (
         project_root / ".deft" / "core",
         project_root / "deft",
     ):
         if install_candidate.is_dir():
-            _write_install_manifest(
+            written_manifest_path = _write_install_manifest(
                 install_candidate,
                 fetched_by="run-upgrade",
                 project_root=project_root,
             )
             break
+
+    # #1325: a legacy parent-level `.deft/VERSION` left behind after the
+    # canonical manifest moved to `.deft/core/VERSION` is a stale
+    # source-of-truth -- migrate it (rename to `.deft/VERSION.premigrate`)
+    # when it disagrees with the canonical manifest just written.
+    _migrate_legacy_install_manifest(project_root, written_manifest_path)
 
     if recorded is None:
         success(f"Recorded framework version {VERSION} in .deft-version.")
