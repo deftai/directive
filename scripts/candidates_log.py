@@ -239,49 +239,60 @@ def _append_lock(log_path: Path) -> Iterator[None]:
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     # ``a+b`` opens for read+write+create without truncating -- needed because
     # msvcrt.locking requires the byte range to exist.
-    with _thread_lock, open(lock_path, "a+b") as fh:
-        if not lock_path.stat().st_size:
-            fh.write(b"\0")
-            fh.flush()
-        fh.seek(0)
-        if sys.platform == "win32":
-            import msvcrt
+    with _thread_lock:
+        try:
+            with open(lock_path, "a+b") as fh:
+                if not lock_path.stat().st_size:
+                    fh.write(b"\0")
+                    fh.flush()
+                fh.seek(0)
+                if sys.platform == "win32":
+                    import msvcrt
 
-            # Spin on LK_NBLCK -- the LK_LOCK retry loop is fixed at 10x
-            # 1s and would block the test suite on bursty contention. The
-            # acquire spin is INTENTIONALLY outside the post-acquire try/
-            # finally so a deadline-driven raise does NOT trigger the
-            # release path on a never-acquired lock; the explicit
-            # ``acquired`` flag makes that invariant load-bearing for
-            # future readers (Slizard #876 P2).
-            acquired = False
-            deadline = time.monotonic() + 30.0
-            while True:
-                try:
-                    msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
-                    acquired = True
-                    break
-                except OSError:
-                    if time.monotonic() > deadline:
-                        raise
-                    time.sleep(0.02)
-            try:
-                yield
-            finally:
-                if acquired:
-                    fh.seek(0)
-                    # Best-effort release: the lock may already be gone if
-                    # the process is mid-shutdown; that is not an error.
-                    with suppress(OSError):
-                        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
-        else:
-            import fcntl
+                    # Spin on LK_NBLCK -- the LK_LOCK retry loop is fixed at 10x
+                    # 1s and would block the test suite on bursty contention.
+                    # The acquire spin is INTENTIONALLY outside the post-acquire
+                    # try/finally so a deadline-driven raise does NOT trigger
+                    # the release path on a never-acquired lock; the explicit
+                    # ``acquired`` flag makes that invariant load-bearing for
+                    # future readers (Slizard #876 P2).
+                    acquired = False
+                    deadline = time.monotonic() + 30.0
+                    while True:
+                        try:
+                            msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+                            acquired = True
+                            break
+                        except OSError:
+                            if time.monotonic() > deadline:
+                                raise
+                            time.sleep(0.02)
+                    try:
+                        yield
+                    finally:
+                        if acquired:
+                            fh.seek(0)
+                            # Best-effort release: the lock may already be gone
+                            # if the process is mid-shutdown; not an error.
+                            with suppress(OSError):
+                                msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
 
-            fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+                    fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+                    try:
+                        yield
+                    finally:
+                        fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+        finally:
+            # Remove the sidecar ``<log>.lock`` so a clean append never leaves
+            # an untracked lock file behind (#1311 discipline). The handle is
+            # closed by the `with open(...)` block above BEFORE this unlink
+            # (Windows refuses to delete an open file); held under
+            # ``_thread_lock`` so the unlink cannot race an in-process
+            # re-acquire. Best-effort across processes.
+            with suppress(OSError):
+                lock_path.unlink()
 
 
 def _resolve_path(path: Path | str | None) -> Path:

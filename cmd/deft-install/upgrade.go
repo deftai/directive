@@ -553,37 +553,105 @@ func isHex(s string) bool {
 	return s != ""
 }
 
-// swapInCore atomically replaces coreDir with the freshly-extracted newTree,
-// preserving the previous payload as a timestamped backup so the operation is
-// reversible. The backup rename happens within coreDir's parent (same volume
-// => atomic); the new tree is COPIED in because newTree typically lives on the
-// temp volume and a cross-device rename would fail on Windows. On any failure
-// after the backup the backup is restored. Returns the backup path on success.
+// swapInCore replaces coreDir with the freshly-extracted newTree, preserving
+// the previous payload as a timestamped backup so the operation is reversible.
+//
+// #1445: the backup is staged OUTSIDE the consumer working tree (under the
+// user cache dir, OS temp as a fallback) rather than at the in-tree
+// `<coreDir>.bak-<ts>` it used to use. An in-tree backup escaped the
+// `.deft/core/`-only gitignore policy (consumers commit .deft/core/ for
+// reproducibility, so .deft/ is NOT blanket-ignored) and was trapped by
+// `git add -A`, staging thousands of backup files. Writing it out-of-tree
+// means the upgrade never leaves an untracked artefact in the repo.
+//
+// The previous payload is MOVED to the backup via movePayload, which is
+// cross-device-safe (rename when same-volume, copy+remove otherwise -- the
+// usual case for a cache/temp backup). The new tree is then COPIED in. On any
+// failure after the backup the previous payload is restored from it. Returns
+// the (out-of-tree) backup path on success so the caller can print it for
+// rollback discoverability.
 func swapInCore(coreDir, newTree string) (string, error) {
 	parent := filepath.Dir(coreDir)
 	if err := os.MkdirAll(parent, 0o755); err != nil {
 		return "", err
 	}
 
-	backup := coreDir + ".bak-" + time.Now().UTC().Format("20060102-150405")
-	if pathExists(backup) {
-		// Sub-second reruns: disambiguate so we never clobber a prior backup.
-		backup = fmt.Sprintf("%s-%d", backup, os.Getpid())
+	backup, err := backupDirOutsideTree()
+	if err != nil {
+		return "", fmt.Errorf("could not allocate out-of-tree backup dir: %w", err)
 	}
 
-	if err := os.Rename(coreDir, backup); err != nil {
+	if err := movePayload(coreDir, backup); err != nil {
 		return "", fmt.Errorf("could not back up existing payload: %w", err)
 	}
 
 	if err := copyTree(newTree, coreDir); err != nil {
-		// Roll back: discard the partial copy and restore the backup.
+		// Roll back: discard the partial copy and restore from the backup.
 		os.RemoveAll(coreDir)
-		if rerr := os.Rename(backup, coreDir); rerr != nil {
+		if rerr := movePayload(backup, coreDir); rerr != nil {
 			return "", fmt.Errorf("install new payload failed (%v); ROLLBACK ALSO FAILED (%v) -- previous payload preserved at %s", err, rerr, backup)
 		}
 		return "", fmt.Errorf("install new payload: %w", err)
 	}
 	return backup, nil
+}
+
+// backupRootDirFunc resolves the base directory under which swapInCore stages
+// the out-of-tree payload backup (#1445). Indirected through a var so tests
+// can redirect it to a hermetic temp dir instead of polluting the real user
+// cache dir.
+var backupRootDirFunc = defaultBackupRootDir
+
+// defaultBackupRootDir returns ``<user-cache>/deft/backups`` (e.g.
+// ``%LocalAppData%\deft\backups`` on Windows, ``~/.cache/deft/backups`` on
+// Linux), falling back to the OS temp dir when the user cache dir cannot be
+// resolved. The directory is created on demand by backupDirOutsideTree.
+func defaultBackupRootDir() string {
+	base, err := os.UserCacheDir()
+	if err != nil || strings.TrimSpace(base) == "" {
+		base = os.TempDir()
+	}
+	return filepath.Join(base, "deft", "backups")
+}
+
+// backupDirOutsideTree returns a not-yet-existing directory path -- OUTSIDE the
+// consumer working tree -- where swapInCore stages the pre-swap payload backup
+// (#1445). The path is timestamped and pid-disambiguated for sub-second
+// reruns. The parent backup root is created here; if the resolved root is not
+// writable the OS temp dir is used as a last resort.
+func backupDirOutsideTree() (string, error) {
+	dir := backupRootDirFunc()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		dir = filepath.Join(os.TempDir(), "deft-backups")
+		if err2 := os.MkdirAll(dir, 0o755); err2 != nil {
+			return "", err2
+		}
+	}
+	backup := filepath.Join(dir, "core.bak-"+time.Now().UTC().Format("20060102-150405"))
+	if pathExists(backup) {
+		backup = fmt.Sprintf("%s-%d", backup, os.Getpid())
+	}
+	return backup, nil
+}
+
+// movePayload moves src to dst, tolerant of a cross-device boundary. It tries
+// an atomic os.Rename first (fast, same-volume); when that fails -- the usual
+// case when dst lives on the OS cache/temp volume, where os.Rename returns
+// EXDEV/ERROR_NOT_SAME_DEVICE -- it falls back to a recursive copy followed by
+// removing the source. The destination parent is created on demand. On the
+// copy-fallback path the source is left intact if the copy fails, so a
+// caller's rollback message can still point at a preserved backup.
+func movePayload(src, dst string) error {
+	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+		return err
+	}
+	if err := os.Rename(src, dst); err == nil {
+		return nil
+	}
+	if err := copyTree(src, dst); err != nil {
+		return err
+	}
+	return os.RemoveAll(src)
 }
 
 // copyTree recursively copies the regular files and directories under src into
