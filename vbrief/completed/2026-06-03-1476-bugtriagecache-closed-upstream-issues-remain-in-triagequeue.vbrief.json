@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1476",
@@ -54,7 +54,7 @@
         "TrustLevel": "internal"
       }
     ],
-    "updated": "2026-06-03T19:18:31Z",
+    "updated": "2026-06-03T21:38:05Z",
     "metadata": {
       "kind": "epic"
     }

@@ -1,0 +1,29 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1485"
+  },
+  "plan": {
+    "title": "bug(scope): scope:activate/scope:complete do not update decomposed-parent back-references (D4 linkage breaks)",
+    "status": "pending",
+    "narratives": {
+      "Description": "bug(scope): scope:activate/scope:complete do not update decomposed-parent back-references (D4 linkage breaks)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1485",
+      "Overview": "During the 2026-06-03 swarm, decompose created child vBRIEFs in pending/ with the parent epic referencing the child's pending/ path. Running task scope:activate (pending->active) and task scope:complete (active->completed) moves the child file but does NOT update the parent epic's x-vbrief/plan back-reference, so task vbrief:validate fails the D4 bidirectional-linkage check (parent references a non-existent path; the moved child's planRef parent no longer lists it). This required a manual reference repair mid-session (see PR #1484). Fix: have scope:activate / scope:complete (and any lifecycle move of a decomposed child) update the parent reference to the child's new path; add a regression test. Suggested labels: bug, determinism, process. Refs #1484."
+    },
+    "items": [],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1485",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1485: bug(scope): scope:activate/scope:complete do not update decomposed-parent back-references (D4 linkage breaks)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1484",
+        "type": "x-vbrief/refs",
+        "title": "Issue #1484"
+      }
+    ],
+    "updated": "2026-06-03T21:38:39Z"
+  }
+}

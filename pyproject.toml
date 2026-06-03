@@ -75,8 +75,9 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "PIE", "RET", "SIM"]
 [tool.ruff.lint.isort]
 # Combine `from X import a as _a` / `from X import b as _b` into a single
 # parenthesised import block so large thin-wrapper modules (e.g.
-# scripts/migrate_vbrief.py, #495/#505) stay under the 1000-line MUST
-# limit from deft/main.md without one line per imported symbol.
+# scripts/migrate_vbrief.py, #495/#505) stay near the <1000-line file-size
+# guideline (coding/coding.md; a SHOULD/review-trigger, not a MUST, per #1488)
+# without one line per imported symbol.
 combine-as-imports = true
 
 [tool.black]

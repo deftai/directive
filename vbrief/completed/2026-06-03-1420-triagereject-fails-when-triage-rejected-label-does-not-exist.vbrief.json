@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "triage:reject fails when 'triage-rejected' label does not exist on the repository",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "triage:reject fails when 'triage-rejected' label does not exist on the repository",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1420",
@@ -30,7 +30,7 @@
         "TrustLevel": "internal"
       }
     ],
-    "updated": "2026-06-03T19:38:33Z",
+    "updated": "2026-06-03T21:38:04Z",
     "metadata": {
       "kind": "epic"
     }

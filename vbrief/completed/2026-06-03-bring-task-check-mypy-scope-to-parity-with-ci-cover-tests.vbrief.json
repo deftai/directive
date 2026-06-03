@@ -6,7 +6,7 @@
   "plan": {
     "id": "story-1475-mypy-parity",
     "title": "Bring task check mypy scope to parity with CI (cover tests/)",
-    "status": "running",
+    "status": "completed",
     "planRef": "pending/2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not.vbrief.json",
     "narratives": {
       "Description": "Local task check runs mypy only over run.py, while CI runs mypy over tests/, so a type error under tests/ ships green locally and reddens master after merge. This story expands the local type-check gate to match the CI target set and makes the broader scope fail task check rather than advise.",
@@ -77,6 +77,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-03T19:39:55Z"
+    "updated": "2026-06-03T21:37:43Z"
   }
 }

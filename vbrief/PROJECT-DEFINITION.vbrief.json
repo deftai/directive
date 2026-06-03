@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-06-03T19:33:38Z"
+    "updated": "2026-06-03T21:46:02Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -1151,113 +1151,48 @@
         }
       },
       {
-        "id": "2026-06-03-1114-enhancementquick-start-combine-case-g-case-h-into-one-sessio",
-        "title": "enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades",
+        "id": "2026-06-03-1485-bugscope-scopeactivatescopecomplete-do-not-update-decomposed",
+        "title": "bug(scope): scope:activate/scope:complete do not update decomposed-parent back-references (D4 linkage breaks)",
         "status": "pending",
         "metadata": {
-          "source_path": "pending/2026-06-03-1114-enhancementquick-start-combine-case-g-case-h-into-one-sessio.vbrief.json",
+          "source_path": "pending/2026-06-03-1485-bugscope-scopeactivatescopecomplete-do-not-update-decomposed.vbrief.json",
           "lifecycle_folder": "pending",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1114",
+              "uri": "https://github.com/deftai/directive/issues/1485",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1114: enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades"
+              "title": "Issue #1485: bug(scope): scope:activate/scope:complete do not update decomposed-parent back-references (D4 linkage breaks)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1484",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1484"
             }
           ]
         }
       },
       {
-        "id": "2026-06-03-1115-docsupgrading-add-big-jump-triage-entry-point-for-multi-vers",
-        "title": "docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades",
+        "id": "2026-06-03-1487-swarm-deft-directive-swarm-must-complete-the-cohort-vbrief-l",
+        "title": "swarm: deft-directive-swarm must complete the cohort vBRIEF lifecycle (active -> completed) on swarm close",
         "status": "pending",
         "metadata": {
-          "source_path": "pending/2026-06-03-1115-docsupgrading-add-big-jump-triage-entry-point-for-multi-vers.vbrief.json",
+          "source_path": "pending/2026-06-03-1487-swarm-deft-directive-swarm-must-complete-the-cohort-vbrief-l.vbrief.json",
           "lifecycle_folder": "pending",
           "references": [
             {
-              "uri": "https://github.com/deftai/directive/issues/1115",
+              "uri": "https://github.com/deftai/directive/issues/1487",
               "type": "x-vbrief/github-issue",
-              "title": "Issue #1115: docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-06-03-1474-deftcheck-runs-framework-self-tests-in-consumers-always-red",
-        "title": "deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-06-03-1474-deftcheck-runs-framework-self-tests-in-consumers-always-red.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
+              "title": "Issue #1487: swarm: deft-directive-swarm must complete the cohort vBRIEF lifecycle (active -> completed) on swarm close"
+            },
             {
-              "uri": "https://github.com/deftai/directive/issues/1474",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1474: deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not",
-        "title": "task check: type-check parity with CI (run mypy over tests/, not just run.py)",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
+              "uri": "https://github.com/deftai/directive/issues/1485",
+              "type": "x-vbrief/blocks",
+              "title": "Issue #1485"
+            },
             {
-              "uri": "https://github.com/deftai/directive/issues/1475",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1475: task check: type-check parity with CI (run mypy over tests/, not just run.py)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-06-03-1476-bugtriagecache-closed-upstream-issues-remain-in-triagequeue",
-        "title": "bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-06-03-1476-bugtriagecache-closed-upstream-issues-remain-in-triagequeue.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1476",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1476: bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-06-03-1477-wired-git-hooks-ship-non-executable-mode-100644-silently-ine",
-        "title": "Wired git hooks ship non-executable (mode 100644) -- silently inert on Unix consumers (follow-up to #1463)",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-06-03-1477-wired-git-hooks-ship-non-executable-mode-100644-silently-ine.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1477",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1477: Wired git hooks ship non-executable (mode 100644) -- silently inert on Unix consumers (follow-up to #1463)"
-            }
-          ]
-        }
-      },
-      {
-        "id": "2026-06-03-1478-deft-core-guard-allowlist-omits-githooks-blocks-every-consum",
-        "title": "deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)",
-        "status": "pending",
-        "metadata": {
-          "source_path": "pending/2026-06-03-1478-deft-core-guard-allowlist-omits-githooks-blocks-every-consum.vbrief.json",
-          "lifecycle_folder": "pending",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/1478",
-              "type": "x-vbrief/github-issue",
-              "title": "Issue #1478: deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)"
+              "uri": "https://github.com/deftai/directive/issues/1484",
+              "type": "x-vbrief/refs",
+              "title": "Issue #1484"
             }
           ]
         }
@@ -9942,6 +9877,50 @@
         }
       },
       {
+        "id": "2026-06-03-1114-enhancementquick-start-combine-case-g-case-h-into-one-sessio",
+        "title": "enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1114-enhancementquick-start-combine-case-g-case-h-into-one-sessio.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1114",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1114: enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades"
+            },
+            {
+              "uri": "active/2026-06-03-combine-quick-start-case-g-and-case-h-into-one-session-for-b.vbrief.json",
+              "type": "x-vbrief/plan",
+              "title": "Combine QUICK-START Case G and Case H into one session for big-jump upgrades",
+              "TrustLevel": "internal"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1115-docsupgrading-add-big-jump-triage-entry-point-for-multi-vers",
+        "title": "docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1115-docsupgrading-add-big-jump-triage-entry-point-for-multi-vers.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1115",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1115: docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades"
+            },
+            {
+              "uri": "active/2026-06-03-add-a-big-jump-triage-entry-point-to-upgradingmd-for-multi-v.vbrief.json",
+              "type": "x-vbrief/plan",
+              "title": "Add a big-jump triage entry point to UPGRADING.md for multi-version upgrades",
+              "TrustLevel": "internal"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-06-03-1311-bugscriptsproject-render-task-projectrender-leaks-vbriefproj",
         "title": "bug(scripts/project_render): task project:render leaks vbrief/PROJECT-DEFINITION.vbrief.json.lock; trapped by git add -A on every chore commit",
         "status": "completed",
@@ -10033,6 +10012,28 @@
               "uri": "https://github.com/deftai/directive/issues/1389",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1389: doctor: _agents_refresh_plan interim stub emits spurious 'unreadable' AGENTS.md-freshness warning on every consumer task doctor run"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1420-triagereject-fails-when-triage-rejected-label-does-not-exist",
+        "title": "triage:reject fails when 'triage-rejected' label does not exist on the repository",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1420-triagereject-fails-when-triage-rejected-label-does-not-exist.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1420",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1420: triage:reject fails when 'triage-rejected' label does not exist on the repository"
+            },
+            {
+              "uri": "active/2026-06-03-make-triagereject-tolerate-a-missing-triage-rejected-label.vbrief.json",
+              "type": "x-vbrief/plan",
+              "title": "Make triage:reject tolerate a missing triage-rejected label",
+              "TrustLevel": "internal"
             }
           ]
         }
@@ -10254,6 +10255,268 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-06-03-1474-deftcheck-runs-framework-self-tests-in-consumers-always-red",
+        "title": "deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1474-deftcheck-runs-framework-self-tests-in-consumers-always-red.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1474",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1474: deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)"
+            },
+            {
+              "uri": "active/2026-06-03-scope-consumer-deftcheck-so-it-does-not-run-framework-self-t.vbrief.json",
+              "type": "x-vbrief/plan",
+              "title": "Scope consumer deft:check so it does not run framework self-tests",
+              "TrustLevel": "internal"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not",
+        "title": "task check: type-check parity with CI (run mypy over tests/, not just run.py)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1475",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1475: task check: type-check parity with CI (run mypy over tests/, not just run.py)"
+            },
+            {
+              "uri": "active/2026-06-03-bring-task-check-mypy-scope-to-parity-with-ci-cover-tests.vbrief.json",
+              "type": "x-vbrief/plan",
+              "title": "Bring task check mypy scope to parity with CI (cover tests/)",
+              "TrustLevel": "internal"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1476-bugtriagecache-closed-upstream-issues-remain-in-triagequeue",
+        "title": "bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1476-bugtriagecache-closed-upstream-issues-remain-in-triagequeue.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1476",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1476: bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh"
+            },
+            {
+              "uri": "active/2026-06-03-exclude-upstream-closed-issues-from-triagequeue-when-cached.vbrief.json",
+              "type": "x-vbrief/plan",
+              "title": "Exclude upstream-closed issues from triage:queue when cached entries are TTL-fresh",
+              "TrustLevel": "internal"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1477-wired-git-hooks-ship-non-executable-mode-100644-silently-ine",
+        "title": "Wired git hooks ship non-executable (mode 100644) -- silently inert on Unix consumers (follow-up to #1463)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1477-wired-git-hooks-ship-non-executable-mode-100644-silently-ine.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1477",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1477: Wired git hooks ship non-executable (mode 100644) -- silently inert on Unix consumers (follow-up to #1463)"
+            },
+            {
+              "uri": "active/2026-06-03-deposit-wired-git-hooks-with-mode-100755-so-they-fire-on-uni.vbrief.json",
+              "type": "x-vbrief/plan",
+              "title": "Deposit wired git hooks with mode 100755 so they fire on Unix consumers",
+              "TrustLevel": "internal"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1478-deft-core-guard-allowlist-omits-githooks-blocks-every-consum",
+        "title": "deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1478-deft-core-guard-allowlist-omits-githooks-blocks-every-consum.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1478",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1478: deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)"
+            },
+            {
+              "uri": "active/2026-06-03-add-githooks-to-deft-core-guard-allowlist-and-refresh-the-de.vbrief.json",
+              "type": "x-vbrief/plan",
+              "title": "Add .githooks/ to deft-core-guard allowlist and refresh the deposited guard",
+              "TrustLevel": "internal"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1488-rfc-demote-the-1000-line-file-cap-from-must-to-should-unenfo",
+        "title": "RFC: demote the 1000-line file cap from MUST to SHOULD (unenforced, self-violated, anti-deep-modules)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1488-rfc-demote-the-1000-line-file-cap-from-must-to-should-unenfo.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1488",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1488: RFC: demote the 1000-line file cap from MUST to SHOULD (unenforced, self-violated, anti-deep-modules)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-add-a-big-jump-triage-entry-point-to-upgradingmd-for-multi-v",
+        "title": "Add a big-jump triage entry point to UPGRADING.md for multi-version upgrades",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-add-a-big-jump-triage-entry-point-to-upgradingmd-for-multi-v.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1115",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1115: docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-add-githooks-to-deft-core-guard-allowlist-and-refresh-the-de",
+        "title": "Add .githooks/ to deft-core-guard allowlist and refresh the deposited guard",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-add-githooks-to-deft-core-guard-allowlist-and-refresh-the-de.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1478",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1478: deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-bring-task-check-mypy-scope-to-parity-with-ci-cover-tests",
+        "title": "Bring task check mypy scope to parity with CI (cover tests/)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-bring-task-check-mypy-scope-to-parity-with-ci-cover-tests.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1475",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1475: task check: type-check parity with CI (run mypy over tests/, not just run.py)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-combine-quick-start-case-g-and-case-h-into-one-session-for-b",
+        "title": "Combine QUICK-START Case G and Case H into one session for big-jump upgrades",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-combine-quick-start-case-g-and-case-h-into-one-session-for-b.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1114",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1114: enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-deposit-wired-git-hooks-with-mode-100755-so-they-fire-on-uni",
+        "title": "Deposit wired git hooks with mode 100755 so they fire on Unix consumers",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-deposit-wired-git-hooks-with-mode-100755-so-they-fire-on-uni.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1477",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1477: Wired git hooks ship non-executable (mode 100644) -- silently inert on Unix consumers (follow-up to #1463)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-exclude-upstream-closed-issues-from-triagequeue-when-cached",
+        "title": "Exclude upstream-closed issues from triage:queue when cached entries are TTL-fresh",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-exclude-upstream-closed-issues-from-triagequeue-when-cached.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1476",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1476: bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-make-triagereject-tolerate-a-missing-triage-rejected-label",
+        "title": "Make triage:reject tolerate a missing triage-rejected label",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-make-triagereject-tolerate-a-missing-triage-rejected-label.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1420",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1420: triage:reject fails when 'triage-rejected' label does not exist on the repository",
+              "TrustLevel": "external"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-scope-consumer-deftcheck-so-it-does-not-run-framework-self-t",
+        "title": "Scope consumer deft:check so it does not run framework self-tests",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-scope-consumer-deftcheck-so-it-does-not-run-framework-self-t.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1474",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1474: deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)",
+              "TrustLevel": "external"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
@@ -10275,6 +10538,7 @@
         "Narrative 'OpenQuestions' may be stale: completed scope 'Deterministic questions (RC2): confirm step, back nav, escape hatch distinct from Other' shares topics (questions)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'Deterministic questions: instant number acceptance is disorienting' shares topics (questions)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'Implementation Intent Gate (#810): Taskfile target hardcodes deft/scripts/preflight_implementation.py; safety gate fails open in v0.27 install layout' shares topics (open)",
+        "Narrative 'OpenQuestions' may be stale: completed scope 'bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh' shares topics (open)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'feat(framework,skills): add Discuss + Back as canonical numbered options in all deterministic-mode questions' shares topics (questions)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'feat(triage-scope): milestone rule any-of + is-open variants (#1181)' shares topics (open)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'fix(scripts/reconcile_issues.py, scripts/release.py): vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues' shares topics (open)",

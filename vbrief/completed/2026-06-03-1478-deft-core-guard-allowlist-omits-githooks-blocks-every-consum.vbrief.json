@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1478",
@@ -44,7 +44,7 @@
         "TrustLevel": "internal"
       }
     ],
-    "updated": "2026-06-03T19:33:26Z",
+    "updated": "2026-06-03T21:37:54Z",
     "metadata": {
       "kind": "epic"
     }

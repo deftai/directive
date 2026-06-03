@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1474",
@@ -48,7 +48,7 @@
         "TrustLevel": "internal"
       }
     ],
-    "updated": "2026-06-03T19:18:33Z",
+    "updated": "2026-06-03T21:38:04Z",
     "metadata": {
       "kind": "epic"
     }

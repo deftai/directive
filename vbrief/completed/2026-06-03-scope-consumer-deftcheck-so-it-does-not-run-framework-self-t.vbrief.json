@@ -6,7 +6,7 @@
   "plan": {
     "id": "story-1474-deftcheck-consumer-scope",
     "title": "Scope consumer deft:check so it does not run framework self-tests",
-    "status": "running",
+    "status": "completed",
     "planRef": "pending/2026-06-03-1474-deftcheck-runs-framework-self-tests-in-consumers-always-red.vbrief.json",
     "narratives": {
       "Description": "In a vendored consumer install, task deft:check delegates to the framework's own check and runs the framework pytest self-test suite under .deft/core/tests/, which fails by construction in any consumer checkout. This story scopes the consumer-facing check so a clean install reports green while genuine consumer-relevant failures still surface.",
@@ -76,6 +76,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-03T19:39:54Z"
+    "updated": "2026-06-03T21:37:44Z"
   }
 }

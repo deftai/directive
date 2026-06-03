@@ -40,7 +40,7 @@ See [../scm/git.md](../scm/git.md) for:
 
 **Modularity:**
 - ! One responsibility per file/module
-- ~ Files <300 lines ideal; files <500 lines recommended; ! files <1000 lines maximum
+- ~ Files <300 lines ideal; <500 lines recommended; <1000 lines a review trigger — split when exceeded unless genuinely single-responsibility (size is a smell, not a hard cap; #1488)
 - ! Explicit scope in task descriptions
 - ~ DRY: extract shared abstractions when logic is duplicated across 2+ call sites
 - ⊗ Copy-paste logic with minor variations — parameterise instead
@@ -199,7 +199,7 @@ See [../patterns/llm-app.md](../patterns/llm-app.md) for the full standards: pro
 
 - ⊗ Secrets in code or version control
 - ⊗ Claiming checks passed without running them
-- ⊗ Files over 1000 lines
+- ⊗ Single files mixing multiple responsibilities (large line count, e.g. >1000 lines, is a trigger to check cohesion — not a defect by itself; #1488)
 - ⊗ Skipping quality checks
 - ⊗ Breaking changes without explicit approval
 - ⊗ Using `grep` command when `rg` or Warp grep available

@@ -6,7 +6,7 @@
   "plan": {
     "id": "story-1114-quickstart-combined",
     "title": "Combine QUICK-START Case G and Case H into one session for big-jump upgrades",
-    "status": "running",
+    "status": "completed",
     "planRef": "pending/2026-06-03-1114-enhancementquick-start-combine-case-g-case-h-into-one-sessio.vbrief.json",
     "narratives": {
       "Description": "On a big-jump upgrade where AGENTS.md is stale (Case G) and pre-cutover artifacts exist (Case H), QUICK-START.md halts after the Case G refresh and forces a second agent session for the Case H migration. This story adds a combined Case G+H remediation path so both run in one session, since the migration re-reads filesystem state and does not need the refreshed AGENTS.md in agent context.",
@@ -76,6 +76,6 @@
         "TrustLevel": "external"
       }
     ],
-    "updated": "2026-06-03T19:39:55Z"
+    "updated": "2026-06-03T21:37:43Z"
   }
 }

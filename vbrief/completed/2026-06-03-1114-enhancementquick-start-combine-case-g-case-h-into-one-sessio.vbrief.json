@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades",
-    "status": "pending",
+    "status": "completed",
     "narratives": {
       "Description": "enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1114",
@@ -52,7 +52,7 @@
         "TrustLevel": "internal"
       }
     ],
-    "updated": "2026-06-03T19:26:40Z",
+    "updated": "2026-06-03T21:38:03Z",
     "metadata": {
       "kind": "epic"
     }
