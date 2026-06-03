@@ -32,13 +32,150 @@ const (
 	coreGuardWorkflowRelPath = ".github/workflows/deft-core-guard.yml"
 )
 
-// coreGuardWorkflowContent is the optional CI guard deposited at
-// coreGuardWorkflowRelPath (#1430). It fails a PR that mixes changes to the
-// vendored framework payload (.deft/core/**) with changes to the consumer's own
-// files, so a framework update from deft-install/upgrade lands in its own PR and
-// reviewers can treat it as a packaged, machine-managed bump. It is deposited
-// create-if-absent and is safe for consumers to delete.
-const coreGuardWorkflowContent = `name: deft-core-guard
+// installerManagedMatcher classifies a single repo-relative (POSIX-separated)
+// changed path as installer-managed -- i.e. deposited and maintained by
+// deft-install / upgrade outside .deft/core/, not consumer app code. A matcher
+// is either an exact path or a directory prefix (any path beneath it).
+type installerManagedMatcher struct {
+	exact  string // full repo-relative path matched verbatim
+	prefix string // directory prefix (trailing slash) matching any path beneath it
+}
+
+// matches reports whether a repo-relative POSIX path is covered by the matcher.
+func (m installerManagedMatcher) matches(path string) bool {
+	if m.exact != "" {
+		return path == m.exact
+	}
+	return m.prefix != "" && strings.HasPrefix(path, m.prefix)
+}
+
+// ere renders the matcher as one anchored POSIX ERE atom equivalent to
+// matches(): an exact path becomes ^path$ and a prefix becomes ^prefix.
+func (m installerManagedMatcher) ere() string {
+	if m.exact != "" {
+		return "^" + escapeERE(m.exact) + "$"
+	}
+	return "^" + escapeERE(m.prefix)
+}
+
+// escapeERE backslash-escapes the POSIX ERE metacharacters in s so a literal
+// path fragment is matched verbatim by both grep -E and Go's regexp.
+func escapeERE(s string) string {
+	const meta = `.^$*+?()[]{}|\`
+	var b strings.Builder
+	for _, r := range s {
+		if r < 128 && strings.ContainsRune(meta, r) {
+			b.WriteByte('\\')
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+// installerManagedMatchers is the single source of truth for the installer's own
+// non-core deposit surface (#1440). It feeds BOTH the deposited deft-core-guard
+// regex (via installerManagedGuardERE) and the Go classifier
+// (classifyChangedPaths), so the guard the installer writes can never drift from
+// what the installer actually manages.
+//
+// CRITICAL: this allowlist MUST NOT cover consumer-authored vBRIEF data
+// (vbrief/PROJECT-DEFINITION.vbrief.json, vbrief/**/*.vbrief.json). Mixing that
+// with a .deft/core/** change MUST still trip the guard -- that separation is
+// the whole point of #1430. The vbrief entries below are scaffolding only
+// (.deft-version, vbrief.md, schemas/, migration/, and the per-lifecycle
+// .gitkeep placeholders), derived from vbriefLifecycleDirs so they stay in
+// lockstep with what WriteConsumerVbrief deposits.
+func installerManagedMatchers() []installerManagedMatcher {
+	matchers := []installerManagedMatcher{
+		{exact: "AGENTS.md"},
+		{prefix: ".agents/"},
+		{exact: ".gitattributes"},
+		{exact: ".gitignore"},
+		{exact: "greptile.json"},
+		{exact: codeqlConfigRelPath},
+		{exact: coreGuardWorkflowRelPath},
+		{exact: "vbrief/.deft-version"},
+		{exact: "vbrief/vbrief.md"},
+		{prefix: "vbrief/schemas/"},
+		{prefix: "vbrief/migration/"},
+	}
+	for _, sub := range vbriefLifecycleDirs {
+		matchers = append(matchers, installerManagedMatcher{exact: "vbrief/" + sub + "/.gitkeep"})
+	}
+	return matchers
+}
+
+// installerManagedGuardERE renders the installer-managed allowlist as one POSIX
+// ERE alternation (atoms joined by "|") suitable for `grep -E`. It is the exact
+// pattern embedded in the deposited guard AND the pattern classifyChangedPaths
+// mirrors, so the two cannot diverge. The atoms contain no single quotes, so the
+// result is safe to embed inside a single-quoted shell string.
+func installerManagedGuardERE() string {
+	matchers := installerManagedMatchers()
+	atoms := make([]string, len(matchers))
+	for i, m := range matchers {
+		atoms[i] = m.ere()
+	}
+	return strings.Join(atoms, "|")
+}
+
+// classifyChangedPaths splits a PR's changed (repo-relative, POSIX) paths into
+// the three buckets the deft-core-guard reasons about: framework payload
+// (.deft/core/**), installer-managed deposits (the #1440 allowlist), and app
+// (everything else -- consumer source AND consumer vBRIEF data). The guard fails
+// iff both core and app are non-empty. Empty strings are ignored. This mirrors
+// the shell logic rendered by coreGuardWorkflowContent so the Go tests can pin
+// the guard's semantics without executing bash.
+func classifyChangedPaths(changed []string) (core, installerManaged, app []string) {
+	matchers := installerManagedMatchers()
+	for _, p := range changed {
+		if p == "" {
+			continue
+		}
+		switch {
+		case strings.HasPrefix(p, ".deft/core/"):
+			core = append(core, p)
+		case matchesAnyInstallerManaged(matchers, p):
+			installerManaged = append(installerManaged, p)
+		default:
+			app = append(app, p)
+		}
+	}
+	return core, installerManaged, app
+}
+
+// matchesAnyInstallerManaged reports whether path is covered by any matcher.
+func matchesAnyInstallerManaged(matchers []installerManagedMatcher, path string) bool {
+	for _, m := range matchers {
+		if m.matches(path) {
+			return true
+		}
+	}
+	return false
+}
+
+// guardWouldFail reports the deposited guard's decision for a set of changed
+// paths: it fails a PR iff the diff mixes the framework payload (.deft/core/**)
+// with genuine app paths (after subtracting the installer-managed allowlist).
+func guardWouldFail(changed []string) bool {
+	core, _, app := classifyChangedPaths(changed)
+	return len(core) > 0 && len(app) > 0
+}
+
+// coreGuardWorkflowContent renders the optional CI guard deposited at
+// coreGuardWorkflowRelPath (#1430, #1440). It fails a PR that mixes changes to
+// the vendored framework payload (.deft/core/**) with changes to the consumer's
+// own files, so a framework update from deft-install/upgrade lands in its own PR
+// and reviewers can treat it as a packaged, machine-managed bump. It is
+// deposited create-if-absent and is safe for consumers to delete.
+//
+// The "app" set subtracts the installer-managed allowlist (#1440) so a
+// `deft-install --upgrade` PR -- which legitimately rewrites root files like
+// AGENTS.md and vbrief scaffolding alongside .deft/core/** -- is no longer
+// rejected by construction. The allowlist regex is rendered from
+// installerManagedGuardERE so the deposited guard and the installer never drift.
+func coreGuardWorkflowContent() string {
+	return `name: deft-core-guard
 
 # Deft framework guard (#1430): a single PR should not mix changes to the
 # vendored framework payload (.deft/core/**) with changes to your own project
@@ -68,7 +205,13 @@ jobs:
           echo "Changed files:"
           echo "$changed"
           core=$(printf '%s\n' "$changed" | grep -E '^\.deft/core/' || true)
-          app=$(printf '%s\n' "$changed" | grep -vE '^\.deft/core/' | grep -v '^$' || true)
+          # Installer-managed deposits (deft-install / upgrade writes these
+          # outside .deft/core/, e.g. AGENTS.md, .agents/, vbrief scaffolding)
+          # are part of the framework deposit, not consumer app code, so they are
+          # subtracted from the "app" set (#1440). Consumer vBRIEF data
+          # (vbrief/**/*.vbrief.json) is intentionally NOT exempt and still trips
+          # the guard when mixed with a .deft/core/** change.
+          app=$(printf '%s\n' "$changed" | grep -vE '^\.deft/core/' | grep -vE '` + installerManagedGuardERE() + `' | grep -v '^$' || true)
           if [ -n "$core" ] && [ -n "$app" ]; then
             echo "::error title=deft-core guard (#1430)::This PR changes the vendored framework payload (.deft/core/**) AND non-framework files. Split the framework update into its own PR."
             echo "--- framework (.deft/core/**) changes ---"; printf '%s\n' "$core"
@@ -77,6 +220,7 @@ jobs:
           fi
           echo "OK: no mixed framework + app changes."
 `
+}
 
 // depositNeutralization performs the #1430 deposit so the vendored framework
 // payload at .deft/core/** is treated as packaged framework assets rather than
@@ -527,7 +671,7 @@ func EnsureCoreGuardWorkflow(w *Wizard, projectDir string) (bool, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return false, fmt.Errorf("could not create workflows dir: %w", err)
 	}
-	if err := os.WriteFile(path, []byte(coreGuardWorkflowContent), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(coreGuardWorkflowContent()), 0o644); err != nil {
 		return false, fmt.Errorf("could not write %s: %w", coreGuardWorkflowRelPath, err)
 	}
 	w.printf("%s created: CI refuses PRs mixing %s with app files.\n", coreGuardWorkflowRelPath, coreGlob)

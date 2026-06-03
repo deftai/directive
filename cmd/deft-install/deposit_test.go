@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -433,6 +434,164 @@ func TestEnsureCodeQLPathsIgnore_InlineListAppends(t *testing.T) {
 	}
 	if changed2 {
 		t.Error("expected changed=false on second invocation")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// deft-core-guard installer-managed allowlist (#1440)
+// ---------------------------------------------------------------------------
+
+// upgradeOnlyChangeSet is a representative `deft-install --upgrade` diff: the
+// vendored payload plus every installer-managed root deposit. None of these are
+// consumer app code, so the guard must let the PR through.
+func upgradeOnlyChangeSet() []string {
+	changed := []string{
+		".deft/core/VERSION",
+		".deft/core/skills/deft-directive-setup/SKILL.md",
+		"AGENTS.md",
+		".agents/deft.md",
+		".gitattributes",
+		".gitignore",
+		"greptile.json",
+		codeqlConfigRelPath,
+		coreGuardWorkflowRelPath,
+		"vbrief/.deft-version",
+		"vbrief/vbrief.md",
+		"vbrief/schemas/scope.schema.json",
+		"vbrief/migration/0001-init.md",
+	}
+	for _, sub := range vbriefLifecycleDirs {
+		changed = append(changed, "vbrief/"+sub+"/.gitkeep")
+	}
+	return changed
+}
+
+// TestCoreGuard_UpgradeOnlyChangeSetAllowed pins acceptance criterion (a): an
+// upgrade-only diff (.deft/core/** + the installer-managed allowlist) passes the
+// guard. Without the #1440 allowlist subtraction the installer-managed root
+// files land in "app" and this set is rejected (RED); with it the set is GREEN.
+func TestCoreGuard_UpgradeOnlyChangeSetAllowed(t *testing.T) {
+	changed := upgradeOnlyChangeSet()
+	core, managed, app := classifyChangedPaths(changed)
+	if len(core) == 0 {
+		t.Fatal("expected the change set to include .deft/core/** paths")
+	}
+	if len(app) != 0 {
+		t.Errorf("upgrade-only diff must leave the app set empty; got app=%v", app)
+	}
+	// Every non-core path must be recognised as installer-managed.
+	if want := len(changed) - len(core); len(managed) != want {
+		t.Errorf("expected %d installer-managed paths, got %d (%v)", want, len(managed), managed)
+	}
+	if guardWouldFail(changed) {
+		t.Error("guard must PASS an upgrade-only diff (.deft/core/** + installer-managed root files)")
+	}
+}
+
+// TestCoreGuard_MixedWithAppFails pins acceptance criterion (b): mixing
+// .deft/core/** with a genuine app file still trips the guard.
+func TestCoreGuard_MixedWithAppFails(t *testing.T) {
+	changed := []string{".deft/core/VERSION", "AGENTS.md", "src/main.py"}
+	core, _, app := classifyChangedPaths(changed)
+	if len(core) == 0 || len(app) == 0 {
+		t.Fatalf("expected both core and app non-empty; core=%v app=%v", core, app)
+	}
+	if app[0] != "src/main.py" {
+		t.Errorf("expected src/main.py to classify as app; got app=%v", app)
+	}
+	if !guardWouldFail(changed) {
+		t.Error("guard must FAIL a diff mixing .deft/core/** with a genuine app file")
+	}
+}
+
+// TestCoreGuard_MixedWithConsumerVbriefFails pins acceptance criterion (c):
+// consumer-authored vBRIEF data is NOT allowlisted, so mixing it with a core
+// change still fails. Covers both the project definition and a lifecycle scope
+// vBRIEF that lives right next to an allowlisted .gitkeep.
+func TestCoreGuard_MixedWithConsumerVbriefFails(t *testing.T) {
+	cases := [][]string{
+		{".deft/core/VERSION", "vbrief/PROJECT-DEFINITION.vbrief.json"},
+		{".deft/core/VERSION", "vbrief/active/2026-06-03-1440-fix.vbrief.json"},
+	}
+	for _, changed := range cases {
+		_, managed, app := classifyChangedPaths(changed)
+		if len(managed) != 0 {
+			t.Errorf("consumer vBRIEF data must NOT be installer-managed; got managed=%v for %v", managed, changed)
+		}
+		if len(app) == 0 {
+			t.Errorf("consumer vBRIEF data must classify as app; got empty app for %v", changed)
+		}
+		if !guardWouldFail(changed) {
+			t.Errorf("guard must FAIL when .deft/core/** is mixed with consumer vBRIEF data: %v", changed)
+		}
+	}
+}
+
+// TestCoreGuard_AllowlistAuthoritative pins acceptance criterion (d): the
+// deposited guard template renders its matcher from the SAME allowlist source
+// the Go classifier uses, and the rendered ERE accepts exactly the
+// installer-managed paths the classifier accepts. This is what prevents the
+// guard and the installer from drifting apart.
+func TestCoreGuard_AllowlistAuthoritative(t *testing.T) {
+	ere := installerManagedGuardERE()
+
+	// The deposited workflow must embed the allowlist ERE verbatim in its
+	// app-subtraction step -- proving the template is rendered from the source.
+	content := coreGuardWorkflowContent()
+	wantLine := "grep -vE '" + ere + "'"
+	if !strings.Contains(content, wantLine) {
+		t.Errorf("deposited guard does not embed the allowlist ERE; expected to find:\n%s\nin:\n%s", wantLine, content)
+	}
+
+	// The rendered ERE (what grep -E runs) and the Go classifier
+	// (matchesAnyInstallerManaged) must agree on every probe path, so the bash
+	// guard and the Go logic can never diverge.
+	re := regexp.MustCompile(ere)
+	matchers := installerManagedMatchers()
+
+	managed := []string{
+		"AGENTS.md",
+		".agents/deft.md",
+		".agents/nested/dir/file.md",
+		".gitattributes",
+		".gitignore",
+		"greptile.json",
+		codeqlConfigRelPath,
+		coreGuardWorkflowRelPath,
+		"vbrief/.deft-version",
+		"vbrief/vbrief.md",
+		"vbrief/schemas/scope.schema.json",
+		"vbrief/migration/0001-init.md",
+	}
+	for _, sub := range vbriefLifecycleDirs {
+		managed = append(managed, "vbrief/"+sub+"/.gitkeep")
+	}
+	notManaged := []string{
+		"src/main.py",
+		"README.md",
+		".deft/core/VERSION",
+		"vbrief/PROJECT-DEFINITION.vbrief.json",
+		"vbrief/active/2026-06-03-1440-fix.vbrief.json",
+		"agents.md",       // case-sensitive: must NOT match AGENTS.md
+		"vbrief/schemas",  // the prefix entry requires a trailing slash + child
+		"vbrief/active/x", // a lifecycle file that is not .gitkeep
+	}
+
+	for _, p := range managed {
+		if !matchesAnyInstallerManaged(matchers, p) {
+			t.Errorf("classifier should treat %q as installer-managed", p)
+		}
+		if !re.MatchString(p) {
+			t.Errorf("rendered guard ERE should match installer-managed path %q", p)
+		}
+	}
+	for _, p := range notManaged {
+		if matchesAnyInstallerManaged(matchers, p) {
+			t.Errorf("classifier must NOT treat %q as installer-managed", p)
+		}
+		if re.MatchString(p) {
+			t.Errorf("rendered guard ERE must NOT match %q", p)
+		}
 	}
 }
 
