@@ -100,6 +100,12 @@ exclude = [
 ]
 
 [[tool.mypy.overrides]]
+# Shared by the CI Python job (`mypy tests/` in .github/workflows/ci.yml) and
+# the local `task check` -> core:lint gate (`mypy run.py tests/`) so both
+# surfaces type-check the tests/ tree under identical rules (#1475). Tests may
+# omit annotations (disallow_untyped_defs=false), but a real type mismatch in
+# tests/ still fails mypy -- which is what stops a tests/ type error from
+# shipping green locally and reddening master after merge.
 module = "tests.*"
 disallow_untyped_defs = false
 warn_return_any = false
