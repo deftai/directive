@@ -1,0 +1,24 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6"
+  },
+  "plan": {
+    "title": "Cache file write should pass with invalidation",
+    "status": "running"
+  },
+  "architecture": {
+    "systemOfRecord": {
+      "stateSurfaces": [
+        {
+          "name": "Search Cache",
+          "classification": "cache",
+          "owner": "search service",
+          "approvedStorage": "json_file",
+          "forbiddenStorage": ["browser_storage"],
+          "authoritative": false,
+          "invalidationRules": "invalidate on source update or after 15 minutes"
+        }
+      ]
+    }
+  }
+}

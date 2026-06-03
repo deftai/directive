@@ -1,0 +1,33 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6"
+  },
+  "plan": {
+    "title": "Workspace database store should pass",
+    "status": "running"
+  },
+  "architecture": {
+    "systemOfRecord": {
+      "stateSurfaces": [
+        {
+          "name": "Workspace",
+          "classification": "durable_product_state",
+          "owner": "application database",
+          "approvedStorage": "postgres",
+          "forbiddenStorage": ["json_file", "browser_storage", "in_memory"],
+          "migrationRequired": true,
+          "auditRequired": true,
+          "concurrencyRequired": true,
+          "permissionBoundary": "workspace membership",
+          "concurrencySemantics": "optimistic concurrency with version checks",
+          "transactionBoundary": "single database transaction per mutation",
+          "recoverySemantics": "recover from database backups and migrations",
+          "conflictDetection": "version column conflict",
+          "deleteSemantics": "soft delete with audit event",
+          "migrationPath": "add workspaces table and indexes"
+        }
+      ],
+      "referenceApplications": []
+    }
+  }
+}

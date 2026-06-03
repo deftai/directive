@@ -1,0 +1,15 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  sor-preflight:
+    desc: "System-of-record architecture preflight. Run before stateful implementation: task architecture:sor-preflight -- --story-path <path>"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # Per conventions/task-caching.md: no sources/generates because this target
+    # forwards user-supplied story paths and flags via CLI_ARGS.
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_architecture_sor.py" {{.CLI_ARGS}}

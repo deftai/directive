@@ -117,6 +117,16 @@ tasks:
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_story_start.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
+  architecture-sor:
+    desc: "Diff-time system-of-record architecture gate. Scans stateful persistence signals and requires a matching architecture.systemOfRecord record. Example: task verify:architecture-sor -- --base-ref origin/main [--story-path <path>]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # Per conventions/task-caching.md: no sources/generates because this gate
+    # forwards --base-ref, --story-path, and --json through CLI_ARGS.
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_architecture_sor.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
   wip-cap:
     desc: "Pre-merge re-validation that pending/+active/ count is within plan.policy.wipCap (#1124 / D4 of #1119). Catches stale-branch merges + --force overrides. Default cap is 10 per umbrella #1119 Current Shape v3. The framework's own task check passes --allow-over-cap during landing-day overage; consumer projects MUST NOT pass that flag."
     dir: '{{.USER_WORKING_DIR}}'

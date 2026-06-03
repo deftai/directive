@@ -1,0 +1,22 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6"
+  },
+  "plan": {
+    "title": "Ephemeral browser selection should pass",
+    "status": "running"
+  },
+  "architecture": {
+    "systemOfRecord": {
+      "stateSurfaces": [
+        {
+          "name": "Selected Sidebar Tab",
+          "classification": "ephemeral_ui_state",
+          "owner": "browser view",
+          "approvedStorage": "browser_storage",
+          "forbiddenStorage": ["json_file", "database"]
+        }
+      ]
+    }
+  }
+}

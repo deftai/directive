@@ -1,0 +1,32 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6"
+  },
+  "plan": {
+    "title": "Workspace JSON store should fail",
+    "status": "running"
+  },
+  "architecture": {
+    "systemOfRecord": {
+      "stateSurfaces": [
+        {
+          "name": "Workspace",
+          "classification": "durable_product_state",
+          "owner": "application runtime",
+          "approvedStorage": "json_file",
+          "forbiddenStorage": ["browser_storage", "in_memory"],
+          "migrationRequired": true,
+          "auditRequired": true,
+          "concurrencyRequired": true,
+          "permissionBoundary": "workspace membership",
+          "concurrencySemantics": "row-level optimistic concurrency",
+          "transactionBoundary": "workspace create/update transaction",
+          "recoverySemantics": "restore from durable backup",
+          "conflictDetection": "version column",
+          "deleteSemantics": "soft delete with audit trail",
+          "migrationPath": "create workspaces table"
+        }
+      ]
+    }
+  }
+}

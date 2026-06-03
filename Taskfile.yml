@@ -88,6 +88,9 @@ includes:
   verify:
     taskfile: ./tasks/verify.yml
     optional: true
+  architecture:
+    taskfile: ./tasks/architecture.yml
+    optional: true
   change:
     taskfile: ./tasks/change.yml
     optional: true
