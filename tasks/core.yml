@@ -18,7 +18,22 @@ tasks:
   test:
     desc: Run test suite
     cmds:
-      - uv --project "{{.DEFT_ROOT}}" run pytest tests/
+      # #1474: tolerate a missing tests/ directory. The installer (#1482)
+      # prunes the vendored .deft/core/tests/ from the consumer deposit, so in
+      # a vendored consumer `task deft:check` -> framework check -> core:test
+      # would otherwise run `pytest tests/` against a now-absent directory and
+      # exit with a path error instead of 0 (blocking #1474 acceptance a1).
+      # A cross-platform pathlib guard (no bare shell conditional, per the
+      # AGENTS.md Windows rules) skips the run with a clear notice when tests/
+      # is absent; the framework's own repo (tests/ present) still runs the
+      # full suite unchanged. The check targets the same CWD-relative `tests`
+      # path pytest would run against, so it is correct regardless of CWD.
+      - cmd: >-
+          uv --project "{{.DEFT_ROOT}}" run python -c "import sys, subprocess;
+          from pathlib import Path;
+          _exists = Path('tests').exists();
+          print('no tests/ (vendored consumer) -- skipping') if not _exists else None;
+          sys.exit(subprocess.run([sys.executable, '-m', 'pytest', 'tests']).returncode if _exists else 0)"
 
   test:coverage:
     desc: Run tests with coverage (fails if < 85%)

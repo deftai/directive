@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`task check` now type-checks the `tests/` tree, so a tests/ type error fails locally instead of only on CI (#1475)** -- the local pre-commit gate (`core:lint`) ran mypy over only `run.py`, while CI runs `mypy tests/`; a type error under `tests/` therefore passed `task check` locally and only reddened master after merge. `core:lint` now runs mypy over `run.py` and `tests/`, sharing the same `[tool.mypy]` config CI uses, bringing the local type-check scope to parity with CI. Closes #1475.
 
 ### Fixed
+- **The framework self-check no longer errors in a vendored consumer once the bundled `tests/` is pruned (#1474)** -- the installer (#1482) strips the vendored `.deft/core/tests/` from the consumer deposit, so the `core:test` step of the framework check ran `pytest` against a missing directory and exited with a path error instead of 0. `core:test` now skips with a clear "no tests/ (vendored consumer)" notice when `tests/` is absent, while the framework's own repo (tests/ present) still runs the full suite. Completes #1474 acceptance a1 alongside #1482. Refs #1474.
 
 ### Removed
 
