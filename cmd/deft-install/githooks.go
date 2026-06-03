@@ -104,9 +104,9 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 		// Idempotency probe: skip the write ONLY when the hook is already present
 		// byte-for-byte. A read error (os.ErrNotExist on first deposit, or an
 		// unreadable existing hook) is intentionally folded into upToDate=false so
-		// the canonical hook is (re)written either way -- the WriteFile below is the
-		// authoritative action and surfaces any real filesystem failure, so there is
-		// deliberately nothing to log or recover at the read site.
+		// the canonical hook is (re)written either way; the WriteFile below is the
+		// authoritative action and returns any real filesystem failure to the
+		// caller, so a failed read here needs no separate handling.
 		existing, rerr := os.ReadFile(dst)
 		upToDate := rerr == nil && bytes.Equal(existing, data)
 		if upToDate {
