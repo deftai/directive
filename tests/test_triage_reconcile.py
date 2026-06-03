@@ -277,6 +277,42 @@ def test_count_reconcilable_restrict_to_intersects(tmp_path: Path) -> None:
     assert total == 1
 
 
+def _bare_uri_vbrief(folder: Path, slug: str, issue_number: int) -> Path:
+    """Write a vBRIEF whose github-issue ref URI omits the owner/repo segment."""
+    folder.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {
+            "status": "proposed",
+            "references": [
+                {"type": "x-vbrief/github-issue", "uri": str(issue_number)}
+            ],
+        },
+    }
+    path = folder / f"{slug}.vbrief.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def test_count_reconcilable_default_repo_covers_bare_uri(tmp_path: Path) -> None:
+    """A bare-URI vBRIEF is counted only with default_repo -- the parity fix
+    that keeps the summary hint in sync with what the reconcile verb restores.
+    """
+    repo = "deftai/directive"
+    _bare_uri_vbrief(tmp_path / "vbrief" / "proposed", "bare", 42)
+
+    # Without a fallback repo the bare-URI vBRIEF is skipped...
+    assert triage_reconcile.count_reconcilable(tmp_path) == 0
+    # ...but with default_repo it resolves and is counted (matches reconcile).
+    assert triage_reconcile.count_reconcilable(tmp_path, default_repo=repo) == 1
+    assert (
+        triage_reconcile.count_reconcilable(
+            tmp_path, default_repo=repo, restrict_to={(repo, 42)}
+        )
+        == 1
+    )
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -361,3 +397,19 @@ def test_summary_reconcile_hint_absent_when_no_divergence(tmp_path: Path) -> Non
     assert result.untriaged == 1
     assert result.reconcilable == 0
     assert triage_summary.format_reconcile_hint_line(result) is None
+
+
+def test_summary_hint_counts_bare_uri_vbrief_via_cache_repo(tmp_path: Path) -> None:
+    """Summary derives the fallback repo from the cached keys, so a bare-URI
+    vBRIEF for a cached issue still surfaces in the [triage:reconcile] hint --
+    keeping the hint in sync with what `task triage:reconcile` would restore.
+    """
+    repo = "deftai/directive"
+    cache_root = tmp_path / triage_summary.CACHE_DIR_NAME
+    _make_cached_issue(cache_root, repo, 42)
+    _bare_uri_vbrief(tmp_path / "vbrief" / "proposed", "bare", 42)
+
+    result = triage_summary.compute_summary(tmp_path)
+    assert result.untriaged == 1
+    assert result.reconcilable == 1
+    assert "[triage:reconcile] 1" in triage_summary.format_summary(result)

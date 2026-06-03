@@ -440,19 +440,27 @@ def _count_skipped_existing(
 def count_reconcilable(
     project_root: Path,
     *,
+    default_repo: str | None = None,
     audit_log_path: Path | None = None,
     restrict_to: Iterable[tuple[str, int]] | None = None,
 ) -> int:
     """Return the number of reconcilable ``(repo, issue)`` pairs.
 
     Read-only convenience used by ``triage_summary`` to surface the
-    ``[triage:reconcile] N`` divergence hint. ``restrict_to`` (when
-    provided) intersects the reconcilable set with a caller-supplied set
-    of ``(repo, issue_number)`` keys -- the summary passes its cached,
+    ``[triage:reconcile] N`` divergence hint. ``default_repo`` is plumbed
+    straight through to :func:`find_reconcilable` so the count stays in
+    sync with what :func:`reconcile` would actually restore -- without it,
+    a bare-URI vBRIEF (whose github-issue reference omits owner/repo)
+    would be silently skipped here while the verb (which resolves a
+    fallback repo) would restore it. ``restrict_to`` (when provided)
+    intersects the reconcilable set with a caller-supplied set of
+    ``(repo, issue_number)`` keys -- the summary passes its cached,
     currently-untriaged issues so the hint counts only the issues it is
     actually miscounting.
     """
-    items = find_reconcilable(project_root, audit_log_path=audit_log_path)
+    items = find_reconcilable(
+        project_root, default_repo=default_repo, audit_log_path=audit_log_path
+    )
     keys = {(item.repo, item.issue_number) for item in items}
     if restrict_to is not None:
         keys &= set(restrict_to)
@@ -508,10 +516,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "--repo",
         default=os.environ.get("DEFT_TRIAGE_REPO"),
         help=(
-            "Fallback repo slug 'owner/name' for vBRIEFs whose github-issue "
-            "reference URI omits the owner/repo segment. Resolution precedence: "
-            "(1) this flag; (2) DEFT_TRIAGE_REPO; (3) the per-vBRIEF reference "
-            "URI; (4) `git remote get-url origin`."
+            "Fallback repo slug 'owner/name' used ONLY when a vBRIEF's "
+            "github-issue reference URI lacks an owner/repo segment -- the "
+            "per-vBRIEF URI is always the primary source and is NOT overridden "
+            "by this flag. Fallback precedence when the URI lacks owner/repo: "
+            "(1) this flag; (2) DEFT_TRIAGE_REPO env; "
+            "(3) `git remote get-url origin`."
         ),
     )
     parser.add_argument(

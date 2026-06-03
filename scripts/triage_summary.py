@@ -658,11 +658,21 @@ def _read_reconcilable_total(
     """
     if not no_decision_keys:
         return 0
+    # Derive the fallback repo from the cached keys themselves so the hint
+    # stays in sync with what ``task triage:reconcile`` would restore for a
+    # bare-URI vBRIEF (one whose github-issue reference omits owner/repo).
+    # When every cached untriaged issue shares one repo we pass it as the
+    # default; a mixed-repo cache passes ``None`` (the rare bare-URI case
+    # is then conservatively skipped). Using the cache's authoritative repo
+    # avoids a git-remote subprocess on the session-start hot path.
+    repos = {repo for repo, _n in no_decision_keys}
+    default_repo = next(iter(repos)) if len(repos) == 1 else None
     try:
         from triage_reconcile import count_reconcilable  # noqa: I001
         return int(
             count_reconcilable(
                 project_root,
+                default_repo=default_repo,
                 audit_log_path=audit_log_path,
                 restrict_to=no_decision_keys,
             )
