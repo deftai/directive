@@ -67,6 +67,7 @@ def _write_meta(
     raw_state: str = "open",
     raw_labels: list[str] | None = None,
     raw_title: str = "fixture issue",
+    raw_milestone: str | None = None,
 ) -> Path:
     """Synthesize a single cache entry under ``project_root/.deft-cache/``."""
     owner, name = repo.split("/", 1)
@@ -102,6 +103,7 @@ def _write_meta(
         "title": raw_title,
         "state": raw_state,
         "labels": [{"name": label} for label in (raw_labels or [])],
+        "milestone": {"title": raw_milestone} if raw_milestone else None,
         "body": "",
         "created_at": _utc_iso(fetched_at - timedelta(days=1)),
         "updated_at": _utc_iso(fetched_at),
@@ -1155,3 +1157,192 @@ class TestTaskCheckWiring:
         assert "cache-fresh:" in text
         assert "preflight_cache.py" in text
         assert "--allow-missing-bootstrap" in text
+
+
+# ---------------------------------------------------------------------------
+# Suite 9: #1424 batched subscription filter (one milestone fetch, not N)
+# ---------------------------------------------------------------------------
+
+
+class TestBatchedScopeFilter:
+    """#1424: ``_filter_scoped_meta_paths`` evaluates the rule set ONCE over
+    the whole cache rather than once per cached entry.
+
+    The pre-#1424 implementation fanned out to ``evaluate_rules(rules,
+    [issue])`` N times; because ``evaluate_rules`` builds (and memoizes
+    only within a single call) a fresh open-milestones resolver, a
+    ``milestone {is-open: true}`` scope rule re-fetched the upstream
+    open-milestones snapshot once per issue -- an O(N) ``gh`` fan-out
+    (~92s on a 500-entry cache). Batching collapses that to a single
+    fetch with unchanged matching semantics.
+    """
+
+    MILESTONE_RULE = [{"rule": "milestone", "is-open": True}]
+
+    @staticmethod
+    def _meta_paths(preflight, tmp_path, repo="deftai/directive"):
+        return list(
+            preflight._iter_meta_paths(
+                tmp_path / ".deft-cache", "github-issue", repo
+            )
+        )
+
+    def test_milestone_is_open_fetcher_invoked_at_most_once(
+        self, preflight, tmp_path
+    ):
+        """Primary #1424 DoD: a counting fetcher fires at most once for an
+        N>=3 cache carrying a ``milestone {is-open: true}`` scope rule."""
+        now = datetime(2026, 6, 3, 12, tzinfo=UTC)
+        # N = 4 (>= 3) cached open issues across two milestones.
+        _write_meta(
+            tmp_path, "deftai/directive", 1, now - timedelta(hours=1),
+            raw_milestone="M1",
+        )
+        _write_meta(
+            tmp_path, "deftai/directive", 2, now - timedelta(hours=1),
+            raw_milestone="M2",
+        )
+        _write_meta(
+            tmp_path, "deftai/directive", 3, now - timedelta(hours=1),
+            raw_milestone="M1",
+        )
+        _write_meta(
+            tmp_path, "deftai/directive", 4, now - timedelta(hours=1),
+        )  # no milestone
+        meta_paths = self._meta_paths(preflight, tmp_path)
+        assert len(meta_paths) >= 3
+
+        calls = {"n": 0}
+
+        def counting_fetcher():
+            calls["n"] += 1
+            return {"M1"}
+
+        result = preflight._filter_scoped_meta_paths(
+            meta_paths,
+            self.MILESTONE_RULE,
+            open_milestones_fetcher=counting_fetcher,
+        )
+        # The whole point of #1424: ONE fetch regardless of cache size.
+        assert calls["n"] <= 1, (
+            f"expected at most 1 milestone fetch, got {calls['n']} "
+            f"(per-issue fan-out regressed for {len(meta_paths)} entries)"
+        )
+        # Only issues 1 and 3 (milestone M1, which is open) are retained.
+        retained = {int(p.parent.name) for p in result}
+        assert retained == {1, 3}
+
+    def test_batched_matched_set_equals_per_issue_baseline(
+        self, preflight, tmp_path
+    ):
+        """Semantics are unchanged: the batched matched set equals the
+        pre-#1424 per-issue fan-out baseline."""
+        triage_scope = sys.modules["triage_scope"]
+        now = datetime(2026, 6, 3, 12, tzinfo=UTC)
+        _write_meta(
+            tmp_path, "deftai/directive", 10, now - timedelta(hours=1),
+            raw_milestone="M1",
+        )
+        _write_meta(
+            tmp_path, "deftai/directive", 11, now - timedelta(hours=1),
+            raw_milestone="M2",
+        )
+        _write_meta(
+            tmp_path, "deftai/directive", 12, now - timedelta(hours=1),
+            raw_milestone="M3",
+        )
+        _write_meta(
+            tmp_path, "deftai/directive", 13, now - timedelta(hours=1),
+            raw_milestone="M1", raw_state="closed",
+        )  # closed -> never matches
+        meta_paths = self._meta_paths(preflight, tmp_path)
+        open_set = {"M1", "M3"}
+
+        batched = set(
+            preflight._filter_scoped_meta_paths(
+                meta_paths,
+                self.MILESTONE_RULE,
+                open_milestones_fetcher=lambda: set(open_set),
+            )
+        )
+
+        # Per-issue baseline: emulate the pre-#1424 fan-out exactly.
+        baseline: set = set()
+        for mp in meta_paths:
+            raw = preflight._read_raw_issue(mp)
+            if raw is None:
+                baseline.add(mp)
+                continue
+            matched = triage_scope.evaluate_rules(
+                self.MILESTONE_RULE,
+                [raw],
+                open_milestones_fetcher=lambda: set(open_set),
+            )
+            target = raw.get("number")
+            if any(
+                isinstance(m, dict) and m.get("number") == target
+                for m in matched
+            ):
+                baseline.add(mp)
+
+        assert batched == baseline
+        # Sanity: M1 (10) and M3 (12) open; M2 (11) excluded; closed (13) out.
+        assert {int(p.parent.name) for p in batched} == {10, 12}
+
+    def test_missing_or_unparseable_raw_json_retained(
+        self, preflight, tmp_path
+    ):
+        """Over-include contract preserved: entries whose raw.json is
+        missing or unparseable are retained even under a filtering rule
+        that would otherwise exclude them."""
+        now = datetime(2026, 6, 3, 12, tzinfo=UTC)
+        _write_meta(
+            tmp_path, "deftai/directive", 20, now - timedelta(hours=1),
+            raw_milestone="M1",
+        )  # in open set -> retained via match
+        corrupt = _write_meta(
+            tmp_path, "deftai/directive", 21, now - timedelta(hours=1),
+            raw_milestone="M2",
+        )  # would be filtered, but we corrupt raw.json below
+        removed = _write_meta(
+            tmp_path, "deftai/directive", 22, now - timedelta(hours=1),
+            raw_milestone="M2",
+        )  # would be filtered, but we delete raw.json below
+        _write_meta(
+            tmp_path, "deftai/directive", 23, now - timedelta(hours=1),
+            raw_milestone="M2",
+        )  # parseable + out of open set -> excluded
+        # Corrupt issue 21's raw.json and remove issue 22's entirely.
+        (corrupt / "raw.json").write_text("{not valid json", encoding="utf-8")
+        (removed / "raw.json").unlink()
+
+        meta_paths = self._meta_paths(preflight, tmp_path)
+        result = preflight._filter_scoped_meta_paths(
+            meta_paths,
+            self.MILESTONE_RULE,
+            open_milestones_fetcher=lambda: {"M1"},
+        )
+        retained = {int(p.parent.name) for p in result}
+        # 20 matched, 21 corrupt-kept, 22 missing-kept; 23 excluded.
+        assert retained == {20, 21, 22}
+
+    def test_no_rules_returns_all_meta_paths_unchanged(
+        self, preflight, tmp_path
+    ):
+        """A nil rule list short-circuits: no evaluation, no fetch."""
+        now = datetime(2026, 6, 3, 12, tzinfo=UTC)
+        _write_meta(tmp_path, "deftai/directive", 30, now - timedelta(hours=1))
+        _write_meta(tmp_path, "deftai/directive", 31, now - timedelta(hours=1))
+        meta_paths = self._meta_paths(preflight, tmp_path)
+
+        calls = {"n": 0}
+
+        def counting_fetcher():
+            calls["n"] += 1
+            return {"M1"}
+
+        result = preflight._filter_scoped_meta_paths(
+            meta_paths, None, open_milestones_fetcher=counting_fetcher
+        )
+        assert result == meta_paths
+        assert calls["n"] == 0

@@ -1,0 +1,47 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1424"
+  },
+  "plan": {
+    "title": "fix(triage): batch verify:cache-fresh scope filter so milestone is-open fetches once, not per-issue (#1424)",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(triage): batch verify:cache-fresh scope filter so milestone is-open fetches once, not per-issue (#1424)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1424",
+      "Overview": "## Problem\n\n`task verify:cache-fresh` (script `scripts/preflight_cache.py`) takes ~92s on a 500-entry cache because its subscription filter calls `triage_scope.evaluate_rules()` once per cached issue instead of once for the whole batch. When the active `plan.policy.triageScope[]` contains a `{\"rule\": \"milestone\", \"is-open\": true}` rule, each per-issue call re-fetches the upstream open-milestones snapshot, producing an N+1 network fetch (~500 gh round-trips). The gate runs in the session-start ritual (#1149 step 5) and in the pre-`start_agent` gate stack, so the cost is paid on every interactive session start and before every implementation dispatch.\n\n## Root cause\n\n`_filter_scoped_meta_paths` loops over every cached entry and calls `_issue_in_scope -> evaluate_rules(rules, [issue])` with a single-issue list. `evaluate_rules` builds a fresh milestone resolver per call (memoized only within one call), so the `is-open` rule re-fetches the open-milestones snapshot once per issue.\n\n## Proposed fix (Option A -- batch, mirror compute_drift)\n\nRework `_filter_scoped_meta_paths` to evaluate the rule set ONCE over the whole cache, matching `scripts/triage_scope_drift.py::compute_drift`: read every raw.json once into a list of issue dicts plus a `id(issue) -> meta_path` map; call `evaluate_rules(rules, all_issues)` a single time; keep each meta_path whose issue dict is in the returned matched set, resolved by OBJECT IDENTITY (not issue number, which can collide / drop None-number entries); preserve the over-include behavior for entries whose raw.json is missing/unparseable. This collapses N milestone fetches to 1, taking the gate from ~92s to well under a second with unchanged semantics.\n\n## Acceptance criteria\n\n- [ ] `_filter_scoped_meta_paths` calls `evaluate_rules` exactly once over the whole cache.\n- [ ] A `milestone {is-open: true}` scope rule fetches the open-milestones snapshot at most once for an N-entry cache.\n- [ ] Matched meta_paths are resolved by object identity, not issue number.\n- [ ] Entries with missing/unparseable raw.json are still retained (over-include).\n- [ ] Regression test in `tests/cli/test_preflight_cache.py` injects a counting fetcher and asserts at-most-once invocation, baseline equality, and missing-raw retention.\n\n## References\n\n- `scripts/preflight_cache.py` (`_filter_scoped_meta_paths`, `_issue_in_scope`)\n- `scripts/triage_scope.py` (`evaluate_rules`)\n- `scripts/triage_scope_drift.py` (`compute_drift` -- correct fetch-once reference)\n- `scripts/_triage_scope_milestone.py` (`make_open_milestones_resolver`, `default_open_milestones_fetcher`)\n",
+      "Labels": "bug, triage, refactor"
+    },
+    "items": [
+      {
+        "title": "_filter_scoped_meta_paths evaluates the rule set once over the whole cache (single evaluate_rules call).",
+        "status": "proposed"
+      },
+      {
+        "title": "A milestone is-open scope rule fetches the open-milestones snapshot at most once for an N-entry cache.",
+        "status": "proposed"
+      },
+      {
+        "title": "Matched meta_paths are resolved by object identity, not issue number; missing/unparseable raw.json entries are retained.",
+        "status": "proposed"
+      },
+      {
+        "title": "Regression test asserts at-most-once fetcher invocation, batched-equals-baseline matched set, and missing-raw retention.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "bug",
+      "triage",
+      "refactor"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1424",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1424: verify:cache-fresh is O(N) gh calls: scope filter runs evaluate_rules per-issue, refetching open milestones (~92s on 500 entries)"
+      }
+    ],
+    "updated": "2026-06-03T16:07:46Z"
+  }
+}
