@@ -49,12 +49,11 @@ const (
 	// elsewhere in AGENTS.md (#1060 cross-layout rewrite).
 	agentsMDFenceClose = "<!-- /deft:managed-section -->"
 
-	// agentsMDV2Sentinel is the v0.27 marker form retained for one release
-	// cycle (v0.28 only; v0.29 deprecates v2). #1046 PR-B AC-5 bumps the
-	// canonical marker to v3 with refresh provenance attributes; the v2 form
-	// is still recognised here so a fresh canonical install on top of a
-	// v0.27 AGENTS.md still recognises the deft entry.
-	agentsMDV2Sentinel = "<!-- deft:managed-section v2 -->"
+	// The v0.27 v2 marker form (`<!-- deft:managed-section v2 -->`) is still
+	// recognised during detection so a fresh canonical install on top of a
+	// v0.27 AGENTS.md rewrites the deft entry rather than appending. It is
+	// matched (attribute-tolerantly, alongside v3) by agentsMDManagedOpenPattern
+	// below rather than via a dedicated constant (#1046 PR-B AC-5, #1437).
 
 	// agentsMDLegacySentinel is the pre-v0.27 idempotency marker. It still
 	// participates in detection so a fresh canonical install on top of a
@@ -166,6 +165,17 @@ description: >-
 Read and follow: .deft/core/skills/deft-directive-sync/SKILL.md
 `
 )
+
+// agentsMDManagedOpenPattern matches a deft managed-section OPEN marker for
+// either the v2 or v3 layout, WITH OR WITHOUT the provenance attributes
+// (sha=/refreshed=/session=) that `run agents:refresh` and the relocator stamp
+// onto the open marker (#1046 PR-B AC-5). Detection MUST be attribute-tolerant:
+// keying on the exact bare marker string made WriteAgentsMD miss an attributed
+// marker and APPEND a second managed section instead of rewriting the existing
+// one (the v0.39.3 duplicate-managed-section bug, #1437). The installer still
+// EMITS the bare canonical marker (agentsMDSentinel); only the MATCHING here is
+// attribute-tolerant. The closing marker (agentsMDFenceClose) is unchanged.
+var agentsMDManagedOpenPattern = regexp.MustCompile(`<!-- deft:managed-section v[23][^>]*-->`)
 
 // canonicalGitignoreLines mirrors scripts/relocate.py::GITIGNORE_LINES (the F2
 // canonical default from #1015): the runtime cache directory and the audit-log
@@ -375,80 +385,118 @@ func detectAgentsMDLayoutLabel(body string) string {
 	return "unknown"
 }
 
-// agentsMDManagedSlice returns the substring of body between the first v3 or
-// v2 open marker and the matching closing fence (inclusive of the close fence
-// bytes). Returns (slice, true) when a fenced managed section is found, or
-// ("", false) when no fenced block is detected (pre-v0.27 unfenced legacy
-// body, or no deft sentinel at all). Used by WriteAgentsMD to scope the
-// idempotency probe to the managed slice ONLY (Greptile P1 #1066: file-wide
-// claim check could produce a false skip when operator-authored prose
-// outside the fence contains the layout claim while the managed block stays
-// stale).
-func agentsMDManagedSlice(body string) (string, bool) {
-	for _, openMarker := range []string{agentsMDSentinel, agentsMDV2Sentinel} {
-		idx := strings.Index(body, openMarker)
-		if idx < 0 {
-			continue
-		}
-		closeOff := strings.Index(body[idx:], agentsMDFenceClose)
-		if closeOff < 0 {
-			continue
-		}
-		closeIdx := idx + closeOff + len(agentsMDFenceClose)
-		return body[idx:closeIdx], true
-	}
-	return "", false
+// agentsMDSpan is a half-open byte range [Start, End) covering one fenced deft
+// managed section -- the open marker through the matching closing fence,
+// inclusive of the close-fence bytes -- inside an AGENTS.md body.
+type agentsMDSpan struct {
+	Start int
+	End   int
 }
 
-// rewriteAgentsMDBlock replaces the deft-managed section inside body with the
-// rendered replacement and returns (newBody, surgical). When the section is
-// fenced by a v2/v3 open marker AND the closing marker, only the fenced range
-// is rewritten (`surgical=true`) so any operator prose outside the managed
-// section is preserved verbatim. The pre-v0.27 layout has no closing fence,
-// so when only the unfenced legacy sentinel is present the entire file is
-// replaced with the replacement (`surgical=false`); the legacy body has no
-// reliable terminator the installer can detect, and leaving stale legacy
-// prose alongside the new canonical body would itself produce the kind of
-// cross-layout drift #1060 closes.
+// agentsMDManagedSpans returns the byte ranges of EVERY deft managed section in
+// body: each v2/v3 open marker (attributed or bare, matched by
+// agentsMDManagedOpenPattern) paired with the next closing fence. An open
+// marker with no following closing fence terminates the scan (it cannot be
+// surgically bounded). Returns nil when no fenced section is present. Used by
+// agentsMDManagedSlice (idempotency probe scope) and rewriteAgentsMDBlock
+// (self-heal collapse to a single section, #1437).
+func agentsMDManagedSpans(body string) []agentsMDSpan {
+	var spans []agentsMDSpan
+	from := 0
+	for from <= len(body) {
+		loc := agentsMDManagedOpenPattern.FindStringIndex(body[from:])
+		if loc == nil {
+			break
+		}
+		openStart := from + loc[0]
+		closeOff := strings.Index(body[openStart:], agentsMDFenceClose)
+		if closeOff < 0 {
+			break
+		}
+		closeEnd := openStart + closeOff + len(agentsMDFenceClose)
+		spans = append(spans, agentsMDSpan{Start: openStart, End: closeEnd})
+		from = closeEnd
+	}
+	return spans
+}
+
+// agentsMDManagedSlice returns the substring of body covering the FIRST fenced
+// managed section (inclusive of the close-fence bytes). Returns (slice, true)
+// when a fenced managed section is found, or ("", false) when no fenced block
+// is detected (pre-v0.27 unfenced legacy body, or no deft sentinel at all).
+// The open marker is matched attribute-tolerantly (#1437). Used by
+// WriteAgentsMD to scope the idempotency probe to the managed slice ONLY
+// (Greptile P1 #1066: a file-wide claim check could produce a false skip when
+// operator-authored prose outside the fence contains the layout claim while
+// the managed block stays stale).
+func agentsMDManagedSlice(body string) (string, bool) {
+	spans := agentsMDManagedSpans(body)
+	if len(spans) == 0 {
+		return "", false
+	}
+	return body[spans[0].Start:spans[0].End], true
+}
+
+// rewriteAgentsMDBlock replaces the deft-managed section(s) inside body with a
+// SINGLE rendered replacement and returns (newBody, surgical). When at least
+// one fenced section (v2/v3, attributed or bare) is present the rewrite is
+// surgical (`surgical=true`): the FIRST section is replaced in place with
+// replacement and EVERY subsequent managed section is removed, so any number of
+// existing managed sections converges to exactly one (the #1437 self-heal --
+// installs already broken with duplicate sections are cleaned up on the next
+// upgrade). Operator prose before, between, and after the fences is preserved
+// verbatim. The pre-v0.27 layout has no closing fence, so when no fenced
+// section is present the entire file is replaced with the replacement
+// (`surgical=false`); the legacy body has no reliable terminator the installer
+// can detect, and leaving stale legacy prose alongside the new canonical body
+// would itself produce the kind of cross-layout drift #1060 closes.
 //
 // When the replacement already ends in a newline AND the byte immediately
-// after the closing fence is also a newline, one trailing newline is
-// consumed from body so repeated surgical rewrites don't accumulate blank
-// lines at the boundary (Greptile P1 #1066: cosmetic drift across upgrades).
+// after the first section's closing fence is also a newline, one trailing
+// newline is consumed from body so repeated surgical rewrites don't accumulate
+// blank lines at the boundary (Greptile P1 #1066: cosmetic drift across
+// upgrades).
 func rewriteAgentsMDBlock(body, replacement string) (string, bool) {
-	for _, openMarker := range []string{agentsMDSentinel, agentsMDV2Sentinel} {
-		idx := strings.Index(body, openMarker)
-		if idx < 0 {
-			continue
-		}
-		closeOff := strings.Index(body[idx:], agentsMDFenceClose)
-		if closeOff < 0 {
-			continue
-		}
-		closeIdx := idx + closeOff + len(agentsMDFenceClose)
-		if strings.HasSuffix(replacement, "\n") && closeIdx < len(body) && body[closeIdx] == '\n' {
-			closeIdx++
-		}
-		return body[:idx] + replacement + body[closeIdx:], true
+	spans := agentsMDManagedSpans(body)
+	if len(spans) == 0 {
+		return replacement, false
 	}
-	return replacement, false
+	var b strings.Builder
+	// Operator prose before the first managed section is preserved verbatim.
+	b.WriteString(body[:spans[0].Start])
+	// Exactly one canonical managed section replaces the first one.
+	b.WriteString(replacement)
+	prevEnd := spans[0].End
+	if strings.HasSuffix(replacement, "\n") && prevEnd < len(body) && body[prevEnd] == '\n' {
+		prevEnd++
+	}
+	// Drop every SUBSEQUENT managed section (converge N -> 1) while preserving
+	// any operator prose BETWEEN the fences.
+	for _, sp := range spans[1:] {
+		b.WriteString(body[prevEnd:sp.Start])
+		prevEnd = sp.End
+	}
+	b.WriteString(body[prevEnd:])
+	return b.String(), true
 }
 
 // WriteAgentsMD creates, rewrites, or appends the deft managed section in
 // AGENTS.md so the file always advertises the install root the installer is
-// depositing at. Layout-aware sentinel logic (#1060):
+// depositing at. Layout-aware sentinel logic (#1060, #1437):
 //
-//   - AGENTS.md absent              -> write the layout-correct v3 body.
-//   - v3 marker AND matching claim  -> skip (file is up-to-date).
-//   - v3 marker but foreign layout  -> surgically rewrite the managed block
-//     to the layout-correct v3 body (preserving operator prose outside the
-//     fence).
-//   - v2 marker (pre-v0.28)         -> surgically rewrite to v3.
-//   - pre-v0.27 legacy sentinel     -> rewrite the entire file to the
+//   - AGENTS.md absent                  -> write the layout-correct v3 body.
+//   - exactly ONE bare-marker section
+//     AND matching claim                -> skip (file is up-to-date).
+//   - any managed section(s), attributed
+//     or bare (v2/v3), stale / foreign
+//     layout / duplicated               -> rewrite to a SINGLE layout-correct
+//     v3 body, collapsing duplicates and preserving operator prose outside
+//     the fences (the #1437 self-heal: converges 0/1/N sections to one).
+//   - pre-v0.27 legacy sentinel only    -> rewrite the entire file to the
 //     layout-correct v3 body (the legacy body is unfenced so a surgical
 //     replacement is not safe -- see rewriteAgentsMDBlock).
-//   - no deft sentinel at all       -> append the layout-correct v3 body to
-//     the existing file (preserves the operator's pre-existing AGENTS.md).
+//   - no deft sentinel at all           -> append the layout-correct v3 body
+//     to the existing file (preserves the operator's pre-existing AGENTS.md).
 //
 // The install root is derived from the Wizard's selected framework subdir
 // (the same value the deposit path uses) and normalised to POSIX form so the
@@ -473,8 +521,14 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 
 	s := string(existing)
 	expectedClaim := agentsMDLayoutClaim(installRoot)
-	hasV3 := strings.Contains(s, agentsMDSentinel)
-	hasV2 := strings.Contains(s, agentsMDV2Sentinel)
+
+	// Locate EVERY deft managed section (v2/v3, attributed or bare). The open
+	// marker is matched attribute-tolerantly so a marker carrying provenance
+	// attributes (sha=/refreshed=/session=, emitted by `run agents:refresh` /
+	// the relocator) is recognised -- keying on the bare marker string made
+	// WriteAgentsMD fall through and APPEND a second managed section instead of
+	// rewriting the existing one (#1437).
+	managedSpans := agentsMDManagedSpans(s)
 	hasLegacy := strings.Contains(s, agentsMDLegacySentinel)
 
 	// Scope the layout-claim probe to the fenced managed slice when one
@@ -492,19 +546,25 @@ func WriteAgentsMD(w *Wizard, projectDir string) error {
 	}
 	hasClaim := strings.Contains(probe, expectedClaim)
 
-	// Up-to-date: v3 marker AND body advertises the install root we are
-	// depositing at. This is the only happy-path that may legitimately skip
-	// the rewrite per the #1060 layout-aware contract.
-	if hasV3 && hasClaim {
+	// Up-to-date happy path: EXACTLY ONE managed section, emitted in the BARE
+	// canonical marker form the installer itself writes (agentsMDSentinel), and
+	// already advertising the install root we are depositing at. Gating the
+	// skip on the bare marker -- rather than the attribute-tolerant match used
+	// for detection above -- means an ATTRIBUTED marker is rewritten in place
+	// to the canonical body (#1437) while a re-run on the installer's own
+	// output stays a byte-for-byte no-op. A file carrying MULTIPLE managed
+	// sections (the duplicate bug) also falls through so it self-heals to one.
+	if strings.Contains(s, agentsMDSentinel) && hasClaim && len(managedSpans) == 1 {
 		w.printf("AGENTS.md already advertises install root %s — skipping.\n", installRoot)
 		return nil
 	}
 
-	// Any deft sentinel present but body is stale (older marker) or pointing
-	// at a foreign layout: rewrite to the layout-correct v3 body so the
-	// installer never leaves the consumer in the cross-layout drift the
-	// framework:doctor probe would flag (#1060).
-	if hasV3 || hasV2 || hasLegacy {
+	// Any deft managed section (v2/v3, attributed or bare) OR a pre-v0.27
+	// legacy sentinel: rewrite to a SINGLE layout-correct v3 body, collapsing
+	// any duplicates and preserving operator prose outside the fences, so the
+	// installer never leaves the consumer in the cross-layout drift or the
+	// duplicate-section state the doctor would flag (#1060, #1437 self-heal).
+	if len(managedSpans) > 0 || hasLegacy {
 		newBody, surgical := rewriteAgentsMDBlock(s, body)
 		if err := os.WriteFile(path, []byte(newBody), 0o644); err != nil {
 			return fmt.Errorf("could not rewrite AGENTS.md: %w", err)

@@ -617,3 +617,110 @@ func TestUpdateDeft_CloneTagDetachedHeadMigratesWithoutGit(t *testing.T) {
 		t.Errorf("migrated core MUST NOT contain .git (err=%v)", err)
 	}
 }
+
+// TestBareVersionFromTag pins the tag -> bare-derivative mapping used to keep
+// vbrief/.deft-version in agreement with the YAML manifest tag (#1437). Mirrors
+// the doctor's _manifest_tag_to_version lstrip("v").
+func TestBareVersionFromTag(t *testing.T) {
+	cases := map[string]string{
+		"v0.39.3":     "0.39.3",
+		"0.39.3":      "0.39.3",
+		"v1.2.3-rc.1": "1.2.3-rc.1",
+		"  v0.40.0  ": "0.40.0",
+		"":            "",
+	}
+	for in, want := range cases {
+		if got := bareVersionFromTag(in); got != want {
+			t.Errorf("bareVersionFromTag(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// TestRegenerateBareVersionMarker covers the #1437 derivative writer directly:
+// it writes the BARE semver (no leading v) plus a trailing newline at
+// vbrief/.deft-version, creates the parent vbrief/ dir when absent, and is a
+// no-op for an empty (non-semver) tag.
+func TestRegenerateBareVersionMarker(t *testing.T) {
+	t.Run("writes bare semver and creates vbrief dir", func(t *testing.T) {
+		proj := t.TempDir()
+		path, err := regenerateBareVersionMarker(proj, "v0.39.3")
+		if err != nil {
+			t.Fatalf("regenerateBareVersionMarker: %v", err)
+		}
+		want := filepath.Join(proj, "vbrief", ".deft-version")
+		if path != want {
+			t.Errorf("path = %q, want %q", path, want)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(data) != "0.39.3\n" {
+			t.Errorf("content = %q, want %q (bare semver + trailing newline)", string(data), "0.39.3\n")
+		}
+	})
+	t.Run("empty tag is a no-op", func(t *testing.T) {
+		proj := t.TempDir()
+		path, err := regenerateBareVersionMarker(proj, "")
+		if err != nil {
+			t.Fatalf("regenerateBareVersionMarker: %v", err)
+		}
+		if path != "" {
+			t.Errorf("expected empty path for an empty tag, got %q", path)
+		}
+		if _, statErr := os.Stat(filepath.Join(proj, "vbrief", ".deft-version")); !os.IsNotExist(statErr) {
+			t.Errorf("empty tag must not create .deft-version (err=%v)", statErr)
+		}
+	})
+}
+
+// TestRefreshVendoredCore_RegeneratesBareVersionMarker is the #1437 Bug B
+// regression: the vendored file-swap upgrade refreshes .deft/core/** AND now
+// regenerates the bare vbrief/.deft-version derivative from the resolved tag, so
+// a stale derivative left by an earlier rail (here "0.0.0-dev") is brought into
+// agreement with the manifest the installer stamps. Drives the REAL UpdateDeft
+// vendored path against a real-shaped (pax-header) tarball, hermetically.
+func TestRefreshVendoredCore_RegeneratesBareVersionMarker(t *testing.T) {
+	origGit := runGitCaptureFunc
+	origFetch := fetchCoreTarballFunc
+	defer func() {
+		runGitCaptureFunc = origGit
+		fetchCoreTarballFunc = origFetch
+	}()
+
+	proj := t.TempDir()
+	core := filepath.Join(proj, ".deft", "core")
+	if err := os.MkdirAll(core, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// Stale bare derivative left by an earlier rail (the #1437 observed state).
+	vbriefDir := filepath.Join(proj, "vbrief")
+	if err := os.MkdirAll(vbriefDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(vbriefDir, ".deft-version"), []byte("0.0.0-dev\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Classify as vendored (no git work tree); stand in a real-shaped tarball.
+	runGitCaptureFunc = func(string, ...string) (string, error) { return "", fmt.Errorf("not a repo") }
+	tarball := makeCoreTarballWithPaxHeader(t, "deftai-directive-cafef00d1234", map[string]string{"main.md": "framework"})
+	fetchCoreTarballFunc = func(string) (string, error) { return tarball, nil }
+
+	result := &WizardResult{ProjectName: "proj", ProjectDir: proj, DeftDir: core, Update: true}
+	w := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	outcome, err := UpdateDeft(w, result, "v0.39.3")
+	if err != nil {
+		t.Fatalf("UpdateDeft (vendored refresh): %v", err)
+	}
+	if outcome.Strategy != strategyFileSwap {
+		t.Fatalf("strategy = %q, want %q", outcome.Strategy, strategyFileSwap)
+	}
+	got, err := os.ReadFile(filepath.Join(vbriefDir, ".deft-version"))
+	if err != nil {
+		t.Fatalf("vbrief/.deft-version missing after refresh: %v", err)
+	}
+	if strings.TrimSpace(string(got)) != "0.39.3" {
+		t.Errorf("vbrief/.deft-version = %q, want %q (regenerated from the resolved tag)", strings.TrimSpace(string(got)), "0.39.3")
+	}
+}

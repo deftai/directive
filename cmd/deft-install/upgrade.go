@@ -267,8 +267,59 @@ func refreshVendoredCore(w *Wizard, result *WizardResult, branch string) (*Updat
 	}
 	outcome.Backup = backup
 
+	// #1437: the vendored file-swap owns .deft/core/** only. Regenerate the
+	// bare vbrief/.deft-version derivative from the resolved release tag -- the
+	// same tag the caller stamps into .deft/core/VERSION -- so the upgrade
+	// leaves the install self-consistent. Without this a stale derivative left
+	// by an earlier rail (e.g. "0.0.0-dev") fails the doctor's manifest-
+	// agreement check. Best-effort: a write failure warns but never fails the
+	// refresh.
+	if marker, mErr := regenerateBareVersionMarker(result.ProjectDir, outcome.Tag); mErr != nil {
+		w.printf("warning: refreshed payload but could not regenerate vbrief/.deft-version: %v\n", mErr)
+	} else if marker != "" {
+		w.printf("Regenerated %s to %s (agrees with the refreshed manifest).\n", marker, bareVersionFromTag(outcome.Tag))
+	}
+
 	w.printf("Vendored framework refreshed at %s (previous payload backed up at %s).\n", result.DeftDir, backup)
 	return outcome, nil
+}
+
+// bareVersionFromTag converts a manifest tag/ref ("v0.39.3" or "0.39.3") to the
+// bare vbrief/.deft-version derivative value ("0.39.3") by stripping a single
+// leading "v". Mirrors run::_install_manifest_tag_to_version and the doctor's
+// _manifest_tag_to_version (which lstrip("v") before comparing). Returns "" for
+// an empty tag so callers skip writing a meaningless derivative (e.g. a branch
+// upgrade whose manifest carries no semver tag).
+func bareVersionFromTag(tag string) string {
+	t := strings.TrimSpace(tag)
+	if t == "" {
+		return ""
+	}
+	return strings.TrimPrefix(t, "v")
+}
+
+// regenerateBareVersionMarker (re)writes the bare vbrief/.deft-version
+// derivative from the resolved release tag so it agrees with the canonical
+// <core>/VERSION manifest the installer stamps after a vendored swap (#1437).
+// The file holds the BARE semver plus a trailing newline, mirroring
+// run::_write_version_marker and the doctor's preferred bare-derivative
+// location (vbrief/.deft-version). Returns the written path, or "" when tag
+// carries no semver (nothing to regenerate). The parent vbrief/ directory is
+// created if absent.
+func regenerateBareVersionMarker(projectDir, tag string) (string, error) {
+	bare := bareVersionFromTag(tag)
+	if bare == "" {
+		return "", nil
+	}
+	vbriefDir := filepath.Join(projectDir, "vbrief")
+	if err := os.MkdirAll(vbriefDir, 0o755); err != nil {
+		return "", fmt.Errorf("could not create vbrief/ for .deft-version: %w", err)
+	}
+	path := filepath.Join(vbriefDir, ".deft-version")
+	if err := os.WriteFile(path, []byte(bare+"\n"), 0o644); err != nil {
+		return "", fmt.Errorf("could not write vbrief/.deft-version: %w", err)
+	}
+	return path, nil
 }
 
 // downloadAndExtractCore downloads the framework source tarball at ref (empty

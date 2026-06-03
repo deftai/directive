@@ -531,6 +531,163 @@ func TestWriteAgentsMD_StaleCanonicalAGENTSMD_RewrittenByLegacyInstall(t *testin
 	}
 }
 
+// ---------------------------------------------------------------------------
+// #1437: attributed-marker recognition + self-heal collapse to one section
+// ---------------------------------------------------------------------------
+
+// countManagedSections reports how many deft managed-section closing fences a
+// body carries -- one per managed section. A correct AGENTS.md has exactly one.
+func countManagedSections(body string) int {
+	return strings.Count(body, agentsMDFenceClose)
+}
+
+// TestWriteAgentsMD_AttributedV3Marker_RewritesInPlaceToSingleSection is the
+// #1437 regression (a): an AGENTS.md whose open marker carries the v3
+// provenance attributes (sha=/refreshed=/session=) -- the form `agents:refresh`
+// / the relocator emit -- is RECOGNISED and rewritten in place to a single
+// canonical managed section. Pre-fix the bare-string matcher missed it and
+// APPENDED a second section. Operator prose around the fence is preserved.
+func TestWriteAgentsMD_AttributedV3Marker_RewritesInPlaceToSingleSection(t *testing.T) {
+	tmp := t.TempDir()
+	operatorTop := "# Project AGENTS\n\nOperator notes above the fence.\n\n"
+	operatorBottom := "\n## Appendix\n\nOperator notes below the fence.\n"
+	attributed := "<!-- deft:managed-section v3 sha=6136b66c42c8 refreshed=2026-06-01T03:08:04Z session=d7bc893a5c2d -->\n" +
+		"Deft is installed in .deft/core/. (older managed body)\n" +
+		agentsMDFenceClose + "\n"
+	if err := os.WriteFile(filepath.Join(tmp, "AGENTS.md"), []byte(operatorTop+attributed+operatorBottom), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	w := NewWizard(strings.NewReader(""), &out, false)
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatalf("WriteAgentsMD: %v", err)
+	}
+
+	data, _ := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	content := string(data)
+	if n := countManagedSections(content); n != 1 {
+		t.Errorf("attributed marker produced %d managed sections, want exactly 1 (append-instead-of-rewrite bug #1437):\n%s", n, content)
+	}
+	if n := strings.Count(content, "<!-- deft:managed-section v"); n != 1 {
+		t.Errorf("want exactly 1 managed-section open marker, got %d:\n%s", n, content)
+	}
+	if !strings.Contains(content, agentsMDSentinel) {
+		t.Errorf("attributed marker was not rewritten to the bare canonical marker:\n%s", content)
+	}
+	if strings.Contains(content, "sha=6136b66c42c8") {
+		t.Errorf("stale attributed-marker provenance survived the rewrite:\n%s", content)
+	}
+	for _, prose := range []string{"Operator notes above the fence.", "Operator notes below the fence."} {
+		if !strings.Contains(content, prose) {
+			t.Errorf("operator prose %q was lost during the rewrite:\n%s", prose, content)
+		}
+	}
+	if !strings.Contains(out.String(), "rewriting AGENTS.md") {
+		t.Errorf("installer did not log the in-place rewrite; got log:\n%s", out.String())
+	}
+}
+
+// TestWriteAgentsMD_TwoManagedSections_CollapseToOne is the #1437 regression
+// (b): an AGENTS.md that already carries TWO managed sections (the state this
+// bug produced) is collapsed to exactly one canonical section on the next
+// upgrade, preserving operator prose before, between, and after the fences.
+func TestWriteAgentsMD_TwoManagedSections_CollapseToOne(t *testing.T) {
+	tmp := t.TempDir()
+	top := "# Project AGENTS\n\nTop operator prose.\n\n"
+	first := "<!-- deft:managed-section v3 sha=aaa111 refreshed=2026-06-01T00:00:00Z session=s1 -->\n" +
+		"Deft is installed in .deft/core/. (old body 1)\n" + agentsMDFenceClose + "\n"
+	middle := "\nMiddle operator prose between two managed sections.\n\n"
+	second := agentsMDSentinel + "\n" +
+		"Deft is installed in .deft/core/. (old body 2)\n" + agentsMDFenceClose + "\n"
+	bottom := "\nBottom operator prose.\n"
+	if err := os.WriteFile(filepath.Join(tmp, "AGENTS.md"), []byte(top+first+middle+second+bottom), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	w := NewWizard(strings.NewReader(""), &out, false)
+	if err := WriteAgentsMD(w, tmp); err != nil {
+		t.Fatalf("WriteAgentsMD: %v", err)
+	}
+
+	data, _ := os.ReadFile(filepath.Join(tmp, "AGENTS.md"))
+	content := string(data)
+	if n := countManagedSections(content); n != 1 {
+		t.Errorf("two managed sections did not collapse to one; got %d:\n%s", n, content)
+	}
+	if n := strings.Count(content, "<!-- deft:managed-section v"); n != 1 {
+		t.Errorf("want exactly 1 open marker after collapse, got %d:\n%s", n, content)
+	}
+	for _, prose := range []string{"Top operator prose.", "Middle operator prose between two managed sections.", "Bottom operator prose."} {
+		if !strings.Contains(content, prose) {
+			t.Errorf("operator prose %q was lost during the collapse:\n%s", prose, content)
+		}
+	}
+	if strings.Contains(content, "old body 1") || strings.Contains(content, "old body 2") {
+		t.Errorf("stale managed bodies survived the collapse:\n%s", content)
+	}
+}
+
+// TestWriteAgentsMD_CleanSingleSection_StaysSingleIdempotent is the #1437
+// regression (c): a clean single-section file (the installer's own output)
+// stays a single section and is a byte-for-byte no-op on a re-run.
+func TestWriteAgentsMD_CleanSingleSection_StaysSingleIdempotent(t *testing.T) {
+	tmp := t.TempDir()
+	w1 := NewWizard(strings.NewReader(""), &bytes.Buffer{}, false)
+	if err := WriteAgentsMD(w1, tmp); err != nil { // fresh install -> one canonical section
+		t.Fatal(err)
+	}
+	path := filepath.Join(tmp, "AGENTS.md")
+	first, _ := os.ReadFile(path)
+	if n := countManagedSections(string(first)); n != 1 {
+		t.Fatalf("fresh install did not produce exactly one managed section; got %d:\n%s", n, first)
+	}
+
+	var out bytes.Buffer
+	w2 := NewWizard(strings.NewReader(""), &out, false)
+	if err := WriteAgentsMD(w2, tmp); err != nil {
+		t.Fatalf("WriteAgentsMD (re-run): %v", err)
+	}
+	second, _ := os.ReadFile(path)
+	if string(first) != string(second) {
+		t.Errorf("re-run changed a clean single-section file (not idempotent)")
+	}
+	if n := countManagedSections(string(second)); n != 1 {
+		t.Errorf("clean single-section file did not stay single; got %d", n)
+	}
+	if !strings.Contains(out.String(), "skipping") {
+		t.Errorf("expected the idempotent re-run to skip; got log:\n%s", out.String())
+	}
+}
+
+// TestRewriteAgentsMDBlock_CollapsesAllSectionsToOne unit-tests the self-heal
+// directly: N managed sections (v3 attributed + bare) converge to exactly one
+// replacement, with operator prose before/between/after preserved (#1437).
+func TestRewriteAgentsMDBlock_CollapsesAllSectionsToOne(t *testing.T) {
+	replacement := agentsMDSentinel + "\nNEW CANONICAL BODY\n" + agentsMDFenceClose + "\n"
+	body := "A\n" +
+		agentsMDSentinel + "\nold1\n" + agentsMDFenceClose + "\n" +
+		"B\n" +
+		"<!-- deft:managed-section v3 sha=xyz -->\nold2\n" + agentsMDFenceClose + "\n" +
+		"C\n"
+	got, surgical := rewriteAgentsMDBlock(body, replacement)
+	if !surgical {
+		t.Fatal("expected surgical=true when fenced sections exist")
+	}
+	if n := countManagedSections(got); n != 1 {
+		t.Errorf("want exactly 1 managed section after collapse, got %d:\n%s", n, got)
+	}
+	for _, want := range []string{"A\n", "B\n", "C\n", "NEW CANONICAL BODY"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("expected %q preserved/inserted, missing from:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "old1") || strings.Contains(got, "old2") {
+		t.Errorf("stale managed bodies survived the collapse:\n%s", got)
+	}
+}
+
 // TestWriteAgentsMD_ClaimScopedToManagedSlice_NoFalseSkip pins the
 // Greptile P1 #1066 issue 1 fix: the `hasClaim` idempotency probe is
 // scoped to the fenced managed slice, NOT the full file. An operator-
