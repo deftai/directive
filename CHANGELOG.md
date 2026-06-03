@@ -17,8 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
+- **`deft-install --upgrade` now refuses a dirty working tree by default instead of warning and proceeding (#1458)** -- an upgrade rewrites the framework payload (`.deft/core/**`) and installer-managed files, and committing those mixed with your own work trips the `deft-core-guard` CI check. The installer now fails loudly -- non-zero exit, no payload swap -- on both the interactive and `--yes`/non-interactive paths when the tree is dirty, with a clear message explaining why a clean tree is wanted plus the clean-up-first vs `--force` tradeoffs. `--force` / `--allow-dirty` still upgrades a dirty tree, and `--require-clean` is kept as an accepted no-op alias. Clean-tree upgrades and initial installs are unaffected. Closes #1458.
 
 ### Fixed
+- **`deft-install --json` now exposes every actionable dirty-tree and rollback signal as a structured field (#1458)** -- a dirty-tree `--upgrade` refusal emits one JSON object on stdout carrying `error_code`, `dirty_files`, and the new `why`, `remediation`, `force_hint`, and `warnings` fields, so an agent that captures only stdout gets the full picture without parsing stderr prose. The `--json` success result on a vendored upgrade now also includes `backup_path` (the out-of-tree rollback location) and `previous_version`. Closes #1458.
 
 ### Removed
 

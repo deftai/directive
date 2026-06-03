@@ -1,0 +1,50 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Scope vBRIEF ingested from GitHub issue #1458"
+  },
+  "plan": {
+    "title": "fix(deft-install): fail loudly on a dirty working tree by default for --upgrade (--force to bypass) + structured --json signals (#1458)",
+    "status": "completed",
+    "narratives": {
+      "Description": "fix(deft-install): on --upgrade with a dirty working tree, fail loudly by default (non-zero exit, no payload swap) on both the interactive and --yes/non-interactive paths; --force / --allow-dirty bypasses; --require-clean becomes an accepted no-op alias; surface structured signals (why/remediation/force_hint/warnings) in --json and backup_path/previous_version in the --json success result.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/1458",
+      "Overview": "Flips today's warn-and-proceed default (#1453): a dirty working tree on `--upgrade` must FAIL LOUDLY -- non-zero exit, NO payload swap, loud error explaining WHY a clean tree is wanted plus the clean-up-vs-force pros/cons -- on BOTH the interactive AND the --yes/non-interactive paths. `--force` / `--allow-dirty` (already synonyms) bypasses and upgrades a dirty tree. `--require-clean` becomes a redundant accepted no-op alias. An INITIAL (non-upgrade) install still never probes the tree. In --json mode stdout stays a single clean JSON object (#1385): the dirty-tree failure is one structured object including existing `error`, `error_code` (dirty_tree_require_clean), `dirty_tree`, `dirty_files` PLUS new `why`, `remediation`, `force_hint`, and a `warnings: []` array. The --json success result on a vendored file-swap upgrade includes `backup_path` (and best-effort `previous_version`). Owner files: cmd/deft-install/hygiene.go, cmd/deft-install/main.go, cmd/deft-install/upgrade.go + their tests.",
+      "Labels": "installer, agent-ux"
+    },
+    "items": [
+      {
+        "title": "deft-install --upgrade (interactive AND --yes) on a dirty tree exits non-zero, performs NO payload swap, and prints a loud error containing the why + the clean-up-vs-force pros/cons.",
+        "status": "proposed"
+      },
+      {
+        "title": "--force / --allow-dirty performs the upgrade against a dirty tree; --require-clean is accepted as a no-op alias.",
+        "status": "proposed"
+      },
+      {
+        "title": "Clean-tree upgrades and initial installs are unaffected.",
+        "status": "proposed"
+      },
+      {
+        "title": "In --json mode the dirty-tree failure is a single structured JSON object on stdout including error_code, dirty_files, why, remediation, and force_hint (plus a warnings array).",
+        "status": "proposed"
+      },
+      {
+        "title": "--json success result on a vendored file-swap upgrade includes backup_path.",
+        "status": "proposed"
+      }
+    ],
+    "tags": [
+      "installer",
+      "agent-ux"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1458",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1458: deft-install: fail loudly on a dirty working tree by default for --upgrade (--force to bypass) + structured signals in --json"
+      }
+    ],
+    "updated": "2026-06-03T16:13:47Z"
+  }
+}
