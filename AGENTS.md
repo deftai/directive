@@ -85,7 +85,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - "swarm" / "parallel agents" / "run agents" → `skills/deft-directive-swarm/SKILL.md` — chains to `deft-directive-review-cycle` at Phase 5; Phase 0 is queue-driven (see N2 / #1142)
 - "decompose" / "story decomposition" / "swarm readiness" → `skills/deft-directive-decompose/SKILL.md` — converts phase/epic scopes into swarm-ready story vBRIEFs before swarm allocation.
 - "refinement" / "reprioritize" / "refine" / "triage" / "pre-ingest" / "action menu" → `skills/deft-directive-refinement/SKILL.md` — chains to `deft-directive-review-cycle` at exit; Phase 0 consults the triage cache first (see N1 / #1141). The refinement frontmatter's `work the cache` trigger routes to the dedicated `deft-directive-triage` entry below (#1130), not here, to keep routing unambiguous.
-- "triage <N>" / "triage issue" / "ingest issue" → `skills/deft-directive-refinement/SKILL.md` — canonical vBRIEF intake for GitHub issues (reclaims the bare 'triage' verb)
+- "triage <N>" / "triage issue" / "ingest issue" → `skills/deft-directive-refinement/SKILL.md` — canonical vBRIEF intake for GitHub issues
 - "build" / "implement" / "implement spec" → `skills/deft-directive-build/SKILL.md`
 - "cost" / "budget" / "pre-build cost" / "how much will this cost" → `skills/deft-directive-cost/SKILL.md`
 - "setup" / "bootstrap" / "onboard" → `skills/deft-directive-setup/SKILL.md`
