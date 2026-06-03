@@ -65,10 +65,13 @@ Options:
   --yes, --non-interactive  Non-interactive/agent mode: skip all prompts; requires
                             --repo-root for target dir (or uses CWD); auto-confirms
                             updates and installs; ideal for CI/agents
-  --upgrade                 Force update/upgrade path even if framework dir exists
-  --require-clean           On --upgrade, refuse to proceed if the working tree has
-                            uncommitted changes (default: warn and proceed)
-  --force, --allow-dirty    Escape --require-clean and upgrade a dirty working tree
+  --upgrade                 Force update/upgrade path even if framework dir exists.
+                            Refuses by default when the working tree is dirty
+                            (use --force / --allow-dirty to upgrade a dirty tree)
+  --require-clean           Deprecated no-op: a dirty tree is now refused by
+                            default on --upgrade (accepted as an alias)
+  --force, --allow-dirty    Upgrade even when the working tree is dirty (bypass
+                            the default clean-tree requirement)
   --repo-root <path>        Target project directory (enables fully non-interactive
                             installs when combined with --yes)
   --json                    Emit structured JSON result to stdout (success, paths,
@@ -147,8 +150,8 @@ func main() {
 	yes := flag.Bool("yes", false, "non-interactive mode (no prompts; combine with --repo-root)")
 	nonInteractive := flag.Bool("non-interactive", false, "alias for --yes")
 	upgrade := flag.Bool("upgrade", false, "force update/upgrade of existing install")
-	requireClean := flag.Bool("require-clean", false, "on --upgrade, refuse a dirty working tree (default: warn and proceed)")
-	force := flag.Bool("force", false, "escape --require-clean and upgrade a dirty working tree")
+	requireClean := flag.Bool("require-clean", false, "deprecated no-op: a dirty tree is refused by default on --upgrade (#1458)")
+	force := flag.Bool("force", false, "upgrade even when the working tree is dirty (bypass the default clean-tree requirement)")
 	allowDirty := flag.Bool("allow-dirty", false, "alias for --force")
 	repoRoot := flag.String("repo-root", "", "target project dir for non-interactive installs")
 	jsonOut := flag.Bool("json", false, "emit JSON result instead of (or with) prose for agents")
@@ -165,8 +168,8 @@ func main() {
 	effectiveBranch := resolveBranch(*branch, defaultBranch)
 
 	nonInt := *yes || *nonInteractive
-	// --force and --allow-dirty are synonyms: either escapes the #1453
-	// --require-clean refusal of a dirty working tree on --upgrade.
+	// --force and --allow-dirty are synonyms: either bypasses the #1458
+	// default dirty-tree refusal of a dirty working tree on --upgrade.
 	forceDirty := *force || *allowDirty
 	code := install(*debug, effectiveBranch, *legacyLayout, nonInt, *upgrade, *repoRoot, *jsonOut, *requireClean, forceDirty)
 	if runtime.GOOS == "windows" && !nonInt {
@@ -178,8 +181,9 @@ func main() {
 }
 
 // install runs the full install/update workflow and returns an exit code.
-// requireClean / force carry the #1453 commit-hygiene flag state
-// (--require-clean and --force / --allow-dirty respectively).
+// force carries the #1458 dirty-tree bypass (--force / --allow-dirty); a dirty
+// working tree refuses an --upgrade by default and only force bypasses it.
+// requireClean is a deprecated no-op alias kept for back-compat (#1458).
 func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgrade bool, repoRoot string, jsonOut, requireClean, force bool) int {
 	if debug {
 		fmt.Printf("[debug] OS=%s ARCH=%s\n", runtime.GOOS, runtime.GOARCH)
@@ -251,13 +255,16 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		return 1
 	}
 
-	// #1453 Layer 1: dirty-working-tree advisory BEFORE an --upgrade payload
+	// #1453 Layer 1 / #1458: dirty-working-tree GATE BEFORE an --upgrade payload
 	// swap. Gated on result.Update so an INITIAL install is never probed or
-	// blocked. Default is warn-and-proceed; --require-clean turns a dirty tree
-	// into a hard refusal that --force / --allow-dirty escapes. The probe never
-	// prompts, so the --yes / CI path can never hang. In --json mode the prose
-	// advisory is routed to stderr (stdout stays single-JSON-clean) and a
-	// refusal emits one machine-readable error object on stdout.
+	// blocked. As of #1458 the DEFAULT is FAIL-LOUD: a dirty tree refuses the
+	// upgrade (non-zero exit, NO payload swap) on BOTH the interactive and the
+	// --yes/non-interactive paths; --force / --allow-dirty is the only bypass and
+	// --require-clean is an accepted no-op alias. The probe never prompts, so the
+	// --yes / CI path can never hang. In --json mode the prose advisory is routed
+	// to stderr (stdout stays single-JSON-clean, #1385) and the refusal emits one
+	// structured error object on stdout (error_code + dirty_files + why +
+	// remediation + force_hint + warnings).
 	dirtyAdv := dirtyTreeGate(result.Update, result.ProjectDir, commitHygieneOptions{requireClean: requireClean, force: force})
 	advWriter := w
 	if jsonOut {
@@ -273,6 +280,15 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 			}
 		}
 		return 1
+	}
+
+	// #1458: capture the pre-upgrade payload version from the existing
+	// <deftDir>/VERSION manifest BEFORE the swap replaces it, so the --json
+	// success result can report previous_version. Best-effort: "" when there is
+	// no readable manifest (fresh install, unreadable file, no tag line).
+	previousVersion := ""
+	if result.Update {
+		previousVersion = readInstallManifestTag(result.DeftDir)
 	}
 
 	// Phase 4: vendor or update deft. Every deposit is git-free (#1428): a fresh
@@ -414,9 +430,15 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		// rather than a git command against the consumer repo.
 		payloadLayout := payloadLayoutAbsent
 		strategy := strategyVendor
+		// #1458: backup_path is the out-of-tree backup swapInCore stages before a
+		// vendored file-swap / migration upgrade ("" when no swap ran, e.g. a
+		// greenfield vendor) so a scripted caller can discover the rollback
+		// location.
+		backupPath := ""
 		if updateOutcome != nil {
 			payloadLayout = updateOutcome.Layout
 			strategy = updateOutcome.Strategy
+			backupPath = updateOutcome.Backup
 		}
 		// #1453: surface the commit-hygiene advisory + scoped staging so agents /
 		// CI can react. Slices are non-nil for a stable JSON schema (never null).
@@ -428,25 +450,22 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 		if staged {
 			stagedOut = stagePaths
 		}
-		out := map[string]any{
-			"success":         true,
-			"version":         version,
-			"project_dir":     result.ProjectDir,
-			"deft_dir":        result.DeftDir,
-			"legacy_layout":   result.LegacyLayout,
-			"update":          result.Update,
-			"non_interactive": nonInteractive,
-			"upgrade":         upgrade,
-			"taskfile_wired":  taskfileChanged,
-			"missing_tools":   missingTools,
-			"user_config_dir": configDir,
-			"skills_created":  skillsCreated,
-			"payload_layout":  payloadLayout,
-			"strategy":        strategy,
-			"dirty_tree":      dirtyAdv.dirty,
-			"dirty_files":     dirtyFiles,
-			"staged_paths":    stagedOut,
-		}
+		out := installSummary{
+			result:          result,
+			nonInteractive:  nonInteractive,
+			upgrade:         upgrade,
+			taskfileWired:   taskfileChanged,
+			missingTools:    missingTools,
+			configDir:       configDir,
+			skillsCreated:   skillsCreated,
+			payloadLayout:   payloadLayout,
+			strategy:        strategy,
+			dirty:           dirtyAdv.dirty,
+			dirtyFiles:      dirtyFiles,
+			stagedPaths:     stagedOut,
+			backupPath:      backupPath,
+			previousVersion: previousVersion,
+		}.jsonObject()
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		if err := enc.Encode(out); err != nil {
@@ -491,6 +510,67 @@ func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgra
 	// staleness verdict reaches agents on every path.
 	doHandoffToDoctor(w, result, jsonOut)
 	return 0
+}
+
+// installSummary carries the fields install() reports in the --json success
+// object. Extracted from the inline map so the success-result shape -- notably
+// the #1458 backup_path / previous_version additions -- is unit-testable
+// without driving the full install() pipeline (network, git, doctor handoff).
+type installSummary struct {
+	result          *WizardResult
+	nonInteractive  bool
+	upgrade         bool
+	taskfileWired   bool
+	missingTools    []string
+	configDir       string
+	skillsCreated   bool
+	payloadLayout   string // clone | vendored | absent (#1425)
+	strategy        string // file-swap | vendor | clone-to-vendored (#1425)
+	dirty           bool   // working tree was dirty (#1453)
+	dirtyFiles      []string
+	stagedPaths     []string
+	backupPath      string // out-of-tree swap backup, "" when no swap ran (#1458)
+	previousVersion string // pre-upgrade manifest tag, "" when unknown (#1458)
+}
+
+// jsonObject renders the --json success result. Slice fields are normalised to
+// non-nil so the JSON schema is stable (arrays never serialise as null), and
+// backup_path / previous_version are always present (empty string when not
+// applicable) so a scripted caller can branch on them deterministically.
+func (s installSummary) jsonObject() map[string]any {
+	missingTools := s.missingTools
+	if missingTools == nil {
+		missingTools = []string{}
+	}
+	dirtyFiles := s.dirtyFiles
+	if dirtyFiles == nil {
+		dirtyFiles = []string{}
+	}
+	stagedPaths := s.stagedPaths
+	if stagedPaths == nil {
+		stagedPaths = []string{}
+	}
+	return map[string]any{
+		"success":          true,
+		"version":          version,
+		"project_dir":      s.result.ProjectDir,
+		"deft_dir":         s.result.DeftDir,
+		"legacy_layout":    s.result.LegacyLayout,
+		"update":           s.result.Update,
+		"non_interactive":  s.nonInteractive,
+		"upgrade":          s.upgrade,
+		"taskfile_wired":   s.taskfileWired,
+		"missing_tools":    missingTools,
+		"user_config_dir":  s.configDir,
+		"skills_created":   s.skillsCreated,
+		"payload_layout":   s.payloadLayout,
+		"strategy":         s.strategy,
+		"dirty_tree":       s.dirty,
+		"dirty_files":      dirtyFiles,
+		"staged_paths":     stagedPaths,
+		"backup_path":      s.backupPath,
+		"previous_version": s.previousVersion,
+	}
 }
 
 // buildNonInteractiveResult centralises the duplicated non-interactive
@@ -580,6 +660,28 @@ func resolveDeftHeadSHA(deftDir string) string {
 		return ""
 	}
 	return strings.TrimSpace(string(out))
+}
+
+// readInstallManifestTag best-effort reads the `tag:` value from the existing
+// <deftDir>/VERSION manifest BEFORE an upgrade swaps the payload, so install()
+// can report previous_version in the --json success result (#1458). It mirrors
+// the single-quoted YAML shape BuildInstallManifestText emits and the doctor's
+// manifest tag parse (TrimSpace + strip surrounding quotes). Returns "" on any
+// miss -- no manifest, unreadable file, or no tag line -- since previous_version
+// is advisory only and must never fail the install.
+func readInstallManifestTag(deftDir string) string {
+	data, err := os.ReadFile(filepath.Join(deftDir, installManifestFilename))
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "tag:") {
+			val := strings.TrimSpace(strings.TrimPrefix(line, "tag:"))
+			return strings.TrimSpace(strings.Trim(val, "'\""))
+		}
+	}
+	return ""
 }
 
 // removeOrphanDeftVersion deletes an orphaned <project>/.deft/VERSION left by

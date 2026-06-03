@@ -11,13 +11,18 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// #1453 -- installer commit-hygiene: Layer 1 dirty-tree advisory at --upgrade
+// #1453 / #1458 -- installer commit-hygiene: Layer 1 dirty-tree GATE at
+// --upgrade. As of #1458 the default is FAIL-LOUD (a dirty tree refuses the
+// upgrade); --force / --allow-dirty is the only bypass; --require-clean is an
+// accepted no-op alias.
 // ---------------------------------------------------------------------------
 
-// TestCheckDirtyTree_WarnDefaultProceeds is the default warn-and-proceed path:
-// a dirty working tree on an --upgrade is reported (dirty=true) but NEVER
-// blocked when --require-clean was not set, so the upgrade proceeds.
-func TestCheckDirtyTree_WarnDefaultProceeds(t *testing.T) {
+// TestCheckDirtyTree_FailLoudDefaultBlocks is the #1458 headline behavior: with
+// NO flags (the default) a dirty working tree on an --upgrade is reported
+// (dirty=true) AND blocked, so the upgrade refuses. This is the same decision
+// the interactive and the --yes/non-interactive paths consume (the gate never
+// branches on interactivity), so it fails loud on both.
+func TestCheckDirtyTree_FailLoudDefaultBlocks(t *testing.T) {
 	origStatus := gitPorcelainStatusFunc
 	defer func() { gitPorcelainStatusFunc = origStatus }()
 	want := []string{" M app.go", "?? new.txt"}
@@ -32,47 +37,55 @@ func TestCheckDirtyTree_WarnDefaultProceeds(t *testing.T) {
 	if !adv.dirty {
 		t.Error("expected dirty=true for a non-empty porcelain status")
 	}
-	if adv.blocked {
-		t.Error("default (no --require-clean) must warn-and-proceed, not block")
+	if !adv.blocked {
+		t.Error("#1458: a dirty tree must be blocked by DEFAULT (no flags), not warn-and-proceed")
 	}
 	if strings.Join(adv.files, "\n") != strings.Join(want, "\n") {
 		t.Errorf("files = %v, want %v", adv.files, want)
 	}
 }
 
-// TestCheckDirtyTree_RequireCleanBlocks pins the opt-in hard-refusal: with
-// --require-clean and no escape flag, a dirty tree is blocked.
-func TestCheckDirtyTree_RequireCleanBlocks(t *testing.T) {
+// TestCheckDirtyTree_RequireCleanIsNoOpAlias proves --require-clean is an
+// accepted no-op alias since #1458: passing it changes NOTHING relative to the
+// default (a dirty tree is blocked either way), and it never errors.
+func TestCheckDirtyTree_RequireCleanIsNoOpAlias(t *testing.T) {
 	origStatus := gitPorcelainStatusFunc
 	defer func() { gitPorcelainStatusFunc = origStatus }()
 	gitPorcelainStatusFunc = func(string) ([]string, bool, error) {
 		return []string{" M app.go"}, true, nil
 	}
 
-	adv := checkDirtyTree("/proj", commitHygieneOptions{requireClean: true})
-	if !adv.dirty {
-		t.Fatal("expected dirty=true")
+	defaultAdv := checkDirtyTree("/proj", commitHygieneOptions{})
+	aliasAdv := checkDirtyTree("/proj", commitHygieneOptions{requireClean: true})
+	if defaultAdv.blocked != aliasAdv.blocked || !aliasAdv.blocked {
+		t.Errorf("--require-clean must be a no-op alias: default.blocked=%v alias.blocked=%v (both must be true)", defaultAdv.blocked, aliasAdv.blocked)
 	}
-	if !adv.blocked {
-		t.Error("expected blocked=true with --require-clean on a dirty tree")
+	if !aliasAdv.dirty {
+		t.Error("expected dirty=true with --require-clean on a dirty tree")
 	}
 }
 
-// TestCheckDirtyTree_ForceEscapes proves --force / --allow-dirty escapes the
-// --require-clean refusal: dirty is still reported but the upgrade is allowed.
-func TestCheckDirtyTree_ForceEscapes(t *testing.T) {
+// TestCheckDirtyTree_ForceBypasses proves --force / --allow-dirty is the only
+// escape from the #1458 default refusal: dirty is still reported but the
+// upgrade is allowed -- with OR without the redundant --require-clean alias.
+func TestCheckDirtyTree_ForceBypasses(t *testing.T) {
 	origStatus := gitPorcelainStatusFunc
 	defer func() { gitPorcelainStatusFunc = origStatus }()
 	gitPorcelainStatusFunc = func(string) ([]string, bool, error) {
 		return []string{" M app.go"}, true, nil
 	}
 
-	adv := checkDirtyTree("/proj", commitHygieneOptions{requireClean: true, force: true})
-	if !adv.dirty {
-		t.Fatal("expected dirty=true")
-	}
-	if adv.blocked {
-		t.Error("--force / --allow-dirty must escape the --require-clean refusal")
+	for _, opts := range []commitHygieneOptions{
+		{force: true},
+		{requireClean: true, force: true},
+	} {
+		adv := checkDirtyTree("/proj", opts)
+		if !adv.dirty {
+			t.Fatalf("expected dirty=true for opts %+v", opts)
+		}
+		if adv.blocked {
+			t.Errorf("--force / --allow-dirty must bypass the refusal for opts %+v", opts)
+		}
 	}
 }
 
@@ -84,7 +97,7 @@ func TestCheckDirtyTree_CleanIsNoop(t *testing.T) {
 		return nil, true, nil
 	}
 
-	adv := checkDirtyTree("/proj", commitHygieneOptions{requireClean: true})
+	adv := checkDirtyTree("/proj", commitHygieneOptions{})
 	if !adv.checked {
 		t.Error("expected checked=true for a clean git work tree")
 	}
@@ -102,15 +115,15 @@ func TestCheckDirtyTree_NonRepoSkips(t *testing.T) {
 		return nil, false, nil
 	}
 
-	adv := checkDirtyTree("/proj", commitHygieneOptions{requireClean: true})
+	adv := checkDirtyTree("/proj", commitHygieneOptions{})
 	if adv.checked || adv.dirty || adv.blocked {
 		t.Errorf("non-repo must be a no-op, got %+v", adv)
 	}
 }
 
-// TestDirtyTreeGate_InitialInstallNeverBlocks is the CRITICAL #1453 invariant:
-// an INITIAL install (not an upgrade) must NEVER probe the tree or block, even
-// with a dirty tree and --require-clean set.
+// TestDirtyTreeGate_InitialInstallNeverBlocks is the CRITICAL #1453 invariant
+// (unchanged by #1458): an INITIAL install (not an upgrade) must NEVER probe
+// the tree or block, even with a dirty tree.
 func TestDirtyTreeGate_InitialInstallNeverBlocks(t *testing.T) {
 	origStatus := gitPorcelainStatusFunc
 	defer func() { gitPorcelainStatusFunc = origStatus }()
@@ -120,7 +133,7 @@ func TestDirtyTreeGate_InitialInstallNeverBlocks(t *testing.T) {
 		return []string{" M app.go"}, true, nil
 	}
 
-	adv := dirtyTreeGate(false /* isUpgrade */, "/proj", commitHygieneOptions{requireClean: true})
+	adv := dirtyTreeGate(false /* isUpgrade */, "/proj", commitHygieneOptions{})
 	if probed {
 		t.Error("an initial install must NOT probe the working tree")
 	}
@@ -129,9 +142,9 @@ func TestDirtyTreeGate_InitialInstallNeverBlocks(t *testing.T) {
 	}
 }
 
-// TestDirtyTreeGate_UpgradeRunsProbe: an upgrade runs the probe and honours
-// the advisory result.
-func TestDirtyTreeGate_UpgradeRunsProbe(t *testing.T) {
+// TestDirtyTreeGate_UpgradeBlocksByDefault: an upgrade runs the probe and, with
+// no bypass flag, blocks a dirty tree (the #1458 default).
+func TestDirtyTreeGate_UpgradeBlocksByDefault(t *testing.T) {
 	origStatus := gitPorcelainStatusFunc
 	defer func() { gitPorcelainStatusFunc = origStatus }()
 	probed := false
@@ -140,17 +153,20 @@ func TestDirtyTreeGate_UpgradeRunsProbe(t *testing.T) {
 		return []string{" M app.go"}, true, nil
 	}
 
-	adv := dirtyTreeGate(true /* isUpgrade */, "/proj", commitHygieneOptions{requireClean: true})
+	adv := dirtyTreeGate(true /* isUpgrade */, "/proj", commitHygieneOptions{})
 	if !probed {
 		t.Error("an upgrade must probe the working tree")
 	}
 	if !adv.dirty || !adv.blocked {
-		t.Errorf("upgrade with dirty tree + --require-clean must block, got %+v", adv)
+		t.Errorf("upgrade with a dirty tree must block by default, got %+v", adv)
 	}
 }
 
 // TestDirtyTreeBlockResult_JSON pins the machine-readable refusal surfaced in
-// --json mode for the --yes/CI path (no interactive hang, no silent abort).
+// --json mode (no interactive hang, no silent abort). Beyond the original
+// error / error_code / dirty_tree / dirty_files fields, #1458 adds the
+// structured why / remediation / force_hint signals and a warnings array so a
+// stdout-only agent gets the full actionable picture (#1385).
 func TestDirtyTreeBlockResult_JSON(t *testing.T) {
 	adv := dirtyTreeAdvisory{checked: true, dirty: true, blocked: true, files: []string{" M app.go"}}
 	res := dirtyTreeBlockResult(adv)
@@ -164,9 +180,47 @@ func TestDirtyTreeBlockResult_JSON(t *testing.T) {
 	if res["dirty_tree"] != true {
 		t.Errorf("dirty_tree = %v, want true", res["dirty_tree"])
 	}
+	// #1458 structured signals: each must be present and non-empty so a
+	// stdout-only consumer can act without parsing stderr prose.
+	for _, field := range []string{"error", "why", "remediation", "force_hint"} {
+		val, ok := res[field].(string)
+		if !ok || val == "" {
+			t.Errorf("expected non-empty string field %q, got %v", field, res[field])
+		}
+	}
+	// force_hint must name the exact bypass flag(s).
+	if fh, _ := res["force_hint"].(string); !strings.Contains(fh, "--force") {
+		t.Errorf("force_hint must reference --force, got %q", fh)
+	}
+	// dirty_files is a non-nil slice carrying the porcelain status.
+	if files, ok := res["dirty_files"].([]string); !ok || len(files) != 1 || files[0] != " M app.go" {
+		t.Errorf("dirty_files = %v, want [\" M app.go\"]", res["dirty_files"])
+	}
+	// warnings is present as a (possibly empty) non-nil array.
+	if _, ok := res["warnings"].([]string); !ok {
+		t.Errorf("warnings must be a non-nil []string array, got %T", res["warnings"])
+	}
 	// Must marshal to a single valid JSON object (the --json contract).
 	if _, err := json.Marshal(res); err != nil {
 		t.Fatalf("block result is not JSON-marshalable: %v", err)
+	}
+}
+
+// TestDirtyTreeBlockResult_NilFilesAreEmptyArrays guards the stable JSON schema:
+// a nil files slice still serialises dirty_files and warnings as [] (never
+// null) so consumers can index them unconditionally.
+func TestDirtyTreeBlockResult_NilFilesAreEmptyArrays(t *testing.T) {
+	res := dirtyTreeBlockResult(dirtyTreeAdvisory{checked: true, dirty: true, blocked: true})
+	data, err := json.Marshal(res)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	text := string(data)
+	if !strings.Contains(text, `"dirty_files":[]`) {
+		t.Errorf("dirty_files must serialise as [] for a nil files slice, got %s", text)
+	}
+	if !strings.Contains(text, `"warnings":[]`) {
+		t.Errorf("warnings must serialise as [], got %s", text)
 	}
 }
 
