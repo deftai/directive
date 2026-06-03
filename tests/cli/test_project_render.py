@@ -582,3 +582,42 @@ class TestCLI:
 
         result = run_project_render(str(vbrief_dir))
         assert "2 scope items" in result.stdout
+
+
+# ===========================================================================
+# Lock-leak regression (#1311)
+# ===========================================================================
+
+
+class TestNoLockLeak:
+    """`task project:render` must not leave a .lock sidecar in vbrief/.
+
+    The mutation-lock sidecar (vbrief/PROJECT-DEFINITION.vbrief.json.lock)
+    used to be created and never cleaned up, so `git add -A` trapped it on
+    the next chore commit (#1311). These deterministic gates assert no
+    `*.lock` artefact survives a successful render -- on first creation and
+    on a subsequent update of an existing PROJECT-DEFINITION.
+    """
+
+    def test_no_lock_file_after_skeleton_creation(self, tmp_path):
+        """A fresh skeleton render leaves no .lock behind."""
+        vbrief_dir = tmp_path / "vbrief"
+        vbrief_dir.mkdir()
+
+        result = run_project_render(str(vbrief_dir))
+        assert result.returncode == 0
+        assert list(vbrief_dir.glob("*.lock")) == []
+
+    def test_no_lock_file_after_update(self, tmp_path):
+        """Re-rendering an existing PROJECT-DEFINITION leaves no .lock behind."""
+        vbrief_dir = tmp_path / "vbrief"
+        write_vbrief(
+            vbrief_dir / "active" / "2026-04-13-a.vbrief.json",
+            title="Task A",
+            status="running",
+        )
+
+        run_project_render(str(vbrief_dir))
+        run_project_render(str(vbrief_dir))
+
+        assert list(vbrief_dir.glob("*.lock")) == []

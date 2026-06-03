@@ -177,14 +177,29 @@ Read and follow: .deft/core/skills/deft-directive-sync/SKILL.md
 // attribute-tolerant. The closing marker (agentsMDFenceClose) is unchanged.
 var agentsMDManagedOpenPattern = regexp.MustCompile(`<!-- deft:managed-section v[23][^>]*-->`)
 
-// canonicalGitignoreLines mirrors scripts/relocate.py::GITIGNORE_LINES (the F2
-// canonical default from #1015): the runtime cache directory and the audit-log
-// private state. The framework deposit at .deft/core/ is INTENTIONALLY NOT
-// auto-gitignored -- per #11 .deft/core/ ships read-only packaged framework
-// assets that consumers commit for reproducibility.
+// canonicalGitignoreLines extends scripts/relocate.py::GITIGNORE_LINES (the F2
+// canonical default from #1015) -- the runtime cache directory and the
+// audit-log private state -- with two leaked-artefact guards so a consumer's
+// `git add -A` never traps installer/render scratch files:
+//
+//   - vbrief/*.lock          -- the PROJECT-DEFINITION mutation-lock sidecar
+//     (vbrief/PROJECT-DEFINITION.vbrief.json.lock) and any sibling vbrief-root
+//     lock. The framework now deletes these on a clean exit (#1311), so this
+//     is belt-and-suspenders for an interrupted render / an older payload.
+//   - .deft/core.bak-*/ + .deft/*.bak-* -- pre-swap payload backups. The
+//     installer now writes them OUTSIDE the working tree (#1445), so these
+//     only catch backups left by a pre-#1445 installer already in the tree.
+//
+// The framework deposit at .deft/core/ is INTENTIONALLY NOT auto-gitignored --
+// per #11 .deft/core/ ships read-only packaged framework assets that consumers
+// commit for reproducibility; the .bak globs above never match .deft/core
+// itself, only the timestamped backup siblings.
 var canonicalGitignoreLines = []string{
 	".deft-cache/",
 	"vbrief/.eval/",
+	"vbrief/*.lock",
+	".deft/core.bak-*/",
+	".deft/*.bak-*",
 }
 
 // minimalTaskfileContent is the canonical starter Taskfile.yml written (or

@@ -40,44 +40,65 @@ def project_definition_path(project_root: Path) -> Path:
 
 @contextlib.contextmanager
 def project_definition_mutation_lock(project_root: Path) -> Iterator[None]:
-    """Serialise PROJECT-DEFINITION read-modify-write critical sections."""
+    """Serialise PROJECT-DEFINITION read-modify-write critical sections.
+
+    The sidecar ``<file>.lock`` is removed on exit -- on the happy path AND
+    on an exception -- so a clean mutation never leaves
+    ``vbrief/PROJECT-DEFINITION.vbrief.json.lock`` behind for ``git add -A``
+    to trap on the next chore commit (#1311). The unlink runs in a
+    ``finally`` while the in-process ``_mutation_thread_lock`` is still held,
+    so no concurrent in-process acquirer can race it, and is best-effort: a
+    cross-process holder (Windows keeps the open file locked) or a benign
+    POSIX unlink race simply leaves the (gitignored) sidecar in place rather
+    than raising.
+    """
     path = project_definition_path(project_root)
     lock_path = path.parent / (path.name + ".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
-    with _mutation_thread_lock, open(lock_path, "a+b") as fh:
-        if not lock_path.stat().st_size:
-            fh.write(b"\0")
-            fh.flush()
-        fh.seek(0)
-        if sys.platform == "win32":
-            import msvcrt
+    with _mutation_thread_lock:
+        try:
+            with open(lock_path, "a+b") as fh:
+                if not lock_path.stat().st_size:
+                    fh.write(b"\0")
+                    fh.flush()
+                fh.seek(0)
+                if sys.platform == "win32":
+                    import msvcrt
 
-            acquired = False
-            deadline = time.monotonic() + 30.0
-            while True:
-                try:
-                    msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
-                    acquired = True
-                    break
-                except OSError:
-                    if time.monotonic() > deadline:
-                        raise
-                    time.sleep(0.02)
-            try:
-                yield
-            finally:
-                if acquired:
-                    fh.seek(0)
-                    with contextlib.suppress(OSError):
-                        msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
-        else:
-            import fcntl
+                    acquired = False
+                    deadline = time.monotonic() + 30.0
+                    while True:
+                        try:
+                            msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+                            acquired = True
+                            break
+                        except OSError:
+                            if time.monotonic() > deadline:
+                                raise
+                            time.sleep(0.02)
+                    try:
+                        yield
+                    finally:
+                        if acquired:
+                            fh.seek(0)
+                            with contextlib.suppress(OSError):
+                                msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+                else:
+                    import fcntl
 
-            fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
-            try:
-                yield
-            finally:
-                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+                    fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+                    try:
+                        yield
+                    finally:
+                        fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+        finally:
+            # The sidecar handle is closed by the `with open(...)` block above
+            # BEFORE this unlink (Windows refuses to delete an open file); the
+            # unlink is held under _mutation_thread_lock so it cannot race an
+            # in-process re-acquire, and is best-effort across processes
+            # (#1311 -- do not leave PROJECT-DEFINITION.vbrief.json.lock behind).
+            with contextlib.suppress(OSError):
+                lock_path.unlink()
 
 
 def load_project_definition_for_mutation(
