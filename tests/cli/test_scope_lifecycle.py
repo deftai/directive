@@ -23,6 +23,7 @@ from scope_lifecycle import (  # noqa: E402, I001
     LIFECYCLE_FOLDERS,
     detect_lifecycle_folder,
     run_transition,
+    update_decomposed_child_back_references,
     update_decomposed_parent_back_references,
 )
 
@@ -141,6 +142,11 @@ def parent_child_ref_uri(parent_path: Path) -> str | None:
         if isinstance(ref, dict) and ref.get("type") == "x-vbrief/plan":
             return ref.get("uri")
     return None
+
+
+def child_plan_ref(child_path: Path) -> str | None:
+    """Return the child's plan-level planRef (the parent back-pointer)."""
+    return read_vbrief(child_path)["plan"].get("planRef")
 
 
 def validate_errors(tmp_path: Path) -> list[str]:
@@ -799,5 +805,122 @@ class TestDecomposedParentBackReference:
         # Must not raise; reports no rewrite because the write failed.
         updated = update_decomposed_parent_back_references(
             child_data, child_path, new_child, tmp_path / "vbrief"
+        )
+        assert updated == []
+
+
+# ---------------------------------------------------------------------------
+# Decomposed child back-reference maintenance (#1487, symmetric to #1485)
+# ---------------------------------------------------------------------------
+
+class TestDecomposedChildBackReference:
+    """Regression coverage for #1487.
+
+    A lifecycle move of a decompose-created epic PARENT (e.g. the cohort
+    completion sweep promoting it ``pending/ -> active/ -> completed/``) must
+    rewrite each child's ``planRef`` back-pointer to the parent's NEW path,
+    keeping the D4 backward-linkage check green with no manual repair. This is
+    the mirror image of the #1485 child-move case above.
+    """
+
+    def test_complete_active_parent_updates_child_planref(self, tmp_path):
+        # Parent active, child active -- a valid decomposed pair.
+        parent_path, child_path = make_decomposed_pair(
+            tmp_path,
+            parent_folder="active",
+            parent_status="running",
+            child_folder="active",
+            child_status="running",
+        )
+        assert child_plan_ref(child_path) == f"active/{PARENT_NAME}"
+        assert validate_errors(tmp_path) == []
+
+        ok, _ = run_transition("complete", parent_path)
+        assert ok
+        # Parent moved active/ -> completed/ ...
+        assert (tmp_path / "vbrief" / "completed" / PARENT_NAME).exists()
+        # ... and the child's planRef followed it.
+        assert child_plan_ref(child_path) == f"completed/{PARENT_NAME}"
+        assert validate_errors(tmp_path) == []
+
+    def test_activate_pending_parent_updates_child_planref(self, tmp_path):
+        parent_path, child_path = make_decomposed_pair(
+            tmp_path,
+            parent_folder="pending",
+            parent_status="pending",
+            child_folder="active",
+            child_status="running",
+        )
+        ok, _ = run_transition("activate", parent_path)
+        assert ok
+        assert child_plan_ref(child_path) == f"active/{PARENT_NAME}"
+        assert validate_errors(tmp_path) == []
+
+    def test_file_uri_prefix_is_preserved(self, tmp_path):
+        """A ``file://`` planRef prefix is preserved across the rewrite."""
+        parent_path, child_path = make_decomposed_pair(
+            tmp_path,
+            parent_folder="active",
+            parent_status="running",
+            child_folder="active",
+            child_status="running",
+        )
+        # Rewrite the child's planRef to use a file:// prefix.
+        data = read_vbrief(child_path)
+        data["plan"]["planRef"] = f"file://active/{PARENT_NAME}"
+        child_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+        ok, _ = run_transition("complete", parent_path)
+        assert ok
+        assert child_plan_ref(child_path) == f"file://completed/{PARENT_NAME}"
+        assert validate_errors(tmp_path) == []
+
+    def test_helper_returns_rewritten_children(self, tmp_path):
+        """The helper reports the child paths whose planRefs it rewrote."""
+        parent_path, child_path = make_decomposed_pair(
+            tmp_path,
+            parent_folder="active",
+            parent_status="running",
+            child_folder="active",
+            child_status="running",
+        )
+        parent_data = read_vbrief(parent_path)
+        new_parent = tmp_path / "vbrief" / "completed" / PARENT_NAME
+        updated = update_decomposed_child_back_references(
+            parent_data, parent_path, new_parent, tmp_path / "vbrief"
+        )
+        assert updated == [child_path.resolve()]
+        assert child_plan_ref(child_path) == f"completed/{PARENT_NAME}"
+
+    def test_helper_noop_when_no_children(self, tmp_path):
+        """A file with no x-vbrief/plan children rewrites nothing (no raise)."""
+        plain = make_vbrief(tmp_path, "active", "running")
+        data = read_vbrief(plain)
+        new_path = tmp_path / "vbrief" / "completed" / plain.name
+        updated = update_decomposed_child_back_references(
+            data, plain, new_path, tmp_path / "vbrief"
+        )
+        assert updated == []
+
+    def test_helper_swallows_child_write_failure(self, tmp_path, monkeypatch):
+        """A child write failure is swallowed -- best-effort, never raises."""
+        import pathlib
+
+        parent_path, child_path = make_decomposed_pair(
+            tmp_path,
+            parent_folder="active",
+            parent_status="running",
+            child_folder="active",
+            child_status="running",
+        )
+        parent_data = read_vbrief(parent_path)
+        new_parent = tmp_path / "vbrief" / "completed" / PARENT_NAME
+
+        def boom(self, *args, **kwargs):
+            raise OSError("simulated disk-write failure")
+
+        monkeypatch.setattr(pathlib.Path, "write_text", boom)
+        updated = update_decomposed_child_back_references(
+            parent_data, parent_path, new_parent, tmp_path / "vbrief"
         )
         assert updated == []

@@ -52,3 +52,24 @@ tasks:
       PYTHONUTF8: "1"
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/swarm_verify_review_clean.py" {{.CLI_ARGS}}
+
+  # swarm:complete-cohort -- deterministic cohort completion sweep (#1487).
+  # The REQUIRED Phase 6 step that moves a finished cohort's story vBRIEFs
+  # active/ -> completed/ and completes the decompose-created epic parents
+  # once all their children are settled. Routes every move through
+  # scripts/scope_lifecycle.py so the #1485 (child-move) and #1487 (parent-
+  # move) reference maintenance keeps `task vbrief:validate` green with no
+  # manual repair. Bare {{.CLI_ARGS}} per the readiness / verify-review-clean
+  # convention -- go-task already shell-escapes pass-through args, so wrapping
+  # in double quotes breaks multi-arg / glob forwarding.
+  #
+  # Companion script: scripts/swarm_complete_cohort.py
+  # Companion test:   tests/cli/test_swarm_complete_cohort.py
+  # Skill citation:   skills/deft-directive-swarm/SKILL.md Phase 6 cohort completion sweep
+  complete-cohort:
+    desc: "Sweep a finished swarm cohort's stories active/ -> completed/ and complete their epic parents, keeping vbrief:validate green (#1487)"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/swarm_complete_cohort.py" {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"

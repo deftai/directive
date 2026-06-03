@@ -355,3 +355,94 @@ def test_swarm_phase0_d18_1136_fallback_token_present(token: str) -> None:
         "(N2 / #1142 owns the marker; D18 / #1136 owns the eventual "
         "--from-issue=<N> implementation)"
     )
+
+
+# ---------------------------------------------------------------------------
+# 5. #1487 -- Phase 6 cohort completion sweep (REQUIRED step)
+# ---------------------------------------------------------------------------
+#
+# The #1487 work adds a REQUIRED Phase 6 step that sweeps a finished cohort's
+# story vBRIEFs active/ -> completed/ and completes their decompose-created epic
+# parents, covering BOTH the interactive and headless / multi-worker paths.
+# These tests pin the load-bearing content so a future edit cannot silently
+# drop the required step or its dual-path coverage.
+
+_SWEEP_STEP_HEADER = "### Step 1.5: Cohort Completion Sweep (#1487)"
+_SWEEP_STEP_END = "### Step 2: Close Issues and Update Origins"
+
+# Load-bearing tokens that MUST appear inside the sweep step block.
+_SWEEP_STEP_TOKENS = (
+    # Canonical verb + companion script.
+    "task swarm:complete-cohort",
+    "scripts/swarm_complete_cohort.py",
+    # The step is mandatory.
+    "REQUIRED",
+    # Both lifecycle stages are documented.
+    "Stage 1",
+    "Stage 2",
+    # Both dispatch paths are covered (acceptance criterion #4).
+    "Interactive path",
+    "Headless / multi-worker path",
+    # Validate-green reliance on the #1485 / #1487 reference maintenance.
+    "task vbrief:validate",
+    "#1485",
+    "#1487",
+)
+
+
+def _sweep_step_block(text: str) -> str:
+    """Return the #1487 Phase 6 sweep step block, bounded to Step 2."""
+    start = text.find(_SWEEP_STEP_HEADER)
+    assert start != -1, (
+        f"{_SWARM_PATH}: missing '{_SWEEP_STEP_HEADER}' heading -- "
+        "the #1487 REQUIRED Phase 6 cohort completion sweep step is missing"
+    )
+    end = text.find(_SWEEP_STEP_END, start)
+    assert end != -1 and end > start, (
+        f"{_SWARM_PATH}: '{_SWEEP_STEP_END}' heading not found after the sweep "
+        "step -- cannot bound the #1487 block"
+    )
+    return text[start:end]
+
+
+@pytest.mark.parametrize("token", _SWEEP_STEP_TOKENS)
+def test_swarm_phase6_cohort_sweep_token_present(token: str) -> None:
+    """The #1487 Phase 6 sweep step MUST carry each load-bearing token."""
+    block = _sweep_step_block(_read_swarm())
+    assert token in block, (
+        f"{_SWARM_PATH}: Phase 6 cohort completion sweep step missing token "
+        f"{token!r} -- see issue #1487 acceptance criteria"
+    )
+
+
+def test_swarm_phase6_cohort_sweep_is_required_rule() -> None:
+    """The sweep step MUST open with a `!` MUST rule marking it REQUIRED."""
+    block = _sweep_step_block(_read_swarm())
+    pattern = re.compile(r"!\s+\*\*REQUIRED\.\*\*", re.MULTILINE)
+    assert pattern.search(block), (
+        f"{_SWARM_PATH}: the #1487 sweep step must be marked as a `!` MUST "
+        "rule labelled REQUIRED"
+    )
+
+
+def test_swarm_anti_patterns_1487_bullet_present() -> None:
+    """Anti-Patterns must carry a ⊗ bullet for skipping the cohort sweep (#1487)."""
+    text = _read_swarm()
+    anti_start = text.find("## Anti-Patterns")
+    assert anti_start != -1, (
+        f"{_SWARM_PATH}: missing '## Anti-Patterns' section heading"
+    )
+    anti_block = text[anti_start:]
+    found = False
+    for line in anti_block.splitlines():
+        if "#1487" in line and "swarm:complete-cohort" in line:
+            assert "\u2297" in line, (
+                f"{_SWARM_PATH}: #1487 anti-pattern bullet must use the "
+                f"\u2297 marker; found: {line.strip()!r}"
+            )
+            found = True
+            break
+    assert found, (
+        f"{_SWARM_PATH}: no Anti-Patterns bullet citing #1487 + "
+        "swarm:complete-cohort found -- the cohort-sweep anti-pattern is missing"
+    )

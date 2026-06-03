@@ -461,13 +461,12 @@ For each agent's PR:
 
 ### Complete vBRIEFs
 
-For each story vBRIEF that an agent's PR fully resolves:
+! The cohort's story vBRIEFs are completed by the deterministic **cohort completion sweep** in Phase 6 (`task swarm:complete-cohort`, Phase 6 Step 1.5 below), which runs AFTER the merge cascade. Do NOT move story vBRIEFs out of `vbrief/active/` before their PRs merge — a pre-merge move creates premature state if the merge cascade fails. This section is where the monitor records, per story, what the post-merge sweep will finalize:
 
-1. ! Move the vBRIEF from `vbrief/active/` to `vbrief/completed/` via `task scope:complete <file>`
-2. ! Verify `plan.status` is set to `completed` (the scope command handles this)
-3. ! If the vBRIEF has a `planRef` to a parent epic, check whether all sibling stories are now completed — if so, the epic may also be completable
+1. ! For each story vBRIEF an agent's PR fully resolves, note that it is ready to complete (`vbrief/active/` -> `vbrief/completed/`, status `completed`). The underlying primitive is `task scope:complete <file>`; the Phase 6 sweep wraps it across the whole cohort so nothing is missed on the headless / multi-worker path.
+2. ! If a story carries a `planRef` to a parent epic, the sweep also completes that epic once ALL its children are settled — you do NOT reconcile epic parents by hand, and you do NOT manually repair parent/child references (the lifecycle helper keeps `task vbrief:validate` green via the #1485 / #1487 reference maintenance).
 
-⚠️ Origin/issue closure happens in Phase 6 Step 2 (after merge), not here — closing issues before merge creates premature state if the merge cascade fails.
+⚠️ Both the vBRIEF lifecycle moves AND origin/issue closure happen in Phase 6 (after merge), not here — completing vBRIEFs or closing issues before merge creates premature state if the merge cascade fails.
 
 ### Exit Condition
 
@@ -625,6 +624,30 @@ done
 ```
 
 This is defense in depth -- run it even when the pre-merge inspection above passed, because a sidebar-attached link not visible to a body scan, or a missed protected issue in the protected-issue list, can still slip through. The reopen comment MUST cite #701 and the PR that triggered the false-positive so future operators tracing the closed-then-reopened churn can find the root cause.
+
+### Step 1.5: Cohort Completion Sweep (#1487)
+
+! **REQUIRED.** Once the cohort's PRs are merged (Step 1 complete), the monitor MUST run the deterministic cohort completion sweep so the finished swarm leaves NO stranded vBRIEFs. This step closes the gap where a completed cohort left its story vBRIEFs in `vbrief/active/` and their decompose-created epic parents in `vbrief/pending/` -- nothing in the swarm flow swept them to `completed/` (observed in the 2026-06-03 swarm: after the cohort's PRs merged, the child story vBRIEFs stayed in `active/` and their epic parents stayed in `pending/`).
+
+```pwsh path=null start=null
+# Sweep the whole cohort by glob (typical close-out)...
+task swarm:complete-cohort -- --cohort 'vbrief/active/*.vbrief.json'
+# ...or name the cohort's story vBRIEFs explicitly:
+task swarm:complete-cohort -- vbrief/active/<story-a>.vbrief.json vbrief/active/<story-b>.vbrief.json
+```
+
+What the sweep does (script: `scripts/swarm_complete_cohort.py`):
+
+1. ! **Stage 1 -- stories:** every cohort story vBRIEF still in `vbrief/active/` is completed (`active/` -> `completed/`, status `completed`). A story already terminal (`completed/` / `cancelled/`) is an idempotent no-op, so the sweep is safe to re-run.
+2. ! **Stage 2 -- epic parents:** each decompose-created epic parent is completed once ALL of its `x-vbrief/plan` children are settled (in `completed/` or `cancelled/`). A parent in `pending/` is bridged `activate` -> `complete`; a parent in `active/` is completed directly. The sweep iterates to a fixpoint, so nested decomposition (phase -> epic -> story) collapses bottom-up. A parent with even one still-active sibling outside the cohort is left untouched.
+3. ! **D4 stays green automatically:** every move routes through `scripts/scope_lifecycle.py`, which keeps the decomposed parent<->child references in sync on BOTH directions -- child moves update the parent's forward `x-vbrief/plan` reference (#1485) and parent moves update each child's `planRef` back-pointer (#1487). Do NOT hand-edit references to "fix" linkage; the helper already does it.
+4. ! After the sweep, the monitor MUST run `task vbrief:validate` and confirm it exits 0 (no D4 regressions). Exit codes for the sweep itself: 0 (sweep clean), 1 (one or more transitions failed -- per-item diagnostics printed), 2 (config error -- empty cohort or missing `vbrief/`).
+
+! **Interactive path:** the monitor runs `task swarm:complete-cohort` by hand (or `--dry-run` first to preview the planned transitions) once the merge cascade finishes, then runs `task vbrief:validate`.
+
+! **Headless / multi-worker path:** the cohort sweep is NOT optional here -- it is the structural fix for the #1487 recurrence where the multi-worker close-out never executed the per-cohort completion. The launching monitor (or the close-out automation that follows `task pr:wait-mergeable-and-merge`, #1369) MUST invoke `task swarm:complete-cohort -- --cohort '<cohort-glob>'` after the last cohort PR merges and MUST gate on its exit 0 plus a green `task vbrief:validate` before declaring the swarm closed. The `--json` flag emits a structured verdict for a parent monitor agent to consume.
+
+⊗ Declare a swarm closed while any cohort story vBRIEF remains in `vbrief/active/` or any fully-childless decompose-created epic parent remains in `vbrief/pending/` -- run `task swarm:complete-cohort` and confirm `task vbrief:validate` is green first (#1487).
 
 ### Step 2: Close Issues and Update Origins
 
@@ -795,6 +818,7 @@ CONSTRAINTS:
 - ⊗ Resolve a `CHANGELOG.md` `[Unreleased]` conflict by HEAD-take-and-discard -- the rebasing branch's new entry MUST land in the resolved file. Use `task changelog:resolve-unreleased` (#911) for the canonical union-merge or apply the union-merge pattern manually when the helper cannot mechanize the conflict
 - ⊗ Hardcode a 1:1 vBRIEF-per-agent allocation rule — the monitor decides allocation dynamically based on scope, complexity, and dependencies
 - ⊗ Complete a story without moving its vBRIEF from `active/` to `completed/` and updating its origin references
+- ⊗ Declare a swarm closed without running the Phase 6 Step 1.5 cohort completion sweep (`task swarm:complete-cohort`) and confirming `task vbrief:validate` is green -- skipping it leaves the cohort's story vBRIEFs stranded in `active/` and their decompose-created epic parents stranded in `pending/`, the exact #1487 recurrence (the headless / multi-worker close-out is where the sweep was historically missed)
 - ⊗ Hardcode `master` as the base branch -- always use the configured base branch from Phase 0
 - ⊗ Treat a Greptile GitHub CheckRun of COMPLETED/NEUTRAL as equivalent to a passing review without inspecting the comment body. NEUTRAL is the result both when Greptile intentionally has nothing to say AND when it errored out mid-review; the two cases require opposite responses (#526)
 - ⊗ Loop the monitor indefinitely on the Greptile-service-errored state or time out silently at the poll cap -- detect the "Greptile encountered an error" comment body, retry once via `@greptileai review` with a 10-minute cap, and on second error escalate to the user with the three-way choice (wait / empty retrigger commit / documented override) per Phase 6 Step 1 (#526)
