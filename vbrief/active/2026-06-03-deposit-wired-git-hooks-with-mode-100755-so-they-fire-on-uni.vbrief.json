@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-03-1477-wired-git-hooks-ship-non-executable-mode-100644-silently-ine.vbrief.json"
+  },
+  "plan": {
+    "id": "story-1477-hooks-executable",
+    "title": "Deposit wired git hooks with mode 100755 so they fire on Unix consumers",
+    "status": "running",
+    "planRef": "pending/2026-06-03-1477-wired-git-hooks-ship-non-executable-mode-100644-silently-ine.vbrief.json",
+    "narratives": {
+      "Description": "The git hooks wired by the installer are deposited non-executable (mode 100644), so on Linux and macOS git silently skips them and the branch-protection and destructive-push gates never fire for Unix consumers. This story deposits the hooks with mode 100755 and asserts POSIX executability so the gates actually run after install.",
+      "ImplementationPlan": "Update the cmd/deft-install/githooks.go and setup.go modules so the deposited .githooks files are written and git-index-recorded with mode 100755, preserving the executable bit through the git-free file swap.\nExtend the scripts/verify_hooks_installed.py module and its test to assert the resolved hooks are executable on POSIX rather than merely present.",
+      "UserStory": "As a deft consumer on Linux or macOS, I want the wired git hooks to be executable, so that the branch-protection and destructive-push gates actually run on commit.",
+      "Traces": "https://github.com/deftai/directive/issues/1477"
+    },
+    "items": [
+      {
+        "id": "story-1477-hooks-executable-a1",
+        "title": "Given a fresh install on Linux or macOS, when a commit targets the default branch, then the executable pre-commit hook fires and blocks the commit.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a fresh install on Linux or macOS, when a commit targets the default branch, then the executable pre-commit hook fires and blocks the commit.",
+          "Traces": "https://github.com/deftai/directive/issues/1477"
+        }
+      },
+      {
+        "id": "story-1477-hooks-executable-a2",
+        "title": "When the tracked hook deposit is inspected, then .githooks/pre-commit and .githooks/pre-push record mode 100755 and survive a subsequent --upgrade.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the tracked hook deposit is inspected, then .githooks/pre-commit and .githooks/pre-push record mode 100755 and survive a subsequent --upgrade.",
+          "Traces": "https://github.com/deftai/directive/issues/1477"
+        }
+      },
+      {
+        "id": "story-1477-hooks-executable-a3",
+        "title": "A regression test validates POSIX executability of the wired hooks and fails when the executable bit is missing.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A regression test validates POSIX executability of the wired hooks and fails when the executable bit is missing.",
+          "Traces": "https://github.com/deftai/directive/issues/1477"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "cmd/deft-install/githooks.go",
+          "cmd/deft-install/githooks_test.go",
+          "cmd/deft-install/setup.go",
+          "scripts/verify_hooks_installed.py",
+          "tests/cli/test_verify_hooks_installed.py"
+        ],
+        "verify_commands": [
+          "go test ./cmd/deft-install/ -run TestGitHooks",
+          "uv run pytest tests/cli/test_verify_hooks_installed.py"
+        ],
+        "expected_outputs": [
+          "installer deposits .githooks with mode 100755",
+          "verify:hooks-installed asserts POSIX executability",
+          "regression test for the executable bit"
+        ],
+        "depends_on": [],
+        "conflict_group": "installer",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1477",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1477: Wired git hooks ship non-executable (mode 100644) -- silently inert on Unix consumers (follow-up to #1463)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-03T19:39:55Z"
+  }
+}

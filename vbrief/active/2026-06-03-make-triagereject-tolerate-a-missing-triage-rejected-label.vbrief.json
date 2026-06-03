@@ -1,0 +1,81 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-03-1420-triagereject-fails-when-triage-rejected-label-does-not-exist.vbrief.json"
+  },
+  "plan": {
+    "id": "story-1420-triage-reject-missing-label",
+    "title": "Make triage:reject tolerate a missing triage-rejected label",
+    "status": "running",
+    "planRef": "pending/2026-06-03-1420-triagereject-fails-when-triage-rejected-label-does-not-exist.vbrief.json",
+    "narratives": {
+      "Description": "task triage:reject unconditionally runs gh issue edit --add-label triage-rejected after closing the issue, and when that label does not exist on the repository the command fails and rolls back the whole reject action even though the issue was already closed. This story makes the reject flow ensure the required triage labels exist or tolerate their absence so a missing label never rolls back a successful decision.",
+      "ImplementationPlan": "Update the reject() function in the scripts/triage_actions.py module so the hardcoded REJECTED_LABEL is created when missing or its absence is handled gracefully without rolling back the close-with-reason.\nAdd a test under tests/ that simulates a repository without the triage-rejected label and asserts triage:reject still closes the issue and records the decision.",
+      "UserStory": "As a deft operator, I want triage:reject to work when the triage-rejected label is missing, so that rejecting an issue never fails after the issue is already closed.",
+      "Traces": "https://github.com/deftai/directive/issues/1420"
+    },
+    "items": [
+      {
+        "id": "story-1420-triage-reject-missing-label-a1",
+        "title": "Given a repository without the triage-rejected label, when task triage:reject runs, then the reject completes and records the decision instead of rolling back.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a repository without the triage-rejected label, when task triage:reject runs, then the reject completes and records the decision instead of rolling back.",
+          "Traces": "https://github.com/deftai/directive/issues/1420"
+        }
+      },
+      {
+        "id": "story-1420-triage-reject-missing-label-a2",
+        "title": "When triage:reject encounters a missing required label, then the flow creates the label or skips labeling without failing the close-with-reason.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When triage:reject encounters a missing required label, then the flow creates the label or skips labeling without failing the close-with-reason.",
+          "Traces": "https://github.com/deftai/directive/issues/1420"
+        }
+      },
+      {
+        "id": "story-1420-triage-reject-missing-label-a3",
+        "title": "A regression test validates that triage:reject persists the audit entry when the triage-rejected label is absent.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A regression test validates that triage:reject persists the audit entry when the triage-rejected label is absent.",
+          "Traces": "https://github.com/deftai/directive/issues/1420"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/triage_actions.py",
+          "tests/test_triage_reject_missing_label.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/test_triage_reject_missing_label.py",
+          "uv run pytest tests/ -k triage"
+        ],
+        "expected_outputs": [
+          "triage:reject tolerates or auto-creates the triage-rejected label",
+          "reject decision is no longer rolled back on a missing label",
+          "regression test for the missing-label path"
+        ],
+        "depends_on": [],
+        "conflict_group": "triage-cache",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1420",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1420: triage:reject fails when 'triage-rejected' label does not exist on the repository",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-03T19:39:56Z"
+  }
+}

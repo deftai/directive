@@ -1,0 +1,81 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-03-1474-deftcheck-runs-framework-self-tests-in-consumers-always-red.vbrief.json"
+  },
+  "plan": {
+    "id": "story-1474-deftcheck-consumer-scope",
+    "title": "Scope consumer deft:check so it does not run framework self-tests",
+    "status": "running",
+    "planRef": "pending/2026-06-03-1474-deftcheck-runs-framework-self-tests-in-consumers-always-red.vbrief.json",
+    "narratives": {
+      "Description": "In a vendored consumer install, task deft:check delegates to the framework's own check and runs the framework pytest self-test suite under .deft/core/tests/, which fails by construction in any consumer checkout. This story scopes the consumer-facing check so a clean install reports green while genuine consumer-relevant failures still surface.",
+      "ImplementationPlan": "Update the cmd/deft-install/deposit.go payload deposit module so the framework tests/ directory is excluded from the vendored .deft/core/ install and consumers never execute framework-repo-only self-tests.\nAdd a deposit_test.go regression test asserting the payload classifier omits framework-repo-only test files from the consumer deposit while keeping consumer-relevant validation.",
+      "UserStory": "As a deft consumer, I want task deft:check to run only consumer-relevant checks, so that a clean install reports green instead of framework self-test noise.",
+      "Traces": "https://github.com/deftai/directive/issues/1474"
+    },
+    "items": [
+      {
+        "id": "story-1474-deftcheck-consumer-scope-a1",
+        "title": "Given a fresh vendored consumer install with valid content, when task deft:check runs, then it returns exit 0 with no framework self-test failures or errors.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a fresh vendored consumer install with valid content, when task deft:check runs, then it returns exit 0 with no framework self-test failures or errors.",
+          "Traces": "https://github.com/deftai/directive/issues/1474"
+        }
+      },
+      {
+        "id": "story-1474-deftcheck-consumer-scope-a2",
+        "title": "When the installer deposits the payload, then it excludes the framework .deft/core/tests/ suite so consumers never execute framework-repo-only tests.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the installer deposits the payload, then it excludes the framework .deft/core/tests/ suite so consumers never execute framework-repo-only tests.",
+          "Traces": "https://github.com/deftai/directive/issues/1474"
+        }
+      },
+      {
+        "id": "story-1474-deftcheck-consumer-scope-a3",
+        "title": "A regression test validates that deft:check stays green on valid consumer content and fails when a consumer-relevant check regresses.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A regression test validates that deft:check stays green on valid consumer content and fails when a consumer-relevant check regresses.",
+          "Traces": "https://github.com/deftai/directive/issues/1474"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "cmd/deft-install/deposit.go",
+          "cmd/deft-install/deposit_test.go"
+        ],
+        "verify_commands": [
+          "go test ./cmd/deft-install/ -run TestClassifyChangedPaths",
+          "go test ./cmd/deft-install/"
+        ],
+        "expected_outputs": [
+          "installer payload excludes framework tests/ from the vendored deposit",
+          "consumer deft:check exits 0 on valid content",
+          "regression test pinning the consumer-scoped check"
+        ],
+        "depends_on": [],
+        "conflict_group": "installer",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1474",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1474: deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-03T19:39:54Z"
+  }
+}

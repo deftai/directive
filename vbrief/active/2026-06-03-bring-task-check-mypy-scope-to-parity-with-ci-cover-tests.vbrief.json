@@ -1,0 +1,82 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not.vbrief.json"
+  },
+  "plan": {
+    "id": "story-1475-mypy-parity",
+    "title": "Bring task check mypy scope to parity with CI (cover tests/)",
+    "status": "running",
+    "planRef": "pending/2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not.vbrief.json",
+    "narratives": {
+      "Description": "Local task check runs mypy only over run.py, while CI runs mypy over tests/, so a type error under tests/ ships green locally and reddens master after merge. This story expands the local type-check gate to match the CI target set and makes the broader scope fail task check rather than advise.",
+      "ImplementationPlan": "Update the core:lint task in the tasks/core.yml file so the mypy invocation covers the same target set as CI, including the tests/ tree, sharing configuration through the pyproject.toml mypy module settings.\nAdd a test under tests/cli asserting a deliberately introduced type error under tests/ causes the local lint gate to fail with a non-zero exit.",
+      "UserStory": "As a deft maintainer, I want task check to run mypy with the same scope as CI, so that a type error under tests/ fails locally instead of breaking master.",
+      "Traces": "https://github.com/deftai/directive/issues/1475"
+    },
+    "items": [
+      {
+        "id": "story-1475-mypy-parity-a1",
+        "title": "Given a deliberately introduced type error under tests/, when task check runs locally, then the type-check gate fails with a non-zero exit.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a deliberately introduced type error under tests/, when task check runs locally, then the type-check gate fails with a non-zero exit.",
+          "Traces": "https://github.com/deftai/directive/issues/1475"
+        }
+      },
+      {
+        "id": "story-1475-mypy-parity-a2",
+        "title": "When task check runs on a clean tree, then mypy validates the same target set as the CI Python job including the tests/ directory.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When task check runs on a clean tree, then mypy validates the same target set as the CI Python job including the tests/ directory.",
+          "Traces": "https://github.com/deftai/directive/issues/1475"
+        }
+      },
+      {
+        "id": "story-1475-mypy-parity-a3",
+        "title": "A regression test validates that the broadened mypy scope fails rather than advising when tests/ contains a type error.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A regression test validates that the broadened mypy scope fails rather than advising when tests/ contains a type error.",
+          "Traces": "https://github.com/deftai/directive/issues/1475"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "tasks/core.yml",
+          "pyproject.toml",
+          "tests/cli/test_mypy_scope_parity.py"
+        ],
+        "verify_commands": [
+          "uv run mypy tests/",
+          "uv run pytest tests/cli/test_mypy_scope_parity.py"
+        ],
+        "expected_outputs": [
+          "core:lint mypy scope matches CI including tests/",
+          "shared mypy config between local and CI",
+          "regression test failing on a tests/ type error"
+        ],
+        "depends_on": [],
+        "conflict_group": "lint",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1475",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1475: task check: type-check parity with CI (run mypy over tests/, not just run.py)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-03T19:39:55Z"
+  }
+}

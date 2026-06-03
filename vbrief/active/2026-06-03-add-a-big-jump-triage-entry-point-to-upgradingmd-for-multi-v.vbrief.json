@@ -1,0 +1,81 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-03-1115-docsupgrading-add-big-jump-triage-entry-point-for-multi-vers.vbrief.json"
+  },
+  "plan": {
+    "id": "story-1115-upgrading-bigjump",
+    "title": "Add a big-jump triage entry point to UPGRADING.md for multi-version upgrades",
+    "status": "running",
+    "planRef": "pending/2026-06-03-1115-docsupgrading-add-big-jump-triage-entry-point-for-multi-vers.vbrief.json",
+    "narratives": {
+      "Description": "UPGRADING.md is organised newest-first by version with no top-of-file triage, so a consumer jumping many minor versions must read every section to infer which apply and in what order. This story adds a big-jump entry point that names version-range buckets and apply-order so a multi-version upgrader can self-route quickly.",
+      "ImplementationPlan": "Add a big-jump triage section to the top of the UPGRADING.md file that maps version-range buckets to the sections that apply and their apply-order, and calls out which steps are auto-handled versus manual.\nAdd a contract test under tests/content asserting UPGRADING.md exposes the big-jump entry point and that its QUICK-START.md cross-references resolve to existing anchors.",
+      "UserStory": "As a deft operator on an old version, I want a big-jump entry point in UPGRADING.md, so that I can determine which upgrade sections apply without reading every one.",
+      "Traces": "https://github.com/deftai/directive/issues/1115"
+    },
+    "items": [
+      {
+        "id": "story-1115-upgrading-bigjump-a1",
+        "title": "Given an operator on a multi-version jump, when they open UPGRADING.md, then a top-of-file triage section shows which version buckets apply and in what order.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an operator on a multi-version jump, when they open UPGRADING.md, then a top-of-file triage section shows which version buckets apply and in what order.",
+          "Traces": "https://github.com/deftai/directive/issues/1115"
+        }
+      },
+      {
+        "id": "story-1115-upgrading-bigjump-a2",
+        "title": "When the triage section references QUICK-START.md and the doctor command surface, then those cross-references resolve to existing anchors.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the triage section references QUICK-START.md and the doctor command surface, then those cross-references resolve to existing anchors.",
+          "Traces": "https://github.com/deftai/directive/issues/1115"
+        }
+      },
+      {
+        "id": "story-1115-upgrading-bigjump-a3",
+        "title": "A contract test validates that UPGRADING.md exposes a discoverable big-jump entry point and that its cross-references stay consistent.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A contract test validates that UPGRADING.md exposes a discoverable big-jump entry point and that its cross-references stay consistent.",
+          "Traces": "https://github.com/deftai/directive/issues/1115"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "UPGRADING.md",
+          "tests/content/test_upgrading_bigjump_triage.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_upgrading_bigjump_triage.py",
+          "uv run pytest tests/content/"
+        ],
+        "expected_outputs": [
+          "UPGRADING.md exposes a big-jump triage entry point",
+          "version-range bucket apply-order guidance",
+          "contract test for the entry point and cross-references"
+        ],
+        "depends_on": [],
+        "conflict_group": "upgrade-docs",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1115",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1115: docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-03T19:39:56Z"
+  }
+}

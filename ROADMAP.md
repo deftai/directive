@@ -63,6 +63,465 @@ This matches the canonical `triggers:` set already in `skills/deft-directive-ref
 
 ---
 
+## enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades (#1114)
+
+## Problem
+
+**Reported during a Slizard upgrade from deft v0.18 to v0.29.**
+
+What happens (actual behavior):
+
+QUICK-START.md Step 2 runs its detection in this order: 2b (managed-section staleness, fires Case G) -> 2c (pre-cutover artifacts SPECIFICATION.md / PROJECT.md, fires Case H). On a big-jump upgrade (eleven minor versions in this report's case), AGENTS.md is byte-stale (Case G) AND the consumer project still has un-migrated pre-cutover `.md` files (Case H). Case G fires first, refreshes AGENTS.md, then instructs: "Framework updated. Start a new agent session to pick up the changes." The new agent session then enters Case H and runs `task migrate:vbrief`. Two agent sessions to complete remediation that could have been done in one.
+
+What should happen (expected behavior):
+
+For a stale-AGENTS.md condition that is detected alongside a pre-cutover condition (both true), the QUICK-START flow should:
+
+- run Case G's AGENTS.md refresh (it touches only the managed section -- safe),
+- proceed into Case H's migration (the migration re-reads project state at every invocation, so it does not need the new AGENTS.md to be in agent context to function correctly),
+- emit a single "Framework updated. Start a new agent session to pick up the changes." message at the end of the combined remediation.
+
+This collapses the two-session friction into one without breaking the underlying contracts (Case G's refresh is byte-deterministic; the migrator re-reads the filesystem; the post-remediation new-session requirement is the same either way).
+
+How to reproduce:
+
+1. Set up a deft v0.18 project that has SPECIFICATION.md + PROJECT.md without the `<!-- deft:deprecated-redirect -->` sentinel.
+2. Update the framework to v0.29 in place (or any multi-minor jump past v0.20).
+3. Have an agent read QUICK-START.md and follow it.
+4. Observe: agent fires Case G, refreshes AGENTS.md, tells the operator to start a new session. New session then fires Case H and runs migration. Two sessions total.
+
+## Root Cause Analysis
+
+QUICK-START's decision tree is structured around "exactly one case wins per session", and Case G's exit prescription explicitly halts the current session ("! Instruct the user: 'Framework updated. Start a new agent session to pick up the changes. The current session has stale context.' Do not continue past this instruction in the current session."). The halt is correct in spirit -- the agent's loaded skills / rules / paths are stale -- but in practice the halt also blocks Case H, which:
+
+- runs `task migrate:vbrief`, a fully out-of-process command,
+- re-reads project state at invocation time,
+- does not rely on the agent's in-memory rules for correctness.
+
+The conservative single-session-per-case prescription costs a full agent-session round-trip for every big-jump upgrade. The decision tree could safely cascade Case G -> Case H within a single session because Case H's migrator is filesystem-driven, not agent-context-driven.
+
+Contributing factors:
+
+- The decision tree treats every case as a leaf rather than as a node in a remediation graph; there is no syntax for "Case G then Case H".
+- The "start a new session" hand-off is the same end-state for both cases, so combining them does not add new restart cost -- it just stops doubling up.
+- Big-version jumps are the canonical "both stale and pre-cutover" trigger; small jumps usually have only one of the two conditions present.
+
+## TDD Fix Plan
+
+1. **RED**: Write a test that asserts: given a project with (a) stale AGENTS.md and (b) pre-cutover `.md` artifacts, a single QUICK-START session can execute Case G's refresh AND Case H's migration without an intermediate session restart. Assert that the post-remediation state matches the state produced by running Case G + Case H in separate sessions today (byte-equivalent AGENTS.md, byte-equivalent migrated `vbrief/` lifecycle).
+   **GREEN**: Add a "combined remediation" path to QUICK-START's Step 2 / Step 3 that detects the (stale AGENTS.md AND pre-cutover) joint condition and prescribes: refresh AGENTS.md first (Case G's writes), then run migration (Case H's flow), then a single end-of-session new-session instruction.
+
+2. **RED**: Write a contract test that the QUICK-START prose contains explicit guidance for the combined-condition case (either as a top-level Case or as a callout in Case G / Case H pointing at the joint path). The test fails today because the prose only treats the two cases as mutually exclusive.
+   **GREEN**: Update QUICK-START.md to document the cascade explicitly. Keep the standalone Case G / Case H prose for the single-condition cases; add a new "Case G+H -- combined remediation" subsection that names the order.
+
+3. **RED**: Write a test that asserts the migrator's `task migrate:vbrief` invocation succeeds (or fails closed with a clear error) when invoked after an AGENTS.md refresh in the same session -- i.e. the migrator does not depend on agent-context state to do its job.
+   **GREEN**: This is likely already true; the test is a regression guard so a future change cannot quietly tie the migrator to in-process agent state.
+
+**REFACTOR**: Once the combined path is documented, consider letting Case G's "halt" prescription become conditional on whether Case H was also triggered. Single-condition Case G keeps the halt; joint Case G+H delays the halt until after migration.
+
+## Acceptance Criteria
+
+- [ ] Root cause is addressed -- big-jump upgrades complete in one agent session (not two).
+- [ ] All RED tests are now GREEN.
+- [ ] Existing tests still pass.
+- [ ] QUICK-START prose explicitly documents the joint-condition case.
+- [ ] `task check` passes.
+
+## Provenance
+
+Surfaced during a Slizard project v0.18 → v0.29 upgrade. The eleven-minor-version jump triggered both Case G and Case H; the round-trip cost a full session restart that the migration itself did not require.
+
+
+### Root cause is addressed -- big-jump upgrades complete in one agent session (not two). `[proposed]`
+
+### All RED tests are now GREEN. `[proposed]`
+
+### Existing tests still pass. `[proposed]`
+
+### QUICK-START prose explicitly documents the joint-condition case. `[proposed]`
+
+### task check passes. `[proposed]`
+
+---
+
+## docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades (#1115)
+
+## Problem
+
+**Reported during a Slizard upgrade from deft v0.18 to v0.29.**
+
+What happens (actual behavior):
+
+`UPGRADING.md` is organised newest-first by version: v0.27.x -> v0.28, drifted-AGENTS.md repair, `deft/` -> `.deft/core/` (v0.27), v0.25.x -> v0.26, triage v1, pre-v0.20 -> v0.20. Each section is internally thorough. But when a consumer is jumping eleven minor versions in one go (v0.18 -> v0.29 in this report's case), there is no triage paragraph at the top telling the operator which sections apply, what order to read them in, or what to skip. The operator has to read every section and infer relevance from version ranges and "Applies when" prose.
+
+What should happen (expected behavior):
+
+`UPGRADING.md` should open with a short "Big jump?" triage section that:
+
+- names the relevant version-range buckets ("pre-v0.20", "v0.20.x to v0.25.x", "v0.25.x to v0.27.x", "v0.27.x onwards"),
+- tells the operator which sections to apply and in what order,
+- explicitly calls out which sections are auto-handled by `task upgrade` / QUICK-START vs. manual,
+- offers an "I am jumping more than N versions, start here" entry point.
+
+How to reproduce:
+
+1. Open `UPGRADING.md` in the repo root with the mindset of an operator on deft v0.18 wanting to land on v0.29.
+2. Try to determine which sections apply, in what order, without already knowing the framework's release history.
+3. Observe that there is no top-of-file triage; the operator must read every section.
+
+## Root Cause Analysis
+
+`UPGRADING.md` was written incrementally: each release cycle prepends a new section at the top. The doc has no overview / table-of-contents pass, no "applies to N -> M" navigation, and no joint-section guidance for multi-version jumps. The "Future upgrade sections will be prepended here" closing line tells the maintainer's workflow but does not help the consumer triage.
+
+This is a docs-only issue but it has operational cost: every big-jump consumer spends time reading sections that do not apply, and risks running migration / refresh commands out of order. The cost compounds the operational issues surfaced in the sibling Slizard findings -- when each step already takes longer than expected, the doc-navigation cost is the difference between "frustrating" and "blocking".
+
+Contributing factors:
+
+- The doc grows monotonically; there is no shaping pass at release time to surface cross-section guidance.
+- Each section is internally self-contained but does not link forward / backward to predecessor / successor sections that a big-jump consumer also needs.
+- The version-by-version layout is the right organising principle for incremental upgraders, but big-jump consumers need a different entry surface that the current layout does not provide.
+
+## TDD Fix Plan
+
+1. **RED**: Write a contract test that `UPGRADING.md` contains a top-of-file triage section (heading like "Jumping multiple versions?" or "Big-jump entry point") with explicit guidance for multi-version jumps. The test fails today because no such section exists.
+   **GREEN**: Add the triage section at the top of `UPGRADING.md`. Include: (a) a "find your starting version" pointer table or paragraph, (b) the canonical command sequence for a big-jump upgrade (likely "have your agent read QUICK-START.md and follow it" plus the manual fallbacks), (c) explicit links into the version-specific subsections in apply-order.
+
+2. **RED**: Write a contract test that every version-specific section in `UPGRADING.md` opens with an "Applies when" paragraph that names the detectable signal (today some sections have this, some do not). The test enumerates sections and asserts each one has a discoverable applicability rule.
+   **GREEN**: Audit each section; add an "Applies when" line where missing. This is mostly already present in the v0.27-onwards sections; older sections may be lighter.
+
+3. **RED**: Write a test that the QUICK-START / AGENTS.md guidance pointers in `UPGRADING.md` align with the actual case detection in QUICK-START.md (no broken cross-references after a future restructure).
+   **GREEN**: Add a cross-reference index; this also catches bit-rot from future releases prepending sections that point at moved anchors.
+
+**REFACTOR**: Once the triage entry point exists, consider promoting the most common big-jump path (pre-v0.20 -> latest) to its own runbook in `docs/` and have `UPGRADING.md` link to it; keeps the version-by-version sections lean and the big-jump path single-sourced.
+
+## Acceptance Criteria
+
+- [ ] Root cause is addressed -- `UPGRADING.md` has a discoverable big-jump entry point.
+- [ ] An operator new to the project can determine which sections apply to a multi-version jump in under 60 seconds.
+- [ ] All RED tests are now GREEN.
+- [ ] Existing tests still pass.
+- [ ] Cross-references between `UPGRADING.md`, `QUICK-START.md`, and the framework-doctor command surface are mutually consistent.
+- [ ] `task check` passes.
+
+## Provenance
+
+Surfaced during a Slizard project v0.18 → v0.29 upgrade. The eleven-minor-version jump required reading every section to determine applicability and order.
+
+
+### Root cause is addressed -- UPGRADING.md has a discoverable big-jump entry point. `[proposed]`
+
+### An operator new to the project can determine which sections apply to a multi-version jump in under 60 seconds. `[proposed]`
+
+### All RED tests are now GREEN. `[proposed]`
+
+### Existing tests still pass. `[proposed]`
+
+### Cross-references between UPGRADING.md, QUICK-START.md, and the framework-doctor command surface are mutually consistent. `[proposed]`
+
+### task check passes. `[proposed]`
+
+---
+
+## deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction) (#1474)
+
+## Summary
+
+In a vendored consumer install, `task deft:check` delegates to the framework's own check (`.deft/core/Taskfile.yml`), which runs the **framework's full pytest self-test suite** under `.deft/core/tests/`. Many of those tests assert on artifacts that only exist in the framework's own repo (`deftai/directive`), so they **fail by construction in any consumer checkout** — producing a wall of red that is pure noise to the consumer and buries any real, consumer-relevant check failures.
+
+Net effect: `task deft:check` can never be green in a consumer, so the consumer-facing quality gate is unusable as a pass/fail signal and every consumer PR must invoke the review-cycle skill's pre-existing-failure carve-out.
+
+Sibling to #1463 / #1464 / #1465 / #1468 (framework runtime behavior that misbehaves in the vendored consumer layout).
+
+## Observed live in `deftai/statusreport`
+
+`task deft:check` on a clean consumer checkout (vendored framework v0.39.7):
+
+```
+6823 passed, 14 failed, 6 errors, 4 skipped, 9 deselected, 1 xfailed
+```
+
+All 14 failures + 6 errors are framework self-tests under `.deft/core/tests/`. Categories:
+
+- Tests asserting framework CI workflow files exist — e.g. `.deft/core/.github/workflows/release.yml`, `.deft/core/.github/workflows/branch-gate.yml` (not shipped in the vendored payload).
+- Tests asserting the framework's own docs exist — e.g. `test_eval_readme_documents_policy` checks `.deft/core/vbrief/.eval/README.md` (a framework-repo file; the consumer's bootstrap writes the README at repo-root `vbrief/.eval/README.md` instead).
+- Version-resolution tests expecting a dev/older version but getting the pinned release `0.39.7`.
+
+Proven pre-existing + path-independent (consumer-side): stashing an unrelated consumer doc edit and re-running still reproduces the same failures. Tracked consumer-side in `deftai/statusreport#12`.
+
+## Root cause
+
+The committed `.deft/core/` payload (#11) ships the framework's **own test suite**, and the consumer-facing `task deft:check` runs it. Those tests were written to validate the framework *in its own repo* and depend on framework-repo-only artifacts (CI workflows, the framework's `vbrief/.eval/README.md`, the framework's dev version string). There is no "am I running inside the framework repo vs. a vendored consumer?" guard, and no consumer-scoped check target that runs only consumer-relevant validation.
+
+## Gaps
+
+- The vendored payload includes `.deft/core/tests/` (framework self-tests) and exposes them through the consumer `deft:check` path.
+- No consumer-vs-framework execution-context detection to skip framework-repo-only tests when running outside `deftai/directive`.
+- No separate consumer-scoped check target (lint/fmt/typecheck + consumer content validation such as vbrief validate / spec render) distinct from the framework's self-test suite.
+- The review-cycle and pre-pr skills mandate "task check passes," which is unsatisfiable in a consumer without the carve-out — so the gate is effectively always bypassed.
+
+## Suggested fix (directive)
+
+Pick one or combine:
+
+1. **Don't ship framework self-tests to consumers.** Exclude `.deft/core/tests/` (and any framework-repo-only fixtures) from the installer/relocator payload deposit so the consumer never runs them.
+2. **Scope `task deft:check` for consumers.** Make the consumer-facing check run only consumer-relevant checks (lint/fmt/typecheck + `vbrief:validate` / spec render / governance), and move the framework's pytest suite behind a framework-dev-only target (e.g. `task deft:selftest`).
+3. **Context-guard the self-tests.** Have framework-repo-only tests `skip`/`xfail` when an execution-context probe detects a vendored consumer (e.g. absence of `.deft/core/.github/` or a `deftai/directive`-repo marker), so a stray run is clean rather than red.
+
+## Acceptance criteria
+
+- On a fresh vendored consumer install with valid consumer content, `task deft:check` exits 0 (no framework-self-test failures/errors).
+- Framework-repo-only tests are either not shipped to consumers or skip cleanly outside the framework's own repo.
+- Real consumer-relevant failures (lint, vbrief validation, spec render) are still surfaced and still fail the check.
+- Regression coverage: a consumer-layout fixture asserts `deft:check` is green when consumer content is valid and red when a consumer-relevant check actually fails.
+
+---
+Related: #11 (committed `.deft/core/` payload), the `no-mixed-core-and-app` guard, the review-cycle pre-existing-failure carve-out (`skills/deft-directive-review-cycle/SKILL.md` Phase 2 Step 3). Consumer-side tracker: `deftai/statusreport#12`. Sibling consumer-layout bugs: #1463, #1464, #1465, #1468.
+
+
+### On a fresh vendored consumer install with valid consumer content, task deft:check exits 0 (no framework-self-test failures/errors). `[proposed]`
+
+### Framework-repo-only tests are either not shipped to consumers or skip cleanly outside the framework's own repo. `[proposed]`
+
+### Real consumer-relevant failures (lint, vbrief validation, spec render) are still surfaced and still fail the check. `[proposed]`
+
+### Regression coverage: a consumer-layout fixture asserts task deft:check is green when consumer content is valid and red when a consumer-relevant check actually fails. `[proposed]`
+
+---
+
+## task check: type-check parity with CI (run mypy over tests/, not just run.py) (#1475)
+
+## Problem
+
+Local `task check` is **not at type-check parity with CI**, so a mypy error that lives outside `run.py`'s import closure escapes every local pre-merge gate and breaks `master` for everyone after merge.
+
+This happened for real this cycle:
+
+- PR #1466 (issue #1465) passed `task check` locally and merged green, but immediately turned `master`'s **"Python (lint + type-check + test)"** job RED.
+- Root cause: a mypy error in `tests/cli/test_behavioral_events.py` — a binding named `ignored` was first a `CompletedProcess[str]` and then reassigned to `list[str]`.
+- CI runs `mypy tests/` (broad scope); local `core:lint` / `task check` only runs `mypy run.py`. The error was invisible locally and to every dispatched worker.
+- It required an emergency one-line hotfix (PR #1472) and forced re-syncs across the in-flight cohort (#1463 / #1464 / #1468), each of which had inherited the red `tests/` file by merging `master`.
+
+## Impact
+
+- Any mypy error under `tests/` (or anywhere outside `run.py`'s import graph) ships green locally and breaks `master` post-merge.
+- In a swarm/worktree workflow this is amplified: every concurrent branch that merges `master` inherits the red state and must re-sync after the hotfix.
+
+## Proposed fix
+
+- Expand the local type-check gate (`core:lint` / `task check`) to run mypy over the **same target set CI uses** — at minimum `mypy tests/`, ideally the whole tree (`mypy .` or the configured packages).
+- Ensure the mypy configuration (pyproject / mypy.ini) is shared between local and CI so scope and strictness match.
+- Make the broader scope **fail** `task check` (not advisory).
+
+## Acceptance criteria
+
+- `task check` (or `core:lint`) runs mypy with the same scope as the CI "Python (lint + type-check + test)" job, including `tests/`.
+- A deliberately introduced type error under `tests/` causes `task check` to FAIL locally.
+- Any docs/comments that describe the lint/type-check scope are updated to reflect parity.
+
+## References
+
+- Introduced by: PR #1466 (#1465)
+- Hotfix: PR #1472
+- Cohort affected by the inherited red: #1463, #1464, #1468
+
+
+### task check (or core:lint) runs mypy with the same scope as the CI "Python (lint + type-check + test)" job, including tests/. `[proposed]`
+
+### A deliberately introduced type error under tests/ causes task check to FAIL locally. `[proposed]`
+
+### Any docs/comments that describe the lint/type-check scope are updated to reflect parity. `[proposed]`
+
+---
+
+## bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh (#1476)
+
+## Summary
+
+`task triage:queue` can surface closed upstream GitHub issues as actionable `[untriaged]` work when the local cache still says the issue is open. The failure mode survives `task cache:fetch-all -- --source=github-issue --repo deftai/directive` because the fetch defaults to `state=open`; once an issue closes upstream it is no longer enumerated, so its cached `raw.json` is never rewritten to `state=closed`. The cache entry can remain "fresh" for its 7-day TTL, and `task verify:cache-fresh` can still pass because it checks the newest in-scope `fetched_at`, not every queue candidate's live state.
+
+This is a queue correctness bug, separate from #1424's queue-speed/N+1 issue.
+
+## Observed live
+
+After #1322 closed upstream:
+
+- GitHub live state:
+  - `gh api repos/deftai/directive/issues/1322 --jq '{state:.state,closed:.closed_at}'`
+  - returned `state: closed`, `closed: 2026-06-03T02:07:37Z`
+- Local cache state:
+  - `.deft-cache/github-issue/deftai/directive/1322/raw.json` still had `"state": "open"`
+  - `.deft-cache/github-issue/deftai/directive/1322/meta.json` had:
+    - `fetched_at: 2026-06-01T17:09:02Z`
+    - `expires_at: 2026-06-08T17:09:02Z`
+    - `ttl_seconds: 604800`
+- After `task cache:fetch-all -- --source=github-issue --repo deftai/directive`, the report showed many `already_fresh` / `skipped` entries and the queue still ranked #1322.
+- `task triage:queue -- --limit=10` continued to show:
+  - `[untriaged] #1322 deft-install ... (label: adoption-blocker)`
+- `task verify:cache-fresh` passed:
+  - `✓ deft cache-fresh: deftai/directive -- 175 entry/ies in scope; newest fetched 0.0h ago ...`
+
+The operator had to manually notice that #1322 was closed and correct the recommendation.
+
+## Root-cause sketch
+
+From the current code:
+
+- `scripts/triage_queue.py::load_cached_issues()` excludes closed issues only when cached `raw.json` has `state != "open"`:
+  - stale `raw.json` with `"state": "open"` still enters the queue.
+- `scripts/cache.py::cache_fetch_all()` defaults `state="open"` and delegates to `_cache_fetch.run_fetch_all()`.
+- `scripts/_cache_fetch.py::run_fetch_all()` enumerates `rest_issue_list_paginated(repo, state=state, limit=limit)`.
+  - closed upstream issues are absent from the default open-only enumeration, so already-cached entries that closed upstream are not revisited.
+  - even `--state=all` would likely skip a still-TTL-fresh entry unless there is a force/invalidation path, because `_is_fresh(meta.json)` gates `do_put`.
+- `scripts/preflight_cache.py::evaluate()` computes freshness from the max/newest `fetched_at` among scoped entries.
+  - A fresh newly-fetched issue can make the gate pass while older cached queue candidates remain stale and wrong.
+
+## Expected behavior
+
+The queue's answer to "what should I work on next?" MUST NOT include upstream-closed issues as actionable untriaged work.
+
+At least one of these should become true:
+
+1. `task triage:queue` excludes or warns on candidates whose cached entry is stale enough that live state may have changed, especially top-ranked candidates.
+2. `task cache:fetch-all` has a state-refresh mode for previously-cached entries that are no longer returned by the open-issue enumeration.
+3. `task cache:fetch-all --state=all` or a new `--force` / `--refresh-existing` mode rewrites still-TTL-fresh cached entries when the caller explicitly wants authoritative state.
+4. `task verify:cache-fresh` fails or warns when ranked queue candidates have `fetched_at` older than the freshness window, even if another scoped entry was fetched recently.
+
+The exact implementation is open, but the operator-facing invariant is not: closed upstream issues should not rank as work.
+
+## Acceptance criteria
+
+- Reproduce with a cached issue whose `raw.json` says `state=open`, whose upstream GitHub issue is now closed, and whose cache `expires_at` is still in the future.
+- After the fix, `task triage:queue -- --limit=10` does not surface that issue as `[untriaged]` actionable work.
+- A cache refresh path exists that can update already-cached entries to `state=closed` even when the default open-only enumeration no longer returns them.
+- `task verify:cache-fresh` no longer gives a misleading all-clear when the queue can still rank stale closed candidates, or the queue performs its own defensive stale-state handling.
+- Regression test covers the #1322 shape: closed upstream, cached open, TTL-fresh cache entry.
+
+## Related
+
+- #1119 — cache-as-operator-working-set umbrella
+- #1128 — `triage:queue` / `triage:audit` / `triage:show`
+- #1127 — `verify:cache-fresh`
+- #1322 — observed stale candidate after upstream closure
+- #1379 — related but broader multi-machine cache continuity; not a duplicate
+- #1424 — queue/cache freshness performance issue; separate from this correctness gap
+
+
+### Reproduce with a cached issue whose raw.json says state=open, whose upstream GitHub issue is now closed, and whose cache expires_at is still in the future. `[proposed]`
+
+### After the fix, task triage:queue -- --limit=10 does not surface that issue as [untriaged] actionable work. `[proposed]`
+
+### A cache refresh path exists that can update already-cached entries to state=closed even when the default open-only enumeration no longer returns them. `[proposed]`
+
+### task verify:cache-fresh no longer gives a misleading all-clear when the queue can still rank stale closed candidates, or the queue performs its own defensive stale-state handling. `[proposed]`
+
+### Regression test covers the #1322 shape: closed upstream, cached open, TTL-fresh cache entry. `[proposed]`
+
+---
+
+## Wired git hooks ship non-executable (mode 100644) -- silently inert on Unix consumers (follow-up to #1463) (#1477)
+
+## Summary
+
+The git hooks wired by the installer (#1463) are deposited **non-executable (mode `100644`)**. On Linux/macOS, git **silently skips hooks that lack the executable bit**, so the branch-protection (`pre-commit`) and destructive-push (`pre-push`) gates that #1463 introduced **never fire for Unix consumers** — the feature is silently inert on exactly the platforms where the executable bit matters.
+
+This is a follow-up defect to #1463 (consumer git hooks): the hooks are wired and `core.hooksPath` is set, but the files ship without `+x`.
+
+## Observed live in `deftai/statusreport`
+
+After upgrading the vendored framework to **v0.40.0** (which ships #1463's hook wiring), Greptile flagged it as **P1** on PR #15:
+
+- `.githooks/pre-commit` (blob `423453a6`) and `.githooks/pre-push` (blob `25014016`) are committed at mode `100644`.
+- These repo-root files are byte-identical mirrors (same blob SHAs) of the vendored payload `.deft/core/.githooks/*`, which are **also** `100644`.
+
+(Note: this repo is on Windows, where the executable bit is moot — which is why it shipped unnoticed. The breakage is Unix-only.)
+
+## Root cause
+
+- The installer (`cmd/deft-install/githooks.go`, #1463) deposits/stages the hook files at `100644`.
+- `task setup` only runs `git config core.hooksPath .githooks` — it does **not** `chmod +x` the hooks.
+
+So both the deposited repo-root copies and the canonical payload copies lack the executable bit, and nothing in the install/setup path adds it.
+
+## Impact
+
+- On Linux/macOS consumers, `pre-commit` (branch-protection / `verify:branch` / encoding gate) and `pre-push` (destructive-gh-verb gate) **do not run** — commits to the default branch and the other guarded actions proceed ungated, silently.
+- The protection appears installed (`core.hooksPath` is set, files exist) but is non-functional — a silent-failure security/governance gap.
+
+## Suggested fix (directive)
+
+- Stage/deposit `.githooks/*` (and the payload `.deft/core/.githooks/*`) with mode `100755` so the executable bit is preserved through the git-free file swap, **and/or**
+- Have `task setup` / the installer `chmod +x` the hook files (and `git update-index --chmod=+x` for the tracked deposit) after wiring `core.hooksPath`.
+- Add a `verify:hooks-installed` assertion that the resolved hooks are executable on POSIX (not just present), so a regression surfaces loudly.
+
+## Acceptance criteria
+
+- After a fresh install/upgrade on Linux/macOS, `.githooks/pre-commit` and `.githooks/pre-push` are executable and actually fire (a commit to the default branch is blocked by the branch gate).
+- The tracked deposit records mode `100755` for the hook files, surviving a subsequent `--upgrade`.
+- Regression coverage asserting POSIX executability of the wired hooks.
+
+---
+Follow-up to #1463 (consumer git hooks). Surfaced on `deftai/statusreport` PR #15 (v0.40.0 upgrade). Sibling consumer-layout bugs: #1464, #1465, #1468, #1474.
+
+
+### After a fresh install/upgrade on Linux/macOS, .githooks/pre-commit and .githooks/pre-push are executable and actually fire (a commit to the default branch is blocked by the branch gate). `[proposed]`
+
+### The tracked deposit records mode 100755 for the hook files, surviving a subsequent --upgrade. `[proposed]`
+
+### Regression coverage asserting POSIX executability of the wired hooks. `[proposed]`
+
+---
+
+## deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync) (#1478)
+
+## Summary
+
+v0.40.0's `deft-core-guard` ("no-mixed-core-and-app") **rejects every consumer upgrade PR** because its installer-managed allowlist does not exempt `.githooks/`, even though v0.40.0's installer (`githooks.go`, #1463) now deposits repo-root `.githooks/pre-commit` + `.githooks/pre-push` as part of the framework install. The guard sees `.deft/core/**` (payload) mixed with `.githooks/*` (classified as "app") and fails the PR.
+
+This is a hard **adoption-blocker regression**: the #1463 hook deposit and the #1430/#1440 guard fell out of sync. Distinct from #1477 (hook executable mode); this one blocks the upgrade PR from merging at all.
+
+## Observed live in `deftai/statusreport`
+
+A clean `deft-install --yes --upgrade` to v0.40.0, committed framework-only (the installer pre-staged exactly its managed paths), still fails `deft-core-guard` on the resulting PR:
+
+```
+##[error]This PR changes the vendored framework payload (.deft/core/**) AND non-framework files. Split the framework update into its own PR.
+--- non-framework changes ---
+.githooks/pre-commit
+.githooks/pre-push
+```
+
+Those two files are the *only* members of the "app" set; everything else is either `.deft/core/**` or already allowlisted.
+
+## Root cause
+
+In `cmd/deft-install/deposit.go`, `installerManagedMatchers()` (the single source of truth feeding both the deposited guard ERE and the Go classifier) lists `AGENTS.md`, `.agents/`, `.gitattributes`, `.gitignore`, `greptile.json`, the codeql config, the guard workflow, and vbrief scaffolding — but **not `.githooks/`**. Meanwhile `githooks.go` (#1463) deposits repo-root `.githooks/pre-commit` + `.githooks/pre-push`. So a legitimate `--upgrade` PR that includes the hook deposit is rejected by construction.
+
+Compounding: the installer **skips updating an existing `.github/workflows/deft-core-guard.yml`**, so even once the allowlist is fixed upstream, already-installed consumers won't receive the corrected guard on a subsequent `--upgrade` unless the installer re-deposits/refreshes it.
+
+## Suggested fix (directive)
+
+- Add `{prefix: ".githooks/"}` to `installerManagedMatchers()` so both the deposited guard regex (`installerManagedGuardERE`) and the Go classifier (`classifyChangedPaths`) exempt the hook deposit.
+- Refresh the deposited `deft-core-guard.yml` on `--upgrade` (or version it) so existing consumers pick up allowlist changes instead of keeping a stale guard.
+- Add regression coverage in the `classifyChangedPaths` / `guardWouldFail` tests asserting `.githooks/pre-commit` and `.githooks/pre-push` are installer-managed (not "app").
+
+## Acceptance criteria
+
+- A consumer `--upgrade` PR that deposits `.githooks/*` alongside `.deft/core/**` passes `deft-core-guard`.
+- Existing consumers receive the corrected guard workflow on their next `--upgrade` (not skipped).
+- Tests pin `.githooks/` as installer-managed in the guard classifier.
+
+---
+Found on `deftai/statusreport` PR #15 (v0.40.0 upgrade). Related: #1463 (consumer git hooks deposit), #1477 (hooks ship non-executable), #1430 / #1440 (deft-core-guard + installer-managed allowlist).
+
+
+### A consumer --upgrade PR that deposits .githooks/* alongside .deft/core/** passes deft-core-guard. `[proposed]`
+
+### Existing consumers receive the corrected guard workflow on their next --upgrade (not skipped). `[proposed]`
+
+### Tests pin .githooks/ as installer-managed in the guard classifier. `[proposed]`
+
+---
+
 ## Completed
 
 - **#365** -- bdd strategy: move context and scenarios to vbrief; remove specs/ folder -- `[completed]`

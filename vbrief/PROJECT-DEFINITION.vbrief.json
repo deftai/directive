@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-06-03T14:37:54Z"
+    "updated": "2026-06-03T19:33:38Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -1146,6 +1146,118 @@
               "uri": "https://github.com/deftai/directive/issues/1000",
               "type": "x-vbrief/github-issue",
               "title": "Issue #1000: docs(agents): wire refinement skill's full trigger-word set into AGENTS.md Skill Routing (#995 follow-up)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1114-enhancementquick-start-combine-case-g-case-h-into-one-sessio",
+        "title": "enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-06-03-1114-enhancementquick-start-combine-case-g-case-h-into-one-sessio.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1114",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1114: enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1115-docsupgrading-add-big-jump-triage-entry-point-for-multi-vers",
+        "title": "docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-06-03-1115-docsupgrading-add-big-jump-triage-entry-point-for-multi-vers.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1115",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1115: docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1474-deftcheck-runs-framework-self-tests-in-consumers-always-red",
+        "title": "deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-06-03-1474-deftcheck-runs-framework-self-tests-in-consumers-always-red.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1474",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1474: deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not",
+        "title": "task check: type-check parity with CI (run mypy over tests/, not just run.py)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1475",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1475: task check: type-check parity with CI (run mypy over tests/, not just run.py)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1476-bugtriagecache-closed-upstream-issues-remain-in-triagequeue",
+        "title": "bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-06-03-1476-bugtriagecache-closed-upstream-issues-remain-in-triagequeue.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1476",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1476: bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1477-wired-git-hooks-ship-non-executable-mode-100644-silently-ine",
+        "title": "Wired git hooks ship non-executable (mode 100644) -- silently inert on Unix consumers (follow-up to #1463)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-06-03-1477-wired-git-hooks-ship-non-executable-mode-100644-silently-ine.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1477",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1477: Wired git hooks ship non-executable (mode 100644) -- silently inert on Unix consumers (follow-up to #1463)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1478-deft-core-guard-allowlist-omits-githooks-blocks-every-consum",
+        "title": "deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)",
+        "status": "pending",
+        "metadata": {
+          "source_path": "pending/2026-06-03-1478-deft-core-guard-allowlist-omits-githooks-blocks-every-consum.vbrief.json",
+          "lifecycle_folder": "pending",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1478",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1478: deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)"
             }
           ]
         }
@@ -9926,6 +10038,22 @@
         }
       },
       {
+        "id": "2026-06-03-1424-cache-fresh-batch-eval",
+        "title": "fix(triage): batch verify:cache-fresh scope filter so milestone is-open fetches once, not per-issue (#1424)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1424-cache-fresh-batch-eval.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1424",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1424: verify:cache-fresh is O(N) gh calls: scope filter runs evaluate_rules per-issue, refetching open milestones (~92s on 500 entries)"
+            }
+          ]
+        }
+      },
+      {
         "id": "2026-06-03-1437-v0393-vendored-upgrade-leaves-root-artifacts-stale-duplicate",
         "title": "v0.39.3 vendored upgrade leaves root artifacts stale: duplicate AGENTS.md managed-section (attributed v3 marker not matched) + bare .deft-version not regenerated",
         "status": "completed",
@@ -10041,6 +10169,91 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-06-03-1458-install-dirty-tree-fail-loud",
+        "title": "fix(deft-install): fail loudly on a dirty working tree by default for --upgrade (--force to bypass) + structured --json signals (#1458)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1458-install-dirty-tree-fail-loud.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1458",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1458: deft-install: fail loudly on a dirty working tree by default for --upgrade (--force to bypass) + structured signals in --json"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1463-consumer-git-hooks",
+        "title": "fix(installer): wire git hooks in vendored consumer projects (#1463)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1463-consumer-git-hooks.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1463",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1463: Installer: git hooks never active in vendored consumer projects (branch/encoding/gh gates silently inert)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1464-eval-gitignore-selective",
+        "title": "fix(installer): installer + relocator deposit selective vbrief/.eval/ ignores and heal the forbidden blanket (#1464, supersedes #1452)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1464-eval-gitignore-selective.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1464",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1464: Installer/relocator re-deposit the forbidden blanket vbrief/.eval/ gitignore (contradicts #1144/#1251, hides slices.jsonl)"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/1452",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1452: superseded by #1464"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1465-events-log-gitignore",
+        "title": "fix(events): relocate default event log out of the no-longer-gitignored .deft/ so it stops leaking untracked in consumers (#1465)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1465-events-log-gitignore.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1465",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1465: events: .deft/events.jsonl leaks untracked in consumers (stale .deft/-gitignored assumption in _events.py)"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2026-06-03-1468-triage-audit-reconcile",
+        "title": "triage: reconcile/self-heal audit log from proposed/pending/active vBRIEF inventory (#1468)",
+        "status": "completed",
+        "metadata": {
+          "source_path": "completed/2026-06-03-1468-triage-audit-reconcile.vbrief.json",
+          "lifecycle_folder": "completed",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/1468",
+              "type": "x-vbrief/github-issue",
+              "title": "Issue #1468: triage audit log can desync from proposed/ vBRIEFs with no self-heal"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
@@ -10065,6 +10278,7 @@
         "Narrative 'OpenQuestions' may be stale: completed scope 'feat(framework,skills): add Discuss + Back as canonical numbered options in all deterministic-mode questions' shares topics (questions)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'feat(triage-scope): milestone rule any-of + is-open variants (#1181)' shares topics (open)",
         "Narrative 'OpenQuestions' may be stale: completed scope 'fix(scripts/reconcile_issues.py, scripts/release.py): vBRIEF-lifecycle-sync gate false-positives on repos with >200 open issues' shares topics (open)",
+        "Narrative 'OpenQuestions' may be stale: completed scope 'fix(triage): batch verify:cache-fresh scope filter so milestone is-open fetches once, not per-issue (#1424)' shares topics (open)",
         "Narrative 'Overview' may be stale: completed scope 'bug(refinement,ingest): `task issue:ingest` produces stub vBRIEFs without `plan.narratives.Overview` or `plan.items` -- ingested items are not swarm-ready' shares topics (overview)",
         "Narrative 'Overview' may be stale: completed scope 'enhancement(ingest,skills): task issue:ingest produces stub-only vBRIEFs (no Overview, no items)' shares topics (overview)",
         "Narrative 'Overview' may be stale: completed scope 'fix(scripts): migrate_vbrief produces PROJECT-DEFINITION without required 'overview' narrative key' shares topics (overview)",

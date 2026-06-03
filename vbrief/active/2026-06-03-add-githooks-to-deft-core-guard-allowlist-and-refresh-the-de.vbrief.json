@@ -1,0 +1,83 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-03-1478-deft-core-guard-allowlist-omits-githooks-blocks-every-consum.vbrief.json"
+  },
+  "plan": {
+    "id": "story-1478-guard-githooks-allowlist",
+    "title": "Add .githooks/ to deft-core-guard allowlist and refresh the deposited guard",
+    "status": "running",
+    "planRef": "pending/2026-06-03-1478-deft-core-guard-allowlist-omits-githooks-blocks-every-consum.vbrief.json",
+    "narratives": {
+      "Description": "v0.40.0 deft-core-guard rejects every consumer upgrade PR because its installer-managed allowlist omits .githooks/, even though the installer now deposits repo-root .githooks/pre-commit and .githooks/pre-push as part of the framework install. This story adds .githooks/ to the allowlist so a framework-only upgrade PR passes, and refreshes the deposited guard workflow on upgrade.",
+      "ImplementationPlan": "Add a .githooks/ prefix matcher to the installerManagedMatchers() function in the cmd/deft-install/deposit.go module so both the deposited guard regex and the Go classifier exempt the hook deposit.\nRefresh the deposited deft-core-guard workflow on upgrade and add a deposit_test.go regression test asserting .githooks/pre-commit and .githooks/pre-push classify as installer-managed.",
+      "UserStory": "As a deft consumer, I want a framework-only upgrade PR to pass deft-core-guard, so that I can land deft upgrades without the guard blocking every PR.",
+      "Traces": "https://github.com/deftai/directive/issues/1478"
+    },
+    "items": [
+      {
+        "id": "story-1478-guard-githooks-allowlist-a1",
+        "title": "Given a consumer --upgrade PR that deposits .githooks/* alongside .deft/core/**, when deft-core-guard runs, then the guard passes instead of rejecting the PR.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a consumer --upgrade PR that deposits .githooks/* alongside .deft/core/**, when deft-core-guard runs, then the guard passes instead of rejecting the PR.",
+          "Traces": "https://github.com/deftai/directive/issues/1478"
+        }
+      },
+      {
+        "id": "story-1478-guard-githooks-allowlist-a2",
+        "title": "When an existing consumer runs the next --upgrade, then the installer refreshes the deposited deft-core-guard workflow rather than skipping it.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When an existing consumer runs the next --upgrade, then the installer refreshes the deposited deft-core-guard workflow rather than skipping it.",
+          "Traces": "https://github.com/deftai/directive/issues/1478"
+        }
+      },
+      {
+        "id": "story-1478-guard-githooks-allowlist-a3",
+        "title": "A regression test validates that .githooks/pre-commit and .githooks/pre-push classify as installer-managed and not as app files.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A regression test validates that .githooks/pre-commit and .githooks/pre-push classify as installer-managed and not as app files.",
+          "Traces": "https://github.com/deftai/directive/issues/1478"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "cmd/deft-install/deposit.go",
+          "cmd/deft-install/deposit_test.go"
+        ],
+        "verify_commands": [
+          "go test ./cmd/deft-install/ -run TestGuardWouldFail",
+          "go test ./cmd/deft-install/"
+        ],
+        "expected_outputs": [
+          ".githooks/ added to installerManagedMatchers",
+          "deposited deft-core-guard workflow refreshed on upgrade",
+          "regression test classifying .githooks as installer-managed"
+        ],
+        "depends_on": [
+          "story-1474-deftcheck-consumer-scope"
+        ],
+        "conflict_group": "installer",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1478",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1478: deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-03T19:39:54Z"
+  }
+}

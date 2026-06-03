@@ -1,0 +1,84 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-03-1476-bugtriagecache-closed-upstream-issues-remain-in-triagequeue.vbrief.json"
+  },
+  "plan": {
+    "id": "story-1476-triage-stale-closed",
+    "title": "Exclude upstream-closed issues from triage:queue when cached entries are TTL-fresh",
+    "status": "running",
+    "planRef": "pending/2026-06-03-1476-bugtriagecache-closed-upstream-issues-remain-in-triagequeue.vbrief.json",
+    "narratives": {
+      "Description": "task triage:queue ranks issues whose cached raw.json still says state=open even after the upstream GitHub issue closed, because cache:fetch-all defaults to state=open and never rewrites a closed entry within its TTL. This story makes the queue defensively skip or refresh stale candidates so a closed issue never surfaces as actionable untriaged work.",
+      "ImplementationPlan": "Update the scripts/triage_queue.py load_cached_issues handler so a cached issue whose meta.json fetched_at predates the freshness window is re-resolved against scripts/preflight_cache.py before it enters the ranked queue.\nAdd a state-refresh path in scripts/_cache_fetch.py and scripts/cache.py so a previously-cached entry absent from the open-only enumeration is revisited and its raw.json rewritten to state=closed.\nAdd a regression test under tests/ that reproduces the #1322 shape and asserts the queue omits the closed candidate.",
+      "UserStory": "As a deft operator, I want triage:queue to drop upstream-closed issues whose cache is stale, so that I never start work the maintainer already finished.",
+      "Traces": "https://github.com/deftai/directive/issues/1476"
+    },
+    "items": [
+      {
+        "id": "story-1476-triage-stale-closed-a1",
+        "title": "Given a cached issue with raw.json state=open whose upstream issue is closed and whose cache has not expired, when task triage:queue runs, then the queue excludes that issue from its ranked output.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a cached issue with raw.json state=open whose upstream issue is closed and whose cache has not expired, when task triage:queue runs, then the queue excludes that issue from its ranked output.",
+          "Traces": "https://github.com/deftai/directive/issues/1476"
+        }
+      },
+      {
+        "id": "story-1476-triage-stale-closed-a2",
+        "title": "When the cache refresh path runs against a closed-upstream entry, then it rewrites that entry raw.json to state=closed even though the default open-only enumeration no longer returns it.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the cache refresh path runs against a closed-upstream entry, then it rewrites that entry raw.json to state=closed even though the default open-only enumeration no longer returns it.",
+          "Traces": "https://github.com/deftai/directive/issues/1476"
+        }
+      },
+      {
+        "id": "story-1476-triage-stale-closed-a3",
+        "title": "A regression test fails before the fix and then validates that triage:queue omits the #1322-shaped closed candidate after the fix.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A regression test fails before the fix and then validates that triage:queue omits the #1322-shaped closed candidate after the fix.",
+          "Traces": "https://github.com/deftai/directive/issues/1476"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/triage_queue.py",
+          "scripts/cache.py",
+          "scripts/_cache_fetch.py",
+          "scripts/preflight_cache.py",
+          "tests/test_triage_queue_stale_closed.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/test_triage_queue_stale_closed.py",
+          "uv run pytest tests/ -k triage"
+        ],
+        "expected_outputs": [
+          "triage:queue excludes upstream-closed TTL-fresh issues",
+          "cache refresh path rewrites closed entries to state=closed",
+          "regression test covering the #1322 shape"
+        ],
+        "depends_on": [],
+        "conflict_group": "triage-cache",
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1476",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1476: bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-03T19:39:56Z"
+  }
+}

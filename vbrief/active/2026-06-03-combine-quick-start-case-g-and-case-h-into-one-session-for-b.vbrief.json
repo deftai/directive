@@ -1,0 +1,81 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from pending/2026-06-03-1114-enhancementquick-start-combine-case-g-case-h-into-one-sessio.vbrief.json"
+  },
+  "plan": {
+    "id": "story-1114-quickstart-combined",
+    "title": "Combine QUICK-START Case G and Case H into one session for big-jump upgrades",
+    "status": "running",
+    "planRef": "pending/2026-06-03-1114-enhancementquick-start-combine-case-g-case-h-into-one-sessio.vbrief.json",
+    "narratives": {
+      "Description": "On a big-jump upgrade where AGENTS.md is stale (Case G) and pre-cutover artifacts exist (Case H), QUICK-START.md halts after the Case G refresh and forces a second agent session for the Case H migration. This story adds a combined Case G+H remediation path so both run in one session, since the migration re-reads filesystem state and does not need the refreshed AGENTS.md in agent context.",
+      "ImplementationPlan": "Add a combined-remediation subsection to the QUICK-START.md decision-tree file that detects the joint stale-AGENTS.md and pre-cutover condition and orders the AGENTS.md refresh ahead of the migration script run.\nAdd a contract test under tests/content asserting QUICK-START.md documents the Case G+H joint path and that the post-remediation state matches running the cases separately.",
+      "UserStory": "As a deft operator doing a big-jump upgrade, I want Case G and Case H to complete in one session, so that I avoid an unnecessary agent-session round-trip.",
+      "Traces": "https://github.com/deftai/directive/issues/1114"
+    },
+    "items": [
+      {
+        "id": "story-1114-quickstart-combined-a1",
+        "title": "Given a project with stale AGENTS.md and pre-cutover artifacts, when an agent follows QUICK-START.md, then it refreshes AGENTS.md and runs migration in one session before emitting a single restart instruction.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a project with stale AGENTS.md and pre-cutover artifacts, when an agent follows QUICK-START.md, then it refreshes AGENTS.md and runs migration in one session before emitting a single restart instruction.",
+          "Traces": "https://github.com/deftai/directive/issues/1114"
+        }
+      },
+      {
+        "id": "story-1114-quickstart-combined-a2",
+        "title": "When the combined path completes, then the resulting AGENTS.md and migrated vbrief lifecycle match the byte-state produced by running Case G and Case H separately.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the combined path completes, then the resulting AGENTS.md and migrated vbrief lifecycle match the byte-state produced by running Case G and Case H separately.",
+          "Traces": "https://github.com/deftai/directive/issues/1114"
+        }
+      },
+      {
+        "id": "story-1114-quickstart-combined-a3",
+        "title": "A contract test validates that QUICK-START.md documents the Case G+H combined remediation ordering.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "A contract test validates that QUICK-START.md documents the Case G+H combined remediation ordering.",
+          "Traces": "https://github.com/deftai/directive/issues/1114"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "QUICK-START.md",
+          "tests/content/test_quickstart_combined_remediation.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/content/test_quickstart_combined_remediation.py",
+          "uv run pytest tests/content/"
+        ],
+        "expected_outputs": [
+          "QUICK-START.md documents the Case G+H combined path",
+          "single-session big-jump remediation ordering",
+          "contract test for the joint condition"
+        ],
+        "depends_on": [],
+        "conflict_group": "upgrade-docs",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "standard"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1114",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1114: enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades",
+        "TrustLevel": "external"
+      }
+    ],
+    "updated": "2026-06-03T19:39:55Z"
+  }
+}
