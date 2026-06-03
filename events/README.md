@@ -33,7 +33,7 @@ data-file-convention check ([#710](https://github.com/deftai/directive/issues/71
   `session:interrupted` / `session:resumed`, `plan:approved`,
   `legacy:detected`). Emitted via `scripts/_events.py`, which manages 1:1
   session-pair invariants and a JSONL append-only log at
-  `<project_root>/.deft/events.jsonl`.
+  `<project_root>/.deft-cache/events.jsonl`.
 
 ## Emission
 
@@ -56,8 +56,11 @@ emission is appended as a single JSON line.
 `scripts/_events.py::emit(name, payload)` validates against the
 `category="behavioral"` subset of the registry, generates a sortable event id
 for pairing semantics, enforces required-payload contracts, and persists to
-`<project_root>/.deft/events.jsonl` (or a path injected via `log_path` /
-`DEFT_EVENT_LOG`). Use this helper when emitting behavioral events from
+`<project_root>/.deft-cache/events.jsonl` (or a path injected via `log_path` /
+`DEFT_EVENT_LOG`). The log lives under the already-gitignored `.deft-cache/`
+rather than `.deft/`, which is no longer blanket-gitignored now that
+`.deft/core/` is a committed payload (#11 / #1465). Use this helper when
+emitting behavioral events from
 skills (`python -m scripts._events emit ...`).
 
 ## Adding an event

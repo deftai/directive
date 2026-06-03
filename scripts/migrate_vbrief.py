@@ -112,7 +112,10 @@ _slug_fallback_id = slug_fallback_id
 # category boundaries: ``_emit_event`` (detection-bound) accepts any
 # registered event name; ``_emit_behavioral_event`` (this alias) only
 # accepts events whose registry entry carries ``category: "behavioral"``.
-from _events import emit as _emit_behavioral_event  # noqa: E402
+from _events import (  # noqa: E402
+    DEFAULT_EVENT_LOG as _DEFAULT_EVENT_LOG,
+    emit as _emit_behavioral_event,
+)
 from _vbrief_fidelity import (  # noqa: E402
     build_edges_from_tasks as _build_edges_from_tasks,
     build_requirements_narrative as _build_requirements_narrative,
@@ -1845,12 +1848,15 @@ def migrate(
         "PRD.md content (flagged: hand-edited)": [],
     }
 
-    # Pin the event log to ``<project_root>/.deft/events.jsonl`` so the
+    # Pin the event log to ``<project_root>/<DEFAULT_EVENT_LOG>`` so the
     # migrator's emissions stay scoped to the project being migrated --
     # without this, ``_resolve_log_path`` would fall back to the agent's
     # CWD and a test running ``migrate(tmp_path)`` from the repo root
-    # would write events into the deft repo's own ``.deft/`` directory.
-    _legacy_event_log = project_root / ".deft" / "events.jsonl"
+    # would write events into the deft repo's own log directory. The
+    # default path lives under the already-gitignored ``.deft-cache/``
+    # (relocated from ``.deft/`` in #1465) so the log never leaks as an
+    # untracked file in the migrated consumer.
+    _legacy_event_log = project_root / _DEFAULT_EVENT_LOG
 
     def _legacy_event_emitter(event_name: str, payload: dict) -> None:
         """Emit a ``legacy:detected`` framework event per captured section.
