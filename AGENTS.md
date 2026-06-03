@@ -84,7 +84,7 @@ When user input matches a trigger keyword, read the corresponding skill:
 - "review cycle" / "check reviews" / "run review cycle" → `skills/deft-directive-review-cycle/SKILL.md`
 - "swarm" / "parallel agents" / "run agents" → `skills/deft-directive-swarm/SKILL.md` — chains to `deft-directive-review-cycle` at Phase 5; Phase 0 is queue-driven (see N2 / #1142)
 - "decompose" / "story decomposition" / "swarm readiness" → `skills/deft-directive-decompose/SKILL.md` — converts phase/epic scopes into swarm-ready story vBRIEFs before swarm allocation.
-- "refinement" / "reprioritize" / "refine" → `skills/deft-directive-refinement/SKILL.md` — chains to `deft-directive-review-cycle` at exit; Phase 0 consults the triage cache first (see N1 / #1141)
+- "refinement" / "reprioritize" / "refine" / "triage" / "work the cache" / "pre-ingest" / "action menu" → skills/deft-directive-refinement/SKILL.md — chains to `deft-directive-review-cycle` at exit; Phase 0 consults the triage cache first (see N1 / #1141)
 - "triage <N>" / "triage issue" / "ingest issue" → `skills/deft-directive-refinement/SKILL.md` — canonical vBRIEF intake for GitHub issues (reclaims the bare 'triage' verb)
 - "build" / "implement" / "implement spec" → `skills/deft-directive-build/SKILL.md`
 - "cost" / "budget" / "pre-build cost" / "how much will this cost" → `skills/deft-directive-cost/SKILL.md`
@@ -297,7 +297,7 @@ Install-generated AGENTS.md uses deft/-prefixed paths.
 
 When the template is updated, run `task agents:refresh` to regenerate consumer-installed AGENTS.md from `templates/agents-entry.md` (see `## Template propagation discipline (#1309)` above).
 
-<!-- deft:managed-section v3 sha=9e336f8708f8 refreshed=2026-06-01T04:41:09Z session=1f6d8f8b17af -->
+<!-- deft:managed-section v3 sha=cda8c8663a0e refreshed=2026-06-03T22:35:31Z session=6ab268e87c9b -->
 # Deft — AI Development Framework
 
 Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md
@@ -370,7 +370,7 @@ When user input matches a trigger keyword, read the corresponding skill (paths a
 - "review cycle" / "check reviews" / "run review cycle" -> `.deft/core/skills/deft-directive-review-cycle/SKILL.md`
 - "swarm" / "parallel agents" / "run agents" -> `.deft/core/skills/deft-directive-swarm/SKILL.md`
 - "decompose" / "story decomposition" / "swarm readiness" -> `.deft/core/skills/deft-directive-decompose/SKILL.md`
-- "refinement" / "reprioritize" / "refine" -> `.deft/core/skills/deft-directive-refinement/SKILL.md`
+- "refinement" / "reprioritize" / "refine" / "triage" / "work the cache" / "pre-ingest" / "action menu" -> `.deft/core/skills/deft-directive-refinement/SKILL.md`
 - "triage <N>" / "triage issue" / "ingest issue" -> `.deft/core/skills/deft-directive-refinement/SKILL.md`
 - "build" / "implement" / "implement spec" -> `.deft/core/skills/deft-directive-build/SKILL.md`
 - "cost" / "budget" / "pre-build cost" / "how much will this cost" -> `.deft/core/skills/deft-directive-cost/SKILL.md`
