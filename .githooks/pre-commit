@@ -1,8 +1,10 @@
 #!/usr/bin/env sh
 # .githooks/pre-commit -- detection-bound branch-protection gate (#747).
 #
-# Activated by `git config core.hooksPath .githooks` (idempotent setup
-# performed by `task setup`). Verify with:
+# Activated by `git config core.hooksPath .githooks` -- idempotent setup
+# performed by `task setup` (the directive repo itself) OR by the deft
+# installer, which copies this hook to the consumer root .githooks/ and sets
+# core.hooksPath for vendored consumer projects (#1463). Verify with:
 #
 #     task verify:hooks-installed
 #
@@ -10,10 +12,31 @@
 # being on PATH. The Python script itself is stdlib-only so it does NOT
 # require `uv` or a virtualenv to be active.
 
-# Resolve repo root (this hook lives at .githooks/pre-commit).
+# Resolve repo root (this hook lives at <core.hooksPath>/pre-commit).
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [ -z "$REPO_ROOT" ]; then
     echo "deft pre-commit: unable to resolve repo root via 'git rev-parse'." >&2
+    exit 1
+fi
+
+# Layout-aware helper resolution (#1463). In the directive repo the gate
+# scripts live at $REPO_ROOT/scripts/; in a vendored consumer the framework
+# payload (and its scripts/) lives at $REPO_ROOT/.deft/core/ (canonical) or
+# $REPO_ROOT/deft/ (legacy). Because the installer copies this hook to the
+# consumer root .githooks/, it MUST locate the helpers relative to the install
+# root rather than assuming $REPO_ROOT/scripts/. Probe the known layouts and
+# use the first that resolves so the hook works in BOTH layouts.
+SCRIPTS_DIR=""
+for candidate in "$REPO_ROOT/scripts" "$REPO_ROOT/.deft/core/scripts" "$REPO_ROOT/deft/scripts"; do
+    if [ -f "$candidate/preflight_branch.py" ]; then
+        SCRIPTS_DIR="$candidate"
+        break
+    fi
+done
+if [ -z "$SCRIPTS_DIR" ]; then
+    echo "deft pre-commit: unable to locate the deft scripts directory." >&2
+    echo "  Looked in scripts/, .deft/core/scripts/, deft/scripts/ under $REPO_ROOT." >&2
+    echo "  Re-run the deft installer or 'task setup' to wire the hooks correctly." >&2
     exit 1
 fi
 
@@ -31,10 +54,10 @@ if [ -z "$PYTHON_BIN" ]; then
 fi
 
 # Step 1: branch-protection gate (#747).
-"$PYTHON_BIN" "$REPO_ROOT/scripts/preflight_branch.py" --project-root "$REPO_ROOT" || exit $?
+"$PYTHON_BIN" "$SCRIPTS_DIR/preflight_branch.py" --project-root "$REPO_ROOT" || exit $?
 
 # Step 2: PS 5.1 non-ASCII round-trip corruption gate (#798). Scans staged
 # files for U+FFFD, CP1252/CP437-as-UTF-8 mojibake, and unexpected BOM.
 # Three-state exit propagates: 0 allowed / 1 corruption blocked with diagnostic
 # / 2 config error. Recurrence chain documented in scripts/verify_encoding.py.
-exec "$PYTHON_BIN" "$REPO_ROOT/scripts/verify_encoding.py" --project-root "$REPO_ROOT" --staged
+exec "$PYTHON_BIN" "$SCRIPTS_DIR/verify_encoding.py" --project-root "$REPO_ROOT" --staged

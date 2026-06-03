@@ -39,19 +39,14 @@ tasks:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_branch.py" --project-root "{{.USER_WORKING_DIR}}" --allow-missing-project-definition
 
   hooks-installed:
-    desc: "Assert git core.hooksPath==.githooks (run `task setup` if this fails) (#747)."
+    desc: "Assert the deft git hooks are installed AND functional -- core.hooksPath set, hooks dir + pre-commit/pre-push present, and the gate scripts resolve in this layout (own-repo or vendored). Fails loud on the #1463 false-green (wired but non-functional). Run `task setup` / re-run the installer if this fails (#747, #1463)."
     dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # No sources:/generates: -- a cached cmds skip would mask a hooks dir /
+    # gate-script that was deleted after the last run.
     cmds:
-      # Inline POSIX-sh under go-task's mvdan/sh interpreter; cross-platform.
-      - |
-        configured=$(git config --get core.hooksPath || true)
-        if [ "$configured" = ".githooks" ]; then
-          echo "✓ core.hooksPath=.githooks"
-        else
-          echo "❌ hooks not installed; run task setup" >&2
-          echo "  (got core.hooksPath='$configured', expected '.githooks')" >&2
-          exit 1
-        fi
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_hooks_installed.py" --project-root "{{.USER_WORKING_DIR}}"
 
   encoding:
     desc: "Detect PS 5.1 non-ASCII round-trip corruption (#798). Scans tracked text files for U+FFFD, CP1252/CP437-as-UTF-8 mojibake, and unexpected BOM. Defaults to --all; pass --staged for the pre-commit invocation."

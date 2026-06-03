@@ -1,16 +1,37 @@
 #!/usr/bin/env sh
 # .githooks/pre-push -- detection-bound branch-protection gate (#747).
 #
-# Activated by `git config core.hooksPath .githooks` (idempotent setup
-# performed by `task setup`). Mirrors the pre-commit shape: pre-push
-# defends against the case where a user opted out at commit time (e.g.
-# DEFT_ALLOW_DEFAULT_BRANCH_COMMIT in a single shell) but still tries
-# to push to the default branch in a fresh shell. The same script runs
-# in both hooks so behavior stays consistent.
+# Activated by `git config core.hooksPath .githooks` -- idempotent setup
+# performed by `task setup` (the directive repo itself) OR by the deft
+# installer, which copies this hook to the consumer root .githooks/ and sets
+# core.hooksPath for vendored consumer projects (#1463). Mirrors the
+# pre-commit shape: pre-push defends against the case where a user opted out
+# at commit time (e.g. DEFT_ALLOW_DEFAULT_BRANCH_COMMIT in a single shell)
+# but still tries to push to the default branch in a fresh shell. The same
+# scripts run in both hooks so behavior stays consistent.
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 if [ -z "$REPO_ROOT" ]; then
     echo "deft pre-push: unable to resolve repo root via 'git rev-parse'." >&2
+    exit 1
+fi
+
+# Layout-aware helper resolution (#1463) -- see .githooks/pre-commit for the
+# rationale. The installer copies this hook to the consumer root .githooks/,
+# so the gate scripts must be located relative to the install root (own-repo
+# scripts/, canonical .deft/core/scripts/, or legacy deft/scripts/) rather
+# than assuming $REPO_ROOT/scripts/.
+SCRIPTS_DIR=""
+for candidate in "$REPO_ROOT/scripts" "$REPO_ROOT/.deft/core/scripts" "$REPO_ROOT/deft/scripts"; do
+    if [ -f "$candidate/preflight_branch.py" ]; then
+        SCRIPTS_DIR="$candidate"
+        break
+    fi
+done
+if [ -z "$SCRIPTS_DIR" ]; then
+    echo "deft pre-push: unable to locate the deft scripts directory." >&2
+    echo "  Looked in scripts/, .deft/core/scripts/, deft/scripts/ under $REPO_ROOT." >&2
+    echo "  Re-run the deft installer or 'task setup' to wire the hooks correctly." >&2
     exit 1
 fi
 
@@ -27,10 +48,10 @@ if [ -z "$PYTHON_BIN" ]; then
     fi
 fi
 
-"$PYTHON_BIN" "$REPO_ROOT/scripts/preflight_branch.py" --project-root "$REPO_ROOT" || exit $?
+"$PYTHON_BIN" "$SCRIPTS_DIR/preflight_branch.py" --project-root "$REPO_ROOT" || exit $?
 
 # Step 2: destructive-gh-verb gate (#1019). Reads per-ref stdin lines from
 # git pre-push (one line per ref: <local_ref> <local_oid> <remote_ref> <remote_oid>)
 # and refuses pushes touching the default branch (force-push or otherwise).
 # DEFT_ALLOW_DESTRUCTIVE_GH_VERBS=1 is the per-shell emergency bypass.
-exec "$PYTHON_BIN" "$REPO_ROOT/scripts/preflight_gh.py" --pre-push-stdin
+exec "$PYTHON_BIN" "$SCRIPTS_DIR/preflight_gh.py" --pre-push-stdin
