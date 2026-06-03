@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **`task verify:cache-fresh` is no longer slow on large triage caches (#1424)** -- when the active subscription used a `milestone {is-open: true}` rule, the cache-freshness gate re-fetched the open-milestones list from GitHub once per cached issue, so a 500-entry cache took ~92 seconds and the cost was paid on every session start and before every agent dispatch. The subscription filter now evaluates the rule set a single time across the whole cache, collapsing those N network round-trips to one and bringing the gate back under a second with identical results. Closes #1424.
+- **`deft-install` and `task relocate` no longer hide the team-shared `vbrief/.eval/slices.jsonl` and `README.md` behind a blanket gitignore (#1464)** -- both deposit rails used to write a blanket `vbrief/.eval/` line that contradicted the #1144/#1251 hybrid tracking policy and silently hid the tracked cohort records the bootstrap rail wants committed, so every fresh install / upgrade / relocate re-introduced the exact line `task triage:bootstrap` then warned about. The installer and relocator now deposit the selective per-file ignores (candidates / summary-history / scope-lifecycle / doctor-state) from a single shared source of truth, and an upgrade now HEALS a pre-existing blanket by stripping it instead of re-adding it. Per-machine `task doctor` throttle state (`doctor-state.json`) joins the ignore set across all three rails. Closes #1464. Closes #1452.
 
 ### Removed
 

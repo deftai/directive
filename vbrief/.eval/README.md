@@ -13,11 +13,12 @@ by git versus gitignored using a **hybrid policy** (#1144, child of #1119).
 | `summary-history.jsonl` | No -- **gitignored** | Operator-private observability for `task triage:summary` output time-series. Not load-bearing for any decision. |
 | `scope-lifecycle.jsonl` | No -- **gitignored** | Operator-private scope-lifecycle audit decisions (D1 / #1121). Each demote (`task scope:demote`) appends one entry including a `demote_meta` block (`was_promoted`, `original_promotion_decision_id`, `days_in_pending`, `demote_reason`, `demoted_from`). Per-operator stream; sharing would conflate operators' demote timing across the team. Lightweight metrics over this log are tracked separately at #1180. |
 | `decompositions/` | No -- **gitignored** | Temporary story-decomposition proposal drafts. These JSON drafts are local scratch artifacts, not vBRIEFs; generated child story vBRIEFs are created by `task scope:decompose` in lifecycle folders, defaulting to `vbrief/pending/`. |
+| `doctor-state.json` | No -- **gitignored** | Per-machine `task doctor` throttle state (last exit code + timestamps) persisted to gate the 24h/4h re-probe window (#1308 / #1464). Local to each clone; never committed. |
 
 The gitignore lines live in the repo-root `.gitignore` (`vbrief/.eval/candidates.jsonl`,
-`vbrief/.eval/summary-history.jsonl`, `vbrief/.eval/scope-lifecycle.jsonl`, and
-`vbrief/.eval/decompositions/`). All paths not listed above remain committed by
-default.
+`vbrief/.eval/summary-history.jsonl`, `vbrief/.eval/scope-lifecycle.jsonl`,
+`vbrief/.eval/decompositions/`, and `vbrief/.eval/doctor-state.json`). All paths
+not listed above remain committed by default.
 
 ## Fresh-clone regeneration
 
