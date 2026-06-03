@@ -7,7 +7,7 @@
     "id": "story-1474-deftcheck-consumer-scope",
     "title": "Scope consumer deft:check so it does not run framework self-tests",
     "status": "completed",
-    "planRef": "pending/2026-06-03-1474-deftcheck-runs-framework-self-tests-in-consumers-always-red.vbrief.json",
+    "planRef": "completed/2026-06-03-1474-deftcheck-runs-framework-self-tests-in-consumers-always-red.vbrief.json",
     "narratives": {
       "Description": "In a vendored consumer install, task deft:check delegates to the framework's own check and runs the framework pytest self-test suite under .deft/core/tests/, which fails by construction in any consumer checkout. This story scopes the consumer-facing check so a clean install reports green while genuine consumer-relevant failures still surface.",
       "ImplementationPlan": "Update the cmd/deft-install/deposit.go payload deposit module so the framework tests/ directory is excluded from the vendored .deft/core/ install and consumers never execute framework-repo-only self-tests.\nAdd a deposit_test.go regression test asserting the payload classifier omits framework-repo-only test files from the consumer deposit while keeping consumer-relevant validation.",

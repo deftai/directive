@@ -7,7 +7,7 @@
     "id": "story-1476-triage-stale-closed",
     "title": "Exclude upstream-closed issues from triage:queue when cached entries are TTL-fresh",
     "status": "completed",
-    "planRef": "pending/2026-06-03-1476-bugtriagecache-closed-upstream-issues-remain-in-triagequeue.vbrief.json",
+    "planRef": "completed/2026-06-03-1476-bugtriagecache-closed-upstream-issues-remain-in-triagequeue.vbrief.json",
     "narratives": {
       "Description": "task triage:queue ranks issues whose cached raw.json still says state=open even after the upstream GitHub issue closed, because cache:fetch-all defaults to state=open and never rewrites a closed entry within its TTL. This story makes the queue defensively skip or refresh stale candidates so a closed issue never surfaces as actionable untriaged work.",
       "ImplementationPlan": "Update the scripts/triage_queue.py load_cached_issues handler so a cached issue whose meta.json fetched_at predates the freshness window is re-resolved against scripts/preflight_cache.py before it enters the ranked queue.\nAdd a state-refresh path in scripts/_cache_fetch.py and scripts/cache.py so a previously-cached entry absent from the open-only enumeration is revisited and its raw.json rewritten to state=closed.\nAdd a regression test under tests/ that reproduces the #1322 shape and asserts the queue omits the closed candidate.",

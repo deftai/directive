@@ -38,7 +38,7 @@
         "title": "Issue #1478: deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)"
       },
       {
-        "uri": "active/2026-06-03-add-githooks-to-deft-core-guard-allowlist-and-refresh-the-de.vbrief.json",
+        "uri": "completed/2026-06-03-add-githooks-to-deft-core-guard-allowlist-and-refresh-the-de.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add .githooks/ to deft-core-guard allowlist and refresh the deposited guard",
         "TrustLevel": "internal"

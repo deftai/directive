@@ -102,13 +102,13 @@ Naively running `task scope:complete` (active -> completed) RE-BREAKS the D4 par
 Suggested labels: process, agent-experience. Blocked by #1485. Refs #1484.
 
 
-### After a swarm cohort's PRs merge, no cohort story vBRIEFs remain in ; each is in  with status . `[proposed]`
+### After a swarm cohort's PRs merge, no cohort story vBRIEFs remain in `vbrief/active/`; each is in `vbrief/completed/` with status `completed`. `[proposed]`
 
 ### The decompose-created epic parents are completed/closed once their children are complete. `[proposed]`
 
-### is green after the sweep (no D4 linkage regressions). `[proposed]`
+### `task vbrief:validate` is green after the sweep (no D4 linkage regressions). `[proposed]`
 
-### The  SKILL documents the completion sweep as a required Phase 6 step. `[proposed]`
+### The `deft-directive-swarm` SKILL documents the completion sweep as a required Phase 6 step. `[proposed]`
 
 ---
 

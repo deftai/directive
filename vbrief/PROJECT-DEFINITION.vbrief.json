@@ -2,7 +2,7 @@
   "vBRIEFInfo": {
     "version": "0.6",
     "description": "Project definition -- synthesized gestalt of the project.",
-    "updated": "2026-06-03T21:46:02Z"
+    "updated": "2026-06-03T22:01:07Z"
   },
   "plan": {
     "title": "PROJECT-DEFINITION",
@@ -9890,7 +9890,7 @@
               "title": "Issue #1114: enhancement(quick-start): combine Case G + Case H into one session for big-jump upgrades"
             },
             {
-              "uri": "active/2026-06-03-combine-quick-start-case-g-and-case-h-into-one-session-for-b.vbrief.json",
+              "uri": "completed/2026-06-03-combine-quick-start-case-g-and-case-h-into-one-session-for-b.vbrief.json",
               "type": "x-vbrief/plan",
               "title": "Combine QUICK-START Case G and Case H into one session for big-jump upgrades",
               "TrustLevel": "internal"
@@ -9912,7 +9912,7 @@
               "title": "Issue #1115: docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades"
             },
             {
-              "uri": "active/2026-06-03-add-a-big-jump-triage-entry-point-to-upgradingmd-for-multi-v.vbrief.json",
+              "uri": "completed/2026-06-03-add-a-big-jump-triage-entry-point-to-upgradingmd-for-multi-v.vbrief.json",
               "type": "x-vbrief/plan",
               "title": "Add a big-jump triage entry point to UPGRADING.md for multi-version upgrades",
               "TrustLevel": "internal"
@@ -10030,7 +10030,7 @@
               "title": "Issue #1420: triage:reject fails when 'triage-rejected' label does not exist on the repository"
             },
             {
-              "uri": "active/2026-06-03-make-triagereject-tolerate-a-missing-triage-rejected-label.vbrief.json",
+              "uri": "completed/2026-06-03-make-triagereject-tolerate-a-missing-triage-rejected-label.vbrief.json",
               "type": "x-vbrief/plan",
               "title": "Make triage:reject tolerate a missing triage-rejected label",
               "TrustLevel": "internal"
@@ -10270,7 +10270,7 @@
               "title": "Issue #1474: deft:check runs framework self-tests in consumers (always-red gate; 14 failed + 6 errors by construction)"
             },
             {
-              "uri": "active/2026-06-03-scope-consumer-deftcheck-so-it-does-not-run-framework-self-t.vbrief.json",
+              "uri": "completed/2026-06-03-scope-consumer-deftcheck-so-it-does-not-run-framework-self-t.vbrief.json",
               "type": "x-vbrief/plan",
               "title": "Scope consumer deft:check so it does not run framework self-tests",
               "TrustLevel": "internal"
@@ -10292,7 +10292,7 @@
               "title": "Issue #1475: task check: type-check parity with CI (run mypy over tests/, not just run.py)"
             },
             {
-              "uri": "active/2026-06-03-bring-task-check-mypy-scope-to-parity-with-ci-cover-tests.vbrief.json",
+              "uri": "completed/2026-06-03-bring-task-check-mypy-scope-to-parity-with-ci-cover-tests.vbrief.json",
               "type": "x-vbrief/plan",
               "title": "Bring task check mypy scope to parity with CI (cover tests/)",
               "TrustLevel": "internal"
@@ -10314,7 +10314,7 @@
               "title": "Issue #1476: bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh"
             },
             {
-              "uri": "active/2026-06-03-exclude-upstream-closed-issues-from-triagequeue-when-cached.vbrief.json",
+              "uri": "completed/2026-06-03-exclude-upstream-closed-issues-from-triagequeue-when-cached.vbrief.json",
               "type": "x-vbrief/plan",
               "title": "Exclude upstream-closed issues from triage:queue when cached entries are TTL-fresh",
               "TrustLevel": "internal"
@@ -10336,7 +10336,7 @@
               "title": "Issue #1477: Wired git hooks ship non-executable (mode 100644) -- silently inert on Unix consumers (follow-up to #1463)"
             },
             {
-              "uri": "active/2026-06-03-deposit-wired-git-hooks-with-mode-100755-so-they-fire-on-uni.vbrief.json",
+              "uri": "completed/2026-06-03-deposit-wired-git-hooks-with-mode-100755-so-they-fire-on-uni.vbrief.json",
               "type": "x-vbrief/plan",
               "title": "Deposit wired git hooks with mode 100755 so they fire on Unix consumers",
               "TrustLevel": "internal"
@@ -10358,7 +10358,7 @@
               "title": "Issue #1478: deft-core-guard allowlist omits .githooks/ -- blocks every consumer v0.40.0 upgrade PR (#1463 deposit vs #1430 guard out of sync)"
             },
             {
-              "uri": "active/2026-06-03-add-githooks-to-deft-core-guard-allowlist-and-refresh-the-de.vbrief.json",
+              "uri": "completed/2026-06-03-add-githooks-to-deft-core-guard-allowlist-and-refresh-the-de.vbrief.json",
               "type": "x-vbrief/plan",
               "title": "Add .githooks/ to deft-core-guard allowlist and refresh the deposited guard",
               "TrustLevel": "internal"

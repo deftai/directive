@@ -7,7 +7,7 @@
     "id": "story-1478-guard-githooks-allowlist",
     "title": "Add .githooks/ to deft-core-guard allowlist and refresh the deposited guard",
     "status": "completed",
-    "planRef": "pending/2026-06-03-1478-deft-core-guard-allowlist-omits-githooks-blocks-every-consum.vbrief.json",
+    "planRef": "completed/2026-06-03-1478-deft-core-guard-allowlist-omits-githooks-blocks-every-consum.vbrief.json",
     "narratives": {
       "Description": "v0.40.0 deft-core-guard rejects every consumer upgrade PR because its installer-managed allowlist omits .githooks/, even though the installer now deposits repo-root .githooks/pre-commit and .githooks/pre-push as part of the framework install. This story adds .githooks/ to the allowlist so a framework-only upgrade PR passes, and refreshes the deposited guard workflow on upgrade.",
       "ImplementationPlan": "Add a .githooks/ prefix matcher to the installerManagedMatchers() function in the cmd/deft-install/deposit.go module so both the deposited guard regex and the Go classifier exempt the hook deposit.\nRefresh the deposited deft-core-guard workflow on upgrade and add a deposit_test.go regression test asserting .githooks/pre-commit and .githooks/pre-push classify as installer-managed.",

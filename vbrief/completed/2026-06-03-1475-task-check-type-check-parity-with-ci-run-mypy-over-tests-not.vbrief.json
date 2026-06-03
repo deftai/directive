@@ -40,7 +40,7 @@
         "title": "Issue #1475: task check: type-check parity with CI (run mypy over tests/, not just run.py)"
       },
       {
-        "uri": "active/2026-06-03-bring-task-check-mypy-scope-to-parity-with-ci-cover-tests.vbrief.json",
+        "uri": "completed/2026-06-03-bring-task-check-mypy-scope-to-parity-with-ci-cover-tests.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Bring task check mypy scope to parity with CI (cover tests/)",
         "TrustLevel": "internal"

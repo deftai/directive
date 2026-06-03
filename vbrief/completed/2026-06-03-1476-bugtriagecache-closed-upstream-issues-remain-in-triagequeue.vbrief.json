@@ -48,7 +48,7 @@
         "title": "Issue #1476: bug(triage,cache): closed upstream issues remain in triage:queue when cached open entries are TTL-fresh"
       },
       {
-        "uri": "active/2026-06-03-exclude-upstream-closed-issues-from-triagequeue-when-cached.vbrief.json",
+        "uri": "completed/2026-06-03-exclude-upstream-closed-issues-from-triagequeue-when-cached.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Exclude upstream-closed issues from triage:queue when cached entries are TTL-fresh",
         "TrustLevel": "internal"

@@ -7,7 +7,7 @@
     "id": "story-1420-triage-reject-missing-label",
     "title": "Make triage:reject tolerate a missing triage-rejected label",
     "status": "completed",
-    "planRef": "pending/2026-06-03-1420-triagereject-fails-when-triage-rejected-label-does-not-exist.vbrief.json",
+    "planRef": "completed/2026-06-03-1420-triagereject-fails-when-triage-rejected-label-does-not-exist.vbrief.json",
     "narratives": {
       "Description": "task triage:reject unconditionally runs gh issue edit --add-label triage-rejected after closing the issue, and when that label does not exist on the repository the command fails and rolls back the whole reject action even though the issue was already closed. This story makes the reject flow ensure the required triage labels exist or tolerate their absence so a missing label never rolls back a successful decision.",
       "ImplementationPlan": "Update the reject() function in the scripts/triage_actions.py module so the hardcoded REJECTED_LABEL is created when missing or its absence is handled gracefully without rolling back the close-with-reason.\nAdd a test under tests/ that simulates a repository without the triage-rejected label and asserts triage:reject still closes the issue and records the decision.",

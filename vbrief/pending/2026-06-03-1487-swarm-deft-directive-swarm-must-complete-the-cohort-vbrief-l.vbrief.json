@@ -13,7 +13,7 @@
     },
     "items": [
       {
-        "title": "After a swarm cohort's PRs merge, no cohort story vBRIEFs remain in ; each is in  with status .",
+        "title": "After a swarm cohort's PRs merge, no cohort story vBRIEFs remain in `vbrief/active/`; each is in `vbrief/completed/` with status `completed`.",
         "status": "proposed"
       },
       {
@@ -21,11 +21,11 @@
         "status": "proposed"
       },
       {
-        "title": "is green after the sweep (no D4 linkage regressions).",
+        "title": "`task vbrief:validate` is green after the sweep (no D4 linkage regressions).",
         "status": "proposed"
       },
       {
-        "title": "The  SKILL documents the completion sweep as a required Phase 6 step.",
+        "title": "The `deft-directive-swarm` SKILL documents the completion sweep as a required Phase 6 step.",
         "status": "proposed"
       }
     ],

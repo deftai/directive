@@ -7,7 +7,7 @@
     "id": "story-1475-mypy-parity",
     "title": "Bring task check mypy scope to parity with CI (cover tests/)",
     "status": "completed",
-    "planRef": "pending/2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not.vbrief.json",
+    "planRef": "completed/2026-06-03-1475-task-check-type-check-parity-with-ci-run-mypy-over-tests-not.vbrief.json",
     "narratives": {
       "Description": "Local task check runs mypy only over run.py, while CI runs mypy over tests/, so a type error under tests/ ships green locally and reddens master after merge. This story expands the local type-check gate to match the CI target set and makes the broader scope fail task check rather than advise.",
       "ImplementationPlan": "Update the core:lint task in the tasks/core.yml file so the mypy invocation covers the same target set as CI, including the tests/ tree, sharing configuration through the pyproject.toml mypy module settings.\nAdd a test under tests/cli asserting a deliberately introduced type error under tests/ causes the local lint gate to fail with a non-zero exit.",
