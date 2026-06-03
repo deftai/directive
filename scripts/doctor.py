@@ -1154,21 +1154,36 @@ def read_yn(prompt_text: str, default: bool = False) -> bool:
         return default
 
 
-# Minimal stub for _agents_refresh_plan so the AGENTS.md freshness check
-# (always executed unless early marker skip) does not raise NameError and
-# produce a "probe failed -- NameError" warning on every doctor run.
-# The real (large) implementation and its 10+ helper deps live in run.py;
-# this stub returns a benign state that the existing try/except in
-# _run_agents_md_freshness_check will turn into a warning (acceptable
-# until shared-module extraction). This closes the remaining "undefined"
-# surface from the doctor extraction.
+def _load_agents_md_module():
+    """Lazy-import the shared ``scripts/_agents_md`` helpers (#1389).
+
+    ``get_script_dir()`` already returns the ``scripts/`` directory holding
+    the sibling ``_agents_md.py``, so mirror ``_load_doctor_state_module``
+    and insert it on ``sys.path`` before importing. The freshness probe can
+    then share ``run``'s exact managed-section verdict logic instead of the
+    interim stub that always reported ``unreadable``.
+    """
+    scripts_dir = get_script_dir()
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    import _agents_md  # type: ignore[import-not-found]
+    return _agents_md
+
+
 def _agents_refresh_plan(project_root: Path) -> dict:
-    """Stub -- see docstring above."""
-    return {
-        "state": "unreadable",
-        "path": str(project_root / "AGENTS.md"),
-        "error": "agents helpers not fully ported to scripts/doctor.py (interim)",
-    }
+    """Compute the real AGENTS.md managed-section freshness verdict (#1389).
+
+    Delegates to the shared, pure ``scripts/_agents_md._agents_refresh_plan``
+    -- the same implementation ``run`` uses -- so a consumer whose managed
+    section is present, readable and current reports ``state == "current"``
+    (no freshness warning) instead of the previous interim stub that
+    unconditionally returned ``{"state": "unreadable"}`` and produced a
+    spurious warning on every ``task doctor`` run. Genuinely stale sections
+    report ``stale`` (the freshness check then points the operator at
+    ``task agents:refresh``); a genuinely unreadable / template-missing
+    state still surfaces a warning.
+    """
+    return _load_agents_md_module()._agents_refresh_plan(project_root)
 
 
 def _now_utc() -> datetime:

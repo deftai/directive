@@ -651,3 +651,144 @@ def test_classify_taskfile_include_strips_utf8_bom(doctor_module, tmp_path):
     target.write_bytes(b"\xef\xbb\xbf" + canonical.encode("utf-8"))
 
     assert doctor_module._classify_taskfile_include(tmp_path) == "ok"
+
+
+# ---------------------------------------------------------------------------
+# #1389 AGENTS.md managed-section freshness verdict (shared _agents_md module)
+# ---------------------------------------------------------------------------
+#
+# Before #1389, scripts/doctor.py::_agents_refresh_plan was an interim stub
+# that unconditionally returned ``{"state": "unreadable"}`` so
+# ``_run_agents_md_freshness_check`` emitted a spurious AGENTS.md-freshness
+# warning on EVERY consumer ``task doctor`` run -- even when the managed
+# section was present, readable and fresh. The fix extracted the
+# managed-section / refresh-plan helpers into the pure shared module
+# ``scripts/_agents_md.py`` and wired doctor's plan to it, so the verdict is
+# now a genuine fresh / stale / unreadable computation. These tests pin all
+# three states plus the regression assertion that the stub is gone.
+
+_FRESH_TEMPLATE = (
+    "<!-- deft:managed-section v3 -->\n"
+    "# Deft\n"
+    "Body\n"
+    "<!-- /deft:managed-section -->\n"
+)
+
+
+def _patch_shared_template(doctor_module, monkeypatch, template=_FRESH_TEMPLATE):
+    """Patch the shared ``_agents_md`` template reader doctor's plan resolves through.
+
+    doctor's ``_agents_refresh_plan`` delegates to the shared
+    ``scripts/_agents_md`` module; the plan reads the canonical template via
+    that module's ``_read_agents_template``, so the patch MUST target the
+    loaded shared module (not ``doctor_module``) to control the rendered
+    baseline the verdict compares against.
+    """
+    agents_md = doctor_module._load_agents_md_module()
+    monkeypatch.setattr(agents_md, "_read_agents_template", lambda: template)
+    return agents_md
+
+
+def _collect_freshness(doctor_module, project_root):
+    """Run ``_run_agents_md_freshness_check`` capturing every emitted surface."""
+    msgs: dict = {"success": [], "warn": [], "info": [], "findings": []}
+    doctor_module._run_agents_md_freshness_check(
+        project_root,
+        emit_success=lambda m: msgs["success"].append(m),
+        emit_warn=lambda m: msgs["warn"].append(m),
+        emit_info=lambda m: msgs["info"].append(m),
+        add_finding=lambda severity, message, **extras: msgs["findings"].append(
+            {"severity": severity, "message": message, **extras}
+        ),
+    )
+    return msgs
+
+
+def test_agents_refresh_plan_not_hardcoded_unreadable(
+    doctor_module, tmp_path, monkeypatch
+):
+    """Regression for the #1389 stub: a fresh managed section -> 'current', not 'unreadable'.
+
+    The interim stub returned ``{"state": "unreadable"}`` regardless of the
+    on-disk AGENTS.md. The real plan (delegated to ``scripts/_agents_md``)
+    must compute ``current`` for a byte-current managed section.
+    """
+    _patch_shared_template(doctor_module, monkeypatch)
+    (tmp_path / "AGENTS.md").write_text(_FRESH_TEMPLATE, encoding="utf-8")
+
+    plan = doctor_module._agents_refresh_plan(tmp_path)
+
+    assert plan["state"] == "current", (
+        "doctor._agents_refresh_plan must compute a real verdict via the "
+        "shared scripts/_agents_md module, not the interim stub that always "
+        f"returned 'unreadable'. Got {plan!r}."
+    )
+    assert plan["state"] != "unreadable"
+
+
+def test_freshness_fresh_readable_emits_no_warning(
+    doctor_module, tmp_path, monkeypatch
+):
+    """fresh + readable managed section -> success line, NO freshness warning (#1389)."""
+    _patch_shared_template(doctor_module, monkeypatch)
+    (tmp_path / "AGENTS.md").write_text(_FRESH_TEMPLATE, encoding="utf-8")
+
+    msgs = _collect_freshness(doctor_module, tmp_path)
+
+    assert msgs["warn"] == [], (
+        "A consumer whose AGENTS.md managed section is present, readable and "
+        "fresh MUST NOT see an AGENTS.md-freshness warning (#1389). Warnings: "
+        f"{msgs['warn']}"
+    )
+    assert any("current" in s for s in msgs["success"]), (
+        f"Expected a 'current' success line; got {msgs['success']}"
+    )
+    assert not any(f["severity"] == "warning" for f in msgs["findings"])
+
+
+def test_freshness_stale_points_at_agents_refresh(
+    doctor_module, tmp_path, monkeypatch
+):
+    """genuinely stale managed section -> warning pointing at `task agents:refresh` (#1389)."""
+    _patch_shared_template(doctor_module, monkeypatch)
+    (tmp_path / "AGENTS.md").write_text(
+        "<!-- deft:managed-section v3 -->\nOLD STALE BODY\n<!-- /deft:managed-section -->\n",
+        encoding="utf-8",
+    )
+
+    msgs = _collect_freshness(doctor_module, tmp_path)
+
+    assert any("task agents:refresh" in w for w in msgs["warn"]), (
+        "A stale managed section MUST point the operator at "
+        f"`task agents:refresh`. Warnings: {msgs['warn']}"
+    )
+    warning_findings = [f for f in msgs["findings"] if f["severity"] == "warning"]
+    assert warning_findings and warning_findings[0].get("status") == "stale", (
+        f"Expected a stale warning finding; got {msgs['findings']}"
+    )
+
+
+def test_freshness_unreadable_still_warns(doctor_module, tmp_path, monkeypatch):
+    """genuinely unreadable verdict -> warning still surfaces (#1389).
+
+    A v3 marker is present so the check's gate (``_has_v3_managed_marker``)
+    passes; the plan reports a genuinely-unreadable verdict (e.g. AGENTS.md
+    became unreadable between the gate read and the plan read). The check
+    MUST still warn so a real problem is never silently swallowed.
+    """
+    (tmp_path / "AGENTS.md").write_text(_FRESH_TEMPLATE, encoding="utf-8")
+    monkeypatch.setattr(
+        doctor_module,
+        "_agents_refresh_plan",
+        lambda project_root: {
+            "state": "unreadable",
+            "path": str(project_root / "AGENTS.md"),
+        },
+    )
+
+    msgs = _collect_freshness(doctor_module, tmp_path)
+
+    assert msgs["warn"], (
+        "A genuinely unreadable AGENTS.md MUST still surface a warning (#1389)."
+    )
+    assert any(f["severity"] == "warning" for f in msgs["findings"])

@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`task doctor` no longer emits a spurious AGENTS.md-freshness warning (#1389)** -- the freshness check now computes a real fresh/stale/unreadable verdict by comparing the installed managed section against the current framework template, instead of an interim stub that always reported `unreadable`. A consumer whose `AGENTS.md` managed section is present, readable, and current now sees no warning on `task doctor`; a genuinely stale section still points at `task agents:refresh`, and a genuinely unreadable or missing section still warns. Closes #1389.
 
 ### Removed
 
