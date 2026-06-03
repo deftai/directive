@@ -266,8 +266,14 @@ func TestWriteConsumerGitHooks_HealsNonExecutableExistingHook(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := WriteConsumerGitHooks(newGithooksWizard(), proj, deftDir); err != nil {
+	changed, err := WriteConsumerGitHooks(newGithooksWizard(), proj, deftDir)
+	if err != nil {
 		t.Fatalf("WriteConsumerGitHooks: %v", err)
+	}
+	// A heal-only run (content already current, exec bit repaired) must report
+	// changed=true so the consumer sees confirmation rather than a no-op (#1477).
+	if !changed {
+		t.Error("expected changed=true when a non-executable hook is healed")
 	}
 	for _, name := range []string{"pre-commit", "pre-push"} {
 		info, err := os.Stat(filepath.Join(dstDir, name))

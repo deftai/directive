@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 )
 
 // ---------------------------------------------------------------------------
@@ -116,6 +117,7 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 	}
 
 	deposited := false
+	healed := false           // a present hook was non-executable and the chmod repaired it (#1477)
 	var hookRelPaths []string // POSIX repo-relative paths of hooks present on disk
 	for _, name := range hookFilenames {
 		data, err := os.ReadFile(filepath.Join(srcDir, name))
@@ -139,6 +141,17 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 				return false, fmt.Errorf("could not write hook %s: %w", name, err)
 			}
 			deposited = true
+		}
+		// Detect a non-executable hook BEFORE the heal so the caller can report
+		// it -- otherwise a byte-identical 0o644 hook (the precise #1477 bug state
+		// for existing consumers) is silently repaired and the run reports
+		// "already wired -- skipping". The exec bit is meaningless on Windows
+		// (Stat reports no 0o111 bits there), so the probe is POSIX-only to avoid
+		// a spurious heal on every Windows re-run.
+		if runtime.GOOS != "windows" {
+			if info, serr := os.Stat(dst); serr == nil && info.Mode().Perm()&0o111 == 0 {
+				healed = true
+			}
 		}
 		// Enforce the executable bit even on a byte-identical re-deposit:
 		// os.WriteFile applies its perm ONLY when CREATING a file (an O_TRUNC
@@ -174,6 +187,14 @@ func WriteConsumerGitHooks(w *Wizard, projectDir, deftDir string) (bool, error) 
 
 	if deposited || hooksWired {
 		w.printf("✓ git hooks wired: %s/ deposited and core.hooksPath=%s (#1463 branch gate active).\n", consumerHooksDirName, consumerHooksDirName)
+		return true, nil
+	}
+	if healed {
+		// Content was already current but a hook had lost its exec bit; the
+		// chmod above repaired it. Surface the heal rather than reporting a
+		// no-op so a consumer who re-ran the installer to fix dead hooks sees
+		// confirmation (#1477).
+		w.printf("✓ git hooks healed: marked %s/ hooks executable (mode 100755) (#1477).\n", consumerHooksDirName)
 		return true, nil
 	}
 	w.printf("git hooks already wired (%s/ + core.hooksPath) — skipping.\n", consumerHooksDirName)
