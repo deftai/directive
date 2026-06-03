@@ -50,7 +50,7 @@
         "title": "Issue #1115: docs(UPGRADING): add big-jump triage / entry point for multi-version upgrades"
       },
       {
-        "uri": "pending/2026-06-03-add-a-big-jump-triage-entry-point-to-upgradingmd-for-multi-v.vbrief.json",
+        "uri": "active/2026-06-03-add-a-big-jump-triage-entry-point-to-upgradingmd-for-multi-v.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add a big-jump triage entry point to UPGRADING.md for multi-version upgrades",
         "TrustLevel": "internal"

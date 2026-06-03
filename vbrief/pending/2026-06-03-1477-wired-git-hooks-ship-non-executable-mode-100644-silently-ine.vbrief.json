@@ -37,7 +37,7 @@
         "title": "Issue #1477: Wired git hooks ship non-executable (mode 100644) -- silently inert on Unix consumers (follow-up to #1463)"
       },
       {
-        "uri": "pending/2026-06-03-deposit-wired-git-hooks-with-mode-100755-so-they-fire-on-uni.vbrief.json",
+        "uri": "active/2026-06-03-deposit-wired-git-hooks-with-mode-100755-so-they-fire-on-uni.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Deposit wired git hooks with mode 100755 so they fire on Unix consumers",
         "TrustLevel": "internal"
