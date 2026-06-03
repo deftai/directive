@@ -168,8 +168,8 @@ func main() {
 	effectiveBranch := resolveBranch(*branch, defaultBranch)
 
 	nonInt := *yes || *nonInteractive
-	// --force and --allow-dirty are synonyms: either escapes the #1453
-	// --require-clean refusal of a dirty working tree on --upgrade.
+	// --force and --allow-dirty are synonyms: either bypasses the #1458
+	// default dirty-tree refusal of a dirty working tree on --upgrade.
 	forceDirty := *force || *allowDirty
 	code := install(*debug, effectiveBranch, *legacyLayout, nonInt, *upgrade, *repoRoot, *jsonOut, *requireClean, forceDirty)
 	if runtime.GOOS == "windows" && !nonInt {
@@ -181,8 +181,9 @@ func main() {
 }
 
 // install runs the full install/update workflow and returns an exit code.
-// requireClean / force carry the #1453 commit-hygiene flag state
-// (--require-clean and --force / --allow-dirty respectively).
+// force carries the #1458 dirty-tree bypass (--force / --allow-dirty); a dirty
+// working tree refuses an --upgrade by default and only force bypasses it.
+// requireClean is a deprecated no-op alias kept for back-compat (#1458).
 func install(debug bool, branch string, legacyLayout bool, nonInteractive, upgrade bool, repoRoot string, jsonOut, requireClean, force bool) int {
 	if debug {
 		fmt.Printf("[debug] OS=%s ARCH=%s\n", runtime.GOOS, runtime.GOARCH)
