@@ -15,6 +15,7 @@ Refs https://github.com/deftai/directive/issues/1475.
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -34,13 +35,31 @@ def _mypy_invocations(text: str) -> list[str]:
     ]
 
 
+def _targets_tests_tree(invocation: str) -> bool:
+    """Return True only when `tests` is a positional mypy target.
+
+    Guards against a loose substring match: ``tests`` appearing as the value of
+    a flag (e.g. ``--exclude tests/``) or anywhere other than a positional
+    argument must NOT count as covering the tests/ tree.
+    """
+    after_mypy = invocation.split(" mypy ", 1)[-1] if " mypy " in invocation else ""
+    tokens = after_mypy.split()
+    for index, token in enumerate(tokens):
+        if token.startswith("-"):
+            continue
+        previous = tokens[index - 1] if index > 0 else ""
+        if token.rstrip("/") == "tests" and not previous.startswith("-"):
+            return True
+    return False
+
+
 def test_core_lint_mypy_invocation_covers_tests_tree() -> None:
     """core:lint must run mypy over the tests/ tree to match CI (#1475)."""
     invocations = _mypy_invocations(CORE_YML.read_text(encoding="utf-8"))
     assert invocations, "core.yml must invoke mypy in the lint task"
-    assert any("tests" in inv for inv in invocations), (
-        "core:lint mypy invocation must cover the tests/ tree for CI parity "
-        f"(#1475); got: {invocations}"
+    assert any(_targets_tests_tree(inv) for inv in invocations), (
+        "core:lint mypy invocation must pass tests/ as a positional target for "
+        f"CI parity (#1475); got: {invocations}"
     )
 
 
@@ -90,15 +109,34 @@ def test_mypy_fails_on_tests_type_error(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    proc = subprocess.run(
-        [
+    # Run mypy the way the gate does -- `uv run mypy` against the framework
+    # project -- so the behavioral proof exercises the same interpreter and
+    # mypy version tasks/core.yml selects. Fall back to the current
+    # interpreter's mypy module when uv is not on PATH so the test still runs
+    # in a bare environment.
+    uv_bin = shutil.which("uv")
+    if uv_bin is not None:
+        mypy_cmd = [
+            uv_bin,
+            "--project",
+            str(REPO_ROOT),
+            "run",
+            "mypy",
+            "--config-file",
+            str(PYPROJECT),
+            str(pkg),
+        ]
+    else:  # fallback when uv is not on PATH
+        mypy_cmd = [
             sys.executable,
             "-m",
             "mypy",
             "--config-file",
             str(PYPROJECT),
             str(pkg),
-        ],
+        ]
+    proc = subprocess.run(
+        mypy_cmd,
         capture_output=True,
         text=True,
         encoding="utf-8",
