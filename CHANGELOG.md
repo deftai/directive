@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- **`task triage:queue` no longer ranks upstream-closed issues as actionable work (#1476)** -- because `task cache:fetch-all` defaults to `--state=open`, an issue that closed upstream was never re-fetched and its cached entry kept saying `open` for the full 7-day TTL, so the queue kept recommending work the maintainer had already finished. A new `task cache:fetch-all -- --refresh-closed` mode revisits cached-open entries that dropped out of the open enumeration and rewrites the closed ones to `state=closed`, and `triage:queue` gained an opt-in defensive stale-state check so a closed issue stops surfacing as untriaged work. Closes #1476.
+- **`task triage:reject` no longer fails when the `triage-rejected` label is missing (#1420)** -- the reject flow applied the `triage-rejected` label after closing the issue, and on a repository without that label the command failed and rolled the whole decision back even though the issue had already been closed with a reason. The label is now auto-created when missing (and tolerated with a warning if it still cannot be applied), so a successful close is never undone by a missing label; only a failed close still rolls back. Closes #1420.
 
 ### Removed
 

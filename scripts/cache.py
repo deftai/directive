@@ -22,8 +22,9 @@ Quota (#947): pre-write LRU eviction enforces ``DEFT_CACHE_MAX_BYTES`` /
 ``DEFT_CACHE_MAX_ENTRIES`` (defaults 100 MB / 10,000); breach -> exit 3.
 
 Rate limit + idempotency owned by :mod:`_cache_fetch`; schema validation
-by :mod:`_cache_validate`; quota by :mod:`_cache_quota`. The split keeps
-this module under the deft 1000-line MUST limit.
+by :mod:`_cache_validate`; quota by :mod:`_cache_quota`; the #1476
+refresh-closed reconciliation by :mod:`_cache_refresh`. Each cache concern
+lives in its own module per the deft file-size discipline.
 """
 
 from __future__ import annotations
@@ -48,6 +49,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _cache_fetch import (  # noqa: E402  -- intentional sys.path tweak
     CacheFetchError,
     FetchAllReport,
+    StateRefreshReport,
     run_fetch_all,
 )
 from _cache_quota import (  # noqa: E402
@@ -60,6 +62,10 @@ from _cache_quota import (  # noqa: E402
     resolve_caps,
     scan_usage,
 )
+
+# #1476 refresh-closed path; lazily imports ``cache`` at call time so this
+# top-level import does not create a cycle.
+from _cache_refresh import cache_refresh_closed  # noqa: E402
 from _cache_validate import (  # noqa: E402
     CacheValidationError,
     validate_meta as _validate_meta_against_sources,
@@ -92,6 +98,7 @@ __all__ = [
     "PutResult",
     "SCANNER_VERSION",
     "SOURCE_TTL_SECONDS",
+    "StateRefreshReport",
     "audit_path",
     "cache_fetch_all",
     "cache_get",
@@ -99,6 +106,7 @@ __all__ = [
     "cache_prune",
     "cache_prune_to_cap",
     "cache_put",
+    "cache_refresh_closed",
     "entry_dir",
     "main",
     "resolve_caps",
@@ -612,6 +620,10 @@ def cache_fetch_all(
     )
 
 
+# refresh-closed (#1476): ``cache_refresh_closed`` is re-exported from
+# :mod:`_cache_refresh` (imported above).
+
+
 # ---------------------------------------------------------------------------
 # prune
 # ---------------------------------------------------------------------------
@@ -831,6 +843,16 @@ def _build_parser() -> argparse.ArgumentParser:
     p_fa.add_argument("--ttl-seconds", type=int, default=None)
     p_fa.add_argument("--state", default="open")
     p_fa.add_argument("--limit", type=int, default=1000)
+    p_fa.add_argument(
+        "--refresh-closed",
+        action="store_true",
+        help=(
+            "After populating, revisit cached-open entries that are no "
+            "longer in the open enumeration and rewrite any that closed "
+            "upstream to state=closed (#1476). Adds one single-issue REST "
+            "read per closed-upstream candidate."
+        ),
+    )
 
     p_pr = sub.add_parser("prune", help="Drop entries older than the threshold.")
     p_pr.add_argument("--older-than-days", type=int, default=DEFAULT_PRUNE_OLDER_THAN_DAYS)
@@ -937,7 +959,22 @@ def _cmd_fetch_all(args: argparse.Namespace) -> int:
         limit=args.limit,
     )
     sys.stdout.write(report.to_json() + "\n")
-    return 0 if report.failed == 0 else 1
+    rc = 0 if report.failed == 0 else 1
+    # #1476: opt-in state reconciliation so a closed-upstream issue whose
+    # cached entry is still TTL-fresh is rewritten to state=closed and
+    # stops surfacing in triage:queue.
+    if getattr(args, "refresh_closed", False):
+        refresh = cache_refresh_closed(
+            source=args.source,
+            repo=args.repo,
+            ttl_seconds=args.ttl_seconds,
+            delay_ms=args.delay_ms,
+            limit=args.limit,
+        )
+        sys.stdout.write(refresh.to_json() + "\n")
+        if refresh.refresh_failed:
+            rc = 1
+    return rc
 
 
 def _cmd_prune(args: argparse.Namespace) -> int:

@@ -49,7 +49,7 @@ from __future__ import annotations
 import contextlib
 import json
 import sys
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -95,6 +95,16 @@ try:  # pragma: no cover -- exercised once #1132 lands.
     import slice_record  # type: ignore[import-not-found]
 except ImportError:  # pragma: no cover
     slice_record = None  # type: ignore[assignment]
+
+# Optional dep: cache-freshness predicate (#1127 / #1476). Supplies the
+# shared ``is_fetched_at_stale`` window used by the defensive stale-state
+# re-resolution in :func:`load_cached_issues`. When absent the defensive
+# path is disabled (entries are treated as fresh) so the queue still
+# walks the cache on a partial / pre-#1127 checkout.
+try:  # pragma: no cover -- preflight_cache is a sibling in this repo.
+    import preflight_cache  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover
+    preflight_cache = None  # type: ignore[assignment]
 
 
 # ---------------------------------------------------------------------------
@@ -398,12 +408,72 @@ def repo_cache_path(
     return cache_root_for(project_root) / source / owner / name
 
 
+def _read_meta_fetched_at(entry_dir: Path) -> str | None:
+    """Return the sibling ``meta.json``'s ``fetched_at`` string, or ``None``.
+
+    Used by the #1476 defensive stale-state path to date a cached entry
+    without importing the cache layer's validator (pure read).
+    """
+    meta_path = entry_dir / "meta.json"
+    if not meta_path.is_file():
+        return None
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not isinstance(meta, dict):
+        return None
+    fetched = meta.get("fetched_at")
+    return fetched if isinstance(fetched, str) else None
+
+
+def _entry_is_stale(
+    entry_dir: Path,
+    *,
+    max_age_hours: int | None,
+    now: datetime | None,
+) -> bool:
+    """True when ``entry_dir``'s cached ``fetched_at`` is past the freshness window.
+
+    Delegates the window resolution to :func:`preflight_cache.is_fetched_at_stale`
+    so #1127 / #1476 share one definition. When :mod:`preflight_cache` is
+    not importable the defensive path is disabled (returns ``False``) so
+    the queue never mass-re-resolves on a partial checkout.
+    """
+    if preflight_cache is None:
+        return False
+    fetched_at = _read_meta_fetched_at(entry_dir)
+    return preflight_cache.is_fetched_at_stale(
+        fetched_at, max_age_hours=max_age_hours, now=now
+    )
+
+
+def _resolve_live_state(
+    state_resolver: Callable[[str, int], str | None],
+    repo: str,
+    number: int,
+) -> str | None:
+    """Call ``state_resolver`` and normalise its result to a lowercase state.
+
+    A resolver failure returns ``None`` (unknown) so a transient network
+    error never drops a genuinely-open entry from the queue.
+    """
+    try:
+        result = state_resolver(repo, number)
+    except Exception:  # noqa: BLE001 -- resolver failure must not drop the entry
+        return None
+    return result.lower() if isinstance(result, str) else None
+
+
 def load_cached_issues(
     repo: str,
     *,
     project_root: Path | None = None,
     source: str = CACHE_SOURCE_GITHUB_ISSUE,
     include_closed: bool = False,
+    state_resolver: Callable[[str, int], str | None] | None = None,
+    max_age_hours: int | None = None,
+    now: datetime | None = None,
 ) -> list[dict[str, Any]]:
     """Walk the cache and return one dict per cached issue.
 
@@ -415,6 +485,19 @@ def load_cached_issues(
     Closed issues are excluded by default; pass ``include_closed=True``
     to surface them too (used by :func:`audit` callers that need full
     history).
+
+    Defensive stale-state handling (#1476): ``cache:fetch-all`` defaults
+    to ``state=open`` and never rewrites a cached entry that closed
+    upstream within its TTL, so a closed issue can keep saying
+    ``state=open`` on disk and surface as actionable ``triage:queue``
+    work (the #1322 shape). When an optional ``state_resolver`` callable
+    is supplied, a cached-open entry whose ``meta.json`` ``fetched_at``
+    is older than the freshness window (``max_age_hours`` / the
+    ``DEFT_CACHE_MAX_AGE_HOURS`` env / 24h default) is re-resolved
+    against it; a ``closed`` result is honoured so the entry is excluded
+    (unless ``include_closed``). The resolver is OFF by default -- the
+    cache-side reconciliation (``cache:fetch-all --refresh-closed``) is
+    the primary fix and this is the read-side belt-and-suspenders.
     """
     base = repo_cache_path(repo, project_root=project_root, source=source)
     if not base.is_dir():
@@ -445,6 +528,15 @@ def load_cached_issues(
         # writer migration still surfaces open issues.
         state_raw = payload.get("state") or "open"
         state = state_raw.lower() if isinstance(state_raw, str) else "open"
+        # #1476 defensive stale-state re-resolution (opt-in via state_resolver).
+        if (
+            state == "open"
+            and state_resolver is not None
+            and _entry_is_stale(entry, max_age_hours=max_age_hours, now=now)
+        ):
+            resolved = _resolve_live_state(state_resolver, repo, int(n))
+            if resolved is not None:
+                state = resolved
         if state != "open" and not include_closed:
             continue
         title = payload.get("title") or ""
