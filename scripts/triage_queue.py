@@ -49,7 +49,7 @@ from __future__ import annotations
 import contextlib
 import json
 import sys
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -218,7 +218,7 @@ class QueueBuildOptions:
     #: date fallback. Empty by default; the CLI path instead reads the
     #: per-issue ``_metadata_rank`` annotation stamped by
     #: :func:`load_cached_issues`, so both surfaces honour rank.
-    rank_by_number: dict[int, int] = field(default_factory=dict)
+    rank_by_number: Mapping[int, int] = field(default_factory=dict)
     limit: int | None = None
 
 
@@ -410,10 +410,18 @@ def scope_metadata_rank(plan: Any) -> int | None:
     """Return ``plan.metadata.rank`` as an int, or ``None`` when absent/invalid.
 
     Accepts a real integer or an integer-valued string (tolerating the
-    JSON-as-string shape some hand-authored vBRIEFs use). ``bool`` is
-    rejected even though it subclasses ``int`` -- a ``true`` rank is
-    meaningless. This is the single reader the queue + roadmap render
-    share so the rank semantics never drift between the two surfaces.
+    JSON-as-string shape some hand-authored vBRIEFs use, including a
+    leading-minus negative). ``bool`` is rejected even though it subclasses
+    ``int`` -- a ``true`` rank is meaningless. Any other non-integer string
+    (e.g. ``"--3"``, ``"x"``, ``""``) returns ``None`` rather than raising:
+    ``int()`` inside a ``try`` is the correct guard, since a prefix check
+    like ``lstrip("-").isdigit()`` wrongly admits ``"--3"``.
+
+    ``scripts/roadmap_render._scope_metadata_rank`` is a deliberate mirror
+    of this function: the renderer keeps its own tiny pure copy so it stays
+    decoupled from this module's triage-cache dependency surface. Both are
+    covered by tests (including the malformed-string edge case) so the
+    shared semantics cannot silently drift.
     """
     if not isinstance(plan, dict):
         return None
@@ -425,8 +433,11 @@ def scope_metadata_rank(plan: Any) -> int | None:
         return None
     if isinstance(rank, int):
         return rank
-    if isinstance(rank, str) and rank.strip().lstrip("-").isdigit():
-        return int(rank.strip())
+    if isinstance(rank, str):
+        try:
+            return int(rank.strip())
+        except ValueError:
+            return None
     return None
 
 

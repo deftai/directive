@@ -47,10 +47,14 @@ BANNER = (
 def _scope_metadata_rank(plan: dict) -> int | None:
     """Return ``plan.metadata.rank`` as an int, or ``None`` when absent/invalid.
 
-    Mirrors ``scripts/triage_queue.scope_metadata_rank`` so the roadmap
-    render and the triage queue share one rank interpretation (#1419
-    Slice 1 / #987): a real int or an integer-valued string is accepted;
-    ``bool`` is rejected because it subclasses ``int``.
+    Deliberate mirror of ``scripts/triage_queue.scope_metadata_rank`` so
+    the roadmap render and the triage queue share one rank interpretation
+    (#1419 Slice 1 / #987) without this lightweight renderer importing the
+    triage-cache module's dependency surface. A real int or an integer-
+    valued string (including a leading-minus negative) is accepted; ``bool``
+    is rejected because it subclasses ``int``; any other non-integer string
+    (e.g. ``"--3"``) returns ``None`` rather than raising. Both copies are
+    test-covered so the semantics cannot silently drift.
     """
     if not isinstance(plan, dict):
         return None
@@ -62,8 +66,11 @@ def _scope_metadata_rank(plan: dict) -> int | None:
         return None
     if isinstance(rank, int):
         return rank
-    if isinstance(rank, str) and rank.strip().lstrip("-").isdigit():
-        return int(rank.strip())
+    if isinstance(rank, str):
+        try:
+            return int(rank.strip())
+        except ValueError:
+            return None
     return None
 
 

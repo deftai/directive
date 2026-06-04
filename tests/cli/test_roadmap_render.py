@@ -1115,6 +1115,13 @@ def test_roadmap_scope_metadata_rank_rejects_bool_and_missing(roadmap_mod) -> No
     assert roadmap_mod._scope_metadata_rank({"metadata": {}}) is None
 
 
+def test_roadmap_scope_metadata_rank_string_parsing(roadmap_mod) -> None:
+    # Negative string parses; double-hyphen / non-numeric returns None, not raise (#987).
+    assert roadmap_mod._scope_metadata_rank({"metadata": {"rank": "-5"}}) == -5
+    assert roadmap_mod._scope_metadata_rank({"metadata": {"rank": "--3"}}) is None
+    assert roadmap_mod._scope_metadata_rank({"metadata": {"rank": "abc"}}) is None
+
+
 def test_load_vbriefs_orders_by_rank_ascending(roadmap_mod, tmp_path) -> None:
     """_load_vbriefs returns scopes in plan.metadata.rank ascending order (#987)."""
     pending = tmp_path / "pending"

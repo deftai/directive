@@ -162,6 +162,18 @@ def test_scope_metadata_rank_missing_returns_none():
     assert triage_queue.scope_metadata_rank(None) is None
 
 
+def test_scope_metadata_rank_reads_negative_string():
+    assert triage_queue.scope_metadata_rank({"metadata": {"rank": "-5"}}) == -5
+
+
+def test_scope_metadata_rank_rejects_malformed_string():
+    # Double-hyphen / non-numeric / empty strings must return None, not raise.
+    assert triage_queue.scope_metadata_rank({"metadata": {"rank": "--3"}}) is None
+    assert triage_queue.scope_metadata_rank({"metadata": {"rank": "abc"}}) is None
+    assert triage_queue.scope_metadata_rank({"metadata": {"rank": ""}}) is None
+    assert triage_queue.scope_metadata_rank({"metadata": {"rank": "3.5"}}) is None
+
+
 # ---------------------------------------------------------------------------
 # a1 -- rank precedence over creation date (programmatic surface)
 # ---------------------------------------------------------------------------
