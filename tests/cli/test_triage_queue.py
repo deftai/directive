@@ -232,6 +232,19 @@ def test_build_queue_rank_from_metadata_annotation():
     assert [i.number for i in items] == [31, 30]
 
 
+def test_build_queue_non_ascii_updated_at_does_not_raise():
+    """A non-ASCII char in updated_at must not crash the date-inversion tiebreak."""
+    # Em dash (U+2014, ord > 0x7F) in updated_at, no created_at, no rank.
+    issues = [_issue(1, updated_at="2026\u2014bad")]
+    items = triage_queue.build_queue(issues, [], repo=REPO)
+    assert [i.number for i in items] == [1]
+
+
+def test_date_sort_key_non_ascii_falls_back_without_error():
+    key = triage_queue._date_sort_key({"number": 1, "updated_at": "x\u2014y"})
+    assert key[0] == 1  # bucket 1 (updated_at fallback), no exception raised
+
+
 # ---------------------------------------------------------------------------
 # a1 -- rank wired from scope vBRIEFs through the CLI data path
 # ---------------------------------------------------------------------------

@@ -814,10 +814,13 @@ def _date_sort_key(issue: dict[str, Any]) -> tuple[int, str]:
     if created_at:
         return (0, created_at)
     updated_at = issue.get("updated_at") or ""
+    # ``max(0, ...)`` keeps the complement non-negative so a stray non-ASCII
+    # char in a malformed timestamp (ord > 0x7F) maps to chr(0) instead of
+    # raising ValueError; valid ASCII ISO-8601 stamps are unaffected.
     inv = (
         chr(0)
         if not updated_at
-        else "".join(chr(0x7F - ord(c)) for c in updated_at)
+        else "".join(chr(max(0, 0x7F - ord(c))) for c in updated_at)
     )
     return (1, inv)
 
