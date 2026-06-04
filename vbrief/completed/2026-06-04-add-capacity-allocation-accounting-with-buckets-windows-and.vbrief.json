@@ -6,7 +6,7 @@
   "plan": {
     "id": "capacity-accounting-engine",
     "title": "Add capacity allocation accounting with buckets, windows, and capacity:show",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
       "Description": "Adds plan.policy.capacityAllocation with protected buckets, trailing-window accounting, kind-aware counting, a minSampleSize guard, and a task capacity:show surface that reports target-versus-actual mix with outcome and cost overlays. Per OQ2 (resolved 2026-06-04), capacityAllocation.unit is a per-project selectable policy option including unit:cost, folded into v1; the default stays vbrief-count plus a cost overlay (directive's mode), and unit:cost self-guards by falling back to advisory count when grounded actuals are insufficient.",
@@ -86,7 +86,8 @@
         "size": "large",
         "file_scope_confidence": "medium",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-06-04T22:12:21Z"
     },
     "references": [
       {
@@ -101,6 +102,6 @@
         "title": "Issue #987"
       }
     ],
-    "updated": "2026-06-04T21:37:59Z"
+    "updated": "2026-06-04T22:12:21Z"
   }
 }

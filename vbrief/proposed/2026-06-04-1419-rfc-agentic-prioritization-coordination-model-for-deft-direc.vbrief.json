@@ -44,13 +44,13 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-04-build-the-risk-tiered-judgment-gate-engine-and-verifyjudgmen.vbrief.json",
+        "uri": "active/2026-06-04-build-the-risk-tiered-judgment-gate-engine-and-verifyjudgmen.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Build the risk-tiered judgment-gate engine and verify:judgment-gates",
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-04-add-capacity-allocation-accounting-with-buckets-windows-and.vbrief.json",
+        "uri": "completed/2026-06-04-add-capacity-allocation-accounting-with-buckets-windows-and.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add capacity allocation accounting with buckets, windows, and capacity:show",
         "TrustLevel": "internal"
