@@ -696,6 +696,15 @@ def validate_capacity_allocation_on_plan(plan: Any, filepath: Any) -> list[str]:
     PROJECT-DEFINITION validator can splice them into its error list.
     Unset / missing is valid and returns an empty list. Mirrors the
     :func:`validate_wip_cap_on_plan` hook shape.
+
+    NOTE (#1419): this hook is provided + unit-tested as the canonical
+    validation entry point, but is intentionally NOT yet spliced into
+    ``scripts/vbrief_validate.py`` in this slice -- capacity is advisory in
+    Slice 4 and a malformed block self-heals to defaults (the resolver
+    returns ``source='default-on-error'`` and ``capacity:show`` surfaces the
+    error). Wiring this into the ``task check`` validation aggregate is a
+    follow-up slice's concern; doing it here would touch out-of-scope files
+    and risk a fail-closed posture on the framework's own tree.
     """
     out: list[str] = []
     if not isinstance(plan, dict):
@@ -1188,6 +1197,14 @@ def _inspect_triage_hold_markers(
 #: a new ``_inspect_<field>`` callable here AND its definition above; the
 #: show CLI surfaces it automatically with no other wiring. Append-only
 #: by convention; reorders churn user-visible output ordering.
+#:
+#: NOTE (#1419): ``plan.policy.capacityAllocation`` is DELIBERATELY not
+#: registered here. This registry is the row-per-scalar/list ``task
+#: policy:show`` surface; ``capacityAllocation`` is a composite object
+#: (buckets[], window, unit, ...) whose state has its own dedicated,
+#: richer rendering via ``task capacity:show`` (``scripts/capacity_show.py``).
+#: Flattening it into a single ``policy:show`` row would lose that detail,
+#: so it is surfaced through the capacity engine instead.
 _REGISTERED_POLICIES: tuple[
     Callable[[dict | None, Path], PolicyField], ...
 ] = (

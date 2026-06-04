@@ -446,6 +446,11 @@ def render_report(report: CapacityReport) -> str:
         f"classified completions: {report.classified_completions} "
         f"(minSampleSize {report.min_sample_size}) | source: {report.source}"
     )
+    # Surface the schema error when a malformed capacityAllocation block fell
+    # back to defaults (source == 'default-on-error') so the operator sees the
+    # actual reason, not just a generic "not configured" advisory line.
+    if report.policy_error:
+        lines.append(f"  CONFIG ERROR: {report.policy_error}")
 
     if report.advisory_mode:
         lines.append("  MODE: ADVISORY -- deferring to selection ordering.")

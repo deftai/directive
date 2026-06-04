@@ -325,6 +325,22 @@ def test_a5_cost_with_full_coverage_uses_cost(tmp_path):
 # ---------------------------------------------------------------------------
 
 
+def test_malformed_policy_error_is_rendered(tmp_path):
+    # Targets do not sum to 1.0 -> resolver source 'default-on-error' with an
+    # error message that render_report must surface as a CONFIG ERROR line.
+    root = _make_project(
+        tmp_path,
+        _capacity(
+            buckets=[{"id": "debt", "target": 0.4}, {"id": "feature", "target": 0.3}]
+        ),
+    )
+    report = compute_report(root, now=NOW)
+    assert report.source == "default-on-error"
+    assert report.policy_error is not None
+    rendered = render_report(report)
+    assert "CONFIG ERROR" in rendered
+
+
 def test_unconfigured_project_reports_advisory(tmp_path):
     root = _make_project(tmp_path, None)
     _write_vbrief(
