@@ -38,13 +38,13 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-04-add-continuation-precedence-and-deficit-biased-selection-to.vbrief.json",
+        "uri": "active/2026-06-04-add-continuation-precedence-and-deficit-biased-selection-to.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add continuation precedence and deficit-biased selection to the queue",
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-04-build-the-risk-tiered-judgment-gate-engine-and-verifyjudgmen.vbrief.json",
+        "uri": "completed/2026-06-04-build-the-risk-tiered-judgment-gate-engine-and-verifyjudgmen.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Build the risk-tiered judgment-gate engine and verify:judgment-gates",
         "TrustLevel": "internal"
@@ -56,7 +56,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-04-surface-human-clearance-backlog-and-the-earned-autonomy-dial.vbrief.json",
+        "uri": "active/2026-06-04-surface-human-clearance-backlog-and-the-earned-autonomy-dial.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Surface human-clearance backlog and the earned-autonomy dial",
         "TrustLevel": "internal"

@@ -6,7 +6,7 @@
   "plan": {
     "id": "review-autonomy-capacity",
     "title": "Surface human-clearance backlog and the earned-autonomy dial",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
       "Description": "Adds a pending-human-decisions backlog surface and an autonomy dial that ratchets required human clearances based on the clearance-override rate (primary) and the rework rate (guardrail) over the capacity window. Per OQ1 (resolved 2026-06-04) the dial has three levels (Observe, Escalate, Execute) per gate-id, advances asymmetrically, and is advisory-only in v1; per OQ4 (trial) multi-LLM reviewer disagreement reuses the #526 errored-state machinery and escalates contested P0/P1 findings to human adjudication.",
@@ -93,6 +93,7 @@
         "type": "x-vbrief/closes",
         "title": "Issue #987"
       }
-    ]
+    ],
+    "updated": "2026-06-04T23:28:15Z"
   }
 }
