@@ -9,7 +9,7 @@
     "status": "pending",
     "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
-      "Description": "Adds a pending-human-decisions backlog surface and an autonomy dial that ratchets required human clearances based on the clearance-override and rework rate over a window. The exact ratchet metric and thresholds remain an open question, so this story is design-gated and not yet swarm-ready.",
+      "Description": "Adds a pending-human-decisions backlog surface and an autonomy dial that ratchets required human clearances based on the clearance-override rate (primary) and the rework rate (guardrail) over the capacity window. Per OQ1 (resolved 2026-06-04) the dial has three levels (Observe, Escalate, Execute) per gate-id, advances asymmetrically, and is advisory-only in v1; per OQ4 (trial) multi-LLM reviewer disagreement reuses the #526 errored-state machinery and escalates contested P0/P1 findings to human adjudication.",
       "ImplementationPlan": "1. Extend scripts/capacity_show.py and scripts/triage_welcome.py to compute and render a pending-human-decisions count from the audit log, and add an autonomy policy block in scripts/policy.py. 2. Add tests in tests/cli/test_capacity_show.py covering the backlog threshold nudge and an autonomy-level ratchet against synthetic override-rate fixtures.",
       "UserStory": "As a maintainer, I want the human-clearance backlog made visible, so that wipCap can be tuned to real review throughput.",
       "Traces": "#1419 Delivery Slice 5"
@@ -41,12 +41,21 @@
           "Acceptance": "When the rework rate spikes over the window, then the autonomy dial ratchets back and restores required clearances.",
           "Traces": "#1419 Delivery Slice 5"
         }
+      },
+      {
+        "id": "review-autonomy-capacity-a4",
+        "title": "Given multi-LLM reviewers split on a P0 finding, when the review cycle resolves, then the disagreement escalates to a human and increments the pending-decisions backlog.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given multi-LLM reviewers split on a P0 finding, when the review cycle resolves, then the disagreement escalates to a human and increments the pending-decisions backlog.",
+          "Traces": "#1419 Delivery Slice 5; OQ4"
+        }
       }
     ],
     "metadata": {
       "kind": "story",
       "swarm": {
-        "readiness": "needs_refinement",
+        "readiness": "sequential",
         "parallel_safe": false,
         "file_scope": [
           "scripts/capacity_show.py",
@@ -68,7 +77,7 @@
         ],
         "conflict_group": "capacity",
         "size": "large",
-        "file_scope_confidence": "low",
+        "file_scope_confidence": "medium",
         "model_tier": "high"
       }
     },
