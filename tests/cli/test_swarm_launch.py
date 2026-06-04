@@ -484,3 +484,109 @@ class TestConfigErrors:
         rc = sl.main(["--stories", "100", "--project-root", str(tmp_path)])
         assert rc == sl.EXIT_CONFIG_ERROR
         assert "vbrief/active" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
+# Cohort-fill selection ordering (#1419 Slice 2 / #987)
+# ---------------------------------------------------------------------------
+#
+# order_cohort applies the same RFC Layer-3 lexicographic key the triage
+# queue uses (continuation > deficit > rank > date). The continuation /
+# deficit signal sources (triage_queue.continuation_by_issue_number /
+# bucket_deficit_by_issue_number) are stubbed so the test isolates the
+# ordering logic from the capacity-engine / filesystem derivation that is
+# covered by tests/cli/test_triage_queue.py.
+
+
+class TestCohortOrdering:
+    def test_continuation_orders_first(
+        self, project: Path, gates_pass, monkeypatch, capsys
+    ) -> None:
+        active = project / "vbrief" / "active"
+        _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])  # net-new
+        _write_story(active, "b.vbrief.json", story_id="sB", issues=[200])  # continuation
+        monkeypatch.setattr(
+            sl.triage_queue, "continuation_by_issue_number", lambda root: {200: "epic"}
+        )
+        monkeypatch.setattr(sl.triage_queue, "bucket_deficit_by_issue_number", lambda root: {})
+        rc = sl.main(["--stories", "100,200", "--project-root", str(project)])
+        assert rc == sl.EXIT_OK
+        manifest = json.loads(capsys.readouterr().out)
+        assert [m["story_id"] for m in manifest] == ["sB", "sA"]
+
+    def test_deficit_orders_most_under_target_first(
+        self, project: Path, gates_pass, monkeypatch, capsys
+    ) -> None:
+        active = project / "vbrief" / "active"
+        _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])
+        _write_story(active, "b.vbrief.json", story_id="sB", issues=[200])
+        monkeypatch.setattr(sl.triage_queue, "continuation_by_issue_number", lambda root: {})
+        monkeypatch.setattr(
+            sl.triage_queue,
+            "bucket_deficit_by_issue_number",
+            lambda root: {100: 0.1, 200: 0.9},
+        )
+        rc = sl.main(["--stories", "100,200", "--project-root", str(project)])
+        assert rc == sl.EXIT_OK
+        manifest = json.loads(capsys.readouterr().out)
+        assert [m["story_id"] for m in manifest] == ["sB", "sA"]
+
+    def test_continuation_beats_deficit(
+        self, project: Path, gates_pass, monkeypatch, capsys
+    ) -> None:
+        active = project / "vbrief" / "active"
+        _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])  # net-new, big deficit
+        _write_story(active, "b.vbrief.json", story_id="sB", issues=[200])  # continuation
+        monkeypatch.setattr(
+            sl.triage_queue, "continuation_by_issue_number", lambda root: {200: "epic"}
+        )
+        monkeypatch.setattr(
+            sl.triage_queue, "bucket_deficit_by_issue_number", lambda root: {100: 0.9}
+        )
+        sl.main(["--stories", "100,200", "--project-root", str(project)])
+        manifest = json.loads(capsys.readouterr().out)
+        assert [m["story_id"] for m in manifest] == ["sB", "sA"]
+
+    def test_neutral_orders_by_filename_proxy(
+        self, project: Path, gates_pass, monkeypatch, capsys
+    ) -> None:
+        # No continuation / deficit signal -> the date_key (relpath) proxy
+        # orders deterministically by date-prefixed filename, regardless of
+        # the operator's input token order.
+        active = project / "vbrief" / "active"
+        _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])
+        _write_story(active, "b.vbrief.json", story_id="sB", issues=[200])
+        monkeypatch.setattr(sl.triage_queue, "continuation_by_issue_number", lambda root: {})
+        monkeypatch.setattr(sl.triage_queue, "bucket_deficit_by_issue_number", lambda root: {})
+        sl.main(["--stories", "200,100", "--project-root", str(project)])
+        manifest = json.loads(capsys.readouterr().out)
+        assert [m["story_id"] for m in manifest] == ["sA", "sB"]
+
+    def test_cohort_vbriefs_reflects_ordering(
+        self, project: Path, gates_pass, monkeypatch, capsys
+    ) -> None:
+        active = project / "vbrief" / "active"
+        _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])
+        _write_story(active, "b.vbrief.json", story_id="sB", issues=[200])
+        monkeypatch.setattr(
+            sl.triage_queue, "continuation_by_issue_number", lambda root: {200: "epic"}
+        )
+        monkeypatch.setattr(sl.triage_queue, "bucket_deficit_by_issue_number", lambda root: {})
+        sl.main(["--stories", "100,200", "--group", "cohort", "--project-root", str(project)])
+        manifest = json.loads(capsys.readouterr().out)
+        cohort = manifest[0]["allocation_context"]["cohort_vbriefs"]
+        # cohort_vbriefs follows the post-ordering sequence (sB before sA).
+        assert cohort[0].endswith("b.vbrief.json")
+        assert cohort[1].endswith("a.vbrief.json")
+
+    def test_order_cohort_without_triage_queue_preserves_order(
+        self, project: Path, monkeypatch
+    ) -> None:
+        active = project / "vbrief" / "active"
+        _write_story(active, "a.vbrief.json", story_id="sA", issues=[100])
+        _write_story(active, "b.vbrief.json", story_id="sB", issues=[200])
+        resolved, errors = sl.resolve_stories(project, ["200", "100"])
+        assert errors == []
+        monkeypatch.setattr(sl, "triage_queue", None)
+        ordered = sl.order_cohort(resolved, project)
+        assert [s.story_id for s in ordered] == [s.story_id for s in resolved]

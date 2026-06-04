@@ -115,6 +115,24 @@ try:  # pragma: no cover -- core sibling in this repo.
 except ImportError:  # pragma: no cover
     _vbrief_story_quality = None  # type: ignore[assignment]
 
+# Capacity-allocation accounting (#1419 Slice 4). Slice 2 (#987) READS the
+# Slice-4 per-bucket deficit tallies to bias net-new selection toward the
+# most-under-target bucket. IMPORT-ONLY -- this module never edits the
+# capacity engine. Guarded so the queue still imports on a slim checkout.
+try:  # pragma: no cover -- core sibling in this repo.
+    import capacity_show  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover
+    capacity_show = None  # type: ignore[assignment]
+
+# Typed-policy surface (#746 / #1124 / #1419). Slice 2 reads ``wipCap`` and
+# ``capacityAllocation`` for the optional ``finishBeforeStart`` eligibility
+# policy. Guarded for slim checkouts (the finishBeforeStart gate then stays
+# inert rather than raising).
+try:  # pragma: no cover -- core sibling in this repo.
+    import policy as _policy  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover
+    _policy = None  # type: ignore[assignment]
+
 
 # ---------------------------------------------------------------------------
 # Public constants
@@ -219,6 +237,32 @@ class QueueBuildOptions:
     #: per-issue ``_metadata_rank`` annotation stamped by
     #: :func:`load_cached_issues`, so both surfaces honour rank.
     rank_by_number: Mapping[int, int] = field(default_factory=dict)
+    #: Issue numbers whose scope is *continuation* work (#1419 Slice 2 /
+    #: #987): a story whose ``plan.planRef`` parent epic has already
+    #: started (>=1 child completed OR a sibling active). Continuation
+    #: outranks net-new single-issue work ("stop starting, start
+    #: finishing"). Empty by default; the CLI path instead reads the
+    #: per-issue ``_continuation`` annotation stamped by
+    #: :func:`load_cached_issues`.
+    continuation_numbers: frozenset[int] = field(default_factory=frozenset)
+    #: Maps issue number -> a stable "epic started-at" ordering key used to
+    #: surface the OLDEST-started epic's continuation work first. Compared
+    #: lexicographically ascending. CLI path reads the per-issue
+    #: ``_continuation_order`` annotation instead.
+    continuation_order_by_number: Mapping[int, str] = field(default_factory=dict)
+    #: Maps issue number -> its capacity-bucket deficit (target-vs-actual;
+    #: positive == under target) from the Slice-4 accounting engine
+    #: (#1419 Slice 2). Among NET-NEW work the most-under-target bucket
+    #: (highest deficit) sorts first. Empty by default; the CLI path reads
+    #: the per-issue ``_bucket_deficit`` annotation.
+    deficit_by_number: Mapping[int, float] = field(default_factory=dict)
+    #: Optional ``finishBeforeStart`` policy (#1419 Slice 2). When True AND
+    #: :attr:`wip_at_cap` is True, the queue drops net-new scopes entirely
+    #: -- at/near ``wipCap`` only continuation work is promotable.
+    finish_before_start: bool = False
+    #: True when the in-flight WIP set is at/over ``plan.policy.wipCap``.
+    #: Gates the :attr:`finish_before_start` net-new filter above.
+    wip_at_cap: bool = False
     limit: int | None = None
 
 
@@ -314,8 +358,7 @@ def validate_ranking_labels(value: Any) -> tuple[list[str], list[str]]:
         return errors, warnings
     if not isinstance(value, list):
         errors.append(
-            "plan.policy.triageRankingLabels must be a list of strings; "
-            f"got {type(value).__name__}"
+            f"plan.policy.triageRankingLabels must be a list of strings; got {type(value).__name__}"
         )
         return errors, warnings
     seen: set[str] = set()
@@ -328,9 +371,7 @@ def validate_ranking_labels(value: Any) -> tuple[list[str], list[str]]:
             errors.append(f"{prefix} must be a non-empty string")
             continue
         if entry in seen:
-            warnings.append(
-                f"{prefix} duplicate label {entry!r}; only the first occurrence ranks"
-            )
+            warnings.append(f"{prefix} duplicate label {entry!r}; only the first occurrence ranks")
         seen.add(entry)
     return errors, warnings
 
@@ -496,6 +537,200 @@ def _rank_by_issue_number(
     return out
 
 
+# ---------------------------------------------------------------------------
+# Continuation precedence + deficit-biased selection (#1419 Slice 2 / #987)
+# ---------------------------------------------------------------------------
+
+
+def _load_plan(path: Path) -> dict[str, Any] | None:
+    """Read a vBRIEF file and return its ``plan`` block, or ``None``."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    plan = data.get("plan")
+    return plan if isinstance(plan, dict) else None
+
+
+def _epic_child_refs(epic_path: Path) -> list[tuple[str, str]]:
+    """Return ``[(folder, basename), ...]`` for an epic's ``x-vbrief/plan`` children.
+
+    Reads the parent epic's ``plan.references[]`` (the canonical
+    parent->child link, e.g. ``"completed/<slug>.vbrief.json"``) and yields
+    the lifecycle folder + filename of each child so the caller can decide
+    whether the epic has started.
+    """
+    plan = _load_plan(epic_path)
+    if plan is None:
+        return []
+    refs = plan.get("references")
+    if not isinstance(refs, list):
+        return []
+    out: list[tuple[str, str]] = []
+    for ref in refs:
+        if not isinstance(ref, dict) or ref.get("type") != "x-vbrief/plan":
+            continue
+        uri = ref.get("uri")
+        if not isinstance(uri, str) or not uri.strip():
+            continue
+        rel = uri.replace("\\", "/")
+        folder = rel.split("/", 1)[0] if "/" in rel else ""
+        basename = rel.rsplit("/", 1)[-1]
+        out.append((folder, basename))
+    return out
+
+
+def _epic_started(child_refs: list[tuple[str, str]], *, exclude_name: str) -> bool:
+    """True when an epic has STARTED: >=1 child completed OR a sibling active.
+
+    ``exclude_name`` is the candidate scope's filename so a single active
+    child that IS the candidate itself does not make the candidate count as
+    its own continuation -- a sibling active child (a different filename) or
+    any completed child is required.
+    """
+    for folder, basename in child_refs:
+        if folder == "completed":
+            return True
+        if folder == "active" and basename != exclude_name:
+            return True
+    return False
+
+
+def continuation_by_issue_number(
+    project_root: Path | None,
+    *,
+    folders: tuple[str, ...] = ("pending", "active"),
+) -> dict[int, str]:
+    """Map referenced issue numbers -> a continuation ordering key (#1419 Slice 2).
+
+    A scope is *continuation* work when its ``plan.planRef`` parent epic has
+    already STARTED (>=1 child completed OR a sibling active per
+    :func:`_epic_started`). Walks the in-flight ``pending`` + ``active``
+    scopes, resolves each one's parent epic, and maps every GitHub issue a
+    continuation scope references to a stable ordering key -- the parent
+    epic's date-prefixed filename -- so the OLDEST-started epic's work sorts
+    first. Net-new scopes (no started parent epic) contribute nothing.
+    """
+    out: dict[int, str] = {}
+    base = (project_root or Path.cwd()) / "vbrief"
+    child_refs_cache: dict[Path, list[tuple[str, str]]] = {}
+    for folder in folders:
+        folder_dir = base / folder
+        if not folder_dir.is_dir():
+            continue
+        for path in sorted(folder_dir.glob("*.vbrief.json")):
+            plan = _load_plan(path)
+            if plan is None:
+                continue
+            plan_ref = plan.get("planRef")
+            if not isinstance(plan_ref, str) or not plan_ref.strip():
+                continue
+            epic_path = (base / plan_ref).resolve()
+            if epic_path not in child_refs_cache:
+                child_refs_cache[epic_path] = _epic_child_refs(epic_path)
+            if not _epic_started(child_refs_cache[epic_path], exclude_name=path.name):
+                continue
+            order_key = epic_path.name
+            for number in _issue_numbers_from_plan(plan):
+                out.setdefault(number, order_key)
+    return out
+
+
+def bucket_deficit_by_issue_number(
+    project_root: Path | None,
+    *,
+    folders: tuple[str, ...] = ("pending", "active"),
+) -> dict[int, float]:
+    """Map referenced issue numbers -> their capacity-bucket deficit (#1419 Slice 2).
+
+    Reads the per-bucket target-vs-actual deficit from the Slice-4 capacity
+    accounting engine (:func:`capacity_show.compute_report`; IMPORT-ONLY,
+    never edited) and maps each in-flight scope to its bucket's deficit via
+    ``plan.metadata.capacityBucket`` (falling back to the policy
+    ``defaultBucket``). A positive deficit means the bucket is UNDER target,
+    so the most-under-target bucket sorts first among net-new work.
+    Best-effort: returns ``{}`` when the capacity engine / policy module is
+    unavailable or errors so an advisory signal never breaks the queue.
+    """
+    if capacity_show is None:
+        return {}
+    root = project_root or Path.cwd()
+    try:
+        report = capacity_show.compute_report(root)
+    except Exception:  # noqa: BLE001 -- advisory signal must not break the queue
+        return {}
+    deficits = {tally.bucket_id: report.bucket_deficit(tally) for tally in report.buckets}
+    if not deficits:
+        return {}
+    default_bucket = ""
+    if _policy is not None:
+        try:
+            default_bucket = _policy.resolve_capacity_allocation(root).default_bucket
+        except Exception:  # noqa: BLE001 -- advisory; fall back to no default bucket
+            default_bucket = ""
+    out: dict[int, float] = {}
+    base = root / "vbrief"
+    for folder in folders:
+        folder_dir = base / folder
+        if not folder_dir.is_dir():
+            continue
+        for path in sorted(folder_dir.glob("*.vbrief.json")):
+            plan = _load_plan(path)
+            if plan is None:
+                continue
+            raw_metadata = plan.get("metadata")
+            metadata = raw_metadata if isinstance(raw_metadata, dict) else {}
+            raw_bucket = metadata.get("capacityBucket")
+            bucket = (
+                raw_bucket.strip()
+                if isinstance(raw_bucket, str) and raw_bucket.strip()
+                else default_bucket
+            )
+            if bucket not in deficits:
+                continue
+            for number in _issue_numbers_from_plan(plan):
+                out.setdefault(number, deficits[bucket])
+    return out
+
+
+def resolve_finish_before_start(project_root: Path | None = None) -> bool:
+    """Read the optional ``capacityAllocation.finishBeforeStart`` policy (#1419 Slice 2).
+
+    Read directly from PROJECT-DEFINITION because the typed ``policy.py``
+    surface does not expose this advisory field. Defaults to ``False`` -- the
+    hard finish-before-start variant is opt-in. Callers pair this with
+    :func:`wip_at_cap` to set :attr:`QueueBuildOptions.finish_before_start`
+    and :attr:`QueueBuildOptions.wip_at_cap`.
+    """
+    data = _load_project_definition(project_root)
+    if not isinstance(data, dict):
+        return False
+    plan = data.get("plan")
+    policy = plan.get("policy") if isinstance(plan, dict) else None
+    cap = policy.get("capacityAllocation") if isinstance(policy, dict) else None
+    return isinstance(cap, dict) and cap.get("finishBeforeStart") is True
+
+
+def wip_at_cap(project_root: Path | None = None) -> bool:
+    """True when the in-flight WIP set is at/over ``plan.policy.wipCap`` (#1419 Slice 2).
+
+    Reuses the ``scripts/policy.py`` WIP-cap surface (IMPORT-ONLY). Returns
+    ``False`` when the policy module is unavailable so the finishBeforeStart
+    gate stays inert on a slim checkout.
+    """
+    if _policy is None:
+        return False
+    root = project_root or Path.cwd()
+    try:
+        cap = _policy.resolve_wip_cap(root).cap
+        count = _policy.count_vbrief_wip(root)
+    except Exception:  # noqa: BLE001 -- advisory gate must not break the queue
+        return False
+    return count >= cap
+
+
 #: Operator-facing pointer surfaced when a scope is refused as under-specified
 #: (#1419 Slice 1 / #987). Names refinement as the canonical next step.
 SPEC_READINESS_REFINEMENT_HINT = (
@@ -615,9 +850,7 @@ def _entry_is_stale(
     if preflight_cache is None:
         return False
     fetched_at = _read_meta_fetched_at(entry_dir)
-    return preflight_cache.is_fetched_at_stale(
-        fetched_at, max_age_hours=max_age_hours, now=now
-    )
+    return preflight_cache.is_fetched_at_stale(fetched_at, max_age_hours=max_age_hours, now=now)
 
 
 def _resolve_live_state(
@@ -681,6 +914,11 @@ def load_cached_issues(
     # from the in-flight scope vBRIEFs so the CLI path orders by rank
     # without _triage_queue_cli.py needing to thread an extra argument.
     rank_map = _rank_by_issue_number(project_root)
+    # #1419 Slice 2 (#987): annotate continuation precedence + bucket deficit
+    # from filesystem-truth so the CLI ordering matches the programmatic
+    # surface without the cli shim threading extra arguments.
+    continuation_map = continuation_by_issue_number(project_root)
+    deficit_map = bucket_deficit_by_issue_number(project_root)
     issues: list[dict[str, Any]] = []
     for entry in base.iterdir():
         if not entry.is_dir() or not entry.name.isdigit():
@@ -740,6 +978,9 @@ def load_cached_issues(
                 "updated_at": updated_at,
                 "created_at": created_at,
                 "_metadata_rank": rank_map.get(int(n)),
+                "_continuation": int(n) in continuation_map,
+                "_continuation_order": continuation_map.get(int(n), ""),
+                "_bucket_deficit": deficit_map.get(int(n)),
             }
         )
     return issues
@@ -817,34 +1058,82 @@ def _date_sort_key(issue: dict[str, Any]) -> tuple[int, str]:
     # ``max(0, ...)`` keeps the complement non-negative so a stray non-ASCII
     # char in a malformed timestamp (ord > 0x7F) maps to chr(0) instead of
     # raising ValueError; valid ASCII ISO-8601 stamps are unaffected.
-    inv = (
-        chr(0)
-        if not updated_at
-        else "".join(chr(max(0, 0x7F - ord(c))) for c in updated_at)
-    )
+    inv = chr(0) if not updated_at else "".join(chr(max(0, 0x7F - ord(c))) for c in updated_at)
     return (1, inv)
+
+
+def selection_ordering_key(
+    *,
+    label_index: int,
+    is_continuation: bool,
+    continuation_order: str = "",
+    bucket_deficit: float | None = None,
+    rank: int | None = None,
+    date_key: tuple[int, str] = (1, ""),
+) -> tuple[int, int, tuple[float, str], int, int, tuple[int, str]]:
+    """Build the canonical RFC #1419 Layer-3 lexicographic selection key.
+
+    The RFC order is ``(urgent/blocking down, continuation down,
+    bucket-deficit down, intra-bucket rank down, date up)``. This helper is
+    the single source of truth for that order so the queue
+    (:func:`_within_group_sort_key`) and the swarm cohort-fill
+    (``swarm_launch.order_cohort``) cannot drift. ``sorted`` is ascending,
+    so every "down" dimension is encoded as a value that is *smaller* for
+    the higher-priority item:
+
+    1. ``label_index`` -- urgent/blocking: the consumer priority-label rank
+       (lower index = higher priority). Preempts continuation.
+    2. ``continuation_bucket`` -- ``0`` for continuation work, ``1`` for
+       net-new. Continuation outranks net-new single-issue work.
+    3. ``secondary`` -- a ``(float, str)`` whose meaning depends on the
+       partition above (the two partitions never interleave because
+       ``continuation_bucket`` already differs): for continuation work it
+       surfaces the OLDEST-started epic first (``continuation_order``
+       ascending, unknown-start last); for net-new work it surfaces the
+       most-under-target bucket first (highest ``bucket_deficit``, negated
+       for ascending sort).
+    4. ``(rank_bucket, rank_value)`` -- ``plan.metadata.rank``: ranked rows
+       sort ahead of un-ranked ones, lower value first.
+    5. ``date_key`` -- ``(date_bucket, date_value)`` from
+       :func:`_date_sort_key`: ascending creation date when available.
+    """
+    continuation_bucket = 0 if is_continuation else 1
+    if is_continuation:
+        # Oldest-started epic first: known order keys sort ascending in
+        # bucket 0.0; an unknown start tail-sorts in bucket 1.0.
+        secondary = (0.0, continuation_order) if continuation_order else (1.0, "")
+    elif isinstance(bucket_deficit, int | float) and not isinstance(bucket_deficit, bool):
+        # Most-under-target (highest deficit) first -> negate for ascending.
+        secondary = (-float(bucket_deficit), "")
+    else:
+        secondary = (0.0, "")
+    if isinstance(rank, int) and not isinstance(rank, bool):
+        rank_bucket, rank_value = 0, rank
+    else:
+        rank_bucket, rank_value = 1, 0
+    return (label_index, continuation_bucket, secondary, rank_bucket, rank_value, date_key)
 
 
 def _within_group_sort_key(
     issue: dict[str, Any],
     ranking_labels: tuple[str, ...],
-) -> tuple[int, int, int, int, str]:
-    """Return the intra-bucket sort key.
+) -> tuple[int, int, tuple[float, str], int, int, tuple[int, str]]:
+    """Return the intra-bucket sort key for a cached-issue row.
 
-    Rows within a group are ordered by, in strict priority:
+    Resolves the five RFC #1419 Layer-3 selection dimensions from the
+    annotations :func:`build_queue` stamps on each issue, then delegates to
+    :func:`selection_ordering_key` (the canonical key shared with swarm
+    cohort-fill):
 
-    1. ``rank_index`` -- the consumer priority-label rank (lower = higher
-       priority). An unranked label tail-sorts at ``len(ranking_labels)``.
-       UNCHANGED from #1128.
-    2. ``plan.metadata.rank`` -- the vBRIEF-canonical intra-bucket rank
-       (#1419 Slice 1 / #987), read from the ``_resolved_rank`` stamp set
-       by :func:`build_queue`. Ranked rows (``rank_bucket=0``) sort ahead
-       of un-ranked ones (``rank_bucket=1``); among ranked rows a lower
-       ``rank_value`` sorts first. Applied AFTER the label rank and BEFORE
-       the creation-date fallback.
-    3. ``(date_bucket, date_value)`` from :func:`_date_sort_key` --
-       ascending creation date when available, else the legacy
-       ``updated_at``-descending fallback.
+    1. ``rank_index`` -- the consumer priority-label rank (#1128).
+    2. ``_continuation`` / ``_continuation_order`` -- continuation
+       precedence (#1419 Slice 2 / #987): started-epic work first, oldest
+       epic first.
+    3. ``_bucket_deficit`` -- deficit-biased net-new selection (#1419
+       Slice 2): most-under-target bucket first.
+    4. ``_resolved_rank`` -- the vBRIEF-canonical intra-bucket rank
+       (#1419 Slice 1 / #987).
+    5. ``(date_bucket, date_value)`` from :func:`_date_sort_key`.
     """
     rank_index = len(ranking_labels)
     if ranking_labels:
@@ -854,12 +1143,19 @@ def _within_group_sort_key(
                 rank_index = i
                 break
     resolved_rank = issue.get("_resolved_rank")
-    if isinstance(resolved_rank, int) and not isinstance(resolved_rank, bool):
-        rank_bucket, rank_value = 0, resolved_rank
-    else:
-        rank_bucket, rank_value = 1, 0
-    date_bucket, date_value = _date_sort_key(issue)
-    return (rank_index, rank_bucket, rank_value, date_bucket, date_value)
+    rank = (
+        resolved_rank
+        if isinstance(resolved_rank, int) and not isinstance(resolved_rank, bool)
+        else None
+    )
+    return selection_ordering_key(
+        label_index=rank_index,
+        is_continuation=bool(issue.get("_continuation")),
+        continuation_order=str(issue.get("_continuation_order") or ""),
+        bucket_deficit=issue.get("_bucket_deficit"),
+        rank=rank,
+        date_key=_date_sort_key(issue),
+    )
 
 
 def matched_label_for(
@@ -897,6 +1193,63 @@ def _resolve_rank(
     return candidate
 
 
+def _resolve_continuation(
+    issue: dict[str, Any],
+    number: int,
+    continuation_numbers: frozenset[int] | set[int],
+) -> bool:
+    """Resolve whether a queue row is continuation work (#1419 Slice 2 / #987).
+
+    Precedence mirrors :func:`_resolve_rank`: an explicit
+    :attr:`QueueBuildOptions.continuation_numbers` membership (programmatic
+    surface) wins; otherwise the ``_continuation`` annotation that
+    :func:`load_cached_issues` stamps from the scope vBRIEFs (CLI surface)
+    is used.
+    """
+    if number in continuation_numbers:
+        return True
+    return bool(issue.get("_continuation"))
+
+
+def _resolve_continuation_order(
+    issue: dict[str, Any],
+    number: int,
+    order_by_number: Mapping[int, str],
+) -> str:
+    """Resolve a continuation row's "oldest-started epic" ordering key.
+
+    The programmatic ``continuation_order_by_number`` entry wins; otherwise
+    the ``_continuation_order`` annotation stamped by
+    :func:`load_cached_issues` is used. Returns ``""`` (unknown -- tail
+    sorts among continuation work) when neither supplies a string.
+    """
+    candidate = order_by_number.get(number)
+    if candidate is None:
+        candidate = issue.get("_continuation_order")
+    return candidate if isinstance(candidate, str) else ""
+
+
+def _resolve_deficit(
+    issue: dict[str, Any],
+    number: int,
+    deficit_by_number: Mapping[int, float],
+) -> float | None:
+    """Resolve a queue row's capacity-bucket deficit (#1419 Slice 2).
+
+    The programmatic ``deficit_by_number`` entry wins; otherwise the
+    ``_bucket_deficit`` annotation stamped by :func:`load_cached_issues`
+    from the Slice-4 accounting engine is used. Returns ``None`` (no
+    deficit signal -- neutral among net-new peers) when neither supplies a
+    real number.
+    """
+    candidate = deficit_by_number.get(number)
+    if candidate is None:
+        candidate = issue.get("_bucket_deficit")
+    if isinstance(candidate, bool) or not isinstance(candidate, int | float):
+        return None
+    return float(candidate)
+
+
 def build_queue(
     issues: Iterable[dict[str, Any]],
     audit_entries: Iterable[dict[str, Any]],
@@ -914,11 +1267,17 @@ def build_queue(
     issue_list = list(issues)
     decisions = latest_decisions_by_issue(audit_entries)
     rank_by_number = dict(opts.rank_by_number)
+    # finishBeforeStart (#1419 Slice 2): at/near wipCap only continuation
+    # work is promotable, so net-new scopes are dropped from the queue.
+    drop_net_new = opts.finish_before_start and opts.wip_at_cap
 
     grouped: dict[str, list[dict[str, Any]]] = {g: [] for g in GROUP_ORDER}
     for issue in issue_list:
         n = issue.get("number")
         if not isinstance(n, int):
+            continue
+        is_continuation = _resolve_continuation(issue, n, opts.continuation_numbers)
+        if drop_net_new and not is_continuation:
             continue
         latest = decisions.get(n)
         latest_decision = latest.get("decision") if isinstance(latest, dict) else None
@@ -931,6 +1290,11 @@ def build_queue(
             group = derive_group(latest_decision, n in opts.active_referenced)
         issue["_latest_decision"] = latest_decision
         issue["_resolved_rank"] = _resolve_rank(issue, n, rank_by_number)
+        issue["_continuation"] = is_continuation
+        issue["_continuation_order"] = _resolve_continuation_order(
+            issue, n, opts.continuation_order_by_number
+        )
+        issue["_bucket_deficit"] = _resolve_deficit(issue, n, opts.deficit_by_number)
         grouped[group].append(issue)
 
     out: list[QueueItem] = []
@@ -1018,9 +1382,7 @@ def parse_audit_window(raw: str) -> timedelta:
     if not text:
         raise ValueError("duration must be a non-empty string")
     if len(text) < 2 or not text[:-1].isdigit():
-        raise ValueError(
-            f"invalid duration {raw!r}: expected '<N>(s|m|h|d|w)' (e.g. '7d', '24h')"
-        )
+        raise ValueError(f"invalid duration {raw!r}: expected '<N>(s|m|h|d|w)' (e.g. '7d', '24h')")
     n = int(text[:-1])
     unit = text[-1].lower()
     if unit == "s":
@@ -1033,9 +1395,7 @@ def parse_audit_window(raw: str) -> timedelta:
         return timedelta(days=n)
     if unit == "w":
         return timedelta(weeks=n)
-    raise ValueError(
-        f"invalid duration {raw!r}: expected '<N>(s|m|h|d|w)' (e.g. '7d', '24h')"
-    )
+    raise ValueError(f"invalid duration {raw!r}: expected '<N>(s|m|h|d|w)' (e.g. '7d', '24h')")
 
 
 def filter_by_since(
@@ -1147,10 +1507,7 @@ def render_queue(
     lines: list[str] = []
     lines.append(f"triage:queue -- {repo}")
     if ranking_labels:
-        lines.append(
-            "  consumer ranking labels (in declared order): "
-            + ", ".join(ranking_labels)
-        )
+        lines.append("  consumer ranking labels (in declared order): " + ", ".join(ranking_labels))
     else:
         lines.append(
             "  consumer ranking labels: <empty> (framework default; within-group = updated_at desc)"
@@ -1167,9 +1524,7 @@ def render_queue(
         if item.matched_label:
             label_hint = f" (label: {item.matched_label})"
         title = _truncate(item.title, 72)
-        lines.append(
-            f"  {marker}#{item.number}  {title}  -- updated {item.updated_at}{label_hint}"
-        )
+        lines.append(f"  {marker}#{item.number}  {title}  -- updated {item.updated_at}{label_hint}")
     return "\n".join(lines)
 
 

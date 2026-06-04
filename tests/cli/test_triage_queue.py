@@ -26,6 +26,7 @@ from __future__ import annotations
 import importlib
 import json
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent.parent.parent / "scripts"
@@ -324,3 +325,397 @@ def test_scope_spec_readiness_accepts_well_formed():
 
 def test_spec_readiness_refusal_none_when_eligible():
     assert triage_queue.spec_readiness_refusal(_well_formed_plan()) is None
+
+
+# ---------------------------------------------------------------------------
+# Slice 2 (#1419 / #987) -- continuation precedence + deficit-biased selection
+# ---------------------------------------------------------------------------
+#
+# Acceptance criteria from the slice-2 story vBRIEF:
+#   a1 -- a started epic's remaining stories rank ahead of net-new scopes.
+#   a2 -- among net-new scopes the most-under-target bucket sorts first.
+#   a3 -- finishBeforeStart + wipCap reached blocks net-new, allows only
+#         continuation work.
+
+
+def _write_epic(folder, filename, *, children, title="Epic"):
+    """Write a parent epic vBRIEF with ``x-vbrief/plan`` child references.
+
+    ``children`` is a list of ``(folder, child_filename)`` tuples mirroring
+    the on-disk lifecycle-folder layout (e.g. ``("completed", "slice1...")``).
+    """
+    folder.mkdir(parents=True, exist_ok=True)
+    refs = [
+        {"uri": f"{child_folder}/{child_name}", "type": "x-vbrief/plan", "title": child_name}
+        for child_folder, child_name in children
+    ]
+    payload = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {
+            "title": title,
+            "status": "proposed",
+            "metadata": {"kind": "epic"},
+            "references": refs,
+        },
+    }
+    (folder / filename).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _write_child_scope(
+    folder, filename, *, issue_number, plan_ref=None, rank=None, capacity_bucket=None
+):
+    """Write an in-flight child scope vBRIEF referencing a GitHub issue."""
+    folder.mkdir(parents=True, exist_ok=True)
+    metadata = {}
+    if rank is not None:
+        metadata["rank"] = rank
+    if capacity_bucket is not None:
+        metadata["capacityBucket"] = capacity_bucket
+    plan = {
+        "title": "Child scope",
+        "status": "running",
+        "references": [
+            {
+                "uri": f"https://github.com/{REPO}/issues/{issue_number}",
+                "type": "x-vbrief/github-issue",
+                "title": f"Issue #{issue_number}",
+            }
+        ],
+    }
+    if plan_ref is not None:
+        plan["planRef"] = plan_ref
+    if metadata:
+        plan["metadata"] = metadata
+    payload = {"vBRIEFInfo": {"version": "0.6"}, "plan": plan}
+    (folder / filename).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _write_completed_scope(folder, filename, *, bucket, completed_at):
+    """Write a completed scope carrying a capacity bucket + completedAt."""
+    folder.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {
+            "title": "Done",
+            "status": "completed",
+            "metadata": {"kind": "story", "capacityBucket": bucket, "completedAt": completed_at},
+        },
+    }
+    (folder / filename).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _write_capacity_project_definition(
+    vbrief, *, buckets, window=30, default_bucket=None, finish_before_start=None, wip_cap=None
+):
+    """Write a PROJECT-DEFINITION with a capacityAllocation (+ optional wipCap)."""
+    cap = {"window": window, "buckets": [{"id": bid, "target": t} for bid, t in buckets]}
+    if default_bucket is not None:
+        cap["defaultBucket"] = default_bucket
+    if finish_before_start is not None:
+        cap["finishBeforeStart"] = finish_before_start
+    policy = {"capacityAllocation": cap}
+    if wip_cap is not None:
+        policy["wipCap"] = wip_cap
+    payload = {"vBRIEFInfo": {"version": "0.6"}, "plan": {"title": "P", "policy": policy}}
+    vbrief.mkdir(parents=True, exist_ok=True)
+    (vbrief / "PROJECT-DEFINITION.vbrief.json").write_text(
+        json.dumps(payload, indent=2), encoding="utf-8"
+    )
+
+
+# --- selection_ordering_key (the canonical lexicographic key) ---------------
+
+
+def test_selection_ordering_key_continuation_before_net_new():
+    cont = triage_queue.selection_ordering_key(label_index=0, is_continuation=True)
+    net_new = triage_queue.selection_ordering_key(label_index=0, is_continuation=False)
+    assert cont < net_new
+
+
+def test_selection_ordering_key_higher_deficit_first_among_net_new():
+    high = triage_queue.selection_ordering_key(
+        label_index=0, is_continuation=False, bucket_deficit=0.5
+    )
+    low = triage_queue.selection_ordering_key(
+        label_index=0, is_continuation=False, bucket_deficit=0.1
+    )
+    assert high < low
+
+
+def test_selection_ordering_key_label_preempts_continuation():
+    urgent_net_new = triage_queue.selection_ordering_key(label_index=0, is_continuation=False)
+    nonurgent_continuation = triage_queue.selection_ordering_key(
+        label_index=1, is_continuation=True
+    )
+    assert urgent_net_new < nonurgent_continuation
+
+
+def test_selection_ordering_key_oldest_started_epic_first():
+    older = triage_queue.selection_ordering_key(
+        label_index=0, is_continuation=True, continuation_order="2026-01-01-epic"
+    )
+    newer = triage_queue.selection_ordering_key(
+        label_index=0, is_continuation=True, continuation_order="2026-06-01-epic"
+    )
+    assert older < newer
+
+
+# --- a1: continuation outranks net-new (programmatic surface) ---------------
+
+
+def test_build_queue_continuation_outranks_net_new():
+    """a1: a started epic's story sorts ahead of net-new despite a later date."""
+    issues = [
+        _issue(1, created_at="2026-01-01T00:00:00Z"),  # net-new, earliest
+        _issue(2, created_at="2026-06-01T00:00:00Z"),  # continuation, latest
+    ]
+    options = triage_queue.QueueBuildOptions(continuation_numbers=frozenset({2}))
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    assert [i.number for i in items] == [2, 1]
+
+
+def test_build_queue_continuation_outranks_better_ranked_net_new():
+    """a1: continuation precedence beats a lower (better) net-new rank."""
+    issues = [_issue(1), _issue(2)]
+    options = triage_queue.QueueBuildOptions(
+        continuation_numbers=frozenset({2}),
+        rank_by_number={1: 1, 2: 9},  # net-new #1 has the better rank
+    )
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    assert [i.number for i in items] == [2, 1]
+
+
+def test_build_queue_continuation_oldest_started_epic_first():
+    issues = [_issue(1), _issue(2)]
+    options = triage_queue.QueueBuildOptions(
+        continuation_numbers=frozenset({1, 2}),
+        continuation_order_by_number={1: "2026-06-04-newer", 2: "2026-01-01-older"},
+    )
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    assert [i.number for i in items] == [2, 1]
+
+
+# --- a2: deficit-biased ordering among net-new ------------------------------
+
+
+def test_build_queue_deficit_orders_most_under_target_first():
+    """a2: among net-new scopes the higher-deficit (more under target) first."""
+    issues = [_issue(1), _issue(2)]
+    options = triage_queue.QueueBuildOptions(deficit_by_number={1: 0.1, 2: 0.5})
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    assert [i.number for i in items] == [2, 1]
+
+
+def test_build_queue_continuation_beats_deficit():
+    """Continuation precedence dominates the bucket deficit (RFC order)."""
+    issues = [_issue(1), _issue(2)]
+    options = triage_queue.QueueBuildOptions(
+        continuation_numbers=frozenset({2}),
+        deficit_by_number={1: 0.9},  # net-new #1 is badly under target
+    )
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    assert [i.number for i in items] == [2, 1]
+
+
+# --- a3: finishBeforeStart blocks net-new at wipCap -------------------------
+
+
+def test_build_queue_finish_before_start_blocks_net_new_at_cap():
+    """a3: finishBeforeStart + wipCap reached -> only continuation promotable."""
+    issues = [_issue(1), _issue(2), _issue(3)]
+    options = triage_queue.QueueBuildOptions(
+        continuation_numbers=frozenset({2}),
+        finish_before_start=True,
+        wip_at_cap=True,
+    )
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    assert [i.number for i in items] == [2]
+
+
+def test_build_queue_finish_before_start_inert_below_cap():
+    """finishBeforeStart does nothing until wipCap is reached."""
+    issues = [_issue(1), _issue(2)]
+    options = triage_queue.QueueBuildOptions(
+        continuation_numbers=frozenset({2}),
+        finish_before_start=True,
+        wip_at_cap=False,
+    )
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    assert sorted(i.number for i in items) == [1, 2]
+    assert items[0].number == 2  # continuation still leads
+
+
+def test_build_queue_finish_before_start_requires_flag():
+    """wipCap reached without finishBeforeStart leaves net-new selectable."""
+    issues = [_issue(1), _issue(2)]
+    options = triage_queue.QueueBuildOptions(
+        continuation_numbers=frozenset({2}),
+        finish_before_start=False,
+        wip_at_cap=True,
+    )
+    items = triage_queue.build_queue(issues, [], repo=REPO, options=options)
+    assert sorted(i.number for i in items) == [1, 2]
+
+
+# --- continuation_by_issue_number (filesystem-truth) ------------------------
+
+
+def test_continuation_by_issue_number_detects_started_epic(tmp_path):
+    vbrief = tmp_path / "vbrief"
+    _write_epic(
+        vbrief / "proposed",
+        "2026-06-01-epic.vbrief.json",
+        children=[
+            ("completed", "2026-06-01-slice1.vbrief.json"),
+            ("active", "2026-06-04-slice2.vbrief.json"),
+        ],
+    )
+    _write_child_scope(
+        vbrief / "active",
+        "2026-06-04-slice2.vbrief.json",
+        issue_number=200,
+        plan_ref="proposed/2026-06-01-epic.vbrief.json",
+    )
+    result = triage_queue.continuation_by_issue_number(tmp_path)
+    assert result == {200: "2026-06-01-epic.vbrief.json"}
+
+
+def test_continuation_by_issue_number_sibling_active_counts(tmp_path):
+    vbrief = tmp_path / "vbrief"
+    _write_epic(
+        vbrief / "proposed",
+        "2026-06-01-epic.vbrief.json",
+        children=[
+            ("active", "2026-06-04-slice2.vbrief.json"),
+            ("active", "2026-06-04-slice5.vbrief.json"),
+        ],
+    )
+    _write_child_scope(
+        vbrief / "active",
+        "2026-06-04-slice2.vbrief.json",
+        issue_number=200,
+        plan_ref="proposed/2026-06-01-epic.vbrief.json",
+    )
+    result = triage_queue.continuation_by_issue_number(tmp_path)
+    assert 200 in result  # the sibling active child started the epic
+
+
+def test_continuation_by_issue_number_lone_active_self_not_flagged(tmp_path):
+    """An epic whose only active child IS this candidate is not yet started."""
+    vbrief = tmp_path / "vbrief"
+    _write_epic(
+        vbrief / "proposed",
+        "2026-06-04-epic.vbrief.json",
+        children=[("active", "2026-06-04-slice1.vbrief.json")],
+    )
+    _write_child_scope(
+        vbrief / "active",
+        "2026-06-04-slice1.vbrief.json",
+        issue_number=300,
+        plan_ref="proposed/2026-06-04-epic.vbrief.json",
+    )
+    assert triage_queue.continuation_by_issue_number(tmp_path) == {}
+
+
+def test_continuation_by_issue_number_no_plan_ref(tmp_path):
+    vbrief = tmp_path / "vbrief"
+    _write_child_scope(vbrief / "active", "2026-06-04-x.vbrief.json", issue_number=400)
+    assert triage_queue.continuation_by_issue_number(tmp_path) == {}
+
+
+# --- bucket_deficit_by_issue_number (reads the Slice-4 capacity engine) -----
+
+
+def test_bucket_deficit_by_issue_number_reads_capacity_engine(tmp_path):
+    vbrief = tmp_path / "vbrief"
+    for sub in ("proposed", "pending", "active", "completed", "cancelled"):
+        (vbrief / sub).mkdir(parents=True)
+    _write_capacity_project_definition(vbrief, buckets=[("feature", 0.5), ("debt", 0.5)], window=30)
+    recent = (datetime.now(UTC) - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    completed = vbrief / "completed"
+    # Two completions in 'feature' -> 'debt' is starved (positive deficit).
+    _write_completed_scope(completed, "c1.vbrief.json", bucket="feature", completed_at=recent)
+    _write_completed_scope(completed, "c2.vbrief.json", bucket="feature", completed_at=recent)
+    _write_child_scope(
+        vbrief / "active",
+        "2026-06-04-debt.vbrief.json",
+        issue_number=500,
+        capacity_bucket="debt",
+    )
+    _write_child_scope(
+        vbrief / "active",
+        "2026-06-04-feature.vbrief.json",
+        issue_number=600,
+        capacity_bucket="feature",
+    )
+    result = triage_queue.bucket_deficit_by_issue_number(tmp_path)
+    assert result[500] > 0  # debt under target
+    assert result[600] < 0  # feature over target
+    assert result[500] > result[600]
+
+
+# --- resolve_finish_before_start / wip_at_cap ------------------------------
+
+
+def test_resolve_finish_before_start_true(tmp_path):
+    vbrief = tmp_path / "vbrief"
+    _write_capacity_project_definition(vbrief, buckets=[("feature", 1.0)], finish_before_start=True)
+    assert triage_queue.resolve_finish_before_start(tmp_path) is True
+
+
+def test_resolve_finish_before_start_default_false(tmp_path):
+    vbrief = tmp_path / "vbrief"
+    _write_capacity_project_definition(vbrief, buckets=[("feature", 1.0)])
+    assert triage_queue.resolve_finish_before_start(tmp_path) is False
+
+
+def test_resolve_finish_before_start_no_project_definition(tmp_path):
+    assert triage_queue.resolve_finish_before_start(tmp_path) is False
+
+
+def test_wip_at_cap_true_when_count_reaches_cap(tmp_path):
+    vbrief = tmp_path / "vbrief"
+    _write_capacity_project_definition(vbrief, buckets=[("feature", 1.0)], wip_cap=1)
+    _write_child_scope(vbrief / "pending", "2026-06-04-a.vbrief.json", issue_number=1)
+    assert triage_queue.wip_at_cap(tmp_path) is True
+
+
+def test_wip_at_cap_false_below_cap(tmp_path):
+    vbrief = tmp_path / "vbrief"
+    _write_capacity_project_definition(vbrief, buckets=[("feature", 1.0)], wip_cap=10)
+    _write_child_scope(vbrief / "pending", "2026-06-04-a.vbrief.json", issue_number=1)
+    assert triage_queue.wip_at_cap(tmp_path) is False
+
+
+# --- CLI data path: load_cached_issues stamps continuation/deficit ----------
+
+
+def test_load_cached_issues_annotates_continuation(tmp_path):
+    """End-to-end a1: load_cached_issues stamps continuation, build_queue leads it."""
+    cache_root = tmp_path / ".deft-cache"
+    _write_cached_issue(cache_root, REPO, _issue(100, created_at="2026-01-01T00:00:00Z"))
+    _write_cached_issue(cache_root, REPO, _issue(200, created_at="2026-06-01T00:00:00Z"))
+    vbrief = tmp_path / "vbrief"
+    _write_epic(
+        vbrief / "proposed",
+        "2026-06-01-epic.vbrief.json",
+        children=[
+            ("completed", "2026-06-01-slice1.vbrief.json"),
+            ("active", "2026-06-04-slice2.vbrief.json"),
+        ],
+    )
+    # Issue 200 is continuation (started epic); issue 100 is net-new.
+    _write_child_scope(
+        vbrief / "active",
+        "2026-06-04-slice2.vbrief.json",
+        issue_number=200,
+        plan_ref="proposed/2026-06-01-epic.vbrief.json",
+    )
+    _write_child_scope(vbrief / "active", "2026-06-04-netnew.vbrief.json", issue_number=100)
+    issues = triage_queue.load_cached_issues(REPO, project_root=tmp_path)
+    by_number = {i["number"]: i for i in issues}
+    assert by_number[200]["_continuation"] is True
+    assert by_number[200]["_continuation_order"] == "2026-06-01-epic.vbrief.json"
+    assert by_number[100]["_continuation"] is False
+    items = triage_queue.build_queue(issues, [], repo=REPO)
+    assert [i.number for i in items] == [200, 100]

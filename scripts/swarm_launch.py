@@ -76,6 +76,14 @@ try:  # pragma: no cover -- exercised at integration, stubbed in tests
 except ImportError:  # pragma: no cover
     resolve_worktree_map = None  # type: ignore[assignment]
 
+# Selection ordering (#1419 Slice 2 / #987). Cohort-fill reuses the canonical
+# lexicographic key from triage_queue so the queue and swarm stay in lockstep.
+# Guarded so this engine + its tests build before / without that module.
+try:  # pragma: no cover -- core sibling in this repo
+    import triage_queue  # type: ignore  # noqa: E402
+except ImportError:  # pragma: no cover
+    triage_queue = None  # type: ignore[assignment]
+
 EXIT_OK = 0
 EXIT_GATE_FAILED = 1
 EXIT_CONFIG_ERROR = 2
@@ -361,6 +369,49 @@ def enforce_gates(
 
 
 # ---------------------------------------------------------------------------
+# Selection ordering -- cohort-fill (#1419 Slice 2 / #987)
+# ---------------------------------------------------------------------------
+
+
+def order_cohort(resolved: list[ResolvedStory], project_root: Path) -> list[ResolvedStory]:
+    """Order a resolved cohort by the RFC #1419 Layer-3 selection sort.
+
+    Continuation work (a story whose ``planRef`` parent epic has already
+    started) leads, then deficit-biased among net-new (most-under-target
+    capacity bucket first), then intra-bucket ``plan.metadata.rank``, then a
+    date-prefixed-filename proxy for creation date. Reuses
+    :func:`triage_queue.selection_ordering_key` (the same canonical key the
+    triage queue uses) so the two surfaces cannot drift.
+
+    The urgent/blocking label tier is queue-specific (it matches GitHub
+    issue labels against ``triageRankingLabels``); a swarm cohort is already
+    operator-curated, so ``label_index`` is a constant ``0`` here. The sort
+    is stable + best-effort: when :mod:`triage_queue` is unavailable the
+    input order is preserved unchanged.
+    """
+    if triage_queue is None:
+        return list(resolved)
+    continuation_map = triage_queue.continuation_by_issue_number(project_root)
+    deficit_map = triage_queue.bucket_deficit_by_issue_number(project_root)
+
+    def _key(story: ResolvedStory) -> tuple:
+        plan = _plan(_load_json(story.path) or {})
+        issues = _issue_numbers(plan)
+        cont_orders = [continuation_map[n] for n in issues if n in continuation_map]
+        deficits = [deficit_map[n] for n in issues if n in deficit_map]
+        return triage_queue.selection_ordering_key(
+            label_index=0,
+            is_continuation=bool(cont_orders),
+            continuation_order=min(cont_orders) if cont_orders else "",
+            bucket_deficit=max(deficits) if deficits else None,
+            rank=triage_queue.scope_metadata_rank(plan),
+            date_key=(0, story.relpath),
+        )
+
+    return sorted(resolved, key=_key)
+
+
+# ---------------------------------------------------------------------------
 # Manifest construction (C2)
 # ---------------------------------------------------------------------------
 
@@ -575,7 +626,7 @@ def main(argv: list[str] | None = None) -> int:
     tokens = _split_csv(args.stories) + _split_csv(args.paths)
     if not tokens:
         print(
-            "Error: no stories supplied. Pass --stories <ids|paths> " "and/or --paths <paths>.",
+            "Error: no stories supplied. Pass --stories <ids|paths> and/or --paths <paths>.",
             file=sys.stderr,
         )
         return EXIT_CONFIG_ERROR
@@ -599,11 +650,16 @@ def main(argv: list[str] | None = None) -> int:
     if failure is not None:
         story, reason = failure
         print(
-            f"Error: story {story.story_id!r} ({story.relpath}) is not "
-            f"launch-ready -- {reason}",
+            f"Error: story {story.story_id!r} ({story.relpath}) is not launch-ready -- {reason}",
             file=sys.stderr,
         )
         return EXIT_GATE_FAILED
+
+    # Cohort-fill ordering (#1419 Slice 2 / #987): continuation-first,
+    # deficit-biased among net-new, then rank/date. Reorders the dispatch
+    # manifest (and each envelope's cohort_vbriefs list) so finishing started
+    # epics and under-target buckets lead.
+    resolved = order_cohort(resolved, project_root)
 
     # Allocation-context token (#1378). A multi-story launch (or any
     # --group launch) is a swarm-cohort; a lone story is solo.
