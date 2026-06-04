@@ -32,7 +32,7 @@
         "title": "Issue #987"
       },
       {
-        "uri": "active/2026-06-04-wire-planmetadatarank-into-selection-ordering-and-roadmap-re.vbrief.json",
+        "uri": "completed/2026-06-04-wire-planmetadatarank-into-selection-ordering-and-roadmap-re.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Wire plan.metadata.rank into selection ordering and roadmap render",
         "TrustLevel": "internal"
@@ -50,7 +50,7 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-04-add-capacity-allocation-accounting-with-buckets-windows-and.vbrief.json",
+        "uri": "active/2026-06-04-add-capacity-allocation-accounting-with-buckets-windows-and.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add capacity allocation accounting with buckets, windows, and capacity:show",
         "TrustLevel": "internal"

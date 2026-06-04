@@ -6,7 +6,7 @@
   "plan": {
     "id": "rank-intra-bucket-ordering",
     "title": "Wire plan.metadata.rank into selection ordering and roadmap render",
-    "status": "running",
+    "status": "completed",
     "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
       "Description": "Adds an intrinsic plan.metadata.rank field to scope vBRIEFs and teaches the triage queue and roadmap renderer to sort ready work by that rank before falling back to creation date. This closes #987 by giving operators a first-class vBRIEF-canonical ordering signal between sibling scopes without any schema change.",
@@ -91,6 +91,6 @@
         "title": "Issue #987"
       }
     ],
-    "updated": "2026-06-04T18:51:40Z"
+    "updated": "2026-06-04T21:37:58Z"
   }
 }
