@@ -914,6 +914,16 @@ def _validate_gate_match(match: Any, prefix: str) -> list[str]:
     if not used:
         return [f"{prefix} requires at least one of {sorted(GATE_MATCH_PREDICATES)}"]
     errors: list[str] = []
+    # Reject unrecognised predicate keys so a misspelling (e.g. ``path`` for
+    # ``paths``) fails validation loudly instead of being silently dropped at
+    # match time -- the gate would otherwise appear valid but match as if that
+    # predicate were absent.
+    extra = sorted(set(match) - GATE_MATCH_PREDICATES)
+    if extra:
+        errors.append(
+            f"{prefix} has unrecognised predicate(s) {extra}; "
+            f"expected only {sorted(GATE_MATCH_PREDICATES)}"
+        )
     if "paths" in match:
         errors.extend(_validate_glob_predicate(match["paths"], f"{prefix}.paths"))
     if "labels" in match:

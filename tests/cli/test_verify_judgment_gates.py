@@ -82,6 +82,16 @@ def _mechanical_gate() -> dict:
     }
 
 
+def _body_gate() -> dict:
+    return {
+        "id": "breaking-change",
+        "class": "declared",
+        "tier": "block",
+        "reason": "Body declares a breaking change",
+        "match": {"body-text": {"any-of": ["BREAKING CHANGE"]}},
+    }
+
+
 _ALL_UNIVERSALS = [
     "secrets-and-credentials",
     "production-infrastructure",
@@ -111,7 +121,7 @@ def test_consumer_mechanical_gate_fails_closed_then_clears(tmp_path):
     assert code == 1
     assert "db-migrations" in message
 
-    scope = fingerprint_scope(("migrations/0001_init.sql",), ())
+    scope = fingerprint_scope({"paths": ["migrations/0001_init.sql"]})
     record_clearance(root, gate_id="db-migrations", cleared_scope=scope)
     code2, _ = evaluate(root, candidate, posture="enforce")
     assert code2 == 0
@@ -136,7 +146,7 @@ def test_secrets_path_advise_never_fails_closed(tmp_path):
 def test_declared_gate_with_clearance_exits_zero(tmp_path):
     root = _make_project(tmp_path, gates=[_declared_gate()])
     candidate = Candidate(paths=("api/users.py",))
-    scope = fingerprint_scope(("api/users.py",), ())
+    scope = fingerprint_scope({"paths": ["api/users.py"]})
     record_clearance(
         root, gate_id="api-contract", cleared_scope=scope, reviewers=["alice"]
     )
@@ -169,7 +179,7 @@ def test_declared_gate_fails_open_on_omission(tmp_path):
 
 def test_scope_creep_rejects_stale_clearance(tmp_path):
     root = _make_project(tmp_path, gates=[_declared_gate()])
-    scope1 = fingerprint_scope(("api/users.py",), ())
+    scope1 = fingerprint_scope({"paths": ["api/users.py"]})
     record_clearance(root, gate_id="api-contract", cleared_scope=scope1)
 
     # Scope creep: a second matched path is added after sign-off.
@@ -182,9 +192,33 @@ def test_scope_creep_rejects_stale_clearance(tmp_path):
     assert outcome.stale_clearance is not None  # the stale sign-off is rejected
 
 
+def test_body_text_gate_scope_creep_re_triggers(tmp_path):
+    """A body-text gate's clearance is rejected once the body is edited.
+
+    Regression for the fingerprint-scope gap: clearances for body-text /
+    state / age-days gates must re-trigger on scope creep, not stay cleared
+    forever after one sign-off.
+    """
+    root = _make_project(tmp_path, gates=[_body_gate()])
+    original = Candidate(body="This is a BREAKING CHANGE to the API.")
+    scope = fingerprint_scope({"body-text": original.body})
+    record_clearance(root, gate_id="breaking-change", cleared_scope=scope)
+
+    # The cleared body validates the clearance...
+    cleared = build_report(root, original).outcome_for("breaking-change")
+    assert cleared is not None and cleared.cleared
+
+    # ...but editing the body (still matching) rejects the stale clearance.
+    edited = Candidate(body="This is a BREAKING CHANGE plus extra scope.")
+    outcome = build_report(root, edited).outcome_for("breaking-change")
+    assert outcome is not None
+    assert outcome.fired
+    assert outcome.stale_clearance is not None
+
+
 def test_clearance_round_trips_through_durable_audit_log(tmp_path):
     root = _make_project(tmp_path, gates=[_declared_gate()])
-    scope = fingerprint_scope(("api/users.py",), ())
+    scope = fingerprint_scope({"paths": ["api/users.py"]})
     entry = record_clearance(
         root,
         gate_id="api-contract",

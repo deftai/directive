@@ -504,6 +504,15 @@ def test_validate_judgment_gates_paths_predicate_shape(policy_module):
     assert any("paths.any-of must be a non-empty list" in e for e in errors)
 
 
+def test_validate_judgment_gates_rejects_unknown_predicate(policy_module):
+    # A misspelled `path` (should be `paths`) alongside a valid predicate must
+    # fail loudly, not be silently dropped at match time.
+    gate = _valid_gate()
+    gate["match"] = {"paths": {"any-of": ["api/**"]}, "path": {"any-of": ["x"]}}
+    errors = policy_module.validate_judgment_gates([gate])
+    assert any("unrecognised predicate" in e for e in errors)
+
+
 def test_validate_judgment_gates_labels_mutually_exclusive(policy_module):
     gate = _valid_gate()
     gate["match"] = {"labels": {"any-of": ["a"], "all-of": ["b"]}}

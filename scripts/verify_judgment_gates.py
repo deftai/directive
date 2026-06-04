@@ -345,20 +345,18 @@ def record_clearance(
     return entry
 
 
-def fingerprint_scope(
-    matched_paths: tuple[str, ...], matched_labels: tuple[str, ...]
-) -> str:
-    """Return a stable sha256 fingerprint of the cleared scope.
+def fingerprint_scope(evidence: dict[str, Any]) -> str:
+    """Return a stable sha256 fingerprint of the cleared-scope *evidence*.
 
-    The fingerprint covers the SORTED matched paths + labels so a clearance is
-    bound to the exact evidence that fired the gate; adding or removing a
-    matched path produces a different fingerprint (scope creep re-triggers).
+    *evidence* is the per-predicate matched evidence dict produced by
+    :func:`match_evidence` -- it carries a key for EVERY predicate the gate
+    matched on (``paths`` / ``labels`` / ``body-text`` / ``state`` /
+    ``age-days``), not just paths + labels. Binding the clearance to the full
+    evidence means a change to ANY matched dimension (a new matched path, an
+    edited body, a state flip, the issue ageing) yields a different
+    fingerprint, so the stale clearance is rejected and the gate re-triggers.
     """
-    payload = json.dumps(
-        {"paths": sorted(matched_paths), "labels": sorted(matched_labels)},
-        sort_keys=True,
-        ensure_ascii=False,
-    )
+    payload = json.dumps(evidence, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -426,25 +424,65 @@ def _matched_labels(match: dict[str, Any], candidate: Candidate) -> tuple[str, .
     return tuple(sorted(label for label in selected if label in names))
 
 
+#: Triage-DSL predicate keys handled by ``triage_classify._consumer_rule_matches``
+#: (the ``paths`` glob predicate is owned by this engine, not the triage DSL).
+_TRIAGE_PREDICATES: frozenset[str] = frozenset(
+    {"labels", "body-text", "state", "age-days"}
+)
+
+
+def match_evidence(
+    match: dict[str, Any], candidate: Candidate, matched_paths: tuple[str, ...]
+) -> dict[str, Any]:
+    """Build the per-predicate matched-evidence dict for a matched gate.
+
+    Only the predicates the gate actually declares contribute a key, and each
+    key carries the candidate dimension that determined the match: the sorted
+    matched paths, the sorted matched labels, the FULL candidate body (any
+    edit re-triggers a body-text gate), the candidate state, and the
+    candidate's age basis (``updated_at``). This is the input to
+    :func:`fingerprint_scope`.
+    """
+    evidence: dict[str, Any] = {}
+    if "paths" in match:
+        evidence["paths"] = sorted(matched_paths)
+    if "labels" in match:
+        evidence["labels"] = list(_matched_labels(match, candidate))
+    if "body-text" in match:
+        evidence["body-text"] = candidate.body
+    if "state" in match:
+        evidence["state"] = candidate.state
+    if "age-days" in match:
+        evidence["age-days"] = candidate.updated_at or ""
+    return evidence
+
+
 def _gate_match(
     gate: dict[str, Any], candidate: Candidate, *, now: datetime
-) -> tuple[bool, tuple[str, ...], tuple[str, ...]]:
-    """Return ``(matched, matched_paths, matched_labels)`` for *gate*."""
+) -> tuple[bool, dict[str, Any], tuple[str, ...], tuple[str, ...]]:
+    """Return ``(matched, evidence, matched_paths, matched_labels)`` for *gate*."""
     match = gate.get("match")
     if not isinstance(match, dict):
-        return False, (), ()
+        return False, {}, (), ()
     matched_paths: tuple[str, ...] = ()
     if "paths" in match:
         paths_pred = match["paths"]
         globs = paths_pred.get("any-of") if isinstance(paths_pred, dict) else None
         hits = tuple(p for p in candidate.paths if match_any(globs, p))
         if not hits:
-            return False, (), ()
+            return False, {}, (), ()
         matched_paths = hits
-    # Labels / body-text / state / age-days reuse the triage DSL matcher.
-    if not _consumer_rule_matches(gate, candidate.as_issue(), now=now):
-        return False, (), ()
-    return True, matched_paths, _matched_labels(match, candidate)
+    # Only delegate to the triage DSL matcher when the gate actually declares a
+    # triage predicate. A path-only gate (e.g. all four universals) must NOT
+    # depend on `_consumer_rule_matches` returning True for an empty predicate
+    # set -- an upstream triage_classify change would otherwise silently stop
+    # every path-only gate from firing.
+    if (set(match) & _TRIAGE_PREDICATES) and not _consumer_rule_matches(
+        gate, candidate.as_issue(), now=now
+    ):
+        return False, {}, (), ()
+    evidence = match_evidence(match, candidate, matched_paths)
+    return True, evidence, matched_paths, _matched_labels(match, candidate)
 
 
 def build_report(
@@ -461,12 +499,12 @@ def build_report(
     records = clearances if clearances is not None else read_clearances(project_root)
     outcomes: list[GateOutcome] = []
     for gate in effective_gates(project_root, policy=policy):
-        matched, matched_paths, matched_labels = _gate_match(
+        matched, evidence, matched_paths, matched_labels = _gate_match(
             gate, candidate, now=now_dt
         )
         if not matched:
             continue
-        scope = fingerprint_scope(matched_paths, matched_labels)
+        scope = fingerprint_scope(evidence)
         valid, stale = _lookup_clearance(records, gate["id"], scope)
         outcomes.append(
             GateOutcome(
@@ -640,7 +678,12 @@ def _eval_parser() -> argparse.ArgumentParser:
         "--label", action="append", default=[], help="Candidate label (repeatable)."
     )
     parser.add_argument("--body", default="", help="Candidate body text.")
-    parser.add_argument("--state", default="open", help="Candidate state (open|closed).")
+    parser.add_argument(
+        "--state",
+        default="open",
+        choices=("open", "closed"),
+        help="Candidate state (default: open).",
+    )
     parser.add_argument("--quiet", action="store_true", help="Suppress the OK message.")
     parser.add_argument("--json", action="store_true", help="Emit a JSON report.")
     return parser
@@ -689,7 +732,9 @@ def _clear_parser() -> argparse.ArgumentParser:
         description=(
             "Record a judgment-gate clearance to the durable audit log "
             "(vbrief/.audit/judgment-gate-clearances.jsonl). The clearance binds "
-            "to the cleared_scope fingerprint of the supplied paths + labels."
+            "to the cleared_scope fingerprint of the supplied evidence -- supply "
+            "exactly the dimensions the gate matches on (paths / labels / body / "
+            "state) so the fingerprint matches what the engine computes."
         ),
     )
     parser.add_argument("--project-root", default=".", help="Project root (default: cwd).")
@@ -701,11 +746,39 @@ def _clear_parser() -> argparse.ArgumentParser:
         "--label", action="append", default=[], help="A matched label in scope (repeatable)."
     )
     parser.add_argument(
+        "--body", default="", help="The candidate body (for a body-text gate)."
+    )
+    parser.add_argument(
+        "--state",
+        default=None,
+        choices=("open", "closed"),
+        help="The candidate state (for a state gate).",
+    )
+    parser.add_argument(
         "--reviewer", action="append", default=[], help="Human reviewer (repeatable)."
     )
     parser.add_argument("--actor", default="operator", help="Who recorded the clearance.")
     parser.add_argument("--reason", default="", help="Sign-off rationale.")
     return parser
+
+
+def _clear_evidence(args: argparse.Namespace) -> dict[str, Any]:
+    """Build a cleared-scope evidence dict from the supplied clear args.
+
+    Mirrors :func:`match_evidence`: only the dimensions the operator supplies
+    contribute a key, so the fingerprint matches what the engine computes for
+    a gate that matches on exactly those dimensions.
+    """
+    evidence: dict[str, Any] = {}
+    if args.path:
+        evidence["paths"] = sorted(args.path)
+    if args.label:
+        evidence["labels"] = sorted(args.label)
+    if args.body:
+        evidence["body-text"] = args.body
+    if args.state is not None:
+        evidence["state"] = args.state
+    return evidence
 
 
 def _clear_main(argv: list[str]) -> int:
@@ -717,7 +790,7 @@ def _clear_main(argv: list[str]) -> int:
             file=sys.stderr,
         )
         return 2
-    scope = fingerprint_scope(tuple(args.path), tuple(args.label))
+    scope = fingerprint_scope(_clear_evidence(args))
     entry = record_clearance(
         project_root,
         gate_id=args.gate_id,
