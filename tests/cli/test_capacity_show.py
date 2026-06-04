@@ -518,12 +518,24 @@ def test_autonomy_is_advisory_only_and_does_not_mutate_state(tmp_path):
     assert report.autonomy.advisory is True
     assert before == after
     # The resolved policy default level is unchanged (no auto-ratchet persisted).
-    from policy import resolve_autonomy
-
-    assert resolve_autonomy(root).default_level == "escalate"
+    assert policy_mod.resolve_autonomy(root).default_level == "escalate"
 
 
 def test_autonomy_line_rendered(tmp_path):
     root = _make_project(tmp_path, _capacity())
     rendered = render_report(compute_report(root, now=NOW))
     assert "Autonomy dial (advisory-only):" in rendered
+
+
+def test_autonomy_disabled_suppresses_dial(tmp_path):
+    # autonomy.enabled=false -> no recommendation computed and no dial line.
+    root = _make_project(
+        tmp_path,
+        _capacity(),
+        autonomy={"enabled": False, "minSampleSize": 2},
+    )
+    _seed_decisions(root, resolved_clean=3)
+    report = compute_report(root, now=NOW)
+    assert report.autonomy_enabled is False
+    assert report.autonomy is None
+    assert "Autonomy dial (advisory-only):" not in render_report(report)

@@ -390,13 +390,20 @@ def compute_report(
     )
     rework_rate = total_rework / total_backward if total_backward > 0 else 0.0
     autonomy_policy = resolve_autonomy(project_root)
-    autonomy = recommend_autonomy_level(
-        autonomy_policy.default_level,
-        override_rate=backlog.override_rate,
-        rework_rate=rework_rate,
-        sample_size=backlog.resolved_in_window,
-        p0_reversal=backlog.p0_reversal_in_window,
-        policy=autonomy_policy,
+    # Honour the enabled flag: a project that sets autonomy.enabled=false gets
+    # no dial recommendation at all (autonomy stays None), so the render guard
+    # below suppresses the line. Default policy is enabled.
+    autonomy = (
+        recommend_autonomy_level(
+            autonomy_policy.default_level,
+            override_rate=backlog.override_rate,
+            rework_rate=rework_rate,
+            sample_size=backlog.resolved_in_window,
+            p0_reversal=backlog.p0_reversal_in_window,
+            policy=autonomy_policy,
+        )
+        if autonomy_policy.enabled
+        else None
     )
     pending_nudge = pending_decisions_nudge_line(backlog.pending_count)
 
@@ -482,7 +489,7 @@ def _append_backlog_and_autonomy(lines: list[str], report: CapacityReport) -> No
         lines.append(f"    by kind: {kinds}")
     if report.pending_nudge:
         lines.append(f"  {report.pending_nudge}")
-    if report.autonomy is not None:
+    if report.autonomy_enabled and report.autonomy is not None:
         rec = report.autonomy
         lines.append(
             f"  Autonomy dial (advisory-only): {rec.current_level} -> "

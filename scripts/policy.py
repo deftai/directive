@@ -1514,6 +1514,14 @@ def route_reviewer_disagreement(
         )
     if requested == "auto":
         if sev == "p0" or errored_on_head:
+            # Distinguish the two auto->review upgrade triggers so the audit
+            # reason is accurate (an errored-on-HEAD review is not a P0 split).
+            auto_reason = (
+                "errored-on-HEAD review on an auto-tier gate upgrades to "
+                "review (1 human)"
+                if errored_on_head and sev != "p0"
+                else "contested P0 on an auto-tier gate upgrades to review (1 human)"
+            )
             return ReviewerRouting(
                 severity=sev,
                 requested_tier="auto",
@@ -1521,7 +1529,7 @@ def route_reviewer_disagreement(
                 escalates=True,
                 required_human_reviewers=1,
                 upgraded=True,
-                reason="contested P0 on an auto-tier gate upgrades to review (1 human)",
+                reason=auto_reason,
             )
         return ReviewerRouting(
             severity=sev,

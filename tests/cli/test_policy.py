@@ -970,6 +970,20 @@ def test_route_auto_tier_errored_on_head_upgrades(policy_module):
     assert routing.effective_tier == "review"
 
 
+def test_route_auto_tier_errored_reason_distinguishes_from_p0(policy_module):
+    # errored-on-HEAD with a non-P0 severity must NOT be labelled "contested P0".
+    routing = policy_module.route_reviewer_disagreement(
+        severity="p2", tier="auto", errored_on_head=True
+    )
+    assert "errored-on-HEAD" in routing.reason
+    assert "contested P0" not in routing.reason
+
+
+def test_route_auto_tier_p0_reason_is_contested_p0(policy_module):
+    routing = policy_module.route_reviewer_disagreement(severity="p0", tier="auto")
+    assert "contested P0" in routing.reason
+
+
 def test_escalate_reviewer_disagreement_increments_backlog(policy_module, project_root):
     routing = policy_module.escalate_reviewer_disagreement(
         project_root, decision_id="split-1", severity="p0", tier="review"
