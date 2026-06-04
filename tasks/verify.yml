@@ -127,6 +127,20 @@ tasks:
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/preflight_architecture_sor.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
+  capacity:
+    desc: "Three-state ADVISORY capacity gate (#1419 Slice 4). Reports trailing-window target-vs-actual bucket mix from plan.policy.capacityAllocation; exits 0 in the default advise posture (and on insufficient sample / unconfigured policy), 1 only under an explicit enforce posture with a sampled deficit, 2 on config error. DELIBERATELY NOT in the `task check` aggregate -- capacity must never fail-closed on the framework tree."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+    # because the gate forwards user-facing flags via {{.CLI_ARGS}}
+    # (--project-root / --quiet) that go-task's incremental-build cache would
+    # silently swallow. Advisory-only: this target is intentionally absent
+    # from the `task check` deps so a capacity deficit cannot wedge the
+    # framework's own self-check (advise-mode discipline, #1419).
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_capacity.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
   wip-cap:
     desc: "Pre-merge re-validation that pending/+active/ count is within plan.policy.wipCap (#1124 / D4 of #1119). Catches stale-branch merges + --force overrides. Default cap is 10 per umbrella #1119 Current Shape v3. The framework's own task check passes --allow-over-cap during landing-day overage; consumer projects MUST NOT pass that flag."
     dir: '{{.USER_WORKING_DIR}}'

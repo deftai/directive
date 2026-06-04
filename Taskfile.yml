@@ -280,6 +280,15 @@ includes:
   slice-record:
     taskfile: ./tasks/slice.yml
     optional: true
+  # Capacity allocation accounting surface (#1419 Delivery Slice 4). Exposes
+  # `task capacity:show` (advisory, offline target-vs-actual bucket mix). The
+  # companion `task verify:capacity` lives in tasks/verify.yml and is
+  # DELIBERATELY absent from the `task check` aggregate -- capacity is
+  # advise-by-default and must never fail-closed on the framework tree.
+  # `optional: true` for rolling-merge tolerance.
+  capacity:
+    taskfile: ./tasks/capacity.yml
+    optional: true
 
 tasks:
   default:

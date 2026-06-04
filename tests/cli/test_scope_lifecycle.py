@@ -924,3 +924,104 @@ class TestDecomposedChildBackReference:
             parent_data, parent_path, new_parent, tmp_path / "vbrief"
         )
         assert updated == []
+
+
+# ---------------------------------------------------------------------------
+# Capacity-accounting completion stamp (#1419 Slice 4, acceptance a3)
+# ---------------------------------------------------------------------------
+
+
+def _write_project_definition_with_capacity(tmp_path: Path, capacity: dict) -> None:
+    """Drop a PROJECT-DEFINITION carrying a capacityAllocation block."""
+    (tmp_path / "vbrief").mkdir(parents=True, exist_ok=True)
+    payload = {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {
+            "title": "P",
+            "status": "running",
+            "items": [],
+            "policy": {"capacityAllocation": capacity},
+        },
+    }
+    (tmp_path / "vbrief" / "PROJECT-DEFINITION.vbrief.json").write_text(
+        json.dumps(payload, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+class TestCapacityCompletionStamp:
+    """``scope:complete`` stamps capacityBucket + completedAt (#1419 a3)."""
+
+    def test_complete_stamps_completed_at(self, tmp_path):
+        f = make_vbrief(tmp_path, "active", "running")
+        ok, _ = run_transition("complete", f)
+        assert ok
+        dest = tmp_path / "vbrief" / "completed" / f.name
+        meta = read_vbrief(dest)["plan"]["metadata"]
+        ts = meta["completedAt"]
+        assert "T" in ts and ts.endswith("Z")
+
+    def test_complete_without_policy_leaves_bucket_unset(self, tmp_path):
+        """No capacity policy -> completedAt stamped, capacityBucket absent."""
+        f = make_vbrief(tmp_path, "active", "running")
+        ok, _ = run_transition("complete", f)
+        assert ok
+        dest = tmp_path / "vbrief" / "completed" / f.name
+        meta = read_vbrief(dest)["plan"]["metadata"]
+        assert "completedAt" in meta
+        assert "capacityBucket" not in meta
+
+    def test_complete_preserves_existing_bucket(self, tmp_path):
+        """An explicit capacityBucket is preserved, not overwritten."""
+        _write_project_definition_with_capacity(
+            tmp_path,
+            {
+                "window": 30,
+                "defaultBucket": "feature",
+                "buckets": [
+                    {"id": "debt", "target": 0.5},
+                    {"id": "feature", "target": 0.5},
+                ],
+            },
+        )
+        f = make_vbrief(tmp_path, "active", "running")
+        data = read_vbrief(f)
+        data["plan"]["metadata"] = {"capacityBucket": "debt"}
+        f.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+        ok, _ = run_transition("complete", f)
+        assert ok
+        dest = tmp_path / "vbrief" / "completed" / f.name
+        meta = read_vbrief(dest)["plan"]["metadata"]
+        assert meta["capacityBucket"] == "debt"
+        assert "completedAt" in meta
+
+    def test_complete_backfills_default_bucket(self, tmp_path):
+        """An absent capacityBucket is back-filled from policy defaultBucket."""
+        _write_project_definition_with_capacity(
+            tmp_path,
+            {
+                "window": 30,
+                "defaultBucket": "feature",
+                "buckets": [
+                    {"id": "debt", "target": 0.5},
+                    {"id": "feature", "target": 0.5},
+                ],
+            },
+        )
+        f = make_vbrief(tmp_path, "active", "running")
+        ok, _ = run_transition("complete", f)
+        assert ok
+        dest = tmp_path / "vbrief" / "completed" / f.name
+        meta = read_vbrief(dest)["plan"]["metadata"]
+        assert meta["capacityBucket"] == "feature"
+        assert "completedAt" in meta
+
+    def test_fail_does_not_stamp_capacity(self, tmp_path):
+        """``fail`` records an attempt, not a completion -- no capacity stamp."""
+        f = make_vbrief(tmp_path, "active", "running")
+        ok, _ = run_transition("fail", f)
+        assert ok
+        dest = tmp_path / "vbrief" / "completed" / f.name
+        meta = read_vbrief(dest)["plan"].get("metadata", {})
+        assert "completedAt" not in meta
+        assert "capacityBucket" not in meta

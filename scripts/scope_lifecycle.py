@@ -588,6 +588,68 @@ def update_decomposed_child_back_references(
     return updated
 
 
+# ---------------------------------------------------------------------------
+# Capacity-accounting completion stamp (#1419 Delivery Slice 4)
+# ---------------------------------------------------------------------------
+#
+# At completion, the capacity engine wants two facts recorded onto the
+# completed vBRIEF so the trailing-window backward view
+# (``scripts/capacity_show.py``) is filesystem-truth and offline:
+#
+# * ``plan.metadata.completedAt`` -- the completion timestamp, used to decide
+#   whether the vBRIEF falls inside the trailing accounting window.
+# * ``plan.metadata.capacityBucket`` -- which protected bucket the work
+#   counts against. An explicit value already on the vBRIEF is preserved; an
+#   absent value is back-filled from the project's
+#   ``plan.policy.capacityAllocation.defaultBucket`` when one is configured.
+#
+# Stamping is best-effort: a missing / unparseable PROJECT-DEFINITION (or a
+# tree that pre-dates the capacity schema) simply leaves ``capacityBucket``
+# unset. The completion transition MUST NOT fail because capacity policy is
+# absent -- this is advisory accounting, not a gate.
+
+
+def _resolve_default_capacity_bucket(project_root: Path) -> str:
+    """Return the configured ``capacityAllocation.defaultBucket`` or ``""``.
+
+    Deferred-import of ``scripts.policy`` so a tree that pre-dates the
+    #1419 capacity schema degrades cleanly (no bucket back-fill) rather
+    than raising. Any resolution failure returns the empty string.
+    """
+    try:
+        from policy import resolve_capacity_allocation
+    except ImportError:
+        return ""
+    try:
+        allocation = resolve_capacity_allocation(project_root)
+    except Exception:
+        return ""
+    return allocation.default_bucket or ""
+
+
+def _stamp_completion_metadata(
+    plan: dict, project_root: Path, timestamp: str
+) -> None:
+    """Stamp ``completedAt`` + ``capacityBucket`` onto a completing vBRIEF.
+
+    ``completedAt`` is always set to *timestamp*. ``capacityBucket`` is set
+    only when the vBRIEF does not already carry a non-empty explicit value;
+    in that case it is back-filled from the project's configured
+    ``defaultBucket`` (when one exists). Mutates *plan* in place. Never
+    raises -- capacity accounting is advisory.
+    """
+    metadata = plan.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+        plan["metadata"] = metadata
+    metadata["completedAt"] = timestamp
+    existing = metadata.get("capacityBucket")
+    if not (isinstance(existing, str) and existing.strip()):
+        bucket = _resolve_default_capacity_bucket(project_root)
+        if bucket:
+            metadata["capacityBucket"] = bucket
+
+
 def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
     """Execute a lifecycle transition on a vBRIEF file.
 
@@ -660,8 +722,20 @@ def run_transition(action: str, file_path: Path) -> tuple[bool, str]:
         )
 
     # Update status and timestamp
+    now_iso = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     plan["status"] = target_status
-    plan["updated"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    plan["updated"] = now_iso
+
+    # Capacity-accounting stamp at completion (#1419 Slice 4): record
+    # ``plan.metadata.completedAt`` + ``plan.metadata.capacityBucket`` so the
+    # trailing-window backward view in ``scripts/capacity_show.py`` is
+    # filesystem-truth. Only ``complete`` (the success terminal) is stamped --
+    # ``fail`` records an attempt that could not finish and is intentionally
+    # excluded from capacity accounting. ``project_root`` is the vbrief/
+    # parent (file is in active/ here, so parent.parent.parent is the root).
+    # Best-effort: a missing capacity policy simply leaves capacityBucket unset.
+    if action == "complete":
+        _stamp_completion_metadata(plan, file_path.parent.parent.parent, now_iso)
 
     # Write updated JSON
     updated_json = json.dumps(data, indent=2, ensure_ascii=False) + "\n"

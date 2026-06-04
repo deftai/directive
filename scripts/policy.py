@@ -414,6 +414,362 @@ def set_wip_cap(
     return changed, audit_entry
 
 
+# ---------------------------------------------------------------------------
+# Capacity allocation surface (#1419 Delivery Slice 4)
+# ---------------------------------------------------------------------------
+#
+# ``plan.policy.capacityAllocation`` lets a project track effort against
+# protected buckets (e.g. ``debt`` / ``feature`` / ``urgent``) so debt
+# paydown is not starved by urgent work. The schema is ADVISORY by default
+# (``enforcement = "advise"``): the capacity engine reports target-vs-actual
+# mix and defers to the existing selection ordering. The ``cost`` unit is
+# SELECTABLE (per OQ2, resolved 2026-06-04) but self-guards -- the cost path
+# falls back to advisory ``vbrief-count`` when grounded cost actuals are
+# insufficient (the Warp Analytics cost-sync telemetry is out of scope /
+# upstream-blocked). The resolver below returns the requested unit verbatim;
+# the guarded fallback decision lives in ``scripts/capacity_show.py`` where
+# the grounded-actuals coverage can actually be measured against the
+# lifecycle folders.
+
+#: Capacity accounting unit. ``vbrief-count`` (default, directive's mode)
+#: tallies vBRIEF weights; ``cost`` is the opt-in unit that overlays cost
+#: actuals and self-guards with an advisory count fallback (OQ2).
+DEFAULT_CAPACITY_UNIT: str = "vbrief-count"
+CAPACITY_UNIT_COST: str = "cost"
+CAPACITY_UNITS: frozenset[str] = frozenset({DEFAULT_CAPACITY_UNIT, CAPACITY_UNIT_COST})
+
+#: Trailing accounting window (days) when ``window`` is absent on a
+#: well-formed-but-partial block. A configured block MUST carry ``window``
+#: (validated), so this default only applies to the unconfigured-default
+#: resolver result.
+DEFAULT_CAPACITY_WINDOW_DAYS: int = 30
+
+#: Enforcement posture. ``advise`` (default) NEVER blocks -- the engine
+#: reports and defers to ordering. ``enforce`` is opt-in and only surfaces
+#: a non-zero gate exit when a real deficit accrues past the sample guard;
+#: the framework's own tree leaves this at ``advise`` so a capacity gate
+#: cannot wedge master.
+DEFAULT_CAPACITY_ENFORCEMENT: str = "advise"
+CAPACITY_ENFORCEMENTS: frozenset[str] = frozenset({"advise", "enforce"})
+
+#: Minimum classified completions before backward (target-vs-actual)
+#: accounting is treated as load-bearing. Below this, the engine reports
+#: advisory mode and defers to ordering (acceptance a1).
+DEFAULT_CAPACITY_MIN_SAMPLE_SIZE: int = 20
+
+#: Weight attributed to an UNDECOMPOSED epic / phase (one with no child
+#: stories on disk). A decomposed parent counts 0 -- its children are
+#: counted directly (acceptance a2).
+DEFAULT_EPIC_ESTIMATE: int = 3
+
+#: Age (days) past which an undecomposed epic estimate is considered stale
+#: (surfaced by the capacity engine as a hint; advisory only).
+DEFAULT_EPIC_STALENESS_DAYS: int = 30
+
+#: Absolute tolerance for the ``sum(bucket.target) == 1.0`` invariant so
+#: float round-trips (e.g. 0.3 + 0.3 + 0.4) validate cleanly.
+CAPACITY_TARGET_SUM_TOLERANCE: float = 1e-6
+
+
+@dataclass(frozen=True)
+class CapacityBucket:
+    """One protected capacity bucket: a stable id and its target fraction."""
+
+    bucket_id: str
+    target: float
+
+
+@dataclass(frozen=True)
+class CapacityAllocation:
+    """Resolved ``plan.policy.capacityAllocation`` state.
+
+    ``source`` mirrors :class:`WipCapResult` semantics: ``'typed'`` when a
+    well-formed block is present, ``'default'`` when absent, and
+    ``'default-on-error'`` when present-but-malformed (``error`` carries the
+    first diagnostic so the caller can surface it). ``configured`` is the
+    convenience predicate the capacity engine uses to decide whether to
+    render the target-vs-actual table or the unconfigured advisory banner.
+    """
+
+    unit: str
+    window_days: int
+    enforcement: str
+    min_sample_size: int
+    buckets: tuple[CapacityBucket, ...]
+    default_bucket: str
+    default_epic_estimate: int
+    epic_staleness_days: int
+    source: str  # one of: 'typed', 'default', 'default-on-error'
+    error: str | None = None
+
+    @property
+    def configured(self) -> bool:
+        """True when a well-formed block with at least one bucket is present."""
+        return self.source == "typed" and bool(self.buckets)
+
+
+def _is_number(value: Any) -> bool:
+    """True for a real numeric value (``bool`` is explicitly excluded)."""
+    return isinstance(value, int | float) and not isinstance(value, bool)
+
+
+def _is_positive_int(value: Any) -> bool:
+    """True for an ``int`` strictly greater than zero (``bool`` excluded)."""
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _default_capacity_allocation(
+    *, source: str, error: str | None = None
+) -> CapacityAllocation:
+    """Return the framework-default :class:`CapacityAllocation`.
+
+    Buckets are intentionally empty -- with no configured buckets the
+    capacity engine renders the unconfigured advisory banner rather than a
+    target-vs-actual table.
+    """
+    return CapacityAllocation(
+        unit=DEFAULT_CAPACITY_UNIT,
+        window_days=DEFAULT_CAPACITY_WINDOW_DAYS,
+        enforcement=DEFAULT_CAPACITY_ENFORCEMENT,
+        min_sample_size=DEFAULT_CAPACITY_MIN_SAMPLE_SIZE,
+        buckets=(),
+        default_bucket="",
+        default_epic_estimate=DEFAULT_EPIC_ESTIMATE,
+        epic_staleness_days=DEFAULT_EPIC_STALENESS_DAYS,
+        source=source,
+        error=error,
+    )
+
+
+def validate_capacity_allocation(value: Any) -> list[str]:
+    """Validate a ``plan.policy.capacityAllocation`` payload.
+
+    Returns a list of error strings (empty == valid). ``None`` / unset is
+    valid (the resolver falls back to the framework default). The invariants
+    enforced (per the #1419 Slice 4 acceptance criteria) are:
+
+    * ``unit`` (if present) is one of :data:`CAPACITY_UNITS`.
+    * ``enforcement`` (if present) is one of :data:`CAPACITY_ENFORCEMENTS`.
+    * ``window`` is REQUIRED and a positive integer (days).
+    * ``minSampleSize`` (if present) is a non-negative integer.
+    * ``defaultEpicEstimate`` / ``epicStalenessDays`` (if present) are
+      positive integers.
+    * ``buckets`` is a non-empty array of ``{id, target}`` objects with
+      unique ids and targets that sum to 1.0 (within
+      :data:`CAPACITY_TARGET_SUM_TOLERANCE`).
+    * ``defaultBucket`` (if present) matches a declared bucket id.
+    """
+    errors: list[str] = []
+    if value is None:
+        return errors
+    if not isinstance(value, dict):
+        errors.append(
+            "plan.policy.capacityAllocation must be an object; got "
+            f"{type(value).__name__} ({value!r})"
+        )
+        return errors
+
+    unit = value.get("unit", DEFAULT_CAPACITY_UNIT)
+    if unit not in CAPACITY_UNITS:
+        errors.append(
+            "plan.policy.capacityAllocation.unit must be one of "
+            f"{sorted(CAPACITY_UNITS)}; got {unit!r}"
+        )
+
+    enforcement = value.get("enforcement", DEFAULT_CAPACITY_ENFORCEMENT)
+    if enforcement not in CAPACITY_ENFORCEMENTS:
+        errors.append(
+            "plan.policy.capacityAllocation.enforcement must be one of "
+            f"{sorted(CAPACITY_ENFORCEMENTS)}; got {enforcement!r}"
+        )
+
+    if "window" not in value:
+        errors.append(
+            "plan.policy.capacityAllocation.window is required "
+            "(trailing accounting window in days)"
+        )
+    elif not _is_positive_int(value["window"]):
+        errors.append(
+            "plan.policy.capacityAllocation.window must be a positive integer "
+            f"(days); got {value['window']!r}"
+        )
+
+    if "minSampleSize" in value:
+        mss = value["minSampleSize"]
+        if not isinstance(mss, int) or isinstance(mss, bool) or mss < 0:
+            errors.append(
+                "plan.policy.capacityAllocation.minSampleSize must be a "
+                f"non-negative integer; got {mss!r}"
+            )
+
+    if "defaultEpicEstimate" in value and not _is_positive_int(
+        value["defaultEpicEstimate"]
+    ):
+        errors.append(
+            "plan.policy.capacityAllocation.defaultEpicEstimate must be a "
+            f"positive integer; got {value['defaultEpicEstimate']!r}"
+        )
+
+    if "epicStalenessDays" in value and not _is_positive_int(
+        value["epicStalenessDays"]
+    ):
+        errors.append(
+            "plan.policy.capacityAllocation.epicStalenessDays must be a "
+            f"positive integer; got {value['epicStalenessDays']!r}"
+        )
+
+    errors.extend(_validate_capacity_buckets(value))
+    return errors
+
+
+def _validate_capacity_buckets(value: dict) -> list[str]:
+    """Validate the ``buckets`` array + ``defaultBucket`` cross-reference."""
+    errors: list[str] = []
+    buckets = value.get("buckets")
+    if not isinstance(buckets, list) or not buckets:
+        errors.append(
+            "plan.policy.capacityAllocation.buckets must be a non-empty array"
+        )
+        return errors
+
+    ids: list[str] = []
+    total = 0.0
+    for idx, bucket in enumerate(buckets):
+        if not isinstance(bucket, dict):
+            errors.append(
+                f"plan.policy.capacityAllocation.buckets[{idx}] must be an object"
+            )
+            continue
+        bucket_id = bucket.get("id")
+        if not isinstance(bucket_id, str) or not bucket_id.strip():
+            errors.append(
+                f"plan.policy.capacityAllocation.buckets[{idx}].id must be a "
+                "non-empty string"
+            )
+        else:
+            ids.append(bucket_id)
+        target = bucket.get("target")
+        if not _is_number(target):
+            errors.append(
+                f"plan.policy.capacityAllocation.buckets[{idx}].target must be "
+                f"a number; got {target!r}"
+            )
+        elif not 0.0 <= float(target) <= 1.0:
+            errors.append(
+                f"plan.policy.capacityAllocation.buckets[{idx}].target must be "
+                f"between 0.0 and 1.0; got {target!r}"
+            )
+        else:
+            total += float(target)
+
+    duplicates = sorted({bid for bid in ids if ids.count(bid) > 1})
+    if duplicates:
+        errors.append(
+            "plan.policy.capacityAllocation.buckets ids must be unique; "
+            f"duplicates: {duplicates}"
+        )
+
+    if ids and abs(total - 1.0) > CAPACITY_TARGET_SUM_TOLERANCE:
+        errors.append(
+            "plan.policy.capacityAllocation.buckets targets must sum to 1.0; "
+            f"got {total:.6f}"
+        )
+
+    default_bucket = value.get("defaultBucket")
+    if default_bucket is not None:
+        if not isinstance(default_bucket, str):
+            errors.append(
+                "plan.policy.capacityAllocation.defaultBucket must be a string"
+            )
+        elif default_bucket not in ids:
+            errors.append(
+                "plan.policy.capacityAllocation.defaultBucket "
+                f"{default_bucket!r} must match a declared bucket id"
+            )
+    return errors
+
+
+def validate_capacity_allocation_on_plan(plan: Any, filepath: Any) -> list[str]:
+    """vbrief_validate hook: validate ``plan.policy.capacityAllocation`` (#1419).
+
+    Returns formatted error strings prefixed with ``<filepath>:`` so a
+    PROJECT-DEFINITION validator can splice them into its error list.
+    Unset / missing is valid and returns an empty list. Mirrors the
+    :func:`validate_wip_cap_on_plan` hook shape.
+    """
+    out: list[str] = []
+    if not isinstance(plan, dict):
+        return out
+    policy = plan.get("policy")
+    if not isinstance(policy, dict) or "capacityAllocation" not in policy:
+        return out
+    for err in validate_capacity_allocation(policy["capacityAllocation"]):
+        out.append(f"{filepath}: {err} (#1419)")
+    return out
+
+
+def resolve_capacity_allocation(
+    project_root: Path | None = None,
+) -> CapacityAllocation:
+    """Resolve ``plan.policy.capacityAllocation`` from PROJECT-DEFINITION.
+
+    Resolution order (mirrors :func:`resolve_wip_cap`):
+
+    1. A well-formed ``plan.policy.capacityAllocation`` block -> ``'typed'``.
+    2. Missing -> framework default (``'default'``).
+    3. Present-but-malformed -> framework default (``'default-on-error'``,
+       with ``error`` set so the caller can surface it).
+
+    Pure-stdlib; no live ``gh`` / cache calls. The ``cost`` unit is
+    returned verbatim -- the guarded advisory fallback is applied downstream
+    in :mod:`scripts.capacity_show` where grounded-actuals coverage can be
+    measured (OQ2).
+    """
+    data, err = load_project_definition(project_root)
+    if data is None:
+        return _default_capacity_allocation(source="default", error=err)
+
+    policy_block = _get_policy_block(data)
+    if "capacityAllocation" not in policy_block:
+        return _default_capacity_allocation(source="default")
+
+    raw = policy_block["capacityAllocation"]
+    validation_errors = validate_capacity_allocation(raw)
+    if validation_errors or not isinstance(raw, dict):
+        return _default_capacity_allocation(
+            source="default-on-error",
+            error=(
+                validation_errors[0]
+                if validation_errors
+                else "capacityAllocation must be an object"
+            ),
+        )
+
+    buckets = tuple(
+        CapacityBucket(bucket_id=bucket["id"], target=float(bucket["target"]))
+        for bucket in raw["buckets"]
+    )
+    default_bucket = raw.get("defaultBucket", "")
+    if not isinstance(default_bucket, str):
+        default_bucket = ""
+    return CapacityAllocation(
+        unit=raw.get("unit", DEFAULT_CAPACITY_UNIT),
+        window_days=int(raw["window"]),
+        enforcement=raw.get("enforcement", DEFAULT_CAPACITY_ENFORCEMENT),
+        min_sample_size=int(raw.get("minSampleSize", DEFAULT_CAPACITY_MIN_SAMPLE_SIZE)),
+        buckets=buckets,
+        default_bucket=default_bucket,
+        default_epic_estimate=int(
+            raw.get("defaultEpicEstimate", DEFAULT_EPIC_ESTIMATE)
+        ),
+        epic_staleness_days=int(
+            raw.get("epicStalenessDays", DEFAULT_EPIC_STALENESS_DAYS)
+        ),
+        source="typed",
+        error=None,
+    )
+
+
 # Reconfiguration surface (used by tasks/policy.yml + slash commands) -----
 
 

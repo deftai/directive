@@ -1,0 +1,31 @@
+version: '3'
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+# Capacity allocation accounting surface (#1419 Delivery Slice 4).
+#
+# `task capacity:show` derives per-bucket target-vs-actual mix from the vBRIEF
+# lifecycle folders (filesystem-truth, offline) with outcome (rework) and cost
+# overlays, and renders advisory mode when classified completions are below
+# minSampleSize. It is a DISPLAY surface and always exits 0 on a valid project
+# root (the companion `task verify:capacity` in tasks/verify.yml is the
+# three-state advisory gate).
+#
+# Conventions (mirroring tasks/scope.yml / tasks/verify.yml):
+#  * `dir: '{{.USER_WORKING_DIR}}'` so the script's CWD is the consumer project
+#    root, not deft/.
+#  * `DEFT_ROOT` defined locally via joinPath so the script path resolves on
+#    Windows (#566).
+#  * `{{.CLI_ARGS}}` forwarded bare (no double quotes, #577) and NO `sources:` /
+#    `generates:` so go-task does not swallow flags (#574 / conventions/
+#    task-caching.md).
+#  * `env: PYTHONUTF8: "1"` belt-and-suspenders for Windows non-ASCII output.
+tasks:
+  show:
+    desc: "Capacity allocation target-vs-actual mix (advisory, offline). task capacity:show [-- --project-root <path>]"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/capacity_show.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}

@@ -298,3 +298,129 @@ def test_audit_log_uses_append_mode(policy_module, tmp_path):
         assert f"entry-{i}" in log
     # Header appears exactly once on the first write.
     assert log.count("audit trail") == 1
+
+
+# ---------------------------------------------------------------------------
+# capacityAllocation typed schema (#1419 Delivery Slice 4)
+# ---------------------------------------------------------------------------
+
+
+def _valid_capacity() -> dict:
+    return {
+        "unit": "vbrief-count",
+        "window": 30,
+        "enforcement": "advise",
+        "minSampleSize": 20,
+        "defaultBucket": "feature",
+        "buckets": [
+            {"id": "debt", "target": 0.4},
+            {"id": "feature", "target": 0.6},
+        ],
+    }
+
+
+def test_resolve_capacity_default_when_absent(policy_module, project_root):
+    _write_project_def(project_root, {})
+    result = policy_module.resolve_capacity_allocation(project_root)
+    assert result.source == "default"
+    assert result.configured is False
+    assert result.unit == "vbrief-count"
+    assert result.enforcement == "advise"
+    assert result.min_sample_size == 20
+    assert result.default_epic_estimate == 3
+
+
+def test_resolve_capacity_typed_valid(policy_module, project_root):
+    _write_project_def(project_root, {"policy": {"capacityAllocation": _valid_capacity()}})
+    result = policy_module.resolve_capacity_allocation(project_root)
+    assert result.source == "typed"
+    assert result.configured is True
+    assert result.window_days == 30
+    assert result.default_bucket == "feature"
+    assert [b.bucket_id for b in result.buckets] == ["debt", "feature"]
+    assert result.buckets[0].target == 0.4
+
+
+def test_resolve_capacity_cost_unit_returned_verbatim(policy_module, project_root):
+    cap = _valid_capacity()
+    cap["unit"] = "cost"
+    _write_project_def(project_root, {"policy": {"capacityAllocation": cap}})
+    result = policy_module.resolve_capacity_allocation(project_root)
+    # The resolver returns cost verbatim -- the guarded fallback is downstream.
+    assert result.unit == "cost"
+    assert result.source == "typed"
+
+
+def test_resolve_capacity_malformed_falls_back_on_error(policy_module, project_root):
+    cap = _valid_capacity()
+    cap["buckets"] = [{"id": "debt", "target": 0.4}, {"id": "feature", "target": 0.3}]
+    _write_project_def(project_root, {"policy": {"capacityAllocation": cap}})
+    result = policy_module.resolve_capacity_allocation(project_root)
+    assert result.source == "default-on-error"
+    assert result.configured is False
+    assert result.error and "sum to 1.0" in result.error
+
+
+def test_validate_capacity_valid_returns_empty(policy_module):
+    assert policy_module.validate_capacity_allocation(_valid_capacity()) == []
+
+
+def test_validate_capacity_none_is_valid(policy_module):
+    assert policy_module.validate_capacity_allocation(None) == []
+
+
+def test_validate_capacity_requires_window(policy_module):
+    cap = _valid_capacity()
+    del cap["window"]
+    errors = policy_module.validate_capacity_allocation(cap)
+    assert any("window is required" in e for e in errors)
+
+
+def test_validate_capacity_targets_must_sum_to_one(policy_module):
+    cap = _valid_capacity()
+    cap["buckets"] = [{"id": "a", "target": 0.2}, {"id": "b", "target": 0.2}]
+    errors = policy_module.validate_capacity_allocation(cap)
+    assert any("sum to 1.0" in e for e in errors)
+
+
+def test_validate_capacity_unique_bucket_ids(policy_module):
+    cap = _valid_capacity()
+    cap["buckets"] = [{"id": "dup", "target": 0.5}, {"id": "dup", "target": 0.5}]
+    cap["defaultBucket"] = "dup"
+    errors = policy_module.validate_capacity_allocation(cap)
+    assert any("unique" in e for e in errors)
+
+
+def test_validate_capacity_unit_enum(policy_module):
+    cap = _valid_capacity()
+    cap["unit"] = "story-points"
+    errors = policy_module.validate_capacity_allocation(cap)
+    assert any("unit must be one of" in e for e in errors)
+
+
+def test_validate_capacity_default_bucket_must_match(policy_module):
+    cap = _valid_capacity()
+    cap["defaultBucket"] = "ghost"
+    errors = policy_module.validate_capacity_allocation(cap)
+    assert any("defaultBucket" in e for e in errors)
+
+
+def test_validate_capacity_empty_buckets_rejected(policy_module):
+    cap = _valid_capacity()
+    cap["buckets"] = []
+    errors = policy_module.validate_capacity_allocation(cap)
+    assert any("non-empty array" in e for e in errors)
+
+
+def test_validate_capacity_on_plan_prefixes_filepath(policy_module):
+    cap = _valid_capacity()
+    del cap["window"]
+    plan = {"policy": {"capacityAllocation": cap}}
+    errors = policy_module.validate_capacity_allocation_on_plan(plan, "foo.json")
+    assert errors
+    assert all(e.startswith("foo.json:") for e in errors)
+    assert all("#1419" in e for e in errors)
+
+
+def test_validate_capacity_on_plan_unset_is_empty(policy_module):
+    assert policy_module.validate_capacity_allocation_on_plan({"policy": {}}, "f") == []
