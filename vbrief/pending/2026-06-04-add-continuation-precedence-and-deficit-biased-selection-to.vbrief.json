@@ -1,0 +1,88 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 2 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json"
+  },
+  "plan": {
+    "id": "continuation-precedence-selection",
+    "title": "Add continuation precedence and deficit-biased selection to the queue",
+    "status": "pending",
+    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "narratives": {
+      "Description": "Implements continuation precedence and deficit-biased selection in the queue and cohort-fill so a started epic's remaining stories outrank net-new work and under-target capacity buckets get preferentially promoted. This realizes the RFC lexicographic selection sort on top of the rank field from Slice 1 and the bucket tallies from the capacity engine.",
+      "ImplementationPlan": "1. Extend the ranking comparator in scripts/triage_queue.py and the cohort-fill path in scripts/swarm_launch.py to apply the order urgent, continuation, bucket-deficit, rank, date, reading bucket tallies from the capacity module. 2. Add tests in tests/cli/test_triage_queue.py that assert continuation work and deficit buckets sort ahead of net-new work, including a finishBeforeStart variant.",
+      "UserStory": "As a swarm operator, I want started epics and under-target buckets selected first, so that work finishes before new work starts.",
+      "Traces": "#1419 Delivery Slice 2, #987"
+    },
+    "items": [
+      {
+        "id": "continuation-precedence-selection-a1",
+        "title": "Given an epic with one completed child, when cohort-fill runs, then its remaining stories rank ahead of net-new scopes.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an epic with one completed child, when cohort-fill runs, then its remaining stories rank ahead of net-new scopes.",
+          "Traces": "#1419 Delivery Slice 2, #987"
+        }
+      },
+      {
+        "id": "continuation-precedence-selection-a2",
+        "title": "When two net-new scopes differ in bucket deficit, then the queue selects the most under-target bucket first.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When two net-new scopes differ in bucket deficit, then the queue selects the most under-target bucket first.",
+          "Traces": "#1419 Delivery Slice 2, #987"
+        }
+      },
+      {
+        "id": "continuation-precedence-selection-a3",
+        "title": "Given finishBeforeStart is true and wipCap is reached, when promotion runs, then the queue blocks net-new scopes and allows only continuation work.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given finishBeforeStart is true and wipCap is reached, when promotion runs, then the queue blocks net-new scopes and allows only continuation work.",
+          "Traces": "#1419 Delivery Slice 2, #987"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/triage_queue.py",
+          "scripts/swarm_launch.py",
+          "tests/cli/test_triage_queue.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_triage_queue.py",
+          "uv run pytest tests/cli/test_swarm_launch.py"
+        ],
+        "expected_outputs": [
+          "queue emits continuation-first, deficit-biased ordering",
+          "tests cover continuation, deficit, and finishBeforeStart paths"
+        ],
+        "depends_on": [
+          "rank-intra-bucket-ordering",
+          "capacity-accounting-engine"
+        ],
+        "conflict_group": "selection-ordering",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1419",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1419: RFC: Agentic Prioritization & Coordination Model for Deft Directive",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/987",
+        "type": "x-vbrief/closes",
+        "title": "Issue #987"
+      }
+    ]
+  }
+}

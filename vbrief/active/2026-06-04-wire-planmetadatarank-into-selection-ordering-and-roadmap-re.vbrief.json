@@ -1,0 +1,96 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 1 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json"
+  },
+  "plan": {
+    "id": "rank-intra-bucket-ordering",
+    "title": "Wire plan.metadata.rank into selection ordering and roadmap render",
+    "status": "running",
+    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "narratives": {
+      "Description": "Adds an intrinsic plan.metadata.rank field to scope vBRIEFs and teaches the triage queue and roadmap renderer to sort ready work by that rank before falling back to creation date. This closes #987 by giving operators a first-class vBRIEF-canonical ordering signal between sibling scopes without any schema change.",
+      "ImplementationPlan": "1. Extend the ranking comparator in scripts/triage_queue.py to read plan.metadata.rank as the intra-bucket tiebreaker after label rank and before creation date, and mirror the same order in scripts/roadmap_render.py. 2. Add tests in tests/cli/test_triage_queue.py and tests/cli/test_roadmap_render.py that assert rank-ordered output plus a spec-readiness eligibility check that refuses under-specified scopes.",
+      "UserStory": "As an operator, I want sibling scopes ordered by an explicit rank, so that the queue reflects priority between vBRIEFs.",
+      "Traces": "#1419 Delivery Slice 1, #987"
+    },
+    "items": [
+      {
+        "id": "rank-intra-bucket-ordering-a1",
+        "title": "Given two pending scopes with distinct plan.metadata.rank values, when task triage:queue runs, then it orders the lower rank value first.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given two pending scopes with distinct plan.metadata.rank values, when task triage:queue runs, then it orders the lower rank value first.",
+          "Traces": "#1419 Delivery Slice 1, #987"
+        }
+      },
+      {
+        "id": "rank-intra-bucket-ordering-a2",
+        "title": "When two ready scopes share a bucket and rank, then task triage:queue orders them by ascending creation date.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When two ready scopes share a bucket and rank, then task triage:queue orders them by ascending creation date.",
+          "Traces": "#1419 Delivery Slice 1, #987"
+        }
+      },
+      {
+        "id": "rank-intra-bucket-ordering-a3",
+        "title": "When task roadmap:render runs, then ROADMAP.md lists pending scopes following plan.metadata.rank ascending.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When task roadmap:render runs, then ROADMAP.md lists pending scopes following plan.metadata.rank ascending.",
+          "Traces": "#1419 Delivery Slice 1, #987"
+        }
+      },
+      {
+        "id": "rank-intra-bucket-ordering-a4",
+        "title": "Given a scope lacking required spec-readiness fields, when promotion runs, then the queue rejects it and points at refinement.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a scope lacking required spec-readiness fields, when promotion runs, then the queue rejects it and points at refinement.",
+          "Traces": "#1419 Delivery Slice 1, #987"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "scripts/triage_queue.py",
+          "scripts/roadmap_render.py",
+          "tests/cli/test_triage_queue.py",
+          "tests/cli/test_roadmap_render.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_triage_queue.py",
+          "uv run pytest tests/cli/test_roadmap_render.py"
+        ],
+        "expected_outputs": [
+          "triage queue and roadmap render emit scopes sorted by plan.metadata.rank",
+          "new tests prove rank precedence over creation date and spec-readiness refusal"
+        ],
+        "depends_on": [],
+        "conflict_group": "selection-ordering",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1419",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1419: RFC: Agentic Prioritization & Coordination Model for Deft Directive",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/987",
+        "type": "x-vbrief/closes",
+        "title": "Issue #987"
+      }
+    ],
+    "updated": "2026-06-04T18:51:40Z"
+  }
+}

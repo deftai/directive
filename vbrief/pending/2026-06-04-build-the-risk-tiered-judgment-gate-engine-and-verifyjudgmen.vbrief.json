@@ -1,0 +1,94 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 3 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json"
+  },
+  "plan": {
+    "id": "judgment-gate-engine",
+    "title": "Build the risk-tiered judgment-gate engine and verify:judgment-gates",
+    "status": "pending",
+    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "narratives": {
+      "Description": "Introduces plan.policy.judgmentGates with risk tiers auto, review, and block, default-on universal safety gates, and a deterministic scripts/verify_judgment_gates.py wired into task check and pre-push. Gates reuse the triageAutoClassify match DSL plus a new pathspec predicate and record clearances to the durable audit log.",
+      "ImplementationPlan": "1. Add scripts/verify_judgment_gates.py with a pathspec matcher, tier evaluation, and three-state exit, plus policy schema entries in scripts/policy.py and a task verify:judgment-gates wiring. 2. Add tests in tests/cli/test_verify_judgment_gates.py covering mechanical fail-closed, declared fail-open, default-on universals, and clearance binding to a cleared_scope fingerprint.",
+      "UserStory": "As a maintainer, I want sensitive changes gated by risk tier, so that secrets and infrastructure edits require human clearance before dispatch.",
+      "Traces": "#1419 Delivery Slice 3"
+    },
+    "items": [
+      {
+        "id": "judgment-gate-engine-a1",
+        "title": "Given a diff touching secrets paths, when verify:judgment-gates runs without a clearance, then it fails the check closed.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a diff touching secrets paths, when verify:judgment-gates runs without a clearance, then it fails the check closed.",
+          "Traces": "#1419 Delivery Slice 3"
+        }
+      },
+      {
+        "id": "judgment-gate-engine-a2",
+        "title": "Given a tagged declared gate with a recorded clearance, when the gate runs, then it validates the clearance and exits zero.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a tagged declared gate with a recorded clearance, when the gate runs, then it validates the clearance and exits zero.",
+          "Traces": "#1419 Delivery Slice 3"
+        }
+      },
+      {
+        "id": "judgment-gate-engine-a3",
+        "title": "When a cleared scope changes after sign-off, then the gate re-triggers and rejects the stale clearance.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When a cleared scope changes after sign-off, then the gate re-triggers and rejects the stale clearance.",
+          "Traces": "#1419 Delivery Slice 3"
+        }
+      },
+      {
+        "id": "judgment-gate-engine-a4",
+        "title": "When judgmentGatesDisabled is unset, then default-on universal gates emit a block-tier requirement for matching changes.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When judgmentGatesDisabled is unset, then default-on universal gates emit a block-tier requirement for matching changes.",
+          "Traces": "#1419 Delivery Slice 3"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/verify_judgment_gates.py",
+          "scripts/policy.py",
+          "tests/cli/test_verify_judgment_gates.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_verify_judgment_gates.py",
+          "uv run pytest tests/cli/test_policy.py"
+        ],
+        "expected_outputs": [
+          "verify:judgment-gates returns three-state exit on gate evaluation",
+          "tests cover mechanical, declared, default-on, and clearance-scope paths"
+        ],
+        "depends_on": [],
+        "conflict_group": "judgment-gates",
+        "size": "large",
+        "file_scope_confidence": "medium",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1419",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1419: RFC: Agentic Prioritization & Coordination Model for Deft Directive",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/987",
+        "type": "x-vbrief/closes",
+        "title": "Issue #987"
+      }
+    ]
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 7 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json"
+  },
+  "plan": {
+    "id": "enforcement-and-launch-integration",
+    "title": "Integrate gate clearances and capacity blocks into Gate 0 and swarm:launch",
+    "status": "pending",
+    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "narratives": {
+      "Description": "Threads judgment-gate clearances and capacity block modes into the story-start Gate 0 and the headless swarm:launch consent token, and appends authority-bearing events to the durable audit log. Block-gated stories ship solo in v1 until per-commit trailer attribution lands.",
+      "ImplementationPlan": "1. Extend scripts/preflight_story_start.py and scripts/swarm_launch.py to read gate_clearances from the allocation context and fail closed on an uncleared active block gate. 2. Add tests in tests/cli/test_preflight_story_start.py and tests/cli/test_swarm_launch.py asserting an uncleared block gate aborts dispatch and a recorded clearance permits it.",
+      "UserStory": "As a swarm operator, I want gated stories blocked at dispatch until cleared, so that sensitive work cannot launch without human sign-off.",
+      "Traces": "#1419 Delivery Slice 7"
+    },
+    "items": [
+      {
+        "id": "enforcement-and-launch-integration-a1",
+        "title": "Given an active block gate without clearance, when verify:story-ready runs, then it aborts dispatch with a non-zero exit.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an active block gate without clearance, when verify:story-ready runs, then it aborts dispatch with a non-zero exit.",
+          "Traces": "#1419 Delivery Slice 7"
+        }
+      },
+      {
+        "id": "enforcement-and-launch-integration-a2",
+        "title": "Given a recorded gate clearance in the allocation context, when swarm:launch runs, then it permits the gated story to launch.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given a recorded gate clearance in the allocation context, when swarm:launch runs, then it permits the gated story to launch.",
+          "Traces": "#1419 Delivery Slice 7"
+        }
+      },
+      {
+        "id": "enforcement-and-launch-integration-a3",
+        "title": "When an allocation approval is granted, then the integration appends an authority-bearing entry to the durable audit log.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When an allocation approval is granted, then the integration appends an authority-bearing entry to the durable audit log.",
+          "Traces": "#1419 Delivery Slice 7"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "needs_refinement",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/preflight_story_start.py",
+          "scripts/swarm_launch.py",
+          "tests/cli/test_preflight_story_start.py",
+          "tests/cli/test_swarm_launch.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_preflight_story_start.py",
+          "uv run pytest tests/cli/test_swarm_launch.py"
+        ],
+        "expected_outputs": [
+          "Gate 0 and swarm:launch fail closed on an uncleared active block gate",
+          "authority-bearing clearance events append to the durable audit log"
+        ],
+        "depends_on": [
+          "judgment-gate-engine",
+          "capacity-accounting-engine"
+        ],
+        "conflict_group": "enforcement",
+        "size": "large",
+        "file_scope_confidence": "low",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1419",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1419: RFC: Agentic Prioritization & Coordination Model for Deft Directive",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/987",
+        "type": "x-vbrief/closes",
+        "title": "Issue #987"
+      }
+    ]
+  }
+}

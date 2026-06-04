@@ -1,0 +1,85 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 6 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json"
+  },
+  "plan": {
+    "id": "lifecycle-hygiene-nudges",
+    "title": "Add epic-staleness and stranded-slice lifecycle nudges with trichotomy",
+    "status": "pending",
+    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "narratives": {
+      "Description": "Adds detection for stale undecomposed epics and stranded partially-completed epics, surfacing a finish, cancel-and-remove, or accept-as-tech-debt trichotomy when an epic is dormant beyond the configured threshold. The nudges feed the shared session-start ranking so they appear within the budgeted welcome line.",
+      "ImplementationPlan": "1. Add a stranded-slice and epic-staleness detector module under scripts/ that reads epic and child status from the lifecycle folders and computes dormancy against epicStrandedDays and epicStalenessDays. 2. Wire the detector into scripts/triage_welcome.py and add tests in tests/cli/test_triage_welcome.py asserting the trichotomy nudge fires for a dormant partially-completed epic.",
+      "UserStory": "As a maintainer, I want stranded epics flagged with clear options, so that partially-built features do not silently accrue debt.",
+      "Traces": "#1419 Delivery Slice 6"
+    },
+    "items": [
+      {
+        "id": "lifecycle-hygiene-nudges-a1",
+        "title": "Given an epic dormant beyond epicStrandedDays with a completed child, when triage:welcome runs, then it emits the finish-cancel-accept trichotomy.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an epic dormant beyond epicStrandedDays with a completed child, when triage:welcome runs, then it emits the finish-cancel-accept trichotomy.",
+          "Traces": "#1419 Delivery Slice 6"
+        }
+      },
+      {
+        "id": "lifecycle-hygiene-nudges-a2",
+        "title": "Given an undecomposed epic older than epicStalenessDays, when triage:welcome runs, then it emits a needs-estimation nudge.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given an undecomposed epic older than epicStalenessDays, when triage:welcome runs, then it emits a needs-estimation nudge.",
+          "Traces": "#1419 Delivery Slice 6"
+        }
+      },
+      {
+        "id": "lifecycle-hygiene-nudges-a3",
+        "title": "When a stranded epic is accepted as debt, then the detector records a tech-debt follow-up reference and stops re-nudging.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When a stranded epic is accepted as debt, then the detector records a tech-debt follow-up reference and stops re-nudging.",
+          "Traces": "#1419 Delivery Slice 6"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "sequential",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/triage_welcome.py",
+          "tests/cli/test_triage_welcome.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_triage_welcome.py"
+        ],
+        "expected_outputs": [
+          "triage:welcome emits stranded-slice trichotomy and epic-staleness nudges",
+          "tests prove the dormant partially-completed epic path fires"
+        ],
+        "depends_on": [
+          "capacity-accounting-engine"
+        ],
+        "conflict_group": "lifecycle-hygiene",
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "model_tier": "medium"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1419",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1419: RFC: Agentic Prioritization & Coordination Model for Deft Directive",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/987",
+        "type": "x-vbrief/closes",
+        "title": "Issue #987"
+      }
+    ]
+  }
+}

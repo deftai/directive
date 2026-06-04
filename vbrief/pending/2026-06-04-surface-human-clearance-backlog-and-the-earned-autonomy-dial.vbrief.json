@@ -1,0 +1,89 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 5 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json"
+  },
+  "plan": {
+    "id": "review-autonomy-capacity",
+    "title": "Surface human-clearance backlog and the earned-autonomy dial",
+    "status": "pending",
+    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "narratives": {
+      "Description": "Adds a pending-human-decisions backlog surface and an autonomy dial that ratchets required human clearances based on the clearance-override and rework rate over a window. The exact ratchet metric and thresholds remain an open question, so this story is design-gated and not yet swarm-ready.",
+      "ImplementationPlan": "1. Extend scripts/capacity_show.py and scripts/triage_welcome.py to compute and render a pending-human-decisions count from the audit log, and add an autonomy policy block in scripts/policy.py. 2. Add tests in tests/cli/test_capacity_show.py covering the backlog threshold nudge and an autonomy-level ratchet against synthetic override-rate fixtures.",
+      "UserStory": "As a maintainer, I want the human-clearance backlog made visible, so that wipCap can be tuned to real review throughput.",
+      "Traces": "#1419 Delivery Slice 5"
+    },
+    "items": [
+      {
+        "id": "review-autonomy-capacity-a1",
+        "title": "Given pending clearances above the threshold, when triage:welcome runs, then it emits a Tier-1 pending-decisions nudge.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given pending clearances above the threshold, when triage:welcome runs, then it emits a Tier-1 pending-decisions nudge.",
+          "Traces": "#1419 Delivery Slice 5"
+        }
+      },
+      {
+        "id": "review-autonomy-capacity-a2",
+        "title": "When the override rate stays low over the window, then the autonomy dial advances and reduces required human clearances.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the override rate stays low over the window, then the autonomy dial advances and reduces required human clearances.",
+          "Traces": "#1419 Delivery Slice 5"
+        }
+      },
+      {
+        "id": "review-autonomy-capacity-a3",
+        "title": "When the rework rate spikes over the window, then the autonomy dial ratchets back and restores required clearances.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When the rework rate spikes over the window, then the autonomy dial ratchets back and restores required clearances.",
+          "Traces": "#1419 Delivery Slice 5"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "needs_refinement",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/capacity_show.py",
+          "scripts/triage_welcome.py",
+          "scripts/policy.py",
+          "tests/cli/test_capacity_show.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_capacity_show.py",
+          "uv run pytest tests/cli/test_policy.py"
+        ],
+        "expected_outputs": [
+          "triage:welcome surfaces a pending-human-decisions backlog nudge",
+          "autonomy dial advances and retreats on override-rate fixtures"
+        ],
+        "depends_on": [
+          "judgment-gate-engine",
+          "capacity-accounting-engine"
+        ],
+        "conflict_group": "capacity",
+        "size": "large",
+        "file_scope_confidence": "low",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1419",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1419: RFC: Agentic Prioritization & Coordination Model for Deft Directive",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/987",
+        "type": "x-vbrief/closes",
+        "title": "Issue #987"
+      }
+    ]
+  }
+}

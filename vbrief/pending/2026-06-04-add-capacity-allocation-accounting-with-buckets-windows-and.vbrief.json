@@ -1,0 +1,95 @@
+{
+  "vBRIEFInfo": {
+    "version": "0.6",
+    "description": "Story vBRIEF 4 decomposed from proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json"
+  },
+  "plan": {
+    "id": "capacity-accounting-engine",
+    "title": "Add capacity allocation accounting with buckets, windows, and capacity:show",
+    "status": "pending",
+    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "narratives": {
+      "Description": "Adds plan.policy.capacityAllocation with protected buckets, trailing-window accounting, kind-aware counting, a minSampleSize guard, and a task capacity:show surface that reports target-versus-actual mix with outcome and cost overlays. Cost capture and the Warp Analytics API sync are deferred sub-parts pending upstream access, so this story still carries open design questions.",
+      "ImplementationPlan": "1. Add scripts/capacity_show.py and scripts/verify_capacity.py that derive bucket tallies from the lifecycle folders, and stamp capacityBucket plus completedAt in scripts/scope_lifecycle.py at completion. 2. Add tests in tests/cli/test_capacity_show.py asserting deficit math, the minSampleSize advisory fallback, and kind-aware epic counting against fixtures.",
+      "UserStory": "As a maintainer, I want effort tracked against protected buckets, so that debt paydown is not starved by urgent work.",
+      "Traces": "#1419 Delivery Slice 4"
+    },
+    "items": [
+      {
+        "id": "capacity-accounting-engine-a1",
+        "title": "Given fewer classified completions than minSampleSize, when capacity:show runs, then it reports advisory mode and defers to ordering.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given fewer classified completions than minSampleSize, when capacity:show runs, then it reports advisory mode and defers to ordering.",
+          "Traces": "#1419 Delivery Slice 4"
+        }
+      },
+      {
+        "id": "capacity-accounting-engine-a2",
+        "title": "When an epic has no children, then capacity counting attributes its estimatedChildren weight to the parent bucket.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When an epic has no children, then capacity counting attributes its estimatedChildren weight to the parent bucket.",
+          "Traces": "#1419 Delivery Slice 4"
+        }
+      },
+      {
+        "id": "capacity-accounting-engine-a3",
+        "title": "When scope:complete runs, then it stamps capacityBucket and completedAt onto the completed vBRIEF.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "When scope:complete runs, then it stamps capacityBucket and completedAt onto the completed vBRIEF.",
+          "Traces": "#1419 Delivery Slice 4"
+        }
+      },
+      {
+        "id": "capacity-accounting-engine-a4",
+        "title": "Given completed work over the trailing window, when capacity:show runs, then it renders per-bucket target-versus-actual deficits.",
+        "status": "pending",
+        "narrative": {
+          "Acceptance": "Given completed work over the trailing window, when capacity:show runs, then it renders per-bucket target-versus-actual deficits.",
+          "Traces": "#1419 Delivery Slice 4"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "needs_refinement",
+        "parallel_safe": false,
+        "file_scope": [
+          "scripts/capacity_show.py",
+          "scripts/verify_capacity.py",
+          "scripts/scope_lifecycle.py",
+          "tests/cli/test_capacity_show.py"
+        ],
+        "verify_commands": [
+          "uv run pytest tests/cli/test_capacity_show.py",
+          "uv run pytest tests/cli/test_scope_lifecycle.py"
+        ],
+        "expected_outputs": [
+          "capacity:show renders target-versus-actual bucket mix with overlays",
+          "scope:complete stamps capacityBucket and completedAt on completion"
+        ],
+        "depends_on": [],
+        "conflict_group": "capacity",
+        "size": "large",
+        "file_scope_confidence": "low",
+        "model_tier": "high"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/1419",
+        "type": "x-vbrief/github-issue",
+        "title": "Issue #1419: RFC: Agentic Prioritization & Coordination Model for Deft Directive",
+        "TrustLevel": "external"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/987",
+        "type": "x-vbrief/closes",
+        "title": "Issue #987"
+      }
+    ]
+  }
+}
