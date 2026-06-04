@@ -755,6 +755,14 @@ def _clear_parser() -> argparse.ArgumentParser:
         help="The candidate state (for a state gate).",
     )
     parser.add_argument(
+        "--updated-at",
+        default=None,
+        help=(
+            "The candidate's updated_at timestamp (for an age-days gate); pass "
+            "an empty string to clear an age-days gate on an undated candidate."
+        ),
+    )
+    parser.add_argument(
         "--reviewer", action="append", default=[], help="Human reviewer (repeatable)."
     )
     parser.add_argument("--actor", default="operator", help="Who recorded the clearance.")
@@ -778,6 +786,8 @@ def _clear_evidence(args: argparse.Namespace) -> dict[str, Any]:
         evidence["body-text"] = args.body
     if args.state is not None:
         evidence["state"] = args.state
+    if args.updated_at is not None:
+        evidence["age-days"] = args.updated_at
     return evidence
 
 

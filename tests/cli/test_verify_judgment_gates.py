@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -362,6 +363,35 @@ def test_cli_json_report(tmp_path, capsys):
     assert rc == 1
     assert payload["exit"] == 1
     assert any(o["gate_id"] == "secrets-and-credentials" for o in payload["outcomes"])
+
+
+def test_cli_clear_age_days_gate(tmp_path):
+    """An age-days gate is clearable via the CLI's --updated-at dimension."""
+    gate = {
+        "id": "stale-issue",
+        "class": "declared",
+        "tier": "review",
+        "reason": "stale issue needs a fresh look",
+        "match": {"age-days": {"gt": 0}},
+    }
+    root = _make_project(tmp_path, gates=[gate])
+    rc = main(
+        [
+            "clear",
+            "--project-root",
+            str(root),
+            "--gate-id",
+            "stale-issue",
+            "--updated-at",
+            "2020-01-01T00:00:00Z",
+        ]
+    )
+    assert rc == 0
+    candidate = Candidate(updated_at="2020-01-01T00:00:00Z")
+    now = datetime(2026, 6, 4, tzinfo=UTC)
+    outcome = build_report(root, candidate, now=now).outcome_for("stale-issue")
+    assert outcome is not None
+    assert outcome.cleared
 
 
 def test_cli_clear_then_enforce_clears(tmp_path):
