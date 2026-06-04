@@ -27,6 +27,10 @@ from _project_definition_io import (  # noqa: E402  (after sys.path tweak)
     atomic_write_project_definition,
     project_definition_mutation_lock,
 )
+from policy import (  # noqa: E402  (sibling import after sys.path tweak)
+    count_pending_decisions,
+    pending_decisions_nudge_line,
+)
 
 # UTF-8 self-reconfigure -- the prompts emit ⊗ / · / arrows / checkmarks.
 for _stream in (sys.stdout, sys.stderr):
@@ -123,6 +127,9 @@ class PriorState:
     wip_cap: int  # current value OR the DEFAULT_WIP_CAP fallback
     wip_count: int  # pending/ + active/
     audit_log_present: bool  # vbrief/.eval/candidates.jsonl exists (#1244)
+    # Pending human-clearance backlog count (#1419 Slice 5). Defaulted so any
+    # legacy direct construction stays valid; detect_prior_state always sets it.
+    pending_decisions: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -267,7 +274,26 @@ def detect_prior_state(project_root: Path) -> PriorState:
         wip_cap=wip_cap,
         wip_count=_count_wip(project_root),
         audit_log_present=_audit_log_present(project_root),
+        pending_decisions=count_pending_decisions(project_root),
     )
+
+
+def pending_decisions_oneliner(project_root: Path) -> str:
+    """Return the budgeted pending-human-decisions backlog one-liner (#1419 S5).
+
+    Surfaces the count derived from the durable audit log
+    (``vbrief/.audit/pending-human-decisions.jsonl``). When the backlog exceeds
+    the Tier-1 threshold the nudge text is appended so a session-start caller
+    can emit one actionable line. The headline is returned even when the
+    backlog is empty so callers may choose to show or suppress it. Additive /
+    localized so a later slice can wire it into the default-mode surface.
+    """
+    count = count_pending_decisions(project_root)
+    headline = f"[clearance] pending human decisions: {count}"
+    nudge = pending_decisions_nudge_line(count)
+    if not nudge:
+        return headline
+    return f"{headline} -- {nudge}"
 
 
 # ---------------------------------------------------------------------------
@@ -532,7 +558,8 @@ __all__ = (
     "WELCOME_AUDIT_TAG", "WIP_LIFECYCLE_DIRS", "WelcomeOutcome",
     "append_audit_entry", "candidates_log_path", "default_input",
     "default_output", "detect_prior_state", "emit_oneliner", "main",
-    "preview_wip_relief", "project_definition_path", "prompt_int",
+    "pending_decisions_oneliner", "preview_wip_relief",
+    "project_definition_path", "prompt_int",
     "prompt_menu", "prompt_yes_no", "run_default_mode", "run_welcome",
     "write_triage_scope", "write_wip_cap",
 )
@@ -645,6 +672,10 @@ def run_welcome(
                     f"  wipCap: unset (default applied -- {DEFAULT_WIP_CAP})"
                 )
             out_fn(f"  WIP (pending/+active/): {state.wip_count}")
+            out_fn(f"  pending human decisions: {state.pending_decisions}")
+            backlog_nudge = pending_decisions_nudge_line(state.pending_decisions)
+            if backlog_nudge:
+                out_fn(f"  {backlog_nudge}")
             _record_run(1)
             phase = 2
             continue

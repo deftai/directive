@@ -38,14 +38,21 @@ NOW = datetime(2026, 6, 4, 12, 0, 0, tzinfo=UTC)
 LIFECYCLE = ("proposed", "pending", "active", "completed", "cancelled")
 
 
-def _make_project(tmp_path: Path, capacity: dict | None) -> Path:
-    """Create a tmp project tree with an optional capacityAllocation block."""
+def _make_project(
+    tmp_path: Path, capacity: dict | None, *, autonomy: dict | None = None
+) -> Path:
+    """Create a tmp project tree with optional capacityAllocation / autonomy."""
     vbrief = tmp_path / "vbrief"
     for folder in LIFECYCLE:
         (vbrief / folder).mkdir(parents=True, exist_ok=True)
     plan: dict = {"title": "Capacity test", "status": "running", "items": []}
+    policy: dict = {}
     if capacity is not None:
-        plan["policy"] = {"capacityAllocation": capacity}
+        policy["capacityAllocation"] = capacity
+    if autonomy is not None:
+        policy["autonomy"] = autonomy
+    if policy:
+        plan["policy"] = policy
     (vbrief / "PROJECT-DEFINITION.vbrief.json").write_text(
         json.dumps({"vBRIEFInfo": {"version": "0.6"}, "plan": plan}),
         encoding="utf-8",
@@ -369,3 +376,154 @@ def test_evaluate_invalid_root_exits_two(tmp_path):
     assert code == 2
     assert report is None
     assert "not a directory" in message
+
+
+# ---------------------------------------------------------------------------
+# Slice 5 -- pending-human-decisions backlog surface + nudge (#1419)
+# ---------------------------------------------------------------------------
+
+import policy as policy_mod  # noqa: E402  (after sys.path tweak above)
+
+
+def _seed_decisions(
+    root: Path,
+    *,
+    pending: int = 0,
+    resolved_clean: int = 0,
+    resolved_override: int = 0,
+    p0_reversal: bool = False,
+    now=NOW,
+) -> None:
+    """Seed the pending-decisions audit log with synthetic events."""
+    for i in range(pending):
+        policy_mod.record_pending_decision(
+            root, decision_id=f"pend-{i}", kind="judgment-gate", now=now
+        )
+    for i in range(resolved_clean):
+        did = f"clean-{i}"
+        policy_mod.record_pending_decision(
+            root, decision_id=did, kind="judgment-gate", now=now
+        )
+        policy_mod.resolve_pending_decision(
+            root, decision_id=did, override=False, now=now
+        )
+    for i in range(resolved_override):
+        did = f"ovr-{i}"
+        policy_mod.record_pending_decision(
+            root, decision_id=did, kind="judgment-gate", now=now
+        )
+        policy_mod.resolve_pending_decision(
+            root,
+            decision_id=did,
+            override=True,
+            p0_reversal=(p0_reversal and i == 0),
+            now=now,
+        )
+
+
+def test_backlog_count_surfaced_in_report(tmp_path):
+    root = _make_project(tmp_path, _capacity())
+    _seed_decisions(root, pending=3)
+    report = compute_report(root, now=NOW)
+    assert report.pending_decisions == 3
+    assert report.pending_by_kind == {"judgment-gate": 3}
+    rendered = render_report(report)
+    assert "Pending human decisions: 3" in rendered
+
+
+def test_backlog_nudge_fires_over_threshold(tmp_path):
+    root = _make_project(tmp_path, _capacity())
+    # 6 pending > default threshold (5) -> Tier-1 nudge.
+    _seed_decisions(root, pending=6)
+    report = compute_report(root, now=NOW)
+    assert report.pending_decisions == 6
+    assert report.pending_nudge != ""
+    rendered = render_report(report)
+    assert "[TIER-1]" in rendered
+
+
+def test_backlog_no_nudge_under_threshold(tmp_path):
+    root = _make_project(tmp_path, _capacity())
+    _seed_decisions(root, pending=2)
+    report = compute_report(root, now=NOW)
+    assert report.pending_nudge == ""
+    assert "[TIER-1]" not in render_report(report)
+
+
+# ---------------------------------------------------------------------------
+# Slice 5 -- earned-autonomy dial ratchet on synthetic override-rate fixtures
+# ---------------------------------------------------------------------------
+
+
+def test_autonomy_advances_on_low_override_window(tmp_path):
+    # minSampleSize lowered so a small synthetic sample can exercise advance.
+    root = _make_project(tmp_path, _capacity(), autonomy={"minSampleSize": 2})
+    _seed_decisions(root, resolved_clean=3)  # override rate 0%, no rework
+    report = compute_report(root, now=NOW)
+    assert report.autonomy is not None
+    assert report.autonomy.action == "advance"
+    assert report.autonomy.recommended_level == "execute"
+    assert report.autonomy.reduces_required_clearances is True
+
+
+def test_autonomy_retreats_on_high_override_window(tmp_path):
+    root = _make_project(tmp_path, _capacity(), autonomy={"minSampleSize": 2})
+    # 3 resolved decisions, all overridden -> 100% override > 20% retreat floor.
+    _seed_decisions(root, resolved_override=3)
+    report = compute_report(root, now=NOW)
+    assert report.autonomy is not None
+    assert report.autonomy.action == "retreat"
+    assert report.autonomy.recommended_level == "observe"
+    assert report.autonomy.restores_required_clearances is True
+
+
+def test_autonomy_retreats_on_rework_spike(tmp_path):
+    # Low override but a rework spike in the capacity window restores clearances.
+    root = _make_project(
+        tmp_path, _capacity(minSampleSize=1), autonomy={"minSampleSize": 2}
+    )
+    # One clean resolved decision (override 0%) so advance is not blocked by
+    # the override signal -- the rework guardrail is what withholds advance.
+    _seed_decisions(root, resolved_clean=3)
+    # 2 completed-in-window vBRIEFs, both rework -> rework rate 100% > baseline.
+    for i in range(2):
+        _write_vbrief(
+            tmp_path,
+            "completed",
+            f"rw-{i}",
+            status="completed",
+            metadata={
+                "capacityBucket": "feature",
+                "completedAt": _completed_at(1),
+                "rework": True,
+            },
+        )
+    report = compute_report(root, now=NOW)
+    # Rework guardrail withholds the advance -> hold (not advance).
+    assert report.autonomy is not None
+    assert report.autonomy.action == "hold"
+
+
+def test_autonomy_is_advisory_only_and_does_not_mutate_state(tmp_path):
+    root = _make_project(tmp_path, _capacity(), autonomy={"minSampleSize": 2})
+    _seed_decisions(root, resolved_clean=3)
+    pd_path = root / "vbrief" / "PROJECT-DEFINITION.vbrief.json"
+    before = pd_path.read_text(encoding="utf-8")
+    report = compute_report(root, now=NOW)
+    after = pd_path.read_text(encoding="utf-8")
+    # An advance is recommended, but the dial is advisory-only: nothing is
+    # ratcheted, no required clearances reduced, PROJECT-DEFINITION untouched.
+    assert report.autonomy is not None
+    assert report.autonomy.action == "advance"
+    assert report.autonomy.advisory is True
+    assert before == after
+    # The resolved policy default level is unchanged (no auto-ratchet persisted).
+    from policy import resolve_autonomy
+
+    assert resolve_autonomy(root).default_level == "escalate"
+
+
+def test_autonomy_line_rendered(tmp_path):
+    root = _make_project(tmp_path, _capacity())
+    rendered = render_report(compute_report(root, now=NOW))
+    assert "Autonomy dial (advisory-only):" in rendered

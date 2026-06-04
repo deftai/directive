@@ -66,8 +66,14 @@ from _stdio_utf8 import reconfigure_stdio  # noqa: E402
 from policy import (  # noqa: E402, I001
     CAPACITY_UNIT_COST,
     DEFAULT_CAPACITY_UNIT,
+    DEFAULT_PENDING_DECISIONS_THRESHOLD,
+    AutonomyRecommendation,
     CapacityAllocation,
+    pending_decisions_nudge_line,
+    recommend_autonomy_level,
+    resolve_autonomy,
     resolve_capacity_allocation,
+    summarize_decision_backlog,
 )
 
 reconfigure_stdio()
@@ -145,6 +151,13 @@ class CapacityReport:
     total_forward: float = 0.0
     total_backward: float = 0.0
     policy_error: str | None = None
+    # Pending human-clearance backlog + earned-autonomy dial (#1419 Slice 5).
+    pending_decisions: int = 0
+    pending_decisions_threshold: int = DEFAULT_PENDING_DECISIONS_THRESHOLD
+    pending_by_kind: dict[str, int] = field(default_factory=dict)
+    pending_nudge: str = ""
+    autonomy_enabled: bool = True
+    autonomy: AutonomyRecommendation | None = None
 
     def bucket_deficit(self, tally: BucketTally) -> float:
         """Backward target-vs-actual deficit (positive == under target).
@@ -337,6 +350,7 @@ def compute_report(
 
     total_forward = sum(t.forward_weight for t in tallies.values())
     total_backward = sum(t.backward_weight for t in tallies.values())
+    total_rework = sum(t.rework_weight for t in tallies.values())
 
     # Bucket ordering: configured buckets first (declaration order), then
     # discovered extras alphabetically for deterministic output.
@@ -366,6 +380,26 @@ def compute_report(
     if cost_fallback and cost_reason:
         advisory_reasons.append(cost_reason)
 
+    # Pending human-clearance backlog + earned-autonomy dial (#1419 Slice 5).
+    # The backlog count is derived from the durable audit log; the autonomy
+    # dial is computed from the override rate (primary) + rework rate
+    # (guardrail) over the SAME trailing window and is ADVISORY-ONLY -- the
+    # recommendation is surfaced, never auto-applied.
+    backlog = summarize_decision_backlog(
+        project_root, now=now, window_days=allocation.window_days
+    )
+    rework_rate = total_rework / total_backward if total_backward > 0 else 0.0
+    autonomy_policy = resolve_autonomy(project_root)
+    autonomy = recommend_autonomy_level(
+        autonomy_policy.default_level,
+        override_rate=backlog.override_rate,
+        rework_rate=rework_rate,
+        sample_size=backlog.resolved_in_window,
+        p0_reversal=backlog.p0_reversal_in_window,
+        policy=autonomy_policy,
+    )
+    pending_nudge = pending_decisions_nudge_line(backlog.pending_count)
+
     return CapacityReport(
         configured=allocation.configured,
         source=allocation.source,
@@ -382,6 +416,11 @@ def compute_report(
         total_forward=total_forward,
         total_backward=total_backward,
         policy_error=allocation.error,
+        pending_decisions=backlog.pending_count,
+        pending_by_kind=dict(backlog.by_kind),
+        pending_nudge=pending_nudge,
+        autonomy_enabled=autonomy_policy.enabled,
+        autonomy=autonomy,
     )
 
 
@@ -429,6 +468,29 @@ def _format_cost(value: float | None) -> str:
     return f"{value:.2f}"
 
 
+def _append_backlog_and_autonomy(lines: list[str], report: CapacityReport) -> None:
+    """Append the pending-decisions backlog + advisory autonomy block (#1419 S5)."""
+    lines.append(
+        f"  Pending human decisions: {report.pending_decisions} "
+        f"(threshold {report.pending_decisions_threshold})"
+    )
+    if report.pending_by_kind:
+        kinds = ", ".join(
+            f"{kind}={count}"
+            for kind, count in sorted(report.pending_by_kind.items())
+        )
+        lines.append(f"    by kind: {kinds}")
+    if report.pending_nudge:
+        lines.append(f"  {report.pending_nudge}")
+    if report.autonomy is not None:
+        rec = report.autonomy
+        lines.append(
+            f"  Autonomy dial (advisory-only): {rec.current_level} -> "
+            f"{rec.recommended_level} [{rec.action}]"
+        )
+        lines.append(f"    {rec.rationale}")
+
+
 def render_report(report: CapacityReport) -> str:
     """Render the :class:`CapacityReport` as a human-readable text block."""
     lines: list[str] = []
@@ -456,6 +518,8 @@ def render_report(report: CapacityReport) -> str:
         lines.append("  MODE: ADVISORY -- deferring to selection ordering.")
     for reason in report.advisory_reasons:
         lines.append(f"    - {reason}")
+
+    _append_backlog_and_autonomy(lines, report)
 
     if not report.buckets:
         lines.append("  (no buckets configured and no classified work on disk)")

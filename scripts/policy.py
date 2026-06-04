@@ -26,6 +26,7 @@ import re
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -1114,13 +1115,806 @@ def resolve_judgment_gates(
     )
 
 
+# ---------------------------------------------------------------------------
+# Pending human-clearance backlog + earned-autonomy dial (#1419 Slice 5)
+# ---------------------------------------------------------------------------
+#
+# Two ADVISORY surfaces sit on top of the judgment-gate clearance machinery
+# (``scripts/verify_judgment_gates.py``, #1419 Slice 3):
+#
+# 1. The PENDING HUMAN-DECISIONS BACKLOG -- a durable append-only audit log
+#    (``vbrief/.audit/pending-human-decisions.jsonl``) of decisions that need
+#    human adjudication but are not yet resolved. Each line is one event for a
+#    ``decision_id``: a ``pending`` event opens the decision (a judgment gate
+#    fired without clearance, or -- per OQ4 -- a multi-LLM reviewer split on a
+#    P0/P1 finding escalated), and a later ``resolved`` event closes it. The
+#    backlog count is the number of decision_ids whose LATEST event is still
+#    ``pending``. ``capacity:show`` and ``triage:welcome`` surface that count
+#    and, when it exceeds the Tier-1 threshold, emit a nudge so ``wipCap`` can
+#    be tuned to real human-review throughput. The log lives beside (but is
+#    distinct from) the Slice-3 clearance log so this module does not have to
+#    edit ``verify_judgment_gates.py``.
+#
+# 2. The EARNED-AUTONOMY DIAL -- a per-project (optionally per gate-id) policy
+#    that RECOMMENDS one of three levels (Observe / Escalate / Execute,
+#    default Escalate). The dial signal is the clearance-override rate
+#    (primary) plus the rework rate (guardrail) over the capacity window. It
+#    advances asymmetrically (advance only when override < advanceMax AND
+#    rework <= baseline AND the resolved-decision sample is large enough;
+#    retreat IMMEDIATELY on any P0 reversal or override > retreatRate). It is
+#    ADVISORY-ONLY in v1: :func:`recommend_autonomy_level` returns a
+#    recommendation a human confirms -- nothing here auto-ratchets a level or
+#    auto-reduces a gate's required clearances.
+
+#: Durable, operator-private pending-decisions backlog log location. Shares
+#: the ``vbrief/.audit/`` directory with the Slice-3 clearance log but is a
+#: separate file (this module owns the backlog; the clearance log is owned by
+#: ``scripts/verify_judgment_gates.py``).
+PENDING_DECISIONS_AUDIT_DIR_REL: str = "vbrief/.audit"
+PENDING_DECISIONS_LOG_NAME: str = "pending-human-decisions.jsonl"
+
+#: Decision-event status tokens. Compare via these constants so a rename
+#: surfaces as a NameError at import time rather than a silent mismatch.
+DECISION_STATUS_PENDING: str = "pending"
+DECISION_STATUS_RESOLVED: str = "resolved"
+
+#: Backlog size at which ``capacity:show`` / ``triage:welcome`` emit the
+#: Tier-1 pending-decisions nudge (count STRICTLY greater than this fires).
+DEFAULT_PENDING_DECISIONS_THRESHOLD: int = 5
+
+#: ``kind`` tag for a pending decision opened by a multi-LLM reviewer split
+#: (OQ4). Mirrors the #526 errored-state escalation contract.
+REVIEWER_DISAGREEMENT_KIND: str = "reviewer-disagreement"
+
+#: Severities that escalate a reviewer split on a review/block-tier gate
+#: (OQ4: "a P0/P1 reviewer split or errored-on-HEAD escalates to a human").
+_ESCALATING_SEVERITIES: frozenset[str] = frozenset({"p0", "p1"})
+
+
+def _parse_iso_ts(value: Any) -> datetime | None:
+    """Parse an ISO-8601 ``...Z`` timestamp to an aware datetime, or None."""
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed
+
+
+def pending_decisions_log_path(project_root: Path) -> Path:
+    """Resolve the durable pending-decisions backlog log under *project_root*."""
+    return project_root / PENDING_DECISIONS_AUDIT_DIR_REL / PENDING_DECISIONS_LOG_NAME
+
+
+def _append_decision_event(
+    project_root: Path,
+    *,
+    decision_id: str,
+    status: str,
+    kind: str,
+    gate_id: str,
+    severity: str,
+    reviewers: list[str] | None,
+    actor: str,
+    reason: str,
+    override: bool,
+    p0_reversal: bool,
+    now: datetime | None,
+    log_path: Path | None,
+) -> dict[str, Any]:
+    """Append one decision event to the backlog log and return the record."""
+    if not isinstance(decision_id, str) or not decision_id.strip():
+        raise ValueError("decision_id must be a non-empty string")
+    path = log_path or pending_decisions_log_path(project_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    timestamp = (
+        _now_iso()
+        if now is None
+        else now.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    )
+    entry: dict[str, Any] = {
+        "decision_id": decision_id,
+        "timestamp": timestamp,
+        "status": status,
+        "kind": kind,
+        "gate_id": gate_id,
+        "severity": severity,
+        "reviewers": list(reviewers or []),
+        "actor": actor,
+        "reason": reason,
+        "override": bool(override),
+        "p0_reversal": bool(p0_reversal),
+    }
+    line = json.dumps(entry, sort_keys=True, ensure_ascii=False)
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(line + "\n")
+    return entry
+
+
+def record_pending_decision(
+    project_root: Path,
+    *,
+    decision_id: str,
+    kind: str,
+    gate_id: str = "",
+    severity: str = "",
+    reviewers: list[str] | None = None,
+    actor: str = "agent",
+    reason: str = "",
+    now: datetime | None = None,
+    log_path: Path | None = None,
+) -> dict[str, Any]:
+    """Open a pending human decision (append a ``pending`` event).
+
+    Idempotency note: each call appends an event. Opening the same
+    ``decision_id`` twice without an intervening resolution leaves the
+    decision pending (the latest event still says ``pending``), so the
+    backlog count is unchanged -- the audit trail keeps both rows.
+    """
+    return _append_decision_event(
+        project_root,
+        decision_id=decision_id,
+        status=DECISION_STATUS_PENDING,
+        kind=kind,
+        gate_id=gate_id,
+        severity=severity,
+        reviewers=reviewers,
+        actor=actor,
+        reason=reason,
+        override=False,
+        p0_reversal=False,
+        now=now,
+        log_path=log_path,
+    )
+
+
+def resolve_pending_decision(
+    project_root: Path,
+    *,
+    decision_id: str,
+    kind: str = "",
+    gate_id: str = "",
+    severity: str = "",
+    reviewers: list[str] | None = None,
+    actor: str = "operator",
+    reason: str = "",
+    override: bool = False,
+    p0_reversal: bool = False,
+    now: datetime | None = None,
+    log_path: Path | None = None,
+) -> dict[str, Any]:
+    """Close a pending human decision (append a ``resolved`` event).
+
+    ``override`` records that the human reversed the autonomy recommendation
+    (the primary dial signal); ``p0_reversal`` records that the resolution
+    reversed a P0 outcome (the immediate-retreat trigger). Both are read back
+    by :func:`summarize_decision_backlog` to drive the dial.
+    """
+    return _append_decision_event(
+        project_root,
+        decision_id=decision_id,
+        status=DECISION_STATUS_RESOLVED,
+        kind=kind,
+        gate_id=gate_id,
+        severity=severity,
+        reviewers=reviewers,
+        actor=actor,
+        reason=reason,
+        override=override,
+        p0_reversal=p0_reversal,
+        now=now,
+        log_path=log_path,
+    )
+
+
+def read_decision_events(
+    project_root: Path, *, log_path: Path | None = None
+) -> list[dict[str, Any]]:
+    """Return every well-formed decision event in insertion (chronological) order.
+
+    Tolerant of malformed / partial lines (skips them) so a torn write never
+    crashes a backlog summary or a session-start surface.
+    """
+    path = log_path or pending_decisions_log_path(project_root)
+    if not path.is_file():
+        return []
+    out: list[dict[str, Any]] = []
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        stripped = raw.strip()
+        if not stripped:
+            continue
+        try:
+            obj = json.loads(stripped)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict) and isinstance(obj.get("decision_id"), str):
+            out.append(obj)
+    return out
+
+
+@dataclass(frozen=True)
+class DecisionBacklog:
+    """Rolled-up view of the pending-decisions log.
+
+    ``pending_count`` / ``by_kind`` describe the CURRENT backlog (latest event
+    per ``decision_id`` is ``pending``). The remaining fields summarise
+    decisions RESOLVED within the accounting window and feed the autonomy dial.
+    """
+
+    pending_count: int
+    by_kind: dict[str, int]
+    resolved_in_window: int
+    override_count: int
+    p0_reversal_in_window: bool
+
+    @property
+    def override_rate(self) -> float:
+        """Clearance-override rate over resolved-in-window decisions (0.0..1.0)."""
+        if self.resolved_in_window <= 0:
+            return 0.0
+        return self.override_count / self.resolved_in_window
+
+
+def summarize_decision_backlog(
+    project_root: Path,
+    *,
+    now: datetime | None = None,
+    window_days: int | None = None,
+    events: list[dict[str, Any]] | None = None,
+) -> DecisionBacklog:
+    """Summarise the pending-decisions log into a :class:`DecisionBacklog`.
+
+    The latest event per ``decision_id`` wins (the log is append-only and
+    chronological). When *window_days* is provided, only decisions whose
+    resolving event falls inside the trailing window contribute to the
+    override / rework signal; the pending count is always the live backlog.
+    """
+    records = events if events is not None else read_decision_events(project_root)
+    latest: dict[str, dict[str, Any]] = {}
+    for event in records:
+        decision_id = event.get("decision_id")
+        if isinstance(decision_id, str) and decision_id:
+            latest[decision_id] = event  # later events override earlier ones
+
+    by_kind: dict[str, int] = {}
+    pending_count = 0
+    for event in latest.values():
+        if event.get("status") == DECISION_STATUS_PENDING:
+            pending_count += 1
+            kind = event.get("kind") or "unspecified"
+            by_kind[kind] = by_kind.get(kind, 0) + 1
+
+    now_dt = now or datetime.now(UTC)
+    resolved_in_window = 0
+    override_count = 0
+    p0_reversal = False
+    for event in latest.values():
+        if event.get("status") != DECISION_STATUS_RESOLVED:
+            continue
+        if window_days is not None:
+            stamp = _parse_iso_ts(event.get("timestamp"))
+            if stamp is None:
+                continue
+            age_days = (now_dt - stamp).total_seconds() / 86400.0
+            if age_days < 0 or age_days > window_days:
+                continue
+        resolved_in_window += 1
+        if event.get("override") is True:
+            override_count += 1
+        if event.get("p0_reversal") is True:
+            p0_reversal = True
+    return DecisionBacklog(
+        pending_count=pending_count,
+        by_kind=by_kind,
+        resolved_in_window=resolved_in_window,
+        override_count=override_count,
+        p0_reversal_in_window=p0_reversal,
+    )
+
+
+def count_pending_decisions(
+    project_root: Path, *, events: list[dict[str, Any]] | None = None
+) -> int:
+    """Convenience: the current pending-human-decisions backlog count."""
+    return summarize_decision_backlog(project_root, events=events).pending_count
+
+
+def pending_decisions_nudge_line(
+    count: int, threshold: int = DEFAULT_PENDING_DECISIONS_THRESHOLD
+) -> str:
+    """Return the Tier-1 backlog nudge string, or ``""`` when at/under threshold.
+
+    Shared by ``capacity:show`` and ``triage:welcome`` so the wording stays in
+    lockstep across both surfaces.
+    """
+    if count <= threshold:
+        return ""
+    return (
+        f"[TIER-1] pending human-clearance backlog: {count} decision(s) "
+        f"awaiting adjudication (> threshold {threshold}). Tune wipCap to real "
+        "review throughput or clear the backlog before dispatching more work."
+    )
+
+
+# Reviewer-disagreement routing (OQ4) -- reuse of the #526 errored-state path.
+
+
+@dataclass(frozen=True)
+class ReviewerRouting:
+    """Routing decision for a multi-LLM reviewer disagreement (OQ4).
+
+    ``escalates`` is the load-bearing field: when True the disagreement goes to
+    a human and (via :func:`escalate_reviewer_disagreement`) increments the
+    pending-decisions backlog. ``upgraded`` records the auto->review upgrade an
+    contested P0 triggers.
+    """
+
+    severity: str
+    requested_tier: str
+    effective_tier: str
+    escalates: bool
+    required_human_reviewers: int
+    upgraded: bool
+    reason: str
+
+
+def route_reviewer_disagreement(
+    *, severity: str, tier: str, errored_on_head: bool = False
+) -> ReviewerRouting:
+    """Route a multi-LLM reviewer split per the OQ4 tier-interaction rule.
+
+    * ``block`` -- fails closed: any reviewer split (or an errored-on-HEAD
+      review) escalates to a human.
+    * ``review`` -- a P0/P1 split or an errored-on-HEAD review escalates to 1
+      human; a lower-severity split stays advisory and defers to ordering.
+    * ``auto`` -- only a contested P0 (or errored-on-HEAD) upgrades the gate to
+      ``review`` and escalates; lower-severity auto splits do not escalate.
+
+    Advisory where it touches directive's own flow -- this returns the routing;
+    it never fails the build closed.
+    """
+    sev = (severity or "").strip().lower()
+    requested = (tier or "").strip().lower()
+    escalating_sev = sev in _ESCALATING_SEVERITIES or errored_on_head
+
+    if requested == "block":
+        return ReviewerRouting(
+            severity=sev,
+            requested_tier="block",
+            effective_tier="block",
+            escalates=True,
+            required_human_reviewers=1,
+            upgraded=False,
+            reason="block-tier reviewer split fails closed -- human sign-off required",
+        )
+    if requested == "review":
+        if escalating_sev:
+            return ReviewerRouting(
+                severity=sev,
+                requested_tier="review",
+                effective_tier="review",
+                escalates=True,
+                required_human_reviewers=1,
+                upgraded=False,
+                reason=(
+                    f"review-tier {sev or 'errored'} reviewer split escalates to 1 human"
+                ),
+            )
+        return ReviewerRouting(
+            severity=sev,
+            requested_tier="review",
+            effective_tier="review",
+            escalates=False,
+            required_human_reviewers=0,
+            upgraded=False,
+            reason="review-tier reviewer split below P1 -- advisory, deferred to ordering",
+        )
+    if requested == "auto":
+        if sev == "p0" or errored_on_head:
+            return ReviewerRouting(
+                severity=sev,
+                requested_tier="auto",
+                effective_tier="review",
+                escalates=True,
+                required_human_reviewers=1,
+                upgraded=True,
+                reason="contested P0 on an auto-tier gate upgrades to review (1 human)",
+            )
+        return ReviewerRouting(
+            severity=sev,
+            requested_tier="auto",
+            effective_tier="auto",
+            escalates=False,
+            required_human_reviewers=0,
+            upgraded=False,
+            reason="auto-tier reviewer split below P0 -- no escalation (advisory)",
+        )
+    # Unknown tier: be conservative and escalate when the severity warrants it.
+    return ReviewerRouting(
+        severity=sev,
+        requested_tier=requested,
+        effective_tier=requested,
+        escalates=escalating_sev,
+        required_human_reviewers=1 if escalating_sev else 0,
+        upgraded=False,
+        reason=(
+            "unknown tier -- escalating on P0/P1 by default"
+            if escalating_sev
+            else "unknown tier -- no escalation"
+        ),
+    )
+
+
+def escalate_reviewer_disagreement(
+    project_root: Path,
+    *,
+    decision_id: str,
+    severity: str,
+    tier: str,
+    errored_on_head: bool = False,
+    reviewers: list[str] | None = None,
+    actor: str = "agent",
+    reason: str = "",
+    now: datetime | None = None,
+    log_path: Path | None = None,
+) -> ReviewerRouting:
+    """Route a reviewer split and, when it escalates, open a pending decision.
+
+    Returns the :class:`ReviewerRouting`. When ``routing.escalates`` is True a
+    ``pending`` event is appended to the backlog (incrementing the count); when
+    it is False nothing is written (advisory, deferred to ordering).
+    """
+    routing = route_reviewer_disagreement(
+        severity=severity, tier=tier, errored_on_head=errored_on_head
+    )
+    if routing.escalates:
+        record_pending_decision(
+            project_root,
+            decision_id=decision_id,
+            kind=REVIEWER_DISAGREEMENT_KIND,
+            severity=routing.severity,
+            reviewers=reviewers,
+            actor=actor,
+            reason=reason or routing.reason,
+            now=now,
+            log_path=log_path,
+        )
+    return routing
+
+
+# Earned-autonomy dial ------------------------------------------------------
+
+#: Dial levels, ordered conservative -> permissive. The dial advances one step
+#: right and retreats one step left.
+AUTONOMY_LEVELS: tuple[str, ...] = ("observe", "escalate", "execute")
+DEFAULT_AUTONOMY_LEVEL: str = "escalate"
+
+#: Recommendation actions emitted by :func:`recommend_autonomy_level`.
+AUTONOMY_ACTION_ADVANCE: str = "advance"
+AUTONOMY_ACTION_HOLD: str = "hold"
+AUTONOMY_ACTION_RETREAT: str = "retreat"
+
+#: Advance only when the clearance-override rate is STRICTLY below this.
+DEFAULT_AUTONOMY_ADVANCE_OVERRIDE_MAX: float = 0.05
+#: Retreat immediately when the override rate STRICTLY exceeds this.
+DEFAULT_AUTONOMY_RETREAT_OVERRIDE_RATE: float = 0.20
+#: Rework-rate guardrail: advance only when rework <= this baseline.
+DEFAULT_AUTONOMY_REWORK_BASELINE: float = 0.15
+#: Minimum resolved-decision sample before an advance is considered.
+DEFAULT_AUTONOMY_MIN_SAMPLE_SIZE: int = 20
+
+
+@dataclass(frozen=True)
+class AutonomyPolicy:
+    """Resolved ``plan.policy.autonomy`` state.
+
+    ``source`` mirrors :class:`CapacityAllocation` semantics (``'typed'`` /
+    ``'default'`` / ``'default-on-error'``). ``gate_levels`` carries optional
+    per-gate-id level overrides on top of ``default_level``.
+    """
+
+    enabled: bool
+    default_level: str
+    min_sample_size: int
+    advance_override_max: float
+    retreat_override_rate: float
+    rework_baseline: float
+    gate_levels: dict[str, str]
+    source: str  # one of: 'typed', 'default', 'default-on-error'
+    error: str | None = None
+
+    @property
+    def configured(self) -> bool:
+        """True when a well-formed ``autonomy`` block is present."""
+        return self.source == "typed"
+
+    def level_for(self, gate_id: str | None = None) -> str:
+        """Resolved level for *gate_id* (per-gate override, else the default)."""
+        if gate_id and gate_id in self.gate_levels:
+            return self.gate_levels[gate_id]
+        return self.default_level
+
+
+@dataclass(frozen=True)
+class AutonomyRecommendation:
+    """Advisory autonomy-level recommendation. NEVER auto-applied (v1).
+
+    ``advisory`` is True for every recommendation in v1 -- the dial RECOMMENDS
+    a level flip and a human confirms it; nothing ratchets automatically.
+    """
+
+    current_level: str
+    recommended_level: str
+    action: str  # 'advance' | 'hold' | 'retreat'
+    rationale: str
+    gate_id: str | None = None
+    advisory: bool = True
+
+    @property
+    def reduces_required_clearances(self) -> bool:
+        """Advancing WOULD reduce required human clearances (if confirmed)."""
+        return self.action == AUTONOMY_ACTION_ADVANCE
+
+    @property
+    def restores_required_clearances(self) -> bool:
+        """Retreating restores required human clearances (if confirmed)."""
+        return self.action == AUTONOMY_ACTION_RETREAT
+
+
+def _validate_autonomy_gates(gates: Any) -> list[str]:
+    """Validate the optional ``autonomy.gates`` per-gate-id level map."""
+    if not isinstance(gates, dict):
+        return [
+            "plan.policy.autonomy.gates must be an object mapping gate-id -> level"
+        ]
+    errors: list[str] = []
+    for gid, level in gates.items():
+        if not isinstance(gid, str) or not gid.strip():
+            errors.append(
+                "plan.policy.autonomy.gates keys must be non-empty gate-id strings"
+            )
+        if level not in AUTONOMY_LEVELS:
+            errors.append(
+                f"plan.policy.autonomy.gates[{gid!r}] must be one of "
+                f"{sorted(AUTONOMY_LEVELS)}; got {level!r}"
+            )
+    return errors
+
+
+def validate_autonomy(value: Any) -> list[str]:
+    """Validate a ``plan.policy.autonomy`` payload.
+
+    Returns a list of error strings (empty == valid). ``None`` / unset is
+    valid (the resolver falls back to the framework default).
+    """
+    errors: list[str] = []
+    if value is None:
+        return errors
+    if not isinstance(value, dict):
+        errors.append(
+            f"plan.policy.autonomy must be an object; got {type(value).__name__}"
+        )
+        return errors
+    if "enabled" in value and not isinstance(value["enabled"], bool):
+        errors.append("plan.policy.autonomy.enabled must be a boolean")
+    if "defaultLevel" in value and value["defaultLevel"] not in AUTONOMY_LEVELS:
+        errors.append(
+            "plan.policy.autonomy.defaultLevel must be one of "
+            f"{sorted(AUTONOMY_LEVELS)}; got {value['defaultLevel']!r}"
+        )
+    if "minSampleSize" in value:
+        mss = value["minSampleSize"]
+        if not isinstance(mss, int) or isinstance(mss, bool) or mss < 0:
+            errors.append(
+                "plan.policy.autonomy.minSampleSize must be a non-negative "
+                f"integer; got {mss!r}"
+            )
+    for key in ("advanceOverrideRateMax", "retreatOverrideRate", "reworkBaseline"):
+        if key in value:
+            rate = value[key]
+            if not _is_number(rate) or not 0.0 <= float(rate) <= 1.0:
+                errors.append(
+                    f"plan.policy.autonomy.{key} must be a number between 0.0 "
+                    f"and 1.0; got {rate!r}"
+                )
+    if "gates" in value:
+        errors.extend(_validate_autonomy_gates(value["gates"]))
+    return errors
+
+
+def validate_autonomy_on_plan(plan: Any, filepath: Any) -> list[str]:
+    """vbrief_validate hook: validate ``plan.policy.autonomy`` (#1419).
+
+    Mirrors :func:`validate_capacity_allocation_on_plan`. Provided + unit-tested
+    as the canonical validation entry point but intentionally NOT yet spliced
+    into ``scripts/vbrief_validate.py`` -- the autonomy dial is advisory in v1
+    and a malformed block self-heals to defaults, so wiring it into the
+    ``task check`` validation aggregate (a fail-closed surface on the
+    framework's own tree) is a follow-up slice's concern.
+    """
+    out: list[str] = []
+    if not isinstance(plan, dict):
+        return out
+    policy = plan.get("policy")
+    if not isinstance(policy, dict) or "autonomy" not in policy:
+        return out
+    for err in validate_autonomy(policy["autonomy"]):
+        out.append(f"{filepath}: {err} (#1419)")
+    return out
+
+
+def _default_autonomy_policy(
+    *, source: str, error: str | None = None
+) -> AutonomyPolicy:
+    return AutonomyPolicy(
+        enabled=True,
+        default_level=DEFAULT_AUTONOMY_LEVEL,
+        min_sample_size=DEFAULT_AUTONOMY_MIN_SAMPLE_SIZE,
+        advance_override_max=DEFAULT_AUTONOMY_ADVANCE_OVERRIDE_MAX,
+        retreat_override_rate=DEFAULT_AUTONOMY_RETREAT_OVERRIDE_RATE,
+        rework_baseline=DEFAULT_AUTONOMY_REWORK_BASELINE,
+        gate_levels={},
+        source=source,
+        error=error,
+    )
+
+
+def resolve_autonomy(project_root: Path | None = None) -> AutonomyPolicy:
+    """Resolve ``plan.policy.autonomy`` from PROJECT-DEFINITION.
+
+    Resolution order (mirrors :func:`resolve_capacity_allocation`):
+
+    1. A well-formed ``autonomy`` block -> ``'typed'``.
+    2. Missing -> framework default (``'default'``).
+    3. Present-but-malformed -> framework default (``'default-on-error'`` with
+       ``error`` set so the caller can surface it).
+
+    Pure-stdlib; no live ``gh`` / cache calls.
+    """
+    data, err = load_project_definition(project_root)
+    if data is None:
+        return _default_autonomy_policy(source="default", error=err)
+    policy_block = _get_policy_block(data)
+    if "autonomy" not in policy_block:
+        return _default_autonomy_policy(source="default")
+    raw = policy_block["autonomy"]
+    errors = validate_autonomy(raw)
+    if errors or not isinstance(raw, dict):
+        return _default_autonomy_policy(
+            source="default-on-error",
+            error=errors[0] if errors else "autonomy must be an object",
+        )
+    gate_levels = {
+        gid: level
+        for gid, level in (raw.get("gates") or {}).items()
+        if isinstance(gid, str)
+    }
+    return AutonomyPolicy(
+        enabled=bool(raw.get("enabled", True)),
+        default_level=raw.get("defaultLevel", DEFAULT_AUTONOMY_LEVEL),
+        min_sample_size=int(raw.get("minSampleSize", DEFAULT_AUTONOMY_MIN_SAMPLE_SIZE)),
+        advance_override_max=float(
+            raw.get("advanceOverrideRateMax", DEFAULT_AUTONOMY_ADVANCE_OVERRIDE_MAX)
+        ),
+        retreat_override_rate=float(
+            raw.get("retreatOverrideRate", DEFAULT_AUTONOMY_RETREAT_OVERRIDE_RATE)
+        ),
+        rework_baseline=float(
+            raw.get("reworkBaseline", DEFAULT_AUTONOMY_REWORK_BASELINE)
+        ),
+        gate_levels=gate_levels,
+        source="typed",
+        error=None,
+    )
+
+
+def recommend_autonomy_level(
+    current_level: str,
+    *,
+    override_rate: float,
+    rework_rate: float,
+    sample_size: int,
+    p0_reversal: bool = False,
+    policy: AutonomyPolicy | None = None,
+    gate_id: str | None = None,
+) -> AutonomyRecommendation:
+    """Recommend an autonomy-level flip from the dial signal (ADVISORY-ONLY).
+
+    Asymmetric:
+
+    * RETREAT one step immediately on any P0 reversal OR an override rate above
+      ``policy.retreat_override_rate`` (no sample-size gate -- safety first).
+    * ADVANCE one step only when the resolved-decision sample meets
+      ``policy.min_sample_size`` AND override rate is below
+      ``policy.advance_override_max`` AND rework is within
+      ``policy.rework_baseline``.
+    * Otherwise HOLD.
+
+    The returned recommendation is advisory: a human confirms the flip. This
+    function NEVER mutates policy or required clearances.
+    """
+    pol = policy or _default_autonomy_policy(source="default")
+    cur = current_level if current_level in AUTONOMY_LEVELS else pol.default_level
+    idx = AUTONOMY_LEVELS.index(cur)
+
+    # Asymmetric RETREAT -- fires immediately, no sample-size gate.
+    if p0_reversal or override_rate > pol.retreat_override_rate:
+        trigger = (
+            "P0 reversal observed"
+            if p0_reversal
+            else (
+                f"override rate {override_rate:.0%} > retreat threshold "
+                f"{pol.retreat_override_rate:.0%}"
+            )
+        )
+        if idx == 0:
+            return AutonomyRecommendation(
+                cur,
+                cur,
+                AUTONOMY_ACTION_HOLD,
+                f"hold at {cur}: {trigger} but already at the most conservative "
+                "level (Observe). ADVISORY: a human confirms.",
+                gate_id,
+            )
+        return AutonomyRecommendation(
+            cur,
+            AUTONOMY_LEVELS[idx - 1],
+            AUTONOMY_ACTION_RETREAT,
+            f"retreat: {trigger} -- recommend {AUTONOMY_LEVELS[idx - 1]} "
+            "(restores required human clearances). ADVISORY: a human confirms.",
+            gate_id,
+        )
+
+    # Asymmetric ADVANCE -- gated on sample size + override + rework guardrail.
+    advance_ok = (
+        sample_size >= pol.min_sample_size
+        and override_rate < pol.advance_override_max
+        and rework_rate <= pol.rework_baseline
+    )
+    if advance_ok:
+        basis = (
+            f"override {override_rate:.0%} < {pol.advance_override_max:.0%}, "
+            f"rework {rework_rate:.0%} <= baseline {pol.rework_baseline:.0%}, "
+            f"sample {sample_size} >= {pol.min_sample_size}"
+        )
+        if idx == len(AUTONOMY_LEVELS) - 1:
+            return AutonomyRecommendation(
+                cur,
+                cur,
+                AUTONOMY_ACTION_HOLD,
+                f"hold at {cur}: advance criteria met ({basis}) but already at "
+                "the most permissive level (Execute).",
+                gate_id,
+            )
+        return AutonomyRecommendation(
+            cur,
+            AUTONOMY_LEVELS[idx + 1],
+            AUTONOMY_ACTION_ADVANCE,
+            f"advance: {basis} -- recommend {AUTONOMY_LEVELS[idx + 1]} "
+            "(would reduce required human clearances). ADVISORY: a human "
+            "confirms; no auto-ratchet.",
+            gate_id,
+        )
+
+    # HOLD -- neither retreat nor advance criteria met.
+    return AutonomyRecommendation(
+        cur,
+        cur,
+        AUTONOMY_ACTION_HOLD,
+        f"hold at {cur}: override {override_rate:.0%}, rework {rework_rate:.0%}, "
+        f"sample {sample_size} -- advance criteria not met, no retreat trigger.",
+        gate_id,
+    )
+
+
 # Reconfiguration surface (used by tasks/policy.yml + slash commands) -----
 
 
 def _now_iso() -> str:
     """ISO-8601 UTC timestamp with seconds precision."""
-    from datetime import UTC, datetime
-
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 

@@ -14,6 +14,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -609,3 +610,381 @@ def test_resolve_judgment_gates_malformed_falls_back_on_error(policy_module, pro
     assert result.source == "default-on-error"
     assert result.gates == ()
     assert result.error is not None
+
+
+# ---------------------------------------------------------------------------
+# autonomy dial typed schema + resolver (#1419 Delivery Slice 5)
+# ---------------------------------------------------------------------------
+
+
+def _valid_autonomy() -> dict:
+    return {
+        "enabled": True,
+        "defaultLevel": "escalate",
+        "minSampleSize": 20,
+        "advanceOverrideRateMax": 0.05,
+        "retreatOverrideRate": 0.20,
+        "reworkBaseline": 0.15,
+        "gates": {"api-contract": "observe"},
+    }
+
+
+def test_validate_autonomy_valid_returns_empty(policy_module):
+    assert policy_module.validate_autonomy(_valid_autonomy()) == []
+
+
+def test_validate_autonomy_none_is_valid(policy_module):
+    assert policy_module.validate_autonomy(None) == []
+
+
+def test_validate_autonomy_not_a_dict(policy_module):
+    errors = policy_module.validate_autonomy([1, 2])
+    assert any("must be an object" in e for e in errors)
+
+
+def test_validate_autonomy_default_level_enum(policy_module):
+    cfg = _valid_autonomy()
+    cfg["defaultLevel"] = "yolo"
+    errors = policy_module.validate_autonomy(cfg)
+    assert any("defaultLevel must be one of" in e for e in errors)
+
+
+def test_validate_autonomy_min_sample_size_non_negative(policy_module):
+    cfg = _valid_autonomy()
+    cfg["minSampleSize"] = -1
+    errors = policy_module.validate_autonomy(cfg)
+    assert any("minSampleSize" in e for e in errors)
+
+
+def test_validate_autonomy_rates_bounded(policy_module):
+    cfg = _valid_autonomy()
+    cfg["advanceOverrideRateMax"] = 1.5
+    errors = policy_module.validate_autonomy(cfg)
+    assert any("advanceOverrideRateMax" in e for e in errors)
+
+
+def test_validate_autonomy_gate_level_enum(policy_module):
+    cfg = _valid_autonomy()
+    cfg["gates"] = {"g1": "turbo"}
+    errors = policy_module.validate_autonomy(cfg)
+    assert any("gates['g1'] must be one of" in e for e in errors)
+
+
+def test_validate_autonomy_on_plan_prefixes_filepath(policy_module):
+    cfg = _valid_autonomy()
+    cfg["defaultLevel"] = "nope"
+    plan = {"policy": {"autonomy": cfg}}
+    errors = policy_module.validate_autonomy_on_plan(plan, "foo.json")
+    assert errors
+    assert all(e.startswith("foo.json:") for e in errors)
+    assert all("#1419" in e for e in errors)
+
+
+def test_validate_autonomy_on_plan_unset_is_empty(policy_module):
+    assert policy_module.validate_autonomy_on_plan({"policy": {}}, "f") == []
+
+
+def test_resolve_autonomy_default_when_absent(policy_module, project_root):
+    _write_project_def(project_root, {})
+    result = policy_module.resolve_autonomy(project_root)
+    assert result.source == "default"
+    assert result.configured is False
+    assert result.default_level == "escalate"
+    assert result.min_sample_size == 20
+
+
+def test_resolve_autonomy_typed_valid(policy_module, project_root):
+    _write_project_def(project_root, {"policy": {"autonomy": _valid_autonomy()}})
+    result = policy_module.resolve_autonomy(project_root)
+    assert result.source == "typed"
+    assert result.configured is True
+    assert result.default_level == "escalate"
+    assert result.gate_levels == {"api-contract": "observe"}
+    assert result.level_for("api-contract") == "observe"
+    assert result.level_for("other") == "escalate"
+
+
+def test_resolve_autonomy_malformed_falls_back_on_error(policy_module, project_root):
+    cfg = _valid_autonomy()
+    cfg["defaultLevel"] = "bad"
+    _write_project_def(project_root, {"policy": {"autonomy": cfg}})
+    result = policy_module.resolve_autonomy(project_root)
+    assert result.source == "default-on-error"
+    assert result.error is not None
+    # Self-heals to the framework default level.
+    assert result.default_level == "escalate"
+
+
+# ---------------------------------------------------------------------------
+# autonomy dial recommendation -- asymmetric advance / retreat (advisory-only)
+# ---------------------------------------------------------------------------
+
+
+def test_recommend_autonomy_advances_on_low_override(policy_module):
+    rec = policy_module.recommend_autonomy_level(
+        "escalate",
+        override_rate=0.0,
+        rework_rate=0.0,
+        sample_size=20,
+        p0_reversal=False,
+    )
+    assert rec.action == "advance"
+    assert rec.recommended_level == "execute"
+    assert rec.advisory is True
+    assert rec.reduces_required_clearances is True
+
+
+def test_recommend_autonomy_retreats_on_high_override(policy_module):
+    rec = policy_module.recommend_autonomy_level(
+        "escalate",
+        override_rate=0.5,
+        rework_rate=0.0,
+        sample_size=20,
+        p0_reversal=False,
+    )
+    assert rec.action == "retreat"
+    assert rec.recommended_level == "observe"
+    assert rec.advisory is True
+    assert rec.restores_required_clearances is True
+
+
+def test_recommend_autonomy_retreats_immediately_on_p0_reversal(policy_module):
+    # A P0 reversal retreats even when the override rate is low and the sample
+    # is small (no sample-size gate on the retreat path -- safety first).
+    rec = policy_module.recommend_autonomy_level(
+        "execute",
+        override_rate=0.0,
+        rework_rate=0.0,
+        sample_size=1,
+        p0_reversal=True,
+    )
+    assert rec.action == "retreat"
+    assert rec.recommended_level == "escalate"
+
+
+def test_recommend_autonomy_holds_below_min_sample(policy_module):
+    rec = policy_module.recommend_autonomy_level(
+        "escalate",
+        override_rate=0.0,
+        rework_rate=0.0,
+        sample_size=5,  # below default minSampleSize=20
+        p0_reversal=False,
+    )
+    assert rec.action == "hold"
+    assert rec.recommended_level == "escalate"
+
+
+def test_recommend_autonomy_holds_when_rework_spikes(policy_module):
+    # Override is low and sample is large, but rework exceeds the baseline
+    # guardrail -- the advance is withheld (hold, not advance).
+    rec = policy_module.recommend_autonomy_level(
+        "escalate",
+        override_rate=0.0,
+        rework_rate=0.5,
+        sample_size=20,
+        p0_reversal=False,
+    )
+    assert rec.action == "hold"
+
+
+def test_recommend_autonomy_holds_at_observe_floor(policy_module):
+    rec = policy_module.recommend_autonomy_level(
+        "observe",
+        override_rate=0.9,
+        rework_rate=0.0,
+        sample_size=20,
+        p0_reversal=True,
+    )
+    assert rec.action == "hold"
+    assert rec.recommended_level == "observe"
+
+
+def test_recommend_autonomy_holds_at_execute_ceiling(policy_module):
+    rec = policy_module.recommend_autonomy_level(
+        "execute",
+        override_rate=0.0,
+        rework_rate=0.0,
+        sample_size=20,
+        p0_reversal=False,
+    )
+    assert rec.action == "hold"
+    assert rec.recommended_level == "execute"
+
+
+def test_recommend_autonomy_honours_configured_thresholds(policy_module, project_root):
+    cfg = _valid_autonomy()
+    cfg["minSampleSize"] = 2
+    _write_project_def(project_root, {"policy": {"autonomy": cfg}})
+    pol = policy_module.resolve_autonomy(project_root)
+    rec = policy_module.recommend_autonomy_level(
+        pol.default_level,
+        override_rate=0.0,
+        rework_rate=0.0,
+        sample_size=2,  # meets the lowered minSampleSize
+        policy=pol,
+    )
+    assert rec.action == "advance"
+
+
+# ---------------------------------------------------------------------------
+# pending-human-decisions backlog audit log (#1419 Delivery Slice 5)
+# ---------------------------------------------------------------------------
+
+
+def test_record_pending_decision_increments_count(policy_module, project_root):
+    assert policy_module.count_pending_decisions(project_root) == 0
+    policy_module.record_pending_decision(
+        project_root, decision_id="d1", kind="judgment-gate"
+    )
+    policy_module.record_pending_decision(
+        project_root, decision_id="d2", kind="judgment-gate"
+    )
+    assert policy_module.count_pending_decisions(project_root) == 2
+
+
+def test_resolve_pending_decision_decrements_count(policy_module, project_root):
+    policy_module.record_pending_decision(
+        project_root, decision_id="d1", kind="judgment-gate"
+    )
+    assert policy_module.count_pending_decisions(project_root) == 1
+    policy_module.resolve_pending_decision(project_root, decision_id="d1")
+    # The latest event for d1 is now 'resolved' -> not counted as pending.
+    assert policy_module.count_pending_decisions(project_root) == 0
+
+
+def test_record_pending_decision_rejects_blank_id(policy_module, project_root):
+    with pytest.raises(ValueError):
+        policy_module.record_pending_decision(
+            project_root, decision_id="  ", kind="x"
+        )
+
+
+def test_summarize_decision_backlog_by_kind_and_override(policy_module, project_root):
+    now = datetime(2026, 6, 4, 12, 0, 0, tzinfo=UTC)
+    # Two pending of distinct kinds.
+    policy_module.record_pending_decision(
+        project_root, decision_id="p1", kind="judgment-gate", now=now
+    )
+    policy_module.record_pending_decision(
+        project_root, decision_id="p2", kind="reviewer-disagreement", now=now
+    )
+    # Three resolved-in-window: one override + one P0 reversal.
+    for i in range(3):
+        did = f"r{i}"
+        policy_module.record_pending_decision(
+            project_root, decision_id=did, kind="judgment-gate", now=now
+        )
+        policy_module.resolve_pending_decision(
+            project_root,
+            decision_id=did,
+            override=(i == 0),
+            p0_reversal=(i == 1),
+            now=now,
+        )
+    backlog = policy_module.summarize_decision_backlog(
+        project_root, now=now, window_days=30
+    )
+    assert backlog.pending_count == 2
+    assert backlog.by_kind == {"judgment-gate": 1, "reviewer-disagreement": 1}
+    assert backlog.resolved_in_window == 3
+    assert backlog.override_count == 1
+    assert backlog.p0_reversal_in_window is True
+    assert abs(backlog.override_rate - (1 / 3)) < 1e-9
+
+
+def test_summarize_decision_backlog_window_excludes_stale_resolved(
+    policy_module, project_root
+):
+    now = datetime(2026, 6, 4, 12, 0, 0, tzinfo=UTC)
+    stale = now - timedelta(days=120)
+    did = "old"
+    policy_module.record_pending_decision(
+        project_root, decision_id=did, kind="judgment-gate", now=stale
+    )
+    policy_module.resolve_pending_decision(
+        project_root, decision_id=did, override=True, now=stale
+    )
+    backlog = policy_module.summarize_decision_backlog(
+        project_root, now=now, window_days=30
+    )
+    # Resolved 120d ago -> outside the 30d window -> not counted.
+    assert backlog.resolved_in_window == 0
+    assert backlog.override_rate == 0.0
+
+
+def test_read_decision_events_tolerates_malformed_lines(policy_module, project_root):
+    log = policy_module.pending_decisions_log_path(project_root)
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text(
+        'not json\n{"decision_id": "good", "status": "pending"}\n',
+        encoding="utf-8",
+    )
+    events = policy_module.read_decision_events(project_root)
+    assert len(events) == 1
+    assert events[0]["decision_id"] == "good"
+
+
+# ---------------------------------------------------------------------------
+# OQ4 reviewer-disagreement routing + escalation (#1419 Delivery Slice 5)
+# ---------------------------------------------------------------------------
+
+
+def test_route_block_tier_fails_closed(policy_module):
+    routing = policy_module.route_reviewer_disagreement(severity="p2", tier="block")
+    assert routing.escalates is True
+    assert routing.effective_tier == "block"
+    assert routing.required_human_reviewers == 1
+
+
+def test_route_review_tier_escalates_on_p1(policy_module):
+    routing = policy_module.route_reviewer_disagreement(severity="p1", tier="review")
+    assert routing.escalates is True
+    assert routing.required_human_reviewers == 1
+
+
+def test_route_review_tier_no_escalation_on_p2(policy_module):
+    routing = policy_module.route_reviewer_disagreement(severity="p2", tier="review")
+    assert routing.escalates is False
+    assert routing.required_human_reviewers == 0
+
+
+def test_route_auto_tier_contested_p0_upgrades_to_review(policy_module):
+    routing = policy_module.route_reviewer_disagreement(severity="p0", tier="auto")
+    assert routing.escalates is True
+    assert routing.upgraded is True
+    assert routing.effective_tier == "review"
+
+
+def test_route_auto_tier_no_escalation_below_p0(policy_module):
+    routing = policy_module.route_reviewer_disagreement(severity="p2", tier="auto")
+    assert routing.escalates is False
+    assert routing.upgraded is False
+
+
+def test_route_auto_tier_errored_on_head_upgrades(policy_module):
+    routing = policy_module.route_reviewer_disagreement(
+        severity="p2", tier="auto", errored_on_head=True
+    )
+    assert routing.escalates is True
+    assert routing.upgraded is True
+    assert routing.effective_tier == "review"
+
+
+def test_escalate_reviewer_disagreement_increments_backlog(policy_module, project_root):
+    routing = policy_module.escalate_reviewer_disagreement(
+        project_root, decision_id="split-1", severity="p0", tier="review"
+    )
+    assert routing.escalates is True
+    assert policy_module.count_pending_decisions(project_root) == 1
+    events = policy_module.read_decision_events(project_root)
+    assert events[0]["kind"] == policy_module.REVIEWER_DISAGREEMENT_KIND
+
+
+def test_escalate_reviewer_disagreement_no_record_when_not_escalating(
+    policy_module, project_root
+):
+    routing = policy_module.escalate_reviewer_disagreement(
+        project_root, decision_id="split-2", severity="p2", tier="review"
+    )
+    assert routing.escalates is False
+    assert policy_module.count_pending_decisions(project_root) == 0
