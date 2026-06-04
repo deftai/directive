@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **The triage queue and ROADMAP now order sibling scopes by an explicit rank (#987)** -- previously two equally-ready scopes in the same bucket fell back to date order, so operators had no first-class signal for which of two sibling vBRIEFs to pick up first. `task triage:queue` and `task roadmap:render` now read `plan.metadata.rank` as the intra-bucket tiebreaker (lower rank first, applied after priority labels and before creation date; un-ranked scopes sort last), and selection now refuses an under-specified scope with a pointer to refinement. First delivery slice of the agentic prioritization RFC. Closes #987. Refs #1419.
 
 ### Changed
 

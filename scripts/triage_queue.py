@@ -106,6 +106,15 @@ try:  # pragma: no cover -- preflight_cache is a sibling in this repo.
 except ImportError:  # pragma: no cover
     preflight_cache = None  # type: ignore[assignment]
 
+# Spec-readiness contract (#1419 Slice 1 / #987). Reuse the shared
+# swarm-readiness / story-quality checks rather than inventing a parallel
+# field set. Guarded for slim checkouts so the queue still imports if the
+# helper is absent (the predicate then degrades to the readiness gate).
+try:  # pragma: no cover -- core sibling in this repo.
+    import _vbrief_story_quality  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover
+    _vbrief_story_quality = None  # type: ignore[assignment]
+
 
 # ---------------------------------------------------------------------------
 # Public constants
@@ -203,6 +212,13 @@ class QueueBuildOptions:
     #: :data:`GROUP_ORDER`. Empty by default for back-compat with
     #: callers that have not yet rebased onto D13.
     orphan_issue_numbers: frozenset[int] = field(default_factory=frozenset)
+    #: Maps GitHub issue number -> the scope vBRIEF's ``plan.metadata.rank``
+    #: (#1419 Slice 1 / #987). Used as the intra-bucket tiebreaker applied
+    #: AFTER the consumer priority-label ordering and BEFORE the creation-
+    #: date fallback. Empty by default; the CLI path instead reads the
+    #: per-issue ``_metadata_rank`` annotation stamped by
+    #: :func:`load_cached_issues`, so both surfaces honour rank.
+    rank_by_number: dict[int, int] = field(default_factory=dict)
     limit: int | None = None
 
 
@@ -386,6 +402,151 @@ def derive_group(latest_decision: str | None, in_active_vbrief: bool) -> str:
 
 
 # ---------------------------------------------------------------------------
+# plan.metadata.rank ordering + spec-readiness (#1419 Slice 1 / #987)
+# ---------------------------------------------------------------------------
+
+
+def scope_metadata_rank(plan: Any) -> int | None:
+    """Return ``plan.metadata.rank`` as an int, or ``None`` when absent/invalid.
+
+    Accepts a real integer or an integer-valued string (tolerating the
+    JSON-as-string shape some hand-authored vBRIEFs use). ``bool`` is
+    rejected even though it subclasses ``int`` -- a ``true`` rank is
+    meaningless. This is the single reader the queue + roadmap render
+    share so the rank semantics never drift between the two surfaces.
+    """
+    if not isinstance(plan, dict):
+        return None
+    metadata = plan.get("metadata")
+    if not isinstance(metadata, dict):
+        return None
+    rank = metadata.get("rank")
+    if isinstance(rank, bool):
+        return None
+    if isinstance(rank, int):
+        return rank
+    if isinstance(rank, str) and rank.strip().lstrip("-").isdigit():
+        return int(rank.strip())
+    return None
+
+
+def _issue_numbers_from_plan(plan: dict[str, Any]) -> set[int]:
+    """Extract issue numbers from a plan's ``x-vbrief/github-issue`` references."""
+    out: set[int] = set()
+    refs = plan.get("references") if isinstance(plan, dict) else None
+    if not isinstance(refs, list):
+        return out
+    for ref in refs:
+        if not isinstance(ref, dict) or ref.get("type") != "x-vbrief/github-issue":
+            continue
+        uri = ref.get("uri", "")
+        if not isinstance(uri, str):
+            continue
+        tail = uri.rstrip("/").rsplit("/", 1)[-1]
+        if tail.isdigit():
+            out.add(int(tail))
+    return out
+
+
+def _rank_by_issue_number(
+    project_root: Path | None,
+    *,
+    folders: tuple[str, ...] = ("pending", "active"),
+) -> dict[int, int]:
+    """Map referenced issue numbers to their scope vBRIEF ``plan.metadata.rank``.
+
+    Walks ``vbrief/<folder>/*.vbrief.json`` for each folder in ``folders``
+    (default: the in-flight ``pending`` + ``active`` scopes the queue
+    ranks), reads ``plan.metadata.rank`` (#1419 Slice 1 / #987) and maps
+    every GitHub issue number that scope references to the rank. Files are
+    visited in sorted filename order and the first rank seen for an issue
+    wins, so the mapping is deterministic. Scopes without an integer rank
+    contribute nothing -- those issues tail-sort after ranked ones.
+    """
+    out: dict[int, int] = {}
+    base = (project_root or Path.cwd()) / "vbrief"
+    for folder in folders:
+        folder_dir = base / folder
+        if not folder_dir.is_dir():
+            continue
+        for path in sorted(folder_dir.glob("*.vbrief.json")):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                continue
+            plan = data.get("plan") if isinstance(data, dict) else None
+            if not isinstance(plan, dict):
+                continue
+            rank = scope_metadata_rank(plan)
+            if rank is None:
+                continue
+            for number in _issue_numbers_from_plan(plan):
+                out.setdefault(number, rank)
+    return out
+
+
+#: Operator-facing pointer surfaced when a scope is refused as under-specified
+#: (#1419 Slice 1 / #987). Names refinement as the canonical next step.
+SPEC_READINESS_REFINEMENT_HINT = (
+    "refine the scope via skills/deft-directive-refinement "
+    "(`task triage:welcome --onboard`) before promotion/selection"
+)
+
+
+def scope_spec_readiness(plan: Any) -> tuple[bool, list[str]]:
+    """Return ``(eligible, reasons)`` for a scope's spec-readiness (#987 / #1419).
+
+    Reuses the existing swarm-readiness / story-quality contract
+    (:mod:`_vbrief_story_quality`) instead of inventing a parallel field
+    set: a scope is eligible for promotion/selection only when it declares
+    ``plan.metadata.swarm.readiness == "ready"``, carries the required
+    swarm fields, the three required narratives, and at least one
+    acceptance criterion. ``reasons`` lists the missing fields when
+    ineligible and is empty when eligible. On a slim checkout where
+    :mod:`_vbrief_story_quality` is unimportable the check degrades to the
+    ``swarm.readiness`` gate alone so an unmarked scope is still refused.
+    """
+    if not isinstance(plan, dict):
+        return False, ["plan is not an object"]
+    raw_metadata = plan.get("metadata")
+    metadata = raw_metadata if isinstance(raw_metadata, dict) else {}
+    raw_swarm = metadata.get("swarm")
+    swarm = raw_swarm if isinstance(raw_swarm, dict) else {}
+    reasons: list[str] = []
+    if swarm.get("readiness") != "ready":
+        reasons.append("plan.metadata.swarm.readiness=ready")
+    if _vbrief_story_quality is not None:
+        reasons.extend(_vbrief_story_quality.missing_required_swarm_fields(swarm))
+        raw_narratives = plan.get("narratives")
+        narratives = raw_narratives if isinstance(raw_narratives, dict) else {}
+        for key in ("Description", "ImplementationPlan", "UserStory"):
+            value = narratives.get(key)
+            if not (isinstance(value, str) and value.strip()):
+                reasons.append(f"plan.narratives.{key}")
+        if not _vbrief_story_quality.items_have_acceptance(plan.get("items")):
+            reasons.append("plan.items[].narrative.Acceptance")
+    return (not reasons), reasons
+
+
+def spec_readiness_refusal(plan: Any, *, scope_label: str = "scope") -> str | None:
+    """Return a refusal message when ``plan`` is under-specified, else ``None``.
+
+    The message names the missing spec-readiness fields and points the
+    operator at refinement (#987 / #1419). Returns ``None`` when the scope
+    is eligible so callers can guard with
+    ``if (msg := spec_readiness_refusal(plan)): refuse(msg)``.
+    """
+    eligible, reasons = scope_spec_readiness(plan)
+    if eligible:
+        return None
+    detail = ", ".join(reasons)
+    return (
+        f"{scope_label}: refusing promotion/selection -- under-specified "
+        f"(missing: {detail}); {SPEC_READINESS_REFINEMENT_HINT}"
+    )
+
+
+# ---------------------------------------------------------------------------
 # Cache walk
 # ---------------------------------------------------------------------------
 
@@ -478,9 +639,12 @@ def load_cached_issues(
     """Walk the cache and return one dict per cached issue.
 
     Each dict carries at least: ``number``, ``title``, ``state``,
-    ``labels`` (list of strings), ``updated_at``. Missing fields are
-    filled with empty / sentinel values rather than raising so a
-    partially-populated cache (mid-fetch) still produces a usable queue.
+    ``labels`` (list of strings), ``updated_at``, ``created_at``, and
+    ``_metadata_rank`` -- the scope vBRIEF ``plan.metadata.rank`` for this
+    issue (or ``None``), threaded as the intra-bucket tiebreaker by #1419
+    Slice 1 (#987). Missing fields are filled with empty / sentinel values
+    rather than raising so a partially-populated cache (mid-fetch) still
+    produces a usable queue.
 
     Closed issues are excluded by default; pass ``include_closed=True``
     to surface them too (used by :func:`audit` callers that need full
@@ -502,6 +666,10 @@ def load_cached_issues(
     base = repo_cache_path(repo, project_root=project_root, source=source)
     if not base.is_dir():
         return []
+    # #1419 Slice 1 (#987): resolve plan.metadata.rank per referenced issue
+    # from the in-flight scope vBRIEFs so the CLI path orders by rank
+    # without _triage_queue_cli.py needing to thread an extra argument.
+    rank_map = _rank_by_issue_number(project_root)
     issues: list[dict[str, Any]] = []
     for entry in base.iterdir():
         if not entry.is_dir() or not entry.name.isdigit():
@@ -541,6 +709,7 @@ def load_cached_issues(
             continue
         title = payload.get("title") or ""
         updated_at = payload.get("updated_at") or ""
+        created_at = payload.get("created_at") or ""
         labels_raw = payload.get("labels", [])
         labels: list[str] = []
         if isinstance(labels_raw, list):
@@ -558,6 +727,8 @@ def load_cached_issues(
                 "state": state,
                 "labels": labels,
                 "updated_at": updated_at,
+                "created_at": created_at,
+                "_metadata_rank": rank_map.get(int(n)),
             }
         )
     return issues
@@ -616,28 +787,50 @@ def latest_decisions_by_issue(
 # ---------------------------------------------------------------------------
 
 
+def _date_sort_key(issue: dict[str, Any]) -> tuple[int, str]:
+    """Return ``(date_bucket, date_value)`` for the within-group date tiebreak.
+
+    A non-empty ``created_at`` sorts ascending (oldest first) in bucket 0
+    -- the #1419 Slice 1 (#987) creation-date tiebreaker the rank ordering
+    falls back to. When no ``created_at`` is present (a synthetic fixture
+    or a pre-creation-field cache entry) the legacy ``updated_at``-
+    descending order is preserved in bucket 1 so the #1128 within-group
+    behaviour is unchanged. An empty ``updated_at`` maps to ``chr(0)`` so
+    it tail-sorts; a non-empty stamp is character-wise complemented so a
+    more-recent timestamp sorts earlier.
+    """
+    created_at = issue.get("created_at") or ""
+    if created_at:
+        return (0, created_at)
+    updated_at = issue.get("updated_at") or ""
+    inv = (
+        chr(0)
+        if not updated_at
+        else "".join(chr(0x7F - ord(c)) for c in updated_at)
+    )
+    return (1, inv)
+
+
 def _within_group_sort_key(
     issue: dict[str, Any],
     ranking_labels: tuple[str, ...],
-) -> tuple[int, str]:
-    """Return ``(rank_index, neg_updated_at_key)`` for sort.
+) -> tuple[int, int, int, int, str]:
+    """Return the intra-bucket sort key.
 
-    * ``rank_index`` is the index of the first matching label in
-      ``ranking_labels`` (lower = higher priority). When ``ranking_labels``
-      is empty or the issue carries no matching label, ``rank_index =
-      len(ranking_labels)``  -- i.e. every unranked issue tail-sorts under
-      every ranked one.
-    * The second key inverts ``updated_at`` (most-recent first) by
-      tracking the negation of the string -- because ISO-8601 sorts
-      lexicographically we use a "biggest-first" trick: we sort by
-      ``(rank_index, -1 * Time)`` indirectly by returning the negative
-      sort key as a tuple ``(rank_index, sentinel)`` where ``sentinel``
-      is a sortable inverse of the timestamp string.
+    Rows within a group are ordered by, in strict priority:
 
-    For simplicity and correctness we just sort by ``(rank_index,
-    inv_updated_at)`` where ``inv_updated_at`` is computed by complementing
-    each character; an empty ``updated_at`` (cache miss for the field)
-    sorts last.
+    1. ``rank_index`` -- the consumer priority-label rank (lower = higher
+       priority). An unranked label tail-sorts at ``len(ranking_labels)``.
+       UNCHANGED from #1128.
+    2. ``plan.metadata.rank`` -- the vBRIEF-canonical intra-bucket rank
+       (#1419 Slice 1 / #987), read from the ``_resolved_rank`` stamp set
+       by :func:`build_queue`. Ranked rows (``rank_bucket=0``) sort ahead
+       of un-ranked ones (``rank_bucket=1``); among ranked rows a lower
+       ``rank_value`` sorts first. Applied AFTER the label rank and BEFORE
+       the creation-date fallback.
+    3. ``(date_bucket, date_value)`` from :func:`_date_sort_key` --
+       ascending creation date when available, else the legacy
+       ``updated_at``-descending fallback.
     """
     rank_index = len(ranking_labels)
     if ranking_labels:
@@ -646,17 +839,13 @@ def _within_group_sort_key(
             if candidate in labels:
                 rank_index = i
                 break
-    updated_at = issue.get("updated_at") or ""
-    # Invert string for descending sort under ascending sort key. Empty
-    # string maps to chr(0) so the ascending sort tail-sorts it; non-empty
-    # ISO-8601 stamps complement each character so a larger timestamp sorts
-    # earlier under the ascending order.
-    inv = (
-        chr(0)
-        if not updated_at
-        else "".join(chr(0x7F - ord(c)) for c in updated_at)
-    )
-    return (rank_index, inv)
+    resolved_rank = issue.get("_resolved_rank")
+    if isinstance(resolved_rank, int) and not isinstance(resolved_rank, bool):
+        rank_bucket, rank_value = 0, resolved_rank
+    else:
+        rank_bucket, rank_value = 1, 0
+    date_bucket, date_value = _date_sort_key(issue)
+    return (rank_index, rank_bucket, rank_value, date_bucket, date_value)
 
 
 def matched_label_for(
@@ -671,6 +860,27 @@ def matched_label_for(
         if candidate in labels:
             return candidate
     return None
+
+
+def _resolve_rank(
+    issue: dict[str, Any],
+    number: int,
+    rank_by_number: dict[int, int],
+) -> int | None:
+    """Resolve a queue row's effective ``plan.metadata.rank`` (#1419 / #987).
+
+    Precedence: an explicit :attr:`QueueBuildOptions.rank_by_number` entry
+    (the programmatic surface) wins; otherwise the ``_metadata_rank``
+    annotation that :func:`load_cached_issues` stamps from the scope
+    vBRIEFs (the CLI surface) is used. Returns ``None`` -- so the row
+    tail-sorts after ranked peers -- when neither supplies an int rank.
+    """
+    candidate = rank_by_number.get(number)
+    if candidate is None:
+        candidate = issue.get("_metadata_rank")
+    if isinstance(candidate, bool) or not isinstance(candidate, int):
+        return None
+    return candidate
 
 
 def build_queue(
@@ -689,6 +899,7 @@ def build_queue(
     opts = options or QueueBuildOptions()
     issue_list = list(issues)
     decisions = latest_decisions_by_issue(audit_entries)
+    rank_by_number = dict(opts.rank_by_number)
 
     grouped: dict[str, list[dict[str, Any]]] = {g: [] for g in GROUP_ORDER}
     for issue in issue_list:
@@ -705,6 +916,7 @@ def build_queue(
         else:
             group = derive_group(latest_decision, n in opts.active_referenced)
         issue["_latest_decision"] = latest_decision
+        issue["_resolved_rank"] = _resolve_rank(issue, n, rank_by_number)
         grouped[group].append(issue)
 
     out: list[QueueItem] = []
@@ -1095,20 +1307,7 @@ def _active_referenced_issue_numbers(project_root: Path | None) -> set[int]:
         plan = data.get("plan") if isinstance(data, dict) else None
         if not isinstance(plan, dict):
             continue
-        refs = plan.get("references") or []
-        if not isinstance(refs, list):
-            continue
-        for ref in refs:
-            if not isinstance(ref, dict):
-                continue
-            if ref.get("type") != "x-vbrief/github-issue":
-                continue
-            uri = ref.get("uri", "")
-            if not isinstance(uri, str):
-                continue
-            tail = uri.rstrip("/").rsplit("/", 1)[-1]
-            if tail.isdigit():
-                out.add(int(tail))
+        out |= _issue_numbers_from_plan(plan)
     return out
 
 

@@ -1080,3 +1080,91 @@ def test_render_phase_order_independent_of_filename_order(roadmap_mod, tmp_path)
         "## Phase 3",
         "## Phase 6",
     ]
+
+
+# ---------------------------------------------------------------------------
+# plan.metadata.rank ordering (#1419 Slice 1 / #987)
+#
+# ROADMAP.md must list pending scopes in plan.metadata.rank ascending so
+# the rendered roadmap mirrors the triage-queue selection ordering. The
+# scopes below carry no Phase narrative, so the hierarchical render branch
+# emits one ``## <title>`` heading per scope in _load_vbriefs order.
+# ---------------------------------------------------------------------------
+
+
+def _rank_scope_vbrief(title: str, rank, issue: str) -> dict:
+    """Minimal flat scope vBRIEF carrying a plan.metadata.rank (no Phase)."""
+    return {
+        "vBRIEFInfo": {"version": "0.6"},
+        "plan": {
+            "title": title,
+            "status": "pending",
+            "references": [{"type": "github-issue", "id": issue}],
+            "items": [],
+            "metadata": {"rank": rank},
+        },
+    }
+
+
+def test_roadmap_scope_metadata_rank_reads_int(roadmap_mod) -> None:
+    assert roadmap_mod._scope_metadata_rank({"metadata": {"rank": 4}}) == 4
+
+
+def test_roadmap_scope_metadata_rank_rejects_bool_and_missing(roadmap_mod) -> None:
+    assert roadmap_mod._scope_metadata_rank({"metadata": {"rank": True}}) is None
+    assert roadmap_mod._scope_metadata_rank({"metadata": {}}) is None
+
+
+def test_load_vbriefs_orders_by_rank_ascending(roadmap_mod, tmp_path) -> None:
+    """_load_vbriefs returns scopes in plan.metadata.rank ascending order (#987)."""
+    pending = tmp_path / "pending"
+    # Filenames a/b/c, but ranks 3/1/2 -> load order must be b, c, a.
+    _write_vbrief(pending / "2026-06-04-a.vbrief.json", _rank_scope_vbrief("Scope A", 3, "#1"))
+    _write_vbrief(pending / "2026-06-04-b.vbrief.json", _rank_scope_vbrief("Scope B", 1, "#2"))
+    _write_vbrief(pending / "2026-06-04-c.vbrief.json", _rank_scope_vbrief("Scope C", 2, "#3"))
+    vbriefs = roadmap_mod._load_vbriefs(pending)
+    titles = [vb["plan"]["title"] for vb in vbriefs]
+    assert titles == ["Scope B", "Scope C", "Scope A"]
+
+
+def test_render_lists_pending_scopes_in_rank_order(roadmap_mod, tmp_path) -> None:
+    """a3: ROADMAP.md lists pending scopes following plan.metadata.rank ascending."""
+    pending = tmp_path / "pending"
+    completed = tmp_path / "completed"
+    completed.mkdir(parents=True)
+    _write_vbrief(pending / "2026-06-04-a.vbrief.json", _rank_scope_vbrief("Alpha scope", 3, "#1"))
+    _write_vbrief(pending / "2026-06-04-b.vbrief.json", _rank_scope_vbrief("Bravo scope", 1, "#2"))
+    _write_vbrief(
+        pending / "2026-06-04-c.vbrief.json", _rank_scope_vbrief("Charlie scope", 2, "#3")
+    )
+    content = roadmap_mod.generate_roadmap_content(pending, completed_dir=completed)
+    pos_bravo = content.index("Bravo scope")  # rank 1
+    pos_charlie = content.index("Charlie scope")  # rank 2
+    pos_alpha = content.index("Alpha scope")  # rank 3
+    assert pos_bravo < pos_charlie < pos_alpha
+
+
+def test_render_unranked_scopes_sort_after_ranked(roadmap_mod, tmp_path) -> None:
+    """Un-ranked scopes tail-sort after ranked ones in the render (#987)."""
+    pending = tmp_path / "pending"
+    completed = tmp_path / "completed"
+    completed.mkdir(parents=True)
+    # Unranked scope filed FIRST by filename; the ranked sibling must still
+    # render ahead of it because rank wins over the filename tiebreaker.
+    _write_vbrief(
+        pending / "2026-06-04-a.vbrief.json",
+        {
+            "vBRIEFInfo": {"version": "0.6"},
+            "plan": {
+                "title": "Unranked scope",
+                "status": "pending",
+                "references": [{"type": "github-issue", "id": "#9"}],
+                "items": [],
+            },
+        },
+    )
+    _write_vbrief(
+        pending / "2026-06-04-b.vbrief.json", _rank_scope_vbrief("Ranked scope", 1, "#2")
+    )
+    content = roadmap_mod.generate_roadmap_content(pending, completed_dir=completed)
+    assert content.index("Ranked scope") < content.index("Unranked scope")

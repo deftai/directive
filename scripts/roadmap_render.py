@@ -44,8 +44,52 @@ BANNER = (
 )
 
 
+def _scope_metadata_rank(plan: dict) -> int | None:
+    """Return ``plan.metadata.rank`` as an int, or ``None`` when absent/invalid.
+
+    Mirrors ``scripts/triage_queue.scope_metadata_rank`` so the roadmap
+    render and the triage queue share one rank interpretation (#1419
+    Slice 1 / #987): a real int or an integer-valued string is accepted;
+    ``bool`` is rejected because it subclasses ``int``.
+    """
+    if not isinstance(plan, dict):
+        return None
+    metadata = plan.get("metadata")
+    if not isinstance(metadata, dict):
+        return None
+    rank = metadata.get("rank")
+    if isinstance(rank, bool):
+        return None
+    if isinstance(rank, int):
+        return rank
+    if isinstance(rank, str) and rank.strip().lstrip("-").isdigit():
+        return int(rank.strip())
+    return None
+
+
+def _scope_rank_sort_key(vbrief: dict) -> tuple[int, int]:
+    """Stable-sort key ordering scopes by ``plan.metadata.rank`` ascending.
+
+    Ranked scopes sort first by ascending rank value (bucket 0); un-ranked
+    scopes tail-sort together (bucket 1). Because the caller pre-sorts by
+    filename and Python's sort is stable, filename order is the natural
+    tiebreaker within each bucket (#1419 Slice 1 / #987).
+    """
+    plan = vbrief.get("plan", {})
+    rank = _scope_metadata_rank(plan)
+    if rank is None:
+        return (1, 0)
+    return (0, rank)
+
+
 def _load_vbriefs(folder: Path) -> list[dict]:
-    """Load and return all .vbrief.json files from a folder, sorted by name."""
+    """Load all .vbrief.json files from a folder, ordered by rank then name.
+
+    Files are first sorted by filename, then stably re-sorted by
+    ``plan.metadata.rank`` ascending (#1419 Slice 1 / #987) so ROADMAP.md
+    lists pending scopes in rank order. Un-ranked scopes tail-sort after
+    ranked ones, with filename as the within-bucket tiebreaker.
+    """
     if not folder.is_dir():
         return []
     files = sorted(folder.glob("*.vbrief.json"))
@@ -58,6 +102,7 @@ def _load_vbriefs(folder: Path) -> list[dict]:
         except (json.JSONDecodeError, OSError):
             # Skip malformed files silently
             continue
+    vbriefs.sort(key=_scope_rank_sort_key)
     return vbriefs
 
 
