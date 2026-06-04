@@ -424,3 +424,179 @@ def test_validate_capacity_on_plan_prefixes_filepath(policy_module):
 
 def test_validate_capacity_on_plan_unset_is_empty(policy_module):
     assert policy_module.validate_capacity_allocation_on_plan({"policy": {}}, "f") == []
+
+
+# ---------------------------------------------------------------------------
+# judgmentGates typed schema (#1419 Delivery Slice 3)
+# ---------------------------------------------------------------------------
+
+
+def _valid_gate() -> dict:
+    return {
+        "id": "api-contract",
+        "class": "declared",
+        "tier": "block",
+        "reason": "API contract change needs human sign-off",
+        "requiredHumanReviewers": 1,
+        "match": {"paths": {"any-of": ["api/**"]}},
+    }
+
+
+def test_validate_judgment_gates_valid_returns_empty(policy_module):
+    assert policy_module.validate_judgment_gates([_valid_gate()]) == []
+
+
+def test_validate_judgment_gates_none_is_valid(policy_module):
+    assert policy_module.validate_judgment_gates(None) == []
+
+
+def test_validate_judgment_gates_not_a_list(policy_module):
+    errors = policy_module.validate_judgment_gates({"id": "x"})
+    assert any("must be a list" in e for e in errors)
+
+
+def test_validate_judgment_gates_requires_id(policy_module):
+    gate = _valid_gate()
+    del gate["id"]
+    errors = policy_module.validate_judgment_gates([gate])
+    assert any(".id must be a non-empty string" in e for e in errors)
+
+
+def test_validate_judgment_gates_class_enum(policy_module):
+    gate = _valid_gate()
+    gate["class"] = "automatic"
+    errors = policy_module.validate_judgment_gates([gate])
+    assert any(".class must be one of" in e for e in errors)
+
+
+def test_validate_judgment_gates_tier_enum(policy_module):
+    gate = _valid_gate()
+    gate["tier"] = "escalate"
+    errors = policy_module.validate_judgment_gates([gate])
+    assert any(".tier must be one of" in e for e in errors)
+
+
+def test_validate_judgment_gates_requires_reason(policy_module):
+    gate = _valid_gate()
+    gate["reason"] = ""
+    errors = policy_module.validate_judgment_gates([gate])
+    assert any(".reason must be a non-empty string" in e for e in errors)
+
+
+def test_validate_judgment_gates_required_reviewers_non_negative(policy_module):
+    gate = _valid_gate()
+    gate["requiredHumanReviewers"] = -1
+    errors = policy_module.validate_judgment_gates([gate])
+    assert any("requiredHumanReviewers" in e for e in errors)
+
+
+def test_validate_judgment_gates_match_requires_a_predicate(policy_module):
+    gate = _valid_gate()
+    gate["match"] = {}
+    errors = policy_module.validate_judgment_gates([gate])
+    assert any("requires at least one of" in e for e in errors)
+
+
+def test_validate_judgment_gates_paths_predicate_shape(policy_module):
+    gate = _valid_gate()
+    gate["match"] = {"paths": {"any-of": []}}
+    errors = policy_module.validate_judgment_gates([gate])
+    assert any("paths.any-of must be a non-empty list" in e for e in errors)
+
+
+def test_validate_judgment_gates_labels_mutually_exclusive(policy_module):
+    gate = _valid_gate()
+    gate["match"] = {"labels": {"any-of": ["a"], "all-of": ["b"]}}
+    errors = policy_module.validate_judgment_gates([gate])
+    assert any("mutually exclusive" in e for e in errors)
+
+
+def test_validate_judgment_gates_age_days_predicate(policy_module):
+    gate = _valid_gate()
+    gate["match"] = {"age-days": {"gt": -3}}
+    errors = policy_module.validate_judgment_gates([gate])
+    assert any("age-days.gt must be a non-negative integer" in e for e in errors)
+
+
+def test_validate_judgment_gates_unique_ids(policy_module):
+    errors = policy_module.validate_judgment_gates([_valid_gate(), _valid_gate()])
+    assert any("ids must be unique" in e for e in errors)
+
+
+def test_validate_judgment_gates_disabled_valid(policy_module):
+    assert policy_module.validate_judgment_gates_disabled(["secrets-and-credentials"]) == []
+
+
+def test_validate_judgment_gates_disabled_not_a_list(policy_module):
+    errors = policy_module.validate_judgment_gates_disabled("secrets-and-credentials")
+    assert any("must be a list" in e for e in errors)
+
+
+def test_validate_judgment_gates_disabled_non_string_entry(policy_module):
+    errors = policy_module.validate_judgment_gates_disabled(["", 3])
+    assert len(errors) == 2
+
+
+def test_validate_judgment_gates_on_plan_prefixes_filepath(policy_module):
+    gate = _valid_gate()
+    gate["tier"] = "nope"
+    plan = {"policy": {"judgmentGates": [gate]}}
+    errors = policy_module.validate_judgment_gates_on_plan(plan, "foo.json")
+    assert errors
+    assert all(e.startswith("foo.json:") for e in errors)
+    assert all("#1419" in e for e in errors)
+
+
+def test_validate_judgment_gates_on_plan_unset_is_empty(policy_module):
+    assert policy_module.validate_judgment_gates_on_plan({"policy": {}}, "f") == []
+
+
+def test_resolve_judgment_gates_default_when_absent(policy_module, project_root):
+    _write_project_def(project_root, {})
+    result = policy_module.resolve_judgment_gates(project_root)
+    assert result.source == "default"
+    assert result.configured is False
+    assert result.gates == ()
+    assert result.disabled == ()
+
+
+def test_resolve_judgment_gates_typed_valid(policy_module, project_root):
+    _write_project_def(
+        project_root,
+        {
+            "policy": {
+                "judgmentGates": [_valid_gate()],
+                "judgmentGatesDisabled": ["installer-and-bootstrap"],
+            }
+        },
+    )
+    result = policy_module.resolve_judgment_gates(project_root)
+    assert result.source == "typed"
+    assert result.configured is True
+    assert result.gates[0].gate_id == "api-contract"
+    assert result.gates[0].gate_class == "declared"
+    assert result.gates[0].tier == "block"
+    assert result.gates[0].required_human_reviewers == 1
+    assert result.disabled == ("installer-and-bootstrap",)
+
+
+def test_resolve_judgment_gates_disabled_only_is_typed(policy_module, project_root):
+    _write_project_def(
+        project_root, {"policy": {"judgmentGatesDisabled": ["secrets-and-credentials"]}}
+    )
+    result = policy_module.resolve_judgment_gates(project_root)
+    assert result.source == "typed"
+    assert result.gates == ()
+    assert result.disabled == ("secrets-and-credentials",)
+    # No consumer gates -> not "configured" (the render predicate), but typed.
+    assert result.configured is False
+
+
+def test_resolve_judgment_gates_malformed_falls_back_on_error(policy_module, project_root):
+    bad = _valid_gate()
+    del bad["class"]
+    _write_project_def(project_root, {"policy": {"judgmentGates": [bad]}})
+    result = policy_module.resolve_judgment_gates(project_root)
+    assert result.source == "default-on-error"
+    assert result.gates == ()
+    assert result.error is not None

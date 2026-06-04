@@ -779,6 +779,331 @@ def resolve_capacity_allocation(
     )
 
 
+# ---------------------------------------------------------------------------
+# Judgment-gate surface (#1419 Delivery Slice 3)
+# ---------------------------------------------------------------------------
+#
+# ``plan.policy.judgmentGates`` declares risk-tiered gates that require human
+# clearance before sensitive changes (secrets, infra, AGENTS.md / skills,
+# installer) are dispatched. Each gate carries a stable ``id``, a ``class``
+# (``mechanical`` -- mechanically detectable, fail-closed on detection; or
+# ``declared`` -- depends on a human declaration, fail-open on omission), a
+# ``match`` block that REUSES the triageAutoClassify DSL
+# (``labels`` / ``body-text`` / ``state`` / ``age-days``) plus a NEW ``paths``
+# glob predicate, a risk ``tier`` (``auto`` / ``review`` / ``block``), an
+# optional ``requiredHumanReviewers`` count, and a ``reason``.
+#
+# ``plan.policy.judgmentGatesDisabled`` is a list of gate ids to disable --
+# including the four DEFAULT-ON universal safety gates owned by
+# ``scripts/verify_judgment_gates.py``.
+#
+# This module owns the TYPED SCHEMA + validation + resolver ONLY. The gate
+# engine, the default-on universal gates, the pathspec matcher, and the
+# clearance audit log live in ``scripts/verify_judgment_gates.py`` (the
+# advisory ``task verify:judgment-gates`` surface). The capacityAllocation
+# surface above is unaffected.
+
+#: Recognised ``class`` values for a judgment gate.
+GATE_CLASSES: frozenset[str] = frozenset({"mechanical", "declared"})
+
+#: Recognised risk ``tier`` values.
+GATE_TIERS: frozenset[str] = frozenset({"auto", "review", "block"})
+
+#: Recognised ``match`` predicates (triage DSL + the new ``paths`` glob).
+GATE_MATCH_PREDICATES: frozenset[str] = frozenset(
+    {"labels", "body-text", "paths", "state", "age-days"}
+)
+
+#: Recognised ``match.state`` values (mirrors triageAutoClassify).
+GATE_MATCH_STATES: frozenset[str] = frozenset({"open", "closed"})
+
+
+@dataclass(frozen=True)
+class JudgmentGate:
+    """One resolved judgment gate from ``plan.policy.judgmentGates``."""
+
+    gate_id: str
+    gate_class: str  # 'mechanical' | 'declared'
+    match: dict[str, Any]
+    tier: str  # 'auto' | 'review' | 'block'
+    reason: str
+    required_human_reviewers: int = 0
+
+
+@dataclass(frozen=True)
+class JudgmentGatesPolicy:
+    """Resolved ``judgmentGates`` + ``judgmentGatesDisabled`` state.
+
+    ``source`` mirrors :class:`CapacityAllocation` semantics: ``'typed'`` when
+    a well-formed config is present, ``'default'`` when both fields are absent,
+    and ``'default-on-error'`` when present-but-malformed (``error`` carries
+    the first diagnostic so the caller can surface it).
+    """
+
+    gates: tuple[JudgmentGate, ...]
+    disabled: tuple[str, ...]
+    source: str  # one of: 'typed', 'default', 'default-on-error'
+    error: str | None = None
+
+    @property
+    def configured(self) -> bool:
+        """True when a well-formed block with at least one consumer gate exists."""
+        return self.source == "typed" and bool(self.gates)
+
+
+def _validate_str_list(value: Any, prefix: str, key: str) -> list[str]:
+    """Validate that ``value`` is a non-empty list of non-empty strings."""
+    if not isinstance(value, list) or not value:
+        return [f"{prefix}.{key} must be a non-empty list of strings"]
+    errors: list[str] = []
+    for j, item in enumerate(value):
+        if not isinstance(item, str) or not item:
+            errors.append(f"{prefix}.{key}[{j}] must be a non-empty string")
+    return errors
+
+
+def _validate_glob_predicate(value: Any, prefix: str) -> list[str]:
+    """Validate the NEW ``paths`` glob predicate: ``{any-of: [glob, ...]}``."""
+    if not isinstance(value, dict):
+        return [f"{prefix} must be an object with an 'any-of' glob list"]
+    if "any-of" not in value:
+        return [f"{prefix} requires 'any-of'"]
+    return _validate_str_list(value["any-of"], prefix, "any-of")
+
+
+def _validate_gate_labels(value: Any, prefix: str) -> list[str]:
+    """Validate the ``labels`` predicate (``any-of`` XOR ``all-of``)."""
+    if not isinstance(value, dict):
+        return [f"{prefix} must be an object"]
+    any_of = value.get("any-of")
+    all_of = value.get("all-of")
+    if any_of is None and all_of is None:
+        return [f"{prefix} requires 'any-of' or 'all-of'"]
+    if any_of is not None and all_of is not None:
+        return [f"{prefix}: 'any-of' and 'all-of' are mutually exclusive"]
+    key = "any-of" if any_of is not None else "all-of"
+    return _validate_str_list(value[key], prefix, key)
+
+
+def _validate_gate_any_of(value: Any, prefix: str) -> list[str]:
+    """Validate the ``body-text`` predicate: ``{any-of: [text, ...]}``."""
+    if not isinstance(value, dict):
+        return [f"{prefix} must be an object"]
+    if "any-of" not in value:
+        return [f"{prefix} requires 'any-of'"]
+    return _validate_str_list(value["any-of"], prefix, "any-of")
+
+
+def _validate_gate_age_days(value: Any, prefix: str) -> list[str]:
+    """Validate the ``age-days`` predicate: ``{gt: N}`` (non-negative int)."""
+    if not isinstance(value, dict):
+        return [f"{prefix} must be an object"]
+    if "gt" not in value:
+        return [f"{prefix} requires a 'gt' integer threshold"]
+    gt = value["gt"]
+    if not isinstance(gt, int) or isinstance(gt, bool) or gt < 0:
+        return [f"{prefix}.gt must be a non-negative integer; got {gt!r}"]
+    return []
+
+
+def _validate_gate_match(match: Any, prefix: str) -> list[str]:
+    """Validate a gate ``match`` block (triage DSL predicates + ``paths``)."""
+    if not isinstance(match, dict):
+        return [f"{prefix} must be an object"]
+    used = sorted(set(match) & GATE_MATCH_PREDICATES)
+    if not used:
+        return [f"{prefix} requires at least one of {sorted(GATE_MATCH_PREDICATES)}"]
+    errors: list[str] = []
+    if "paths" in match:
+        errors.extend(_validate_glob_predicate(match["paths"], f"{prefix}.paths"))
+    if "labels" in match:
+        errors.extend(_validate_gate_labels(match["labels"], f"{prefix}.labels"))
+    if "body-text" in match:
+        errors.extend(
+            _validate_gate_any_of(match["body-text"], f"{prefix}.body-text")
+        )
+    if "state" in match and match["state"] not in GATE_MATCH_STATES:
+        errors.append(
+            f"{prefix}.state must be one of {sorted(GATE_MATCH_STATES)}; "
+            f"got {match['state']!r}"
+        )
+    if "age-days" in match:
+        errors.extend(
+            _validate_gate_age_days(match["age-days"], f"{prefix}.age-days")
+        )
+    return errors
+
+
+def _validate_single_gate(gate: Any, prefix: str) -> tuple[list[str], str | None]:
+    """Validate one gate object. Returns ``(errors, gate_id_or_None)``."""
+    if not isinstance(gate, dict):
+        return [f"{prefix} must be an object; got {type(gate).__name__}"], None
+    errors: list[str] = []
+    gid = gate.get("id")
+    resolved_id: str | None = None
+    if not isinstance(gid, str) or not gid.strip():
+        errors.append(f"{prefix}.id must be a non-empty string")
+    else:
+        resolved_id = gid
+    gclass = gate.get("class")
+    if gclass not in GATE_CLASSES:
+        errors.append(
+            f"{prefix}.class must be one of {sorted(GATE_CLASSES)}; got {gclass!r}"
+        )
+    tier = gate.get("tier")
+    if tier not in GATE_TIERS:
+        errors.append(
+            f"{prefix}.tier must be one of {sorted(GATE_TIERS)}; got {tier!r}"
+        )
+    reason = gate.get("reason")
+    if not isinstance(reason, str) or not reason.strip():
+        errors.append(f"{prefix}.reason must be a non-empty string")
+    if "requiredHumanReviewers" in gate:
+        rhr = gate["requiredHumanReviewers"]
+        if not isinstance(rhr, int) or isinstance(rhr, bool) or rhr < 0:
+            errors.append(
+                f"{prefix}.requiredHumanReviewers must be a non-negative integer; "
+                f"got {rhr!r}"
+            )
+    errors.extend(_validate_gate_match(gate.get("match"), f"{prefix}.match"))
+    return errors, resolved_id
+
+
+def validate_judgment_gates(value: Any) -> list[str]:
+    """Validate a ``plan.policy.judgmentGates`` payload.
+
+    Returns a list of error strings (empty == valid). ``None`` / unset is
+    valid (the resolver falls back to the framework default). Each gate is an
+    object with ``id`` / ``class`` / ``tier`` / ``reason`` / ``match`` (and an
+    optional ``requiredHumanReviewers``); gate ids must be unique.
+    """
+    errors: list[str] = []
+    if value is None:
+        return errors
+    if not isinstance(value, list):
+        errors.append(
+            "plan.policy.judgmentGates must be a list of gate objects; got "
+            f"{type(value).__name__}"
+        )
+        return errors
+    ids: list[str] = []
+    for idx, gate in enumerate(value):
+        gate_errors, gate_id = _validate_single_gate(
+            gate, f"plan.policy.judgmentGates[{idx}]"
+        )
+        errors.extend(gate_errors)
+        if gate_id is not None:
+            ids.append(gate_id)
+    duplicates = sorted({g for g in ids if ids.count(g) > 1})
+    if duplicates:
+        errors.append(
+            f"plan.policy.judgmentGates ids must be unique; duplicates: {duplicates}"
+        )
+    return errors
+
+
+def validate_judgment_gates_disabled(value: Any) -> list[str]:
+    """Validate a ``plan.policy.judgmentGatesDisabled`` payload (list of ids)."""
+    errors: list[str] = []
+    if value is None:
+        return errors
+    if not isinstance(value, list):
+        errors.append(
+            "plan.policy.judgmentGatesDisabled must be a list of gate ids; got "
+            f"{type(value).__name__}"
+        )
+        return errors
+    for j, item in enumerate(value):
+        if not isinstance(item, str) or not item.strip():
+            errors.append(
+                f"plan.policy.judgmentGatesDisabled[{j}] must be a non-empty string"
+            )
+    return errors
+
+
+def validate_judgment_gates_on_plan(plan: Any, filepath: Any) -> list[str]:
+    """vbrief_validate hook: validate the judgment-gate fields (#1419).
+
+    Returns formatted error strings prefixed with ``<filepath>:``. Mirrors the
+    :func:`validate_capacity_allocation_on_plan` hook shape. As with capacity
+    in Slice 4, this hook is provided + unit-tested as the canonical
+    validation entry point but is intentionally NOT yet spliced into
+    ``scripts/vbrief_validate.py`` -- judgment gates are advisory in v1 and a
+    malformed block self-heals to defaults; wiring it into the ``task check``
+    validation aggregate is out-of-scope here (it would touch files outside
+    this slice and risk a fail-closed posture on the framework's own tree).
+    """
+    out: list[str] = []
+    if not isinstance(plan, dict):
+        return out
+    policy = plan.get("policy")
+    if not isinstance(policy, dict):
+        return out
+    if "judgmentGates" in policy:
+        for err in validate_judgment_gates(policy["judgmentGates"]):
+            out.append(f"{filepath}: {err} (#1419)")
+    if "judgmentGatesDisabled" in policy:
+        for err in validate_judgment_gates_disabled(policy["judgmentGatesDisabled"]):
+            out.append(f"{filepath}: {err} (#1419)")
+    return out
+
+
+def _default_judgment_gates_policy(
+    *, source: str, error: str | None = None
+) -> JudgmentGatesPolicy:
+    return JudgmentGatesPolicy(gates=(), disabled=(), source=source, error=error)
+
+
+def resolve_judgment_gates(
+    project_root: Path | None = None,
+) -> JudgmentGatesPolicy:
+    """Resolve ``judgmentGates`` + ``judgmentGatesDisabled`` from PROJECT-DEFINITION.
+
+    Resolution order (mirrors :func:`resolve_capacity_allocation`):
+
+    1. A well-formed config -> ``'typed'``.
+    2. Both fields absent -> framework default (``'default'``, empty).
+    3. Present-but-malformed -> framework default (``'default-on-error'`` with
+       ``error`` set so the caller can surface it -- the gate engine
+       self-heals to the universal gates only).
+
+    Pure-stdlib; no live ``gh`` / cache calls.
+    """
+    data, err = load_project_definition(project_root)
+    if data is None:
+        return _default_judgment_gates_policy(source="default", error=err)
+
+    policy_block = _get_policy_block(data)
+    raw_gates = policy_block.get("judgmentGates")
+    raw_disabled = policy_block.get("judgmentGatesDisabled")
+    if raw_gates is None and raw_disabled is None:
+        return _default_judgment_gates_policy(source="default")
+
+    errors = validate_judgment_gates(raw_gates) + validate_judgment_gates_disabled(
+        raw_disabled
+    )
+    if errors:
+        return _default_judgment_gates_policy(
+            source="default-on-error", error=errors[0]
+        )
+
+    gates = tuple(
+        JudgmentGate(
+            gate_id=gate["id"],
+            gate_class=gate["class"],
+            match=dict(gate["match"]),
+            tier=gate["tier"],
+            reason=gate["reason"],
+            required_human_reviewers=int(gate.get("requiredHumanReviewers", 0)),
+        )
+        for gate in (raw_gates or [])
+    )
+    disabled = tuple(d for d in (raw_disabled or []) if isinstance(d, str))
+    return JudgmentGatesPolicy(
+        gates=gates, disabled=disabled, source="typed", error=None
+    )
+
+
 # Reconfiguration surface (used by tasks/policy.yml + slash commands) -----
 
 

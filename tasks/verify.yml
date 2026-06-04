@@ -141,6 +141,22 @@ tasks:
     cmds:
       - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_capacity.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
 
+  judgment-gates:
+    desc: "Three-state ADVISORY judgment-gate engine (#1419 Slice 3). Evaluates a candidate change (diff paths / labels / body) against plan.policy.judgmentGates + four default-on universal safety gates (secrets / infra / AGENTS.md+skills / installer). Advisory by default (always exits 0); opt-in --enforce fails closed (exit 1) when a mechanical block-tier gate fires without a recorded clearance; exit 2 on config error. -- task verify:judgment-gates [-- --base-ref <ref>] [--path P] [--label L] [--enforce] [--json]. DELIBERATELY NOT in the `task check` aggregate -- judgment gates must never fail-closed on the framework tree (advise -> observe -> block rollout, #1419)."
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    # Per `conventions/task-caching.md` (#574): NO `sources:` / `generates:`
+    # because the gate forwards user-facing flags via {{.CLI_ARGS}}
+    # (--base-ref / --path / --label / --body / --state / --enforce / --json /
+    # --quiet) that go-task's incremental-build cache would silently swallow.
+    # Advisory-only: this target is intentionally absent from the `task check`
+    # deps so a gate finding cannot wedge the framework's own self-check. The
+    # directive-side invocation never passes --enforce, so the gate stays
+    # advisory on the framework's own tree (advise-mode discipline, #1419).
+    cmds:
+      - uv --project "{{.DEFT_ROOT}}" run python "{{.DEFT_ROOT}}/scripts/verify_judgment_gates.py" --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}
+
   wip-cap:
     desc: "Pre-merge re-validation that pending/+active/ count is within plan.policy.wipCap (#1124 / D4 of #1119). Catches stale-branch merges + --force overrides. Default cap is 10 per umbrella #1119 Current Shape v3. The framework's own task check passes --allow-over-cap during landing-day overage; consumer projects MUST NOT pass that flag."
     dir: '{{.USER_WORKING_DIR}}'
