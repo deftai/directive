@@ -84,11 +84,37 @@ try:  # pragma: no cover -- core sibling in this repo
 except ImportError:  # pragma: no cover
     triage_queue = None  # type: ignore[assignment]
 
+# Judgment-gate engine (#1419 Slice 3) for the Slice-7 clearance integration:
+# a gated story rides the consent token only when its block-tier gate is
+# cleared. Guarded so the engine + its tests build / run when the gate module
+# is unavailable -- the gate-clearance check is then skipped (advisory anyway).
+try:  # pragma: no cover -- core sibling in this repo
+    import verify_judgment_gates as _gates  # type: ignore  # noqa: E402
+except Exception:  # noqa: BLE001
+    _gates = None  # type: ignore[assignment]
+
+# Durable authority-event audit helper (#1419 Slice 7), owned by
+# preflight_story_start (Gate 0) so both surfaces write the same record shape.
+try:  # pragma: no cover -- core sibling in this repo
+    from preflight_story_start import append_authority_event  # type: ignore  # noqa: E402
+except Exception:  # noqa: BLE001
+    append_authority_event = None  # type: ignore[assignment]
+
 EXIT_OK = 0
 EXIT_GATE_FAILED = 1
 EXIT_CONFIG_ERROR = 2
 
 DEFAULT_BASE_BRANCH = "master"
+
+#: Gate-clearance evaluation postures (mirrors preflight_story_start /
+#: verify_judgment_gates). ``advise`` (DEFAULT) surfaces an uncleared block
+#: gate but still emits the manifest; ``enforce`` fails closed (exit 1).
+GATE_ADVISE = "advise"
+GATE_ENFORCE = "enforce"
+
+#: Durable authority-event log file (under vbrief/.audit/) -- allocation
+#: approvals + consumed gate clearances per RFC #1419 Receipts & Audit.
+AUTHORITY_LOG_NAME = "authority-events.jsonl"
 
 # An x-vbrief/github-issue URI of the form
 # ``https://github.com/<owner>/<repo>/issues/<N>``.
@@ -153,6 +179,24 @@ def _load_json(path: Path) -> dict[str, Any] | None:
 def _plan(data: dict[str, Any]) -> dict[str, Any]:
     plan = data.get("plan")
     return plan if isinstance(plan, dict) else {}
+
+
+def _file_scope(plan: dict[str, Any]) -> tuple[str, ...]:
+    """Return ``plan.metadata.swarm.file_scope`` (the gate candidate paths).
+
+    Non-raising: any missing / wrong-shape level yields an empty tuple, which
+    makes the gate layer a no-op for that story.
+    """
+    metadata = plan.get("metadata")
+    if not isinstance(metadata, dict):
+        return ()
+    swarm = metadata.get("swarm")
+    if not isinstance(swarm, dict):
+        return ()
+    scope = swarm.get("file_scope")
+    if not isinstance(scope, list):
+        return ()
+    return tuple(p for p in scope if isinstance(p, str) and p)
 
 
 def _story_id(path: Path, plan: dict[str, Any]) -> str:
@@ -369,6 +413,104 @@ def enforce_gates(
 
 
 # ---------------------------------------------------------------------------
+# Gate-clearance integration (#1419 Slice 7)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class StoryGateStatus:
+    """Per-story block-tier judgment-gate status for the cohort."""
+
+    story: ResolvedStory
+    matched_block: tuple[str, ...]  # block-tier gate ids the file_scope matched
+    fired_block: tuple[str, ...]  # subset that fired (no recorded clearance)
+
+
+def evaluate_cohort_gates(
+    resolved: list[ResolvedStory],
+    project_root: Path,
+    *,
+    posture: str,
+    clearances: list[dict] | None,
+    now: Any | None = None,
+) -> list[StoryGateStatus]:
+    """Evaluate each story's file_scope against the judgment gates.
+
+    Imports the Slice-3 engine (``verify_judgment_gates.build_report`` /
+    ``Candidate``) -- the gate logic is never re-implemented here. Returns one
+    :class:`StoryGateStatus` per story that matched at least one block-tier
+    gate (stories with no file_scope or no block-tier match are omitted). The
+    supplied clearances (from ``--gate-clearances``) are merged with any
+    recorded in the durable clearance audit log. The caller decides whether a
+    fired gate aborts (enforce) or is surfaced (advise).
+    """
+    statuses: list[StoryGateStatus] = []
+    if _gates is None:
+        return statuses
+    records = list(clearances or [])
+    records.extend(_gates.read_clearances(project_root))
+    for story in resolved:
+        plan = _plan(_load_json(story.path) or {})
+        file_scope = _file_scope(plan)
+        if not file_scope:
+            continue
+        report = _gates.build_report(
+            project_root,
+            _gates.Candidate(paths=file_scope),
+            posture=posture,
+            clearances=records,
+            now=now,
+        )
+        matched = tuple(o.gate_id for o in report.block_tier_requirements)
+        if not matched:
+            continue
+        fired = tuple(o.gate_id for o in report.blocking)
+        statuses.append(
+            StoryGateStatus(story=story, matched_block=matched, fired_block=fired)
+        )
+    return statuses
+
+
+def enforce_cohort_gates(
+    statuses: list[StoryGateStatus],
+    *,
+    posture: str,
+    cohort_size: int,
+) -> tuple[StoryGateStatus, str] | None:
+    """Apply the gate-clearance + block-gated-solo rules; return first failure.
+
+    Two rules (RFC #1419):
+
+    1. An uncleared active block-tier gate cannot launch -- a gated story rides
+       the consent token only when its clearance is pre-recorded.
+    2. v1 ships block-gated stories SOLO -- a block-gated story may not ride a
+       multi-story cohort (per-commit trailer attribution is deferred to v2).
+
+    In ``enforce`` posture the first violation is returned as ``(status,
+    reason)`` so the caller aborts naming the story. In ``advise`` posture this
+    returns None (the caller surfaces the same conditions as advisory notes but
+    still launches) -- the framework's own ``task swarm:launch`` stays advisory.
+    """
+    if posture != GATE_ENFORCE:
+        return None
+    for status in statuses:
+        if status.fired_block:
+            return status, (
+                "block-gated and uncleared -- "
+                f"{', '.join(status.fired_block)}. Record a clearance "
+                "(--gate-clearances / `verify_judgment_gates.py clear`) before launch."
+            )
+    if cohort_size > 1:
+        for status in statuses:
+            if status.matched_block:
+                return status, (
+                    f"block-gated ({', '.join(status.matched_block)}); v1 ships "
+                    "block-gated stories SOLO -- launch it on its own."
+                )
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Selection ordering -- cohort-fill (#1419 Slice 2 / #987)
 # ---------------------------------------------------------------------------
 
@@ -491,8 +633,16 @@ def build_manifest(
     allocation_plan_id: str | None,
     batching_rationale: str | None,
     operator_approval_evidence: str | None,
+    gate_clearances: list[dict] | None = None,
 ) -> list[dict]:
-    """Build the C2 launch-manifest array (one envelope per story)."""
+    """Build the C2 launch-manifest array (one envelope per story).
+
+    When ``gate_clearances`` is non-empty each envelope's
+    ``allocation_context`` gains a 6th ``gate_clearances`` field (#1419 Slice
+    7) so the dispatched worker's Gate 0 can recognise the pre-recorded
+    clearance. The field is OMITTED when there are no clearances so the
+    historical five-field #1378 consent token is unchanged for the common case.
+    """
     cohort_vbriefs = [story.relpath for story in resolved]
     manifest: list[dict] = []
     for story in resolved:
@@ -501,19 +651,22 @@ def build_manifest(
             worktree_path = record["worktree_path"]
         else:
             worktree_path = _default_worktree(project_root, story.story_id)
+        allocation_context: dict[str, Any] = {
+            "dispatch_kind": dispatch_kind,
+            "allocation_plan_id": allocation_plan_id,
+            "batching_rationale": batching_rationale,
+            "cohort_vbriefs": cohort_vbriefs,
+            "operator_approval_evidence": operator_approval_evidence,
+        }
+        if gate_clearances:
+            allocation_context["gate_clearances"] = gate_clearances
         manifest.append(
             {
                 "story_id": story.story_id,
                 "vbrief_path": story.relpath,
                 "worktree_path": worktree_path,
                 "branch": _derive_branch(group, story.story_id),
-                "allocation_context": {
-                    "dispatch_kind": dispatch_kind,
-                    "allocation_plan_id": allocation_plan_id,
-                    "batching_rationale": batching_rationale,
-                    "cohort_vbriefs": cohort_vbriefs,
-                    "operator_approval_evidence": operator_approval_evidence,
-                },
+                "allocation_context": allocation_context,
             }
         )
     return manifest
@@ -617,6 +770,36 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Also write the launch-manifest JSON to this file.",
     )
     parser.add_argument(
+        "--gate-clearances",
+        default=None,
+        metavar="PATH",
+        help=(
+            "Path to a JSON array of pre-recorded judgment-gate clearances "
+            "(#1419 Slice 7). Each entry is an object with gate_id / vbrief_path "
+            "/ cleared_by / rationale / cleared_at / cleared_scope. A gated story "
+            "rides the consent token only when its clearance is pre-recorded."
+        ),
+    )
+    parser.add_argument(
+        "--enforce-gates",
+        action="store_true",
+        help=(
+            "Gate-clearance ENFORCE posture (#1419 Slice 7): abort (exit 1) when "
+            "a story is block-gated and uncleared, or when a block-gated story "
+            "would ride a multi-story cohort (v1 ships block-gated stories solo). "
+            "DEFAULT is advisory -- such stories are surfaced but still launch."
+        ),
+    )
+    parser.add_argument(
+        "--no-audit",
+        action="store_true",
+        help=(
+            "Suppress the durable authority-event audit append "
+            "(vbrief/.audit/authority-events.jsonl). By default a successful "
+            "launch records the allocation approval + each consumed clearance."
+        ),
+    )
+    parser.add_argument(
         "--project-root",
         default=".",
         help="Project root containing vbrief/ (default: current directory).",
@@ -644,6 +827,30 @@ def main(argv: list[str] | None = None) -> int:
         )
         return EXIT_CONFIG_ERROR
 
+    # Pre-recorded gate clearances (#1419 Slice 7). A supplied-but-unreadable
+    # / non-array file is a config error -- the operator asked us to consume a
+    # clearance file we cannot parse.
+    gate_clearances: list[dict] = []
+    if args.gate_clearances:
+        try:
+            clearance_payload = json.loads(
+                Path(args.gate_clearances).read_text(encoding="utf-8")
+            )
+        except (OSError, json.JSONDecodeError) as exc:
+            print(
+                f"Error: could not read --gate-clearances {args.gate_clearances}: {exc}",
+                file=sys.stderr,
+            )
+            return EXIT_CONFIG_ERROR
+        if not isinstance(clearance_payload, list):
+            print(
+                f"Error: --gate-clearances {args.gate_clearances} must be a JSON "
+                "array of clearance objects.",
+                file=sys.stderr,
+            )
+            return EXIT_CONFIG_ERROR
+        gate_clearances = [e for e in clearance_payload if isinstance(e, dict)]
+
     resolved, errors = resolve_stories(project_root, tokens)
     if errors:
         print("Error: could not resolve every cohort member:", file=sys.stderr)
@@ -665,6 +872,42 @@ def main(argv: list[str] | None = None) -> int:
     # manifest (and each envelope's cohort_vbriefs list) so finishing started
     # epics and under-target buckets lead.
     resolved = order_cohort(resolved, project_root)
+
+    # Gate-clearance + block-gated-solo check (#1419 Slice 7). Evaluate each
+    # story's file_scope against the judgment gates; ENFORCE aborts on an
+    # uncleared block gate or a block-gated story riding a multi-story cohort,
+    # while the advisory DEFAULT surfaces those conditions but still launches
+    # (the framework's own swarm:launch stays advisory).
+    gate_posture = GATE_ENFORCE if args.enforce_gates else GATE_ADVISE
+    gate_statuses = evaluate_cohort_gates(
+        resolved, project_root, posture=gate_posture, clearances=gate_clearances
+    )
+    gate_failure = enforce_cohort_gates(
+        gate_statuses, posture=gate_posture, cohort_size=len(resolved)
+    )
+    if gate_failure is not None:
+        status, reason = gate_failure
+        print(
+            f"Error: story {status.story.story_id!r} ({status.story.relpath}) "
+            f"is not launch-ready -- {reason}",
+            file=sys.stderr,
+        )
+        return EXIT_GATE_FAILED
+    if gate_posture != GATE_ENFORCE:
+        for status in gate_statuses:
+            if status.fired_block:
+                print(
+                    f"Note (advisory): story {status.story.story_id!r} is "
+                    f"block-gated and uncleared -- {', '.join(status.fired_block)}.",
+                    file=sys.stderr,
+                )
+            elif status.matched_block and len(resolved) > 1:
+                print(
+                    f"Note (advisory): story {status.story.story_id!r} is "
+                    f"block-gated ({', '.join(status.matched_block)}); v1 ships "
+                    "block-gated stories solo.",
+                    file=sys.stderr,
+                )
 
     # Allocation-context token (#1378). A multi-story launch (or any
     # --group launch) is a swarm-cohort; a lone story is solo.
@@ -705,6 +948,7 @@ def main(argv: list[str] | None = None) -> int:
         allocation_plan_id=allocation_plan_id,
         batching_rationale=batching_rationale,
         operator_approval_evidence=operator_approval,
+        gate_clearances=gate_clearances,
     )
 
     rendered = json.dumps(manifest, indent=2)
@@ -718,6 +962,45 @@ def main(argv: list[str] | None = None) -> int:
         except OSError as exc:
             print(f"Error: could not write --output {args.output}: {exc}", file=sys.stderr)
             return EXIT_CONFIG_ERROR
+
+    # Authority-bearing audit (#1419 Slice 7, Receipts & Audit): a successful
+    # launch IS the allocation approval, so append the approval + each consumed
+    # gate clearance to the durable, committed audit log. Best-effort -- an
+    # audit write failure warns but never fails an otherwise-ready launch.
+    if not args.no_audit and append_authority_event is not None:
+        try:
+            append_authority_event(
+                project_root,
+                event_type="allocation:approved",
+                payload={
+                    "dispatch_kind": dispatch_kind,
+                    "allocation_plan_id": allocation_plan_id,
+                    "batching_rationale": batching_rationale,
+                    "cohort_vbriefs": [story.relpath for story in resolved],
+                    "operator_approval_evidence": operator_approval,
+                    "group": args.group,
+                },
+                log_name=AUTHORITY_LOG_NAME,
+            )
+            for clearance in gate_clearances:
+                append_authority_event(
+                    project_root,
+                    event_type="gate:cleared",
+                    payload={
+                        "gate_id": clearance.get("gate_id"),
+                        "vbrief_path": clearance.get("vbrief_path"),
+                        "cleared_by": clearance.get("cleared_by"),
+                        "cleared_scope": clearance.get("cleared_scope"),
+                        "rationale": clearance.get("rationale"),
+                        "cleared_at": clearance.get("cleared_at"),
+                    },
+                    log_name=AUTHORITY_LOG_NAME,
+                )
+        except OSError as exc:
+            print(
+                f"warning: could not append authority event(s): {exc}",
+                file=sys.stderr,
+            )
 
     print(rendered)
     return EXIT_OK

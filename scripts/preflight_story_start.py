@@ -47,9 +47,20 @@ Exit codes (three-state, mirrors ``scripts/preflight_branch.py``):
   fields, an unreadable ``--allocation-context`` file, or the working-tree
   state could not be determined (git absent / not a repo).
 
+Slice-7 gate-clearance integration (#1419): on a READY result this gate can
+also evaluate the target story's ``plan.metadata.swarm.file_scope`` against the
+risk-tiered judgment gates (imported from ``scripts/verify_judgment_gates.py``).
+The DEFAULT posture is advisory -- an uncleared active block-tier gate is
+SURFACED but the exit code is unchanged; the opt-in ``--enforce`` posture fails
+closed (exit 1). Clearances ride the ``## Allocation context`` as an inline-JSON
+``gate_clearances`` bullet; an ABSENT bullet in the advisory default is exactly
+today's behavior (backward compatible). Allocation approvals can be appended to
+the durable ``vbrief/.audit/`` log via ``--record-approval``.
+
 Refs:
 - #1378 (this gate; Story C)
 - #1371 (Story Start Gate consent-token carve-out this gate makes structural)
+- #1419 (Slice 7: gate-clearance enforcement + durable authority-event audit)
 - #810 (precedent: ``scripts/preflight_implementation.py`` lifecycle gate)
 - #747 (precedent shape: ``scripts/preflight_branch.py`` three-state exit)
 - #1366 (subprocess capture forces ``encoding="utf-8", errors="replace"``)
@@ -61,8 +72,24 @@ import argparse
 import json
 import subprocess
 import sys
+import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+# Make sibling scripts importable both when run as __main__ and when the
+# module is loaded directly by the test suite (mirrors swarm_launch.py).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+# Judgment-gate engine (#1419 Slice 3, on master). The Slice 7 clearance
+# integration evaluates the target story's ``plan.metadata.swarm.file_scope``
+# against the configured + universal judgment gates via ``build_report`` /
+# ``Candidate``. Guarded so Gate 0 still loads (today's behavior) when the
+# engine is unavailable -- the gate-clearance layer is then simply skipped.
+try:  # pragma: no cover - exercised on the real tree; guarded for resilience
+    import verify_judgment_gates as _gates  # type: ignore  # noqa: E402
+except Exception:  # noqa: BLE001 - any import failure disables the gate layer
+    _gates = None  # type: ignore[assignment]
 
 #: Canonical eligibility folder for an implementation story (mirrors
 #: ``preflight_implementation.ACTIVE_FOLDER``).
@@ -96,6 +123,30 @@ ALLOCATION_FIELDS = (
 
 #: Tokens that normalise to "null" (absent value) when parsing a field.
 _NULL_TOKENS = frozenset({"", "null", "none", "n/a"})
+
+#: The ``## Allocation context`` bullet that carries the inline-JSON
+#: gate-clearance array (#1419 Slice 7). Each entry is an object with
+#: ``gate_id`` / ``vbrief_path`` / ``cleared_by`` / ``rationale`` /
+#: ``cleared_at`` / ``cleared_scope``. ABSENCE of this bullet == today's
+#: behavior (no gate-clearance evaluation in the advisory default posture --
+#: backward compatible with every pre-Slice-7 dispatch envelope).
+GATE_CLEARANCES_FIELD = "gate_clearances"
+
+#: Gate-clearance evaluation postures (mirrors the verify_judgment_gates
+#: vocabulary). ``advise`` (DEFAULT) NEVER changes the readiness exit code --
+#: an uncleared active block-tier gate is SURFACED but the gate still exits 0.
+#: ``enforce`` fails closed (exit 1) when a mechanical block-tier gate fires
+#: without a recorded clearance. The framework's own ``task verify:story-ready``
+#: never passes ``--enforce`` so Gate 0 stays advisory on directive's own tree.
+GATE_ADVISE = "advise"
+GATE_ENFORCE = "enforce"
+
+#: Durable, committed audit log (dir + file) for authority-bearing events --
+#: allocation approvals + gate clearances per RFC #1419 Receipts & Audit
+#: (record-of-record; append-only; must survive). Mirrors the
+#: ``vbrief/.audit/`` location the Slice-3 clearance log already uses.
+AUDIT_DIR_REL = "vbrief/.audit"
+AUTHORITY_LOG_NAME = "authority-events.jsonl"
 
 
 # ---------------------------------------------------------------------------
@@ -267,6 +318,221 @@ def parse_allocation_section(
 
 
 # ---------------------------------------------------------------------------
+# gate-clearance integration (#1419 Slice 7)
+# ---------------------------------------------------------------------------
+
+
+def parse_gate_clearances(
+    fields: dict[str, str | None],
+) -> tuple[list[dict[str, Any]] | None, str | None]:
+    """Parse the inline-JSON ``gate_clearances`` bullet from a parsed section.
+
+    The dispatch envelope carries gate clearances as a single
+    ``- gate_clearances: [ {...}, {...} ]`` bullet whose value is a JSON array
+    (this keeps the existing flat ``- key: value`` parser unchanged -- the
+    value-after-first-colon survives the JSON object colons). Returns
+    ``(clearances, warning)``:
+
+    - ``clearances`` is None when the bullet is ABSENT -- the
+      backward-compatible "no gate-clearance section" path (today's behavior in
+      the advisory default posture). It is a list of clearance objects when the
+      bullet holds a JSON array, or ``[]`` when the bullet is present-but-null
+      / malformed / not a list (FAIL-SAFE: a malformed clearance array clears
+      nothing, so an enforced block gate still fires -- omitting clearances can
+      never silently bypass enforcement).
+    - ``warning`` is a human-readable note when the bullet was present but could
+      not be parsed, else None.
+
+    Pure -- no I/O. Never raises.
+    """
+    if GATE_CLEARANCES_FIELD not in fields:
+        return None, None
+    raw = fields.get(GATE_CLEARANCES_FIELD)
+    if raw is None:
+        # Present-but-null -> an explicit empty clearance set.
+        return [], None
+    try:
+        loaded = json.loads(raw)
+    except (json.JSONDecodeError, TypeError) as exc:
+        return [], f"gate_clearances bullet is not valid JSON ({exc}); treated as empty."
+    if not isinstance(loaded, list):
+        return [], "gate_clearances bullet is not a JSON array; treated as empty."
+    return [entry for entry in loaded if isinstance(entry, dict)], None
+
+
+def _read_file_scope(vbrief_path: Path) -> tuple[str, ...]:
+    """Return ``plan.metadata.swarm.file_scope`` from the target vBRIEF.
+
+    Best-effort + non-raising: any read / parse / shape error yields an empty
+    tuple, which makes the gate layer a no-op for that story (no file_scope ->
+    no candidate paths -> no path-glob gate can match). The lifecycle gate
+    (:func:`_check_vbrief`) already validated readability; this re-read keeps
+    the helper self-contained and side-effect-free.
+    """
+    try:
+        payload = json.loads(Path(vbrief_path).read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError):
+        return ()
+    if not isinstance(payload, dict):
+        return ()
+    plan = payload.get("plan")
+    if not isinstance(plan, dict):
+        return ()
+    metadata = plan.get("metadata")
+    if not isinstance(metadata, dict):
+        return ()
+    swarm = metadata.get("swarm")
+    if not isinstance(swarm, dict):
+        return ()
+    scope = swarm.get("file_scope")
+    if not isinstance(scope, list):
+        return ()
+    return tuple(p for p in scope if isinstance(p, str) and p)
+
+
+def evaluate_gate_clearances(
+    project_root: Path,
+    vbrief_path: Path,
+    *,
+    posture: str,
+    clearances: list[dict[str, Any]] | None,
+    now: datetime | None = None,
+) -> Any | None:
+    """Evaluate the target story's file_scope against the judgment gates.
+
+    Imports the Slice-3 engine (``verify_judgment_gates.build_report`` /
+    ``Candidate``) -- this module never re-implements the gate logic. Returns
+    the ``JudgmentGateReport`` (so the caller can inspect ``blocking`` /
+    ``block_tier_requirements``), or None when the engine is unavailable or the
+    story declares no file_scope (nothing to evaluate).
+
+    The clearances supplied from the ``## Allocation context`` are merged with
+    any already recorded in the durable clearance audit log, so a story cleared
+    out-of-band (``verify_judgment_gates.py clear``) is honored too.
+    """
+    if _gates is None:
+        return None
+    file_scope = _read_file_scope(vbrief_path)
+    if not file_scope:
+        return None
+    records = list(clearances or [])
+    records.extend(_gates.read_clearances(project_root))
+    return _gates.build_report(
+        project_root,
+        _gates.Candidate(paths=file_scope),
+        posture=posture,
+        clearances=records,
+        now=now,
+    )
+
+
+def _gate_surface_note(report: Any) -> str:
+    """Render a one-line-per-gate surface of the matched block-tier gates."""
+    lines: list[str] = []
+    for outcome in report.block_tier_requirements:
+        if outcome.cleared:
+            status = "cleared"
+        elif getattr(outcome, "stale_clearance", None) is not None:
+            status = "STALE-CLEARANCE re-triggered"
+        else:
+            status = "uncleared"
+        lines.append(f"    - [{outcome.tier}] {outcome.gate_id}: {status}")
+    if not lines:
+        return "judgment gates: no block-tier gate matched the story file_scope."
+    return "judgment gates (block-tier):\n" + "\n".join(lines)
+
+
+def _apply_gate_layer(
+    message: str,
+    vbrief_path: Path,
+    *,
+    project_root: Path | None,
+    gate_posture: str,
+    gate_clearances: list[dict[str, Any]] | None,
+    now: datetime | None,
+) -> tuple[int, str]:
+    """Layer the judgment-gate clearance check onto a READY (exit-0) result.
+
+    Runs ONLY when a project root is available AND either the posture is
+    ``enforce`` (always check -- omitting clearances cannot bypass it) OR a
+    ``gate_clearances`` bullet was present (advisory surfacing). When it does
+    not run, the original ready ``(0, message)`` is returned unchanged --
+    this is the backward-compatible "absent gate_clearances section == today's
+    behavior" path. In ``advise`` posture the exit code is NEVER changed; in
+    ``enforce`` posture an uncleared mechanical block-tier gate flips the
+    result to exit 1 (fail closed).
+    """
+    should_run = project_root is not None and (
+        gate_posture == GATE_ENFORCE or gate_clearances is not None
+    )
+    if not should_run:
+        return 0, message
+    report = evaluate_gate_clearances(
+        project_root,  # type: ignore[arg-type]
+        vbrief_path,
+        posture=gate_posture,
+        clearances=gate_clearances,
+        now=now,
+    )
+    if report is None:
+        return 0, message
+    note = _gate_surface_note(report)
+    if gate_posture == GATE_ENFORCE and report.blocking:
+        ids = ", ".join(o.gate_id for o in report.blocking)
+        return 1, (
+            message + "\n" + note + "\nBLOCKED: uncleared active block-tier "
+            f"gate(s): {ids}. Record a clearance in the `## Allocation context` "
+            "gate_clearances[] (or via `verify_judgment_gates.py clear`) before "
+            "dispatch (enforce posture)."
+        )
+    return 0, (message + "\n" + note)
+
+
+def _utc_now_iso(now: datetime | None = None) -> str:
+    """Return an ISO-8601 ``...Z`` timestamp (mirrors the clearance-log format)."""
+    return (now or datetime.now(UTC)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def authority_log_path(
+    project_root: Path, *, log_name: str = AUTHORITY_LOG_NAME
+) -> Path:
+    """Resolve the durable authority-events audit log under *project_root*."""
+    return project_root / AUDIT_DIR_REL / log_name
+
+
+def append_authority_event(
+    project_root: Path,
+    *,
+    event_type: str,
+    payload: dict[str, Any],
+    now: datetime | None = None,
+    log_name: str = AUTHORITY_LOG_NAME,
+) -> dict[str, Any]:
+    """Append an authority-bearing event to the durable audit log; return it.
+
+    Per RFC #1419 (Receipts & Audit), allocation approvals and gate clearances
+    are authority-bearing events appended to the durable, committed
+    ``vbrief/.audit/*.jsonl`` log (record-of-record; append-only; must
+    survive). The record carries a stable ``event_id``, an ISO-8601
+    ``timestamp``, the ``event_type``, and the caller-supplied ``payload``
+    fields. Shared with :mod:`swarm_launch` so both surfaces write the same
+    shape.
+    """
+    path = authority_log_path(project_root, log_name=log_name)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    entry: dict[str, Any] = {
+        "event_id": str(uuid.uuid4()),
+        "timestamp": _utc_now_iso(now),
+        "event_type": event_type,
+    }
+    entry.update(payload)
+    line = json.dumps(entry, sort_keys=True, ensure_ascii=False)
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(line + "\n")
+    return entry
+
+
+# ---------------------------------------------------------------------------
 # core evaluator
 # ---------------------------------------------------------------------------
 
@@ -278,6 +544,10 @@ def evaluate(
     allocation_context: str | None = None,
     allow_dirty: bool = False,
     parsed: tuple[bool, dict[str, str | None]] | None = None,
+    project_root: Path | None = None,
+    gate_posture: str = GATE_ADVISE,
+    gate_clearances: list[dict[str, Any]] | None = None,
+    now: datetime | None = None,
 ) -> tuple[int, str]:
     """Pure evaluator -- returns ``(exit_code, human_message)``.
 
@@ -291,7 +561,27 @@ def evaluate(
     result; when provided it is used as-is so callers that already parsed the
     envelope (e.g. :func:`main` building the ``--json`` payload) do not parse
     it a second time. When None the section is parsed here.
+
+    The Slice-7 gate-clearance layer (#1419) is OPT-IN and backward
+    compatible: it runs only on a READY (exit-0) result, only when
+    ``project_root`` is supplied, and only when the posture is ``enforce`` OR a
+    ``gate_clearances`` list was provided (a present ``gate_clearances`` bullet).
+    When ``project_root`` is None (the historical pure-call shape used by the
+    bulk of the unit tests) the gate layer is skipped entirely -- today's
+    behavior. In ``advise`` posture the exit code is never changed; ``enforce``
+    fails closed (exit 1) on an uncleared mechanical block-tier gate.
     """
+
+    def _ready(msg: str) -> tuple[int, str]:
+        return _apply_gate_layer(
+            msg,
+            vbrief_path,
+            project_root=project_root,
+            gate_posture=gate_posture,
+            gate_clearances=gate_clearances,
+            now=now,
+        )
+
     # --- (a) working tree --------------------------------------------------
     if git_status is None:
         return 2, (
@@ -317,7 +607,7 @@ def evaluate(
     # --- (c) dispatch-envelope allocation context -------------------------
     found, fields = parsed if parsed is not None else parse_allocation_section(allocation_context)
     if not found:
-        return 0, (
+        return _ready(
             f"OK: ready to start -- {tree_note}, vBRIEF active+running, no "
             "`## Allocation context` section (solo path, #1371 carve-out)."
         )
@@ -336,7 +626,7 @@ def evaluate(
         )
 
     if dispatch_kind == SOLO_KIND:
-        return 0, (
+        return _ready(
             f"OK: ready to start -- {tree_note}, vBRIEF active+running, dispatch_kind: solo."
         )
 
@@ -351,7 +641,7 @@ def evaluate(
             "requires a non-null allocation_plan_id AND batching_rationale "
             "(#1371 carve-out)."
         )
-    return 0, (
+    return _ready(
         f"OK: ready to start -- {tree_note}, vBRIEF active+running, swarm-cohort "
         "consent token satisfied (allocation_plan_id + batching_rationale present)."
     )
@@ -428,6 +718,27 @@ def _build_parser() -> argparse.ArgumentParser:
             "human-readable message. Exit code is unchanged."
         ),
     )
+    parser.add_argument(
+        "--enforce",
+        action="store_true",
+        help=(
+            "Gate-clearance ENFORCE posture (#1419 Slice 7): fail closed (exit 1) "
+            "when the target story's file_scope trips a mechanical block-tier "
+            "judgment gate that has no recorded clearance. DEFAULT is advisory -- "
+            "an uncleared block gate is surfaced but the exit code is unchanged. "
+            "The framework's own `task verify:story-ready` never passes this."
+        ),
+    )
+    parser.add_argument(
+        "--record-approval",
+        action="store_true",
+        help=(
+            "On a READY (exit-0) result, append a `story:dispatch-approved` "
+            "authority-bearing event to the durable audit log "
+            "(vbrief/.audit/authority-events.jsonl). Off by default so a routine "
+            "story-ready probe stays side-effect-free."
+        ),
+    )
     return parser
 
 
@@ -469,14 +780,42 @@ def main(argv: list[str] | None = None) -> int:
     # Parse the allocation section ONCE and thread it into evaluate() so the
     # envelope is not parsed twice (evaluate + the --json observability line).
     parsed = parse_allocation_section(allocation_context)
+    # Slice-7 gate clearances ride the allocation context as an inline-JSON
+    # bullet; absent bullet => None => the gate layer stays dormant in the
+    # advisory default (today's behavior).
+    gate_clearances, gc_warning = parse_gate_clearances(parsed[1])
+    gate_posture = GATE_ENFORCE if args.enforce else GATE_ADVISE
     code, message = evaluate(
         vbrief_path,
         git_status=git_status,
         allocation_context=allocation_context,
         allow_dirty=args.allow_dirty,
         parsed=parsed,
+        project_root=project_root,
+        gate_posture=gate_posture,
+        gate_clearances=gate_clearances,
     )
+    if gc_warning:
+        message = f"{message}\n  ! {gc_warning}"
     dispatch_kind = parsed[1].get("dispatch_kind")
+
+    # Authority-bearing audit (opt-in): record the dispatch approval only when
+    # the story is READY and --record-approval was passed. Best-effort -- an
+    # audit write failure warns but never flips a ready story to not-ready.
+    if args.record_approval and code == 0:
+        try:
+            append_authority_event(
+                project_root,
+                event_type="story:dispatch-approved",
+                payload={
+                    "vbrief_path": str(vbrief_path),
+                    "dispatch_kind": dispatch_kind,
+                    "allocation_plan_id": parsed[1].get("allocation_plan_id"),
+                    "gate_clearances": gate_clearances or [],
+                },
+            )
+        except OSError as exc:
+            print(f"warning: could not append authority event: {exc}", file=sys.stderr)
 
     if args.emit_json:
         print(_emit_json(vbrief_path, code, message, dispatch_kind=dispatch_kind))

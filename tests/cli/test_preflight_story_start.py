@@ -64,8 +64,14 @@ def _write_vbrief(
     include_plan: bool = True,
     raw_override: str | None = None,
     name: str = "2026-06-01-story.vbrief.json",
+    file_scope: list[str] | None = None,
 ) -> Path:
-    """Write a minimal vBRIEF to ``<base>/vbrief/<folder>/<name>``."""
+    """Write a minimal vBRIEF to ``<base>/vbrief/<folder>/<name>``.
+
+    When ``file_scope`` is supplied it is stamped at
+    ``plan.metadata.swarm.file_scope`` -- the candidate paths the Slice-7
+    gate-clearance layer evaluates against the judgment gates.
+    """
     folder_dir = base / "vbrief" / folder
     folder_dir.mkdir(parents=True, exist_ok=True)
     path = folder_dir / name
@@ -77,6 +83,8 @@ def _write_vbrief(
         plan: dict[str, Any] = {"title": "T", "items": []}
         if status is not None:
             plan["status"] = status
+        if file_scope is not None:
+            plan["metadata"] = {"swarm": {"file_scope": file_scope}}
         payload["plan"] = plan
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
@@ -469,3 +477,263 @@ def test_module_documents_three_state_contract(preflight):
     assert "## Allocation context" in doc
     assert "#1378" in doc
     assert "#1371" in doc
+
+
+# ---------------------------------------------------------------------------
+# #1419 Slice 7 -- gate-clearance integration (a1 + backward compatibility)
+# ---------------------------------------------------------------------------
+#
+# A block-tier judgment gate fires when the story's file_scope matches one of
+# the four default-on universal gates. "AGENTS.md" trips the
+# ``agents-md-and-skills`` mechanical/block universal gate, so a vBRIEF whose
+# file_scope is ["AGENTS.md"] is a block-gated story with no clearance.
+
+BLOCK_GATE_ID = "agents-md-and-skills"
+BLOCK_GATE_SCOPE_PATH = "AGENTS.md"
+
+
+def _engine(preflight):
+    """Return the imported judgment-gate engine (skip if unavailable)."""
+    engine = preflight._gates
+    if engine is None:  # pragma: no cover - engine ships with the repo
+        pytest.skip("verify_judgment_gates engine not importable")
+    return engine
+
+
+def _clearance_for(preflight, project_root: Path, *, paths: list[str]) -> dict:
+    """Build a clearance record whose cleared_scope matches the engine's."""
+    engine = _engine(preflight)
+    report = engine.build_report(
+        project_root,
+        engine.Candidate(paths=tuple(paths)),
+        posture="enforce",
+        clearances=[],
+    )
+    outcome = report.outcome_for(BLOCK_GATE_ID)
+    assert outcome is not None, "expected the universal block gate to match"
+    return {
+        "gate_id": BLOCK_GATE_ID,
+        "vbrief_path": "vbrief/active/2026-06-01-story.vbrief.json",
+        "cleared_by": "operator",
+        "rationale": "reviewed AGENTS.md change",
+        "cleared_at": "2026-06-04T00:00:00Z",
+        "cleared_scope": outcome.cleared_scope,
+    }
+
+
+def test_enforce_uncleared_block_gate_aborts(preflight, tmp_path):
+    """a1: enforce posture aborts (exit 1) on an uncleared active block gate."""
+    _engine(preflight)
+    path = _write_vbrief(tmp_path, file_scope=[BLOCK_GATE_SCOPE_PATH])
+    code, msg = preflight.evaluate(
+        path,
+        git_status=CLEAN_TREE,
+        project_root=tmp_path,
+        gate_posture="enforce",
+    )
+    assert code == 1
+    assert "BLOCKED" in msg
+    assert BLOCK_GATE_ID in msg
+
+
+def test_advise_uncleared_block_gate_surfaces_but_exits_0(preflight, tmp_path):
+    """Advisory posture SURFACES an uncleared block gate but still exits 0."""
+    _engine(preflight)
+    path = _write_vbrief(tmp_path, file_scope=[BLOCK_GATE_SCOPE_PATH])
+    # gate_clearances=[] (not None) turns the advisory surface on without
+    # clearing anything; the exit code must remain ready.
+    code, msg = preflight.evaluate(
+        path,
+        git_status=CLEAN_TREE,
+        project_root=tmp_path,
+        gate_posture="advise",
+        gate_clearances=[],
+    )
+    assert code == 0
+    assert "judgment gates" in msg.lower()
+    assert "uncleared" in msg.lower()
+    assert "BLOCKED" not in msg
+
+
+def test_absent_clearances_advise_is_backward_compatible(preflight, tmp_path):
+    """Back-compat: no gate_clearances + advise == today's behavior (no gate note)."""
+    _engine(preflight)
+    path = _write_vbrief(tmp_path, file_scope=[BLOCK_GATE_SCOPE_PATH])
+    code, msg = preflight.evaluate(
+        path,
+        git_status=CLEAN_TREE,
+        project_root=tmp_path,
+        gate_posture="advise",
+        gate_clearances=None,
+    )
+    assert code == 0
+    assert "judgment gates" not in msg.lower()
+
+
+def test_no_project_root_disables_gate_layer(preflight, tmp_path):
+    """The historical pure-call shape (no project_root) never runs the gate layer."""
+    path = _write_vbrief(tmp_path, file_scope=[BLOCK_GATE_SCOPE_PATH])
+    code, msg = preflight.evaluate(path, git_status=CLEAN_TREE, gate_posture="enforce")
+    assert code == 0
+    assert "judgment gates" not in msg.lower()
+
+
+def test_enforce_cleared_block_gate_is_ready(preflight, tmp_path):
+    """a-clearance: a recorded clearance lets the gated story through (exit 0)."""
+    path = _write_vbrief(tmp_path, file_scope=[BLOCK_GATE_SCOPE_PATH])
+    clearance = _clearance_for(preflight, tmp_path, paths=[BLOCK_GATE_SCOPE_PATH])
+    code, msg = preflight.evaluate(
+        path,
+        git_status=CLEAN_TREE,
+        project_root=tmp_path,
+        gate_posture="enforce",
+        gate_clearances=[clearance],
+    )
+    assert code == 0
+    assert "cleared" in msg.lower()
+    assert "BLOCKED" not in msg
+
+
+def test_enforce_no_file_scope_skips_gate_layer(preflight, tmp_path):
+    """A story without file_scope has no candidate paths -> no gate can fire."""
+    _engine(preflight)
+    path = _write_vbrief(tmp_path)  # no file_scope
+    code, _ = preflight.evaluate(
+        path,
+        git_status=CLEAN_TREE,
+        project_root=tmp_path,
+        gate_posture="enforce",
+    )
+    assert code == 0
+
+
+def test_enforce_non_gate_file_scope_is_ready(preflight, tmp_path):
+    """A file_scope that trips no universal block gate is ready under enforce."""
+    _engine(preflight)
+    path = _write_vbrief(tmp_path, file_scope=["scripts/preflight_story_start.py"])
+    code, _ = preflight.evaluate(
+        path,
+        git_status=CLEAN_TREE,
+        project_root=tmp_path,
+        gate_posture="enforce",
+    )
+    assert code == 0
+
+
+def test_main_enforce_blocked_exits_1_to_stderr(preflight, tmp_path, monkeypatch, capsys):
+    """main(--enforce) on an uncleared block-gated story exits 1 to stderr."""
+    _engine(preflight)
+    path = _write_vbrief(tmp_path, file_scope=[BLOCK_GATE_SCOPE_PATH])
+    monkeypatch.setattr(preflight, "_git_porcelain", lambda _root: CLEAN_TREE)
+    code = preflight.main(
+        ["--vbrief-path", str(path), "--project-root", str(tmp_path), "--enforce"]
+    )
+    out = capsys.readouterr()
+    assert code == 1
+    assert "BLOCKED" in out.err
+    assert out.out == ""
+
+
+# ---------------------------------------------------------------------------
+# parse_gate_clearances unit
+# ---------------------------------------------------------------------------
+
+
+def test_parse_gate_clearances_absent_is_none(preflight):
+    clearances, warning = preflight.parse_gate_clearances({"dispatch_kind": "solo"})
+    assert clearances is None
+    assert warning is None
+
+
+def test_parse_gate_clearances_valid_json(preflight):
+    fields = {"gate_clearances": '[{"gate_id": "g1", "cleared_scope": "abc"}]'}
+    clearances, warning = preflight.parse_gate_clearances(fields)
+    assert warning is None
+    assert clearances == [{"gate_id": "g1", "cleared_scope": "abc"}]
+
+
+def test_parse_gate_clearances_malformed_is_empty_with_warning(preflight):
+    clearances, warning = preflight.parse_gate_clearances({"gate_clearances": "{not json"})
+    assert clearances == []
+    assert warning is not None and "gate_clearances" in warning
+
+
+def test_parse_gate_clearances_non_array_is_empty_with_warning(preflight):
+    fields = {"gate_clearances": '{"gate_id": "g1"}'}
+    clearances, warning = preflight.parse_gate_clearances(fields)
+    assert clearances == []
+    assert warning is not None
+
+
+def test_clearances_from_envelope_clear_the_gate_in_main(preflight, tmp_path, monkeypatch, capsys):
+    """End-to-end: a gate_clearances bullet in the envelope clears the gate under --enforce."""
+    path = _write_vbrief(tmp_path, file_scope=[BLOCK_GATE_SCOPE_PATH])
+    clearance = _clearance_for(preflight, tmp_path, paths=[BLOCK_GATE_SCOPE_PATH])
+    envelope = tmp_path / "envelope.md"
+    envelope.write_text(
+        "## Allocation context\n"
+        "- dispatch_kind: solo\n"
+        f"- gate_clearances: {json.dumps([clearance])}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(preflight, "_git_porcelain", lambda _root: CLEAN_TREE)
+    code = preflight.main(
+        [
+            "--vbrief-path",
+            str(path),
+            "--project-root",
+            str(tmp_path),
+            "--allocation-context",
+            str(envelope),
+            "--enforce",
+        ]
+    )
+    assert code == 0
+
+
+# ---------------------------------------------------------------------------
+# durable authority-event audit log (a3)
+# ---------------------------------------------------------------------------
+
+
+def test_append_authority_event_writes_durable_log(preflight, tmp_path):
+    entry = preflight.append_authority_event(
+        tmp_path,
+        event_type="allocation:approved",
+        payload={"allocation_plan_id": "plan-1", "cohort_vbriefs": ["a.json"]},
+    )
+    log = preflight.authority_log_path(tmp_path)
+    assert log.is_file()
+    lines = [ln for ln in log.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert record["event_type"] == "allocation:approved"
+    assert record["allocation_plan_id"] == "plan-1"
+    assert "event_id" in record and "timestamp" in record
+    assert record == {**entry}
+
+
+def test_main_record_approval_appends_audit_event(preflight, tmp_path, monkeypatch, capsys):
+    path = _write_vbrief(tmp_path)
+    monkeypatch.setattr(preflight, "_git_porcelain", lambda _root: CLEAN_TREE)
+    code = preflight.main(
+        [
+            "--vbrief-path",
+            str(path),
+            "--project-root",
+            str(tmp_path),
+            "--record-approval",
+        ]
+    )
+    assert code == 0
+    log = preflight.authority_log_path(tmp_path)
+    assert log.is_file()
+    record = json.loads(log.read_text(encoding="utf-8").splitlines()[0])
+    assert record["event_type"] == "story:dispatch-approved"
+
+
+def test_main_without_record_approval_is_side_effect_free(preflight, tmp_path, monkeypatch):
+    path = _write_vbrief(tmp_path)
+    monkeypatch.setattr(preflight, "_git_porcelain", lambda _root: CLEAN_TREE)
+    preflight.main(["--vbrief-path", str(path), "--project-root", str(tmp_path)])
+    assert not preflight.authority_log_path(tmp_path).exists()

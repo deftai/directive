@@ -63,6 +63,7 @@ def _write_story(
     story_id: str,
     issues: list[int],
     title: str = "A story",
+    file_scope: list[str] | None = None,
 ) -> Path:
     refs = [
         {
@@ -71,16 +72,16 @@ def _write_story(
         }
         for n in issues
     ]
-    payload = {
-        "vBRIEFInfo": {"version": "0.6"},
-        "plan": {
-            "id": story_id,
-            "title": title,
-            "status": "running",
-            "references": refs,
-            "items": [],
-        },
+    plan: dict = {
+        "id": story_id,
+        "title": title,
+        "status": "running",
+        "references": refs,
+        "items": [],
     }
+    if file_scope is not None:
+        plan["metadata"] = {"swarm": {"file_scope": file_scope}}
+    payload = {"vBRIEFInfo": {"version": "0.6"}, "plan": plan}
     path = active_dir / filename
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
@@ -590,3 +591,225 @@ class TestCohortOrdering:
         monkeypatch.setattr(sl, "triage_queue", None)
         ordered = sl.order_cohort(resolved, project)
         assert [s.story_id for s in ordered] == [s.story_id for s in resolved]
+
+
+# ---------------------------------------------------------------------------
+# #1419 Slice 7 -- gate-clearance integration (a2) + block-gated-solo
+# ---------------------------------------------------------------------------
+#
+# A file_scope of ["AGENTS.md"] trips the default-on universal
+# ``agents-md-and-skills`` mechanical/block judgment gate, so such a story is a
+# block-gated story. These tests drive the enforce posture (--enforce-gates)
+# since the framework default is advisory.
+
+GATE_ID = "agents-md-and-skills"
+GATE_SCOPE_PATH = "AGENTS.md"
+
+
+def _engine():
+    if sl._gates is None:  # pragma: no cover - engine ships with the repo
+        pytest.skip("verify_judgment_gates engine not importable")
+    return sl._gates
+
+
+def _clearance_file(tmp_path: Path, project: Path, *, paths: list[str]) -> Path:
+    """Write a --gate-clearances file whose cleared_scope matches the engine's."""
+    engine = _engine()
+    report = engine.build_report(
+        project,
+        engine.Candidate(paths=tuple(paths)),
+        posture="enforce",
+        clearances=[],
+    )
+    outcome = report.outcome_for(GATE_ID)
+    assert outcome is not None
+    clearance = {
+        "gate_id": GATE_ID,
+        "vbrief_path": "vbrief/active/a.vbrief.json",
+        "cleared_by": "operator",
+        "rationale": "reviewed AGENTS.md change",
+        "cleared_at": "2026-06-04T00:00:00Z",
+        "cleared_scope": outcome.cleared_scope,
+    }
+    path = tmp_path / "clearances.json"
+    path.write_text(json.dumps([clearance]), encoding="utf-8")
+    return path
+
+
+class TestGateClearanceEnforcement:
+    def test_enforce_uncleared_block_gate_aborts(
+        self, project: Path, gates_pass, capsys
+    ) -> None:
+        _engine()
+        _write_story(
+            project / "vbrief" / "active", "a.vbrief.json",
+            story_id="sA", issues=[100], file_scope=[GATE_SCOPE_PATH],
+        )
+        rc = sl.main(
+            ["--stories", "100", "--enforce-gates", "--project-root", str(project)]
+        )
+        assert rc == sl.EXIT_GATE_FAILED
+        err = capsys.readouterr().err
+        assert "sA" in err
+        assert "block-gated" in err
+
+    def test_enforce_cleared_block_gate_launches(
+        self, project: Path, gates_pass, capsys, tmp_path: Path
+    ) -> None:
+        """a2: a recorded clearance permits the gated (solo) story to launch."""
+        _write_story(
+            project / "vbrief" / "active", "a.vbrief.json",
+            story_id="sA", issues=[100], file_scope=[GATE_SCOPE_PATH],
+        )
+        clearances = _clearance_file(tmp_path, project, paths=[GATE_SCOPE_PATH])
+        rc = sl.main(
+            [
+                "--stories", "100",
+                "--enforce-gates",
+                "--gate-clearances", str(clearances),
+                "--project-root", str(project),
+            ]
+        )
+        assert rc == sl.EXIT_OK
+        manifest = json.loads(capsys.readouterr().out)
+        assert [m["story_id"] for m in manifest] == ["sA"]
+
+    def test_advise_default_launches_uncleared_gated_story(
+        self, project: Path, gates_pass, capsys
+    ) -> None:
+        """Advisory default surfaces the uncleared block gate but still launches."""
+        _engine()
+        _write_story(
+            project / "vbrief" / "active", "a.vbrief.json",
+            story_id="sA", issues=[100], file_scope=[GATE_SCOPE_PATH],
+        )
+        rc = sl.main(["--stories", "100", "--project-root", str(project)])
+        assert rc == sl.EXIT_OK
+        captured = capsys.readouterr()
+        assert len(json.loads(captured.out)) == 1
+        assert "advisory" in captured.err.lower()
+
+    def test_enforce_block_gated_story_in_cohort_must_ship_solo(
+        self, project: Path, gates_pass, capsys, tmp_path: Path
+    ) -> None:
+        """A cleared block-gated story still cannot ride a multi-story cohort (v1)."""
+        active = project / "vbrief" / "active"
+        _write_story(
+            active, "a.vbrief.json", story_id="sA", issues=[100],
+            file_scope=[GATE_SCOPE_PATH],
+        )
+        _write_story(active, "b.vbrief.json", story_id="sB", issues=[200])
+        clearances = _clearance_file(tmp_path, project, paths=[GATE_SCOPE_PATH])
+        rc = sl.main(
+            [
+                "--stories", "100,200",
+                "--enforce-gates",
+                "--gate-clearances", str(clearances),
+                "--project-root", str(project),
+            ]
+        )
+        assert rc == sl.EXIT_GATE_FAILED
+        assert "solo" in capsys.readouterr().err.lower()
+
+    def test_envelope_carries_gate_clearances(
+        self, project: Path, gates_pass, capsys, tmp_path: Path
+    ) -> None:
+        """The consent token gains a gate_clearances field when clearances are supplied."""
+        _write_story(
+            project / "vbrief" / "active", "a.vbrief.json",
+            story_id="sA", issues=[100], file_scope=[GATE_SCOPE_PATH],
+        )
+        clearances = _clearance_file(tmp_path, project, paths=[GATE_SCOPE_PATH])
+        sl.main(
+            [
+                "--stories", "100",
+                "--gate-clearances", str(clearances),
+                "--project-root", str(project),
+            ]
+        )
+        ctx = json.loads(capsys.readouterr().out)[0]["allocation_context"]
+        assert "gate_clearances" in ctx
+        assert ctx["gate_clearances"][0]["gate_id"] == GATE_ID
+
+    def test_malformed_gate_clearances_file_exits_config_error(
+        self, project: Path, gates_pass, capsys, tmp_path: Path
+    ) -> None:
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        bad = tmp_path / "bad.json"
+        bad.write_text("{not json", encoding="utf-8")
+        rc = sl.main(
+            ["--stories", "100", "--gate-clearances", str(bad), "--project-root", str(project)]
+        )
+        assert rc == sl.EXIT_CONFIG_ERROR
+        assert "gate-clearances" in capsys.readouterr().err
+
+    def test_non_array_gate_clearances_file_exits_config_error(
+        self, project: Path, gates_pass, capsys, tmp_path: Path
+    ) -> None:
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        bad = tmp_path / "obj.json"
+        bad.write_text(json.dumps({"gate_id": "x"}), encoding="utf-8")
+        rc = sl.main(
+            ["--stories", "100", "--gate-clearances", str(bad), "--project-root", str(project)]
+        )
+        assert rc == sl.EXIT_CONFIG_ERROR
+        assert "array" in capsys.readouterr().err.lower()
+
+
+# ---------------------------------------------------------------------------
+# #1419 Slice 7 -- durable authority-event audit log (a3)
+# ---------------------------------------------------------------------------
+
+
+class TestAuthorityAudit:
+    def _audit_records(self, project: Path) -> list[dict]:
+        log = project / "vbrief" / ".audit" / sl.AUTHORITY_LOG_NAME
+        if not log.is_file():
+            return []
+        return [
+            json.loads(line)
+            for line in log.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+    def test_successful_launch_appends_allocation_approved(
+        self, project: Path, gates_pass, capsys
+    ) -> None:
+        """a3: a successful launch appends an allocation:approved authority event."""
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        rc = sl.main(["--stories", "100", "--project-root", str(project)])
+        assert rc == sl.EXIT_OK
+        records = self._audit_records(project)
+        assert any(r["event_type"] == "allocation:approved" for r in records)
+        approval = next(r for r in records if r["event_type"] == "allocation:approved")
+        assert approval["cohort_vbriefs"]
+        assert "event_id" in approval and "timestamp" in approval
+
+    def test_consumed_clearance_appends_gate_cleared(
+        self, project: Path, gates_pass, capsys, tmp_path: Path
+    ) -> None:
+        _write_story(
+            project / "vbrief" / "active", "a.vbrief.json",
+            story_id="sA", issues=[100], file_scope=[GATE_SCOPE_PATH],
+        )
+        clearances = _clearance_file(tmp_path, project, paths=[GATE_SCOPE_PATH])
+        rc = sl.main(
+            [
+                "--stories", "100",
+                "--gate-clearances", str(clearances),
+                "--project-root", str(project),
+            ]
+        )
+        assert rc == sl.EXIT_OK
+        records = self._audit_records(project)
+        cleared = [r for r in records if r["event_type"] == "gate:cleared"]
+        assert len(cleared) == 1
+        assert cleared[0]["gate_id"] == GATE_ID
+
+    def test_no_audit_flag_suppresses_audit(
+        self, project: Path, gates_pass, capsys
+    ) -> None:
+        _write_story(project / "vbrief" / "active", "a.vbrief.json", story_id="sA", issues=[100])
+        rc = sl.main(["--stories", "100", "--no-audit", "--project-root", str(project)])
+        assert rc == sl.EXIT_OK
+        assert self._audit_records(project) == []
