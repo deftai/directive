@@ -5,7 +5,7 @@
   },
   "plan": {
     "title": "RFC: Agentic Prioritization & Coordination Model for Deft Directive",
-    "status": "proposed",
+    "status": "completed",
     "narratives": {
       "Description": "RFC: Agentic Prioritization & Coordination Model for Deft Directive",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/1419",
@@ -56,26 +56,28 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-04-surface-human-clearance-backlog-and-the-earned-autonomy-dial.vbrief.json",
+        "uri": "completed/2026-06-04-surface-human-clearance-backlog-and-the-earned-autonomy-dial.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Surface human-clearance backlog and the earned-autonomy dial",
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-04-add-epic-staleness-and-stranded-slice-lifecycle-nudges-with.vbrief.json",
+        "uri": "completed/2026-06-04-add-epic-staleness-and-stranded-slice-lifecycle-nudges-with.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add epic-staleness and stranded-slice lifecycle nudges with trichotomy",
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-04-integrate-gate-clearances-and-capacity-blocks-into-gate-0-an.vbrief.json",
+        "uri": "completed/2026-06-04-integrate-gate-clearances-and-capacity-blocks-into-gate-0-an.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Integrate gate clearances and capacity blocks into Gate 0 and swarm:launch",
         "TrustLevel": "internal"
       }
     ],
     "metadata": {
-      "kind": "epic"
-    }
+      "kind": "epic",
+      "completedAt": "2026-06-05T01:04:27Z"
+    },
+    "updated": "2026-06-05T01:04:27Z"
   }
 }

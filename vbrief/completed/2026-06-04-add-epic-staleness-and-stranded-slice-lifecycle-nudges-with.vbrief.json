@@ -6,8 +6,8 @@
   "plan": {
     "id": "lifecycle-hygiene-nudges",
     "title": "Add epic-staleness and stranded-slice lifecycle nudges with trichotomy",
-    "status": "pending",
-    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "status": "completed",
+    "planRef": "completed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
       "Description": "Adds detection for stale undecomposed epics and stranded partially-completed epics, surfacing a finish, cancel-and-remove, or accept-as-tech-debt trichotomy when an epic is dormant beyond the configured threshold. The nudges feed the shared session-start ranking so they appear within the budgeted welcome line.",
       "ImplementationPlan": "1. Add a stranded-slice and epic-staleness detector module under scripts/ that reads epic and child status from the lifecycle folders and computes dormancy against epicStrandedDays and epicStalenessDays. 2. Wire the detector into scripts/triage_welcome.py and add tests in tests/cli/test_triage_welcome.py asserting the trichotomy nudge fires for a dormant partially-completed epic.",
@@ -66,7 +66,8 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "model_tier": "medium"
-      }
+      },
+      "completedAt": "2026-06-05T01:04:06Z"
     },
     "references": [
       {
@@ -80,6 +81,7 @@
         "type": "x-vbrief/closes",
         "title": "Issue #987"
       }
-    ]
+    ],
+    "updated": "2026-06-05T01:04:06Z"
   }
 }

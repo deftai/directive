@@ -6,8 +6,8 @@
   "plan": {
     "id": "enforcement-and-launch-integration",
     "title": "Integrate gate clearances and capacity blocks into Gate 0 and swarm:launch",
-    "status": "running",
-    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "status": "completed",
+    "planRef": "completed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
       "Description": "Threads judgment-gate clearances and capacity block modes into the story-start Gate 0 and the headless swarm:launch consent token, and appends authority-bearing events to the durable audit log. Block-gated stories ship solo in v1 until per-commit trailer attribution lands.",
       "ImplementationPlan": "1. Extend scripts/preflight_story_start.py and scripts/swarm_launch.py to read gate_clearances from the allocation context and fail closed on an uncleared active block gate. 2. Add tests in tests/cli/test_preflight_story_start.py and tests/cli/test_swarm_launch.py asserting an uncleared block gate aborts dispatch and a recorded clearance permits it.",
@@ -70,7 +70,8 @@
         "size": "large",
         "file_scope_confidence": "low",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-06-05T01:04:06Z"
     },
     "references": [
       {
@@ -85,6 +86,6 @@
         "title": "Issue #987"
       }
     ],
-    "updated": "2026-06-05T00:18:24Z"
+    "updated": "2026-06-05T01:04:06Z"
   }
 }

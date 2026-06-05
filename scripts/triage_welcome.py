@@ -23,6 +23,11 @@ from typing import Any
 # ``python scripts/triage_welcome.py``.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _lifecycle_hygiene import (  # noqa: E402  (sibling import after sys.path tweak)
+    detect_lifecycle_nudges,
+    record_tech_debt_acceptance,
+    resolve_epic_thresholds,
+)
 from _project_definition_io import (  # noqa: E402  (after sys.path tweak)
     atomic_write_project_definition,
     project_definition_mutation_lock,
@@ -531,7 +536,7 @@ def _run_task(args: list[str], *, cwd: Path) -> int:
 # reference them via ``triage_welcome.<name>``.
 # ---------------------------------------------------------------------------
 
-from _triage_welcome_cli import (  # noqa: E402,F401  (sibling import after sys.path tweak; _classify_onboarding re-exported for tests)
+from _triage_welcome_cli import (  # noqa: E402,F401  (after sys.path tweak; _classify_onboarding + run_default_mode re-wrapped below)
     FIRST_TIME_NUDGE,
     INCOMPLETE_NUDGE_TEMPLATE,
     PromptOutcome,
@@ -542,8 +547,102 @@ from _triage_welcome_cli import (  # noqa: E402,F401  (sibling import after sys.
     prompt_int,
     prompt_menu,
     prompt_yes_no,
-    run_default_mode,
+    run_default_mode as _cli_run_default_mode,
 )
+
+# ---------------------------------------------------------------------------
+# Session-start lifecycle-hygiene nudges (#1419 Slice 6)
+# ---------------------------------------------------------------------------
+
+#: Overflow pointer appended when the budget hides additional ranked nudges.
+NUDGE_OVERFLOW_POINTER: str = "`task capacity:show`"
+
+#: Default session-start nudge budget (RFC #1419 Nudge Budgeting: budget 1).
+DEFAULT_NUDGE_BUDGET: int = 1
+
+
+def lifecycle_nudge_lines(
+    project_root: Path, *, now: datetime | None = None
+) -> list[str]:
+    """Rendered lifecycle-hygiene nudge lines (#1419 Slice 6), Tier-ranked.
+
+    Thin adapter over :func:`_lifecycle_hygiene.detect_lifecycle_nudges` that
+    returns just the rendered one-line messages (stranded-slice Tier-1 +
+    stale-epic Tier-2), already sorted most-harmful-first. Unbudgeted -- the
+    verbose onboard readout emits all of them.
+    """
+    return [nudge.message for nudge in detect_lifecycle_nudges(project_root, now=now)]
+
+
+def session_start_nudge_lines(
+    project_root: Path,
+    *,
+    budget: int = DEFAULT_NUDGE_BUDGET,
+    now: datetime | None = None,
+) -> list[str]:
+    """Shared, budgeted session-start nudge ranking (#1419 Slice 6).
+
+    Merges the Slice-5 pending-human-decisions backlog (Tier-1) with the
+    Slice-6 lifecycle-hygiene nudges (stranded-slice Tier-1, stale-epic
+    Tier-2) into one ranked list -- ``(tier, -magnitude, id)`` -- and returns
+    at most *budget* headline lines plus a single ``+N more`` overflow pointer
+    at ``task capacity:show`` when more nudges remain. This is the budgeted
+    default-mode surface; the full ranked list lives in ``capacity:show``.
+    """
+    ranked: list[tuple[int, int, str, str]] = []
+    count = count_pending_decisions(project_root)
+    backlog_nudge = pending_decisions_nudge_line(count)
+    if backlog_nudge:
+        # Tier-1; magnitude = backlog size (negated at sort time for desc).
+        ranked.append((1, count, "pending-decisions", backlog_nudge))
+    for nudge in detect_lifecycle_nudges(project_root, now=now):
+        ranked.append((nudge.tier, nudge.magnitude, nudge.nudge_id, nudge.message))
+    # Ranking is tier-primary (rate-of-harm), then a coarse magnitude tiebreaker,
+    # then id. NOTE (#1508 review): within a tier the magnitude units are
+    # intentionally NOT normalized in v1 -- a lifecycle nudge's magnitude is
+    # dormancy-days while the backlog's is a decision count, so dormancy-days
+    # effectively dominates same-tier ordering. That is acceptable because the
+    # budgeted surface only shows the single top headline plus a `+N more`
+    # pointer; the full, separately-grouped list lives in `task capacity:show`.
+    ranked.sort(key=lambda item: (item[0], -item[1], item[2]))
+
+    budget = max(0, budget)
+    lines = [message for *_rest, message in ranked[:budget]]
+    overflow = len(ranked) - len(lines)
+    if overflow > 0:
+        lines.append(
+            f"  +{overflow} more lifecycle/capacity nudge(s) -- run "
+            f"{NUDGE_OVERFLOW_POINTER} for the full ranked list"
+        )
+    return lines
+
+
+def run_default_mode(
+    project_root: Path,
+    *,
+    output_fn: Callable[[str], None] | None = None,
+    write_history: bool = True,
+    now: datetime | None = None,
+) -> WelcomeOutcome:
+    """Default-mode session-start surface (#1309) + budgeted nudges (#1419 S6).
+
+    Delegates to the #1309 default-mode implementation in
+    :mod:`_triage_welcome_cli` (summary one-liner + onboarding nudge), then
+    appends the budgeted shared session-start nudge ranking so the
+    lifecycle-hygiene nudges ride the same surface as the Slice-5 backlog
+    one-liner. Always advisory -- never changes the delegate's exit code.
+
+    *now* is forwarded to the lifecycle detector so callers / tests can pin a
+    deterministic clock; ``None`` uses the real clock (#1508 review).
+    """
+    out_fn = output_fn or default_output
+    outcome = _cli_run_default_mode(
+        project_root, output_fn=out_fn, write_history=write_history
+    )
+    for line in session_start_nudge_lines(project_root, now=now):
+        out_fn(line)
+    return outcome
+
 
 # Re-export names for callers / tests reading them off this module. Kept
 # compact (single sorted tuple) so the file stays under the 1000-line
@@ -551,16 +650,18 @@ from _triage_welcome_cli import (  # noqa: E402,F401  (sibling import after sys.
 # ``from triage_welcome import *`` consumer.
 __all__ = (
     "AUDIT_LOG_REL_PATH", "CACHE_DIR_NAME", "CACHE_SOURCE",
-    "CANDIDATES_RELPATH", "DEFAULT_RELIEF_AGE_DAYS", "DEFAULT_WIP_CAP",
-    "FIRST_TIME_NUDGE", "INCOMPLETE_NUDGE_TEMPLATE",
-    "PROJECT_DEFINITION_REL_PATH", "PriorState", "PromptOutcome",
-    "ReliefPreview", "SUBSCRIPTION_PRESETS", "TRIAGE_SKILL_PATH",
-    "WELCOME_AUDIT_TAG", "WIP_LIFECYCLE_DIRS", "WelcomeOutcome",
-    "append_audit_entry", "candidates_log_path", "default_input",
-    "default_output", "detect_prior_state", "emit_oneliner", "main",
+    "CANDIDATES_RELPATH", "DEFAULT_NUDGE_BUDGET", "DEFAULT_RELIEF_AGE_DAYS",
+    "DEFAULT_WIP_CAP", "FIRST_TIME_NUDGE", "INCOMPLETE_NUDGE_TEMPLATE",
+    "NUDGE_OVERFLOW_POINTER", "PROJECT_DEFINITION_REL_PATH", "PriorState",
+    "PromptOutcome", "ReliefPreview", "SUBSCRIPTION_PRESETS",
+    "TRIAGE_SKILL_PATH", "WELCOME_AUDIT_TAG", "WIP_LIFECYCLE_DIRS",
+    "WelcomeOutcome", "append_audit_entry", "candidates_log_path",
+    "default_input", "default_output", "detect_lifecycle_nudges",
+    "detect_prior_state", "emit_oneliner", "lifecycle_nudge_lines", "main",
     "pending_decisions_oneliner", "preview_wip_relief",
-    "project_definition_path", "prompt_int",
-    "prompt_menu", "prompt_yes_no", "run_default_mode", "run_welcome",
+    "project_definition_path", "prompt_int", "prompt_menu", "prompt_yes_no",
+    "record_tech_debt_acceptance", "resolve_epic_thresholds",
+    "run_default_mode", "run_welcome", "session_start_nudge_lines",
     "write_triage_scope", "write_wip_cap",
 )
 
@@ -676,6 +777,12 @@ def run_welcome(
             backlog_nudge = pending_decisions_nudge_line(state.pending_decisions)
             if backlog_nudge:
                 out_fn(f"  {backlog_nudge}")
+            # #1419 Slice 6: stranded-slice (Tier-1) + stale-epic (Tier-2)
+            # lifecycle-hygiene nudges, alongside the Slice 5 backlog one-liner
+            # above. The onboard readout is verbose, so emit every nudge here;
+            # the budgeted default-mode surface ranks + caps them instead.
+            for line in lifecycle_nudge_lines(project_root):
+                out_fn(f"  {line}")
             _record_run(1)
             phase = 2
             continue

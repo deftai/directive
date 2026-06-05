@@ -6,8 +6,8 @@
   "plan": {
     "id": "review-autonomy-capacity",
     "title": "Surface human-clearance backlog and the earned-autonomy dial",
-    "status": "running",
-    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "status": "completed",
+    "planRef": "completed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
       "Description": "Adds a pending-human-decisions backlog surface and an autonomy dial that ratchets required human clearances based on the clearance-override rate (primary) and the rework rate (guardrail) over the capacity window. Per OQ1 (resolved 2026-06-04) the dial has three levels (Observe, Escalate, Execute) per gate-id, advances asymmetrically, and is advisory-only in v1; per OQ4 (trial) multi-LLM reviewer disagreement reuses the #526 errored-state machinery and escalates contested P0/P1 findings to human adjudication.",
       "ImplementationPlan": "1. Extend scripts/capacity_show.py and scripts/triage_welcome.py to compute and render a pending-human-decisions count from the audit log, and add an autonomy policy block in scripts/policy.py. 2. Add tests in tests/cli/test_capacity_show.py covering the backlog threshold nudge and an autonomy-level ratchet against synthetic override-rate fixtures.",
@@ -79,7 +79,8 @@
         "size": "large",
         "file_scope_confidence": "medium",
         "model_tier": "high"
-      }
+      },
+      "completedAt": "2026-06-05T01:04:07Z"
     },
     "references": [
       {
@@ -94,6 +95,6 @@
         "title": "Issue #987"
       }
     ],
-    "updated": "2026-06-04T23:28:15Z"
+    "updated": "2026-06-05T01:04:07Z"
   }
 }

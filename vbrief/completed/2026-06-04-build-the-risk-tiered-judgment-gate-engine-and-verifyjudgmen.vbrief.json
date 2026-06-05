@@ -7,7 +7,7 @@
     "id": "judgment-gate-engine",
     "title": "Build the risk-tiered judgment-gate engine and verify:judgment-gates",
     "status": "completed",
-    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "planRef": "completed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
       "Description": "Introduces plan.policy.judgmentGates with risk tiers auto, review, and block, default-on universal safety gates, and a deterministic scripts/verify_judgment_gates.py wired into task check and pre-push. Gates reuse the triageAutoClassify match DSL plus a new pathspec predicate and record clearances to the durable audit log.",
       "ImplementationPlan": "1. Add scripts/verify_judgment_gates.py with a pathspec matcher, tier evaluation, and three-state exit, plus policy schema entries in scripts/policy.py and a task verify:judgment-gates wiring. 2. Add tests in tests/cli/test_verify_judgment_gates.py covering mechanical fail-closed, declared fail-open, default-on universals, and clearance binding to a cleared_scope fingerprint.",

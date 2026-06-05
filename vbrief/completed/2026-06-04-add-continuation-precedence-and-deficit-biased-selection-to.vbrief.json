@@ -7,7 +7,7 @@
     "id": "continuation-precedence-selection",
     "title": "Add continuation precedence and deficit-biased selection to the queue",
     "status": "completed",
-    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "planRef": "completed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
       "Description": "Implements continuation precedence and deficit-biased selection in the queue and cohort-fill so a started epic's remaining stories outrank net-new work and under-target capacity buckets get preferentially promoted. This realizes the RFC lexicographic selection sort on top of the rank field from Slice 1 and the bucket tallies from the capacity engine.",
       "ImplementationPlan": "1. Extend the ranking comparator in scripts/triage_queue.py and the cohort-fill path in scripts/swarm_launch.py to apply the order urgent, continuation, bucket-deficit, rank, date, reading bucket tallies from the capacity module. 2. Add tests in tests/cli/test_triage_queue.py that assert continuation work and deficit buckets sort ahead of net-new work, including a finishBeforeStart variant.",

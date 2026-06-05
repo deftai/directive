@@ -7,7 +7,7 @@
     "id": "capacity-accounting-engine",
     "title": "Add capacity allocation accounting with buckets, windows, and capacity:show",
     "status": "completed",
-    "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
+    "planRef": "completed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
       "Description": "Adds plan.policy.capacityAllocation with protected buckets, trailing-window accounting, kind-aware counting, a minSampleSize guard, and a task capacity:show surface that reports target-versus-actual mix with outcome and cost overlays. Per OQ2 (resolved 2026-06-04), capacityAllocation.unit is a per-project selectable policy option including unit:cost, folded into v1; the default stays vbrief-count plus a cost overlay (directive's mode), and unit:cost self-guards by falling back to advisory count when grounded actuals are insufficient.",
       "ImplementationPlan": "1. Add scripts/capacity_show.py and scripts/verify_capacity.py that derive bucket tallies from the lifecycle folders, and stamp capacityBucket plus completedAt in scripts/scope_lifecycle.py at completion. 2. Add a selectable capacityAllocation.unit policy field in scripts/policy.py (vbrief-count default, cost opt-in) whose cost path falls back to advisory count when grounded actuals are below the coverage guard. 3. Add tests in tests/cli/test_capacity_show.py asserting deficit math, the minSampleSize advisory fallback, kind-aware epic counting, and the unit:cost guarded fallback against fixtures.",
