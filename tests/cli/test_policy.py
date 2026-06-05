@@ -948,6 +948,17 @@ def test_route_review_tier_no_escalation_on_p2(policy_module):
     assert routing.required_human_reviewers == 0
 
 
+def test_route_review_tier_errored_reason_distinguishes_from_severity(policy_module):
+    # errored-on-HEAD with a low (non-escalating) severity must not be labelled
+    # as a severity-driven split in the review-tier audit reason.
+    routing = policy_module.route_reviewer_disagreement(
+        severity="p2", tier="review", errored_on_head=True
+    )
+    assert routing.escalates is True
+    assert "errored-on-HEAD" in routing.reason
+    assert "p2" not in routing.reason
+
+
 def test_route_auto_tier_contested_p0_upgrades_to_review(policy_module):
     routing = policy_module.route_reviewer_disagreement(severity="p0", tier="auto")
     assert routing.escalates is True

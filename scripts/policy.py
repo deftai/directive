@@ -1492,6 +1492,14 @@ def route_reviewer_disagreement(
         )
     if requested == "review":
         if escalating_sev:
+            # Distinguish the escalation trigger (mirrors the auto-tier branch
+            # below): an errored-on-HEAD review on a low-severity split is not
+            # a severity-driven escalation, so do not label it with `sev`.
+            review_reason = (
+                "errored-on-HEAD review on a review-tier gate escalates to 1 human"
+                if errored_on_head and sev not in _ESCALATING_SEVERITIES
+                else f"review-tier {sev or 'errored'} reviewer split escalates to 1 human"
+            )
             return ReviewerRouting(
                 severity=sev,
                 requested_tier="review",
@@ -1499,9 +1507,7 @@ def route_reviewer_disagreement(
                 escalates=True,
                 required_human_reviewers=1,
                 upgraded=False,
-                reason=(
-                    f"review-tier {sev or 'errored'} reviewer split escalates to 1 human"
-                ),
+                reason=review_reason,
             )
         return ReviewerRouting(
             severity=sev,
