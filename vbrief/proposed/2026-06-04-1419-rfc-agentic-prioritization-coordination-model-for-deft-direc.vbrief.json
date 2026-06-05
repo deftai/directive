@@ -56,13 +56,13 @@
         "TrustLevel": "internal"
       },
       {
-        "uri": "active/2026-06-04-surface-human-clearance-backlog-and-the-earned-autonomy-dial.vbrief.json",
+        "uri": "completed/2026-06-04-surface-human-clearance-backlog-and-the-earned-autonomy-dial.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Surface human-clearance backlog and the earned-autonomy dial",
         "TrustLevel": "internal"
       },
       {
-        "uri": "pending/2026-06-04-add-epic-staleness-and-stranded-slice-lifecycle-nudges-with.vbrief.json",
+        "uri": "active/2026-06-04-add-epic-staleness-and-stranded-slice-lifecycle-nudges-with.vbrief.json",
         "type": "x-vbrief/plan",
         "title": "Add epic-staleness and stranded-slice lifecycle nudges with trichotomy",
         "TrustLevel": "internal"

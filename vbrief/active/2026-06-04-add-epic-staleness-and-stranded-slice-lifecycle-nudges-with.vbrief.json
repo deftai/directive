@@ -6,7 +6,7 @@
   "plan": {
     "id": "lifecycle-hygiene-nudges",
     "title": "Add epic-staleness and stranded-slice lifecycle nudges with trichotomy",
-    "status": "pending",
+    "status": "running",
     "planRef": "proposed/2026-06-04-1419-rfc-agentic-prioritization-coordination-model-for-deft-direc.vbrief.json",
     "narratives": {
       "Description": "Adds detection for stale undecomposed epics and stranded partially-completed epics, surfacing a finish, cancel-and-remove, or accept-as-tech-debt trichotomy when an epic is dormant beyond the configured threshold. The nudges feed the shared session-start ranking so they appear within the budgeted welcome line.",
@@ -80,6 +80,7 @@
         "type": "x-vbrief/closes",
         "title": "Issue #987"
       }
-    ]
+    ],
+    "updated": "2026-06-05T00:15:09Z"
   }
 }
